@@ -31,7 +31,7 @@ export function MorningPage({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Wren size={18} mode="line" />
           <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.purple }}>
-            FROM A LETTER NOBODY OPENED
+            今天别人写的一句
           </Text>
         </View>
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 0.6, color: C.faint }}>
@@ -39,14 +39,14 @@ export function MorningPage({
         </Text>
       </View>
       <Text style={{ fontFamily: F.serifItalic, fontSize: 22, lineHeight: 32, color: C.ink }}>“{fragment}”</Text>
-      <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginTop: 14 }}>— someone, somewhere</Text>
+      <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginTop: 14 }}>— 一个陌生人</Text>
       <Text style={{ fontFamily: F.sans, fontSize: 13, lineHeight: 20, color: C.muted, marginTop: 14 }}>
-        They wrote this to a stranger and nobody opened the door. Write back and it goes{" "}
-        <Text style={{ color: C.purple, fontFamily: F.sansSemi }}>straight to them</Text> — no three streets.
+        这是某个人写下、还没人回的一句话。你回一句，会
+        <Text style={{ color: C.purple, fontFamily: F.sansSemi }}>直接发给 ta</Text>。
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 18 }}>
         <Pressable onPress={onWrite} style={{ flex: 1, backgroundColor: C.navy, borderRadius: 26, paddingVertical: 15, alignItems: "center" }}>
-          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4 }}>WRITE BACK TO THEM</Text>
+          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1 }}>回 ta 一句</Text>
         </Pressable>
         <Pressable
           onPress={onKeep}

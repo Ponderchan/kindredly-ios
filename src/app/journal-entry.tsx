@@ -173,7 +173,7 @@ export default function JournalEntry() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 18, color: C.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.faint }}>YOUR JOURNAL</Text>
+        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.faint }}>今天的日记</Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -258,7 +258,7 @@ export default function JournalEntry() {
               <>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 }}>
                   <Wren size={18} mode="line" />
-                  <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>WREN SUGGESTS</Text>
+                  <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>Wren 提议</Text>
                 </View>
                 <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ marginBottom: 18 }}>
                   <Text style={{ fontFamily: F.serifItalic, fontSize: 16, color: C.muted, lineHeight: 25 }}>“{openers[pIdx]}”</Text>
@@ -269,7 +269,7 @@ export default function JournalEntry() {
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder={att ? "A line to go with it… (optional)" : "Today…"}
+              placeholder={att ? "配一句话…（可不写）" : "今天…"}
               placeholderTextColor={C.faint}
               multiline
               style={{ minHeight: att ? 80 : 180, color: "#22222A", fontFamily: F.letter, fontSize: 19, lineHeight: 31, textAlignVertical: "top" }}
@@ -280,9 +280,9 @@ export default function JournalEntry() {
           <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
             {(
               [
-                ["photo", "🖼", "Photo"],
-                ["voice", "🎙", "Voice"],
-                ["video", "🎬", "Video"],
+                ["photo", "🖼", "图片"],
+                ["voice", "🎙", "语音"],
+                ["video", "🎬", "视频"],
               ] as [Exclude<JournalType, "text">, string, string][]
             ).map(([k, ic, lb]) => {
               const on = att === k;
@@ -301,14 +301,14 @@ export default function JournalEntry() {
           </View>
 
           <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 16 }}>
-            🔒 Sealed on this device. Only a line you choose can ever drift out.
+            🔒 只存你手机里。只有你挑的那一句，才会发出去。
           </Text>
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 26 }}>
           <Pressable onPress={() => canSave && setMoodOpen(true)} disabled={!canSave || busy} style={[navyBtn, { paddingVertical: 19, width: "100%", opacity: canSave && !busy ? 1 : 0.3 }]}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1.6 }}>
-              {busy ? "SAVING…" : "SAVE TO JOURNAL"}
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>
+              {busy ? "保存中…" : "存进日记"}
             </Text>
           </Pressable>
         </View>

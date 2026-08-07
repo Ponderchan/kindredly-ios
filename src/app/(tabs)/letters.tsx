@@ -96,19 +96,19 @@ export default function LettersTab() {
       >
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: F.serif, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>Letters</Text>
+            <Text style={{ fontFamily: F.serif, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>今天</Text>
             <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 4 }}>
-              The art of the slow letter.
+              写给自己，偶尔有人回你。
             </Text>
           </View>
           {premium ? (
             <View style={{ backgroundColor: C.goldLt, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.4, color: C.gold }}>MEMBER</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.4, color: C.gold }}>会员</Text>
             </View>
           ) : null}
         </View>
 
-        {/* morning page */}
+        {/* today's line from someone else */}
         <View style={{ marginTop: 22 }}>
           {morning ? (
             <MorningPage
@@ -123,13 +123,33 @@ export default function LettersTab() {
           )}
         </View>
 
-        {/* ── YOUR MAILBOX — the personal section ── */}
+        {/* write today — the core act */}
+        <Pressable
+          onPress={() => router.push("/journal-entry")}
+          style={({ pressed }) => [
+            cardStyle,
+            { flexDirection: "row", alignItems: "center", gap: 14, padding: 18, marginTop: 12, backgroundColor: C.navy, opacity: pressed ? 0.94 : 1 },
+          ]}
+        >
+          <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 20, color: "#fff" }}>✎</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: F.serifSemi, fontSize: 17, color: "#fff" }}>写今天的日记</Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 3 }}>
+              只存你手机里 · 写完可以挑一句发出去
+            </Text>
+          </View>
+          <Text style={{ fontSize: 18, color: "rgba(255,255,255,0.5)" }}>›</Text>
+        </Pressable>
+
+        {/* ── 我的信 — the personal section ── */}
         {(waitingOnYou.length > 0 || sentWaiting.length > 0) && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 30 }}>
-            <Caps>YOUR MAILBOX</Caps>
+            <Caps>我的信</Caps>
             {demo && (
               <View style={{ backgroundColor: C.goldLt, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 1, color: C.gold }}>SAMPLE POST</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 1, color: C.gold }}>示例</Text>
               </View>
             )}
           </View>
@@ -139,8 +159,8 @@ export default function LettersTab() {
         {waitingOnYou.length > 0 && (
           <>
             <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 16, marginBottom: 12 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.ember }}>WAITING ON YOU</Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint }}>{waitingOnYou.length} to answer</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.ember }}>等你回</Text>
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint }}>{waitingOnYou.length} 封</Text>
             </View>
             {waitingOnYou.map((t) => (
               <ThreadRow key={t.id} t={t} onOpen={() => router.push(`/thread/${t.id}`)} />
@@ -152,7 +172,7 @@ export default function LettersTab() {
         {sentWaiting.length > 0 && (
           <>
             <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.label, marginTop: 20, marginBottom: 12 }}>
-              SENT — WAITING
+              发出去了，等回音
             </Text>
             {sentWaiting.map((t) => (
               <ThreadRow key={t.id} t={t} onOpen={() => router.push(`/thread/${t.id}`)} />
@@ -160,20 +180,20 @@ export default function LettersTab() {
           </>
         )}
 
-        {/* mailbox — empty (web framing) */}
+        {/* mailbox — empty */}
         {!demo && loaded && threads.length === 0 && (
           <>
-            <Caps style={{ marginTop: 30, marginBottom: 4 }}>YOUR MAILBOX</Caps>
+            <Caps style={{ marginTop: 30, marginBottom: 4 }}>我的信</Caps>
             <View style={[cardStyle, { alignItems: "center", paddingVertical: 40, paddingHorizontal: 24, marginTop: 12, borderStyle: "dashed", borderWidth: 1, borderColor: C.line }]}>
               <Wren size={40} mode="line" color={C.faint} />
               <Text style={{ fontFamily: F.serifSemi, fontSize: 21, color: C.ink, marginTop: 16, textAlign: "center" }}>
-                Nothing's waiting on you yet.
+                还没有人和你来回写信。
               </Text>
               <Text style={{ fontFamily: F.sans, fontSize: 13.5, lineHeight: 21, color: C.muted, marginTop: 8, textAlign: "center", maxWidth: 300 }}>
-                When someone answers your letter — or you answer theirs — the thread lands in your mailbox. No rush; nothing nudges you.
+                你分享出去的一句，有人回了，就会出现在这里。不着急，也没人催你。
               </Text>
-              <Pressable onPress={() => router.push("/compose")} style={{ marginTop: 18, backgroundColor: C.purple, borderRadius: 24, paddingHorizontal: 22, paddingVertical: 12 }}>
-                <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 13, letterSpacing: 0.3 }}>Write a letter</Text>
+              <Pressable onPress={() => router.push("/journal-entry")} style={{ marginTop: 18, backgroundColor: C.purple, borderRadius: 24, paddingHorizontal: 22, paddingVertical: 12 }}>
+                <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 13, letterSpacing: 0.3 }}>写今天的日记</Text>
               </Pressable>
             </View>
           </>
@@ -183,8 +203,8 @@ export default function LettersTab() {
         {drafts.length > 0 && (
           <>
             <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 20, marginBottom: 12 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.label }}>DRAFTS</Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint }}>only you can see these</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.label }}>草稿</Text>
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint }}>只有你能看到</Text>
             </View>
             {drafts.map((d) => (
               <Pressable
@@ -210,10 +230,10 @@ export default function LettersTab() {
           </>
         )}
 
-        {/* ── AT YOUR DOOR — the shared pool ── */}
+        {/* ── 别人写的一句 — the shared pool ── */}
         {showPool.length > 0 && (
           <>
-            <Caps style={{ marginTop: 30, marginBottom: 14 }}>A LETTER AT YOUR DOOR</Caps>
+            <Caps style={{ marginTop: 30, marginBottom: 14 }}>别人写的，想回就回</Caps>
             {showPool.slice(0, 6).map((l) => {
               const isVoice = l.kind === "voice" && l.media_path;
               return (
@@ -243,7 +263,7 @@ export default function LettersTab() {
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <Text style={{ fontFamily: F.serif, fontSize: 16, color: C.ink }}>
-                        {isVoice ? "A stranger's voice" : "A stranger wrote…"}
+                        {isVoice ? "一个陌生人的语音" : "一个陌生人写道…"}
                       </Text>
                       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.ember }} />
                     </View>
@@ -275,9 +295,9 @@ export default function LettersTab() {
         <View style={[cardStyle, { marginTop: 24, flexDirection: "row", alignItems: "center", gap: 12, padding: 18 }]}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.purple }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 16, color: C.ink }}>This week's question opens Thursday</Text>
+            <Text style={{ fontFamily: F.serifSemi, fontSize: 16, color: C.ink }}>本周话题，周四开</Text>
             <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.muted, marginTop: 3, lineHeight: 18 }}>
-              One question, one week. Answer it and you're guaranteed a reply.
+              一周一个问题。回答它，保证有人回你。
             </Text>
           </View>
         </View>
@@ -291,13 +311,13 @@ function EmptyMorning() {
     <View style={{ borderRadius: 22, overflow: "hidden", backgroundColor: C.purpleLt, padding: 24, minHeight: 150, justifyContent: "center" }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <Wren size={18} mode="line" />
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.purple }}>THE MORNING PAGE</Text>
+        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.purple }}>今天别人写的一句</Text>
       </View>
       <Text style={{ fontFamily: F.serifItalic, fontSize: 19, lineHeight: 29, color: C.ink }}>
-        Wren leaves you a line here every morning at eight.
+        每天早上 8 点，这里会有一句别人写的话。
       </Text>
       <Text style={{ fontFamily: F.sans, fontSize: 13, lineHeight: 20, color: C.muted, marginTop: 10 }}>
-        Whether or not anyone has written back.
+        不管有没有人回过你。
       </Text>
     </View>
   );

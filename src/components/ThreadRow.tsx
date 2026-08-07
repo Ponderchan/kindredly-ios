@@ -32,7 +32,7 @@ export function ThreadRow({ t, onOpen }: { t: ThreadSummary; onOpen: () => void 
           <View style={{ marginTop: 8 }}>
             <ProgressBar pct={Math.min(100, (t.mine / 5) * 100)} height={3} />
             <Text style={{ fontFamily: F.sans, fontSize: 10, color: C.faint, marginTop: 4 }}>
-              {t.mine} of 5 to names
+              {t.mine >= 5 ? "满 5 封，可以看名字了" : `还差 ${5 - t.mine} 封就能看名字`}
             </Text>
           </View>
         )}
