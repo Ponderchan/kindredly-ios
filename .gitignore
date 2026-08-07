@@ -4,6 +4,11 @@ node_modules/
 dist/
 web-build/
 *.log
+expo-env.d.ts
+
+# Native build dirs (managed workflow regenerates via prebuild)
+/ios
+/android
 
 # Native
 ios/Pods/

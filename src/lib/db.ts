@@ -1,0 +1,512 @@
+/* Supabase data layer — direct RLS reads/writes, ported from kindredly/app/db.js.
+   Every call is fail-safe: no client / missing table / network error → null and
+   the caller falls back. RN adaptation: the writer handle comes from the signed-in
+   user's user_metadata (the web read it from a localStorage session mirror). */
+
+import { supabase, supabaseReady } from "./supabase";
+
+async function uid(): Promise<string | null> {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** current writer's pen name (handle) for thread name-reveal. */
+async function currentHandle(): Promise<string> {
+  if (!supabase) return "";
+  try {
+    const { data } = await supabase.auth.getUser();
+    const m: any = data.user?.user_metadata || {};
+    return m.handle || m.full_name || m.name || "";
+  } catch {
+    return "";
+  }
+}
+
+const REVEAL_AT = 5;
+
+/* ── Voice Match ── */
+export async function upsertFingerprint(
+  sig: number[],
+  nWords: number,
+): Promise<true | null> {
+  if (!supabaseReady || !Array.isArray(sig)) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const { error } = await supabase!.from("fingerprints").upsert(
+      { user_id: id, sig, n_words: nWords | 0, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+export interface MatchInfo {
+  closest: { uid: string; score: number }[];
+  count: number;
+}
+export async function fetchMatches(): Promise<MatchInfo | null> {
+  if (!supabaseReady) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("matches")
+      .select("closest, computed_at")
+      .eq("user_id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    const closest = Array.isArray(data.closest) ? data.closest : [];
+    return { closest, count: closest.length };
+  } catch {
+    return null;
+  }
+}
+
+/* ── Morning Page ── */
+export async function insertMorningFragment(
+  fragment: string,
+  mood: string | null,
+  lang: string,
+): Promise<true | null> {
+  if (!supabaseReady || !fragment) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const { error } = await supabase!.from("morning_pages").insert({
+      author: id,
+      fragment: String(fragment).slice(0, 400),
+      mood: mood || null,
+      lang: lang || "en",
+    });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+export interface MorningCandidate {
+  id: string;
+  fragment: string;
+  mood: string | null;
+  lang: string | null;
+}
+export async function fetchMorningCandidates(
+  limit = 8,
+  lang?: string,
+): Promise<MorningCandidate[] | null> {
+  if (!supabaseReady) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("morning_feed")
+      .select("id, fragment, mood, lang")
+      .order("created_at", { ascending: false })
+      .limit(limit * 3);
+    if (error || !data || !data.length) return null;
+    const pool = lang ? data.filter((r: any) => !r.lang || r.lang === lang) : data;
+    return (pool.length ? pool : data).slice(0, limit) as MorningCandidate[];
+  } catch {
+    return null;
+  }
+}
+
+/* ── Letters (shared discovery pool) ── */
+export async function publishLetter(
+  stamp: string,
+  body: string,
+  lang: string,
+): Promise<true | null> {
+  if (!supabaseReady || !body) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const { error } = await supabase!.from("letters").insert({
+      author: id,
+      stamp: stamp || "off-chest",
+      body: String(body).slice(0, 2000),
+      lang: lang || "en",
+    });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+export interface PoolLetter {
+  id: string;
+  author: string;
+  stamp: string;
+  body: string;
+  lang: string;
+  created_at: string;
+  kind?: "text" | "voice"; // absent pre-0007 migration
+  media_path?: string | null;
+  duration_s?: number | null;
+}
+/** active pool rows excluding the viewer's own, newest first. Falls back to
+   the pre-0007 column set if the media columns don't exist yet. */
+export async function fetchPool(limit = 40): Promise<PoolLetter[] | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  try {
+    let { data, error } = await supabase!
+      .from("letters")
+      .select("id, author, stamp, body, lang, created_at, kind, media_path, duration_s")
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      // migration 0007 not applied yet → retry without media columns
+      const fallback = await supabase!
+        .from("letters")
+        .select("id, author, stamp, body, lang, created_at")
+        .eq("active", true)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      data = fallback.data as any;
+      if (fallback.error || !data) return null;
+    }
+    if (!data) return null;
+    return (data as PoolLetter[]).filter((r) => r.author !== me);
+  } catch {
+    return null;
+  }
+}
+
+/** public playback URL for a voice letter's media_path (public bucket). */
+export function voiceLetterUrl(mediaPath?: string | null): string | null {
+  if (!supabase || !mediaPath) return null;
+  try {
+    const { data } = supabase.storage.from("voice-letters").getPublicUrl(mediaPath);
+    return data?.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Upload the recording, then insert a kind='voice' letter. `body` carries the
+   caption (web renders it as a text card — graceful degradation). */
+export async function publishVoiceLetter(
+  stamp: string,
+  fileUri: string,
+  durationS: number,
+  caption: string,
+  lang: string,
+): Promise<true | null> {
+  if (!supabaseReady || !fileUri) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const path = `${id}/${Date.now()}.m4a`;
+    const res = await fetch(fileUri);
+    const blob = await res.arrayBuffer();
+    const { error: upErr } = await supabase!.storage
+      .from("voice-letters")
+      .upload(path, blob, { contentType: "audio/m4a" });
+    if (upErr) return null;
+    const { error } = await supabase!.from("letters").insert({
+      author: id,
+      stamp: stamp || "off-chest",
+      body: (caption || "🎙 A voice letter").slice(0, 2000),
+      lang: lang || "en",
+      kind: "voice",
+      media_path: path,
+      duration_s: Math.round(durationS) || null,
+    });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+/* ── Threads + messages (real 1:1 conversations) ── */
+export async function replyToLetter(
+  letter: PoolLetter,
+  body: string,
+): Promise<string | null> {
+  if (!supabaseReady || !letter || !letter.author) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const handle = await currentHandle();
+    const row: Record<string, unknown> = {
+      a: me,
+      b: letter.author,
+      stamp: letter.stamp || "off-chest",
+      opening: letter.body || "",
+      a_count: 1,
+      a_name: handle,
+      last_sender: me,
+      last_body: body,
+      last_at: new Date().toISOString(),
+    };
+    // snapshot a voice opening (columns exist once 0007 is applied)
+    if (letter.kind === "voice" && letter.media_path) {
+      row.opening_media = letter.media_path;
+      row.opening_duration_s = letter.duration_s ?? null;
+    }
+    let { data, error } = await supabase!.from("threads").insert(row).select("id").single();
+    if (error && row.opening_media) {
+      // pre-0007 fallback: retry without the media columns
+      delete row.opening_media;
+      delete row.opening_duration_s;
+      const retry = await supabase!.from("threads").insert(row).select("id").single();
+      data = retry.data;
+      error = retry.error;
+    }
+    if (error || !data) return null;
+    await supabase!
+      .from("messages")
+      .insert({ thread_id: data.id, sender: me, body: String(body).slice(0, 2000) });
+    return data.id as string;
+  } catch {
+    return null;
+  }
+}
+
+export interface ThreadSummary {
+  id: string;
+  stamp: string;
+  revealed: boolean;
+  mine: number; // my message count on this thread
+  otherName: string | null;
+  other: string; // correspondent's user id
+  preview: string;
+  lastSenderMe: boolean;
+  lastAt: number;
+}
+export async function fetchThreads(): Promise<ThreadSummary[] | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("threads")
+      .select(
+        "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,last_sender,last_body,last_at",
+      )
+      .or(`a.eq.${me},b.eq.${me}`)
+      .order("last_at", { ascending: false });
+    if (error || !data) return null;
+    return data.map((r: any) => {
+      const iamA = r.a === me;
+      return {
+        id: r.id,
+        stamp: r.stamp,
+        revealed: !!r.revealed,
+        mine: iamA ? r.a_count : r.b_count,
+        otherName: iamA ? r.b_name : r.a_name,
+        other: iamA ? r.b : r.a,
+        preview: r.last_body || r.opening || "",
+        lastSenderMe: r.last_sender === me,
+        lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
+      } as ThreadSummary;
+    });
+  } catch {
+    return null;
+  }
+}
+
+export interface ThreadDetail {
+  stamp: string;
+  revealed: boolean;
+  otherName: string | null;
+  other: string; // correspondent user id
+  myCount: number;
+  otherCount: number;
+  opening: string;
+  openingFromMe: boolean;
+  openingMedia?: string | null; // voice-letter opening (storage path)
+  openingDurationS?: number | null;
+  messages: { body: string; mine: boolean; date: string }[];
+}
+export async function fetchThreadMessages(
+  threadId: string,
+): Promise<ThreadDetail | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    let { data: t } = await supabase!
+      .from("threads")
+      .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,opening_media,opening_duration_s")
+      .eq("id", threadId)
+      .maybeSingle();
+    if (!t) {
+      // pre-0007 fallback: media columns absent
+      const retry = await supabase!
+        .from("threads")
+        .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening")
+        .eq("id", threadId)
+        .maybeSingle();
+      t = retry.data as any;
+    }
+    const { data: msgs } = await supabase!
+      .from("messages")
+      .select("sender,body,created_at")
+      .eq("thread_id", threadId)
+      .order("created_at");
+    if (!t) return null;
+    const iamA = t.a === me;
+    return {
+      stamp: t.stamp,
+      revealed: !!t.revealed,
+      otherName: iamA ? t.b_name : t.a_name,
+      other: iamA ? t.b : t.a,
+      myCount: iamA ? t.a_count : t.b_count,
+      otherCount: iamA ? t.b_count : t.a_count,
+      opening: t.opening || "",
+      openingFromMe: t.b === me,
+      openingMedia: (t as any).opening_media ?? null,
+      openingDurationS: (t as any).opening_duration_s ?? null,
+      messages: (msgs || []).map((m: any) => ({
+        body: m.body,
+        mine: m.sender === me,
+        date: m.created_at,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function sendThreadMessage(
+  threadId: string,
+  body: string,
+): Promise<{ revealed: boolean } | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { data: t } = await supabase!
+      .from("threads")
+      .select("a,b,a_count,b_count")
+      .eq("id", threadId)
+      .maybeSingle();
+    if (!t) return null;
+    const iamA = t.a === me;
+    const a_count = t.a_count + (iamA ? 1 : 0);
+    const b_count = t.b_count + (iamA ? 0 : 1);
+    const revealed = a_count >= REVEAL_AT && b_count >= REVEAL_AT;
+    await supabase!
+      .from("messages")
+      .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
+    const patch: Record<string, unknown> = {
+      a_count,
+      b_count,
+      revealed,
+      last_sender: me,
+      last_body: body,
+      last_at: new Date().toISOString(),
+    };
+    patch[iamA ? "a_name" : "b_name"] = await currentHandle();
+    await supabase!.from("threads").update(patch).eq("id", threadId);
+    return { revealed };
+  } catch {
+    return null;
+  }
+}
+
+/* ── Trust & Safety ── */
+export async function reportContent(input: {
+  targetUser?: string | null;
+  context?: string | null;
+  refId?: string | null;
+  reason?: string;
+  snapshot?: string | null;
+}): Promise<true | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { error } = await supabase!.from("reports").insert({
+      reporter: me,
+      target_user: input.targetUser || null,
+      context: input.context || null,
+      ref_id: input.refId ? String(input.refId) : null,
+      reason: input.reason || "other",
+      snapshot: input.snapshot ? String(input.snapshot).slice(0, 1000) : null,
+    });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+/* ── Window (a post your kindreds can see) ──
+   Requires the `windows` table + RLS (see supabase/migrations/0006_windows.sql
+   in the web repo). Until that migration is applied these fail-safe to null. */
+export interface WindowPost {
+  type: string; // 'line' (MVP) | 'photo' | 'sound'
+  body: string;
+  mood: string | null;
+}
+export async function fetchMyWindow(): Promise<WindowPost | null> {
+  if (!supabaseReady) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("windows")
+      .select("type,body,mood")
+      .eq("user_id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as WindowPost;
+  } catch {
+    return null;
+  }
+}
+export async function fetchWindow(userId: string): Promise<WindowPost | null> {
+  if (!supabaseReady || !userId) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("windows")
+      .select("type,body,mood")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as WindowPost;
+  } catch {
+    return null;
+  }
+}
+export async function upsertWindow(
+  type: string,
+  body: string,
+  mood: string,
+): Promise<true | null> {
+  if (!supabaseReady || !body) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const { error } = await supabase!.from("windows").upsert(
+      { user_id: id, type: type || "line", body: String(body).slice(0, 400), mood, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+export async function blockUser(targetUser: string): Promise<true | null> {
+  if (!supabaseReady || !targetUser) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { error } = await supabase!
+      .from("blocks")
+      .upsert({ blocker: me, blocked: targetUser }, { onConflict: "blocker,blocked" });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
