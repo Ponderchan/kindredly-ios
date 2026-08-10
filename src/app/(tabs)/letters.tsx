@@ -17,12 +17,11 @@ import { postNo } from "../../lib/format";
 
 const LANG = "en";
 
-/* Letters — the home is the letter in front of you, not a mailbox. A finite
-   vertical deck of your correspondences + today's stranger line, ending in a
-   calm end-cap. There is exactly ONE action, at the bottom, and it's always
-   the single most-sensible thing: 回 ta 一句 while reading, 写给一个陌生人
-   once you're caught up. No compose button, no FAB. Writing to yourself
-   (sealed) lives in Me. */
+/* Today — the home is the letter in front of you, not a mailbox. A finite
+   vertical deck of your correspondences + today's stranger letter, ending in
+   a calm end-cap. One action at the bottom: Write back while reading, Write to
+   a stranger once you're caught up. Writing your own is always a tap away
+   (top-right). A letter can be a single line — no ceremony. */
 
 type Page =
   | { kind: "morning"; frag: string }
@@ -58,10 +57,9 @@ export default function LettersTab() {
   // dev preview while there's no real data
   const demo = __DEV__ && loaded && threads.length === 0;
   const showThreads = demo ? DEMO_THREADS : threads;
-  const frag = morning?.fragment || (demo ? "今天忙到现在才想起来，我一整天没跟任何人说过话。" : null);
+  const frag = morning?.fragment || (demo ? "It's late and I realized I haven't spoken to a single person all day." : null);
   const waiting = showThreads.filter((t) => !t.lastSenderMe); // your turn
 
-  // the finite deck: letters in front of you, then the calm end-cap
   const deck: Page[] = [
     ...(frag ? ([{ kind: "morning", frag }] as Page[]) : []),
     ...waiting.map((t) => ({ kind: "thread", t }) as Page),
@@ -98,7 +96,7 @@ export default function LettersTab() {
           </ScrollView>
         )}
 
-        {/* top: a quiet count + the always-there "write a note" (venting is immediate) */}
+        {/* top: a quiet count + the always-there "write a letter" */}
         <View style={{ position: "absolute", top: 8, left: 22, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 0.5, color: C.faint }}>
             {onLetter ? `${idx + 1} / ${deck.length}` : ""}
@@ -109,7 +107,7 @@ export default function LettersTab() {
               style={[cardStyle, { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 18 }]}
             >
               <Text style={{ fontSize: 12 }}>✍️</Text>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.ink }}>写一件心事</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.ink }}>Write a letter</Text>
             </Pressable>
           )}
         </View>
@@ -123,15 +121,15 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
   if (page.kind === "end") return null;
   const isMorning = page.kind === "morning";
   const t = page.kind === "thread" ? page.t : null;
-  const who = isMorning ? "一个陌生人" : t!.otherName || `No. ${postNo(t!.other)}`;
+  const who = isMorning ? "A stranger" : t!.otherName || `No. ${postNo(t!.other)}`;
   const meta = isMorning
-    ? "还没人回过的一件心事"
+    ? "no one's written back yet"
     : t!.mine >= 5
-      ? "来回满 5 次，可以看名字了"
-      : `再来回 ${5 - t!.mine} 次就能看名字`;
+      ? "5 letters — names are open"
+      : `${5 - t!.mine} more letters to names`;
   const body = isMorning ? page.frag : t!.preview;
   const stamp = isMorning ? "cant-sleep" : t!.stamp;
-  const label = isMorning ? "回 ta 一句" : "读完了，回 ta 一句";
+  const label = isMorning ? "Write back" : "Read it — write back";
 
   return (
     <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 56, paddingBottom: 120 }}>
@@ -153,7 +151,7 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
       <View>
         {hasNext && (
           <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint, textAlign: "center", marginBottom: 12 }}>
-            ↑ 上滑，还有下一件
+            ↑ swipe up — one more
           </Text>
         )}
         <Pressable onPress={onAct} style={{ backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center" }}>
@@ -164,7 +162,7 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
   );
 }
 
-/* the calm end — all caught up. One warm action: write a note of your own. */
+/* the calm end — all caught up. Nothing more to do, and that's the point. */
 function EndCap({ onWrite }: { onWrite: () => void }) {
   return (
     <View style={{ flex: 1, paddingHorizontal: 30, paddingTop: 56, paddingBottom: 120 }}>
@@ -172,25 +170,24 @@ function EndCap({ onWrite }: { onWrite: () => void }) {
         <View style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 1.5, borderColor: C.line, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
           <Text style={{ fontSize: 22, color: C.purple }}>✓</Text>
         </View>
-        <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, textAlign: "center" }}>今天的，都读完了。</Text>
+        <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, textAlign: "center" }}>You're all caught up.</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 18 }}>
           <Wren size={16} mode="line" />
           <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>WREN</Text>
         </View>
         <Text style={{ fontFamily: F.serifItalic, fontSize: 15, lineHeight: 24, color: C.muted, textAlign: "center", marginTop: 8, maxWidth: 280 }}>
-          该回的都回了。把手机放下吧 —— 有新的，我替你盯着。
+          You answered everything. Put your phone down — I'll watch the door.
         </Text>
         <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, letterSpacing: 0.4, color: C.purple, marginTop: 22 }}>
-          ✦ 有新的，明早八点叫你
+          ✦ New letters arrive at eight
         </Text>
       </View>
 
-      {/* the one action, when there's nothing left to answer */}
       <View style={{ alignItems: "center" }}>
         <Pressable onPress={onWrite} style={{ backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center", width: "100%" }}>
-          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 1 }}>写一件心事</Text>
+          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 1 }}>Write to a stranger</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, marginTop: 12 }}>倒出来就好 —— Wren 会先接住你。</Text>
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, marginTop: 12 }}>Just write — Wren reads it first.</Text>
       </View>
     </View>
   );

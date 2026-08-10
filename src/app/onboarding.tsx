@@ -241,7 +241,7 @@ export default function Onboarding() {
                 style={{ marginTop: 30, fontFamily: F.serif, fontSize: 27, color: C.ink, paddingBottom: 12, borderBottomWidth: 1.5, borderBottomColor: nameReady ? C.purple : C.line }}
               />
               <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 12, lineHeight: 19 }}>
-                Strangers never see it — only someone you've traded notes with. You are how you write.
+                Strangers never see it — only someone you've traded letters with. You are how you write.
               </Text>
             </View>
             <View style={{ paddingHorizontal: 26, paddingBottom: 24 }}>
@@ -291,12 +291,12 @@ export default function Onboarding() {
             <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
               <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink }}>{username ? `Welcome, ${username}.` : "Welcome."}</Text>
               <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: C.muted, marginTop: 14, textAlign: "center", lineHeight: 24, maxWidth: 300 }}>
-                Here, everything you write is a <Text style={{ color: C.purple, fontFamily: F.sansBold }}>note</Text>.{"\n"}Write it down, and someone catches it.
+                Here, everything you write is a <Text style={{ color: C.purple, fontFamily: F.sansBold }}>letter</Text>.{"\n"}Write it down, and someone writes back.
               </Text>
             </Animated.View>
           </View>
           <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
-            <PurpleButton label="Write your first" onPress={() => setStep("write")} />
+            <PurpleButton label="Write your first letter" onPress={() => setStep("write")} />
           </View>
         </SafeAreaView>
       )}

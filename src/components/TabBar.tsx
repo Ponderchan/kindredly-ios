@@ -6,10 +6,10 @@ import { TabIcon, type TabId } from "./TabIcon";
 
 /* Bottom bar — three even tabs, nothing floating. Writing is not a tab and
    not a button here: it's the single state-driven action at the bottom of
-   the letter you're reading (回 ta / 写给一个陌生人). Sealed letters live in Me. */
+   the letter you're reading (Write back / Write to a stranger). */
 
 const SHOWN: TabId[] = ["letters", "kindreds", "me"];
-const LABELS: Record<TabId, string> = { letters: "今天", journal: "日记", kindreds: "知己", me: "我" };
+const LABELS: Record<TabId, string> = { letters: "Today", journal: "Journal", kindreds: "Kindreds", me: "Me" };
 
 export function TabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
