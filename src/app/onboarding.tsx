@@ -1,34 +1,47 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { C, F } from "../theme/tokens";
-import { GhostButton, PrimaryButton } from "../components/ui";
+import { GhostButton, PrimaryButton, TopBar } from "../components/ui";
+import { Wheel } from "../components/Wheel";
 import { useBreathe } from "../components/anim";
+import { MONTHS } from "../data/content";
 import { useAuth } from "../lib/auth";
 import { upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
 
-/* Onboarding, reimagined on note + Wren (no letters):
-   meet Wren → write your first note (before login) → Wren catches you (我在)
-   → she carries it across a little world to find someone who writes like you
-   → she's your Wren, and she grows → sign in only to save.
-   Value before signup; anonymous (no name, no face). */
+/* Onboarding — a logical arc:
+   ① Wren's story (a reception that shows the core features through Wren)
+   ② sign in  ③ pen name  ④ cakeday (birthday + 18+ gate)
+   ⑤ welcome  ⑥ what's on your mind now? (your first note) → the app.
+   English-first; localization comes later. Anonymous, no letters. */
 
-type Step = "meet" | "write" | "caught" | "flight" | "yours" | "auth";
+type Step = "story" | "auth" | "username" | "cakeday" | "welcome" | "write";
 
-// mood swatches (tiny + cosmetic for now)
 const SWATCHES = ["#CDE0EE", "#E4B15C", "#E7A3B4", "#7FC3A6"];
+
+// the reception story — each beat introduces one core feature through Wren
+const STORY: { art: "wren" | "caught" | "world" | "grow"; h: string; s: string }[] = [
+  { art: "wren", h: "Hi, I'm Wren.", s: "I read what you write." },
+  { art: "caught", h: "Say what's on your heart.", s: "I catch it first — you're never shouting into the void." },
+  { art: "world", h: "Then I carry it off,", s: "to find someone who writes like you." },
+  { art: "grow", h: "The more you write,", s: "the more I know you — and the more I'm yours." },
+];
 
 export default function Onboarding() {
   const router = useRouter();
   const auth = useAuth();
   const { session, onboarded, appleAvailable } = auth;
 
-  const [step, setStep] = useState<Step>("meet");
+  const [step, setStep] = useState<Step>("story");
+  const [beat, setBeat] = useState(0);
+  const [username, setUsername] = useState("");
+  const nowY = new Date().getFullYear();
+  const [dob, setDob] = useState({ m: 5, d: 15, y: nowY - 22 });
   const [note, setNote] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
@@ -36,33 +49,16 @@ export default function Onboarding() {
   const finishing = useRef(false);
   const breathe = useBreathe(5, 3800);
 
-  const canWrite = note.trim().length >= 2;
-
   // returning, already-onboarded → straight in
   useEffect(() => {
     if (session && onboarded) router.replace("/(tabs)/letters");
   }, [session, onboarded, router]);
 
-  const finish = async () => {
-    if (finishing.current) return;
-    finishing.current = true;
-    const l = note.trim();
-    if (l.length >= 2) {
-      try {
-        await upsertFingerprint(signatureVector(l), voiceSignature(l).words);
-      } catch {
-        /* fingerprint is best-effort */
-      }
-    }
-    await auth.saveProfile({ firstLine: l || undefined }); // saveProfile sets onboarded: true
-    router.replace("/(tabs)/letters");
-  };
-
-  // once signed in at the auth step, save + go
+  // signed in but not set up → jump past the story/auth into setup
   useEffect(() => {
-    if (session && !onboarded && step === "auth") finish();
+    if (session && !onboarded && (step === "story" || step === "auth")) setStep("username");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, onboarded, step]);
+  }, [session, onboarded]);
 
   const doApple = async () => {
     setBusy("apple");
@@ -78,14 +74,14 @@ export default function Onboarding() {
   };
   const doEmail = () => {
     Alert.prompt?.(
-      "你的邮箱",
-      "Wren 会给你发一条安静的登录链接。",
+      "Your email",
+      "Wren will send you a quiet sign-in link.",
       async (email?: string) => {
         if (!email || !email.trim()) return;
         setBusy("email");
         const r = await auth.signInWithEmail(email.trim());
         setBusy(null);
-        if ("error" in r) Alert.alert("邮箱", r.error);
+        if ("error" in r) Alert.alert("Email", r.error);
         else setEmailSent(true);
       },
       "plain-text",
@@ -94,174 +90,101 @@ export default function Onboarding() {
     );
   };
 
-  const reflect =
-    note.trim().length <= 12 ? "就这么一句,也够了。" : "谢谢你把它说出来 —— 憋着,最累了。";
+  // birthday derived
+  const years = Array.from({ length: 80 }, (_, i) => nowY - 13 - i);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const yi = Math.max(0, years.indexOf(dob.y));
+  let age = nowY - dob.y;
+  const nd = new Date();
+  if (nd.getMonth() < dob.m || (nd.getMonth() === dob.m && nd.getDate() < dob.d)) age -= 1;
+  const ageOk = age >= 18;
+  const dobStr = `${dob.y}-${String(dob.m + 1).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`;
+  const nameReady = username.trim().length > 0;
+  const canWrite = note.trim().length >= 2;
+
+  const finish = async () => {
+    if (finishing.current) return;
+    finishing.current = true;
+    const l = note.trim();
+    if (l.length >= 2) {
+      try {
+        await upsertFingerprint(signatureVector(l), voiceSignature(l).words);
+      } catch {
+        /* best-effort */
+      }
+    }
+    await auth.saveProfile({ handle: username.trim(), dob: dobStr, firstLine: l || undefined });
+    router.replace("/(tabs)/letters");
+  };
+
+  const S = STORY[beat];
+  const lastBeat = beat === STORY.length - 1;
 
   return (
     <>
-      {/* ── 01 · meet Wren ── */}
-      {step === "meet" && (
+      {/* ── ① the reception story ── */}
+      {step === "story" && (
         <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
           <Sky />
-          <Progress step={0} />
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, paddingTop: 12 }}>
+            {STORY.map((_, i) => (
+              <View key={i} style={{ width: i === beat ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === beat ? "#9B9BF9" : "rgba(255,255,255,0.18)" }} />
+            ))}
+          </View>
+
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
-            <Animated.View entering={FadeIn.duration(600)} style={breathe}>
-              <CuteWren size={132} tone="dark" />
+            <Animated.View key={`art${beat}`} entering={FadeIn.duration(500)} style={S.art === "world" ? undefined : breathe}>
+              {S.art === "world" ? (
+                <LittleWorld />
+              ) : (
+                <View style={{ alignItems: "center" }}>
+                  <CuteWren size={S.art === "grow" ? 128 : 116} tone="dark" />
+                  {S.art === "caught" && (
+                    <View style={{ backgroundColor: C.purple, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 9, marginTop: 10 }}>
+                      <Text style={{ fontFamily: F.serif, fontSize: 15, color: "#fff" }}>I hear you.</Text>
+                    </View>
+                  )}
+                  {S.art === "grow" && (
+                    <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#9B9BF9", marginTop: 12 }}>✦ new feathers · new songs · more you</Text>
+                  )}
+                </View>
+              )}
             </Animated.View>
-            <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 22 }}>
-              <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#F1EFF7", textAlign: "center", lineHeight: 37 }}>
-                嗨,我是 Wren。{"\n"}你写什么,我都读。
-              </Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 14, color: "#9C97AB", marginTop: 14, textAlign: "center" }}>
-                我会找到写字像你的人。
+
+            <Animated.View key={`txt${beat}`} entering={FadeInDown.delay(150).duration(500)} style={{ alignItems: "center", marginTop: 26 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#F1EFF7", textAlign: "center", lineHeight: 35 }}>{S.h}</Text>
+              <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: "#9C97AB", marginTop: 12, textAlign: "center", lineHeight: 22, maxWidth: 300 }}>
+                {S.s}
               </Text>
             </Animated.View>
           </View>
+
           <View style={{ paddingHorizontal: 26, paddingBottom: 20 }}>
-            <PurpleButton label="好呀" onPress={() => setStep("write")} />
+            <PurpleButton
+              label={lastBeat ? "Start" : "Next"}
+              onPress={() => (lastBeat ? setStep(session ? "username" : "auth") : setBeat((b) => b + 1))}
+            />
+            {!lastBeat && (
+              <Pressable onPress={() => setStep(session ? "username" : "auth")} style={{ alignItems: "center", paddingTop: 14 }}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1, color: "#6E6A7B" }}>Skip</Text>
+              </Pressable>
+            )}
           </View>
         </SafeAreaView>
       )}
 
-      {/* ── 02 · write your first note ── */}
-      {step === "write" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-          <Progress step={1} dark={false} />
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 20 }}>
-              <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, lineHeight: 36 }}>
-                此刻,有什么{"\n"}压在心里?
-              </Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10 }}>
-                累、开心、还是就想写点什么 —— 一句话也行。
-              </Text>
-
-              <TextInput
-                autoFocus
-                value={note}
-                onChangeText={setNote}
-                placeholder="写下来…"
-                placeholderTextColor={C.faint}
-                multiline
-                style={{ marginTop: 22, minHeight: 150, fontFamily: F.letter, fontSize: 20, lineHeight: 32, color: "#22222A", textAlignVertical: "top" }}
-              />
-
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
-                <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint }}>此刻的心情</Text>
-                {SWATCHES.map((c, i) => (
-                  <Pressable key={c} onPress={() => setMood(i)}>
-                    <View
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 13,
-                        backgroundColor: c,
-                        borderWidth: 2.5,
-                        borderColor: mood === i ? C.ink : "transparent",
-                      }}
-                    />
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
-              <PurpleButton label="写好了" disabled={!canWrite} onPress={() => setStep("caught")} />
-              <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.faint, textAlign: "center", marginTop: 12 }}>
-                还没登录 · 只存在你这儿
-              </Text>
-            </View>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      )}
-
-      {/* ── 03 · Wren catches you ── */}
-      {step === "caught" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
-          <Sky />
-          <Progress step={2} />
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-            <Animated.View entering={FadeIn.duration(500)} style={breathe}>
-              <CuteWren size={92} tone="dark" />
-            </Animated.View>
-            <Animated.View entering={FadeInUp.delay(250).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
-              <View style={{ backgroundColor: C.purple, borderRadius: 20, borderBottomLeftRadius: 4, paddingHorizontal: 18, paddingVertical: 14, maxWidth: 300 }}>
-                <Text style={{ fontFamily: F.serif, fontSize: 18, color: "#fff", lineHeight: 27 }}>我在。</Text>
-                <Text style={{ fontFamily: F.serif, fontSize: 15.5, color: "rgba(255,255,255,0.9)", lineHeight: 24, marginTop: 4 }}>
-                  {reflect}
-                </Text>
-              </View>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, letterSpacing: 0.5, color: "#9B9BF9", marginTop: 20 }}>
-                ✦ 我开始认识你写字的样子了
-              </Text>
-            </Animated.View>
-          </View>
-          <View style={{ paddingHorizontal: 26, paddingBottom: 20 }}>
-            <PurpleButton label="嗯" onPress={() => setStep("flight")} />
-          </View>
-        </SafeAreaView>
-      )}
-
-      {/* ── 04 · Wren carries it across a little world ── */}
-      {step === "flight" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
-          <Sky />
-          <Progress step={3} />
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 }}>
-            <Animated.View entering={FadeIn.duration(600)}>
-              <LittleWorld />
-            </Animated.View>
-            <Animated.Text
-              entering={FadeInUp.delay(300).duration(600)}
-              style={{ fontFamily: F.serif, fontSize: 19, color: "#F1EFF7", textAlign: "center", lineHeight: 29, marginTop: 24 }}
-            >
-              看 —— 我带着它,{"\n"}去找一个写字像你的人。
-            </Animated.Text>
-          </View>
-          <View style={{ paddingHorizontal: 26, paddingBottom: 20 }}>
-            <PurpleButton label="继续" onPress={() => setStep("yours")} />
-          </View>
-        </SafeAreaView>
-      )}
-
-      {/* ── 05 · your Wren, she grows ── */}
-      {step === "yours" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-          <Progress step={4} dark={false} />
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-            <Animated.View entering={FadeIn.duration(600)} style={breathe}>
-              <CuteWren size={120} tone="light" />
-            </Animated.View>
-            <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
-              <Text style={{ fontFamily: F.serif, fontSize: 25, color: C.ink }}>她是你的 Wren。</Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 14, color: C.muted, marginTop: 12, textAlign: "center", lineHeight: 22, maxWidth: 290 }}>
-                她的样子,随你写字慢慢变 —— 换羽、学歌,越来越像你。
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, backgroundColor: C.purpleLt, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 }}>
-                <Text style={{ fontSize: 13 }}>🎨</Text>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>也能自己装扮她</Text>
-              </View>
-            </Animated.View>
-          </View>
-          <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
-            <PurpleButton label="进去看看" onPress={() => (session ? finish() : setStep("auth"))} />
-          </View>
-        </SafeAreaView>
-      )}
-
-      {/* ── 06 · sign in (only to save) ── */}
+      {/* ── ② sign in ── */}
       {step === "auth" && (
         <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-          <Progress step={5} dark={false} />
           <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 30, alignItems: "center" }}>
-            <CuteWren size={84} tone="light" />
-            <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, textAlign: "center", lineHeight: 35, marginTop: 20 }}>
-              想留住 Wren、{"\n"}也想听到回音?
+            <CuteWren size={88} tone="light" />
+            <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, textAlign: "center", lineHeight: 36, marginTop: 20 }}>
+              Keep Wren,{"\n"}and keep what you write.
             </Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 12, textAlign: "center", lineHeight: 21, maxWidth: 300 }}>
-              不用名字、不用照片 —— 你就是你写的字。
+            <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 12, textAlign: "center", lineHeight: 21, maxWidth: 320 }}>
+              Signing in only saves you — and lets you hear back. No real name, no photo.
             </Text>
           </View>
-
           <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
             {appleAvailable ? (
               <AppleAuthentication.AppleAuthenticationButton
@@ -281,18 +204,137 @@ export default function Onboarding() {
               icon={<Text style={{ fontFamily: F.sansBold, fontSize: 17, color: C.ink }}>G</Text>}
             />
             <Pressable onPress={doEmail} style={{ alignItems: "center", paddingTop: 14, paddingBottom: 6 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1.2, color: C.muted }}>用邮箱登录</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1.2, color: C.muted }}>SIGN IN WITH EMAIL</Text>
             </Pressable>
             {emailSent ? (
               <Animated.Text entering={FadeIn} style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 13, color: C.purple }}>
-                去邮箱点一下链接就好。
+                Tap the link in your email.
               </Animated.Text>
             ) : (
               <Text style={{ textAlign: "center", fontFamily: F.sans, fontSize: 10.5, color: C.faint, lineHeight: 16 }}>
-                继续即表示你已满 18 岁,并同意我们的条款与隐私。
+                By continuing, you agree to our Terms & Privacy.
               </Text>
             )}
+            {__DEV__ && (
+              <Pressable onPress={() => setStep("username")} style={{ alignItems: "center", paddingTop: 10 }}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.gold }}>(dev) preview setup →</Text>
+              </Pressable>
+            )}
           </View>
+        </SafeAreaView>
+      )}
+
+      {/* ── ③ pen name ── */}
+      {step === "username" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <TopBar pct={33} onBack={() => auth.signOut()} />
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 26 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink, lineHeight: 40 }}>Pick a</Text>
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: C.purple, lineHeight: 42 }}>pen name.</Text>
+              <TextInput
+                autoFocus
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Anything — you can change it…"
+                placeholderTextColor={C.faint}
+                style={{ marginTop: 30, fontFamily: F.serif, fontSize: 27, color: C.ink, paddingBottom: 12, borderBottomWidth: 1.5, borderBottomColor: nameReady ? C.purple : C.line }}
+              />
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 12, lineHeight: 19 }}>
+                Strangers never see it — only someone you've traded notes with. You are how you write.
+              </Text>
+            </View>
+            <View style={{ paddingHorizontal: 26, paddingBottom: 24 }}>
+              <PurpleButton label="Next" disabled={!nameReady} onPress={() => setStep("cakeday")} />
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      )}
+
+      {/* ── ④ cakeday ── */}
+      {step === "cakeday" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <TopBar pct={58} onBack={() => setStep("username")} />
+          <View style={{ paddingHorizontal: 26, paddingTop: 26, alignItems: "center" }}>
+            <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink, textAlign: "center" }}>
+              {username ? `${username}, when's your` : "When's your"}
+            </Text>
+            <Text style={{ fontFamily: F.serifItalic, fontSize: 28, color: C.purple }}>cakeday?</Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 12, textAlign: "center" }}>
+              🎂 Wren keeps it — she'll write to you on the day.
+            </Text>
+          </View>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ position: "relative", flexDirection: "row", gap: 6 }}>
+              <View style={{ position: "absolute", left: -8, right: -8, top: "50%", marginTop: -22, height: 44, borderRadius: 14, backgroundColor: C.card }} />
+              <Wheel width={78} items={MONTHS} value={dob.m} onChange={(m) => setDob({ ...dob, m })} />
+              <Wheel width={62} items={days} value={dob.d - 1} onChange={(i) => setDob({ ...dob, d: i + 1 })} />
+              <Wheel width={86} items={years} value={yi} onChange={(i) => setDob({ ...dob, y: years[i] })} />
+            </View>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 24 }}>
+            <Text style={{ textAlign: "center", marginBottom: 14, fontFamily: F.sans, fontSize: 13, lineHeight: 20, color: ageOk ? C.muted : "#C0503A" }}>
+              {ageOk ? `You're ${age}.` : "Kindredly is for 18 and over — you'll meet strangers here, and we can't keep that safe for anyone younger."}
+            </Text>
+            <PurpleButton label="Next" disabled={!ageOk} onPress={() => setStep("welcome")} />
+          </View>
+        </SafeAreaView>
+      )}
+
+      {/* ── ⑤ welcome ── */}
+      {step === "welcome" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+            <Animated.View entering={FadeIn.duration(600)} style={breathe}>
+              <CuteWren size={120} tone="light" />
+            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink }}>{username ? `Welcome, ${username}.` : "Welcome."}</Text>
+              <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: C.muted, marginTop: 14, textAlign: "center", lineHeight: 24, maxWidth: 300 }}>
+                Here, everything you write is a <Text style={{ color: C.purple, fontFamily: F.sansBold }}>note</Text>.{"\n"}Write it down, and someone catches it.
+              </Text>
+            </Animated.View>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
+            <PurpleButton label="Write your first" onPress={() => setStep("write")} />
+          </View>
+        </SafeAreaView>
+      )}
+
+      {/* ── ⑥ what's on your mind now ── */}
+      {step === "write" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <TopBar pct={92} onBack={() => setStep("welcome")} />
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 20 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink, lineHeight: 37 }}>
+                What's on your{"\n"}mind right now?
+              </Text>
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10 }}>
+                Tired, happy, or just something to say — a line is enough.
+              </Text>
+              <TextInput
+                autoFocus
+                value={note}
+                onChangeText={setNote}
+                placeholder="Write it…"
+                placeholderTextColor={C.faint}
+                multiline
+                style={{ marginTop: 22, minHeight: 140, fontFamily: F.letter, fontSize: 20, lineHeight: 32, color: "#22222A", textAlignVertical: "top" }}
+              />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
+                <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint }}>mood</Text>
+                {SWATCHES.map((c, i) => (
+                  <Pressable key={c} onPress={() => setMood(i)}>
+                    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c, borderWidth: 2.5, borderColor: mood === i ? C.ink : "transparent" }} />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
+              <PurpleButton label="Done — take me in" disabled={!canWrite} onPress={finish} />
+            </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       )}
     </>
@@ -313,24 +355,12 @@ function PurpleButton({ label, onPress, disabled }: { label: string; onPress: ()
   );
 }
 
-function Progress({ step, dark = true }: { step: number; dark?: boolean }) {
-  const on = dark ? "#9B9BF9" : C.purple;
-  const off = dark ? "rgba(255,255,255,0.18)" : C.line;
-  return (
-    <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, paddingTop: 10 }}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <View key={i} style={{ width: i === step ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === step ? on : off }} />
-      ))}
-    </View>
-  );
-}
-
 function Sky() {
   return (
-    <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 260 }}>
-      <View style={{ position: "absolute", top: 40, left: "22%", width: 3, height: 3, borderRadius: 2, backgroundColor: "#CFCFFC", opacity: 0.5 }} />
-      <View style={{ position: "absolute", top: 90, left: "72%", width: 2.5, height: 2.5, borderRadius: 2, backgroundColor: "#CFCFFC", opacity: 0.4 }} />
-      <View style={{ position: "absolute", top: 150, left: "40%", width: 2, height: 2, borderRadius: 1, backgroundColor: "#CFCFFC", opacity: 0.35 }} />
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 300 }}>
+      <View style={{ position: "absolute", top: 50, left: "22%", width: 3, height: 3, borderRadius: 2, backgroundColor: "#CFCFFC", opacity: 0.5 }} />
+      <View style={{ position: "absolute", top: 100, left: "72%", width: 2.5, height: 2.5, borderRadius: 2, backgroundColor: "#CFCFFC", opacity: 0.4 }} />
+      <View style={{ position: "absolute", top: 160, left: "40%", width: 2, height: 2, borderRadius: 1, backgroundColor: "#CFCFFC", opacity: 0.35 }} />
     </View>
   );
 }
