@@ -119,10 +119,10 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
   const t = page.kind === "thread" ? page.t : null;
   const who = isMorning ? "一个陌生人" : t!.otherName || `No. ${postNo(t!.other)}`;
   const meta = isMorning
-    ? "还没人拆过的一封信"
+    ? "还没人回过的一段话"
     : t!.mine >= 5
-      ? "满 5 封，可以看名字了"
-      : `还差 ${5 - t!.mine} 封就能看名字`;
+      ? "来回满 5 次，可以看名字了"
+      : `再来回 ${5 - t!.mine} 次就能看名字`;
   const body = isMorning ? page.frag : t!.preview;
   const stamp = isMorning ? "cant-sleep" : t!.stamp;
   const label = isMorning ? "回 ta 一句" : "读完了，回 ta 一句";
@@ -167,13 +167,13 @@ function EndCap({ onStranger, onSelf }: { onStranger: () => void; onSelf: () => 
         <View style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 1.5, borderColor: C.line, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
           <Text style={{ fontSize: 22, color: C.purple }}>✓</Text>
         </View>
-        <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, textAlign: "center" }}>今天的信，都读完了。</Text>
+        <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, textAlign: "center" }}>今天的，都读完了。</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 18 }}>
           <Wren size={16} mode="line" />
           <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>WREN</Text>
         </View>
         <Text style={{ fontFamily: F.serifItalic, fontSize: 15, lineHeight: 24, color: C.muted, textAlign: "center", marginTop: 8, maxWidth: 280 }}>
-          该回的都回了。把手机放下吧 —— 信箱，我替你看着。
+          该回的都回了。把手机放下吧 —— 有新的，我替你盯着。
         </Text>
         <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, letterSpacing: 0.4, color: C.purple, marginTop: 22 }}>
           ✦ 有新的，明早八点叫你
@@ -186,7 +186,7 @@ function EndCap({ onStranger, onSelf }: { onStranger: () => void; onSelf: () => 
           <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 1 }}>写给一个陌生人</Text>
         </Pressable>
         <Pressable onPress={onSelf} hitSlop={8} style={{ paddingVertical: 14 }}>
-          <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.faint }}>或者，写给自己 · 封存起来</Text>
+          <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.faint }}>或者，写给自己 · 存起来</Text>
         </Pressable>
       </View>
     </View>

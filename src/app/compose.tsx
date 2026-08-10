@@ -95,6 +95,7 @@ export default function Compose() {
   // a line is enough — count characters, not whitespace words (Chinese has none)
   const canSend = mode === "speak" ? !!recUri : text.trim().length >= 2;
   const to = isMorning ? "分享那句话的人" : "三个跟你写字像的人";
+  const toLabel = "发给";
 
   const send = async () => {
     if (!canSend || busy || !sel) return;
@@ -107,7 +108,7 @@ export default function Compose() {
       const gate = await screen(body);
       if (!gate.ok) {
         setBusy(false);
-        Alert.alert("Wren 先拦了一下", "这条现在还不能寄出去。写给陌生人就好，别放联系方式。");
+        Alert.alert("Wren 先拦了一下", "这段现在还不能发出去。写给陌生人就好，别放联系方式。");
         return;
       }
     }
@@ -116,11 +117,11 @@ export default function Compose() {
     if (!bump.ok) {
       setBusy(false);
       if (bump.reason === "daily_cap") {
-        setCapMsg(`今天的 ${bump.cap ?? 3} 封，寄完了。`);
+        setCapMsg(`今天能发的 ${bump.cap ?? 3} 段，发完了。`);
       } else if (bump.reason === "unauthorized") {
-        Alert.alert("请重新登录", "登录后再寄。");
+        Alert.alert("请重新登录", "登录后再发。");
       } else {
-        Alert.alert("没寄出去", "出了点问题，等会儿再试。");
+        Alert.alert("没发出去", "出了点问题，等会儿再试。");
       }
       return;
     }
@@ -135,10 +136,10 @@ export default function Compose() {
     setBusy(false);
     if (!ok) {
       Alert.alert(
-        "没寄出去",
+        "没发出去",
         mode === "speak"
-          ? "语音没发出去。(语音信需要 migration 0007 的存储桶 —— 见 SETUP.md。)"
-          : "这条没发出去，再试一次。",
+          ? "语音没发出去。(语音需要 migration 0007 的存储桶 —— 见 SETUP.md。)"
+          : "这段没发出去，再试一次。",
       );
       return;
     }
@@ -155,16 +156,16 @@ export default function Compose() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.creamHi, alignItems: "center", justifyContent: "center", padding: 30 }}>
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 3, color: C.faint, position: "absolute", top: "16%" }}>
-          KINDREDLY 邮局
+          KINDREDLY
         </Text>
         <Animated.View style={breathe}>
           <Seal size={92} />
         </Animated.View>
         <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, textAlign: "center", marginTop: 28, lineHeight: 34 }}>
-          {isMorning ? "直接寄给 ta 了。" : "寄出去了。"}
+          {isMorning ? "直接发给 ta 了。" : "发出去了。"}
         </Text>
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.8, color: C.faint, marginTop: 16, textAlign: "center" }}>
-          {isMorning ? "它会落在 ta 那儿" : "第一个回你的人，就是你的"}
+          {isMorning ? "ta 会看到它" : "第一个回你的人，就是你的"}
         </Text>
       </SafeAreaView>
     );
@@ -207,15 +208,15 @@ export default function Compose() {
             <Text style={{ fontSize: 20, color: C.ink }}>‹</Text>
           </Pressable>
           <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, backgroundColor: C.purpleLt }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>邮票册</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>话题</Text>
           </View>
         </View>
 
         <View style={{ paddingHorizontal: 22, paddingTop: 24, paddingBottom: 16 }}>
-          <Text style={{ fontFamily: F.serifMed, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>挑一张</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 32, color: C.purple, letterSpacing: -0.5 }}>邮票。</Text>
+          <Text style={{ fontFamily: F.serifMed, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>选个</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 32, color: C.purple, letterSpacing: -0.5 }}>话题。</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10 }}>
-            邮票帮你把话送给对的人 —— 不挑也行，随手贴一张。
+            话题帮你把这段送到对的人那儿 —— 不挑也行。
           </Text>
         </View>
 
@@ -229,11 +230,11 @@ export default function Compose() {
               </View>
               <Pressable onPress={() => setShowAll(true)} style={{ paddingVertical: 18 }}>
                 <Text style={{ textAlign: "center", fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1.2, color: C.purple }}>
-                  看全部 {STAMPS.length} 张 →
+                  看全部 {STAMPS.length} 个 →
                 </Text>
               </Pressable>
               <Text style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>
-                先给你六张。其余的，想用的时候都在。
+                先给你六个。其余的，想用的时候都在。
               </Text>
             </>
           ) : (
@@ -257,7 +258,7 @@ export default function Compose() {
             onPress={() => sel && setStep("write")}
             style={[navyBtn, { paddingVertical: 18, width: "100%", opacity: sel ? 1 : 0.3 }]}
           >
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>就用这张 →</Text>
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>就它了 →</Text>
           </Pressable>
         </LinearGradient>
       </SafeAreaView>
@@ -291,7 +292,7 @@ export default function Compose() {
                 <View style={{ transform: [{ rotate: "6deg" }], padding: 4, backgroundColor: "#fff", borderRadius: 4, shadowColor: "#131A26", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
                   <StampTile id={sel!} w={44} r={4} />
                 </View>
-                <Text style={{ fontFamily: F.sans, fontSize: 9, color: C.faint }}>换邮票</Text>
+                <Text style={{ fontFamily: F.sans, fontSize: 9, color: C.faint }}>换话题</Text>
               </Pressable>
             )}
 
@@ -306,7 +307,7 @@ export default function Compose() {
             </Pressable>
 
             <View style={{ flexDirection: "row", gap: 10, alignItems: "baseline", marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.lineSoft }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.4, color: C.label }}>寄给</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.4, color: C.label }}>{toLabel}</Text>
               <Text style={{ fontFamily: F.sansExtra, fontSize: 12, letterSpacing: 0.5, color: C.ink, flex: 1 }}>{to}</Text>
             </View>
 
@@ -406,7 +407,7 @@ export default function Compose() {
             <View style={{ marginTop: 16, padding: 16, borderRadius: 16, backgroundColor: C.purpleLt }}>
               <Text style={{ fontFamily: F.serif, fontSize: 15, color: C.ink }}>{capMsg}</Text>
               <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 4 }}>
-                回信永远免费。想多寄几封新的，开 Kindredly+。
+                回复永远免费。想多发几段新的，开 Kindredly+。
               </Text>
               <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 10 }}>
                 <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.5, color: C.purple }}>看看 Kindredly+ →</Text>
@@ -418,7 +419,7 @@ export default function Compose() {
         <View style={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 26 }}>
           <Pressable onPress={send} disabled={!canSend || busy} style={[navyBtn, { paddingVertical: 19, width: "100%", opacity: canSend && !busy ? 1 : 0.3 }]}>
             <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>
-              {busy ? "寄出中…" : "寄出去  ✈"}
+              {busy ? "发送中…" : "发出去"}
             </Text>
           </Pressable>
         </View>

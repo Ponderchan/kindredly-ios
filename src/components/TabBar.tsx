@@ -9,7 +9,7 @@ import { TabIcon, type TabId } from "./TabIcon";
    the letter you're reading (回 ta / 写给一个陌生人). Sealed letters live in Me. */
 
 const SHOWN: TabId[] = ["letters", "kindreds", "me"];
-const LABELS: Record<TabId, string> = { letters: "信", journal: "日记", kindreds: "知己", me: "我" };
+const LABELS: Record<TabId, string> = { letters: "今天", journal: "日记", kindreds: "知己", me: "我" };
 
 export function TabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
