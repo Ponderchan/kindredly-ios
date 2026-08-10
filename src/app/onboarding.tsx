@@ -1,105 +1,91 @@
-import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useEffect, useRef, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { C, F } from "../theme/tokens";
-import { EnvelopeArt } from "../components/EnvelopeArt";
-import { Wheel } from "../components/Wheel";
-import { Dots, GhostButton, PrimaryButton, TopBar } from "../components/ui";
+import { GhostButton, PrimaryButton } from "../components/ui";
 import { useBreathe } from "../components/anim";
-import {
-  ActCrossing,
-  ActFirstLetter,
-  ActKnock,
-  ActPick,
-  ActRead,
-  ActSort,
-  ActWrite,
-  DeskReveal,
-} from "../components/story";
-import { BEATS, FIRST_LETTER, MONTHS } from "../data/content";
 import { useAuth } from "../lib/auth";
 import { upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
-import { today } from "../lib/format";
 
-type Step =
-  | "auth"
-  | "name"
-  | "birthday"
-  | "knock"
-  | "read0"
-  | "read1"
-  | "read2"
-  | "pick"
-  | "write"
-  | "sort"
-  | "crossing"
-  | "first"
-  | "desk";
+/* Onboarding, reimagined on note + Wren (no letters):
+   meet Wren → write your first note (before login) → Wren catches you (我在)
+   → she carries it across a little world to find someone who writes like you
+   → she's your Wren, and she grows → sign in only to save.
+   Value before signup; anonymous (no name, no face). */
 
-/* Onboarding — all hooks hoisted; each step is inline JSX (not a nested
-   component) so React reconciles it in place and the name TextInput keeps
-   focus while typing. The full animated story acts land in the next pass. */
+type Step = "meet" | "write" | "caught" | "flight" | "yours" | "auth";
+
+// mood swatches (tiny + cosmetic for now)
+const SWATCHES = ["#CDE0EE", "#E4B15C", "#E7A3B4", "#7FC3A6"];
+
 export default function Onboarding() {
   const router = useRouter();
   const auth = useAuth();
-  const { session, onboarded, appleAvailable, profile } = auth;
+  const { session, onboarded, appleAvailable } = auth;
 
-  const [step, setStep] = useState<Step>("auth");
-  const [name, setName] = useState("");
-  const [pronoun, setPronoun] = useState<"she" | "he" | "they">("they");
-  const nowY = new Date().getFullYear();
-  const [dob, setDob] = useState({ m: 5, d: 15, y: nowY - 25 });
-  const [busy, setBusy] = useState<null | "apple" | "google" | "email" | "save">(null);
+  const [step, setStep] = useState<Step>("meet");
+  const [note, setNote] = useState("");
+  const [mood, setMood] = useState<number | null>(null);
+  const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
-  const [beat, setBeat] = useState(0);
-  const [picked, setPicked] = useState<string | null>(null);
-  const [firstLine, setFirstLine] = useState("");
-  const breathe = useBreathe(5, 4400);
+  const finishing = useRef(false);
+  const breathe = useBreathe(5, 3800);
 
-  useEffect(() => {
-    const t = setInterval(() => setBeat((x) => (x + 1) % BEATS.length), 3900);
-    return () => clearInterval(t);
-  }, []);
+  const canWrite = note.trim().length >= 2;
 
+  // returning, already-onboarded → straight in
   useEffect(() => {
-    // returning, already-onboarded user → straight into the app
-    if (session && onboarded && step === "auth") router.replace("/(tabs)/letters");
-  }, [session, onboarded, step, router]);
+    if (session && onboarded) router.replace("/(tabs)/letters");
+  }, [session, onboarded, router]);
 
-  useEffect(() => {
-    if (session && !onboarded && step === "auth") {
-      const pf = (profile?.full_name || profile?.name || "") as string;
-      setName((n) => n || pf);
-      setStep("name");
+  const finish = async () => {
+    if (finishing.current) return;
+    finishing.current = true;
+    const l = note.trim();
+    if (l.length >= 2) {
+      try {
+        await upsertFingerprint(signatureVector(l), voiceSignature(l).words);
+      } catch {
+        /* fingerprint is best-effort */
+      }
     }
-  }, [session, onboarded, step, profile]);
+    await auth.saveProfile({ firstLine: l || undefined }); // saveProfile sets onboarded: true
+    router.replace("/(tabs)/letters");
+  };
+
+  // once signed in at the auth step, save + go
+  useEffect(() => {
+    if (session && !onboarded && step === "auth") finish();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, onboarded, step]);
 
   const doApple = async () => {
     setBusy("apple");
     const r = await auth.signInWithApple();
     setBusy(null);
-    if ("error" in r) Alert.alert("Sign in with Apple", r.error);
+    if ("error" in r) Alert.alert("Continue with Apple", r.error);
   };
   const doGoogle = async () => {
     setBusy("google");
     const r = await auth.signInWithGoogle();
     setBusy(null);
-    if ("error" in r) Alert.alert("Sign in with Google", r.error);
+    if ("error" in r) Alert.alert("Continue with Google", r.error);
   };
   const doEmail = () => {
     Alert.prompt?.(
-      "Your email",
-      "Wren will send you a quiet magic link.",
+      "你的邮箱",
+      "Wren 会给你发一条安静的登录链接。",
       async (email?: string) => {
         if (!email || !email.trim()) return;
         setBusy("email");
         const r = await auth.signInWithEmail(email.trim());
         setBusy(null);
-        if ("error" in r) Alert.alert("Email", r.error);
+        if ("error" in r) Alert.alert("邮箱", r.error);
         else setEmailSent(true);
       },
       "plain-text",
@@ -108,63 +94,172 @@ export default function Onboarding() {
     );
   };
 
-  const dobStr = `${dob.y}-${String(dob.m + 1).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`;
-
-  // story end: seed the writing fingerprint, save the profile, reveal the desk
-  const finishStory = async (line: string | null) => {
-    const l = (line ?? firstLine).trim();
-    if (l.length >= 4) {
-      try {
-        await upsertFingerprint(signatureVector(l), voiceSignature(l).words);
-      } catch {
-        /* fingerprint is best-effort */
-      }
-    }
-    await auth.saveProfile({ handle: name.trim(), pronoun, dob: dobStr, firstLine: l || undefined });
-    setStep("desk");
-  };
-
-  // birthday derived
-  const years = Array.from({ length: 80 }, (_, i) => nowY - 13 - i);
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-  const yi = Math.max(0, years.indexOf(dob.y));
-  let age = nowY - dob.y;
-  const nd = new Date();
-  if (nd.getMonth() < dob.m || (nd.getMonth() === dob.m && nd.getDate() < dob.d)) age -= 1;
-  const ageOk = age >= 18;
-  const B = BEATS[beat];
-  const nameReady = name.trim().length > 0;
+  const reflect =
+    note.trim().length <= 12 ? "就这么一句,也够了。" : "谢谢你把它说出来 —— 憋着,最累了。";
 
   return (
     <>
-      {step === "auth" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-          <View style={{ paddingTop: 10, alignItems: "center" }}>
-            <Text style={{ fontFamily: F.serif, fontSize: 21, color: C.ink }}>Kindredly</Text>
-          </View>
-
-          <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 26 }}>
-            <View style={{ height: 220, alignItems: "center", justifyContent: "center" }}>
-              <Animated.View style={breathe}>
-                <EnvelopeArt w={210} />
-              </Animated.View>
-            </View>
-
-            <Animated.View key={beat} entering={FadeInDown.duration(520)} style={{ alignItems: "center", marginTop: 8 }}>
-              <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink, letterSpacing: -0.5, textAlign: "center", lineHeight: 35 }}>
-                {B.h1}
+      {/* ── 01 · meet Wren ── */}
+      {step === "meet" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
+          <Sky />
+          <Progress step={0} />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
+            <Animated.View entering={FadeIn.duration(600)} style={breathe}>
+              <CuteWren size={132} tone="dark" />
+            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 22 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#F1EFF7", textAlign: "center", lineHeight: 37 }}>
+                嗨,我是 Wren。{"\n"}你写什么,我都读。
               </Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 28, color: C.purple, letterSpacing: -0.5, textAlign: "center", lineHeight: 36 }}>
-                {B.h2}
-              </Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 14, color: C.muted, lineHeight: 22, marginTop: 16, textAlign: "center", maxWidth: 320 }}>
-                {B.sub}
+              <Text style={{ fontFamily: F.sans, fontSize: 14, color: "#9C97AB", marginTop: 14, textAlign: "center" }}>
+                我会找到写字像你的人。
               </Text>
             </Animated.View>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 20 }}>
+            <PurpleButton label="好呀" onPress={() => setStep("write")} />
+          </View>
+        </SafeAreaView>
+      )}
 
-            <View style={{ marginTop: 26 }}>
-              <Dots i={beat} n={BEATS.length} onPick={setBeat} />
+      {/* ── 02 · write your first note ── */}
+      {step === "write" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <Progress step={1} dark={false} />
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 20 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, lineHeight: 36 }}>
+                此刻,有什么{"\n"}压在心里?
+              </Text>
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10 }}>
+                累、开心、还是就想写点什么 —— 一句话也行。
+              </Text>
+
+              <TextInput
+                autoFocus
+                value={note}
+                onChangeText={setNote}
+                placeholder="写下来…"
+                placeholderTextColor={C.faint}
+                multiline
+                style={{ marginTop: 22, minHeight: 150, fontFamily: F.letter, fontSize: 20, lineHeight: 32, color: "#22222A", textAlignVertical: "top" }}
+              />
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
+                <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint }}>此刻的心情</Text>
+                {SWATCHES.map((c, i) => (
+                  <Pressable key={c} onPress={() => setMood(i)}>
+                    <View
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 13,
+                        backgroundColor: c,
+                        borderWidth: 2.5,
+                        borderColor: mood === i ? C.ink : "transparent",
+                      }}
+                    />
+                  </Pressable>
+                ))}
+              </View>
             </View>
+            <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
+              <PurpleButton label="写好了" disabled={!canWrite} onPress={() => setStep("caught")} />
+              <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.faint, textAlign: "center", marginTop: 12 }}>
+                还没登录 · 只存在你这儿
+              </Text>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      )}
+
+      {/* ── 03 · Wren catches you ── */}
+      {step === "caught" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
+          <Sky />
+          <Progress step={2} />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+            <Animated.View entering={FadeIn.duration(500)} style={breathe}>
+              <CuteWren size={92} tone="dark" />
+            </Animated.View>
+            <Animated.View entering={FadeInUp.delay(250).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
+              <View style={{ backgroundColor: C.purple, borderRadius: 20, borderBottomLeftRadius: 4, paddingHorizontal: 18, paddingVertical: 14, maxWidth: 300 }}>
+                <Text style={{ fontFamily: F.serif, fontSize: 18, color: "#fff", lineHeight: 27 }}>我在。</Text>
+                <Text style={{ fontFamily: F.serif, fontSize: 15.5, color: "rgba(255,255,255,0.9)", lineHeight: 24, marginTop: 4 }}>
+                  {reflect}
+                </Text>
+              </View>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, letterSpacing: 0.5, color: "#9B9BF9", marginTop: 20 }}>
+                ✦ 我开始认识你写字的样子了
+              </Text>
+            </Animated.View>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 20 }}>
+            <PurpleButton label="嗯" onPress={() => setStep("flight")} />
+          </View>
+        </SafeAreaView>
+      )}
+
+      {/* ── 04 · Wren carries it across a little world ── */}
+      {step === "flight" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
+          <Sky />
+          <Progress step={3} />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 }}>
+            <Animated.View entering={FadeIn.duration(600)}>
+              <LittleWorld />
+            </Animated.View>
+            <Animated.Text
+              entering={FadeInUp.delay(300).duration(600)}
+              style={{ fontFamily: F.serif, fontSize: 19, color: "#F1EFF7", textAlign: "center", lineHeight: 29, marginTop: 24 }}
+            >
+              看 —— 我带着它,{"\n"}去找一个写字像你的人。
+            </Animated.Text>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 20 }}>
+            <PurpleButton label="继续" onPress={() => setStep("yours")} />
+          </View>
+        </SafeAreaView>
+      )}
+
+      {/* ── 05 · your Wren, she grows ── */}
+      {step === "yours" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <Progress step={4} dark={false} />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+            <Animated.View entering={FadeIn.duration(600)} style={breathe}>
+              <CuteWren size={120} tone="light" />
+            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 25, color: C.ink }}>她是你的 Wren。</Text>
+              <Text style={{ fontFamily: F.sans, fontSize: 14, color: C.muted, marginTop: 12, textAlign: "center", lineHeight: 22, maxWidth: 290 }}>
+                她的样子,随你写字慢慢变 —— 换羽、学歌,越来越像你。
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, backgroundColor: C.purpleLt, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 }}>
+                <Text style={{ fontSize: 13 }}>🎨</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>也能自己装扮她</Text>
+              </View>
+            </Animated.View>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
+            <PurpleButton label="进去看看" onPress={() => (session ? finish() : setStep("auth"))} />
+          </View>
+        </SafeAreaView>
+      )}
+
+      {/* ── 06 · sign in (only to save) ── */}
+      {step === "auth" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+          <Progress step={5} dark={false} />
+          <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 30, alignItems: "center" }}>
+            <CuteWren size={84} tone="light" />
+            <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, textAlign: "center", lineHeight: 35, marginTop: 20 }}>
+              想留住 Wren、{"\n"}也想听到回音?
+            </Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 12, textAlign: "center", lineHeight: 21, maxWidth: 300 }}>
+              不用名字、不用照片 —— 你就是你写的字。
+            </Text>
           </View>
 
           <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
@@ -179,177 +274,107 @@ export default function Onboarding() {
             ) : (
               <PrimaryButton label="CONTINUE WITH APPLE" onPress={doApple} loading={busy === "apple"} />
             )}
-
             <GhostButton
               label="Continue with Google"
               onPress={doGoogle}
               style={{ marginTop: 11 }}
               icon={<Text style={{ fontFamily: F.sansBold, fontSize: 17, color: C.ink }}>G</Text>}
             />
-
-            <Pressable onPress={doEmail} style={{ alignItems: "center", paddingTop: 16, paddingBottom: 8 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 1.5, color: C.muted }}>
-                USE YOUR EMAIL ADDRESS
-              </Text>
+            <Pressable onPress={doEmail} style={{ alignItems: "center", paddingTop: 14, paddingBottom: 6 }}>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1.2, color: C.muted }}>用邮箱登录</Text>
             </Pressable>
-
             {emailSent ? (
               <Animated.Text entering={FadeIn} style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 13, color: C.purple }}>
-                Check your email for the link.
+                去邮箱点一下链接就好。
               </Animated.Text>
             ) : (
-              <Text style={{ textAlign: "center", fontFamily: F.sans, fontSize: 11, color: C.faint, lineHeight: 17 }}>
-                By continuing, you agree to our Quiet Terms & Privacy Parchment.
+              <Text style={{ textAlign: "center", fontFamily: F.sans, fontSize: 10.5, color: C.faint, lineHeight: 16 }}>
+                继续即表示你已满 18 岁,并同意我们的条款与隐私。
               </Text>
             )}
           </View>
         </SafeAreaView>
       )}
-
-      {step === "name" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-          <TopBar pct={30} onBack={() => auth.signOut()} />
-          <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 30 }}>
-            <Text style={{ fontFamily: F.serif, fontSize: 31, color: C.ink, letterSpacing: -0.5, lineHeight: 38 }}>
-              What shall we
-            </Text>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 31, color: C.purple, letterSpacing: -0.5, lineHeight: 40 }}>
-              call you?
-            </Text>
-
-            <View style={{ marginTop: 34 }}>
-              <TextInput
-                autoFocus
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name…"
-                placeholderTextColor={C.faint}
-                style={{
-                  fontFamily: F.serif,
-                  fontSize: 30,
-                  color: C.ink,
-                  paddingBottom: 12,
-                  borderBottomWidth: 1.5,
-                  borderBottomColor: nameReady ? C.purple : C.line,
-                }}
-              />
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, marginTop: 12, lineHeight: 19 }}>
-                Strangers never see this. Only someone you've written five letters with — and you can change it
-                any time before then.
-              </Text>
-            </View>
-
-            <View style={{ marginTop: 38 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.6, color: C.label, marginBottom: 12 }}>
-                AND HOW SHOULD WREN REFER TO YOU?
-              </Text>
-              <View style={{ flexDirection: "row", gap: 9 }}>
-                {(["she", "he", "they"] as const).map((p) => {
-                  const on = pronoun === p;
-                  return (
-                    <Pressable
-                      key={p}
-                      onPress={() => setPronoun(p)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 14,
-                        alignItems: "center",
-                        borderRadius: 24,
-                        borderWidth: 1.5,
-                        borderColor: on ? C.purple : C.line,
-                        backgroundColor: on ? C.purpleLt : "transparent",
-                      }}
-                    >
-                      <Text style={{ fontFamily: F.sansBold, fontSize: 13, letterSpacing: 1.1, color: on ? C.purple : C.muted }}>
-                        {p.toUpperCase()}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-
-          <View style={{ paddingHorizontal: 24, paddingBottom: 24 }}>
-            <PrimaryButton label="NEXT" disabled={!nameReady} onPress={() => setStep("birthday")} />
-          </View>
-        </SafeAreaView>
-      )}
-
-      {step === "birthday" && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-          <TopBar pct={70} onBack={() => setStep("name")} />
-          <View style={{ paddingHorizontal: 26, paddingTop: 30, alignItems: "center" }}>
-            <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink, letterSpacing: -0.5, textAlign: "center", lineHeight: 37 }}>
-              {name ? `${name}, when's` : "When's"}
-            </Text>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: C.purple, letterSpacing: -0.5 }}>your birthday?</Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 14, textAlign: "center" }}>
-              Wren keeps it. She'll write to you on the day.
-            </Text>
-          </View>
-
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ position: "relative", flexDirection: "row", gap: 6 }}>
-              <View
-                style={{
-                  position: "absolute",
-                  left: -8,
-                  right: -8,
-                  top: "50%",
-                  marginTop: -22,
-                  height: 44,
-                  borderRadius: 14,
-                  backgroundColor: C.card,
-                }}
-              />
-              <Wheel width={78} items={MONTHS} value={dob.m} onChange={(m) => setDob({ ...dob, m })} />
-              <Wheel width={62} items={days} value={dob.d - 1} onChange={(i) => setDob({ ...dob, d: i + 1 })} />
-              <Wheel width={86} items={years} value={yi} onChange={(i) => setDob({ ...dob, y: years[i] })} />
-            </View>
-          </View>
-
-          <View style={{ paddingHorizontal: 24, paddingBottom: 24 }}>
-            <Text
-              style={{
-                textAlign: "center",
-                marginBottom: 16,
-                fontFamily: F.sans,
-                fontSize: 13.5,
-                lineHeight: 21,
-                color: ageOk ? C.muted : "#C0503A",
-              }}
-            >
-              {ageOk
-                ? `You're ${age}.`
-                : "Kindredly is for people 18 and over. Letters here go to strangers, and we can't keep that safe for anyone younger."}
-            </Text>
-            <PrimaryButton label="NEXT" disabled={!ageOk} onPress={() => setStep("knock")} />
-          </View>
-        </SafeAreaView>
-      )}
-
-      {/* ── the story ── */}
-      {step === "knock" && <ActKnock name={name} onNext={() => setStep("read0")} />}
-      {step === "read0" && <ActRead idx={0} onNext={() => setStep("read1")} onSkip={() => setStep("sort")} />}
-      {step === "read1" && <ActRead idx={1} onNext={() => setStep("read2")} onSkip={() => setStep("sort")} />}
-      {step === "read2" && <ActRead idx={2} onNext={() => setStep("pick")} onSkip={() => setStep("sort")} />}
-      {step === "pick" && (
-        <ActPick picked={picked} setPicked={setPicked} onNext={() => setStep("write")} onSkip={() => setStep("sort")} />
-      )}
-      {step === "write" && (
-        <ActWrite text={firstLine} setText={setFirstLine} onNext={() => setStep("sort")} onSkip={() => setStep("sort")} />
-      )}
-      {step === "sort" && <ActSort text={firstLine || "Hello."} onNext={() => setStep("crossing")} />}
-      {step === "crossing" && <ActCrossing onNext={() => setStep("first")} />}
-      {step === "first" && (
-        <ActFirstLetter
-          letter={{ body: FIRST_LETTER.body, ask: FIRST_LETTER.ask, alias: FIRST_LETTER.alias, date: today() }}
-          onSend={(t) => finishStory(t)}
-          onSkip={() => finishStory(null)}
-        />
-      )}
-      {step === "desk" && <DeskReveal onDone={() => router.replace("/(tabs)/letters")} />}
     </>
+  );
+}
+
+/* ── little pieces ── */
+
+function PurpleButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      onPress={() => !disabled && onPress()}
+      disabled={disabled}
+      style={{ backgroundColor: C.purple, borderRadius: 28, paddingVertical: 17, alignItems: "center", opacity: disabled ? 0.35 : 1 }}
+    >
+      <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 15, letterSpacing: 0.5 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Progress({ step, dark = true }: { step: number; dark?: boolean }) {
+  const on = dark ? "#9B9BF9" : C.purple;
+  const off = dark ? "rgba(255,255,255,0.18)" : C.line;
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, paddingTop: 10 }}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <View key={i} style={{ width: i === step ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === step ? on : off }} />
+      ))}
+    </View>
+  );
+}
+
+function Sky() {
+  return (
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 260 }}>
+      <View style={{ position: "absolute", top: 40, left: "22%", width: 3, height: 3, borderRadius: 2, backgroundColor: "#CFCFFC", opacity: 0.5 }} />
+      <View style={{ position: "absolute", top: 90, left: "72%", width: 2.5, height: 2.5, borderRadius: 2, backgroundColor: "#CFCFFC", opacity: 0.4 }} />
+      <View style={{ position: "absolute", top: 150, left: "40%", width: 2, height: 2, borderRadius: 1, backgroundColor: "#CFCFFC", opacity: 0.35 }} />
+    </View>
+  );
+}
+
+function CuteWren({ size = 96, tone = "light" }: { size?: number; tone?: "light" | "dark" }) {
+  const dark = tone === "dark";
+  const body = dark ? "#20203A" : C.purpleLt;
+  const stroke = dark ? "#9A9AFF" : C.purple;
+  const belly = dark ? "#2B2B48" : "#FFFFFF";
+  const beak = C.gold;
+  const eye = dark ? "#EDEBF2" : C.ink;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 120 120">
+      <Ellipse cx={46} cy={100} rx={24} ry={6} fill={stroke} opacity={0.14} />
+      <Path d="M28 74 q-15 -2 -19 -17 q12 0 23 9 z" fill={stroke} opacity={0.85} />
+      <Ellipse cx={58} cy={62} rx={32} ry={34} fill={body} stroke={stroke} strokeWidth={2.5} />
+      <Ellipse cx={60} cy={70} rx={18} ry={22} fill={belly} />
+      <Path d="M84 55 q12 10 2 28 q-9 -8 -9 -19 z" fill={stroke} opacity={0.9} />
+      <Path d="M56 31 q3 -9 10 -8 q-1 7 -7 10" fill={beak} />
+      <Path d="M37 56 l-12 4 l11 5 z" fill={beak} />
+      <Circle cx={49} cy={54} r={3.2} fill={eye} />
+      <Circle cx={50.2} cy={53} r={0.9} fill="#fff" />
+      <Path d="M52 96 l0 9 M60 96 l0 9 M68 96 l0 9" stroke={beak} strokeWidth={2.3} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function LittleWorld() {
+  return (
+    <Svg width={240} height={230} viewBox="0 0 240 230">
+      <Ellipse cx={44} cy={196} rx={40} ry={15} fill="#2B2B48" />
+      <Ellipse cx={186} cy={54} rx={44} ry={17} fill="#2B2B48" />
+      <Ellipse cx={132} cy={140} rx={22} ry={9} fill="#232340" />
+      <Path d="M44 188 q40 -100 138 -128" fill="none" stroke="#9A9AFF" strokeWidth={1.6} strokeDasharray="3 5" opacity={0.7} />
+      <Circle cx={44} cy={188} r={5} fill={C.gold} />
+      <Circle cx={182} cy={52} r={10} fill="#9A9AFF" opacity={0.28} />
+      <Circle cx={182} cy={52} r={4.5} fill="#9A9AFF" />
+      <G transform="translate(112 108) rotate(-10)">
+        <Rect x={-7} y={5} width={15} height={11} rx={2} fill="#F1EFF7" />
+        <Ellipse cx={0} cy={0} rx={11} ry={9} fill="#9A9AFF" />
+        <Path d="M9 -3 l10 -2 l-7 8 z" fill={C.gold} />
+        <Path d="M-9 -4 l-10 -5 l4 10 z" fill="#7C7CE0" />
+        <Circle cx={4} cy={-2} r={1.8} fill="#161420" />
+      </G>
+    </Svg>
   );
 }
