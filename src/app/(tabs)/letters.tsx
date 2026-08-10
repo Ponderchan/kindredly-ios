@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { C, F } from "../../theme/tokens";
+import { C, F, cardStyle } from "../../theme/tokens";
 import { Wren } from "../../components/Wren";
 import { StampTile } from "../../components/StampTile";
 import {
@@ -81,10 +81,7 @@ export default function LettersTab() {
             {pages.map((p, i) => (
               <View key={i} style={{ height: pageH }}>
                 {p.kind === "end" ? (
-                  <EndCap
-                    onStranger={() => router.push("/compose")}
-                    onSelf={() => router.push("/journal-entry")}
-                  />
+                  <EndCap onWrite={() => router.push("/compose")} />
                 ) : (
                   <LetterView
                     page={p}
@@ -101,11 +98,20 @@ export default function LettersTab() {
           </ScrollView>
         )}
 
-        {/* a quiet page count — nothing else floats up here */}
-        <View style={{ position: "absolute", top: 10, left: 22 }}>
+        {/* top: a quiet count + the always-there "write a note" (venting is immediate) */}
+        <View style={{ position: "absolute", top: 8, left: 22, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 0.5, color: C.faint }}>
             {onLetter ? `${idx + 1} / ${deck.length}` : ""}
           </Text>
+          {onLetter && (
+            <Pressable
+              onPress={() => router.push("/compose")}
+              style={[cardStyle, { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 18 }]}
+            >
+              <Text style={{ fontSize: 12 }}>✍️</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.ink }}>写一件心事</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -119,7 +125,7 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
   const t = page.kind === "thread" ? page.t : null;
   const who = isMorning ? "一个陌生人" : t!.otherName || `No. ${postNo(t!.other)}`;
   const meta = isMorning
-    ? "还没人回过的一段话"
+    ? "还没人回过的一件心事"
     : t!.mine >= 5
       ? "来回满 5 次，可以看名字了"
       : `再来回 ${5 - t!.mine} 次就能看名字`;
@@ -147,7 +153,7 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
       <View>
         {hasNext && (
           <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint, textAlign: "center", marginBottom: 12 }}>
-            ↑ 上滑，还有下一封
+            ↑ 上滑，还有下一件
           </Text>
         )}
         <Pressable onPress={onAct} style={{ backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center" }}>
@@ -158,9 +164,8 @@ function LetterView({ page, hasNext, onAct }: { page: Page; hasNext: boolean; on
   );
 }
 
-/* the calm end — all caught up. The one button becomes "写给一个陌生人";
-   writing to yourself is a quieter, deliberate second line. */
-function EndCap({ onStranger, onSelf }: { onStranger: () => void; onSelf: () => void }) {
+/* the calm end — all caught up. One warm action: write a note of your own. */
+function EndCap({ onWrite }: { onWrite: () => void }) {
   return (
     <View style={{ flex: 1, paddingHorizontal: 30, paddingTop: 56, paddingBottom: 120 }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -182,12 +187,10 @@ function EndCap({ onStranger, onSelf }: { onStranger: () => void; onSelf: () => 
 
       {/* the one action, when there's nothing left to answer */}
       <View style={{ alignItems: "center" }}>
-        <Pressable onPress={onStranger} style={{ backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center", width: "100%" }}>
-          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 1 }}>写给一个陌生人</Text>
+        <Pressable onPress={onWrite} style={{ backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center", width: "100%" }}>
+          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 1 }}>写一件心事</Text>
         </Pressable>
-        <Pressable onPress={onSelf} hitSlop={8} style={{ paddingVertical: 14 }}>
-          <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.faint }}>或者，写给自己 · 存起来</Text>
-        </Pressable>
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, marginTop: 12 }}>倒出来就好 —— Wren 会先接住你。</Text>
       </View>
     </View>
   );

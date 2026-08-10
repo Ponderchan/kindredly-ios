@@ -348,7 +348,7 @@ export default function Compose() {
                   autoFocus
                   value={text}
                   onChangeText={setText}
-                  placeholder="说点什么…一句话也行。"
+                  placeholder="有什么压在心里？写下来 —— 一句话也行。"
                   placeholderTextColor={C.faint}
                   multiline
                   style={{ minHeight: 180, color: "#22222A", fontFamily: F.letter, fontSize: 19, lineHeight: 31, textAlignVertical: "top" }}
