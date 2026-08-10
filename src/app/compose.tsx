@@ -30,11 +30,13 @@ export default function Compose() {
   const isMorning = params.morning === "1";
   const { premium } = useEntitlement();
 
-  const [step, setStep] = useState<Step>(params.stamp || params.draft ? "write" : "pick");
+  // open straight to writing — text first, any length. The stamp is a light,
+  // optional accent (default one assigned; tap it to change), not a gate.
+  const [step, setStep] = useState<Step>("write");
   const [draftId, setDraftId] = useState<string | null>(params.draft ?? null);
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
-  const [sel, setSel] = useState<string | null>(params.stamp ?? null);
+  const [sel, setSel] = useState<string | null>(params.stamp ?? (params.draft ? null : STARTER_STAMPS[0]));
   const [text, setText] = useState("");
   const [ask, setAsk] = useState("");
   const [pIdx, setPIdx] = useState(0);
@@ -90,9 +92,9 @@ export default function Compose() {
 
   const openers = WREN_OPENERS.letter[LANG];
   const stamp = getStamp(sel);
-  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-  const canSend = mode === "speak" ? !!recUri : wordCount >= 3;
-  const to = isMorning ? "THE PERSON WHO SHARED THAT LINE" : "THREE PEOPLE WHO WRITE LIKE YOU";
+  // a line is enough — count characters, not whitespace words (Chinese has none)
+  const canSend = mode === "speak" ? !!recUri : text.trim().length >= 2;
+  const to = isMorning ? "分享那句话的人" : "三个跟你写字像的人";
 
   const send = async () => {
     if (!canSend || busy || !sel) return;
@@ -105,7 +107,7 @@ export default function Compose() {
       const gate = await screen(body);
       if (!gate.ok) {
         setBusy(false);
-        Alert.alert("Wren held this back", "This letter can't be sent as written. Keep it to strangers, not contact details.");
+        Alert.alert("Wren 先拦了一下", "这条现在还不能寄出去。写给陌生人就好，别放联系方式。");
         return;
       }
     }
@@ -114,11 +116,11 @@ export default function Compose() {
     if (!bump.ok) {
       setBusy(false);
       if (bump.reason === "daily_cap") {
-        setCapMsg(`That's your ${bump.cap ?? 3} letters for today.`);
+        setCapMsg(`今天的 ${bump.cap ?? 3} 封，寄完了。`);
       } else if (bump.reason === "unauthorized") {
-        Alert.alert("Sign in", "Please sign in again to send a letter.");
+        Alert.alert("请重新登录", "登录后再寄。");
       } else {
-        Alert.alert("Couldn't send", "Something went wrong. Try again in a moment.");
+        Alert.alert("没寄出去", "出了点问题，等会儿再试。");
       }
       return;
     }
@@ -133,10 +135,10 @@ export default function Compose() {
     setBusy(false);
     if (!ok) {
       Alert.alert(
-        "Couldn't send",
+        "没寄出去",
         mode === "speak"
-          ? "The voice letter didn't go out. (Voice letters need the storage bucket from migration 0007 — see SETUP.md.)"
-          : "The letter didn't go out. Try again.",
+          ? "语音没发出去。(语音信需要 migration 0007 的存储桶 —— 见 SETUP.md。)"
+          : "这条没发出去，再试一次。",
       );
       return;
     }
@@ -153,16 +155,16 @@ export default function Compose() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.creamHi, alignItems: "center", justifyContent: "center", padding: 30 }}>
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 3, color: C.faint, position: "absolute", top: "16%" }}>
-          KINDREDLY POST OFFICE
+          KINDREDLY 邮局
         </Text>
         <Animated.View style={breathe}>
           <Seal size={92} />
         </Animated.View>
         <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, textAlign: "center", marginTop: 28, lineHeight: 34 }}>
-          {isMorning ? "Sent straight\nto them." : "Sent down\nthree streets."}
+          {isMorning ? "直接寄给 ta 了。" : "寄出去了。"}
         </Text>
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.8, color: C.faint, marginTop: 16, textAlign: "center" }}>
-          {isMorning ? "IT LANDS AT THEIR DOOR" : "THE FIRST PERSON TO ANSWER IS YOURS"}
+          {isMorning ? "它会落在 ta 那儿" : "第一个回你的人，就是你的"}
         </Text>
       </SafeAreaView>
     );
@@ -201,19 +203,19 @@ export default function Compose() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
         <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Pressable onPress={goBack} hitSlop={10} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}>
+          <Pressable onPress={() => setStep("write")} hitSlop={10} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontSize: 20, color: C.ink }}>‹</Text>
           </Pressable>
           <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, backgroundColor: C.purpleLt }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>COLLECTOR'S EDITION</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>邮票册</Text>
           </View>
         </View>
 
         <View style={{ paddingHorizontal: 22, paddingTop: 24, paddingBottom: 16 }}>
-          <Text style={{ fontFamily: F.serifMed, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>Choose your</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 32, color: C.purple, letterSpacing: -0.5 }}>envelope.</Text>
+          <Text style={{ fontFamily: F.serifMed, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>挑一张</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 32, color: C.purple, letterSpacing: -0.5 }}>邮票。</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10 }}>
-            Each stamp guides your letter to the right people.
+            邮票帮你把话送给对的人 —— 不挑也行，随手贴一张。
           </Text>
         </View>
 
@@ -227,11 +229,11 @@ export default function Compose() {
               </View>
               <Pressable onPress={() => setShowAll(true)} style={{ paddingVertical: 18 }}>
                 <Text style={{ textAlign: "center", fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1.2, color: C.purple }}>
-                  SHOW ALL {STAMPS.length} →
+                  看全部 {STAMPS.length} 张 →
                 </Text>
               </Pressable>
               <Text style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>
-                Six to start with. The rest are there when you want them.
+                先给你六张。其余的，想用的时候都在。
               </Text>
             </>
           ) : (
@@ -255,7 +257,7 @@ export default function Compose() {
             onPress={() => sel && setStep("write")}
             style={[navyBtn, { paddingVertical: 18, width: "100%", opacity: sel ? 1 : 0.3 }]}
           >
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1.6 }}>CONFIRM SELECTION →</Text>
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>就用这张 →</Text>
           </Pressable>
         </LinearGradient>
       </SafeAreaView>
@@ -267,13 +269,13 @@ export default function Compose() {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
       <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <Pressable
-          onPress={() => (params.stamp || params.draft ? goBack() : setStep("pick"))}
+          onPress={goBack}
           hitSlop={10}
           style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}
         >
           <Text style={{ fontSize: 18, color: C.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.faint }}>DRAFT</Text>
+        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.faint }}>草稿</Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -281,14 +283,21 @@ export default function Compose() {
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 20 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={[cardStyle, { borderRadius: 20, padding: 24, minHeight: 380, marginTop: 8 }]}>
             {stamp && (
-              <View style={{ position: "absolute", top: 18, right: 18, transform: [{ rotate: "6deg" }], padding: 4, backgroundColor: "#fff", borderRadius: 4, shadowColor: "#131A26", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
-                <StampTile id={sel!} w={44} r={4} />
-              </View>
+              <Pressable
+                onPress={() => setStep("pick")}
+                hitSlop={8}
+                style={{ position: "absolute", top: 18, right: 18, alignItems: "center", gap: 3 }}
+              >
+                <View style={{ transform: [{ rotate: "6deg" }], padding: 4, backgroundColor: "#fff", borderRadius: 4, shadowColor: "#131A26", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
+                  <StampTile id={sel!} w={44} r={4} />
+                </View>
+                <Text style={{ fontFamily: F.sans, fontSize: 9, color: C.faint }}>换邮票</Text>
+              </Pressable>
             )}
 
             <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 12 }}>
               <Wren size={19} mode="line" />
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>WREN SUGGESTS</Text>
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>Wren 提议</Text>
             </View>
             <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ marginBottom: 22, paddingRight: 56 }}>
               <Text style={{ fontFamily: F.serifItalic, fontSize: 18, color: C.muted, lineHeight: 27 }}>
@@ -297,16 +306,16 @@ export default function Compose() {
             </Pressable>
 
             <View style={{ flexDirection: "row", gap: 10, alignItems: "baseline", marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.lineSoft }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.4, color: C.label }}>TO:</Text>
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 12, letterSpacing: 1.1, color: C.ink, flex: 1 }}>{to}</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.4, color: C.label }}>寄给</Text>
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 12, letterSpacing: 0.5, color: C.ink, flex: 1 }}>{to}</Text>
             </View>
 
             {/* Write it / Speak it */}
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 18 }}>
               {(
                 [
-                  ["write", "✍️", "Write it"],
-                  ["speak", "🎙", "Speak it"],
+                  ["write", "✍️", "打字"],
+                  ["speak", "🎙", "语音"],
                 ] as [Mode, string, string][]
               ).map(([m, icon, label]) => {
                 const on = mode === m;
@@ -338,18 +347,18 @@ export default function Compose() {
                   autoFocus
                   value={text}
                   onChangeText={setText}
-                  placeholder="Dear Kindred soul…"
+                  placeholder="说点什么…一句话也行。"
                   placeholderTextColor={C.faint}
                   multiline
                   style={{ minHeight: 180, color: "#22222A", fontFamily: F.letter, fontSize: 19, lineHeight: 31, textAlignVertical: "top" }}
                 />
 
                 <View style={{ marginTop: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
-                  <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginBottom: 6 }}>Write me back:</Text>
+                  <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginBottom: 6 }}>想听 ta 回你什么？（可不填）</Text>
                   <TextInput
                     value={ask}
                     onChangeText={setAsk}
-                    placeholder="What do you want to hear about?"
+                    placeholder="比如，最近让你开心的一件小事？"
                     placeholderTextColor={C.faint}
                     style={{ color: C.ink, fontFamily: F.sans, fontSize: 15 }}
                   />
@@ -375,16 +384,16 @@ export default function Compose() {
                   </View>
                 )}
                 <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 14, lineHeight: 19 }}>
-                  Up to three minutes. Your voice travels as it is — Wren doesn't listen in.
+                  最长三分钟。你的声音原样送出 —— Wren 不会偷听。
                 </Text>
                 <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
                   <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginBottom: 6 }}>
-                    A line to go with it (optional):
+                    配一句话（可不填）：
                   </Text>
                   <TextInput
                     value={text}
                     onChangeText={setText}
-                    placeholder="What is this letter about?"
+                    placeholder="想说说这段是关于什么的？"
                     placeholderTextColor={C.faint}
                     style={{ color: C.ink, fontFamily: F.sans, fontSize: 15 }}
                   />
@@ -397,10 +406,10 @@ export default function Compose() {
             <View style={{ marginTop: 16, padding: 16, borderRadius: 16, backgroundColor: C.purpleLt }}>
               <Text style={{ fontFamily: F.serif, fontSize: 15, color: C.ink }}>{capMsg}</Text>
               <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 4 }}>
-                Replies are always free. Lift the cap on new letters with Kindredly+.
+                回信永远免费。想多寄几封新的，开 Kindredly+。
               </Text>
               <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 10 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.5, color: C.purple }}>Discover Kindredly+ →</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.5, color: C.purple }}>看看 Kindredly+ →</Text>
               </Pressable>
             </View>
           )}
@@ -408,8 +417,8 @@ export default function Compose() {
 
         <View style={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 26 }}>
           <Pressable onPress={send} disabled={!canSend || busy} style={[navyBtn, { paddingVertical: 19, width: "100%", opacity: canSend && !busy ? 1 : 0.3 }]}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1.6 }}>
-              {busy ? "SENDING…" : "SEAL AND SEND  ✈"}
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>
+              {busy ? "寄出中…" : "寄出去  ✈"}
             </Text>
           </Pressable>
         </View>
