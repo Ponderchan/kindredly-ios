@@ -5,10 +5,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { C, F, cardStyle, navyBtn } from "../theme/tokens";
 import { StampTile } from "../components/StampTile";
-import { Wren } from "../components/Wren";
+import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { Seal } from "../components/Seal";
 import { useBreathe } from "../components/anim";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
 import { WREN_OPENERS } from "../data/content";
 import { screen } from "../lib/wren";
@@ -23,6 +23,38 @@ import { AudioCard } from "../components/AudioCard";
 const LANG = "en";
 type Step = "pick" | "write" | "sending";
 type Mode = "write" | "speak";
+
+/* Wren reads you as you write. Heavy words are checked first — if in doubt,
+   she'd rather be tender than celebrate the wrong thing. Not a classifier,
+   just a companion catching the drift. */
+const HEAVY =
+  /(tired|exhausted|drained|sad|down|cry|crying|tears|alone|lonely|lost|empty|numb|anxious|anxiety|scared|afraid|worried|hurt|hurts|hurting|hate|angry|broke|broken|breakup|miss|missing|grief|grieving|depress|overwhelm|stress|can'?t|hopeless|worthless|ashamed|guilt|sick|pain|dying|die|scream|drowning)/i;
+const LIGHT =
+  /(happy|glad|excited|love|loved|grateful|thankful|great|proud|amazing|wonderful|relieved|relief|joy|celebrat|yay|finally|hopeful|better|smil|laugh|best day)/i;
+
+function composeMood(text: string, canSend: boolean): WrenMood {
+  const t = text.trim();
+  if (!t) return "listen"; // she's here, waiting
+  if (HEAVY.test(t)) return "worry"; // tender
+  if (LIGHT.test(t)) return "delight";
+  return canSend ? "happy" : "listen"; // enough written → she's got it
+}
+
+function wrenSays(m: WrenMood): string {
+  switch (m) {
+    case "worry":
+      return "I hear you. Take your time.";
+    case "delight":
+      return "Oh — I love this.";
+    case "happy":
+      return "Got it. Send whenever you're ready.";
+    case "curious":
+      return "Go on — I'm all ears.";
+    case "listen":
+    default:
+      return "I'm right here, listening.";
+  }
+}
 
 export default function Compose() {
   const router = useRouter();
@@ -94,6 +126,8 @@ export default function Compose() {
   const stamp = getStamp(sel);
   // a line is enough — count characters, not whitespace words (Chinese has none)
   const canSend = mode === "speak" ? !!recUri : text.trim().length >= 2;
+  // Wren's face follows your writing (speak mode: waiting vs. captured)
+  const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : composeMood(text, canSend);
   const to = isMorning ? "THE PERSON WHO WROTE THAT" : "THREE PEOPLE WHO WRITE LIKE YOU";
   const toLabel = "TO";
 
@@ -296,13 +330,21 @@ export default function Compose() {
               </Pressable>
             )}
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 12 }}>
-              <Wren size={19} mode="line" />
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>Wren suggests</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16, paddingRight: 52 }}>
+              <Animated.View key={wrenMood} entering={FadeIn.duration(360)} style={breathe}>
+                <WrenBird size={56} mood={wrenMood} />
+              </Animated.View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>WREN</Text>
+                <Text style={{ fontFamily: F.serifItalic, fontSize: 15.5, color: C.muted, lineHeight: 22, marginTop: 3 }}>
+                  {wrenSays(wrenMood)}
+                </Text>
+              </View>
             </View>
-            <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ marginBottom: 22, paddingRight: 56 }}>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 18, color: C.muted, lineHeight: 27 }}>
-                “{openers[pIdx]}”
+            <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ marginBottom: 20 }}>
+              <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint, lineHeight: 18 }}>
+                Need a nudge?{"  "}
+                <Text style={{ fontFamily: F.serifItalic, color: C.muted }}>“{openers[pIdx]}”</Text>
               </Text>
             </Pressable>
 
