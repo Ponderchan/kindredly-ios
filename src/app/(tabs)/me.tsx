@@ -14,7 +14,8 @@ import { WrenHome } from "../../components/WrenHome";
 import { WrenOnYou } from "../../components/WrenOnYou";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
-import { getWrenAccessory, setWrenAccessory } from "../../lib/wren-style";
+import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
+import type { WrenStage } from "../../components/WrenBird";
 import { GROWTH_STAMPS, type GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fingerprint } from "../../lib/signature";
@@ -38,11 +39,19 @@ export default function MeTab() {
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
+  const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      collectGrowthStats(user?.created_at).then((s) => alive && setStats(s));
+      Promise.all([collectGrowthStats(user?.created_at), getStageFloor()]).then(([s, floor]) => {
+        if (!alive) return;
+        setStats(s);
+        const live = wrenStage(s);
+        // stage only ever moves forward; remember the highest ever reached
+        setStageFloor(stageIndex(live) >= stageIndex(floor) ? live : floor);
+        if (stageIndex(live) > stageIndex(floor)) void bumpStageFloor(live);
+      });
       getAvatarPhoto().then((p) => alive && setPhoto(p));
       getWrenAccessory().then((a) => alive && setAccessory(a));
       return () => {
@@ -168,6 +177,7 @@ export default function MeTab() {
             stats={stats}
             accessory={accessory}
             premium={premium}
+            stageFloor={stageFloor}
             onEquip={equipWren}
             onLocked={() => router.push("/paywall")}
           />

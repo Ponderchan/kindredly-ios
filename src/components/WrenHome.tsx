@@ -25,16 +25,18 @@ export function WrenHome({
   stats,
   accessory,
   premium,
+  stageFloor = "egg",
   onEquip,
   onLocked,
 }: {
   stats: GrowthStats;
   accessory: WrenAccessory;
   premium: boolean;
+  stageFloor?: WrenStage;
   onEquip: (a: WrenAccessory) => void;
   onLocked: () => void;
 }) {
-  const info = stageInfo(stats);
+  const info = stageInfo(stats, stageFloor);
   const activeIdx = LADDER.findIndex((l) => l.stage === info.stage);
   const [cur, tgt] = info.next?.progress ?? [0, 0];
 

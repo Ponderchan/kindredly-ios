@@ -40,11 +40,42 @@ export async function setWrenAccessory(a: WrenAccessory): Promise<void> {
 /* Growth stage from the same product stats the stamps use:
    egg (signed up) → hatchling (first letter) → fledgling (written back to)
    → wren (first kindred). */
+export const STAGE_ORDER: WrenStage[] = ["egg", "hatch", "fledge", "wren"];
+export function stageIndex(s: WrenStage): number {
+  return Math.max(0, STAGE_ORDER.indexOf(s));
+}
+
 export function wrenStage(s: GrowthStats): WrenStage {
   if (s.kindreds >= 1) return "wren";
   if (s.deepest >= 5 || s.gotReply) return "fledge";
   if (s.lettersSent >= 1 || s.reached >= 1) return "hatch";
   return "egg";
+}
+
+/* Growth only ever moves forward. The live stage is a snapshot of current
+   threads, so deleting a conversation could regress it — we persist the
+   highest stage ever reached and never drop below it. */
+const FLOOR_KEY = "kindredly_wren_stage_floor";
+
+export async function getStageFloor(): Promise<WrenStage> {
+  try {
+    const v = await AsyncStorage.getItem(FLOOR_KEY);
+    const i = v ? Number(v) : 0;
+    return STAGE_ORDER[Math.min(STAGE_ORDER.length - 1, Math.max(0, Number.isFinite(i) ? i : 0))];
+  } catch {
+    return "egg";
+  }
+}
+
+export async function bumpStageFloor(stage: WrenStage): Promise<void> {
+  try {
+    const v = await AsyncStorage.getItem(FLOOR_KEY);
+    const cur = v ? Number(v) : 0;
+    const next = stageIndex(stage);
+    if (next > cur) await AsyncStorage.setItem(FLOOR_KEY, String(next));
+  } catch {
+    /* best-effort */
+  }
 }
 
 export interface StageInfo {
@@ -58,14 +89,16 @@ export interface StageInfo {
   };
 }
 
-export function stageInfo(s: GrowthStats): StageInfo {
-  const stage = wrenStage(s);
+export function stageInfo(s: GrowthStats, floor: WrenStage = "egg"): StageInfo {
+  let stage = wrenStage(s);
+  if (stageIndex(floor) > stageIndex(stage)) stage = floor; // only ever forward
   if (stage === "egg") {
     return {
       stage,
       label: "Egg",
       blurb: "She's still curled up. Write your first letter and she'll hatch.",
-      next: { label: "Hatchling", milestone: "Write 1 letter", progress: [0, 1] },
+      // binary: the write itself hatches her
+      next: { label: "Hatchling", milestone: "Write your first letter", progress: [Math.min(1, s.lettersSent), 1] },
     };
   }
   if (stage === "hatch") {
@@ -73,10 +106,12 @@ export function stageInfo(s: GrowthStats): StageInfo {
       stage,
       label: "Hatchling",
       blurb: "Newly out of the shell, and already listening.",
+      // fledges on a reply OR five letters into one thread — the bar counts
+      // your letters (the part you control); a reply short-circuits it.
       next: {
         label: "Fledgling",
-        milestone: "Get one letter back",
-        progress: [Math.min(1, s.deepest), 1],
+        milestone: s.gotReply ? "A letter back" : "A reply — or 5 into one thread",
+        progress: s.gotReply ? [1, 1] : [Math.min(5, s.deepest), 5],
       },
     };
   }
@@ -85,7 +120,8 @@ export function stageInfo(s: GrowthStats): StageInfo {
       stage,
       label: "Fledgling",
       blurb: "Finding her wings — someone is writing back to you now.",
-      next: { label: "Wren", milestone: "Make your first kindred", progress: [Math.min(1, s.kindreds), 1] },
+      // a kindred needs five letters from each side; the bar shows your five.
+      next: { label: "Wren", milestone: "Trade five letters each to make a kindred", progress: [Math.min(5, s.deepest), 5] },
     };
   }
   return {
