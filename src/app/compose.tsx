@@ -8,7 +8,7 @@ import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { Seal } from "../components/Seal";
 import { useBreathe } from "../components/anim";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { ZoomIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
 import { WREN_OPENERS } from "../data/content";
 import { screen } from "../lib/wren";
@@ -24,13 +24,13 @@ const LANG = "en";
 type Step = "pick" | "write" | "sending";
 type Mode = "write" | "speak";
 
-/* Wren reads you as you write. Heavy words are checked first — if in doubt,
-   she'd rather be tender than celebrate the wrong thing. Not a classifier,
-   just a companion catching the drift. */
+/* Wren reads you as you write — English and Chinese. Heavy words are checked
+   first: if in doubt she'd rather be tender than celebrate the wrong thing.
+   Not a classifier, just a companion catching the drift. */
 const HEAVY =
-  /(tired|exhausted|drained|sad|down|cry|crying|tears|alone|lonely|lost|empty|numb|anxious|anxiety|scared|afraid|worried|hurt|hurts|hurting|hate|angry|broke|broken|breakup|miss|missing|grief|grieving|depress|overwhelm|stress|can'?t|hopeless|worthless|ashamed|guilt|sick|pain|dying|die|scream|drowning)/i;
+  /(tired|exhausted|drained|sad|down|cry|crying|tears|alone|lonely|lost|empty|numb|anxious|anxiety|scared|afraid|worried|hurt|hurts|hurting|hate|angry|broke|broken|breakup|miss|missing|grief|grieving|depress|overwhelm|stress|can'?t|hopeless|worthless|ashamed|guilt|sick|pain|dying|die|scream|drowning|累|疲惫|难过|伤心|孤独|孤单|一个人|想哭|哭|崩溃|焦虑|害怕|好怕|痛苦|难受|恨|生气|烦|压力|撑不住|无力|麻木|失眠|失去|分手|抑郁|绝望|委屈|自责|愧疚|想念|舍不得|不想活|好难)/i;
 const LIGHT =
-  /(happy|glad|excited|love|loved|grateful|thankful|great|proud|amazing|wonderful|relieved|relief|joy|celebrat|yay|finally|hopeful|better|smil|laugh|best day)/i;
+  /(happy|glad|excited|love|loved|grateful|thankful|great|proud|amazing|wonderful|relieved|relief|joy|celebrat|yay|finally|hopeful|better|smil|laugh|best day|开心|高兴|快乐|喜欢|爱你|感激|感恩|太好了|骄傲|激动|兴奋|放松|治愈|终于|希望|变好|幸福|满足|超棒|棒|美好|感谢)/i;
 
 function composeMood(text: string, canSend: boolean): WrenMood {
   const t = text.trim();
@@ -331,7 +331,7 @@ export default function Compose() {
             )}
 
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16, paddingRight: 52 }}>
-              <Animated.View key={wrenMood} entering={FadeIn.duration(360)} style={breathe}>
+              <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={breathe}>
                 <WrenBird size={56} mood={wrenMood} />
               </Animated.View>
               <View style={{ flex: 1 }}>
