@@ -13,6 +13,7 @@ import { MONTHS } from "../data/content";
 import { useAuth } from "../lib/auth";
 import { upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
+import { WrenBird, type WrenMood } from "../components/WrenBird";
 
 /* Onboarding — a logical arc:
    ① Wren's story (a reception that shows the core features through Wren)
@@ -138,7 +139,7 @@ export default function Onboarding() {
                 <LittleWorld />
               ) : (
                 <View style={{ alignItems: "center" }}>
-                  <CuteWren size={S.art === "grow" ? 128 : 116} tone="dark" />
+                  <WrenBird size={S.art === "grow" ? 138 : 126} mood={storyMood(S.art)} />
                   {S.art === "caught" && (
                     <View style={{ backgroundColor: C.purple, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 9, marginTop: 10 }}>
                       <Text style={{ fontFamily: F.serif, fontSize: 15, color: "#fff" }}>I hear you.</Text>
@@ -177,7 +178,7 @@ export default function Onboarding() {
       {step === "auth" && (
         <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
           <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 30, alignItems: "center" }}>
-            <CuteWren size={88} tone="light" />
+            <WrenBird size={96} mood="content" />
             <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, textAlign: "center", lineHeight: 36, marginTop: 20 }}>
               Keep Wren,{"\n"}and keep what you write.
             </Text>
@@ -286,7 +287,7 @@ export default function Onboarding() {
         <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
             <Animated.View entering={FadeIn.duration(600)} style={breathe}>
-              <CuteWren size={120} tone="light" />
+              <WrenBird size={128} mood="happy" />
             </Animated.View>
             <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
               <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink }}>{username ? `Welcome, ${username}.` : "Welcome."}</Text>
@@ -365,27 +366,10 @@ function Sky() {
   );
 }
 
-function CuteWren({ size = 96, tone = "light" }: { size?: number; tone?: "light" | "dark" }) {
-  const dark = tone === "dark";
-  const body = dark ? "#20203A" : C.purpleLt;
-  const stroke = dark ? "#9A9AFF" : C.purple;
-  const belly = dark ? "#2B2B48" : "#FFFFFF";
-  const beak = C.gold;
-  const eye = dark ? "#EDEBF2" : C.ink;
-  return (
-    <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Ellipse cx={46} cy={100} rx={24} ry={6} fill={stroke} opacity={0.14} />
-      <Path d="M28 74 q-15 -2 -19 -17 q12 0 23 9 z" fill={stroke} opacity={0.85} />
-      <Ellipse cx={58} cy={62} rx={32} ry={34} fill={body} stroke={stroke} strokeWidth={2.5} />
-      <Ellipse cx={60} cy={70} rx={18} ry={22} fill={belly} />
-      <Path d="M84 55 q12 10 2 28 q-9 -8 -9 -19 z" fill={stroke} opacity={0.9} />
-      <Path d="M56 31 q3 -9 10 -8 q-1 7 -7 10" fill={beak} />
-      <Path d="M37 56 l-12 4 l11 5 z" fill={beak} />
-      <Circle cx={49} cy={54} r={3.2} fill={eye} />
-      <Circle cx={50.2} cy={53} r={0.9} fill="#fff" />
-      <Path d="M52 96 l0 9 M60 96 l0 9 M68 96 l0 9" stroke={beak} strokeWidth={2.3} strokeLinecap="round" />
-    </Svg>
-  );
+function storyMood(art: "wren" | "caught" | "world" | "grow"): WrenMood {
+  if (art === "caught") return "listen";
+  if (art === "grow") return "happy";
+  return "content";
 }
 
 function LittleWorld() {
