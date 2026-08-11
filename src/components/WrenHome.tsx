@@ -26,6 +26,8 @@ export function WrenHome({
   accessory,
   premium,
   stageFloor = "egg",
+  typeName,
+  bornWith,
   onEquip,
   onLocked,
 }: {
@@ -33,21 +35,29 @@ export function WrenHome({
   accessory: WrenAccessory;
   premium: boolean;
   stageFloor?: WrenStage;
+  typeName?: string; // born from your first line's fingerprint
+  bornWith?: WrenAccessory; // her born-with trait — free for you
   onEquip: (a: WrenAccessory) => void;
   onLocked: () => void;
 }) {
   const info = stageInfo(stats, stageFloor);
   const activeIdx = LADDER.findIndex((l) => l.stage === info.stage);
   const [cur, tgt] = info.next?.progress ?? [0, 0];
+  const wearsHere = info.stage === "wren" || info.stage === "hatch";
 
   return (
     <View style={[cardStyle, { padding: 0, overflow: "hidden" }]}>
       {/* hero */}
       <View style={{ alignItems: "center", paddingTop: 22, paddingBottom: 18, backgroundColor: C.purpleLt }}>
-        <WrenBird size={132} stage={info.stage} mood={heroMood(info.stage)} accessory={info.stage === "wren" ? accessory : "none"} />
+        <WrenBird size={132} stage={info.stage} mood={heroMood(info.stage)} accessory={wearsHere ? accessory : "none"} />
         <Text style={{ fontFamily: F.serifSemi, fontSize: 21, color: C.ink, marginTop: 6 }}>
           Wren · <Text style={{ color: C.purple }}>{info.label}</Text>
         </Text>
+        {typeName && (
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: C.purple, marginTop: 5 }}>
+            BORN {typeName.toUpperCase()}
+          </Text>
+        )}
         <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 5, textAlign: "center", maxWidth: 276, lineHeight: 20 }}>
           {info.blurb}
         </Text>
@@ -100,14 +110,14 @@ export function WrenHome({
           <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.3, color: C.faint }}>DRESS WREN</Text>
           {!premium && <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: C.gold }}>👑 more with +</Text>}
         </View>
-        {info.stage !== "wren" && (
+        {!wearsHere && (
           <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, paddingHorizontal: 18, marginBottom: 10 }}>
             Pick her look now — she'll wear it once she's fully grown.
           </Text>
         )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 9 }}>
           {ACCESSORY_META.map((a) => {
-            const locked = !a.free && !premium;
+            const locked = !a.free && !premium && a.id !== bornWith; // her trait is hers
             const equipped = accessory === a.id;
             return (
               <Pressable
@@ -130,7 +140,7 @@ export function WrenHome({
                   <WrenBird size={50} mood="happy" accessory={a.id === "none" ? "none" : a.id} />
                 </View>
                 <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, color: equipped ? C.purple : C.muted, marginTop: 2 }}>
-                  {locked ? `🔒 ${a.label}` : a.label}
+                  {locked ? `🔒 ${a.label}` : a.id === bornWith ? `✦ ${a.label}` : a.label}
                 </Text>
               </Pressable>
             );

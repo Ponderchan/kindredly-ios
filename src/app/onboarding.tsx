@@ -28,7 +28,8 @@ import { EGG_SHELLS, EggShell } from "../components/EggShell";
 import { AvatarImage } from "../components/AvatarImage";
 import { AVATARS } from "../data/avatar-lib";
 import { hatchLine, readMood } from "../lib/wren-read";
-import { bumpStageFloor } from "../lib/wren-style";
+import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
+import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
 import { STARTER_STAMPS } from "../data/stamps";
 import { MoodIcon } from "../components/MoodIcon";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
@@ -176,6 +177,7 @@ export default function Onboarding() {
   const nameReady = username.trim().length > 0;
   const canWrite = note.trim().length >= 2;
   const noteMood: WrenMood = readMood(note.trim());
+  const noteType = wrenTypeFor(note); // what hatches is decided by how you write
 
   const finish = async () => {
     if (finishing.current) return;
@@ -195,6 +197,8 @@ export default function Onboarding() {
     }
     try {
       await bumpStageFloor("hatch");
+      await saveWrenType(noteType.id); // born from your hand
+      await setWrenAccessory(noteType.accessory); // she wears her trait
     } catch {
       /* best-effort */
     }
@@ -456,7 +460,7 @@ export default function Onboarding() {
               </Animated.View>
             ) : hatchPhase === "read" ? (
               <Animated.View key="read" entering={ZoomIn.springify().damping(8).mass(0.7)} style={{ alignItems: "center" }}>
-                <WrenBird size={150} stage="hatch" mood={noteMood} />
+                <WrenBird size={150} stage="hatch" mood={noteMood} accessory={noteType.accessory} />
               </Animated.View>
             ) : (
               <Animated.View key="fly" style={flyStyle}>
@@ -470,11 +474,15 @@ export default function Onboarding() {
                   <Text style={{ fontFamily: F.serifItalic, fontSize: 16, color: "#9C97AB" }}>…something's happening…</Text>
                 ) : (
                   <>
-                    <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#F1EFF7", textAlign: "center" }}>She hatched.</Text>
+                    <Text style={{ fontFamily: F.serif, fontSize: 26, color: "#F1EFF7", textAlign: "center" }}>
+                      She hatched — <Text style={{ color: "#9B9BF9" }}>{noteType.name}</Text>.
+                    </Text>
                     <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: "#B9B4C9", marginTop: 10, textAlign: "center", lineHeight: 22, maxWidth: 300 }}>
                       “{hatchLine(noteMood)}”
                     </Text>
-                    <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: "#7E7A8C", marginTop: 12, textAlign: "center" }}>You wrote her out of her shell.</Text>
+                    <Text style={{ fontFamily: F.sans, fontSize: 13, color: "#8E89A0", marginTop: 12, textAlign: "center", lineHeight: 20, maxWidth: 300 }}>
+                      {noteType.line}
+                    </Text>
                   </>
                 )}
               </Animated.View>

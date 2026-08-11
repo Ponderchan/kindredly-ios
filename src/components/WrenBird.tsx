@@ -51,7 +51,7 @@ export function WrenBird({
       {stage === "egg" ? (
         <Egg />
       ) : stage === "hatch" ? (
-        <Hatch mood={mood} />
+        <Hatch mood={mood} accessory={accessory} />
       ) : stage === "fledge" ? (
         <Fledge />
       ) : pose === "fly" ? (
@@ -264,7 +264,7 @@ function Egg() {
     </G>
   );
 }
-function Hatch({ mood = "content" }: { mood?: WrenMood }) {
+function Hatch({ mood = "content", accessory = "none" }: { mood?: WrenMood; accessory?: WrenAccessory }) {
   return (
     <G>
       <Ellipse cx={100} cy={184} rx={34} ry={7} fill={K.indigo} opacity={0.12} />
@@ -276,8 +276,51 @@ function Hatch({ mood = "content" }: { mood?: WrenMood }) {
       <HatchEyes mood={mood} />
       <Ellipse cx={72} cy={126} rx={6} ry={4} fill={K.cheek} opacity={0.5} />
       <Ellipse cx={128} cy={126} rx={6} ry={4} fill={K.cheek} opacity={0.5} />
+      {accessory !== "none" && <HatchAcc a={accessory} />}
     </G>
   );
+}
+
+/* chick-sized wearables — the born-with trait shows from the hatch */
+function HatchAcc({ a }: { a: WrenAccessory }) {
+  switch (a) {
+    case "beanie":
+      return (
+        <G>
+          <Path d="M66 92 Q100 52 134 92 Q134 98 126 98 L74 98 Q66 98 66 92 Z" fill="#EF6D8C" />
+          <Rect x={64} y={94} width={72} height={10} rx={5} fill={K.belly} />
+          <Circle cx={100} cy={54} r={7} fill={K.belly} />
+        </G>
+      );
+    case "scarf":
+      return (
+        <G>
+          <Path d="M70 148 Q100 163 130 148 L130 159 Q100 175 70 159 Z" fill="#6FBF9B" />
+          <Path d="M119 156 l11 23 l9 -5 l-9 -21 z" fill="#6FBF9B" />
+        </G>
+      );
+    case "phones":
+      return (
+        <G>
+          <Path d="M62 118 Q62 68 100 68 Q138 68 138 118" fill="none" stroke="#2A2740" strokeWidth={5} strokeLinecap="round" />
+          <Rect x={54} y={112} width={15} height={25} rx={6} fill="#2A2740" />
+          <Rect x={131} y={112} width={15} height={25} rx={6} fill="#2A2740" />
+        </G>
+      );
+    case "flower":
+      return (
+        <G>
+          <Circle cx={80} cy={82} r={6} fill={K.cheek} />
+          <Circle cx={100} cy={73} r={6} fill={K.cheek} />
+          <Circle cx={120} cy={82} r={6} fill={K.cheek} />
+          <Circle cx={80} cy={82} r={2.5} fill="#F6D77A" />
+          <Circle cx={100} cy={73} r={2.5} fill="#F6D77A" />
+          <Circle cx={120} cy={82} r={2.5} fill="#F6D77A" />
+        </G>
+      );
+    default:
+      return null;
+  }
 }
 
 /* hatchling face — same moods, sized for the chick's geometry */

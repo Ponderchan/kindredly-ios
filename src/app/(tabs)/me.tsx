@@ -15,6 +15,7 @@ import { WrenOnYou } from "../../components/WrenOnYou";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
 import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
+import { getWrenType, type WrenType } from "../../lib/wren-type";
 import type { WrenStage } from "../../components/WrenBird";
 import { GROWTH_STAMPS, type GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
@@ -40,6 +41,7 @@ export default function MeTab() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
+  const [wrenType, setWrenType] = useState<WrenType | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -54,6 +56,7 @@ export default function MeTab() {
       });
       getAvatarPhoto().then((p) => alive && setPhoto(p));
       getWrenAccessory().then((a) => alive && setAccessory(a));
+      getWrenType().then((t) => alive && setWrenType(t));
       return () => {
         alive = false;
       };
@@ -178,6 +181,8 @@ export default function MeTab() {
             accessory={accessory}
             premium={premium}
             stageFloor={stageFloor}
+            typeName={wrenType?.name}
+            bornWith={wrenType?.accessory}
             onEquip={equipWren}
             onLocked={() => router.push("/paywall")}
           />

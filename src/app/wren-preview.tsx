@@ -65,6 +65,22 @@ export default function WrenPreview() {
           ))}
         </View>
 
+        <Section title="BORN TRAITS — WHAT YOUR WRITING HATCHES" />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+          {(
+            [
+              ["phones", "Spark"],
+              ["scarf", "Deep One"],
+              ["flower", "Storyteller"],
+              ["beanie", "Whisper"],
+            ] as [WrenAccessory, string][]
+          ).map(([a, label]) => (
+            <Cell key={a} label={label}>
+              <WrenBird size={92} stage="hatch" mood="happy" accessory={a} />
+            </Cell>
+          ))}
+        </View>
+
         <Section title="POSE — CARRYING YOUR LETTER" />
         <View style={{ alignItems: "center" }}>
           <WrenBird size={128} pose="fly" />
