@@ -10,8 +10,11 @@ import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { Fingerprint } from "../../components/Fingerprint";
 import { GrowthStampTile } from "../../components/GrowthStamp";
 import { TabIcon } from "../../components/TabIcon";
+import { WrenHome } from "../../components/WrenHome";
 import { WrenOnYou } from "../../components/WrenOnYou";
+import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
+import { getWrenAccessory, setWrenAccessory } from "../../lib/wren-style";
 import { GROWTH_STAMPS, type GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fingerprint } from "../../lib/signature";
@@ -34,17 +37,24 @@ export default function MeTab() {
   const [wrenLine, setWrenLine] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [accessory, setAccessory] = useState<WrenAccessory>("none");
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       collectGrowthStats(user?.created_at).then((s) => alive && setStats(s));
       getAvatarPhoto().then((p) => alive && setPhoto(p));
+      getWrenAccessory().then((a) => alive && setAccessory(a));
       return () => {
         alive = false;
       };
     }, [user?.created_at]),
   );
+
+  const equipWren = (a: WrenAccessory) => {
+    setAccessory(a);
+    void setWrenAccessory(a);
+  };
 
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
@@ -152,8 +162,19 @@ export default function MeTab() {
           </View>
         </View>
 
+        {/* Wren's home — companion, growth, dress-up */}
+        <View style={{ marginTop: 22 }}>
+          <WrenHome
+            stats={stats}
+            accessory={accessory}
+            premium={premium}
+            onEquip={equipWren}
+            onLocked={() => router.push("/paywall")}
+          />
+        </View>
+
         {/* stat cards */}
-        <View style={{ flexDirection: "row", gap: 10, marginTop: 22 }}>
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
           <StatCard icon={<TabIcon id="letters" color={C.purple} />} tint={C.purpleLt} n={stats.lettersSent} label="LETTERS" />
           <StatCard icon={<TabIcon id="journal" color={C.gold} />} tint={C.goldLt} n={stats.journalN} label="PAGES" />
           <StatCard icon={<TabIcon id="kindreds" color="#C86E7A" />} tint="#FBEEF1" n={stats.kindreds} label="KINDREDS" />
