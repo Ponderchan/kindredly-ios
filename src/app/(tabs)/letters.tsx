@@ -4,11 +4,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F } from "../../theme/tokens";
 import { ReplyBar } from "../../components/ReplyBar";
+import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
+import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { Wren } from "../../components/Wren";
 import { DEMO_THREADS } from "../../data/demo";
+import { getStamp } from "../../data/stamps";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreads, sendThreadMessage, type ThreadSummary } from "../../lib/db";
+import { translate } from "../../lib/wren";
 
 /*
  * Letters is not a mailbox. It is the letter in front of the reader.
@@ -75,6 +79,10 @@ export default function LettersTab() {
                 isSending={sendingId === thread.id}
                 onReply={(body) => void reply(thread.id, body)}
                 onOpen={() => router.push(`/thread/${thread.id}`)}
+                onBlocked={() => {
+                  setIdx(0);
+                  void load();
+                }}
                 hasNext={i < waiting.length - 1}
               />
             ))}
@@ -113,6 +121,7 @@ function LetterPage({
   isSending,
   onReply,
   onOpen,
+  onBlocked,
   hasNext,
 }: {
   thread: ThreadSummary;
@@ -120,33 +129,129 @@ function LetterPage({
   isSending: boolean;
   onReply: (body: string) => void;
   onOpen: () => void;
+  onBlocked: () => void;
   hasNext: boolean;
 }) {
-  const alias = thread.otherName || `No. ${postNo(thread.other)}`;
-  const names = thread.revealed
-    ? "you are no longer strangers"
-    : thread.mine >= 5
-      ? "waiting for their fifth letter"
-      : `${5 - thread.mine} more from you before names`;
+  // names come only from five letters each — never sooner
+  const alias = thread.revealed && thread.otherName ? thread.otherName : `No. ${postNo(thread.other)}`;
+  const st = getStamp(thread.stamp);
+
+  // Wren translation — on demand, toggling between original and her render
+  const [xl, setXl] = useState<string | null>(null);
+  const [xlBusy, setXlBusy] = useState(false);
+  const [showXl, setShowXl] = useState(false);
+  const doTranslate = async () => {
+    if (xl) {
+      setShowXl((s) => !s);
+      return;
+    }
+    if (xlBusy) return;
+    setXlBusy(true);
+    const to = (Intl.DateTimeFormat().resolvedOptions().locale || "en").split("-")[0];
+    const t = await translate(thread.preview, to);
+    setXlBusy(false);
+    if (t) {
+      setXl(t);
+      setShowXl(true);
+    } else {
+      Alert.alert("Wren couldn't translate this", "Try again in a moment.");
+    }
+  };
+
+  const dots = Math.min(5, thread.mine);
 
   return (
-    <View style={{ height, paddingHorizontal: 26, paddingTop: 62, paddingBottom: 102 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <StampTile id={thread.stamp} w={46} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: F.serif, fontSize: 19, color: C.ink }}>{alias}</Text>
-          <Text style={{ fontFamily: F.sans, fontSize: 11.5, color: C.faint, marginTop: 3 }}>{names}</Text>
-        </View>
-        <Pressable onPress={onOpen} hitSlop={10} style={{ padding: 6 }}>
-          <Text style={{ fontSize: 20, color: C.faint }}>···</Text>
-        </Pressable>
-      </View>
-
+    <View style={{ height, paddingHorizontal: 22, paddingTop: 50, paddingBottom: 102 }}>
+      {/* the letter — a real object: their stamp on top, their signature at the end */}
       <View style={{ flex: 1, justifyContent: "center" }}>
-        <Text style={{ fontFamily: F.letter, fontSize: 23, lineHeight: 37, color: "#22222A" }}>{thread.preview}</Text>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 18 }}>
-          {dShort(thread.lastAt)} · from your correspondence
-        </Text>
+        <View
+          style={{
+            backgroundColor: "#FFFDF8",
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: C.line,
+            paddingHorizontal: 22,
+            paddingTop: 20,
+            paddingBottom: 16,
+            shadowColor: "#131A26",
+            shadowOpacity: 0.07,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 6 },
+          }}
+        >
+          {/* pasted stamp — the icon is the hero, its name a small footnote */}
+          {st && (
+            <View style={{ position: "absolute", top: -18, right: 16, transform: [{ rotate: "7deg" }] }}>
+              <View style={{ padding: 5, backgroundColor: "#fff", borderRadius: 7, shadowColor: "#131A26", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}>
+                <StampTile id={thread.stamp} w={56} r={5} />
+              </View>
+            </View>
+          )}
+
+          <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint }}>{dShort(thread.lastAt)}</Text>
+
+          {/* words first — you meet the writing before the writer */}
+          <Pressable onPress={onOpen}>
+            <Text style={{ fontFamily: F.letter, fontSize: 22, lineHeight: 36, color: "#22222A", marginTop: 14 }}>
+              {showXl && xl ? xl : thread.preview}
+            </Text>
+          </Pressable>
+          {showXl && xl && (
+            <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, marginTop: 6 }}>translated by Wren</Text>
+          )}
+
+          {/* chips — the stamp's theme, progress to names, translate */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+            {st && (
+              <View style={{ backgroundColor: `${st.color}14`, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
+                <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: st.color }}>
+                  {st.emoji} {st.name.en.toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: C.purpleLt, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <View
+                  key={i}
+                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: thread.revealed || i < dots ? C.purple : "#D6D6F0" }}
+                />
+              ))}
+              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: C.purple, marginLeft: 4 }}>
+                {thread.revealed ? "names unlocked" : `${5 - dots} to names`}
+              </Text>
+            </View>
+            <Pressable
+              onPress={doTranslate}
+              hitSlop={6}
+              style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}
+            >
+              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: C.purple }}>
+                {xlBusy ? "translating…" : xl ? (showXl ? "original" : "translation") : "🕊 translate"}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* signature — the writer signs off at the end, like a letter */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
+            <StrangerAvatar seed={thread.other} size={38} round />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: F.serifSemi, fontSize: 15.5, color: C.ink }}>{alias}</Text>
+              <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: C.faint, marginTop: 1 }}>
+                {thread.revealed ? "no longer a stranger" : "a stranger, for now"}
+              </Text>
+            </View>
+            <ReportMenu
+              targetUser={thread.other}
+              context="thread"
+              refId={thread.id}
+              snapshot={thread.preview}
+              onBlocked={onBlocked}
+            />
+          </View>
+        </View>
+        <Pressable onPress={onOpen} style={{ alignItems: "center", paddingTop: 12 }} hitSlop={8}>
+          <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, color: C.faint }}>Open the whole thread ›</Text>
+        </Pressable>
       </View>
 
       {hasNext && (

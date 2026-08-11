@@ -70,6 +70,18 @@ export async function portrait(
   return ai && ai.line ? ai.line : null;
 }
 
+/** TRANSLATE — Wren renders a letter in the reader's language. No local
+ *  fallback (a fake translation would be a lie) — null hides the feature. */
+export async function translate(
+  text: string,
+  to: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const ai = await callWren("translate", { text, to }, signal);
+  const out = ai && (ai.text || ai.line);
+  return typeof out === "string" && out.trim() ? out.trim() : null;
+}
+
 /** PEEK — deeper read on a correspondent (Kindredly+). */
 export async function peek(
   msgs: unknown[],

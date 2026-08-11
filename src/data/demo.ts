@@ -15,7 +15,7 @@ export const DEMO_THREADS: ThreadSummary[] = [
     stamp: "off-chest",
     revealed: false,
     mine: 1,
-    otherName: "Wren",
+    otherName: "Someone at the door",
     other: "demo-wren",
     preview: "You answered the one at your door. That tells me more than any form would.",
     lastSenderMe: false,
