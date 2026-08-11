@@ -30,6 +30,8 @@ import { AVATARS } from "../data/avatar-lib";
 import { hatchLine, readMood } from "../lib/wren-read";
 import { bumpStageFloor } from "../lib/wren-style";
 import { STARTER_STAMPS } from "../data/stamps";
+import { MoodIcon } from "../components/MoodIcon";
+import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 
 /* Onboarding — one welcome screen (a swipeable recap of what the app does, with
    sign-in right there), then setup: ③ pen name ④ cakeday ⑤ face ⑥ your egg
@@ -39,8 +41,9 @@ import { STARTER_STAMPS } from "../data/stamps";
 
 type Step = "welcome" | "username" | "cakeday" | "avatar" | "egg" | "write" | "hatch";
 
-const SWATCHES = ["#CDE0EE", "#E4B15C", "#E7A3B4", "#7FC3A6"];
 const WIN_W = Dimensions.get("window").width;
+const CARD_W = WIN_W - 72;
+const CARD_H = Math.min(CARD_W, 340);
 
 // the recap cards — a letter's whole life, swipeable
 const CARDS: { pill: string; h: string; h2: string; s: string }[] = [
@@ -63,7 +66,7 @@ export default function Onboarding() {
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [eggVar, setEggVar] = useState(0);
   const [note, setNote] = useState("");
-  const [mood, setMood] = useState<number | null>(null);
+  const [mood, setMood] = useState<MoodId | null>(null);
   const [hatchPhase, setHatchPhase] = useState<"crack" | "read" | "fly">("crack");
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
@@ -205,35 +208,38 @@ export default function Onboarding() {
       {step === "welcome" && (
         <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <ScrollView
-              ref={cardRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => setCard(Math.round(e.nativeEvent.contentOffset.x / WIN_W))}
-            >
-              {CARDS.map((c, i) => (
-                <View key={i} style={{ width: WIN_W, alignItems: "center" }}>
-                  <View style={{ width: 220, height: 220, borderRadius: 28, backgroundColor: C.purpleLt, alignItems: "center", justifyContent: "center" }}>
-                    <RecapMotif i={i} />
-                    <View style={{ position: "absolute", bottom: -14, backgroundColor: "#fff", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, shadowColor: "#131A26", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}>
-                      <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.ink }}>{c.pill}</Text>
+            <View style={{ height: CARD_H + 20 }}>
+              <ScrollView
+                ref={cardRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => setCard(Math.round(e.nativeEvent.contentOffset.x / WIN_W))}
+              >
+                {CARDS.map((c, i) => (
+                  <View key={i} style={{ width: WIN_W, alignItems: "center" }}>
+                    <View style={{ width: CARD_W, height: CARD_H, borderRadius: 32, backgroundColor: C.purpleLt, alignItems: "center", justifyContent: "center" }}>
+                      <RecapMotif i={i} />
+                      <View style={{ position: "absolute", bottom: -16, backgroundColor: "#fff", borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10, shadowColor: "#131A26", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}>
+                        <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: C.ink }}>{c.pill}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
-            </ScrollView>
+                ))}
+              </ScrollView>
+            </View>
 
-            <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 28 }}>
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 24 }}>
               {CARDS.map((_, i) => (
                 <View key={i} style={{ width: i === card ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === card ? C.purple : C.line }} />
               ))}
             </View>
 
-            <View style={{ paddingHorizontal: 30, marginTop: 22, alignItems: "center" }}>
-              <Text style={{ fontFamily: F.serifSemi, fontSize: 34, color: C.ink, textAlign: "center", lineHeight: 40 }}>{CARDS[card].h}</Text>
-              <Text style={{ fontFamily: F.serifSemi, fontSize: 34, color: C.purple, textAlign: "center", lineHeight: 40 }}>{CARDS[card].h2}</Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: C.muted, marginTop: 14, textAlign: "center", lineHeight: 22, maxWidth: 320 }}>{CARDS[card].s}</Text>
+            <View style={{ paddingHorizontal: 30, marginTop: 18, alignItems: "center" }}>
+              <Text style={{ fontFamily: F.serifSemi, fontSize: 31, color: C.ink, textAlign: "center", lineHeight: 38 }}>
+                {CARDS[card].h} <Text style={{ color: C.purple }}>{CARDS[card].h2}</Text>
+              </Text>
+              <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: C.muted, marginTop: 12, textAlign: "center", lineHeight: 22, maxWidth: 320 }}>{CARDS[card].s}</Text>
             </View>
           </View>
 
@@ -283,12 +289,12 @@ export default function Onboarding() {
                 autoFocus
                 value={username}
                 onChangeText={setUsername}
-                placeholder="Anything — you can change it…"
+                placeholder="Anything…"
                 placeholderTextColor={C.faint}
                 style={{ marginTop: 30, fontFamily: F.serif, fontSize: 27, color: C.ink, paddingBottom: 12, borderBottomWidth: 1.5, borderBottomColor: nameReady ? C.purple : C.line }}
               />
               <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 12, lineHeight: 19 }}>
-                Strangers never see it — only someone you've traded letters with. You are how you write.
+                Not your real name — change it anytime. Strangers never see it; you are how you write.
               </Text>
             </View>
             <View style={{ paddingHorizontal: 26, paddingBottom: 24 }}>
@@ -411,13 +417,25 @@ export default function Onboarding() {
                 multiline
                 style={{ marginTop: 16, minHeight: 110, fontFamily: F.letter, fontSize: 20, lineHeight: 32, color: "#22222A", textAlignVertical: "top" }}
               />
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 }}>
-                <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint }}>mood</Text>
-                {SWATCHES.map((c, i) => (
-                  <Pressable key={c} onPress={() => setMood(i)}>
-                    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c, borderWidth: 2.5, borderColor: mood === i ? C.ink : "transparent" }} />
-                  </Pressable>
-                ))}
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.faint, marginBottom: 8 }}>
+                  HOW IT FEELS {mood ? `· ${MOODS[mood].n.toUpperCase()}` : "(OPTIONAL)"}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 20 }} keyboardShouldPersistTaps="handled">
+                  {MOOD_IDS.map((id) => {
+                    const on = mood === id;
+                    return (
+                      <Pressable key={id} onPress={() => setMood(on ? null : id)} style={{ alignItems: "center", width: 56 }}>
+                        <View style={{ borderRadius: 24, borderWidth: 2, borderColor: on ? MOODS[id].col : "transparent", padding: 2 }}>
+                          <MoodIcon id={id} size={40} />
+                        </View>
+                        <Text style={{ fontFamily: on ? F.sansBold : F.sans, fontSize: 10, color: on ? C.ink : C.faint, marginTop: 3 }}>
+                          {MOODS[id].n}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               </View>
             </View>
             <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
@@ -504,8 +522,9 @@ function Sky() {
 
 /* recap motif — a letter's life (write → fly → answered) */
 function RecapMotif({ i }: { i: number }) {
+  const s = Math.round(CARD_H * 0.62);
   return (
-    <Svg width={150} height={150} viewBox="0 0 168 168">
+    <Svg width={s} height={s} viewBox="0 0 168 168">
       {i === 1 ? (
         <G>
           <Path d="M20 150 Q54 132 92 96" fill="none" stroke={C.gold} strokeWidth={2.5} strokeDasharray="2 7" strokeLinecap="round" opacity={0.7} />
