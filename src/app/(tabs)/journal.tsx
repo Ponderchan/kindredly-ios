@@ -64,7 +64,7 @@ export default function JournalTab() {
         contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 130, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink, letterSpacing: -0.5 }}>Journal</Text>
+        <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink, letterSpacing: -0.5 }}>Sealed</Text>
         <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 4 }}>
           A space for your quietest thoughts.
         </Text>
