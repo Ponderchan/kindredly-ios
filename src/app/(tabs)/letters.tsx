@@ -44,7 +44,6 @@ export default function LettersTab() {
   const waiting = showThreads.filter((t) => !t.lastSenderMe);
   const sent = showThreads.filter((t) => t.lastSenderMe);
   const current = waiting[idx] ?? null;
-  const remaining = Math.max(0, waiting.length - idx - 1);
 
   const reply = async (threadId: string, body: string) => {
     if (sendingId) return;
@@ -108,11 +107,7 @@ export default function LettersTab() {
           </Pressable>
         </View>
 
-        {current && remaining > 0 && (
-          <View pointerEvents="none" style={{ position: "absolute", right: 0, top: "50%", transform: [{ rotate: "90deg" }] }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.2, color: C.faint }}>SWIPE FOR {remaining} MORE</Text>
-          </View>
-        )}
+        {/* the "1 OF 4 WAITING" header already says how many are left */}
       </View>
     </SafeAreaView>
   );

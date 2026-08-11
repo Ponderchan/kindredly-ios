@@ -51,7 +51,7 @@ export function WrenBird({
       {stage === "egg" ? (
         <Egg />
       ) : stage === "hatch" ? (
-        <Hatch />
+        <Hatch mood={mood} />
       ) : stage === "fledge" ? (
         <Fledge />
       ) : pose === "fly" ? (
@@ -264,7 +264,7 @@ function Egg() {
     </G>
   );
 }
-function Hatch() {
+function Hatch({ mood = "content" }: { mood?: WrenMood }) {
   return (
     <G>
       <Ellipse cx={100} cy={184} rx={34} ry={7} fill={K.indigo} opacity={0.12} />
@@ -273,14 +273,92 @@ function Hatch() {
       <Path d="M92 78 Q88 62 98 62 Q100 72 96 80 Z" fill="#8E8EFF" />
       <Ellipse cx={118} cy={150} rx={20} ry={8} fill={K.deep} />
       <Path d="M94 116 L106 116 L100 125 Z" fill={K.beak} />
-      <Circle cx={88} cy={112} r={6} fill={K.eye} />
-      <Circle cx={112} cy={112} r={6} fill={K.eye} />
-      <Circle cx={90} cy={109} r={2} fill={K.hi} />
-      <Circle cx={114} cy={109} r={2} fill={K.hi} />
+      <HatchEyes mood={mood} />
       <Ellipse cx={72} cy={126} rx={6} ry={4} fill={K.cheek} opacity={0.5} />
       <Ellipse cx={128} cy={126} rx={6} ry={4} fill={K.cheek} opacity={0.5} />
     </G>
   );
+}
+
+/* hatchling face — same moods, sized for the chick's geometry */
+function HatchEyes({ mood }: { mood: WrenMood }) {
+  switch (mood) {
+    case "happy":
+      return (
+        <G>
+          <Path d="M82 112 Q88 105 94 112" stroke={K.eye} strokeWidth={2.8} fill="none" strokeLinecap="round" />
+          <Path d="M106 112 Q112 105 118 112" stroke={K.eye} strokeWidth={2.8} fill="none" strokeLinecap="round" />
+        </G>
+      );
+    case "delight":
+      return (
+        <G>
+          <Path d="M88 104 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill={K.amber} />
+          <Path d="M112 104 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill={K.amber} />
+        </G>
+      );
+    case "worry":
+      return (
+        <G>
+          <Circle cx={88} cy={112} r={5.5} fill={K.eye} />
+          <Circle cx={112} cy={112} r={5.5} fill={K.eye} />
+          <Circle cx={90} cy={110} r={1.8} fill={K.hi} />
+          <Circle cx={114} cy={110} r={1.8} fill={K.hi} />
+          <Path d="M81 103 Q88 106 95 103" stroke={K.deep} strokeWidth={2} fill="none" strokeLinecap="round" />
+          <Path d="M105 103 Q112 106 119 103" stroke={K.deep} strokeWidth={2} fill="none" strokeLinecap="round" />
+          <Path d="M133 106 q4 6 0 11 q-4 -5 0 -11 z" fill="#8ECBE8" />
+        </G>
+      );
+    case "listen":
+      return (
+        <G>
+          <Circle cx={88} cy={112} r={5.5} fill={K.eye} />
+          <Circle cx={112} cy={112} r={5.5} fill={K.eye} />
+          <Circle cx={90} cy={110} r={1.8} fill={K.hi} />
+          <Circle cx={114} cy={110} r={1.8} fill={K.hi} />
+          <Path d="M81 104 Q88 101 95 104" stroke={K.deep} strokeWidth={2} fill="none" strokeLinecap="round" />
+          <Path d="M105 104 Q112 101 119 104" stroke={K.deep} strokeWidth={2} fill="none" strokeLinecap="round" />
+        </G>
+      );
+    case "curious":
+      return (
+        <G>
+          <Circle cx={87} cy={112} r={7} fill={K.eye} />
+          <Circle cx={113} cy={112} r={5} fill={K.eye} />
+          <Circle cx={89.5} cy={109.5} r={2.2} fill={K.hi} />
+          <Circle cx={115} cy={110} r={1.6} fill={K.hi} />
+          <SvgText x={128} y={98} fontSize={16} fontWeight="bold" fill={K.amber}>?</SvgText>
+        </G>
+      );
+    case "think":
+      return (
+        <G>
+          <Circle cx={90} cy={110} r={5.5} fill={K.eye} />
+          <Circle cx={114} cy={110} r={5.5} fill={K.eye} />
+          <Circle cx={92} cy={108} r={1.8} fill={K.hi} />
+          <Circle cx={116} cy={108} r={1.8} fill={K.hi} />
+          <SvgText x={128} y={124} fontSize={15} fontWeight="bold" fill="#A6A1B6">…</SvgText>
+        </G>
+      );
+    case "sleepy":
+      return (
+        <G>
+          <Path d="M82 111 Q88 116 94 111" stroke={K.eye} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+          <Path d="M106 111 Q112 116 118 111" stroke={K.eye} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+        </G>
+      );
+    case "content":
+    case "wink":
+    default:
+      return (
+        <G>
+          <Circle cx={88} cy={112} r={6} fill={K.eye} />
+          <Circle cx={112} cy={112} r={6} fill={K.eye} />
+          <Circle cx={90} cy={109} r={2} fill={K.hi} />
+          <Circle cx={114} cy={109} r={2} fill={K.hi} />
+        </G>
+      );
+  }
 }
 function Fledge() {
   return (
@@ -316,9 +394,11 @@ function Fly() {
       <Ellipse cx={72} cy={112} rx={7.5} ry={5.5} fill={K.cheek} opacity={0.55} />
       <Ellipse cx={128} cy={112} rx={7.5} ry={5.5} fill={K.cheek} opacity={0.55} />
       <Path d="M92 100 L108 100 L100 111 Z" fill={K.beak} />
-      <G transform="translate(100 150) rotate(-6)">
-        <Rect x={-16} y={-11} width={32} height={22} rx={3} fill="#FBF7EE" stroke="#E5E0F0" />
-        <Path d="M-16 -11 L0 2 L16 -11" fill="none" stroke="#C9B79A" strokeWidth={1.4} />
+      {/* the letter she's carrying — big enough to read as yours */}
+      <G transform="translate(100 152) rotate(-7)">
+        <Rect x={-25} y={-17} width={50} height={34} rx={4} fill="#FBF7EE" stroke="#E5E0F0" strokeWidth={1.5} />
+        <Path d="M-25 -17 L0 4 L25 -17" fill="none" stroke="#C9B79A" strokeWidth={1.8} />
+        <Circle cx={15} cy={8} r={4.5} fill={K.amber} opacity={0.9} />
       </G>
       <Circle cx={86} cy={96} r={7} fill={K.eye} />
       <Circle cx={114} cy={96} r={7} fill={K.eye} />

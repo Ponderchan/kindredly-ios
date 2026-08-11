@@ -56,6 +56,15 @@ export default function WrenPreview() {
           ))}
         </View>
 
+        <Section title="HATCHLING — SHE READS YOU AT THE HATCH" />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+          {(["listen", "worry", "delight", "happy", "curious", "think"] as WrenMood[]).map((m) => (
+            <Cell key={m} label={m}>
+              <WrenBird size={92} stage="hatch" mood={m} />
+            </Cell>
+          ))}
+        </View>
+
         <Section title="POSE — CARRYING YOUR LETTER" />
         <View style={{ alignItems: "center" }}>
           <WrenBird size={128} pose="fly" />
