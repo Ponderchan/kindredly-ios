@@ -106,13 +106,14 @@ export default function Onboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, onboarded]);
 
-  // recap cards auto-advance (loops gently; swipe overrides)
+  // recap cards auto-advance (loops gently; swipe overrides). The scroll is
+  // the single source of truth — state only updates from onMomentumScrollEnd,
+  // so the art, pill, dots and headline can never drift apart.
   useEffect(() => {
     if (step !== "welcome") return;
     const t = setTimeout(() => {
       const next = (card + 1) % CARDS.length;
       cardRef.current?.scrollTo({ x: next * WIN_W, animated: true });
-      setCard(next);
     }, 3000);
     return () => clearTimeout(t);
   }, [step, card]);

@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { C, F, cardStyle } from "../../theme/tokens";
+import { C, F } from "../../theme/tokens";
 import { ReplyBar } from "../../components/ReplyBar";
 import { StampTile } from "../../components/StampTile";
 import { Wren } from "../../components/Wren";
@@ -98,13 +98,7 @@ export default function LettersTab() {
           <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.7, color: C.faint }}>
             {current ? `${idx + 1} OF ${waiting.length} WAITING` : "YOUR DESK"}
           </Text>
-          <Pressable
-            onPress={() => router.push("/compose")}
-            style={[cardStyle, { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 18 }]}
-          >
-            <Text style={{ fontSize: 12 }}>✍️</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.ink }}>Write</Text>
-          </Pressable>
+          {/* writing lives on the quill button below — no second door up here */}
         </View>
 
         {/* the "1 OF 4 WAITING" header already says how many are left */}
