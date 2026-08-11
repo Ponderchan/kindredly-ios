@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { C, F } from "../theme/tokens";
 import { GhostButton, PrimaryButton, TopBar } from "../components/ui";
@@ -13,7 +22,7 @@ import { MONTHS } from "../data/content";
 import { useAuth } from "../lib/auth";
 import { upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
-import { WrenBird, type WrenMood } from "../components/WrenBird";
+import { WrenBird, type WrenMood, type WrenStage } from "../components/WrenBird";
 
 /* Onboarding — a logical arc:
    ① Wren's story (a reception that shows the core features through Wren)
@@ -25,12 +34,14 @@ type Step = "story" | "auth" | "username" | "cakeday" | "welcome" | "write";
 
 const SWATCHES = ["#CDE0EE", "#E4B15C", "#E7A3B4", "#7FC3A6"];
 
-// the reception story — each beat introduces one core feature through Wren
-const STORY: { art: "wren" | "caught" | "world" | "grow"; h: string; s: string }[] = [
-  { art: "wren", h: "Hi, I'm Wren.", s: "I read what you write." },
+// the reception story — Wren grows across the beats (egg → fledgling → wren),
+// so "she grows as you write" is shown, not told.
+type Art = "hatch" | "caught" | "world" | "grow";
+const STORY: { art: Art; h: string; s: string }[] = [
+  { art: "hatch", h: "Hi, I'm Wren.", s: "You just hatched me. I read every word you write." },
   { art: "caught", h: "Say what's on your heart.", s: "I catch it first — you're never shouting into the void." },
   { art: "world", h: "Then I carry it off,", s: "to find someone who writes like you." },
-  { art: "grow", h: "The more you write,", s: "the more I know you — and the more I'm yours." },
+  { art: "grow", h: "The more you write,", s: "the bigger I grow — and the more I'm yours." },
 ];
 
 export default function Onboarding() {
@@ -134,12 +145,14 @@ export default function Onboarding() {
           </View>
 
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
-            <Animated.View key={`art${beat}`} entering={FadeIn.duration(500)} style={S.art === "world" ? undefined : breathe}>
+            <Animated.View key={`art${beat}`} entering={FadeIn.duration(500)} style={S.art === "world" || S.art === "hatch" ? undefined : breathe}>
               {S.art === "world" ? (
-                <LittleWorld />
+                <FlyingWorld />
+              ) : S.art === "hatch" ? (
+                <HatchWren size={134} />
               ) : (
                 <View style={{ alignItems: "center" }}>
-                  <WrenBird size={S.art === "grow" ? 138 : 126} mood={storyMood(S.art)} />
+                  <WrenBird size={S.art === "grow" ? 138 : 126} stage={storyStage(S.art)} mood={storyMood(S.art)} />
                   {S.art === "caught" && (
                     <View style={{ backgroundColor: C.purple, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 9, marginTop: 10 }}>
                       <Text style={{ fontFamily: F.serif, fontSize: 15, color: "#fff" }}>I hear you.</Text>
@@ -366,10 +379,72 @@ function Sky() {
   );
 }
 
-function storyMood(art: "wren" | "caught" | "world" | "grow"): WrenMood {
+function storyMood(art: Art): WrenMood {
   if (art === "caught") return "listen";
   if (art === "grow") return "happy";
   return "content";
+}
+
+// she grows as the story goes: fledgling when she first hears you, full Wren
+// by the time she's "yours".
+function storyStage(art: Art): WrenStage {
+  if (art === "caught") return "fledge";
+  return "wren";
+}
+
+/* Beat 1 — she hatches. Egg wobbles like something's coming, then cracks
+   open into a hatchling with a pop. Auto-hatches, or tap to hurry her. */
+function HatchWren({ size = 134 }: { size?: number }) {
+  const [hatched, setHatched] = useState(false);
+  const rock = useSharedValue(0);
+  useEffect(() => {
+    rock.value = withRepeat(
+      withSequence(
+        withTiming(-1, { duration: 130 }),
+        withTiming(1, { duration: 260 }),
+        withTiming(0, { duration: 130 }),
+      ),
+      -1,
+      false,
+    );
+    const t = setTimeout(() => setHatched(true), 1150);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${rock.value * 5}deg` }] }));
+
+  return (
+    <Pressable onPress={() => setHatched(true)} style={{ alignItems: "center" }}>
+      {hatched ? (
+        <Animated.View key="hatched" entering={ZoomIn.springify().damping(9).mass(0.7)}>
+          <WrenBird size={size} stage="hatch" mood="happy" />
+        </Animated.View>
+      ) : (
+        <Animated.View key="egg" style={wobble}>
+          <WrenBird size={size} stage="egg" />
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+}
+
+/* Beat 3 — she carries your letter off across a little world, bobbing as she
+   flies toward someone who writes like you. */
+function FlyingWorld() {
+  const y = useSharedValue(0);
+  useEffect(() => {
+    y.value = withRepeat(withSequence(withTiming(-7, { duration: 1300 }), withTiming(0, { duration: 1300 })), -1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const bob = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  return (
+    <View style={{ width: 240, height: 230 }}>
+      <LittleWorld />
+      <Animated.View style={[{ position: "absolute", left: 67, top: 66 }, bob]}>
+        <WrenBird size={92} pose="fly" />
+      </Animated.View>
+    </View>
+  );
 }
 
 function LittleWorld() {
@@ -382,13 +457,6 @@ function LittleWorld() {
       <Circle cx={44} cy={188} r={5} fill={C.gold} />
       <Circle cx={182} cy={52} r={10} fill="#9A9AFF" opacity={0.28} />
       <Circle cx={182} cy={52} r={4.5} fill="#9A9AFF" />
-      <G transform="translate(112 108) rotate(-10)">
-        <Rect x={-7} y={5} width={15} height={11} rx={2} fill="#F1EFF7" />
-        <Ellipse cx={0} cy={0} rx={11} ry={9} fill="#9A9AFF" />
-        <Path d="M9 -3 l10 -2 l-7 8 z" fill={C.gold} />
-        <Path d="M-9 -4 l-10 -5 l4 10 z" fill="#7C7CE0" />
-        <Circle cx={4} cy={-2} r={1.8} fill="#161420" />
-      </G>
     </Svg>
   );
 }
