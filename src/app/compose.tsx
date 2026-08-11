@@ -19,63 +19,11 @@ import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
+import { readMood, wrenLine } from "../lib/wren-read";
 
 const LANG = "en";
 type Step = "pick" | "write" | "sending";
 type Mode = "write" | "speak";
-
-/* Wren reads you as you write — words, tone, and emoji, in English and
-   Chinese. Heavy signals are checked first: if in doubt she'd rather be
-   tender than celebrate the wrong thing. Not a classifier, just a companion
-   catching the drift. */
-const HEAVY =
-  /(tired|exhausted|drained|sad|down|cry|crying|tears|alone|lonely|lost|empty|numb|anxious|anxiety|scared|afraid|worried|hurt|hurts|hurting|hate|angry|broke|broken|breakup|miss|missing|grief|grieving|depress|overwhelm|stress|can'?t|hopeless|worthless|ashamed|guilt|sick|pain|dying|die|scream|drowning|累|疲惫|难过|伤心|孤独|孤单|一个人|想哭|哭|崩溃|焦虑|害怕|好怕|痛苦|难受|恨|生气|烦|压力|撑不住|无力|麻木|失眠|失去|分手|抑郁|绝望|委屈|自责|愧疚|想念|舍不得|不想活|好难)/i;
-const LIGHT =
-  /(happy|glad|excited|love|loved|grateful|thankful|great|proud|amazing|wonderful|relieved|relief|joy|celebrat|yay|finally|hopeful|better|smil|laugh|best day|开心|高兴|快乐|喜欢|爱你|感激|感恩|太好了|骄傲|激动|兴奋|放松|治愈|终于|希望|变好|幸福|满足|超棒|棒|美好|感谢)/i;
-
-// tone / interjections
-const HEAVY_TONE = /(唉+|呜+|哎[^呀哟]|叹气|😮‍💨|emo\b)/i; // sighs, sobs
-const LAUGH = /(哈哈+|嘻嘻+|嘿嘿+|嘎嘎+|hhh+|lol|lm+ao|233+|笑死|哈哈哈)/i;
-const EXCITED_PUNC = /[!！]{2,}/; // two or more → real excitement (one ! is ordinary)
-const ELLIPSIS = /(\.{3,}|。{2,}|…+|⋯)/; // trailing off, sitting with something
-const QUESTION = /[?？](\s|["'”’)]|$)|(吗|呢|吧)\s*[?？]?\s*$/; // asking
-
-// emoji buckets (substring match; variation selectors included where common)
-const HEAVY_EMOJI = ["😢", "😭", "😔", "😞", "😟", "😥", "😩", "😫", "😰", "😨", "💔", "🥺", "😪", "😓", "🥀", "😖", "😣", "🙁", "☹️", "😿", "😮‍💨"];
-const LIGHT_EMOJI = ["😊", "😄", "😁", "😆", "🥰", "😍", "🤗", "🎉", "✨", "💛", "💜", "❤️", "❤", "🧡", "💚", "💙", "🙌", "👍", "😌", "🥳", "😂", "🤣", "☺️", "🌈", "🌸", "💫", "⭐", "🌟"];
-const CURIOUS_EMOJI = ["🤔", "❓", "❔", "👀", "🧐"];
-const has = (t: string, arr: string[]) => arr.some((e) => t.includes(e));
-
-function composeMood(text: string, canSend: boolean): WrenMood {
-  const t = text.trim();
-  if (!t) return "listen"; // she's here, waiting
-  // heaviest signals win — tender bias
-  if (HEAVY.test(t) || has(t, HEAVY_EMOJI) || HEAVY_TONE.test(t)) return "worry";
-  // bright signals
-  if (LIGHT.test(t) || has(t, LIGHT_EMOJI) || LAUGH.test(t) || EXCITED_PUNC.test(t)) return "delight";
-  // softer tone reads
-  if (has(t, CURIOUS_EMOJI) || QUESTION.test(t)) return "curious";
-  if (ELLIPSIS.test(t)) return "think";
-  return canSend ? "happy" : "listen"; // enough written → she's got it
-}
-
-function wrenSays(m: WrenMood): string {
-  switch (m) {
-    case "worry":
-      return "I hear you. Take your time.";
-    case "delight":
-      return "Oh — I love this.";
-    case "happy":
-      return "Got it. Send whenever you're ready.";
-    case "curious":
-      return "Ooh — go on, I'm all ears.";
-    case "think":
-      return "Mm… I'm sitting with that too.";
-    case "listen":
-    default:
-      return "I'm right here, listening.";
-  }
-}
 
 export default function Compose() {
   const router = useRouter();
@@ -148,7 +96,7 @@ export default function Compose() {
   // a line is enough — count characters, not whitespace words (Chinese has none)
   const canSend = mode === "speak" ? !!recUri : text.trim().length >= 2;
   // Wren's face follows your writing (speak mode: waiting vs. captured)
-  const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : composeMood(text, canSend);
+  const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, canSend);
   const to = isMorning ? "THE PERSON WHO WROTE THAT" : "THREE PEOPLE WHO WRITE LIKE YOU";
   const toLabel = "TO";
 
@@ -358,7 +306,7 @@ export default function Compose() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>WREN</Text>
                 <Text style={{ fontFamily: F.serifItalic, fontSize: 15.5, color: C.muted, lineHeight: 22, marginTop: 3 }}>
-                  {wrenSays(wrenMood)}
+                  {wrenLine(wrenMood)}
                 </Text>
               </View>
             </View>
