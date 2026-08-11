@@ -30,18 +30,18 @@ import { WrenBird, type WrenMood, type WrenStage } from "../components/WrenBird"
    ⑤ welcome  ⑥ what's on your mind now? (your first note) → the app.
    English-first; localization comes later. Anonymous, no letters. */
 
-type Step = "story" | "auth" | "username" | "cakeday" | "welcome" | "write";
+type Step = "story" | "auth" | "username" | "cakeday" | "welcome" | "write" | "hatch";
 
 const SWATCHES = ["#CDE0EE", "#E4B15C", "#E7A3B4", "#7FC3A6"];
 
-// the reception story — Wren grows across the beats (egg → fledgling → wren),
-// so "she grows as you write" is shown, not told.
-type Art = "hatch" | "caught" | "world" | "grow";
+// the reception story — she's still an egg (your first letter is what hatches
+// her, exactly like in the app), and here's the journey the two of you take.
+type Art = "egg" | "caught" | "world" | "grow";
 const STORY: { art: Art; h: string; s: string }[] = [
-  { art: "hatch", h: "Hi, I'm Wren.", s: "You just hatched me. I read every word you write." },
-  { art: "caught", h: "Say what's on your heart.", s: "I catch it first — you're never shouting into the void." },
-  { art: "world", h: "Then I carry it off,", s: "to find someone who writes like you." },
-  { art: "grow", h: "The more you write,", s: "the bigger I grow — and the more I'm yours." },
+  { art: "egg", h: "Meet Wren.", s: "She's an egg for now — your first letter is what hatches her." },
+  { art: "caught", h: "Say what's on your heart.", s: "She catches it first — you're never shouting into the void." },
+  { art: "world", h: "Then she carries it off,", s: "to find someone who writes like you." },
+  { art: "grow", h: "The more you write,", s: "the bigger she grows — and the more she's yours." },
 ];
 
 export default function Onboarding() {
@@ -145,14 +145,12 @@ export default function Onboarding() {
           </View>
 
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
-            <Animated.View key={`art${beat}`} entering={FadeIn.duration(500)} style={S.art === "world" || S.art === "hatch" ? undefined : breathe}>
+            <Animated.View key={`art${beat}`} entering={FadeIn.duration(500)} style={S.art === "world" ? undefined : breathe}>
               {S.art === "world" ? (
                 <FlyingWorld />
-              ) : S.art === "hatch" ? (
-                <HatchWren size={134} />
               ) : (
                 <View style={{ alignItems: "center" }}>
-                  <WrenBird size={S.art === "grow" ? 138 : 126} stage={storyStage(S.art)} mood={storyMood(S.art)} />
+                  <WrenBird size={S.art === "grow" ? 138 : S.art === "egg" ? 132 : 126} stage={storyStage(S.art)} mood={storyMood(S.art)} />
                   {S.art === "caught" && (
                     <View style={{ backgroundColor: C.purple, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 9, marginTop: 10 }}>
                       <Text style={{ fontFamily: F.serif, fontSize: 15, color: "#fff" }}>I hear you.</Text>
@@ -300,12 +298,12 @@ export default function Onboarding() {
         <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
             <Animated.View entering={FadeIn.duration(600)} style={breathe}>
-              <WrenBird size={128} mood="happy" />
+              <WrenBird size={124} stage="egg" />
             </Animated.View>
             <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ alignItems: "center", marginTop: 20 }}>
               <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink }}>{username ? `Welcome, ${username}.` : "Welcome."}</Text>
               <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: C.muted, marginTop: 14, textAlign: "center", lineHeight: 24, maxWidth: 300 }}>
-                Here, everything you write is a <Text style={{ color: C.purple, fontFamily: F.sansBold }}>letter</Text>.{"\n"}Write it down, and someone writes back.
+                She's still in her shell. The first <Text style={{ color: C.purple, fontFamily: F.sansBold }}>letter</Text> you write is what hatches her.
               </Text>
             </Animated.View>
           </View>
@@ -346,9 +344,28 @@ export default function Onboarding() {
               </View>
             </View>
             <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
-              <PurpleButton label="Done — take me in" disabled={!canWrite} onPress={finish} />
+              <PurpleButton label="Done" disabled={!canWrite} onPress={() => canWrite && setStep("hatch")} />
             </View>
           </KeyboardAvoidingView>
+        </SafeAreaView>
+      )}
+
+      {/* ── ⑦ the hatch — earned by writing your first letter ── */}
+      {step === "hatch" && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.night }}>
+          <Sky />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+            <HatchWren size={150} />
+            <Animated.View entering={FadeInDown.delay(760).duration(600)} style={{ alignItems: "center", marginTop: 26 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#F1EFF7", textAlign: "center" }}>She hatched.</Text>
+              <Text style={{ fontFamily: F.sans, fontSize: 14.5, color: "#9C97AB", marginTop: 12, textAlign: "center", lineHeight: 22, maxWidth: 300 }}>
+                Your first letter did that. The more you write, the bigger she grows.
+              </Text>
+            </Animated.View>
+          </View>
+          <View style={{ paddingHorizontal: 26, paddingBottom: 22 }}>
+            <PurpleButton label="Take me in" onPress={finish} />
+          </View>
         </SafeAreaView>
       )}
     </>
@@ -385,46 +402,44 @@ function storyMood(art: Art): WrenMood {
   return "content";
 }
 
-// she grows as the story goes: fledgling when she first hears you, full Wren
-// by the time she's "yours".
+// egg to start; fledgling when she first hears you; full Wren by the time
+// she's "yours". (Her real hatch happens when you write — see the write step.)
 function storyStage(art: Art): WrenStage {
+  if (art === "egg") return "egg";
   if (art === "caught") return "fledge";
   return "wren";
 }
 
-/* Beat 1 — she hatches. Egg wobbles like something's coming, then cracks
-   open into a hatchling with a pop. Auto-hatches, or tap to hurry her. */
-function HatchWren({ size = 134 }: { size?: number }) {
+/* The hatch itself — used only after you've written your first letter. The
+   egg twitches, then cracks open into a hatchling with a pop, because your
+   words are what did it. */
+function HatchWren({ size = 150 }: { size?: number }) {
   const [hatched, setHatched] = useState(false);
   const rock = useSharedValue(0);
   useEffect(() => {
     rock.value = withRepeat(
       withSequence(
-        withTiming(-1, { duration: 130 }),
-        withTiming(1, { duration: 260 }),
-        withTiming(0, { duration: 130 }),
+        withTiming(-1, { duration: 120 }),
+        withTiming(1, { duration: 240 }),
+        withTiming(0, { duration: 120 }),
       ),
       -1,
       false,
     );
-    const t = setTimeout(() => setHatched(true), 1150);
+    const t = setTimeout(() => setHatched(true), 780);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${rock.value * 5}deg` }] }));
+  const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${rock.value * 6}deg` }] }));
 
-  return (
-    <Pressable onPress={() => setHatched(true)} style={{ alignItems: "center" }}>
-      {hatched ? (
-        <Animated.View key="hatched" entering={ZoomIn.springify().damping(9).mass(0.7)}>
-          <WrenBird size={size} stage="hatch" mood="happy" />
-        </Animated.View>
-      ) : (
-        <Animated.View key="egg" style={wobble}>
-          <WrenBird size={size} stage="egg" />
-        </Animated.View>
-      )}
-    </Pressable>
+  return hatched ? (
+    <Animated.View key="hatched" entering={ZoomIn.springify().damping(8).mass(0.7)} style={{ alignItems: "center" }}>
+      <WrenBird size={size} stage="hatch" mood="happy" />
+    </Animated.View>
+  ) : (
+    <Animated.View key="egg" style={wobble}>
+      <WrenBird size={size} stage="egg" />
+    </Animated.View>
   );
 }
 
