@@ -166,7 +166,7 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     date: iso(20 * H),
     type: "photo",
     body: "The light hit the kitchen wall like this for exactly four minutes.",
-    mood: "warm",
+    mood: "content",
     media: [
       "https://picsum.photos/seed/kindredly-kitchen/900/1125",
       "https://picsum.photos/seed/kindredly-window/1200/800",
@@ -180,7 +180,7 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     date: iso(44 * H),
     type: "text",
     body: "I said no to something today and the world did not end. I keep checking. It really didn't.",
-    mood: "bright",
+    mood: "cheerful",
     driftedLine: "I said no to something today and the world did not end.",
   },
   {
@@ -188,7 +188,7 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     date: iso(70 * H),
     type: "voice",
     body: "3am thoughts, recorded so I'd stop thinking them.",
-    mood: "heavy",
+    mood: "drained",
     mediaUri: "",
     dur: 42,
   },
@@ -197,7 +197,7 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     date: iso(90 * H),
     type: "text",
     body: "Mum called. We talked about nothing for an hour. Nothing is my favourite thing to talk about with her.",
-    mood: "tender",
+    mood: "in-love",
   },
 ];
 

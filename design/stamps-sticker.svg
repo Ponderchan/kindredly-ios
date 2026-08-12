@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+
+<symbol id="stamp-never-told" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B4F9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B4F9E1c"></path>
+<path d="M30,28h4v16h-4Z" fill="#6B4F9E"></path>
+<path d="M32,17q5,6 0,10q-5,-4 0,-10" fill="#6B4F9E"></path>
+<path d="M20,48h24" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-off-chest" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B4F9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B4F9E1c"></path>
+<path d="M20,30v14h24V30" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,38V16" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25,23l7,-7 7,7" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-guilty" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B4F9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B4F9E1c"></path>
+<path d="M22,38a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M20,18q12,-7 24,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-hot-take" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B4F9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B4F9E1c"></path>
+<path d="M32,12q11,11 7,22a11,11 0 0 1 -14,0q-4,-11 7,-22Z" fill="#6B4F9E"></path>
+<path d="M25,50h14" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-cringe" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B4F9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B4F9E1c"></path>
+<path d="M17,32l7,-7 8,7 8,-7 7,7" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M42.8,45a3.2,3.2 0 1 0 6.4,0a3.2,3.2 0 1 0 -6.4,0" fill="#6B4F9E"></path>
+</symbol>
+<symbol id="stamp-pretending" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B4F9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B4F9E1c"></path>
+<path d="M17,32a15,15 0 1 0 30,0a15,15 0 1 0 -30,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M24,28q3,4 7,0M33,28q3,4 7,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25,40q7,-5 14,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-almost-texted" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C86E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C86E7A1c"></path>
+<path d="M23,13h18v36H23Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25.8,32a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#C86E7A"></path>
+<path d="M29.8,32a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#C86E7A"></path>
+<path d="M33.8,32a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#C86E7A"></path>
+</symbol>
+<symbol id="stamp-situationship" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C86E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C86E7A1c"></path>
+<path d="M18,32a9,9 0 1 1 18,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M28,32a9,9 0 1 0 18,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-not-over-it" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C86E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C86E7A1c"></path>
+<path d="M32,40.35C15,29.3 22.65,18.25 32,26.75C41.35,18.25 49,29.3 32,40.35Z" fill="#C86E7A"></path>
+<path d="M25,26l6,7M31,25l-6,7" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-unsent" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C86E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C86E7A1c"></path>
+<path d="M48,17 17,29l11,4 3,11 6,-8Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M14,49l10,-8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-crush" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C86E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C86E7A1c"></path>
+<path d="M29,41.25C14,31.5 20.75,21.75 29,29.25C37.25,21.75 44,31.5 29,41.25Z" fill="#C86E7A"></path>
+<path d="M47.0,12.0L48.6,15.8L52.7,16.1L49.6,18.8L50.5,22.9L47.0,20.7L43.5,22.9L44.4,18.8L41.3,16.1L45.4,15.8Z" fill="#C86E7A"></path>
+</symbol>
+<symbol id="stamp-what-if" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C86E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C86E7A1c"></path>
+<path d="M32,42v-6q0,-6 6,-8a8,8 0 1 0 -13,-6" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M29.4,50a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0" fill="#C86E7A"></path>
+</symbol>
+<symbol id="stamp-overthinking" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2E3F8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2E3F8C1c"></path>
+<path d="M32,32a3,3 0 1 1 3,3a8,8 0 1 1 -11,-3a13,13 0 1 1 16,8a18,18 0 1 1 -22,-14" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-cant-sleep" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2E3F8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2E3F8C1c"></path>
+<path d="M36,14a15,15 0 1 0 12,24a12,12 0 1 1 -12,-24Z" fill="#2E3F8C"></path>
+<path d="M46,18h8l-8,8h8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-intrusive" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2E3F8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2E3F8C1c"></path>
+<path d="M17,36a13,13 0 1 0 26,0a13,13 0 1 0 -26,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M38,12l-9,14h6l-7,14 15,-17h-7l7,-11Z" fill="#2E3F8C"></path>
+</symbol>
+<symbol id="stamp-whats-the-point" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2E3F8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2E3F8C1c"></path>
+<path d="M19,26a3,3 0 1 0 6,0a3,3 0 1 0 -6,0" fill="#2E3F8C"></path>
+<path d="M29,33a3,3 0 1 0 6,0a3,3 0 1 0 -6,0" fill="#2E3F8C"></path>
+<path d="M39,40a3,3 0 1 0 6,0a3,3 0 1 0 -6,0" fill="#2E3F8C"></path>
+<path d="M35,40a7,7 0 1 0 14,0a7,7 0 1 0 -14,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-spiral" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2E3F8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2E3F8C1c"></path>
+<path d="M17,19h30" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M21,29h22" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M26,39h12" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M30,49h4" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-too-honest" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2E3F8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2E3F8C1c"></path>
+<path d="M17,17h30v20H31l-9,9v-9h-5Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,22v8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M30,33.5a2,2 0 1 0 4,0a2,2 0 1 0 -4,0" fill="#2E3F8C"></path>
+</symbol>
+<symbol id="stamp-made-my-day" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A481c"></path>
+<path d="M23,38a9,9 0 1 0 18,0a9,9 0 1 0 -18,0" fill="#6B8A48"></path>
+<path d="M32,20v-6M15,38h-6" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15,38H9M55,38h-6M19,25l4,4M45,25l-4,4" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M12,50h40" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-ordinary" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A481c"></path>
+<path d="M22,26h18v17a6,6 0 0 1 -6,6h-6a6,6 0 0 1 -6,-6Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M40,30h5a5,5 0 0 1 0,10h-5" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M27,20q0,-4 3,-6M34,20q0,-4 3,-6" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-a-song" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A481c"></path>
+<path d="M19,45a5,5 0 1 0 10,0a5,5 0 1 0 -10,0" fill="#6B8A48"></path>
+<path d="M35,41a5,5 0 1 0 10,0a5,5 0 1 0 -10,0" fill="#6B8A48"></path>
+<path d="M29,44V17l16,-4v24" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-outside" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A481c"></path>
+<path d="M32,50C17,41 16,25 32,13c16,12 15,28 0,37Z" fill="#6B8A48"></path>
+<path d="M32,20v28" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-comfort" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A481c"></path>
+<path d="M17,34q7.5,-7 15,0t15,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M17,44q7.5,-7 15,0t15,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M22,23q10,-8 20,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-tiny-win" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A481c"></path>
+<path d="M25,51V15" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25,15h20l-6,8 6,8H25Z" fill="#6B8A48"></path>
+</symbol>
+<symbol id="stamp-growing" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M32,51V30" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,31q-2,-13 -15,-13 2,13 15,13Z" fill="#1E948A"></path>
+<path d="M32,37q2,-13 15,-13 -2,13 -15,13Z" fill="#1E948A"></path>
+</symbol>
+<symbol id="stamp-changed" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M30,31 15,19q-3,17 15,19Z" fill="#1E948A"></path>
+<path d="M34,31 49,19q3,17 -15,19Z" fill="#1E948A"></path>
+<path d="M32,23v24" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-lost" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M16,32a16,16 0 1 0 32,0a16,16 0 1 0 -32,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,16v-5M32,53v-5M11,32h5M48,32h5" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M29.4,32a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0" fill="#1E948A"></path>
+</symbol>
+<symbol id="stamp-big-feeling" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M28,34a4,4 0 1 0 8,0a4,4 0 1 0 -8,0" fill="#1E948A"></path>
+<path d="M22,34a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15,34a17,17 0 1 0 34,0a17,17 0 1 0 -34,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-letting-go" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M27,21a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="#1E948A"></path>
+<path d="M37,31q-6,8 0,14t-4,8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-who-am-i" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M32,13a13,17 0 1 0 .01,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M28,26q4,-6 8,-1q-2,4 -4,5v3" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M30,40a2,2 0 1 0 4,0a2,2 0 1 0 -4,0" fill="#1E948A"></path>
+</symbol>
+<symbol id="stamp-miss-someone" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M14.5,25a4.5,4.5 0 1 0 9,0a4.5,4.5 0 1 0 -9,0" fill="#9A6B3A"></path>
+<path d="M40.5,25a4.5,4.5 0 1 0 9,0a4.5,4.5 0 1 0 -9,0" fill="#9A6B3A"></path>
+<path d="M19,33q13,14 26,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 5"></path>
+</symbol>
+<symbol id="stamp-homesick" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M17,32 32,17 47,32V49H17Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,43.95C23,38.1 27.05,32.25 32,36.75C36.95,32.25 41,38.1 32,43.95Z" fill="#9A6B3A"></path>
+</symbol>
+<symbol id="stamp-grief" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M28,51q3,-17 3,-25q0,-8 8,-9" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M37,16a5,5 0 1 0 10,0a5,5 0 1 0 -10,0" fill="#9A6B3A"></path>
+<path d="M45.8,23a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#9A6B3A"></path>
+</symbol>
+<symbol id="stamp-then-now" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M21,14h22M21,50h22" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M23,14q0,12 9,18t9,18" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M41,14q0,12 -9,18t-9,18" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-old-friend" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M17,18h30v26H17Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M34.8,26a3.2,3.2 0 1 0 6.4,0a3.2,3.2 0 1 0 -6.4,0" fill="#9A6B3A"></path>
+<path d="M19,41l9,-9 7,5 9,-10" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="stamp-seasons" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M35,13C24,19 23,30 35,36c11,-6 11,-17 0,-23Z" fill="#9A6B3A"></path>
+<path d="M13,45q8,-5 17,0t17,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M34,18l-7,20" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="mood-calm" viewBox="0 0 60 60">
+<path d="M11,21q9.5,-8 19,0t19,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M11,31q9.5,-8 19,0t19,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M11,41q9.5,-8 19,0t19,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="mood-tender" viewBox="0 0 60 60">
+<path d="M30,40.45C11,28.1 19.549999999999997,15.75 30,25.25C40.45,15.75 49,28.1 30,40.45Z" fill="#F2A2B0"></path>
+</symbol>
+<symbol id="mood-restless" viewBox="0 0 60 60">
+<path d="M26,8l-9,15h6l-7,15 15,-18h-7l7,-12Z" fill="#F0B84A"></path>
+<path d="M43,22l-7,12h5l-6,13 13,-15h-6l6,-10Z" fill="#F0B84A"></path>
+</symbol>
+<symbol id="mood-wistful" viewBox="0 0 60 60">
+<path d="M35,9a19,19 0 1 0 13,31A15,15 0 1 1 35,9Z" fill="#B294D6"></path>
+</symbol>
+<symbol id="mood-warm" viewBox="0 0 60 60">
+<path d="M20,30a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="#FF9A6B"></path>
+<path d="M30,12v-5M30,53v-5M12,30H7M53,30h-5M17,17l-4,-4M47,47l-4,-4M43,17l4,-4M17,43l-4,4" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="mood-distant" viewBox="0 0 60 60">
+<path d="M7,42l12,-17 8,11" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M23,42l10,-13 12,13" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M7,48h46" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+<symbol id="mood-bright" viewBox="0 0 60 60">
+<path d="M30.0,13.0L34.5,23.8L46.2,24.7L37.3,32.4L40.0,43.8L30.0,37.6L20.0,43.8L22.7,32.4L13.8,24.7L25.5,23.8Z" fill="#F5C64F"></path>
+</symbol>
+<symbol id="mood-heavy" viewBox="0 0 60 60">
+<path d="M17,34a8,8 0 0 1 2,-15 10,10 0 0 1 19,-3 8,8 0 0 1 5,18Z" fill="#5A5568"></path>
+<path d="M22,41l-3,9M32,41l-3,9M42,41l-3,9" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol>
+</svg>

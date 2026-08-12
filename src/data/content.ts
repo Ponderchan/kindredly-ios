@@ -28,8 +28,8 @@ export interface HookLetter {
   mood: MoodId;
 }
 export const HOOK_LETTERS: HookLetter[] = [
-  { body: "I keep buying flowers for a table nobody else sits at.", who: "someone in Porto", when: "three days ago", mood: "wistful" },
-  { body: "My father called to ask how to work the new phone. We talked for an hour. Neither of us mentioned the phone again.", who: "someone in Osaka", when: "yesterday", mood: "tender" },
+  { body: "I keep buying flowers for a table nobody else sits at.", who: "someone in Porto", when: "three days ago", mood: "sleepy" },
+  { body: "My father called to ask how to work the new phone. We talked for an hour. Neither of us mentioned the phone again.", who: "someone in Osaka", when: "yesterday", mood: "in-love" },
   { body: "I've started saying good morning to a tree on my walk to work. Out loud. I'm aware of how that sounds.", who: "someone in Bergen", when: "this morning", mood: "calm" },
 ];
 
@@ -67,9 +67,9 @@ export const VOICE_TRAITS: [string, string, string][] = [
 
 /* ── a fake 24-day mood history for the Season bar chart ── */
 export const SEASON: MoodId[] = [
-  "wistful", "wistful", "calm", "calm", "distant", "wistful", "heavy", "heavy",
-  "heavy", "calm", "warm", "wistful", "calm", "calm", "bright", "warm",
-  "wistful", "calm", "tender", "wistful", "calm", "bright", "calm", "wistful",
+  "sleepy", "sleepy", "calm", "calm", "numb", "sleepy", "drained", "drained",
+  "drained", "calm", "content", "sleepy", "calm", "calm", "cheerful", "content",
+  "sleepy", "calm", "in-love", "sleepy", "calm", "cheerful", "calm", "sleepy",
 ];
 
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

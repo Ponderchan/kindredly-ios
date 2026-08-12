@@ -1,9 +1,10 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { C, F } from "../theme/tokens";
 import { MoodIcon } from "./MoodIcon";
 import { MOOD_IDS, MOODS, type MoodId } from "../data/moods";
 
-/* Bottom-sheet 8-mood grid shown after saving a journal page (v20 MoodModal). */
+/* Bottom-sheet mood grid shown after saving a journal page — now 30 moods,
+   so the grid scrolls. */
 export function MoodModal({
   visible,
   onPick,
@@ -27,14 +28,16 @@ export function MoodModal({
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 6 }}>
             One word. Wren keeps the rest.
           </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginTop: 24 }}>
-            {MOOD_IDS.map((id) => (
-              <Pressable key={id} onPress={() => onPick(id)} style={{ width: "25%", alignItems: "center", marginBottom: 18 }}>
-                <MoodIcon id={id} size={50} />
-                <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 4 }}>{MOODS[id].n}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <ScrollView style={{ maxHeight: 380, marginTop: 20 }} showsVerticalScrollIndicator={false}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }}>
+              {MOOD_IDS.map((id) => (
+                <Pressable key={id} onPress={() => onPick(id)} style={{ width: "25%", alignItems: "center", marginBottom: 16 }}>
+                  <MoodIcon id={id} size={48} />
+                  <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: C.muted, marginTop: 4 }}>{MOODS[id].n}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
