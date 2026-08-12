@@ -11,8 +11,9 @@ import { Wren } from "../../components/Wren";
 import { DEMO_THREADS } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { dShort, postNo } from "../../lib/format";
-import { fetchThreads, sendThreadMessage, type ThreadSummary } from "../../lib/db";
+import { clearThreadReaction, fetchThreads, sendThreadMessage, setThreadReaction, type ThreadSummary } from "../../lib/db";
 import { translate } from "../../lib/wren";
+import { REACTIONS, reactionLabel } from "../../data/reactions";
 
 /*
  * Letters is not a mailbox. It is the letter in front of the reader.
@@ -136,6 +137,18 @@ function LetterPage({
   const alias = thread.revealed && thread.otherName ? thread.otherName : `No. ${postNo(thread.other)}`;
   const st = getStamp(thread.stamp);
 
+  // my one-tap reaction — optimistic; a new pick replaces, same pick clears
+  const [myR, setMyR] = useState<string | null>(thread.myReaction ?? null);
+  const react = (emoji: string) => {
+    if (myR === emoji) {
+      setMyR(null);
+      void clearThreadReaction(thread.id);
+    } else {
+      setMyR(emoji);
+      void setThreadReaction(thread.id, emoji);
+    }
+  };
+
   // Wren translation — on demand, toggling between original and her render
   const [xl, setXl] = useState<string | null>(null);
   const [xlBusy, setXlBusy] = useState(false);
@@ -200,8 +213,16 @@ function LetterPage({
             <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, marginTop: 6 }}>translated by Wren</Text>
           )}
 
-          {/* chips — the stamp's theme, progress to names, translate */}
+          {/* chips — how they caught your last letter, theme, progress, translate */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+            {thread.theirReaction && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#FBEEF1", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
+                <Text style={{ fontSize: 12 }}>{thread.theirReaction}</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: "#C86E7A" }}>
+                  {reactionLabel(thread.theirReaction) || "felt this"} — to your last letter
+                </Text>
+              </View>
+            )}
             {st && (
               <View style={{ backgroundColor: `${st.color}14`, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
                 <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: st.color }}>
@@ -259,6 +280,37 @@ function LetterPage({
           One more letter is waiting above.
         </Text>
       )}
+
+      {/* a lighter answer than a letter — one tap, they'll see it */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 4 }}>
+        {REACTIONS.map((r) => {
+          const on = myR === r.emoji;
+          return (
+            <Pressable
+              key={r.emoji}
+              onPress={() => react(r.emoji)}
+              hitSlop={4}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: on ? C.purpleLt : "transparent",
+                borderWidth: 1.5,
+                borderColor: on ? C.purple : C.line,
+                transform: [{ scale: on ? 1.08 : 1 }],
+              }}
+            >
+              <Text style={{ fontSize: 17 }}>{r.emoji}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={{ fontFamily: F.serifItalic, fontSize: 10.5, color: myR ? C.purple : C.faint, textAlign: "center", marginBottom: 2 }}>
+        {myR ? `${myR} ${reactionLabel(myR)} — they'll see it` : "or answer with one tap"}
+      </Text>
+
       <ReplyBar
         onSend={onReply}
         placeholder="Write back to them…"

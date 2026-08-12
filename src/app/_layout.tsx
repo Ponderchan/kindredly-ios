@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -10,6 +10,10 @@ import { useAppFonts } from "../theme/fonts";
 import { C } from "../theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
+
+// Simulator-only expo-notifications keychain noise. The toast it raises sits
+// over the bottom controls and eats taps — silence it in dev.
+LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();

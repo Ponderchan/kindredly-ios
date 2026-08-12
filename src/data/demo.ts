@@ -31,6 +31,7 @@ export const DEMO_THREADS: ThreadSummary[] = [
     preview: "My mother sold the house last month. I found out from my sister.",
     lastSenderMe: false,
     lastAt: now - 16 * H,
+    theirReaction: "🫂", // they caught your last letter
   },
   {
     id: "demo-north",

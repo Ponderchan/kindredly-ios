@@ -281,6 +281,8 @@ export interface ThreadSummary {
   preview: string;
   lastSenderMe: boolean;
   lastAt: number;
+  myReaction?: string | null; // my one-tap reaction on this thread
+  theirReaction?: string | null; // theirs — how they caught your last letter
 }
 export async function fetchThreads(): Promise<ThreadSummary[] | null> {
   if (!supabaseReady) return null;
@@ -295,6 +297,27 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
       .or(`a.eq.${me},b.eq.${me}`)
       .order("last_at", { ascending: false });
     if (error || !data) return null;
+
+    // one-tap reactions, both directions (null-safe until migration 0008 lands)
+    const rx = new Map<string, { mine?: string; theirs?: string }>();
+    try {
+      const ids = data.map((r: any) => r.id);
+      if (ids.length) {
+        const { data: rows } = await supabase!
+          .from("reactions")
+          .select("thread_id,sender,emoji")
+          .in("thread_id", ids);
+        for (const row of rows || []) {
+          const slot = rx.get(row.thread_id) || {};
+          if (row.sender === me) slot.mine = row.emoji;
+          else slot.theirs = row.emoji;
+          rx.set(row.thread_id, slot);
+        }
+      }
+    } catch {
+      /* table not there yet — the app runs without reactions */
+    }
+
     return data.map((r: any) => {
       const iamA = r.a === me;
       return {
@@ -307,8 +330,38 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         preview: r.last_body || r.opening || "",
         lastSenderMe: r.last_sender === me,
         lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
+        myReaction: rx.get(r.id)?.mine ?? null,
+        theirReaction: rx.get(r.id)?.theirs ?? null,
       } as ThreadSummary;
     });
+  } catch {
+    return null;
+  }
+}
+
+/** One-tap reaction on a thread — upsert (a new pick replaces the old). */
+export async function setThreadReaction(threadId: string, emoji: string): Promise<true | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { error } = await supabase!
+      .from("reactions")
+      .upsert({ thread_id: threadId, sender: me, emoji }, { onConflict: "thread_id,sender" });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
+/** Take a reaction back (tapping the same one again). */
+export async function clearThreadReaction(threadId: string): Promise<true | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { error } = await supabase!.from("reactions").delete().eq("thread_id", threadId).eq("sender", me);
+    return error ? null : true;
   } catch {
     return null;
   }
