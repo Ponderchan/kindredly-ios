@@ -7,6 +7,7 @@ import { C, F, cardStyle, shadow } from "../../theme/tokens";
 import { Caps } from "../../components/ui";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
+import { PlushCelebration } from "../../components/PlushCelebration";
 import { Fingerprint } from "../../components/Fingerprint";
 import { GrowthStampTile } from "../../components/GrowthStamp";
 import { TabIcon } from "../../components/TabIcon";
@@ -256,6 +257,7 @@ export default function MeTab() {
         onSave={saveProfileEdits}
         onClose={() => setEditing(false)}
       />
+      <PlushCelebration kindreds={stats.kindreds} />
     </SafeAreaView>
   );
 }

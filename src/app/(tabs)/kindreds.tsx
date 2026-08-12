@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, cardStyle } from "../../theme/tokens";
 import { Caps, ProgressBar } from "../../components/ui";
 import { StrangerAvatar } from "../../components/StrangerAvatar";
+import { PlushCelebration } from "../../components/PlushCelebration";
 import { postNo } from "../../lib/format";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 
@@ -108,6 +109,7 @@ export default function KindredsTab() {
           </View>
         )}
       </ScrollView>
+      <PlushCelebration kindreds={kindreds.length} />
     </SafeAreaView>
   );
 }
