@@ -322,6 +322,8 @@ function LetterPage({
 
 function QuietDesk({ sent, onWrite }: { sent: ThreadSummary[]; onWrite: () => void }) {
   const sentPreview = sent[0];
+  // the "you were caught" moment — someone reacted to a letter you sent
+  const caught = sent.find((t) => t.theirReaction);
   return (
     <View style={{ flex: 1, paddingHorizontal: 30, paddingTop: 62, paddingBottom: 120 }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -329,16 +331,26 @@ function QuietDesk({ sent, onWrite }: { sent: ThreadSummary[]; onWrite: () => vo
           <Text style={{ fontSize: 24, color: C.purple }}>✦</Text>
         </View>
         <Text style={{ fontFamily: F.serif, fontSize: 25, color: C.ink, textAlign: "center" }}>
-          {sentPreview ? "Your letter is out there." : "The desk is quiet."}
+          {caught ? "Someone caught your letter." : sentPreview ? "Your letter is out there." : "The desk is quiet."}
         </Text>
+        {caught && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14, backgroundColor: "#FBEEF1", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 8 }}>
+            <Text style={{ fontSize: 15 }}>{caught.theirReaction}</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#C86E7A" }}>
+              {reactionLabel(caught.theirReaction) || "felt this"} — No. {postNo(caught.other)}
+            </Text>
+          </View>
+        )}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 17 }}>
           <Wren size={16} mode="line" />
           <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>WREN</Text>
         </View>
         <Text style={{ fontFamily: F.serifItalic, fontSize: 15, lineHeight: 24, color: C.muted, textAlign: "center", marginTop: 8, maxWidth: 286 }}>
-          {sentPreview
-            ? "Someone has your words at their door. There is nothing to chase."
-            : "Nothing is asking for you right now. You can leave a letter when something is true."}
+          {caught
+            ? "They didn't have the words back yet — but they wanted you to know it landed."
+            : sentPreview
+              ? "Someone has your words at their door. There is nothing to chase."
+              : "Nothing is asking for you right now. You can leave a letter when something is true."}
         </Text>
       </View>
 
