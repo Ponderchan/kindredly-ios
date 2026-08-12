@@ -1,15 +1,7 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, {
-  Easing,
-  FadeIn,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
@@ -19,12 +11,11 @@ import { getStamp } from "../../data/stamps";
 import { postNo } from "../../lib/format";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 
-const H = Dimensions.get("window").height;
-
-/* Today — the post. When letters wait for you, they're a stack of envelopes
-   you tap to tear open (→ the thread reader). When it's quiet, Wren nudges
-   you to write first. The lavender ground marks this as the strangers' space
-   (same as the "to a stranger" composer). */
+/* Today — the post. When letters wait for you, they're a stack of envelopes;
+   tap one and the letter rises up out of the envelope (the reader is a modal
+   that slides up — pull it down to put the letter away). When it's quiet, Wren
+   nudges you to write first. The lavender ground marks this as the strangers'
+   space (same as the "to a stranger" composer). */
 
 const LAV = "#B9A8F0";
 const PAPER = "#FBF7EC";
@@ -50,34 +41,8 @@ export default function LettersTab() {
   const showThreads = demo ? DEMO_THREADS : threads;
   const waiting = showThreads.filter((t) => !t.lastSenderMe);
 
-  // tear-open: a letter sheet rises out of the envelope and unfolds, then the
-  // reader takes over
-  const t = useSharedValue(0);
-  const openingId = useRef<string | null>(null);
-  const [openingText, setOpeningText] = useState<string | null>(null);
-
-  const open = (thread: ThreadSummary) => {
-    openingId.current = thread.id;
-    setOpeningText(thread.preview);
-    t.value = 0;
-    t.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.cubic) }, (done) => {
-      if (done) runOnJS(finishOpen)();
-    });
-  };
-  const finishOpen = () => {
-    if (openingId.current) router.push(`/thread/${openingId.current}`);
-    setTimeout(() => {
-      t.value = 0;
-      setOpeningText(null);
-    }, 440);
-  };
-
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, t.value * 1.5) }));
-  const sheetStyle = useAnimatedStyle(() => ({
-    opacity: t.value < 0.12 ? 0 : 1,
-    transform: [{ translateY: (1 - t.value) * (H * 0.26) }, { scaleY: 0.08 + t.value * 0.92 }],
-  }));
-  const sheetTextStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, (t.value - 0.55) * 2.2) }));
+  // tap an envelope → the letter rises up (the reader slides up as a modal)
+  const open = (thread: ThreadSummary) => router.push(`/thread/${thread.id}`);
 
   const quiet = loaded && waiting.length === 0;
 
@@ -129,19 +94,6 @@ export default function LettersTab() {
               “{waitLine(waiting.length)}”
             </Text>
           </View>
-        </View>
-      )}
-
-      {/* tear-open: a sheet slides up and unfolds into the reader */}
-      {openingText !== null && (
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-          <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: LAV }, backdropStyle]} />
-          <Animated.View style={[{ position: "absolute", left: 16, right: 16, top: 72, bottom: 60, backgroundColor: PAPER, borderRadius: 22, overflow: "hidden" }, shadow.card, sheetStyle]}>
-            <Airmail />
-            <Animated.Text style={[{ fontFamily: F.serif, fontSize: 22, color: "#22222A", lineHeight: 33, padding: 26, paddingTop: 30 }, sheetTextStyle]} numberOfLines={5}>
-              {openingText}
-            </Animated.Text>
-          </Animated.View>
         </View>
       )}
     </SafeAreaView>

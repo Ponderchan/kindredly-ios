@@ -43,7 +43,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="compose" options={{ presentation: "modal" }} />
                 <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
-                <Stack.Screen name="thread/[id]" />
+                <Stack.Screen name="thread/[id]" options={{ presentation: "modal" }} />
               </Stack>
             </View>
             </WrenSkinProvider>
