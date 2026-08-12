@@ -116,11 +116,9 @@ export default function ThreadScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: PAPER }}>
-      {/* minimal header — back + report */}
-      <View style={{ paddingHorizontal: 12, paddingTop: 2, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 24, color: "#5A5344" }}>‹</Text>
-        </Pressable>
+      {/* header — no back button; this IS the letter, swipe from the edge to leave */}
+      <View style={{ paddingHorizontal: 12, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ width: 42 }} />
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: "#B3A985" }}>
           {conv.length} {conv.length === 1 ? "LETTER" : "LETTERS"} IN THIS THREAD
         </Text>
@@ -128,7 +126,7 @@ export default function ThreadScreen() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
           {/* the letter */}
           {hero && (
             <View style={[{ backgroundColor: "#fff", borderRadius: 22, padding: 22, paddingTop: 20 }, shadow.card]}>

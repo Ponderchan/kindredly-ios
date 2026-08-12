@@ -28,7 +28,7 @@ export const DEMO_THREADS: ThreadSummary[] = [
     mine: 5,
     otherName: "Someone at Blackberry Row",
     other: "demo-blackberry",
-    preview: "My mother sold the house last month. I found out from my sister.",
+    preview: "One more from you and Wren tells us each other's names. Strange to want that this much.",
     lastSenderMe: false,
     lastAt: now - 16 * H,
     theirReaction: "🫂", // they caught your last letter
@@ -40,7 +40,7 @@ export const DEMO_THREADS: ThreadSummary[] = [
     mine: 3,
     otherName: "Someone up north",
     other: "demo-north",
-    preview: "No stake in the answer. That's the whole thing about strangers.",
+    preview: "Left law school in my last term. My mother still tells people I'm 'on a break.'",
     lastSenderMe: false,
     lastAt: now - 40 * H,
   },
