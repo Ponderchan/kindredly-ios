@@ -1,7 +1,8 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { C, F, cardStyle, shadow } from "../theme/tokens";
-import { WrenBird, type WrenAccessory, type WrenMood, type WrenStage } from "./WrenBird";
-import { ACCESSORY_META, stageInfo } from "../lib/wren-style";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
+import { ACCESSORY_META, SKINS, skinUnlocked, stageInfo } from "../lib/wren-style";
+import { useWrenSkinControl } from "../lib/wren-skin";
 import type { GrowthStats } from "../data/growth";
 
 /* Wren's home — the top of the Me tab. Your companion as she is right now:
@@ -40,9 +41,20 @@ export function WrenHome({
   onEquip: (a: WrenAccessory) => void;
   onLocked: () => void;
 }) {
+  const { skin, pick } = useWrenSkinControl();
   const info = stageInfo(stats, stageFloor);
   const activeIdx = LADDER.findIndex((l) => l.stage === info.stage);
   const [cur, tgt] = info.next?.progress ?? [0, 0];
+
+  const tapSkin = (id: WrenSkin) => {
+    if (skinUnlocked(id, stats, premium)) {
+      pick(id);
+      return;
+    }
+    const meta = SKINS.find((s) => s.id === id);
+    if (meta?.lock === "plus") onLocked(); // → paywall
+    else Alert.alert("Not yet", "The Plush look unlocks when you make your first kindred — five letters each with one person.");
+  };
   const wearsHere = info.stage === "wren" || info.stage === "hatch";
 
   return (
@@ -103,6 +115,43 @@ export function WrenHome({
           She's all grown. Now you just keep each other company.
         </Text>
       )}
+
+      {/* looks — the three skins */}
+      <View style={{ paddingTop: 18 }}>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.3, color: C.faint, paddingHorizontal: 18, marginBottom: 10 }}>LOOKS</Text>
+        <View style={{ flexDirection: "row", paddingHorizontal: 14, gap: 9 }}>
+          {SKINS.map((sk) => {
+            const on = skin === sk.id;
+            const unlocked = skinUnlocked(sk.id, stats, premium);
+            const badge = unlocked ? null : sk.lock === "plus" ? "👑 +" : "🔒 kindred";
+            return (
+              <Pressable
+                key={sk.id}
+                onPress={() => tapSkin(sk.id)}
+                style={[
+                  {
+                    flex: 1,
+                    alignItems: "center",
+                    paddingTop: 8,
+                    paddingBottom: 9,
+                    borderRadius: 16,
+                    backgroundColor: on ? C.purpleLt : C.card,
+                    borderWidth: on ? 2 : 1,
+                    borderColor: on ? C.purple : C.line,
+                  },
+                  on ? shadow.card : null,
+                ]}
+              >
+                <View style={{ opacity: unlocked ? 1 : 0.5 }}>
+                  <WrenBird size={52} mood="happy" skin={sk.id} />
+                </View>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: on ? C.purple : C.muted, marginTop: 2 }}>{sk.name}</Text>
+                {badge && <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, color: sk.lock === "plus" ? C.gold : C.faint, marginTop: 1 }}>{badge}</Text>}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {/* dress-up shelf */}
       <View style={{ paddingTop: 18, paddingBottom: 16 }}>

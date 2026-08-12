@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { GrowthStats } from "../data/growth";
-import type { WrenAccessory, WrenStage } from "../components/WrenBird";
+import type { WrenAccessory, WrenSkin, WrenStage } from "../components/WrenBird";
 
 /* What Wren is wearing — local-only, like drafts. A cosmetic; nothing about
    being heard is ever gated. Free birds get a couple of pieces; the rest are
@@ -19,6 +19,43 @@ export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; 
   { id: "party", label: "Party hat", emoji: "🎉", free: false },
   { id: "shades", label: "Shades", emoji: "🕶", free: false },
 ];
+
+/* Which skin Wren wears. sticker is the free default; plush unlocks at a
+   milestone (first kindred); ink is Kindredly+. The gate lives in the UI —
+   this just remembers the pick. */
+const SKIN_KEY = "kindredly_wren_skin";
+
+export const SKINS: { id: WrenSkin; name: string; blurb: string; lock: "free" | "milestone" | "plus" }[] = [
+  { id: "sticker", name: "Sticker", blurb: "Bold and outlined — your everyday Wren.", lock: "free" },
+  { id: "plush", name: "Plush", blurb: "Soft and squishy. Unlocks with your first kindred.", lock: "milestone" },
+  { id: "ink", name: "Ink & Post", blurb: "The quiet postal bird. A Kindredly+ look.", lock: "plus" },
+];
+
+export async function getWrenSkin(): Promise<WrenSkin> {
+  try {
+    const v = (await AsyncStorage.getItem(SKIN_KEY)) as WrenSkin | null;
+    return v && SKINS.some((s) => s.id === v) ? v : "sticker";
+  } catch {
+    return "sticker";
+  }
+}
+
+export async function setWrenSkin(s: WrenSkin): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SKIN_KEY, s);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Is a skin available to this user? sticker always; plush after first
+ *  kindred; ink with premium. */
+export function skinUnlocked(id: WrenSkin, stats: GrowthStats, premium: boolean): boolean {
+  const meta = SKINS.find((s) => s.id === id);
+  if (!meta || meta.lock === "free") return true;
+  if (meta.lock === "plus") return premium;
+  return stats.kindreds >= 1; // milestone
+}
 
 export async function getWrenAccessory(): Promise<WrenAccessory> {
   try {

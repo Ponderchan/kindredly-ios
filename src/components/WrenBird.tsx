@@ -1,5 +1,6 @@
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { WREN_FAMILY, type WShape } from "./wren-family-data";
+import { useWrenSkin } from "../lib/wren-skin";
 
 /* Wren — the mascot. As of the wren-family delivery she comes in THREE skins
    sharing one skeleton (same geometry, same mood semantics, same anchors):
@@ -47,7 +48,7 @@ export function WrenBird({
   stage = "wren",
   accessory = "none",
   pose = "perch",
-  skin = "sticker",
+  skin: skinProp,
 }: {
   size?: number;
   mood?: WrenMood;
@@ -56,6 +57,8 @@ export function WrenBird({
   pose?: WrenPose;
   skin?: WrenSkin;
 }) {
+  const ctxSkin = useWrenSkin();
+  const skin = skinProp ?? ctxSkin; // explicit prop wins (gallery); else the app-wide pick
   const keys: string[] = [];
   let hatchMood: WrenMood | null = null;
 

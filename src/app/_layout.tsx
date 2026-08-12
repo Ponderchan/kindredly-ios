@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../lib/auth";
 import { EntitlementProvider } from "../lib/entitlement";
+import { WrenSkinProvider } from "../lib/wren-skin";
 import { useAppFonts } from "../theme/fonts";
 import { C } from "../theme/tokens";
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <EntitlementProvider>
+            <WrenSkinProvider>
             <View style={{ flex: 1, backgroundColor: C.cream }}>
               <Stack
                 screenOptions={{
@@ -44,6 +46,7 @@ export default function RootLayout() {
                 <Stack.Screen name="thread/[id]" />
               </Stack>
             </View>
+            </WrenSkinProvider>
           </EntitlementProvider>
         </AuthProvider>
       </SafeAreaProvider>
