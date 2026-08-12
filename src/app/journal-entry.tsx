@@ -4,19 +4,32 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { C, F, cardStyle, navyBtn } from "../theme/tokens";
+import { C, F } from "../theme/tokens";
 import { Wren } from "../components/Wren";
+import { WrenBird } from "../components/WrenBird";
 import { MoodModal } from "../components/MoodModal";
+import { MoodIcon } from "../components/MoodIcon";
 import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
 import { WREN_OPENERS } from "../data/content";
-import type { MoodId } from "../data/moods";
-import { dLong } from "../lib/format";
+import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { addEntry, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
 
 const LANG = "en";
+
+// the cream zine — warm paper, washi tape, brown ink
+const Z = {
+  bg: "#F1E9D6",
+  paper: "#FDF8EC",
+  ink: "#4A3B20",
+  soft: "#9C8A64",
+  rule: "#E7DAB9",
+  gold: "#8F7434",
+  tapeA: "rgba(197,174,128,0.55)",
+  tapeB: "rgba(189,178,232,0.6)",
+};
 
 type Photo = { uri: string; ratio: number };
 
@@ -32,6 +45,7 @@ export default function JournalEntry() {
   const [wrenNote, setWrenNote] = useState<string | null>(null);
   const [dur, setDur] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [mood, setMood] = useState<MoodId | null>(null); // inline pick; modal is the fallback
 
   const openers = WREN_OPENERS.journal[LANG];
   const hasMedia = att === "photo" ? photos.length > 0 : !!mediaUri;
@@ -167,22 +181,50 @@ export default function JournalEntry() {
     router.back();
   };
 
+  const dateStr = new Date().toLocaleString("en-US", { month: "short", day: "numeric" }).toLowerCase();
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-      <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 18, color: C.ink }}>‹</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Z.bg }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: "row", alignItems: "center" }}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#4A3B20", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
+        >
+          <Text style={{ fontSize: 15, color: Z.ink }}>✕</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.faint }}>YOUR JOURNAL</Text>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <View style={{ backgroundColor: Z.gold, borderRadius: 17, paddingHorizontal: 16, paddingVertical: 9, transform: [{ rotate: "0.8deg" }] }}>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 2, color: "#FBF4E4" }}>JUST FOR ME 🔒</Text>
+          </View>
+        </View>
         <View style={{ width: 42 }} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 20 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={[cardStyle, { borderRadius: 20, padding: 24, minHeight: 340, marginTop: 8 }]}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.6, color: C.label, marginBottom: 16 }}>
-              {dLong(new Date()).toUpperCase()}
-            </Text>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 14, paddingTop: 22 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {/* the page — taped down at the corners */}
+          <View
+            style={{
+              backgroundColor: Z.paper,
+              borderRadius: 16,
+              paddingHorizontal: 20,
+              paddingTop: 24,
+              paddingBottom: 16,
+              minHeight: 430,
+              shadowColor: "#4A3B20",
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 5 },
+            }}
+          >
+            <View style={{ position: "absolute", top: -11, left: 34, width: 92, height: 24, backgroundColor: Z.tapeA, transform: [{ rotate: "-3deg" }] }} />
+            <View style={{ position: "absolute", top: -9, right: 40, width: 110, height: 24, backgroundColor: Z.tapeB, transform: [{ rotate: "2deg" }] }} />
+
+            <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 }}>
+              <Text style={{ fontFamily: F.serif, fontSize: 32, color: Z.ink }}>{dateStr}</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.8, color: Z.soft, paddingBottom: 8 }}>NO ONE'S WATCHING</Text>
+            </View>
 
             {/* photo album — up to 9, tap a frame to make it the cover */}
             {att === "photo" && photos.length > 0 && (
@@ -255,60 +297,102 @@ export default function JournalEntry() {
             )}
 
             {!att && (
-              <>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 }}>
-                  <Wren size={18} mode="line" />
-                  <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>WREN SUGGESTS</Text>
+              <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 8 }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#F3EAD2", alignItems: "center", justifyContent: "center" }}>
+                  <WrenBird size={27} mood="content" />
                 </View>
-                <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ marginBottom: 18 }}>
-                  <Text style={{ fontFamily: F.serifItalic, fontSize: 16, color: C.muted, lineHeight: 25 }}>“{openers[pIdx]}”</Text>
-                </Pressable>
-              </>
+                <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13, color: Z.soft, lineHeight: 18 }}>
+                  “{openers[pIdx]}”
+                </Text>
+              </Pressable>
             )}
 
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder={att ? "A line to go with it… (optional)" : "Today…"}
-              placeholderTextColor={C.faint}
-              multiline
-              style={{ minHeight: att ? 80 : 180, color: "#22222A", fontFamily: F.letter, fontSize: 19, lineHeight: 31, textAlignVertical: "top" }}
-            />
+            {/* ruled paper under the handwriting */}
+            <View style={{ position: "relative" }}>
+              {!att &&
+                Array.from({ length: 8 }, (_, i) => (
+                  <View key={i} style={{ position: "absolute", left: 0, right: 0, top: 47 + i * 40, height: 1, backgroundColor: Z.rule }} />
+                ))}
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder={att ? "a line to go with it… (optional)" : "today felt like…"}
+                placeholderTextColor="#C4B48D"
+                multiline
+                style={{
+                  minHeight: att ? 80 : 328,
+                  color: Z.ink,
+                  fontFamily: F.letter,
+                  fontSize: 19,
+                  lineHeight: 40,
+                  textAlignVertical: "top",
+                  paddingTop: 8,
+                }}
+              />
+            </View>
+
+            {/* how today felt — the page keeps it */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 10 }} keyboardShouldPersistTaps="handled">
+              {MOOD_IDS.map((id) => {
+                const on = mood === id;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => setMood(on ? null : id)}
+                    hitSlop={4}
+                    style={{ borderRadius: 20, borderWidth: 1.5, borderColor: on ? MOODS[id].col : "transparent", padding: 2, opacity: mood && !on ? 0.45 : 1 }}
+                  >
+                    <MoodIcon id={id} size={32} />
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
 
-          {/* mode toggles — Photo / Voice / Video */}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
-            {(
-              [
-                ["photo", "🖼", "Photo"],
-                ["voice", "🎙", "Voice"],
-                ["video", "🎬", "Video"],
-              ] as [Exclude<JournalType, "text">, string, string][]
-            ).map(([k, ic, lb]) => {
-              const on = att === k;
-              return (
-                <Pressable
-                  key={k}
-                  onPress={() => toggleMode(k)}
-                  style={{ flex: 1, paddingVertical: 11, borderRadius: 14, alignItems: "center", backgroundColor: on ? C.purpleLt : C.card, borderWidth: 1, borderColor: on ? C.purple : C.line }}
-                >
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: on ? C.purple : C.muted }}>
-                    {ic}  {lb}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 16 }}>
-            🔒 Sealed on this device. Only a line you choose can ever drift out.
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: Z.soft, textAlign: "center", marginTop: 14 }}>
+            🔒 sealed on this device. only a line you choose can ever drift out.
           </Text>
         </ScrollView>
 
-        <View style={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 26 }}>
-          <Pressable onPress={() => canSave && setMoodOpen(true)} disabled={!canSave || busy} style={[navyBtn, { paddingVertical: 19, width: "100%", opacity: canSave && !busy ? 1 : 0.3 }]}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1.6 }}>
-              {busy ? "SAVING…" : "SAVE TO JOURNAL"}
+        {/* Aa / mic / photo / video — then tuck it away */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
+          {(
+            [
+              [null, "Aa"],
+              ["voice", "🎙"],
+              ["photo", "🖼"],
+              ["video", "🎬"],
+            ] as [Exclude<JournalType, "text"> | null, string][]
+          ).map(([k, icon]) => {
+            const on = att === k;
+            return (
+              <Pressable
+                key={icon}
+                onPress={() => (k ? toggleMode(k) : att && toggleMode(att))}
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 23,
+                  backgroundColor: on ? Z.gold : "#fff",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#4A3B20",
+                  shadowOpacity: 0.12,
+                  shadowRadius: 5,
+                  shadowOffset: { width: 0, height: 2 },
+                }}
+              >
+                <Text style={{ fontFamily: F.sansBold, fontSize: 15, color: on ? "#FBF4E4" : Z.ink }}>{icon}</Text>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            onPress={() => canSave && (mood ? pickMood(mood) : setMoodOpen(true))}
+            disabled={!canSave || busy}
+            style={{ flex: 1, backgroundColor: Z.gold, borderRadius: 26, paddingVertical: 16, alignItems: "center", opacity: canSave && !busy ? 1 : 0.35 }}
+          >
+            <Text style={{ color: "#FBF4E4", fontFamily: F.sansExtra, fontSize: 14.5 }}>
+              {busy ? "tucking…" : "tuck it away 🍂"}
             </Text>
           </Pressable>
         </View>

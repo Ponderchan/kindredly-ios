@@ -3,14 +3,13 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, Tex
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { C, F, cardStyle, navyBtn } from "../theme/tokens";
+import { C, F, navyBtn } from "../theme/tokens";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { Seal } from "../components/Seal";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
-import { WREN_OPENERS } from "../data/content";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
@@ -22,6 +21,7 @@ import { AudioCard } from "../components/AudioCard";
 import { readMood, wrenLine } from "../lib/wren-read";
 
 const LANG = "en";
+const LAV = "#B9A8F0"; // the lavender desk
 type Step = "pick" | "write" | "sending";
 type Mode = "write" | "speak";
 
@@ -40,7 +40,6 @@ export default function Compose() {
   const [sel, setSel] = useState<string | null>(params.stamp ?? (params.draft ? null : STARTER_STAMPS[0]));
   const [text, setText] = useState("");
   const [ask, setAsk] = useState("");
-  const [pIdx, setPIdx] = useState(0);
   const [busy, setBusy] = useState(false);
   const [capMsg, setCapMsg] = useState<string | null>(null);
   const [recUri, setRecUri] = useState<string | null>(null);
@@ -91,14 +90,11 @@ export default function Compose() {
     [],
   );
 
-  const openers = WREN_OPENERS.letter[LANG];
   const stamp = getStamp(sel);
   // a line is enough — count characters, not whitespace words (Chinese has none)
   const canSend = mode === "speak" ? !!recUri : text.trim().length >= 2;
   // Wren's face follows your writing (speak mode: waiting vs. captured)
   const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, canSend);
-  const to = isMorning ? "THE PERSON WHO WROTE THAT" : "THREE PEOPLE WHO WRITE LIKE YOU";
-  const toLabel = "TO";
 
   const send = async () => {
     if (!canSend || busy || !sel) return;
@@ -268,116 +264,71 @@ export default function Compose() {
     );
   }
 
-  /* ── write ── */
+  /* ── write — the sticker zine: lavender desk, everything slightly pasted-on ── */
+  const tagIds = [sel, ...STARTER_STAMPS.filter((id) => id !== sel)].filter(Boolean).slice(0, 3) as string[];
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-      <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: LAV }}>
+      {/* desk header — close, the address sticker, the stamp */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: "row", alignItems: "center" }}>
         <Pressable
           onPress={goBack}
           hitSlop={10}
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}
+          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#2A2153", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
         >
-          <Text style={{ fontSize: 18, color: C.ink }}>‹</Text>
+          <Text style={{ fontSize: 15, color: C.ink }}>✕</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.faint }}>Draft</Text>
-        <View style={{ width: 42 }} />
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <View style={{ backgroundColor: C.navy, borderRadius: 17, paddingHorizontal: 16, paddingVertical: 9, transform: [{ rotate: "-1.2deg" }] }}>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 2, color: "#fff" }}>TO A STRANGER 🕊</Text>
+          </View>
+        </View>
+        <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
+          <View style={{ padding: 5, backgroundColor: "#fff", borderRadius: 8, shadowColor: "#2A2153", shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 3 } }}>
+            <StampTile id={sel || STARTER_STAMPS[0]} w={44} r={5} />
+          </View>
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 20 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={[cardStyle, { borderRadius: 20, padding: 24, minHeight: 380, marginTop: 8 }]}>
-            {stamp && (
-              <Pressable
-                onPress={() => setStep("pick")}
-                hitSlop={8}
-                style={{ position: "absolute", top: 18, right: 18, alignItems: "center", gap: 3 }}
-              >
-                <View style={{ transform: [{ rotate: "6deg" }], padding: 4, backgroundColor: "#fff", borderRadius: 4, shadowColor: "#131A26", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
-                  <StampTile id={sel!} w={44} r={4} />
-                </View>
-                <Text style={{ fontFamily: F.sans, fontSize: 9, color: C.faint }}>change stamp</Text>
-              </Pressable>
-            )}
-
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16, paddingRight: 52 }}>
-              <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={breathe}>
-                <WrenBird size={56} mood={wrenMood} />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 14, paddingTop: 16 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {/* the letter card — pasted a hair off-straight */}
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 26,
+              padding: 20,
+              minHeight: 380,
+              transform: [{ rotate: "-0.6deg" }],
+              shadowColor: "#2A2153",
+              shadowOpacity: 0.16,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 6 },
+            }}
+          >
+            {/* Wren reads you live */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, borderRadius: 23, backgroundColor: C.purpleLt, alignItems: "center", justifyContent: "center" }]}>
+                <WrenBird size={38} mood={wrenMood} />
               </Animated.View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.purple }}>WREN</Text>
-                <Text style={{ fontFamily: F.serifItalic, fontSize: 15.5, color: C.muted, lineHeight: 22, marginTop: 3 }}>
-                  {wrenLine(wrenMood)}
-                </Text>
-              </View>
-            </View>
-            <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ marginBottom: 20 }}>
-              <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint, lineHeight: 18 }}>
-                Need a nudge?{"  "}
-                <Text style={{ fontFamily: F.serifItalic, color: C.muted }}>“{openers[pIdx]}”</Text>
+              <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, lineHeight: 19 }}>
+                “{text.trim() || mode === "speak" ? wrenLine(wrenMood) : "write like no one is waiting. because no one is — yet."}”
               </Text>
-            </Pressable>
-
-            <View style={{ flexDirection: "row", gap: 10, alignItems: "baseline", marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.lineSoft }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.4, color: C.label }}>{toLabel}</Text>
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 12, letterSpacing: 0.5, color: C.ink, flex: 1 }}>{to}</Text>
             </View>
-
-            {/* Write it / Speak it */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 18 }}>
-              {(
-                [
-                  ["write", "✍️", "Write"],
-                  ["speak", "🎙", "Speak"],
-                ] as [Mode, string, string][]
-              ).map(([m, icon, label]) => {
-                const on = mode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setMode(m)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 11,
-                      borderRadius: 14,
-                      alignItems: "center",
-                      backgroundColor: on ? C.purpleLt : C.card,
-                      borderWidth: 1,
-                      borderColor: on ? C.purple : C.line,
-                    }}
-                  >
-                    <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: on ? C.purple : C.muted }}>
-                      {icon}  {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <View style={{ borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: "#D8D2F2", marginTop: 14, marginBottom: 6 }} />
 
             {mode === "write" ? (
-              <>
-                <TextInput
-                  autoFocus
-                  value={text}
-                  onChangeText={setText}
-                  placeholder="What's on your mind? A line is enough."
-                  placeholderTextColor={C.faint}
-                  multiline
-                  style={{ minHeight: 180, color: "#22222A", fontFamily: F.letter, fontSize: 19, lineHeight: 31, textAlignVertical: "top" }}
-                />
-
-                <View style={{ marginTop: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
-                  <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginBottom: 6 }}>What do you want to hear back? (optional)</Text>
-                  <TextInput
-                    value={ask}
-                    onChangeText={setAsk}
-                    placeholder="Like — one small good thing lately?"
-                    placeholderTextColor={C.faint}
-                    style={{ color: C.ink, fontFamily: F.sans, fontSize: 15 }}
-                  />
-                </View>
-              </>
+              <TextInput
+                autoFocus
+                value={text}
+                onChangeText={setText}
+                placeholder="ok so here's the thing…"
+                placeholderTextColor="#B9B3D8"
+                multiline
+                style={{ minHeight: 250, color: "#33305A", fontFamily: F.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
+              />
             ) : (
-              <>
+              <View style={{ paddingTop: 12, minHeight: 250 }}>
                 <Recorder
                   doneUri={recUri}
                   doneDur={recDur}
@@ -398,24 +349,67 @@ export default function Compose() {
                 <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 14, lineHeight: 19 }}>
                   Up to three minutes. Your voice travels as it is — Wren doesn't listen in.
                 </Text>
-                <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
-                  <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.faint, marginBottom: 6 }}>
-                    A line to go with it (optional):
-                  </Text>
-                  <TextInput
-                    value={text}
-                    onChangeText={setText}
-                    placeholder="What's this letter about?"
-                    placeholderTextColor={C.faint}
-                    style={{ color: C.ink, fontFamily: F.sans, fontSize: 15 }}
-                  />
-                </View>
-              </>
+                <TextInput
+                  value={text}
+                  onChangeText={setText}
+                  placeholder="a line to go with it… (optional)"
+                  placeholderTextColor="#B9B3D8"
+                  style={{ color: "#33305A", fontFamily: F.letter, fontSize: 17, marginTop: 14 }}
+                />
+              </View>
             )}
+
+            {/* tags — the stamp as a hashtag; + tag opens the full book */}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 }}>
+              {tagIds.map((id, i) => {
+                const s = getStamp(id);
+                if (!s) return null;
+                const on = sel === id;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => setSel(id)}
+                    style={{
+                      backgroundColor: `${s.color}${on ? "2A" : "14"}`,
+                      borderRadius: 15,
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderWidth: on ? 1.5 : 0,
+                      borderColor: s.color,
+                      transform: [{ rotate: `${i % 2 ? 1 : -1}deg` }],
+                    }}
+                  >
+                    <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: s.color }}>#{s.name.en.toLowerCase()}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => setStep("pick")}
+                style={{ borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1.5, borderStyle: "dashed", borderColor: "#C6BFE8" }}
+              >
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#8F87BD" }}>+ tag</Text>
+              </Pressable>
+            </View>
           </View>
 
+          {/* quick feelings — one tap drops it into the letter */}
+          {mode === "write" && (
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 16 }}>
+              {["🥹", "😤", "🫥", "✨", "🫶", "💀"].map((e, i) => (
+                <Pressable
+                  key={e}
+                  onPress={() => setText((t) => t + e)}
+                  hitSlop={4}
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.55)", alignItems: "center", justifyContent: "center", transform: [{ rotate: `${i % 2 ? 3 : -3}deg` }] }}
+                >
+                  <Text style={{ fontSize: 19 }}>{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
           {capMsg && (
-            <View style={{ marginTop: 16, padding: 16, borderRadius: 16, backgroundColor: C.purpleLt }}>
+            <View style={{ marginTop: 16, padding: 16, borderRadius: 18, backgroundColor: "#fff" }}>
               <Text style={{ fontFamily: F.serif, fontSize: 15, color: C.ink }}>{capMsg}</Text>
               <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 4 }}>
                 Replies are always free. Lift the daily cap with Kindredly+.
@@ -427,10 +421,43 @@ export default function Compose() {
           )}
         </ScrollView>
 
-        <View style={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 26 }}>
-          <Pressable onPress={send} disabled={!canSend || busy} style={[navyBtn, { paddingVertical: 19, width: "100%", opacity: canSend && !busy ? 1 : 0.3 }]}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>
-              {busy ? "Sending…" : "Send"}
+        {/* Aa / mic / yeet */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
+          {(
+            [
+              ["write", "Aa"],
+              ["speak", "🎙"],
+            ] as [Mode, string][]
+          ).map(([m, icon]) => {
+            const on = mode === m;
+            return (
+              <Pressable
+                key={m}
+                onPress={() => setMode(m)}
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: on ? C.navy : "#fff",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#2A2153",
+                  shadowOpacity: 0.16,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 2 },
+                }}
+              >
+                <Text style={{ fontFamily: F.sansBold, fontSize: 16, color: on ? "#fff" : C.ink }}>{icon}</Text>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            onPress={send}
+            disabled={!canSend || busy}
+            style={{ flex: 1, backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center", opacity: canSend && !busy ? 1 : 0.35 }}
+          >
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14.5, letterSpacing: 0.3 }}>
+              {busy ? "sending…" : "yeet it into the world ✈️"}
             </Text>
           </Pressable>
         </View>
