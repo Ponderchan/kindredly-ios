@@ -8,7 +8,7 @@ import { Caps } from "../../components/ui";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
-import { Fingerprint } from "../../components/Fingerprint";
+import { FingerprintHeat } from "../../components/FingerprintHeat";
 import { GrowthStampTile } from "../../components/GrowthStamp";
 import { TabIcon } from "../../components/TabIcon";
 import { WrenHome } from "../../components/WrenHome";
@@ -114,24 +114,53 @@ export default function MeTab() {
     }, [written]),
   );
 
-  const earned = GROWTH_STAMPS.filter((s) => s.earned(stats));
-  const shelf = [...earned, ...GROWTH_STAMPS.filter((s) => !s.earned(stats))].slice(0, 5);
+  // time-of-day heatmap cells — deterministic per user from the writing
+  // fingerprint (stable, personal-looking) until real write-times are logged
+  const heatCells = (() => {
+    const base = fp.units.length ? fp.units : [0.4, 0.7, 0.3, 0.6, 0.5];
+    const out: number[] = [];
+    for (let i = 0; i < 40; i++) {
+      const s = `${seed}-${i}`;
+      let h = 0;
+      for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) >>> 0;
+      const v = base[i % base.length] * 0.55 + ((h % 100) / 100) * 0.55 - 0.12;
+      out.push(Math.max(0, Math.min(1, v)));
+    }
+    return out;
+  })();
+  const chips = [long ? "measured pace" : "quick pace", long ? "long sentences" : "short sentences", paused ? "thoughtful pauses" : "few pauses"];
+  const heatRead = hasText
+    ? `${long ? "you let a thought run" : "one thought at a time"}. ${paused ? "you pause to be sure" : "sure of your line"}.`
+    : "write a few letters and your rhythm shows up here.";
 
-  const StatCard = ({ icon, tint, n, label }: { icon: React.ReactNode; tint: string; n: number; label: string }) => (
-    <View style={[cardStyle, { flex: 1, alignItems: "center", paddingVertical: 20 }]}>
-      <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
-        {icon}
-      </View>
-      <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, marginTop: 10 }}>{n}</Text>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.2, color: C.faint, marginTop: 4 }}>{label}</Text>
+  const StatCard = ({ n, label, on }: { n: number; label: string; on?: boolean }) => (
+    <View
+      style={[
+        cardStyle,
+        { flex: 1, alignItems: "center", paddingVertical: 22, backgroundColor: on ? C.purpleLt : C.card, borderWidth: on ? 1.5 : 0, borderColor: C.purple },
+      ]}
+    >
+      <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink }}>{n}</Text>
+      <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.2, color: on ? C.purple : C.faint, marginTop: 6 }}>{label}</Text>
     </View>
   );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-        {/* top bar — settings gear */}
-        <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 8, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        {/* header — avatar left, name + day/kindreds, gear right */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Pressable onPress={() => setEditing(true)} hitSlop={6}>
+            <View style={[{ borderRadius: 34, backgroundColor: C.card, padding: 4 }, shadow.card]}>
+              <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={60} round />
+            </View>
+          </Pressable>
+          <Pressable onPress={() => setEditing(true)} style={{ flex: 1 }} hitSlop={6}>
+            <Text style={{ fontFamily: F.serifSemi, fontSize: 30, color: C.ink }}>{name}</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.muted, marginTop: 3 }}>
+              DAY {stats.day} · {stats.kindreds} {stats.kindreds === 1 ? "KINDRED" : "KINDREDS"}
+            </Text>
+          </Pressable>
           <Pressable
             onPress={() => router.push("/settings")}
             hitSlop={8}
@@ -150,33 +179,20 @@ export default function MeTab() {
           </Pressable>
         </View>
 
-        {/* avatar + name */}
-        <View style={{ alignItems: "center", marginTop: 2 }}>
-          <View>
-            <View style={[{ borderRadius: 60, backgroundColor: C.card, padding: 6 }, shadow.card]}>
-              <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={96} round />
-            </View>
-            <Pressable
-              onPress={() => setEditing(true)}
-              hitSlop={8}
-              style={[{ position: "absolute", right: -2, bottom: -2, width: 32, height: 32, borderRadius: 16, backgroundColor: C.purple, alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: C.cream }, shadow.card]}
-            >
-              <Text style={{ fontSize: 13, color: "#fff" }}>✎</Text>
-            </Pressable>
-          </View>
-          <Pressable onPress={() => setEditing(true)} hitSlop={6}>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 27, color: C.ink, marginTop: 14 }}>{name}</Text>
-          </Pressable>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
-            <Text style={{ fontSize: 12 }}>✉️</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, letterSpacing: 1.2, color: C.muted }}>
-              DAY {stats.day} · CARRYING LETTERS
-            </Text>
-          </View>
+        {/* writing fingerprint — the heatmap (hero) */}
+        <View style={{ marginTop: 20 }}>
+          <FingerprintHeat cells={heatCells} chips={chips} read={heatRead} />
         </View>
 
-        {/* Wren's home — companion, growth, dress-up */}
-        <View style={{ marginTop: 22 }}>
+        {/* stat cards */}
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+          <StatCard n={stats.lettersSent} label="LETTERS" />
+          <StatCard n={stats.journalN} label="SEALED" on />
+          <StatCard n={stats.kindreds} label="KINDREDS" />
+        </View>
+
+        {/* Wren — companion card */}
+        <View style={{ marginTop: 16 }}>
           <WrenHome
             stats={stats}
             accessory={accessory}
@@ -189,63 +205,30 @@ export default function MeTab() {
           />
         </View>
 
-        {/* stat cards */}
-        <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
-          <StatCard icon={<TabIcon id="letters" color={C.purple} />} tint={C.purpleLt} n={stats.lettersSent} label="LETTERS" />
-          <StatCard icon={<TabIcon id="journal" color={C.gold} />} tint={C.goldLt} n={stats.journalN} label="PAGES" />
-          <StatCard icon={<TabIcon id="kindreds" color="#C86E7A" />} tint="#FBEEF1" n={stats.kindreds} label="KINDREDS" />
-        </View>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 12 }}>
-          {stats.reached > 0
-            ? `Your words have reached ${stats.reached} ${stats.reached === 1 ? "stranger's day" : "strangers' days"}.`
-            : "Your words are still on their way to someone's day."}
-        </Text>
-
-        {/* growth stamps shelf */}
-        <Pressable onPress={() => router.push("/stamps")} style={{ marginTop: 20 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-              <Text style={{ fontSize: 13 }}>🏅</Text>
-              <Caps>STAMPS</Caps>
-            </View>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: C.faint }}>
-              {earned.length}/{GROWTH_STAMPS.length} ›
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            {shelf.map((s) => (
-              <GrowthStampTile key={s.id} stamp={s} earned={s.earned(stats)} size={62} />
-            ))}
-          </View>
-        </Pressable>
-
         {/* ✦ Wren on you */}
-        <View style={{ marginTop: 22 }}>
+        <View style={{ marginTop: 16 }}>
           <WrenOnYou line={wrenLine} hasText={hasText} onReadAgain={letWrenRead} />
         </View>
 
-        {/* writing fingerprint */}
-        <View style={{ marginTop: 12 }}>
-          <Fingerprint bars={bars} hasText={hasText} read={fpRead} desc={fpDesc} />
-        </View>
-
         {/* Kindredly+ */}
-        {!premium && (
-          <Pressable
-            onPress={() => router.push("/paywall")}
-            style={({ pressed }) => [cardStyle, { marginTop: 12, padding: 18, backgroundColor: C.goldLt, flexDirection: "row", alignItems: "center", gap: 14, opacity: pressed ? 0.9 : 1 }]}
-          >
-            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(176,138,62,0.15)", alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 20 }}>👑</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 15.5, color: C.ink }}>Kindredly+</Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 2 }}>
-                Unlimited letters & a closer read from Wren
-              </Text>
-            </View>
-          </Pressable>
-        )}
+        <Pressable
+          onPress={() => router.push("/paywall")}
+          style={({ pressed }) => [
+            cardStyle,
+            { marginTop: 16, padding: 18, backgroundColor: premium ? "#FBE7EE" : C.goldLt, flexDirection: "row", alignItems: "center", gap: 14, opacity: pressed ? 0.9 : 1 },
+          ]}
+        >
+          <Text style={{ fontSize: 22 }}>👑</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 15.5, color: C.ink }}>
+              {premium ? "Kindredly+ · active" : "Kindredly+"}
+            </Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 2 }}>
+              {premium ? "Manage your subscription" : "Unlimited letters & a closer read from Wren"}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 16, color: C.faint }}>›</Text>
+        </Pressable>
       </ScrollView>
 
       <EditProfileSheet
