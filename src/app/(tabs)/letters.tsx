@@ -1,367 +1,196 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeIn, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
-import { C, F } from "../../theme/tokens";
-import { ReplyBar } from "../../components/ReplyBar";
-import { ReportMenu } from "../../components/ReportMenu";
+import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
-import { StrangerAvatar } from "../../components/StrangerAvatar";
-import { Wren } from "../../components/Wren";
+import { WrenBird } from "../../components/WrenBird";
 import { DEMO_THREADS } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
-import { dShort, postNo } from "../../lib/format";
-import { clearThreadReaction, fetchThreads, sendThreadMessage, setThreadReaction, type ThreadSummary } from "../../lib/db";
-import { translate } from "../../lib/wren";
-import { REACTIONS, reactionLabel } from "../../data/reactions";
+import { postNo } from "../../lib/format";
+import { fetchThreads, type ThreadSummary } from "../../lib/db";
 
-/*
- * Letters is not a mailbox. It is the letter in front of the reader.
- *
- * The first viewport always gives one complete thought and an inline reply
- * field. Other correspondence exists one quiet swipe away, never as a list
- * competing with the letter that needs attention now.
- */
+/* Today — the post. When letters wait for you, they're a stack of envelopes
+   you tap to tear open (→ the thread reader). When it's quiet, Wren nudges
+   you to write first. The lavender ground marks this as the strangers' space
+   (same as the "to a stranger" composer). */
+
+const LAV = "#B9A8F0";
+const PAPER = "#FBF7EC";
+const W = Dimensions.get("window").width;
 
 export default function LettersTab() {
   const router = useRouter();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [pageH, setPageH] = useState(0);
   const [idx, setIdx] = useState(0);
-  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const next = (await fetchThreads()) || [];
-    setThreads(next);
+    setThreads((await fetchThreads()) || []);
     setLoaded(true);
   }, []);
-
   useFocusEffect(
     useCallback(() => {
       void load();
     }, [load]),
   );
 
-  // A complete desk lets the team review this screen before live letters exist.
   const demo = __DEV__ && loaded && threads.length === 0;
   const showThreads = demo ? DEMO_THREADS : threads;
   const waiting = showThreads.filter((t) => !t.lastSenderMe);
-  const sent = showThreads.filter((t) => t.lastSenderMe);
-  const current = waiting[idx] ?? null;
 
-  const reply = async (threadId: string, body: string) => {
-    if (sendingId) return;
-    setSendingId(threadId);
-    const result = await sendThreadMessage(threadId, body);
-    setSendingId(null);
-    if (!result) {
-      Alert.alert("Your letter stayed here", "It didn't go out. Please try again in a moment.");
-      return;
-    }
-    setIdx(0);
-    await load();
+  // tear-open: flash to paper, then push the reader
+  const cover = useSharedValue(0);
+  const coverStyle = useAnimatedStyle(() => ({ opacity: cover.value }));
+  const open = (id: string) => {
+    cover.value = withTiming(1, { duration: 260 }, (done) => {
+      if (done) runOnJS(go)(id);
+    });
+  };
+  const go = (id: string) => {
+    router.push(`/thread/${id}`);
+    setTimeout(() => (cover.value = 0), 380);
   };
 
+  const quiet = loaded && waiting.length === 0;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }} edges={["top"]}>
-      <View style={{ flex: 1 }} onLayout={(e) => setPageH(e.nativeEvent.layout.height)}>
-        {pageH > 0 && current ? (
+    <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} edges={["top"]}>
+      {/* header */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 6 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 34, color: "#2A2153" }}>today</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 }}>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 1.2, color: "#2A2153" }}>{quiet ? "QUIET" : `${waiting.length} WAITING`}</Text>
+          <Text style={{ fontSize: 12 }}>{quiet ? "🕊" : "✉️"}</Text>
+        </View>
+      </View>
+
+      {quiet ? (
+        <Quiet onWrite={() => router.push("/compose")} onKept={() => router.push("/kept")} />
+      ) : (
+        <View style={{ flex: 1, justifyContent: "center" }}>
           <ScrollView
+            horizontal
             pagingEnabled
-            showsVerticalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.y / pageH))}
+            showsHorizontalScrollIndicator={false}
+            style={{ flexGrow: 0 }}
+            onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.x / W))}
           >
-            {waiting.map((thread, i) => (
-              <LetterPage
-                key={thread.id}
-                thread={thread}
-                height={pageH}
-                isSending={sendingId === thread.id}
-                onReply={(body) => void reply(thread.id, body)}
-                onOpen={() => router.push(`/thread/${thread.id}`)}
-                onBlocked={() => {
-                  setIdx(0);
-                  void load();
-                }}
-                hasNext={i < waiting.length - 1}
-              />
+            {waiting.map((t) => (
+              <View key={t.id} style={{ width: W, height: 440, alignItems: "center", justifyContent: "center" }}>
+                <Envelope thread={t} onOpen={() => open(t.id)} />
+              </View>
             ))}
           </ScrollView>
-        ) : (
-          <QuietDesk sent={sent} onWrite={() => router.push("/compose")} />
-        )}
 
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 22,
-            right: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.7, color: C.faint }}>
-            {current ? `${idx + 1} OF ${waiting.length} WAITING` : "YOUR DESK"}
-          </Text>
-          {/* writing lives on the quill button below — no second door up here */}
+          {/* dots + count */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
+            <View style={{ flexDirection: "row", gap: 6 }}>
+              {waiting.map((_, i) => (
+                <View key={i} style={{ width: i === idx ? 16 : 6, height: 6, borderRadius: 3, backgroundColor: i === idx ? "#4B3F86" : "rgba(43,33,83,0.28)" }} />
+              ))}
+            </View>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1, color: "#4B3F86", marginLeft: 6 }}>
+              {idx + 1} OF {waiting.length}
+            </Text>
+          </View>
+
+          {/* Wren line */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 34, paddingTop: 22, paddingBottom: 12 }}>
+            <WrenBird size={20} mood="content" />
+            <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: "#3B3363", lineHeight: 20 }}>
+              “{waitLine(waiting.length)}”
+            </Text>
+          </View>
         </View>
+      )}
 
-        {/* the "1 OF 4 WAITING" header already says how many are left */}
-      </View>
+      {/* tear-open cover */}
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: PAPER }, coverStyle]} />
     </SafeAreaView>
   );
 }
 
-function LetterPage({
-  thread,
-  height,
-  isSending,
-  onReply,
-  onOpen,
-  onBlocked,
-  hasNext,
-}: {
-  thread: ThreadSummary;
-  height: number;
-  isSending: boolean;
-  onReply: (body: string) => void;
-  onOpen: () => void;
-  onBlocked: () => void;
-  hasNext: boolean;
-}) {
-  // names come only from five letters each — never sooner
-  const alias = thread.revealed && thread.otherName ? thread.otherName : `No. ${postNo(thread.other)}`;
+function Envelope({ thread, onOpen }: { thread: ThreadSummary; onOpen: () => void }) {
   const st = getStamp(thread.stamp);
-
-  // my one-tap reaction — optimistic; a new pick replaces, same pick clears
-  const [myR, setMyR] = useState<string | null>(thread.myReaction ?? null);
-  const react = (emoji: string) => {
-    if (myR === emoji) {
-      setMyR(null);
-      void clearThreadReaction(thread.id);
-    } else {
-      setMyR(emoji);
-      void setThreadReaction(thread.id, emoji);
-    }
-  };
-
-  // Wren translation — on demand, toggling between original and her render
-  const [xl, setXl] = useState<string | null>(null);
-  const [xlBusy, setXlBusy] = useState(false);
-  const [showXl, setShowXl] = useState(false);
-  const doTranslate = async () => {
-    if (xl) {
-      setShowXl((s) => !s);
-      return;
-    }
-    if (xlBusy) return;
-    setXlBusy(true);
-    const to = (Intl.DateTimeFormat().resolvedOptions().locale || "en").split("-")[0];
-    const t = await translate(thread.preview, to);
-    setXlBusy(false);
-    if (t) {
-      setXl(t);
-      setShowXl(true);
-    } else {
-      Alert.alert("Wren couldn't translate this", "Try again in a moment.");
-    }
-  };
-
-  const dots = Math.min(5, thread.mine);
-
   return (
-    <View style={{ height, paddingHorizontal: 22, paddingTop: 50, paddingBottom: 102 }}>
-      {/* the letter — a real object: their stamp on top, their signature at the end */}
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <View
-          style={{
-            backgroundColor: "#FFFDF8",
-            borderRadius: 24,
-            borderWidth: 1,
-            borderColor: C.line,
-            paddingHorizontal: 22,
-            paddingTop: 20,
-            paddingBottom: 16,
-            shadowColor: "#131A26",
-            shadowOpacity: 0.07,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 6 },
-          }}
-        >
-          {/* pasted stamp — the icon is the hero, its name a small footnote */}
+    <View style={{ width: W - 76 }}>
+      {/* stacked cards behind */}
+      <View style={{ position: "absolute", left: 14, right: 14, top: 20, height: 200, backgroundColor: "#EFE9D9", borderRadius: 18, transform: [{ rotate: "2.5deg" }] }} />
+      <View style={{ position: "absolute", left: 8, right: 8, top: 12, height: 210, backgroundColor: "#F4EFE1", borderRadius: 18, transform: [{ rotate: "-1.5deg" }] }} />
+
+      <Pressable onPress={onOpen} style={[{ backgroundColor: PAPER, borderRadius: 20, overflow: "hidden", transform: [{ rotate: "-0.5deg" }] }, shadow.card]}>
+        <Airmail />
+        <View style={{ padding: 20, paddingTop: 18, minHeight: 200 }}>
+          {/* pasted stamp */}
           {st && (
-            <View style={{ position: "absolute", top: -18, right: 16, transform: [{ rotate: "7deg" }] }}>
-              <View style={{ padding: 5, backgroundColor: "#fff", borderRadius: 7, shadowColor: "#131A26", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}>
-                <StampTile id={thread.stamp} w={56} r={5} />
-              </View>
+            <View style={{ position: "absolute", top: -6, right: 16, transform: [{ rotate: "8deg" }] }}>
+              <StampTile id={thread.stamp} w={52} r={5} />
             </View>
           )}
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: "#9A7B3A", paddingRight: 60 }}>
+            FROM NO. {postNo(thread.other)} · A STRANGER, FOR YOU
+          </Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 20, color: "#4A4266", marginTop: 18, lineHeight: 28 }} numberOfLines={2}>
+            “{thread.preview}”
+          </Text>
 
-          <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.faint }}>{dShort(thread.lastAt)}</Text>
-
-          {/* words first — you meet the writing before the writer */}
-          <Pressable onPress={onOpen}>
-            <Text style={{ fontFamily: F.letter, fontSize: 22, lineHeight: 36, color: "#22222A", marginTop: 14 }}>
-              {showXl && xl ? xl : thread.preview}
-            </Text>
-          </Pressable>
-          {showXl && xl && (
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, marginTop: 6 }}>translated by Wren</Text>
-          )}
-
-          {/* chips — how they caught your last letter, theme, progress, translate */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
-            {thread.theirReaction && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#FBEEF1", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
-                <Text style={{ fontSize: 12 }}>{thread.theirReaction}</Text>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: "#C86E7A" }}>
-                  {reactionLabel(thread.theirReaction) || "felt this"} — to your last letter
-                </Text>
-              </View>
-            )}
-            {st && (
-              <View style={{ backgroundColor: `${st.color}14`, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
-                <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: st.color }}>
-                  {st.emoji} {st.name.en.toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: C.purpleLt, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <View
-                  key={i}
-                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: thread.revealed || i < dots ? C.purple : "#D6D6F0" }}
-                />
-              ))}
-              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: C.purple, marginLeft: 4 }}>
-                {thread.revealed ? "names unlocked" : `${5 - dots} to names`}
-              </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 26 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#EF5A5A", alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 17 }}>💌</Text>
             </View>
-            <Pressable
-              onPress={doTranslate}
-              hitSlop={6}
-              style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 }}
-            >
-              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, color: C.purple }}>
-                {xlBusy ? "translating…" : xl ? (showXl ? "original" : "translation") : "🕊 translate"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* signature — the writer signs off at the end, like a letter */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.lineSoft }}>
-            <StrangerAvatar seed={thread.other} size={38} round />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: F.serifSemi, fontSize: 15.5, color: C.ink }}>{alias}</Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: C.faint, marginTop: 1 }}>
-                {thread.revealed ? "no longer a stranger" : "a stranger, for now"}
-              </Text>
-            </View>
-            <ReportMenu
-              targetUser={thread.other}
-              context="thread"
-              refId={thread.id}
-              snapshot={thread.preview}
-              onBlocked={onBlocked}
-            />
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4, color: "#C0503A" }}>TAP TO OPEN →</Text>
           </View>
         </View>
-        <Pressable onPress={onOpen} style={{ alignItems: "center", paddingTop: 12 }} hitSlop={8}>
-          <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, color: C.faint }}>Open the whole thread ›</Text>
-        </Pressable>
-      </View>
-
-      {hasNext && (
-        <Text style={{ fontFamily: F.sans, fontSize: 11.5, color: C.faint, textAlign: "center", marginBottom: 7 }}>
-          One more letter is waiting above.
-        </Text>
-      )}
-
-      {/* a lighter answer than a letter — one tap, they'll see it */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 4 }}>
-        {REACTIONS.map((r) => {
-          const on = myR === r.emoji;
-          return (
-            <Pressable
-              key={r.emoji}
-              onPress={() => react(r.emoji)}
-              hitSlop={4}
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: on ? C.purpleLt : "transparent",
-                borderWidth: 1.5,
-                borderColor: on ? C.purple : C.line,
-                transform: [{ scale: on ? 1.08 : 1 }],
-              }}
-            >
-              <Text style={{ fontSize: 17 }}>{r.emoji}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <Text style={{ fontFamily: F.serifItalic, fontSize: 10.5, color: myR ? C.purple : C.faint, textAlign: "center", marginBottom: 2 }}>
-        {myR ? `${myR} ${reactionLabel(myR)} — they'll see it` : "or answer with one tap"}
-      </Text>
-
-      <ReplyBar
-        onSend={onReply}
-        placeholder="Write back to them…"
-        footnote={isSending ? "Sending your letter…" : "This reply goes straight to them."}
-      />
+      </Pressable>
     </View>
   );
 }
 
-function QuietDesk({ sent, onWrite }: { sent: ThreadSummary[]; onWrite: () => void }) {
-  const sentPreview = sent[0];
-  // the "you were caught" moment — someone reacted to a letter you sent
-  const caught = sent.find((t) => t.theirReaction);
+/* airmail striped border */
+function Airmail() {
+  const bars = Array.from({ length: 60 });
+  const col = (i: number) => (i % 4 === 0 ? "#E0483C" : i % 4 === 2 ? "#3A4F9E" : "transparent");
   return (
-    <View style={{ flex: 1, paddingHorizontal: 30, paddingTop: 62, paddingBottom: 120 }}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: 62, height: 62, borderRadius: 31, borderWidth: 1.5, borderColor: C.line, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-          <Text style={{ fontSize: 24, color: C.purple }}>✦</Text>
-        </View>
-        <Text style={{ fontFamily: F.serif, fontSize: 25, color: C.ink, textAlign: "center" }}>
-          {caught ? "Someone caught your letter." : sentPreview ? "Your letter is out there." : "The desk is quiet."}
-        </Text>
-        {caught && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14, backgroundColor: "#FBEEF1", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 8 }}>
-            <Text style={{ fontSize: 15 }}>{caught.theirReaction}</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#C86E7A" }}>
-              {reactionLabel(caught.theirReaction) || "felt this"} — No. {postNo(caught.other)}
-            </Text>
-          </View>
-        )}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 17 }}>
-          <Wren size={16} mode="line" />
-          <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>WREN</Text>
-        </View>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 15, lineHeight: 24, color: C.muted, textAlign: "center", marginTop: 8, maxWidth: 286 }}>
-          {caught
-            ? "They didn't have the words back yet — but they wanted you to know it landed."
-            : sentPreview
-              ? "Someone has your words at their door. There is nothing to chase."
-              : "Nothing is asking for you right now. You can leave a letter when something is true."}
-        </Text>
-      </View>
-
-      <View>
-        <Pressable onPress={onWrite} style={{ backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center" }}>
-          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 1 }}>WRITE TO A STRANGER</Text>
-        </Pressable>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, textAlign: "center", marginTop: 12 }}>
-          Replies are never limited.
-        </Text>
-      </View>
+    <View style={{ height: 12, flexDirection: "row", overflow: "hidden", backgroundColor: "#FFFFFF" }}>
+      {bars.map((_, i) => (
+        <View key={i} style={{ width: 7, height: 30, marginTop: -8, backgroundColor: col(i), transform: [{ rotate: "30deg" }] }} />
+      ))}
     </View>
   );
 }
+
+function Quiet({ onWrite, onKept }: { onWrite: () => void; onKept: () => void }) {
+  return (
+    <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 34, paddingBottom: 60 }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 4 }}>
+        <Text style={{ fontSize: 68 }}>📫</Text>
+        <WrenBird size={30} mood="curious" />
+      </View>
+      <Text style={{ fontFamily: F.serif, fontSize: 28, color: "#2A2153", textAlign: "center", marginTop: 22, lineHeight: 36 }}>
+        the post is quiet{"\n"}this morning.
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 16, paddingHorizontal: 10 }}>
+        <WrenBird size={18} mood="content" />
+        <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: "#3B3363", textAlign: "center", lineHeight: 20 }}>
+          “quiet isn't empty. someone out there hasn't met you yet — want to go first?”
+        </Text>
+      </View>
+
+      <Pressable onPress={onWrite} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 16, paddingHorizontal: 26, marginTop: 30 }}>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 14, color: "#fff", letterSpacing: 0.3 }}>write to a stranger</Text>
+        <Text style={{ fontSize: 15 }}>🕊</Text>
+      </Pressable>
+      <Pressable onPress={onKept} style={{ backgroundColor: "#fff", borderRadius: 22, paddingVertical: 13, paddingHorizontal: 22, marginTop: 12 }}>
+        <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: "#2A2153" }}>or reread a kept letter 📖</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const waitLine = (n: number) => {
+  if (n >= 4) return "the post came full today. take them one at a time.";
+  if (n >= 2) return "a few are waiting. no pressure. some pressure.";
+  return "this one's been waiting. no pressure. some pressure.";
+};
