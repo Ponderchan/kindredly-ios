@@ -1,7 +1,15 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeIn, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeIn,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
@@ -10,6 +18,8 @@ import { DEMO_THREADS } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { postNo } from "../../lib/format";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
+
+const H = Dimensions.get("window").height;
 
 /* Today — the post. When letters wait for you, they're a stack of envelopes
    you tap to tear open (→ the thread reader). When it's quiet, Wren nudges
@@ -40,18 +50,34 @@ export default function LettersTab() {
   const showThreads = demo ? DEMO_THREADS : threads;
   const waiting = showThreads.filter((t) => !t.lastSenderMe);
 
-  // tear-open: flash to paper, then push the reader
-  const cover = useSharedValue(0);
-  const coverStyle = useAnimatedStyle(() => ({ opacity: cover.value }));
-  const open = (id: string) => {
-    cover.value = withTiming(1, { duration: 260 }, (done) => {
-      if (done) runOnJS(go)(id);
+  // tear-open: a letter sheet rises out of the envelope and unfolds, then the
+  // reader takes over
+  const t = useSharedValue(0);
+  const openingId = useRef<string | null>(null);
+  const [openingText, setOpeningText] = useState<string | null>(null);
+
+  const open = (thread: ThreadSummary) => {
+    openingId.current = thread.id;
+    setOpeningText(thread.preview);
+    t.value = 0;
+    t.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.cubic) }, (done) => {
+      if (done) runOnJS(finishOpen)();
     });
   };
-  const go = (id: string) => {
-    router.push(`/thread/${id}`);
-    setTimeout(() => (cover.value = 0), 380);
+  const finishOpen = () => {
+    if (openingId.current) router.push(`/thread/${openingId.current}`);
+    setTimeout(() => {
+      t.value = 0;
+      setOpeningText(null);
+    }, 440);
   };
+
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, t.value * 1.5) }));
+  const sheetStyle = useAnimatedStyle(() => ({
+    opacity: t.value < 0.12 ? 0 : 1,
+    transform: [{ translateY: (1 - t.value) * (H * 0.26) }, { scaleY: 0.08 + t.value * 0.92 }],
+  }));
+  const sheetTextStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, (t.value - 0.55) * 2.2) }));
 
   const quiet = loaded && waiting.length === 0;
 
@@ -79,7 +105,7 @@ export default function LettersTab() {
           >
             {waiting.map((t) => (
               <View key={t.id} style={{ width: W, height: 440, alignItems: "center", justifyContent: "center" }}>
-                <Envelope thread={t} onOpen={() => open(t.id)} />
+                <Envelope thread={t} onOpen={() => open(t)} />
               </View>
             ))}
           </ScrollView>
@@ -106,8 +132,18 @@ export default function LettersTab() {
         </View>
       )}
 
-      {/* tear-open cover */}
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: PAPER }, coverStyle]} />
+      {/* tear-open: a sheet slides up and unfolds into the reader */}
+      {openingText !== null && (
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
+          <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: LAV }, backdropStyle]} />
+          <Animated.View style={[{ position: "absolute", left: 16, right: 16, top: 72, bottom: 60, backgroundColor: PAPER, borderRadius: 22, overflow: "hidden" }, shadow.card, sheetStyle]}>
+            <Airmail />
+            <Animated.Text style={[{ fontFamily: F.serif, fontSize: 22, color: "#22222A", lineHeight: 33, padding: 26, paddingTop: 30 }, sheetTextStyle]} numberOfLines={5}>
+              {openingText}
+            </Animated.Text>
+          </Animated.View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
