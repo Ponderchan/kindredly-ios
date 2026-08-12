@@ -2,14 +2,14 @@ import { useCallback, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { C, F, cardStyle, shadow } from "../../theme/tokens";
+import { C, F, shadow } from "../../theme/tokens";
 import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
 import { Toast } from "../../components/ui";
 import { AudioCard } from "../../components/AudioCard";
 import { getStamp } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
-import { postNo } from "../../lib/format";
+import { dShort, postNo } from "../../lib/format";
 import {
   clearThreadReaction,
   fetchThreadMessages,
@@ -19,7 +19,6 @@ import {
   type ThreadDetail,
 } from "../../lib/db";
 import { translate } from "../../lib/wren";
-import { useEntitlement } from "../../lib/entitlement";
 
 const REVEAL_AT = 5;
 const PAPER = "#FBF8F0";
@@ -28,7 +27,6 @@ export default function ThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
-  const { premium } = useEntitlement();
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [sending, setSending] = useState(false);
   const [revealToast, setRevealToast] = useState(false);
@@ -46,8 +44,7 @@ export default function ThreadScreen() {
       setDetail(DEMO_DETAILS[id] ?? null);
       return;
     }
-    const d = await fetchThreadMessages(id);
-    setDetail(d);
+    setDetail(await fetchThreadMessages(id));
   }, [id]);
 
   useFocusEffect(
@@ -87,10 +84,18 @@ export default function ThreadScreen() {
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" }, ...detail.messages].filter((m) => m.body)
     : [];
   const alias = detail ? `No. ${postNo(detail.other)}` : "…";
+  const name = detail?.revealed ? detail.otherName || alias : null;
   const stamp = getStamp(detail?.stamp);
   const remaining = detail ? Math.max(0, REVEAL_AT - detail.myCount) : REVEAL_AT;
-  const hero = conv[conv.length - 1] ?? null;
-  const earlier = conv.slice(0, -1);
+  const filled = detail ? Math.min(REVEAL_AT, detail.myCount) : 0;
+  // the letter you came to read = their latest (fall back to the newest)
+  const heroIdx = (() => {
+    for (let i = conv.length - 1; i >= 0; i--) if (!conv[i].mine) return i;
+    return conv.length - 1;
+  })();
+  const hero = conv[heroIdx] ?? null;
+  const earlier = conv.filter((_, i) => i !== heroIdx);
+  const heroDate = hero?.date ? dShort(hero.date).toUpperCase() : detail && !detail.revealed ? "AUG 11" : "";
 
   const doTranslate = async () => {
     if (!hero) return;
@@ -111,131 +116,140 @@ export default function ThreadScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: PAPER }}>
-      {/* header */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      {/* minimal header — back + report */}
+      <View style={{ paddingHorizontal: 12, paddingTop: 2, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 24, color: "#5A5344" }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1, color: "#9A8B6A", textAlign: "center", flex: 1 }}>
-          LETTER {conv.length} OF THIS THREAD · NO. {detail ? postNo(detail.other) : "…"}
+        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: "#B3A985" }}>
+          {conv.length} {conv.length === 1 ? "LETTER" : "LETTERS"} IN THIS THREAD
         </Text>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Pressable onPress={doTranslate} hitSlop={8} style={{ width: 36, height: 42, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 18, opacity: xlBusy ? 0.4 : 1 }}>{xlOn ? "🕊" : "🌐"}</Text>
-          </Pressable>
-          <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
-        </View>
+        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
-          {/* earlier letters (collapsed) */}
-          {earlier.length > 0 && !expanded && (
-            <Pressable onPress={() => setExpanded(true)} style={{ alignItems: "center", paddingVertical: 12 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>read the {earlier.length} before ↑</Text>
-            </Pressable>
+        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+          {/* the letter */}
+          {hero && (
+            <View style={[{ backgroundColor: "#fff", borderRadius: 22, padding: 22, paddingTop: 20 }, shadow.card]}>
+              {stamp && (
+                <View style={{ position: "absolute", top: -8, right: 16, transform: [{ rotate: "7deg" }] }}>
+                  <StampTile id={detail!.stamp} w={52} r={5} />
+                </View>
+              )}
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: "#9A8B6A", paddingRight: 64 }}>
+                {[heroDate, `NO. ${detail ? postNo(detail.other) : "…"}`, name ? name.toUpperCase() : "A STRANGER, FOR YOU"].filter(Boolean).join(" · ")}
+              </Text>
+
+              {detail?.openingMedia && conv.length === 1 ? (
+                <View style={{ marginTop: 18 }}>
+                  <AudioCard url={voiceLetterUrl(detail.openingMedia) || ""} durationS={detail.openingDurationS} compact />
+                </View>
+              ) : (
+                <Text style={{ fontFamily: F.letter, fontSize: 21, lineHeight: 33, color: "#22222A", marginTop: 18 }}>
+                  {xlOn && xl ? xl : hero.body}
+                </Text>
+              )}
+
+              {/* chips — theme + progress to names */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 22 }}>
+                {stamp && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: `${stamp.color}16`, borderRadius: 15, paddingHorizontal: 11, paddingVertical: 7 }}>
+                    <Text style={{ fontSize: 11 }}>{stamp.emoji}</Text>
+                    <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 0.8, color: stamp.color }}>{stamp.name.en.toUpperCase()}</Text>
+                  </View>
+                )}
+                {detail?.revealed ? (
+                  <View style={{ backgroundColor: C.purpleLt, borderRadius: 15, paddingHorizontal: 11, paddingVertical: 7 }}>
+                    <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.purple }}>💜 no longer strangers</Text>
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: C.purpleLt, borderRadius: 15, paddingHorizontal: 11, paddingVertical: 7 }}>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: i < filled ? C.purple : "#D2CCF0" }} />
+                    ))}
+                    <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.purple, marginLeft: 3 }}>{remaining} to names</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* dashed divider */}
+              <View style={{ borderBottomWidth: 1, borderStyle: "dashed", borderColor: "#E4DCC8", marginTop: 16, marginBottom: 12 }} />
+
+              {/* footer — thread + translate */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                {earlier.length > 0 ? (
+                  <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={8}>
+                    <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: "#8C7F63" }}>
+                      {expanded ? "hide earlier letters" : "open the whole thread ›"}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <View />
+                )}
+                <Pressable onPress={doTranslate} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={{ fontSize: 13 }}>{xlOn ? "🕊" : "🌐"}</Text>
+                  <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>{xlBusy ? "translating…" : xlOn ? "original" : "translate"}</Text>
+                </Pressable>
+              </View>
+            </View>
           )}
+
+          {/* earlier letters, revealed on demand */}
           {expanded &&
             earlier.map((m, i) => (
               <View
                 key={i}
-                style={{ backgroundColor: m.mine ? "#F1EEE4" : "#fff", borderRadius: 16, padding: 18, marginBottom: 10, marginLeft: m.mine ? 30 : 0, marginRight: m.mine ? 0 : 30 }}
+                style={{ backgroundColor: m.mine ? "#F1EEE4" : "#fff", borderRadius: 16, padding: 18, marginTop: 10, marginLeft: m.mine ? 30 : 0, marginRight: m.mine ? 0 : 30 }}
               >
                 <Text style={{ fontFamily: F.letter, fontSize: 15.5, lineHeight: 25, color: "#3A3630" }}>{m.body}</Text>
                 <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.faint, marginTop: 8 }}>{m.mine ? "You" : alias}</Text>
               </View>
             ))}
-
-          {/* hero — the latest letter */}
-          {hero && (
-            <View style={[{ backgroundColor: "#fff", borderRadius: 22, padding: 24, paddingTop: 26, marginTop: 6 }, shadow.card]}>
-              {stamp && (
-                <View style={{ position: "absolute", top: -6, right: 16, transform: [{ rotate: "7deg" }] }}>
-                  <StampTile id={detail!.stamp} w={50} r={5} />
-                </View>
-              )}
-              {detail?.openingMedia && conv.length === 1 ? (
-                <AudioCard url={voiceLetterUrl(detail.openingMedia) || ""} durationS={detail.openingDurationS} compact />
-              ) : (
-                <Text style={{ fontFamily: F.letter, fontSize: 21, lineHeight: 33, color: "#22222A", paddingRight: hero.mine ? 0 : 40 }}>
-                  {xlOn && xl ? xl : hero.body}
-                </Text>
-              )}
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 20 }}>
-                {stamp ? (
-                  <View style={{ backgroundColor: `${stamp.color}18`, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 6 }}>
-                    <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, color: stamp.color }}>#{stamp.name.en.toLowerCase()}</Text>
-                  </View>
-                ) : (
-                  <View />
-                )}
-                {xlOn && xl && <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>translated by Wren</Text>}
-              </View>
-            </View>
-          )}
-
-          {/* progress to names */}
-          {detail && !detail.revealed && detail.myCount > 0 && (
-            <View style={{ marginTop: 16 }}>
-              <View style={{ height: 6, borderRadius: 3, backgroundColor: "#EBE4D2", overflow: "hidden" }}>
-                <View style={{ width: `${Math.min(100, (detail.myCount / REVEAL_AT) * 100)}%`, height: "100%", backgroundColor: C.purple }} />
-              </View>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: "#9A8B6A", textAlign: "center", marginTop: 10 }}>
-                {remaining > 0 ? `${remaining} more from you and you won't be strangers.` : "waiting on their fifth — then Wren tells you each other's names."}
-              </Text>
-            </View>
-          )}
-          {detail?.revealed && (
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.purple, textAlign: "center", paddingVertical: 14 }}>💜 you're no longer strangers.</Text>
-          )}
         </ScrollView>
 
-        {/* reactions — a lighter answer than a letter */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 22, paddingBottom: 6 }}>
-          {REACTIONS.map((r) => {
-            const on = myR === r.emoji;
-            return (
-              <Pressable
-                key={r.emoji}
-                onPress={() => react(r.emoji)}
-                hitSlop={4}
-                style={{ width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: on ? C.purpleLt : "transparent", borderWidth: on ? 1.5 : 0, borderColor: C.purple }}
-              >
-                <Text style={{ fontSize: 17 }}>{r.emoji}</Text>
-              </Pressable>
-            );
-          })}
-          <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 11.5, color: myR ? C.purple : "#B3A985", textAlign: "right" }}>
-            {myR ? `${reactionLabel(myR)} — they'll see it` : "…or answer with one tap"}
+        {/* reactions */}
+        <View style={{ alignItems: "center", paddingBottom: 4 }}>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            {REACTIONS.map((r) => {
+              const on = myR === r.emoji;
+              return (
+                <Pressable
+                  key={r.emoji}
+                  onPress={() => react(r.emoji)}
+                  hitSlop={4}
+                  style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? C.purpleLt : "#F3EFE3", borderWidth: on ? 1.5 : 0, borderColor: C.purple }}
+                >
+                  <Text style={{ fontSize: 18 }}>{r.emoji}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: myR ? C.purple : "#B3A985", marginTop: 8 }}>
+            {myR ? `${reactionLabel(myR)} — they'll see it` : "or answer with one tap"}
           </Text>
         </View>
 
-        {/* reply dock — Aa / mic / reply, on the app accent */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 22 }}>
-          <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 8, backgroundColor: "#fff", borderRadius: 26, padding: 7 }, shadow.card]}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.purpleLt, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 14, color: C.purple }}>Aa</Text>
-            </View>
+        {/* reply — input + navy airplane */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 20 }}>
+          <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 8, backgroundColor: "#fff", borderRadius: 28, paddingLeft: 20, paddingRight: 7, paddingVertical: 7 }, shadow.card]}>
             <TextInput
               value={reply}
               onChangeText={setReply}
               placeholder="write back to them…"
               placeholderTextColor="#B3A985"
               multiline
-              style={{ flex: 1, maxHeight: 120, paddingHorizontal: 4, paddingTop: 10, color: C.ink, fontFamily: F.sans, fontSize: 15.5, lineHeight: 22 }}
+              style={{ flex: 1, maxHeight: 120, paddingTop: 11, paddingBottom: 3, color: C.ink, fontFamily: F.serifItalic, fontSize: 16, lineHeight: 22 }}
             />
             <Pressable
               onPress={onSend}
               disabled={reply.trim().length < 1 || sending}
-              style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: C.purple, borderRadius: 22, paddingHorizontal: 16, height: 44, justifyContent: "center", opacity: reply.trim().length < 1 || sending ? 0.4 : 1 }}
+              style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#1E1B2E", alignItems: "center", justifyContent: "center", opacity: reply.trim().length < 1 || sending ? 0.4 : 1 }}
             >
-              <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14 }}>{sending ? "…" : "reply"}</Text>
-              <Text style={{ fontSize: 13 }}>✈️</Text>
+              <Text style={{ fontSize: 18 }}>✈️</Text>
             </Pressable>
           </View>
-          <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1, color: "#B3A985", textAlign: "center", marginTop: 9 }}>
-            {premium ? "GOES STRAIGHT TO THEM · UNLIMITED" : "GOES STRAIGHT TO THEM"}
-          </Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: "#B3A985", textAlign: "center", marginTop: 9 }}>this reply goes straight to them.</Text>
         </View>
       </KeyboardAvoidingView>
 
