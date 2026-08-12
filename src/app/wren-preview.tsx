@@ -1,7 +1,7 @@
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { C, F } from "../theme/tokens";
-import { WrenBird, type WrenAccessory, type WrenMood, type WrenStage } from "../components/WrenBird";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "../components/WrenBird";
 
 /* Dev-only gallery — the whole Wren set on one screen, to eyeball the
    character bible in the actual runtime. Reachable at /wren-preview. */
@@ -37,6 +37,24 @@ export default function WrenPreview() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
         <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, marginTop: 12 }}>Wren</Text>
         <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted }}>one bird · mood · growth · dress-up</Text>
+
+        <Section title="THREE SKINS — ONE SKELETON" />
+        {(["sticker", "plush", "ink"] as WrenSkin[]).map((sk) => (
+          <View key={sk} style={{ marginBottom: 14 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.muted, marginBottom: 6 }}>{sk}</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "flex-end" }}>
+              <WrenBird size={64} skin={sk} stage="egg" />
+              <WrenBird size={64} skin={sk} stage="hatch" />
+              <WrenBird size={64} skin={sk} stage="fledge" />
+              <WrenBird size={64} skin={sk} mood="happy" />
+              <WrenBird size={64} skin={sk} mood="worry" />
+              <WrenBird size={64} skin={sk} mood="delight" />
+              <WrenBird size={64} skin={sk} pose="fly" />
+              <WrenBird size={64} skin={sk} mood="happy" accessory="flower" />
+              <WrenBird size={18} skin={sk} />
+            </View>
+          </View>
+        ))}
 
         <Section title="GROWTH — EGG TO WREN" />
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
