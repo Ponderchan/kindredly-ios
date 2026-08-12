@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { Easing, FadeIn } from "react-native-reanimated";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { ReportMenu } from "../../components/ReportMenu";
@@ -129,7 +130,10 @@ export default function ThreadScreen() {
         <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
           {/* the letter */}
           {hero && (
-            <View style={[{ backgroundColor: "#fff", borderRadius: 22, padding: 22, paddingTop: 20 }, shadow.card]}>
+            <Animated.View
+              entering={FadeIn.duration(300).easing(Easing.out(Easing.cubic))}
+              style={[{ backgroundColor: "#fff", borderRadius: 22, padding: 22, paddingTop: 20 }, shadow.card]}
+            >
               {stamp && (
                 <View style={{ position: "absolute", top: -8, right: 16, transform: [{ rotate: "7deg" }] }}>
                   <StampTile id={detail!.stamp} w={52} r={5} />
@@ -190,7 +194,7 @@ export default function ThreadScreen() {
                   <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>{xlBusy ? "translating…" : xlOn ? "original" : "translate"}</Text>
                 </Pressable>
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {/* earlier letters, revealed on demand */}

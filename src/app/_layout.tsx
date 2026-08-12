@@ -43,7 +43,9 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="compose" options={{ presentation: "modal" }} />
                 <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
-                <Stack.Screen name="thread/[id]" options={{ presentation: "modal" }} />
+                {/* the reader fills the screen — the letter opens where you are,
+                    it doesn't slide in from the side or pop up as a card */}
+                <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
               </Stack>
             </View>
             </WrenSkinProvider>

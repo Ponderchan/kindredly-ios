@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
@@ -58,7 +58,7 @@ export default function LettersTab() {
       </View>
 
       {quiet ? (
-        <Quiet onWrite={() => router.push("/compose")} onKept={() => router.push("/kept")} />
+        <Quiet onWrite={() => router.push("/compose")} onSelf={() => router.push("/journal-entry")} onKept={() => router.push("/kept")} />
       ) : (
         <View style={{ flex: 1, justifyContent: "center" }}>
           <ScrollView
@@ -149,32 +149,90 @@ function Airmail() {
   );
 }
 
-function Quiet({ onWrite, onKept }: { onWrite: () => void; onKept: () => void }) {
+/* You've read everything that came. Rather than dangle an empty feed, the post
+   closes for the day: Wren dozes off, a countdown says exactly when the next
+   round lands, and the copy sends you back to your life — which is where the
+   letters come from anyway. */
+function Quiet({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () => void; onKept: () => void }) {
+  const left = useNextPost();
+  const breath = useSharedValue(0);
+  useEffect(() => {
+    breath.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [breath]);
+  const dozeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -4 * breath.value }, { scale: 1 + 0.03 * breath.value }],
+  }));
+  const zzzStyle = useAnimatedStyle(() => ({
+    opacity: 0.25 + 0.55 * breath.value,
+    transform: [{ translateY: -10 * breath.value }, { translateX: 4 * breath.value }],
+  }));
+
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 34, paddingBottom: 60 }}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 4 }}>
-        <Text style={{ fontSize: 68 }}>📫</Text>
-        <WrenBird size={30} mood="curious" />
+    <Animated.View entering={FadeIn.duration(500)} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 40 }}>
+      {/* Wren asleep on the closed postbox */}
+      <View style={{ height: 130, alignItems: "center", justifyContent: "flex-end" }}>
+        <Animated.Text style={[{ position: "absolute", top: 6, right: 96, fontSize: 17 }, zzzStyle]}>💤</Animated.Text>
+        <Animated.View style={dozeStyle}>
+          <WrenBird size={78} mood="sleepy" />
+        </Animated.View>
+        <Text style={{ fontSize: 46, marginTop: -6 }}>📪</Text>
       </View>
-      <Text style={{ fontFamily: F.serif, fontSize: 28, color: "#2A2153", textAlign: "center", marginTop: 22, lineHeight: 36 }}>
-        the post is quiet{"\n"}this morning.
+
+      <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#2A2153", textAlign: "center", marginTop: 18, lineHeight: 35 }}>
+        that's the whole post.{"\n"}you're all caught up.
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 16, paddingHorizontal: 10 }}>
-        <WrenBird size={18} mood="content" />
-        <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: "#3B3363", textAlign: "center", lineHeight: 20 }}>
-          “quiet isn't empty. someone out there hasn't met you yet — want to go first?”
+
+      {/* when the next round lands */}
+      <View style={{ alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 22, paddingVertical: 16, paddingHorizontal: 28, marginTop: 22 }}>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: "#8B84B8" }}>NEW LETTERS ARRIVE IN</Text>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 34, color: "#2A2153", marginTop: 6, fontVariant: ["tabular-nums"] }}>{left}</Text>
+      </View>
+
+      <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: "#3B3363", textAlign: "center", marginTop: 20, lineHeight: 23 }}>
+        put the phone down. go have a life —{"\n"}it's better material.
+      </Text>
+
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 20, paddingHorizontal: 4 }}>
+        <WrenBird size={20} mood="content" />
+        <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13, color: "#4B4478", lineHeight: 20 }}>
+          “and if you really can't sit still — write to yourself. no one answers. that's the point.”
         </Text>
       </View>
 
-      <Pressable onPress={onWrite} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 16, paddingHorizontal: 26, marginTop: 30 }}>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 14, color: "#fff", letterSpacing: 0.3 }}>write to a stranger</Text>
-        <Text style={{ fontSize: 15 }}>🕊</Text>
+      <Pressable onPress={onSelf} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 15, paddingHorizontal: 26, marginTop: 20 }}>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 14, color: "#fff", letterSpacing: 0.3 }}>write to yourself</Text>
+        <Text style={{ fontSize: 15 }}>🕯</Text>
       </Pressable>
-      <Pressable onPress={onKept} style={{ backgroundColor: "#fff", borderRadius: 22, paddingVertical: 13, paddingHorizontal: 22, marginTop: 12 }}>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: "#2A2153" }}>or reread a kept letter 📖</Text>
-      </Pressable>
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+        <Pressable onPress={onWrite} style={{ backgroundColor: "#fff", borderRadius: 20, paddingVertical: 12, paddingHorizontal: 18 }}>
+          <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#2A2153" }}>to a stranger 🕊</Text>
+        </Pressable>
+        <Pressable onPress={onKept} style={{ backgroundColor: "#fff", borderRadius: 20, paddingVertical: 12, paddingHorizontal: 18 }}>
+          <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#2A2153" }}>reread a kept one 📖</Text>
+        </Pressable>
+      </View>
     </Animated.View>
   );
+}
+
+/* ticking H:MM:SS until the next 8am post — the same hour the morning knock
+   is scheduled for (lib/notify.ts) */
+function useNextPost() {
+  const fmt = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(8, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const s = Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000));
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+  };
+  const [left, setLeft] = useState(fmt);
+  useEffect(() => {
+    const t = setInterval(() => setLeft(fmt()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return left;
 }
 
 const waitLine = (n: number) => {
