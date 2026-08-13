@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActionSheetIOS, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -19,6 +19,7 @@ export default function JournalDetail() {
   const router = useRouter();
   const [e, setE] = useState<JournalEntry | null>(null);
   const [drifting, setDrifting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [sel, setSel] = useState(0);
   const isDemo = !!id?.startsWith("demo-");
 
@@ -51,22 +52,19 @@ export default function JournalDetail() {
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
 
-  const openMenu = () => {
+  const confirmDelete = () => {
     if (!e) return;
-    ActionSheetIOS.showActionSheetWithOptions(
+    Alert.alert("Tear this page out?", "It disappears from the sealed room. A line that already drifted stays out in the world.", [
+      { text: "Keep it", style: "cancel" },
       {
-        title: "This page disappears from the sealed room. A line that already drifted stays out in the world.",
-        options: ["Cancel", "Tear this page out"],
-        destructiveButtonIndex: 1,
-        cancelButtonIndex: 0,
-      },
-      async (i) => {
-        if (i === 1) {
+        text: "Tear it out",
+        style: "destructive",
+        onPress: async () => {
           await deleteEntry(e.id);
           goBack();
-        }
+        },
       },
-    );
+    ]);
   };
 
   const onPickLine = async (line: string) => {
@@ -104,7 +102,7 @@ export default function JournalDetail() {
         {isDemo ? (
           <View style={{ width: 42 }} />
         ) : (
-          <Pressable onPress={openMenu} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+          <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontSize: 24, color: C.ink }}>⋯</Text>
           </Pressable>
         )}
@@ -114,10 +112,13 @@ export default function JournalDetail() {
         {/* the mood face leads, the date sits under it — both centred (Apple-style) */}
         <View style={{ alignItems: "center", marginBottom: 24, marginTop: 4 }}>
           <MoodIcon id={m.id} size={48} />
-          <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.3, color: C.muted, marginTop: 10 }}>
-            {new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-            {isDemo ? "  ·  sample" : ""}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
+            <CalGlyph />
+            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.3, color: C.muted }}>
+              {new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              {isDemo ? "  ·  sample" : ""}
+            </Text>
+          </View>
         </View>
 
         {/* photo gallery */}
@@ -145,8 +146,8 @@ export default function JournalDetail() {
           </Text>
         )}
 
-        {/* drift state / action */}
-        {e.driftedLine ? (
+        {/* drifted state — the action itself now lives in the ··· menu */}
+        {e.driftedLine && (
           <View style={[cardStyle, { padding: 16, marginTop: 24, backgroundColor: "rgba(255,255,255,0.75)" }]}>
             <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.4, color: C.purple, marginBottom: 8 }}>
               🌊 ONE LINE IS OUT IN THE WORLD
@@ -156,23 +157,78 @@ export default function JournalDetail() {
               Tomorrow it might be the first thing a stranger reads.
             </Text>
           </View>
-        ) : canDrift ? (
-          <Pressable
-            onPress={() => setDrifting(true)}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 28, paddingVertical: 14, borderRadius: 20, borderWidth: 1, borderColor: pure ? "rgba(0,0,0,0.12)" : C.line, backgroundColor: "rgba(255,255,255,0.6)" }}
-          >
-            <Text style={{ fontSize: 13 }}>🌊</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: C.ink }}>Let one line drift out</Text>
-          </Pressable>
-        ) : null}
+        )}
 
         <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: pure ? "#7A766C" : C.faint, textAlign: "center", marginTop: 24 }}>
           🔒 Sealed on this device{isDemo ? " · a sample page" : ""}.
         </Text>
       </ScrollView>
 
+      {/* ··· dropdown — anchored under the button, tap outside to close */}
+      {menuOpen && (
+        <>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
+          <View
+            style={{
+              position: "absolute",
+              top: 48,
+              right: 14,
+              backgroundColor: "#fff",
+              borderRadius: 14,
+              paddingVertical: 6,
+              minWidth: 214,
+              shadowColor: "#2A2620",
+              shadowOpacity: 0.18,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 10 },
+              elevation: 10,
+            }}
+          >
+            {canDrift && (
+              <MenuRow
+                icon="🌊"
+                label="Let one line drift out"
+                onPress={() => {
+                  setMenuOpen(false);
+                  setDrifting(true);
+                }}
+              />
+            )}
+            <MenuRow
+              icon="🗑"
+              label="Tear this page out"
+              destructive
+              onPress={() => {
+                setMenuOpen(false);
+                confirmDelete();
+              }}
+            />
+          </View>
+        </>
+      )}
+
       <LinePicker visible={drifting} body={e.body} onPick={onPickLine} onClose={() => setDrifting(false)} />
     </SafeAreaView>
+  );
+}
+
+/* a tiny monochrome calendar (the 📅 emoji bakes in a wrong date) */
+function CalGlyph() {
+  return (
+    <View style={{ width: 13, height: 13, borderRadius: 3, borderWidth: 1.4, borderColor: C.muted, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "absolute", top: -2.5, left: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: C.muted }} />
+      <View style={{ position: "absolute", top: -2.5, right: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: C.muted }} />
+      <View style={{ width: 6, height: 1.4, borderRadius: 1, backgroundColor: C.muted }} />
+    </View>
+  );
+}
+
+function MenuRow({ icon, label, onPress, destructive }: { icon: string; label: string; onPress: () => void; destructive?: boolean }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: pressed ? "#F2EFE7" : "transparent" })}>
+      <Text style={{ fontSize: 15 }}>{icon}</Text>
+      <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: destructive ? "#D14B3C" : C.ink }}>{label}</Text>
+    </Pressable>
   );
 }
 
