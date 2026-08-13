@@ -53,10 +53,11 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
         </View>
       )}
 
-      {/* text */}
+      {/* text — clamped so the feed stays scannable; the page has it all.
+          A bare text page gets room (9 lines); under media, a caption (3). */}
       {!!e.body && (
         <View style={{ paddingHorizontal: 15, paddingTop: hasMedia ? 12 : 0, paddingBottom: 15 }}>
-          <Body e={e} pure={e.type === "text"} />
+          <Body e={e} pure={e.type === "text"} lines={hasMedia ? 3 : 9} />
         </View>
       )}
     </Pressable>
@@ -151,18 +152,22 @@ function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: 
   );
 }
 
-function Body({ e, pure }: { e: JournalEntry; pure: boolean }) {
+function Body({ e, pure, lines }: { e: JournalEntry; pure: boolean; lines: number }) {
   const style = { fontFamily: F.letter, fontSize: pure ? 18 : 15, lineHeight: pure ? 28 : 24, color: pure ? "#2A2620" : "#4A463E" } as const;
   const line = e.driftedLine;
   if (line && e.body.includes(line)) {
     const i = e.body.indexOf(line);
     return (
-      <Text style={style}>
+      <Text style={style} numberOfLines={lines}>
         {e.body.slice(0, i)}
         <Text style={{ backgroundColor: "#F6E7A6" }}>{line}</Text>
         {e.body.slice(i + line.length)}
       </Text>
     );
   }
-  return <Text style={style}>{e.body}</Text>;
+  return (
+    <Text style={style} numberOfLines={lines}>
+      {e.body}
+    </Text>
+  );
 }

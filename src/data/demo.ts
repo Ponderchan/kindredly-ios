@@ -200,6 +200,13 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     mood: "in-love",
   },
   {
+    id: "demo-j-long",
+    date: iso(4 * H),
+    type: "text",
+    body: "I keep thinking about that ant study. Decades of watching them move, folded into one model where the interactions just fall out of the motion — speed, density, how far each one can feel the others. An ant is only ever one of three things: active and moving, still, or in a refractory rest where it can't be roused at all, a small enforced pause. I read it at 2am and thought: that's me this week. Mostly refractory. Not sad exactly, just temporarily unavailable to be activated. I liked having a word for it. I liked that the word came from ants and not from a therapist. I'm going to be still on purpose for a while and call it a state, not a failure.",
+    mood: "sleepy",
+  },
+  {
     id: "demo-j-video",
     date: iso(112 * H),
     type: "video",
