@@ -10,6 +10,7 @@ import { DEMO_THREADS } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { postNo } from "../../lib/format";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { MORNING_HOUR } from "../../lib/notify";
 
 /* Today — the post. When letters wait for you, they're a stack of envelopes;
    tap one and the letter rises up out of the envelope (the reader is a modal
@@ -182,9 +183,11 @@ function Quiet({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =>
         that's the whole post.{"\n"}you're all caught up.
       </Text>
 
-      {/* when the next round lands */}
+      {/* the daily beat — when the morning post lands (the same hour as the
+          knock). Replies can still trickle in sooner; this is the ritual to
+          come back for, not a promise the desk stays empty until then. */}
       <View style={{ alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 22, paddingVertical: 16, paddingHorizontal: 28, marginTop: 22 }}>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: "#8B84B8" }}>NEW LETTERS ARRIVE IN</Text>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: "#8B84B8" }}>THE MORNING POST LANDS IN</Text>
         <Text style={{ fontFamily: F.sansExtra, fontSize: 34, color: "#2A2153", marginTop: 6, fontVariant: ["tabular-nums"] }}>{left}</Text>
       </View>
 
@@ -215,13 +218,13 @@ function Quiet({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =>
   );
 }
 
-/* ticking H:MM:SS until the next 8am post — the same hour the morning knock
-   is scheduled for (lib/notify.ts) */
+/* ticking H:MM:SS until the next morning post — the same hour the morning
+   knock fires (MORNING_HOUR, lib/notify.ts), so the two never disagree */
 function useNextPost() {
   const fmt = () => {
     const now = new Date();
     const next = new Date(now);
-    next.setHours(8, 0, 0, 0);
+    next.setHours(MORNING_HOUR, 0, 0, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
     const s = Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000));
     const p = (n: number) => String(n).padStart(2, "0");
