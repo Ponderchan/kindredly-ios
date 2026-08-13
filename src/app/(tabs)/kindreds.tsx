@@ -1,16 +1,20 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
-import { C, F, cardStyle } from "../../theme/tokens";
-import { Caps, ProgressBar } from "../../components/ui";
-import { StrangerAvatar } from "../../components/StrangerAvatar";
+import { C, F } from "../../theme/tokens";
+import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
-import { postNo } from "../../lib/format";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { DEMO_THREADS } from "../../data/demo";
 
-const REVEAL_AT = 5;
+/* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
+   in. Each reply pulls a stranger one ring closer; at five each way Wren trades
+   your names. The map up top is the whole sky at a glance; the list is where
+   you act. */
+
+const GROUND = "#ECEBF4"; // a pale lavender — the space where strangers orbit
+const REVEAL = 5;
 
 export default function KindredsTab() {
   const router = useRouter();
@@ -26,90 +30,106 @@ export default function KindredsTab() {
     }, []),
   );
 
-  const kindreds = threads.filter((t) => t.revealed);
-  const becoming = threads.filter((t) => !t.revealed && t.mine > 0);
-  const anything = kindreds.length > 0 || becoming.length > 0;
+  const source = __DEV__ && loaded && threads.length === 0 ? DEMO_THREADS : threads;
+  const orbit = useMemo(() => source.filter((t) => t.mine > 0).sort((a, b) => b.lastAt - a.lastAt), [source]);
+  const named = orbit.filter((t) => t.revealed).length;
+  const empty = loaded && orbit.length === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }} edges={["top"]}>
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 130, flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink, letterSpacing: -0.5 }}>Kindreds</Text>
-        <Text style={{ fontFamily: F.sans, fontSize: 13.5, color: C.muted, marginTop: 4 }}>
-          The strangers who became something.
+    <SafeAreaView style={{ flex: 1, backgroundColor: GROUND }} edges={["top"]}>
+      {/* header */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 8 }}>
+        <Text style={{ fontFamily: F.serif, fontSize: 34, color: C.ink, letterSpacing: -0.5 }}>Kindreds</Text>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: "#8B84B8", marginTop: 14 }}>
+          {empty ? "NOTHING IN ORBIT" : `${orbit.length} IN ORBIT${named ? ` · ${named} NAMED` : ""}`}
         </Text>
+      </View>
 
-        {kindreds.length > 0 && (
-          <>
-            <Caps style={{ marginTop: 28, marginBottom: 14 }}>NO LONGER STRANGERS</Caps>
-            {kindreds.map((t) => (
-              <Pressable
-                key={t.id}
-                onPress={() => router.push(`/thread/${t.id}`)}
-                style={({ pressed }) => [cardStyle, { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, marginBottom: 10, opacity: pressed ? 0.94 : 1 }]}
-              >
-                <StrangerAvatar seed={t.other} size={44} />
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={{ fontFamily: F.serif, fontSize: 17, color: C.ink }}>{t.otherName || `No. ${postNo(t.other)}`}</Text>
-                    <Text style={{ fontSize: 13 }}>💜</Text>
-                  </View>
-                  <View style={{ flexDirection: "row", gap: 5, marginTop: 8 }}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.purpleMid }} />
-                    ))}
-                  </View>
-                </View>
-              </Pressable>
+      {empty ? (
+        <Empty onWrite={() => router.push("/compose")} />
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+          <View style={{ alignItems: "center", paddingTop: 6, paddingBottom: 10 }}>
+            <OrbitMap items={orbit} />
+          </View>
+          <View style={{ paddingHorizontal: 20 }}>
+            {orbit.map((t) => (
+              <Card key={t.id} t={t} onPress={() => router.push(`/thread/${t.id}`)} />
             ))}
-          </>
-        )}
+          </View>
+        </ScrollView>
+      )}
 
-        {becoming.length > 0 && (
-          <>
-            <Caps style={{ marginTop: 24, marginBottom: 14 }}>STILL STRANGERS</Caps>
-            {becoming.map((t) => (
-              <Pressable
-                key={t.id}
-                onPress={() => router.push(`/thread/${t.id}`)}
-                style={({ pressed }) => [cardStyle, { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, marginBottom: 10, opacity: pressed ? 0.94 : 1 }]}
-              >
-                <StrangerAvatar seed={t.other} size={44} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: F.serif, fontSize: 16, color: C.ink }}>No. {postNo(t.other)}</Text>
-                  <View style={{ marginTop: 8 }}>
-                    <ProgressBar pct={Math.min(100, (t.mine / REVEAL_AT) * 100)} height={3} />
-                    <Text style={{ fontFamily: F.sans, fontSize: 10, color: C.faint, marginTop: 4 }}>
-                      {Math.max(0, REVEAL_AT - t.mine)} more from you to names
-                    </Text>
-                  </View>
-                </View>
-                {!t.lastSenderMe && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.ember }} />}
-              </Pressable>
-            ))}
-          </>
-        )}
+      <PlushCelebration kindreds={named} />
+    </SafeAreaView>
+  );
+}
 
-        {loaded && !anything && (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 60 }}>
-            <Svg width={200} height={130} viewBox="0 0 200 130">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Circle key={i} cx={26 + i * 38} cy={104 - i * 20} r={4.5} fill={C.purpleMid} opacity={0.9} />
-              ))}
-              <Path d="M26 104 L64 84 L102 64 L140 44 L178 24" fill="none" stroke={C.line} strokeWidth={1.6} strokeDasharray="4 4" />
-            </Svg>
-            <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink, marginTop: 20, textAlign: "center" }}>
-              Nobody knows your name yet.
-            </Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 13.5, lineHeight: 21, color: C.muted, marginTop: 14, textAlign: "center", maxWidth: 280 }}>
-              Write back and forth five times with someone, and Wren stops keeping your names from each other.
-            </Text>
+function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
+  const p = Math.min(t.mine, REVEAL);
+  const theirTurn = !t.lastSenderMe; // they wrote last → your move / a new letter
+  const status = theirTurn ? `${Math.max(0, REVEAL - t.mine)} MORE TO A NAME` : "WAITING ON THEM";
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({ backgroundColor: "#fff", borderRadius: 18, padding: 16, marginBottom: 12, opacity: pressed ? 0.96 : 1, shadowColor: "#2A2153", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } })}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: t.revealed ? C.purpleMid : `rgba(109,109,246,${0.3 + 0.5 * (p / REVEAL)})` }} />
+        {t.revealed ? (
+          <Text style={{ fontFamily: F.serif, fontSize: 18, color: C.ink }}>{t.otherName || "A kindred"}</Text>
+        ) : (
+          <Dots p={p} />
+        )}
+        <View style={{ flex: 1 }} />
+        {theirTurn && (
+          <View style={{ backgroundColor: C.purpleLt, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 4 }}>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1, color: C.purple }}>NEW</Text>
           </View>
         )}
-      </ScrollView>
-      <PlushCelebration kindreds={kindreds.length} />
-    </SafeAreaView>
+      </View>
+
+      <Text numberOfLines={2} style={{ fontFamily: F.letter, fontSize: 14.5, lineHeight: 21, color: t.revealed ? "#3A3630" : C.muted, marginTop: 10 }}>
+        {t.preview}
+      </Text>
+
+      {!t.revealed && (
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.2, color: C.faint, marginTop: 10 }}>
+          RING {t.mine} · {status}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+function Dots({ p }: { p: number }) {
+  return (
+    <View style={{ flexDirection: "row", gap: 5 }}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: i < p ? C.purpleMid : "#D2CCF0" }} />
+      ))}
+    </View>
+  );
+}
+
+function Empty({ onWrite }: { onWrite: () => void }) {
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 50 }}>
+      <OrbitMap items={[]} empty />
+      <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, textAlign: "center", marginTop: 18, lineHeight: 34 }}>
+        Nobody knows your{"\n"}name yet.
+      </Text>
+      <Text style={{ fontFamily: F.letter, fontSize: 15, lineHeight: 23, color: C.muted, textAlign: "center", marginTop: 14, maxWidth: 300 }}>
+        Every reply pulls a stranger one ring closer. At the centre, you trade names.
+      </Text>
+      <Pressable
+        onPress={onWrite}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: C.purple, borderRadius: 26, paddingVertical: 17, paddingHorizontal: 24, marginTop: 34, alignSelf: "stretch", opacity: pressed ? 0.92 : 1 })}
+      >
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 15, color: "#fff", letterSpacing: 0.2 }}>Put someone in orbit</Text>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.7)" }}>WREN PICKS</Text>
+      </Pressable>
+    </View>
   );
 }

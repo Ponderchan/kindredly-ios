@@ -11,6 +11,17 @@ const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
 
 export const DEMO_THREADS: ThreadSummary[] = [
   {
+    id: "demo-mira",
+    stamp: "off-chest",
+    revealed: true,
+    mine: 6,
+    otherName: "Mira",
+    other: "demo-mira",
+    preview: "I kept your line about the fridge hum. I read it twice on the bus.",
+    lastSenderMe: false,
+    lastAt: now - 2 * H,
+  },
+  {
     id: "demo-wren",
     stamp: "off-chest",
     revealed: false,
