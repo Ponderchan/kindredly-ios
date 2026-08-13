@@ -1,4 +1,5 @@
 import type { WrenMood } from "../components/WrenBird";
+import { OPENING_MIN } from "./weighted-count";
 
 /* How Wren reads a piece of writing — words, tone, and emoji, in English and
    Chinese. Heavy signals are checked first: if in doubt she'd rather be tender
@@ -50,6 +51,19 @@ export function wrenLine(m: WrenMood): string {
     default:
       return "I'm right here, listening.";
   }
+}
+
+/** As you write a cold opening, Wren coaxes you past a real line — and the
+ *  moment you clear it, the floor turns into the matching itself ("go meet your
+ *  kindred"). She isn't a validator; she's getting to know you. Opening only —
+ *  replies and letters to yourself never ask this. Buckets are weighted units
+ *  ([[weighted-count]]), so one hanzi steps two rungs at a time; that's fine,
+ *  four rungs is coarse on purpose. */
+export function openingLadder(weighted: number): { line: string; ready: boolean } {
+  if (weighted >= OPENING_MIN) return { line: "Okay. I know a little more of you now. Go meet your kindred.", ready: true };
+  if (weighted >= 30) return { line: "Almost there. I want one more thought.", ready: false };
+  if (weighted >= 15) return { line: "Tell me a little more.", ready: false };
+  return { line: "I'm listening…", ready: false };
 }
 
 /** Wren's first words to a newly-written line at the hatch (warmer register). */

@@ -11,6 +11,7 @@ import { getStamp } from "../../data/stamps";
 import { note } from "../../lib/wren";
 import { isKept, toggleKept } from "../../lib/kept";
 import { replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
+import { letterTier, weightedCount } from "../../lib/weighted-count";
 
 /* Read a stranger's pool letter (v20 LetterView) and reply — replying creates
    a 1:1 thread and opens it. */
@@ -54,6 +55,7 @@ export default function LetterReader() {
   }, [body, lang, isVoice]);
 
   const st = getStamp(stamp);
+  const bodyTier = letterTier(weightedCount(body || ""));
 
   const onReply = async (text: string) => {
     if (sending) return;
@@ -100,7 +102,18 @@ export default function LetterReader() {
                 )}
               </>
             ) : (
-              <Text style={{ fontFamily: F.letter, fontSize: 19, lineHeight: 32, color: "#22222A" }}>{body}</Text>
+              <Text
+                style={{
+                  fontFamily: F.letter,
+                  fontSize: bodyTier.size,
+                  lineHeight: bodyTier.line,
+                  color: "#22222A",
+                  textAlign: bodyTier.center ? "center" : "auto",
+                  paddingVertical: bodyTier.center ? 12 : 0,
+                }}
+              >
+                {body}
+              </Text>
             )}
 
             <View style={{ flexDirection: "row", gap: 10, marginTop: 24, flexWrap: "wrap", alignItems: "center" }}>

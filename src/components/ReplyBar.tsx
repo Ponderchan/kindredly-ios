@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { C, F } from "../theme/tokens";
+import { LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
 
 /* Inline reply bar — light by default, expandable to a full letter.
    Ported from kindredly-v20.jsx (1222-1277). */
@@ -19,7 +20,9 @@ export function ReplyBar({
 }) {
   const [text, setText] = useState("");
   const [h, setH] = useState(44);
-  const can = text.trim().length > 0;
+  const weight = weightedCount(text);
+  const over = weight > LETTER_MAX;
+  const can = weight >= REPLY_MIN && !over;
 
   const fire = () => {
     if (!can) return;
@@ -110,8 +113,8 @@ export function ReplyBar({
           </Svg>
         </Pressable>
       </View>
-      <Text style={{ textAlign: "center", fontSize: 10.5, color: C.faint, marginTop: 10, fontFamily: F.serifItalic }}>
-        {footnote}
+      <Text style={{ textAlign: "center", fontSize: 10.5, color: over ? "#C0503A" : C.faint, marginTop: 10, fontFamily: F.serifItalic }}>
+        {over ? `${weight - LETTER_MAX} over the limit` : footnote}
       </Text>
     </View>
   );

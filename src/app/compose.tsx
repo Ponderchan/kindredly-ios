@@ -18,7 +18,8 @@ import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
-import { readMood, wrenLine } from "../lib/wren-read";
+import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
+import { COUNTER_FROM, LETTER_MAX, weightedCount } from "../lib/weighted-count";
 
 const LANG = "en";
 const LAV = "#B9A8F0"; // the lavender desk
@@ -91,10 +92,15 @@ export default function Compose() {
   );
 
   const stamp = getStamp(sel);
-  // a line is enough — count characters, not whitespace words (Chinese has none)
-  const canSend = mode === "speak" ? !!recUri : text.trim().length >= 2;
-  // Wren's face follows your writing (speak mode: waiting vs. captured)
-  const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, canSend);
+  // a cold opening earns its way to a stranger: at least a real line (weighted),
+  // and never longer than a genuine short letter. Voice is exempt — the audio
+  // is the content, the caption's optional.
+  const weight = weightedCount(text);
+  const over = weight - LETTER_MAX;
+  const ladder = openingLadder(weight);
+  const canSend = mode === "speak" ? !!recUri : ladder.ready && over <= 0;
+  // Wren's face reads your feeling; her line reads how much you've given.
+  const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, ladder.ready);
 
   const send = async () => {
     if (!canSend || busy || !sel) return;
@@ -312,7 +318,7 @@ export default function Compose() {
                 <WrenBird size={38} mood={wrenMood} />
               </Animated.View>
               <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, lineHeight: 19 }}>
-                “{text.trim() || mode === "speak" ? wrenLine(wrenMood) : "write like no one is waiting. because no one is — yet."}”
+                “{mode === "speak" ? wrenLine(wrenMood) : ladder.line}”
               </Text>
             </View>
             <View style={{ borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: "#D8D2F2", marginTop: 14, marginBottom: 6 }} />
@@ -420,6 +426,15 @@ export default function Compose() {
             </View>
           )}
         </ScrollView>
+
+        {/* count — only surfaces near the ceiling, so no one writes to a number */}
+        {mode === "write" && weight >= COUNTER_FROM && (
+          <View style={{ paddingHorizontal: 24, alignItems: "flex-end", marginBottom: -2 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 0.3, color: over > 0 ? "#C0503A" : over > -40 ? "#C98A2E" : "rgba(42,33,83,0.55)" }}>
+              {over > 0 ? `${over} over` : `${-over} left`}
+            </Text>
+          </View>
+        )}
 
         {/* Aa / mic / yeet */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>

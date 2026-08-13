@@ -20,6 +20,7 @@ import {
   type ThreadDetail,
 } from "../../lib/db";
 import { translate } from "../../lib/wren";
+import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
 const REVEAL_AT = 5;
 const PAPER = "#FBF8F0";
@@ -56,7 +57,7 @@ export default function ThreadScreen() {
 
   const onSend = async () => {
     const text = reply.trim();
-    if (!id || sending || text.length < 1) return;
+    if (!id || sending || !replyOk) return;
     setSending(true);
     const wasRevealed = detail?.revealed;
     const res = await sendThreadMessage(id, text);
@@ -97,6 +98,10 @@ export default function ThreadScreen() {
   const hero = conv[heroIdx] ?? null;
   const earlier = conv.filter((_, i) => i !== heroIdx);
   const heroDate = hero?.date ? dShort(hero.date).toUpperCase() : detail && !detail.revealed ? "AUG 11" : "";
+  // size the letter to its weight: a short one is a telegram, a long one steps down
+  const tier = letterTier(weightedCount((xlOn && xl ? xl : hero?.body) || ""));
+  const replyW = weightedCount(reply);
+  const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   const doTranslate = async () => {
     if (!hero) return;
@@ -148,7 +153,17 @@ export default function ThreadScreen() {
                   <AudioCard url={voiceLetterUrl(detail.openingMedia) || ""} durationS={detail.openingDurationS} compact />
                 </View>
               ) : (
-                <Text style={{ fontFamily: F.letter, fontSize: 21, lineHeight: 33, color: "#22222A", marginTop: 18 }}>
+                <Text
+                  style={{
+                    fontFamily: F.letter,
+                    fontSize: tier.size,
+                    lineHeight: tier.line,
+                    color: "#22222A",
+                    marginTop: tier.center ? 30 : 18,
+                    textAlign: tier.center ? "center" : "auto",
+                    paddingBottom: tier.center ? 14 : 0,
+                  }}
+                >
                   {xlOn && xl ? xl : hero.body}
                 </Text>
               )}
@@ -245,13 +260,15 @@ export default function ThreadScreen() {
             />
             <Pressable
               onPress={onSend}
-              disabled={reply.trim().length < 1 || sending}
-              style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#1E1B2E", alignItems: "center", justifyContent: "center", opacity: reply.trim().length < 1 || sending ? 0.4 : 1 }}
+              disabled={!replyOk || sending}
+              style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#1E1B2E", alignItems: "center", justifyContent: "center", opacity: !replyOk || sending ? 0.4 : 1 }}
             >
               <Text style={{ fontSize: 18 }}>✈️</Text>
             </Pressable>
           </View>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: "#B3A985", textAlign: "center", marginTop: 9 }}>this reply goes straight to them.</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: replyW > LETTER_MAX ? "#C0503A" : "#B3A985", textAlign: "center", marginTop: 9 }}>
+            {replyW > LETTER_MAX ? `${replyW - LETTER_MAX} over the limit` : "this reply goes straight to them."}
+          </Text>
         </View>
       </KeyboardAvoidingView>
 
