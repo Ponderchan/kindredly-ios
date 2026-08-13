@@ -45,9 +45,14 @@ export default function JournalTab() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }} edges={["top"]}>
-      {/* header — quiet eyebrow + count + view toggle */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 10, paddingBottom: 6 }}>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 3.5, color: C.ink }}>SEALED</Text>
+      {/* header — quiet eyebrow + a line on what this room is + count + toggle */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10 }}>
+        <View>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 3.5, color: C.ink }}>SEALED</Text>
+          {!empty && (
+            <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 4 }}>Moments you've chosen to keep.</Text>
+          )}
+        </View>
         {empty ? (
           <View style={{ backgroundColor: C.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 }}>
             <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.5, color: "#fff" }}>JUST YOU</Text>
@@ -86,20 +91,21 @@ export default function JournalTab() {
 function Timeline({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: string) => void }) {
   const rows: React.ReactNode[] = [];
   let prevMonth: string | null = null;
-  entries.forEach((e, i) => {
+  entries.forEach((e) => {
     const d = new Date(e.date);
     const mk = `${d.getFullYear()}-${d.getMonth()}`;
-    if (mk !== prevMonth) {
-      rows.push(<MonthLabel key={`m-${mk}-${i}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} first={rows.length === 0} />);
-      prevMonth = mk;
+    // only mark a month when it changes — no redundant label at the very top
+    if (prevMonth !== null && mk !== prevMonth) {
+      rows.push(<MonthLabel key={`m-${mk}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} />);
     }
+    prevMonth = mk;
     rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} />);
   });
   return <>{rows}</>;
 }
 
-function MonthLabel({ label, first }: { label: string; first: boolean }) {
-  return <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2, color: "#B9B29E", marginTop: first ? 2 : 18, marginBottom: 12 }}>{label}</Text>;
+function MonthLabel({ label }: { label: string }) {
+  return <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2, color: "#B9B29E", marginTop: 18, marginBottom: 12 }}>{label}</Text>;
 }
 
 /* Empty Sealed — the one warm, playful moment (design 1b). A scrapbook wall
