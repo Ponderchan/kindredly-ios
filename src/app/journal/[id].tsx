@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { ActionSheetIOS, Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -9,7 +9,6 @@ import { LinePicker } from "../../components/LinePicker";
 import { MoodIcon } from "../../components/MoodIcon";
 import { getMood } from "../../data/moods";
 import { DEMO_JOURNAL } from "../../data/demo";
-import { dLong, fmt } from "../../lib/format";
 import { insertMorningFragment } from "../../lib/db";
 import { deleteEntry, loadJournal, setCover, setDrift, type JournalEntry } from "../../lib/journal";
 
@@ -52,19 +51,22 @@ export default function JournalDetail() {
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
 
-  const onDelete = () => {
+  const openMenu = () => {
     if (!e) return;
-    Alert.alert("Tear this page out?", "It disappears from the sealed room. A line that already drifted stays out in the world.", [
-      { text: "Keep it", style: "cancel" },
+    ActionSheetIOS.showActionSheetWithOptions(
       {
-        text: "Tear it out",
-        style: "destructive",
-        onPress: async () => {
+        title: "This page disappears from the sealed room. A line that already drifted stays out in the world.",
+        options: ["Cancel", "Tear this page out"],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 0,
+      },
+      async (i) => {
+        if (i === 1) {
           await deleteEntry(e.id);
           goBack();
-        },
+        }
       },
-    ]);
+    );
   };
 
   const onPickLine = async (line: string) => {
@@ -94,32 +96,28 @@ export default function JournalDetail() {
   // the page stays neutral — the mood lives in its face, not the background
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-      {/* header */}
+      {/* header — back + a ··· menu; the date leads the entry from the centre */}
       <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 26, color: C.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.serif, fontSize: 17, color: C.ink }}>{dLong(e.date)}</Text>
         {isDemo ? (
-          <View style={{ width: 42, alignItems: "center" }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 9, color: C.gold }}>SAMPLE</Text>
-          </View>
+          <View style={{ width: 42 }} />
         ) : (
-          <Pressable onPress={onDelete} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 17 }}>🗑</Text>
+          <Pressable onPress={openMenu} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 24, color: C.ink }}>⋯</Text>
           </Pressable>
         )}
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {/* mood shows as its face; a media page keeps just its type */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <MoodIcon id={m.id} size={30} />
-          {e.type !== "text" && (
-            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.label }}>
-              {e.type === "photo" ? `🖼 ${(e.media?.length || 1) > 1 ? `${e.media?.length} PHOTOS` : "PHOTO"}` : e.type === "voice" ? `🎙 ${fmt(e.dur || 0)}` : `🎬 ${fmt(e.dur || 0)}`}
-            </Text>
-          )}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {/* the mood face leads, the date sits under it — both centred (Apple-style) */}
+        <View style={{ alignItems: "center", marginBottom: 24, marginTop: 4 }}>
+          <MoodIcon id={m.id} size={48} />
+          <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.3, color: C.muted, marginTop: 10 }}>
+            {new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+            {isDemo ? "  ·  sample" : ""}
+          </Text>
         </View>
 
         {/* photo gallery */}
