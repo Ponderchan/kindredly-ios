@@ -45,8 +45,8 @@ export default function SealedDay() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {day.map((e, i) => (
-          <SealedEntry key={e.id} e={e} onPress={() => router.push(`/journal/${e.id}`)} tapeIndex={i} />
+        {day.map((e) => (
+          <SealedEntry key={e.id} e={e} onPress={() => router.push(`/journal/${e.id}`)} />
         ))}
         <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 8 }}>
           🔒 {day.length} on this day, sealed on this device.

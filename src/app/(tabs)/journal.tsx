@@ -93,7 +93,7 @@ function Timeline({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: s
       rows.push(<MonthLabel key={`m-${mk}-${i}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} first={rows.length === 0} />);
       prevMonth = mk;
     }
-    rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} tapeIndex={i} />);
+    rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} />);
   });
   return <>{rows}</>;
 }

@@ -1,4 +1,4 @@
-import { Image, Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { C, F } from "../theme/tokens";
 import { MoodIcon } from "./MoodIcon";
@@ -7,12 +7,10 @@ import { getMood } from "../data/moods";
 import { fmt } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
-/* One scrap on the Sealed feed — a clean self-contained card (design 1a). The
-   mood shows only as its face; no "CALM" label repeats it. Voice plays as a
-   waveform, video shows its own frame under a play button. Drift lives on the
-   page, not here — the whole card opens it. */
-
-const TAPE = ["#CDBBEF", "#BFE0C8", "#F3C6D3", "#F5E3A8"]; // washi, app-adjacent
+/* One scrap on the Sealed feed — a clean card, borrowing Apple Journal's
+   handling: media fills the card, no "PHOTO / VIDEO" labels (the media says
+   what it is), several photos become a mosaic, a video plays in place. The
+   mood shows only as its face — large, up top. The whole card opens the page. */
 
 function meta(e: JournalEntry): string {
   const d = new Date(e.date);
@@ -22,75 +20,133 @@ function meta(e: JournalEntry): string {
   return `${mon} ${day} · ${time}`;
 }
 
-function typeTag(e: JournalEntry): string | null {
-  if (e.type === "photo") return (e.media?.length || 1) > 1 ? `PHOTO · ${e.media?.length}` : "PHOTO";
-  if (e.type === "voice") return `VOICE ${fmt(e.dur || 0)}`;
-  if (e.type === "video") return `VIDEO ${fmt(e.dur || 0)}`;
-  return null;
-}
-
-export function SealedEntry({ e, onPress, tapeIndex = 0 }: { e: JournalEntry; onPress: () => void; tapeIndex?: number }) {
+export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => void }) {
   const m = getMood(e.mood);
-  const tape = TAPE[tapeIndex % TAPE.length];
-  const tag = typeTag(e);
+  const photos = e.type === "photo" ? (e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []) : [];
+  const hasMedia = e.type === "photo" ? photos.length > 0 : e.type === "voice" || e.type === "video";
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        { backgroundColor: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, opacity: pressed ? 0.96 : 1, shadowColor: "#2A2620", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+        { backgroundColor: "#fff", borderRadius: 20, marginBottom: 14, overflow: "hidden", opacity: pressed ? 0.96 : 1, shadowColor: "#2A2620", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
       ]}
     >
-      {/* head — mood face + date, no mood-name label */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <MoodIcon id={m.id} size={24} />
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.1, color: C.label }}>{meta(e)}</Text>
-        {tag && <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 0.8, color: C.faint, marginLeft: "auto" }}>{tag}</Text>}
+      {/* head — a big mood face + the date, nothing else */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 15, paddingTop: 14, paddingBottom: hasMedia ? 12 : 8 }}>
+        <MoodIcon id={m.id} size={38} />
+        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.1, color: C.label }}>{meta(e)}</Text>
       </View>
 
-      {/* photo — taped corner, a scrapbook nod */}
-      {e.type === "photo" && !!e.mediaUri && (
-        <View style={{ marginBottom: e.body ? 14 : 0 }}>
-          <View style={{ position: "absolute", left: -4, top: -8, width: 44, height: 17, backgroundColor: tape, opacity: 0.85, transform: [{ rotate: "-8deg" }], borderRadius: 2, zIndex: 2 }} />
-          <Image source={{ uri: e.mediaUri }} style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 12 }} resizeMode="cover" />
-        </View>
-      )}
+      {/* photo — one fills, several become a mosaic (edge to edge) */}
+      {e.type === "photo" && photos.length > 0 && <Mosaic photos={photos} />}
+
+      {/* video — plays in place, just a duration in the corner */}
+      {e.type === "video" && !!e.mediaUri && <VideoInline uri={e.mediaUri} dur={e.dur} />}
 
       {/* voice — a mood-tinted waveform player */}
       {e.type === "voice" && !!e.mediaUri && (
-        <View style={{ backgroundColor: m.bg, borderRadius: 16, padding: 10, marginBottom: e.body ? 14 : 0 }}>
-          <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={m.col} />
-        </View>
-      )}
-
-      {/* video — its own frame under a play button */}
-      {e.type === "video" && !!e.mediaUri && (
-        <View style={{ marginBottom: e.body ? 14 : 0 }}>
-          <VideoThumb uri={e.mediaUri} dur={e.dur} />
+        <View style={{ paddingHorizontal: 15 }}>
+          <View style={{ backgroundColor: m.bg, borderRadius: 16, padding: 10 }}>
+            <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={m.col} />
+          </View>
         </View>
       )}
 
       {/* text */}
-      {!!e.body && <Body e={e} pure={e.type === "text"} />}
+      {!!e.body && (
+        <View style={{ paddingHorizontal: 15, paddingTop: hasMedia ? 12 : 0, paddingBottom: 15 }}>
+          <Body e={e} pure={e.type === "text"} />
+        </View>
+      )}
     </Pressable>
   );
 }
 
-function VideoThumb({ uri, dur }: { uri: string; dur?: number }) {
+function VideoInline({ uri, dur }: { uri: string; dur?: number }) {
   const player = useVideoPlayer(uri, (p) => {
-    p.muted = true; // a still poster, not autoplay; it plays on the page
+    p.loop = true;
+    p.muted = true;
+    p.play(); // Apple-style: it comes alive in the feed
   });
   return (
-    <View style={{ borderRadius: 12, overflow: "hidden", position: "relative", backgroundColor: "#1C1A22" }}>
+    <View style={{ position: "relative", backgroundColor: "#1C1A22" }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 4 / 3 }} contentFit="cover" nativeControls={false} pointerEvents="none" />
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(0,0,0,0.42)", alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#fff", fontSize: 20, marginLeft: 3 }}>▶</Text>
+      <View style={{ position: "absolute", right: 12, bottom: 12, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 }}>
+        <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 11, letterSpacing: 0.4 }}>{fmt(dur || 0)}</Text>
+      </View>
+    </View>
+  );
+}
+
+/* Apple-style photo mosaic: 1 → full; 2 → split; 3 → big + two; 4 → quad;
+   5+ → big + a 2×2, the last tile counting the rest. */
+function Mosaic({ photos }: { photos: string[] }) {
+  const G = 2;
+  const H = 240;
+  const n = photos.length;
+
+  if (n === 1) return <Image source={{ uri: photos[0] }} style={{ width: "100%", aspectRatio: 4 / 3 }} resizeMode="cover" />;
+
+  if (n === 2)
+    return (
+      <View style={{ flexDirection: "row", height: H, gap: G }}>
+        <Tile uri={photos[0]} style={{ flex: 1 }} />
+        <Tile uri={photos[1]} style={{ flex: 1 }} />
+      </View>
+    );
+
+  if (n === 3)
+    return (
+      <View style={{ flexDirection: "row", height: H, gap: G }}>
+        <Tile uri={photos[0]} style={{ flex: 1.3 }} />
+        <View style={{ flex: 1, gap: G }}>
+          <Tile uri={photos[1]} style={{ flex: 1 }} />
+          <Tile uri={photos[2]} style={{ flex: 1 }} />
         </View>
       </View>
-      <View style={{ position: "absolute", right: 10, bottom: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 }}>
-        <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 10, letterSpacing: 0.5 }}>VIDEO · {fmt(dur || 0)}</Text>
+    );
+
+  if (n === 4)
+    return (
+      <View style={{ flexDirection: "row", height: H, gap: G }}>
+        <View style={{ flex: 1, gap: G }}>
+          <Tile uri={photos[0]} style={{ flex: 1 }} />
+          <Tile uri={photos[2]} style={{ flex: 1 }} />
+        </View>
+        <View style={{ flex: 1, gap: G }}>
+          <Tile uri={photos[1]} style={{ flex: 1 }} />
+          <Tile uri={photos[3]} style={{ flex: 1 }} />
+        </View>
       </View>
+    );
+
+  return (
+    <View style={{ flexDirection: "row", height: H, gap: G }}>
+      <Tile uri={photos[0]} style={{ flex: 1.3 }} />
+      <View style={{ flex: 1, gap: G }}>
+        <View style={{ flex: 1, flexDirection: "row", gap: G }}>
+          <Tile uri={photos[1]} style={{ flex: 1 }} />
+          <Tile uri={photos[2]} style={{ flex: 1 }} />
+        </View>
+        <View style={{ flex: 1, flexDirection: "row", gap: G }}>
+          <Tile uri={photos[3]} style={{ flex: 1 }} />
+          <Tile uri={photos[4]} style={{ flex: 1 }} plus={n - 5} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: number }) {
+  return (
+    <View style={[style, { overflow: "hidden" }]}>
+      <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+      {plus > 0 && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 20 }}>+{plus}</Text>
+        </View>
+      )}
     </View>
   );
 }
