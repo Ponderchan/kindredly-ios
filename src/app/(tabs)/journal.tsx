@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F } from "../../theme/tokens";
 import { SealedEntry } from "../../components/SealedEntry";
@@ -47,18 +48,22 @@ export default function JournalTab() {
       {/* header — quiet eyebrow + count + view toggle */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 10, paddingBottom: 6 }}>
         <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 3.5, color: C.ink }}>SEALED</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          {!empty && <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1, color: C.faint }}>{all.length}</Text>}
-          {!empty && (
+        {empty ? (
+          <View style={{ backgroundColor: C.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 }}>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.5, color: "#fff" }}>JUST YOU</Text>
+          </View>
+        ) : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1, color: C.faint }}>{all.length}</Text>
             <Pressable onPress={() => setView(view === "line" ? "calendar" : "line")} hitSlop={10} style={{ width: 30, height: 30, alignItems: "center", justifyContent: "center" }}>
               {view === "line" ? <CalendarIcon /> : <ListIcon />}
             </Pressable>
-          )}
-        </View>
+          </View>
+        )}
       </View>
 
       {empty ? (
-        <Empty onWrite={() => router.push("/journal-entry")} />
+        <Empty onWrite={(start) => router.push(start ? `/journal-entry?start=${start}` : "/journal-entry")} />
       ) : view === "calendar" ? (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           <SealedCalendar entries={all} onPickDay={openDay} />
@@ -116,33 +121,65 @@ function MonthLabel({ label }: { label: string }) {
   );
 }
 
-function Empty({ onWrite }: { onWrite: () => void }) {
-  const rows: [string, string][] = [
-    ["Write it", "TEXT"],
-    ["Snap it", "PHOTO"],
-    ["Say it", "VOICE"],
-    ["Film it", "VIDEO"],
-  ];
+/* Empty Sealed — the one warm, playful moment (design 1b). A scrapbook wall
+   of dotted paper, a taped note, and four coloured ways in. Once you write, it
+   becomes the quiet timeline for good. */
+function Empty({ onWrite }: { onWrite: (start?: string) => void }) {
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1, paddingHorizontal: 30, justifyContent: "center", paddingBottom: 70 }}>
-      {/* taped headline card */}
-      <View style={{ alignSelf: "flex-start", marginBottom: 40 }}>
-        <View style={{ position: "absolute", left: 18, top: -10, width: 60, height: 22, backgroundColor: "#BFE0C8", opacity: 0.85, transform: [{ rotate: "-6deg" }], borderRadius: 2, zIndex: 2 }} />
-        <View style={{ backgroundColor: "#fff", borderRadius: 6, paddingHorizontal: 24, paddingVertical: 26, shadowColor: "#2A2620", shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } }}>
-          <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, lineHeight: 34 }}>Tape the first{"\n"}scrap here.</Text>
-          <Text style={{ fontFamily: F.sans, fontSize: 14, lineHeight: 21, color: C.muted, marginTop: 12, maxWidth: 250 }}>
-            The line only grows downward. Nothing you stick on it ever leaves.
-          </Text>
+    <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>
+      <Dots />
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 26, paddingBottom: 60 }}>
+        {/* the taped note */}
+        <View style={{ marginBottom: 34 }}>
+          <View style={{ position: "absolute", left: 46, top: -12, width: 78, height: 24, backgroundColor: "#BFE0C8", opacity: 0.9, transform: [{ rotate: "-5deg" }], borderRadius: 1, zIndex: 2 }} />
+          <View style={{ backgroundColor: "#fff", borderRadius: 8, paddingHorizontal: 26, paddingVertical: 30, transform: [{ rotate: "-1deg" }], shadowColor: "#2A2620", shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }}>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 29, lineHeight: 35, color: C.ink, textAlign: "center" }}>
+              nothing here yet{"\n"}& that's fine
+            </Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 14.5, lineHeight: 22, color: C.muted, textAlign: "center", marginTop: 14 }}>
+              dump a thought, a blurry photo, a 3am voice note. no one sees it — not even the algorithm.
+            </Text>
+          </View>
+          {/* NEW sticker */}
+          <View style={{ position: "absolute", right: 10, bottom: -14, width: 46, height: 46, borderRadius: 23, backgroundColor: "#F5D33A", alignItems: "center", justifyContent: "center", transform: [{ rotate: "12deg" }] }}>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 12, letterSpacing: 0.5, color: "#2A2620" }}>NEW</Text>
+          </View>
+        </View>
+
+        {/* four coloured ways in */}
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+          <ActionBtn label="type it" glyph="↵" bg="#1C1A22" fg="#fff" onPress={() => onWrite()} />
+          <ActionBtn label="snap it" glyph="▢" bg="#CFE0F0" fg="#294055" onPress={() => onWrite("photo")} />
+        </View>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <ActionBtn label="say it" glyph="●" bg="#F4CEDA" fg="#7A2E44" onPress={() => onWrite("voice")} />
+          <ActionBtn label="film it" glyph="▶" bg="#F3DDC0" fg="#6B4A22" onPress={() => onWrite("video")} />
         </View>
       </View>
-
-      {rows.map(([label, kind], i) => (
-        <Pressable key={kind} onPress={onWrite} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: C.line }}>
-          <Text style={{ fontFamily: F.serifMed, fontSize: 20, color: C.ink }}>{label}</Text>
-          <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.faint }}>{kind}</Text>
-        </Pressable>
-      ))}
     </Animated.View>
+  );
+}
+
+function ActionBtn({ label, glyph, bg, fg, onPress }: { label: string; glyph: string; bg: string; fg: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, height: 74, borderRadius: 18, backgroundColor: bg, paddingHorizontal: 18, paddingVertical: 14, justifyContent: "space-between", opacity: pressed ? 0.9 : 1 })}>
+      <Text style={{ fontFamily: F.sansExtra, fontSize: 12, color: fg, alignSelf: "flex-end" }}>{glyph}</Text>
+      <Text style={{ fontFamily: F.sansExtra, fontSize: 17, color: fg }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/* faint scrapbook dot grid */
+function Dots() {
+  return (
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Defs>
+        <Pattern id="dots" width={22} height={22} patternUnits="userSpaceOnUse">
+          <Circle cx={2} cy={2} r={1.3} fill="#E2D9C3" />
+        </Pattern>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#dots)" />
+    </Svg>
   );
 }
 

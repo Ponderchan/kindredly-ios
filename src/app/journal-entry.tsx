@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { C, F } from "../theme/tokens";
@@ -127,6 +127,16 @@ export default function JournalEntry() {
     if (kind === "photo") addPhotos();
     else if (kind === "video") pickVideo();
   };
+
+  // arrive straight in a mode when Sealed's empty state routes here (snap/say/film)
+  const { start } = useLocalSearchParams<{ start?: string }>();
+  const armed = useRef(false);
+  useEffect(() => {
+    if (armed.current) return;
+    armed.current = true;
+    if (start === "photo" || start === "voice" || start === "video") toggleMode(start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start]);
 
   const pickMood = async (mood: MoodId) => {
     setMoodOpen(false);
