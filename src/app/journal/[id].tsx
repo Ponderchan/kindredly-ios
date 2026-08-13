@@ -91,8 +91,9 @@ export default function JournalDetail() {
   const pure = e.type === "text";
   const canDrift = !isDemo && e.body.trim().length >= 3 && !e.driftedLine;
 
+  // the page stays neutral — the mood lives in its face, not the background
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: pure ? m.bg : C.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
       {/* header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
@@ -111,15 +112,14 @@ export default function JournalDetail() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {/* mood line */}
+        {/* mood shows as its face; a media page keeps just its type */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <MoodIcon id={m.id} size={30} />
-          <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: pure ? "#5A564E" : C.label }}>
-            {m.n.toUpperCase()}
-            {e.type !== "text"
-              ? ` · ${e.type === "photo" ? `🖼 ${(e.media?.length || 1) > 1 ? `${e.media?.length} PHOTOS` : "PHOTO"}` : e.type === "voice" ? `🎙 ${fmt(e.dur || 0)}` : `🎬 ${fmt(e.dur || 0)}`}`
-              : ""}
-          </Text>
+          {e.type !== "text" && (
+            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.label }}>
+              {e.type === "photo" ? `🖼 ${(e.media?.length || 1) > 1 ? `${e.media?.length} PHOTOS` : "PHOTO"}` : e.type === "voice" ? `🎙 ${fmt(e.dur || 0)}` : `🎬 ${fmt(e.dur || 0)}`}
+            </Text>
+          )}
         </View>
 
         {/* photo gallery */}

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
@@ -7,12 +7,14 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F } from "../../theme/tokens";
 import { SealedEntry } from "../../components/SealedEntry";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
-import { loadJournal, type JournalEntry } from "../../lib/journal";
+import { LinePicker } from "../../components/LinePicker";
+import { loadJournal, setDrift, type JournalEntry } from "../../lib/journal";
+import { insertMorningFragment } from "../../lib/db";
 import { DEMO_JOURNAL } from "../../data/demo";
 
-/* Sealed — letters to yourself, on a quiet taped timeline (design 2a). The
-   line only grows downward and nothing on it ever leaves. Top-right flips to a
-   calendar where each day wears its mood face; tap a day to read it. */
+/* Sealed — letters to yourself. Clean stacked cards (design 1a): mood shows as
+   its face alone, no label; a line can drift out from the card. Top-right flips
+   to a calendar where each day wears its mood face. */
 
 type View2 = "line" | "calendar";
 
@@ -21,6 +23,7 @@ export default function JournalTab() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View2>("line");
+  const [drifting, setDrifting] = useState<JournalEntry | null>(null);
 
   const refresh = useCallback(() => {
     loadJournal().then((e) => {
@@ -41,6 +44,25 @@ export default function JournalTab() {
     const day = all.filter((e) => dayKey(e.date) === key);
     if (day.length === 1) router.push(`/journal/${day[0].id}`);
     else if (day.length > 1) router.push(`/journal/day/${key}`);
+  };
+
+  const onToggleDrift = (e: JournalEntry) => {
+    if (e.id.startsWith("demo-")) {
+      Alert.alert("A sample page", "This one's just here to show the shape. Your own pages can drift.");
+      return;
+    }
+    if (e.driftedLine) {
+      Alert.alert("Already out", "A drifted line can't be called back — it's someone's Morning Page now.");
+      return;
+    }
+    setDrifting(e);
+  };
+  const onPickLine = async (line: string) => {
+    const e = drifting;
+    setDrifting(null);
+    if (!e) return;
+    await insertMorningFragment(line, e.mood, "en"); // anonymous → shared morning pool
+    setEntries(await setDrift(e.id, line));
   };
 
   return (
@@ -72,53 +94,36 @@ export default function JournalTab() {
           </Text>
         </Animated.ScrollView>
       ) : (
-        <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 10 }}>
+        <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+          <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} onDrift={onToggleDrift} />
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 4 }}>
             🔒 Sealed on this device.
           </Text>
         </Animated.ScrollView>
       )}
+
+      <LinePicker visible={!!drifting} body={drifting?.body || ""} onPick={onPickLine} onClose={() => setDrifting(null)} />
     </SafeAreaView>
   );
 }
 
-function Timeline({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: string) => void }) {
+function Timeline({ entries, onOpen, onDrift }: { entries: JournalEntry[]; onOpen: (id: string) => void; onDrift: (e: JournalEntry) => void }) {
   const rows: React.ReactNode[] = [];
   let prevMonth: string | null = null;
   entries.forEach((e, i) => {
     const d = new Date(e.date);
     const mk = `${d.getFullYear()}-${d.getMonth()}`;
-    if (prevMonth && mk !== prevMonth) {
-      rows.push(<MonthLabel key={`m-${mk}-${i}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} />);
+    if (mk !== prevMonth) {
+      rows.push(<MonthLabel key={`m-${mk}-${i}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} first={rows.length === 0} />);
+      prevMonth = mk;
     }
-    rows.push(
-      <SealedEntry
-        key={e.id}
-        e={e}
-        onPress={() => onOpen(e.id)}
-        first={i === 0}
-        last={i === entries.length - 1}
-        tapeIndex={i}
-      />,
-    );
-    prevMonth = mk;
+    rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} onDrift={() => onDrift(e)} tapeIndex={i} />);
   });
   return <>{rows}</>;
 }
 
-/* a month marker that keeps the spine unbroken */
-function MonthLabel({ label }: { label: string }) {
-  return (
-    <View style={{ flexDirection: "row" }}>
-      <View style={{ width: 40 }}>
-        <View style={{ position: "absolute", left: 18, width: 2, top: 0, bottom: 0, backgroundColor: "#E4DBC7" }} />
-      </View>
-      <View style={{ flex: 1, paddingLeft: 4, paddingVertical: 10 }}>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2, color: "#B9B29E" }}>{label}</Text>
-      </View>
-    </View>
-  );
+function MonthLabel({ label, first }: { label: string; first: boolean }) {
+  return <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2, color: "#B9B29E", marginTop: first ? 2 : 18, marginBottom: 12 }}>{label}</Text>;
 }
 
 /* Empty Sealed — the one warm, playful moment (design 1b). A scrapbook wall
