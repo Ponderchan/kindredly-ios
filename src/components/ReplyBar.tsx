@@ -83,7 +83,7 @@ export function ReplyBar({
             height: h,
             paddingHorizontal: 4,
             color: C.ink,
-            fontFamily: F.sans,
+            fontFamily: F.letter,
             fontSize: 15.5,
             lineHeight: 22,
           }}

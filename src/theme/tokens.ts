@@ -48,8 +48,11 @@ export const F = {
   serifMed: "Fraunces_500Medium",
   serifSemi: "Fraunces_600SemiBold",
   serifItalic: "Fraunces_400Regular_Italic",
-  letter: "Fraunces_400Regular",
-  letterLight: "Fraunces_400Regular",
+  // letter bodies read in the system font (iOS: SF Pro for latin, PingFang for
+  // CJK) — clean and native like Apple Journal, and Chinese renders properly
+  // instead of falling back out of a latin-only serif. `undefined` = system.
+  letter: undefined as unknown as string,
+  letterLight: undefined as unknown as string,
   letterItalic: "Fraunces_400Regular_Italic",
   sans: "Inter_400Regular",
   sansMed: "Inter_500Medium",

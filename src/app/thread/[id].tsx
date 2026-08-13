@@ -256,7 +256,7 @@ export default function ThreadScreen() {
               placeholder="write back to them…"
               placeholderTextColor="#B3A985"
               multiline
-              style={{ flex: 1, maxHeight: 120, paddingTop: 11, paddingBottom: 3, color: C.ink, fontFamily: F.serifItalic, fontSize: 16, lineHeight: 22 }}
+              style={{ flex: 1, maxHeight: 120, paddingTop: 11, paddingBottom: 3, color: C.ink, fontFamily: F.letter, fontSize: 16, lineHeight: 22 }}
             />
             <Pressable
               onPress={onSend}

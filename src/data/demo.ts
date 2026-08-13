@@ -203,7 +203,7 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     id: "demo-j-long",
     date: iso(4 * H),
     type: "text",
-    body: "I keep thinking about that ant study. Decades of watching them move, folded into one model where the interactions just fall out of the motion — speed, density, how far each one can feel the others. An ant is only ever one of three things: active and moving, still, or in a refractory rest where it can't be roused at all, a small enforced pause. I read it at 2am and thought: that's me this week. Mostly refractory. Not sad exactly, just temporarily unavailable to be activated. I liked having a word for it. I liked that the word came from ants and not from a therapist. I'm going to be still on purpose for a while and call it a state, not a failure.",
+    body: "在新的研究中，研究团队将数十年来对蚂蚁运动的观察，与已有的社会激活理论结合起来，建立了一个计算机模型。在这个模型中，蚂蚁之间的互动能够随着它们的运动自然产生，模型中的运动参数直接来自实验测量，包括蚂蚁的移动速度、蚁群密度，以及它们能够感知附近同伴的距离等。我读到这里的时候是凌晨两点，忽然觉得：这周的我大概就处在不应期，静止，暂时无法被激活，但那不是失败，只是一种需要的休息。",
     mood: "sleepy",
   },
   {
