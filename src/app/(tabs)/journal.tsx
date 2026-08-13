@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
@@ -7,9 +7,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F } from "../../theme/tokens";
 import { SealedEntry } from "../../components/SealedEntry";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
-import { LinePicker } from "../../components/LinePicker";
-import { loadJournal, setDrift, type JournalEntry } from "../../lib/journal";
-import { insertMorningFragment } from "../../lib/db";
+import { loadJournal, type JournalEntry } from "../../lib/journal";
 import { DEMO_JOURNAL } from "../../data/demo";
 
 /* Sealed — letters to yourself. Clean stacked cards (design 1a): mood shows as
@@ -23,7 +21,6 @@ export default function JournalTab() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View2>("line");
-  const [drifting, setDrifting] = useState<JournalEntry | null>(null);
 
   const refresh = useCallback(() => {
     loadJournal().then((e) => {
@@ -44,25 +41,6 @@ export default function JournalTab() {
     const day = all.filter((e) => dayKey(e.date) === key);
     if (day.length === 1) router.push(`/journal/${day[0].id}`);
     else if (day.length > 1) router.push(`/journal/day/${key}`);
-  };
-
-  const onToggleDrift = (e: JournalEntry) => {
-    if (e.id.startsWith("demo-")) {
-      Alert.alert("A sample page", "This one's just here to show the shape. Your own pages can drift.");
-      return;
-    }
-    if (e.driftedLine) {
-      Alert.alert("Already out", "A drifted line can't be called back — it's someone's Morning Page now.");
-      return;
-    }
-    setDrifting(e);
-  };
-  const onPickLine = async (line: string) => {
-    const e = drifting;
-    setDrifting(null);
-    if (!e) return;
-    await insertMorningFragment(line, e.mood, "en"); // anonymous → shared morning pool
-    setEntries(await setDrift(e.id, line));
   };
 
   return (
@@ -95,19 +73,17 @@ export default function JournalTab() {
         </Animated.ScrollView>
       ) : (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} onDrift={onToggleDrift} />
+          <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
           <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 4 }}>
             🔒 Sealed on this device.
           </Text>
         </Animated.ScrollView>
       )}
-
-      <LinePicker visible={!!drifting} body={drifting?.body || ""} onPick={onPickLine} onClose={() => setDrifting(null)} />
     </SafeAreaView>
   );
 }
 
-function Timeline({ entries, onOpen, onDrift }: { entries: JournalEntry[]; onOpen: (id: string) => void; onDrift: (e: JournalEntry) => void }) {
+function Timeline({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: string) => void }) {
   const rows: React.ReactNode[] = [];
   let prevMonth: string | null = null;
   entries.forEach((e, i) => {
@@ -117,7 +93,7 @@ function Timeline({ entries, onOpen, onDrift }: { entries: JournalEntry[]; onOpe
       rows.push(<MonthLabel key={`m-${mk}-${i}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} first={rows.length === 0} />);
       prevMonth = mk;
     }
-    rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} onDrift={() => onDrift(e)} tapeIndex={i} />);
+    rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} tapeIndex={i} />);
   });
   return <>{rows}</>;
 }

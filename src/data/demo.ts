@@ -189,7 +189,7 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     type: "voice",
     body: "3am thoughts, recorded so I'd stop thinking them.",
     mood: "drained",
-    mediaUri: "",
+    mediaUri: "https://download.samplelib.com/mp3/sample-6s.mp3",
     dur: 42,
   },
   {
@@ -198,6 +198,15 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     type: "text",
     body: "Mum called. We talked about nothing for an hour. Nothing is my favourite thing to talk about with her.",
     mood: "in-love",
+  },
+  {
+    id: "demo-j-video",
+    date: iso(112 * H),
+    type: "video",
+    body: "the sea did that thing again. filmed it so i'd believe it later.",
+    mood: "calm",
+    mediaUri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    dur: 15,
   },
 ];
 

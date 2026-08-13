@@ -1,4 +1,5 @@
 import { Image, Pressable, Text, View } from "react-native";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { C, F } from "../theme/tokens";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
@@ -7,9 +8,9 @@ import { fmt } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
 /* One scrap on the Sealed feed — a clean self-contained card (design 1a). The
-   mood shows only as its face; no "CALM" label repeats it. White card, media
-   inline, text in serif, a drifted line highlighted where it left. A text page
-   can let one line drift from here; the whole card opens the full page. */
+   mood shows only as its face; no "CALM" label repeats it. Voice plays as a
+   waveform, video shows its own frame under a play button. Drift lives on the
+   page, not here — the whole card opens it. */
 
 const TAPE = ["#CDBBEF", "#BFE0C8", "#F3C6D3", "#F5E3A8"]; // washi, app-adjacent
 
@@ -28,22 +29,10 @@ function typeTag(e: JournalEntry): string | null {
   return null;
 }
 
-export function SealedEntry({
-  e,
-  onPress,
-  onDrift,
-  tapeIndex = 0,
-}: {
-  e: JournalEntry;
-  onPress: () => void;
-  onDrift?: () => void;
-  tapeIndex?: number;
-}) {
+export function SealedEntry({ e, onPress, tapeIndex = 0 }: { e: JournalEntry; onPress: () => void; tapeIndex?: number }) {
   const m = getMood(e.mood);
   const tape = TAPE[tapeIndex % TAPE.length];
   const tag = typeTag(e);
-  const drifted = !!e.driftedLine;
-  const canDrift = !!onDrift && e.type === "text" && e.body.trim().length >= 3;
 
   return (
     <Pressable
@@ -67,41 +56,42 @@ export function SealedEntry({
         </View>
       )}
 
-      {/* voice — mood-tinted pill */}
+      {/* voice — a mood-tinted waveform player */}
       {e.type === "voice" && !!e.mediaUri && (
         <View style={{ backgroundColor: m.bg, borderRadius: 16, padding: 10, marginBottom: e.body ? 14 : 0 }}>
           <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={m.col} />
         </View>
       )}
 
-      {/* video — plays in the page */}
-      {e.type === "video" && (
-        <View style={{ backgroundColor: "#1C1A22", borderRadius: 12, height: 150, alignItems: "center", justifyContent: "center", marginBottom: e.body ? 14 : 0 }}>
-          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#fff", fontSize: 18, marginLeft: 3 }}>▶</Text>
-          </View>
+      {/* video — its own frame under a play button */}
+      {e.type === "video" && !!e.mediaUri && (
+        <View style={{ marginBottom: e.body ? 14 : 0 }}>
+          <VideoThumb uri={e.mediaUri} dur={e.dur} />
         </View>
       )}
 
       {/* text */}
       {!!e.body && <Body e={e} pure={e.type === "text"} />}
-
-      {/* drift — text pages only, from here like the reference */}
-      {canDrift && (
-        <>
-          <View style={{ height: 1, backgroundColor: C.line, marginTop: 14, marginBottom: 12 }} />
-          <Pressable onPress={onDrift} hitSlop={6} style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
-            <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: drifted ? C.purple : C.faint, backgroundColor: drifted ? C.purple : "transparent", alignItems: "center", justifyContent: "center" }}>
-              {drifted && <Text style={{ color: "#fff", fontSize: 10 }}>✓</Text>}
-            </View>
-            <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: drifted ? C.purple : C.muted }}>
-              {drifted ? "One line is out in the world" : "Let one line drift out"}
-            </Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.2, color: C.faint, marginLeft: "auto" }}>SEALED</Text>
-          </Pressable>
-        </>
-      )}
     </Pressable>
+  );
+}
+
+function VideoThumb({ uri, dur }: { uri: string; dur?: number }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.muted = true; // a still poster, not autoplay; it plays on the page
+  });
+  return (
+    <View style={{ borderRadius: 12, overflow: "hidden", position: "relative", backgroundColor: "#1C1A22" }}>
+      <VideoView player={player} style={{ width: "100%", aspectRatio: 4 / 3 }} contentFit="cover" nativeControls={false} pointerEvents="none" />
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(0,0,0,0.42)", alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#fff", fontSize: 20, marginLeft: 3 }}>▶</Text>
+        </View>
+      </View>
+      <View style={{ position: "absolute", right: 10, bottom: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 }}>
+        <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 10, letterSpacing: 0.5 }}>VIDEO · {fmt(dur || 0)}</Text>
+      </View>
+    </View>
   );
 }
 
