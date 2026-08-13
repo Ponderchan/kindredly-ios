@@ -40,17 +40,14 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
         </SvgText>
       )}
 
-      {/* the ones circling in */}
+      {/* the ones circling in — nameless dots (closeness is the position), only
+          a revealed one wears a name */}
       {dots.map(({ t, p, x, y }) => (
         <G key={t.id}>
           <Circle cx={x} cy={y} r={t.revealed ? 9 : 7} fill={t.revealed ? C.purpleMid : `rgba(109,109,246,${(0.32 + 0.5 * (p / REVEAL)).toFixed(2)})`} />
-          {t.revealed ? (
+          {t.revealed && (
             <SvgText x={x} y={y + 23} fontSize={13.5} fill={C.ink} textAnchor="middle" fontFamily={F.serif}>
               {t.otherName || ""}
-            </SvgText>
-          ) : (
-            <SvgText x={x} y={y + 20} fontSize={10} fill={C.faint} textAnchor="middle" fontFamily={F.sansBold}>
-              {p}/5
             </SvgText>
           )}
         </G>
