@@ -278,7 +278,16 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           </Text>
         )}
 
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#9A8B6A", marginTop: 24, lineHeight: 18 }}>
+        {/* the channel as a hashtag — the one readable topic label (the corner
+            tile is the icon; matches the composer's stamp chip) */}
+        {st && (
+          <View style={{ flexDirection: "row", marginTop: 22 }}>
+            <View style={{ backgroundColor: `${st.color}16`, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: st.color }}>#{st.name.en.toLowerCase()}</Text>
+            </View>
+          </View>
+        )}
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#9A8B6A", marginTop: 16, lineHeight: 18 }}>
           Sent down three streets. You were the first to open it.
         </Text>
       </Animated.View>
