@@ -1,33 +1,31 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { C, F, cardStyle, shadow } from "../../theme/tokens";
-import { Caps } from "../../components/ui";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
-import { FingerprintHeat } from "../../components/FingerprintHeat";
-import { GrowthStampTile } from "../../components/GrowthStamp";
-import { TabIcon } from "../../components/TabIcon";
+import { VoiceCard } from "../../components/VoiceCard";
 import { WrenHome } from "../../components/WrenHome";
-import { WrenOnYou } from "../../components/WrenOnYou";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
 import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
 import { getWrenType, type WrenType } from "../../lib/wren-type";
 import type { WrenStage } from "../../components/WrenBird";
-import { GROWTH_STAMPS, type GrowthStats } from "../../data/growth";
+import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fingerprint } from "../../lib/signature";
+import { analyzeVoice, gatherWriting, type VoiceRead } from "../../lib/voice";
 import { portrait } from "../../lib/wren";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
+import { DEMO_JOURNAL } from "../../data/demo";
 
-/* Me — a straightforward profile: avatar from our library + pen name,
-   three stat cards, the growth-stamp shelf, then Kindredly's signature
-   cards (Wren on you, writing fingerprint). Settings behind the gear. */
+/* Me — a mirror, not a profile: who you are here (pen name + day), how you
+   sound (Your Voice — the hero), what you've kept (stats), and who's growing
+   beside you (Wren). Settings behind the gear. */
 
 export default function MeTab() {
   const auth = useAuth();
@@ -37,6 +35,8 @@ export default function MeTab() {
   const name = handle || "You";
 
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
+  const [voice, setVoice] = useState<VoiceRead | null>(null);
+  const [units, setUnits] = useState<number[]>([]);
   const [wrenLine, setWrenLine] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -58,10 +58,25 @@ export default function MeTab() {
       getAvatarPhoto().then((p) => alive && setPhoto(p));
       getWrenAccessory().then((a) => alive && setAccessory(a));
       getWrenType().then((t) => alive && setWrenType(t));
+
+      // Your Voice — read every piece of real writing on this device
+      (async () => {
+        let texts = await gatherWriting((profile?.firstLine as string) || null);
+        // dev preview: borrow the sample pages so the card has a shape
+        if (__DEV__ && texts.length === 0) texts = DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3);
+        if (!alive) return;
+        setVoice(analyzeVoice(texts));
+        setUnits(fingerprint(texts.join(" ")).units.slice(0, 24));
+        if (texts.length) {
+          const l = await portrait(texts.join("\n\n").slice(0, 2000), "en");
+          if (alive && l) setWrenLine(l);
+        }
+      })();
+
       return () => {
         alive = false;
       };
-    }, [user?.created_at]),
+    }, [user?.created_at, profile?.firstLine]),
   );
 
   const equipWren = (a: WrenAccessory) => {
@@ -86,62 +101,16 @@ export default function MeTab() {
     await auth.saveProfile({ handle: newName, avatarId: newAvatarId });
   };
 
-  /* the hand Wren reads */
-  const written = (profile?.firstLine as string) || "";
-  const hasText = written.trim().length > 0;
-  const fp = fingerprint(written || "Slept badly. Made coffee. Sat with it until it went cold.");
-  const bars = (fp.units.length ? fp.units : [0.4, 0.7, 0.3]).slice(0, 40);
-  const long = fp.sig.sentenceLen > 13;
-  const paused = fp.sig.pauses > 3;
-  const fpRead = hasText
-    ? `${long ? "Measured pace" : "Quick pace"} · ${long ? "long sentences" : "short sentences"} · ${paused ? "thoughtful pauses" : "few pauses"}`
-    : "Wren hasn't read you yet";
-  const fpDesc = hasText
-    ? long
-      ? "Closest to writers who take their time and let a thought run before stopping."
-      : "Closest to writers who keep it short and write one thought at a time."
-    : "Write a letter or two and Wren will start to read your hand.";
-
-  const letWrenRead = async () => {
-    if (!hasText) return;
-    const l = await portrait(written, "en");
-    if (l) setWrenLine(l);
-  };
-  useFocusEffect(
-    useCallback(() => {
-      if (hasText) letWrenRead();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [written]),
-  );
-
-  // time-of-day heatmap cells — deterministic per user from the writing
-  // fingerprint (stable, personal-looking) until real write-times are logged
-  const heatCells = (() => {
-    const base = fp.units.length ? fp.units : [0.4, 0.7, 0.3, 0.6, 0.5];
-    const out: number[] = [];
-    for (let i = 0; i < 40; i++) {
-      const s = `${seed}-${i}`;
-      let h = 0;
-      for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) >>> 0;
-      const v = base[i % base.length] * 0.55 + ((h % 100) / 100) * 0.55 - 0.12;
-      out.push(Math.max(0, Math.min(1, v)));
-    }
-    return out;
-  })();
-  const chips = [long ? "measured pace" : "quick pace", long ? "long sentences" : "short sentences", paused ? "thoughtful pauses" : "few pauses"];
-  const heatRead = hasText
-    ? `${long ? "you let a thought run" : "one thought at a time"}. ${paused ? "you pause to be sure" : "sure of your line"}.`
-    : "write a few letters and your rhythm shows up here.";
-
-  const StatCard = ({ n, label, on }: { n: number; label: string; on?: boolean }) => (
+  const StatCard = ({ n, label, sub, on }: { n: number; label: string; sub: string; on?: boolean }) => (
     <View
       style={[
         cardStyle,
-        { flex: 1, alignItems: "center", paddingVertical: 22, backgroundColor: on ? C.purpleLt : C.card, borderWidth: on ? 1.5 : 0, borderColor: C.purple },
+        { flex: 1, alignItems: "center", paddingVertical: 18, backgroundColor: on ? C.purpleLt : C.card, borderWidth: on ? 1.5 : 0, borderColor: C.purple },
       ]}
     >
-      <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink }}>{n}</Text>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.2, color: on ? C.purple : C.faint, marginTop: 6 }}>{label}</Text>
+      <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink }}>{n}</Text>
+      <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.2, color: on ? C.purple : C.faint, marginTop: 5 }}>{label}</Text>
+      <Text style={{ fontFamily: F.sans, fontSize: 9.5, color: C.faint, marginTop: 3 }}>{sub}</Text>
     </View>
   );
 
@@ -179,16 +148,24 @@ export default function MeTab() {
           </Pressable>
         </View>
 
-        {/* writing fingerprint — the heatmap (hero) */}
-        <View style={{ marginTop: 20 }}>
-          <FingerprintHeat cells={heatCells} chips={chips} read={heatRead} />
-        </View>
+        {/* Your Voice — the hero */}
+        {voice && (
+          <View style={{ marginTop: 18 }}>
+            <VoiceCard
+              read={voice}
+              quote={wrenLine || voice.quote}
+              units={units}
+              lettersSent={stats.lettersSent}
+              onOpen={() => router.push("/voice")}
+            />
+          </View>
+        )}
 
         {/* stat cards */}
         <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-          <StatCard n={stats.lettersSent} label="LETTERS" />
-          <StatCard n={stats.journalN} label="SEALED" on />
-          <StatCard n={stats.kindreds} label="KINDREDS" />
+          <StatCard n={stats.lettersSent} label="LETTERS" sub="Sent so far" />
+          <StatCard n={stats.journalN} label="SEALED" sub="Saved moments" on />
+          <StatCard n={stats.kindreds} label="KINDREDS" sub="Names revealed" />
         </View>
 
         {/* Wren — companion card */}
@@ -203,11 +180,6 @@ export default function MeTab() {
             onEquip={equipWren}
             onLocked={() => router.push("/paywall")}
           />
-        </View>
-
-        {/* ✦ Wren on you */}
-        <View style={{ marginTop: 16 }}>
-          <WrenOnYou line={wrenLine} hasText={hasText} onReadAgain={letWrenRead} />
         </View>
 
         {/* Kindredly+ */}

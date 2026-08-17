@@ -82,6 +82,18 @@ export async function translate(
   return typeof out === "string" && out.trim() ? out.trim() : null;
 }
 
+/** YOUR VOICE — the nine-signal read of how you write (server-side engine).
+ *  Returns the structured profile or null (offline / job not deployed) —
+ *  callers keep their local read and upgrade quietly when this lands. */
+export async function voiceRead(
+  texts: string[],
+  signal?: AbortSignal,
+): Promise<{ voice_summary?: string; signature_traits?: string[]; sample_size?: number } | null> {
+  if (!texts.length) return null;
+  const ai = await callWren("voice", { texts: texts.slice(0, 20) }, signal);
+  return ai && (ai.voice_summary || ai.signature_traits) ? ai : null;
+}
+
 /** PEEK — deeper read on a correspondent (Kindredly+). */
 export async function peek(
   msgs: unknown[],

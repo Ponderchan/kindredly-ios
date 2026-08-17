@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { C, F, cardStyle, shadow } from "../theme/tokens";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
-import { ACCESSORY_META, SKINS, skinUnlocked, stageInfo } from "../lib/wren-style";
+import { ACCESSORY_META, SKINS, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import type { GrowthStats } from "../data/growth";
 
@@ -84,6 +84,50 @@ export function WrenHome({
             )}
           </Text>
         </View>
+      </View>
+
+      {/* the road — every stage visible, the current one ringed */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4 }}>
+        {(
+          [
+            ["egg", "Egg"],
+            ["hatch", "Hatchling"],
+            ["fledge", "Fledgling"],
+            ["wren", "Wren"],
+          ] as [WrenStage, string][]
+        ).map(([st, label], i, arr) => {
+          const cur = stageIndex(info.stage);
+          const idx = stageIndex(st);
+          const state = idx < cur ? "done" : idx === cur ? "now" : "later";
+          return (
+            <View key={st} style={{ flexDirection: "row", flex: i < arr.length - 1 ? 1 : 0, alignItems: "center" }}>
+              <View style={{ alignItems: "center", width: 58 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: state === "now" ? C.purpleLt : "transparent",
+                    borderWidth: state === "now" ? 1.5 : 0,
+                    borderColor: C.purple,
+                    opacity: state === "later" ? 0.35 : 1,
+                  }}
+                >
+                  <WrenBird size={30} stage={st} mood={state === "now" ? "happy" : "content"} />
+                </View>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, letterSpacing: 0.4, color: state === "now" ? C.purple : state === "done" ? C.muted : C.faint, marginTop: 4 }}>
+                  {state === "done" ? "✓ " : ""}
+                  {label}
+                </Text>
+              </View>
+              {i < arr.length - 1 && (
+                <View style={{ flex: 1, height: 1.5, borderRadius: 1, backgroundColor: idx < cur ? C.purpleMid : C.line, marginHorizontal: 2, marginBottom: 14 }} />
+              )}
+            </View>
+          );
+        })}
       </View>
 
       {/* LOOKS row */}
