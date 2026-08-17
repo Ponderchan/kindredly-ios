@@ -244,14 +244,14 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
             <StampTile id={letter.stamp} w={52} r={5} />
           </View>
         )}
-        {/* who + when — the date on top, a faceless mosaic seal below (you can't
-            see who they are; the stamp corner says what it's about) */}
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.4, color: "#9A7B3A" }}>
-          {dShort(letter.created_at).toUpperCase()}
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 9 }}>
-          <StrangerAvatar seed={letter.author} size={34} round />
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: "#8C7F63" }}>a stranger, for you</Text>
+        {/* who + when — a faceless mosaic seal + the date, nothing else. The
+            corner stamp is the topic; the provenance line below says it's a
+            stranger's. No number, no label. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <StrangerAvatar seed={letter.author} size={32} round />
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.4, color: "#9A7B3A" }}>
+            {dShort(letter.created_at).toUpperCase()}
+          </Text>
         </View>
 
         {isVoice && audioUrl ? (
@@ -278,16 +278,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           </Text>
         )}
 
-        {/* stamp label — the channel, as a hashtag (the corner tile is the icon,
-            so no emoji here); matches the composer's stamp chip */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 22, flexWrap: "wrap" }}>
-          {st && (
-            <View style={{ backgroundColor: `${st.color}16`, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: st.color }}>#{st.name.en.toLowerCase()}</Text>
-            </View>
-          )}
-        </View>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#9A8B6A", marginTop: 16, lineHeight: 18 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#9A8B6A", marginTop: 24, lineHeight: 18 }}>
           Sent down three streets. You were the first to open it.
         </Text>
       </Animated.View>
