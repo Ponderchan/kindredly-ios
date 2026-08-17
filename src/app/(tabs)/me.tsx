@@ -35,6 +35,7 @@ export default function MeTab() {
   const name = handle || "You";
 
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
+  const [room, setRoom] = useState<"you" | "wren">("you");
   const [voice, setVoice] = useState<VoiceRead | null>(null);
   const [units, setUnits] = useState<number[]>([]);
   const [wrenLine, setWrenLine] = useState<string | null>(null);
@@ -101,19 +102,6 @@ export default function MeTab() {
     await auth.saveProfile({ handle: newName, avatarId: newAvatarId });
   };
 
-  const StatCard = ({ n, label, sub, on }: { n: number; label: string; sub: string; on?: boolean }) => (
-    <View
-      style={[
-        cardStyle,
-        { flex: 1, alignItems: "center", paddingVertical: 18, backgroundColor: on ? C.purpleLt : C.card, borderWidth: on ? 1.5 : 0, borderColor: C.purple },
-      ]}
-    >
-      <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink }}>{n}</Text>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.2, color: on ? C.purple : C.faint, marginTop: 5 }}>{label}</Text>
-      <Text style={{ fontFamily: F.sans, fontSize: 9.5, color: C.faint, marginTop: 3 }}>{sub}</Text>
-    </View>
-  );
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }} edges={["top"]}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 8, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
@@ -126,8 +114,10 @@ export default function MeTab() {
           </Pressable>
           <Pressable onPress={() => setEditing(true)} style={{ flex: 1 }} hitSlop={6}>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 30, color: C.ink }}>{name}</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.2, color: C.muted, marginTop: 3 }}>
-              DAY {stats.day} · {stats.kindreds} {stats.kindreds === 1 ? "KINDRED" : "KINDREDS"}
+            {/* the numbers live here now — one quiet line, not three cards */}
+            <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1, color: C.muted, marginTop: 3 }}>
+              DAY {stats.day} · {stats.lettersSent} LETTERS · {stats.journalN} SEALED · {stats.kindreds}{" "}
+              {stats.kindreds === 1 ? "KINDRED" : "KINDREDS"}
             </Text>
           </Pressable>
           <Pressable
@@ -148,59 +138,76 @@ export default function MeTab() {
           </Pressable>
         </View>
 
-        {/* Your Voice — the hero */}
-        {voice && (
-          <View style={{ marginTop: 18 }}>
-            <VoiceCard
-              read={voice}
-              quote={wrenLine || voice.quote}
-              units={units}
-              lettersSent={stats.lettersSent}
-              onOpen={() => router.push("/voice")}
+        {/* two rooms: You (your voice) · Wren (your companion) */}
+        <View style={{ flexDirection: "row", backgroundColor: "#E9E8F0", borderRadius: 22, padding: 3, marginTop: 16 }}>
+          {(
+            [
+              ["you", "You"],
+              ["wren", "Wren"],
+            ] as const
+          ).map(([id, label]) => {
+            const on = room === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setRoom(id)}
+                style={{ flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 19, backgroundColor: on ? "#fff" : "transparent", ...(on ? shadow.card : null) }}
+              >
+                <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: on ? C.ink : C.muted }}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {room === "you" ? (
+          <>
+            {/* Your Voice — the hero */}
+            {voice && (
+              <View style={{ marginTop: 14 }}>
+                <VoiceCard
+                  read={voice}
+                  quote={wrenLine || voice.quote}
+                  units={units}
+                  lettersSent={stats.lettersSent}
+                  onOpen={() => router.push("/voice")}
+                />
+              </View>
+            )}
+
+            {/* Kindredly+ */}
+            <Pressable
+              onPress={() => router.push("/paywall")}
+              style={({ pressed }) => [
+                cardStyle,
+                { marginTop: 14, padding: 18, backgroundColor: premium ? "#FBE7EE" : C.goldLt, flexDirection: "row", alignItems: "center", gap: 14, opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              <Text style={{ fontSize: 22 }}>👑</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 15.5, color: C.ink }}>
+                  {premium ? "Kindredly+ · active" : "Kindredly+"}
+                </Text>
+                <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 2 }}>
+                  {premium ? "Manage your subscription" : "Unlimited letters & a closer read from Wren"}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 16, color: C.faint }}>›</Text>
+            </Pressable>
+          </>
+        ) : (
+          <View style={{ marginTop: 14 }}>
+            <WrenHome
+              stats={stats}
+              accessory={accessory}
+              premium={premium}
+              stageFloor={stageFloor}
+              typeName={wrenType?.name}
+              bornWith={wrenType?.accessory}
+              onEquip={equipWren}
+              onLocked={() => router.push("/paywall")}
             />
           </View>
         )}
-
-        {/* stat cards */}
-        <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-          <StatCard n={stats.lettersSent} label="LETTERS" sub="Sent so far" />
-          <StatCard n={stats.journalN} label="SEALED" sub="Saved moments" on />
-          <StatCard n={stats.kindreds} label="KINDREDS" sub="Names revealed" />
-        </View>
-
-        {/* Wren — companion card */}
-        <View style={{ marginTop: 16 }}>
-          <WrenHome
-            stats={stats}
-            accessory={accessory}
-            premium={premium}
-            stageFloor={stageFloor}
-            typeName={wrenType?.name}
-            bornWith={wrenType?.accessory}
-            onEquip={equipWren}
-            onLocked={() => router.push("/paywall")}
-          />
-        </View>
-
-        {/* Kindredly+ */}
-        <Pressable
-          onPress={() => router.push("/paywall")}
-          style={({ pressed }) => [
-            cardStyle,
-            { marginTop: 16, padding: 18, backgroundColor: premium ? "#FBE7EE" : C.goldLt, flexDirection: "row", alignItems: "center", gap: 14, opacity: pressed ? 0.9 : 1 },
-          ]}
-        >
-          <Text style={{ fontSize: 22 }}>👑</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 15.5, color: C.ink }}>
-              {premium ? "Kindredly+ · active" : "Kindredly+"}
-            </Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 2 }}>
-              {premium ? "Manage your subscription" : "Unlimited letters & a closer read from Wren"}
-            </Text>
-          </View>
-          <Text style={{ fontSize: 16, color: C.faint }}>›</Text>
-        </Pressable>
       </ScrollView>
 
       <EditProfileSheet
