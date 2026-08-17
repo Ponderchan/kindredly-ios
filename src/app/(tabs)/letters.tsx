@@ -17,6 +17,8 @@ import { dShort } from "../../lib/format";
 import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { MORNING_HOUR } from "../../lib/notify";
 import { getFlags, setFlag } from "../../lib/flags";
+import { loadJournal } from "../../lib/journal";
+import { loadKept } from "../../lib/kept";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
@@ -511,10 +513,60 @@ function Moon() {
   );
 }
 
+/* Wren is asleep, but she stirs long enough to suggest ONE thing — and she
+   looks at your day before she picks. A menu of three has no point of view;
+   she does. Everything else hides behind "or something else". */
+type Nudge = { mumble: string; cta: string; emoji: string; which: "self" | "stranger" | "kept" };
+
+function useWrenNudge(): Nudge {
+  const [nudge, setNudge] = useState<Nudge>({
+    mumble: "…mm. one line before you sleep?",
+    cta: "write to yourself",
+    emoji: "🕯",
+    which: "self",
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      (async () => {
+        const [journal, kept] = await Promise.all([loadJournal(), loadKept()]);
+        if (!alive) return;
+        const today = new Date().toDateString();
+        const wroteToday = journal.some((e) => new Date(e.date).toDateString() === today);
+        const hour = new Date().getHours();
+        const late = hour >= 21 || hour < 5;
+
+        if (wroteToday && kept.length > 0) {
+          setNudge({ mumble: "you already wrote today. reread one instead?", cta: "reread a kept one", emoji: "📖", which: "kept" });
+        } else if (wroteToday) {
+          setNudge({ mumble: "you wrote today. someone out there hasn't heard from you.", cta: "write to a stranger", emoji: "🕊", which: "stranger" });
+        } else if (late) {
+          setNudge({ mumble: "…mm. one line before you sleep?", cta: "write to yourself", emoji: "🕯", which: "self" });
+        } else {
+          setNudge({ mumble: "quiet day. those are the ones worth writing down.", cta: "write to yourself", emoji: "🕯", which: "self" });
+        }
+      })();
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  return nudge;
+}
+
 function Quiet({ onWrite, onSelf, onKept, compact }: { onWrite: () => void; onSelf: () => void; onKept: () => void; compact?: boolean }) {
   const left = useNextPost();
   const insets = useSafeAreaInsets();
   const tabH = 62 + Math.max(insets.bottom, 8);
+  const nudge = useWrenNudge();
+  const [more, setMore] = useState(false);
+  const act = { self: onSelf, stranger: onWrite, kept: onKept };
+  const rest = (["self", "stranger", "kept"] as const)
+    .filter((k) => k !== nudge.which)
+    .map((k) => ({ k, label: k === "self" ? "write to yourself 🕯" : k === "stranger" ? "to a stranger 🕊" : "reread a kept one 📖" }));
+
   const breath = useSharedValue(0);
   useEffect(() => {
     breath.value = withRepeat(withTiming(1, { duration: 3400, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -581,21 +633,38 @@ function Quiet({ onWrite, onSelf, onKept, compact }: { onWrite: () => void; onSe
           put the phone down. go have a life —{"\n"}it's better material.
         </Text>
 
-        <Pressable
-          onPress={onSelf}
-          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF6DA", borderRadius: 26, paddingVertical: 14, paddingHorizontal: 24, marginTop: 18, opacity: pressed ? 0.9 : 1 })}
-        >
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 13.5, color: "#221B45", letterSpacing: 0.3 }}>write to yourself</Text>
-          <Text style={{ fontSize: 15 }}>🕯</Text>
-        </Pressable>
-        <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
-          <Pressable onPress={onWrite} style={({ pressed }) => ({ backgroundColor: "rgba(255,255,255,0.09)", borderWidth: 1, borderColor: "rgba(255,246,218,0.2)", borderRadius: 20, paddingVertical: 11, paddingHorizontal: 18, opacity: pressed ? 0.75 : 1 })}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#EFE9FF" }}>to a stranger 🕊</Text>
-          </Pressable>
-          <Pressable onPress={onKept} style={({ pressed }) => ({ backgroundColor: "rgba(255,255,255,0.09)", borderWidth: 1, borderColor: "rgba(255,246,218,0.2)", borderRadius: 20, paddingVertical: 11, paddingHorizontal: 18, opacity: pressed ? 0.75 : 1 })}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#EFE9FF" }}>reread a kept one 📖</Text>
-          </Pressable>
+        {/* …then she stirs, and offers exactly one thing */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 20, paddingHorizontal: 6 }}>
+          <Text style={{ fontSize: 12, opacity: 0.7 }}>💤</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: "#A79FD4", textAlign: "center" }}>“{nudge.mumble}”</Text>
         </View>
+
+        <Pressable
+          onPress={act[nudge.which]}
+          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF6DA", borderRadius: 26, paddingVertical: 14, paddingHorizontal: 26, marginTop: 10, opacity: pressed ? 0.9 : 1 })}
+        >
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 13.5, color: "#221B45", letterSpacing: 0.3 }}>{nudge.cta}</Text>
+          <Text style={{ fontSize: 15 }}>{nudge.emoji}</Text>
+        </Pressable>
+
+        {/* the rest stay out of the way unless you ask */}
+        {more ? (
+          <Animated.View entering={FadeIn.duration(260)} style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+            {rest.map((r) => (
+              <Pressable
+                key={r.k}
+                onPress={act[r.k]}
+                style={({ pressed }) => ({ backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,246,218,0.18)", borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16, opacity: pressed ? 0.75 : 1 })}
+              >
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#D9D2F5" }}>{r.label}</Text>
+              </Pressable>
+            ))}
+          </Animated.View>
+        ) : (
+          <Pressable onPress={() => setMore(true)} hitSlop={10} style={{ paddingVertical: 12 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#8F86C4" }}>or something else ›</Text>
+          </Pressable>
+        )}
       </Animated.View>
     </View>
   );
