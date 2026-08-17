@@ -59,41 +59,40 @@ export function WrenHome({
 
   return (
     <View style={[cardStyle, { padding: 0, overflow: "hidden" }]}>
-      {/* hero — she's wearing her current look */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 18, backgroundColor: C.purpleLt }}>
-        <View style={{ width: 76, height: 76, alignItems: "center", justifyContent: "center" }}>
-          <WrenBird size={76} stage={info.stage} mood={heroMood(info.stage)} accessory={wearsHere ? accessory : "none"} />
+      {/* hero — she's the centre of her room, wearing her current look */}
+      <View style={{ alignItems: "center", padding: 22, paddingBottom: 20, backgroundColor: C.purpleLt }}>
+        <View style={[{ width: 104, height: 104, borderRadius: 52, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, shadow.card]}>
+          <WrenBird size={72} stage={info.stage} mood={heroMood(info.stage)} accessory={wearsHere ? accessory : "none"} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: F.serifSemi, fontSize: 20, color: C.ink }}>
-            Wren · <Text style={{ color: C.purple }}>{info.label}</Text>
-          </Text>
-          {typeName && (
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.5, color: C.purple, marginTop: 3 }}>BORN {typeName.toUpperCase()}</Text>
+        <Text style={{ fontFamily: F.serifSemi, fontSize: 23, color: C.ink, marginTop: 12 }}>
+          Wren · <Text style={{ color: C.purple }}>{info.label}</Text>
+        </Text>
+        <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, marginTop: 4 }}>{info.blurb}</Text>
+        {typeName && (
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.5, color: C.purple, marginTop: 6 }}>BORN {typeName.toUpperCase()}</Text>
+        )}
+        <View style={{ alignSelf: "stretch", height: 6, borderRadius: 3, backgroundColor: "#FFFFFF", overflow: "hidden", marginTop: 12 }}>
+          <View style={{ width: `${tgt ? Math.round((cur / tgt) * 100) : 100}%`, height: 6, borderRadius: 3, backgroundColor: C.purple }} />
+        </View>
+        <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.muted, marginTop: 8 }}>
+          {info.next ? (
+            <>
+              {info.next.milestone} → <Text style={{ fontFamily: F.sansBold, color: C.ink }}>{info.next.label}</Text>
+            </>
+          ) : (
+            "Fully grown, and unmistakably yours."
           )}
-          <View style={{ height: 6, borderRadius: 3, backgroundColor: "#FFFFFF", overflow: "hidden", marginTop: 9 }}>
-            <View style={{ width: `${tgt ? Math.round((cur / tgt) * 100) : 100}%`, height: 6, borderRadius: 3, backgroundColor: C.purple }} />
-          </View>
-          <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 6 }}>
-            {info.next ? (
-              <>
-                {info.next.milestone} → <Text style={{ fontFamily: F.sansBold, color: C.ink }}>{info.next.label}</Text>
-              </>
-            ) : (
-              "Fully grown, and unmistakably yours."
-            )}
-          </Text>
-        </View>
+        </Text>
       </View>
 
-      {/* the road — every stage visible, the current one ringed */}
-      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4 }}>
+      {/* the road — plain circles, the current one big and solid */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 16, paddingBottom: 8 }}>
         {(
           [
-            ["egg", "Egg"],
-            ["hatch", "Hatchling"],
-            ["fledge", "Fledgling"],
-            ["wren", "Wren"],
+            ["egg", "EGG"],
+            ["hatch", "HATCH"],
+            ["fledge", "FLEDGE"],
+            ["wren", "WREN"],
           ] as [WrenStage, string][]
         ).map(([st, label], i, arr) => {
           const cur = stageIndex(info.stage);
@@ -101,25 +100,22 @@ export function WrenHome({
           const state = idx < cur ? "done" : idx === cur ? "now" : "later";
           return (
             <View key={st} style={{ flexDirection: "row", flex: i < arr.length - 1 ? 1 : 0, alignItems: "center" }}>
-              <View style={{ alignItems: "center", width: 58 }}>
+              <View style={{ alignItems: "center", width: 54 }}>
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: state === "now" ? C.purpleLt : "transparent",
-                    borderWidth: state === "now" ? 1.5 : 0,
-                    borderColor: C.purple,
-                    opacity: state === "later" ? 0.35 : 1,
+                    width: state === "now" ? 34 : 24,
+                    height: state === "now" ? 34 : 24,
+                    borderRadius: 17,
+                    marginTop: state === "now" ? 0 : 5,
+                    backgroundColor: state === "now" ? C.purple : state === "done" ? C.purpleMid : C.purpleLt,
+                    opacity: state === "later" ? 0.55 : 1,
+                    borderWidth: state === "now" ? 3 : 0,
+                    borderColor: "#E3E1F8",
                   }}
-                >
-                  <WrenBird size={30} stage={st} mood={state === "now" ? "happy" : "content"} />
-                </View>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, letterSpacing: 0.4, color: state === "now" ? C.purple : state === "done" ? C.muted : C.faint, marginTop: 4 }}>
-                  {state === "done" ? "✓ " : ""}
+                />
+                <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, letterSpacing: 0.6, color: state === "now" ? C.purple : C.faint, marginTop: 5 }}>
                   {label}
+                  {state === "done" ? " ✓" : ""}
                 </Text>
               </View>
               {i < arr.length - 1 && (

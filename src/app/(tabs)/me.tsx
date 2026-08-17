@@ -8,6 +8,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { VoiceCard } from "../../components/VoiceCard";
+import { WrenBird } from "../../components/WrenBird";
 import { WrenHome } from "../../components/WrenHome";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
@@ -17,7 +18,9 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fingerprint } from "../../lib/signature";
-import { analyzeVoice, gatherWriting, type VoiceRead } from "../../lib/voice";
+import { analyzeVoice, auraName, gatherWriting, type VoiceRead } from "../../lib/voice";
+import { journalHourBand } from "../../lib/report";
+import { stageInfo } from "../../lib/wren-style";
 import { portrait } from "../../lib/wren";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -38,6 +41,7 @@ export default function MeTab() {
   const [room, setRoom] = useState<"you" | "wren">("you");
   const [voice, setVoice] = useState<VoiceRead | null>(null);
   const [units, setUnits] = useState<number[]>([]);
+  const [hourBand, setHourBand] = useState<string | null>(null);
   const [wrenLine, setWrenLine] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -68,6 +72,7 @@ export default function MeTab() {
         if (!alive) return;
         setVoice(analyzeVoice(texts));
         setUnits(fingerprint(texts.join(" ")).units.slice(0, 24));
+        journalHourBand().then((h) => alive && setHourBand(h));
         if (texts.length) {
           const l = await portrait(texts.join("\n\n").slice(0, 2000), "en");
           if (alive && l) setWrenLine(l);
@@ -161,53 +166,64 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
-            {/* Your Voice — the hero */}
+            {/* the aura — the hero */}
             {voice && (
               <View style={{ marginTop: 14 }}>
                 <VoiceCard
                   read={voice}
                   quote={wrenLine || voice.quote}
                   units={units}
-                  stage={stageFloor}
+                  auraName={auraName(voice, wrenType?.name ?? null, hourBand)}
                   lettersSent={stats.lettersSent}
                   onOpen={() => router.push("/voice")}
                 />
               </View>
             )}
 
-            {/* Kindredly+ */}
-            <Pressable
-              onPress={() => router.push("/paywall")}
-              style={({ pressed }) => [
-                cardStyle,
-                { marginTop: 14, padding: 18, backgroundColor: premium ? "#FBE7EE" : C.goldLt, flexDirection: "row", alignItems: "center", gap: 14, opacity: pressed ? 0.9 : 1 },
-              ]}
-            >
-              <Text style={{ fontSize: 22 }}>👑</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 15.5, color: C.ink }}>
-                  {premium ? "Kindredly+ · active" : "Kindredly+"}
+            {/* quiet rows — Wren's room + Kindredly+ */}
+            <View style={[cardStyle, { marginTop: 14, paddingVertical: 2, paddingHorizontal: 0 }]}>
+              <Pressable onPress={() => setRoom("wren")} style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 16, paddingVertical: 13 }}>
+                <WrenBird size={26} stage={stageFloor} mood="content" />
+                <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>
+                  Wren · {stageInfo(stats, stageFloor).label}
                 </Text>
-                <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 2 }}>
-                  {premium ? "Manage your subscription" : "Unlimited letters & a closer read from Wren"}
+                <View style={{ flex: 1 }} />
+                <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted }}>
+                  {stageInfo(stats, stageFloor).next ? stageInfo(stats, stageFloor).next!.milestone : "fully grown"} ›
                 </Text>
-              </View>
-              <Text style={{ fontSize: 16, color: C.faint }}>›</Text>
-            </Pressable>
+              </Pressable>
+              <View style={{ height: 1, backgroundColor: C.lineSoft, marginHorizontal: 16 }} />
+              <Pressable onPress={() => router.push("/paywall")} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>Kindredly+</Text>
+                <View style={{ flex: 1 }} />
+                <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 1, color: C.purple }}>
+                  {premium ? "ACTIVE" : "UNLIMITED"} ›
+                </Text>
+              </Pressable>
+            </View>
           </>
         ) : (
-          <View style={{ marginTop: 14 }}>
-            <WrenHome
-              stats={stats}
-              accessory={accessory}
-              premium={premium}
-              stageFloor={stageFloor}
-              typeName={wrenType?.name}
-              bornWith={wrenType?.accessory}
-              onEquip={equipWren}
-              onLocked={() => router.push("/paywall")}
-            />
-          </View>
+          <>
+            <View style={{ marginTop: 14 }}>
+              <WrenHome
+                stats={stats}
+                accessory={accessory}
+                premium={premium}
+                stageFloor={stageFloor}
+                typeName={wrenType?.name}
+                bornWith={wrenType?.accessory}
+                onEquip={equipWren}
+                onLocked={() => router.push("/paywall")}
+              />
+            </View>
+            <Pressable onPress={() => router.push("/paywall")} style={[cardStyle, { marginTop: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }]}>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>Kindredly+</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 1, color: C.purple }}>
+                {premium ? "ACTIVE" : "UNLIMITED"} ›
+              </Text>
+            </Pressable>
+          </>
         )}
       </ScrollView>
 

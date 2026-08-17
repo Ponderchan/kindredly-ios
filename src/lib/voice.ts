@@ -19,13 +19,40 @@ export interface VoiceRow {
   line: string;
   strength: number; // 1..5 dots
 }
+export interface AuraTrait {
+  icon: string;
+  label: string;
+  sub: string; // shown once the aura is fully formed
+}
+export type AuraTier = "empty" | "evolving" | "formed";
+export const FORMED_AT = 20; // pieces of writing before the aura is fully formed
+
 export interface VoiceRead {
   rows: VoiceRow[];
   chips: string[];
+  traits: AuraTrait[]; // the aura's three trait lines, icon-led
+  tier: AuraTier;
   lead: string; // the opening line of your little portrait, in Wren's voice
   quote: string; // Wren's pull-quote (local; the AI upgrade may replace it)
   pieces: number; // how many pieces of writing this is based on
   taking: string; // footer line for the card
+}
+
+/** the aura's name — evolving: from the hand's shape; fully formed: the born
+ *  type crowned with the writer's hour ("The Midnight Storyteller"). */
+export function auraName(read: VoiceRead, typeName: string | null, hour: string | null): string {
+  if (read.tier === "formed") {
+    const word = (typeName || "Writer").replace(/^The\s+/i, "");
+    const prefix =
+      hour === "23:00 – 05:00" ? "Midnight" : hour === "05:00 – 11:00" ? "Morning" : hour === "17:00 – 23:00" ? "Dusk" : hour === "11:00 – 17:00" ? "Daylight" : "Quiet";
+    return `The ${prefix} ${word}`;
+  }
+  const long = read.chips[0] === "unhurried thoughts";
+  const paused = read.chips[2] === "soft pauses";
+  if (long && paused) return "The Patient Wordsmith";
+  if (long) return "The Steady Stream";
+  if (paused) return "The Quiet Observer";
+  return "The Quick Spark";
 }
 
 /** every piece of the user's own writing we can read on-device. */
@@ -157,6 +184,19 @@ export function analyzeVoice(texts: string[]): VoiceRead {
     long ? "long, winding lines" : "short, clear lines",
     paused ? "soft pauses" : "few pauses",
   ];
+  // the same three, icon-led, with a second line for the fully formed aura
+  const traits: AuraTrait[] = [
+    long
+      ? { icon: "🌙", label: "Unhurried thinking", sub: "You give ideas time to settle." }
+      : { icon: "⚡", label: "Fast moving thoughts", sub: "Your thoughts arrive suddenly." },
+    long
+      ? { icon: "📖", label: "Long flowing lines", sub: "One sentence carries many turns." }
+      : { icon: "🌱", label: "Notices small moments", sub: "Small moments become stories." },
+    paused
+      ? { icon: "🌊", label: "Feelings between lines", sub: "You leave room between words." }
+      : { icon: "🕊", label: "Says it, then lets go", sub: "No padding — just the thing." },
+  ];
+  const tier: AuraTier = pieces === 0 ? "empty" : pieces >= FORMED_AT ? "formed" : "evolving";
   // the portrait's opening line — how Wren would begin describing you
   const lead = long
     ? paused
@@ -170,9 +210,14 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       ? "You take the long way when it matters,\nand it shows."
       : "You let a thought run, and it lands."
     : "You don't over-explain.\nYou let the right words stay.";
-  const taking = pieces < 3 ? "Wren is starting to know you." : "a little more you, every time.";
+  const taking =
+    tier === "empty"
+      ? "YOUR AURA IS WAITING"
+      : tier === "formed"
+        ? "Wren understands you."
+        : "WREN IS LEARNING YOUR RHYTHM";
 
-  return { rows, chips, lead, quote, pieces, taking };
+  return { rows, chips, traits, tier, lead, quote, pieces, taking };
 }
 
 /* ── the deeper AI read (server job "voice"; cached; silent fallback) ── */

@@ -114,33 +114,35 @@ export async function buildReport(texts: string[], typeName: string | null, aiQu
     .slice(0, 3)
     .map((t) => ({ mark: t.mark, pct: Math.round((t.n / total) * 100) }));
 
-  // your hour — real journal timestamps only (letters aren't dated locally)
-  let hourBand: string | null = null;
+  const hourBand = await journalHourBand();
+
+  return { read, units, archetype, words, punct, hourBand, quote: aiQuote || read.quote, pieces: read.pieces };
+}
+
+/** your hour — real journal timestamps only (letters aren't dated locally). */
+export async function journalHourBand(): Promise<string | null> {
   try {
     const journal = await loadJournal();
     const hours = journal.filter((e) => !e.id.startsWith("demo-")).map((e) => new Date(e.date).getHours());
     const pool = hours.length >= 4 ? hours : __DEV__ ? [23, 23, 0, 1, 22] : [];
-    if (pool.length >= 4) {
-      const bands: [string, (h: number) => boolean][] = [
-        ["05:00 – 11:00", (h) => h >= 5 && h < 11],
-        ["11:00 – 17:00", (h) => h >= 11 && h < 17],
-        ["17:00 – 23:00", (h) => h >= 17 && h < 23],
-        ["23:00 – 05:00", (h) => h >= 23 || h < 5],
-      ];
-      let best = bands[0][0];
-      let bn = -1;
-      for (const [label, test] of bands) {
-        const n = pool.filter(test).length;
-        if (n > bn) {
-          bn = n;
-          best = label;
-        }
+    if (pool.length < 4) return null;
+    const bands: [string, (h: number) => boolean][] = [
+      ["05:00 – 11:00", (h) => h >= 5 && h < 11],
+      ["11:00 – 17:00", (h) => h >= 11 && h < 17],
+      ["17:00 – 23:00", (h) => h >= 17 && h < 23],
+      ["23:00 – 05:00", (h) => h >= 23 || h < 5],
+    ];
+    let best = bands[0][0];
+    let bn = -1;
+    for (const [label, test] of bands) {
+      const n = pool.filter(test).length;
+      if (n > bn) {
+        bn = n;
+        best = label;
       }
-      hourBand = best;
     }
+    return best;
   } catch {
-    /* fine */
+    return null;
   }
-
-  return { read, units, archetype, words, punct, hourBand, quote: aiQuote || read.quote, pieces: read.pieces };
 }

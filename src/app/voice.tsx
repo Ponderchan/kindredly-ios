@@ -55,7 +55,7 @@ export default function VoiceDetail() {
           <Text style={{ fontSize: 24, color: C.ink }}>‹</Text>
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>YOUR VOICE</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>YOUR WRITING AURA</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 2 }}>
             {read ? `Based on ${read.pieces} ${read.pieces === 1 ? "piece" : "pieces"} of your writing` : "…"}
           </Text>
