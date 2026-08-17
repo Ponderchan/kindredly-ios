@@ -150,20 +150,18 @@ export function analyzeVoice(texts: string[]): VoiceRead {
     },
   ];
 
-  const chips = [long ? "measured pace" : "quick pace", long ? "long sentences" : "short sentences", paused ? "thoughtful pauses" : "few pauses"];
+  // what Wren noticed — three soft trait lines, never metric-speak
+  const chips = [
+    long ? "unhurried thoughts" : "quick thoughts",
+    long ? "long, winding lines" : "short, clear lines",
+    paused ? "soft pauses" : "few pauses",
+  ];
   const quote = long
     ? paused
       ? "You take the long way when it matters,\nand it shows."
       : "You let a thought run, and it lands."
-    : "You don't over-explain.\nOne thought, said just right.";
-  const taking =
-    pieces === 0
-      ? "write a few letters and your voice shows up here."
-      : pieces < 3
-        ? "Your voice is just appearing."
-        : pieces < 6
-          ? "Your voice is taking shape."
-          : "Wren knows your voice now.";
+    : "You don't over-explain.\nYou let the right words stay.";
+  const taking = pieces < 3 ? "Wren is starting to know you." : "a little more you, every time.";
 
   return { rows, chips, quote, pieces, taking };
 }
