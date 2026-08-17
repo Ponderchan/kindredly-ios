@@ -95,15 +95,16 @@ export function VoiceCard({
 /* your voice map: stars placed by the real rhythm units on a loose spiral —
    stable per person, one more star for every piece written. The first few
    connect faintly, the way constellations do. */
-function Constellation({ units, stars }: { units: number[]; stars: number }) {
-  const S = 150;
+export function Constellation({ units, stars, size = 150 }: { units: number[]; stars: number; size?: number }) {
+  const S = size;
+  const k = S / 150;
   const cx = S / 2;
-  const cy = S / 2 + 2;
+  const cy = S / 2 + 2 * k;
   const u = (i: number) => units[i % Math.max(1, units.length)] ?? 0.5;
 
   const pts = Array.from({ length: stars }, (_, i) => {
     const a = i * 2.399 + u(i) * 1.4; // golden-angle spread, nudged by the text
-    const r = 14 + (i / Math.max(1, stars - 1)) * 48 + u(i + 3) * 9;
+    const r = (14 + (i / Math.max(1, stars - 1)) * 48 + u(i + 3) * 9) * k;
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) * 0.82, big: i % 3 === 0, w: 0.45 + u(i + 1) * 0.55 };
   });
 

@@ -5,8 +5,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, cardStyle } from "../theme/tokens";
 import { WrenBird } from "../components/WrenBird";
 import { analyzeVoice, cachedVoiceAI, gatherWriting, storeVoiceAI, type VoiceRead } from "../lib/voice";
+import { reportGate, type ReportGate } from "../lib/report";
 import { voiceRead as voiceAI } from "../lib/wren";
 import { useAuth } from "../lib/auth";
+import { useEntitlement } from "../lib/entitlement";
 
 /* Your Voice, in detail — the nine signals Wren reads, each translated into
    plain warm language with an evidence strength. Never a grade; the page
@@ -15,8 +17,10 @@ import { useAuth } from "../lib/auth";
 export default function VoiceDetail() {
   const router = useRouter();
   const { profile } = useAuth();
+  const { premium } = useEntitlement();
   const [read, setRead] = useState<VoiceRead | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
+  const [gate, setGate] = useState<ReportGate | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -25,6 +29,7 @@ export default function VoiceDetail() {
         const texts = await gatherWriting((profile?.firstLine as string) || null);
         if (!alive) return;
         setRead(analyzeVoice(texts));
+        reportGate(texts.length, premium).then((g) => alive && setGate(g));
         // the deeper engine — cached first, then a quiet refresh attempt
         const cached = await cachedVoiceAI();
         if (alive && cached?.voice_summary) setSummary(cached.voice_summary);
@@ -37,7 +42,7 @@ export default function VoiceDetail() {
       return () => {
         alive = false;
       };
-    }, [profile?.firstLine]),
+    }, [profile?.firstLine, premium]),
   );
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
@@ -87,6 +92,42 @@ export default function VoiceDetail() {
             </View>
           ))}
         </View>
+
+        {/* the Voice report — Wren's night letter. First one free; monthly with + */}
+        {gate && (
+          <Pressable
+            onPress={() => {
+              if (gate.state === "ready") router.push("/report");
+              else if (gate.state === "locked") router.push("/paywall");
+            }}
+            disabled={gate.state === "progress" || gate.state === "done"}
+            style={({ pressed }) => [
+              cardStyle,
+              { marginTop: 14, padding: 18, backgroundColor: "#1E1B2E", opacity: pressed && (gate.state === "ready" || gate.state === "locked") ? 0.92 : 1 },
+            ]}
+          >
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.8, color: "#8C86E8" }}>
+              {gate.state === "locked" ? "👑 KINDREDLY+" : "🌙 YOUR VOICE · WRAPPED"}
+            </Text>
+            <Text style={{ fontFamily: F.serifSemi, fontSize: 17, color: "#fff", marginTop: 8 }}>
+              {gate.state === "ready" && (gate.kind === "first" ? "Wren wrote you a letter." : "This month's letter is here.")}
+              {gate.state === "progress" && "Wren is saving up a letter about you."}
+              {gate.state === "locked" && "A letter about you, every month."}
+              {gate.state === "done" && "This month's letter is read."}
+            </Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 12.5, lineHeight: 19, color: "#B9B4D6", marginTop: 6 }}>
+              {gate.state === "ready" && "How you write, wrapped in a night sky. Tap to open."}
+              {gate.state === "progress" && `Write ${gate.need - gate.have} more ${gate.need - gate.have === 1 ? "piece" : "pieces"} and she'll seal the first one — free.`}
+              {gate.state === "locked" && "Your voice, your hours, your words — a wrapped read from Wren with Kindredly+."}
+              {gate.state === "done" && "The next one arrives with the new month."}
+            </Text>
+            {gate.state === "progress" && (
+              <View style={{ height: 5, borderRadius: 3, backgroundColor: "#2A2450", overflow: "hidden", marginTop: 12 }}>
+                <View style={{ width: `${Math.min(100, Math.round((gate.have / gate.need) * 100))}%`, height: 5, backgroundColor: "#6D6DF6" }} />
+              </View>
+            )}
+          </Pressable>
+        )}
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18 }}>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint }}>Wren keeps learning as you write.</Text>
