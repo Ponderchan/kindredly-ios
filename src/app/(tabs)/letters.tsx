@@ -4,6 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
+import { P, PF, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
 import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { WrenBird } from "../../components/WrenBird";
@@ -12,7 +13,7 @@ import { CloseOfDay } from "../../components/CloseOfDay";
 import { Toast } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
-import { dShort } from "../../lib/format";
+import { dShort, postNo } from "../../lib/format";
 import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { getFlags, setFlag } from "../../lib/flags";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
@@ -146,7 +147,7 @@ function Feed({
   if (quiet) {
     // nothing waiting — you're already at the close of the day
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#EFE8D8" }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top"]}>
         <View style={{ flex: 1, paddingBottom: tabH }}>
           <CloseOfDay
             sealed={sealed}
@@ -164,7 +165,7 @@ function Feed({
   const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: atEnd ? CLOSE : LAV }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={atEnd} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
@@ -182,7 +183,7 @@ function Feed({
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
                 page and the ground meet without a seam. */}
-            <View style={{ height: vh, backgroundColor: "#EFE8D8" }}>
+            <View style={{ height: vh, backgroundColor: P.paper }}>
               <CloseOfDay
                 sealed={sealed}
                 onSeal={seal}
@@ -197,36 +198,38 @@ function Feed({
         {/* one shared reply bar, bound to the letter you're on. Always rendered
             at a constant height (even on the caught-up page) so the pager's page
             height never shifts under it. */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
+        <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
-            <View style={{ minHeight: 82 }}>
-              <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 8, backgroundColor: "#fff", borderRadius: 26, paddingLeft: 18, paddingRight: 7, paddingVertical: 7 }, shadow.card]}>
+            <View style={{ minHeight: 78 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderWidth: 1, borderColor: P.ink, paddingLeft: 12, paddingRight: 6, paddingVertical: 5 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
-                  placeholder="write them back…"
-                  placeholderTextColor="#B3A4E0"
+                  placeholder="write back…"
+                  placeholderTextColor={P.ink40}
                   multiline
-                  style={{ flex: 1, maxHeight: 110, paddingTop: 11, paddingBottom: 11, color: "#2A2153", fontFamily: F.letter, fontSize: 16, lineHeight: 22 }}
+                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 16, lineHeight: 22 }}
                 />
                 <Pressable
                   onPress={send}
                   disabled={!replyOk || sending}
-                  style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#4B3F86", alignItems: "center", justifyContent: "center", opacity: !replyOk || sending ? 0.4 : 1 }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
                 >
-                  <Text style={{ fontSize: 18 }}>✈️</Text>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : P.ink40 }}>
+                    {sending ? "···" : "SEND"}
+                  </Text>
                 </Pressable>
               </View>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: replyW > LETTER_MAX ? "#C0503A" : "rgba(43,33,83,0.6)", textAlign: "center", marginTop: 8 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
-                  ? `${replyW - LETTER_MAX} over`
+                  ? `${replyW - LETTER_MAX} OVER THE LIMIT`
                   : replyOk
-                    ? "reply and a thread opens — just the two of you"
-                    : "↑ swipe up to pass · write back to keep them"}
+                    ? "A THREAD OPENS — JUST THE TWO OF YOU"
+                    : "REPLY AND A THREAD OPENS"}
               </Text>
             </View>
           ) : (
-            <View style={{ minHeight: 82 }} />
+            <View style={{ minHeight: 78 }} />
           )}
         </View>
       </KeyboardAvoidingView>
@@ -238,29 +241,19 @@ function Feed({
 
 function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 4, paddingBottom: 6 }}>
-      <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: "#2A2153" }}>today</Text>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 7,
-          backgroundColor: "#FFFFFF",
-          borderRadius: 16,
-          paddingHorizontal: 13,
-          paddingVertical: 8,
-        }}
-      >
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: "#2A2153" }}>
-          {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${idx + 1} / ${count}`}
-        </Text>
-        <Text style={{ fontSize: 11 }}>{count === 0 || atEnd ? "🕊" : "✉️"}</Text>
-      </View>
+    <View style={[{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>TODAY</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
+        {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
+      </Text>
     </View>
   );
 }
 
-/* one full-screen letter in the feed */
+/* One letter, full screen. No card, no shadow, no rounding — the letter is
+   printed straight onto the paper, and hairline rules do the framing. The body
+   is the only serif on the screen, so the human voice sits inside the machine's
+   docket. */
 function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -268,69 +261,79 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
 
   return (
-    <View style={{ height, paddingHorizontal: 22, justifyContent: "center" }}>
-      <Animated.View entering={FadeIn.duration(300)} style={[{ backgroundColor: PAPER, borderRadius: 24, padding: 24, paddingTop: 20 }, shadow.card]}>
-        {/* pasted stamp */}
-        {st && (
-          <View style={{ position: "absolute", top: -8, right: 18, transform: [{ rotate: "7deg" }], zIndex: 2 }}>
-            <StampTile id={letter.stamp} w={52} r={5} />
-          </View>
-        )}
-        {/* who + when — a faceless mosaic seal + the date, nothing else. The
-            corner stamp is the topic; the provenance line below says it's a
-            stranger's. No number, no label. */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <StrangerAvatar seed={letter.author} size={32} round />
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.4, color: "#9A7B3A" }}>
-            {dShort(letter.created_at).toUpperCase()}
+    <View style={{ height, paddingHorizontal: 26, paddingTop: 26 }}>
+      <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
+        {/* docket line — who and when, as the system files it */}
+        <AirRule />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 14 }}>
+          <StrangerAvatar seed={letter.author} size={26} />
+          <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
+            {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
           </Text>
         </View>
 
+        <View style={{ flex: 1, justifyContent: "center" }}>
         {isVoice && audioUrl ? (
-          <View style={{ marginTop: 22 }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.purple, marginBottom: 14 }}>🎙 A VOICE LETTER</Text>
+          <View style={{ marginTop: 26 }}>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>VOICE LETTER</Text>
             <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} />
             {!!letter.body && letter.body !== "🎙 A voice letter" && (
-              <Text style={{ fontFamily: F.letterItalic, fontSize: 15, lineHeight: 24, color: "#6A6280", marginTop: 16 }}>“{letter.body}”</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 24, color: P.ink60, marginTop: 16 }}>{letter.body}</Text>
             )}
           </View>
         ) : (
           <Text
             style={{
-              fontFamily: F.letter,
+              fontFamily: PF.letter,
               fontSize: tier.size,
               lineHeight: tier.line,
-              color: "#22222A",
-              marginTop: tier.center ? 26 : 18,
+              color: P.ink,
+              marginTop: 28,
               textAlign: tier.center ? "center" : "auto",
-              paddingBottom: tier.center ? 10 : 0,
             }}
           >
             {letter.body}
           </Text>
         )}
+        </View>
 
-        {/* the channel as a hashtag — the one readable topic label (the corner
-            tile is the icon; matches the composer's stamp chip) */}
+        {/* the channel, as the system tags it */}
         {st && (
-          <View style={{ flexDirection: "row", marginTop: 22 }}>
-            <View style={{ backgroundColor: `${st.color}16`, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: st.color }}>#{st.name.en.toLowerCase()}</Text>
+          <View style={{ flexDirection: "row", marginBottom: 12 }}>
+            <View style={{ backgroundColor: P.pen, paddingHorizontal: 8, paddingVertical: 4 }}>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: "#fff" }}>
+                {st.name.en.toUpperCase()}
+              </Text>
             </View>
           </View>
         )}
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#9A8B6A", marginTop: 16, lineHeight: 18 }}>
-          Sent down three streets. You were the first to open it.
-        </Text>
-      </Animated.View>
 
-      {/* the swipe affordance — teach it on the very first letter */}
-      <View style={{ alignItems: "center", marginTop: 18 }}>
-        <Text style={{ fontSize: 15, color: "rgba(43,33,83,0.5)" }}>↑</Text>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(43,33,83,0.5)", marginTop: 2 }}>
-          {first ? "SWIPE UP FOR THE NEXT" : "NEXT"}
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginBottom: 10 }}>
+          SENT DOWN THREE STREETS · YOU OPENED IT FIRST
         </Text>
-      </View>
+
+        {/* the two moves, on a rule */}
+        <View style={[{ flexDirection: "row", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }]}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
+/* the airmail stripe, as a rule rather than a border — the one postal mark
+   the reading page carries */
+function AirRule() {
+  const bars = Array.from({ length: 46 });
+  return (
+    <View style={{ height: 6, flexDirection: "row", overflow: "hidden" }}>
+      {bars.map((_, i) => (
+        <View
+          key={i}
+          style={{ width: 6, height: 22, marginTop: -8, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }}
+        />
+      ))}
     </View>
   );
 }

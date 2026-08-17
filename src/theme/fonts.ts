@@ -12,8 +12,15 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from "@expo-google-fonts/inter";
+import {
+  IBMPlexMono_400Regular,
+  IBMPlexMono_500Medium,
+  IBMPlexMono_600SemiBold,
+} from "@expo-google-fonts/ibm-plex-mono";
 
-/* v20 typography — Fraunces (serif) + Inter (sans), on the blue-white palette. */
+/* v20 typography — Fraunces (serif) + Inter (sans), on the blue-white palette.
+   IBM Plex Mono carries the postal system's own voice: counters, dockets,
+   dates, numbers. It's the machine talking; the letter itself stays serif. */
 export function useAppFonts() {
   return useFonts({
     Fraunces_400Regular,
@@ -25,5 +32,8 @@ export function useAppFonts() {
     Inter_600SemiBold,
     Inter_700Bold,
     Inter_800ExtraBold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
+    IBMPlexMono_600SemiBold,
   });
 }
