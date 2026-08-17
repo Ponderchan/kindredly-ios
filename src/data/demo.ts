@@ -95,6 +95,22 @@ export const DEMO_DETAILS: Record<
     messages: { body: string; mine: boolean; date: string }[];
   }
 > = {
+  "demo-mira": {
+    stamp: "off-chest",
+    revealed: true,
+    otherName: "Mira",
+    other: "demo-mira",
+    myCount: 6,
+    otherCount: 6,
+    opening: "I read your fridge line twice on the way to bed last night. It felt like something I might have written.",
+    openingFromMe: false,
+    messages: [
+      { body: "Really? That means a lot. It was one of those 2AM thoughts that make more sense in the dark.", mine: true, date: iso(80 * H) },
+      { body: "I get that. Darkness is honest. What keeps you up at 2AM?", mine: false, date: iso(64 * H) },
+      { body: "letter no. 5 — okay. if we're doing this: the box marked KITCHEN. still not unpacked.", mine: true, date: iso(30 * H) },
+      { body: "so it turns out we both kept the box unpacked. solidarity.", mine: false, date: iso(2 * H) },
+    ],
+  },
   "demo-wren": {
     stamp: "off-chest",
     revealed: false,

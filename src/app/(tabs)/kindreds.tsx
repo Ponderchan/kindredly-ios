@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F } from "../../theme/tokens";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
+import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { DEMO_THREADS } from "../../data/demo";
 
@@ -54,7 +55,7 @@ export default function KindredsTab() {
           </View>
           <View style={{ paddingHorizontal: 20 }}>
             {orbit.map((t) => (
-              <Card key={t.id} t={t} onPress={() => router.push(`/thread/${t.id}`)} />
+              <Card key={t.id} t={t} onPress={() => router.push(`/chat/${t.id}`)} />
             ))}
           </View>
         </ScrollView>
@@ -83,19 +84,23 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
           <Dots p={p} />
         )}
         <View style={{ flex: 1 }} />
-        {theirTurn && (
-          <View style={{ backgroundColor: C.purpleLt, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 4 }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1, color: C.purple }}>NEW</Text>
-          </View>
-        )}
+        <View style={{ alignItems: "flex-end", gap: 4 }}>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.2, color: "#8B84B8" }}>{p}/5 LETTERS</Text>
+          {theirTurn && (
+            <View style={{ backgroundColor: C.purpleLt, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 3 }}>
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1, color: C.purple }}>NEW</Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      <Text numberOfLines={2} style={{ fontFamily: F.letter, fontSize: 14.5, lineHeight: 21, color: t.revealed ? "#3A3630" : C.muted, marginTop: 10 }}>
-        {t.preview}
-      </Text>
-
-      {!t.revealed && (
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.2, color: C.faint, marginTop: 10 }}>
+      {/* a revealed friend gets their last line; a stranger stays status-only */}
+      {t.revealed ? (
+        <Text numberOfLines={1} style={{ fontFamily: F.letter, fontSize: 14.5, lineHeight: 21, color: "#3A3630", marginTop: 10 }}>
+          “{t.preview}”
+        </Text>
+      ) : (
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.2, color: C.faint, marginTop: 12 }}>
           RING {t.mine} · {status}
         </Text>
       )}
@@ -116,11 +121,20 @@ function Dots({ p }: { p: number }) {
 function Empty({ onWrite }: { onWrite: () => void }) {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 50 }}>
-      <OrbitMap items={[]} empty />
-      <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, textAlign: "center", marginTop: 18, lineHeight: 34 }}>
+      <View>
+        <OrbitMap items={[]} empty />
+        {/* Wren waits at the edge of the empty sky */}
+        <View style={{ position: "absolute", right: 26, bottom: 28 }}>
+          <WrenBird size={40} mood="curious" />
+        </View>
+      </View>
+      <Text style={{ fontFamily: F.serif, fontSize: 27, color: C.ink, textAlign: "center", marginTop: 14, lineHeight: 34 }}>
         Nobody knows your{"\n"}name yet.
       </Text>
-      <Text style={{ fontFamily: F.letter, fontSize: 15, lineHeight: 23, color: C.muted, textAlign: "center", marginTop: 14, maxWidth: 300 }}>
+      <Text style={{ fontFamily: F.letter, fontSize: 15, lineHeight: 23, color: "#55506E", textAlign: "center", marginTop: 14, maxWidth: 300 }}>
+        But someone out there might be looking for a voice like yours.
+      </Text>
+      <Text style={{ fontFamily: F.letter, fontSize: 14, lineHeight: 22, color: C.muted, textAlign: "center", marginTop: 10, maxWidth: 300 }}>
         Every reply pulls a stranger one ring closer. At the centre, you trade names.
       </Text>
       <Pressable
