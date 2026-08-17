@@ -23,6 +23,7 @@ export interface AuraTrait {
   icon: string;
   label: string;
   sub: string; // shown once the aura is fully formed
+  short: string; // two-word form for the share card
 }
 export type AuraTier = "empty" | "evolving" | "formed";
 export const FORMED_AT = 20; // pieces of writing before the aura is fully formed
@@ -187,14 +188,14 @@ export function analyzeVoice(texts: string[]): VoiceRead {
   // the same three, icon-led, with a second line for the fully formed aura
   const traits: AuraTrait[] = [
     long
-      ? { icon: "🌙", label: "Unhurried thinking", sub: "You give ideas time to settle." }
-      : { icon: "⚡", label: "Fast moving thoughts", sub: "Your thoughts arrive suddenly." },
+      ? { icon: "🌙", label: "Unhurried thinking", sub: "You give ideas time to settle.", short: "unhurried thoughts" }
+      : { icon: "⚡", label: "Fast moving thoughts", sub: "Your thoughts arrive suddenly.", short: "quick thoughts" },
     long
-      ? { icon: "📖", label: "Long flowing lines", sub: "One sentence carries many turns." }
-      : { icon: "🌱", label: "Notices small moments", sub: "Small moments become stories." },
+      ? { icon: "📖", label: "Long flowing lines", sub: "One sentence carries many turns.", short: "long lines" }
+      : { icon: "🌱", label: "Notices small moments", sub: "Small moments become stories.", short: "small details" },
     paused
-      ? { icon: "🌊", label: "Feelings between lines", sub: "You leave room between words." }
-      : { icon: "🕊", label: "Says it, then lets go", sub: "No padding — just the thing." },
+      ? { icon: "🌊", label: "Feelings between lines", sub: "You leave room between words.", short: "quiet feelings" }
+      : { icon: "🕊", label: "Says it, then lets go", sub: "No padding — just the thing.", short: "says it straight" },
   ];
   const tier: AuraTier = pieces === 0 ? "empty" : pieces >= FORMED_AT ? "formed" : "evolving";
   // the portrait's opening line — how Wren would begin describing you

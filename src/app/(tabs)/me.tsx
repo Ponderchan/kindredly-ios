@@ -8,7 +8,6 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { VoiceCard } from "../../components/VoiceCard";
-import { WrenBird } from "../../components/WrenBird";
 import { WrenHome } from "../../components/WrenHome";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
@@ -20,7 +19,6 @@ import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fingerprint } from "../../lib/signature";
 import { analyzeVoice, auraName, gatherWriting, type VoiceRead } from "../../lib/voice";
 import { journalHourBand } from "../../lib/report";
-import { stageInfo } from "../../lib/wren-style";
 import { portrait } from "../../lib/wren";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -176,31 +174,19 @@ export default function MeTab() {
                   auraName={auraName(voice, wrenType?.name ?? null, hourBand)}
                   lettersSent={stats.lettersSent}
                   onOpen={() => router.push("/voice")}
+                  onShare={() => router.push("/aura-card")}
                 />
               </View>
             )}
 
-            {/* quiet rows — Wren's room + Kindredly+ */}
-            <View style={[cardStyle, { marginTop: 14, paddingVertical: 2, paddingHorizontal: 0 }]}>
-              <Pressable onPress={() => setRoom("wren")} style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 16, paddingVertical: 13 }}>
-                <WrenBird size={26} stage={stageFloor} mood="content" />
-                <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>
-                  Wren · {stageInfo(stats, stageFloor).label}
-                </Text>
-                <View style={{ flex: 1 }} />
-                <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted }}>
-                  {stageInfo(stats, stageFloor).next ? stageInfo(stats, stageFloor).next!.milestone : "fully grown"} ›
-                </Text>
-              </Pressable>
-              <View style={{ height: 1, backgroundColor: C.lineSoft, marginHorizontal: 16 }} />
-              <Pressable onPress={() => router.push("/paywall")} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>Kindredly+</Text>
-                <View style={{ flex: 1 }} />
-                <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 1, color: C.purple }}>
-                  {premium ? "ACTIVE" : "UNLIMITED"} ›
-                </Text>
-              </Pressable>
-            </View>
+            {/* one quiet row — Kindredly+ */}
+            <Pressable onPress={() => router.push("/paywall")} style={[cardStyle, { marginTop: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }]}>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>Kindredly+</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 1, color: C.purple }}>
+                {premium ? "ACTIVE" : "UNLIMITED"} ›
+              </Text>
+            </Pressable>
           </>
         ) : (
           <>

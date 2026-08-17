@@ -1,4 +1,4 @@
-import { Pressable, Share, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Stop } from "react-native-svg";
 import { C, F, cardStyle } from "../theme/tokens";
 import { WrenBird } from "./WrenBird";
@@ -17,6 +17,7 @@ export function VoiceCard({
   auraName,
   lettersSent,
   onOpen,
+  onShare,
 }: {
   read: VoiceRead;
   quote: string; // Wren's line (AI when available, local otherwise)
@@ -24,12 +25,12 @@ export function VoiceCard({
   auraName: string;
   lettersSent: number;
   onOpen: () => void;
+  onShare: () => void;
 }) {
   const tier = read.tier;
   const count = lettersSent > 0 ? lettersSent : read.pieces;
   const countWord = lettersSent > 0 ? "LETTERS" : "PAGES";
-  const share = () =>
-    Share.share({ message: `${auraName} — "${quote.replace(/\n/g, " ")}" · my writing aura on Kindredly` });
+  const share = onShare;
 
   /* ── fully formed: the card goes night ── */
   if (tier === "formed") {
@@ -42,7 +43,7 @@ export function VoiceCard({
           </View>
 
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <Orb size={190} dark units={units} stars={3 + Math.min(read.pieces, 9)} />
+            <AuraOrb size={190} dark units={units} stars={3 + Math.min(read.pieces, 9)} />
             <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>AURA NAME</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
           </View>
@@ -90,9 +91,9 @@ export function VoiceCard({
 
       {tier === "empty" ? (
         <View style={{ alignItems: "center", paddingTop: 16, paddingBottom: 2 }}>
-          <Orb size={170} empty>
+          <AuraOrb size={170} empty>
             <WrenBird size={84} stage="hatch" mood="listen" />
-          </Orb>
+          </AuraOrb>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 19, color: C.ink, textAlign: "center", marginTop: 10 }}>
             Wren is still listening.
           </Text>
@@ -109,7 +110,7 @@ export function VoiceCard({
       ) : (
         <View>
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <Orb size={190} units={units} stars={3 + Math.min(read.pieces, 9)} />
+            <AuraOrb size={190} units={units} stars={3 + Math.min(read.pieces, 9)} />
           </View>
           <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: C.faint }}>AURA</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink, marginTop: 4 }}>{auraName}</Text>
@@ -145,7 +146,7 @@ export function VoiceCard({
 
 /* the aura orb — a soft glowing sphere; the constellation lives on it once
    there's writing. `empty` renders the waiting ring instead. */
-function Orb({
+export function AuraOrb({
   size,
   units = [],
   stars = 0,
