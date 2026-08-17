@@ -28,8 +28,7 @@ export function VoiceCard({
   onShare: () => void;
 }) {
   const tier = read.tier;
-  const count = lettersSent > 0 ? lettersSent : read.pieces;
-  const countWord = lettersSent > 0 ? "LETTERS" : "PAGES";
+  const count = Math.max(lettersSent, read.pieces);
   const share = onShare;
 
   /* ── fully formed: the card goes night ── */
@@ -103,7 +102,7 @@ export function VoiceCard({
           <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, alignSelf: "flex-start", marginTop: 10 }}>— Wren</Text>
           <View style={{ alignSelf: "stretch", borderTopWidth: 1, borderTopColor: C.lineSoft, marginTop: 12, paddingTop: 10 }}>
             <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.2, color: C.faint }}>
-              0 LETTERS · {read.taking}
+              0 LETTERS · {read.taking.toUpperCase()}
             </Text>
           </View>
         </View>
@@ -132,7 +131,7 @@ export function VoiceCard({
 
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: C.lineSoft, marginTop: 14, paddingTop: 11 }}>
             <Text style={{ flex: 1, fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1, color: C.faint, marginRight: 10 }}>
-              {count} {countWord} · {read.taking}
+              {count} LETTERS · {read.taking.toUpperCase()}
             </Text>
             <Pressable onPress={share} hitSlop={6} style={({ pressed }) => ({ backgroundColor: C.purpleLt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.85 : 1 })}>
               <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>Share my aura ✨</Text>

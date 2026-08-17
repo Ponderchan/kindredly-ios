@@ -26,22 +26,22 @@ export interface AuraTrait {
   short: string; // two-word form for the share card
 }
 export type AuraTier = "empty" | "evolving" | "formed";
-export const FORMED_AT = 20; // pieces of writing before the aura is fully formed
+export const FORMED_AT = 100; // "Known" — the aura is fully formed
 
-/* ── the growth ladder — how well Wren knows you, by how much you've written.
-   The label is the card's status line; the line is Wren saying where she is. */
+/* ── the growth ladder (owner's spec) — how well Wren knows you, by volume.
+   Shown as "N LETTERS · <line>"; zh kept beside each for localization. */
 export interface AuraStage {
-  label: string; // caps status, e.g. "A PATTERN FORMING"
-  line: string; // Wren's own words for this stretch
+  name: string; // Seed / Spark / Forming / Emerging / Clear / Known
+  line: string; // Wren's words for this stretch
+  zh: string;
 }
 export function auraStageOf(pieces: number): AuraStage {
-  if (pieces >= FORMED_AT) return { label: "FULLY FORMED", line: "I know the shape of your voice now." };
-  if (pieces >= 15) return { label: "ALMOST FORMED", line: "A few more letters and I'll know your voice anywhere." };
-  if (pieces >= 10) return { label: "HOLDING ITS SHAPE", line: "Your aura barely wobbles anymore." };
-  if (pieces >= 6) return { label: "COMING INTO FOCUS", line: "I could pick your sentences out of a crowd now." };
-  if (pieces >= 3) return { label: "A PATTERN FORMING", line: "Your rhythm is starting to repeat — in a good way." };
-  if (pieces >= 1) return { label: "FIRST TRACES", line: "I've read your first lines. Something is taking shape." };
-  return { label: "YOUR AURA IS WAITING", line: "Write, and I'll start." };
+  if (pieces > 100) return { name: "Known", line: "Wren knows your voice", zh: "Wren 已经认出你的文心" };
+  if (pieces > 50) return { name: "Clear", line: "Your voice is becoming clear", zh: "你的声音越来越清晰" };
+  if (pieces > 20) return { name: "Emerging", line: "Wren is learning your rhythm", zh: "Wren 正在懂你的节奏" };
+  if (pieces >= 8) return { name: "Forming", line: "Your aura is forming", zh: "你的文心正在成形" };
+  if (pieces >= 3) return { name: "Spark", line: "A little spark appeared", zh: "文心开始有了光" };
+  return { name: "Seed", line: "Wren is listening", zh: "Wren 正在倾听" };
 }
 
 export interface VoiceRead {
@@ -246,7 +246,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       : "You let a thought run, and it lands."
     : "You don't over-explain.\nYou let the right words stay.";
   const discovery = found.length ? found[pieces % found.length] : quote;
-  const taking = tier === "empty" ? "YOUR AURA IS WAITING" : tier === "formed" ? "Wren understands you." : stage.label;
+  const taking = stage.line; // the ladder speaks everywhere the count shows
 
   return { rows, chips, traits, tier, stage, discovery, lead, quote, pieces, taking };
 }
