@@ -264,8 +264,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
     <View style={{ height, paddingHorizontal: 26, paddingTop: 26 }}>
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* docket line — who and when, as the system files it */}
-        <AirRule />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 14 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
           <StrangerAvatar seed={letter.author} size={26} />
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
             {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
@@ -318,24 +317,6 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
         </View>
       </Animated.View>
-    </View>
-  );
-}
-
-/* The airmail stripe, full-bleed. It must run edge to edge: a striped band
-   that stops short of the margin reads as a crooked line, because the eye
-   compares its floating ends against the hairlines that do touch the edge.
-   Bleeding it past both sides makes it a band, not a line. */
-function AirRule() {
-  const bars = Math.ceil(W / 7) + 6;
-  return (
-    <View style={{ height: 7, flexDirection: "row", overflow: "hidden", marginHorizontal: -26 }}>
-      {Array.from({ length: bars }).map((_, i) => (
-        <View
-          key={i}
-          style={{ width: 7, height: 26, marginTop: -9, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }}
-        />
-      ))}
     </View>
   );
 }
