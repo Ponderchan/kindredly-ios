@@ -7,6 +7,7 @@ import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { reactionLabel } from "../../data/reactions";
 import { DEMO_THREADS } from "../../data/demo";
 
 /* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
@@ -84,6 +85,12 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
           <Dots p={p} />
         )}
         <View style={{ flex: 1 }} />
+        {/* they caught your last letter with a reaction */}
+        {t.theirReaction && (
+          <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: C.purpleLt, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 15 }}>{t.theirReaction}</Text>
+          </View>
+        )}
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.2, color: "#8B84B8" }}>{p}/5 LETTERS</Text>
           {theirTurn && (
@@ -93,6 +100,11 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
           )}
         </View>
       </View>
+      {t.theirReaction && (
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.purple, marginTop: 8 }}>
+          {reactionLabel(t.theirReaction) || "they reacted"} — to your last letter
+        </Text>
+      )}
 
       {/* a revealed friend gets their last line; a stranger stays status-only */}
       {t.revealed ? (

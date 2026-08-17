@@ -71,6 +71,15 @@ export default function LetterReader() {
       media_path: isVoice ? media : null,
       duration_s: isVoice && dur ? parseInt(dur, 10) : null,
     };
+    // demo pool letters have no real backend author — seed a local thread so
+    // the whole loop closes on the simulator
+    if (__DEV__ && author?.startsWith("demo-")) {
+      const { seedDemoThread } = await import("../../data/demo");
+      const seededId = seedDemoThread(letter, text);
+      setSending(false);
+      router.replace(`/thread/${seededId}`);
+      return;
+    }
     const threadId = await replyToLetter(letter, text);
     setSending(false);
     if (threadId) router.replace(`/thread/${threadId}`);

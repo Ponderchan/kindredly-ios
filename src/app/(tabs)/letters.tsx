@@ -6,10 +6,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
 import { WrenBird } from "../../components/WrenBird";
-import { DEMO_THREADS } from "../../data/demo";
+import { DEMO_POOL, DEMO_THREADS } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { postNo } from "../../lib/format";
-import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { fetchPool, fetchThreads, type PoolLetter, type ThreadSummary } from "../../lib/db";
 import { MORNING_HOUR } from "../../lib/notify";
 
 /* Today — the post. When letters wait for you, they're a stack of envelopes;
@@ -22,14 +22,25 @@ const LAV = "#B9A8F0";
 const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
 
+/* Two kinds of envelope wait at the door: a FRESH letter from a stranger you've
+   never answered (tapping it opens the pool reader — replying there starts a
+   brand-new thread), and a REPLY on a thread already going (their turn came back
+   to you). Fresh ones sit up front; ongoing threads behind. */
+type Door =
+  | { key: string; kind: "pool"; letter: PoolLetter }
+  | { key: string; kind: "thread"; thread: ThreadSummary };
+
 export default function LettersTab() {
   const router = useRouter();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
+  const [pool, setPool] = useState<PoolLetter[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [idx, setIdx] = useState(0);
 
   const load = useCallback(async () => {
-    setThreads((await fetchThreads()) || []);
+    const [th, pl] = await Promise.all([fetchThreads(), fetchPool()]);
+    setThreads(th || []);
+    setPool(pl || []);
     setLoaded(true);
   }, []);
   useFocusEffect(
@@ -38,14 +49,46 @@ export default function LettersTab() {
     }, [load]),
   );
 
-  const demo = __DEV__ && loaded && threads.length === 0;
+  const demo = __DEV__ && loaded && threads.length === 0 && pool.length === 0;
   const showThreads = demo ? DEMO_THREADS : threads;
+  const showPool = demo ? DEMO_POOL : pool;
+
+  // their turn on threads already going
   const waiting = showThreads.filter((t) => !t.lastSenderMe);
+  // fresh strangers you're not already in a thread with (replying would dupe)
+  const talkingTo = new Set(showThreads.map((t) => t.other));
+  const fresh = showPool.filter((p) => !talkingTo.has(p.author));
 
-  // tap an envelope → the letter rises up (the reader slides up as a modal)
-  const open = (thread: ThreadSummary) => router.push(`/thread/${thread.id}`);
+  // fresh strangers first, then replies waiting on ongoing threads
+  const door: Door[] = [
+    ...fresh.map((letter) => ({ key: `p:${letter.id}`, kind: "pool" as const, letter })),
+    ...waiting.map((thread) => ({ key: `t:${thread.id}`, kind: "thread" as const, thread })),
+  ];
 
-  const quiet = loaded && waiting.length === 0;
+  // tap a fresh letter → pool reader (reply builds a thread); tap a reply →
+  // straight into the thread
+  const open = (d: Door) => {
+    if (d.kind === "thread") {
+      router.push(`/thread/${d.thread.id}`);
+    } else {
+      const p = d.letter;
+      router.push({
+        pathname: "/letter/[id]",
+        params: {
+          id: p.id,
+          author: p.author,
+          stamp: p.stamp,
+          body: p.body,
+          lang: p.lang,
+          kind: p.kind ?? "text",
+          media: p.media_path ?? "",
+          dur: p.duration_s != null ? String(p.duration_s) : "",
+        },
+      });
+    }
+  };
+
+  const quiet = loaded && door.length === 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} edges={["top"]}>
@@ -53,7 +96,7 @@ export default function LettersTab() {
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 6 }}>
         <Text style={{ fontFamily: F.serifItalic, fontSize: 34, color: "#2A2153" }}>today</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 1.2, color: "#2A2153" }}>{quiet ? "QUIET" : `${waiting.length} WAITING`}</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 1.2, color: "#2A2153" }}>{quiet ? "QUIET" : `${door.length} WAITING`}</Text>
           <Text style={{ fontSize: 12 }}>{quiet ? "🕊" : "✉️"}</Text>
         </View>
       </View>
@@ -69,9 +112,9 @@ export default function LettersTab() {
             style={{ flexGrow: 0 }}
             onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.x / W))}
           >
-            {waiting.map((t) => (
-              <View key={t.id} style={{ width: W, height: 440, alignItems: "center", justifyContent: "center" }}>
-                <Envelope thread={t} onOpen={() => open(t)} />
+            {door.map((d) => (
+              <View key={d.key} style={{ width: W, height: 440, alignItems: "center", justifyContent: "center" }}>
+                <Envelope item={d} onOpen={() => open(d)} />
               </View>
             ))}
           </ScrollView>
@@ -79,12 +122,12 @@ export default function LettersTab() {
           {/* dots + count */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
             <View style={{ flexDirection: "row", gap: 6 }}>
-              {waiting.map((_, i) => (
+              {door.map((_, i) => (
                 <View key={i} style={{ width: i === idx ? 16 : 6, height: 6, borderRadius: 3, backgroundColor: i === idx ? "#4B3F86" : "rgba(43,33,83,0.28)" }} />
               ))}
             </View>
             <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1, color: "#4B3F86", marginLeft: 6 }}>
-              {idx + 1} OF {waiting.length}
+              {idx + 1} OF {door.length}
             </Text>
           </View>
 
@@ -92,7 +135,7 @@ export default function LettersTab() {
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 34, paddingTop: 22, paddingBottom: 12 }}>
             <WrenBird size={20} mood="content" />
             <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: "#3B3363", lineHeight: 20 }}>
-              “{waitLine(waiting.length)}”
+              “{waitLine(door.length)}”
             </Text>
           </View>
         </View>
@@ -101,8 +144,23 @@ export default function LettersTab() {
   );
 }
 
-function Envelope({ thread, onOpen }: { thread: ThreadSummary; onOpen: () => void }) {
-  const st = getStamp(thread.stamp);
+function Envelope({ item, onOpen }: { item: Door; onOpen: () => void }) {
+  const isPool = item.kind === "pool";
+  const stampId = isPool ? item.letter.stamp : item.thread.stamp;
+  const fromId = isPool ? item.letter.author : item.thread.other;
+  const preview = isPool ? item.letter.body : item.thread.preview;
+  const isVoice = isPool && item.letter.kind === "voice";
+  const revealed = !isPool && item.thread.revealed;
+  const named = !isPool ? item.thread.otherName : null;
+
+  // eyebrow: fresh stranger vs a reply on a thread already going
+  const eyebrow = isPool
+    ? "A STRANGER, FOR YOU"
+    : revealed && named
+      ? "WROTE YOU BACK"
+      : "YOUR TURN CAME BACK";
+
+  const st = getStamp(stampId);
   return (
     <View style={{ width: W - 76 }}>
       {/* stacked cards behind */}
@@ -115,27 +173,43 @@ function Envelope({ thread, onOpen }: { thread: ThreadSummary; onOpen: () => voi
           {/* pasted stamp */}
           {st && (
             <View style={{ position: "absolute", top: -6, right: 16, transform: [{ rotate: "8deg" }] }}>
-              <StampTile id={thread.stamp} w={52} r={5} />
+              <StampTile id={stampId} w={52} r={5} />
             </View>
           )}
           <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: "#9A7B3A", paddingRight: 60 }}>
-            FROM NO. {postNo(thread.other)} · A STRANGER, FOR YOU
+            {revealed && named ? named.toUpperCase() : `FROM NO. ${postNo(fromId)}`} · {eyebrow}
           </Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 20, color: "#4A4266", marginTop: 18, lineHeight: 28 }} numberOfLines={2}>
-            “{thread.preview}”
-          </Text>
+
+          {isVoice ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 22 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#6D6DF6", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 16, color: "#fff", marginLeft: 3 }}>▶</Text>
+              </View>
+              <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 18, color: "#4A4266" }}>
+                a voice letter{item.letter.duration_s ? ` · ${fmtDur(item.letter.duration_s)}` : ""}
+              </Text>
+            </View>
+          ) : (
+            <Text style={{ fontFamily: F.serifItalic, fontSize: 20, color: "#4A4266", marginTop: 18, lineHeight: 28 }} numberOfLines={2}>
+              “{preview}”
+            </Text>
+          )}
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 26 }}>
             <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#EF5A5A", alignItems: "center", justifyContent: "center" }}>
               <Text style={{ fontSize: 17 }}>💌</Text>
             </View>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4, color: "#C0503A" }}>TAP TO OPEN →</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4, color: "#C0503A" }}>
+              {isPool ? "OPEN & WRITE BACK →" : "OPEN →"}
+            </Text>
           </View>
         </View>
       </Pressable>
     </View>
   );
 }
+
+const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /* airmail striped border */
 function Airmail() {

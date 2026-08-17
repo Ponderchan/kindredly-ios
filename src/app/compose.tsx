@@ -271,8 +271,6 @@ export default function Compose() {
   }
 
   /* ── write — the sticker zine: lavender desk, everything slightly pasted-on ── */
-  const tagIds = [sel, ...STARTER_STAMPS.filter((id) => id !== sel)].filter(Boolean).slice(0, 3) as string[];
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: LAV }}>
       {/* desk header — close, the address sticker, the stamp */}
@@ -365,35 +363,17 @@ export default function Compose() {
               </View>
             )}
 
-            {/* tags — the stamp as a hashtag; + tag opens the full book */}
-            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 }}>
-              {tagIds.map((id, i) => {
-                const s = getStamp(id);
-                if (!s) return null;
-                const on = sel === id;
-                return (
-                  <Pressable
-                    key={id}
-                    onPress={() => setSel(id)}
-                    style={{
-                      backgroundColor: `${s.color}${on ? "2A" : "14"}`,
-                      borderRadius: 15,
-                      paddingHorizontal: 12,
-                      paddingVertical: 7,
-                      borderWidth: on ? 1.5 : 0,
-                      borderColor: s.color,
-                      transform: [{ rotate: `${i % 2 ? 1 : -1}deg` }],
-                    }}
-                  >
-                    <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: s.color }}>#{s.name.en.toLowerCase()}</Text>
-                  </Pressable>
-                );
-              })}
-              <Pressable
-                onPress={() => setStep("pick")}
-                style={{ borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1.5, borderStyle: "dashed", borderColor: "#C6BFE8" }}
-              >
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#8F87BD" }}>+ tag</Text>
+            {/* one stamp — this letter's channel (exactly one, required) */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }}>
+              <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.2, color: "#8F87BD" }}>YOUR STAMP</Text>
+              {stamp && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: `${stamp.color}1E`, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1.5, borderColor: stamp.color }}>
+                  <Text style={{ fontSize: 12 }}>{stamp.emoji}</Text>
+                  <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: stamp.color }}>#{stamp.name.en.toLowerCase()}</Text>
+                </View>
+              )}
+              <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#8F87BD" }}>change ›</Text>
               </Pressable>
             </View>
           </View>

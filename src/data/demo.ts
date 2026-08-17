@@ -1,4 +1,4 @@
-import type { PoolLetter, ThreadSummary } from "../lib/db";
+import type { PoolLetter, ThreadDetail, ThreadSummary } from "../lib/db";
 import type { JournalEntry } from "../lib/journal";
 
 /* Sample post — a full desk for previewing the Letters tab before sign-in.
@@ -184,6 +184,30 @@ export const DEMO_DETAILS: Record<
     messages: [],
   },
 };
+
+/* Ephemeral demo threads — seeded the moment you reply to a sample pool letter,
+   so the whole loop (read a stranger → write back → a thread opens) closes on
+   the simulator without a real backend. Dev-only, in-memory (cleared on reload;
+   demo authors aren't real users, so replyToLetter can't persist them). */
+export const SEEDED_DEMO: Record<string, ThreadDetail> = {};
+
+export function seedDemoThread(letter: PoolLetter, reply: string): string {
+  const id = `demo-seed-${letter.id}`;
+  SEEDED_DEMO[id] = {
+    stamp: letter.stamp,
+    revealed: false,
+    otherName: null,
+    other: letter.author,
+    myCount: 1,
+    otherCount: 1,
+    opening: letter.body,
+    openingFromMe: false,
+    openingMedia: letter.kind === "voice" ? letter.media_path ?? null : null,
+    openingDurationS: letter.kind === "voice" ? letter.duration_s ?? null : null,
+    messages: [{ body: reply, mine: true, date: iso(0) }],
+  };
+  return id;
+}
 
 /* sample journal pages — shows every card form (dev only, listed after the
    real entries; read-only, can't be deleted or drifted). */

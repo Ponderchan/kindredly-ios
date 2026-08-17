@@ -6,6 +6,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
+import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { Toast } from "../../components/ui";
 import { AudioCard } from "../../components/AudioCard";
 import { getStamp } from "../../data/stamps";
@@ -42,8 +43,8 @@ export default function ThreadScreen() {
   const load = useCallback(async () => {
     if (!id) return;
     if (__DEV__ && id.startsWith("demo-")) {
-      const { DEMO_DETAILS } = await import("../../data/demo");
-      setDetail(DEMO_DETAILS[id] ?? null);
+      const { DEMO_DETAILS, SEEDED_DEMO } = await import("../../data/demo");
+      setDetail(SEEDED_DEMO[id] ?? DEMO_DETAILS[id] ?? null);
       return;
     }
     setDetail(await fetchThreadMessages(id));
@@ -193,13 +194,22 @@ export default function ThreadScreen() {
               {/* dashed divider */}
               <View style={{ borderBottomWidth: 1, borderStyle: "dashed", borderColor: "#E4DCC8", marginTop: 16, marginBottom: 12 }} />
 
-              {/* footer — thread + translate */}
+              {/* footer — the person (still veiled) + translate */}
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 {earlier.length > 0 ? (
-                  <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={8}>
-                    <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: "#8C7F63" }}>
-                      {expanded ? "hide earlier letters" : "open the whole thread ›"}
-                    </Text>
+                  <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
+                    <View>
+                      <StrangerAvatar seed={detail?.other || "anon"} size={30} round />
+                      {!detail?.revealed && (
+                        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, backgroundColor: "rgba(251,248,240,0.55)" }} />
+                      )}
+                    </View>
+                    <View>
+                      <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#5A5344" }}>{name || alias}</Text>
+                      <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#8C7F63" }}>
+                        {expanded ? "hide the thread" : `${conv.length} letters between you ›`}
+                      </Text>
+                    </View>
                   </Pressable>
                 ) : (
                   <View />
