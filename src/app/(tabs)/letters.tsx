@@ -322,16 +322,18 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   );
 }
 
-/* the airmail stripe, as a rule rather than a border — the one postal mark
-   the reading page carries */
+/* The airmail stripe, full-bleed. It must run edge to edge: a striped band
+   that stops short of the margin reads as a crooked line, because the eye
+   compares its floating ends against the hairlines that do touch the edge.
+   Bleeding it past both sides makes it a band, not a line. */
 function AirRule() {
-  const bars = Array.from({ length: 46 });
+  const bars = Math.ceil(W / 7) + 6;
   return (
-    <View style={{ height: 6, flexDirection: "row", overflow: "hidden" }}>
-      {bars.map((_, i) => (
+    <View style={{ height: 7, flexDirection: "row", overflow: "hidden", marginHorizontal: -26 }}>
+      {Array.from({ length: bars }).map((_, i) => (
         <View
           key={i}
-          style={{ width: 6, height: 22, marginTop: -8, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }}
+          style={{ width: 7, height: 26, marginTop: -9, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }}
         />
       ))}
     </View>
