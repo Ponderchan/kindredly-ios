@@ -22,6 +22,7 @@ export interface VoiceRow {
 export interface VoiceRead {
   rows: VoiceRow[];
   chips: string[];
+  lead: string; // the opening line of your little portrait, in Wren's voice
   quote: string; // Wren's pull-quote (local; the AI upgrade may replace it)
   pieces: number; // how many pieces of writing this is based on
   taking: string; // footer line for the card
@@ -156,6 +157,14 @@ export function analyzeVoice(texts: string[]): VoiceRead {
     long ? "long, winding lines" : "short, clear lines",
     paused ? "soft pauses" : "few pauses",
   ];
+  // the portrait's opening line — how Wren would begin describing you
+  const lead = long
+    ? paused
+      ? "You write like someone who waits for the right word."
+      : "You write like a thought that doesn't want to stop."
+    : paused
+      ? "You write in small breaths, one at a time."
+      : "You write like your thoughts are still moving.";
   const quote = long
     ? paused
       ? "You take the long way when it matters,\nand it shows."
@@ -163,7 +172,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
     : "You don't over-explain.\nYou let the right words stay.";
   const taking = pieces < 3 ? "Wren is starting to know you." : "a little more you, every time.";
 
-  return { rows, chips, quote, pieces, taking };
+  return { rows, chips, lead, quote, pieces, taking };
 }
 
 /* ── the deeper AI read (server job "voice"; cached; silent fallback) ── */

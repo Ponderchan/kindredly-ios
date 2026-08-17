@@ -168,6 +168,7 @@ export default function MeTab() {
                   read={voice}
                   quote={wrenLine || voice.quote}
                   units={units}
+                  stage={stageFloor}
                   lettersSent={stats.lettersSent}
                   onOpen={() => router.push("/voice")}
                 />

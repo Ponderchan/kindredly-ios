@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, G, Line, Path } from "react-native-svg";
 import { C, F, cardStyle } from "../theme/tokens";
-import { WrenBird } from "./WrenBird";
+import { WrenBird, type WrenStage } from "./WrenBird";
 import type { VoiceRead } from "../lib/voice";
 
 /* YOUR VOICE — the hero of Me's "You" room. Not a fingerprint, not a metric:
@@ -14,12 +14,14 @@ export function VoiceCard({
   read,
   quote,
   units,
+  stage = "hatch",
   lettersSent,
   onOpen,
 }: {
   read: VoiceRead;
   quote: string; // Wren's line (AI when available, local otherwise)
   units: number[]; // rhythm beats from the real text — they place the stars
+  stage?: WrenStage; // she grows beside your stars
   lettersSent: number;
   onOpen: () => void;
 }) {
@@ -31,27 +33,38 @@ export function VoiceCard({
       {/* eyebrow */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
         <Text style={{ fontSize: 12 }}>✦</Text>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.label, flex: 1 }}>YOUR VOICE</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.label }}>YOUR VOICE</Text>
+          <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: C.faint, marginTop: 2 }}>The way you sound in words.</Text>
+        </View>
         {!empty && <Text style={{ fontSize: 15, color: C.faint }}>›</Text>}
       </View>
 
       {empty ? (
         <View style={{ alignItems: "center", paddingTop: 18, paddingBottom: 4 }}>
-          <WrenBird size={92} stage="hatch" mood="listen" />
+          <WrenBird size={92} stage={stage} mood="listen" />
           <Text style={{ fontFamily: F.serifSemi, fontSize: 18, color: C.ink, textAlign: "center", marginTop: 14 }}>
-            Wren is still listening.
+            Nothing has bloomed yet.
           </Text>
           <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
-            Write more letters, and I'll start noticing{"\n"}the little things that sound like you.
+            Write your first letters.{"\n"}Wren is listening.
           </Text>
           <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1, color: C.faint, marginTop: 14 }}>0 LETTERS</Text>
         </View>
       ) : (
         <View style={{ alignItems: "center" }}>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10, alignSelf: "flex-start" }}>Wren noticed:</Text>
+          {/* the portrait opens with a sentence, not a label */}
+          <Text style={{ fontFamily: F.serifSemi, fontSize: 16.5, lineHeight: 24, color: C.ink, textAlign: "center", marginTop: 16, maxWidth: 280 }}>
+            {read.lead}
+          </Text>
 
-          {/* your voice map — a star for every piece of writing */}
-          <Constellation units={units} stars={3 + Math.min(read.pieces, 9)} />
+          {/* your voice map — a star for every piece of writing, Wren watching */}
+          <View>
+            <Constellation units={units} stars={3 + Math.min(read.pieces, 9)} />
+            <View style={{ position: "absolute", right: -26, bottom: 6 }}>
+              <WrenBird size={34} stage={stage} mood="curious" />
+            </View>
+          </View>
 
           {/* three soft things, not metrics */}
           <View style={{ alignItems: "center", gap: 5 }}>
