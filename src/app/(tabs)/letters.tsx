@@ -1,24 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, type DimensionValue } from "react-native";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { Easing, FadeIn, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path } from "react-native-svg";
+import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
 import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
+import { CloseOfDay } from "../../components/CloseOfDay";
 import { Toast } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { dShort } from "../../lib/format";
 import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
-import { MORNING_HOUR } from "../../lib/notify";
 import { getFlags, setFlag } from "../../lib/flags";
-import { loadJournal } from "../../lib/journal";
-import { loadKept } from "../../lib/kept";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
@@ -29,7 +25,7 @@ import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weig
    then land here forever. The lavender ground marks the strangers' space. */
 
 const LAV = "#B9A8F0";
-const NIGHT = "#4C3F86"; // the top of the night gradient — the post, closed
+const CLOSE = "#EFE8D8"; // the close-of-day paper (CloseOfDay)
 const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
 const WINDOW_H = Dimensions.get("window").height;
@@ -93,6 +89,16 @@ function Feed({
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const tabH = 62 + Math.max(insets.bottom, 8); // matches the custom TabBar height
+  // "did I close the post today" — one flag per date
+  const sealKey = `sealed:${new Date().toISOString().slice(0, 10)}`;
+  const [sealed, setSealed] = useState(false);
+  useEffect(() => {
+    getFlags().then((f) => setSealed(!!f[sealKey]));
+  }, [sealKey]);
+  const seal = () => {
+    setSealed(true);
+    void setFlag(sealKey);
+  };
   const [idx, setIdx] = useState(0);
   const [vh, setVh] = useState(WINDOW_H - 250);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -138,11 +144,18 @@ function Feed({
   };
 
   if (quiet) {
-    // nothing came today — the whole screen is already night
+    // nothing waiting — you're already at the close of the day
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: NIGHT }} edges={["top"]}>
-        <Header count={0} idx={0} night />
-        <Quiet onWrite={() => router.push("/compose")} onSelf={() => router.push("/journal-entry")} onKept={() => router.push("/kept")} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#EFE8D8" }} edges={["top"]}>
+        <View style={{ flex: 1, paddingBottom: tabH }}>
+          <CloseOfDay
+            sealed={sealed}
+            onSeal={seal}
+            onWrite={() => router.push("/compose")}
+            onSelf={() => router.push("/journal-entry")}
+            onKept={() => router.push("/kept")}
+          />
+        </View>
       </SafeAreaView>
     );
   }
@@ -151,7 +164,7 @@ function Feed({
   const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: atEnd ? NIGHT : LAV }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: atEnd ? CLOSE : LAV }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={atEnd} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
@@ -166,12 +179,13 @@ function Feed({
             {feed.map((letter, i) => (
               <LetterPage key={letter.id} letter={letter} height={vh} first={i === 0 && idx === 0} />
             ))}
-            {/* the post closes for the day once you've swiped through them all.
-                It carries its own night sky; the screen behind goes dark too
-                (SafeAreaView switches to NIGHT at atEnd) so they meet seamlessly. */}
-            <View style={{ height: vh, backgroundColor: "#211A44" }}>
-              <Quiet
-                compact
+            {/* swipe past the last letter and the post closes: you stamp the
+                day shut. The screen behind switches to the same paper so the
+                page and the ground meet without a seam. */}
+            <View style={{ height: vh, backgroundColor: "#EFE8D8" }}>
+              <CloseOfDay
+                sealed={sealed}
+                onSeal={seal}
                 onWrite={() => router.push("/compose")}
                 onSelf={() => router.push("/journal-entry")}
                 onKept={() => router.push("/kept")}
@@ -184,9 +198,6 @@ function Feed({
             at a constant height (even on the caught-up page) so the pager's page
             height never shifts under it. */}
         <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
-          {/* at the end the bar is empty — carry the night's bottom colour
-              through it so the sky meets the tab bar without a seam */}
-          {atEnd && <LinearGradient colors={["#211A44", "#191338"]} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />}
           {!atEnd && current ? (
             <View style={{ minHeight: 82 }}>
               <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 8, backgroundColor: "#fff", borderRadius: 26, paddingLeft: 18, paddingRight: 7, paddingVertical: 7 }, shadow.card]}>
@@ -225,28 +236,25 @@ function Feed({
   );
 }
 
-function Header({ count, idx, atEnd, night }: { count: number; idx: number; atEnd?: boolean; night?: boolean }) {
-  const dark = night || atEnd; // once the post closes, the header goes night too
+function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 4, paddingBottom: 6 }}>
-      <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: dark ? "#F4EFE1" : "#2A2153" }}>today</Text>
+      <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: "#2A2153" }}>today</Text>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           gap: 7,
-          backgroundColor: dark ? "rgba(255,255,255,0.1)" : "#FFFFFF",
-          borderWidth: dark ? 1 : 0,
-          borderColor: "rgba(255,246,218,0.22)",
+          backgroundColor: "#FFFFFF",
           borderRadius: 16,
           paddingHorizontal: 13,
           paddingVertical: 8,
         }}
       >
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: dark ? "#FFF6DA" : "#2A2153" }}>
-          {count === 0 ? "GOODNIGHT" : atEnd ? "ALL READ" : `${idx + 1} / ${count}`}
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: "#2A2153" }}>
+          {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${idx + 1} / ${count}`}
         </Text>
-        <Text style={{ fontSize: 11 }}>{dark ? "🌙" : "✉️"}</Text>
+        <Text style={{ fontSize: 11 }}>{count === 0 || atEnd ? "🕊" : "✉️"}</Text>
       </View>
     </View>
   );
@@ -426,266 +434,3 @@ function Airmail() {
    a lit window. It's the app saying goodnight, not an empty state.
    `compact` trims it to sit as the last page of the feed. */
 
-/* deterministic star field — no Math.random so it doesn't reshuffle on render */
-/* Hand-placed so the sky reads as scattered — every generated sequence I tried
-   fell into visible rows or columns. Left column stays clear of the copy; the
-   right side is sparser around the moon. [x%, y%, size, brightness] */
-const STARS = (
-  [
-    [7, 9, 2.2, 0.7], [15, 26, 1.6, 0.5], [4, 41, 2.6, 0.85], [12, 55, 1.8, 0.55],
-    [21, 14, 1.5, 0.45], [9, 68, 2.0, 0.65], [18, 44, 2.4, 0.75], [26, 62, 1.6, 0.5],
-    [3, 21, 1.7, 0.5], [23, 35, 2.1, 0.6], [14, 5, 1.9, 0.6], [30, 24, 1.5, 0.42],
-    [6, 57, 1.6, 0.48], [28, 48, 1.8, 0.55], [19, 71, 2.3, 0.7],
-    [93, 12, 2.3, 0.75], [86, 31, 1.7, 0.5], [96, 46, 2.0, 0.62], [79, 55, 2.5, 0.8],
-    [89, 64, 1.6, 0.48], [97, 27, 1.5, 0.45], [83, 44, 1.9, 0.58], [92, 70, 2.2, 0.68],
-    [75, 20, 1.5, 0.4], [88, 8, 1.8, 0.55], [70, 66, 1.7, 0.5], [95, 58, 1.6, 0.46],
-    [77, 38, 2.0, 0.6], [66, 48, 1.5, 0.42], [72, 9, 1.6, 0.45],
-  ] as const
-).map(([x, y, size, bright], i) => ({
-  left: `${x}%` as DimensionValue,
-  top: `${y}%` as DimensionValue,
-  size,
-  bright,
-  dur: 1900 + ((i * 13) % 6) * 330,
-}));
-
-function Star({ s }: { s: (typeof STARS)[number] }) {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withRepeat(withTiming(1, { duration: s.dur, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [t, s.dur]);
-  const style = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 1], [s.bright * 0.25, s.bright]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [0.7, 1]) }],
-  }));
-  return (
-    <Animated.View
-      style={[
-        { position: "absolute", left: s.left, top: s.top, width: s.size, height: s.size, borderRadius: s.size / 2, backgroundColor: "#FFF6DA" },
-        style,
-      ]}
-    />
-  );
-}
-
-/* a star comes loose now and then and slides across the sky */
-function ShootingStar({ delay, from, to }: { delay: number; from: number; to: number }) {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    const id = setTimeout(() => {
-      t.value = withRepeat(withTiming(1, { duration: 9000, easing: Easing.linear }), -1, false);
-    }, delay);
-    return () => clearTimeout(id);
-  }, [t, delay]);
-  // it only exists for a heartbeat inside each 9s cycle
-  const style = useAnimatedStyle(() => {
-    const p = Math.min(1, Math.max(0, (t.value - 0.06) / 0.11)); // the visible dash
-    return {
-      opacity: t.value > 0.06 && t.value < 0.17 ? Math.sin(p * Math.PI) : 0,
-      transform: [{ translateX: interpolate(p, [0, 1], [0, 150]) }, { translateY: interpolate(p, [0, 1], [0, 92]) }, { rotate: "31deg" }],
-    };
-  });
-  return (
-    <Animated.View style={[{ position: "absolute", left: from, top: to, width: 56, height: 1.6, borderRadius: 1 }, style]}>
-      <LinearGradient colors={["rgba(255,246,218,0)", "#FFF6DA"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1, borderRadius: 1 }} />
-    </Animated.View>
-  );
-}
-
-function Moon() {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withRepeat(withTiming(1, { duration: 5200, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [t]);
-  const glow = useAnimatedStyle(() => ({ opacity: interpolate(t.value, [0, 1], [0.5, 0.9]), transform: [{ scale: interpolate(t.value, [0, 1], [1, 1.06]) }] }));
-  return (
-    <View style={{ position: "absolute", right: 34, top: 22 }}>
-      {/* soft halo — stacked rings, so it reads as light, not a grey disc */}
-      <Animated.View style={[{ position: "absolute", left: -33, top: -33, width: 104, height: 104 }, glow]}>
-        <View style={{ position: "absolute", left: 0, top: 0, width: 104, height: 104, borderRadius: 52, backgroundColor: "rgba(255,233,168,0.05)" }} />
-        <View style={{ position: "absolute", left: 16, top: 16, width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,233,168,0.07)" }} />
-        <View style={{ position: "absolute", left: 28, top: 28, width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,233,168,0.1)" }} />
-      </Animated.View>
-      <Svg width={38} height={38} viewBox="0 0 24 24">
-        <Path d="M20.5 14.5A9 9 0 1 1 10 3.2a7.2 7.2 0 0 0 10.5 11.3Z" fill="#FFEFC0" />
-      </Svg>
-    </View>
-  );
-}
-
-/* Wren is asleep, but she stirs long enough to suggest ONE thing — and she
-   looks at your day before she picks. A menu of three has no point of view;
-   she does. Everything else hides behind "or something else". */
-type Nudge = { mumble: string; cta: string; emoji: string; which: "self" | "stranger" | "kept" };
-
-function useWrenNudge(): Nudge {
-  const [nudge, setNudge] = useState<Nudge>({
-    mumble: "…mm. one line before you sleep?",
-    cta: "write to yourself",
-    emoji: "🕯",
-    which: "self",
-  });
-
-  useFocusEffect(
-    useCallback(() => {
-      let alive = true;
-      (async () => {
-        const [journal, kept] = await Promise.all([loadJournal(), loadKept()]);
-        if (!alive) return;
-        const today = new Date().toDateString();
-        const wroteToday = journal.some((e) => new Date(e.date).toDateString() === today);
-        const hour = new Date().getHours();
-        const late = hour >= 21 || hour < 5;
-
-        if (wroteToday && kept.length > 0) {
-          setNudge({ mumble: "you already wrote today. reread one instead?", cta: "reread a kept one", emoji: "📖", which: "kept" });
-        } else if (wroteToday) {
-          setNudge({ mumble: "you wrote today. someone out there hasn't heard from you.", cta: "write to a stranger", emoji: "🕊", which: "stranger" });
-        } else if (late) {
-          setNudge({ mumble: "…mm. one line before you sleep?", cta: "write to yourself", emoji: "🕯", which: "self" });
-        } else {
-          setNudge({ mumble: "quiet day. those are the ones worth writing down.", cta: "write to yourself", emoji: "🕯", which: "self" });
-        }
-      })();
-      return () => {
-        alive = false;
-      };
-    }, []),
-  );
-
-  return nudge;
-}
-
-function Quiet({ onWrite, onSelf, onKept, compact }: { onWrite: () => void; onSelf: () => void; onKept: () => void; compact?: boolean }) {
-  const left = useNextPost();
-  const insets = useSafeAreaInsets();
-  const tabH = 62 + Math.max(insets.bottom, 8);
-  const nudge = useWrenNudge();
-  const [more, setMore] = useState(false);
-  const act = { self: onSelf, stranger: onWrite, kept: onKept };
-  const rest = (["self", "stranger", "kept"] as const)
-    .filter((k) => k !== nudge.which)
-    .map((k) => ({ k, label: k === "self" ? "write to yourself 🕯" : k === "stranger" ? "to a stranger 🕊" : "reread a kept one 📖" }));
-
-  const breath = useSharedValue(0);
-  useEffect(() => {
-    breath.value = withRepeat(withTiming(1, { duration: 3400, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, [breath]);
-
-  // Wren's slow sleeping breath
-  const dozeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(breath.value, [0, 1], [0, -5]) }, { scale: interpolate(breath.value, [0, 1], [1, 1.035]) }],
-  }));
-  const zzzStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(breath.value, [0, 1], [0.2, 0.75]),
-    transform: [{ translateY: interpolate(breath.value, [0, 1], [0, -12]) }, { translateX: interpolate(breath.value, [0, 1], [0, 5]) }],
-  }));
-  // the lit window under the countdown pulses very faintly
-  const lampStyle = useAnimatedStyle(() => ({ opacity: interpolate(breath.value, [0, 1], [0.5, 0.85]) }));
-
-  return (
-    <View style={{ flex: 1 }}>
-      {/* the night itself — bleeds past the page so the feed's last page and the
-          area behind the tab bar are the same sky */}
-      <LinearGradient colors={["#4C3F86", "#312860", "#211A44"]} locations={[0, 0.55, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-      <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: "72%" }}>
-        {STARS.map((s, i) => (
-          <Star key={i} s={s} />
-        ))}
-        <ShootingStar delay={1500} from={40} to={70} />
-        <ShootingStar delay={6200} from={190} to={30} />
-        <Moon />
-      </View>
-
-      <Animated.View
-        entering={FadeIn.duration(700)}
-        style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: compact ? 16 : tabH + 16 }}
-      >
-        {/* Wren asleep on the closed postbox */}
-        <View style={{ height: compact ? 104 : 124, alignItems: "center", justifyContent: "flex-end" }}>
-          <Animated.Text style={[{ position: "absolute", top: 2, right: 92, fontSize: 16 }, zzzStyle]}>💤</Animated.Text>
-          <Animated.View style={dozeStyle}>
-            <WrenBird size={compact ? 62 : 76} mood="sleepy" />
-          </Animated.View>
-          <Text style={{ fontSize: compact ? 38 : 44, marginTop: -6 }}>📪</Text>
-        </View>
-
-        <Text style={{ fontFamily: F.serif, fontSize: compact ? 24 : 27, color: "#F4EFE1", textAlign: "center", marginTop: 14, lineHeight: compact ? 32 : 35 }}>
-          that's the whole post.{"\n"}you're all caught up.
-        </Text>
-
-        {/* the countdown as a lit window in the dark — the glow is a warm ring
-            that breathes, never a filled block */}
-        <View style={{ marginTop: 18 }}>
-          <Animated.View
-            style={[
-              { position: "absolute", left: -6, right: -6, top: -6, bottom: -6, borderRadius: 28, borderWidth: 6, borderColor: "rgba(255,233,168,0.07)" },
-              lampStyle,
-            ]}
-          />
-          <View style={{ alignItems: "center", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,246,218,0.2)", paddingVertical: 13, paddingHorizontal: 28 }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.6, color: "#B6AEE8" }}>THE MORNING POST LANDS IN</Text>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 32, color: "#FFF6DA", marginTop: 5, fontVariant: ["tabular-nums"] }}>{left}</Text>
-          </View>
-        </View>
-
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, color: "#C9C1F0", textAlign: "center", marginTop: 16, lineHeight: 22 }}>
-          put the phone down. go have a life —{"\n"}it's better material.
-        </Text>
-
-        {/* …then she stirs, and offers exactly one thing */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 20, paddingHorizontal: 6 }}>
-          <Text style={{ fontSize: 12, opacity: 0.7 }}>💤</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: "#A79FD4", textAlign: "center" }}>“{nudge.mumble}”</Text>
-        </View>
-
-        <Pressable
-          onPress={act[nudge.which]}
-          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF6DA", borderRadius: 26, paddingVertical: 14, paddingHorizontal: 26, marginTop: 10, opacity: pressed ? 0.9 : 1 })}
-        >
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 13.5, color: "#221B45", letterSpacing: 0.3 }}>{nudge.cta}</Text>
-          <Text style={{ fontSize: 15 }}>{nudge.emoji}</Text>
-        </Pressable>
-
-        {/* the rest stay out of the way unless you ask */}
-        {more ? (
-          <Animated.View entering={FadeIn.duration(260)} style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-            {rest.map((r) => (
-              <Pressable
-                key={r.k}
-                onPress={act[r.k]}
-                style={({ pressed }) => ({ backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,246,218,0.18)", borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16, opacity: pressed ? 0.75 : 1 })}
-              >
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#D9D2F5" }}>{r.label}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        ) : (
-          <Pressable onPress={() => setMore(true)} hitSlop={10} style={{ paddingVertical: 12 }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#8F86C4" }}>or something else ›</Text>
-          </Pressable>
-        )}
-      </Animated.View>
-    </View>
-  );
-}
-
-/* ticking H:MM:SS until the next morning post — the same hour the morning
-   knock fires (MORNING_HOUR, lib/notify.ts), so the two never disagree */
-function useNextPost() {
-  const fmt = () => {
-    const now = new Date();
-    const next = new Date(now);
-    next.setHours(MORNING_HOUR, 0, 0, 0);
-    if (next <= now) next.setDate(next.getDate() + 1);
-    const s = Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000));
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
-  };
-  const [left, setLeft] = useState(fmt);
-  useEffect(() => {
-    const t = setInterval(() => setLeft(fmt()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return left;
-}
