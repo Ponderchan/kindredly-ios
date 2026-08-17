@@ -57,7 +57,7 @@ export default function VoiceDetail() {
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>YOUR WRITING AURA</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 2 }}>
-            {read ? `Based on ${read.pieces} ${read.pieces === 1 ? "piece" : "pieces"} of your writing` : "…"}
+            {read ? `Based on ${read.pieces} ${read.pieces === 1 ? "piece" : "pieces"} · ${read.stage.label.toLowerCase()}` : "…"}
           </Text>
         </View>
       </View>

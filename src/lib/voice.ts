@@ -28,11 +28,29 @@ export interface AuraTrait {
 export type AuraTier = "empty" | "evolving" | "formed";
 export const FORMED_AT = 20; // pieces of writing before the aura is fully formed
 
+/* ── the growth ladder — how well Wren knows you, by how much you've written.
+   The label is the card's status line; the line is Wren saying where she is. */
+export interface AuraStage {
+  label: string; // caps status, e.g. "A PATTERN FORMING"
+  line: string; // Wren's own words for this stretch
+}
+export function auraStageOf(pieces: number): AuraStage {
+  if (pieces >= FORMED_AT) return { label: "FULLY FORMED", line: "I know the shape of your voice now." };
+  if (pieces >= 15) return { label: "ALMOST FORMED", line: "A few more letters and I'll know your voice anywhere." };
+  if (pieces >= 10) return { label: "HOLDING ITS SHAPE", line: "Your aura barely wobbles anymore." };
+  if (pieces >= 6) return { label: "COMING INTO FOCUS", line: "I could pick your sentences out of a crowd now." };
+  if (pieces >= 3) return { label: "A PATTERN FORMING", line: "Your rhythm is starting to repeat — in a good way." };
+  if (pieces >= 1) return { label: "FIRST TRACES", line: "I've read your first lines. Something is taking shape." };
+  return { label: "YOUR AURA IS WAITING", line: "Write, and I'll start." };
+}
+
 export interface VoiceRead {
   rows: VoiceRow[];
   chips: string[];
   traits: AuraTrait[]; // the aura's three trait lines, icon-led
   tier: AuraTier;
+  stage: AuraStage; // where on the growth ladder this hand is
+  discovery: string; // the latest thing Wren noticed — evidence-based, rotates as you write
   lead: string; // the opening line of your little portrait, in Wren's voice
   quote: string; // Wren's pull-quote (local; the AI upgrade may replace it)
   pieces: number; // how many pieces of writing this is based on
@@ -198,6 +216,22 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       : { icon: "🕊", label: "Says it, then lets go", sub: "No padding — just the thing.", short: "says it straight" },
   ];
   const tier: AuraTier = pieces === 0 ? "empty" : pieces >= FORMED_AT ? "formed" : "evolving";
+  const stage = auraStageOf(pieces);
+
+  /* result copy — things Wren can honestly claim from the evidence on hand.
+     Every piece written re-rolls which one she brings up, so the card talks
+     back to the writing instead of repeating itself. */
+  const found: string[] = [];
+  if (exclaims === 0 && words > 40) found.push("You've never once reached for an exclamation mark.\nI like that.");
+  if (ellipses >= 3) found.push("You trail off on purpose.\nThe dots do the talking.");
+  if (lowerI >= 2) found.push("you write 'i' small.\nit reads like a whisper.");
+  if (!long && !paused && words > 30) found.push("You say the thing,\nthen you stop. Rare.");
+  if (long && paused) found.push("You take the scenic route,\nand every stop matters.");
+  if (emotional) found.push("You don't hide the feeling\nunder the words.");
+  if (emoji) found.push("The odd emoji,\nexactly where a face would go.");
+  if (varc > 30) found.push("Quick line, long line, quick line —\nyour rhythm moves like a walk.");
+  if (blocks >= 2) found.push("You break the line\nright where the thought lands.");
+  if (funcRatio <= 0.42 && words > 60) found.push("No filler words.\nEvery one of yours is load-bearing.");
   // the portrait's opening line — how Wren would begin describing you
   const lead = long
     ? paused
@@ -211,14 +245,10 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       ? "You take the long way when it matters,\nand it shows."
       : "You let a thought run, and it lands."
     : "You don't over-explain.\nYou let the right words stay.";
-  const taking =
-    tier === "empty"
-      ? "YOUR AURA IS WAITING"
-      : tier === "formed"
-        ? "Wren understands you."
-        : "WREN IS LEARNING YOUR RHYTHM";
+  const discovery = found.length ? found[pieces % found.length] : quote;
+  const taking = tier === "empty" ? "YOUR AURA IS WAITING" : tier === "formed" ? "Wren understands you." : stage.label;
 
-  return { rows, chips, traits, tier, lead, quote, pieces, taking };
+  return { rows, chips, traits, tier, stage, discovery, lead, quote, pieces, taking };
 }
 
 /* ── the deeper AI read (server job "voice"; cached; silent fallback) ── */

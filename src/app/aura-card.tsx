@@ -49,7 +49,7 @@ export default function AuraShareCard() {
 
   const done = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
   const shareText = () =>
-    read && Share.share({ message: `${name} — my writing aura, discovered with Wren on Kindredly. "${read.quote.replace(/\n/g, " ")}"` });
+    read && Share.share({ message: `${name} — my writing aura, discovered with Wren on Kindredly. "${read.discovery.replace(/\n/g, " ")}"` });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: INK }}>
@@ -89,7 +89,7 @@ export default function AuraShareCard() {
             </View>
 
             <Text style={{ fontFamily: F.serifItalic, fontSize: 16.5, lineHeight: 26, color: "#CFC9F2", textAlign: "center" }}>
-              “{read.quote}”
+              “{read.discovery}”
             </Text>
 
             <View style={{ alignItems: "center", gap: 6 }}>

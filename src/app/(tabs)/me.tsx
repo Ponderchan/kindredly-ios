@@ -19,7 +19,6 @@ import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fingerprint } from "../../lib/signature";
 import { analyzeVoice, auraName, gatherWriting, type VoiceRead } from "../../lib/voice";
 import { journalHourBand } from "../../lib/report";
-import { portrait } from "../../lib/wren";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -40,7 +39,6 @@ export default function MeTab() {
   const [voice, setVoice] = useState<VoiceRead | null>(null);
   const [units, setUnits] = useState<number[]>([]);
   const [hourBand, setHourBand] = useState<string | null>(null);
-  const [wrenLine, setWrenLine] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -71,10 +69,6 @@ export default function MeTab() {
         setVoice(analyzeVoice(texts));
         setUnits(fingerprint(texts.join(" ")).units.slice(0, 24));
         journalHourBand().then((h) => alive && setHourBand(h));
-        if (texts.length) {
-          const l = await portrait(texts.join("\n\n").slice(0, 2000), "en");
-          if (alive && l) setWrenLine(l);
-        }
       })();
 
       return () => {
@@ -169,7 +163,7 @@ export default function MeTab() {
               <View style={{ marginTop: 14 }}>
                 <VoiceCard
                   read={voice}
-                  quote={wrenLine || voice.quote}
+                  quote={voice.discovery}
                   units={units}
                   auraName={auraName(voice, wrenType?.name ?? null, hourBand)}
                   lettersSent={stats.lettersSent}
