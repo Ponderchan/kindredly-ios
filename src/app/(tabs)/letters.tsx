@@ -1,46 +1,47 @@
-import { useCallback, useEffect, useState } from "react";
-import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { StampTile } from "../../components/StampTile";
+import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { WrenBird } from "../../components/WrenBird";
-import { DEMO_POOL, DEMO_THREADS } from "../../data/demo";
+import { AudioCard } from "../../components/AudioCard";
+import { Toast } from "../../components/ui";
+import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
-import { postNo } from "../../lib/format";
-import { fetchPool, fetchThreads, type PoolLetter, type ThreadSummary } from "../../lib/db";
+import { dShort } from "../../lib/format";
+import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { MORNING_HOUR } from "../../lib/notify";
+import { getFlags, setFlag } from "../../lib/flags";
+import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
-/* Today — the post. When letters wait for you, they're a stack of envelopes;
-   tap one and the letter rises up out of the envelope (the reader is a modal
-   that slides up — pull it down to put the letter away). When it's quiet, Wren
-   nudges you to write first. The lavender ground marks this as the strangers'
-   space (same as the "to a stranger" composer). */
+/* Today — the post, as a stack of strangers you swipe through. Each letter fills
+   the screen; if it moves you, write back and a thread opens (it moves to
+   Kindreds). If it doesn't, swipe up to the next one — no guilt, no unread badge.
+   Threads already going live in Kindreds now; Today is only what's fresh at your
+   door. New users meet the post through a one-time ritual first (Wren's welcome),
+   then land here forever. The lavender ground marks the strangers' space. */
 
 const LAV = "#B9A8F0";
 const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
-
-/* Two kinds of envelope wait at the door: a FRESH letter from a stranger you've
-   never answered (tapping it opens the pool reader — replying there starts a
-   brand-new thread), and a REPLY on a thread already going (their turn came back
-   to you). Fresh ones sit up front; ongoing threads behind. */
-type Door =
-  | { key: string; kind: "pool"; letter: PoolLetter }
-  | { key: string; kind: "thread"; thread: ThreadSummary };
+const WINDOW_H = Dimensions.get("window").height;
+const RITUAL_FLAG = "today_ritual";
 
 export default function LettersTab() {
   const router = useRouter();
-  const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [pool, setPool] = useState<PoolLetter[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [idx, setIdx] = useState(0);
+  const [ritualDone, setRitualDone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getFlags().then((f) => setRitualDone(!!f[RITUAL_FLAG]));
+  }, []);
 
   const load = useCallback(async () => {
-    const [th, pl] = await Promise.all([fetchThreads(), fetchPool()]);
-    setThreads(th || []);
-    setPool(pl || []);
+    setPool((await fetchPool()) || []);
     setLoaded(true);
   }, []);
   useFocusEffect(
@@ -49,167 +50,337 @@ export default function LettersTab() {
     }, [load]),
   );
 
-  const demo = __DEV__ && loaded && threads.length === 0 && pool.length === 0;
-  const showThreads = demo ? DEMO_THREADS : threads;
-  const showPool = demo ? DEMO_POOL : pool;
+  const demo = __DEV__ && loaded && pool.length === 0;
+  const feed = demo ? DEMO_POOL : pool;
 
-  // their turn on threads already going
-  const waiting = showThreads.filter((t) => !t.lastSenderMe);
-  // fresh strangers you're not already in a thread with (replying would dupe)
-  const talkingTo = new Set(showThreads.map((t) => t.other));
-  const fresh = showPool.filter((p) => !talkingTo.has(p.author));
+  // first run: the ritual gate hasn't resolved yet
+  if (ritualDone === null) return <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} />;
 
-  // fresh strangers first, then replies waiting on ongoing threads
-  const door: Door[] = [
-    ...fresh.map((letter) => ({ key: `p:${letter.id}`, kind: "pool" as const, letter })),
-    ...waiting.map((thread) => ({ key: `t:${thread.id}`, kind: "thread" as const, thread })),
-  ];
+  // the one-time ceremony — open your first letter, then the post is yours
+  if (!ritualDone) {
+    return (
+      <Ritual
+        onDone={async () => {
+          await setFlag(RITUAL_FLAG);
+          setRitualDone(true);
+        }}
+      />
+    );
+  }
 
-  // tap a fresh letter → pool reader (reply builds a thread); tap a reply →
-  // straight into the thread
-  const open = (d: Door) => {
-    if (d.kind === "thread") {
-      router.push(`/thread/${d.thread.id}`);
-    } else {
-      const p = d.letter;
-      router.push({
-        pathname: "/letter/[id]",
-        params: {
-          id: p.id,
-          author: p.author,
-          stamp: p.stamp,
-          body: p.body,
-          lang: p.lang,
-          kind: p.kind ?? "text",
-          media: p.media_path ?? "",
-          dur: p.duration_s != null ? String(p.duration_s) : "",
-        },
-      });
-    }
+  return <Feed feed={feed} loaded={loaded} onReloaded={load} router={router} demo={demo} />;
+}
+
+/* ── the everyday swipe feed ── */
+function Feed({
+  feed,
+  loaded,
+  onReloaded,
+  router,
+  demo,
+}: {
+  feed: PoolLetter[];
+  loaded: boolean;
+  onReloaded: () => void;
+  router: ReturnType<typeof useRouter>;
+  demo: boolean;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
+  const tabH = 62 + Math.max(insets.bottom, 8); // matches the custom TabBar height
+  const [idx, setIdx] = useState(0);
+  const [vh, setVh] = useState(WINDOW_H - 250);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [kbOpen, setKbOpen] = useState(false);
+
+  useEffect(() => {
+    const s = Keyboard.addListener("keyboardWillShow", () => setKbOpen(true));
+    const h = Keyboard.addListener("keyboardWillHide", () => setKbOpen(false));
+    return () => {
+      s.remove();
+      h.remove();
+    };
+  }, []);
+
+  const quiet = loaded && feed.length === 0;
+  const atEnd = idx >= feed.length;
+  const current = feed[idx];
+
+  const goto = (i: number) => {
+    scrollRef.current?.scrollTo({ y: i * vh, animated: true });
+    setIdx(i);
   };
 
-  const quiet = loaded && door.length === 0;
+  const send = async () => {
+    if (!current || sending) return;
+    const text = (drafts[current.id] || "").trim();
+    const w = weightedCount(text);
+    if (w < REPLY_MIN || w > LETTER_MAX) return;
+    setSending(true);
+    Keyboard.dismiss();
+    if (demo || current.author?.startsWith("demo-")) {
+      seedDemoThread(current, text);
+    } else {
+      await replyToLetter(current, text);
+    }
+    setSending(false);
+    setDrafts((d) => ({ ...d, [current.id]: "" }));
+    setToast(true);
+    setTimeout(() => setToast(false), 2200);
+    goto(idx + 1); // a thread opened — it lives in Kindreds now; move along
+  };
+
+  if (quiet) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} edges={["top"]}>
+        <Header count={0} idx={0} />
+        <Quiet onWrite={() => router.push("/compose")} onSelf={() => router.push("/journal-entry")} onKept={() => router.push("/kept")} />
+      </SafeAreaView>
+    );
+  }
+
+  const replyW = current ? weightedCount(drafts[current.id] || "") : 0;
+  const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} edges={["top"]}>
-      {/* header */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 6 }}>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 34, color: "#2A2153" }}>today</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 1.2, color: "#2A2153" }}>{quiet ? "QUIET" : `${door.length} WAITING`}</Text>
-          <Text style={{ fontSize: 12 }}>{quiet ? "🕊" : "✉️"}</Text>
-        </View>
-      </View>
-
-      {quiet ? (
-        <Quiet onWrite={() => router.push("/compose")} onSelf={() => router.push("/journal-entry")} onKept={() => router.push("/kept")} />
-      ) : (
-        <View style={{ flex: 1, justifyContent: "center" }}>
+      <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={atEnd} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
           <ScrollView
-            horizontal
+            ref={scrollRef}
+            style={{ flex: 1 }}
             pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
-            onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.x / W))}
+            showsVerticalScrollIndicator={false}
+            decelerationRate="fast"
+            onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.y / vh))}
           >
-            {door.map((d) => (
-              <View key={d.key} style={{ width: W, height: 440, alignItems: "center", justifyContent: "center" }}>
-                <Envelope item={d} onOpen={() => open(d)} />
-              </View>
+            {feed.map((letter, i) => (
+              <LetterPage key={letter.id} letter={letter} height={vh} first={i === 0 && idx === 0} />
             ))}
-          </ScrollView>
-
-          {/* dots + count */}
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
-            <View style={{ flexDirection: "row", gap: 6 }}>
-              {door.map((_, i) => (
-                <View key={i} style={{ width: i === idx ? 16 : 6, height: 6, borderRadius: 3, backgroundColor: i === idx ? "#4B3F86" : "rgba(43,33,83,0.28)" }} />
-              ))}
+            {/* the post closes for the day once you've swiped through them all */}
+            <View style={{ height: vh }}>
+              <Quiet
+                compact
+                onWrite={() => router.push("/compose")}
+                onSelf={() => router.push("/journal-entry")}
+                onKept={() => router.push("/kept")}
+              />
             </View>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1, color: "#4B3F86", marginLeft: 6 }}>
-              {idx + 1} OF {door.length}
-            </Text>
-          </View>
-
-          {/* Wren line */}
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 34, paddingTop: 22, paddingBottom: 12 }}>
-            <WrenBird size={20} mood="content" />
-            <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: "#3B3363", lineHeight: 20 }}>
-              “{waitLine(door.length)}”
-            </Text>
-          </View>
+          </ScrollView>
         </View>
-      )}
+
+        {/* one shared reply bar, bound to the letter you're on. Always rendered
+            at a constant height (even on the caught-up page) so the pager's page
+            height never shifts under it. */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
+          {!atEnd && current ? (
+            <View style={{ minHeight: 82 }}>
+              <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 8, backgroundColor: "#fff", borderRadius: 26, paddingLeft: 18, paddingRight: 7, paddingVertical: 7 }, shadow.card]}>
+                <TextInput
+                  value={drafts[current.id] || ""}
+                  onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
+                  placeholder="write them back…"
+                  placeholderTextColor="#B3A4E0"
+                  multiline
+                  style={{ flex: 1, maxHeight: 110, paddingTop: 11, paddingBottom: 11, color: "#2A2153", fontFamily: F.letter, fontSize: 16, lineHeight: 22 }}
+                />
+                <Pressable
+                  onPress={send}
+                  disabled={!replyOk || sending}
+                  style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#4B3F86", alignItems: "center", justifyContent: "center", opacity: !replyOk || sending ? 0.4 : 1 }}
+                >
+                  <Text style={{ fontSize: 18 }}>✈️</Text>
+                </Pressable>
+              </View>
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: replyW > LETTER_MAX ? "#C0503A" : "rgba(43,33,83,0.6)", textAlign: "center", marginTop: 8 }}>
+                {replyW > LETTER_MAX
+                  ? `${replyW - LETTER_MAX} over`
+                  : replyOk
+                    ? "reply and a thread opens — just the two of you"
+                    : "↑ swipe up to pass · write back to keep them"}
+              </Text>
+            </View>
+          ) : (
+            <View style={{ minHeight: 82 }} />
+          )}
+        </View>
+      </KeyboardAvoidingView>
+
+      {toast && <Toast msg="a thread opened — find it in Kindreds" bottom={150} />}
     </SafeAreaView>
   );
 }
 
-function Envelope({ item, onOpen }: { item: Door; onOpen: () => void }) {
-  const isPool = item.kind === "pool";
-  const stampId = isPool ? item.letter.stamp : item.thread.stamp;
-  const fromId = isPool ? item.letter.author : item.thread.other;
-  const preview = isPool ? item.letter.body : item.thread.preview;
-  const isVoice = isPool && item.letter.kind === "voice";
-  const revealed = !isPool && item.thread.revealed;
-  const named = !isPool ? item.thread.otherName : null;
-
-  // eyebrow: fresh stranger vs a reply on a thread already going
-  const eyebrow = isPool
-    ? "A STRANGER, FOR YOU"
-    : revealed && named
-      ? "WROTE YOU BACK"
-      : "YOUR TURN CAME BACK";
-
-  const st = getStamp(stampId);
+function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
-    <View style={{ width: W - 76 }}>
-      {/* stacked cards behind */}
-      <View style={{ position: "absolute", left: 14, right: 14, top: 20, height: 200, backgroundColor: "#EFE9D9", borderRadius: 18, transform: [{ rotate: "2.5deg" }] }} />
-      <View style={{ position: "absolute", left: 8, right: 8, top: 12, height: 210, backgroundColor: "#F4EFE1", borderRadius: 18, transform: [{ rotate: "-1.5deg" }] }} />
-
-      <Pressable onPress={onOpen} style={[{ backgroundColor: PAPER, borderRadius: 20, overflow: "hidden", transform: [{ rotate: "-0.5deg" }] }, shadow.card]}>
-        <Airmail />
-        <View style={{ padding: 20, paddingTop: 18, minHeight: 200 }}>
-          {/* pasted stamp */}
-          {st && (
-            <View style={{ position: "absolute", top: -6, right: 16, transform: [{ rotate: "8deg" }] }}>
-              <StampTile id={stampId} w={52} r={5} />
-            </View>
-          )}
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: "#9A7B3A", paddingRight: 60 }}>
-            {revealed && named ? named.toUpperCase() : `FROM NO. ${postNo(fromId)}`} · {eyebrow}
-          </Text>
-
-          {isVoice ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 22 }}>
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#6D6DF6", alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 16, color: "#fff", marginLeft: 3 }}>▶</Text>
-              </View>
-              <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 18, color: "#4A4266" }}>
-                a voice letter{item.letter.duration_s ? ` · ${fmtDur(item.letter.duration_s)}` : ""}
-              </Text>
-            </View>
-          ) : (
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 20, color: "#4A4266", marginTop: 18, lineHeight: 28 }} numberOfLines={2}>
-              “{preview}”
-            </Text>
-          )}
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 26 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#EF5A5A", alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 17 }}>💌</Text>
-            </View>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4, color: "#C0503A" }}>
-              {isPool ? "OPEN & WRITE BACK →" : "OPEN →"}
-            </Text>
-          </View>
-        </View>
-      </Pressable>
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 4, paddingBottom: 6 }}>
+      <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: "#2A2153" }}>today</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 8 }}>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: "#2A2153" }}>
+          {count === 0 ? "QUIET" : atEnd ? "ALL READ" : `${idx + 1} / ${count}`}
+        </Text>
+        <Text style={{ fontSize: 11 }}>{count === 0 ? "🕊" : "✉️"}</Text>
+      </View>
     </View>
   );
 }
 
-const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+/* one full-screen letter in the feed */
+function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
+  const st = getStamp(letter.stamp);
+  const isVoice = letter.kind === "voice" && !!letter.media_path;
+  const tier = letterTier(weightedCount(letter.body || ""));
+  const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
+
+  return (
+    <View style={{ height, paddingHorizontal: 22, justifyContent: "center" }}>
+      <Animated.View entering={FadeIn.duration(300)} style={[{ backgroundColor: PAPER, borderRadius: 24, padding: 24, paddingTop: 20 }, shadow.card]}>
+        {/* pasted stamp */}
+        {st && (
+          <View style={{ position: "absolute", top: -8, right: 18, transform: [{ rotate: "7deg" }], zIndex: 2 }}>
+            <StampTile id={letter.stamp} w={52} r={5} />
+          </View>
+        )}
+        {/* who + when — the date on top, a faceless mosaic seal below (you can't
+            see who they are; the stamp corner says what it's about) */}
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.4, color: "#9A7B3A" }}>
+          {dShort(letter.created_at).toUpperCase()}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 9 }}>
+          <StrangerAvatar seed={letter.author} size={34} round />
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: "#8C7F63" }}>a stranger, for you</Text>
+        </View>
+
+        {isVoice && audioUrl ? (
+          <View style={{ marginTop: 22 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.purple, marginBottom: 14 }}>🎙 A VOICE LETTER</Text>
+            <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} />
+            {!!letter.body && letter.body !== "🎙 A voice letter" && (
+              <Text style={{ fontFamily: F.letterItalic, fontSize: 15, lineHeight: 24, color: "#6A6280", marginTop: 16 }}>“{letter.body}”</Text>
+            )}
+          </View>
+        ) : (
+          <Text
+            style={{
+              fontFamily: F.letter,
+              fontSize: tier.size,
+              lineHeight: tier.line,
+              color: "#22222A",
+              marginTop: tier.center ? 26 : 18,
+              textAlign: tier.center ? "center" : "auto",
+              paddingBottom: tier.center ? 10 : 0,
+            }}
+          >
+            {letter.body}
+          </Text>
+        )}
+
+        {/* stamp label — the channel, as a hashtag (the corner tile is the icon,
+            so no emoji here); matches the composer's stamp chip */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 22, flexWrap: "wrap" }}>
+          {st && (
+            <View style={{ backgroundColor: `${st.color}16`, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: st.color }}>#{st.name.en.toLowerCase()}</Text>
+            </View>
+          )}
+        </View>
+        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: "#9A8B6A", marginTop: 16, lineHeight: 18 }}>
+          Sent down three streets. You were the first to open it.
+        </Text>
+      </Animated.View>
+
+      {/* the swipe affordance — teach it on the very first letter */}
+      <View style={{ alignItems: "center", marginTop: 18 }}>
+        <Text style={{ fontSize: 15, color: "rgba(43,33,83,0.5)" }}>↑</Text>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(43,33,83,0.5)", marginTop: 2 }}>
+          {first ? "SWIPE UP FOR THE NEXT" : "NEXT"}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/* ── the one-time ritual: an envelope, then Wren's welcome ── */
+function Ritual({ onDone }: { onDone: () => void }) {
+  const [opened, setOpened] = useState(false);
+
+  if (!opened) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} edges={["top"]}>
+        <View style={{ paddingHorizontal: 24, paddingTop: 6 }}>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: "#2A2153" }}>the post</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.8, color: "rgba(42,33,83,0.65)", textAlign: "center", marginBottom: 22 }}>
+            SOMETHING IS ALREADY WAITING FOR YOU
+          </Text>
+          <Pressable onPress={() => setOpened(true)} style={{ width: W - 76 }}>
+            <View style={{ position: "absolute", left: 14, right: 14, top: 18, height: 180, backgroundColor: "#EFE9D9", borderRadius: 18, transform: [{ rotate: "2.5deg" }] }} />
+            <View style={{ position: "absolute", left: 8, right: 8, top: 10, height: 190, backgroundColor: "#F4EFE1", borderRadius: 18, transform: [{ rotate: "-1.5deg" }] }} />
+            <View style={[{ backgroundColor: PAPER, borderRadius: 20, overflow: "hidden", transform: [{ rotate: "-0.5deg" }] }, shadow.card]}>
+              <Airmail />
+              <View style={{ padding: 22, minHeight: 180 }}>
+                <View style={{ position: "absolute", top: 14, right: 16 }}>
+                  <WrenBird size={40} mood="content" />
+                </View>
+                <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: "#9A7B3A" }}>FROM WREN · FOR YOU</Text>
+                <Text style={{ fontFamily: F.serifItalic, fontSize: 21, color: "#4A4266", marginTop: 20, lineHeight: 29 }}>“You made it inside. Let me show you how the post works…”</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 24 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#EF5A5A", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 17 }}>💌</Text>
+                  </View>
+                  <Text style={{ fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4, color: "#C0503A" }}>OPEN IT →</Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return <Welcome onDone={onDone} />;
+}
+
+/* Wren's welcome letter — read-only; it teaches the swipe-and-write ritual and
+   hands the reader into the everyday feed. */
+function Welcome({ onDone }: { onDone: () => void }) {
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeIn.duration(500)}>
+          <View style={{ alignItems: "center", marginBottom: 18 }}>
+            <WrenBird size={64} mood="content" />
+          </View>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: C.faint, textAlign: "center" }}>A LETTER FROM WREN</Text>
+          <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, textAlign: "center", marginTop: 10, lineHeight: 32 }}>
+            You made it inside.
+          </Text>
+          <Text style={{ fontFamily: F.letter, fontSize: 16, lineHeight: 27, color: "#3A3548", marginTop: 22 }}>
+            Here's how the post works.{"\n\n"}
+            Every day, letters from strangers come to your door. You read them one at a time — the whole screen, no feed to skim.{"\n\n"}
+            If one moves you, <Text style={{ fontFamily: F.letterItalic }}>write back</Text>, and a thread opens — just the two of you. It'll be waiting in Kindreds.{"\n\n"}
+            If it doesn't, <Text style={{ fontFamily: F.letterItalic }}>swipe up</Text>. No guilt. No unread badge chasing you.{"\n\n"}
+            Five letters each way, and I'll tell you each other's names.{"\n\n"}
+            Write when something's true, not when it's polished. I'll be listening.
+          </Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.muted, marginTop: 18, textAlign: "right" }}>— Wren</Text>
+
+          <Pressable
+            onPress={onDone}
+            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 16, marginTop: 30, opacity: pressed ? 0.92 : 1 })}
+          >
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 14, color: "#fff", letterSpacing: 0.3 }}>step into the post</Text>
+            <Text style={{ fontSize: 15 }}>🕊</Text>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 /* airmail striped border */
 function Airmail() {
@@ -224,12 +395,14 @@ function Airmail() {
   );
 }
 
-/* You've read everything that came. Rather than dangle an empty feed, the post
-   closes for the day: Wren dozes off, a countdown says exactly when the next
-   round lands, and the copy sends you back to your life — which is where the
-   letters come from anyway. */
-function Quiet({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () => void; onKept: () => void }) {
+/* You've read everything that came. The post closes for the day: Wren dozes off,
+   a countdown says when the next round lands, and the copy sends you back to your
+   life — which is where the letters come from anyway. `compact` trims it to sit
+   as the last page of the feed. */
+function Quiet({ onWrite, onSelf, onKept, compact }: { onWrite: () => void; onSelf: () => void; onKept: () => void; compact?: boolean }) {
   const left = useNextPost();
+  const insets = useSafeAreaInsets();
+  const tabH = 62 + Math.max(insets.bottom, 8);
   const breath = useSharedValue(0);
   useEffect(() => {
     breath.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -243,48 +416,38 @@ function Quiet({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =>
   }));
 
   return (
-    <Animated.View entering={FadeIn.duration(500)} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 40 }}>
+    <Animated.View entering={FadeIn.duration(500)} style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: compact ? 20 : tabH + 20 }}>
       {/* Wren asleep on the closed postbox */}
-      <View style={{ height: 130, alignItems: "center", justifyContent: "flex-end" }}>
+      <View style={{ height: compact ? 110 : 130, alignItems: "center", justifyContent: "flex-end" }}>
         <Animated.Text style={[{ position: "absolute", top: 6, right: 96, fontSize: 17 }, zzzStyle]}>💤</Animated.Text>
         <Animated.View style={dozeStyle}>
-          <WrenBird size={78} mood="sleepy" />
+          <WrenBird size={compact ? 64 : 78} mood="sleepy" />
         </Animated.View>
-        <Text style={{ fontSize: 46, marginTop: -6 }}>📪</Text>
+        <Text style={{ fontSize: compact ? 40 : 46, marginTop: -6 }}>📪</Text>
       </View>
 
-      <Text style={{ fontFamily: F.serif, fontSize: 27, color: "#2A2153", textAlign: "center", marginTop: 18, lineHeight: 35 }}>
+      <Text style={{ fontFamily: F.serif, fontSize: compact ? 24 : 27, color: "#2A2153", textAlign: "center", marginTop: 16, lineHeight: compact ? 32 : 35 }}>
         that's the whole post.{"\n"}you're all caught up.
       </Text>
 
-      {/* the daily beat — when the morning post lands (the same hour as the
-          knock). Replies can still trickle in sooner; this is the ritual to
-          come back for, not a promise the desk stays empty until then. */}
-      <View style={{ alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 22, paddingVertical: 16, paddingHorizontal: 28, marginTop: 22 }}>
+      <View style={{ alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 22, paddingVertical: 14, paddingHorizontal: 28, marginTop: 20 }}>
         <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: "#8B84B8" }}>THE MORNING POST LANDS IN</Text>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 34, color: "#2A2153", marginTop: 6, fontVariant: ["tabular-nums"] }}>{left}</Text>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 32, color: "#2A2153", marginTop: 6, fontVariant: ["tabular-nums"] }}>{left}</Text>
       </View>
 
-      <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: "#3B3363", textAlign: "center", marginTop: 20, lineHeight: 23 }}>
+      <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, color: "#3B3363", textAlign: "center", marginTop: 18, lineHeight: 22 }}>
         put the phone down. go have a life —{"\n"}it's better material.
       </Text>
 
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 20, paddingHorizontal: 4 }}>
-        <WrenBird size={20} mood="content" />
-        <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13, color: "#4B4478", lineHeight: 20 }}>
-          “and if you really can't sit still — write to yourself. no one answers. that's the point.”
-        </Text>
-      </View>
-
-      <Pressable onPress={onSelf} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 15, paddingHorizontal: 26, marginTop: 20 }}>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 14, color: "#fff", letterSpacing: 0.3 }}>write to yourself</Text>
+      <Pressable onPress={onSelf} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 14, paddingHorizontal: 24, marginTop: 18 }}>
+        <Text style={{ fontFamily: F.sansExtra, fontSize: 13.5, color: "#fff", letterSpacing: 0.3 }}>write to yourself</Text>
         <Text style={{ fontSize: 15 }}>🕯</Text>
       </Pressable>
       <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
-        <Pressable onPress={onWrite} style={{ backgroundColor: "#fff", borderRadius: 20, paddingVertical: 12, paddingHorizontal: 18 }}>
+        <Pressable onPress={onWrite} style={{ backgroundColor: "#fff", borderRadius: 20, paddingVertical: 11, paddingHorizontal: 18 }}>
           <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#2A2153" }}>to a stranger 🕊</Text>
         </Pressable>
-        <Pressable onPress={onKept} style={{ backgroundColor: "#fff", borderRadius: 20, paddingVertical: 12, paddingHorizontal: 18 }}>
+        <Pressable onPress={onKept} style={{ backgroundColor: "#fff", borderRadius: 20, paddingVertical: 11, paddingHorizontal: 18 }}>
           <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: "#2A2153" }}>reread a kept one 📖</Text>
         </Pressable>
       </View>
@@ -311,9 +474,3 @@ function useNextPost() {
   }, []);
   return left;
 }
-
-const waitLine = (n: number) => {
-  if (n >= 4) return "the post came full today. take them one at a time.";
-  if (n >= 2) return "a few are waiting. no pressure. some pressure.";
-  return "this one's been waiting. no pressure. some pressure.";
-};
