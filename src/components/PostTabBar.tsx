@@ -150,40 +150,59 @@ function Choice({ label, note, onPress }: { label: string; note: string; onPress
   );
 }
 
-/* ── the glyphs: square-cornered, one weight, no flourishes ── */
+/* ── the glyphs ──────────────────────────────────────────────────────────
+   Each one has to be a fact about this system, not a symbol borrowed from
+   the icon-set shelf. The test: could it belong to any other app? If yes,
+   it's wrong.
+
+   The slot is the system's one piece of hardware, and it's used twice with
+   opposite polarity — mail coming IN through it is Today, mail going OUT
+   through it is the post button in the middle of the bar. One object, two
+   directions, and the whole metaphor closes. */
 
 const S = 24;
-const stroke = (color: string) => ({ stroke: color, strokeWidth: 1.7, fill: "none" as const });
+const stroke = (color: string, w = 1.7) => ({ stroke: color, strokeWidth: w, fill: "none" as const });
 
-/* what came for you — an envelope with its flap open */
+/* TODAY — a letter halfway through the slot, arriving. The lip is drawn solid
+   and crosses the envelope, so the envelope reads as behind it: mid-delivery,
+   an event rather than an object. */
 function EnvelopeGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Rect x={3} y={7} width={18} height={13} {...stroke(color)} />
-      <Path d="M3 7l9 7 9-7" {...stroke(color)} />
+      <Rect x={6} y={3.5} width={12} height={11} {...stroke(color)} />
+      <Path d="M6 3.5l6 4.6 6-4.6" {...stroke(color, 1.5)} />
+      <Rect x={2.5} y={13} width={19} height={2.6} fill={color} />
+      <Line x1={5} y1={19.5} x2={19} y2={19.5} {...stroke(color, 1.5)} />
     </Svg>
   );
 }
 
-/* what never leaves — a filed page carrying its own stamp */
+/* SEALED — the little brass door of a PO box, shut. Mail addressed to
+   yourself never leaves the building; it goes in a box only you open. A number
+   plate across the top, the lock solid on the right. Postal furniture nobody
+   uses as an app icon, and it says "private and closed" without a padlock. */
 function SealedGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
       <Rect x={4} y={3} width={16} height={18} {...stroke(color)} />
-      <Line x1={7.5} y1={9} x2={13} y2={9} {...stroke(color)} />
-      <Line x1={7.5} y1={12.5} x2={13} y2={12.5} {...stroke(color)} />
-      <Rect x={14} y={14.5} width={4} height={4} fill={color} />
+      <Line x1={4} y1={8.5} x2={20} y2={8.5} {...stroke(color, 1.4)} />
+      <Rect x={7} y={5.2} width={6} height={1.6} fill={color} opacity={0.8} />
+      <Circle cx={16} cy={15} r={2.4} {...stroke(color, 1.5)} />
+      <Line x1={16} y1={15} x2={16} y2={17.6} {...stroke(color, 1.5)} />
     </Svg>
   );
 }
 
-/* the people circling in — you at the centre, one of them on the ring */
+/* KINDREDS — the orbit map itself, miniaturised: you solid at the centre, one
+   correspondent pulled into the inner ring, another still out on the far one.
+   It's the same diagram the tab opens to, which is the point. */
 function OrbitGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={8.5} {...stroke(color)} />
-      <Rect x={10.4} y={10.4} width={3.2} height={3.2} fill={color} />
-      <Rect x={16.4} y={5.2} width={4} height={4} fill={color} />
+      <Circle cx={12} cy={12} r={9.5} {...stroke(color, 1.1)} opacity={0.45} />
+      <Circle cx={12} cy={12} r={5} {...stroke(color, 1.5)} />
+      <Rect x={10.3} y={10.3} width={3.4} height={3.4} fill={color} />
+      <Rect x={13.8} y={5.9} width={4.2} height={4.2} fill={color} />
     </Svg>
   );
 }
