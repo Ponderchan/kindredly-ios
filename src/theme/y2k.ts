@@ -18,10 +18,9 @@ import { P, PF } from "./post";
    So the Y2K-ness lives entirely in FORM — 2px borders, 4px hard shadows,
    segmented meters, stencilled tags — and none of it in hue. Walking out of
    onboarding is the same world with the packaging taken off, not a different
-   app. The two colours that aren't app tokens are deliberate and scoped to
-   one object each: `brass` is the hatch key and the reveal card's border (it
-   is the wax-seal gold from P.brassSeal, lifted to carry on dark), and
-   `night` is P.ink used as a ground for that one screen.
+   app. The one colour that isn't an app token is deliberate and scoped:
+   `brass` is the hatch accent — the wax-seal gold from P.brassSeal, lifted
+   a step to carry as a border and a key.
 
    Nothing in here may be imported by a tab screen. If it ever is, that's the
    signal the two systems have started to blur. */
@@ -33,8 +32,6 @@ export const Y = {
   panel: P.paper,
   blue: P.pen, // #3A3AF5
   brass: "#D8A63F", // the hatch key + the reveal border, and nothing else
-  night: P.ink, // the reveal screen's ground
-  nightCard: "#1D1B26",
   lcd: "#6F63B4", // the console screen — darker than every shell on purpose
   dim: "rgba(17,17,19,0.6)",
   faint: "rgba(17,17,19,0.32)",

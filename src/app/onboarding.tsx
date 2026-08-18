@@ -15,7 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
 import { Wheel } from "../components/Wheel";
@@ -93,6 +93,20 @@ const CARDS: { tag: string; h: string; hi: string; s: string }[] = [
   { tag: "OFF IT GOES", h: "It finds", hi: "your kind of person.", s: "Matched by how you write — not by who you are." },
   { tag: "THEY WRITE BACK", h: "And slowly,", hi: "you're not strangers.", s: "Five letters each, and you trade names." },
 ];
+
+/* the sealed list's inline short forms — the long sealed lines are for a
+   stacked checklist; run together with dots they need two words each */
+const SEALED_SHORT: Partial<Record<string, string>> = {
+  rhythm: "hidden rhythm",
+  vocabulary: "rare words",
+  perspective: "way of seeing",
+  emotion: "emotional patterns",
+  function: "small tells",
+  punctuation: "pause fingerprint",
+  structure: "thought patterns",
+  sentence: "sentence shape",
+  quirks: "personal patterns",
+};
 
 /* one hint per feeding — each slot invites a different register, because
    three samples of the same register teach the engine less than one each of
@@ -892,16 +906,23 @@ export default function Onboarding() {
     );
   }
 
-  /* ── 9 · NEW HATCH UNLOCKED, then they leave with it ────────────────── */
+  /* ── 9 · NEW HATCH UNLOCKED — in daylight ───────────────────────────
+     The reveal used to be a gold-on-black trading card. It read as a
+     different app at the exact moment the console hands over — so it now
+     stays on the console's own pale ground, with a warm glow behind her
+     doing the work the dark card used to do. The DNA rows drop the glyphs
+     (half-dead at 14px on a light ground) for progress bars: brass = locked,
+     the app's blue = still growing. Colour carries the confidence, so the
+     GROWING tags and the OF-9 counter could go. */
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Y.night }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 20 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 22, paddingVertical: 18 }}>
         {hatchPhase === "crack" && (
           <>
             <Animated.View style={shakeStyle}>
               <EggShell variant={eggVar} size={170} />
             </Animated.View>
-            <Animated.Text entering={FadeIn.delay(200).duration(500)} style={[mono(10.5, "b"), { color: "#8C86B8", marginTop: 28 }]}>
+            <Animated.Text entering={FadeIn.delay(200).duration(500)} style={[mono(10.5, "b"), { color: Y.dim, marginTop: 28 }]}>
               ··· SOMETHING'S HAPPENING ···
             </Animated.Text>
           </>
@@ -909,100 +930,83 @@ export default function Onboarding() {
 
         {hatchPhase === "card" && (
           <>
-            <Animated.Text entering={FadeIn.duration(400)} style={[mono(10, "b"), { color: Y.brass, marginBottom: 14 }]}>
+            <Animated.Text entering={FadeIn.duration(400)} style={[mono(10, "b"), { color: Y.brass, marginBottom: 6 }]}>
               ✦ NEW HATCH UNLOCKED ✦
             </Animated.Text>
 
-            <Animated.View
-              entering={ZoomIn.duration(520).easing(Easing.out(Easing.back(1.4)))}
-              style={{
-                width: "100%",
-                maxWidth: 330,
-                borderWidth: 2,
-                borderColor: Y.brass,
-                borderRadius: 16,
-                backgroundColor: Y.nightCard,
-                paddingVertical: 22,
-                paddingHorizontal: 20,
-                alignItems: "center",
-              }}
-            >
-              <Hatchling mood={hatchMood} shell={eggVar} />
-              {/* "Meet Pip", not "Pip" — one word turns a results screen into
-                  an introduction. Meet is quiet chrome; the name is the event. */}
-              <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 4 }}>
-                <Text style={{ fontFamily: F2.serifItalic, fontSize: 19, color: "#8F87AC" }}>Meet </Text>
+            {/* she hatches into daylight, a warm glow instead of a dark card */}
+            <Animated.View entering={ZoomIn.duration(520).easing(Easing.out(Easing.back(1.4)))} style={{ alignItems: "center" }}>
+              <View style={{ width: 240, height: 220, alignItems: "center", justifyContent: "center" }}>
+                <Svg width={240} height={220} viewBox="0 0 240 220" style={{ position: "absolute" }}>
+                  <Defs>
+                    <RadialGradient id="hatchGlow" cx="50%" cy="52%" r="52%">
+                      <Stop offset="0%" stopColor="#F0BC6E" stopOpacity={0.5} />
+                      <Stop offset="55%" stopColor="#EAC9F2" stopOpacity={0.28} />
+                      <Stop offset="100%" stopColor="#F0BC6E" stopOpacity={0} />
+                    </RadialGradient>
+                  </Defs>
+                  <Circle cx={120} cy={112} r={108} fill="url(#hatchGlow)" />
+                </Svg>
+                <Hatchling mood={hatchMood} shell={eggVar} />
+              </View>
+
+              <Text style={{ fontFamily: F2.serif, fontSize: 34, color: Y.ink, marginTop: 2 }}>
+                <Text style={{ fontFamily: F2.serifItalic, fontSize: 20, color: Y.dim }}>Meet </Text>
                 {her || "Wren"}
               </Text>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 18, color: Y.brass, marginTop: 2 }}>{hatched.archetype.name}</Text>
-              <Text style={[mono(8.5, "b"), { color: "#5E5878", marginTop: 8 }]}>TAP {HER} ✦</Text>
-
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 16, textAlign: "center", lineHeight: 23 }}>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 19, color: Y.brass, marginTop: 3 }}>{hatched.archetype.name}</Text>
+              <Text style={[mono(8.5, "b"), { color: Y.faint, marginTop: 7 }]}>TAP {HER} ✦</Text>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: Y.dim, marginTop: 12, textAlign: "center", lineHeight: 24, maxWidth: 320 }}>
                 “{hatched.desc}”
               </Text>
+            </Animated.View>
 
-              {/* VOICE DNA — the engine's locked dimensions, top four, never
-                  all nine. The full table is the Me tab's job; printed here it
-                  turns a birth into a report card. */}
-              <View style={{ width: "100%", height: 1, backgroundColor: "rgba(216,166,63,0.3)", marginTop: 18, marginBottom: 12 }} />
-              <View style={{ width: "100%", flexDirection: "row", marginBottom: 10 }}>
-                <Text style={[mono(9, "b"), { flex: 1, color: "rgba(216,166,63,0.85)" }]}>YOUR VOICE DNA</Text>
-                <Text style={[mono(9, "b"), { color: "rgba(216,166,63,0.85)" }]}>{hatched.lockedCount} OF 9 LOCKED</Text>
-              </View>
-              {/* top four by confidence-then-score; a growing dimension shows
-                  its provisional number dimmed rather than hiding — the spec
-                  is score + confidence, and an empty card is a worse birth
-                  than an honest provisional one */}
+            {/* the read: white panel, brass rule, bars instead of glyphs */}
+            <Animated.View
+              entering={FadeInDown.delay(360).duration(520)}
+              style={{
+                width: "100%",
+                maxWidth: 340,
+                backgroundColor: Y.panel,
+                borderWidth: 1.6,
+                borderColor: Y.brass,
+                borderRadius: 18,
+                paddingVertical: 16,
+                paddingHorizontal: 18,
+                marginTop: 18,
+              }}
+            >
+              <Text style={[mono(9.5, "b"), { color: Y.brass, marginBottom: 12 }]}>{HER} IS LEARNING YOU</Text>
               {hatched.dims.slice(0, 4).map((d) => (
-                <DnaRow key={d.key} d={d} />
+                <BarRow key={d.key} d={d} />
               ))}
+
+              <View style={{ height: 1, backgroundColor: "rgba(216,166,63,0.35)", marginTop: 6, marginBottom: 12 }} />
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: Y.ink }}>{her || "Wren"} is still learning you.</Text>
+              <Text style={[mono(10, "r"), { color: Y.dim, marginTop: 8, lineHeight: 19, letterSpacing: 0.4 }]}>
+                {hatched.dims.slice(4).filter((d) => !d.locked).slice(0, 4).map((d) => `□ ${SEALED_SHORT[d.key] ?? d.label.toLowerCase()}`).join("  ·  ")}
+              </Text>
             </Animated.View>
 
-            {/* what is still sealed. Each of the four is a real gate in
-                analyzeVoice — quirks need tics to repeat, rhythm needs several
-                sentences to compare, rare words need a vocabulary to average,
-                and the soul is the aura's formed tier. They tick on their own. */}
-            <Animated.View entering={FadeInDown.delay(420).duration(500)} style={{ width: "100%", maxWidth: 330, marginTop: 20 }}>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: "#CFC7E8", textAlign: "center" }}>
-                {her || "Wren"} is still learning you.
-              </Text>
-              <Text style={[mono(9.5, "r"), { color: "#7E7799", textAlign: "center", marginTop: 6, letterSpacing: 0.6 }]}>
-                KEEP WRITING TO REVEAL
-              </Text>
-              <View style={{ marginTop: 12, alignSelf: "center" }}>
-                {hatched.dims.slice(4).filter((d) => !d.locked).slice(0, 4).map((d) => d.sealed).map((t) => (
-                  <View key={t} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-                    <View style={{ width: 13, height: 13, borderWidth: 1.6, borderColor: "#5E5878", marginRight: 10 }} />
-                    <Text style={[mono(11, "r"), { color: "#8F87AC", letterSpacing: 0.3 }]}>{t}</Text>
-                  </View>
-                ))}
-              </View>
-            </Animated.View>
-
-            <Animated.View entering={FadeInDown.delay(560).duration(500)} style={{ width: "100%", maxWidth: 320, marginTop: 22 }}>
-              <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass, borderColor: Y.brass }]}>
-                <Text style={mono(12.5, "b")}>KEEP WRITING</Text>
+            <Animated.View entering={FadeInDown.delay(520).duration(500)} style={{ width: "100%", maxWidth: 340, marginTop: 18 }}>
+              <Pressable onPress={letHerGo} style={{ backgroundColor: Y.brass, borderRadius: 18, paddingVertical: 17, alignItems: "center" }}>
+                <Text style={[mono(12.5, "b"), { color: "#fff" }]}>KEEP WRITING</Text>
               </Pressable>
             </Animated.View>
           </>
         )}
 
-        {/* THE DEPARTURE. The old version scaled a 44px envelope under a bird
-            that was itself shrinking, which is why nobody could tell she was
-            carrying anything. Here the letter is big, it's tucked under her on
-            a tilt, and she banks left-then-right on the way up so the eye
-            follows the object rather than a straight vertical exit. */}
         {hatchPhase === "fly" && (
           <>
             <Animated.View style={[flyStyle, { alignItems: "center" }]}>
-              <WrenBird size={132} mood="delight" />
+              <WrenBird size={132} mood="delight" bare />
               <View style={{ marginTop: -26, transform: [{ rotate: "-11deg" }] }}>
                 <CarriedLetter />
               </View>
             </Animated.View>
             <Animated.Text
               entering={FadeIn.delay(500).duration(400)}
-              style={[mono(10.5, "b"), { color: "#8C86B8", position: "absolute", bottom: 96, textAlign: "center" }]}
+              style={[mono(10.5, "b"), { color: Y.dim, position: "absolute", bottom: 96, textAlign: "center" }]}
             >
               OFF TO FIND SOMEONE WHO WRITES LIKE YOU
             </Animated.Text>
@@ -1251,13 +1255,17 @@ function Hatchling({ mood, shell }: { mood: WrenMood; shell: number }) {
 /* one strand of the DNA: mark, name, number. No bar and no nine-row table —
    the point of this screen is that something was born, not that something was
    measured. */
-function DnaRow({ d }: { d: DimScore }) {
+/* one dimension as a bar: label, fill, number. Brass = locked (trusted),
+   the app's blue = still growing — colour carries the confidence, so no tag. */
+function BarRow({ d }: { d: DimScore }) {
+  const col = d.locked ? Y.brass : Y.blue;
   return (
-    <View style={{ width: "100%", flexDirection: "row", alignItems: "center", marginBottom: 9 }}>
-      <Text style={{ fontFamily: F2.serif, fontSize: 14, width: 24, color: Y.brass }}>{d.icon}</Text>
-      <Text style={{ flex: 1, fontFamily: F2.serif, fontSize: 16, color: "#E4DFF3" }}>{d.label}</Text>
-      {!d.locked && <Text style={[mono(7.5, "b"), { color: "#6F6892", marginRight: 8 }]}>GROWING</Text>}
-      <Text style={[mono(15, "b"), { color: Y.brass, opacity: d.locked ? 1 : 0.55, fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
+    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+      <Text style={{ width: 118, fontFamily: F2.serif, fontSize: 15.5, color: Y.ink }}>{d.label}</Text>
+      <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: "#E4E1F6", marginHorizontal: 10, overflow: "hidden" }}>
+        <View style={{ width: `${d.score}%`, height: 7, borderRadius: 4, backgroundColor: col, opacity: d.locked ? 1 : 0.85 }} />
+      </View>
+      <Text style={[mono(13, "b"), { color: col, width: 30, textAlign: "right", fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
     </View>
   );
 }
