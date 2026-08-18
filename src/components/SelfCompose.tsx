@@ -48,6 +48,7 @@ export function SelfCompose({
 }) {
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
+  const [tools, setTools] = useState(false);
   const [att, setAtt] = useState<Exclude<JournalType, "text"> | null>(null);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -206,25 +207,12 @@ export function SelfCompose({
   return (
     <View style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 14, paddingTop: 22 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {/* the page — taped down at the corners */}
-          <View
-            style={{
-              backgroundColor: Z.paper,
-              borderWidth: 1,
-              borderColor: P.ink,
-              paddingHorizontal: 20,
-              paddingTop: 24,
-              paddingBottom: 16,
-              minHeight: 430,
-              shadowColor: "#4A3B20",
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: 5 },
-            }}
-          >
-            <View style={{ position: "absolute", top: -11, left: 34, width: 92, height: 24, backgroundColor: Z.tapeA, transform: [{ rotate: "-3deg" }] }} />
-            <View style={{ position: "absolute", top: -9, right: 40, width: 110, height: 24, backgroundColor: Z.tapeB, transform: [{ rotate: "2deg" }] }} />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 14, paddingTop: 14 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {/* The page IS the screen. It used to be a bordered sheet taped down
+              inside the view — but tape holds paper ONTO something, and once
+              the paper fills the screen there's nothing left to hold it to.
+              Full bleed the same way the letter desk is. */}
+          <View style={{ minHeight: 430 }}>
 
             <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 29, fontWeight: "600", color: Z.ink }}>{dateStr}</Text>
@@ -363,40 +351,52 @@ export function SelfCompose({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
           {(
             [
-              [null, "Aa"],
-              ["voice", "🎙"],
               ["photo", "🖼"],
+              ["voice", "🎙"],
               ["video", "🎬"],
             ] as [Exclude<JournalType, "text"> | null, string][]
-          ).map(([k, icon]) => {
-            const on = att === k;
-            return (
-              <Pressable
-                key={icon}
-                onPress={() => (k ? toggleMode(k) : att && toggleMode(att))}
-                style={{
-                  width: 46,
-                  height: 46,
-                  backgroundColor: on ? P.ink : "transparent",
-                  borderWidth: 1,
-                  borderColor: P.ink,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontFamily: PF.mono, fontSize: 15, color: on ? P.paper : Z.ink }}>{icon}</Text>
-              </Pressable>
-            );
-          })}
+          )
+            .slice(0, tools ? 3 : 1)
+            .map(([k, icon]) => {
+              const on = att === k;
+              return (
+                <Pressable
+                  key={icon}
+                  onPress={() => (k === "photo" ? addPhotos() : k === "video" ? pickVideo() : setAtt(att === "voice" ? null : "voice"))}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    backgroundColor: on ? P.ink : "transparent",
+                    borderWidth: 1,
+                    borderColor: P.ink,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 19 }}>{icon}</Text>
+                </Pressable>
+              );
+            })}
+
+          {/* Three keys standing open is a toolbar; a page for one person
+              doesn't need one. Photo stays out because it's what most days
+              actually want, and the rest live behind the arrow. */}
+          <Pressable
+            onPress={() => setTools((v) => !v)}
+            style={{ width: 34, height: 50, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink60 }}>{tools ? "‹" : "›"}</Text>
+          </Pressable>
+
           <Pressable
             onPress={() => canSave && (mood ? void pickMood(mood) : setMoodOpen(true))}
             disabled={!canSave || busy}
             style={{
               flex: 1,
-              backgroundColor: canSave && !busy ? P.pen : "transparent",
+              backgroundColor: canSave && !busy ? P.ink : "transparent",
               borderWidth: 1,
-              borderColor: canSave && !busy ? P.pen : P.ink12,
-              paddingVertical: 16,
+              borderColor: canSave && !busy ? P.ink : P.ink12,
+              paddingVertical: 17,
               alignItems: "center",
             }}
           >
