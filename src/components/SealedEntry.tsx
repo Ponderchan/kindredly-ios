@@ -1,16 +1,22 @@
 import { Image, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { C, F } from "../theme/tokens";
+import { F } from "../theme/tokens";
+import { P, PF } from "../theme/post";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
 import { getMood } from "../data/moods";
 import { fmt } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
-/* One scrap on the Sealed feed — a clean card, borrowing Apple Journal's
-   handling: media fills the card, no "PHOTO / VIDEO" labels (the media says
-   what it is), several photos become a mosaic, a video plays in place. The
-   mood shows only as its face — large, up top. The whole card opens the page. */
+/* One filed page in your box. Apple Journal's media handling is kept exactly —
+   media fills the width, no "PHOTO / VIDEO" labels (the media says what it
+   is), several photos become a mosaic, a video plays in place, the mood shows
+   only as its face — but the container is now the postal system's: no floating
+   white card with a shadow, just a ruled entry on the paper, the way a page is
+   filed rather than posted.
+
+   The mood faces, photos, video and the drift highlight are CONTENT and keep
+   their own colour. Only the chrome around them is mono. */
 
 function meta(e: JournalEntry): string {
   const d = new Date(e.date);
@@ -28,14 +34,12 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        { backgroundColor: "#fff", borderRadius: 20, marginBottom: 14, overflow: "hidden", opacity: pressed ? 0.96 : 1, shadowColor: "#2A2620", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-      ]}
+      style={({ pressed }) => ({ paddingBottom: 18, marginBottom: 18, borderBottomWidth: 1, borderBottomColor: P.ink12, opacity: pressed ? 0.55 : 1 })}
     >
-      {/* head — a big mood face + the date, nothing else */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 15, paddingTop: 14, paddingBottom: hasMedia ? 12 : 8 }}>
+      {/* head — a big mood face + the date filed in mono */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>
         <MoodIcon id={m.id} size={38} />
-        <Text style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1.1, color: C.label }}>{meta(e)}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>{meta(e)}</Text>
       </View>
 
       {/* photo — one fills, several become a mosaic (edge to edge) */}
@@ -44,19 +48,17 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
       {/* video — plays in place, just a duration in the corner */}
       {e.type === "video" && !!e.mediaUri && <VideoInline uri={e.mediaUri} dur={e.dur} />}
 
-      {/* voice — a mood-tinted waveform player */}
+      {/* voice — still mood-tinted (the mood is content), square-cornered */}
       {e.type === "voice" && !!e.mediaUri && (
-        <View style={{ paddingHorizontal: 15 }}>
-          <View style={{ backgroundColor: m.bg, borderRadius: 16, padding: 10 }}>
-            <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={m.col} />
-          </View>
+        <View style={{ backgroundColor: m.bg, padding: 10 }}>
+          <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={m.col} />
         </View>
       )}
 
       {/* text — clamped so the feed stays scannable; the page has it all.
           A bare text page gets room (9 lines); under media, a caption (3). */}
       {!!e.body && (
-        <View style={{ paddingHorizontal: 15, paddingTop: hasMedia ? 12 : 0, paddingBottom: 15 }}>
+        <View style={{ paddingTop: hasMedia ? 12 : 0 }}>
           <Body e={e} pure={e.type === "text"} lines={hasMedia ? 3 : 9} />
         </View>
       )}
@@ -153,7 +155,7 @@ function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: 
 }
 
 function Body({ e, pure, lines }: { e: JournalEntry; pure: boolean; lines: number }) {
-  const style = { fontFamily: F.letter, fontSize: pure ? 18 : 15, lineHeight: pure ? 28 : 24, color: pure ? "#2A2620" : "#4A463E" } as const;
+  const style = { fontFamily: PF.letter, fontSize: pure ? 18 : 15, lineHeight: pure ? 28 : 24, color: pure ? P.ink : P.ink60 } as const;
   const line = e.driftedLine;
   if (line && e.body.includes(line)) {
     const i = e.body.indexOf(line);

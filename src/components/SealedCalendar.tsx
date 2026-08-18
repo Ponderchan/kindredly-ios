@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { C, F } from "../theme/tokens";
+import { F } from "../theme/tokens";
+import { P, PF } from "../theme/post";
 import { MoodIcon } from "./MoodIcon";
 import type { JournalEntry } from "../lib/journal";
 
@@ -54,20 +55,20 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
       {/* month nav */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6, marginBottom: 16 }}>
         <Pressable onPress={() => step(-1)} hitSlop={12} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 22, color: C.muted }}>‹</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink60 }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>
           {monthName} {ym.y}
         </Text>
         <Pressable onPress={() => step(1)} hitSlop={12} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 22, color: C.muted }}>›</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink60 }}>›</Text>
         </Pressable>
       </View>
 
       {/* weekday header */}
       <View style={{ flexDirection: "row", marginBottom: 6 }}>
         {WD.map((w, i) => (
-          <Text key={i} style={{ flex: 1, textAlign: "center", fontFamily: F.sansBold, fontSize: 10, letterSpacing: 0.5, color: C.faint }}>
+          <Text key={i} style={{ flex: 1, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40 }}>
             {w}
           </Text>
         ))}
@@ -91,24 +92,23 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 20,
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: isToday ? 1.5 : 0,
-                  borderColor: C.purple,
+                  borderColor: P.ink,
                 }}
               >
                 {cell ? (
                   <>
                     <MoodIcon id={cell.entry.mood} size={34} />
                     {cell.count > 1 && (
-                      <View style={{ position: "absolute", right: -3, top: -3, minWidth: 15, height: 15, borderRadius: 8, paddingHorizontal: 3, backgroundColor: C.ink, alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ color: "#fff", fontSize: 8.5, fontFamily: F.sansBold }}>{cell.count}</Text>
+                      <View style={{ position: "absolute", right: -2, top: -2, minWidth: 15, height: 15, paddingHorizontal: 3, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ color: P.paper, fontSize: 8.5, fontFamily: PF.monoMed }}>{cell.count}</Text>
                       </View>
                     )}
                   </>
                 ) : (
-                  <Text style={{ fontFamily: F.sans, fontSize: 13, color: isToday ? C.purple : "#C9C4B4" }}>{d}</Text>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 12.5, color: isToday ? P.ink : P.ink40 }}>{d}</Text>
                 )}
               </View>
             </Pressable>
