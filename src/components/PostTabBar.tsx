@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
@@ -139,13 +139,13 @@ export function PostTabBar({ state, navigation }: any) {
                     asking, which is the entire point of this screen. */}
                 <View style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 26 }}>
                   <View style={{ transform: [{ rotate: "-15deg" }], marginRight: -14, marginBottom: -6, zIndex: 0 }}>
-                    <LetterObject small />
+                    <EnvelopeIcon k={0.62} />
                   </View>
                   <View style={{ zIndex: 2 }}>
                     <WrenBird size={104} mood="curious" />
                   </View>
                   <View style={{ transform: [{ rotate: "14deg" }], marginLeft: -14, marginBottom: -6, zIndex: 0 }}>
-                    <LetterObject small addressee={user?.id || "you"} />
+                    <NotebookIcon k={0.62} />
                   </View>
                 </View>
 
@@ -166,7 +166,7 @@ export function PostTabBar({ state, navigation }: any) {
                     router.push("/compose");
                   }}
                 >
-                  <LetterObject tiny />
+                  <EnvelopeIcon k={0.42} />
                 </WrenChoice>
                 <WrenChoice
                   title="To yourself"
@@ -177,7 +177,7 @@ export function PostTabBar({ state, navigation }: any) {
                     router.push("/journal-entry");
                   }}
                 >
-                  <LetterObject tiny addressee={user?.id || "you"} />
+                  <NotebookIcon k={0.42} />
                 </WrenChoice>
               </View>
 
@@ -233,64 +233,125 @@ function WrenChoice({
   );
 }
 
-/* ONE object, two addresses.
+/* The two things you can make.
 
-   An envelope with an empty address block is a letter still looking for
-   someone; the same envelope carrying your own mosaic is a letter coming back
-   to you later. Drawing them as one form makes the choice readable in a glance
-   and says the true thing: writing to yourself isn't a different feature, it's
-   the same act with a different recipient. */
-function LetterObject({ addressee, small, tiny }: { addressee?: string; small?: boolean; tiny?: boolean }) {
-  const k = tiny ? 0.42 : small ? 0.62 : 1;
-  const bars = Array.from({ length: 18 });
+   These were both envelopes for a while — one addressed, one not — which was a
+   tidy idea and a wrong one: a diary is not an envelope. A letter leaves and a
+   notebook stays, and they should look as different as those two facts.
+
+   Drawn to read at 40pt as well as 100pt, so the same pair works in her wings
+   and in the rows underneath. */
+
+/* A letter that leaves: airmail edging all the way round, the flap's V, a
+   stamp in its corner, and a shadow so it's lying on something. */
+function EnvelopeIcon({ k = 1 }: { k?: number }) {
+  const W = 112 * k;
+  const H = 76 * k;
+  const dash = Math.max(4, 7 * k);
+  const edge = (horizontal: boolean, extra: any) => (
+    <View style={[{ position: "absolute", flexDirection: horizontal ? "row" : "column", overflow: "hidden" }, extra]}>
+      {Array.from({ length: horizontal ? Math.ceil(W / dash) : Math.ceil(H / dash) }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            width: horizontal ? dash : 4 * k,
+            height: horizontal ? 4 * k : dash,
+            backgroundColor: i % 3 === 0 ? P.post : i % 3 === 1 ? P.air : "transparent",
+          }}
+        />
+      ))}
+    </View>
+  );
+
   return (
     <View
       style={{
-        width: 112 * k,
-        height: 78 * k,
-        backgroundColor: "#FCFBF8",
+        width: W,
+        height: H,
+        backgroundColor: "#FBF8F0",
         shadowColor: "#000",
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.45,
+        shadowRadius: 14 * k,
+        shadowOffset: { width: 0, height: 8 * k },
       }}
     >
-      {/* airmail edge */}
-      <View style={{ height: 7 * k, flexDirection: "row", overflow: "hidden" }}>
-        {bars.map((_, i) => (
-          <View
-            key={i}
-            style={{
-              width: 7 * k,
-              height: 22 * k,
-              marginTop: -8 * k,
-              backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent",
-              transform: [{ rotate: "34deg" }],
-            }}
-          />
-        ))}
-      </View>
+      {edge(true, { left: 0, right: 0, top: 0 })}
+      {edge(true, { left: 0, right: 0, bottom: 0 })}
+      {edge(false, { top: 0, bottom: 0, left: 0 })}
+      {edge(false, { top: 0, bottom: 0, right: 0 })}
 
-      {/* the stamp, pasted in its corner */}
-      <View style={{ position: "absolute", right: 8 * k, top: 13 * k, width: 19 * k, height: 23 * k, borderWidth: tiny ? 1 : 1.3, borderColor: P.post }} />
+      {/* the flap, and the seam where it closes */}
+      <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <Path d={`M${5 * k} ${5 * k}L${W / 2} ${H * 0.56}L${W - 5 * k} ${5 * k}`} fill="none" stroke="#CFC7B4" strokeWidth={1.4 * k} />
+        <Path d={`M${5 * k} ${H - 5 * k}L${W * 0.36} ${H * 0.52}`} fill="none" stroke="#EFE9DA" strokeWidth={1.2 * k} />
+        <Path d={`M${W - 5 * k} ${H - 5 * k}L${W * 0.64} ${H * 0.52}`} fill="none" stroke="#EFE9DA" strokeWidth={1.2 * k} />
+      </Svg>
 
-      {/* the address block — the one thing that differs */}
-      <View style={{ position: "absolute", left: 12 * k, bottom: 12 * k, gap: 5 * k }}>
-        {addressee ? (
-          <MosaicId seed={addressee} cell={3.4 * k} gap={1.1 * k} />
-        ) : (
-          <>
-            <View style={{ width: 42 * k, height: 1.5, backgroundColor: P.ink12 }} />
-            <View style={{ width: 54 * k, height: 1.5, backgroundColor: P.ink12 }} />
-            <View style={{ width: 34 * k, height: 1.5, backgroundColor: P.ink12 }} />
-          </>
-        )}
+      {/* the stamp, pasted a hair crooked */}
+      <View
+        style={{
+          position: "absolute",
+          right: 9 * k,
+          top: 9 * k,
+          width: 20 * k,
+          height: 24 * k,
+          borderWidth: Math.max(1, 1.4 * k),
+          borderColor: P.post,
+          backgroundColor: "#FDF3EF",
+          transform: [{ rotate: "-5deg" }],
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <View style={{ width: 7 * k, height: 7 * k, borderRadius: 4 * k, backgroundColor: P.post, opacity: 0.55 }} />
       </View>
     </View>
   );
 }
 
+/* A book that stays: a bound cover, a spine, the elastic band you snap round
+   it, and a ribbon still marking your place. Closed, and heavier than paper —
+   which is the difference being drawn. */
+function NotebookIcon({ k = 1 }: { k?: number }) {
+  const W = 84 * k;
+  const H = 100 * k;
+  return (
+    <View
+      style={{
+        width: W,
+        height: H,
+        backgroundColor: "#4A4478",
+        shadowColor: "#000",
+        shadowOpacity: 0.5,
+        shadowRadius: 14 * k,
+        shadowOffset: { width: 0, height: 8 * k },
+      }}
+    >
+      {/* the spine, and the pages showing along its edge */}
+      <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 9 * k, backgroundColor: "#3A3560" }} />
+      <View style={{ position: "absolute", right: 0, top: 5 * k, bottom: 5 * k, width: 3 * k, backgroundColor: "#EFEAF6" }} />
 
+      {/* an embossed frame on the cover */}
+      <View
+        style={{
+          position: "absolute",
+          left: 18 * k,
+          right: 12 * k,
+          top: 12 * k,
+          bottom: 12 * k,
+          borderWidth: Math.max(0.8, 1.2 * k),
+          borderColor: "rgba(255,255,255,0.22)",
+        }}
+      />
+
+      {/* the elastic, snapped round the whole thing */}
+      <View style={{ position: "absolute", right: 17 * k, top: -2 * k, bottom: -2 * k, width: 7 * k, backgroundColor: "#D08A3E" }} />
+
+      {/* the ribbon, still holding a page */}
+      <View style={{ position: "absolute", left: 26 * k, bottom: -9 * k, width: 8 * k, height: 16 * k, backgroundColor: "#C9C3EE" }} />
+    </View>
+  );
+}
 
 /* ── the glyphs ──────────────────────────────────────────────────────────
    THE GRID, which must not be broken: every glyph is drawn on a 24×24 canvas
