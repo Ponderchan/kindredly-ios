@@ -53,7 +53,7 @@ export default function JournalTab() {
           <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>JUST YOU</Text>
         ) : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.brass }}>
               {String(all.length).padStart(2, "0")}
             </Text>
             <Pressable onPress={() => setView(view === "line" ? "calendar" : "line")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
@@ -186,11 +186,11 @@ function Dots() {
 /* two tiny icons drawn from Views (no emoji, renders identically everywhere) */
 function CalendarIcon() {
   return (
-    <View style={{ width: 19, height: 19, borderWidth: 1.5, borderColor: P.ink, padding: 2.5, justifyContent: "space-between" }}>
+    <View style={{ width: 19, height: 19, borderWidth: 1.5, borderColor: P.brass, padding: 2.5, justifyContent: "space-between" }}>
       {[0, 1].map((r) => (
         <View key={r} style={{ flexDirection: "row", justifyContent: "space-between" }}>
           {[0, 1, 2].map((c) => (
-            <View key={c} style={{ width: 2.4, height: 2.4, backgroundColor: P.ink }} />
+            <View key={c} style={{ width: 2.4, height: 2.4, backgroundColor: P.brass }} />
           ))}
         </View>
       ))}
@@ -201,7 +201,7 @@ function ListIcon() {
   return (
     <View style={{ width: 19, height: 19, justifyContent: "center", gap: 4.5 }}>
       {[0, 1, 2].map((i) => (
-        <View key={i} style={{ height: 2, backgroundColor: P.ink }} />
+        <View key={i} style={{ height: 2, backgroundColor: P.brass }} />
       ))}
     </View>
   );

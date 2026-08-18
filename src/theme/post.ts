@@ -18,6 +18,7 @@ export const P = {
   pen: "#3A3AF5", // the one actionable colour (tokens' C.purple)
   penWash: "#E9E9FA",
   post: "#E0483C", // the postmark's ink — that object only
+  brass: "#9A7433", // Sealed's room ink — the PO box door, what's kept
   air: "#3A4F9E", // airmail blue, for the striped rule only
 } as const;
 

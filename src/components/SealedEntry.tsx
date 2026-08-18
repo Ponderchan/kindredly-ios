@@ -7,7 +7,11 @@ import { getMood } from "../data/moods";
 import { fmt } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
-/* One filed page in your box. Apple Journal's media handling is kept exactly —
+/* One filed page in your box, closed by a rule in that day's mood colour — so
+   scrolling the timeline is scrolling a record of how the days felt, and the
+   30 designed mood colours do the work instead of decoration.
+
+   One filed page in your box. Apple Journal's media handling is kept exactly —
    media fills the width, no "PHOTO / VIDEO" labels (the media says what it
    is), several photos become a mosaic, a video plays in place, the mood shows
    only as its face — but the container is now the postal system's: no floating
@@ -33,7 +37,7 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({ paddingBottom: 18, marginBottom: 18, borderBottomWidth: 1, borderBottomColor: P.ink12, opacity: pressed ? 0.55 : 1 })}
+      style={({ pressed }) => ({ paddingBottom: 18, marginBottom: 18, borderBottomWidth: 1.5, borderBottomColor: m.col, opacity: pressed ? 0.55 : 1 })}
     >
       {/* head — a big mood face + the date filed in mono */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>
