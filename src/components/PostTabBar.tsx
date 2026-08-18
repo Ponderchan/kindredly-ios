@@ -97,8 +97,8 @@ export function PostTabBar({ state, navigation }: any) {
             <OrbitGlyph color={tint("kindreds")} />
           </Window>
           <Window name="me">
-            <View style={{ opacity: current === "me" ? 1 : 0.42 }}>
-              <MosaicId seed={user?.id || "you"} cell={3.5} gap={1.2} />
+            <View style={{ width: S, height: S, alignItems: "center", justifyContent: "center", opacity: current === "me" ? 1 : 0.42 }}>
+              <MosaicId seed={user?.id || "you"} cell={2.6} gap={0.95} />
             </View>
           </Window>
         </View>
@@ -163,58 +163,60 @@ function Choice({ label, note, onPress }: { label: string; note: string; onPress
 }
 
 /* ── the glyphs ──────────────────────────────────────────────────────────
-   Each one has to be a fact about this system, not a symbol borrowed from
-   the icon-set shelf. The test: could it belong to any other app? If yes,
-   it's wrong.
+   THE GRID, which must not be broken: every glyph is drawn on a 24×24 canvas
+   and fills an 18×18 live area centred on (12,12). The three exceptions are
+   optical, not sloppy:
 
-   The slot is the system's one piece of hardware, and it's used twice with
-   opposite polarity — mail coming IN through it is Today, mail going OUT
-   through it is the post button in the middle of the bar. One object, two
-   directions, and the whole metaphor closes. */
+     stroked rectangles  17×18  — a square reads larger than a circle of the
+                                  same box, so it comes in a hair
+     stroked circles     r=9    — the full 18; circles read smaller
+     solid dense marks   ~16.8  — filled mass reads heaviest of all, so the
+                                  mosaic is inset most
+
+   Stroke weight is 1.7 for the primary form, 1.4–1.5 for secondary detail,
+   everywhere. Anything that ignores this makes the row look drunk. */
 
 const S = 24;
 const stroke = (color: string, w = 1.7) => ({ stroke: color, strokeWidth: w, fill: "none" as const });
 
-/* TODAY — a letter halfway through the slot, arriving. The lip is drawn solid
-   and crosses the envelope, so the envelope reads as behind it: mid-delivery,
-   an event rather than an object. */
+/* TODAY — a letter resting in the in-tray, the tray's lip drawn solid and
+   crossing it. The slot is the system's one piece of hardware, used twice with
+   opposite polarity: arriving here, departing on the post button. */
 function EnvelopeGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Rect x={6} y={3.5} width={12} height={11} {...stroke(color)} />
-      <Path d="M6 3.5l6 4.6 6-4.6" {...stroke(color, 1.5)} />
-      <Rect x={2.5} y={13} width={19} height={2.6} fill={color} />
-      <Line x1={5} y1={19.5} x2={19} y2={19.5} {...stroke(color, 1.5)} />
+      <Rect x={6.5} y={3} width={11} height={9.5} {...stroke(color)} />
+      <Path d="M6.5 3l5.5 4.2L17.5 3" {...stroke(color, 1.4)} />
+      <Rect x={3} y={12.4} width={18} height={2.6} fill={color} />
+      <Path d="M3.9 15.6V20.4H20.1V15.6" {...stroke(color, 1.5)} />
     </Svg>
   );
 }
 
-/* SEALED — the little brass door of a PO box, shut. Mail addressed to
-   yourself never leaves the building; it goes in a box only you open. A number
-   plate across the top, the lock solid on the right. Postal furniture nobody
-   uses as an app icon, and it says "private and closed" without a padlock. */
+/* SEALED — the little brass door of a PO box, shut: number plate across the
+   top, lock solid on the right. Mail addressed to yourself never leaves the
+   building; it goes in a box only you open. */
 function SealedGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Rect x={4} y={3} width={16} height={18} {...stroke(color)} />
-      <Line x1={4} y1={8.5} x2={20} y2={8.5} {...stroke(color, 1.4)} />
-      <Rect x={7} y={5.2} width={6} height={1.6} fill={color} opacity={0.8} />
-      <Circle cx={16} cy={15} r={2.4} {...stroke(color, 1.5)} />
-      <Line x1={16} y1={15} x2={16} y2={17.6} {...stroke(color, 1.5)} />
+      <Rect x={3.5} y={3} width={17} height={18} {...stroke(color)} />
+      <Line x1={3.5} y1={8.6} x2={20.5} y2={8.6} {...stroke(color, 1.4)} />
+      <Rect x={6.6} y={5.1} width={6} height={1.7} fill={color} opacity={0.8} />
+      <Circle cx={15.4} cy={14.8} r={2.4} {...stroke(color, 1.5)} />
+      <Line x1={15.4} y1={14.8} x2={15.4} y2={17.6} {...stroke(color, 1.5)} />
     </Svg>
   );
 }
 
-/* KINDREDS — the orbit map itself, miniaturised: you solid at the centre, one
-   correspondent pulled into the inner ring, another still out on the far one.
-   It's the same diagram the tab opens to, which is the point. */
+/* KINDREDS — the orbit map miniaturised: you solid at the centre, one
+   correspondent already pulled into the inner ring. */
 function OrbitGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={9.5} {...stroke(color, 1.1)} opacity={0.45} />
-      <Circle cx={12} cy={12} r={5} {...stroke(color, 1.5)} />
-      <Rect x={10.3} y={10.3} width={3.4} height={3.4} fill={color} />
-      <Rect x={13.8} y={5.9} width={4.2} height={4.2} fill={color} />
+      <Circle cx={12} cy={12} r={9} {...stroke(color, 1.1)} opacity={0.45} />
+      <Circle cx={12} cy={12} r={4.8} {...stroke(color, 1.5)} />
+      <Rect x={10.4} y={10.4} width={3.2} height={3.2} fill={color} />
+      <Rect x={13.6} y={6.2} width={4} height={4} fill={color} />
     </Svg>
   );
 }
