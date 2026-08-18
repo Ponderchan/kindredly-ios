@@ -201,21 +201,22 @@ function Feed({
         <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             <View style={{ minHeight: 78 }}>
-              {/* writing is done on paper too — so the field is a sheet, not a
-                  box ruled onto the desk. Same rule as the letter above it. */}
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
+              {/* no box: on one white surface a filled field is just a paler
+                  smudge. It's an underlined field — the rule does the work, the
+                  same way every other separation on this screen does. */}
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: PW.ink, paddingRight: 2, paddingVertical: 2 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
                   placeholder="write back…"
                   placeholderTextColor={PW.ink40}
                   multiline
-                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: PW.ink, fontFamily: PF.letter, fontSize: 16, lineHeight: 22 }}
+                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: PW.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
                 />
                 <Pressable
                   onPress={send}
                   disabled={!replyOk || sending}
-                  style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: replyOk && !sending ? PW.pen : "transparent" }}
+                  style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? PW.pen : "transparent" }}
                 >
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : PW.ink40 }}>
                     {sending ? "···" : "SEND"}

@@ -90,16 +90,16 @@ export function channelInk(hex?: string | null): string {
    Kindreds runs on this so it can be judged beside Today and Sealed. If it
    wins, P's values become these and nothing else in the app has to move. */
 export const PW = {
-  // ONE GROUND FOR EVERY TAB, and it is the DESK — warm, quiet, the same in
-  // every room so the app reads as one app.
-  ground: "#F4F1E8",
+  // ONE SURFACE. A warm desk only works when you can see enough of it to read
+  // as a desk; reduced to a strip at the bottom of the screen it reads as a
+  // misaligned seam. So the whole app is one white surface and RULES do every
+  // separation — which is what this system was always built on.
+  ground: "#FFFFFF",
   groundInk: "#111113",
   groundInk60: "rgba(17,17,19,0.6)",
   groundInk40: "rgba(17,17,19,0.4)",
-  // the SHEET is the paper you actually read, so it is the brightest thing on
-  // the screen — white on a warm desk, which is how paper really behaves. The
-  // whole postal structure lives on it: docket line, stamp, tag, provenance.
-  sheet: "#FFFFFF",
+  sheet: "#FFFFFF", // same surface — kept as a name so callers stay readable
+
   paper: "#FFFFFF",
   paperDeep: "#F4F4F5",
   ink: "#111113",
