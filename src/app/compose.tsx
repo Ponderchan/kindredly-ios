@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { C, F, navyBtn } from "../theme/tokens";
+import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { Seal } from "../components/Seal";
@@ -22,7 +23,7 @@ import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
 import { COUNTER_FROM, LETTER_MAX, weightedCount } from "../lib/weighted-count";
 
 const LANG = "en";
-const LAV = "#B9A8F0"; // the lavender desk
+const LAV = P.paper; // the same surface every room uses
 type Step = "pick" | "write" | "sending";
 type Mode = "write" | "speak";
 
@@ -159,17 +160,17 @@ export default function Compose() {
   /* ── sending ── */
   if (step === "sending") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.creamHi, alignItems: "center", justifyContent: "center", padding: 30 }}>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 3, color: C.faint, position: "absolute", top: "16%" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper, alignItems: "center", justifyContent: "center", padding: 30 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2, color: P.ink40, position: "absolute", top: "16%" }}>
           KINDREDLY
         </Text>
         <Animated.View style={breathe}>
           <Seal size={92} />
         </Animated.View>
-        <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, textAlign: "center", marginTop: 28, lineHeight: 34 }}>
+        <Text style={{ fontFamily: PF.letter, fontSize: 25, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 28, lineHeight: 34 }}>
           {isMorning ? "Straight to them." : "On its way."}
         </Text>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.8, color: C.faint, marginTop: 16, textAlign: "center" }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 16, textAlign: "center" }}>
           {isMorning ? "IT LANDS WITH THEM" : "THE FIRST TO ANSWER IS YOURS"}
         </Text>
       </SafeAreaView>
@@ -186,10 +187,9 @@ export default function Compose() {
           onPress={() => setSel(id)}
           style={{
             width: "31%",
-            backgroundColor: on ? "#fff" : "rgba(255,255,255,0.65)",
+            backgroundColor: "transparent",
             borderWidth: 2,
-            borderColor: on ? C.purple : "transparent",
-            borderRadius: 16,
+            borderColor: on ? P.pen : "transparent",
             paddingTop: 16,
             paddingBottom: 10,
             paddingHorizontal: 8,
@@ -199,7 +199,7 @@ export default function Compose() {
           }}
         >
           <StampTile id={id} w={46} r={7} />
-          <Text numberOfLines={1} style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 0.5, color: st?.color, textAlign: "center" }}>
+          <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.3, color: channelInk(st?.color), textAlign: "center" }}>
             {st?.name.en.toUpperCase()}
           </Text>
         </Pressable>
@@ -207,20 +207,19 @@ export default function Compose() {
     };
 
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
         <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Pressable onPress={() => setStep("write")} hitSlop={10} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 20, color: C.ink }}>‹</Text>
+          <Pressable onPress={() => setStep("write")} hitSlop={10} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
           </Pressable>
-          <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, backgroundColor: C.purpleLt }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.2, color: C.purple }}>STAMPS</Text>
+          <View style={{ paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: P.ink }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>STAMPS</Text>
           </View>
         </View>
 
         <View style={{ paddingHorizontal: 22, paddingTop: 24, paddingBottom: 16 }}>
-          <Text style={{ fontFamily: F.serifMed, fontSize: 32, color: C.ink, letterSpacing: -0.5 }}>Pick a</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 32, color: C.purple, letterSpacing: -0.5 }}>stamp.</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 10 }}>
+          <Text style={{ fontFamily: PF.letter, fontSize: 30, fontWeight: "600", color: P.ink }}>Pick a stamp.</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
             A stamp guides your letter to the right people — or skip it.
           </Text>
         </View>
@@ -234,11 +233,11 @@ export default function Compose() {
                 ))}
               </View>
               <Pressable onPress={() => setShowAll(true)} style={{ paddingVertical: 18 }}>
-                <Text style={{ textAlign: "center", fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1.2, color: C.purple }}>
+                <Text style={{ textAlign: "center", fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
                   See all {STAMPS.length} →
                 </Text>
               </Pressable>
-              <Text style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>
+              <Text style={{ textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
                 Six to start. The rest are here when you want them.
               </Text>
             </>
@@ -246,7 +245,7 @@ export default function Compose() {
             STAMP_CATEGORIES.map((cat) => (
               <View key={cat.id} style={{ marginBottom: 22 }}>
                 <View style={{ paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: C.line }}>
-                  <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 2, color: C.ink }}>{cat.name.en.toUpperCase()}</Text>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink }}>{cat.name.en.toUpperCase()}</Text>
                 </View>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 16 }}>
                   {stampsByCat(cat.id).map((s) => (
@@ -263,7 +262,7 @@ export default function Compose() {
             onPress={() => sel && setStep("write")}
             style={[navyBtn, { paddingVertical: 18, width: "100%", opacity: sel ? 1 : 0.3 }]}
           >
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1 }}>Use this one →</Text>
+            <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2 }}>USE THIS ONE →</Text>
           </Pressable>
         </LinearGradient>
       </SafeAreaView>
@@ -278,17 +277,17 @@ export default function Compose() {
         <Pressable
           onPress={goBack}
           hitSlop={10}
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#2A2153", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
+          style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={{ fontSize: 15, color: C.ink }}>✕</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={{ backgroundColor: C.navy, borderRadius: 17, paddingHorizontal: 16, paddingVertical: 9, transform: [{ rotate: "-1.2deg" }] }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 2, color: "#fff" }}>TO A STRANGER 🕊</Text>
+          <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>TO A STRANGER</Text>
           </View>
         </View>
         <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
-          <View style={{ padding: 5, backgroundColor: "#fff", borderRadius: 8, shadowColor: "#2A2153", shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 3 } }}>
+          <View style={{ padding: 3 }}>
             <StampTile id={sel || STARTER_STAMPS[0]} w={44} r={5} />
           </View>
         </Pressable>
@@ -299,8 +298,7 @@ export default function Compose() {
           {/* the letter card — pasted a hair off-straight */}
           <View
             style={{
-              backgroundColor: "#fff",
-              borderRadius: 26,
+              backgroundColor: P.paper,
               padding: 20,
               minHeight: 380,
               transform: [{ rotate: "-0.6deg" }],
@@ -312,10 +310,10 @@ export default function Compose() {
           >
             {/* Wren reads you live */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, borderRadius: 23, backgroundColor: C.purpleLt, alignItems: "center", justifyContent: "center" }]}>
+              <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>
                 <WrenBird size={38} mood={wrenMood} />
               </Animated.View>
-              <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, lineHeight: 19 }}>
+              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, lineHeight: 20 }}>
                 “{mode === "speak" ? wrenLine(wrenMood) : ladder.line}”
               </Text>
             </View>
@@ -329,7 +327,7 @@ export default function Compose() {
                 placeholder="ok so here's the thing…"
                 placeholderTextColor="#B9B3D8"
                 multiline
-                style={{ minHeight: 250, color: "#33305A", fontFamily: F.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
+                style={{ minHeight: 250, color: P.ink, fontFamily: PF.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
               />
             ) : (
               <View style={{ paddingTop: 12, minHeight: 250 }}>
@@ -350,7 +348,7 @@ export default function Compose() {
                     <AudioCard url={recUri} durationS={recDur} compact />
                   </View>
                 )}
-                <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 14, lineHeight: 19 }}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 14, lineHeight: 17 }}>
                   Up to three minutes. Your voice travels as it is — Wren doesn't listen in.
                 </Text>
                 <TextInput
@@ -358,22 +356,22 @@ export default function Compose() {
                   onChangeText={setText}
                   placeholder="a line to go with it… (optional)"
                   placeholderTextColor="#B9B3D8"
-                  style={{ color: "#33305A", fontFamily: F.letter, fontSize: 17, marginTop: 14 }}
+                  style={{ color: P.ink, fontFamily: PF.letter, fontSize: 17, marginTop: 14 }}
                 />
               </View>
             )}
 
             {/* one stamp — this letter's channel (exactly one, required) */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }}>
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.2, color: "#8F87BD" }}>YOUR STAMP</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>YOUR STAMP</Text>
               {stamp && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: `${stamp.color}1E`, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1.5, borderColor: stamp.color }}>
+                <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
                   <Text style={{ fontSize: 12 }}>{stamp.emoji}</Text>
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: stamp.color }}>#{stamp.name.en.toLowerCase()}</Text>
+                  <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{stamp.name.en.toLowerCase()}</Text>
                 </View>
               )}
               <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: "#8F87BD" }}>change ›</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>CHANGE ›</Text>
               </Pressable>
             </View>
           </View>
@@ -386,7 +384,7 @@ export default function Compose() {
                   key={e}
                   onPress={() => setText((t) => t + e)}
                   hitSlop={4}
-                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.55)", alignItems: "center", justifyContent: "center", transform: [{ rotate: `${i % 2 ? 3 : -3}deg` }] }}
+                  style={{ width: 40, height: 40, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}
                 >
                   <Text style={{ fontSize: 19 }}>{e}</Text>
                 </Pressable>
@@ -395,13 +393,13 @@ export default function Compose() {
           )}
 
           {capMsg && (
-            <View style={{ marginTop: 16, padding: 16, borderRadius: 18, backgroundColor: "#fff" }}>
-              <Text style={{ fontFamily: F.serif, fontSize: 15, color: C.ink }}>{capMsg}</Text>
-              <Text style={{ fontFamily: F.sans, fontSize: 12.5, color: C.muted, marginTop: 4 }}>
+            <View style={{ marginTop: 16, padding: 16, borderWidth: 1, borderColor: P.ink }}>
+              <Text style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "600", color: P.ink }}>{capMsg}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 13, color: P.ink60, marginTop: 5 }}>
                 Replies are always free. Lift the daily cap with Kindredly+.
               </Text>
               <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 10 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.5, color: C.purple }}>Discover Kindredly+ →</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>DISCOVER KINDREDLY+ →</Text>
               </Pressable>
             </View>
           )}
@@ -410,7 +408,7 @@ export default function Compose() {
         {/* count — only surfaces near the ceiling, so no one writes to a number */}
         {mode === "write" && weight >= COUNTER_FROM && (
           <View style={{ paddingHorizontal: 24, alignItems: "flex-end", marginBottom: -2 }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12, letterSpacing: 0.3, color: over > 0 ? "#C0503A" : over > -40 ? "#C98A2E" : "rgba(42,33,83,0.55)" }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.4, color: over > 0 ? P.post : over > -40 ? "#946738" : P.ink40 }}>
               {over > 0 ? `${over} over` : `${-over} left`}
             </Text>
           </View>
@@ -432,27 +430,31 @@ export default function Compose() {
                 style={{
                   width: 48,
                   height: 48,
-                  borderRadius: 24,
-                  backgroundColor: on ? C.navy : "#fff",
+                  backgroundColor: on ? P.ink : "transparent",
+                  borderWidth: 1,
+                  borderColor: P.ink,
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: "#2A2153",
-                  shadowOpacity: 0.16,
-                  shadowRadius: 6,
-                  shadowOffset: { width: 0, height: 2 },
                 }}
               >
-                <Text style={{ fontFamily: F.sansBold, fontSize: 16, color: on ? "#fff" : C.ink }}>{icon}</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 16, color: on ? P.paper : P.ink }}>{icon}</Text>
               </Pressable>
             );
           })}
           <Pressable
             onPress={send}
             disabled={!canSend || busy}
-            style={{ flex: 1, backgroundColor: C.navy, borderRadius: 26, paddingVertical: 17, alignItems: "center", opacity: canSend && !busy ? 1 : 0.35 }}
+            style={{
+              flex: 1,
+              backgroundColor: canSend && !busy ? P.pen : "transparent",
+              borderWidth: 1,
+              borderColor: canSend && !busy ? P.pen : P.ink12,
+              paddingVertical: 16,
+              alignItems: "center",
+            }}
           >
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14.5, letterSpacing: 0.3 }}>
-              {busy ? "sending…" : "yeet it into the world ✈️"}
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : P.ink40 }}>
+              {busy ? "SENDING…" : "YEET IT INTO THE WORLD"}
             </Text>
           </Pressable>
         </View>
