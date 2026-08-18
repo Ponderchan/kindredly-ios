@@ -1,24 +1,33 @@
-/* The Post — a visual system on trial (Today only, for now).
-   The idea: the postal service is a MACHINE and the letter is a PERSON.
-   So the chrome is systematic — monospace, rules, docket numbers, square
-   corners, no shadows — and the letter body is the one warm, human thing on
-   the screen. Everything you can act on is pen-ink blue; postal red belongs to
-   the postmark alone and is never used as decoration.
+/* The Post — the app's visual system.
+   The postal service is a MACHINE and the letter is a PERSON. So the chrome is
+   systematic — monospace, rules, docket numbers, square corners, no shadows —
+   and what a person wrote is the one thing the system didn't typeset.
 
-   Deliberately small: one paper, one black, two inks, two type families. If a
-   thing isn't in here, it doesn't belong on the page. */
+   ONE SURFACE. Every tab is the same white; RULES do every separation. Warm
+   paper and coloured rooms were both tried and both lost: warm reads older
+   than this app's readers, and a coloured ground that suits one tab fights the
+   next. White is the only ground that holds all four and lets the stamps, the
+   mood faces and the pen accent carry the colour instead.
+
+   Deliberately small: one surface, one black, three inks, two type families.
+   If a thing isn't in here, it doesn't belong on the page. */
 
 export const P = {
-  paper: "#FAF8F3", // warm white — never clinical #FFF
-  paperDeep: "#F2EFE6", // a shade down, for insets
-  ink: "#1B1B18", // warm black — rules, type, the machine
-  ink60: "rgba(27,27,24,0.6)",
-  ink40: "rgba(27,27,24,0.4)",
-  ink12: "rgba(27,27,24,0.12)",
-  pen: "#3A3AF5", // the one actionable colour (tokens' C.purple)
-  penWash: "#E9E9FA",
+  paper: "#FFFFFF",
+  ground: "#FFFFFF", // same surface; kept so call sites can say what they mean
+  sheet: "#FFFFFF",
+  paperDeep: "#F4F4F5", // a shade down, for insets only
+  ink: "#111113", // rules, type, the machine
+  ink60: "rgba(17,17,19,0.6)",
+  ink40: "rgba(17,17,19,0.4)",
+  ink12: "rgba(17,17,19,0.12)",
+  groundInk: "#111113",
+  groundInk60: "rgba(17,17,19,0.6)",
+  groundInk40: "rgba(17,17,19,0.4)",
+  pen: "#3A3AF5", // the one actionable colour
+  penWash: "#ECECFE",
   post: "#E0483C", // the postmark's ink — that object only
-  brass: "#9A7433", // Sealed's room ink — the PO box door, what's kept
+  brass: "#9A7433", // Sealed's own mark — the PO box door, what's kept
   air: "#3A4F9E", // airmail blue, for the striped rule only
 } as const;
 
@@ -81,34 +90,4 @@ export function channelInk(hex?: string | null): string {
   return P.ink;
 }
 
-/* ── PW: the pure-white variant, on trial ─────────────────────────────────
-   The warm paper above reads older than this product's readers (18–27) — the
-   beige is what made it feel like an old folder rather than something sharp.
-   Same token names, same structure, one variable changed: temperature.
-   Cold white, true black, the same electric pen.
 
-   Kindreds runs on this so it can be judged beside Today and Sealed. If it
-   wins, P's values become these and nothing else in the app has to move. */
-export const PW = {
-  // ONE SURFACE. A warm desk only works when you can see enough of it to read
-  // as a desk; reduced to a strip at the bottom of the screen it reads as a
-  // misaligned seam. So the whole app is one white surface and RULES do every
-  // separation — which is what this system was always built on.
-  ground: "#FFFFFF",
-  groundInk: "#111113",
-  groundInk60: "rgba(17,17,19,0.6)",
-  groundInk40: "rgba(17,17,19,0.4)",
-  sheet: "#FFFFFF", // same surface — kept as a name so callers stay readable
-
-  paper: "#FFFFFF",
-  paperDeep: "#F4F4F5",
-  ink: "#111113",
-  ink60: "rgba(17,17,19,0.6)",
-  ink40: "rgba(17,17,19,0.38)",
-  ink12: "rgba(17,17,19,0.12)",
-  pen: "#3A3AF5",
-  penWash: "#ECECFE",
-  post: "#E0483C",
-  brass: "#9A7433",
-  air: "#3A4F9E",
-} as const;

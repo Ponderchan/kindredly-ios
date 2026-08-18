@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
-import { PW, PF, channelInk, channelWash, rule } from "../../theme/post";
+import { P, PF, channelInk, channelWash, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
@@ -147,7 +147,7 @@ function Feed({
   if (quiet) {
     // nothing waiting — you're already at the close of the day
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: PW.ground }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.ground }} edges={["top"]}>
         <View style={{ flex: 1, paddingBottom: tabH }}>
           <CloseOfDay
             sealed={sealed}
@@ -165,7 +165,7 @@ function Feed({
   const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: PW.ground }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.ground }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={atEnd} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
@@ -183,7 +183,7 @@ function Feed({
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
                 page and the ground meet without a seam. */}
-            <View style={{ height: vh, backgroundColor: PW.ground }}>
+            <View style={{ height: vh, backgroundColor: P.ground }}>
               <CloseOfDay
                 sealed={sealed}
                 onSeal={seal}
@@ -204,26 +204,26 @@ function Feed({
               {/* no box: on one white surface a filled field is just a paler
                   smudge. It's an underlined field — the rule does the work, the
                   same way every other separation on this screen does. */}
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: PW.ink, paddingRight: 2, paddingVertical: 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingRight: 2, paddingVertical: 2 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
                   placeholder="write back…"
-                  placeholderTextColor={PW.ink40}
+                  placeholderTextColor={P.ink40}
                   multiline
-                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: PW.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
                 />
                 <Pressable
                   onPress={send}
                   disabled={!replyOk || sending}
-                  style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? PW.pen : "transparent" }}
+                  style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
                 >
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : PW.ink40 }}>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : P.ink40 }}>
                     {sending ? "···" : "SEND"}
                   </Text>
                 </Pressable>
               </View>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? PW.post : PW.ink40, marginTop: 8 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
                   ? `${replyW - LETTER_MAX} OVER THE LIMIT`
                   : replyOk
@@ -244,9 +244,9 @@ function Feed({
 
 function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: PW.ink }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: PW.groundInk }}>TODAY</Text>
-      <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: PW.groundInk60 }}>
+    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.groundInk }}>TODAY</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.groundInk60 }}>
         {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
       </Text>
     </View>
@@ -270,7 +270,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
 
   return (
-    <View style={{ height, backgroundColor: PW.sheet, paddingHorizontal: 26, paddingTop: 26 }}>
+    <View style={{ height, backgroundColor: P.sheet, paddingHorizontal: 26, paddingTop: 26 }}>
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
@@ -284,7 +284,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 4 }}>
             <MosaicId seed={letter.author} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: PW.ink60 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
               {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
             </Text>
           </View>
@@ -298,10 +298,10 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
         <View style={{ flex: 1, justifyContent: "center" }}>
         {isVoice && audioUrl ? (
           <View>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: PW.pen, marginBottom: 14 }}>VOICE LETTER</Text>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>VOICE LETTER</Text>
             <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} system />
             {!!letter.body && letter.body !== "🎙 A voice letter" && (
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 24, color: PW.ink60, marginTop: 16 }}>{letter.body}</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 24, color: P.ink60, marginTop: 16 }}>{letter.body}</Text>
             )}
           </View>
         ) : (
@@ -310,7 +310,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
               fontFamily: PF.letter,
               fontSize: tier.size,
               lineHeight: tier.line,
-              color: PW.ink,
+              color: P.ink,
               textAlign: tier.center ? "center" : "auto",
             }}
           >
@@ -347,14 +347,14 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           </View>
         )}
 
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: PW.ink40, marginBottom: 10 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginBottom: 10 }}>
           SENT DOWN THREE STREETS · YOU OPENED IT FIRST
         </Text>
 
         {/* the two moves, on a rule */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: PW.ink }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: PW.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: PW.pen }}>REPLY ↓</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
         </View>
       </Animated.View>
     </View>

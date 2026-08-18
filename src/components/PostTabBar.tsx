@@ -3,7 +3,7 @@ import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
-import { PW, PF } from "../theme/post";
+import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
 import { WrenBird } from "./WrenBird";
 import { useAuth } from "../lib/auth";
@@ -51,7 +51,7 @@ export function PostTabBar({ state, navigation }: any) {
             left: 0,
             right: 0,
             height: 3,
-            backgroundColor: active ? PW.pen : "transparent",
+            backgroundColor: active ? P.pen : "transparent",
           }}
         />
         {children}
@@ -59,12 +59,12 @@ export function PostTabBar({ state, navigation }: any) {
     );
   };
 
-  const tint = (name: string) => (current === name ? PW.pen : PW.ink40);
+  const tint = (name: string) => (current === name ? P.pen : P.ink40);
 
   return (
     <>
-      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: PW.paper }}>
-        <View style={{ height: 1, backgroundColor: PW.ink }} />
+      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: P.paper }}>
+        <View style={{ height: 1, backgroundColor: P.ink }} />
         <View style={{ flexDirection: "row", alignItems: "center", paddingBottom: Math.max(insets.bottom, 6) }}>
           <Window name="letters">
             <EnvelopeGlyph color={tint("letters")} />
@@ -80,12 +80,12 @@ export function PostTabBar({ state, navigation }: any) {
               directions. It's also the one element allowed to break the rule
               it stands on. */}
           <Pressable onPress={() => setChoosing(true)} style={{ width: 62, alignItems: "center" }}>
-            <View style={{ width: 44, height: 44, backgroundColor: PW.pen, alignItems: "center", justifyContent: "center", marginTop: -10 }}>
+            <View style={{ width: 44, height: 44, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", marginTop: -10 }}>
               <Svg width={26} height={26} viewBox="0 0 24 24">
                 {/* the letter, going down and in */}
                 <G transform="rotate(-13 12 10)">
                   <Rect x={6} y={2.5} width={12} height={9.5} fill="#fff" />
-                  <Path d="M6 2.5l6 4.4 6-4.4" stroke={PW.pen} strokeWidth={1.5} fill="none" strokeLinejoin="round" />
+                  <Path d="M6 2.5l6 4.4 6-4.4" stroke={P.pen} strokeWidth={1.5} fill="none" strokeLinejoin="round" />
                 </G>
                 {/* the lip — solid, and it crosses the letter */}
                 <Rect x={1.5} y={13} width={21} height={3} fill="#fff" />
@@ -107,12 +107,12 @@ export function PostTabBar({ state, navigation }: any) {
       {/* who's it for? — the slot asks before it takes anything */}
       <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(27,27,24,0.5)", justifyContent: "flex-end" }} onPress={() => setChoosing(false)}>
-          <Pressable onPress={() => {}} style={{ backgroundColor: PW.paper, paddingHorizontal: 22, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 14) + 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: PW.ink }}>
+          <Pressable onPress={() => {}} style={{ backgroundColor: P.paper, paddingHorizontal: 22, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 14) + 10 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: P.ink }}>
               <WrenBird size={38} mood="curious" />
               <View>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: PW.ink }}>POST SOMETHING</Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: PW.ink40, marginTop: 3 }}>WHO'S IT FOR?</Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>POST SOMETHING</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 3 }}>WHO'S IT FOR?</Text>
               </View>
             </View>
 
@@ -148,16 +148,16 @@ function Choice({ label, note, onPress }: { label: string; note: string; onPress
         alignItems: "center",
         justifyContent: "space-between",
         borderBottomWidth: 1,
-        borderBottomColor: PW.ink12,
+        borderBottomColor: P.ink12,
         paddingVertical: 18,
         opacity: pressed ? 0.5 : 1,
       })}
     >
       <View>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2, color: PW.ink }}>{label}</Text>
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: PW.ink60, marginTop: 4 }}>{note}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2, color: P.ink }}>{label}</Text>
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60, marginTop: 4 }}>{note}</Text>
       </View>
-      <Text style={{ fontFamily: PF.mono, fontSize: 15, color: PW.pen }}>→</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.pen }}>→</Text>
     </Pressable>
   );
 }

@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { F } from "../theme/tokens";
-import { PW, PF } from "../theme/post";
+import { P, PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { MORNING_HOUR } from "../lib/notify";
 
@@ -24,9 +24,9 @@ import { MORNING_HOUR } from "../lib/notify";
    date on it. (A haptic thunk belongs on the landing — needs expo-haptics,
    which needs a native rebuild.) */
 
-const PAPER = PW.ground; // the closed post is a state of the room, not a letter
-const INK = PW.post;
-const BOARD = PW.ink;
+const PAPER = P.ground; // the closed post is a state of the room, not a letter
+const INK = P.post;
+const BOARD = P.ink;
 const HOLD_MS = 750;
 
 export function CloseOfDay({
@@ -84,7 +84,7 @@ function ToSeal({ onSeal }: { onSeal: () => void }) {
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={{ alignItems: "center" }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: PW.groundInk, textAlign: "center" }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, textAlign: "center" }}>
         THAT'S THE WHOLE POST
       </Text>
 
@@ -109,7 +109,7 @@ function ToSeal({ onSeal }: { onSeal: () => void }) {
         </Animated.View>
       </Pressable>
 
-      <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: PW.groundInk60, marginTop: 24 }}>
+      <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.groundInk60, marginTop: 24 }}>
         PRESS AND HOLD TO CLOSE
       </Text>
     </Animated.View>
@@ -130,8 +130,8 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
         <Postmark dated />
       </Animated.View>
 
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: PW.groundInk, marginTop: 26 }}>THE POST IS CLOSED</Text>
-      <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: PW.groundInk60, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, marginTop: 26 }}>THE POST IS CLOSED</Text>
+      <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.groundInk60, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
         go have a life — it's better material.
       </Text>
 
@@ -139,7 +139,7 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
 
       {/* the lock is on reading, never on writing */}
       <View style={{ alignItems: "center", marginTop: 22 }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: PW.groundInk40, textAlign: "center", lineHeight: 17 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.groundInk40, textAlign: "center", lineHeight: 17 }}>
           WRITING STAYS OPEN{"\n"}IT LEAVES WITH THE MORNING VAN
         </Text>
         <View style={{ flexDirection: "row", gap: 9, marginTop: 14 }}>
@@ -151,7 +151,7 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 28 }}>
         <WrenBird size={30} mood="sleepy" />
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: PW.groundInk40 }}>WREN IS OFF THE CLOCK</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.groundInk40 }}>WREN IS OFF THE CLOCK</Text>
       </View>
     </Animated.View>
   );
@@ -163,13 +163,13 @@ function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
       onPress={onPress}
       style={({ pressed }) => ({
         borderWidth: 1,
-        borderColor: PW.groundInk,
+        borderColor: P.groundInk,
         paddingVertical: 8,
         paddingHorizontal: 11,
         opacity: pressed ? 0.5 : 1,
       })}
     >
-      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: PW.groundInk }}>{label}</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.groundInk }}>{label}</Text>
     </Pressable>
   );
 }

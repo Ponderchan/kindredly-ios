@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 
-import { PW, PF, ruleSoft } from "../../theme/post";
+import { P, PF, ruleSoft } from "../../theme/post";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
@@ -16,12 +16,9 @@ import { DEMO_THREADS } from "../../data/demo";
    your names. The map up top is the whole sky at a glance; the list is where
    you act.
 
-   ON TRIAL: this room runs the PURE-WHITE palette (theme/post PW) while Today
-   and Sealed stay on warm paper, so the two can be judged side by side. The
-   warm ground reads older than 18–27; cold white with a true black is the
-   sharper end of the same system. Structure is untouched — only temperature. */
+   Same surface as every other tab — white, with rules doing the separation. */
 
-const GROUND = PW.paper;
+const GROUND = P.paper;
 const REVEAL = 5;
 
 export default function KindredsTab() {
@@ -46,9 +43,9 @@ export default function KindredsTab() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: GROUND }} edges={["top"]}>
       {/* the same plate Today and Sealed carry */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: PW.ink }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: PW.ink }}>KINDREDS</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: PW.ink60 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>KINDREDS</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
           {empty ? "NONE" : `${String(orbit.length).padStart(2, "0")} IN ORBIT${named ? ` · ${named} NAMED` : ""}`}
         </Text>
       </View>
@@ -84,41 +81,41 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
       style={({ pressed }) => [{ paddingBottom: 16, marginBottom: 16, opacity: pressed ? 0.5 : 1 }, ruleSoft]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <View style={{ width: 9, height: 9, backgroundColor: t.revealed ? PW.pen : `rgba(58,58,245,${0.28 + 0.55 * (p / REVEAL)})` }} />
+        <View style={{ width: 9, height: 9, backgroundColor: t.revealed ? P.pen : `rgba(58,58,245,${0.28 + 0.55 * (p / REVEAL)})` }} />
         {t.revealed ? (
-          <Text style={{ fontFamily: PF.letter, fontSize: 18, fontWeight: "600", color: PW.ink }}>{t.otherName || "A kindred"}</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 18, fontWeight: "600", color: P.ink }}>{t.otherName || "A kindred"}</Text>
         ) : (
           <Dots p={p} />
         )}
         <View style={{ flex: 1 }} />
         {/* they caught your last letter with a reaction */}
         {t.theirReaction && (
-          <View style={{ width: 28, height: 28, backgroundColor: PW.penWash, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 28, height: 28, backgroundColor: P.penWash, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontSize: 14 }}>{t.theirReaction}</Text>
           </View>
         )}
         <View style={{ alignItems: "flex-end", gap: 5 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: PW.ink40 }}>{p}/5</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>{p}/5</Text>
           {theirTurn && (
-            <View style={{ backgroundColor: PW.pen, paddingHorizontal: 7, paddingVertical: 2.5 }}>
+            <View style={{ backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 2.5 }}>
               <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: "#fff" }}>NEW</Text>
             </View>
           )}
         </View>
       </View>
       {t.theirReaction && (
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.5, color: PW.pen, marginTop: 9 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.5, color: P.pen, marginTop: 9 }}>
           {(reactionLabel(t.theirReaction) || "they reacted").toUpperCase()} — TO YOUR LAST LETTER
         </Text>
       )}
 
       {/* a revealed friend gets their last line; a stranger stays status-only */}
       {t.revealed ? (
-        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: PW.ink60, marginTop: 10 }}>
+        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 10 }}>
           {t.preview}
         </Text>
       ) : (
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: PW.ink40, marginTop: 12 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, marginTop: 12 }}>
           RING {t.mine} · {status}
         </Text>
       )}
@@ -130,7 +127,7 @@ function Dots({ p }: { p: number }) {
   return (
     <View style={{ flexDirection: "row", gap: 5 }}>
       {[0, 1, 2, 3, 4].map((i) => (
-        <View key={i} style={{ width: 7, height: 7, backgroundColor: i < p ? PW.pen : PW.ink12 }} />
+        <View key={i} style={{ width: 7, height: 7, backgroundColor: i < p ? P.pen : P.ink12 }} />
       ))}
     </View>
   );
@@ -146,18 +143,18 @@ function Empty({ onWrite }: { onWrite: () => void }) {
           <WrenBird size={40} mood="curious" />
         </View>
       </View>
-      <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: PW.ink, textAlign: "center", marginTop: 14, lineHeight: 33 }}>
+      <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 14, lineHeight: 33 }}>
         Nobody knows your{"\n"}name yet.
       </Text>
-      <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: PW.ink60, textAlign: "center", marginTop: 14, maxWidth: 300 }}>
+      <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, textAlign: "center", marginTop: 14, maxWidth: 300 }}>
         But someone out there might be looking for a voice like yours.
       </Text>
-      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: PW.ink40, textAlign: "center", marginTop: 14, maxWidth: 300, lineHeight: 17 }}>
+      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, textAlign: "center", marginTop: 14, maxWidth: 300, lineHeight: 17 }}>
         EVERY REPLY PULLS A STRANGER ONE RING CLOSER{"\n"}AT THE CENTRE, YOU TRADE NAMES
       </Text>
       <Pressable
         onPress={onWrite}
-        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: PW.pen, paddingVertical: 16, paddingHorizontal: 20, marginTop: 34, alignSelf: "stretch", opacity: pressed ? 0.85 : 1 })}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: P.pen, paddingVertical: 16, paddingHorizontal: 20, marginTop: 34, alignSelf: "stretch", opacity: pressed ? 0.85 : 1 })}
       >
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 13.5, color: "#fff", letterSpacing: 1 }}>PUT SOMEONE IN ORBIT</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: "rgba(255,255,255,0.72)" }}>WREN PICKS</Text>
