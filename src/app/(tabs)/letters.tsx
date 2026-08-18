@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -15,6 +15,7 @@ import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { dShort, postNo } from "../../lib/format";
 import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
+import { translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
@@ -266,8 +267,31 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
 function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
-  const tier = letterTier(weightedCount(letter.body || ""));
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
+
+  // Wren translating this letter. Kept per-letter — each page holds its own,
+  // so translating one doesn't touch the others in the stack.
+  const [xl, setXl] = useState<string | null>(null);
+  const [xlOn, setXlOn] = useState(false);
+  const [xlBusy, setXlBusy] = useState(false);
+  const shown = xlOn && xl ? xl : letter.body;
+  const tier = letterTier(weightedCount(shown || ""));
+
+  const doTranslate = async () => {
+    if (xl) {
+      setXlOn((v) => !v);
+      return;
+    }
+    if (xlBusy || !letter.body) return;
+    setXlBusy(true);
+    const to = (Intl.DateTimeFormat().resolvedOptions().locale || "en").split("-")[0];
+    const t = await translate(letter.body, to);
+    setXlBusy(false);
+    if (t) {
+      setXl(t);
+      setXlOn(true);
+    } else Alert.alert("Wren couldn't translate this", "Try again in a moment.");
+  };
 
   return (
     <View style={{ height, backgroundColor: P.sheet, paddingHorizontal: 26, paddingTop: 26 }}>
@@ -314,7 +338,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
               textAlign: tier.center ? "center" : "auto",
             }}
           >
-            {letter.body}
+            {shown}
           </Text>
         )}
         </View>
@@ -352,8 +376,15 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
         </Text>
 
         {/* the two moves, on a rule */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
+          {!isVoice && !!letter.body && (
+            <Pressable onPress={doTranslate} hitSlop={10}>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: xlOn ? P.pen : P.ink60 }}>
+                {xlBusy ? "TRANSLATING…" : xlOn ? "ORIGINAL" : "TRANSLATE"}
+              </Text>
+            </Pressable>
+          )}
           <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
         </View>
       </Animated.View>

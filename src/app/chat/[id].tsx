@@ -14,7 +14,9 @@ import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 
 /* The correspondence, seen from Kindreds: a slow chat. The whole back-and-forth
    as bubbles, a milestone strip walking VOICE → RHYTHM → RESONANCE → NAME, and
-   a letter-writing field at the bottom.
+   a letter-writing field at the bottom. Tap any bubble to open THAT letter
+   full-page in the reader (thread/[id]?i=N) — two lenses on one correspondence:
+   this is the relationship, that is the letter.
 
    Same surface as everywhere: white, rules doing the separation, mono for what
    the system says, the system font for what either of you wrote. The bubbles
@@ -157,7 +159,11 @@ export default function ChatScreen() {
               ? new Date(m.date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
               : "";
             return (
-              <View key={i} style={{ marginBottom: 10, alignItems: m.mine ? "flex-end" : "flex-start" }}>
+              <Pressable
+                key={i}
+                onPress={() => router.push(`/thread/${id}?i=${i}`)}
+                style={({ pressed }) => ({ marginBottom: 10, alignItems: m.mine ? "flex-end" : "flex-start", opacity: pressed ? 0.55 : 1 })}
+              >
                 {showLabel && (
                   <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginBottom: 6, marginHorizontal: 2 }}>
                     {m.mine ? "YOU" : name.toUpperCase()}
@@ -179,7 +185,7 @@ export default function ChatScreen() {
                     <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40, alignSelf: "flex-end", marginTop: 6 }}>{time}</Text>
                   )}
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </ScrollView>
