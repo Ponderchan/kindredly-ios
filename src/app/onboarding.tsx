@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
-  SlideInDown,
+  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -13,93 +13,93 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Svg, { Line, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { P, PF, panel, rule, ruleSoft, solidBtn } from "../theme/post";
-import { WHEEL_ROW, Wheel } from "../components/Wheel";
-import { MosaicId } from "../components/MosaicId";
+import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
+import { Wheel } from "../components/Wheel";
 import { MONTHS } from "../data/content";
-import { firstLetter } from "../data/first-letter";
 import { useAuth } from "../lib/auth";
 import { publishLetter, upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
-import { EggShell } from "../components/EggShell";
+import { EGG_SHELLS, EggShell } from "../components/EggShell";
+import { AvatarImage } from "../components/AvatarImage";
+import { AVATARS } from "../data/avatar-lib";
 import { hatchLine, readMood } from "../lib/wren-read";
 import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
 import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
+import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { STARTER_STAMPS } from "../data/stamps";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
+import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 
-/* Onboarding.
+/* Onboarding — EGG OS.
    ────────────────────────────────────────────────────────────────────────
-   GIVE BEFORE YOU ASK. The version before this one described the product —
-   three numbered rows explaining that you write a line, it travels, someone
-   answers — and then, on the second screen, handed a person who had received
-   nothing a blank page and asked them to say something true. All of the cost
-   was at the front and all of the payoff at the back, which is exactly the
-   order in which nobody continues.
+   Eight screens, and the length is the point. This is the one place in the
+   product allowed to be a toy: a Y2K handheld pet console where you choose a
+   courier, name her, feed her your first words, and watch her hatch into a
+   card with a rarity on it. The app behind this is white paper and hairlines
+   — this is the box it came in, so it gets to be loud.
 
-   So the app now opens ON A LETTER. Full bleed, no logo, no headline, no
-   button — a stranger's page, the same shape Today will hand you every
-   morning. You read it. Only then does anyone ask you for anything, and by
-   then you've heard what this place sounds like, so the blank page has a
-   register and an audience instead of being a void with a cursor.
+     welcome   KINDREDLY.EXE — the pitch, and the way in
+     username  your pen name
+     cakeday   your birthday, which exists for the 18+ gate
+     avatar    a face, purely for you
+     egg       CHOOSE YOUR COURIER — the shell she'll come out of
+     naming    what you call her, for good
+     write     feed her words; the meter fills as you write
+     hatch     NEW HATCH UNLOCKED — who she turned out to be
 
-     letter  what arrived, full bleed. Wren speaks for the first time.
-     write   your own first letter — the letter above just taught you the genre.
-     you     pen name, the 18+ gate, and the way back in. One screen.
-     hatch   she hatches out of your line and carries it off.
+   TWO SCREENS THAT USED TO BE THEATRE NOW KEEP THEIR PROMISES:
 
-   Three asks, and every one of them comes after something was given.
+   · The egg is SAVED (lib/wren-name.ts). It used to be picked and then
+     dropped on the way out — you chose a shell and the app had forgotten
+     before onboarding finished. It's also no longer "a colour": the screen
+     says what the choice actually is, which is the bird who carries your
+     letters, and that her shell is the only part of her you get to pick.
 
-   An earlier attempt wrapped this in a metal box you had to unlock with two
-   drag gestures. It was dropped: nothing else in this product opens, turns
-   or unlatches, so the ritual was an invention of the onboarding rather than
-   a first taste of the app — and an onboarding that teaches a gesture the
-   app doesn't have has taught you nothing.
+   · The mood row is READ. It used to set nothing whatsoever — her hatch face
+     came from readMood() off the text either way. Now a picked mood wins and
+     the text is only the fallback, so the control does what it looks like it
+     does.
 
-   HONESTY: the pool is `for select to authenticated`, so there is no real
-   letter to show a signed-out person. The opening letter is written by us
-   and the screen says so — see data/first-letter.ts. Wren then asks for the
-   user's OWN first letter rather than a reply, because there is nobody at
-   the other end of a sample to reply to.
+   WHAT SHE'S CALLED. The naming screen is new and load-bearing: from here on
+   every line she speaks anywhere in the app uses the name you gave her, with
+   "Wren" left as the fallback for accounts made before this existed. */
 
-   SIGN-IN MOVED TO THE END. It used to be the first thing on the first
-   screen. Asking for an account from someone who has already written a
-   letter they'd like to keep is a different question than asking a stranger
-   at the door.
+type Step = "welcome" | "username" | "cakeday" | "avatar" | "egg" | "naming" | "write" | "hatch";
+const ORDER: Step[] = ["welcome", "username", "cakeday", "avatar", "egg", "naming", "write", "hatch"];
 
-   WHAT THE OLD FLOW ASKED FOR AND THREW AWAY: the egg colour was picked and
-   never saved (the shell is now derived from your line), and the mood row
-   was picked and never read (her face comes from readMood off the text).
-   The avatar is already editable in Me. The cakeday stayed — it is the 18+
-   gate, which a stranger-messaging app does not get to skip.
+const WIN_W = Dimensions.get("window").width;
+const PAGE_W = WIN_W - 40;
 
-   PUBLISHING: the first letter always trains the fingerprint, but only
-   reaches the pool once it clears the same floor every other opening does.
-   A two-character letter should not be someone's morning post. */
-
-type Step = "letter" | "write" | "you" | "hatch";
+// the recap cards inside the KINDREDLY.EXE window — a letter's whole life
+const CARDS: { tag: string; h: string; hi: string; s: string }[] = [
+  { tag: "WRITE IT DOWN", h: "Write down", hi: "what's real.", s: "Tired, glad, or just true — a line is enough." },
+  { tag: "OFF IT GOES", h: "It finds", hi: "your kind of person.", s: "Matched by how you write — not by who you are." },
+  { tag: "THEY WRITE BACK", h: "And slowly,", hi: "you're not strangers.", s: "Five letters each, and you trade names." },
+];
 
 export default function Onboarding() {
   const router = useRouter();
   const auth = useAuth();
   const { session, onboarded, appleAvailable } = auth;
 
-  const [step, setStep] = useState<Step>("letter");
-  const [wrenIn, setWrenIn] = useState(false); // she waits until you've read it
-  const [note, setNote] = useState("");
+  const [step, setStep] = useState<Step>("welcome");
+  const [cardI, setCardI] = useState(0);
+  const cardRef = useRef<ScrollView>(null);
   const [username, setUsername] = useState("");
   const nowY = new Date().getFullYear();
-  const [dob, setDob] = useState({ m: 5, d: 15, y: nowY - 22 });
-  const [hatchPhase, setHatchPhase] = useState<"crack" | "read" | "fly">("crack");
+  const [dob, setDob] = useState({ m: 7, d: 12, y: nowY - 20 });
+  const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [eggVar, setEggVar] = useState(0);
+  const [birdName, setBirdName] = useState("");
+  const [note, setNote] = useState("");
+  const [mood, setMood] = useState<MoodId | null>(null);
+  const [hatchPhase, setHatchPhase] = useState<"crack" | "read">("crack");
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
   const finishing = useRef(false);
-
-  // steady for this run, so the letter doesn't change under you on a re-render
-  const sample = useRef(firstLetter(new Date().getDate() * 7 + new Date().getHours())).current;
 
   // egg twitch (hatch crack phase)
   const wob = useSharedValue(0);
@@ -113,45 +113,35 @@ export default function Onboarding() {
   }, []);
   const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${wob.value * 6}deg` }] }));
 
-  // she flies off into the app
-  const flyY = useSharedValue(0);
-  const flyScale = useSharedValue(1);
-  const flyOp = useSharedValue(1);
-  const flyStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: flyY.value }, { scale: flyScale.value }, { rotate: `${flyY.value * 0.02}deg` }],
-    opacity: flyOp.value,
-  }));
-
   // returning, already-onboarded → straight in
   useEffect(() => {
     if (session && onboarded) router.replace("/(tabs)/letters");
   }, [session, onboarded, router]);
 
-  // she comes in a beat after the letter lands, not on top of it
+  // signed in but not set up → start the console at step two
   useEffect(() => {
-    if (step !== "letter") return;
-    setWrenIn(false);
-    const t = setTimeout(() => setWrenIn(true), 1500);
-    return () => clearTimeout(t);
-  }, [step]);
+    if (session && !onboarded && step === "welcome") setStep("username");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, onboarded]);
 
-  // hatch sequence: crack → read → fly-into-app
+  // the recap window cycles; a swipe overrides it. The scroll is the single
+  // source of truth — state only moves on momentum end, so art, tag, dots and
+  // headline can never drift apart.
+  useEffect(() => {
+    if (step !== "welcome") return;
+    const t = setTimeout(() => {
+      cardRef.current?.scrollTo({ x: ((cardI + 1) % CARDS.length) * PAGE_W, animated: true });
+    }, 3400);
+    return () => clearTimeout(t);
+  }, [step, cardI]);
+
+  // hatch: crack → the card
   useEffect(() => {
     if (step !== "hatch") return;
     setHatchPhase("crack");
-    const t = setTimeout(() => setHatchPhase("read"), 850);
+    const t = setTimeout(() => setHatchPhase("read"), 1100);
     return () => clearTimeout(t);
   }, [step]);
-  useEffect(() => {
-    if (step === "hatch" && hatchPhase === "fly") {
-      flyY.value = withTiming(-460, { duration: 1300, easing: Easing.in(Easing.cubic) });
-      flyScale.value = withTiming(0.3, { duration: 1300, easing: Easing.in(Easing.cubic) });
-      flyOp.value = withTiming(0, { duration: 1300, easing: Easing.in(Easing.quad) });
-      const t = setTimeout(() => void finish(), 1200);
-      return () => clearTimeout(t);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, hatchPhase]);
 
   const doApple = async () => {
     setBusy("apple");
@@ -168,7 +158,7 @@ export default function Onboarding() {
   const doEmail = () => {
     Alert.prompt?.(
       "Your email",
-      "Wren will send you a quiet sign-in link.",
+      "We'll send you a quiet sign-in link.",
       async (email?: string) => {
         if (!email || !email.trim()) return;
         setBusy("email");
@@ -183,7 +173,7 @@ export default function Onboarding() {
     );
   };
 
-  // birthday derived — the only reason it's asked is the 18 below
+  // birthday derived — the only reason this screen exists is the 18 below
   const years = Array.from({ length: 80 }, (_, i) => nowY - 13 - i);
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const yi = Math.max(0, years.indexOf(dob.y));
@@ -194,12 +184,14 @@ export default function Onboarding() {
   const dobStr = `${dob.y}-${String(dob.m + 1).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`;
 
   const line = note.trim();
-  const canWrite = line.length >= 2;
-  const canPass = username.trim().length > 0 && ageOk;
-  const noteMood: WrenMood = readMood(line);
-  const noteType = wrenTypeFor(note); // what hatches is decided by how you write
-  // your egg is your line — no picker, because a picked shell was never saved
-  const eggVar = line.length ? Math.abs(line.charCodeAt(0) * 31 + line.length) % 4 : 0;
+  const handle = username.trim();
+  const her = birdName.trim();
+  const HER = her.toUpperCase() || "HER";
+  const noteType = wrenTypeFor(note); // who hatches is decided by how you write
+  // the picked mood wins; the text is only the fallback
+  const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(line);
+  // how close she is to coming out — the same floor a real opening must clear
+  const heat = Math.min(100, Math.round((weightedCount(line) / OPENING_MIN) * 100));
 
   const finish = async () => {
     if (finishing.current) return;
@@ -213,7 +205,7 @@ export default function Onboarding() {
       // only a real opening goes to the pool; the fingerprint learns either way
       if (weightedCount(line) >= OPENING_MIN) {
         try {
-          await publishLetter(STARTER_STAMPS[0], line, "en"); // her first act: carry it off
+          await publishLetter(STARTER_STAMPS[0], line, "en");
         } catch {
           /* best-effort — never block getting in */
         }
@@ -223,352 +215,671 @@ export default function Onboarding() {
       await bumpStageFloor("hatch");
       await saveWrenType(noteType.id);
       await setWrenAccessory(noteType.accessory);
+      await saveWrenEgg(eggVar); // the shell she came out of, kept this time
+      await saveWrenName(her); // and what you call her, everywhere
     } catch {
       /* best-effort */
     }
-    await auth.saveProfile({ handle: username.trim(), dob: dobStr, avatarId: null, firstLine: line || undefined });
+    await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: line || undefined });
     router.replace("/(tabs)/letters");
   };
 
-  /* ── the app opens on a letter ──────────────────────────────────────── */
-  if (step === "letter") {
+  const stepIdx = ORDER.indexOf(step);
+  const back = () => setStep(ORDER[Math.max(0, stepIdx - 1)]);
+
+  /* ── 1 · KINDREDLY.EXE ──────────────────────────────────────────────── */
+  if (step === "welcome") {
+    const c = CARDS[cardI];
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <Animated.View entering={FadeIn.duration(420)} style={{ flex: 1 }}>
-          {/* Today's own docket, on purpose: a mosaic for whoever wrote it and
-              a stamp pasted crooked. The first screen is already the screen
-              you'll open every morning, so nothing here has to be unlearned.
-              No date and no distance — those would be invented. */}
-          <View style={{ paddingHorizontal: 22, paddingTop: 10, flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-            <MosaicId seed={sample} cell={4.4} gap={1.5} />
-            <View style={{ width: 30, height: 36, backgroundColor: P.pen, transform: [{ rotate: "-5deg" }] }} />
+      <Console>
+        <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+          <View style={{ paddingHorizontal: 18, paddingTop: 6 }}>
+            <View style={[card, bevel(5, 5), { overflow: "hidden" }]}>
+              {/* the title bar */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 7,
+                  borderBottomWidth: 2,
+                  borderBottomColor: Y.ink,
+                }}
+              >
+                <View style={{ width: 9, height: 9, borderRadius: 5, borderWidth: 1.6, borderColor: Y.ink, marginRight: 8 }} />
+                <Text style={[mono(10.5, "b"), { flex: 1 }]}>KINDREDLY.EXE</Text>
+                <Text style={mono(11, "r")}>✕</Text>
+              </View>
+
+              <ScrollView
+                ref={cardRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => setCardI(Math.round(e.nativeEvent.contentOffset.x / PAGE_W))}
+                style={{ height: 172 }}
+              >
+                {CARDS.map((k, i) => (
+                  <View key={k.tag} style={{ width: PAGE_W, height: 172, alignItems: "center", justifyContent: "center" }}>
+                    <RecapArt i={i} />
+                  </View>
+                ))}
+              </ScrollView>
+
+              {/* the sticker tag sits on the artwork */}
+              <View style={{ position: "absolute", left: 12, bottom: 12 }}>
+                <View style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.yellow }]}>
+                  <Text style={mono(9.5, "b")}>✎ {c.tag}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 14 }}>
+              {CARDS.map((k, i) => (
+                <View
+                  key={k.tag}
+                  style={{
+                    width: 13,
+                    height: 8,
+                    marginHorizontal: 3,
+                    borderWidth: 1.6,
+                    borderColor: Y.ink,
+                    backgroundColor: i === cardI ? Y.blue : "transparent",
+                  }}
+                />
+              ))}
+            </View>
+
+            <Text style={{ fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center", marginTop: 18, lineHeight: 36 }}>
+              {c.h} <Text style={{ fontFamily: F2.serifItalic }}>{c.hi}</Text>
+            </Text>
+            <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }]}>{c.s}</Text>
           </View>
 
-          <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
-            <Animated.Text
-              entering={FadeInDown.delay(240).duration(680)}
-              style={{ fontFamily: PF.letter, fontSize: 30, lineHeight: 41, color: P.ink, letterSpacing: -0.5 }}
-            >
-              {sample}
-            </Animated.Text>
-          </View>
-
-          {/* the one claim this screen makes, and it's the true one */}
-          <Animated.Text
-            entering={FadeIn.delay(1000).duration(500)}
-            style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.2, color: P.ink40, paddingHorizontal: 24, paddingBottom: 18 }}
-          >
-            WE WROTE THIS ONE. TOMORROW'S IS FROM SOMEONE REAL.
-          </Animated.Text>
-
-          {wrenIn && (
-            <Animated.View entering={SlideInDown.duration(520)}>
-              <View style={{ ...rule }} />
-              <View style={{ flexDirection: "row", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 4, alignItems: "flex-start" }}>
-                <WrenBird size={44} mood="curious" />
-                <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink, marginLeft: 12, marginTop: 2 }}>
-                  That's what comes in. Yours goes the other way — write one and I'll find who it's for.
+          <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
+            {emailSent ? (
+              <View style={[card, bevel(4, 4), { padding: 16, alignItems: "center" }]}>
+                <Text style={[mono(11, "b"), { color: Y.blue }]}>LINK SENT</Text>
+                <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 6, textAlign: "center", lineHeight: 18 }]}>
+                  Open it on this phone and you'll land right back here.
                 </Text>
               </View>
-              <View style={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 12 }}>
-                <Pressable onPress={() => setStep("write")} style={solidBtn}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>WRITE MINE</Text>
+            ) : (
+              <>
+                {appleAvailable ? (
+                  <View style={[bevel(4, 4), { borderRadius: 10 }]}>
+                    <AppleAuthentication.AppleAuthenticationButton
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                      cornerRadius={10}
+                      style={{ height: 52, width: "100%" }}
+                      onPress={doApple}
+                    />
+                  </View>
+                ) : null}
+                <Pressable
+                  onPress={doGoogle}
+                  disabled={!!busy}
+                  style={[card, bevel(4, 4), { height: 52, alignItems: "center", justifyContent: "center", marginTop: 12, opacity: busy ? 0.5 : 1 }]}
+                >
+                  <Text style={{ fontFamily: F2.hand, fontSize: 17, fontWeight: "600", color: Y.ink }}>
+                    {busy === "google" ? "…" : "Continue with Google"}
+                  </Text>
                 </Pressable>
-              </View>
-            </Animated.View>
-          )}
-        </Animated.View>
-      </SafeAreaView>
+                <Pressable onPress={doEmail} disabled={!!busy} style={{ paddingVertical: 13, alignItems: "center" }}>
+                  <Text style={[mono(11, "b"), { color: Y.blue }]}>{busy === "email" ? "…" : "CONTINUE WITH EMAIL"}</Text>
+                </Pressable>
+                <Pressable onPress={() => setStep("username")} style={{ alignItems: "center" }}>
+                  <Text style={[mono(11, "r"), { color: Y.dim }]}>Explore first, sign in later →</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </Console>
     );
   }
 
-  /* ── your own first letter ──────────────────────────────────────────── */
-  if (step === "write") {
+  /* ── 2 · pen name ───────────────────────────────────────────────────── */
+  if (step === "username") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+      <Console step={stepIdx} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <StepHead n="01" total="02" label="YOUR FIRST LETTER" onBack={() => setStep("letter")} />
-
-          {/* the sample stays in the room, quietly, so the page has a register */}
-          <View style={{ flexDirection: "row", paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.2, color: P.ink40, marginRight: 8 }}>YOU READ</Text>
-            <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: P.ink40 }}>
-              {sample}
-            </Text>
-          </View>
-          <View style={{ marginHorizontal: 22, ...ruleSoft }} />
-
-          <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              multiline
-              autoFocus
-              placeholder="something true, and short is fine…"
-              placeholderTextColor={P.ink40}
-              style={{
-                fontFamily: PF.letter,
-                fontSize: 21,
-                lineHeight: 32,
-                color: P.ink,
-                paddingHorizontal: 22,
-                paddingTop: 22,
-                paddingBottom: 40,
-                minHeight: 200,
-              }}
-            />
-          </ScrollView>
-
-          <View style={{ ...rule }} />
-          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingVertical: 12 }}>
-            <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.ink40 }}>
-              {weightedCount(line) >= OPENING_MIN ? "LONG ENOUGH TO TRAVEL" : "NOBODY READS IT UNTIL YOU'RE IN"}
-            </Text>
-            <Pressable
-              onPress={() => canWrite && setStep("you")}
-              disabled={!canWrite}
-              style={{ ...solidBtn, paddingHorizontal: 24, opacity: canWrite ? 1 : 0.25 }}
-            >
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: "#fff" }}>NEXT</Text>
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
-
-  /* ── the box needs a name on it, and a way back in ──────────────────── */
-  if (step === "you") {
-    const signedIn = !!session;
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <StepHead n="02" total="02" label="WHO'S WRITING" onBack={() => setStep("write")} />
-
-          <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <View style={{ paddingHorizontal: 22, paddingTop: 20 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.8, color: P.ink60 }}>PEN NAME</Text>
+          <Head plain="Pick a" em="pen name." sub="Not your real name — change it anytime. Strangers never see it; you are how you write." />
+          <View style={{ paddingHorizontal: 18, marginTop: 22 }}>
+            <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, height: 56 }]}>
+              <Text style={[mono(15, "b"), { color: Y.blue, marginRight: 8 }]}>›</Text>
               <TextInput
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={20}
-                placeholder="call yourself anything"
-                placeholderTextColor={P.ink40}
-                style={{ fontFamily: PF.letter, fontSize: 26, color: P.ink, paddingVertical: 10, letterSpacing: -0.4 }}
+                autoFocus
+                placeholder="robin"
+                placeholderTextColor={Y.faint}
+                style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 21, color: Y.ink }}
               />
             </View>
-            <View style={{ marginHorizontal: 22, ...rule }} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, lineHeight: 18, color: P.ink60, paddingHorizontal: 22, paddingTop: 10 }}>
-              Strangers never see it. Only a kindred does — after five letters each.
-            </Text>
-
-            <View style={{ paddingHorizontal: 22, paddingTop: 26 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.8, color: P.ink60 }}>BORN</Text>
+            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 16 }}>
+              <Pressable
+                onPress={() => setUsername(NAME_IDEAS[Math.floor(Math.random() * NAME_IDEAS.length)].toLowerCase())}
+                style={[tag, bevel(2.5, 2.5)]}
+              >
+                <Text style={mono(9.5, "b")}>⚄ RANDOMIZE</Text>
+              </Pressable>
             </View>
-            {/* one field, three columns: the band is ruled once across all of
-                them so the date reads as a single value, and the columns flex
-                so the panel never ends in dead paper */}
-            <View style={{ marginHorizontal: 22, marginTop: 8, ...panel }}>
-              <View style={{ flexDirection: "row" }}>
-                <Wheel items={MONTHS} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
-                <Wheel items={days} value={dob.d - 1} onChange={(i) => setDob((d) => ({ ...d, d: i + 1 }))} />
-                <Wheel items={years} value={yi} onChange={(i) => setDob((d) => ({ ...d, y: years[i] }))} />
-              </View>
-              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: WHEEL_ROW * 2, height: 1, backgroundColor: P.ink12 }} />
-              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: WHEEL_ROW * 3, height: 1, backgroundColor: P.ink12 }} />
-            </View>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, lineHeight: 18, color: ageOk ? P.ink60 : P.post, paddingHorizontal: 22, paddingTop: 10 }}>
-              {ageOk ? "Only the year is ever shown, and only to you." : "You have to be 18 to write to strangers here."}
-            </Text>
-
-            {/* the account, asked now that there's a letter worth keeping */}
-            <View style={{ marginTop: 28, ...rule }} />
-            <View style={{ paddingHorizontal: 22, paddingTop: 16 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.8, color: P.ink60 }}>SO IT COMES BACK TO YOU</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 11, lineHeight: 18, color: P.ink60, marginTop: 6 }}>
-                Answers come back here. Without this, it's one letter from one phone.
-              </Text>
-            </View>
-
-            <View style={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 24 }}>
-              {signedIn ? (
-                <View style={{ ...panel, padding: 14, alignItems: "center" }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.pen }}>SIGNED IN</Text>
-                </View>
-              ) : emailSent ? (
-                <View style={{ ...panel, padding: 16, alignItems: "center" }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.pen }}>LINK SENT</Text>
-                  <Text style={{ fontFamily: PF.mono, fontSize: 11.5, lineHeight: 18, color: P.ink60, marginTop: 6, textAlign: "center" }}>
-                    Open it on this phone and you'll come straight back here.
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  {appleAvailable ? (
-                    <AppleAuthentication.AppleAuthenticationButton
-                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                      cornerRadius={0}
-                      style={{ height: 50, width: "100%" }}
-                      onPress={doApple}
-                    />
-                  ) : null}
-                  <Pressable
-                    onPress={doGoogle}
-                    disabled={!!busy}
-                    style={{ ...panel, height: 50, alignItems: "center", justifyContent: "center", marginTop: 10, opacity: busy ? 0.4 : 1 }}
-                  >
-                    <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: P.ink }}>
-                      {busy === "google" ? "…" : "CONTINUE WITH GOOGLE"}
-                    </Text>
-                  </Pressable>
-                  <Pressable onPress={doEmail} disabled={!!busy} style={{ paddingVertical: 13, alignItems: "center" }}>
-                    <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>
-                      {busy === "email" ? "…" : "EMAIL ME A LINK"}
-                    </Text>
-                  </Pressable>
-                </>
-              )}
-            </View>
-          </ScrollView>
-
-          <View style={{ ...rule }} />
-          <View style={{ paddingHorizontal: 22, paddingVertical: 12 }}>
-            <Pressable onPress={() => canPass && setStep("hatch")} disabled={!canPass} style={{ ...solidBtn, opacity: canPass ? 1 : 0.25 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>
-                {signedIn ? "SEND IT" : "LOOK AROUND FIRST"}
-              </Text>
-            </Pressable>
           </View>
+          <View style={{ flex: 1 }} />
+          <Foot label="NEXT ›" on={handle.length > 0} onPress={() => setStep("cakeday")} />
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </Console>
     );
   }
 
-  /* ── she hatches out of your letter ─────────────────────────────────── */
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ paddingHorizontal: 22, paddingTop: 10, flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2, color: P.ink40 }}>KINDREDLY</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40 }}>
-          {hatchPhase === "crack" ? "···" : "HATCHED"}
-        </Text>
-      </View>
-      <View style={{ marginTop: 10, ...ruleSoft }} />
+  /* ── 3 · cakeday ────────────────────────────────────────────────────── */
+  if (step === "cakeday") {
+    return (
+      <Console step={stepIdx} onBack={back}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Head plain={`${handle || "Hey"}, when's your`} em="cakeday?" sub="🎂 She keeps it — she'll write to you on the day." />
+          <View style={{ paddingHorizontal: 18, marginTop: 18 }}>
+            <View style={[card, bevel(4, 4), { flexDirection: "row", overflow: "hidden" }]}>
+              <Wheel items={MONTHS} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
+              <Wheel items={days} value={dob.d - 1} onChange={(i) => setDob((d) => ({ ...d, d: i + 1 }))} />
+              <Wheel items={years} value={yi} onChange={(i) => setDob((d) => ({ ...d, y: years[i] }))} />
+              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 88, height: 2, backgroundColor: "rgba(20,18,33,0.15)" }} />
+              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 132, height: 2, backgroundColor: "rgba(20,18,33,0.15)" }} />
+            </View>
 
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 }}>
+            <View style={{ alignItems: "center", marginTop: 16 }}>
+              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? "#BFE8C9" : Y.panel }]}>
+                <Text style={mono(10, "b")}>{ageOk ? `You're ${age}. ✓` : `You're ${age}.`}</Text>
+              </View>
+            </View>
+
+            {!ageOk && (
+              <View style={{ borderWidth: 2, borderColor: Y.warn, borderStyle: "dashed", borderRadius: 10, padding: 12, marginTop: 16 }}>
+                <Text style={[mono(10.5, "r"), { color: Y.warn, lineHeight: 17, letterSpacing: 0.2 }]}>
+                  ⚠ Kindredly is for 18 and over — you'll meet strangers here, and we can't keep that safe for anyone younger.
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+        <Foot label="NEXT ›" on={ageOk} onPress={() => setStep("avatar")} />
+      </Console>
+    );
+  }
+
+  /* ── 4 · a face ─────────────────────────────────────────────────────── */
+  if (step === "avatar") {
+    const shown = AVATARS.slice(0, 14);
+    return (
+      <Console step={stepIdx} onBack={back}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Head plain="Pick a" em="face." sub="Just for you — strangers never see it. Change it anytime." />
+          <View style={{ paddingHorizontal: 18, marginTop: 18 }}>
+            <View style={[card, bevel(4, 4), { padding: 12, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
+              {shown.map((a) => {
+                const on = avatarId === a.id;
+                return (
+                  <Pressable key={a.id} onPress={() => setAvatarId(on ? null : a.id)} style={{ margin: 5 }}>
+                    <View
+                      style={[
+                        on ? bevel(2.5, 2.5) : null,
+                        {
+                          width: 54,
+                          height: 54,
+                          borderRadius: 27,
+                          borderWidth: on ? 3 : 2,
+                          borderColor: on ? Y.blue : Y.ink,
+                          overflow: "hidden",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                      ]}
+                    >
+                      <AvatarImage id={a.id} seed={a.id} size={52} />
+                    </View>
+                  </Pressable>
+                );
+              })}
+              <View
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: 27,
+                  borderWidth: 2,
+                  borderColor: Y.ink,
+                  borderStyle: "dashed",
+                  margin: 5,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={mono(10, "b")}>+{AVATARS.length - shown.length}</Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+        <Foot label="NEXT ›" on onPress={() => setStep("egg")} skip="SKIP FOR NOW" onSkip={() => setStep("egg")} />
+      </Console>
+    );
+  }
+
+  /* ── 5 · choose your courier ────────────────────────────────────────── */
+  if (step === "egg") {
+    return (
+      <Console step={stepIdx} onBack={back}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Head
+            plain="Choose your"
+            em="courier."
+            sub="She carries your letters out and brings the answers back. The shell is yours to pick — who's inside is decided by what you write."
+          />
+
+          {/* the handheld: a device inside the device */}
+          <View style={{ alignItems: "center", marginTop: 16 }}>
+            <View style={[card, bevel(5, 5), { width: 224, borderRadius: 22, padding: 12 }]}>
+              {/* the LCD. It has to be markedly DARKER than every shell or
+                  the pale ones (Moonstone especially) vanish into their own
+                  screen — which is exactly what a picker must never do. */}
+              <View
+                style={{
+                  height: 156,
+                  borderWidth: 2,
+                  borderColor: Y.ink,
+                  borderRadius: 12,
+                  backgroundColor: "#7F71C0",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {[0, 1, 2, 3, 4, 5].map((r) => (
+                  <View key={r} style={{ position: "absolute", left: 0, right: 0, top: 8 + r * 26, height: 1, backgroundColor: "#fff", opacity: 0.07 }} />
+                ))}
+                <Animated.View key={`egg${eggVar}`} entering={ZoomIn.duration(260)}>
+                  <EggShell variant={eggVar} size={116} />
+                </Animated.View>
+                <Text style={[mono(8.5, "b"), { position: "absolute", right: 8, bottom: 6, color: Y.faint }]}>LV.0 · UNMATCHED</Text>
+              </View>
+              {/* A, B, C — and they work. A console button that does nothing
+                  is set dressing, and set dressing is the thing that makes a
+                  toy feel like a picture of a toy. */}
+              <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
+                {(
+                  [
+                    { c: Y.yellow, t: "◀", go: () => setEggVar((v) => (v + EGG_SHELLS.length - 1) % EGG_SHELLS.length) },
+                    { c: "#F3A9C0", t: "⚄", go: () => setEggVar(Math.floor(Math.random() * EGG_SHELLS.length)) },
+                    { c: "#9FD8BE", t: "▶", go: () => setEggVar((v) => (v + 1) % EGG_SHELLS.length) },
+                  ] as const
+                ).map((b) => (
+                  <Pressable
+                    key={b.t}
+                    onPress={b.go}
+                    hitSlop={8}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      borderWidth: 2,
+                      borderColor: Y.ink,
+                      marginHorizontal: 7,
+                      backgroundColor: b.c,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 9, color: Y.ink }}>{b.t}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* the four shells */}
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
+            {EGG_SHELLS.map((s, i) => {
+              const on = eggVar === i;
+              return (
+                <Pressable key={s.id} onPress={() => setEggVar(i)} style={{ marginHorizontal: 7 }}>
+                  <View
+                    style={[
+                      on ? bevel(3, 3) : null,
+                      {
+                        width: 50,
+                        height: 60,
+                        borderTopLeftRadius: 25,
+                        borderTopRightRadius: 25,
+                        borderBottomLeftRadius: 25,
+                        borderBottomRightRadius: 25,
+                        borderWidth: on ? 3 : 2,
+                        borderColor: on ? Y.blue : Y.ink,
+                        backgroundColor: s.base,
+                      },
+                    ]}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[mono(10, "b"), { textAlign: "center", marginTop: 14, color: Y.dim }]}>{EGG_SHELLS[eggVar].name.toUpperCase()}</Text>
+        </ScrollView>
+        <Foot label="THIS ONE'S MINE ›" on onPress={() => setStep("naming")} />
+      </Console>
+    );
+  }
+
+  /* ── 6 · name her ───────────────────────────────────────────────────── */
+  if (step === "naming") {
+    return (
+      <Console step={stepIdx} onBack={back}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Head plain="Now" em="name her." sub="Whatever you pick is what she's called from here on — in every line she ever writes you." />
+
+            <View style={{ alignItems: "center", marginTop: 14 }}>
+              <View style={[card, bevel(4, 4), { width: 148, height: 130, borderRadius: 18, alignItems: "center", justifyContent: "center" }]}>
+                <EggShell variant={eggVar} size={98} />
+              </View>
+            </View>
+
+            <View style={{ paddingHorizontal: 18, marginTop: 18 }}>
+              <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, height: 56 }]}>
+                <Text style={[mono(15, "b"), { color: Y.blue, marginRight: 8 }]}>›</Text>
+                <TextInput
+                  value={birdName}
+                  onChangeText={setBirdName}
+                  autoCorrect={false}
+                  maxLength={16}
+                  placeholder="Wren"
+                  placeholderTextColor={Y.faint}
+                  style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 21, color: Y.ink }}
+                />
+              </View>
+
+              <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginTop: 14 }}>
+                {NAME_IDEAS.slice(0, 6).map((n) => (
+                  <Pressable key={n} onPress={() => setBirdName(n)} style={[tag, bevel(2, 2), { margin: 4, paddingHorizontal: 11 }]}>
+                    <Text style={mono(9.5, "b")}>{n.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+                <Pressable
+                  onPress={() => setBirdName(NAME_IDEAS[Math.floor(Math.random() * NAME_IDEAS.length)])}
+                  style={[tag, bevel(2, 2), { margin: 4, paddingHorizontal: 12, backgroundColor: Y.yellow }]}
+                >
+                  <Text style={mono(9.5, "b")}>⚄</Text>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+          <Foot label="NEXT ›" on={her.length > 0} onPress={() => setStep("write")} />
+        </KeyboardAvoidingView>
+      </Console>
+    );
+  }
+
+  /* ── 7 · feed her words ─────────────────────────────────────────────── */
+  if (step === "write") {
+    return (
+      <Console step={stepIdx} onBack={back}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {/* the feed meter — tied to the floor a real opening has to clear */}
+            <View style={{ paddingHorizontal: 18, paddingTop: 4 }}>
+              <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9 }]}>
+                <Text style={[mono(9.5, "b"), { flex: 1 }]}>FEED {HER} WORDS</Text>
+                <View style={{ flexDirection: "row", marginRight: 8 }}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <View
+                      key={i}
+                      style={{
+                        width: 13,
+                        height: 9,
+                        marginLeft: 3,
+                        borderWidth: 1.6,
+                        borderColor: Y.ink,
+                        backgroundColor: heat > i * 25 ? Y.blue : "transparent",
+                      }}
+                    />
+                  ))}
+                </View>
+                <Text style={mono(9.5, "b")}>HATCH {heat}%</Text>
+              </View>
+            </View>
+
+            <Head plain="What's on your mind" em="right now?" sub="" />
+
+            <View style={{ paddingHorizontal: 18, marginTop: 2 }}>
+              <View style={[card, bevel(4, 4), { minHeight: 126, padding: 14 }]}>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  multiline
+                  autoFocus
+                  placeholder="i keep the window open even when it's cold"
+                  placeholderTextColor={Y.faint}
+                  style={{ fontFamily: F2.serifItalic, fontSize: 17, lineHeight: 26, color: Y.ink, minHeight: 98 }}
+                />
+              </View>
+
+              <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 16 }]}>HOW IT FEELS{mood ? ` · ${MOODS[mood].n.toUpperCase()}` : ""}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
+                {MOOD_IDS.slice(0, 9).map((id) => {
+                  const on = mood === id;
+                  return (
+                    <Pressable key={id} onPress={() => setMood(on ? null : id)} style={{ marginRight: 9, marginBottom: 9 }}>
+                      <View
+                        style={[
+                          on ? bevel(2.5, 2.5) : null,
+                          {
+                            width: 30,
+                            height: 30,
+                            borderRadius: 15,
+                            borderWidth: on ? 3 : 2,
+                            borderColor: on ? Y.ink : "rgba(20,18,33,0.35)",
+                            backgroundColor: MOODS[id].col,
+                          },
+                        ]}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Text style={[mono(9.5, "r"), { color: Y.dim, letterSpacing: 0.6 }]}>
+                {heat >= 100
+                  ? "LONG ENOUGH TO TRAVEL — SHE'LL CARRY IT OUT"
+                  : `${Math.max(0, OPENING_MIN - weightedCount(line))} CHARS AND IT CAN TRAVEL`}
+              </Text>
+            </View>
+          </ScrollView>
+          <Foot label={`HATCH ${HER} 🥚`} on={line.length >= 2} tone="yellow" onPress={() => setStep("hatch")} />
+        </KeyboardAvoidingView>
+      </Console>
+    );
+  }
+
+  /* ── 8 · NEW HATCH UNLOCKED ─────────────────────────────────────────── */
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: Y.night }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
         {hatchPhase === "crack" ? (
-          <Animated.View style={wobble}>
-            <EggShell variant={eggVar} size={168} />
-          </Animated.View>
+          <>
+            <Animated.View style={wobble}>
+              <EggShell variant={eggVar} size={170} />
+            </Animated.View>
+            <Animated.Text entering={FadeIn.delay(200).duration(500)} style={[mono(10.5, "b"), { color: "#8C86B8", marginTop: 28 }]}>
+              ··· SOMETHING'S HAPPENING ···
+            </Animated.Text>
+          </>
         ) : (
-          <Animated.View style={flyStyle}>
-            <Animated.View entering={FadeIn.duration(420)} style={{ alignItems: "center" }}>
-              <WrenBird size={150} mood={noteMood} />
-              {/* she leaves carrying it — tucked under one side and tilted, so
-                  it reads as held rather than as a plinth she's standing on */}
-              <View style={{ position: "absolute", bottom: -4, right: 6, transform: [{ rotate: "-14deg" }] }}>
-                <CarriedLetter />
+          <>
+            <Animated.Text entering={FadeIn.duration(400)} style={[mono(10, "b"), { color: Y.gold, marginBottom: 14 }]}>
+              ✦ NEW HATCH UNLOCKED ✦
+            </Animated.Text>
+
+            <Animated.View
+              entering={ZoomIn.duration(520).easing(Easing.out(Easing.back(1.4)))}
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                borderWidth: 2,
+                borderColor: Y.gold,
+                borderRadius: 16,
+                backgroundColor: "#221E2E",
+                paddingVertical: 22,
+                paddingHorizontal: 20,
+                alignItems: "center",
+              }}
+            >
+              <WrenBird size={120} mood={hatchMood} />
+              {/* WREN_TYPES already name themselves "The Spark" — don't prefix */}
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 26, color: Y.gold, marginTop: 10 }}>{noteType.name}</Text>
+              <Text style={[mono(11, "r"), { color: "#B0A9CE", marginTop: 10, textAlign: "center", lineHeight: 18, letterSpacing: 0.2 }]}>
+                {noteType.line}
+              </Text>
+              <View style={{ borderWidth: 1.6, borderColor: Y.gold, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, marginTop: 14 }}>
+                <Text style={[mono(9, "b"), { color: Y.gold }]}>RARITY: ONE OF ONE</Text>
               </View>
             </Animated.View>
-          </Animated.View>
-        )}
 
-        {hatchPhase !== "fly" && (
-          <Animated.View
-            key={`ht${hatchPhase}`}
-            entering={FadeInDown.delay(hatchPhase === "read" ? 320 : 120).duration(500)}
-            style={{ alignItems: "center", marginTop: 30 }}
-          >
-            {hatchPhase === "crack" ? (
-              <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 2, color: P.ink40 }}>SOMETHING'S HAPPENING</Text>
-            ) : (
-              <>
-                <Text style={{ fontFamily: PF.letter, fontSize: 27, lineHeight: 33, color: P.ink, textAlign: "center", letterSpacing: -0.5 }}>
-                  She hatched out of{"\n"}what you wrote.
-                </Text>
-                <View style={{ ...panel, paddingHorizontal: 12, paddingVertical: 5, marginTop: 14 }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.pen }}>{noteType.name.toUpperCase()}</Text>
-                </View>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 16, color: P.ink, marginTop: 18, textAlign: "center", lineHeight: 24 }}>
-                  “{hatchLine(noteMood)}”
-                </Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: 11.5, color: P.ink60, marginTop: 12, textAlign: "center", lineHeight: 19, maxWidth: 290 }}>
-                  {noteType.line}
-                </Text>
-              </>
-            )}
-          </Animated.View>
+            <Animated.Text
+              entering={FadeInDown.delay(420).duration(500)}
+              style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 18, textAlign: "center", lineHeight: 23 }}
+            >
+              “{hatchLine(hatchMood)}”{"\n"}— {her || "Wren"}
+            </Animated.Text>
+
+            <Animated.View entering={FadeInDown.delay(560).duration(500)} style={{ width: "100%", maxWidth: 320, marginTop: 22 }}>
+              <Pressable onPress={() => void finish()} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.yellow, borderColor: Y.gold }]}>
+                <Text style={mono(12.5, "b")}>LET'S GO</Text>
+              </Pressable>
+            </Animated.View>
+          </>
         )}
       </View>
-
-      {hatchPhase === "read" && (
-        <>
-          <View style={{ ...rule }} />
-          <View style={{ paddingHorizontal: 22, paddingVertical: 12 }}>
-            <Pressable onPress={() => setHatchPhase("fly")} style={solidBtn}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>LET HER GO</Text>
-            </Pressable>
-          </View>
-        </>
-      )}
-      {hatchPhase === "fly" && (
-        <Animated.Text
-          entering={FadeIn.duration(300)}
-          style={{
-            position: "absolute",
-            bottom: 80,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            fontFamily: PF.mono,
-            fontSize: 11,
-            letterSpacing: 1.6,
-            color: P.ink40,
-          }}
-        >
-          OFF TO FIND SOMEONE WHO WRITES LIKE YOU
-        </Animated.Text>
-      )}
     </SafeAreaView>
   );
 }
 
-/* ── little pieces ───────────────────────────────────────────────────── */
+/* ── the console shell ───────────────────────────────────────────────── */
 
-/* The two screens that actually ask for something wear the same header: where
-   you are, out of how many, and one way back. The box and the letter carry no
-   counter at all — nothing is being asked of you there, so a progress meter
-   would only turn a gift into a form. */
-function StepHead({ n, total, label, onBack }: { n: string; total: string; label: string; onBack: () => void }) {
+/* Everything but the reveal lives inside this: periwinkle ground, a segmented
+   progress bar across the top, one way back. The bar is the console's own
+   readout, and it's the reason eight screens don't read as eight screens —
+   you can see the whole thing from the second one. */
+function Console({ children, step, onBack }: { children: React.ReactNode; step?: number; onBack?: () => void }) {
   return (
-    <>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 10, paddingBottom: 12 }}>
-        <Pressable onPress={onBack} hitSlop={12} style={{ marginRight: 14 }}>
-          <Svg width={16} height={16} viewBox="0 0 24 24">
-            <Path d="M15 4 L7 12 L15 20" stroke={P.ink} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </Svg>
-        </Pressable>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 2, color: P.ink }}>{label}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.ink40 }}>
-          {n}/{total}
-        </Text>
-      </View>
-      <View style={{ ...rule }} />
-    </>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
+      {step != null && (
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 6, paddingBottom: 10 }}>
+          {onBack ? (
+            <Pressable onPress={onBack} hitSlop={14} style={{ marginRight: 10 }}>
+              <Svg width={15} height={15} viewBox="0 0 24 24">
+                <Path d="M15 4 L7 12 L15 20" stroke={Y.ink} strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Pressable>
+          ) : null}
+          <View style={{ flex: 1, flexDirection: "row" }}>
+            {ORDER.slice(0, 7).map((s, i) => (
+              <View
+                key={s}
+                style={{
+                  flex: 1,
+                  height: 11,
+                  marginRight: i === 6 ? 0 : 3,
+                  borderWidth: 1.8,
+                  borderColor: Y.ink,
+                  backgroundColor: i <= step ? Y.blue : "transparent",
+                }}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+      {children}
+    </SafeAreaView>
   );
 }
 
-/* the letter she carries off — a sealed sheet, drawn on the same grid as the
-   tab bar's glyphs so the first envelope you ever see is the system's one */
-function CarriedLetter() {
+/* the headline: plain words, then the one in italic serif that carries it */
+function Head({ plain, em, sub }: { plain: string; em: string; sub: string }) {
   return (
-    <Svg width={44} height={44} viewBox="0 0 24 24">
-      <Rect x={4} y={7} width={16} height={11} fill={P.paper} stroke={P.ink} strokeWidth={1.7} />
-      <Path d="M4 7l8 6 8-6" stroke={P.ink} strokeWidth={1.4} fill="none" strokeLinejoin="round" />
-      <Line x1={7} y1={15.4} x2={13} y2={15.4} stroke={P.pen} strokeWidth={1.7} />
+    <View style={{ paddingHorizontal: 18, paddingTop: 12 }}>
+      <Text style={{ fontFamily: F2.serif, fontSize: 26, color: Y.ink, textAlign: "center", lineHeight: 33 }}>
+        {plain} <Text style={{ fontFamily: F2.serifItalic }}>{em}</Text>
+      </Text>
+      {!!sub && <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 9, lineHeight: 18, letterSpacing: 0.2 }]}>{sub}</Text>}
+    </View>
+  );
+}
+
+/* the key at the bottom of every step */
+function Foot({
+  label,
+  on,
+  onPress,
+  tone,
+  skip,
+  onSkip,
+}: {
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  tone?: "yellow";
+  skip?: string;
+  onSkip?: () => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: 18, paddingBottom: 10, paddingTop: 8 }}>
+      <Pressable
+        onPress={() => on && onPress()}
+        disabled={!on}
+        style={[keyBtn, bevel(4, 4), { backgroundColor: tone === "yellow" ? Y.yellow : Y.blue, opacity: on ? 1 : 0.4 }]}
+      >
+        <Text style={[mono(12.5, "b"), { color: tone === "yellow" ? Y.ink : "#fff" }]}>{label}</Text>
+      </Pressable>
+      {skip ? (
+        <Pressable onPress={onSkip} style={{ paddingTop: 12, alignItems: "center" }}>
+          <Text style={[mono(9.5, "b"), { color: Y.dim }]}>{skip}</Text>
+        </Pressable>
+      ) : (
+        <View style={{ height: 10 }} />
+      )}
+    </View>
+  );
+}
+
+/* the artwork in the KINDREDLY.EXE window — a letter written, sent, answered */
+function RecapArt({ i }: { i: number }) {
+  return (
+    <Svg width={168} height={140} viewBox="0 0 168 140">
+      {i === 1 && <Path d="M14 128 Q52 112 88 74" fill="none" stroke={Y.ink} strokeWidth={2} strokeDasharray="3 7" strokeLinecap="round" opacity={0.5} />}
+      <Rect x={i === 1 ? 62 : 44} y={i === 1 ? 34 : 44} width={82} height={58} rx={4} fill={Y.panel} stroke={Y.ink} strokeWidth={2.4} />
+      <Path d={i === 1 ? "M62 38 L103 68 L144 38" : "M44 48 L85 78 L126 48"} fill="none" stroke={Y.ink} strokeWidth={2.2} strokeLinejoin="round" />
+      {i === 0 && <Rect x={104} y={30} width={26} height={30} fill={Y.blue} stroke={Y.ink} strokeWidth={2.2} transform="rotate(-8 117 45)" />}
+      {i === 2 && (
+        <Path
+          d="M85 22 c-8 -13 -29 -10 -29 6 c0 13 18 23 29 31 c11 -8 29 -18 29 -31 c0 -16 -21 -19 -29 -6 z"
+          fill={Y.yellow}
+          stroke={Y.ink}
+          strokeWidth={2.2}
+        />
+      )}
+      <Circle cx={22} cy={22} r={3} fill={Y.ink} opacity={0.35} />
+      <Circle cx={148} cy={122} r={3} fill={Y.ink} opacity={0.35} />
     </Svg>
   );
+}
+
+/* the nine moods, mapped onto the faces she actually has */
+function moodToWren(m: MoodId): WrenMood {
+  const tone = MOODS[m].tone;
+  if (tone === "low" || tone === "edge") return "worry";
+  if (tone === "up" || tone === "spark") return "delight";
+  if (tone === "flat") return "think";
+  return "listen";
 }
