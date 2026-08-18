@@ -7,6 +7,7 @@ import {C} from "../theme/tokens";
 import { P, PF } from "../theme/post";
 import { Wren } from "./Wren";
 import { WrenBird } from "./WrenBird";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { MoodModal } from "./MoodModal";
 import { MoodIcon } from "./MoodIcon";
 import { Recorder } from "./Recorder";
@@ -56,11 +57,14 @@ export function SelfCompose({
   const [wrenNote, setWrenNote] = useState<string | null>(null);
   const [dur, setDur] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [mood, setMood] = useState<MoodId | null>(null); // inline pick; modal is the fallback
+  const [mood, setMood] = useState<MoodId | null>(null);
 
   const openers = WREN_OPENERS.journal[LANG];
   const hasMedia = att === "photo" ? photos.length > 0 : !!mediaUri;
-  const canSave = text.trim().length > 0 || (hasMedia && att !== null);
+  const hasSomething = text.trim().length > 0 || (hasMedia && att !== null);
+  // a sealed page without a mood can't be found again — the calendar is made
+  // of these faces, so it isn't optional
+  const canSave = hasSomething && !!mood;
 
   const addPhotos = async () => {
     const remaining = 9 - photos.length;
@@ -207,7 +211,7 @@ export function SelfCompose({
   return (
     <View style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 14, paddingTop: 14 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, paddingTop: 10 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* The page IS the screen. It used to be a bordered sheet taped down
               inside the view — but tape holds paper ONTO something, and once
               the paper fills the screen there's nothing left to hold it to.
@@ -300,12 +304,11 @@ export function SelfCompose({
               </Pressable>
             )}
 
-            {/* ruled paper under the handwriting */}
-            <View style={{ position: "relative" }}>
-              {!att &&
-                Array.from({ length: 8 }, (_, i) => (
-                  <View key={i} style={{ position: "absolute", left: 0, right: 0, top: 47 + i * 40, height: 1, backgroundColor: Z.rule }} />
-                ))}
+            {/* No ruled lines. They were doing the work of saying "notebook",
+                but a page with rules printed on it is a page that expects a
+                certain kind of writing on a certain size of line — and the
+                writing here is whatever comes. */}
+            <View>
               <TextInput
                 value={text}
                 onChangeText={setText}
@@ -317,29 +320,13 @@ export function SelfCompose({
                   color: Z.ink,
                   fontFamily: PF.letter,
                   fontSize: 19,
-                  lineHeight: 40,
+                  lineHeight: 31,
                   textAlignVertical: "top",
                   paddingTop: 8,
                 }}
               />
             </View>
 
-            {/* how today felt — the page keeps it */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 10 }} keyboardShouldPersistTaps="handled">
-              {MOOD_IDS.map((id) => {
-                const on = mood === id;
-                return (
-                  <Pressable
-                    key={id}
-                    onPress={() => setMood(on ? null : id)}
-                    hitSlop={4}
-                    style={{ borderWidth: 1.5, borderColor: on ? MOODS[id].col : "transparent", padding: 2, opacity: mood && !on ? 0.45 : 1 }}
-                  >
-                    <MoodIcon id={id} size={32} />
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
           </View>
 
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: Z.soft, textAlign: "center", marginTop: 14 }}>
@@ -347,13 +334,34 @@ export function SelfCompose({
           </Text>
         </ScrollView>
 
-        {/* Aa / mic / photo / video — then tuck it away */}
+        {/* A mood is REQUIRED, and this is where you're asked for it — a pill
+          above the bar, the way a tag sits above a composer's toolbar. The
+          reason given is the true one: Sealed's calendar is built out of
+          these faces, so the mood is literally how you find a day again. */}
+      <Pressable
+        onPress={() => setMoodOpen(true)}
+        style={{ flexDirection: "row", alignItems: "center", gap: 9, alignSelf: "flex-start", marginHorizontal: 20, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: mood ? MOODS[mood].bg : P.paperDeep }}
+      >
+        {mood ? (
+          <>
+            <MoodIcon id={mood} size={22} />
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.4, color: MOODS[mood].col }}>{MOODS[mood].n.toLowerCase()}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>CHANGE ›</Text>
+          </>
+        ) : (
+          <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: P.ink60 }}>
+            + how did this feel? — it's how you'll find this day again
+          </Text>
+        )}
+      </Pressable>
+
+        {/* the tools, then the seal */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
           {(
             [
-              ["photo", "🖼"],
-              ["voice", "🎙"],
-              ["video", "🎬"],
+              ["photo", "photo"],
+              ["voice", "voice"],
+              ["video", "video"],
             ] as [Exclude<JournalType, "text"> | null, string][]
           )
             .slice(0, tools ? 3 : 1)
@@ -373,12 +381,12 @@ export function SelfCompose({
                     justifyContent: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 19 }}>{icon}</Text>
+                  <ToolIcon kind={icon as "photo" | "voice" | "video"} on={on} />
                 </Pressable>
               );
             })}
 
-          {/* Three keys standing open is a toolbar; a page for one person
+        {/* Three keys standing open is a toolbar; a page for one person
               doesn't need one. Photo stays out because it's what most days
               actually want, and the rest live behind the arrow. */}
           <Pressable
@@ -389,7 +397,7 @@ export function SelfCompose({
           </Pressable>
 
           <Pressable
-            onPress={() => canSave && (mood ? void pickMood(mood) : setMoodOpen(true))}
+            onPress={() => canSave && mood && void pickMood(mood)}
             disabled={!canSave || busy}
             style={{
               flex: 1,
@@ -407,7 +415,14 @@ export function SelfCompose({
         </View>
       </KeyboardAvoidingView>
 
-      <MoodModal visible={moodOpen} onPick={pickMood} onCancel={() => setMoodOpen(false)} />
+      <MoodModal
+        visible={moodOpen}
+        onPick={(m) => {
+          setMood(m);
+          setMoodOpen(false);
+        }}
+        onCancel={() => setMoodOpen(false)}
+      />
     </View>
   );
 }
@@ -424,5 +439,36 @@ function VideoPreview({ uri, onClear }: { uri: string; onClear: () => void }) {
         <Text style={{ color: "#fff", fontSize: 11 }}>✕</Text>
       </Pressable>
     </View>
+  );
+}
+
+/* Drawn tools, not emoji. An emoji is somebody else's illustration in somebody
+   else's style — 🖼 is a framed picture in a gallery, which is not what "add a
+   photo" means — and it changes shape on every OS. These are the same weight
+   and the same grid as the rest of the app's glyphs. */
+function ToolIcon({ kind, on }: { kind: "photo" | "voice" | "video"; on: boolean }) {
+  const c = on ? P.paper : P.ink;
+  const st = { stroke: c, strokeWidth: 1.7, fill: "none" as const };
+  if (kind === "photo")
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24">
+        <Rect x={3} y={5} width={18} height={14} {...st} />
+        <Path d="M3 16l5-5 4 4 3-3 6 6" {...st} strokeLinejoin="round" />
+        <Circle cx={8.6} cy={9.4} r={1.5} fill={c} />
+      </Svg>
+    );
+  if (kind === "voice")
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24">
+        <Rect x={9} y={3} width={6} height={11} rx={3} {...st} />
+        <Path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" {...st} strokeLinecap="round" />
+        <Path d="M12 18v3" {...st} strokeLinecap="round" />
+      </Svg>
+    );
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24">
+      <Rect x={3} y={6} width={12} height={12} {...st} />
+      <Path d="M15 11l6-3.4v8.8L15 13z" {...st} strokeLinejoin="round" />
+    </Svg>
   );
 }
