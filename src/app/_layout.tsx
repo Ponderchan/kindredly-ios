@@ -8,7 +8,8 @@ import { AuthProvider } from "../lib/auth";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
 import { useAppFonts } from "../theme/fonts";
-import { C } from "../theme/tokens";
+
+import { P } from "../theme/post";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,22 +27,26 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: C.cream }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: P.paper }}>
       <SafeAreaProvider>
         <AuthProvider>
           <EntitlementProvider>
             <WrenSkinProvider>
-            <View style={{ flex: 1, backgroundColor: C.cream }}>
+            <View style={{ flex: 1, backgroundColor: P.paper }}>
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  contentStyle: { backgroundColor: C.cream },
+                  contentStyle: { backgroundColor: P.paper },
                 }}
               >
                 <Stack.Screen name="index" />
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="compose" options={{ presentation: "modal" }} />
+                {/* Writing is a PAGE, not a popup. A modal sheet leaves the app
+                    visible behind a rounded card and says "this is temporary";
+                    posting something isn't. Both composers open full screen. */}
+                <Stack.Screen name="compose" options={{ animation: "slide_from_bottom" }} />
+                <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom" }} />
                 <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
                 {/* the reader fills the screen — the letter opens where you are,
                     it doesn't slide in from the side or pop up as a card */}
