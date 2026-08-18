@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
-import { WrenStamp } from "./WrenStamp";
+import { WrenBird } from "./WrenBird";
 import { useAuth } from "../lib/auth";
 
 /* The counter. Not a floating blurred pill — a ruled strip of windows, the way
@@ -109,7 +109,7 @@ export function PostTabBar({ state, navigation }: any) {
         <Pressable style={{ flex: 1, backgroundColor: "rgba(27,27,24,0.5)", justifyContent: "flex-end" }} onPress={() => setChoosing(false)}>
           <Pressable onPress={() => {}} style={{ backgroundColor: P.paper, paddingHorizontal: 22, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 14) + 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-              <WrenStamp size={40} mood="curious" />
+              <WrenBird size={38} mood="curious" />
               <View>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>POST SOMETHING</Text>
                 <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 3 }}>WHO'S IT FOR?</Text>

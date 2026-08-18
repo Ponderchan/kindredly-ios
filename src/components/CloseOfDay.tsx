@@ -12,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { F } from "../theme/tokens";
 import { P, PF } from "../theme/post";
-import { WrenStamp } from "./WrenStamp";
+import { WrenBird } from "./WrenBird";
 import { MORNING_HOUR } from "../lib/notify";
 
 /* Close of day — the post office shuts, and you're the one who shuts it.
@@ -150,7 +150,7 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 28 }}>
-        <WrenStamp size={44} mood="sleepy" />
+        <WrenBird size={30} mood="sleepy" />
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>WREN IS OFF THE CLOCK</Text>
       </View>
     </Animated.View>
