@@ -263,12 +263,27 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   return (
     <View style={{ height, paddingHorizontal: 26, paddingTop: 26 }}>
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
-        {/* docket line — who and when, as the system files it */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
-          <MosaicId seed={letter.author} />
-          <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
-            {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
-          </Text>
+        {/* The docket row reads like the face of an envelope: who and when
+            filed on the left by the machine, the stamp pasted on the right by
+            the person who sent it.
+
+            The rule this settles: the system's CHROME is mono and black, but
+            the designed artefacts — Wren, the 44 stamps, the mood faces — are
+            CONTENT, and content keeps its own colour. Same licence the letter
+            body gets. Stripping the stamps to fit the palette was the mistake;
+            they're the reason the tab has a world at all. */}
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 4 }}>
+            <MosaicId seed={letter.author} />
+            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
+              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
+            </Text>
+          </View>
+          {st && (
+            <View style={{ transform: [{ rotate: "3deg" }] }}>
+              <StampTile id={letter.stamp} w={46} r={5} />
+            </View>
+          )}
         </View>
 
         <View style={{ flex: 1, justifyContent: "center" }}>
@@ -300,7 +315,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           <View style={{ flexDirection: "row", marginBottom: 12 }}>
             <View style={{ backgroundColor: P.pen, paddingHorizontal: 8, paddingVertical: 4 }}>
               <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: "#fff" }}>
-                {st.name.en.toUpperCase()}
+                #{st.name.en.toUpperCase()}
               </Text>
             </View>
           </View>
