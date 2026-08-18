@@ -1003,9 +1003,9 @@ export default function Onboarding() {
 
         {hatchPhase === "card" && (
           <>
-            <Animated.Text entering={FadeIn.duration(400)} style={[mono(10, "b"), { color: Y.brass, marginBottom: 6 }]}>
-              ✦ NEW HATCH UNLOCKED ✦
-            </Animated.Text>
+            <Animated.View entering={FadeIn.duration(400)} style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass, marginBottom: 2 }]}>
+              <Text style={mono(9.5, "b")}>✦ NEW HATCH UNLOCKED ✦</Text>
+            </Animated.View>
 
             {/* she hatches into daylight, a warm glow instead of a dark card */}
             <Animated.View entering={ZoomIn.duration(520).easing(Easing.out(Easing.back(1.4)))} style={{ alignItems: "center" }}>
@@ -1037,33 +1037,28 @@ export default function Onboarding() {
             {/* the read: white panel, brass rule, bars instead of glyphs */}
             <Animated.View
               entering={FadeInDown.delay(360).duration(520)}
-              style={{
-                width: "100%",
-                maxWidth: 340,
-                backgroundColor: Y.panel,
-                borderWidth: 1.6,
-                borderColor: Y.brass,
-                borderRadius: 18,
-                paddingVertical: 16,
-                paddingHorizontal: 18,
-                marginTop: 18,
-              }}
+              style={[
+                card,
+                bevel(5, 5),
+                { width: "100%", maxWidth: 340, paddingVertical: 16, paddingHorizontal: 18, marginTop: 18 },
+              ]}
             >
               <Text style={[mono(9.5, "b"), { color: Y.brass, marginBottom: 12 }]}>{HER} IS LEARNING YOU</Text>
               {hatched.dims.slice(0, 4).map((d) => (
                 <BarRow key={d.key} d={d} />
               ))}
 
-              <View style={{ height: 1, backgroundColor: "rgba(216,166,63,0.35)", marginTop: 6, marginBottom: 12 }} />
+              <View style={{ height: 2, backgroundColor: "rgba(17,17,19,0.1)", marginTop: 6, marginBottom: 12 }} />
               <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: Y.ink }}>{her || "Wren"} is still learning you.</Text>
-              <Text style={[mono(10, "r"), { color: Y.dim, marginTop: 8, lineHeight: 19, letterSpacing: 0.4 }]}>
+              <Text style={[mono(9, "b"), { color: Y.faint, marginTop: 7 }]}>KEEP WRITING TO REVEAL:</Text>
+              <Text style={[mono(10, "r"), { color: Y.dim, marginTop: 6, lineHeight: 19, letterSpacing: 0.4 }]}>
                 {hatched.dims.slice(4).filter((d) => !d.locked).slice(0, 4).map((d) => `□ ${SEALED_SHORT[d.key] ?? d.label.toLowerCase()}`).join("  ·  ")}
               </Text>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(520).duration(500)} style={{ width: "100%", maxWidth: 340, marginTop: 18 }}>
-              <Pressable onPress={letHerGo} style={{ backgroundColor: Y.brass, borderRadius: 18, paddingVertical: 17, alignItems: "center" }}>
-                <Text style={[mono(12.5, "b"), { color: "#fff" }]}>KEEP WRITING</Text>
+              <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass }]}>
+                <Text style={mono(12.5, "b")}>KEEP WRITING</Text>
               </Pressable>
             </Animated.View>
           </>
