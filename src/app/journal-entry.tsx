@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { C, F } from "../theme/tokens";
+import { P, PF } from "../theme/post";
 import { Wren } from "../components/Wren";
 import { WrenBird } from "../components/WrenBird";
 import { MoodModal } from "../components/MoodModal";
@@ -20,15 +21,19 @@ import { signatureVector, voiceSignature } from "../lib/signature";
 const LANG = "en";
 
 // the cream zine — warm paper, washi tape, brown ink
+/* This page had its own warm palette. It now maps onto the app's one system,
+   so the sealed room is written on the same surface it's read on. The ruled
+   lines stay — they're what makes it a notebook page, not a text box — and the
+   tape stays, because that's a hand, and a hand is allowed. */
 const Z = {
-  bg: "#F1E9D6",
-  paper: "#FDF8EC",
-  ink: "#4A3B20",
-  soft: "#9C8A64",
-  rule: "#E7DAB9",
-  gold: "#8F7434",
-  tapeA: "rgba(197,174,128,0.55)",
-  tapeB: "rgba(189,178,232,0.6)",
+  bg: P.paper,
+  paper: P.paper,
+  ink: P.ink,
+  soft: P.ink40,
+  rule: P.ink12,
+  gold: P.pen, // the actionable colour, same as everywhere
+  tapeA: "rgba(197,174,128,0.5)",
+  tapeB: "rgba(150,148,232,0.45)",
 };
 
 type Photo = { uri: string; ratio: number };
@@ -199,13 +204,13 @@ export default function JournalEntry() {
         <Pressable
           onPress={() => router.back()}
           hitSlop={10}
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#4A3B20", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
+          style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={{ fontSize: 15, color: Z.ink }}>✕</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 17, color: Z.ink }}>✕</Text>
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={{ backgroundColor: Z.gold, borderRadius: 17, paddingHorizontal: 16, paddingVertical: 9, transform: [{ rotate: "0.8deg" }] }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 11, letterSpacing: 2, color: "#FBF4E4" }}>JUST FOR ME 🔒</Text>
+          <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>JUST FOR ME</Text>
           </View>
         </View>
         <View style={{ width: 42 }} />
@@ -217,7 +222,8 @@ export default function JournalEntry() {
           <View
             style={{
               backgroundColor: Z.paper,
-              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: P.ink,
               paddingHorizontal: 20,
               paddingTop: 24,
               paddingBottom: 16,
@@ -232,8 +238,8 @@ export default function JournalEntry() {
             <View style={{ position: "absolute", top: -9, right: 40, width: 110, height: 24, backgroundColor: Z.tapeB, transform: [{ rotate: "2deg" }] }} />
 
             <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 }}>
-              <Text style={{ fontFamily: F.serif, fontSize: 32, color: Z.ink }}>{dateStr}</Text>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1.8, color: Z.soft, paddingBottom: 8 }}>NO ONE'S WATCHING</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 29, fontWeight: "600", color: Z.ink }}>{dateStr}</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: Z.soft, paddingBottom: 8 }}>NO ONE'S WATCHING</Text>
             </View>
 
             {/* photo album — up to 9, tap a frame to make it the cover */}
@@ -246,40 +252,40 @@ export default function JournalEntry() {
                       <Pressable
                         key={p.uri + i}
                         onPress={() => setCover(i)}
-                        style={{ width: "31.2%", aspectRatio: 1, borderRadius: 12, overflow: "hidden", position: "relative", borderWidth: isCover ? 2 : 0, borderColor: C.purple }}
+                        style={{ width: "31.2%", aspectRatio: 1, overflow: "hidden", position: "relative", borderWidth: isCover ? 2 : 0, borderColor: P.pen }}
                       >
                         <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                         {isCover && (
-                          <View style={{ position: "absolute", left: 5, bottom: 5, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: C.purple, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 9 }}>
-                            <Text style={{ color: "#fff", fontSize: 8.5, fontFamily: F.sansBold }}>✦ COVER</Text>
+                          <View style={{ position: "absolute", left: 5, bottom: 5, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 3 }}>
+                            <Text style={{ color: "#fff", fontSize: 8.5, fontFamily: PF.mono }}>COVER</Text>
                           </View>
                         )}
-                        <Pressable onPress={() => removePhoto(i)} hitSlop={6} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
+                        <Pressable onPress={() => removePhoto(i)} hitSlop={6} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" }}>
                           <Text style={{ color: "#fff", fontSize: 10 }}>✕</Text>
                         </Pressable>
                       </Pressable>
                     );
                   })}
                   {photos.length < 9 && (
-                    <Pressable onPress={addPhotos} style={{ width: "31.2%", aspectRatio: 1, borderRadius: 12, borderWidth: 1.5, borderColor: C.line, borderStyle: "dashed", alignItems: "center", justifyContent: "center", backgroundColor: C.cream }}>
+                    <Pressable onPress={addPhotos} style={{ width: "31.2%", aspectRatio: 1, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
                       <Text style={{ fontSize: 22, color: C.faint }}>＋</Text>
                     </Pressable>
                   )}
                 </View>
 
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.faint }}>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
                     {photos.length}/9 · tap a photo to make it the cover
                   </Text>
                   {photos.length >= 2 && (
-                    <Pressable onPress={wrenPickCover} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 13, backgroundColor: C.purpleLt }}>
+                    <Pressable onPress={wrenPickCover} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: P.pen }}>
                       <Wren size={13} mode="line" />
-                      <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.purple }}>Let Wren pick</Text>
+                      <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: P.pen }}>LET WREN PICK</Text>
                     </Pressable>
                   )}
                 </View>
                 {wrenNote && (
-                  <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.purple, marginTop: 8 }}>“{wrenNote}”</Text>
+                  <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink60, marginTop: 8 }}>“{wrenNote}”</Text>
                 )}
               </View>
             )}
@@ -308,10 +314,10 @@ export default function JournalEntry() {
 
             {!att && (
               <Pressable onPress={() => setPIdx((p) => (p + 1) % openers.length)} style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 8 }}>
-                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#F3EAD2", alignItems: "center", justifyContent: "center" }}>
+                <View style={{ width: 34, height: 34, alignItems: "center", justifyContent: "center" }}>
                   <WrenBird size={27} mood="content" />
                 </View>
-                <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13, color: Z.soft, lineHeight: 18 }}>
+                <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60, lineHeight: 19 }}>
                   “{openers[pIdx]}”
                 </Text>
               </Pressable>
@@ -332,7 +338,7 @@ export default function JournalEntry() {
                 style={{
                   minHeight: att ? 80 : 328,
                   color: Z.ink,
-                  fontFamily: F.letter,
+                  fontFamily: PF.letter,
                   fontSize: 19,
                   lineHeight: 40,
                   textAlignVertical: "top",
@@ -350,7 +356,7 @@ export default function JournalEntry() {
                     key={id}
                     onPress={() => setMood(on ? null : id)}
                     hitSlop={4}
-                    style={{ borderRadius: 20, borderWidth: 1.5, borderColor: on ? MOODS[id].col : "transparent", padding: 2, opacity: mood && !on ? 0.45 : 1 }}
+                    style={{ borderWidth: 1.5, borderColor: on ? MOODS[id].col : "transparent", padding: 2, opacity: mood && !on ? 0.45 : 1 }}
                   >
                     <MoodIcon id={id} size={32} />
                   </Pressable>
@@ -359,7 +365,7 @@ export default function JournalEntry() {
             </ScrollView>
           </View>
 
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: Z.soft, textAlign: "center", marginTop: 14 }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: Z.soft, textAlign: "center", marginTop: 14 }}>
             🔒 sealed on this device. only a line you choose can ever drift out.
           </Text>
         </ScrollView>
@@ -382,27 +388,31 @@ export default function JournalEntry() {
                 style={{
                   width: 46,
                   height: 46,
-                  borderRadius: 23,
-                  backgroundColor: on ? Z.gold : "#fff",
+                  backgroundColor: on ? P.ink : "transparent",
+                  borderWidth: 1,
+                  borderColor: P.ink,
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: "#4A3B20",
-                  shadowOpacity: 0.12,
-                  shadowRadius: 5,
-                  shadowOffset: { width: 0, height: 2 },
                 }}
               >
-                <Text style={{ fontFamily: F.sansBold, fontSize: 15, color: on ? "#FBF4E4" : Z.ink }}>{icon}</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 15, color: on ? P.paper : Z.ink }}>{icon}</Text>
               </Pressable>
             );
           })}
           <Pressable
             onPress={() => canSave && (mood ? pickMood(mood) : setMoodOpen(true))}
             disabled={!canSave || busy}
-            style={{ flex: 1, backgroundColor: Z.gold, borderRadius: 26, paddingVertical: 16, alignItems: "center", opacity: canSave && !busy ? 1 : 0.35 }}
+            style={{
+              flex: 1,
+              backgroundColor: canSave && !busy ? P.pen : "transparent",
+              borderWidth: 1,
+              borderColor: canSave && !busy ? P.pen : P.ink12,
+              paddingVertical: 16,
+              alignItems: "center",
+            }}
           >
-            <Text style={{ color: "#FBF4E4", fontFamily: F.sansExtra, fontSize: 14.5 }}>
-              {busy ? "tucking…" : "tuck it away 🍂"}
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSave && !busy ? "#fff" : P.ink40 }}>
+              {busy ? "TUCKING…" : "TUCK IT AWAY"}
             </Text>
           </Pressable>
         </View>
@@ -419,7 +429,7 @@ function VideoPreview({ uri, onClear }: { uri: string; onClear: () => void }) {
     p.muted = true;
   });
   return (
-    <View style={{ borderRadius: 14, overflow: "hidden", marginBottom: 16, position: "relative", maxHeight: 300 }}>
+    <View style={{ overflow: "hidden", marginBottom: 16, position: "relative", maxHeight: 300 }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 9 / 16, maxHeight: 300 }} contentFit="cover" nativeControls={false} />
       <Pressable onPress={onClear} style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
         <Text style={{ color: "#fff", fontSize: 11 }}>✕</Text>
