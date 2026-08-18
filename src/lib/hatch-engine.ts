@@ -126,7 +126,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(30 + uniq * 40 * Math.min(1, latin.length / 50) + (avgLen - 3.6) * 11 + Math.min(14, emoHits * 4) + abstractR * 60),
       locked: latin.length >= 40,
       line: avgLen >= 5 || abstractR > 0.02 ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
-      sealed: "Your rare words",
+      sealed: "the words only you choose",
     },
     {
       key: "sentence",
@@ -135,7 +135,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(34 + mean * 2.2 + pausePerSent * 16 + frags * 6),
       locked: sents.length >= 4,
       line: mean >= 11 ? "You let thoughts breathe instead of forcing conclusions." : "Short lines. You trust the reader to fill the rest.",
-      sealed: "Your sentence shape",
+      sealed: "the shape your sentences take",
     },
     {
       key: "rhythm",
@@ -144,7 +144,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(28 + varc * 1.3 + swings * 12),
       locked: sents.length >= 5,
       line: swings >= 2 ? "Your writing moves like a conversation." : "One steady pace, held all the way through.",
-      sealed: "Your secret rhythm",
+      sealed: "the rhythm hiding in your sentences",
     },
     {
       key: "emotion",
@@ -153,7 +153,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(22 + emoHits * 9 + (contrast ? 22 : 0) + (owned ? 14 : 0)),
       locked: words >= 30,
       line: contrast ? "You hold two feelings at once without dropping either." : owned ? "You notice feelings before naming them." : "You keep the feeling under the words, where it hums.",
-      sealed: "Your feeling range",
+      sealed: "the feelings under your words",
     },
     {
       key: "perspective",
@@ -162,7 +162,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(30 + inward * 200 + (distance ? 24 : 0) + outward * 90),
       locked: words >= 40,
       line: distance ? "You often look at yourself from the outside." : inward > outward ? "You write from the inside out." : "You watch the world first, then let it in.",
-      sealed: "Your way of seeing",
+      sealed: "how you see the world",
     },
     {
       key: "function",
@@ -171,7 +171,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(26 + hedges * 16),
       locked: words >= 50,
       line: hedges >= 2 ? "Your small words reveal hesitation and curiosity." : "No hedging — you commit to the sentence.",
-      sealed: "Your small tells",
+      sealed: "the small words you lean on",
     },
     {
       key: "punctuation",
@@ -180,7 +180,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(24 + commas * 7 + dashes * 10 + dots * 12),
       locked: punctTotal >= 6,
       line: dots >= 1 || dashes >= 1 ? "You pause where most people rush." : commas >= 2 ? "Commas carry your breathing." : "Clean stops. No decoration.",
-      sealed: "Your pause fingerprint",
+      sealed: "where you pause, and why",
     },
     {
       key: "structure",
@@ -189,7 +189,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(28 + detailOpen * 16 + feelingEnd * 16 + Math.min(20, texts.length * 5)),
       locked: texts.length >= 3,
       line: detailOpen >= 1 && feelingEnd >= 1 ? "You often start with a detail and arrive at a feeling." : "You open where the thought opens, no throat-clearing.",
-      sealed: "Your writing arc",
+      sealed: "how your thoughts land",
     },
     {
       key: "quirks",
@@ -198,7 +198,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(20 + q.length * 19),
       locked: q.length >= 2 || words >= 80,
       line: q.length ? "You have small ways of saying things that feel unmistakably yours." : "No tics yet — they show up as you relax.",
-      sealed: "Your hidden quirks",
+      sealed: "the patterns nobody else has",
     },
   ];
 

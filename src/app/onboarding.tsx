@@ -928,7 +928,12 @@ export default function Onboarding() {
               }}
             >
               <Hatchling mood={hatchMood} shell={eggVar} />
-              <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 4 }}>{her || "Wren"}</Text>
+              {/* "Meet Pip", not "Pip" — one word turns a results screen into
+                  an introduction. Meet is quiet chrome; the name is the event. */}
+              <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 4 }}>
+                <Text style={{ fontFamily: F2.serifItalic, fontSize: 19, color: "#8F87AC" }}>Meet </Text>
+                {her || "Wren"}
+              </Text>
               <Text style={{ fontFamily: F2.serifItalic, fontSize: 18, color: Y.brass, marginTop: 2 }}>{hatched.archetype.name}</Text>
               <Text style={[mono(8.5, "b"), { color: "#5E5878", marginTop: 8 }]}>TAP {HER} ✦</Text>
 
@@ -959,10 +964,10 @@ export default function Onboarding() {
                 and the soul is the aura's formed tier. They tick on their own. */}
             <Animated.View entering={FadeInDown.delay(420).duration(500)} style={{ width: "100%", maxWidth: 330, marginTop: 20 }}>
               <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: "#CFC7E8", textAlign: "center" }}>
-                {her || "Wren"} is still growing.
+                {her || "Wren"} is still learning you.
               </Text>
               <Text style={[mono(9.5, "r"), { color: "#7E7799", textAlign: "center", marginTop: 6, letterSpacing: 0.6 }]}>
-                WRITE MORE LETTERS TO REVEAL
+                KEEP WRITING TO REVEAL
               </Text>
               <View style={{ marginTop: 12, alignSelf: "center" }}>
                 {hatched.dims.slice(4).filter((d) => !d.locked).slice(0, 4).map((d) => d.sealed).map((t) => (
