@@ -304,6 +304,12 @@ export function SelfCompose({
               </Pressable>
             )}
 
+            {/* Wren needs a floor. Without a line under her she just hovers
+                over the page with nothing holding her, and it isn't clear
+                whether she's part of what you're writing. One rule gives her
+                somewhere to stand and marks where your own words begin. */}
+            <View style={{ borderBottomWidth: 1, borderColor: P.ink12, marginTop: 6, marginBottom: 10 }} />
+
             {/* No ruled lines. They were doing the work of saying "notebook",
                 but a page with rules printed on it is a page that expects a
                 certain kind of writing on a certain size of line — and the

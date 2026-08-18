@@ -326,7 +326,8 @@ export default function Compose() {
                 “{mode === "speak" ? wrenLine(wrenMood) : ladder.line}”
               </Text>
             </View>
-            <View style={{ borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: "#D8D2F2", marginTop: 14, marginBottom: 6 }} />
+            {/* the line she stands on — the same one in both composers */}
+            <View style={{ borderBottomWidth: 1, borderColor: P.ink12, marginTop: 12, marginBottom: 8 }} />
 
             {mode === "write" ? (
               <TextInput
