@@ -29,7 +29,7 @@ type Mode = "write" | "speak";
 
 export default function Compose() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string; to?: string; start?: string }>();
+  const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string; seed?: string }>();
   const isMorning = params.morning === "1";
   const { premium } = useEntitlement();
 
@@ -44,7 +44,8 @@ export default function Compose() {
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
   const [sel, setSel] = useState<string | null>(params.stamp ?? (params.draft ? null : STARTER_STAMPS[0]));
-  const [text, setText] = useState("");
+  // arriving from a sealed page that decided to leave — the words come with it
+  const [text, setText] = useState(params.seed ?? "");
   const [ask, setAsk] = useState("");
   const [busy, setBusy] = useState(false);
   const [capMsg, setCapMsg] = useState<string | null>(null);

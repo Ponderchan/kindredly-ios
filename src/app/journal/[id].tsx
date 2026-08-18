@@ -180,6 +180,20 @@ export default function JournalDetail() {
               minWidth: 232,
             }}
           >
+            {/* The whole page, not just a line. This is what makes choosing up
+                front safe: a thought you sealed can still leave, once it's had
+                time to sit — which is more this product than a switch flipped
+                mid-sentence. It doesn't teleport: it carries your words to the
+                letter desk, where you give it a stamp and send it yourself. */}
+            {!isDemo && e.body.trim().length >= 3 && (
+              <MenuRow
+                label="LET THIS DRIFT OUT"
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push({ pathname: "/compose", params: { seed: e.body } });
+                }}
+              />
+            )}
             {canDrift && (
               <MenuRow
                 label="LET ONE LINE DRIFT OUT"
