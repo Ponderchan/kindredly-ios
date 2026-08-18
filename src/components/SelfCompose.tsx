@@ -14,9 +14,8 @@ import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS } from "../data/content";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
-import { addEntry, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
-import { upsertFingerprint } from "../lib/db";
-import { signatureVector, voiceSignature } from "../lib/signature";
+import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
+import { journalSpark } from "../lib/journal-sparks";
 
 const LANG = "en";
 
@@ -50,6 +49,11 @@ export function SelfCompose({
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
   const [tools, setTools] = useState(false);
+  // the empty page's line, chosen from what's already on this device
+  const [spark, setSpark] = useState("today felt like…");
+  useEffect(() => {
+    loadJournal().then((all) => setSpark(journalSpark(all)));
+  }, []);
   const [att, setAtt] = useState<Exclude<JournalType, "text"> | null>(null);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -195,13 +199,12 @@ export function SelfCompose({
       mediaUri: persisted,
       dur: dur || undefined,
     });
-    if (voiceSignature(body).words >= 4) {
-      try {
-        await upsertFingerprint(signatureVector(body), voiceSignature(body).words);
-      } catch {
-        /* best-effort */
-      }
-    }
+    /* A sealed page feeds NOTHING. It used to send signatureVector(body) — a
+       vector of numbers derived from the text — to the fingerprint, and while
+       that isn't the text and can't be read back as it, "no one sees this, not
+       even me" is one of this product's most expensive promises and it isn't
+       worth a few more samples. The signature learns from letters only, which
+       were always meant to leave. */
     setBusy(false);
     onDone();
   };
@@ -313,7 +316,7 @@ export function SelfCompose({
               <TextInput
                 value={text}
                 onChangeText={setText}
-                placeholder={att ? "a line to go with it… (optional)" : "today felt like…"}
+                placeholder={att ? "a line to go with it… (optional)" : spark}
                 placeholderTextColor="#C4B48D"
                 multiline
                 style={{
@@ -330,9 +333,6 @@ export function SelfCompose({
 
           </View>
 
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: Z.soft, textAlign: "center", marginTop: 14 }}>
-            🔒 sealed on this device. only a line you choose can ever drift out.
-          </Text>
         </ScrollView>
 
         {/* A mood is REQUIRED, and this is where you're asked for it — a pill
