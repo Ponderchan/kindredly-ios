@@ -35,35 +35,47 @@ export const PF = {
 export const rule = { borderBottomWidth: 1, borderBottomColor: P.ink } as const;
 export const ruleSoft = { borderBottomWidth: 1, borderBottomColor: P.ink12 } as const;
 
-/* A stamp's own colour, darkened just enough to be read as text on the paper.
+/* ── the channel tag's two colours ────────────────────────────────────────
+   The tag and its pasted stamp are the same thing said twice, so they share a
+   hue. But the 44 designed colours are chosen to look right as a printed tile,
+   not to carry 10.5pt type: four of the six sit at 3.3–4.4:1 on this paper.
 
-   The 44 stamps carry designed colours chosen to look right as a printed
-   tile, and four of the six fail 4.5:1 against this paper — so setting the
-   channel tag to the raw stamp colour would tie the two together and make the
-   word unreadable. This walks the colour down (preserving hue) until it
-   clears AA, so the tag is recognisably the stamp's colour and still legible.
-   The true, undarkened colour stays visible on the tag's rule. */
+   channelWash — the stamp's colour laid over the paper at 14%, so the hue is
+   actually PRESENT on the page rather than surviving only as a hairline.
+   channelInk  — that same colour walked down in luminance, hue preserved,
+   until it clears 4.5:1 against its own wash.
+
+   The tag's rule still carries the true, undarkened colour (a border needs
+   only 3:1, which all six clear), so the exact designed hue stays on screen. */
+
+const PAPER_RGB = [0xfa, 0xf8, 0xf3] as const;
+
+function parse(hex?: string | null): [number, number, number] | null {
+  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return null;
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+}
+const hx = (n: number) => Math.round(n).toString(16).padStart(2, "0");
+
+export function channelWash(hex?: string | null, alpha = 0.14): string {
+  const c = parse(hex);
+  if (!c) return P.paperDeep;
+  const m = c.map((v, i) => v * alpha + PAPER_RGB[i] * (1 - alpha));
+  return `#${hx(m[0])}${hx(m[1])}${hx(m[2])}`;
+}
+
 export function channelInk(hex?: string | null): string {
-  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return P.ink;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const lin = (c: number) => {
-    const s = c / 255;
+  const c = parse(hex);
+  if (!c) return P.ink;
+  const lin = (v: number) => {
+    const s = v / 255;
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   };
-  const lum = (rr: number, gg: number, bb: number) =>
-    0.2126 * lin(rr) + 0.7152 * lin(gg) + 0.0722 * lin(bb);
-  const paper = lum(0xfa, 0xf8, 0xf3);
-  for (let k = 1; k > 0.2; k -= 0.04) {
-    const rr = Math.round(r * k);
-    const gg = Math.round(g * k);
-    const bb = Math.round(b * k);
-    const l = lum(rr, gg, bb);
-    if ((paper + 0.05) / (l + 0.05) >= 4.5) {
-      const h = (n: number) => n.toString(16).padStart(2, "0");
-      return `#${h(rr)}${h(gg)}${h(bb)}`;
-    }
+  const lum = (rr: number, gg: number, bb: number) => 0.2126 * lin(rr) + 0.7152 * lin(gg) + 0.0722 * lin(bb);
+  const w = parse(channelWash(hex))!;
+  const bg = lum(w[0], w[1], w[2]);
+  for (let k = 1; k > 0.15; k -= 0.03) {
+    const l = lum(c[0] * k, c[1] * k, c[2] * k);
+    if ((bg + 0.05) / (l + 0.05) >= 4.5) return `#${hx(c[0] * k)}${hx(c[1] * k)}${hx(c[2] * k)}`;
   }
   return P.ink;
 }

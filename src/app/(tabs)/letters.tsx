@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
-import { P, PF, channelInk, rule } from "../../theme/post";
+import { P, PF, channelInk, channelWash, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
@@ -311,15 +311,28 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
         </View>
 
         {/* The channel, in its stamp's own colour — the pasted tile and the
-            readable word are the same thing said twice, so they must not be
-            two different colours. The rule carries the stamp's true hue; the
-            word is that hue walked down to 4.5:1 on paper (channelInk), since
-            four of the six designed colours are too light to read raw. */}
+            readable word are the same thing said twice, so they can't be two
+            different colours. Washed background so the hue is actually present
+            on the page, true colour on the rule, word darkened to clear 4.5:1
+            against its own wash.
+
+            LOWERCASE, deliberately: the stamp is picked by the person writing,
+            not assigned by the system, so it doesn't get the machine's
+            all-caps voice. Everything the system itself says on this page is
+            upper — this one thing isn't, because it isn't the system talking. */}
         {st && (
           <View style={{ flexDirection: "row", marginBottom: 12 }}>
-            <View style={{ borderWidth: 1.5, borderColor: st.color, paddingHorizontal: 9, paddingVertical: 4 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: channelInk(st.color) }}>
-                #{st.name.en.toUpperCase()}
+            <View
+              style={{
+                backgroundColor: channelWash(st.color),
+                borderWidth: 1,
+                borderColor: st.color,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+              }}
+            >
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.2, color: channelInk(st.color) }}>
+                #{st.name.en.toLowerCase()}
               </Text>
             </View>
           </View>
