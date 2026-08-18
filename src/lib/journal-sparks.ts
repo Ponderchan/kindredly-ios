@@ -1,7 +1,14 @@
 import type { JournalEntry } from "./journal";
 import { getMood } from "../data/moods";
 
-/* The line on an empty sealed page.
+/* The line on an empty SEALED page (just for me).
+   ────────────────────────────────────────────────────────────────────────
+   The counterpart to lib/sparks.ts, which does the same job for the letter
+   desk. That one points OUTWARD at a stranger and rotates on a visit counter;
+   this one points INWARD and chooses itself from your own entries and moods.
+   Keep them apart: a letter prompt here would ask you to explain yourself to
+   nobody, and a diary prompt there would forget someone is going to read it.
+   ────────────────────────────────────────────────────────────────────────
 
    "today felt like…" every single time teaches the page has one shape. These
    are the owner's six families, chosen by a ladder rather than a dice roll:

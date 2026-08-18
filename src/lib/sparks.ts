@@ -1,6 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/* Writing sparks — the line in the empty letter.
+/* Writing sparks — the line in the empty LETTER (to a stranger).
+   ────────────────────────────────────────────────────────────────────────
+   There are TWO spark systems and they are not interchangeable:
+     lib/sparks.ts         → this one. The letter desk. Prompts point OUTWARD,
+                             at a reader who doesn't know you.
+     lib/journal-sparks.ts → the sealed page. Prompts point INWARD, and choose
+                             themselves from your own entries and moods.
+   A letter prompt on a diary page would ask you to explain yourself to nobody;
+   a diary prompt on a letter would forget there's a stranger at the other end.
+   ────────────────────────────────────────────────────────────────────────
 
    "ok so here's the thing…" reads like an AI prompt box: it's about the act of
    typing, not about anything. A spark should hand you something to reach for.
