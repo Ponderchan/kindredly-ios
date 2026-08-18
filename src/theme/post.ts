@@ -80,3 +80,25 @@ export function channelInk(hex?: string | null): string {
   }
   return P.ink;
 }
+
+/* ── PW: the pure-white variant, on trial ─────────────────────────────────
+   The warm paper above reads older than this product's readers (18–27) — the
+   beige is what made it feel like an old folder rather than something sharp.
+   Same token names, same structure, one variable changed: temperature.
+   Cold white, true black, the same electric pen.
+
+   Kindreds runs on this so it can be judged beside Today and Sealed. If it
+   wins, P's values become these and nothing else in the app has to move. */
+export const PW = {
+  paper: "#FFFFFF",
+  paperDeep: "#F4F4F5",
+  ink: "#111113",
+  ink60: "rgba(17,17,19,0.6)",
+  ink40: "rgba(17,17,19,0.38)",
+  ink12: "rgba(17,17,19,0.12)",
+  pen: "#3A3AF5",
+  penWash: "#ECECFE",
+  post: "#E0483C",
+  brass: "#9A7433",
+  air: "#3A4F9E",
+} as const;

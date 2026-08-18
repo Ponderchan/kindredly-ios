@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { C, F, cardStyle, shadow } from "../../theme/tokens";
+import { P, PF, rule } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
@@ -24,8 +25,28 @@ import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
 
 /* Me — a mirror, not a profile: who you are here (pen name + day), how you
-   sound (Your Voice — the hero), what you've kept (stats), and who's growing
-   beside you (Wren). Settings behind the gear. */
+   sound (the aura — the hero), and who's growing beside you (Wren).
+
+   The SHELL speaks the postal system: paper, the same header rule as Today and
+   Sealed, mono for everything the system files about you, your pen name in
+   your own register. VoiceCard and WrenHome are deliberately untouched — the
+   owner ruled those two stay as designed, and this pass was only ever about
+   the frame around them. */
+
+function Gear() {
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Path
+        d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+        fill="none"
+        stroke={P.ink}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
 
 export default function MeTab() {
   const auth = useAuth();
@@ -100,43 +121,33 @@ export default function MeTab() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 8, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-        {/* header — avatar left, name + day/kindreds, gear right */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top"]}>
+      {/* the same plate Today and Sealed carry */}
+      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>ME</Text>
+        <Pressable onPress={() => router.push("/settings")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
+          <Gear />
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        {/* who you are here — your name in your own register, the numbers filed
+            in the machine's */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <Pressable onPress={() => setEditing(true)} hitSlop={6}>
-            <View style={[{ borderRadius: 34, backgroundColor: C.card, padding: 4 }, shadow.card]}>
-              <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={60} round />
-            </View>
+            <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={58} />
           </Pressable>
           <Pressable onPress={() => setEditing(true)} style={{ flex: 1 }} hitSlop={6}>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 30, color: C.ink }}>{name}</Text>
-            {/* the numbers live here now — one quiet line, not three cards */}
-            <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1, color: C.muted, marginTop: 3 }}>
+            <Text style={{ fontFamily: PF.letter, fontSize: 27, fontWeight: "600", color: P.ink }}>{name}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 5 }}>
               DAY {stats.day} · {stats.lettersSent} LETTERS · {stats.journalN} SEALED · {stats.kindreds}{" "}
               {stats.kindreds === 1 ? "KINDRED" : "KINDREDS"}
             </Text>
           </Pressable>
-          <Pressable
-            onPress={() => router.push("/settings")}
-            hitSlop={8}
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.card, alignItems: "center", justifyContent: "center", ...shadow.card }}
-          >
-            <Svg width={20} height={20} viewBox="0 0 24 24">
-              <Path
-                d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-                fill="none"
-                stroke={C.muted}
-                strokeWidth={1.7}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </Pressable>
         </View>
 
         {/* two rooms: You (your voice) · Wren (your companion) */}
-        <View style={{ flexDirection: "row", backgroundColor: "#E9E8F0", borderRadius: 22, padding: 3, marginTop: 16 }}>
+        <View style={{ flexDirection: "row", marginTop: 20, borderWidth: 1, borderColor: P.ink }}>
           {(
             [
               ["you", "You"],
@@ -148,9 +159,11 @@ export default function MeTab() {
               <Pressable
                 key={id}
                 onPress={() => setRoom(id)}
-                style={{ flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 19, backgroundColor: on ? "#fff" : "transparent", ...(on ? shadow.card : null) }}
+                style={{ flex: 1, alignItems: "center", paddingVertical: 11, backgroundColor: on ? P.ink : "transparent" }}
               >
-                <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: on ? C.ink : C.muted }}>{label}</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 12.5, letterSpacing: 1.4, color: on ? P.paper : P.ink60 }}>
+                  {label.toUpperCase()}
+                </Text>
               </Pressable>
             );
           })}
@@ -174,11 +187,11 @@ export default function MeTab() {
             )}
 
             {/* one quiet row — Kindredly+ */}
-            <Pressable onPress={() => router.push("/paywall")} style={[cardStyle, { marginTop: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }]}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>Kindredly+</Text>
+            <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>KINDREDLY+</Text>
               <View style={{ flex: 1 }} />
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 1, color: C.purple }}>
-                {premium ? "ACTIVE" : "UNLIMITED"} ›
+              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
+                {premium ? "ACTIVE" : "UNLIMITED"} →
               </Text>
             </Pressable>
           </>
@@ -196,11 +209,11 @@ export default function MeTab() {
                 onLocked={() => router.push("/paywall")}
               />
             </View>
-            <Pressable onPress={() => router.push("/paywall")} style={[cardStyle, { marginTop: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }]}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: C.ink }}>Kindredly+</Text>
+            <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>KINDREDLY+</Text>
               <View style={{ flex: 1 }} />
-              <Text style={{ fontFamily: F.sansExtra, fontSize: 11.5, letterSpacing: 1, color: C.purple }}>
-                {premium ? "ACTIVE" : "UNLIMITED"} ›
+              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
+                {premium ? "ACTIVE" : "UNLIMITED"} →
               </Text>
             </Pressable>
           </>
