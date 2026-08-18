@@ -30,7 +30,7 @@ import { AVATARS } from "../data/avatar-lib";
 import { readMood } from "../lib/wren-read";
 import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
 import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
-import { analyzeVoice, courierName, type VoiceDNA } from "../lib/voice";
+import { hatch, saveArchetype, type DimScore } from "../lib/hatch-engine";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { STARTER_STAMPS } from "../data/stamps";
@@ -93,6 +93,17 @@ const CARDS: { tag: string; h: string; hi: string; s: string }[] = [
   { tag: "THEY WRITE BACK", h: "And slowly,", hi: "you're not strangers.", s: "Five letters each, and you trade names." },
 ];
 
+/* one hint per feeding — each slot invites a different register, because
+   three samples of the same register teach the engine less than one each of
+   observation, memory and confession */
+const FEED_HINTS = [
+  "i keep rehearsing conversations i will never have",
+  "something you noticed today that nobody else did…",
+  "a small thing you remember for no reason…",
+  "the thing you almost said out loud…",
+  "one more, if it's already on your tongue…",
+];
+
 // what the readout says about the egg at each stage of the flow
 const EGG_STATUS: Partial<Record<Step, string>> = {
   username: "SOMETHING'S IN HERE.",
@@ -117,7 +128,8 @@ export default function Onboarding() {
   const [eggVar, setEggVar] = useState(0);
   const [birdName, setBirdName] = useState("");
   const [birdPro, setBirdPro] = useState<PronounId>("she");
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(""); // the thought being typed
+  const [thoughts, setThoughts] = useState<string[]>([]); // the fed ones, 3–5
   const [mood, setMood] = useState<MoodId | null>(null);
   const [hatchPhase, setHatchPhase] = useState<"crack" | "card" | "fly">("crack");
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
@@ -231,31 +243,42 @@ export default function Onboarding() {
   const pro = pronoun(birdPro);
   // the key says HATCH OTIS once she's named, HATCH HIM/HER/THEM before that
   const HER = (her || pro.obj).toUpperCase();
-  /* WHO HATCHES comes from the SAME nine-dimension read the Me tab runs on
-     your writing — analyzeVoice() — not from a private two-boolean rule of
-     onboarding's own. The old split asked "did you write a long punctuated
-     sentence" twice and called it two axes; on realistic first letters it put
-     about seven in ten people on The Spark. wrenTypeFor survives only to pick
+  const feedPlain = `Feed ${her || "them"} what’s`;
+  /* WHO HATCHES comes from the Hatch Engine (lib/hatch-engine.ts): nine
+     dimensions scored 0–100 with a locked/growing confidence each, blended by
+     the owner's weights, matched against the archetype table. Wren is grown
+     from the writing DNA, never selected. wrenTypeFor survives only to pick
      what she wears, which is all it was ever load-bearing for. */
-  const voiceRead = analyzeVoice(line ? [line] : []);
-  const courier = courierName(voiceRead);
-  const noteType = wrenTypeFor(note); // still decides the accessory
-  const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(line); // picked mood wins
-  const heat = Math.min(100, Math.round((weightedCount(line) / OPENING_MIN) * 100));
+  const fed = thoughts.length ? thoughts : line ? [line] : [];
+  const corpus = fed.join("\n\n");
+  const hatched = hatch(fed);
+  const noteType = wrenTypeFor(corpus); // still decides the accessory
+  const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(corpus); // picked mood wins
+  const canFeed = line.length >= 2 && thoughts.length < 5;
+  const canHatch = thoughts.length >= 3;
+
+  const feed = () => {
+    if (!canFeed) return;
+    setThoughts((t) => [...t, line]);
+    setNote("");
+  };
 
   const finish = async () => {
     if (finishing.current) return;
     finishing.current = true;
-    if (line.length >= 2) {
+    if (corpus.length >= 2) {
       try {
-        await upsertFingerprint(signatureVector(line), voiceSignature(line).words);
+        await upsertFingerprint(signatureVector(corpus), voiceSignature(corpus).words);
       } catch {
         /* best-effort */
       }
-      // only a real opening goes to the pool; the fingerprint learns either way
-      if (weightedCount(line) >= OPENING_MIN) {
+      /* the pool gets ONE thought, not a concatenation — a letter is a single
+         coherent thing. The longest fed thought that clears the same floor
+         every other opening has to clear. */
+      const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0];
+      if (opener && weightedCount(opener) >= OPENING_MIN) {
         try {
-          await publishLetter(STARTER_STAMPS[0], line, "en");
+          await publishLetter(STARTER_STAMPS[0], opener, "en");
         } catch {
           /* best-effort — never block getting in */
         }
@@ -268,11 +291,12 @@ export default function Onboarding() {
       await saveWrenEgg(eggVar);
       await saveWrenName(her);
       await saveWrenPronoun(birdPro);
+      await saveArchetype(hatched.archetype.id);
       if (youPro) await saveYourPronoun(youPro);
     } catch {
       /* best-effort */
     }
-    await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: line || undefined });
+    await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: fed[0] || undefined });
     router.replace("/(tabs)/letters");
   };
 
@@ -751,44 +775,73 @@ export default function Onboarding() {
     );
   }
 
-  /* ── 8 · feed them words ────────────────────────────────────────────── */
+  /* ── 8 · feed them thoughts ─────────────────────── */
   if (step === "write") {
     return (
       <Console step={stepIdx} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* the feed meter — tied to the floor a real opening has to clear */}
+            {/* the meter counts THOUGHTS now, not characters. Three hatch the
+                egg; five is the most it will eat. Each one is a separate
+                sample, which is what the engine actually wants — structure
+                and perspective read across pieces, not within one. */}
             <View style={{ paddingHorizontal: 18, paddingTop: 4 }}>
               <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9 }]}>
-                <Text style={[mono(9.5, "b"), { flex: 1 }]}>FEED {HER} WORDS</Text>
+                <Text style={[mono(9.5, "b"), { flex: 1 }]}>FEED {HER} THOUGHTS</Text>
                 <View style={{ flexDirection: "row", marginRight: 8 }}>
-                  {[0, 1, 2, 3].map((i) => (
+                  {[0, 1, 2, 3, 4].map((i) => (
                     <View
                       key={i}
-                      style={{ width: 13, height: 9, marginLeft: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: heat > i * 25 ? Y.blue : "transparent" }}
+                      style={{ width: 13, height: 9, marginLeft: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: thoughts.length > i ? Y.blue : "transparent" }}
                     />
                   ))}
                 </View>
-                <Text style={mono(9.5, "b")}>HATCH {heat}%</Text>
+                <Text style={mono(9.5, "b")}>{thoughts.length}/3{thoughts.length >= 3 ? " ✓" : ""}</Text>
               </View>
             </View>
 
-            <Head plain="What's on your mind" em="right now?" sub="" />
+            <Head plain={feedPlain} em="on your mind." sub="Three small thoughts. They don't have to match — that's the point." />
 
-            <View style={{ paddingHorizontal: 18, marginTop: 2 }}>
-              <View style={[card, bevel(4, 4), { minHeight: 126, padding: 14 }]}>
+            {/* what's been fed, swallowed into little rows */}
+            {thoughts.length > 0 && (
+              <View style={{ paddingHorizontal: 18, marginTop: 10 }}>
+                {thoughts.map((t, i) => (
+                  <Animated.View key={`${i}-${t.slice(0, 8)}`} entering={FadeInDown.duration(320)}>
+                    <View style={[card, bevel(2, 2), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, marginBottom: 7 }]}>
+                      <Text style={[mono(9, "b"), { color: Y.blue, marginRight: 9 }]}>{String(i + 1).padStart(2, "0")}</Text>
+                      <Text numberOfLines={1} style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 14, color: Y.ink }}>
+                        {t}
+                      </Text>
+                      <Pressable hitSlop={10} onPress={() => setThoughts((arr) => arr.filter((_, j) => j !== i))}>
+                        <Text style={[mono(11, "r"), { color: Y.faint }]}>✕</Text>
+                      </Pressable>
+                    </View>
+                  </Animated.View>
+                ))}
+              </View>
+            )}
+
+            <View style={{ paddingHorizontal: 18, marginTop: thoughts.length ? 4 : 2 }}>
+              <View style={[card, bevel(4, 4), { minHeight: 92, padding: 14 }]}>
                 <TextInput
                   value={note}
                   onChangeText={setNote}
                   multiline
                   autoFocus
-                  placeholder="i keep the window open even when it's cold"
+                  placeholder={FEED_HINTS[Math.min(thoughts.length, FEED_HINTS.length - 1)]}
                   placeholderTextColor={Y.faint}
-                  style={{ fontFamily: F2.serifItalic, fontSize: 17, lineHeight: 26, color: Y.ink, minHeight: 98 }}
+                  style={{ fontFamily: F2.serifItalic, fontSize: 17, lineHeight: 26, color: Y.ink, minHeight: 64 }}
                 />
+                <Pressable
+                  onPress={feed}
+                  disabled={!canFeed}
+                  style={[tag, bevel(2.5, 2.5), { alignSelf: "flex-end", backgroundColor: canFeed ? Y.blue : Y.panel, opacity: canFeed ? 1 : 0.4 }]}
+                >
+                  <Text style={[mono(9.5, "b"), { color: canFeed ? "#fff" : Y.ink }]}>FEED ↑</Text>
+                </Pressable>
               </View>
 
-              <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 16 }]}>HOW IT FEELS{mood ? ` · ${MOODS[mood].n.toUpperCase()}` : ""}</Text>
+              <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 14 }]}>HOW IT FEELS{mood ? ` · ${MOODS[mood].n.toUpperCase()}` : ""}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
                 {MOOD_IDS.slice(0, 9).map((id) => {
                   const on = mood === id;
@@ -811,15 +864,15 @@ export default function Onboarding() {
                   );
                 })}
               </View>
-
-              <Text style={[mono(9.5, "r"), { color: Y.dim, letterSpacing: 0.6 }]}>
-                {heat >= 100
-                  ? `LONG ENOUGH TO TRAVEL — ${HER} WILL CARRY IT OUT`
-                  : `${Math.max(0, OPENING_MIN - weightedCount(line))} CHARS AND IT CAN TRAVEL`}
-              </Text>
+              <View style={{ height: 8 }} />
             </View>
           </ScrollView>
-          <Foot label={`HATCH ${HER} 🥚`} on={line.length >= 2} tone="brass" onPress={() => setStep("hatch")} />
+          <Foot
+            label={canHatch ? `HATCH ${HER} 🥚` : `${3 - thoughts.length} MORE TO HATCH`}
+            on={canHatch}
+            tone="brass"
+            onPress={() => setStep("hatch")}
+          />
         </KeyboardAvoidingView>
       </Console>
     );
@@ -862,19 +915,26 @@ export default function Onboarding() {
             >
               <Hatchling mood={hatchMood} shell={eggVar} />
               <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 4 }}>{her || "Wren"}</Text>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 18, color: Y.brass, marginTop: 2 }}>{courier}</Text>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 18, color: Y.brass, marginTop: 2 }}>{hatched.archetype.name}</Text>
               <Text style={[mono(8.5, "b"), { color: "#5E5878", marginTop: 8 }]}>TAP {HER} ✦</Text>
 
               <Text style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 16, textAlign: "center", lineHeight: 23 }}>
-                “{voiceRead.lead}”
+                “{hatched.desc}”
               </Text>
 
-              {/* VOICE DNA — four, never nine. The nine-row read is the full
-                  picture and it belongs on the Me tab; printed here it turns
-                  the moment your creature is born into a report card. */}
+              {/* VOICE DNA — the engine's locked dimensions, top four, never
+                  all nine. The full table is the Me tab's job; printed here it
+                  turns a birth into a report card. */}
               <View style={{ width: "100%", height: 1, backgroundColor: "rgba(216,166,63,0.3)", marginTop: 18, marginBottom: 12 }} />
-              <Text style={[mono(9, "b"), { color: "rgba(216,166,63,0.85)", alignSelf: "flex-start", marginBottom: 10 }]}>YOUR VOICE DNA</Text>
-              {voiceRead.dna.map((d) => (
+              <View style={{ width: "100%", flexDirection: "row", marginBottom: 10 }}>
+                <Text style={[mono(9, "b"), { flex: 1, color: "rgba(216,166,63,0.85)" }]}>YOUR VOICE DNA</Text>
+                <Text style={[mono(9, "b"), { color: "rgba(216,166,63,0.85)" }]}>{hatched.lockedCount} OF 9 LOCKED</Text>
+              </View>
+              {/* top four by confidence-then-score; a growing dimension shows
+                  its provisional number dimmed rather than hiding — the spec
+                  is score + confidence, and an empty card is a worse birth
+                  than an honest provisional one */}
+              {hatched.dims.slice(0, 4).map((d) => (
                 <DnaRow key={d.key} d={d} />
               ))}
             </Animated.View>
@@ -891,7 +951,7 @@ export default function Onboarding() {
                 WRITE MORE LETTERS TO REVEAL
               </Text>
               <View style={{ marginTop: 12, alignSelf: "center" }}>
-                {["Your hidden quirks", "Your secret rhythm", "Your rare words", "Your writing soul"].map((t) => (
+                {hatched.dims.slice(4).filter((d) => !d.locked).slice(0, 4).map((d) => d.sealed).map((t) => (
                   <View key={t} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
                     <View style={{ width: 13, height: 13, borderWidth: 1.6, borderColor: "#5E5878", marginRight: 10 }} />
                     <Text style={[mono(11, "r"), { color: "#8F87AC", letterSpacing: 0.3 }]}>{t}</Text>
@@ -1172,12 +1232,13 @@ function Hatchling({ mood, shell }: { mood: WrenMood; shell: number }) {
 /* one strand of the DNA: mark, name, number. No bar and no nine-row table —
    the point of this screen is that something was born, not that something was
    measured. */
-function DnaRow({ d }: { d: VoiceDNA }) {
+function DnaRow({ d }: { d: DimScore }) {
   return (
     <View style={{ width: "100%", flexDirection: "row", alignItems: "center", marginBottom: 9 }}>
-      <Text style={{ fontSize: 15, width: 26 }}>{d.icon}</Text>
+      <Text style={{ fontFamily: F2.serif, fontSize: 14, width: 24, color: Y.brass }}>{d.icon}</Text>
       <Text style={{ flex: 1, fontFamily: F2.serif, fontSize: 16, color: "#E4DFF3" }}>{d.label}</Text>
-      <Text style={[mono(15, "b"), { color: Y.brass, fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
+      {!d.locked && <Text style={[mono(7.5, "b"), { color: "#6F6892", marginRight: 8 }]}>GROWING</Text>}
+      <Text style={[mono(15, "b"), { color: Y.brass, opacity: d.locked ? 1 : 0.55, fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
     </View>
   );
 }

@@ -53,25 +53,8 @@ export function auraStageOf(pieces: number): AuraStage {
   return { name: "Seed", line: "Wren is listening", zh: "Wren 正在倾听" };
 }
 
-/* VOICE DNA — four numbers, and every one of them is computed from the text.
-   The nine rows are the full read and they belong on the Me tab; a freshly
-   hatched courier printing all nine reads like a Grammarly report, which is
-   the opposite of "my little thing was born". Four traits with a score is the
-   creature-card version of the same truth.
-
-   Nothing here is decorative. Each score is a blend of metrics analyzeVoice
-   already computes, clamped to 8..99 so it never reads as a full mark or a
-   zero — this is a portrait, not a grade. */
-export interface VoiceDNA {
-  key: string;
-  icon: string;
-  label: string;
-  score: number; // 8..99
-}
-
 export interface VoiceRead {
   rows: VoiceRow[];
-  dna: VoiceDNA[]; // the four for the hatch card
   chips: string[];
   traits: AuraTrait[]; // the aura's three trait lines, icon-led
   tier: AuraTier;
@@ -100,48 +83,6 @@ export function auraName(read: VoiceRead, typeName: string | null, hour: string 
   return "The Quick Spark";
 }
 
-/* THE COURIER'S NAME — built from the four dimensions that can actually fire
-   on a single first letter (see VoiceRow.read above). The old hatch used two
-   booleans off the same underlying signal — "did you write a long punctuated
-   sentence" asked twice — which gave four names and put roughly seven in ten
-   writers on the same one. These four axes are independent of each other and
-   independent of LENGTH, so a short letter can still land anywhere:
-
-     rhythm  x  punctuation  ->  the adjective   (3 x 2)
-     sentence x  emotion     ->  the noun        (2 x 2)
-
-   The noun comes from the writing; the adjective is the HOUR you wrote in,
-   which is real, varies by itself, and matches how the Me tab names a fully
-   formed aura ("The Midnight Storyteller"). It stays deliberately readable —
-   nobody wants to be told they are a "High-Variance Low-Density Writer". */
-
-const NOUN: Record<string, string> = {
-  "runs|says": "Confessor",
-  "runs|shows": "Storyteller",
-  "short|says": "Spark",
-  "short|shows": "Observer",
-};
-
-/** the hour you wrote in, in the Me tab's own words */
-export function hourPrefix(d = new Date()): string {
-  const h = d.getHours();
-  if (h >= 23 || h < 5) return "Midnight";
-  if (h < 11) return "Morning";
-  if (h < 17) return "Daylight";
-  return "Dusk";
-}
-
-/** the name on the hatch card: WHEN you wrote crowning HOW you write —
- *  the same shape auraName() gives a fully formed aura on the Me tab, so the
- *  courier you meet at hatch and the aura you grow into are one naming
- *  system rather than two. Four hours x four hands = sixteen. */
-export function courierName(read: VoiceRead, when = new Date()): string {
-  const by = (k: string) => read.rows.find((r) => r.key === k);
-  const syntax = by("syntax")?.line.startsWith("You let") ? "runs" : "short";
-  const emotion = by("emotion")?.line.startsWith("You say") ? "says" : "shows";
-  return `The ${hourPrefix(when)} ${NOUN[`${syntax}|${emotion}`]}`;
-}
-
 /** every piece of the user's own writing we can read on-device. */
 export async function gatherWriting(firstLine?: string | null): Promise<string[]> {
   const out: string[] = [];
@@ -162,8 +103,6 @@ const FUNCTION_WORDS =
   /\b(the|a|an|and|but|or|so|of|in|on|at|to|for|with|about|as|that|this|it|i|you|we|they|is|are|was|were|be|been|just|really|very|kind of|sort of|maybe)\b/gi;
 const EMOTION_WORDS =
   /(feel|felt|love|miss|hate|scared|happy|sad|tired|angry|lonely|hope|hurt|glad|开心|难过|想念|害怕|累|爱|恨|孤独|希望)/i;
-const EMOTION_WORDS_G =
-  /(feel|felt|love|miss|hate|scared|happy|sad|tired|angry|lonely|hope|hurt|glad|开心|难过|想念|害怕|累|爱|恨|孤独|希望)/gi;
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
 
 /** deterministic read of the nine signals from real text. */
@@ -281,38 +220,6 @@ export function analyzeVoice(texts: string[]): VoiceRead {
      ratio (dense, specific writing scores high); Emotion counts the feeling
      words rather than merely noticing one; Rhythm is the variance between
      sentence lengths, which is the one thing a single long line can't fake. */
-  const emoHits = (all.match(EMOTION_WORDS_G) || []).length;
-  /* THE FOUR ARE A RELATIVE PROFILE, not four absolute grades. The raw blends
-     below are real but their absolute level is meaningless on a first letter —
-     shrink them toward a neutral 50 for honesty and every card comes out
-     "51 / 50 / 50 / 50", which is worse than a lie because it says nothing.
-     So they're spread across a fixed band by their rank against EACH OTHER:
-     "of what I can read, you lean this way", which is true from the first
-     line and is what DNA means anyway. How much writing it's based on is
-     stated underneath the card in words, where it belongs. */
-  const rawDna = [
-    { key: "reflection", icon: "🌙", label: "Reflection", raw: 34 + sig.sentenceLen * 2.1 + punctDensity * 170 + ellipses * 7 },
-    { key: "imagination", icon: "💭", label: "Imagination", raw: 30 + (avgWordLen - 4) * 24 + (0.5 - funcRatio) * 130 },
-    { key: "emotion", icon: "❤️", label: "Emotion", raw: 24 + emoHits * 15 + exclaims * 8 + (emoji ? 13 : 0) + (emotional ? 12 : 0) },
-    { key: "rhythm", icon: "✍", label: "Rhythm", raw: 32 + varc * 1.15 + sents.length * 5 },
-  ].sort((a, b) => b.raw - a.raw);
-  const hi = rawDna[0].raw;
-  const lo = rawDna[rawDna.length - 1].raw;
-  const span = hi - lo;
-  /* The band's ENDS move with how pronounced the lean actually is, so a card
-     never reads the same 94 / … / 64 as everyone else's. A writer whose four
-     traits are close gets a tight cluster in the seventies; one who leans hard
-     one way gets a real peak and a real floor. */
-  const top = 86 + Math.max(0, Math.min(10, Math.round(span / 6)));
-  const bot = 72 - Math.max(0, Math.min(13, Math.round(span / 7)));
-  const dna: VoiceDNA[] = rawDna.map((d, i) => ({
-    key: d.key,
-    icon: d.icon,
-    label: d.label,
-    // a flat read still has to rank, or the card shows four identical numbers
-    score: span < 1 ? 80 - i * 4 : Math.round(bot + ((d.raw - lo) / span) * (top - bot)),
-  }));
-
   // what Wren noticed — three soft trait lines, never metric-speak
   const chips = [
     long ? "unhurried thoughts" : "quick thoughts",
@@ -364,7 +271,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
   const discovery = found.length ? found[pieces % found.length] : quote;
   const taking = stage.line; // the ladder speaks everywhere the count shows
 
-  return { rows, dna, chips, traits, tier, stage, discovery, lead, quote, pieces, taking };
+  return { rows, chips, traits, tier, stage, discovery, lead, quote, pieces, taking };
 }
 
 /* ── the deeper AI read (server job "voice"; cached; silent fallback) ── */
