@@ -19,6 +19,7 @@ import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
 import { SelfCompose } from "../components/SelfCompose";
+import { FateSwitch } from "../components/FateSwitch";
 import { AudioCard } from "../components/AudioCard";
 import {
   DRIFT_CONFIRM,
@@ -26,7 +27,6 @@ import {
   SEAL_LABEL,
   openingLadder,
   readMood,
-  thoughtLabel,
   thoughtLine,
   thoughtState,
   wrenLine,
@@ -311,9 +311,11 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: state === "drifting" ? P.pen : P.ink }}>
-            {thoughtLabel(state)}
-          </Text>
+          <FateSwitch
+            fate={chosen === "drift" ? "drift" : "seal"}
+            canDrift={weight >= 40}
+            onChange={(f) => (f === "drift" ? chooseDrift() : setChosen("seal"))}
+          />
         </View>
         {chosen === "drift" ? (
           <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
@@ -499,7 +501,21 @@ export default function Compose() {
       )}
 
       {chosen !== "drift" && (
-        <Endings state={state} weight={weight} onSeal={() => sealRef.current?.()} onDrift={chooseDrift} />
+        <View style={{ paddingHorizontal: 18, paddingBottom: 8 }}>
+          {/* Wren only speaks once she's noticed — before that the page already
+              carries her voice, and two of her at once is chatter */}
+          {state !== "withMe" && (
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, color: P.ink60, marginBottom: 12 }}>
+              {thoughtLine(state, weight)}
+            </Text>
+          )}
+          <Pressable
+            onPress={() => sealRef.current?.()}
+            style={({ pressed }) => ({ borderWidth: 1, borderColor: P.ink, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.6 : 1 })}
+          >
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: P.ink }}>{SEAL_LABEL}</Text>
+          </Pressable>
+        </View>
       )}
       {confirming && (
         <DriftConfirm
@@ -511,71 +527,6 @@ export default function Compose() {
         />
       )}
     </SafeAreaView>
-  );
-}
-
-/* The two endings. They don't exist while the thought is still only yours —
-   they arrive at the moment Wren notices it might not be, which is the same
-   40-character floor that used to just say "not yet". */
-function Endings({
-  state,
-  weight,
-  onSeal,
-  onDrift,
-}: {
-  state: ReturnType<typeof thoughtState>;
-  weight: number;
-  onSeal: () => void;
-  onDrift: () => void;
-}) {
-  const noticed = state !== "withMe";
-  return (
-    <View style={{ paddingHorizontal: 18, paddingBottom: 8 }}>
-      {/* Wren only speaks here once she's NOTICED something. Before that the
-          page already carries her voice, and two of her at once is one too
-          many — the observation has to arrive as a change, not as chatter. */}
-      {noticed && (
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, color: P.ink60, marginBottom: 12 }}>
-          {thoughtLine(state, weight)}
-        </Text>
-      )}
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Pressable
-          onPress={onSeal}
-          style={({ pressed }) => ({
-            flex: 1,
-            borderWidth: 1,
-            borderColor: state === "sealed" ? P.pen : P.ink,
-            backgroundColor: state === "sealed" ? P.penWash : "transparent",
-            paddingVertical: 15,
-            alignItems: "center",
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: P.ink }}>{SEAL_LABEL}</Text>
-        </Pressable>
-        {noticed && (
-          <Pressable
-            onPress={onDrift}
-            style={({ pressed }) => ({
-              flex: 1,
-              borderWidth: 1,
-              borderColor: P.pen,
-              backgroundColor: state === "drifting" ? P.pen : "transparent",
-              paddingVertical: 15,
-              alignItems: "center",
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text
-              style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: state === "drifting" ? "#fff" : P.pen }}
-            >
-              {DRIFT_LABEL}
-            </Text>
-          </Pressable>
-        )}
-      </View>
-    </View>
   );
 }
 
