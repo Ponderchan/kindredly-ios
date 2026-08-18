@@ -18,6 +18,15 @@ export interface VoiceRow {
   title: string;
   line: string;
   strength: number; // 1..5 dots
+  /* Whether there is enough writing for this dimension to have been read AT
+     ALL, which is not the same as a low strength. Five of the nine need
+     volume — word choice needs a vocabulary to average, flow and rhythm need
+     several sentences to compare, little words needs a few hundred words,
+     shape needs more than one piece. On a first letter only four can honestly
+     say anything, and a card that prints all nine as if it knew is the kind
+     of lie that makes the whole read feel generated. The hatch card shows the
+     unread ones empty on purpose — an incomplete set the writing fills in. */
+  read: boolean;
 }
 export interface AuraTrait {
   icon: string;
@@ -72,6 +81,50 @@ export function auraName(read: VoiceRead, typeName: string | null, hour: string 
   if (long) return "The Steady Stream";
   if (paused) return "The Quiet Observer";
   return "The Quick Spark";
+}
+
+/* THE COURIER'S NAME — built from the four dimensions that can actually fire
+   on a single first letter (see VoiceRow.read above). The old hatch used two
+   booleans off the same underlying signal — "did you write a long punctuated
+   sentence" asked twice — which gave four names and put roughly seven in ten
+   writers on the same one. These four axes are independent of each other and
+   independent of LENGTH, so a short letter can still land anywhere:
+
+     rhythm  x  punctuation  ->  the adjective   (3 x 2)
+     sentence x  emotion     ->  the noun        (2 x 2)
+
+   Twenty-four names, each half of one earned by a signal that fires from a
+   line or two. It stays deliberately readable — nobody wants to be told they
+   are a "High-Variance Low-Density Writer". */
+
+const ADJ: Record<string, string> = {
+  "shifts|paused": "Restless",
+  "shifts|flowing": "Darting",
+  "steady|paused": "Patient",
+  "steady|flowing": "Even",
+  "quick|paused": "Careful",
+  "quick|flowing": "Quick",
+};
+const NOUN: Record<string, string> = {
+  "runs|says": "Confessor",
+  "runs|shows": "Storyteller",
+  "short|says": "Spark",
+  "short|shows": "Observer",
+};
+
+/** the name on the hatch card, read from the nine */
+export function courierName(read: VoiceRead): string {
+  const by = (k: string) => read.rows.find((r) => r.key === k);
+  const rhythm = by("rhythm")?.line.startsWith("You shift") ? "shifts" : by("rhythm")?.line.startsWith("A steady") ? "steady" : "quick";
+  const punct = by("punct")?.line.startsWith("Commas") ? "paused" : "flowing";
+  const syntax = by("syntax")?.line.startsWith("You let") ? "runs" : "short";
+  const emotion = by("emotion")?.line.startsWith("You say") ? "says" : "shows";
+  return `The ${ADJ[`${rhythm}|${punct}`]} ${NOUN[`${syntax}|${emotion}`]}`;
+}
+
+/** how many of the nine this much writing has actually earned */
+export function readCount(read: VoiceRead): number {
+  return read.rows.filter((r) => r.read).length;
 }
 
 /** every piece of the user's own writing we can read on-device. */
@@ -138,6 +191,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Word Choice",
       line: avgWordLen < 5.2 ? "You reach for simple, concrete words." : "You reach for the longer, exact word.",
       strength: s(latinWords.length > 120),
+      read: latinWords.length >= 25,
     },
     {
       key: "syntax",
@@ -145,6 +199,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Sentence Style",
       line: long ? "You let a sentence run when the thought needs it." : "You like short, direct sentences.",
       strength: s(sents.length > 12),
+      read: words >= 8,
     },
     {
       key: "rhythm",
@@ -152,6 +207,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Rhythm",
       line: varc > 22 ? "You shift between quick lines and longer runs." : paused ? "A steady pace, with little pauses." : "Quick thoughts. Few pauses.",
       strength: s(sents.length > 8),
+      read: sents.length >= 2,
     },
     {
       key: "punct",
@@ -159,6 +215,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Punctuation",
       line: paused ? "Commas and dashes — you leave room to breathe." : "Light on punctuation. You keep it flowing.",
       strength: s(sig.pauses > 10),
+      read: words >= 8,
     },
     {
       key: "emotion",
@@ -166,6 +223,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Emotion",
       line: emotional ? "You say what you feel instead of hiding it." : "You show more than you tell.",
       strength: s(emotional && pieces >= 3),
+      read: words >= 6,
     },
     {
       key: "flow",
@@ -173,6 +231,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Flow",
       line: varc > 30 ? "You branch mid-thought, then circle back." : "One thought at a time. Clean transitions.",
       strength: s(pieces >= 4),
+      read: sents.length >= 3,
     },
     {
       key: "little",
@@ -180,6 +239,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Little Words",
       line: funcRatio > 0.42 ? "You lean on little connectors to keep it moving." : "You use just enough to connect.",
       strength: s(words > 200),
+      read: words >= 60,
     },
     {
       key: "quirks",
@@ -187,6 +247,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Quirks",
       line: quirks.length ? `${quirks.slice(0, 3).join(", ")}.` : "No tics yet — Wren is watching for them.",
       strength: quirks.length ? s(quirks.length >= 2) : Math.max(1, base - 1),
+      read: quirks.length > 0,
     },
     {
       key: "shape",
@@ -194,6 +255,7 @@ export function analyzeVoice(texts: string[]): VoiceRead {
       title: "Shape",
       line: blocks > pieces / 2 ? "You break lines when the thought lands." : "You write in one clean block.",
       strength: s(blocks >= 3),
+      read: pieces >= 2 || blocks > 0,
     },
   ];
 

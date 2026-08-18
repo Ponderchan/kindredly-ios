@@ -29,7 +29,8 @@ import { AvatarImage } from "../components/AvatarImage";
 import { AVATARS } from "../data/avatar-lib";
 import { hatchLine, readMood } from "../lib/wren-read";
 import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
-import { saveWrenType, typeLine, wrenTypeFor } from "../lib/wren-type";
+import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
+import { analyzeVoice, courierName, readCount, type VoiceRow } from "../lib/voice";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { STARTER_STAMPS } from "../data/stamps";
@@ -230,7 +231,16 @@ export default function Onboarding() {
   const pro = pronoun(birdPro);
   // the key says HATCH OTIS once she's named, HATCH HIM/HER/THEM before that
   const HER = (her || pro.obj).toUpperCase();
-  const noteType = wrenTypeFor(note); // who hatches is decided by how you write
+  /* WHO HATCHES comes from the SAME nine-dimension read the Me tab runs on
+     your writing — analyzeVoice() — not from a private two-boolean rule of
+     onboarding's own. The old split asked "did you write a long punctuated
+     sentence" twice and called it two axes; on realistic first letters it put
+     about seven in ten people on The Spark. wrenTypeFor survives only to pick
+     what she wears, which is all it was ever load-bearing for. */
+  const voiceRead = analyzeVoice(line ? [line] : []);
+  const courier = courierName(voiceRead);
+  const readN = readCount(voiceRead);
+  const noteType = wrenTypeFor(note); // still decides the accessory
   const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(line); // picked mood wins
   const heat = Math.min(100, Math.round((weightedCount(line) / OPENING_MIN) * 100));
 
@@ -819,7 +829,7 @@ export default function Onboarding() {
   /* ── 9 · NEW HATCH UNLOCKED, then they leave with it ────────────────── */
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Y.night }}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 20 }}>
         {hatchPhase === "crack" && (
           <>
             <Animated.View style={shakeStyle}>
@@ -841,23 +851,31 @@ export default function Onboarding() {
               entering={ZoomIn.duration(520).easing(Easing.out(Easing.back(1.4)))}
               style={{
                 width: "100%",
-                maxWidth: 320,
+                maxWidth: 330,
                 borderWidth: 2,
                 borderColor: Y.brass,
                 borderRadius: 16,
                 backgroundColor: Y.nightCard,
-                paddingVertical: 22,
-                paddingHorizontal: 20,
+                paddingVertical: 18,
+                paddingHorizontal: 16,
                 alignItems: "center",
               }}
             >
-              <WrenBird size={120} mood={hatchMood} />
-              {/* WREN_TYPES already name themselves "The Spark" — no prefix */}
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 26, color: Y.brass, marginTop: 10 }}>{noteType.name}</Text>
-              <Text style={[mono(11, "r"), { color: "#B0A9CE", marginTop: 10, textAlign: "center", lineHeight: 18, letterSpacing: 0.2 }]}>{typeLine(noteType, pro.subj, birdPro === "they")}</Text>
-              <View style={{ borderWidth: 1.6, borderColor: Y.brass, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, marginTop: 14 }}>
-                <Text style={[mono(9, "b"), { color: Y.brass }]}>RARITY: ONE OF ONE</Text>
+              <WrenBird size={96} mood={hatchMood} />
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 24, color: Y.brass, marginTop: 8 }}>{courier}</Text>
+
+              {/* THE STAT BLOCK — the nine, read from what you just wrote. The
+                  five that need volume sit visibly empty: an incomplete set is
+                  a better reason to come back than any number we could invent,
+                  and unlike a rarity it happens to be true. */}
+              <View style={{ width: "100%", height: 1, backgroundColor: "rgba(216,166,63,0.35)", marginTop: 14, marginBottom: 10 }} />
+              <View style={{ flexDirection: "row", width: "100%", marginBottom: 8 }}>
+                <Text style={[mono(8.5, "b"), { flex: 1, color: "rgba(216,166,63,0.8)" }]}>VOICE READ</Text>
+                <Text style={[mono(8.5, "b"), { color: "rgba(216,166,63,0.8)" }]}>{readN} OF 9</Text>
               </View>
+              {voiceRead.rows.map((r) => (
+                <StatRow key={r.key} row={r} />
+              ))}
             </Animated.View>
 
             <Animated.Text
@@ -865,6 +883,9 @@ export default function Onboarding() {
               style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 18, textAlign: "center", lineHeight: 23 }}
             >
               “{hatchLine(hatchMood)}”{"\n"}— {her || "Wren"}
+            </Animated.Text>
+            <Animated.Text entering={FadeInDown.delay(500).duration(500)} style={[mono(9, "b"), { color: "#6F6892", marginTop: 10, textAlign: "center" }]}>
+              THE OTHER {9 - readN} FILL IN AS YOU WRITE
             </Animated.Text>
 
             <Animated.View entering={FadeInDown.delay(560).duration(500)} style={{ width: "100%", maxWidth: 320, marginTop: 22 }}>
@@ -896,7 +917,7 @@ export default function Onboarding() {
             </Animated.Text>
           </>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -1047,6 +1068,40 @@ function Foot({
       ) : (
         <View style={{ height: 10 }} />
       )}
+    </View>
+  );
+}
+
+/* one of the nine, on the hatch card. A row that hasn't been earned shows an
+   empty meter and says so plainly rather than borrowing a sentence it can't
+   support — the blank is the point. */
+function StatRow({ row }: { row: VoiceRow }) {
+  return (
+    <View style={{ width: "100%", flexDirection: "row", alignItems: "flex-start", marginBottom: 7, opacity: row.read ? 1 : 0.42 }}>
+      <Text style={{ fontFamily: F2.serif, fontSize: 12, color: Y.brass, width: 18, marginTop: 1 }}>{row.glyph}</Text>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text style={[mono(8.5, "b"), { flex: 1, color: "#CFC7E8" }]}>{row.title.toUpperCase()}</Text>
+          <View style={{ flexDirection: "row" }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View
+                key={i}
+                style={{
+                  width: 7,
+                  height: 7,
+                  marginLeft: 3,
+                  borderWidth: 1,
+                  borderColor: row.read ? Y.brass : "#4A4462",
+                  backgroundColor: row.read && i < row.strength ? Y.brass : "transparent",
+                }}
+              />
+            ))}
+          </View>
+        </View>
+        <Text style={[mono(9.5, "r"), { color: row.read ? "#A79FC6" : "#6F6892", marginTop: 2, lineHeight: 14, letterSpacing: 0.1 }]}>
+          {row.read ? row.line : "not enough writing yet"}
+        </Text>
+      </View>
     </View>
   );
 }
