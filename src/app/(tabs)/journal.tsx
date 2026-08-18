@@ -53,7 +53,7 @@ export default function JournalTab() {
           <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>JUST YOU</Text>
         ) : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.brass }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
               {String(all.length).padStart(2, "0")}
             </Text>
             <Pressable onPress={() => setView(view === "line" ? "calendar" : "line")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
@@ -211,12 +211,19 @@ function CalendarIcon() {
     </Svg>
   );
 }
+/* The calendar's sibling — a toggle shows two states of one control, so the
+   pair has to be drawn as one thing: same canvas, same weight, same palette.
+   Timeline = stacked entries, each with its mood dot. */
 function ListIcon() {
+  const body = "#7C6CE8";
+  const tick = "#4FC8C0";
   return (
-    <View style={{ width: 19, height: 19, justifyContent: "center", gap: 4.5 }}>
-      {[0, 1, 2].map((i) => (
-        <View key={i} style={{ height: 2, backgroundColor: P.brass }} />
-      ))}
-    </View>
+    <Svg width={21} height={21} viewBox="0 0 24 24">
+      <Rect x={3.2} y={4} width={17.6} height={17.4} rx={3.6} fill="none" stroke={body} strokeWidth={2.4} />
+      <Circle cx={8} cy={9.6} r={1.7} fill={tick} />
+      <Path d="M12 9.6h5.2" stroke={body} strokeWidth={2.2} strokeLinecap="round" />
+      <Circle cx={8} cy={15.8} r={1.7} fill={tick} />
+      <Path d="M12 15.8h5.2" stroke={body} strokeWidth={2.2} strokeLinecap="round" />
+    </Svg>
   );
 }

@@ -57,7 +57,7 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
         <Pressable onPress={() => step(-1)} hitSlop={12} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink60 }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.brass }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>
           {monthName} {ym.y}
         </Text>
         <Pressable onPress={() => step(1)} hitSlop={12} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
@@ -95,7 +95,7 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: isToday ? 1.5 : 0,
-                  borderColor: P.brass,
+                  borderColor: P.ink,
                 }}
               >
                 {cell ? (
@@ -108,7 +108,7 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
                     )}
                   </>
                 ) : (
-                  <Text style={{ fontFamily: PF.mono, fontSize: 12.5, color: isToday ? P.brass : P.ink40 }}>{d}</Text>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 12.5, color: isToday ? P.ink : P.ink40 }}>{d}</Text>
                 )}
               </View>
             </Pressable>
