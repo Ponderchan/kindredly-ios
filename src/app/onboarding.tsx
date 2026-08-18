@@ -981,7 +981,7 @@ export default function Onboarding() {
 
             <Animated.View entering={FadeInDown.delay(560).duration(500)} style={{ width: "100%", maxWidth: 320, marginTop: 22 }}>
               <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass, borderColor: Y.brass }]}>
-                <Text style={mono(12.5, "b")}>LET {HER} GO</Text>
+                <Text style={mono(12.5, "b")}>KEEP WRITING</Text>
               </Pressable>
             </Animated.View>
           </>
