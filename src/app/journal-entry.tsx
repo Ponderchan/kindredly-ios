@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import Svg, { Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { SelfCompose } from "../components/SelfCompose";
 
@@ -25,14 +26,25 @@ export default function JournalEntryRoute() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: "row", alignItems: "center" }}>
-        <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+      {/* One line, not two. The date was a headline of its own below the
+          header, which gave the page two beginnings — and a date is a label,
+          not a title. It sits with the close button; the promise sits opposite
+          it. */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 20, paddingTop: 6, paddingBottom: 10 }}>
+        <Pressable onPress={goBack} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>JUST FOR ME</Text>
+        <Text style={{ fontFamily: PF.letter, fontSize: 22, fontWeight: "700", color: P.ink, marginLeft: 6 }}>
+          {new Date().toLocaleString("en-US", { month: "short", day: "numeric" }).toLowerCase()}
+        </Text>
+        <View style={{ flex: 1 }} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Svg width={12} height={12} viewBox="0 0 12 12">
+            <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke={P.ink40} strokeWidth={1.3} strokeLinecap="round" />
+            <Rect x={2.5} y={5.6} width={7} height={5} fill={P.ink40} />
+          </Svg>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40 }}>JUST FOR ME</Text>
         </View>
-        <View style={{ width: 42 }} />
       </View>
       <SelfCompose text={text} setText={setText} onDone={goBack} />
     </SafeAreaView>

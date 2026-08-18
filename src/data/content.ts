@@ -111,12 +111,17 @@ export const WREN_OPENERS: Record<"letter" | "journal", Record<Lang, string[]>> 
   },
   journal: {
     en: [
+      // The strongest thing a companion can say about a private room is that
+      // she isn't in it either. It leads because it's the first thing anyone
+      // wonders when an AI is standing next to their diary.
+      "No one sees this. Not even me.",
       "No one reads this but you. So don't perform.",
       "How the day actually landed — not how it should have.",
       "One true line is a whole page here.",
       "Leave it messy. This room doesn't tidy up after you.",
     ],
     zh: [
+      "没人看得见这个。我也看不见。",
       "这里只有你会看。所以别表演。",
       "今天真正落在哪儿——不是它本该怎样。",
       "一句真的，在这里就是一整页。",

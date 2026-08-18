@@ -206,7 +206,6 @@ export function SelfCompose({
     onDone();
   };
 
-  const dateStr = new Date().toLocaleString("en-US", { month: "short", day: "numeric" }).toLowerCase();
 
   return (
     <View style={{ flex: 1 }}>
@@ -218,10 +217,6 @@ export function SelfCompose({
               Full bleed the same way the letter desk is. */}
           <View style={{ minHeight: 430 }}>
 
-            <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 29, fontWeight: "600", color: Z.ink }}>{dateStr}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: Z.soft, paddingBottom: 8 }}>NO ONE'S WATCHING</Text>
-            </View>
 
             {/* photo album — up to 9, tap a frame to make it the cover */}
             {att === "photo" && photos.length > 0 && (
