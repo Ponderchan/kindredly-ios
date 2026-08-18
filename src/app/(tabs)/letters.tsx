@@ -147,7 +147,7 @@ function Feed({
   if (quiet) {
     // nothing waiting — you're already at the close of the day
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: PW.paper }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: PW.ground }} edges={["top"]}>
         <View style={{ flex: 1, paddingBottom: tabH }}>
           <CloseOfDay
             sealed={sealed}
@@ -165,7 +165,7 @@ function Feed({
   const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: PW.paper }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: PW.ground }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={atEnd} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
@@ -183,7 +183,7 @@ function Feed({
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
                 page and the ground meet without a seam. */}
-            <View style={{ height: vh, backgroundColor: PW.paper }}>
+            <View style={{ height: vh, backgroundColor: PW.ground }}>
               <CloseOfDay
                 sealed={sealed}
                 onSeal={seal}
@@ -201,7 +201,7 @@ function Feed({
         <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             <View style={{ minHeight: 78 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderWidth: 1, borderColor: PW.ink, paddingLeft: 12, paddingRight: 6, paddingVertical: 5 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
@@ -220,7 +220,7 @@ function Feed({
                   </Text>
                 </Pressable>
               </View>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? PW.post : PW.ink40, marginTop: 8 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? "#7A1F16" : PW.groundInk40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
                   ? `${replyW - LETTER_MAX} OVER THE LIMIT`
                   : replyOk
@@ -241,19 +241,25 @@ function Feed({
 
 function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
-    <View style={[{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: PW.ink }}>TODAY</Text>
-      <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: PW.ink60 }}>
+    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "rgba(42,33,83,0.25)" }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: PW.groundInk }}>TODAY</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: PW.groundInk60 }}>
         {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
       </Text>
     </View>
   );
 }
 
-/* One letter, full screen. No card, no shadow, no rounding — the letter is
-   printed straight onto the paper, and hairline rules do the framing. The body
-   is the only serif on the screen, so the human voice sits inside the machine's
-   docket. */
+/* The room and the sheet.
+
+   The ground is the strangers' space — a colour, and the thing that makes this
+   feel light. The letter is not printed on it: it's an actual sheet of paper
+   LYING on it, and the whole postal structure lives on the sheet — the docket
+   line, the pasted stamp, the channel tag, the provenance. Square corners,
+   because it's paper, not a UI card.
+
+   The two moves (pass / reply) stay OUTSIDE the sheet, on the ground: they're
+   things you do with the letter, not things printed on it. */
 function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -261,8 +267,9 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
 
   return (
-    <View style={{ height, paddingHorizontal: 26, paddingTop: 26 }}>
-      <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
+    <View style={{ height, paddingHorizontal: 20, paddingTop: 18, justifyContent: "center" }}>
+      <Animated.View entering={FadeIn.duration(240)}>
+        <View style={{ backgroundColor: PW.sheet, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
             the person who sent it.
@@ -286,7 +293,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           )}
         </View>
 
-        <View style={{ flex: 1, justifyContent: "center" }}>
+        <View style={{ paddingVertical: 26 }}>
         {isVoice && audioUrl ? (
           <View>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: PW.pen, marginBottom: 14 }}>VOICE LETTER</Text>
@@ -338,14 +345,15 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           </View>
         )}
 
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: PW.ink40, marginBottom: 10 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: PW.ink40 }}>
           SENT DOWN THREE STREETS · YOU OPENED IT FIRST
         </Text>
+        </View>
 
-        {/* the two moves, on a rule */}
-        <View style={[{ flexDirection: "row", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: PW.ink }]}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: PW.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: PW.pen }}>REPLY ↓</Text>
+        {/* the two moves live on the ground, not on the paper */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 14, paddingHorizontal: 2 }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: PW.groundInk60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: PW.groundInk }}>REPLY ↓</Text>
         </View>
       </Animated.View>
     </View>

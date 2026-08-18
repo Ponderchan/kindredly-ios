@@ -90,6 +90,15 @@ export function channelInk(hex?: string | null): string {
    Kindreds runs on this so it can be judged beside Today and Sealed. If it
    wins, P's values become these and nothing else in the app has to move. */
 export const PW = {
+  // the room you're standing in — the strangers' space. The letter is not
+  // printed on this; it lies on it.
+  ground: "#B9A8F0",
+  groundInk: "#2A2153", // type that has to read on the ground
+  groundInk60: "rgba(42,33,83,0.6)",
+  groundInk40: "rgba(42,33,83,0.42)",
+  // the sheet itself — an actual piece of paper, and where the whole postal
+  // structure lives: docket line, rules, stamp, tag, actions
+  sheet: "#FBF7EC",
   paper: "#FFFFFF",
   paperDeep: "#F4F4F5",
   ink: "#111113",
