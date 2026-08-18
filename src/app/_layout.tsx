@@ -42,10 +42,11 @@ export default function RootLayout() {
                 <Stack.Screen name="index" />
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(tabs)" />
-                {/* Writing is a PAGE, not a popup. A modal sheet leaves the app
-                    visible behind a rounded card and says "this is temporary";
-                    posting something isn't. Both composers open full screen. */}
-                <Stack.Screen name="compose" options={{ animation: "slide_from_bottom" }} />
+                {/* Writing is a PAGE, not a popup — and it arrives from the
+                    RIGHT, continuing forward from wherever you chose it. Sliding
+                    up from the bottom read as a second, separate event. */}
+                <Stack.Screen name="compose" options={{ animation: "slide_from_right" }} />
+                <Stack.Screen name="journal-entry" options={{ animation: "slide_from_right" }} />
                 <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
                 {/* the reader fills the screen — the letter opens where you are,
                     it doesn't slide in from the side or pop up as a card */}
