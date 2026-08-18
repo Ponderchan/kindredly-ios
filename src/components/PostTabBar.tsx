@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
+import { WrenBird } from "./WrenBird";
 import { useAuth } from "../lib/auth";
 
 /* The counter. Not a floating blurred pill — a ruled strip of windows, the way
@@ -105,113 +106,128 @@ export function PostTabBar({ state, navigation }: any) {
         </View>
       </View>
 
-      {/* WHO it's for.
+      {/* WHO it's for — Wren asks it (design P1e).
 
-          Full screen, on a DARK blur. The earlier attempts each failed for a
-          nameable reason: left-aligned rows with chevrons read as a menu; a
-          light blur over a white app gives milk with photo-blobs bleeding
-          through; a sheet cuts the screen in half and makes a small question
-          look like a form. A dark blur keeps the letter you were reading faintly
-          present behind the question, and paper objects glow on it.
-
-          The two objects are THE SAME OBJECT with different addresses, which is
-          the whole choice said in one picture: a letter with an empty address
-          block is looking for someone; a letter addressed with your own mosaic
-          is coming back to you later. "To yourself" isn't a different feature,
-          it's the same act with a different recipient. */}
+          She is the one who carries letters, so she is the one who should ask
+          where this one is going, and she asks in the FIRST PERSON: "I'll find
+          who it's for", not "Wren finds who it's for". A character who gets
+          described in the third person on her own screen isn't a character,
+          she's a feature. She stands holding one letter under each wing — the
+          two answers are already in her hands before you choose. */}
       <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
-        <BlurView intensity={40} tint="dark" style={{ flex: 1 }}>
-          {/* light. A flat blur is a sheet of grey — the objects need somewhere
-              to sit, so a soft pool falls where they lie and the corners drop
-              away. Without this the paper has nothing to be lit by. */}
+        <View style={{ flex: 1, backgroundColor: "#17162B" }}>
+          {/* the light she stands in */}
           <Svg style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} width="100%" height="100%">
             <Defs>
-              <RadialGradient id="pool" cx="50%" cy="52%" r="62%">
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.16} />
-                <Stop offset="60%" stopColor="#000000" stopOpacity={0.08} />
-                <Stop offset="100%" stopColor="#000000" stopOpacity={0.42} />
+              <RadialGradient id="wrenglow" cx="50%" cy="26%" r="52%">
+                <Stop offset="0%" stopColor="#6D6DF6" stopOpacity={0.38} />
+                <Stop offset="100%" stopColor="#17162B" stopOpacity={0} />
               </RadialGradient>
             </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#pool)" />
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#wrenglow)" />
           </Svg>
 
-          <Pressable style={{ flex: 1, alignItems: "center", justifyContent: "center" }} onPress={() => setChoosing(false)}>
-            <Animated.View entering={FadeIn.duration(260).delay(60)} style={{ alignItems: "center" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: "rgba(255,255,255,0.9)" }}>POST SOMETHING</Text>
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 17, color: "rgba(255,255,255,0.66)", marginTop: 10 }}>
-                where should this thought travel?
+          <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)}>
+            <View style={{ flex: 1, alignItems: "center", paddingTop: insets.top + 64 }}>
+              <Animated.View entering={FadeIn.duration(240)} style={{ alignItems: "center" }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2.2, color: "rgba(255,255,255,0.62)" }}>
+                  POST SOMETHING
+                </Text>
+
+                {/* One letter under each wing. They tuck UNDER her and sit low
+                    — overlapping her face would hide the character doing the
+                    asking, which is the entire point of this screen. */}
+                <View style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 26 }}>
+                  <View style={{ transform: [{ rotate: "-15deg" }], marginRight: -14, marginBottom: -6, zIndex: 0 }}>
+                    <LetterObject small />
+                  </View>
+                  <View style={{ zIndex: 2 }}>
+                    <WrenBird size={104} mood="curious" />
+                  </View>
+                  <View style={{ transform: [{ rotate: "14deg" }], marginLeft: -14, marginBottom: -6, zIndex: 0 }}>
+                    <LetterObject small addressee={user?.id || "you"} />
+                  </View>
+                </View>
+
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 21, color: "#fff", marginTop: 26, textAlign: "center" }}>
+                  where should this thought travel?
+                </Text>
+              </Animated.View>
+
+              <View style={{ flex: 1 }} />
+
+              <View style={{ alignSelf: "stretch", paddingHorizontal: 18, gap: 12, paddingBottom: 4 }}>
+                <WrenChoice
+                  title="To a stranger"
+                  said="I'll find who it's for"
+                  delay={140}
+                  onPress={() => {
+                    setChoosing(false);
+                    router.push("/compose");
+                  }}
+                >
+                  <LetterObject tiny />
+                </WrenChoice>
+                <WrenChoice
+                  title="To yourself"
+                  said="I'll keep it for later"
+                  delay={220}
+                  onPress={() => {
+                    setChoosing(false);
+                    router.push("/journal-entry");
+                  }}
+                >
+                  <LetterObject tiny addressee={user?.id || "you"} />
+                </WrenChoice>
+              </View>
+
+              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(255,255,255,0.3)", marginTop: 22, marginBottom: Math.max(insets.bottom, 16) + 8 }}>
+                TAP ANYWHERE TO GO BACK
               </Text>
-            </Animated.View>
-
-            {/* they arrive one after the other, and they don't land square —
-                two things set down by a hand, not two cells in a grid */}
-            <View style={{ flexDirection: "row", marginTop: 46, paddingHorizontal: 14 }}>
-              <Door
-                label="TO A STRANGER"
-                note="Wren finds who it's for"
-                tilt="-3.2deg"
-                delay={130}
-                onPress={() => {
-                  setChoosing(false);
-                  router.push("/compose");
-                }}
-              >
-                <LetterObject />
-              </Door>
-              <Door
-                label="TO YOURSELF"
-                note="a letter for later"
-                tilt="2.4deg"
-                delay={220}
-                lift={10}
-                onPress={() => {
-                  setChoosing(false);
-                  router.push("/journal-entry");
-                }}
-              >
-                <LetterObject addressee={user?.id || "you"} />
-              </Door>
             </View>
-
-            <Text style={{ position: "absolute", bottom: Math.max(insets.bottom, 16) + 18, fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(255,255,255,0.34)" }}>
-              TAP ANYWHERE TO GO BACK
-            </Text>
           </Pressable>
-        </BlurView>
+        </View>
       </Modal>
     </>
   );
 }
 
-/* A door: the object on top, its name, what it promises. Centred, because a
-   left-aligned row with a chevron is what a menu looks like. */
-function Door({
-  label,
-  note,
+/* A row Wren speaks through. The title is the destination; the line under it
+   is HER, in her own voice, promising what she'll do with it. */
+function WrenChoice({
+  title,
+  said,
   children,
   onPress,
-  tilt,
   delay,
-  lift = 0,
 }: {
-  label: string;
-  note: string;
+  title: string;
+  said: string;
   children: React.ReactNode;
   onPress: () => void;
-  tilt: string;
   delay: number;
-  lift?: number;
 }) {
   return (
-    <Animated.View entering={FadeInDown.duration(420).delay(delay).springify().damping(16).mass(0.7)} style={{ flex: 1 }}>
+    <Animated.View entering={FadeInDown.duration(380).delay(delay).springify().damping(17).mass(0.7)}>
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => ({ alignItems: "center", paddingVertical: 6, marginTop: -lift, transform: [{ scale: pressed ? 1.04 : 1 }] })}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+          backgroundColor: pressed ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.07)",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.12)",
+          paddingHorizontal: 14,
+          paddingVertical: 14,
+        })}
       >
-        {/* pressing LIFTS it — you pick a letter up, you don't push a button in */}
-        <View style={{ transform: [{ rotate: tilt }] }}>{children}</View>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.92)", marginTop: 20 }}>{label}</Text>
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: "rgba(255,255,255,0.55)", marginTop: 6, textAlign: "center" }}>{note}</Text>
+        {children}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: PF.letter, fontSize: 17, fontWeight: "600", color: "#fff" }}>{title}</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, color: "rgba(255,255,255,0.58)", marginTop: 3 }}>{said}</Text>
+        </View>
+        <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "rgba(255,255,255,0.4)" }}>›</Text>
       </Pressable>
     </Animated.View>
   );
@@ -224,13 +240,14 @@ function Door({
    to you later. Drawing them as one form makes the choice readable in a glance
    and says the true thing: writing to yourself isn't a different feature, it's
    the same act with a different recipient. */
-function LetterObject({ addressee }: { addressee?: string }) {
+function LetterObject({ addressee, small, tiny }: { addressee?: string; small?: boolean; tiny?: boolean }) {
+  const k = tiny ? 0.42 : small ? 0.62 : 1;
   const bars = Array.from({ length: 18 });
   return (
     <View
       style={{
-        width: 112,
-        height: 78,
+        width: 112 * k,
+        height: 78 * k,
         backgroundColor: "#FCFBF8",
         shadowColor: "#000",
         shadowOpacity: 0.4,
@@ -239,14 +256,14 @@ function LetterObject({ addressee }: { addressee?: string }) {
       }}
     >
       {/* airmail edge */}
-      <View style={{ height: 7, flexDirection: "row", overflow: "hidden" }}>
+      <View style={{ height: 7 * k, flexDirection: "row", overflow: "hidden" }}>
         {bars.map((_, i) => (
           <View
             key={i}
             style={{
-              width: 7,
-              height: 22,
-              marginTop: -8,
+              width: 7 * k,
+              height: 22 * k,
+              marginTop: -8 * k,
               backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent",
               transform: [{ rotate: "34deg" }],
             }}
@@ -255,17 +272,17 @@ function LetterObject({ addressee }: { addressee?: string }) {
       </View>
 
       {/* the stamp, pasted in its corner */}
-      <View style={{ position: "absolute", right: 8, top: 13, width: 19, height: 23, borderWidth: 1.3, borderColor: P.post }} />
+      <View style={{ position: "absolute", right: 8 * k, top: 13 * k, width: 19 * k, height: 23 * k, borderWidth: tiny ? 1 : 1.3, borderColor: P.post }} />
 
       {/* the address block — the one thing that differs */}
-      <View style={{ position: "absolute", left: 12, bottom: 12, gap: 5 }}>
+      <View style={{ position: "absolute", left: 12 * k, bottom: 12 * k, gap: 5 * k }}>
         {addressee ? (
-          <MosaicId seed={addressee} cell={3.4} gap={1.1} />
+          <MosaicId seed={addressee} cell={3.4 * k} gap={1.1 * k} />
         ) : (
           <>
-            <View style={{ width: 42, height: 1.5, backgroundColor: P.ink12 }} />
-            <View style={{ width: 54, height: 1.5, backgroundColor: P.ink12 }} />
-            <View style={{ width: 34, height: 1.5, backgroundColor: P.ink12 }} />
+            <View style={{ width: 42 * k, height: 1.5, backgroundColor: P.ink12 }} />
+            <View style={{ width: 54 * k, height: 1.5, backgroundColor: P.ink12 }} />
+            <View style={{ width: 34 * k, height: 1.5, backgroundColor: P.ink12 }} />
           </>
         )}
       </View>
