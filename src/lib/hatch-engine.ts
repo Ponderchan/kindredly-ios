@@ -139,7 +139,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
     },
     {
       key: "rhythm",
-      icon: "♒",
+      icon: "∿",
       label: "Rhythm",
       score: clamp(28 + varc * 1.3 + swings * 12),
       locked: sents.length >= 5,
@@ -207,15 +207,21 @@ export function scoreNine(thoughts: string[]): DimScore[] {
 
 /* ── the identity blend (owner's weights, verbatim) ───────────────────── */
 
+/* The identity blend — our own weights, not the spec draft's. Ranked by how
+   much each signal says about WHO IS WRITING rather than what mood they're
+   in: quirks and perspective are identity (nobody else has your tics or your
+   distance from yourself), emotion is closer to weather, and function words
+   are the least ownable thing in a language. */
 const WEIGHTS: Partial<Record<DimKey, number>> = {
-  emotion: 0.25,
-  rhythm: 0.15,
-  perspective: 0.15,
+  quirks: 0.18,
+  perspective: 0.16,
+  emotion: 0.14,
+  rhythm: 0.12,
+  punctuation: 0.1,
   vocabulary: 0.1,
-  structure: 0.1,
-  sentence: 0.1,
-  quirks: 0.1,
-  punctuation: 0.05,
+  structure: 0.08,
+  sentence: 0.07,
+  function: 0.05,
 };
 
 export function identityScore(dims: DimScore[]): number {
@@ -237,48 +243,88 @@ export interface Archetype {
   hours?: [number, number]; // [from, to) in 24h, wrapping
 }
 
+/* The library — ours, and deliberately bigger than a starter six: twelve
+   spirits so that two friends comparing hatch cards usually DON'T match,
+   which is where the surprise lives. Every name stays in this product's
+   world — letters, hours, margins, weather — and every description is a
+   sentence you'd forgive on a birth certificate. */
 export const ARCHETYPES: Archetype[] = [
   {
-    id: "quiet-observer",
-    name: "The Quiet Observer",
-    desc: "You notice things most people walk past.",
-    aff: { perspective: 3, emotion: 2, rhythm: 2, function: 1 },
+    id: "window-watcher",
+    name: "The Window Watcher",
+    desc: "You see whole lives in strangers' windows.",
+    aff: { perspective: 3, vocabulary: 2, rhythm: 1 },
     hours: [5, 11],
   },
   {
-    id: "midnight-storyteller",
-    name: "The Midnight Storyteller",
-    desc: "Your best thoughts arrive when the world gets quiet.",
-    aff: { emotion: 3, structure: 2, sentence: 2 },
+    id: "night-courier",
+    name: "The Night Courier",
+    desc: "Your truest letters get written after midnight.",
+    aff: { emotion: 3, structure: 2, sentence: 1 },
     hours: [23, 5],
   },
   {
-    id: "detail-collector",
-    name: "The Tiny Detail Collector",
-    desc: "You find meaning hiding in ordinary moments.",
-    aff: { vocabulary: 3, structure: 2, perspective: 2 },
-    hours: [11, 17],
+    id: "pocket-archivist",
+    name: "The Pocket Archivist",
+    desc: "You keep small moments the way coats keep ticket stubs.",
+    aff: { vocabulary: 3, structure: 2, quirks: 1 },
   },
   {
-    id: "gentle-analyst",
-    name: "The Gentle Analyst",
-    desc: "You feel deeply, but you like understanding why.",
-    aff: { structure: 3, perspective: 2, sentence: 2, function: 1 },
+    id: "soft-cartographer",
+    name: "The Soft Cartographer",
+    desc: "You map feelings by walking their streets first.",
+    aff: { structure: 3, perspective: 2, function: 1 },
   },
   {
-    id: "dreaming-archivist",
-    name: "The Dreaming Archivist",
-    desc: "You collect moments before they disappear.",
-    aff: { emotion: 3, vocabulary: 2, rhythm: 2, punctuation: 1 },
+    id: "static-listener",
+    name: "The Static Listener",
+    desc: "You hear what hums underneath ordinary noise.",
+    aff: { punctuation: 3, quirks: 2, perspective: 1 },
     hours: [17, 23],
   },
   {
-    id: "honest-minimalist",
-    name: "The Honest Minimalist",
-    desc: "You say less, but leave more behind.",
-    // minimalism is the one spirit defined by what's ABSENT: short sentences
-    // and bare punctuation score inverted for it below
+    id: "unsent-editor",
+    name: "The Unsent Editor",
+    desc: "You rewrite the thing ten times, then almost send it.",
+    aff: { function: 3, sentence: 2, punctuation: 1 },
+  },
+  {
+    id: "weather-reporter",
+    name: "The Weather Reporter",
+    desc: "You tell your inner weather like it's the morning news.",
+    aff: { emotion: 3, rhythm: 2, vocabulary: 1 },
+    hours: [11, 17],
+  },
+  {
+    id: "ellipsis-keeper",
+    name: "The Ellipsis Keeper",
+    desc: "You leave doors open at the ends of sentences.",
+    aff: { punctuation: 3, emotion: 1, quirks: 2 },
+  },
+  {
+    id: "blunt-valentine",
+    name: "The Blunt Valentine",
+    desc: "You say it plain, and it still lands soft.",
+    // defined by restraint: scored on inverted sentence/punctuation below
     aff: { emotion: 3, quirks: 1 },
+  },
+  {
+    id: "slow-confetti",
+    name: "The Slow Confetti",
+    desc: "Your joy arrives in small bright pieces.",
+    aff: { rhythm: 3, emotion: 2, quirks: 1 },
+  },
+  {
+    id: "margin-scribbler",
+    name: "The Margin Scribbler",
+    desc: "Your best lines happen in the margins.",
+    aff: { quirks: 3, sentence: 2, rhythm: 1 },
+  },
+  {
+    id: "deep-diver",
+    name: "The Deep Diver",
+    desc: "You go down until the water gets quiet.",
+    aff: { sentence: 3, perspective: 2, emotion: 2 },
   },
 ];
 
@@ -309,7 +355,7 @@ export function matchArchetype(dims: DimScore[], when = new Date()): Archetype {
     }
     s = s / Math.max(1, wsum);
     // the minimalist earns points for restraint, not volume
-    if (a.id === "honest-minimalist") s += (9 - rank.sentence) * 0.55 + (9 - rank.punctuation) * 0.3;
+    if (a.id === "blunt-valentine") s += (9 - rank.sentence) * 0.55 + (9 - rank.punctuation) * 0.3;
     if (a.hours && inBand(hour, a.hours)) s += 0.9;
     if (s > bestScore) {
       bestScore = s;

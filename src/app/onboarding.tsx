@@ -36,6 +36,7 @@ import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } f
 import { STARTER_STAMPS } from "../data/stamps";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
+import { MoodIcon } from "../components/MoodIcon";
 
 /* Onboarding — EGG OS.
    ────────────────────────────────────────────────────────────────────────
@@ -249,13 +250,19 @@ export default function Onboarding() {
      the owner's weights, matched against the archetype table. Wren is grown
      from the writing DNA, never selected. wrenTypeFor survives only to pick
      what she wears, which is all it was ever load-bearing for. */
-  const fed = thoughts.length ? thoughts : line ? [line] : [];
+  /* ONE thought hatches her. Three-to-five was the spec draft, and it is a
+     wall at the exact moment someone is least invested — the engine marks
+     what it hasn't read as GROWING anyway, so a thin first read is honest by
+     construction. More feeds lock more dimensions; the meter sells that as
+     an invitation instead of a toll. The line still in the input counts as
+     fed, so nobody loses words to a button they didn't press. */
+  const fed = [...thoughts, ...(line.length >= 2 ? [line] : [])];
   const corpus = fed.join("\n\n");
   const hatched = hatch(fed);
   const noteType = wrenTypeFor(corpus); // still decides the accessory
   const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(corpus); // picked mood wins
   const canFeed = line.length >= 2 && thoughts.length < 5;
-  const canHatch = thoughts.length >= 3;
+  const canHatch = fed.length >= 1;
 
   const feed = () => {
     if (!canFeed) return;
@@ -792,15 +799,15 @@ export default function Onboarding() {
                   {[0, 1, 2, 3, 4].map((i) => (
                     <View
                       key={i}
-                      style={{ width: 13, height: 9, marginLeft: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: thoughts.length > i ? Y.blue : "transparent" }}
+                      style={{ width: 13, height: 9, marginLeft: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: fed.length > i ? Y.blue : "transparent" }}
                     />
                   ))}
                 </View>
-                <Text style={mono(9.5, "b")}>{thoughts.length}/3{thoughts.length >= 3 ? " ✓" : ""}</Text>
+                <Text style={mono(9.5, "b")}>{fed.length ? `${fed.length} FED ✓` : "HUNGRY"}</Text>
               </View>
             </View>
 
-            <Head plain={feedPlain} em="on your mind." sub="Three small thoughts. They don't have to match — that's the point." />
+            <Head plain={feedPlain} em="on your mind." sub="One thought is enough to hatch. Each extra one locks in more of the read." />
 
             {/* what's been fed, swallowed into little rows */}
             {thoughts.length > 0 && (
@@ -846,20 +853,27 @@ export default function Onboarding() {
                 {MOOD_IDS.slice(0, 9).map((id) => {
                   const on = mood === id;
                   return (
-                    <Pressable key={id} onPress={() => setMood(on ? null : id)} style={{ marginRight: 9, marginBottom: 9 }}>
+                    <Pressable key={id} onPress={() => setMood(on ? null : id)} style={{ marginRight: 8, marginBottom: 9 }}>
+                      {/* the product's own drawn mood faces — the same art the
+                          journal's calendar is built from, not paint chips */}
                       <View
                         style={[
                           on ? bevel(2.5, 2.5) : null,
                           {
-                            width: 30,
-                            height: 30,
-                            borderRadius: 15,
-                            borderWidth: on ? 3 : 2,
-                            borderColor: on ? Y.ink : "rgba(17,17,19,0.34)",
-                            backgroundColor: MOODS[id].col,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            borderWidth: on ? 2.5 : 2,
+                            borderColor: on ? Y.ink : "rgba(17,17,19,0.28)",
+                            backgroundColor: MOODS[id].bg,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            overflow: "hidden",
                           },
                         ]}
-                      />
+                      >
+                        <MoodIcon id={id} size={30} />
+                      </View>
                     </Pressable>
                   );
                 })}
@@ -868,7 +882,7 @@ export default function Onboarding() {
             </View>
           </ScrollView>
           <Foot
-            label={canHatch ? `HATCH ${HER} 🥚` : `${3 - thoughts.length} MORE TO HATCH`}
+            label={canHatch ? `HATCH ${HER} 🥚` : "FEED ONE THOUGHT FIRST"}
             on={canHatch}
             tone="brass"
             onPress={() => setStep("hatch")}
