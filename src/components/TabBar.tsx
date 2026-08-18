@@ -39,7 +39,7 @@ export function TabBar({ state, navigation }: any) {
     );
   };
 
-  const pick = (to: "/compose" | "/compose?to=self") => {
+  const pick = (to: "/compose" | "/journal-entry") => {
     setChoosing(false);
     router.push(to);
   };
@@ -149,7 +149,7 @@ export function TabBar({ state, navigation }: any) {
             </Pressable>
 
             <Pressable
-              onPress={() => pick("/compose?to=self")}
+              onPress={() => pick("/journal-entry")}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",

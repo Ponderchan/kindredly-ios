@@ -154,7 +154,7 @@ function Feed({
             sealed={sealed}
             onSeal={seal}
             onWrite={() => router.push("/compose")}
-            onSelf={() => router.push("/compose?to=self")}
+            onSelf={() => router.push("/journal-entry")}
             onKept={() => router.push("/kept")}
           />
         </View>
@@ -189,7 +189,7 @@ function Feed({
                 sealed={sealed}
                 onSeal={seal}
                 onWrite={() => router.push("/compose")}
-                onSelf={() => router.push("/compose?to=self")}
+                onSelf={() => router.push("/journal-entry")}
                 onKept={() => router.push("/kept")}
               />
             </View>

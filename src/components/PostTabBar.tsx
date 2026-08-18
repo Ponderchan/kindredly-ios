@@ -1,4 +1,7 @@
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { Modal, Pressable, Text, View } from "react-native";
+import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
@@ -12,9 +15,7 @@ import { useAuth } from "../lib/auth";
 
    letters  — an envelope, flap open: what came for you today
    sealed   — a filed page with its own stamp: what never leaves
-   post     — the slot itself, inked; you don't "compose", you post. It opens
-              the publish page directly: WHO it's for is a control on that page,
-              not a question asked before you've written anything
+   post     — the slot itself, inked; you don't "compose", you post
    kindreds — an orbit: the people circling in
    me       — YOUR mosaic; in this system your identity is a redacted grid,
               so the tab is literally you, and no two users' bars match
@@ -28,6 +29,7 @@ export function PostTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const [choosing, setChoosing] = useState(false);
   const current: string = state.routes[state.index]?.name ?? "letters";
 
   const go = (name: string) => {
@@ -78,7 +80,7 @@ export function PostTabBar({ state, navigation }: any) {
               same letter sits at rest above the same lip. One object, two
               directions. It's also the one element allowed to break the rule
               it stands on. */}
-          <Pressable onPress={() => router.push("/compose")} style={{ width: 62, alignItems: "center" }}>
+          <Pressable onPress={() => setChoosing(true)} style={{ width: 62, alignItems: "center" }}>
             <View style={{ width: 44, height: 44, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", marginTop: -10 }}>
               <Svg width={26} height={26} viewBox="0 0 24 24">
                 {/* the letter, going down and in */}
@@ -103,7 +105,81 @@ export function PostTabBar({ state, navigation }: any) {
         </View>
       </View>
 
+      {/* WHO it's for, asked as an ACT rather than a list.
+
+          The sheet this replaces was a menu — two rows, two subtitles, two
+          arrows — and it read as one because that's what a list of options
+          looks like. The question was never the problem; its form was. So the
+          answer is two OBJECTS rising out of the slot you just pressed, over
+          your own screen blurred behind them. No titles, no rules, no chevrons.
+          You reach for a thing, you don't choose a row.
+
+          It's also asked up front on purpose. A journal entry and a letter are
+          genuinely different objects, so the choice isn't a verdict you're
+          stuck with — an entry can drift out of Sealed later, once it's had
+          time to sit. */}
+      <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
+        <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)}>
+          <BlurView intensity={26} tint="light" style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.55)" }}>
+            <View style={{ flex: 1, justifyContent: "flex-end", paddingBottom: Math.max(insets.bottom, 8) + 96 }}>
+              <Animated.View
+                entering={SlideInDown.springify().damping(17).mass(0.7)}
+                exiting={FadeOut.duration(120)}
+                style={{ flexDirection: "row", justifyContent: "center", gap: 46 }}
+              >
+                <Thing label="to a stranger" onPress={() => { setChoosing(false); router.push("/compose"); }}>
+                  <EnvelopeObject />
+                </Thing>
+                <Thing label="just for me" onPress={() => { setChoosing(false); router.push("/journal-entry"); }}>
+                  <SealedObject />
+                </Thing>
+              </Animated.View>
+            </View>
+          </BlurView>
+        </Pressable>
+      </Modal>
     </>
+  );
+}
+
+/* an object you reach for — never a row you select */
+function Thing({ label, children, onPress }: { label: string; children: React.ReactNode; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ alignItems: "center", gap: 12, transform: [{ scale: pressed ? 0.93 : 1 }] })}>
+      {children}
+      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1, color: P.ink60 }}>{label.toUpperCase()}</Text>
+    </Pressable>
+  );
+}
+
+/* the letter: airmail edge, a stamp in its corner */
+function EnvelopeObject() {
+  const bars = Array.from({ length: 22 });
+  return (
+    <View style={{ width: 96, height: 68, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, overflow: "hidden" }}>
+      <View style={{ height: 6, flexDirection: "row", overflow: "hidden" }}>
+        {bars.map((_, i) => (
+          <View key={i} style={{ width: 6, height: 20, marginTop: -7, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }} />
+        ))}
+      </View>
+      <Svg width={96} height={62} viewBox="0 0 96 62">
+        <Path d="M0 4l48 30L96 4" fill="none" stroke={P.ink} strokeWidth={1.4} />
+      </Svg>
+      <View style={{ position: "absolute", right: 7, top: 12, width: 18, height: 21, borderWidth: 1, borderColor: P.post }} />
+    </View>
+  );
+}
+
+/* the sealed page: folded shut, a disc holding it */
+function SealedObject() {
+  return (
+    <View style={{ width: 96, height: 68, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 62, height: 68, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink }} />
+      <View style={{ position: "absolute", left: 17, right: 17, top: 26, height: 15, backgroundColor: P.paperDeep, borderTopWidth: 1, borderBottomWidth: 1, borderColor: P.ink12 }} />
+      <View style={{ position: "absolute", width: 26, height: 26, borderRadius: 13, backgroundColor: P.brassSeal, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: P.paper }} />
+      </View>
+    </View>
   );
 }
 

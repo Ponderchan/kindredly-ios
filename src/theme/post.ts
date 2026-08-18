@@ -28,6 +28,7 @@ export const P = {
   penWash: "#ECECFE",
   post: "#E0483C", // the postmark's ink — that object only
   air: "#3A4F9E", // airmail blue, for the striped rule only
+  brassSeal: "#9A7433", // the wax disc on the sealed page — that object only
 } as const;
 
 export const PF = {

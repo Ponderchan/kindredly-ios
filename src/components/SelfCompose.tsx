@@ -41,16 +41,10 @@ export function SelfCompose({
   text,
   setText,
   onDone,
-  saveRef,
-  canSaveRef,
 }: {
   text: string;
   setText: (t: string) => void;
   onDone: () => void;
-  /* the shell owns the endings now, so the body hands its save up rather than
-     drawing a second button for the same act */
-  saveRef?: { current: null | (() => void) };
-  canSaveRef?: { current: boolean };
 }) {
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
@@ -206,19 +200,6 @@ export function SelfCompose({
     setBusy(false);
     onDone();
   };
-
-  // Sealing is the same act it always was — a mood, then the entry. It just
-  // gets triggered from the shell's endings row now, so there's one place on
-  // the page where a thought is given its fate.
-  useEffect(() => {
-    if (saveRef)
-      saveRef.current = () => {
-        if (!canSave || busy) return;
-        if (mood) void pickMood(mood);
-        else setMoodOpen(true);
-      };
-    if (canSaveRef) canSaveRef.current = canSave && !busy;
-  });
 
   const dateStr = new Date().toLocaleString("en-US", { month: "short", day: "numeric" }).toLowerCase();
 
@@ -407,6 +388,22 @@ export function SelfCompose({
               </Pressable>
             );
           })}
+          <Pressable
+            onPress={() => canSave && (mood ? void pickMood(mood) : setMoodOpen(true))}
+            disabled={!canSave || busy}
+            style={{
+              flex: 1,
+              backgroundColor: canSave && !busy ? P.pen : "transparent",
+              borderWidth: 1,
+              borderColor: canSave && !busy ? P.pen : P.ink12,
+              paddingVertical: 16,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSave && !busy ? "#fff" : P.ink40 }}>
+              {busy ? "SEALING…" : "SEAL IT HERE"}
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
 
