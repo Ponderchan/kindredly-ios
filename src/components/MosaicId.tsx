@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { hashStr } from "../lib/format";
-import { P } from "../theme/post";
+import { PW } from "../theme/post";
 
 /* A stranger's face, redacted. The generative "seal" avatar carries its own
    palette, which lands as a stray colour blob in a page made only of black
@@ -33,7 +33,7 @@ export function MosaicId({ seed, cell = 5, gap = 1.5 }: { seed: string; cell?: n
               style={{
                 width: cell,
                 height: cell,
-                backgroundColor: on(r, c) ? P.ink : "transparent",
+                backgroundColor: on(r, c) ? PW.ink : "transparent",
               }}
             />
           ))}
