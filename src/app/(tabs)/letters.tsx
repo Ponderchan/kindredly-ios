@@ -201,7 +201,7 @@ function Feed({
         <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             <View style={{ minHeight: 78 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, borderWidth: 1, borderColor: PW.ink12, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
@@ -241,7 +241,7 @@ function Feed({
 
 function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "rgba(42,33,83,0.25)" }}>
+    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: PW.ink }}>
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: PW.groundInk }}>TODAY</Text>
       <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: PW.groundInk60 }}>
         {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
@@ -269,7 +269,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   return (
     <View style={{ height, paddingHorizontal: 20, paddingTop: 18, justifyContent: "center" }}>
       <Animated.View entering={FadeIn.duration(240)}>
-        <View style={{ backgroundColor: PW.sheet, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 }}>
+        <View style={{ backgroundColor: PW.sheet, borderWidth: 1, borderColor: PW.ink12, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
             the person who sent it.

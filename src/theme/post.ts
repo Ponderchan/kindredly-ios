@@ -90,12 +90,15 @@ export function channelInk(hex?: string | null): string {
    Kindreds runs on this so it can be judged beside Today and Sealed. If it
    wins, P's values become these and nothing else in the app has to move. */
 export const PW = {
-  // the room you're standing in — the strangers' space. The letter is not
-  // printed on this; it lies on it.
-  ground: "#B9A8F0",
-  groundInk: "#2A2153", // type that has to read on the ground
-  groundInk60: "rgba(42,33,83,0.6)",
-  groundInk40: "rgba(42,33,83,0.42)",
+  // ONE GROUND FOR EVERY TAB. A coloured room suited Today and fought Sealed
+  // and Kindreds, and the app has to read as one app — so the ground unifies
+  // and the SHEET carries the warmth wherever there's something to read.
+  // Today wasn't heavy on white because it was white; it was heavy because the
+  // letter had no sheet, so the screen became a wall of black type.
+  ground: "#FFFFFF",
+  groundInk: "#111113",
+  groundInk60: "rgba(17,17,19,0.6)",
+  groundInk40: "rgba(17,17,19,0.4)",
   // the sheet itself — an actual piece of paper, and where the whole postal
   // structure lives: docket line, rules, stamp, tag, actions
   sheet: "#FBF7EC",
