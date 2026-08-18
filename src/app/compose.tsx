@@ -20,6 +20,7 @@ import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
 import { DRIFT_LABEL, openingLadder, readMood, wrenLine } from "../lib/wren-read";
+import { nextSpark } from "../lib/sparks";
 import { COUNTER_FROM, LETTER_MAX, weightedCount } from "../lib/weighted-count";
 
 const LANG = "en";
@@ -52,6 +53,11 @@ export default function Compose() {
   const [recUri, setRecUri] = useState<string | null>(null);
   const [recDur, setRecDur] = useState(0);
   const breathe = useBreathe(6, 2600);
+  // the empty page hands you something to reach for, not "start typing"
+  const [spark, setSpark] = useState("");
+  useEffect(() => {
+    nextSpark().then(setSpark);
+  }, []);
 
   // back that survives cold deep-link starts (no history → land on Letters)
   const goBack = () => {
@@ -333,7 +339,7 @@ export default function Compose() {
                 autoFocus
                 value={text}
                 onChangeText={setText}
-                placeholder="ok so here's the thing…"
+                placeholder={spark}
                 placeholderTextColor="#B9B3D8"
                 multiline
                 style={{ minHeight: 250, color: P.ink, fontFamily: PF.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
@@ -372,10 +378,9 @@ export default function Compose() {
 
             {/* one stamp — this letter's channel (exactly one, required) */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>YOUR STAMP</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>MOOD STAMP</Text>
               {stamp && (
                 <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
-                  <Text style={{ fontSize: 12 }}>{stamp.emoji}</Text>
                   <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{stamp.name.en.toLowerCase()}</Text>
                 </View>
               )}

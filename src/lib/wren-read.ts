@@ -59,11 +59,16 @@ export function wrenLine(m: WrenMood): string {
  *  replies and letters to yourself never ask this. Buckets are weighted units
  *  ([[weighted-count]]), so one hanzi steps two rungs at a time; that's fine,
  *  four rungs is coarse on purpose. */
+/* Wren's four rungs. The empty-page line used to be "I'm listening…", which
+   opens a CHAT — the first feeling was "I'm about to talk to an AI" rather
+   than "someone is waiting for me to write". At zero she just says she's
+   present and unhurried; the coaxing only starts once there are words to
+   coax. */
 export function openingLadder(weighted: number): { line: string; ready: boolean } {
   if (weighted >= OPENING_MIN) return { line: "Okay. I know a little more of you now. Go meet your kindred.", ready: true };
   if (weighted >= 30) return { line: "Almost there. I want one more thought.", ready: false };
   if (weighted >= 15) return { line: "Tell me a little more.", ready: false };
-  return { line: "I'm listening…", ready: false };
+  return { line: "I'm here. Take your time.", ready: false };
 }
 
 /** Wren's first words to a newly-written line at the hatch (warmer register). */
@@ -131,10 +136,12 @@ export function thoughtLine(s: ThoughtState, weighted: number): string {
 }
 
 /* The two endings. Never "send" or "keep private" — a destination named as a
-   fate. "Drift" is the app's own word already (a line drifts out of a journal
-   entry); this is the same verb at the scale of a whole piece. "Seal it here"
-   names the room it lands in, and "here" carries the promise: this phone. */
-export const DRIFT_LABEL = "LET IT DRIFT";
+   fate. TRAVEL, because that's the word the flow already opened with: "where
+   should this thought travel?" The button should answer the question it was
+   asked. ("Drift" stays the word for a single line leaving a journal entry —
+   a smaller, quieter departure.) "Seal it here" names the room it lands in,
+   and "here" carries the promise: this phone. */
+export const DRIFT_LABEL = "LET IT TRAVEL";
 export const SEAL_LABEL = "SEAL IT HERE";
 
 /* Releasing something you'd meant to keep is the one move that can cost the
