@@ -860,9 +860,10 @@ export default function Onboarding() {
                 alignItems: "center",
               }}
             >
-              <WrenBird size={112} mood={hatchMood} />
-              <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 8 }}>{her || "Wren"}</Text>
+              <Hatchling mood={hatchMood} shell={eggVar} />
+              <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 4 }}>{her || "Wren"}</Text>
               <Text style={{ fontFamily: F2.serifItalic, fontSize: 18, color: Y.brass, marginTop: 2 }}>{courier}</Text>
+              <Text style={[mono(8.5, "b"), { color: "#5E5878", marginTop: 8 }]}>TAP {HER} ✦</Text>
 
               <Text style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 16, textAlign: "center", lineHeight: 23 }}>
                 “{voiceRead.lead}”
@@ -1080,6 +1081,91 @@ function Foot({
         <View style={{ height: 10 }} />
       )}
     </View>
+  );
+}
+
+/* THE HATCHLING — the thing that was just born, not a portrait of the adult.
+   Three faults in the old card, and they were all the same fault: she wasn't
+   alive in there.
+
+   · She was drawn at stage "wren", the grown bird. WrenBird has had a
+     hatchling all along (stage="hatch"); onboarding just never asked for it.
+   · The sticker skin's white keyline is die-cut for lifting her off a busy
+     page. On a dark card where she's the only object it reads as a sticker
+     stuck on — hence `bare`.
+   · She didn't move and she didn't answer. A newly hatched pet you cannot
+     poke is a picture of a pet.
+
+   So: she sits in the halves of the shell YOU chose two screens ago, she
+   breathes on her own, and she answers a finger — a squash-and-stretch hop,
+   a change of face, and a small mark over her head. Four faces cycle, so the
+   third poke isn't the second poke again. */
+const POKES: WrenMood[] = ["delight", "curious", "wink", "happy"];
+
+function Hatchling({ mood, shell }: { mood: WrenMood; shell: number }) {
+  const [pokes, setPokes] = useState(0);
+  const squish = useSharedValue(0); // 0 rest, drives the whole hop
+  const spark = useSharedValue(0);
+
+  // idle breath — slow, and never fully still
+  const air = useSharedValue(0);
+  useEffect(() => {
+    air.value = withRepeat(
+      withSequence(withTiming(1, { duration: 1700, easing: Easing.inOut(Easing.quad) }), withTiming(0, { duration: 1700, easing: Easing.inOut(Easing.quad) })),
+      -1,
+      true,
+    );
+  }, [air]);
+
+  const body = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -air.value * 2.5 - squish.value * 14 },
+      { scaleX: 1 + squish.value * -0.12 + air.value * 0.01 },
+      { scaleY: 1 + squish.value * 0.16 + air.value * 0.015 },
+    ],
+  }));
+  const sparkStyle = useAnimatedStyle(() => ({ opacity: spark.value, transform: [{ translateY: -spark.value * 16 }, { scale: 0.6 + spark.value * 0.5 }] }));
+
+  const poke = () => {
+    setPokes((n) => n + 1);
+    // down, past the top, settle — the shape of something small jumping
+    squish.value = withSequence(
+      withTiming(-1, { duration: 90, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: 220, easing: Easing.out(Easing.back(2.6)) }),
+      withSpring(0, { damping: 9, stiffness: 220 }),
+    );
+    spark.value = withSequence(withTiming(1, { duration: 160 }), withDelay(280, withTiming(0, { duration: 320 })));
+  };
+
+  const face = pokes > 0 ? POKES[(pokes - 1) % POKES.length] : mood;
+  const sh = EGG_SHELLS[shell] ?? EGG_SHELLS[0];
+
+  return (
+    <Pressable onPress={poke} hitSlop={16} style={{ width: 150, height: 132, alignItems: "center", justifyContent: "flex-end" }}>
+      {/* the mark over her head when she answers */}
+      <Animated.Text style={[sparkStyle, { position: "absolute", top: 4, fontSize: 17 }]}>♪</Animated.Text>
+
+      {/* SHE SITS IN THE SHELL, and the shell is drawn OVER her lower half so
+          she's inside it rather than standing in front of it. The first
+          attempt was a zigzag strip behind her and it read as a pink mountain
+          range. The colour is the one you picked two screens ago — the only
+          part of her you got to choose, kept and shown. */}
+      <Animated.View style={[body, { marginBottom: 30 }]}>
+        <WrenBird size={104} mood={face} stage="hatch" bare />
+      </Animated.View>
+
+      <Svg width={150} height={62} viewBox="0 0 150 62" style={{ position: "absolute", bottom: 0 }}>
+        {/* the bottom half she's sitting in — jagged rim, rounded belly */}
+        <Path
+          d="M33 16 L43 28 L53 10 L64 26 L75 8 L86 26 L96 12 L106 26 L117 16 L118 28 C118 48 101 60 75 60 C49 60 32 48 32 28 Z"
+          fill={sh.base}
+        />
+        <Path d="M33 16 L43 28 L53 10 L64 26 L75 8 L86 26 L96 12 L106 26 L117 16" fill="none" stroke={sh.speck} strokeWidth={2} strokeLinejoin="round" />
+        <Circle cx={56} cy={42} r={2} fill={sh.speck} />
+        <Circle cx={92} cy={38} r={1.8} fill={sh.speck} />
+        <Circle cx={74} cy={50} r={1.6} fill={sh.speck} />
+      </Svg>
+    </Pressable>
   );
 }
 

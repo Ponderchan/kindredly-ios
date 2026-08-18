@@ -49,6 +49,7 @@ export function WrenBird({
   accessory = "none",
   pose = "perch",
   skin: skinProp,
+  bare = false,
 }: {
   size?: number;
   mood?: WrenMood;
@@ -56,6 +57,13 @@ export function WrenBird({
   accessory?: WrenAccessory;
   pose?: WrenPose;
   skin?: WrenSkin;
+  /* Drop the sticker skin's white die-cut outline. That outline exists to lift
+     her off a busy page and it earns its keep almost everywhere — but on a
+     dark card where she is the only object, a thick white keyline is exactly
+     what makes her read as a sticker pasted on rather than something alive in
+     there. Opt-in, per call site: the skin itself is untouched (and must stay
+     that way — `ink` is a paid skin and is never chosen in code). */
+  bare?: boolean;
 }) {
   const ctxSkin = useWrenSkin();
   const skin = skinProp ?? ctxSkin; // explicit prop wins (gallery); else the app-wide pick
@@ -78,7 +86,7 @@ export function WrenBird({
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
       {keys.map((k) => (
-        <Shapes key={k} list={WREN_FAMILY[k] || []} />
+        <Shapes key={k} list={WREN_FAMILY[k] || []} bare={bare} />
       ))}
       {hatchMood && <HatchEyes mood={hatchMood} skin={skin} />}
       {stage === "hatch" && pose !== "fly" && accessory !== "none" && size > 20 && <HatchAcc a={accessory} />}
@@ -86,15 +94,18 @@ export function WrenBird({
   );
 }
 
+const isWhite = (c?: string) => !!c && /^#(fff|ffffff)$/i.test(c.trim());
+
 /* render one symbol's shape list */
-function Shapes({ list }: { list: WShape[] }) {
+function Shapes({ list, bare }: { list: WShape[]; bare?: boolean }) {
   return (
     <G>
       {list.map((s, i) => {
+        const strip = bare && isWhite(s.s);
         const common = {
           fill: s.f,
-          stroke: s.s,
-          strokeWidth: s.sw,
+          stroke: strip ? undefined : s.s,
+          strokeWidth: strip ? undefined : s.sw,
           strokeLinecap: s.lc as any,
           strokeLinejoin: s.lj as any,
           opacity: s.o,
