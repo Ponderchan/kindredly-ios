@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
@@ -105,28 +106,27 @@ export function PostTabBar({ state, navigation }: any) {
 
       {/* WHO it's for.
 
-          Back to a sheet, but the thing that made the first one read as a menu
-          is gone: it was a LIST — left-aligned rows, trailing chevrons, one
-          under the other. This is two centred stacks with the object on top,
-          so you're looking at two things side by side rather than scanning
-          options down a column.
+          Full screen, on a DARK blur. The earlier attempts each failed for a
+          nameable reason: left-aligned rows with chevrons read as a menu; a
+          light blur over a white app gives milk with photo-blobs bleeding
+          through; a sheet cuts the screen in half and makes a small question
+          look like a form. A dark blur keeps the letter you were reading faintly
+          present behind the question, and paper objects glow on it.
 
-          The question does the rest of the work. "Where should this thought
-          travel?" isn't asking for a setting; it's asking about the thought. */}
+          The two objects are THE SAME OBJECT with different addresses, which is
+          the whole choice said in one picture: a letter with an empty address
+          block is looking for someone; a letter addressed with your own mosaic
+          is coming back to you later. "To yourself" isn't a different feature,
+          it's the same act with a different recipient. */}
       <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.4)", justifyContent: "flex-end" }} onPress={() => setChoosing(false)}>
-          <Pressable
-            onPress={() => {}}
-            style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingTop: 22, paddingBottom: Math.max(insets.bottom, 16) + 14 }}
-          >
-            <View style={{ alignItems: "center", paddingHorizontal: 22 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>POST SOMETHING</Text>
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 16, color: P.ink60, marginTop: 8, textAlign: "center" }}>
-                where should this thought travel?
-              </Text>
-            </View>
+        <BlurView intensity={44} tint="dark" style={{ flex: 1 }}>
+          <Pressable style={{ flex: 1, alignItems: "center", justifyContent: "center" }} onPress={() => setChoosing(false)}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: "rgba(255,255,255,0.9)" }}>POST SOMETHING</Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 17, color: "rgba(255,255,255,0.66)", marginTop: 10 }}>
+              where should this thought travel?
+            </Text>
 
-            <View style={{ flexDirection: "row", marginTop: 28, paddingHorizontal: 14 }}>
+            <View style={{ flexDirection: "row", marginTop: 44, paddingHorizontal: 18 }}>
               <Door
                 label="TO A STRANGER"
                 note="Wren finds who it's for"
@@ -135,7 +135,7 @@ export function PostTabBar({ state, navigation }: any) {
                   router.push("/compose");
                 }}
               >
-                <EnvelopeObject />
+                <LetterObject />
               </Door>
               <Door
                 label="TO YOURSELF"
@@ -145,11 +145,15 @@ export function PostTabBar({ state, navigation }: any) {
                   router.push("/journal-entry");
                 }}
               >
-                <SealedObject />
+                <LetterObject addressee={user?.id || "you"} />
               </Door>
             </View>
+
+            <Text style={{ position: "absolute", bottom: Math.max(insets.bottom, 16) + 18, fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(255,255,255,0.34)" }}>
+              TAP ANYWHERE TO GO BACK
+            </Text>
           </Pressable>
-        </Pressable>
+        </BlurView>
       </Modal>
     </>
   );
@@ -174,42 +178,58 @@ function Door({
       style={({ pressed }) => ({ flex: 1, alignItems: "center", paddingVertical: 6, opacity: pressed ? 0.55 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}
     >
       {children}
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: P.ink, marginTop: 14 }}>{label}</Text>
-      <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink40, marginTop: 5, textAlign: "center" }}>{note}</Text>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.92)", marginTop: 16 }}>{label}</Text>
+      <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: "rgba(255,255,255,0.55)", marginTop: 6, textAlign: "center" }}>{note}</Text>
     </Pressable>
   );
 }
 
-/* the letter: airmail edge, a stamp in its corner */
-function EnvelopeObject() {
-  const bars = Array.from({ length: 20 });
+/* ONE object, two addresses.
+
+   An envelope with an empty address block is a letter still looking for
+   someone; the same envelope carrying your own mosaic is a letter coming back
+   to you later. Drawing them as one form makes the choice readable in a glance
+   and says the true thing: writing to yourself isn't a different feature, it's
+   the same act with a different recipient. */
+function LetterObject({ addressee }: { addressee?: string }) {
+  const bars = Array.from({ length: 18 });
   return (
-    <View style={{ width: 92, height: 66, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, overflow: "hidden" }}>
-      <View style={{ height: 6, flexDirection: "row", overflow: "hidden" }}>
+    <View style={{ width: 112, height: 78, backgroundColor: P.paper }}>
+      {/* airmail edge */}
+      <View style={{ height: 7, flexDirection: "row", overflow: "hidden" }}>
         {bars.map((_, i) => (
-          <View key={i} style={{ width: 6, height: 20, marginTop: -7, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }} />
+          <View
+            key={i}
+            style={{
+              width: 7,
+              height: 22,
+              marginTop: -8,
+              backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent",
+              transform: [{ rotate: "34deg" }],
+            }}
+          />
         ))}
       </View>
-      <Svg width={92} height={60} viewBox="0 0 92 60">
-        <Path d="M0 4l46 29L92 4" fill="none" stroke={P.ink} strokeWidth={1.4} />
-      </Svg>
-      <View style={{ position: "absolute", right: 7, top: 11, width: 17, height: 20, borderWidth: 1.3, borderColor: P.post }} />
+
+      {/* the stamp, pasted in its corner */}
+      <View style={{ position: "absolute", right: 8, top: 13, width: 19, height: 23, borderWidth: 1.3, borderColor: P.post }} />
+
+      {/* the address block — the one thing that differs */}
+      <View style={{ position: "absolute", left: 12, bottom: 12, gap: 5 }}>
+        {addressee ? (
+          <MosaicId seed={addressee} cell={3.4} gap={1.1} />
+        ) : (
+          <>
+            <View style={{ width: 42, height: 1.5, backgroundColor: P.ink12 }} />
+            <View style={{ width: 54, height: 1.5, backgroundColor: P.ink12 }} />
+            <View style={{ width: 34, height: 1.5, backgroundColor: P.ink12 }} />
+          </>
+        )}
+      </View>
     </View>
   );
 }
 
-/* the sealed page: folded shut, a disc holding it */
-function SealedObject() {
-  return (
-    <View style={{ width: 92, height: 66, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ width: 58, height: 66, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink }} />
-      <View style={{ position: "absolute", left: 20, right: 20, top: 25, height: 15, backgroundColor: P.paperDeep }} />
-      <View style={{ position: "absolute", width: 25, height: 25, borderRadius: 13, backgroundColor: P.brassSeal, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: P.paper }} />
-      </View>
-    </View>
-  );
-}
 
 
 /* ── the glyphs ──────────────────────────────────────────────────────────
