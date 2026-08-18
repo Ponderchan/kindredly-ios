@@ -201,7 +201,9 @@ function Feed({
         <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             <View style={{ minHeight: 78 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderWidth: 1, borderColor: PW.ink, paddingLeft: 12, paddingRight: 6, paddingVertical: 5 }}>
+              {/* writing is done on paper too — so the field is a sheet, not a
+                  box ruled onto the desk. Same rule as the letter above it. */}
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
