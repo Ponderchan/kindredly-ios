@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
-import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
@@ -105,67 +103,97 @@ export function PostTabBar({ state, navigation }: any) {
         </View>
       </View>
 
-      {/* WHO it's for, asked as an ACT rather than a list.
+      {/* WHO it's for.
 
-          The sheet this replaces was a menu — two rows, two subtitles, two
-          arrows — and it read as one because that's what a list of options
-          looks like. The question was never the problem; its form was. So the
-          answer is two OBJECTS rising out of the slot you just pressed, over
-          your own screen blurred behind them. No titles, no rules, no chevrons.
-          You reach for a thing, you don't choose a row.
+          Back to a sheet, but the thing that made the first one read as a menu
+          is gone: it was a LIST — left-aligned rows, trailing chevrons, one
+          under the other. This is two centred stacks with the object on top,
+          so you're looking at two things side by side rather than scanning
+          options down a column.
 
-          It's also asked up front on purpose. A journal entry and a letter are
-          genuinely different objects, so the choice isn't a verdict you're
-          stuck with — an entry can drift out of Sealed later, once it's had
-          time to sit. */}
+          The question does the rest of the work. "Where should this thought
+          travel?" isn't asking for a setting; it's asking about the thought. */}
       <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
-        <Pressable style={{ flex: 1 }} onPress={() => setChoosing(false)}>
-          <BlurView intensity={26} tint="light" style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.55)" }}>
-            <View style={{ flex: 1, justifyContent: "flex-end", paddingBottom: Math.max(insets.bottom, 8) + 96 }}>
-              <Animated.View
-                entering={SlideInDown.springify().damping(17).mass(0.7)}
-                exiting={FadeOut.duration(120)}
-                style={{ flexDirection: "row", justifyContent: "center", gap: 46 }}
-              >
-                <Thing label="to a stranger" onPress={() => { setChoosing(false); router.push("/compose"); }}>
-                  <EnvelopeObject />
-                </Thing>
-                <Thing label="just for me" onPress={() => { setChoosing(false); router.push("/journal-entry"); }}>
-                  <SealedObject />
-                </Thing>
-              </Animated.View>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.4)", justifyContent: "flex-end" }} onPress={() => setChoosing(false)}>
+          <Pressable
+            onPress={() => {}}
+            style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingTop: 22, paddingBottom: Math.max(insets.bottom, 16) + 14 }}
+          >
+            <View style={{ alignItems: "center", paddingHorizontal: 22 }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>POST SOMETHING</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 16, color: P.ink60, marginTop: 8, textAlign: "center" }}>
+                where should this thought travel?
+              </Text>
             </View>
-          </BlurView>
+
+            <View style={{ flexDirection: "row", marginTop: 28, paddingHorizontal: 14 }}>
+              <Door
+                label="TO A STRANGER"
+                note="Wren finds who it's for"
+                onPress={() => {
+                  setChoosing(false);
+                  router.push("/compose");
+                }}
+              >
+                <EnvelopeObject />
+              </Door>
+              <Door
+                label="TO YOURSELF"
+                note="a letter for later"
+                onPress={() => {
+                  setChoosing(false);
+                  router.push("/journal-entry");
+                }}
+              >
+                <SealedObject />
+              </Door>
+            </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </>
   );
 }
 
-/* an object you reach for — never a row you select */
-function Thing({ label, children, onPress }: { label: string; children: React.ReactNode; onPress: () => void }) {
+/* A door: the object on top, its name, what it promises. Centred, because a
+   left-aligned row with a chevron is what a menu looks like. */
+function Door({
+  label,
+  note,
+  children,
+  onPress,
+}: {
+  label: string;
+  note: string;
+  children: React.ReactNode;
+  onPress: () => void;
+}) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ alignItems: "center", gap: 12, transform: [{ scale: pressed ? 0.93 : 1 }] })}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({ flex: 1, alignItems: "center", paddingVertical: 6, opacity: pressed ? 0.55 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}
+    >
       {children}
-      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1, color: P.ink60 }}>{label.toUpperCase()}</Text>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: P.ink, marginTop: 14 }}>{label}</Text>
+      <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink40, marginTop: 5, textAlign: "center" }}>{note}</Text>
     </Pressable>
   );
 }
 
 /* the letter: airmail edge, a stamp in its corner */
 function EnvelopeObject() {
-  const bars = Array.from({ length: 22 });
+  const bars = Array.from({ length: 20 });
   return (
-    <View style={{ width: 96, height: 68, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, overflow: "hidden" }}>
+    <View style={{ width: 92, height: 66, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, overflow: "hidden" }}>
       <View style={{ height: 6, flexDirection: "row", overflow: "hidden" }}>
         {bars.map((_, i) => (
           <View key={i} style={{ width: 6, height: 20, marginTop: -7, backgroundColor: i % 4 === 0 ? P.post : i % 4 === 2 ? P.air : "transparent", transform: [{ rotate: "34deg" }] }} />
         ))}
       </View>
-      <Svg width={96} height={62} viewBox="0 0 96 62">
-        <Path d="M0 4l48 30L96 4" fill="none" stroke={P.ink} strokeWidth={1.4} />
+      <Svg width={92} height={60} viewBox="0 0 92 60">
+        <Path d="M0 4l46 29L92 4" fill="none" stroke={P.ink} strokeWidth={1.4} />
       </Svg>
-      <View style={{ position: "absolute", right: 7, top: 12, width: 18, height: 21, borderWidth: 1, borderColor: P.post }} />
+      <View style={{ position: "absolute", right: 7, top: 11, width: 17, height: 20, borderWidth: 1.3, borderColor: P.post }} />
     </View>
   );
 }
@@ -173,38 +201,16 @@ function EnvelopeObject() {
 /* the sealed page: folded shut, a disc holding it */
 function SealedObject() {
   return (
-    <View style={{ width: 96, height: 68, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ width: 62, height: 68, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink }} />
-      <View style={{ position: "absolute", left: 17, right: 17, top: 26, height: 15, backgroundColor: P.paperDeep, borderTopWidth: 1, borderBottomWidth: 1, borderColor: P.ink12 }} />
-      <View style={{ position: "absolute", width: 26, height: 26, borderRadius: 13, backgroundColor: P.brassSeal, alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: 92, height: 66, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 58, height: 66, backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink }} />
+      <View style={{ position: "absolute", left: 20, right: 20, top: 25, height: 15, backgroundColor: P.paperDeep }} />
+      <View style={{ position: "absolute", width: 25, height: 25, borderRadius: 13, backgroundColor: P.brassSeal, alignItems: "center", justifyContent: "center" }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: P.paper }} />
       </View>
     </View>
   );
 }
 
-function Choice({ label, note, onPress }: { label: string; note: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderBottomWidth: 1,
-        borderBottomColor: P.ink12,
-        paddingVertical: 18,
-        opacity: pressed ? 0.5 : 1,
-      })}
-    >
-      <View>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2, color: P.ink }}>{label}</Text>
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60, marginTop: 4 }}>{note}</Text>
-      </View>
-      <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.pen }}>→</Text>
-    </Pressable>
-  );
-}
 
 /* ── the glyphs ──────────────────────────────────────────────────────────
    THE GRID, which must not be broken: every glyph is drawn on a 24×24 canvas
