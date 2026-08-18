@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
-import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
+import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { P, PF, rule } from "../../theme/post";
@@ -184,17 +184,31 @@ function Dots() {
 }
 
 /* two tiny icons drawn from Views (no emoji, renders identically everywhere) */
+/* The owner's own calendar mark: a rounded frame with two binder tabs, a header
+   rule, and a tick in the body. Drawn to the same 24×24 / 18×18 live-area grid
+   the tab glyphs use, so it sits at the same optical size as everything else. */
 function CalendarIcon() {
+  const body = "#7C6CE8";
+  const tick = "#4FC8C0";
   return (
-    <View style={{ width: 19, height: 19, borderWidth: 1.5, borderColor: P.brass, padding: 2.5, justifyContent: "space-between" }}>
-      {[0, 1].map((r) => (
-        <View key={r} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          {[0, 1, 2].map((c) => (
-            <View key={c} style={{ width: 2.4, height: 2.4, backgroundColor: P.brass }} />
-          ))}
-        </View>
-      ))}
-    </View>
+    <Svg width={21} height={21} viewBox="0 0 24 24">
+      {/* binder tabs */}
+      <Rect x={7.2} y={1.8} width={2.6} height={4.4} rx={1.3} fill={body} />
+      <Rect x={14.2} y={1.8} width={2.6} height={4.4} rx={1.3} fill={body} />
+      {/* frame */}
+      <Rect x={3.2} y={4} width={17.6} height={17.4} rx={3.6} fill="none" stroke={body} strokeWidth={2.4} />
+      {/* header rule */}
+      <Path d="M4.4 10.2h15.2" stroke={body} strokeWidth={2.2} strokeLinecap="round" />
+      {/* the tick */}
+      <Path
+        d="M8.7 15.6l2.6 2.6 4.4-4.9"
+        fill="none"
+        stroke={tick}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 function ListIcon() {
