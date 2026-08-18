@@ -15,7 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, ClipPath, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
 import { Wheel } from "../components/Wheel";
@@ -147,6 +147,7 @@ export default function Onboarding() {
   const [thoughts, setThoughts] = useState<string[]>([]); // the fed ones, 3–5
   const [mood, setMood] = useState<MoodId | null>(null);
   const [hatchPhase, setHatchPhase] = useState<"crack" | "card" | "fly">("crack");
+  const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
   const finishing = useRef(false);
@@ -165,10 +166,6 @@ export default function Onboarding() {
   const breathe = useAnimatedStyle(() => ({
     transform: [{ rotate: `${wob.value * 2.6}deg` }, { scale: 1 + wob.value * 0.012 }],
   }));
-
-  // the crack: a hard shudder, not the idle breath
-  const shake = useSharedValue(0);
-  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${shake.value * 7}deg` }] }));
 
   // she leaves with it
   const flyY = useSharedValue(0);
@@ -202,13 +199,29 @@ export default function Onboarding() {
     return () => clearTimeout(t);
   }, [step, cardI]);
 
-  // hatch: shudder → the card
+  /* THE READING CEREMONY. Pressing hatch used to buy a 1.5s shudder — the
+     engine did all its reading in a blink and the moment felt weightless.
+     Now the read is WATCHABLE: one tick per fed thought, then three named
+     passes, an egg filling with ink, and the fed thoughts sitting in a card
+     so you can see exactly what she's reading. The engine is instant; the
+     ceremony is honest about what it computed, just not about how long it
+     took — a hatch that costs nothing feels like it read nothing. */
   useEffect(() => {
     if (step !== "hatch") return;
     setHatchPhase("crack");
-    shake.value = withRepeat(withSequence(withTiming(-1, { duration: 90 }), withTiming(1, { duration: 170 }), withTiming(0, { duration: 90 })), -1, false);
-    const t = setTimeout(() => setHatchPhase("card"), 1500);
-    return () => clearTimeout(t);
+    setReadStep(0);
+    const total = fed.length + 3;
+    const t = setInterval(() => {
+      setReadStep((n) => {
+        if (n >= total) {
+          clearInterval(t);
+          setHatchPhase("card");
+          return n;
+        }
+        return n + 1;
+      });
+    }, 1350);
+    return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
@@ -916,16 +929,76 @@ export default function Onboarding() {
      GROWING tags and the OF-9 counter could go. */
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 22, paddingVertical: 18 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: hatchPhase === "crack" ? "flex-start" : "center", paddingHorizontal: 22, paddingVertical: 18 }}>
         {hatchPhase === "crack" && (
-          <>
-            <Animated.View style={shakeStyle}>
-              <EggShell variant={eggVar} size={170} />
-            </Animated.View>
-            <Animated.Text entering={FadeIn.delay(200).duration(500)} style={[mono(10.5, "b"), { color: Y.dim, marginTop: 28 }]}>
-              ··· SOMETHING'S HAPPENING ···
-            </Animated.Text>
-          </>
+          <View style={{ width: "100%", maxWidth: 360, alignSelf: "center" }}>
+            {/* the console meter, full — every step behind you */}
+            <View style={{ flexDirection: "row", marginTop: 2 }}>
+              {ORDER.slice(0, BARS).map((k) => (
+                <View key={k} style={{ flex: 1, height: 11, marginRight: 3, borderWidth: 1.8, borderColor: Y.ink, backgroundColor: Y.blue }} />
+              ))}
+            </View>
+
+            <Text style={{ fontFamily: F2.serif, fontSize: 30, color: Y.ink, marginTop: 22, lineHeight: 37 }}>
+              Reading you <Text style={{ fontFamily: F2.serifItalic }}>right now.</Text>
+            </Text>
+            <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 8, lineHeight: 18 }]}>Don't close it. This takes about ten seconds.</Text>
+
+            {/* the egg filling with ink, and the passes it's making */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
+              <ReadingEgg progress={readStep / (fed.length + 3)} />
+              <View style={{ flex: 1, marginLeft: 18 }}>
+                {[...fed.map((_, i) => `THOUGHT ${String(i + 1).padStart(2, "0")} READ`), "FINDING RHYTHM…", "SHAPING VOICE", `WAKING ${HER}`].map(
+                  (label, i) => {
+                    const done = readStep > i;
+                    const now = readStep === i;
+                    return (
+                      <View key={label} style={{ flexDirection: "row", alignItems: "center", marginBottom: 11 }}>
+                        <View
+                          style={{
+                            width: 15,
+                            height: 15,
+                            marginRight: 10,
+                            borderWidth: 2,
+                            borderColor: done ? Y.blue : now ? Y.brass : "rgba(17,17,19,0.25)",
+                            backgroundColor: done ? Y.blue : now ? Y.brass : "transparent",
+                          }}
+                        />
+                        <Text style={[mono(10.5, done || now ? "b" : "m"), { color: done || now ? Y.ink : Y.faint }]}>{label}</Text>
+                      </View>
+                    );
+                  },
+                )}
+              </View>
+            </View>
+
+            {/* what she's reading, in evidence */}
+            <View style={[card, bevel(4, 4), { marginTop: 16, paddingHorizontal: 16, paddingVertical: 13 }]}>
+              <Text style={[mono(9.5, "b"), { color: Y.faint, marginBottom: 4 }]}>WHAT YOU FED ME</Text>
+              {fed.map((t, i) => (
+                <View key={i} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: "rgba(17,17,19,0.1)", paddingVertical: 9, flexDirection: "row" }}>
+                  <Text style={[mono(10, "b"), { color: Y.blue, marginRight: 10, marginTop: 2 }]}>{String(i + 1).padStart(2, "0")}</Text>
+                  <Text numberOfLines={1} style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 15.5, color: Y.ink }}>
+                    {t}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* the meter, in percent */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14 }}>
+              <View style={{ flex: 1, height: 16, borderWidth: 2, borderColor: Y.ink, backgroundColor: Y.panel }}>
+                <View style={{ width: `${Math.round((readStep / (fed.length + 3)) * 100)}%`, height: "100%", backgroundColor: Y.blue }} />
+              </View>
+              <Text style={[mono(11.5, "b"), { marginLeft: 10, fontVariant: ["tabular-nums"] }]}>
+                {Math.round((readStep / (fed.length + 3)) * 100)}%
+              </Text>
+            </View>
+
+            <View style={{ borderWidth: 2, borderColor: "rgba(17,17,19,0.2)", borderRadius: 16, paddingVertical: 16, alignItems: "center", marginTop: 26 }}>
+              <Text style={[mono(12, "b"), { color: Y.faint }]}>HATCHING…</Text>
+            </View>
+          </View>
         )}
 
         {hatchPhase === "card" && (
@@ -1266,6 +1339,31 @@ function BarRow({ d }: { d: DimScore }) {
         <View style={{ width: `${d.score}%`, height: 7, borderRadius: 4, backgroundColor: col, opacity: d.locked ? 1 : 0.85 }} />
       </View>
       <Text style={[mono(13, "b"), { color: col, width: 30, textAlign: "right", fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
+    </View>
+  );
+}
+
+/* the reading egg — white shell, hard shadow, and ink rising inside it as
+   the passes complete. The liquid is the progress bar; the percent strip
+   below just says the same thing in numbers. */
+function ReadingEgg({ progress }: { progress: number }) {
+  const H = 172;
+  const fill = Math.max(0, Math.min(1, progress));
+  return (
+    <View style={[bevel(5, 5)]}>
+      <Svg width={140} height={H} viewBox="0 0 140 172">
+        <Defs>
+          <ClipPath id="eggClip">
+            <Path d="M70 6 C104 6 132 52 132 102 C132 144 106 166 70 166 C34 166 8 144 8 102 C8 52 36 6 70 6 Z" />
+          </ClipPath>
+        </Defs>
+        <Path d="M70 6 C104 6 132 52 132 102 C132 144 106 166 70 166 C34 166 8 144 8 102 C8 52 36 6 70 6 Z" fill={Y.panel} stroke={Y.ink} strokeWidth={3.5} />
+        <Rect x={0} y={166 - fill * 152} width={140} height={fill * 152 + 6} fill={Y.blue} clipPath="url(#eggClip)" />
+        {fill > 0.12 && <Circle cx={44} cy={166 - fill * 152 + 26} r={5} fill="#C9C4F7" clipPath="url(#eggClip)" />}
+        {fill > 0.3 && <Circle cx={92} cy={166 - fill * 152 + 14} r={4} fill="#C9C4F7" clipPath="url(#eggClip)" />}
+        <Path d="M70 6 C104 6 132 52 132 102 C132 144 106 166 70 166 C34 166 8 144 8 102 C8 52 36 6 70 6 Z" fill="none" stroke={Y.ink} strokeWidth={3.5} />
+        <Circle cx={48} cy={44} r={11} fill="#E4E1F6" opacity={0.9} />
+      </Svg>
     </View>
   );
 }
