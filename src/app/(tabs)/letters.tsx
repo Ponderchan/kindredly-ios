@@ -201,7 +201,7 @@ function Feed({
         <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             <View style={{ minHeight: 78 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderWidth: 1, borderColor: PW.ink, paddingLeft: 12, paddingRight: 6, paddingVertical: 5 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
@@ -220,7 +220,7 @@ function Feed({
                   </Text>
                 </Pressable>
               </View>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? "#7A1F16" : PW.groundInk40, marginTop: 8 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? PW.post : PW.ink40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
                   ? `${replyW - LETTER_MAX} OVER THE LIMIT`
                   : replyOk
@@ -250,16 +250,15 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
   );
 }
 
-/* The room and the sheet.
+/* One letter, full bleed.
 
-   The ground is the strangers' space — a colour, and the thing that makes this
-   feel light. The letter is not printed on it: it's an actual sheet of paper
-   LYING on it, and the whole postal structure lives on the sheet — the docket
-   line, the pasted stamp, the channel tag, the provenance. Square corners,
-   because it's paper, not a UI card.
+   No sheet, no card, no shadow. On Today the letter is not an object lying on
+   a desk — it IS the surface you're reading: one letter per screen, edge to
+   edge, swipe up to pass. Putting it in a card demotes it to a row in a feed,
+   which is the opposite of what this tab is for. Rules do the framing.
 
-   The two moves (pass / reply) stay OUTSIDE the sheet, on the ground: they're
-   things you do with the letter, not things printed on it. */
+   (The sheet belongs where content is a LIST of discrete things — Sealed's
+   entries, Kindreds' correspondents. Not here.) */
 function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -267,9 +266,8 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
 
   return (
-    <View style={{ height, paddingHorizontal: 20, paddingTop: 18, justifyContent: "center" }}>
-      <Animated.View entering={FadeIn.duration(240)}>
-        <View style={{ backgroundColor: PW.sheet, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 }}>
+    <View style={{ height, paddingHorizontal: 26, paddingTop: 26 }}>
+      <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
             the person who sent it.
@@ -293,7 +291,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           )}
         </View>
 
-        <View style={{ paddingVertical: 26 }}>
+        <View style={{ flex: 1, justifyContent: "center" }}>
         {isVoice && audioUrl ? (
           <View>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: PW.pen, marginBottom: 14 }}>VOICE LETTER</Text>
@@ -345,15 +343,14 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           </View>
         )}
 
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: PW.ink40 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: PW.ink40, marginBottom: 10 }}>
           SENT DOWN THREE STREETS · YOU OPENED IT FIRST
         </Text>
-        </View>
 
-        {/* the two moves live on the ground, not on the paper */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 14, paddingHorizontal: 2 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: PW.groundInk60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: PW.groundInk }}>REPLY ↓</Text>
+        {/* the two moves, on a rule */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: PW.ink }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: PW.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: PW.pen }}>REPLY ↓</Text>
         </View>
       </Animated.View>
     </View>
