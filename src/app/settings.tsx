@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { C, F, cardStyle } from "../theme/tokens";
+import { P, PF, panel } from "../theme/post";
 import { useAuth } from "../lib/auth";
 import { disableMorningKnock, enableMorningKnock, morningKnockEnabled } from "../lib/notify";
 
@@ -63,61 +63,69 @@ export default function Settings() {
     router.replace("/onboarding");
   };
 
-  const Row = ({ label, value, onPress }: { label: string; value?: string; onPress?: () => void }) => (
+  const Row = ({ label, value, onPress, last }: { label: string; value?: string; onPress?: () => void; last?: boolean }) => (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
-      style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: C.lineSoft }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: 15,
+        // no divider on the last row — the panel's own border is already there
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: P.ink12,
+      }}
     >
-      <Text style={{ fontFamily: F.sans, fontSize: 15, color: C.ink }}>{label}</Text>
-      <Text style={{ fontFamily: F.sans, fontSize: 14, color: C.faint }}>{value ?? "›"}</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>{label}</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 14, color: P.ink40 }}>{value ?? "›"}</Text>
     </Pressable>
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 26, color: C.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.serif, fontSize: 19, color: C.ink }}>Settings</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>SETTINGS</Text>
         <View style={{ width: 42 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* account */}
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label, marginBottom: 10 }}>ACCOUNT</Text>
-        <View style={[cardStyle, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>ACCOUNT</Text>
+        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label="Pen name" value={handle || "You"} onPress={editName} />
           {age && <Row label="Age" value={age} />}
-          <Row label="Language" value="English" />
+          <Row label="Language" value="English" last />
         </View>
 
         {/* quiet */}
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label, marginBottom: 10 }}>THE QUIET</Text>
-        <View style={[cardStyle, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.lineSoft }}>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>THE QUIET</Text>
+        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontFamily: F.sans, fontSize: 15, color: C.ink }}>The 8 o'clock knock</Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, marginTop: 2 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>The 8 o'clock knock</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 2 }}>
                 One quiet knock when the Morning Page arrives. Nothing else, ever.
               </Text>
             </View>
-            <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: C.purple, false: "#D8D8D6" }} />
+            <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
           </View>
           <Row label="Pages you've kept" onPress={() => router.push("/kept")} />
         </View>
 
         {/* safety */}
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label, marginBottom: 10 }}>SAFETY</Text>
-        <View style={[cardStyle, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>SAFETY</Text>
+        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label="Blocked & reported" />
-          <Row label="Privacy" />
+          <Row label="Privacy" last />
         </View>
 
-        <View style={[cardStyle, { paddingHorizontal: 18, paddingVertical: 2 }]}>
+        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2 }]}>
           <Pressable onPress={onSignOut} style={{ paddingVertical: 15 }}>
-            <Text style={{ fontFamily: F.sansMed, fontSize: 15, color: "#B23838" }}>Sign out</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>Sign out</Text>
           </Pressable>
         </View>
       </ScrollView>

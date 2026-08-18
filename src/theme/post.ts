@@ -40,6 +40,14 @@ export const PF = {
   serifItalic: "Fraunces_400Regular_Italic",
 } as const;
 
+/* A panel. What used to be a white card with a radius and a shadow is, in this
+   system, a ruled block — the rule does the containing. */
+export const panel = { borderWidth: 1, borderColor: P.ink } as const;
+export const panelSoft = { borderWidth: 1, borderColor: P.ink12 } as const;
+
+/* the one filled button: pen blue, square, mono label */
+export const solidBtn = { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" } as const;
+
 /* a full-strength hairline — the system's structural move */
 export const rule = { borderBottomWidth: 1, borderBottomColor: P.ink } as const;
 export const ruleSoft = { borderBottomWidth: 1, borderBottomColor: P.ink12 } as const;

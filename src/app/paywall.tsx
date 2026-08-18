@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { C, F, cardStyle, navyBtn } from "../theme/tokens";
+import { P, PF, panel, solidBtn } from "../theme/post";
 import { Seal } from "../components/Seal";
 import { Wren } from "../components/Wren";
 import { useEntitlement } from "../lib/entitlement";
@@ -75,18 +75,18 @@ export default function Paywall() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "flex-end" }}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ padding: 8 }}>
-          <Text style={{ fontSize: 22, color: C.muted }}>✕</Text>
+          <Text style={{ fontSize: 22, color: P.ink60 }}>✕</Text>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
         <View style={{ alignItems: "center", marginTop: 4 }}>
           <Seal size={82} />
-          <Text style={{ fontFamily: F.serif, fontSize: 30, color: C.ink, marginTop: 18 }}>Kindredly+</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.muted, marginTop: 8, textAlign: "center", lineHeight: 23 }}>
+          <Text style={{ fontFamily: PF.letter, fontSize: 30, color: P.ink, marginTop: 18 }}>Kindredly+</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, marginTop: 8, textAlign: "center", lineHeight: 23 }}>
             More letters, and a closer read from Wren.
           </Text>
         </View>
@@ -98,8 +98,8 @@ export default function Paywall() {
                 <Wren size={20} mode="line" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 15, color: C.ink }}>{title}</Text>
-                <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, marginTop: 3, lineHeight: 19 }}>{sub}</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 15, color: P.ink }}>{title}</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink60, marginTop: 3, lineHeight: 19 }}>{sub}</Text>
               </View>
             </View>
           ))}
@@ -115,32 +115,31 @@ export default function Paywall() {
                 key={p.id}
                 onPress={() => setSelected(p.id)}
                 style={[
-                  cardStyle,
+                  panel,
                   {
                     padding: 18,
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
                     borderWidth: 2,
-                    borderColor: on ? C.purple : "transparent",
+                    borderColor: on ? P.pen : "transparent",
                   },
                 ]}
               >
                 <View>
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 15, color: C.ink }}>
+                  <Text style={{ fontFamily: PF.monoMed, fontSize: 15, color: P.ink }}>
                     {p.title}
                     {best ? "  ·  best value" : ""}
                   </Text>
-                  <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, marginTop: 3 }}>{p.priceString}</Text>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink60, marginTop: 3 }}>{p.priceString}</Text>
                 </View>
                 <View
                   style={{
                     width: 22,
                     height: 22,
-                    borderRadius: 11,
                     borderWidth: 2,
-                    borderColor: on ? C.purple : C.line,
-                    backgroundColor: on ? C.purple : "transparent",
+                    borderColor: on ? P.pen : P.ink12,
+                    backgroundColor: on ? P.pen : "transparent",
                   }}
                 />
               </Pressable>
@@ -148,17 +147,17 @@ export default function Paywall() {
           })}
         </View>
 
-        <Pressable onPress={subscribe} disabled={busy} style={[navyBtn, { paddingVertical: 18, width: "100%", marginTop: 22, opacity: busy ? 0.4 : 1 }]}>
-          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 1.4 }}>
+        <Pressable onPress={subscribe} disabled={busy} style={[solidBtn, { paddingVertical: 18, width: "100%", marginTop: 22, opacity: busy ? 0.4 : 1 }]}>
+          <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 1.4 }}>
             {busy ? "…" : "START KINDREDLY+"}
           </Text>
         </Pressable>
 
         <Pressable onPress={restore} style={{ alignItems: "center", paddingVertical: 16 }}>
-          <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.5, color: C.muted }}>Restore purchase</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 12.5, letterSpacing: 0.5, color: P.ink60 }}>Restore purchase</Text>
         </Pressable>
 
-        <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.faint, textAlign: "center", lineHeight: 17 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40, textAlign: "center", lineHeight: 17 }}>
           Auto-renews until cancelled. Manage or cancel anytime in your App Store settings.{" "}
           <Text onPress={() => Linking.openURL("https://kindredly.io/terms")} style={{ textDecorationLine: "underline" }}>
             Terms
