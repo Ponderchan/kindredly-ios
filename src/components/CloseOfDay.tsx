@@ -12,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { F } from "../theme/tokens";
 import { P, PF } from "../theme/post";
-import { WrenBird } from "./WrenBird";
+import { WrenStamp } from "./WrenStamp";
 import { MORNING_HOUR } from "../lib/notify";
 
 /* Close of day — the post office shuts, and you're the one who shuts it.
@@ -44,11 +44,9 @@ export function CloseOfDay({
 }) {
   return (
     <View style={{ flex: 1, backgroundColor: PAPER }}>
-      <Airmail />
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
         {sealed ? <Sealed onWrite={onWrite} onSelf={onSelf} onKept={onKept} /> : <ToSeal onSeal={onSeal} />}
       </View>
-      <Airmail flip />
     </View>
   );
 }
@@ -142,7 +140,7 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
       {/* the lock is on reading, never on writing */}
       <View style={{ alignItems: "center", marginTop: 22 }}>
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, textAlign: "center", lineHeight: 17 }}>
-          WRITING STAYS OPEN · IT LEAVES WITH THE MORNING VAN
+          WRITING STAYS OPEN{"\n"}IT LEAVES WITH THE MORNING VAN
         </Text>
         <View style={{ flexDirection: "row", gap: 9, marginTop: 14 }}>
           <Ghost label="to a stranger" onPress={onWrite} />
@@ -151,8 +149,8 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
         </View>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 26, opacity: 0.7 }}>
-        <WrenBird size={22} mood="sleepy" />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 28 }}>
+        <WrenStamp size={40} tint={P.ink60} />
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>WREN IS OFF THE CLOCK</Text>
       </View>
     </Animated.View>
@@ -266,17 +264,4 @@ function useUntilMorning(): [string, string] {
     return () => clearInterval(t);
   }, []);
   return v;
-}
-
-/* airmail stripe rule, top and bottom of the page */
-function Airmail({ flip }: { flip?: boolean }) {
-  const bars = Array.from({ length: 64 });
-  const col = (i: number) => (i % 4 === 0 ? "#E0483C" : i % 4 === 2 ? "#3A4F9E" : "transparent");
-  return (
-    <View style={{ height: 11, flexDirection: "row", overflow: "hidden", backgroundColor: PAPER }}>
-      {bars.map((_, i) => (
-        <View key={i} style={{ width: 7, height: 34, marginTop: -10, backgroundColor: col(i), transform: [{ rotate: flip ? "-30deg" : "30deg" }] }} />
-      ))}
-    </View>
-  );
 }

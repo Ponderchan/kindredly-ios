@@ -6,7 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { C, F, shadow } from "../../theme/tokens";
 import { P, PF, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
-import { StrangerAvatar } from "../../components/StrangerAvatar";
+import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
 import { CloseOfDay } from "../../components/CloseOfDay";
@@ -265,7 +265,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* docket line — who and when, as the system files it */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
-          <StrangerAvatar seed={letter.author} size={26} />
+          <MosaicId seed={letter.author} />
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
             {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
           </Text>
@@ -273,9 +273,9 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
 
         <View style={{ flex: 1, justifyContent: "center" }}>
         {isVoice && audioUrl ? (
-          <View style={{ marginTop: 26 }}>
+          <View>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>VOICE LETTER</Text>
-            <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} />
+            <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} system />
             {!!letter.body && letter.body !== "🎙 A voice letter" && (
               <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 24, color: P.ink60, marginTop: 16 }}>{letter.body}</Text>
             )}
@@ -287,7 +287,6 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
               fontSize: tier.size,
               lineHeight: tier.line,
               color: P.ink,
-              marginTop: 28,
               textAlign: tier.center ? "center" : "auto",
             }}
           >
