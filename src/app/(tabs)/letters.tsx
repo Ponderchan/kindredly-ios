@@ -250,15 +250,16 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
   );
 }
 
-/* One letter, full bleed.
+/* One letter, and the paper IS the screen.
 
-   No sheet, no card, no shadow. On Today the letter is not an object lying on
-   a desk — it IS the surface you're reading: one letter per screen, edge to
-   edge, swipe up to pass. Putting it in a card demotes it to a row in a feed,
-   which is the opposite of what this tab is for. Rules do the framing.
+   Full bleed and white at the same time — those were never in conflict. The
+   letter is not a card lying on the desk (that would demote it to a row in a
+   feed, which is the opposite of what this tab is for); it's the sheet held up
+   to your face. So the white runs edge to edge and the desk shows only as the
+   strip above (the header) and below (where you write back).
 
-   (The sheet belongs where content is a LIST of discrete things — Sealed's
-   entries, Kindreds' correspondents. Not here.) */
+   That keeps Today consistent with every other room — white is always where
+   you read — without shrinking the one thing this screen exists to show. */
 function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -266,7 +267,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
 
   return (
-    <View style={{ height, paddingHorizontal: 26, paddingTop: 26 }}>
+    <View style={{ height, backgroundColor: PW.sheet, paddingHorizontal: 26, paddingTop: 26 }}>
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
