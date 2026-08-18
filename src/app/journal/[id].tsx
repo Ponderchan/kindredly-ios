@@ -3,7 +3,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { C, F, cardStyle } from "../../theme/tokens";
+import { P, PF, rule } from "../../theme/post";
 import { AudioCard } from "../../components/AudioCard";
 import { LinePicker } from "../../components/LinePicker";
 import { MoodIcon } from "../../components/MoodIcon";
@@ -12,8 +12,12 @@ import { DEMO_JOURNAL } from "../../data/demo";
 import { insertMorningFragment } from "../../lib/db";
 import { deleteEntry, loadJournal, setCover, setDrift, type JournalEntry } from "../../lib/journal";
 
-/* A single journal page — the sealed room, one page at a time. Read it,
-   let a line drift, or tear it out (delete). Sample pages are read-only. */
+/* A single journal page — the sealed room, one page at a time. Read it, let a
+   line drift, or tear it out. Sample pages are read-only.
+
+   Same surface and same plate as the tabs: white, rules doing the separation,
+   mono for what the system files, the system font for what you wrote. The mood
+   face and the photos keep their colour — they're content. */
 export default function JournalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -77,10 +81,10 @@ export default function JournalDetail() {
 
   if (!e) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
         <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
           <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 26, color: C.ink }}>‹</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -93,17 +97,17 @@ export default function JournalDetail() {
 
   // the page stays neutral — the mood lives in its face, not the background
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* header — back + a ··· menu; the date leads the entry from the centre */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, rule]}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 26, color: C.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         {isDemo ? (
           <View style={{ width: 42 }} />
         ) : (
           <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 24, color: C.ink }}>⋯</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 20, color: P.ink }}>···</Text>
           </Pressable>
         )}
       </View>
@@ -114,9 +118,9 @@ export default function JournalDetail() {
           <MoodIcon id={m.id} size={48} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
             <CalGlyph />
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, letterSpacing: 0.3, color: C.muted }}>
-              {new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-              {isDemo ? "  ·  sample" : ""}
+            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.ink60 }}>
+              {new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}
+              {isDemo ? " · SAMPLE" : ""}
             </Text>
           </View>
         </View>
@@ -141,20 +145,20 @@ export default function JournalDetail() {
 
         {/* the page */}
         {!!e.body && (
-          <Text style={{ fontFamily: F.letter, fontSize: pure ? 20 : 16.5, lineHeight: pure ? 34 : 27, color: "#2A2620" }}>
+          <Text style={{ fontFamily: PF.letter, fontSize: pure ? 20 : 16.5, lineHeight: pure ? 34 : 27, color: P.ink }}>
             {e.body}
           </Text>
         )}
 
         {/* drifted state — the action itself now lives in the ··· menu */}
         {e.driftedLine && (
-          <View style={[cardStyle, { padding: 16, marginTop: 24, backgroundColor: "rgba(255,255,255,0.75)" }]}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.4, color: C.purple, marginBottom: 8 }}>
-              🌊 ONE LINE IS OUT IN THE WORLD
+          <View style={{ marginTop: 28, borderTopWidth: 1, borderTopColor: P.ink, paddingTop: 14 }}>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.pen, marginBottom: 10 }}>
+              ONE LINE IS OUT IN THE WORLD
             </Text>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 23, color: C.ink }}>“{e.driftedLine}”</Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 11.5, color: C.muted, marginTop: 8 }}>
-              Tomorrow it might be the first thing a stranger reads.
+            <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 24, color: P.ink, backgroundColor: "#F6E7A6" }}>{e.driftedLine}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
+              TOMORROW IT MIGHT BE THE FIRST THING A STRANGER READS
             </Text>
           </View>
         )}
@@ -170,21 +174,15 @@ export default function JournalDetail() {
               position: "absolute",
               top: 48,
               right: 14,
-              backgroundColor: "#fff",
-              borderRadius: 14,
-              paddingVertical: 6,
-              minWidth: 214,
-              shadowColor: "#2A2620",
-              shadowOpacity: 0.18,
-              shadowRadius: 20,
-              shadowOffset: { width: 0, height: 10 },
-              elevation: 10,
+              backgroundColor: P.paper,
+              borderWidth: 1,
+              borderColor: P.ink,
+              minWidth: 232,
             }}
           >
             {canDrift && (
               <MenuRow
-                icon="🌊"
-                label="Let one line drift out"
+                label="LET ONE LINE DRIFT OUT"
                 onPress={() => {
                   setMenuOpen(false);
                   setDrifting(true);
@@ -192,8 +190,7 @@ export default function JournalDetail() {
               />
             )}
             <MenuRow
-              icon="🗑"
-              label="Tear this page out"
+              label="TEAR THIS PAGE OUT"
               destructive
               onPress={() => {
                 setMenuOpen(false);
@@ -212,19 +209,18 @@ export default function JournalDetail() {
 /* a tiny monochrome calendar (the 📅 emoji bakes in a wrong date) */
 function CalGlyph() {
   return (
-    <View style={{ width: 13, height: 13, borderRadius: 3, borderWidth: 1.4, borderColor: C.muted, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ position: "absolute", top: -2.5, left: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: C.muted }} />
-      <View style={{ position: "absolute", top: -2.5, right: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: C.muted }} />
-      <View style={{ width: 6, height: 1.4, borderRadius: 1, backgroundColor: C.muted }} />
+    <View style={{ width: 13, height: 13, borderWidth: 1.4, borderColor: P.ink60, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "absolute", top: -2.5, left: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: P.ink60 }} />
+      <View style={{ position: "absolute", top: -2.5, right: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: P.ink60 }} />
+      <View style={{ width: 6, height: 1.4, borderRadius: 1, backgroundColor: P.ink60 }} />
     </View>
   );
 }
 
-function MenuRow({ icon, label, onPress, destructive }: { icon: string; label: string; onPress: () => void; destructive?: boolean }) {
+function MenuRow({ label, onPress, destructive }: { label: string; onPress: () => void; destructive?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: pressed ? "#F2EFE7" : "transparent" })}>
-      <Text style={{ fontSize: 15 }}>{icon}</Text>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 14.5, color: destructive ? "#D14B3C" : C.ink }}>{label}</Text>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ paddingVertical: 14, paddingHorizontal: 16, backgroundColor: pressed ? P.paperDeep : "transparent" })}>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 1, color: destructive ? P.post : P.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -249,11 +245,11 @@ function PhotoGallery({
   const many = photos.length > 1;
   return (
     <View style={{ marginBottom: 18 }}>
-      <View style={{ borderRadius: 18, overflow: "hidden", position: "relative" }}>
+      <View style={{ overflow: "hidden", position: "relative" }}>
         <Image source={{ uri: photos[cur] }} style={{ width: "100%", aspectRatio: 4 / 5 }} resizeMode="cover" />
         {many && (
-          <View style={{ position: "absolute", right: 10, top: 10, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ color: "#fff", fontSize: 11, fontFamily: F.sansBold }}>
+          <View style={{ position: "absolute", right: 10, top: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 9, paddingVertical: 4 }}>
+            <Text style={{ color: "#fff", fontSize: 11, fontFamily: PF.mono }}>
               {cur + 1} / {photos.length}
             </Text>
           </View>
@@ -269,12 +265,12 @@ function PhotoGallery({
               <Pressable key={p + i} onPress={() => onSelect(i)} style={{ position: "relative" }}>
                 <Image
                   source={{ uri: p }}
-                  style={{ width: 60, height: 60, borderRadius: 10, borderWidth: on ? 2 : 0, borderColor: C.purple, opacity: on ? 1 : 0.7 }}
+                  style={{ width: 60, height: 60, borderWidth: on ? 2 : 0, borderColor: P.pen, opacity: on ? 1 : 0.7 }}
                   resizeMode="cover"
                 />
                 {isCover && (
-                  <View style={{ position: "absolute", left: 3, bottom: 3, backgroundColor: C.purple, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 7 }}>
-                    <Text style={{ color: "#fff", fontSize: 7.5, fontFamily: F.sansBold }}>✦</Text>
+                  <View style={{ position: "absolute", left: 3, bottom: 3, backgroundColor: P.pen, paddingHorizontal: 5, paddingVertical: 2 }}>
+                    <Text style={{ color: "#fff", fontSize: 7.5, fontFamily: PF.mono }}>✦</Text>
                   </View>
                 )}
               </Pressable>
@@ -286,9 +282,9 @@ function PhotoGallery({
       {many && canSetCover && cur !== coverIndex && (
         <Pressable
           onPress={onSetCover}
-          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, paddingVertical: 10, borderRadius: 14, backgroundColor: C.purpleLt }}
+          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, paddingVertical: 11, borderWidth: 1, borderColor: P.pen }}
         >
-          <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>✦ Make this the cover</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>MAKE THIS THE COVER</Text>
         </Pressable>
       )}
     </View>
@@ -306,11 +302,11 @@ function DetailVideo({ uri }: { uri: string }) {
     setPlaying(!playing);
   };
   return (
-    <Pressable onPress={toggle} style={{ borderRadius: 18, overflow: "hidden", marginBottom: 18 }}>
+    <Pressable onPress={toggle} style={{ overflow: "hidden", marginBottom: 18 }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 9 / 16, maxHeight: 420 }} contentFit="cover" nativeControls={false} />
       {!playing && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 56, height: 56, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
             <Text style={{ color: "#fff", fontSize: 22, marginLeft: 3 }}>▶</Text>
           </View>
         </View>

@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { C, F } from "../../theme/tokens";
+import { P, PF } from "../../theme/post";
 import { ReportMenu } from "../../components/ReportMenu";
 import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { Toast } from "../../components/ui";
@@ -14,10 +14,14 @@ import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 
 /* The correspondence, seen from Kindreds: a slow chat. The whole back-and-forth
    as bubbles, a milestone strip walking VOICE → RHYTHM → RESONANCE → NAME, and
-   a letter-writing field at the bottom. Today's envelope still opens the letter
-   as an object (thread/[id]); this is the relationship view. */
+   a letter-writing field at the bottom.
 
-const GROUND = "#ECEBF4";
+   Same surface as everywhere: white, rules doing the separation, mono for what
+   the system says, the system font for what either of you wrote. The bubbles
+   stay — they're the one place the two voices need telling apart at a glance —
+   but they lose their tint and their rounding and become ruled blocks. */
+
+const GROUND = P.paper;
 const REVEAL = 5;
 // what each letter earns you on the way to a name
 const STAGES: [string, number][] = [
@@ -93,13 +97,13 @@ export default function ChatScreen() {
       {/* header — back · who · report */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingTop: 2, paddingBottom: 8 }}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 24, color: C.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 }}>
           <StrangerAvatar seed={detail?.other || "anon"} size={30} round />
           <View>
-            <Text style={{ fontFamily: F.serif, fontSize: 17, color: C.ink }}>{name}</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, letterSpacing: 1.2, color: "#8B84B8", marginTop: 1 }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{name.toUpperCase()}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginTop: 2, textAlign: "center" }}>
               {detail?.revealed ? "NAMES REVEALED" : `${Math.min(mine, REVEAL)}/5 LETTERS`}
             </Text>
           </View>
@@ -108,7 +112,7 @@ export default function ChatScreen() {
       </View>
 
       {/* milestones — what the letters are earning */}
-      <View style={{ flexDirection: "row", justifyContent: "space-evenly", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#DDD9EC" }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-evenly", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: P.ink }}>
         {(() => {
           const firstUndone = STAGES.findIndex(([label, t]) => (label === "NAME" ? !detail?.revealed : mine < t));
           return STAGES.map(([label, t], i) => {
@@ -118,19 +122,18 @@ export default function ChatScreen() {
               <View key={label} style={{ alignItems: "center", gap: 5 }}>
                 <View
                   style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
+                    width: 18,
+                    height: 18,
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: done ? C.purpleMid : active ? C.purple : "#fff",
+                    backgroundColor: done || active ? P.pen : "transparent",
                     borderWidth: done || active ? 0 : 1.5,
-                    borderColor: "#CFC9E8",
+                    borderColor: P.ink12,
                   }}
                 >
-                  {done && <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>✓</Text>}
+                  {done && <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 10 }}>✓</Text>}
                 </View>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 7.5, letterSpacing: 1, color: active ? C.purple : done ? "#8B84B8" : C.faint }}>{label}</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 1, color: active ? P.pen : done ? P.ink60 : P.ink40 }}>{label}</Text>
               </View>
             );
           });
@@ -156,24 +159,24 @@ export default function ChatScreen() {
             return (
               <View key={i} style={{ marginBottom: 10, alignItems: m.mine ? "flex-end" : "flex-start" }}>
                 {showLabel && (
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, letterSpacing: 1.2, color: C.faint, marginBottom: 5, marginHorizontal: 4 }}>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginBottom: 6, marginHorizontal: 2 }}>
                     {m.mine ? "YOU" : name.toUpperCase()}
                     {day ? ` · ${day}` : ""}
                   </Text>
                 )}
                 <View
                   style={{
-                    maxWidth: "84%",
-                    backgroundColor: m.mine ? "#DDDEF9" : "#fff",
-                    borderRadius: 16,
-                    [m.mine ? "borderTopRightRadius" : "borderTopLeftRadius"]: 5,
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
+                    maxWidth: "86%",
+                    borderWidth: 1,
+                    borderColor: m.mine ? P.ink12 : P.ink,
+                    backgroundColor: m.mine ? P.paperDeep : P.paper,
+                    paddingHorizontal: 13,
+                    paddingVertical: 11,
                   }}
                 >
-                  <Text style={{ fontFamily: F.letter, fontSize: 15, lineHeight: 22, color: "#26232E" }}>{m.body}</Text>
+                  <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink }}>{m.body}</Text>
                   {!!time && (
-                    <Text style={{ fontFamily: F.sans, fontSize: 8.5, color: "#A39DBD", alignSelf: "flex-end", marginTop: 4 }}>{time}</Text>
+                    <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40, alignSelf: "flex-end", marginTop: 6 }}>{time}</Text>
                   )}
                 </View>
               </View>
@@ -184,11 +187,11 @@ export default function ChatScreen() {
         {/* progress to a name */}
         {detail && !detail.revealed && (
           <View style={{ alignItems: "center", paddingBottom: 8 }}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, letterSpacing: 1.4, color: over ? "#C0503A" : "#8B84B8" }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: over ? P.post : P.ink40 }}>
               {over ? `${weight - LETTER_MAX} OVER THE LIMIT` : `${Math.min(mine, REVEAL)} / 5 LETTERS EXCHANGED`}
             </Text>
-            <View style={{ width: 92, height: 3, borderRadius: 2, backgroundColor: "#D8D4EA", marginTop: 5, overflow: "hidden" }}>
-              <View style={{ width: `${Math.min(100, (mine / REVEAL) * 100)}%`, height: 3, backgroundColor: C.purpleMid }} />
+            <View style={{ width: 92, height: 3, backgroundColor: P.ink12, marginTop: 6, overflow: "hidden" }}>
+              <View style={{ width: `${Math.min(100, (mine / REVEAL) * 100)}%`, height: 3, backgroundColor: P.pen }} />
             </View>
           </View>
         )}
@@ -197,7 +200,7 @@ export default function ChatScreen() {
         {reacting && (
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 10, paddingBottom: 8 }}>
             {REACTIONS.map((r) => (
-              <Pressable key={r.emoji} onPress={() => react(r.emoji)} hitSlop={4} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}>
+              <Pressable key={r.emoji} onPress={() => react(r.emoji)} hitSlop={4} style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
                 <Text style={{ fontSize: 17 }}>{r.emoji}</Text>
               </Pressable>
             ))}
@@ -209,28 +212,28 @@ export default function ChatScreen() {
           <Pressable
             onPress={() => setReacting((v) => !v)}
             hitSlop={6}
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: reacting ? C.purpleLt : "#fff", alignItems: "center", justifyContent: "center" }}
+            style={{ width: 40, height: 40, borderWidth: 1, borderColor: reacting ? P.pen : P.ink, backgroundColor: reacting ? P.penWash : "transparent", alignItems: "center", justifyContent: "center" }}
           >
-            <Text style={{ fontSize: 20, color: "#6B658C", marginTop: -2 }}>+</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 18, color: reacting ? P.pen : P.ink }}>+</Text>
           </Pressable>
-          <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 22 }}>
+          {/* an underlined field, like Today's — writing looks the same
+              wherever you do it */}
+          <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink }}>
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="Write your letter…"
-              placeholderTextColor="#A39DBD"
+              placeholder="write your letter…"
+              placeholderTextColor={P.ink40}
               multiline
-              style={{ maxHeight: 110, paddingHorizontal: 16, paddingTop: 11, paddingBottom: 11, fontFamily: F.letter, fontSize: 15, lineHeight: 21, color: C.ink }}
+              style={{ maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
             />
           </View>
           <Pressable
             onPress={onSend}
             disabled={!canSend}
-            style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.purple, alignItems: "center", justifyContent: "center", opacity: canSend ? 1 : 0.35 }}
+            style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: canSend ? P.pen : "transparent" }}
           >
-            <Svg width={17} height={17} viewBox="0 0 18 18">
-              <Path d="M3 9h11M9.5 4l5 5-5 5" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: canSend ? "#fff" : P.ink40 }}>SEND</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>

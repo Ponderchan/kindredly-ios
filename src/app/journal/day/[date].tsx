@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { C, F } from "../../../theme/tokens";
+import { P, PF, rule } from "../../../theme/post";
 import { SealedEntry } from "../../../components/SealedEntry";
 import { dayKey } from "../../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../../lib/journal";
@@ -35,12 +35,12 @@ export default function SealedDay() {
   const title = date ? new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : "";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, rule]}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 26, color: C.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: F.serif, fontSize: 17, color: C.ink }}>{title}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: P.ink }}>{title.toUpperCase()}</Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -48,8 +48,8 @@ export default function SealedDay() {
         {day.map((e) => (
           <SealedEntry key={e.id} e={e} onPress={() => router.push(`/journal/${e.id}`)} />
         ))}
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, textAlign: "center", marginTop: 8 }}>
-          🔒 {day.length} on this day, sealed on this device.
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
+          {day.length} ON THIS DAY
         </Text>
       </ScrollView>
     </SafeAreaView>
