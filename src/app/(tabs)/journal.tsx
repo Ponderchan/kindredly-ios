@@ -68,8 +68,8 @@ export default function JournalTab() {
         <Empty onWrite={(start) => router.push(start ? `/journal-entry?start=${start}` : "/journal-entry")} />
       ) : view === "calendar" ? (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, paddingHorizontal: 22, marginBottom: 6, marginTop: 14 }}>
-            Moments you've chosen to keep.
+          <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>
+            MOMENTS YOU'VE CHOSEN TO KEEP
           </Text>
           <SealedCalendar entries={all} onPickDay={openDay} />
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 26 }}>
@@ -78,8 +78,8 @@ export default function JournalTab() {
         </Animated.ScrollView>
       ) : (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, marginBottom: 18 }}>
-            Moments you've chosen to keep.
+          <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, marginBottom: 20 }}>
+            MOMENTS YOU'VE CHOSEN TO KEEP
           </Text>
           <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>

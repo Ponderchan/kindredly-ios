@@ -159,9 +159,6 @@ export default function JournalDetail() {
           </View>
         )}
 
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: pure ? "#7A766C" : C.faint, textAlign: "center", marginTop: 24 }}>
-          🔒 Sealed on this device{isDemo ? " · a sample page" : ""}.
-        </Text>
       </ScrollView>
 
       {/* ··· dropdown — anchored under the button, tap outside to close */}

@@ -1,6 +1,5 @@
 import { Image, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { F } from "../theme/tokens";
 import { P, PF } from "../theme/post";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
@@ -76,7 +75,7 @@ function VideoInline({ uri, dur }: { uri: string; dur?: number }) {
     <View style={{ position: "relative", backgroundColor: "#1C1A22" }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 4 / 3 }} contentFit="cover" nativeControls={false} pointerEvents="none" />
       <View style={{ position: "absolute", right: 12, bottom: 12, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 }}>
-        <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 11, letterSpacing: 0.4 }}>{fmt(dur || 0)}</Text>
+        <Text style={{ color: "#fff", fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.4 }}>{fmt(dur || 0)}</Text>
       </View>
     </View>
   );
@@ -147,7 +146,7 @@ function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: 
       <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
       {plus > 0 && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 20 }}>+{plus}</Text>
+          <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 19 }}>+{plus}</Text>
         </View>
       )}
     </View>
