@@ -26,22 +26,40 @@ export const WREN_TYPES: Record<WrenTypeId, WrenType> = {
   deep: {
     id: "deep",
     name: "The Deep One",
-    line: "Slow and deep — your pauses mean something, and so does she.",
+    line: "Slow and deep — your pauses mean something, and so do {subj}.",
     accessory: "scarf",
   },
   storyteller: {
     id: "storyteller",
     name: "The Storyteller",
-    line: "One thought unspooling into the next — she could listen all night.",
+    line: "One thought unspooling into the next — {subj} could listen all night.",
     accessory: "flower",
   },
   whisper: {
     id: "whisper",
     name: "The Whisper",
-    line: "Soft, careful words that land quietly — she leans in close.",
+    line: "Soft, careful words that land quietly — {subj} {leans} in close.",
     accessory: "beanie",
   },
 };
+
+/* The lines above carry {subj} and {leans} placeholders rather than a
+   hardcoded "she": the courier's pronoun is the reader's choice, made on the
+   naming screen, and a card that calls someone's he/him bird "she" undoes the
+   question in the same breath as asking it. `typeLine()` fills them in.
+
+   {leans} exists because they/them takes the plural verb — "they lean in
+   close", not "they leans" — and "and so do/does" is handled by writing the
+   deep line in the plural, which reads correctly for all three. */
+
+/** the type's blurb, spoken about a courier with these pronouns */
+export function typeLine(t: WrenType, subj: string, plural: boolean): string {
+  return t.line
+    .replace("{subj}", subj)
+    .replace("{leans}", plural ? "lean" : "leans")
+    .replace("and so do she", "and so does she")
+    .replace("and so do he", "and so does he");
+}
 
 /** Read the type from a piece of writing (the first line at the hatch). */
 export function wrenTypeFor(text: string): WrenType {

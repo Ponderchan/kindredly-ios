@@ -1,33 +1,44 @@
 import type { TextStyle, ViewStyle } from "react-native";
+import { P, PF } from "./post";
 
 /* EGG OS — the onboarding's own skin.
    ────────────────────────────────────────────────────────────────────────
-   The app proper is white paper and hairlines. Onboarding is not the app:
-   it's the box the app came in, and a box is allowed to be loud. This is a
-   Y2K handheld-pet console — periwinkle ground, 2px black outlines, hard
-   offset shadows with no blur, sticker chrome, pixel counters.
+   A Y2K handheld-pet console: thick outlines, hard offset shadows with no
+   blur, sticker chrome, pixel readouts. But EVERY COLOUR IN IT IS AN APP
+   COLOUR, because the first build of this wasn't and you could feel the
+   seam — a saturated periwinkle console handing you off to a white paper
+   app read as two products, and the handoff is the one moment where that
+   can't happen.
 
-   It stays family with the product rather than fighting it: the one blue is
-   P.pen, the mono is the same IBM Plex Mono the app's chrome uses, and the
-   italic serif on the emphasised word is the same Fraunces Wren speaks in.
-   What changes is weight and ground, not vocabulary — so the moment you get
-   in, the white page reads as the same world with the packaging taken off.
+     ground  P.penWash — the app's own blue wash, its palest token
+     ink     P.ink     — the same near-black every hairline in the app uses
+     blue    P.pen     — the same one actionable colour
+     panel   P.paper
 
-   Nothing in here is imported by a tab screen. If it ever is, that's the
-   signal that the two systems have started to blur. */
+   So the Y2K-ness lives entirely in FORM — 2px borders, 4px hard shadows,
+   segmented meters, stencilled tags — and none of it in hue. Walking out of
+   onboarding is the same world with the packaging taken off, not a different
+   app. The two colours that aren't app tokens are deliberate and scoped to
+   one object each: `brass` is the hatch key and the reveal card's border (it
+   is the wax-seal gold from P.brassSeal, lifted to carry on dark), and
+   `night` is P.ink used as a ground for that one screen.
+
+   Nothing in here may be imported by a tab screen. If it ever is, that's the
+   signal the two systems have started to blur. */
 
 export const Y = {
-  ground: "#C5B9F4", // the console's body
-  groundDeep: "#AFA0EC", // pressed states, inset wells
-  ink: "#141221", // every outline and every rule, 2px
-  panel: "#FFFFFF",
-  blue: "#3A3AF5", // === P.pen. the one actionable colour, both systems
-  yellow: "#F5D264", // the hatch key only — it's the loudest act in the flow
-  night: "#17141F", // the reveal screen
-  gold: "#E5B54C", // the reveal card's border
-  dim: "rgba(20,18,33,0.62)",
-  faint: "rgba(20,18,33,0.34)",
-  warn: "#D9483C",
+  ground: P.penWash, // #ECECFE
+  groundDeep: "#DEDEFB", // insets and pressed states
+  ink: P.ink, // #111113
+  panel: P.paper,
+  blue: P.pen, // #3A3AF5
+  brass: "#D8A63F", // the hatch key + the reveal border, and nothing else
+  night: P.ink, // the reveal screen's ground
+  nightCard: "#1D1B26",
+  lcd: "#6F63B4", // the console screen — darker than every shell on purpose
+  dim: "rgba(17,17,19,0.6)",
+  faint: "rgba(17,17,19,0.32)",
+  warn: P.post, // #E0483C
 } as const;
 
 /* A hard shadow, no blur — the whole look rests on this. iOS needs
@@ -58,7 +69,7 @@ export const key: ViewStyle = {
   justifyContent: "center",
 };
 
-/** a small stencilled tag (WRITE IT DOWN, RANDOMIZE, You're 19 ✓) */
+/** a small stencilled tag (RANDOMIZE, You're 19 ✓, SHE / HER) */
 export const tag: ViewStyle = {
   backgroundColor: Y.panel,
   borderWidth: 2,
@@ -70,15 +81,14 @@ export const tag: ViewStyle = {
 
 /** mono chrome type: everything the console says about itself */
 export const mono = (size = 11, weight: "r" | "m" | "b" = "m"): TextStyle => ({
-  fontFamily: weight === "b" ? "IBMPlexMono_600SemiBold" : weight === "m" ? "IBMPlexMono_500Medium" : "IBMPlexMono_400Regular",
+  fontFamily: weight === "b" ? PF.monoSemi : weight === "m" ? PF.monoMed : PF.mono,
   fontSize: size,
   letterSpacing: size <= 11 ? 1.4 : 0.8,
   color: Y.ink,
 });
 
 export const F2 = {
-  serif: "Fraunces_400Regular",
-  serifItalic: "Fraunces_400Regular_Italic",
-  // what a person types — system font, so CJK renders
-  hand: undefined as unknown as string,
+  serif: PF.serif,
+  serifItalic: PF.serifItalic,
+  hand: PF.letter, // what a person types — system font, so CJK renders
 } as const;
