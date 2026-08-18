@@ -75,18 +75,23 @@ export default function VoiceDetail() {
           {(read?.rows ?? []).map((r, i) => (
             <View
               key={r.key}
-              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, paddingVertical: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: C.lineSoft }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, paddingVertical: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: C.lineSoft, opacity: r.read ? 1 : 0.45 }}
             >
               <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: "#F1EFFA", alignItems: "center", justifyContent: "center" }}>
                 <Text style={{ fontFamily: F.serifSemi, fontSize: 15, color: C.purpleMid }}>{r.glyph}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: C.ink }}>{r.title}</Text>
-                <Text style={{ fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 }}>{r.line}</Text>
+                {/* five of the nine need volume before they can say anything;
+                    an unread row admits it rather than printing a reading it
+                    hasn't earned */}
+                <Text style={{ fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 }}>
+                  {r.read ? r.line : "Not enough writing yet."}
+                </Text>
               </View>
               <View style={{ flexDirection: "row", gap: 3.5 }}>
                 {[1, 2, 3, 4, 5].map((d) => (
-                  <View key={d} style={{ width: 5.5, height: 5.5, borderRadius: 3, backgroundColor: d <= r.strength ? C.purpleMid : "#E3E1F2" }} />
+                  <View key={d} style={{ width: 5.5, height: 5.5, borderRadius: 3, backgroundColor: r.read && d <= r.strength ? C.purpleMid : "#E3E1F2" }} />
                 ))}
               </View>
             </View>

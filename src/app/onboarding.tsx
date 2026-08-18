@@ -27,10 +27,10 @@ import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { EGG_SHELLS, EggShell } from "../components/EggShell";
 import { AvatarImage } from "../components/AvatarImage";
 import { AVATARS } from "../data/avatar-lib";
-import { hatchLine, readMood } from "../lib/wren-read";
+import { readMood } from "../lib/wren-read";
 import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
 import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
-import { analyzeVoice, courierName, readCount, type VoiceRow } from "../lib/voice";
+import { analyzeVoice, courierName, type VoiceDNA } from "../lib/voice";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { STARTER_STAMPS } from "../data/stamps";
@@ -239,7 +239,6 @@ export default function Onboarding() {
      what she wears, which is all it was ever load-bearing for. */
   const voiceRead = analyzeVoice(line ? [line] : []);
   const courier = courierName(voiceRead);
-  const readN = readCount(voiceRead);
   const noteType = wrenTypeFor(note); // still decides the accessory
   const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(line); // picked mood wins
   const heat = Math.min(100, Math.round((weightedCount(line) / OPENING_MIN) * 100));
@@ -856,37 +855,49 @@ export default function Onboarding() {
                 borderColor: Y.brass,
                 borderRadius: 16,
                 backgroundColor: Y.nightCard,
-                paddingVertical: 18,
-                paddingHorizontal: 16,
+                paddingVertical: 22,
+                paddingHorizontal: 20,
                 alignItems: "center",
               }}
             >
-              <WrenBird size={96} mood={hatchMood} />
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 24, color: Y.brass, marginTop: 8 }}>{courier}</Text>
+              <WrenBird size={112} mood={hatchMood} />
+              <Text style={{ fontFamily: F2.serif, fontSize: 30, color: "#F3F0FA", marginTop: 8 }}>{her || "Wren"}</Text>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 18, color: Y.brass, marginTop: 2 }}>{courier}</Text>
 
-              {/* THE STAT BLOCK — the nine, read from what you just wrote. The
-                  five that need volume sit visibly empty: an incomplete set is
-                  a better reason to come back than any number we could invent,
-                  and unlike a rarity it happens to be true. */}
-              <View style={{ width: "100%", height: 1, backgroundColor: "rgba(216,166,63,0.35)", marginTop: 14, marginBottom: 10 }} />
-              <View style={{ flexDirection: "row", width: "100%", marginBottom: 8 }}>
-                <Text style={[mono(8.5, "b"), { flex: 1, color: "rgba(216,166,63,0.8)" }]}>VOICE READ</Text>
-                <Text style={[mono(8.5, "b"), { color: "rgba(216,166,63,0.8)" }]}>{readN} OF 9</Text>
-              </View>
-              {voiceRead.rows.map((r) => (
-                <StatRow key={r.key} row={r} />
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 16, textAlign: "center", lineHeight: 23 }}>
+                “{voiceRead.lead}”
+              </Text>
+
+              {/* VOICE DNA — four, never nine. The nine-row read is the full
+                  picture and it belongs on the Me tab; printed here it turns
+                  the moment your creature is born into a report card. */}
+              <View style={{ width: "100%", height: 1, backgroundColor: "rgba(216,166,63,0.3)", marginTop: 18, marginBottom: 12 }} />
+              <Text style={[mono(9, "b"), { color: "rgba(216,166,63,0.85)", alignSelf: "flex-start", marginBottom: 10 }]}>YOUR VOICE DNA</Text>
+              {voiceRead.dna.map((d) => (
+                <DnaRow key={d.key} d={d} />
               ))}
             </Animated.View>
 
-            <Animated.Text
-              entering={FadeInDown.delay(420).duration(500)}
-              style={{ fontFamily: F2.serifItalic, fontSize: 15, color: "#B0A9CE", marginTop: 18, textAlign: "center", lineHeight: 23 }}
-            >
-              “{hatchLine(hatchMood)}”{"\n"}— {her || "Wren"}
-            </Animated.Text>
-            <Animated.Text entering={FadeInDown.delay(500).duration(500)} style={[mono(9, "b"), { color: "#6F6892", marginTop: 10, textAlign: "center" }]}>
-              THE OTHER {9 - readN} FILL IN AS YOU WRITE
-            </Animated.Text>
+            {/* what is still sealed. Each of the four is a real gate in
+                analyzeVoice — quirks need tics to repeat, rhythm needs several
+                sentences to compare, rare words need a vocabulary to average,
+                and the soul is the aura's formed tier. They tick on their own. */}
+            <Animated.View entering={FadeInDown.delay(420).duration(500)} style={{ width: "100%", maxWidth: 330, marginTop: 20 }}>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: "#CFC7E8", textAlign: "center" }}>
+                {her || "Wren"} is still growing.
+              </Text>
+              <Text style={[mono(9.5, "r"), { color: "#7E7799", textAlign: "center", marginTop: 6, letterSpacing: 0.6 }]}>
+                WRITE MORE LETTERS TO REVEAL
+              </Text>
+              <View style={{ marginTop: 12, alignSelf: "center" }}>
+                {["Your hidden quirks", "Your secret rhythm", "Your rare words", "Your writing soul"].map((t) => (
+                  <View key={t} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                    <View style={{ width: 13, height: 13, borderWidth: 1.6, borderColor: "#5E5878", marginRight: 10 }} />
+                    <Text style={[mono(11, "r"), { color: "#8F87AC", letterSpacing: 0.3 }]}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(560).duration(500)} style={{ width: "100%", maxWidth: 320, marginTop: 22 }}>
               <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass, borderColor: Y.brass }]}>
@@ -1072,36 +1083,15 @@ function Foot({
   );
 }
 
-/* one of the nine, on the hatch card. A row that hasn't been earned shows an
-   empty meter and says so plainly rather than borrowing a sentence it can't
-   support — the blank is the point. */
-function StatRow({ row }: { row: VoiceRow }) {
+/* one strand of the DNA: mark, name, number. No bar and no nine-row table —
+   the point of this screen is that something was born, not that something was
+   measured. */
+function DnaRow({ d }: { d: VoiceDNA }) {
   return (
-    <View style={{ width: "100%", flexDirection: "row", alignItems: "flex-start", marginBottom: 7, opacity: row.read ? 1 : 0.42 }}>
-      <Text style={{ fontFamily: F2.serif, fontSize: 12, color: Y.brass, width: 18, marginTop: 1 }}>{row.glyph}</Text>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={[mono(8.5, "b"), { flex: 1, color: "#CFC7E8" }]}>{row.title.toUpperCase()}</Text>
-          <View style={{ flexDirection: "row" }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <View
-                key={i}
-                style={{
-                  width: 7,
-                  height: 7,
-                  marginLeft: 3,
-                  borderWidth: 1,
-                  borderColor: row.read ? Y.brass : "#4A4462",
-                  backgroundColor: row.read && i < row.strength ? Y.brass : "transparent",
-                }}
-              />
-            ))}
-          </View>
-        </View>
-        <Text style={[mono(9.5, "r"), { color: row.read ? "#A79FC6" : "#6F6892", marginTop: 2, lineHeight: 14, letterSpacing: 0.1 }]}>
-          {row.read ? row.line : "not enough writing yet"}
-        </Text>
-      </View>
+    <View style={{ width: "100%", flexDirection: "row", alignItems: "center", marginBottom: 9 }}>
+      <Text style={{ fontSize: 15, width: 26 }}>{d.icon}</Text>
+      <Text style={{ flex: 1, fontFamily: F2.serif, fontSize: 16, color: "#E4DFF3" }}>{d.label}</Text>
+      <Text style={[mono(15, "b"), { color: Y.brass, fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
     </View>
   );
 }
