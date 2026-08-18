@@ -1,11 +1,11 @@
 import { Tabs } from "expo-router";
-import { TabBar } from "../../components/TabBar";
+import { PostTabBar } from "../../components/PostTabBar";
 
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#FBF9F3" } }}
+      tabBar={(props) => <PostTabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#FAF8F3" } }}
     >
       <Tabs.Screen name="letters" />
       <Tabs.Screen name="journal" />
