@@ -201,7 +201,7 @@ function Feed({
         <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             <View style={{ minHeight: 78 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, borderWidth: 1, borderColor: PW.ink12, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, backgroundColor: PW.sheet, paddingLeft: 14, paddingRight: 6, paddingVertical: 5 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
@@ -269,7 +269,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   return (
     <View style={{ height, paddingHorizontal: 20, paddingTop: 18, justifyContent: "center" }}>
       <Animated.View entering={FadeIn.duration(240)}>
-        <View style={{ backgroundColor: PW.sheet, borderWidth: 1, borderColor: PW.ink12, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 }}>
+        <View style={{ backgroundColor: PW.sheet, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
             the person who sent it.
