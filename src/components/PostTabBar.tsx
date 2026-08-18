@@ -3,7 +3,8 @@ import { Modal, Pressable, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
 import { useAuth } from "../lib/auth";
@@ -119,17 +120,37 @@ export function PostTabBar({ state, navigation }: any) {
           is coming back to you later. "To yourself" isn't a different feature,
           it's the same act with a different recipient. */}
       <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
-        <BlurView intensity={44} tint="dark" style={{ flex: 1 }}>
-          <Pressable style={{ flex: 1, alignItems: "center", justifyContent: "center" }} onPress={() => setChoosing(false)}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: "rgba(255,255,255,0.9)" }}>POST SOMETHING</Text>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 17, color: "rgba(255,255,255,0.66)", marginTop: 10 }}>
-              where should this thought travel?
-            </Text>
+        <BlurView intensity={40} tint="dark" style={{ flex: 1 }}>
+          {/* light. A flat blur is a sheet of grey — the objects need somewhere
+              to sit, so a soft pool falls where they lie and the corners drop
+              away. Without this the paper has nothing to be lit by. */}
+          <Svg style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} width="100%" height="100%">
+            <Defs>
+              <RadialGradient id="pool" cx="50%" cy="52%" r="62%">
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.16} />
+                <Stop offset="60%" stopColor="#000000" stopOpacity={0.08} />
+                <Stop offset="100%" stopColor="#000000" stopOpacity={0.42} />
+              </RadialGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#pool)" />
+          </Svg>
 
-            <View style={{ flexDirection: "row", marginTop: 44, paddingHorizontal: 18 }}>
+          <Pressable style={{ flex: 1, alignItems: "center", justifyContent: "center" }} onPress={() => setChoosing(false)}>
+            <Animated.View entering={FadeIn.duration(260).delay(60)} style={{ alignItems: "center" }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: "rgba(255,255,255,0.9)" }}>POST SOMETHING</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 17, color: "rgba(255,255,255,0.66)", marginTop: 10 }}>
+                where should this thought travel?
+              </Text>
+            </Animated.View>
+
+            {/* they arrive one after the other, and they don't land square —
+                two things set down by a hand, not two cells in a grid */}
+            <View style={{ flexDirection: "row", marginTop: 46, paddingHorizontal: 14 }}>
               <Door
                 label="TO A STRANGER"
                 note="Wren finds who it's for"
+                tilt="-3.2deg"
+                delay={130}
                 onPress={() => {
                   setChoosing(false);
                   router.push("/compose");
@@ -140,6 +161,9 @@ export function PostTabBar({ state, navigation }: any) {
               <Door
                 label="TO YOURSELF"
                 note="a letter for later"
+                tilt="2.4deg"
+                delay={220}
+                lift={10}
                 onPress={() => {
                   setChoosing(false);
                   router.push("/journal-entry");
@@ -166,21 +190,30 @@ function Door({
   note,
   children,
   onPress,
+  tilt,
+  delay,
+  lift = 0,
 }: {
   label: string;
   note: string;
   children: React.ReactNode;
   onPress: () => void;
+  tilt: string;
+  delay: number;
+  lift?: number;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, alignItems: "center", paddingVertical: 6, opacity: pressed ? 0.55 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}
-    >
-      {children}
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.92)", marginTop: 16 }}>{label}</Text>
-      <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: "rgba(255,255,255,0.55)", marginTop: 6, textAlign: "center" }}>{note}</Text>
-    </Pressable>
+    <Animated.View entering={FadeInDown.duration(420).delay(delay).springify().damping(16).mass(0.7)} style={{ flex: 1 }}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({ alignItems: "center", paddingVertical: 6, marginTop: -lift, transform: [{ scale: pressed ? 1.04 : 1 }] })}
+      >
+        {/* pressing LIFTS it — you pick a letter up, you don't push a button in */}
+        <View style={{ transform: [{ rotate: tilt }] }}>{children}</View>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.92)", marginTop: 20 }}>{label}</Text>
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: "rgba(255,255,255,0.55)", marginTop: 6, textAlign: "center" }}>{note}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -194,7 +227,17 @@ function Door({
 function LetterObject({ addressee }: { addressee?: string }) {
   const bars = Array.from({ length: 18 });
   return (
-    <View style={{ width: 112, height: 78, backgroundColor: P.paper }}>
+    <View
+      style={{
+        width: 112,
+        height: 78,
+        backgroundColor: "#FCFBF8",
+        shadowColor: "#000",
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+      }}
+    >
       {/* airmail edge */}
       <View style={{ height: 7, flexDirection: "row", overflow: "hidden" }}>
         {bars.map((_, i) => (
