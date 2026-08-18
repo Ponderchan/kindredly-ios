@@ -20,7 +20,17 @@ import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
 import { SelfCompose } from "../components/SelfCompose";
 import { AudioCard } from "../components/AudioCard";
-import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
+import {
+  DRIFT_CONFIRM,
+  DRIFT_LABEL,
+  SEAL_LABEL,
+  openingLadder,
+  readMood,
+  thoughtLabel,
+  thoughtLine,
+  thoughtState,
+  wrenLine,
+} from "../lib/wren-read";
 import { COUNTER_FROM, LETTER_MAX, weightedCount } from "../lib/weighted-count";
 
 const LANG = "en";
@@ -41,7 +51,15 @@ export default function Compose() {
   // before you started — so you can change your mind halfway through, which
   // in this app is the whole point: the line between what you keep and what
   // you send is the thing being decided while you write.
-  const [dest, setDest] = useState<"stranger" | "self">(params.to === "self" ? "self" : "stranger");
+  // Nothing is chosen when you start. `chosen` stays null until the writer
+  // decides a fate; the state in between is the point of the whole screen.
+  const [chosen, setChosen] = useState<"seal" | "drift" | null>(params.to === "self" ? "seal" : null);
+  const [confirming, setConfirming] = useState(false);
+  // the self body hands its save up so the endings row is the one place on the
+  // page where a thought is given a fate
+  const sealRef = useRef<null | (() => void)>(null);
+  const canSealRef = useRef(false);
+  const dest: "stranger" | "self" = chosen === "drift" ? "stranger" : "self";
   const [draftId, setDraftId] = useState<string | null>(params.draft ?? null);
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
@@ -105,6 +123,11 @@ export default function Compose() {
   const weight = weightedCount(text);
   const over = weight - LETTER_MAX;
   const ladder = openingLadder(weight);
+  const state = thoughtState(weight, chosen);
+  // Releasing something you'd meant to keep is the one move that costs
+  // something; Wren asks, in her voice, on the page. The other direction is
+  // silent — moving toward safety shouldn't need consent.
+  const chooseDrift = () => (chosen === "seal" ? setConfirming(true) : setChosen("drift"));
   const canSend = mode === "speak" ? !!recUri : ladder.ready && over <= 0;
   // Wren's face reads your feeling; her line reads how much you've given.
   const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, ladder.ready);
@@ -288,9 +311,11 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <DestPicker dest={dest} onChange={setDest} />
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: state === "drifting" ? P.pen : P.ink }}>
+            {thoughtLabel(state)}
+          </Text>
         </View>
-        {dest === "stranger" ? (
+        {chosen === "drift" ? (
           <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
             <View style={{ padding: 3 }}>
               <StampTile id={sel || STARTER_STAMPS[0]} w={44} r={5} />
@@ -301,8 +326,8 @@ export default function Compose() {
         )}
       </View>
 
-      {dest === "self" ? (
-        <SelfCompose text={text} setText={setText} onDone={goBack} />
+      {chosen !== "drift" ? (
+        <SelfCompose text={text} setText={setText} onDone={goBack} saveRef={sealRef} canSaveRef={canSealRef} />
       ) : (
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -466,37 +491,120 @@ export default function Compose() {
             }}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : P.ink40 }}>
-              {busy ? "SENDING…" : "YEET IT INTO THE WORLD"}
+              {busy ? "DRIFTING…" : DRIFT_LABEL}
             </Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
       )}
+
+      {chosen !== "drift" && (
+        <Endings state={state} weight={weight} onSeal={() => sealRef.current?.()} onDrift={chooseDrift} />
+      )}
+      {confirming && (
+        <DriftConfirm
+          onGo={() => {
+            setConfirming(false);
+            setChosen("drift");
+          }}
+          onStay={() => setConfirming(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
-/* The destination, as a control rather than a question asked beforehand.
-   Tapping it flips where this is going; the page changes character underneath,
-   so you can't mistake which one you're in. Going public asks once — that's
-   the direction where a mistake costs something. */
-function DestPicker({ dest, onChange }: { dest: "stranger" | "self"; onChange: (d: "stranger" | "self") => void }) {
-  const flip = () => {
-    if (dest === "self") {
-      Alert.alert("Send this to a stranger?", "It leaves this phone and goes into the pool.", [
-        { text: "Keep it private", style: "cancel" },
-        { text: "Send it out", onPress: () => onChange("stranger") },
-      ]);
-    } else {
-      onChange("self"); // toward private needs no permission
-    }
-  };
+/* The two endings. They don't exist while the thought is still only yours —
+   they arrive at the moment Wren notices it might not be, which is the same
+   40-character floor that used to just say "not yet". */
+function Endings({
+  state,
+  weight,
+  onSeal,
+  onDrift,
+}: {
+  state: ReturnType<typeof thoughtState>;
+  weight: number;
+  onSeal: () => void;
+  onDrift: () => void;
+}) {
+  const noticed = state !== "withMe";
   return (
-    <Pressable onPress={flip} hitSlop={10} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6 }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>
-        {dest === "self" ? "JUST FOR ME" : "TO A STRANGER"}
-      </Text>
-      <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.pen }}>▾</Text>
-    </Pressable>
+    <View style={{ paddingHorizontal: 18, paddingBottom: 8 }}>
+      {/* Wren only speaks here once she's NOTICED something. Before that the
+          page already carries her voice, and two of her at once is one too
+          many — the observation has to arrive as a change, not as chatter. */}
+      {noticed && (
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, color: P.ink60, marginBottom: 12 }}>
+          {thoughtLine(state, weight)}
+        </Text>
+      )}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Pressable
+          onPress={onSeal}
+          style={({ pressed }) => ({
+            flex: 1,
+            borderWidth: 1,
+            borderColor: state === "sealed" ? P.pen : P.ink,
+            backgroundColor: state === "sealed" ? P.penWash : "transparent",
+            paddingVertical: 15,
+            alignItems: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: P.ink }}>{SEAL_LABEL}</Text>
+        </Pressable>
+        {noticed && (
+          <Pressable
+            onPress={onDrift}
+            style={({ pressed }) => ({
+              flex: 1,
+              borderWidth: 1,
+              borderColor: P.pen,
+              backgroundColor: state === "drifting" ? P.pen : "transparent",
+              paddingVertical: 15,
+              alignItems: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text
+              style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: state === "drifting" ? "#fff" : P.pen }}
+            >
+              {DRIFT_LABEL}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/* Wren asking, not the operating system. An iOS alert says "the app needs a
+   decision"; this says "someone who has been reading with you has a feeling
+   about it". */
+function DriftConfirm({ onGo, onStay }: { onGo: () => void; onStay: () => void }) {
+  return (
+    <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 0, backgroundColor: "rgba(17,17,19,0.35)", justifyContent: "flex-end" }}>
+      <Pressable style={{ flex: 1 }} onPress={onStay} />
+      <View style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingHorizontal: 22, paddingTop: 20, paddingBottom: 34 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <WrenBird size={40} mood="worry" />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60 }}>{DRIFT_CONFIRM.note}</Text>
+            <Text style={{ fontFamily: PF.letter, fontSize: 19, fontWeight: "600", color: P.ink, marginTop: 4 }}>
+              {DRIFT_CONFIRM.question}
+            </Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
+          <Pressable onPress={onStay} style={{ flex: 1, borderWidth: 1, borderColor: P.ink, paddingVertical: 15, alignItems: "center" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: P.ink }}>{DRIFT_CONFIRM.stay}</Text>
+          </Pressable>
+          <Pressable onPress={onGo} style={{ flex: 1, backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.2, color: "#fff" }}>{DRIFT_CONFIRM.go}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
   );
 }

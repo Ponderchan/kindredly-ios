@@ -83,3 +83,66 @@ export function hatchLine(m: WrenMood): string {
       return "I read every word. I've got you now.";
   }
 }
+
+/* ── A thought's condition, and what Wren says about it ───────────────────
+   The composer no longer asks where something is going before it exists. A
+   thought has a STATE, and the state changes as the writing does — only the
+   last two are the writer's to choose. The 40-character floor stops being a
+   gate ("you can't send yet") and becomes the moment Wren notices the thing
+   might belong to someone else, which is what it was really measuring. */
+
+export type ThoughtState = "withMe" | "becoming" | "sealed" | "drifting";
+
+export function thoughtState(weighted: number, chosen: "seal" | "drift" | null): ThoughtState {
+  if (chosen === "seal") return "sealed";
+  if (chosen === "drift") return "drifting";
+  return weighted >= OPENING_MIN ? "becoming" : "withMe";
+}
+
+/** the label — a condition being reported, never an option being set */
+export function thoughtLabel(s: ThoughtState): string {
+  switch (s) {
+    case "sealed":
+      return "SEALED";
+    case "drifting":
+      return "READY TO DRIFT";
+    case "becoming":
+      return "STILL BECOMING";
+    default:
+      return "WITH ME";
+  }
+}
+
+/* Wren's register changes with the state: encouragement while it's still
+   yours, OBSERVATION at the moment it might not be, then settling either way.
+   Under the floor she keeps using the existing ladder — that voice already
+   works and shouldn't be replaced. */
+export function thoughtLine(s: ThoughtState, weighted: number): string {
+  switch (s) {
+    case "becoming":
+      return "this feels like something someone else might be carrying too.";
+    case "sealed":
+      return "some words are only for the person who wrote them.";
+    case "drifting":
+      return "I'll look for where this belongs.";
+    default:
+      return openingLadder(weighted).line;
+  }
+}
+
+/* The two endings. Never "send" or "keep private" — a destination named as a
+   fate. "Drift" is the app's own word already (a line drifts out of a journal
+   entry); this is the same verb at the scale of a whole piece. "Seal it here"
+   names the room it lands in, and "here" carries the promise: this phone. */
+export const DRIFT_LABEL = "LET IT DRIFT";
+export const SEAL_LABEL = "SEAL IT HERE";
+
+/* Releasing something you'd meant to keep is the one move that can cost the
+   writer something, so Wren asks — in her own voice, on the page. Going the
+   other way is free and silent: moving toward safety shouldn't need consent. */
+export const DRIFT_CONFIRM = {
+  note: "this one feels close to the heart.",
+  question: "let it drift anyway?",
+  go: "LET IT GO",
+  stay: "KEEP IT HERE",
+} as const;
