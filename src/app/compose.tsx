@@ -3,6 +3,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, Tex
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Svg, { Path, Rect } from "react-native-svg";
 import { C, navyBtn } from "../theme/tokens";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
@@ -44,6 +45,7 @@ export default function Compose() {
   const [draftId, setDraftId] = useState<string | null>(params.draft ?? null);
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
+  const [feelings, setFeelings] = useState(false);
   const [sel, setSel] = useState<string | null>(params.stamp ?? (params.draft ? null : STARTER_STAMPS[0]));
   // arriving from a sealed page that decided to leave — the words come with it
   const [text, setText] = useState(params.seed ?? "");
@@ -309,20 +311,12 @@ export default function Compose() {
       {(
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 14, paddingTop: 16 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {/* the letter card — pasted a hair off-straight */}
-          <View
-            style={{
-              backgroundColor: P.paper,
-              padding: 20,
-              minHeight: 380,
-              transform: [{ rotate: "-0.6deg" }],
-              shadowColor: "#2A2153",
-              shadowOpacity: 0.16,
-              shadowRadius: 14,
-              shadowOffset: { width: 0, height: 6 },
-            }}
-          >
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 14, paddingTop: 14 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {/* The paper IS the page. It used to be a card floating inside the
+              screen with a shadow and a tilt, which made writing feel like
+              filling in a form on a desk; the letter you READ is full bleed, so
+              the one you write should be too. */}
+          <View>
             {/* Wren reads you live */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>
@@ -342,7 +336,7 @@ export default function Compose() {
                 placeholder={spark}
                 placeholderTextColor="#B9B3D8"
                 multiline
-                style={{ minHeight: 250, color: P.ink, fontFamily: PF.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
+                style={{ minHeight: 340, color: P.ink, fontFamily: PF.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
               />
             ) : (
               <View style={{ paddingTop: 12, minHeight: 250 }}>
@@ -376,35 +370,7 @@ export default function Compose() {
               </View>
             )}
 
-            {/* one stamp — this letter's channel (exactly one, required) */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>MOOD STAMP</Text>
-              {stamp && (
-                <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{stamp.name.en.toLowerCase()}</Text>
-                </View>
-              )}
-              <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>CHANGE ›</Text>
-              </Pressable>
-            </View>
           </View>
-
-          {/* quick feelings — one tap drops it into the letter */}
-          {mode === "write" && (
-            <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 16 }}>
-              {["🥹", "😤", "🫥", "✨", "🫶", "💀"].map((e, i) => (
-                <Pressable
-                  key={e}
-                  onPress={() => setText((t) => t + e)}
-                  hitSlop={4}
-                  style={{ width: 40, height: 40, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}
-                >
-                  <Text style={{ fontSize: 19 }}>{e}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
 
           {capMsg && (
             <View style={{ marginTop: 16, padding: 16, borderWidth: 1, borderColor: P.ink }}>
@@ -428,47 +394,87 @@ export default function Compose() {
           </View>
         )}
 
-        {/* Aa / mic / yeet */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
-          {(
-            [
-              ["write", "Aa"],
-              ["speak", "🎙"],
-            ] as [Mode, string][]
-          ).map(([m, icon]) => {
-            const on = mode === m;
-            return (
-              <Pressable
-                key={m}
-                onPress={() => setMode(m)}
-                style={{
-                  width: 48,
-                  height: 48,
-                  backgroundColor: on ? P.ink : "transparent",
-                  borderWidth: 1,
-                  borderColor: P.ink,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontFamily: PF.mono, fontSize: 16, color: on ? P.paper : P.ink }}>{icon}</Text>
+    {/* The stamp is pinned above the bar, not left floating in the middle
+        of the page. It's a property of the letter, so it belongs with the
+        controls that act on the letter — and it stays visible while you
+        write instead of drifting wherever the text happens to end. */}
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 22, paddingVertical: 12, borderTopWidth: 1, borderTopColor: P.ink12 }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>MOOD STAMP</Text>
+          {stamp && (
+            <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{stamp.name.en.toLowerCase()}</Text>
+            </View>
+          )}
+          <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>CHANGE ›</Text>
+          </Pressable>
+        </View>
+
+        {/* The quick feelings, in a tray. On the page they read as part of the
+            letter — six boxes sitting under your own words, easy to mistake for
+            the MOOD STAMP above them. They're neither: they're characters you
+            drop INTO the sentence. So they behave like a keyboard — a key opens
+            them, they cover the bottom, they close when you're done. */}
+        {feelings && (
+          <View style={{ flexDirection: "row", justifyContent: "space-around", paddingHorizontal: 14, paddingVertical: 14, borderTopWidth: 1, borderTopColor: P.ink12 }}>
+            {["🥹", "😤", "🫥", "✨", "🫶", "💀"].map((e) => (
+              <Pressable key={e} onPress={() => setText((t) => t + e)} hitSlop={6} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+                <Text style={{ fontSize: 27 }}>{e}</Text>
               </Pressable>
-            );
-          })}
+            ))}
+          </View>
+        )}
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 24 }}>
+          <Pressable
+            onPress={() => setFeelings((v) => !v)}
+            style={{
+              width: 50,
+              height: 50,
+              backgroundColor: feelings ? P.ink : "transparent",
+              borderWidth: 1,
+              borderColor: P.ink,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>🙂</Text>
+          </Pressable>
+
+          {/* A voice letter is a Kindredly+ thing. It has to be VISIBLE — you
+              can't want what you can't see — and unmistakably shut. So the key
+              is always here, wearing a lock, and pressing it explains rather
+              than refuses. */}
+          <Pressable
+            onPress={() => (premium ? setMode(mode === "speak" ? "write" : "speak") : router.push("/paywall"))}
+            style={{
+              width: 50,
+              height: 50,
+              backgroundColor: mode === "speak" ? P.ink : "transparent",
+              borderWidth: 1,
+              borderColor: P.ink,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 19, opacity: premium ? 1 : 0.4 }}>🎙</Text>
+            {!premium && <LockBadge />}
+          </Pressable>
+
           <Pressable
             onPress={send}
             disabled={!canSend || busy}
             style={{
               flex: 1,
-              backgroundColor: canSend && !busy ? P.pen : "transparent",
+              backgroundColor: canSend && !busy ? P.ink : "transparent",
               borderWidth: 1,
-              borderColor: canSend && !busy ? P.pen : P.ink12,
-              paddingVertical: 16,
+              borderColor: canSend && !busy ? P.ink : P.ink12,
+              paddingVertical: 17,
               alignItems: "center",
             }}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : P.ink40 }}>
-              {busy ? "DRIFTING…" : DRIFT_LABEL}
+              {busy ? "SENDING…" : DRIFT_LABEL}
             </Text>
           </Pressable>
         </View>
@@ -479,3 +485,16 @@ export default function Compose() {
   );
 }
 
+/* A drawn padlock. A 7pt "+" reads as "add something", which is the opposite of
+   what it means here — the key has to say SHUT at a glance, and only then say
+   why. */
+function LockBadge() {
+  return (
+    <View style={{ position: "absolute", right: -6, bottom: -6, width: 18, height: 18, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={10} height={10} viewBox="0 0 12 12">
+        <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke="#fff" strokeWidth={1.5} strokeLinecap="round" />
+        <Rect x={2.5} y={5.6} width={7} height={5} fill="#fff" />
+      </Svg>
+    </View>
+  );
+}
