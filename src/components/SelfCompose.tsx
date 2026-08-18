@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { C, F } from "../theme/tokens";
+import {C} from "../theme/tokens";
 import { P, PF } from "../theme/post";
-import { Wren } from "../components/Wren";
-import { WrenBird } from "../components/WrenBird";
-import { MoodModal } from "../components/MoodModal";
-import { MoodIcon } from "../components/MoodIcon";
-import { Recorder } from "../components/Recorder";
-import { AudioCard } from "../components/AudioCard";
+import { Wren } from "./Wren";
+import { WrenBird } from "./WrenBird";
+import { MoodModal } from "./MoodModal";
+import { MoodIcon } from "./MoodIcon";
+import { Recorder } from "./Recorder";
+import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS } from "../data/content";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { addEntry, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
@@ -38,9 +37,15 @@ const Z = {
 
 type Photo = { uri: string; ratio: number };
 
-export default function JournalEntry() {
-  const router = useRouter();
-  const [text, setText] = useState("");
+export function SelfCompose({
+  text,
+  setText,
+  onDone,
+}: {
+  text: string;
+  setText: (t: string) => void;
+  onDone: () => void;
+}) {
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
   const [att, setAtt] = useState<Exclude<JournalType, "text"> | null>(null);
@@ -163,7 +168,7 @@ export default function JournalEntry() {
       const ci = Math.min(coverIdx, uris.length - 1);
       await addEntry({ type: "photo", body, mood, media: uris, coverIndex: ci, mediaUri: uris[ci] });
       setBusy(false);
-      router.back();
+      onDone();
       return;
     }
 
@@ -193,29 +198,13 @@ export default function JournalEntry() {
       }
     }
     setBusy(false);
-    router.back();
+    onDone();
   };
 
   const dateStr = new Date().toLocaleString("en-US", { month: "short", day: "numeric" }).toLowerCase();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Z.bg }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: "row", alignItems: "center" }}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={10}
-          style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
-        >
-          <Text style={{ fontFamily: PF.mono, fontSize: 17, color: Z.ink }}>✕</Text>
-        </Pressable>
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>JUST FOR ME</Text>
-          </View>
-        </View>
-        <View style={{ width: 42 }} />
-      </View>
-
+    <View style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 14, paddingTop: 22 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* the page — taped down at the corners */}
@@ -419,7 +408,7 @@ export default function JournalEntry() {
       </KeyboardAvoidingView>
 
       <MoodModal visible={moodOpen} onPick={pickMood} onCancel={() => setMoodOpen(false)} />
-    </SafeAreaView>
+    </View>
   );
 }
 

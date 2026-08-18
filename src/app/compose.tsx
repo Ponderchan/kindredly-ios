@@ -3,7 +3,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, Tex
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { C, F, navyBtn } from "../theme/tokens";
+import { C, navyBtn } from "../theme/tokens";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
@@ -18,6 +18,7 @@ import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
+import { SelfCompose } from "../components/SelfCompose";
 import { AudioCard } from "../components/AudioCard";
 import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
 import { COUNTER_FROM, LETTER_MAX, weightedCount } from "../lib/weighted-count";
@@ -29,13 +30,18 @@ type Mode = "write" | "speak";
 
 export default function Compose() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string }>();
+  const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string; to?: string; start?: string }>();
   const isMorning = params.morning === "1";
   const { premium } = useEntitlement();
 
   // open straight to writing — text first, any length. The stamp is a light,
   // optional accent (default one assigned; tap it to change), not a gate.
   const [step, setStep] = useState<Step>("write");
+  // WHERE this is going. It lives on the page, not in a sheet you answered
+  // before you started — so you can change your mind halfway through, which
+  // in this app is the whole point: the line between what you keep and what
+  // you send is the thing being decided while you write.
+  const [dest, setDest] = useState<"stranger" | "self">(params.to === "self" ? "self" : "stranger");
   const [draftId, setDraftId] = useState<string | null>(params.draft ?? null);
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
@@ -282,16 +288,22 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>TO A STRANGER</Text>
-          </View>
+          <DestPicker dest={dest} onChange={setDest} />
         </View>
-        <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
-          <View style={{ padding: 3 }}>
-            <StampTile id={sel || STARTER_STAMPS[0]} w={44} r={5} />
-          </View>
-        </Pressable>
+        {dest === "stranger" ? (
+          <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
+            <View style={{ padding: 3 }}>
+              <StampTile id={sel || STARTER_STAMPS[0]} w={44} r={5} />
+            </View>
+          </Pressable>
+        ) : (
+          <View style={{ width: 50 }} />
+        )}
       </View>
+
+      {dest === "self" ? (
+        <SelfCompose text={text} setText={setText} onDone={goBack} />
+      ) : (
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 14, paddingTop: 16 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -459,6 +471,32 @@ export default function Compose() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
+  );
+}
+
+/* The destination, as a control rather than a question asked beforehand.
+   Tapping it flips where this is going; the page changes character underneath,
+   so you can't mistake which one you're in. Going public asks once — that's
+   the direction where a mistake costs something. */
+function DestPicker({ dest, onChange }: { dest: "stranger" | "self"; onChange: (d: "stranger" | "self") => void }) {
+  const flip = () => {
+    if (dest === "self") {
+      Alert.alert("Send this to a stranger?", "It leaves this phone and goes into the pool.", [
+        { text: "Keep it private", style: "cancel" },
+        { text: "Send it out", onPress: () => onChange("stranger") },
+      ]);
+    } else {
+      onChange("self"); // toward private needs no permission
+    }
+  };
+  return (
+    <Pressable onPress={flip} hitSlop={10} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>
+        {dest === "self" ? "JUST FOR ME" : "TO A STRANGER"}
+      </Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.pen }}>▾</Text>
+    </Pressable>
   );
 }

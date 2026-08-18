@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
-import { WrenBird } from "./WrenBird";
 import { useAuth } from "../lib/auth";
 
 /* The counter. Not a floating blurred pill — a ruled strip of windows, the way
@@ -14,7 +12,9 @@ import { useAuth } from "../lib/auth";
 
    letters  — an envelope, flap open: what came for you today
    sealed   — a filed page with its own stamp: what never leaves
-   post     — the slot itself, inked; you don't "compose", you post
+   post     — the slot itself, inked; you don't "compose", you post. It opens
+              the publish page directly: WHO it's for is a control on that page,
+              not a question asked before you've written anything
    kindreds — an orbit: the people circling in
    me       — YOUR mosaic; in this system your identity is a redacted grid,
               so the tab is literally you, and no two users' bars match
@@ -28,7 +28,6 @@ export function PostTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const [choosing, setChoosing] = useState(false);
   const current: string = state.routes[state.index]?.name ?? "letters";
 
   const go = (name: string) => {
@@ -79,7 +78,7 @@ export function PostTabBar({ state, navigation }: any) {
               same letter sits at rest above the same lip. One object, two
               directions. It's also the one element allowed to break the rule
               it stands on. */}
-          <Pressable onPress={() => setChoosing(true)} style={{ width: 62, alignItems: "center" }}>
+          <Pressable onPress={() => router.push("/compose")} style={{ width: 62, alignItems: "center" }}>
             <View style={{ width: 44, height: 44, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", marginTop: -10 }}>
               <Svg width={26} height={26} viewBox="0 0 24 24">
                 {/* the letter, going down and in */}
@@ -104,37 +103,6 @@ export function PostTabBar({ state, navigation }: any) {
         </View>
       </View>
 
-      {/* who's it for? — the slot asks before it takes anything */}
-      <Modal visible={choosing} transparent animationType="fade" onRequestClose={() => setChoosing(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(27,27,24,0.5)", justifyContent: "flex-end" }} onPress={() => setChoosing(false)}>
-          <Pressable onPress={() => {}} style={{ backgroundColor: P.paper, paddingHorizontal: 22, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 14) + 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-              <WrenBird size={38} mood="curious" />
-              <View>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>POST SOMETHING</Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 3 }}>WHO'S IT FOR?</Text>
-              </View>
-            </View>
-
-            <Choice
-              label="TO A STRANGER"
-              note="Wren finds who it's for"
-              onPress={() => {
-                setChoosing(false);
-                router.push("/compose");
-              }}
-            />
-            <Choice
-              label="TO YOURSELF"
-              note="sealed — it never leaves this phone"
-              onPress={() => {
-                setChoosing(false);
-                router.push("/journal-entry");
-              }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
     </>
   );
 }
