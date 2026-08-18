@@ -150,7 +150,7 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 28 }}>
-        <WrenStamp size={40} tint={P.ink60} />
+        <WrenStamp size={44} mood="sleepy" />
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>WREN IS OFF THE CLOCK</Text>
       </View>
     </Animated.View>

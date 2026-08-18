@@ -1,47 +1,83 @@
 import { View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { WrenBird, type WrenMood } from "./WrenBird";
 import { P } from "../theme/post";
 
-/* Wren, as the post office would print her: a single-colour line drawing inside
-   a stamp's frame. The illustrated mascot carries her own palette, which reads
-   as a stray blob on a page made only of black rules and mono type — so in this
-   system she isn't drawn on the page, she's STAMPED onto it. Same bird (round
-   body, round head, tuft, small beak), reduced to ink.
+/* Wren, mounted like a stamp.
 
-   She stays the one living thing in a page of machinery — which is the point. */
+   The first version of this drew her by hand from two overlapping circles and
+   an arc — at 40pt that's mud, and it wasn't her. Her art is designed data
+   (wren-family-data.ts), so the stamp doesn't redraw her: it FRAMES her.
+   Perforation on the outside, the real bird inside.
 
-export function WrenStamp({ size = 44, tint = P.ink, framed = true }: { size?: number; tint?: string; framed?: boolean }) {
-  const s = size;
-  const bird = (
-    <Svg width={s * 0.72} height={s * 0.72} viewBox="0 0 40 40">
-      {/* body */}
-      <Circle cx={20} cy={24} r={10.5} fill="none" stroke={tint} strokeWidth={1.8} />
-      {/* head */}
-      <Circle cx={20} cy={13.5} r={6.5} fill="none" stroke={tint} strokeWidth={1.8} />
-      {/* beak */}
-      <Path d="M26.2 13.2 L31 15 L26.2 16.6" fill="none" stroke={tint} strokeWidth={1.6} strokeLinejoin="round" />
-      {/* eye */}
-      <Circle cx={17.6} cy={12.4} r={1.35} fill={tint} />
-      {/* tuft */}
-      <Path d="M14.6 7.6 Q16.4 3 18.6 7.2" fill="none" stroke={tint} strokeWidth={1.5} strokeLinecap="round" />
-      {/* wing */}
-      <Path d="M14 24 Q20 30 26 24" fill="none" stroke={tint} strokeWidth={1.5} strokeLinecap="round" />
-    </Svg>
-  );
+   It also must NOT pass a skin. She is indigo by default (sticker); plush
+   unlocks at your first kindred and ink is a Kindredly+ skin, so hard-coding
+   one both changes who she is and shows a paid skin to someone who hasn't
+   bought it. WrenBird resolves the owned skin itself — leave it alone.
 
+   She stays the one living thing on a page of rules — she just stopped being
+   a smudge. */
+
+export function WrenStamp({
+  size = 44,
+  mood = "content",
+  framed = true,
+}: {
+  size?: number;
+  mood?: WrenMood;
+  framed?: boolean;
+}) {
+  const bird = <WrenBird size={size * (framed ? 0.74 : 1)} mood={mood} />;
   if (!framed) return bird;
+
   return (
     <View
       style={{
-        width: s,
-        height: s,
+        width: size,
+        height: size,
         borderWidth: 1,
-        borderColor: tint,
+        borderColor: P.ink,
         alignItems: "center",
         justifyContent: "center",
+        backgroundColor: P.paper,
       }}
     >
+      <Perf size={size} />
       {bird}
     </View>
+  );
+}
+
+/* a stamp's perforated edge, as ticks along the frame */
+function Perf({ size }: { size: number }) {
+  const n = Math.max(3, Math.round(size / 11));
+  const step = size / n;
+  const ticks = Array.from({ length: n });
+  return (
+    <>
+      {ticks.map((_, i) => (
+        <View
+          key={`t${i}`}
+          style={{ position: "absolute", top: -1.5, left: i * step + step * 0.3, width: step * 0.46, height: 3.5, backgroundColor: P.paper }}
+        />
+      ))}
+      {ticks.map((_, i) => (
+        <View
+          key={`b${i}`}
+          style={{ position: "absolute", bottom: -1.5, left: i * step + step * 0.3, width: step * 0.46, height: 3.5, backgroundColor: P.paper }}
+        />
+      ))}
+      {ticks.map((_, i) => (
+        <View
+          key={`l${i}`}
+          style={{ position: "absolute", left: -1.5, top: i * step + step * 0.3, height: step * 0.46, width: 3.5, backgroundColor: P.paper }}
+        />
+      ))}
+      {ticks.map((_, i) => (
+        <View
+          key={`r${i}`}
+          style={{ position: "absolute", right: -1.5, top: i * step + step * 0.3, height: step * 0.46, width: 3.5, backgroundColor: P.paper }}
+        />
+      ))}
+    </>
   );
 }

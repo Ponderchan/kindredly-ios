@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
 import { WrenStamp } from "./WrenStamp";
@@ -73,11 +73,23 @@ export function PostTabBar({ state, navigation }: any) {
             <SealedGlyph color={tint("journal")} />
           </Window>
 
-          {/* the slot — inked, square, and deliberately taller than the strip:
-              the one element allowed to break the rule it sits on */}
+          {/* THE SLOT, posting. A bar alone is just a minus sign — so the
+              letter is shown going in: tilted, its lower half already swallowed
+              by the lip. Deliberately the mirror of the Today glyph, where the
+              same letter sits at rest above the same lip. One object, two
+              directions. It's also the one element allowed to break the rule
+              it stands on. */}
           <Pressable onPress={() => setChoosing(true)} style={{ width: 62, alignItems: "center" }}>
-            <View style={{ width: 42, height: 42, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", marginTop: -9 }}>
-              <View style={{ width: 20, height: 3, backgroundColor: "#fff" }} />
+            <View style={{ width: 44, height: 44, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", marginTop: -10 }}>
+              <Svg width={26} height={26} viewBox="0 0 24 24">
+                {/* the letter, going down and in */}
+                <G transform="rotate(-13 12 10)">
+                  <Rect x={6} y={2.5} width={12} height={9.5} fill="#fff" />
+                  <Path d="M6 2.5l6 4.4 6-4.4" stroke={P.pen} strokeWidth={1.5} fill="none" strokeLinejoin="round" />
+                </G>
+                {/* the lip — solid, and it crosses the letter */}
+                <Rect x={1.5} y={13} width={21} height={3} fill="#fff" />
+              </Svg>
             </View>
           </Pressable>
 
@@ -97,7 +109,7 @@ export function PostTabBar({ state, navigation }: any) {
         <Pressable style={{ flex: 1, backgroundColor: "rgba(27,27,24,0.5)", justifyContent: "flex-end" }} onPress={() => setChoosing(false)}>
           <Pressable onPress={() => {}} style={{ backgroundColor: P.paper, paddingHorizontal: 22, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 14) + 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-              <WrenStamp size={38} tint={P.ink} />
+              <WrenStamp size={40} mood="curious" />
               <View>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>POST SOMETHING</Text>
                 <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 3 }}>WHO'S IT FOR?</Text>
