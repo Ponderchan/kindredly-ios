@@ -456,7 +456,13 @@ export default function Onboarding() {
                 {/* clear of the email key's hard shadow — it used to follow a
                     line of text, and now it follows a bevelled button */}
                 <Pressable onPress={() => setStep("username")} style={{ alignItems: "center", paddingTop: 18 }}>
-                  <Text style={[mono(11, "r"), { color: Y.dim }]}>Explore first, sign in later →</Text>
+                  {/* "Explore first, sign in later" promised something the product can't
+                      keep: without a session the pool is unreadable (RLS is
+                      `to authenticated`), so there is very little to explore.
+                      "Just looking" is what a person actually says walking into
+                      a shop — it promises nothing, and unlike Skip or Continue
+                      as guest it doesn't imply they're dodging the real thing. */}
+                  <Text style={[mono(11, "r"), { color: Y.dim }]}>Just looking →</Text>
                 </Pressable>
               </>
             )}

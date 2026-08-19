@@ -1,4 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
+import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -138,6 +139,8 @@ function Feed({
   const [toast, setToast] = useState(false);
   const [sending, setSending] = useState(false);
   const [kbOpen, setKbOpen] = useState(false);
+  const { session } = useAuth();
+  const [needsAccount, setNeedsAccount] = useState(false);
 
   useEffect(() => {
     const s = Keyboard.addListener("keyboardWillShow", () => setKbOpen(true));
@@ -167,7 +170,19 @@ function Feed({
     if (demo || current.author?.startsWith("demo-")) {
       seedDemoThread(current, text);
     } else {
-      await replyToLetter(current, text);
+      /* THIS RESULT USED TO BE THROWN AWAY. replyToLetter returns null for a
+         reader with no session, and the screen cleared the box, popped the
+         toast and moved to the next letter regardless — so a ghost watched
+         their reply "send" and open a thread that never existed. Of every
+         silent failure in the product this was the only one that actively
+         lied about something the reader cares about. */
+      const threadId = await replyToLetter(current, text);
+      if (!threadId) {
+        setSending(false);
+        if (!session) openSignUpSheet(() => setNeedsAccount(true));
+        else Alert.alert("Couldn't send", "That reply didn't go out. Try again.");
+        return; // the draft stays in the box
+      }
     }
     setSending(false);
     setDrafts((d) => ({ ...d, [current.id]: "" }));
@@ -283,6 +298,16 @@ function Feed({
       </KeyboardAvoidingView>
 
       {toast && <Toast msg="a thread opened — find it in Kindreds" bottom={150} />}
+
+      <SignUpSheet
+        open={needsAccount}
+        reason="A reply opens a thread between the two of you, so it needs somewhere their answer can reach you. What you wrote is still in the box."
+        onClose={() => setNeedsAccount(false)}
+        onSignedIn={() => {
+          setNeedsAccount(false);
+          void send();
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -11,6 +11,8 @@ import { getMood } from "../../data/moods";
 import { DEMO_JOURNAL } from "../../data/demo";
 import { insertMorningFragment } from "../../lib/db";
 import { deleteEntry, loadJournal, setCover, setDrift, type JournalEntry } from "../../lib/journal";
+import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
+import { useAuth } from "../../lib/auth";
 
 /* A single journal page — the sealed room, one page at a time. Read it, let a
    line drift, or tear it out. Sample pages are read-only.
@@ -54,6 +56,10 @@ export default function JournalDetail() {
     setE({ ...e, coverIndex: sel, mediaUri: e.media?.[sel] || e.mediaUri });
   };
 
+  const { session } = useAuth();
+  const [needsAccount, setNeedsAccount] = useState(false);
+  const [pendingLine, setPendingLine] = useState<string | null>(null);
+
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
 
   const confirmDelete = () => {
@@ -71,10 +77,20 @@ export default function JournalDetail() {
     ]);
   };
 
+  /* Drifting is the one thing in the sealed room that LEAVES it, so it is
+     the one thing here that needs an account. Everything else on this page —
+     writing, keeping, tearing out — stays on the phone and stays open to a
+     ghost, which is the promise the room is built on. */
   const onPickLine = async (line: string) => {
     setDrifting(false);
     if (!e) return;
-    await insertMorningFragment(line, e.mood, "en");
+    const sent = await insertMorningFragment(line, e.mood, "en");
+    if (!sent) {
+      setPendingLine(line);
+      if (!session) openSignUpSheet(() => setNeedsAccount(true));
+      else Alert.alert("Couldn't send it out", "That line stayed put. Try again.");
+      return;
+    }
     await setDrift(e.id, line);
     setE({ ...e, driftedLine: line });
   };
@@ -216,6 +232,16 @@ export default function JournalDetail() {
       )}
 
       <LinePicker visible={drifting} body={e.body} onPick={onPickLine} onClose={() => setDrifting(false)} />
+
+      <SignUpSheet
+        open={needsAccount}
+        reason="This line is the one thing that leaves the sealed room, so it needs an account to travel under. The page itself stays here either way."
+        onClose={() => setNeedsAccount(false)}
+        onSignedIn={() => {
+          setNeedsAccount(false);
+          if (pendingLine) void onPickLine(pendingLine);
+        }}
+      />
     </SafeAreaView>
   );
 }

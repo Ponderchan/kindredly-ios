@@ -18,6 +18,8 @@ import { bumpLetters } from "../lib/api";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
+import { SignUpSheet, openSignUpSheet } from "../components/SignUpSheet";
+import { useAuth } from "../lib/auth";
 import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
@@ -80,6 +82,8 @@ export default function Compose() {
      away. The sheet itself is components/LeaveSheet — this used to be
      Alert.alert, which is right behaviour in stock iOS clothes. */
   const [leaving, setLeaving] = useState(false);
+  const { session } = useAuth();
+  const [needsAccount, setNeedsAccount] = useState(false);
   const closeWithGuard = () => {
     if (!text.trim()) return goBack();
     openLeaveSheet(() => setLeaving(true));
@@ -165,7 +169,12 @@ export default function Compose() {
       if (bump.reason === "daily_cap") {
         setCapMsg(`That's your ${bump.cap ?? 3} letters for today.`);
       } else if (bump.reason === "unauthorized") {
-        Alert.alert("Sign in", "Please sign in again to send.");
+        /* THE FIRST WALL A GHOST ACTUALLY HITS. The daily-cap check runs
+           before publishLetter, so this — not the publish — is where someone
+           with no session gets stopped, and it was a stock alert saying
+           "sign in AGAIN" to a person who never signed in once. */
+        if (!session) openSignUpSheet(() => setNeedsAccount(true));
+        else Alert.alert("Sign in", "Your session expired. Sign in again to send.");
       } else {
         Alert.alert("Couldn't send", "Something went wrong. Try again in a moment.");
       }
@@ -180,6 +189,13 @@ export default function Compose() {
       ok = await publishLetter(sel, body, LANG);
     }
     setBusy(false);
+    /* A ghost's publishLetter always returns null, and "The letter didn't go
+       out. Try again." turns "you aren't signed in" into "the network broke" —
+       so they retry forever. Ask for the account instead, and only here. */
+    if (!ok && !session) {
+      openSignUpSheet(() => setNeedsAccount(true));
+      return;
+    }
     if (!ok) {
       Alert.alert(
         "Couldn't send",
@@ -508,6 +524,16 @@ export default function Compose() {
         </View>
       </KeyboardAvoidingView>
       )}
+
+      <SignUpSheet
+        open={needsAccount}
+        reason="This one's addressed to a stranger, so it needs somewhere for their reply to land. Your letter stays exactly as you left it."
+        onClose={() => setNeedsAccount(false)}
+        onSignedIn={() => {
+          setNeedsAccount(false);
+          void send();
+        }}
+      />
 
       <LeaveSheet
         open={leaving}
