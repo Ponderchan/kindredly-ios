@@ -83,6 +83,20 @@ type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "nam
 const ORDER: Step[] = ["welcome", "username", "you", "cakeday", "avatar", "egg", "naming", "write", "hatch"];
 const BARS = ORDER.length - 1; // the reveal isn't a step you're working through
 
+/* EVERY STEP'S CONTENT IS OPTICALLY CENTRED between the progress meter and
+   the key. It used to be top-aligned, so a short step — the welcome worst of
+   all — packed everything against the meter and left a third of the screen
+   dead underneath. A console reads as a console because its screen is
+   composed; content shoved to the top over a void reads as a page that failed
+   to finish loading.
+
+   `flexGrow: 1` matters as much as the centring: without it a content
+   container only grows to fit its children, so justifyContent has no room to
+   work in and nothing moves. The two steps that carry an incubator dock get a
+   matching flexible gap ABOVE the content, since they already had one below
+   it — one spacer centres nothing. */
+const CENTRED = { flexGrow: 1, justifyContent: "center" } as const;
+
 const WIN_W = Dimensions.get("window").width;
 const PAGE_W = WIN_W - 40;
 
@@ -356,7 +370,7 @@ export default function Onboarding() {
     const c = CARDS[cardI];
     return (
       <Console>
-        <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ ...CENTRED, paddingVertical: 18 }} showsVerticalScrollIndicator={false}>
           <View style={{ paddingHorizontal: 18, paddingTop: 6 }}>
             <View style={[card, bevel(5, 5), { overflow: "hidden" }]}>
               <View
@@ -458,6 +472,7 @@ export default function Onboarding() {
     return (
       <Console step={stepIdx} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={{ flex: 1 }} />
           <Head plain="Pick a" em="pen name." sub="Not your real name — change it anytime. Strangers never see it; you are how you write." />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 20 }}>
             <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, height: 56 }]}>
@@ -493,6 +508,7 @@ export default function Onboarding() {
   if (step === "you") {
     return (
       <Console step={stepIdx} onBack={back}>
+        <View style={{ flex: 1 }} />
         <Head plain={`${handle || "Hey"} — what do we`} em="call you?" sub="Only used in how the app talks about you. Skip it and we'll say they." />
         <View style={{ paddingHorizontal: 18, marginTop: 20 }}>
           {PRONOUNS.map((p, i) => {
@@ -546,7 +562,7 @@ export default function Onboarding() {
   if (step === "cakeday") {
     return (
       <Console step={stepIdx} onBack={back}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={`${handle || "Hey"}, when's your`} em="cakeday?" sub="🎂 Whoever hatches keeps it, and writes to you on the day." />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { flexDirection: "row", overflow: "hidden" }]}>
@@ -583,7 +599,7 @@ export default function Onboarding() {
     const shown = AVATARS.slice(0, 14);
     return (
       <Console step={stepIdx} onBack={back}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain="Pick a" em="face." sub="Just for you — strangers never see it. Change it anytime." />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { padding: 12, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
@@ -639,7 +655,7 @@ export default function Onboarding() {
   if (step === "egg") {
     return (
       <Console step={stepIdx} onBack={back}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head
             plain="Choose your"
             em="courier."
@@ -742,7 +758,7 @@ export default function Onboarding() {
     return (
       <Console step={stepIdx} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={CENTRED} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Head plain="Now" em="name them." sub="This is what they're called from here on — in every line they ever write you." />
 
             <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
