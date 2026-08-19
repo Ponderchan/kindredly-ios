@@ -25,7 +25,7 @@ import { MORNING_HOUR } from "../lib/notify";
    date on it. (A haptic thunk belongs on the landing — needs expo-haptics,
    which needs a native rebuild.) */
 
-const PAPER = P.ground; // the closed post is a state of the room, not a letter
+const PAPER = P.penWash; // the closed post is the desk with nothing on it
 const INK = P.post;
 const BOARD = P.ink;
 const HOLD_MS = 750;

@@ -90,7 +90,7 @@ export default function LettersTab() {
   // the one-time ceremony — open your first letter, then the post is yours
   if (!ritualDone) {
     // wait for the pool before deciding what she came back with
-    if (!loaded) return <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} />;
+    if (!loaded) return <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} />;
     return (
       <Arrival
         first={feed[0] ?? null}
@@ -179,7 +179,7 @@ function Feed({
   if (quiet) {
     // nothing waiting — you're already at the close of the day
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.ground }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
         <View style={{ flex: 1, paddingBottom: tabH }}>
           <CloseOfDay
             sealed={sealed}
@@ -197,7 +197,7 @@ function Feed({
   const replyOk = replyW >= REPLY_MIN && replyW <= LETTER_MAX;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.ground }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={loaded && atEnd} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
@@ -224,7 +224,7 @@ function Feed({
                 get wrong, and slice 142 made the flash longer by putting the
                 matches query in the same await. */}
             {loaded && (
-            <View style={{ height: vh, backgroundColor: P.ground }}>
+            <View style={{ height: vh, backgroundColor: P.penWash }}>
               <CloseOfDay
                 sealed={sealed}
                 onSeal={seal}
@@ -240,12 +240,15 @@ function Feed({
         {/* one shared reply bar, bound to the letter you're on. Always rendered
             at a constant height (even on the caught-up page) so the pager's page
             height never shifts under it. */}
-        <View style={{ paddingHorizontal: 26, paddingTop: 4, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
+        <View style={{ paddingHorizontal: 26, paddingTop: 10, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
+            /* THE REPLY IS NOT PAPER YET, and that is the point. Giving it
+               its own sheet made a second letter on the desk and turned the
+               screen into a form with an input stapled to it. On the bare wash
+               with only its rule, it reads as a pen hovering — your words
+               become a page when you send them, and that page lives in the
+               thread that opens. */
             <View style={{ minHeight: 78 }}>
-              {/* no box: on one white surface a filled field is just a paler
-                  smudge. It's an underlined field — the rule does the work, the
-                  same way every other separation on this screen does. */}
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingRight: 2, paddingVertical: 2 }}>
                 <TextInput
                   value={drafts[current.id] || ""}
@@ -336,7 +339,20 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   };
 
   return (
-    <View style={{ height, backgroundColor: P.sheet, paddingHorizontal: 26, paddingTop: 26 }}>
+    /* EXPERIMENT: the console's wash as a desk, the letter as paper on it.
+       Tinting the whole screen would only have made a pale-lavender app; the
+       wash earns its keep by being what the sheet is LYING ON. */
+    /* ONE SHEET, ONE DESK. The wash is the app; the white is what a person
+       wrote. That is the same split the type already makes — mono for what the
+       machine says, the letter face for what someone wrote — now said in
+       surface as well, which is why it settles: the two rules agree.
+
+       No border on the sheet. A hairline round it makes a CARD; its absence
+       leaves paper, and the colour step does all the separating a page needs.
+       The moment this screen had a framed letter, a framed reply, a framed tag
+       and a framed stamp, it had stopped being one letter on a desk. */
+    <View style={{ height, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8 }}>
+      <View style={{ flex: 1, backgroundColor: P.sheet, paddingHorizontal: 22, paddingTop: 26 }}>
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
@@ -440,6 +456,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
         </View>
       </Animated.View>
+      </View>
     </View>
   );
 }
