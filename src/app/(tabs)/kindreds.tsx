@@ -19,7 +19,10 @@ import { DEMO_THREADS } from "../../data/demo";
 
    Same surface as every other tab — white, with rules doing the separation. */
 
-const GROUND = P.paper;
+/* Nothing on this tab was written by a person — the orbit, the counts, the
+   progress to a name are all the system reporting. So it is desk all the way
+   down, with no sheet anywhere. */
+const GROUND = P.penWash;
 const REVEAL = 5;
 
 export default function KindredsTab() {

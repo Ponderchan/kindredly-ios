@@ -37,7 +37,19 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({ paddingBottom: 18, marginBottom: 18, borderBottomWidth: 1.5, borderBottomColor: m.col, opacity: pressed ? 0.55 : 1 })}
+      /* a page on the desk. No border — the colour step does the separating,
+         and a hairline round it would make a card. The mood rule stays: it is
+         the one thing on this sheet that is a reading rather than a container. */
+      style={({ pressed }) => ({
+        backgroundColor: P.sheet,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 14,
+        marginBottom: 14,
+        borderBottomWidth: 1.5,
+        borderBottomColor: m.col,
+        opacity: pressed ? 0.55 : 1,
+      })}
     >
       {/* head — a big mood face + the date filed in mono */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>

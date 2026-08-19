@@ -123,7 +123,9 @@ export default function MeTab() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top"]}>
+    /* Readings, counts and growth — the system talking about you rather than
+       anything you wrote — so this is desk, not paper. */
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       {/* the same plate Today and Sealed carry */}
       <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>ME</Text>

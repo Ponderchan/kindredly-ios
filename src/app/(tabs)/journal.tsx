@@ -45,7 +45,11 @@ export default function JournalTab() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top"]}>
+    /* Same split as Today: the wash is the app, the white is what a person
+       wrote. Here every page is yours rather than a stranger's, which is the
+       only difference — so the entries become sheets and the chrome around
+       them stays on the desk. */
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       {/* header — the box's own plate, on the same rule Today uses */}
       <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>SEALED</Text>
