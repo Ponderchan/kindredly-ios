@@ -1,4 +1,4 @@
-import { speakAs, useWrenName } from "../../lib/wren-name";
+import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
