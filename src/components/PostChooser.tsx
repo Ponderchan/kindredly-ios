@@ -18,7 +18,16 @@ import { WrenBird } from "./WrenBird";
    beat before the next screen arrives, which read as two separate animations
    with a flash of nothing between them. As a plain overlay it simply stays
    where it is, and the composer slides in from the right ON TOP of it — one
-   continuous move forward. It clears itself once the slide is done. */
+   continuous move forward. It clears itself once the slide is done.
+
+   THE GROUND IS PAPER, not night. It used to be a deep navy with a spotlight
+   on her, which made this the only dark surface between the pale onboarding
+   console and the white app — a hole you fell through on the way to writing.
+   It now stands on `P.penWash`, the app's own palest token and the same wash
+   the EGG OS console uses, so the toy, this door and the paper app are one
+   continuous world. Note that the colour is taken from theme/post directly:
+   importing the EGG OS tokens here would blur two systems that are meant to
+   stay separable, and the hue is an app token either way. */
 export function PostChooser({ onClose }: { onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -31,13 +40,13 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "#17162B" }}>
+    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: P.penWash }}>
           {/* the light she stands in */}
           <Svg style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} width="100%" height="100%">
             <Defs>
               <RadialGradient id="wrenglow" cx="50%" cy="26%" r="52%">
-                <Stop offset="0%" stopColor="#6D6DF6" stopOpacity={0.38} />
-                <Stop offset="100%" stopColor="#17162B" stopOpacity={0} />
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.85} />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={0} />
               </RadialGradient>
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#wrenglow)" />
@@ -46,7 +55,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
           <Pressable style={{ flex: 1 }} onPress={onClose}>
             <View style={{ flex: 1, alignItems: "center", paddingTop: insets.top + 64 }}>
               <Animated.View entering={FadeIn.duration(240)} style={{ alignItems: "center" }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2.2, color: "rgba(255,255,255,0.62)" }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2.2, color: P.ink60 }}>
                   POST SOMETHING
                 </Text>
 
@@ -65,7 +74,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                   </View>
                 </View>
 
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 21, color: "#fff", marginTop: 26, textAlign: "center" }}>
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 21, color: P.ink, marginTop: 26, textAlign: "center" }}>
                   where should this thought travel?
                 </Text>
               </Animated.View>
@@ -95,7 +104,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                 </WrenChoice>
               </View>
 
-              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(255,255,255,0.3)", marginTop: 22, marginBottom: Math.max(insets.bottom, 16) + 8 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 22, marginBottom: Math.max(insets.bottom, 16) + 8 }}>
                 TAP ANYWHERE TO GO BACK
               </Text>
             </View>
@@ -247,19 +256,19 @@ function WrenChoice({
           flexDirection: "row",
           alignItems: "center",
           gap: 14,
-          backgroundColor: pressed ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.07)",
+          backgroundColor: pressed ? P.penWash : P.paper,
           borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.12)",
+          borderColor: P.ink,
           paddingHorizontal: 14,
           paddingVertical: 14,
         })}
       >
         {children}
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 17, fontWeight: "600", color: "#fff" }}>{title}</Text>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, color: "rgba(255,255,255,0.58)", marginTop: 3 }}>{said}</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 17, fontWeight: "600", color: P.ink }}>{title}</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, marginTop: 3 }}>{said}</Text>
         </View>
-        <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "rgba(255,255,255,0.4)" }}>›</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink40 }}>›</Text>
       </Pressable>
     </Animated.View>
   );
