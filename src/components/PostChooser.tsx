@@ -122,35 +122,46 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
    point. */
 function Tile({ children }: { children: React.ReactNode }) {
   return (
-    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: "#EDEBFB", alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#E7E4F8", alignItems: "center", justifyContent: "center" }}>
       {children}
     </View>
   );
 }
 
-/* a letter that leaves — the flap's V is the whole idea */
+/* Traced off the owner's reference, and the two details that make them are
+   both OVERSHOOTS — the parts that break out of the shape:
+
+     the envelope's flap is two separate strokes that start ABOVE the top
+     corners and stop just short of meeting, so the V is drawn by the gap
+     rather than by a closed corner;
+
+     the notebook's spine and elastic run PAST the cover top and bottom, the
+     way a real bookmark and a real band do. Kept inside the rectangle they
+     read as two stripes printed on a card.
+
+   The elastic is deliberately about two and a half times the outline's
+   weight: at 22pt a hairline of colour disappears, and the band is the only
+   thing that says notebook rather than window. */
+const INK_BOOK = "#3B3178";
+const INK_MAIL = "#4A3FD9";
+const BAND = "#EDA53F";
+
 function EnvelopeGlyph() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Rect x={3} y={6} width={18} height={13} rx={2.5} fill="none" stroke={P.pen} strokeWidth={1.9} />
-      <Path d="M3.6 7.4 L12 13.4 L20.4 7.4" fill="none" stroke={P.pen} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+      <Rect x={4.4} y={7.4} width={15.2} height={9.6} rx={1.9} fill="none" stroke={INK_MAIL} strokeWidth={1.9} />
+      <Path d="M3.7 5.9 L11.4 13.9" fill="none" stroke={INK_MAIL} strokeWidth={1.9} strokeLinecap="round" />
+      <Path d="M20.3 5.9 L12.6 13.9" fill="none" stroke={INK_MAIL} strokeWidth={1.9} strokeLinecap="round" />
     </Svg>
   );
 }
 
-/* a notebook that stays. First pass put the spine and the elastic side by
-   side in the middle, which read as a barcode rather than a book — the spine
-   belongs hard against the left edge and the elastic across the face, well
-   clear of it, or the two lines have nothing to say to each other. */
 function NotebookGlyph() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Rect x={5.5} y={3} width={13} height={18} rx={2.2} fill="none" stroke={P.pen} strokeWidth={1.9} />
-      {/* Two lines, not three. The outline's own left edge already reads as the
-          board, so an extra faded spine beside it just made a barcode at 22pt.
-          The elastic carries the whole idea, so it gets the weight. */}
-      <Path d="M9 3.6 V20.4" stroke={P.pen} strokeWidth={1.5} strokeLinecap="round" opacity={0.45} />
-      <Path d="M14.6 2.6 V21.4" stroke="#D08A3E" strokeWidth={3.2} strokeLinecap="round" />
+      <Rect x={6.2} y={4.4} width={13.4} height={15.4} rx={2.4} fill="none" stroke={INK_BOOK} strokeWidth={1.9} />
+      <Path d="M9.6 2.7 V21.5" stroke={INK_BOOK} strokeWidth={1.7} strokeLinecap="butt" />
+      <Path d="M14.9 3.2 V21" stroke={BAND} strokeWidth={4.6} strokeLinecap="butt" />
     </Svg>
   );
 }
