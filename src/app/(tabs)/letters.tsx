@@ -469,6 +469,10 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
    If the pool is genuinely empty, beat 3 says that plainly rather than
    inventing something to hand over. */
 function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => void }) {
+  const insets = useSafeAreaInsets();
+  // the tab bar floats over this screen — clear it the way Feed does rather
+  // than guessing a number, which clipped READ IT on a device with a home bar
+  const tabH = 62 + Math.max(insets.bottom, 8);
   const { user, profile } = useAuth();
   const wren = useWrenName();
   const [beat, setBeat] = useState(0);
@@ -492,7 +496,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
       </View>
       <View style={{ ...rule }} />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 26, paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 26, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         {/* she lands */}
         <Animated.View entering={FadeIn.duration(520)} style={{ alignItems: "center" }}>
           <WrenBird size={92} mood="delight" />
@@ -554,23 +558,46 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
                     {(first.body || "").trim()}
                   </Text>
                 </View>
-                <Pressable onPress={onDone} style={{ backgroundColor: P.pen, paddingVertical: 16, alignItems: "center", marginTop: 18 }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>READ IT</Text>
-                </Pressable>
               </>
             ) : (
               <>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
                   The post is empty today — you're early. When the first one lands, {wren} brings it straight here.
                 </Text>
-                <Pressable onPress={onDone} style={{ borderWidth: 1, borderColor: P.ink, paddingVertical: 16, alignItems: "center", marginTop: 18 }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: P.ink }}>LOOK AROUND</Text>
-                </Pressable>
               </>
             )}
           </Animated.View>
         )}
       </ScrollView>
+
+      {/* THE KEY IS PINNED. Beats 1-3 together are taller than the screen, so
+          inside the scroller the primary action sat below the fold — no amount
+          of bottom padding fixes that, since padding only adds space after a
+          button that was already off-screen. It appears with beat 3 and clears
+          the floating tab bar. */}
+      {beat >= 2 && (
+        <Animated.View
+          entering={FadeInDown.duration(420)}
+          /* a rule and a paper ground: without them the pinned key looked like
+             it had sliced the letter card in half rather than sitting under a
+             scroller — the same hairline every onboarding step puts above its
+             key, doing the same job */
+          style={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: tabH + 10, backgroundColor: P.paper, ...rule, borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: P.ink }}
+        >
+          <Pressable
+            onPress={onDone}
+            style={
+              first
+                ? { backgroundColor: P.pen, paddingVertical: 16, alignItems: "center" }
+                : { borderWidth: 1, borderColor: P.ink, paddingVertical: 16, alignItems: "center" }
+            }
+          >
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: first ? "#fff" : P.ink }}>
+              {first ? "READ IT" : "LOOK AROUND"}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
