@@ -30,10 +30,9 @@ import { AVATARS } from "../data/avatar-lib";
 import { readMood } from "../lib/wren-read";
 import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
 import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
-import { hatch, saveArchetype, type DimScore } from "../lib/hatch-engine";
+import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-engine";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
-import { STARTER_STAMPS } from "../data/stamps";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { MoodIcon } from "../components/MoodIcon";
@@ -312,7 +311,7 @@ export default function Onboarding() {
       const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0];
       if (opener && weightedCount(opener) >= OPENING_MIN) {
         try {
-          await publishLetter(STARTER_STAMPS[0], opener, "en");
+          await publishLetter(starterStamp(mood, opener), opener, "en");
         } catch {
           /* best-effort — never block getting in */
         }

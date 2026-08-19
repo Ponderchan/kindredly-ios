@@ -406,6 +406,40 @@ export function growthStage(pieces: number): GrowthStage {
   return cur;
 }
 
+/* THE FIRST LETTER'S STAMP. Onboarding used to post every first letter with
+   STARTER_STAMPS[0] — "Off my chest" — so someone writing about a good day
+   got a confession stamp on it, and every newcomer's letter arrived in the
+   pool wearing the same one. The stamp is the only topic label a reader sees
+   before opening, so it has to come from the writer. The mood they picked is
+   the most direct signal there is; the text is the fallback. */
+export function starterStamp(mood: string | null, text: string): string {
+  const M: Record<string, string> = {
+    "in-love": "crush",
+    shy: "crush",
+    delighted: "growing",
+    cheerful: "growing",
+    excited: "growing",
+    pleased: "ordinary",
+    content: "ordinary",
+    okay: "ordinary",
+    calm: "ordinary",
+    meh: "ordinary",
+    sleepy: "cant-sleep",
+    nervous: "cant-sleep",
+    drained: "cant-sleep",
+    heartbroken: "miss-someone",
+    crying: "miss-someone",
+    numb: "miss-someone",
+  };
+  if (mood && M[mood]) return M[mood];
+  const t = text.toLowerCase();
+  if (/\b(miss|missed|missing|gone|left)\b/.test(t)) return "miss-someone";
+  if (/\b(sleep|awake|2am|3am|tonight|night)\b/.test(t)) return "cant-sleep";
+  if (/\b(love|crush|him|her|they)\b/.test(t)) return "crush";
+  if (/\b(better|proud|learned|growing|finally)\b/.test(t)) return "growing";
+  return "off-chest";
+}
+
 /* ── persistence — the hatch is a moment; the identity is a record ────── */
 
 const KEY = "kindredly_hatch_archetype";

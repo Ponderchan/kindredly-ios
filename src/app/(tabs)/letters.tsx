@@ -2,9 +2,8 @@ import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
-import { C, F, shadow } from "../../theme/tokens";
 import { P, PF, channelInk, channelWash, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
@@ -18,6 +17,8 @@ import { dShort, postNo } from "../../lib/format";
 import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
+import { useAuth } from "../../lib/auth";
+import { STARTER_STAMPS } from "../../data/stamps";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
@@ -62,8 +63,11 @@ export default function LettersTab() {
 
   // the one-time ceremony — open your first letter, then the post is yours
   if (!ritualDone) {
+    // wait for the pool before deciding what she came back with
+    if (!loaded) return <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} />;
     return (
-      <Ritual
+      <Arrival
+        first={feed[0] ?? null}
         onDone={async () => {
           await setFlag(RITUAL_FLAG);
           setRitualDone(true);
@@ -394,81 +398,132 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
   );
 }
 
-/* ── the one-time ritual: an envelope, then Wren's welcome ── */
-function Ritual({ onDone }: { onDone: () => void }) {
-  const [opened, setOpened] = useState(false);
+/* ── SHE COMES BACK ──────────────────────────────────────────────────────
+   The hatch ends with her flying off carrying your letter. Nothing used to
+   close that loop: you landed on a one-time "A LETTER FROM WREN" that
+   explained the rules — a manual wearing a letter's clothes, arriving in a
+   product whose whole premise is that letters come from strangers. It also
+   re-taught what onboarding had just spent nine screens teaching.
 
-  if (!opened) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} edges={["top"]}>
-        <View style={{ paddingHorizontal: 24, paddingTop: 6 }}>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 30, color: "#2A2153" }}>the post</Text>
-        </View>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.8, color: "rgba(42,33,83,0.65)", textAlign: "center", marginBottom: 22 }}>
-            SOMETHING IS ALREADY WAITING FOR YOU
-          </Text>
-          <Pressable onPress={() => setOpened(true)} style={{ width: W - 76 }}>
-            <View style={{ position: "absolute", left: 14, right: 14, top: 18, height: 180, backgroundColor: "#EFE9D9", borderRadius: 18, transform: [{ rotate: "2.5deg" }] }} />
-            <View style={{ position: "absolute", left: 8, right: 8, top: 10, height: 190, backgroundColor: "#F4EFE1", borderRadius: 18, transform: [{ rotate: "-1.5deg" }] }} />
-            <View style={[{ backgroundColor: PAPER, borderRadius: 20, overflow: "hidden", transform: [{ rotate: "-0.5deg" }] }, shadow.card]}>
-              <Airmail />
-              <View style={{ padding: 22, minHeight: 180 }}>
-                <View style={{ position: "absolute", top: 14, right: 16 }}>
-                  <WrenBird size={40} mood="content" />
-                </View>
-                <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1, color: "#9A7B3A" }}>FROM WREN · FOR YOU</Text>
-                <Text style={{ fontFamily: F.serifItalic, fontSize: 21, color: "#4A4266", marginTop: 20, lineHeight: 29 }}>“You made it inside. Let me show you how the post works…”</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 24 }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#EF5A5A", alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontSize: 17 }}>💌</Text>
-                  </View>
-                  <Text style={{ fontFamily: F.sansExtra, fontSize: 12.5, letterSpacing: 1.4, color: "#C0503A" }}>OPEN IT →</Text>
-                </View>
+   So the landing is her RETURN, in three beats, and every one of them is
+   something that actually just happened:
+
+     1. THE RECEIPT — your letter really did leave. The docket is built the
+        same way the world will see it (postNo/MosaicId off your own id, the
+        stamp onboarding posted it with), so this is a counterfoil, not a
+        graphic.
+     2. THE HONEST WAIT — nobody has replied, and nobody will for hours. Say
+        so. Never fake a reply to fill a gap.
+     3. WHAT SHE FOUND — the first real letter from the pool, framed as
+        something she brought back. That's the core loop demonstrated in
+        twenty seconds, handed over at the moment the reader is most open —
+        and the rules the old welcome listed are printed on the letter page
+        itself (^ SWIPE TO PASS · REPLY ↓), so they teach themselves.
+
+   If the pool is genuinely empty, beat 3 says that plainly rather than
+   inventing something to hand over. */
+function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => void }) {
+  const { user, profile } = useAuth();
+  const wren = useWrenName();
+  const [beat, setBeat] = useState(0);
+  const line = ((profile?.firstLine as string) || "").trim();
+  const uid = user?.id || "you";
+
+  useEffect(() => {
+    const a = setTimeout(() => setBeat(1), 1500);
+    const b = setTimeout(() => setBeat(2), 3200);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, []);
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingBottom: 10 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink, flex: 1 }}>TODAY</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.ink40 }}>SHE'S BACK</Text>
+      </View>
+      <View style={{ ...rule }} />
+
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 26, paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
+        {/* she lands */}
+        <Animated.View entering={FadeIn.duration(520)} style={{ alignItems: "center" }}>
+          <WrenBird size={92} mood="delight" />
+        </Animated.View>
+
+        {/* 1 · the receipt — the same docket the world will see on it */}
+        <Animated.View entering={FadeIn.delay(280).duration(560)} style={{ marginTop: 18 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2, color: P.ink60, marginBottom: 10 }}>YOUR LETTER LEFT</Text>
+          <View style={{ borderWidth: 1, borderColor: P.ink, padding: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+              <MosaicId seed={uid} />
+              <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.6, color: P.ink60, marginLeft: 12, marginTop: 3 }}>
+                {dShort(new Date().toISOString()).toUpperCase().replace(" ", ".")} · NO.{postNo(uid)}
+              </Text>
+              <View style={{ transform: [{ rotate: "-5deg" }] }}>
+                <StampTile id={STARTER_STAMPS[0]} w={44} r={5} />
               </View>
             </View>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return <Welcome onDone={onDone} />;
-}
-
-/* Wren's welcome letter — read-only; it teaches the swipe-and-write ritual and
-   hands the reader into the everyday feed. */
-function Welcome({ onDone }: { onDone: () => void }) {
-  const wren = useWrenName();
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeIn.duration(500)}>
-          <View style={{ alignItems: "center", marginBottom: 18 }}>
-            <WrenBird size={64} mood="content" />
+            {!!line && (
+              <Text numberOfLines={3} style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink, marginTop: 14 }}>
+                {line}
+              </Text>
+            )}
+            <View style={{ marginTop: 14, alignSelf: "flex-start", borderWidth: 1.4, borderColor: P.post, paddingHorizontal: 9, paddingVertical: 3, transform: [{ rotate: "-1.5deg" }] }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.post }}>POSTED</Text>
+            </View>
           </View>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 1.6, color: C.faint, textAlign: "center" }}>A LETTER FROM WREN</Text>
-          <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, textAlign: "center", marginTop: 10, lineHeight: 32 }}>
-            You made it inside.
-          </Text>
-          <Text style={{ fontFamily: F.letter, fontSize: 16, lineHeight: 27, color: "#3A3548", marginTop: 22 }}>
-            Here's how the post works.{"\n\n"}
-            Every day, letters from strangers come to your door. You read them one at a time — the whole screen, no feed to skim.{"\n\n"}
-            If one moves you, <Text style={{ fontFamily: F.letterItalic }}>write back</Text>, and a thread opens — just the two of you. It'll be waiting in Kindreds.{"\n\n"}
-            If it doesn't, <Text style={{ fontFamily: F.letterItalic }}>swipe up</Text>. No guilt. No unread badge chasing you.{"\n\n"}
-            Five letters each way, and I'll tell you each other's names.{"\n\n"}
-            Write when something's true, not when it's polished. I'll be listening.
-          </Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.muted, marginTop: 18, textAlign: "right" }}>— {wren}</Text>
-
-          <Pressable
-            onPress={onDone}
-            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#1E1B2E", borderRadius: 26, paddingVertical: 16, marginTop: 30, opacity: pressed ? 0.92 : 1 })}
-          >
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 14, color: "#fff", letterSpacing: 0.3 }}>step into the post</Text>
-            <Text style={{ fontSize: 15 }}>🕊</Text>
-          </Pressable>
         </Animated.View>
+
+        {/* 2 · the honest wait */}
+        {beat >= 1 && (
+          <Animated.View entering={FadeInDown.duration(520)} style={{ marginTop: 26 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+              <WrenBird size={34} mood="listen" />
+              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink, marginLeft: 12, marginTop: 2 }}>
+                Nothing's come back yet — it's too soon. Answers take hours, sometimes days. That's the point.
+              </Text>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* 3 · what she found on the way, or the truth that she found nothing */}
+        {beat >= 2 && (
+          <Animated.View entering={FadeInDown.duration(560)} style={{ marginTop: 26 }}>
+            <View style={{ ...rule, marginBottom: 18 }} />
+            {first ? (
+              <>
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
+                  But {wren} picked this up on the way home.
+                </Text>
+                <View style={{ borderWidth: 1, borderColor: P.ink12, padding: 14, marginTop: 14 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <MosaicId seed={first.author} cell={3} gap={1} />
+                    <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginLeft: 10 }}>
+                      NO.{postNo(first.author)} · A STRANGER
+                    </Text>
+                  </View>
+                  <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, marginTop: 10 }}>
+                    {(first.body || "").trim()}
+                  </Text>
+                </View>
+                <Pressable onPress={onDone} style={{ backgroundColor: P.pen, paddingVertical: 16, alignItems: "center", marginTop: 18 }}>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>READ IT</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
+                  The post is empty today — you're early. When the first one lands, {wren} brings it straight here.
+                </Text>
+                <Pressable onPress={onDone} style={{ borderWidth: 1, borderColor: P.ink, paddingVertical: 16, alignItems: "center", marginTop: 18 }}>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: P.ink }}>LOOK AROUND</Text>
+                </Pressable>
+              </>
+            )}
+          </Animated.View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
