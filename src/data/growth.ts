@@ -128,7 +128,7 @@ export const GROWTH_STAMPS: GrowthStamp[] = [
     zh: "你的声音",
     emoji: "🎙",
     color: "#9E4A85",
-    desc: "You sent your actual voice down three streets. Braver than ink — nobody can pretend a voice is somebody else's.",
+    desc: "You sent your actual voice out there. Braver than ink — nobody can pretend a voice is somebody else's.",
     earned: (s) => s.voiceSent,
   },
   {

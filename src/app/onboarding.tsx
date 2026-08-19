@@ -101,7 +101,7 @@ const SEALED_SHORT: Partial<Record<string, string>> = {
   perspective: "way of seeing",
   emotion: "emotional patterns",
   function: "small tells",
-  punctuation: "pause fingerprint",
+  punctuation: "where you pause",
   structure: "thought patterns",
   sentence: "sentence shape",
   quirks: "personal patterns",

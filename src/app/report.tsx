@@ -62,7 +62,7 @@ export default function VoiceReport() {
       key: K("cover"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>YOUR VOICE · WRAPPED</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>YOUR AURA · WRAPPED</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 30, lineHeight: 40, color: "#fff", marginTop: 12 }}>{data.archetype}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 16 }}>
             {data.read.chips.map((c) => (
@@ -173,7 +173,7 @@ export default function VoiceReport() {
         <View style={{ flex: 1, justifyContent: "center" }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>KEEP THIS ONE</Text>
           <View style={{ backgroundColor: NIGHT2, borderRadius: 18, padding: 18, marginTop: 14 }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>KINDREDLY · YOUR VOICE</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>KINDREDLY · YOUR AURA</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 20, color: "#fff", marginTop: 8 }}>{data.archetype}</Text>
             <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} size={110} />
             <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, lineHeight: 20, color: DIM }}>“{data.quote}”</Text>

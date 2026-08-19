@@ -48,6 +48,12 @@ export async function upsertFingerprint(
   }
 }
 
+/* Attached client-side in the Letters tab from the nightly `matches` cache —
+   never from the server row itself, and only present when the matcher really
+   named this author. Undefined means "we don't know", and the UI must say
+   nothing about closeness rather than guess. */
+export type Close = number | undefined;
+
 export interface MatchInfo {
   closest: { uid: string; score: number }[];
   count: number;
@@ -149,6 +155,11 @@ export interface PoolLetter {
   kind?: "text" | "voice"; // absent pre-0007 migration
   media_path?: string | null;
   duration_s?: number | null;
+  /* cosine closeness to the reader, attached client-side from the nightly
+     `matches` cache — never a column on this row. Undefined means the matcher
+     did not name this author, and the UI must then say nothing at all about
+     closeness rather than imply distance it doesn't have. */
+  close?: Close;
 }
 /** active pool rows excluding the viewer's own, newest first. Falls back to
    the pre-0007 column set if the media columns don't exist yet. */

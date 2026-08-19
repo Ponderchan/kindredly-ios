@@ -11,9 +11,9 @@ import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } f
 
 const BENEFITS: [string, string][] = [
   ["Unlimited letters", "Write to as many strangers as you like — no daily cap."],
-  ["A Voice report, every month", "Wren wraps the month you wrote — your voice, your hours, your words — in a letter just for you."],
+  ["An Aura report, every month", "Wren wraps the month you wrote — your aura, your hours, your words — in a letter just for you."],
   ["Wren's Peek", "A deeper read on a correspondent: how they write, and whether they're leaning closer."],
-  ["Your Voice Portrait", "Wren's evolving, warm read of how you write — yours to keep."],
+  ["Your Aura Portrait", "Wren's evolving, warm read of how you write — yours to keep."],
   ["The wax seal", "Your letters go out pressed with the Kindredly seal."],
 ];
 

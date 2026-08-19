@@ -114,7 +114,7 @@ export default function VoiceDetail() {
             ]}
           >
             <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.8, color: "#8C86E8" }}>
-              {gate.state === "locked" ? "👑 KINDREDLY+" : "🌙 YOUR VOICE · WRAPPED"}
+              {gate.state === "locked" ? "👑 KINDREDLY+" : "🌙 YOUR AURA · WRAPPED"}
             </Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 17, color: "#fff", marginTop: 8 }}>
               {gate.state === "ready" && (gate.kind === "first" ? `${wren} wrote you a letter.` : "This month's letter is here.")}

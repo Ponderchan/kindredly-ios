@@ -33,6 +33,20 @@ export function fmt(seconds: number): string {
 
 /* ── deterministic identity (web system.js parity) ── */
 
+/* How long ago a letter was written. The product's texture is slowness, so
+   this is deliberately coarse — nobody needs "3h 41m", and a letter written
+   at 2am reads differently from one written at noon whatever the gap. */
+export function sinceShort(iso: string | number | Date): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 2) return "JUST NOW";
+  if (min < 60) return `${min} MINUTES AGO`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return h === 1 ? "AN HOUR AGO" : `${h} HOURS AGO`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "YESTERDAY" : `${d} DAYS AGO`;
+}
+
 export function hashStr(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {

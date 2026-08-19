@@ -13,8 +13,8 @@ import { CloseOfDay } from "../../components/CloseOfDay";
 import { Toast } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
-import { dShort, postNo } from "../../lib/format";
-import { fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
+import { dShort, postNo, sinceShort } from "../../lib/format";
+import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -45,8 +45,24 @@ export default function LettersTab() {
     getFlags().then((f) => setRitualDone(!!f[RITUAL_FLAG]));
   }, []);
 
+  /* THE POOL IS NOW ACTUALLY MATCHED. fetchMatches() has existed since the
+     first backend migration and nothing in the app had ever called it, so
+     "matched by how you write" — the product's central claim, printed on the
+     welcome carousel — was not happening in anything a reader saw: the feed
+     was newest-first with yourself filtered out.
+
+     compute_matches caches only the k=3 closest writers, nightly, by cosine
+     over the signature vectors. So most letters have no score and that is
+     correct, not a gap: a letter floats to the top only when the matcher
+     genuinely named its author, and the docket line stays silent about
+     closeness for every other one. */
   const load = useCallback(async () => {
-    setPool((await fetchPool()) || []);
+    const [p, m] = await Promise.all([fetchPool(), fetchMatches()]);
+    const score = new Map((m?.closest || []).map((c) => [c.uid, c.score]));
+    const withClose = (p || []).map((l) => ({ ...l, close: score.get(l.author) }));
+    // matched first; everything else keeps the server's newest-first order
+    withClose.sort((a, b) => (b.close ?? -1) - (a.close ?? -1));
+    setPool(withClose);
     setLoaded(true);
   }, []);
   useFocusEffect(
@@ -377,8 +393,18 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           </View>
         )}
 
+        {/* The line this replaced — SENT DOWN THREE STREETS · YOU OPENED IT
+            FIRST — was a hardcoded string on every letter for every reader,
+            and both halves were invented: there is no geo data anywhere in
+            the product, and the pool is shared with no read tracking, so
+            "you opened it first" was unverifiable and usually false. Its job
+            was right though — provenance, the thing that stops a letter
+            reading as a feed post — so it now says only what is true: when
+            it was written, and, when the matcher actually named this author,
+            why it reached you. */}
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginBottom: 10 }}>
-          SENT DOWN THREE STREETS · YOU OPENED IT FIRST
+          WRITTEN {sinceShort(letter.created_at)}
+          {letter.close != null ? " · YOUR AURAS ARE CLOSE" : ""}
         </Text>
 
         {/* the two moves, on a rule */}
