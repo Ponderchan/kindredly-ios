@@ -17,6 +17,7 @@ import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
+import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
@@ -75,27 +76,22 @@ export default function Compose() {
      nothing was calling it from here.
 
      Three ways out, because there are genuinely three intentions: keep
-     writing (the accidental tap, and the default), keep it for later, throw
-     it away. "Keep writing" is the cancel so a mis-tap costs nothing, and the
-     destructive one is marked as such. */
+     writing (the accidental tap, and the cancel), keep it for later, throw it
+     away. The sheet itself is components/LeaveSheet — this used to be
+     Alert.alert, which is right behaviour in stock iOS clothes. */
+  const [leaving, setLeaving] = useState(false);
   const closeWithGuard = () => {
-    const t = text.trim();
-    if (!t) return goBack();
-    Alert.alert("Leave this letter?", "You've written something. It hasn't gone anywhere yet.", [
-      { text: "Keep writing", style: "cancel" },
-      {
-        text: "Save as draft",
-        onPress: async () => {
-          try {
-            await saveDraft({ id: draftId, stamp: sel || STARTER_STAMPS[0], body: t, ask: spark });
-          } catch {
-            /* a draft is not worth blocking the exit */
-          }
-          goBack();
-        },
-      },
-      { text: "Discard", style: "destructive", onPress: goBack },
-    ]);
+    if (!text.trim()) return goBack();
+    openLeaveSheet(() => setLeaving(true));
+  };
+  const saveAndLeave = async () => {
+    setLeaving(false);
+    try {
+      await saveDraft({ id: draftId, stamp: sel || STARTER_STAMPS[0], body: text.trim(), ask: spark });
+    } catch {
+      /* a draft is not worth blocking the exit */
+    }
+    goBack();
   };
 
   // sending → auto-dismiss
@@ -513,6 +509,16 @@ export default function Compose() {
       </KeyboardAvoidingView>
       )}
 
+      <LeaveSheet
+        open={leaving}
+        title="Leave this letter?"
+        body="You've written something. It hasn't gone anywhere yet."
+        actions={[
+          { label: "SAVE AS DRAFT", kind: "primary", onPress: saveAndLeave },
+          { label: "DISCARD", kind: "destructive", onPress: goBack },
+        ]}
+        onCancel={() => setLeaving(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { SelfCompose } from "../components/SelfCompose";
@@ -27,13 +28,11 @@ export default function JournalEntryRoute() {
   /* Same guard as the letter desk, minus the draft. A sealed page has no
      draft shelf — and it shouldn't get one here: this room's whole promise is
      that nothing leaves it, so a half-written page either becomes an entry or
-     it never existed. Two ways out, and the accidental tap is the default. */
+     it never existed. */
+  const [leaving, setLeaving] = useState(false);
   const closeWithGuard = () => {
     if (!text.trim()) return goBack();
-    Alert.alert("Leave this page?", "You've written something. Nothing is saved until you seal it.", [
-      { text: "Keep writing", style: "cancel" },
-      { text: "Discard", style: "destructive", onPress: goBack },
-    ]);
+    openLeaveSheet(() => setLeaving(true));
   };
 
   return (
@@ -59,6 +58,14 @@ export default function JournalEntryRoute() {
         </View>
       </View>
       <SelfCompose text={text} setText={setText} onDone={goBack} />
+
+      <LeaveSheet
+        open={leaving}
+        title="Leave this page?"
+        body="You've written something. Nothing is saved until you seal it."
+        actions={[{ label: "DISCARD", kind: "destructive", onPress: goBack }]}
+        onCancel={() => setLeaving(false)}
+      />
     </SafeAreaView>
   );
 }
