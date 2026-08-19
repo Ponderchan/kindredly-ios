@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -24,6 +24,18 @@ export default function JournalEntryRoute() {
   const [text, setText] = useState("");
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
 
+  /* Same guard as the letter desk, minus the draft. A sealed page has no
+     draft shelf — and it shouldn't get one here: this room's whole promise is
+     that nothing leaves it, so a half-written page either becomes an entry or
+     it never existed. Two ways out, and the accidental tap is the default. */
+  const closeWithGuard = () => {
+    if (!text.trim()) return goBack();
+    Alert.alert("Leave this page?", "You've written something. Nothing is saved until you seal it.", [
+      { text: "Keep writing", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: goBack },
+    ]);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* One line, not two. The date was a headline of its own below the
@@ -31,7 +43,7 @@ export default function JournalEntryRoute() {
           not a title. It sits with the close button; the promise sits opposite
           it. */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 20, paddingTop: 6, paddingBottom: 10 }}>
-        <Pressable onPress={goBack} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
+        <Pressable onPress={closeWithGuard} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <Text style={{ fontFamily: PF.letter, fontSize: 22, fontWeight: "700", color: P.ink, marginLeft: 6 }}>

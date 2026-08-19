@@ -116,6 +116,9 @@ export default function Settings() {
             <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
           </View>
           <Row label="Pages you've kept" onPress={() => router.push("/kept")} />
+          {/* the way back to a saved draft. Without this the composer's
+              "save as draft" wrote somewhere nobody could reach. */}
+          <Row label="Unsent letters" onPress={() => router.push("/drafts")} />
         </View>
 
         {/* safety */}

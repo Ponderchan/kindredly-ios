@@ -69,6 +69,35 @@ export default function Compose() {
     else router.replace("/(tabs)/letters");
   };
 
+  /* CLOSING WITH WORDS IN IT USED TO THROW THEM AWAY, silently, on one tap of
+     a small ✕ — the single most expensive mistake this screen could make, and
+     the only one it made without asking. lib/drafts has existed all along;
+     nothing was calling it from here.
+
+     Three ways out, because there are genuinely three intentions: keep
+     writing (the accidental tap, and the default), keep it for later, throw
+     it away. "Keep writing" is the cancel so a mis-tap costs nothing, and the
+     destructive one is marked as such. */
+  const closeWithGuard = () => {
+    const t = text.trim();
+    if (!t) return goBack();
+    Alert.alert("Leave this letter?", "You've written something. It hasn't gone anywhere yet.", [
+      { text: "Keep writing", style: "cancel" },
+      {
+        text: "Save as draft",
+        onPress: async () => {
+          try {
+            await saveDraft({ id: draftId, stamp: sel || STARTER_STAMPS[0], body: t, ask: spark });
+          } catch {
+            /* a draft is not worth blocking the exit */
+          }
+          goBack();
+        },
+      },
+      { text: "Discard", style: "destructive", onPress: goBack },
+    ]);
+  };
+
   // sending → auto-dismiss
   useEffect(() => {
     if (step !== "sending") return;
@@ -290,7 +319,7 @@ export default function Compose() {
       {/* desk header — close, the address sticker, the stamp */}
       <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: "row", alignItems: "center" }}>
         <Pressable
-          onPress={goBack}
+          onPress={closeWithGuard}
           hitSlop={10}
           style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
         >
