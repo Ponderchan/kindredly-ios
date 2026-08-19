@@ -122,46 +122,46 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
    point. */
 function Tile({ children }: { children: React.ReactNode }) {
   return (
-    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#E7E4F8", alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: "#E7E4F8", alignItems: "center", justifyContent: "center" }}>
       {children}
     </View>
   );
 }
 
-/* Traced off the owner's reference, and the two details that make them are
-   both OVERSHOOTS — the parts that break out of the shape:
+/* ONE SET, TWO SHAPES. The pair used to be drawn to the same square, which
+   made the envelope look starved and the notebook look fat: a letter is wide
+   and a book is tall, so forcing both into 22x22 spent the width on nothing
+   for one and cropped the other. They now get their own boxes at matched
+   OPTICAL area — envelope 30x22, notebook 24x30 — on a common 48pt tile, and
+   every stroke is 1.8. The viewBox equals the rendered size on both, so the
+   numbers below are literal pixels rather than something to divide through.
 
-     the envelope's flap is two separate strokes that start ABOVE the top
-     corners and stop just short of meeting, so the V is drawn by the gap
-     rather than by a closed corner;
-
-     the notebook's spine and elastic run PAST the cover top and bottom, the
-     way a real bookmark and a real band do. Kept inside the rectangle they
-     read as two stripes printed on a card.
-
-   The elastic is deliberately about two and a half times the outline's
-   weight: at 22pt a hairline of colour disappears, and the band is the only
-   thing that says notebook rather than window. */
+   Both turn on OVERSHOOTS, traced from the owner's reference: the flap is two
+   strokes that begin outside the top corners and stop short of meeting, so
+   the V is drawn by the gap; the spine and the elastic run past the cover top
+   and bottom the way a real bookmark and band do. Kept inside the outline
+   they read as stripes printed on a card. */
 const INK_BOOK = "#3B3178";
 const INK_MAIL = "#4A3FD9";
 const BAND = "#EDA53F";
+const SW = 1.8;
 
 function EnvelopeGlyph() {
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Rect x={4.4} y={7.4} width={15.2} height={9.6} rx={1.9} fill="none" stroke={INK_MAIL} strokeWidth={1.9} />
-      <Path d="M3.7 5.9 L11.4 13.9" fill="none" stroke={INK_MAIL} strokeWidth={1.9} strokeLinecap="round" />
-      <Path d="M20.3 5.9 L12.6 13.9" fill="none" stroke={INK_MAIL} strokeWidth={1.9} strokeLinecap="round" />
+    <Svg width={30} height={22} viewBox="0 0 30 22">
+      <Rect x={1.9} y={5.6} width={26.2} height={14.6} rx={2.6} fill="none" stroke={INK_MAIL} strokeWidth={SW} />
+      <Path d="M1.7 2.9 L14.1 13.5" fill="none" stroke={INK_MAIL} strokeWidth={SW} strokeLinecap="round" />
+      <Path d="M28.3 2.9 L15.9 13.5" fill="none" stroke={INK_MAIL} strokeWidth={SW} strokeLinecap="round" />
     </Svg>
   );
 }
 
 function NotebookGlyph() {
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Rect x={6.2} y={4.4} width={13.4} height={15.4} rx={2.4} fill="none" stroke={INK_BOOK} strokeWidth={1.9} />
-      <Path d="M9.6 2.7 V21.5" stroke={INK_BOOK} strokeWidth={1.7} strokeLinecap="butt" />
-      <Path d="M14.9 3.2 V21" stroke={BAND} strokeWidth={4.6} strokeLinecap="butt" />
+    <Svg width={24} height={30} viewBox="0 0 24 30">
+      <Rect x={4.4} y={3.2} width={15.2} height={23.6} rx={2.8} fill="none" stroke={INK_BOOK} strokeWidth={SW} />
+      <Path d="M8.3 1.1 V28.9" stroke={INK_BOOK} strokeWidth={SW} strokeLinecap="butt" />
+      <Path d="M15.2 1.6 V28.4" stroke={BAND} strokeWidth={SW} strokeLinecap="butt" />
     </Svg>
   );
 }
