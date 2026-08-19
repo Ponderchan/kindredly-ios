@@ -161,7 +161,7 @@ export default function Onboarding() {
   const [mood, setMood] = useState<MoodId | null>(null);
   const [hatchPhase, setHatchPhase] = useState<"crack" | "card" | "fly">("crack");
   const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
-  const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
+  const [busy, setBusy] = useState<null | "apple" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
   const finishing = useRef(false);
 
@@ -243,12 +243,6 @@ export default function Onboarding() {
     const r = await auth.signInWithApple();
     setBusy(null);
     if ("error" in r) Alert.alert("Continue with Apple", r.error);
-  };
-  const doGoogle = async () => {
-    setBusy("google");
-    const r = await auth.signInWithGoogle();
-    setBusy(null);
-    if ("error" in r) Alert.alert("Continue with Google", r.error);
   };
   const doEmail = () => {
     Alert.prompt?.(
@@ -446,17 +440,22 @@ export default function Onboarding() {
                     />
                   </View>
                 ) : null}
+                {/* Two ways in, not three. Google came out on the owner's
+                    call; lib/auth keeps signInWithGoogle so nothing in the
+                    session layer had to change and it can come back as one
+                    button whenever it's wanted. Email is now the second real
+                    option rather than a footnote under a third, so it gets a
+                    key of its own instead of a line of text. */}
                 <Pressable
-                  onPress={doGoogle}
+                  onPress={doEmail}
                   disabled={!!busy}
                   style={[card, bevel(4, 4), { height: 52, alignItems: "center", justifyContent: "center", marginTop: 12, opacity: busy ? 0.5 : 1 }]}
                 >
-                  <Text style={{ fontFamily: F2.hand, fontSize: 17, fontWeight: "600", color: Y.ink }}>{busy === "google" ? "…" : "Continue with Google"}</Text>
+                  <Text style={[mono(12, "b"), { color: Y.blue }]}>{busy === "email" ? "…" : "CONTINUE WITH EMAIL"}</Text>
                 </Pressable>
-                <Pressable onPress={doEmail} disabled={!!busy} style={{ paddingVertical: 13, alignItems: "center" }}>
-                  <Text style={[mono(11, "b"), { color: Y.blue }]}>{busy === "email" ? "…" : "CONTINUE WITH EMAIL"}</Text>
-                </Pressable>
-                <Pressable onPress={() => setStep("username")} style={{ alignItems: "center" }}>
+                {/* clear of the email key's hard shadow — it used to follow a
+                    line of text, and now it follows a bevelled button */}
+                <Pressable onPress={() => setStep("username")} style={{ alignItems: "center", paddingTop: 18 }}>
                   <Text style={[mono(11, "r"), { color: Y.dim }]}>Explore first, sign in later →</Text>
                 </Pressable>
               </>
