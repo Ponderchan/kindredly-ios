@@ -165,9 +165,15 @@ const SW = 1.8;
 function EnvelopeGlyph() {
   return (
     <Svg width={30} height={22} viewBox="0 0 30 22">
-      <Rect x={1.9} y={5.6} width={26.2} height={14.6} rx={2.6} fill="none" stroke={INK_MAIL} strokeWidth={SW} />
-      <Path d="M1.7 2.9 L14.1 13.5" fill="none" stroke={INK_MAIL} strokeWidth={SW} strokeLinecap="round" />
-      <Path d="M28.3 2.9 L15.9 13.5" fill="none" stroke={INK_MAIL} strokeWidth={SW} strokeLinecap="round" />
+      <Rect x={3.6} y={6.2} width={22.8} height={14} rx={2.4} fill="none" stroke={INK_MAIL} strokeWidth={SW} />
+      {/* THE GAP HAS TO CLEAR THE CAPS. Endpoints 1.8 apart looked joined,
+          because a round cap adds half a stroke at each end — 0.9 + 0.9 is
+          exactly 1.8, so the two caps met in the middle and closed the V that
+          the gap is supposed to draw. 3.6 apart leaves a real 1.8 of air.
+          They also start further outside the top corners, as the reference
+          has them. */}
+      <Path d="M1.0 2.6 L13.2 13.8" fill="none" stroke={INK_MAIL} strokeWidth={SW} strokeLinecap="round" />
+      <Path d="M29.0 2.6 L16.8 13.8" fill="none" stroke={INK_MAIL} strokeWidth={SW} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -175,9 +181,12 @@ function EnvelopeGlyph() {
 function NotebookGlyph() {
   return (
     <Svg width={24} height={30} viewBox="0 0 24 30">
-      <Rect x={4.4} y={3.2} width={15.2} height={23.6} rx={2.8} fill="none" stroke={INK_BOOK} strokeWidth={SW} />
-      <Path d="M8.3 1.1 V28.9" stroke={INK_BOOK} strokeWidth={SW} strokeLinecap="butt" />
-      <Path d="M15.2 1.6 V28.4" stroke={BAND} strokeWidth={SW} strokeLinecap="butt" />
+      {/* The cover was 15.2 wide in a 24 box — a paperback stood on its end.
+          The reference is close to square: its board runs about 80% of the
+          glyph's width, so it does here too. */}
+      <Rect x={2.6} y={3.4} width={18.8} height={23.2} rx={3} fill="none" stroke={INK_BOOK} strokeWidth={SW} />
+      <Path d="M7.7 1.2 V28.8" stroke={INK_BOOK} strokeWidth={SW} strokeLinecap="butt" />
+      <Path d="M15.8 1.6 V28.4" stroke={BAND} strokeWidth={SW} strokeLinecap="butt" />
     </Svg>
   );
 }
