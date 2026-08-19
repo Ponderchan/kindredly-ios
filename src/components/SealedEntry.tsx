@@ -37,17 +37,18 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
   return (
     <Pressable
       onPress={onPress}
-      /* a page on the desk. No border — the colour step does the separating,
-         and a hairline round it would make a card. The mood rule stays: it is
-         the one thing on this sheet that is a reading rather than a container. */
+      /* A page on the desk, and nothing else. The mood rule that used to run
+         along the bottom is gone: on one white surface it was the only thing
+         separating one entry from the next, and the desk does that now. What
+         it said is already said better at the top of the same sheet by a
+         38pt drawn face — and a colour line along a page's bottom edge reads
+         as a card underline, which is the exact reading the borders came off
+         to avoid. Mood over time has its own place: the calendar view. */
       style={({ pressed }) => ({
         backgroundColor: P.sheet,
         paddingHorizontal: 16,
-        paddingTop: 14,
-        paddingBottom: 14,
+        paddingVertical: 14,
         marginBottom: 14,
-        borderBottomWidth: 1.5,
-        borderBottomColor: m.col,
         opacity: pressed ? 0.55 : 1,
       })}
     >
