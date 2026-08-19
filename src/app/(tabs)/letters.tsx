@@ -57,13 +57,23 @@ export default function LettersTab() {
      genuinely named its author, and the docket line stays silent about
      closeness for every other one. */
   const load = useCallback(async () => {
-    const [p, m] = await Promise.all([fetchPool(), fetchMatches()]);
-    const score = new Map((m?.closest || []).map((c) => [c.uid, c.score]));
-    const withClose = (p || []).map((l) => ({ ...l, close: score.get(l.author) }));
-    // matched first; everything else keeps the server's newest-first order
-    withClose.sort((a, b) => (b.close ?? -1) - (a.close ?? -1));
-    setPool(withClose);
+    /* THE LETTERS DON'T WAIT ON THE MATCHER. Awaiting both together meant the
+       feed appeared only once the nightly-matches lookup also came back — a
+       query that adds nothing to the first paint and, for most readers, comes
+       back empty anyway. The pool paints as soon as it lands; the closeness
+       scores fold in a moment later and re-sort in place. */
+    const p = (await fetchPool()) || [];
+    setPool(p);
     setLoaded(true);
+    const m = await fetchMatches();
+    if (!m?.closest?.length) return;
+    const score = new Map(m.closest.map((c) => [c.uid, c.score]));
+    setPool((cur) =>
+      cur
+        .map((l) => ({ ...l, close: score.get(l.author) }))
+        // matched first; everything else keeps the server's newest-first order
+        .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
+    );
   }, []);
   useFocusEffect(
     useCallback(() => {
@@ -188,7 +198,7 @@ function Feed({
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.ground }} edges={["top"]}>
-      <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={atEnd} />
+      <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={loaded && atEnd} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
           <ScrollView
@@ -204,7 +214,16 @@ function Feed({
             ))}
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
-                page and the ground meet without a seam. */}
+                page and the ground meet without a seam.
+
+                GATED ON `loaded`. While the pool is still in flight the feed
+                is empty, so this was the only page in the pager — every cold
+                open flashed THE POST IS CLOSED with a countdown before the
+                letters arrived and shoved it away. Saying the day is over
+                while we are still asking is the worst thing this screen can
+                get wrong, and slice 142 made the flash longer by putting the
+                matches query in the same await. */}
+            {loaded && (
             <View style={{ height: vh, backgroundColor: P.ground }}>
               <CloseOfDay
                 sealed={sealed}
@@ -214,6 +233,7 @@ function Feed({
                 onKept={() => router.push("/kept")}
               />
             </View>
+            )}
           </ScrollView>
         </View>
 
