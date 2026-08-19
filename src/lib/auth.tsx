@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Platform } from "react-native";
@@ -59,6 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [localProfile, setLocalProfile] = useState<Record<string, any>>({});
+  /* saveProfile is defined further down and the adopt effect above it needs to
+     call it — a ref keeps the two independent of declaration order rather than
+     shuffling the whole file around one call. */
+  const saveProfileRef = useRef<(p: Record<string, any>) => Promise<AuthResult>>(async () => ({ ok: true }));
 
   const user = session?.user ?? null;
   // local edits (name/avatar) always win and survive without a session;
@@ -87,6 +92,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
+
+  /* SIGNING IN MID-APP ADOPTS THE GHOST, it doesn't start over.
+     ────────────────────────────────────────────────────────────────────
+     Someone who chose "Just looking" walks the whole console — pen name,
+     birthday, face, courier, its name and pronoun, the first letter — and
+     all of it lands in localProfile and AsyncStorage, because saveProfile
+     writes locally with or without a session.
+
+     But `onboarded: true` was only ever set on the SIGNED-IN branch, so a
+     ghost never got the flag. They could sign in from the sheet, carry on
+     happily... and the next cold start would hit index.tsx's
+     `!session || !onboarded` and march them back through onboarding, where
+     finishing again would overwrite the courier they had already named.
+
+     So the moment a session appears with local work waiting and no flag on
+     the account, the account adopts it. That is what makes signing in later
+     mean "keep this" instead of "start over". */
+  const adopted = useRef(false);
+  useEffect(() => {
+    if (!supabase || !session || adopted.current) return;
+    const meta = (session.user?.user_metadata as Record<string, any>) || {};
+    if (meta.onboarded) return; // the account already knows
+    if (!Object.keys(localProfile).length) return; // nothing to adopt
+    adopted.current = true;
+    void saveProfileRef.current({});
+  }, [session, localProfile]);
 
   useEffect(() => {
     if (Platform.OS === "ios") {
@@ -209,8 +240,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch(() => {});
       // then best-effort sync to the account when signed in
       if (supabase && session) {
-        const data: Record<string, any> = { ...p, onboarded: true };
-        if (p.handle) data.full_name = p.handle;
+        /* The whole local picture goes up, not just this call's delta. A
+           catch-up sync passes {} — with the old code that pushed nothing but
+           the onboarded flag and left the account without the handle, the
+           birthday or the first line that were already sitting on the phone. */
+        const data: Record<string, any> = { ...nextLocal, onboarded: true };
+        if (nextLocal.handle) data.full_name = nextLocal.handle;
         try {
           const { error } = await supabase.auth.updateUser({ data });
           if (!error) await refresh();
@@ -222,6 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [refresh, session, localProfile],
   );
+  saveProfileRef.current = saveProfile;
 
   const signOut = useCallback(async () => {
     if (supabase) {
