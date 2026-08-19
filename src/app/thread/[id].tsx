@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../../lib/wren-name";
 import { useCallback, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +30,7 @@ const PAPER = P.paper;
 export default function ThreadScreen() {
   const { id, i } = useLocalSearchParams<{ id: string; i?: string }>();
   const router = useRouter();
+  const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [sending, setSending] = useState(false);
@@ -121,7 +123,7 @@ export default function ThreadScreen() {
     if (t) {
       setXl(t);
       setXlOn(true);
-    } else Alert.alert("Wren couldn't translate this", "Try again in a moment.");
+    } else Alert.alert(`${wren} couldn't translate this`, "Try again in a moment.");
   };
 
   return (

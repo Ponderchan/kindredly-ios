@@ -1,3 +1,4 @@
+import { useWrenName } from "../lib/wren-name";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -20,6 +21,7 @@ export function WrenOnYou({
   hasText: boolean;
   onReadAgain: () => Promise<void> | void;
 }) {
+  const wren = useWrenName();
   const breathe = useBreathe(4, 3600);
   const glowPulse = usePulse(0.14, 0.26, 5200);
   const [reading, setReading] = useState(false);
@@ -85,7 +87,7 @@ export function WrenOnYou({
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 }}>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: "rgba(243,242,248,0.45)" }}>
-            — Wren, who reads the post
+            — {wren}, who reads the post
           </Text>
           {hasText && (
             <Pressable

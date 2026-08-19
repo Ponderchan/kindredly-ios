@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +13,7 @@ import { useAuth } from "../lib/auth";
    waiting in grey. Tap one for its story. */
 export default function StampsScreen() {
   const router = useRouter();
+  const wren = useWrenName();
   const { user } = useAuth();
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [open, setOpen] = useState<GrowthStamp | null>(null);
@@ -89,7 +91,7 @@ export default function StampsScreen() {
               )}
 
               <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 23, color: C.muted, textAlign: "center", marginTop: 14 }}>
-                {open.desc}
+                {speakAs(open.desc, wren)}
               </Text>
 
               <Pressable

@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +13,7 @@ export default function Settings() {
   const auth = useAuth();
   const { handle, profile } = auth;
   const router = useRouter();
+  const wren = useWrenName();
   const [knock, setKnock] = useState(false);
 
   useFocusEffect(
@@ -51,7 +53,7 @@ export default function Settings() {
     if (want) {
       const ok = await enableMorningKnock();
       setKnock(ok);
-      if (!ok) Alert.alert("Notifications are off", "Allow notifications for Kindredly in Settings, and Wren will knock at eight.");
+      if (!ok) Alert.alert("Notifications are off", `Allow notifications for Kindredly in Settings, and ${wren} will knock at eight.`);
     } else {
       await disableMorningKnock();
       setKnock(false);

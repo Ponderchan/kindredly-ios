@@ -1,3 +1,5 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
+import { GROWTH_PLAN, growthStage } from "../lib/hatch-engine";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { C, F, cardStyle, shadow } from "../theme/tokens";
@@ -24,6 +26,7 @@ export function WrenHome({
   stageFloor = "egg",
   typeName,
   bornWith,
+  pieces = 0,
   onEquip,
   onLocked,
 }: {
@@ -33,12 +36,20 @@ export function WrenHome({
   stageFloor?: WrenStage;
   typeName?: string;
   bornWith?: WrenAccessory;
+  pieces?: number; // letters + sealed pages — what the hatch engine reads
   onEquip: (a: WrenAccessory) => void;
   onLocked: () => void;
 }) {
   const { skin, pick } = useWrenSkinControl();
   const info = stageInfo(stats, stageFloor);
   const [cur, tgt] = info.next?.progress ?? [1, 1];
+  const wren = useWrenName();
+  /* two ladders on purpose: stageInfo grows her BODY on social milestones
+     (letters, replies, a kindred); the hatch engine's GROWTH_PLAN grows how
+     well she KNOWS you, on sheer pieces written. This block is the second. */
+  const grow = growthStage(pieces);
+  const nextGrow = GROWTH_PLAN[GROWTH_PLAN.indexOf(grow) + 1];
+  const growPct = nextGrow ? Math.min(100, Math.round(((pieces - grow.at) / (nextGrow.at - grow.at)) * 100)) : 100;
   const [open, setOpen] = useState<null | "looks" | "dress">(null);
   const wearsHere = info.stage === "wren" || info.stage === "hatch";
 
@@ -65,9 +76,28 @@ export function WrenHome({
           <WrenBird size={72} stage={info.stage} mood={heroMood(info.stage)} accessory={wearsHere ? accessory : "none"} />
         </View>
         <Text style={{ fontFamily: F.serifSemi, fontSize: 23, color: C.ink, marginTop: 12 }}>
-          Wren · <Text style={{ color: C.purple }}>{info.label}</Text>
+          {wren} · <Text style={{ color: C.purple }}>{info.label}</Text>
         </Text>
         <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, marginTop: 4 }}>{info.blurb}</Text>
+
+        {/* how well she knows you — every piece you write feeds the read */}
+        <View style={{ alignSelf: "stretch", marginTop: 16, marginHorizontal: 18, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#ECEAF6" }}>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.5, color: C.faint }}>HOW WELL {wren.toUpperCase()} KNOWS YOU</Text>
+          <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 7 }}>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: C.ink }}>{grow.name}</Text>
+            {nextGrow && (
+              <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.faint, marginLeft: 8 }}>
+                {pieces}/{nextGrow.at} pieces → {nextGrow.name}
+              </Text>
+            )}
+          </View>
+          <View style={{ height: 4, borderRadius: 2, backgroundColor: "#ECEAF6", marginTop: 8, overflow: "hidden" }}>
+            <View style={{ width: `${growPct}%`, height: 4, borderRadius: 2, backgroundColor: C.purple }} />
+          </View>
+          <Text style={{ fontFamily: F.sans, fontSize: 11.5, lineHeight: 16, color: C.muted, marginTop: 8 }}>
+            {nextGrow ? `Next: ${speakAs(nextGrow.unlocks, wren)}` : speakAs(grow.unlocks, wren)}
+          </Text>
+        </View>
         {typeName && (
           <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.5, color: C.purple, marginTop: 6 }}>BORN {typeName.toUpperCase()}</Text>
         )}

@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,6 +24,7 @@ const INK = "#12101F";
 
 export default function AuraShareCard() {
   const router = useRouter();
+  const wren = useWrenName();
   const { profile } = useAuth();
   const [read, setRead] = useState<VoiceRead | null>(null);
   const [units, setUnits] = useState<number[]>([]);
@@ -49,7 +51,7 @@ export default function AuraShareCard() {
 
   const done = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
   const shareText = () =>
-    read && Share.share({ message: `${name} — my writing aura, discovered with Wren on Kindredly. "${read.discovery.replace(/\n/g, " ")}"` });
+    read && Share.share({ message: `${name} — my writing aura, discovered with ${wren} on Kindredly. "${read.discovery.replace(/\n/g, " ")}"` });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: INK }}>
@@ -95,7 +97,7 @@ export default function AuraShareCard() {
             <View style={{ alignItems: "center", gap: 6 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                 <WrenBird size={20} mood="content" />
-                <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>Discovered with Wren</Text>
+                <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>Discovered with {wren}</Text>
               </View>
               <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 3.5, color: "rgba(255,255,255,0.65)" }}>KINDREDLY</Text>
             </View>

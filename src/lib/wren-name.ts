@@ -36,6 +36,17 @@ export async function getWrenName(): Promise<string> {
   }
 }
 
+/* Copy all over the app is AUTHORED with the literal name "Wren" — it's the
+   default, it reads naturally in source, and it keeps the strings greppable.
+   At render time, any line spoken by or about her passes through here and
+   the owner's chosen name is swapped in. \b keeps it to the whole word, and
+   "Wren's" comes out as "Pip's" for free. This only ever runs on our own
+   copy and on her AI summaries — never on a user's writing. */
+export function speakAs(text: string, name: string): string {
+  if (!text || !name || name === DEFAULT_WREN) return text;
+  return text.replace(/\bWren\b/g, name);
+}
+
 export async function saveWrenEgg(variant: number): Promise<void> {
   try {
     await AsyncStorage.setItem(EGG_KEY, String(variant));

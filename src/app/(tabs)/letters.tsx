@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -265,6 +266,7 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
    That keeps Today consistent with every other room — white is always where
    you read — without shrinking the one thing this screen exists to show. */
 function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
+  const wren = useWrenName();
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
   const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
@@ -290,7 +292,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
     if (t) {
       setXl(t);
       setXlOn(true);
-    } else Alert.alert("Wren couldn't translate this", "Try again in a moment.");
+    } else Alert.alert(`${wren} couldn't translate this`, "Try again in a moment.");
   };
 
   return (
@@ -437,6 +439,7 @@ function Ritual({ onDone }: { onDone: () => void }) {
 /* Wren's welcome letter — read-only; it teaches the swipe-and-write ritual and
    hands the reader into the everyday feed. */
 function Welcome({ onDone }: { onDone: () => void }) {
+  const wren = useWrenName();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
@@ -456,7 +459,7 @@ function Welcome({ onDone }: { onDone: () => void }) {
             Five letters each way, and I'll tell you each other's names.{"\n\n"}
             Write when something's true, not when it's polished. I'll be listening.
           </Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.muted, marginTop: 18, textAlign: "right" }}>— Wren</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.muted, marginTop: 18, textAlign: "right" }}>— {wren}</Text>
 
           <Pressable
             onPress={onDone}

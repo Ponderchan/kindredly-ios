@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,6 +32,7 @@ type Mode = "write" | "speak";
 
 export default function Compose() {
   const router = useRouter();
+  const wren = useWrenName();
   const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string; seed?: string }>();
   const isMorning = params.morning === "1";
   const { premium } = useEntitlement();
@@ -127,7 +129,7 @@ export default function Compose() {
       const gate = await screen(body);
       if (!gate.ok) {
         setBusy(false);
-        Alert.alert("Wren held this back", "This can't go out as written. Keep it to strangers — no contact details.");
+        Alert.alert(`${wren} held this back`, "This can't go out as written. Keep it to strangers — no contact details.");
         return;
       }
     }
@@ -359,7 +361,7 @@ export default function Compose() {
                   </View>
                 )}
                 <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 14, lineHeight: 17 }}>
-                  Up to three minutes. Your voice travels as it is — Wren doesn't listen in.
+                  Up to three minutes. Your voice travels as it is — {wren} doesn't listen in.
                 </Text>
                 <TextInput
                   value={text}

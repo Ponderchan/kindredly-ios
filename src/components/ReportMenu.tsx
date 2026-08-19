@@ -1,3 +1,4 @@
+import { useWrenName } from "../lib/wren-name";
 import { ActionSheetIOS, Alert, Pressable, Text } from "react-native";
 import { C, F } from "../theme/tokens";
 import { blockUser, reportContent } from "../lib/db";
@@ -19,6 +20,7 @@ export function ReportMenu({
   snapshot?: string;
   onBlocked?: () => void;
 }) {
+  const wren = useWrenName();
   const open = () => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
@@ -32,7 +34,7 @@ export function ReportMenu({
           await reportContent({ targetUser, context, refId, reason: "other", snapshot });
           Alert.alert(
             "Reported",
-            "Thank you. Wren will review it — repeated reports remove a writer from Kindredly.",
+            `Thank you. ${wren} will review it — repeated reports remove a writer from Kindredly.`,
           );
         } else if (i === 2) {
           Alert.alert("Block this person?", "You won't see their letters, and they won't see yours.", [

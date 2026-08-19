@@ -1,3 +1,4 @@
+import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -65,6 +66,7 @@ export default function MeTab() {
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
   const [wrenType, setWrenType] = useState<WrenType | null>(null);
+  const wren = useWrenName();
 
   useFocusEffect(
     useCallback(() => {
@@ -151,7 +153,7 @@ export default function MeTab() {
           {(
             [
               ["you", "You"],
-              ["wren", "Wren"],
+              ["wren", wren],
             ] as const
           ).map(([id, label]) => {
             const on = room === id;
@@ -200,6 +202,7 @@ export default function MeTab() {
             <View style={{ marginTop: 14 }}>
               <WrenHome
                 stats={stats}
+                pieces={voice?.pieces ?? 0}
                 accessory={accessory}
                 premium={premium}
                 stageFloor={stageFloor}

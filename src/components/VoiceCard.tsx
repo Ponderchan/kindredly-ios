@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Stop } from "react-native-svg";
 import { C, F, cardStyle } from "../theme/tokens";
@@ -28,6 +29,7 @@ export function VoiceCard({
   onShare: () => void;
 }) {
   const tier = read.tier;
+  const wren = useWrenName();
   const count = Math.max(lettersSent, read.pieces);
   const share = onShare;
 
@@ -67,7 +69,7 @@ export function VoiceCard({
         </Pressable>
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
-          <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted }}>{read.taking}</Text>
+          <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted }}>{speakAs(read.taking, wren)}</Text>
           <Pressable onPress={share} style={({ pressed }) => ({ backgroundColor: C.purple, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 11, opacity: pressed ? 0.9 : 1 })}>
             <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: "#fff" }}>Share your aura ✨</Text>
           </Pressable>
@@ -99,10 +101,10 @@ export function VoiceCard({
           <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
             Write a few letters, and I'll start discovering{"\n"}what makes your voice yours.
           </Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, alignSelf: "flex-start", marginTop: 10 }}>— Wren</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, alignSelf: "flex-start", marginTop: 10 }}>— {wren}</Text>
           <View style={{ alignSelf: "stretch", borderTopWidth: 1, borderTopColor: C.lineSoft, marginTop: 12, paddingTop: 10 }}>
             <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.2, color: C.faint }}>
-              0 LETTERS · {read.taking.toUpperCase()}
+              0 LETTERS · {speakAs(read.taking, wren).toUpperCase()}
             </Text>
           </View>
         </View>
@@ -123,15 +125,15 @@ export function VoiceCard({
             ))}
           </View>
 
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 22, color: "#3A3644", marginTop: 14 }}>“{quote}”</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 22, color: "#3A3644", marginTop: 14 }}>“{speakAs(quote, wren)}”</Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
             <WrenBird size={18} mood="content" />
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>— Wren</Text>
+            <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>— {wren}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: C.lineSoft, marginTop: 14, paddingTop: 11 }}>
             <Text style={{ flex: 1, fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1, color: C.faint, marginRight: 10 }}>
-              {count} LETTERS · {read.taking.toUpperCase()}
+              {count} LETTERS · {speakAs(read.taking, wren).toUpperCase()}
             </Text>
             <Pressable onPress={share} hitSlop={6} style={({ pressed }) => ({ backgroundColor: C.purpleLt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.85 : 1 })}>
               <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>Share my aura ✨</Text>

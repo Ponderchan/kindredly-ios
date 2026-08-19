@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +17,7 @@ import { useEntitlement } from "../lib/entitlement";
 
 export default function VoiceDetail() {
   const router = useRouter();
+  const wren = useWrenName();
   const { profile } = useAuth();
   const { premium } = useEntitlement();
   const [read, setRead] = useState<VoiceRead | null>(null);
@@ -57,7 +59,7 @@ export default function VoiceDetail() {
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>YOUR WRITING AURA</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 2 }}>
-            {read ? `Based on ${read.pieces} ${read.pieces === 1 ? "piece" : "pieces"} · ${read.stage.line.toLowerCase()}` : "…"}
+            {read ? `Based on ${read.pieces} ${read.pieces === 1 ? "piece" : "pieces"} · ${speakAs(read.stage.line, wren).toLowerCase()}` : "…"}
           </Text>
         </View>
       </View>
@@ -67,7 +69,7 @@ export default function VoiceDetail() {
         {summary && (
           <View style={[cardStyle, { padding: 16, marginBottom: 12, backgroundColor: C.purpleLt }]}>
             <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 22, color: "#2E2A50" }}>“{summary}”</Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 11, color: "#8B84B8", marginTop: 6 }}>— Wren</Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 11, color: "#8B84B8", marginTop: 6 }}>— {wren}</Text>
           </View>
         )}
 
@@ -86,7 +88,7 @@ export default function VoiceDetail() {
                     an unread row admits it rather than printing a reading it
                     hasn't earned */}
                 <Text style={{ fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 }}>
-                  {r.read ? r.line : "Not enough writing yet."}
+                  {r.read ? speakAs(r.line, wren) : "Not enough writing yet."}
                 </Text>
               </View>
               <View style={{ flexDirection: "row", gap: 3.5 }}>
@@ -115,15 +117,15 @@ export default function VoiceDetail() {
               {gate.state === "locked" ? "👑 KINDREDLY+" : "🌙 YOUR VOICE · WRAPPED"}
             </Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 17, color: "#fff", marginTop: 8 }}>
-              {gate.state === "ready" && (gate.kind === "first" ? "Wren wrote you a letter." : "This month's letter is here.")}
-              {gate.state === "progress" && "Wren is saving up a letter about you."}
+              {gate.state === "ready" && (gate.kind === "first" ? `${wren} wrote you a letter.` : "This month's letter is here.")}
+              {gate.state === "progress" && `${wren} is saving up a letter about you.`}
               {gate.state === "locked" && "A letter about you, every month."}
               {gate.state === "done" && "This month's letter is read."}
             </Text>
             <Text style={{ fontFamily: F.sans, fontSize: 12.5, lineHeight: 19, color: "#B9B4D6", marginTop: 6 }}>
               {gate.state === "ready" && "How you write, wrapped in a night sky. Tap to open."}
               {gate.state === "progress" && `Write ${gate.need - gate.have} more ${gate.need - gate.have === 1 ? "piece" : "pieces"} and she'll seal the first one — free.`}
-              {gate.state === "locked" && "Your voice, your hours, your words — a wrapped read from Wren with Kindredly+."}
+              {gate.state === "locked" && `Your voice, your hours, your words — a wrapped read from ${wren} with Kindredly+.`}
               {gate.state === "done" && "The next one arrives with the new month."}
             </Text>
             {gate.state === "progress" && (

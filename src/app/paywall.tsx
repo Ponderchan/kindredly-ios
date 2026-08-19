@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,6 +25,7 @@ const PLACEHOLDERS: IapPackage[] = [
 
 export default function Paywall() {
   const router = useRouter();
+  const wren = useWrenName();
   const { refresh } = useEntitlement();
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -98,8 +100,8 @@ export default function Paywall() {
                 <Wren size={20} mode="line" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 15, color: P.ink }}>{title}</Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink60, marginTop: 3, lineHeight: 19 }}>{sub}</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 15, color: P.ink }}>{speakAs(title, wren)}</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink60, marginTop: 3, lineHeight: 19 }}>{speakAs(sub, wren)}</Text>
               </View>
             </View>
           ))}

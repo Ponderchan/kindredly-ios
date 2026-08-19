@@ -1,3 +1,4 @@
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,6 +28,7 @@ type Screen = { key: string; render: () => React.ReactNode };
 
 export default function VoiceReport() {
   const router = useRouter();
+  const wren = useWrenName();
   const { profile } = useAuth();
   const [data, setData] = useState<ReportData | null>(null);
   const [idx, setIdx] = useState(0);
@@ -157,7 +159,7 @@ export default function VoiceReport() {
         <View style={{ flex: 1, justifyContent: "center" }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>AFTER READING YOU</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 21, lineHeight: 33, color: "#fff", marginTop: 16 }}>“{data.quote}”</Text>
-          <Text style={{ fontFamily: F.sans, fontSize: 12, color: STARLIGHT, marginTop: 14 }}>— Wren</Text>
+          <Text style={{ fontFamily: F.sans, fontSize: 12, color: STARLIGHT, marginTop: 14 }}>— {wren}</Text>
           <View style={{ marginTop: 26, alignSelf: "flex-start" }}>
             <WrenBird size={44} mood="content" />
           </View>
@@ -179,7 +181,7 @@ export default function VoiceReport() {
           <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
             <Pressable
               onPress={() =>
-                Share.share({ message: `Wren read my letters on Kindredly — "${data.quote}" · ${data.archetype}` })
+                Share.share({ message: `${wren} read my letters on Kindredly — "${data.quote}" · ${data.archetype}` })
               }
               style={{ flex: 1, borderWidth: 1, borderColor: "rgba(255,255,255,0.4)", borderRadius: 16, paddingVertical: 13, alignItems: "center" }}
             >
