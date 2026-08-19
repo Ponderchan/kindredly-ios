@@ -96,7 +96,7 @@ export function VoiceCard({
             <WrenBird size={84} stage="hatch" mood="listen" />
           </AuraOrb>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 19, color: C.ink, textAlign: "center", marginTop: 10 }}>
-            Wren is still listening.
+            {wren} is still listening.
           </Text>
           <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
             Write a few letters, and I'll start discovering{"\n"}what makes your voice yours.

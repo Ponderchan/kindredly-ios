@@ -1,3 +1,4 @@
+import { useWrenName } from "../lib/wren-name";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
@@ -118,6 +119,7 @@ function ToSeal({ onSeal }: { onSeal: () => void }) {
 
 /* ── after: it's stamped, and the board says when the next one lands ── */
 function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () => void; onKept: () => void }) {
+  const wren = useWrenName();
   const land = useSharedValue(0);
   useEffect(() => {
     land.value = withSequence(withTiming(1.14, { duration: 130 }), withTiming(1, { duration: 260, easing: Easing.out(Easing.back(2)) }));
@@ -151,7 +153,7 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 28 }}>
         <WrenBird size={30} mood="sleepy" />
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.groundInk40 }}>WREN IS OFF THE CLOCK</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.groundInk40 }}>{wren.toUpperCase()} IS OFF THE CLOCK</Text>
       </View>
     </Animated.View>
   );

@@ -1,3 +1,4 @@
+import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -134,6 +135,7 @@ function Dots({ p }: { p: number }) {
 }
 
 function Empty({ onWrite }: { onWrite: () => void }) {
+  const wren = useWrenName();
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 50 }}>
       <View>
@@ -157,7 +159,7 @@ function Empty({ onWrite }: { onWrite: () => void }) {
         style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: P.pen, paddingVertical: 16, paddingHorizontal: 20, marginTop: 34, alignSelf: "stretch", opacity: pressed ? 0.85 : 1 })}
       >
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 13.5, color: "#fff", letterSpacing: 1 }}>PUT SOMEONE IN ORBIT</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: "rgba(255,255,255,0.72)" }}>WREN PICKS</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: "rgba(255,255,255,0.72)" }}>{wren.toUpperCase()} PICKS</Text>
       </Pressable>
     </View>
   );
