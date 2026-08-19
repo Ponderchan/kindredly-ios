@@ -67,7 +67,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                     <EnvelopeIcon k={0.62} />
                   </View>
                   <View style={{ zIndex: 2 }}>
-                    <WrenBird size={104} mood="curious" />
+                    <WrenBird size={104} mood="curious" bare />
                   </View>
                   <View style={{ transform: [{ rotate: "14deg" }], marginLeft: -14, marginBottom: -6, zIndex: 0 }}>
                     <NotebookIcon k={0.62} />
@@ -81,7 +81,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
 
               <View style={{ flex: 1 }} />
 
-              <View style={{ alignSelf: "stretch", paddingHorizontal: 18, gap: 12, paddingBottom: 4 }}>
+              <View style={{ alignSelf: "stretch", paddingHorizontal: 18, gap: 14, paddingBottom: 4 }}>
                 <WrenChoice
                   title="To a stranger"
                   said="I'll find who it's for"
@@ -90,7 +90,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                     go("/compose");
                   }}
                 >
-                  <EnvelopeIcon k={0.42} />
+                  <Tile><EnvelopeGlyph /></Tile>
                 </WrenChoice>
                 <WrenChoice
                   title="To yourself"
@@ -100,7 +100,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                     go("/journal-entry");
                   }}
                 >
-                  <NotebookIcon k={0.42} />
+                  <Tile><NotebookGlyph /></Tile>
                 </WrenChoice>
               </View>
 
@@ -110,6 +110,48 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
             </View>
           </Pressable>
     </View>
+  );
+}
+
+/* THE ROW GLYPHS. The wing illustrations below were drawn to work at 40pt as
+   well as 100pt, so for a while the same pair did both jobs. At row size the
+   detail stopped helping — two tiny full-colour objects competing with the
+   text beside them — so the rows now carry line glyphs on a soft tile, which
+   is what a list item wants: one weight, one colour, read in a glance. The
+   illustrations keep the hero slot under her wings, where the detail is the
+   point. */
+function Tile({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: "#EDEBFB", alignItems: "center", justifyContent: "center" }}>
+      {children}
+    </View>
+  );
+}
+
+/* a letter that leaves — the flap's V is the whole idea */
+function EnvelopeGlyph() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24">
+      <Rect x={3} y={6} width={18} height={13} rx={2.5} fill="none" stroke={P.pen} strokeWidth={1.9} />
+      <Path d="M3.6 7.4 L12 13.4 L20.4 7.4" fill="none" stroke={P.pen} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/* a notebook that stays. First pass put the spine and the elastic side by
+   side in the middle, which read as a barcode rather than a book — the spine
+   belongs hard against the left edge and the elastic across the face, well
+   clear of it, or the two lines have nothing to say to each other. */
+function NotebookGlyph() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24">
+      <Rect x={5.5} y={3} width={13} height={18} rx={2.2} fill="none" stroke={P.pen} strokeWidth={1.9} />
+      {/* Two lines, not three. The outline's own left edge already reads as the
+          board, so an extra faded spine beside it just made a barcode at 22pt.
+          The elastic carries the whole idea, so it gets the weight. */}
+      <Path d="M9 3.6 V20.4" stroke={P.pen} strokeWidth={1.5} strokeLinecap="round" opacity={0.45} />
+      <Path d="M14.6 2.6 V21.4" stroke="#D08A3E" strokeWidth={3.2} strokeLinecap="round" />
+    </Svg>
   );
 }
 
@@ -259,14 +301,14 @@ function WrenChoice({
           backgroundColor: pressed ? P.penWash : P.paper,
           borderWidth: 1,
           borderColor: P.ink,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
+          paddingHorizontal: 20,
+          paddingVertical: 13,
         })}
       >
         {children}
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 17, fontWeight: "600", color: P.ink }}>{title}</Text>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, marginTop: 3 }}>{said}</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink60, marginTop: 2 }}>{said}</Text>
         </View>
         <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink40 }}>›</Text>
       </Pressable>
