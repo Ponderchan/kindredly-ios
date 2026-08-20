@@ -194,9 +194,13 @@ export default function JournalDetail() {
         <>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
           <View
+            /* hangs under the ··· button. `top` is measured from inside the
+               SafeAreaView, so it counts from below the notch — the old 48
+               was tuned before this header changed height and had drifted up
+               over the status bar. 56 clears the 42pt button plus its row. */
             style={{
               position: "absolute",
-              top: 48,
+              top: 56,
               right: 14,
               backgroundColor: P.paper,
               borderWidth: 1,
@@ -297,6 +301,7 @@ function PhotoGallery({
   canSetCover: boolean;
 }) {
   const [full, setFull] = useState<string | null>(null);
+  const [rowW, setRowW] = useState(0);
   if (!photos.length) return null;
   const G = 2;
   const H = 250;
@@ -340,14 +345,22 @@ function PhotoGallery({
         </View>
       )}
 
-      {/* everything after flows in rows of three */}
+      {/* Everything after flows in rows of three. The width is computed from
+          the measured row rather than a 33.33% that the 2px gaps then push
+          onto the next line — that arithmetic is why the eighth photo fell to
+          a row of its own with two empty slots beside it. flexGrow is left
+          off for the same reason: a growing cell can't hold a square. */}
       {rest.length > 0 && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: G, marginTop: G }}>
-          {rest.map((p, k) => (
-            <View key={p + k} style={{ width: `${100 / 3}%`, aspectRatio: 1, flexGrow: 1, maxWidth: "33.4%" }}>
-              {cell(k + 5, { flex: 1 })}
-            </View>
-          ))}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: G, marginTop: G }} onLayout={(ev) => setRowW(ev.nativeEvent.layout.width)}>
+          {rowW > 0 &&
+            rest.map((p, k) => {
+              const side = (rowW - G * 2) / 3;
+              return (
+                <View key={p + k} style={{ width: side, height: side }}>
+                  {cell(k + 5, { flex: 1 })}
+                </View>
+              );
+            })}
         </View>
       )}
 
