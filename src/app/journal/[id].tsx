@@ -3,6 +3,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
+import Svg, { Path } from "react-native-svg";
 import { P, PF, rule } from "../../theme/post";
 import { AudioCard } from "../../components/AudioCard";
 import { LinePicker } from "../../components/LinePicker";
@@ -216,6 +217,7 @@ export default function JournalDetail() {
             {!isDemo && e.body.trim().length >= 3 && (
               <MenuRow
                 label="LET THIS DRIFT OUT"
+                icon={<DriftIcon />}
                 onPress={() => {
                   setMenuOpen(false);
                   router.push({ pathname: "/compose", params: { seed: e.body } });
@@ -225,6 +227,7 @@ export default function JournalDetail() {
             {canDrift && (
               <MenuRow
                 label="LET ONE LINE DRIFT OUT"
+                icon={<DriftIcon />}
                 onPress={() => {
                   setMenuOpen(false);
                   setDrifting(true);
@@ -232,7 +235,8 @@ export default function JournalDetail() {
               />
             )}
             <MenuRow
-              label="TEAR THIS PAGE OUT"
+              label="DELETE"
+              icon={<BinIcon />}
               destructive
               onPress={() => {
                 setMenuOpen(false);
@@ -269,11 +273,51 @@ function CalGlyph() {
   );
 }
 
-function MenuRow({ label, onPress, destructive }: { label: string; onPress: () => void; destructive?: boolean }) {
+function MenuRow({ label, onPress, destructive, icon }: { label: string; onPress: () => void; destructive?: boolean; icon?: React.ReactNode }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ paddingVertical: 14, paddingHorizontal: 16, backgroundColor: pressed ? P.paperDeep : "transparent" })}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        backgroundColor: pressed ? P.paperDeep : "transparent",
+        // the destructive row is separated, not merely recoloured
+        borderTopWidth: destructive ? 1 : 0,
+        borderTopColor: P.ink12,
+      })}
+    >
+      {icon}
       <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 1, color: destructive ? P.post : P.ink }}>{label}</Text>
     </Pressable>
+  );
+}
+
+/* A DRAWN BIN. Delete is the one action here that can't be undone, so it gets
+   the one mark every reader recognises without reading. "TEAR THIS PAGE OUT"
+   was our voice being precious about a destructive control — the worst place
+   in an app to make someone parse a metaphor. The row says DELETE; the paper
+   language keeps its home in the confirm, where there's room for it. */
+function BinIcon() {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 16 16">
+      <Path d="M2.6 4.2h10.8" stroke={P.post} strokeWidth={1.5} strokeLinecap="round" />
+      <Path d="M6.2 4.2V2.9h3.6v1.3" fill="none" stroke={P.post} strokeWidth={1.5} strokeLinejoin="round" />
+      <Path d="M4 4.2l.6 8.3a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9l.6-8.3" fill="none" stroke={P.post} strokeWidth={1.5} strokeLinejoin="round" />
+      <Path d="M6.6 6.6v4.2M9.4 6.6v4.2" stroke={P.post} strokeWidth={1.3} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/* the drift rows share one mark: a dotted line leaving, with an arrow */
+function DriftIcon() {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 16 16">
+      <Path d="M2.6 9.6c3.4-4.4 6.8-4.4 10.2 0" fill="none" stroke={P.ink} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="1.6 2" />
+      <Path d="M9.6 2.9l3.4 1.5-1.4 3.4" fill="none" stroke={P.ink} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
   );
 }
 

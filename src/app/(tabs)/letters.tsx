@@ -139,6 +139,13 @@ function Feed({
   const [toast, setToast] = useState(false);
   const [sending, setSending] = useState(false);
   const [kbOpen, setKbOpen] = useState(false);
+  /* REPLY ↓ WAS NEVER A BUTTON. It was a bare <Text> — no Pressable, no
+     handler, nothing in this file ever called .focus() — so the one
+     affordance pointing at the reply box did nothing at all, and the box
+     itself is a thin strip near the fold that is easy to miss. The ref makes
+     the affordance real. */
+  const replyRef = useRef<TextInput>(null);
+  const focusReply = () => replyRef.current?.focus();
   const { isGuest } = useAuth();
   const [needsAccount, setNeedsAccount] = useState(false);
 
@@ -225,7 +232,7 @@ function Feed({
             onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.y / vh))}
           >
             {feed.map((letter, i) => (
-              <LetterPage key={letter.id} letter={letter} height={vh} first={i === 0 && idx === 0} />
+              <LetterPage key={letter.id} letter={letter} height={vh} first={i === 0 && idx === 0} onReply={focusReply} />
             ))}
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
@@ -263,9 +270,10 @@ function Feed({
                with only its rule, it reads as a pen hovering — your words
                become a page when you send them, and that page lives in the
                thread that opens. */
-            <View style={{ minHeight: 78 }}>
+            <Pressable onPress={focusReply} style={{ minHeight: 78 }}>
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingRight: 2, paddingVertical: 2 }}>
                 <TextInput
+                  ref={replyRef}
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
                   placeholder="write back…"
@@ -290,7 +298,7 @@ function Feed({
                     ? "A THREAD OPENS — JUST THE TWO OF YOU"
                     : "REPLY AND A THREAD OPENS"}
               </Text>
-            </View>
+            </Pressable>
           ) : (
             <View style={{ minHeight: 78 }} />
           )}
@@ -333,7 +341,7 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
 
    That keeps Today consistent with every other room — white is always where
    you read — without shrinking the one thing this screen exists to show. */
-function LetterPage({ letter, height, first }: { letter: PoolLetter; height: number; first: boolean }) {
+function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; height: number; first: boolean; onReply: () => void }) {
   const wren = useWrenName();
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -491,7 +499,9 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
               </Text>
             </Pressable>
           )}
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
+          <Pressable onPress={onReply} hitSlop={14}>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
+          </Pressable>
         </View>
       </Animated.View>
       </View>
