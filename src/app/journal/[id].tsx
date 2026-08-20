@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -10,7 +10,7 @@ import { MoodIcon } from "../../components/MoodIcon";
 import { getMood } from "../../data/moods";
 import { DEMO_JOURNAL } from "../../data/demo";
 import { insertMorningFragment } from "../../lib/db";
-import { deleteEntry, loadJournal, setCover, setDrift, type JournalEntry } from "../../lib/journal";
+import { deleteEntry, hideDemoEntry, loadJournal, setCover, setDrift, type JournalEntry } from "../../lib/journal";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { useAuth } from "../../lib/auth";
 
@@ -26,7 +26,6 @@ export default function JournalDetail() {
   const [e, setE] = useState<JournalEntry | null>(null);
   const [drifting, setDrifting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sel, setSel] = useState(0);
   const isDemo = !!id?.startsWith("demo-");
 
   useFocusEffect(
@@ -35,13 +34,11 @@ export default function JournalDetail() {
       if (isDemo) {
         const d = DEMO_JOURNAL.find((x) => x.id === id) || null;
         setE(d);
-        setSel(d?.coverIndex ?? 0);
       } else {
         loadJournal().then((all) => {
           if (!alive) return;
           const found = all.find((x) => x.id === id) || null;
           setE(found);
-          setSel(found?.coverIndex ?? 0);
         });
       }
       return () => {
@@ -50,10 +47,10 @@ export default function JournalDetail() {
     }, [id, isDemo]),
   );
 
-  const makeCover = async () => {
+  const makeCover = async (i: number) => {
     if (!e || isDemo) return;
-    await setCover(e.id, sel);
-    setE({ ...e, coverIndex: sel, mediaUri: e.media?.[sel] || e.mediaUri });
+    await setCover(e.id, i);
+    setE({ ...e, coverIndex: i, mediaUri: e.media?.[i] || e.mediaUri });
   };
 
   const { isGuest } = useAuth();
@@ -64,6 +61,21 @@ export default function JournalDetail() {
 
   const confirmDelete = () => {
     if (!e) return;
+    if (isDemo) {
+      // a sample tears out locally and never comes back
+      Alert.alert("Tear this sample out?", "It's one of ours, not yours — it just stops appearing here.", [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Tear it out",
+          style: "destructive",
+          onPress: async () => {
+            await hideDemoEntry(e.id);
+            goBack();
+          },
+        },
+      ]);
+      return;
+    }
     Alert.alert("Tear this page out?", "It disappears from the sealed room. A line that already drifted stays out in the world.", [
       { text: "Keep it", style: "cancel" },
       {
@@ -119,13 +131,11 @@ export default function JournalDetail() {
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        {isDemo ? (
-          <View style={{ width: 42 }} />
-        ) : (
-          <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 20, color: P.ink }}>···</Text>
-          </Pressable>
-        )}
+        {/* samples get the menu too — hiding it read as "delete is missing",
+            not "this is a sample". Drift stays real-pages-only inside. */}
+        <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 20, color: P.ink }}>···</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -145,8 +155,6 @@ export default function JournalDetail() {
         {e.type === "photo" && (
           <PhotoGallery
             photos={e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []}
-            sel={sel}
-            onSelect={setSel}
             coverIndex={e.coverIndex ?? 0}
             onSetCover={makeCover}
             canSetCover={!isDemo}
@@ -265,68 +273,96 @@ function MenuRow({ label, onPress, destructive }: { label: string; onPress: () =
   );
 }
 
+/* ALL THE PHOTOS AT ONCE — the reference is Apple Journal's detail page.
+   This was a 4:5 pager with a thumbnail strip and a 1/3 counter: one photo
+   at a time, chrome everywhere, and no sense of the day as a set. Now the
+   first band anchors it (the cover big on the left, the next four in a 2x2)
+   — the same grammar as the entry card in the list, so opening an entry
+   enlarges what you were already looking at — and everything after flows in
+   rows of three. Square corners and 2px gaps, per the system; the reference
+   rounds its corners, we don't.
+
+   Tap a photo to see it full-screen on ink; long-press to make it the cover
+   (the old MAKE THIS THE COVER button and the ✦ badges went with the strip —
+   one gesture on the thing itself instead of chrome beside it). */
 function PhotoGallery({
   photos,
-  sel,
-  onSelect,
   coverIndex,
   onSetCover,
   canSetCover,
 }: {
   photos: string[];
-  sel: number;
-  onSelect: (i: number) => void;
   coverIndex: number;
-  onSetCover: () => void;
+  onSetCover: (i: number) => void;
   canSetCover: boolean;
 }) {
+  const [full, setFull] = useState<string | null>(null);
   if (!photos.length) return null;
-  const cur = Math.min(sel, photos.length - 1);
-  const many = photos.length > 1;
+  const G = 2;
+  const H = 250;
+
+  const cell = (i: number, style: object) => (
+    <Pressable
+      key={photos[i] + i}
+      style={[style, { overflow: "hidden" }]}
+      onPress={() => setFull(photos[i])}
+      onLongPress={() => {
+        if (!canSetCover || i === coverIndex) return;
+        onSetCover(i);
+      }}
+      delayLongPress={350}
+    >
+      <Image source={{ uri: photos[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+    </Pressable>
+  );
+
+  const rest = photos.slice(5);
   return (
     <View style={{ marginBottom: 18 }}>
-      <View style={{ overflow: "hidden", position: "relative" }}>
-        <Image source={{ uri: photos[cur] }} style={{ width: "100%", aspectRatio: 4 / 5 }} resizeMode="cover" />
-        {many && (
-          <View style={{ position: "absolute", right: 10, top: 10, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 9, paddingVertical: 4 }}>
-            <Text style={{ color: "#fff", fontSize: 11, fontFamily: PF.mono }}>
-              {cur + 1} / {photos.length}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {many && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 10 }}>
-          {photos.map((p, i) => {
-            const on = i === cur;
-            const isCover = i === coverIndex;
-            return (
-              <Pressable key={p + i} onPress={() => onSelect(i)} style={{ position: "relative" }}>
-                <Image
-                  source={{ uri: p }}
-                  style={{ width: 60, height: 60, borderWidth: on ? 2 : 0, borderColor: P.pen, opacity: on ? 1 : 0.7 }}
-                  resizeMode="cover"
-                />
-                {isCover && (
-                  <View style={{ position: "absolute", left: 3, bottom: 3, backgroundColor: P.pen, paddingHorizontal: 5, paddingVertical: 2 }}>
-                    <Text style={{ color: "#fff", fontSize: 7.5, fontFamily: PF.mono }}>✦</Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      {many && canSetCover && cur !== coverIndex && (
-        <Pressable
-          onPress={onSetCover}
-          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, paddingVertical: 11, borderWidth: 1, borderColor: P.pen }}
-        >
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>MAKE THIS THE COVER</Text>
+      {/* the anchor band — cover left, next four in a 2x2 */}
+      {photos.length === 1 ? (
+        <Pressable onPress={() => setFull(photos[0])} style={{ overflow: "hidden" }}>
+          <Image source={{ uri: photos[0] }} style={{ width: "100%", aspectRatio: 4 / 5 }} resizeMode="cover" />
         </Pressable>
+      ) : (
+        <View style={{ flexDirection: "row", height: H, gap: G }}>
+          {cell(0, { flex: 1 })}
+          <View style={{ flex: 1, gap: G }}>
+            <View style={{ flex: 1, flexDirection: "row", gap: G }}>
+              {photos[1] ? cell(1, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {photos[2] ? cell(2, { flex: 1 }) : <View style={{ flex: 1 }} />}
+            </View>
+            <View style={{ flex: 1, flexDirection: "row", gap: G }}>
+              {photos[3] ? cell(3, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {photos[4] ? cell(4, { flex: 1 }) : <View style={{ flex: 1 }} />}
+            </View>
+          </View>
+        </View>
       )}
+
+      {/* everything after flows in rows of three */}
+      {rest.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: G, marginTop: G }}>
+          {rest.map((p, k) => (
+            <View key={p + k} style={{ width: `${100 / 3}%`, aspectRatio: 1, flexGrow: 1, maxWidth: "33.4%" }}>
+              {cell(k + 5, { flex: 1 })}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {canSetCover && photos.length > 1 && (
+        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
+          TAP TO VIEW · HOLD TO MAKE IT THE COVER
+        </Text>
+      )}
+
+      {/* the lightbox — the photo alone on ink, tap anywhere to put it back */}
+      <Modal visible={!!full} transparent animationType="fade" onRequestClose={() => setFull(null)}>
+        <Pressable onPress={() => setFull(null)} style={{ flex: 1, backgroundColor: "rgba(10,10,12,0.96)", justifyContent: "center" }}>
+          {full && <Image source={{ uri: full }} style={{ width: "100%", height: "80%" }} resizeMode="contain" />}
+        </Pressable>
+      </Modal>
     </View>
   );
 }

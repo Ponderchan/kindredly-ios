@@ -127,6 +127,29 @@ export async function setCover(id: string, coverIndex: number): Promise<JournalE
   return next;
 }
 
+/* SAMPLE PAGES CAN BE TORN OUT TOO. Demo entries only exist in dev builds,
+   but the owner testing a dev build IS a reader — and to them a page with no
+   ··· menu reads as "delete is missing", not "this is a sample". So the menu
+   shows on samples and tearing one out hides it for good on this device. */
+const HIDDEN_DEMO_KEY = "kindredly_hidden_demo";
+
+export async function hiddenDemoIds(): Promise<string[]> {
+  try {
+    return JSON.parse((await AsyncStorage.getItem(HIDDEN_DEMO_KEY)) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export async function hideDemoEntry(id: string): Promise<void> {
+  try {
+    const ids = await hiddenDemoIds();
+    if (!ids.includes(id)) await AsyncStorage.setItem(HIDDEN_DEMO_KEY, JSON.stringify([...ids, id]));
+  } catch {
+    /* a sample is not worth failing over */
+  }
+}
+
 export async function deleteEntry(id: string): Promise<JournalEntry[]> {
   const entries = await loadJournal();
   const gone = entries.find((e) => e.id === id);

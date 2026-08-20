@@ -140,9 +140,12 @@ function Mosaic({ photos }: { photos: string[] }) {
       </View>
     );
 
+  /* 5+ photos: the reference (Apple Journal's card) splits half and half —
+     one anchor photo, a 2x2 of the next four, +N on the last tile. The rule
+     was already here; the anchor was just taking 56% instead of 50. */
   return (
     <View style={{ flexDirection: "row", height: H, gap: G }}>
-      <Tile uri={photos[0]} style={{ flex: 1.3 }} />
+      <Tile uri={photos[0]} style={{ flex: 1 }} />
       <View style={{ flex: 1, gap: G }}>
         <View style={{ flex: 1, flexDirection: "row", gap: G }}>
           <Tile uri={photos[1]} style={{ flex: 1 }} />

@@ -10,6 +10,7 @@ import { SealedEntry } from "../../components/SealedEntry";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../lib/journal";
 import { DEMO_JOURNAL } from "../../data/demo";
+import { hiddenDemoIds } from "../../lib/journal";
 
 /* Sealed — letters to yourself. Clean stacked cards (design 1a): mood shows as
    its face alone, no label; a line can drift out from the card. Top-right flips
@@ -20,6 +21,7 @@ type View2 = "line" | "calendar";
 export default function JournalTab() {
   const router = useRouter();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [hiddenDemo, setHiddenDemo] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View2>("line");
 
@@ -28,13 +30,17 @@ export default function JournalTab() {
       setEntries(e);
       setLoaded(true);
     });
+    void hiddenDemoIds().then(setHiddenDemo);
   }, []);
   useFocusEffect(useCallback(() => refresh(), [refresh]));
 
   // newest first, across real + sample pages (dev preview)
   const all = useMemo(
-    () => (__DEV__ ? [...entries, ...DEMO_JOURNAL] : [...entries]).sort((a, b) => +new Date(b.date) - +new Date(a.date)),
-    [entries],
+    () =>
+      (__DEV__ ? [...entries, ...DEMO_JOURNAL.filter((d) => !hiddenDemo.includes(d.id))] : [...entries]).sort(
+        (a, b) => +new Date(b.date) - +new Date(a.date),
+      ),
+    [entries, hiddenDemo],
   );
   const empty = loaded && all.length === 0;
 

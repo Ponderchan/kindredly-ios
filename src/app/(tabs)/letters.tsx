@@ -402,7 +402,20 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
           )}
         </View>
 
-        <View style={{ flex: 1, justifyContent: "center" }}>
+        {/* THE LETTER SCROLLS INSIDE ITS PAGE. A pager page has one screen of
+            height, and a real letter doesn't — the long Chinese letter in the
+            pool simply ran off the bottom with no way to read the rest, which
+            for a letters product is the worst possible bug. bounces=false is
+            what makes it coexist with the pager: mid-letter, a swipe scrolls
+            the text; at either end the same gesture escalates to the pager
+            and turns the page. Short letters still sit centred (flexGrow). */}
+        <ScrollView
+          style={{ flex: 1 }}
+          bounces={false}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingVertical: 6 }}
+        >
         {isVoice && audioUrl ? (
           <View>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>VOICE LETTER</Text>
@@ -424,7 +437,7 @@ function LetterPage({ letter, height, first }: { letter: PoolLetter; height: num
             {shown}
           </Text>
         )}
-        </View>
+        </ScrollView>
 
         {/* The channel, in its stamp's own colour — the pasted tile and the
             readable word are the same thing said twice, so they can't be two
