@@ -233,7 +233,20 @@ function Feed({
             onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.y / vh))}
           >
             {feed.map((letter, i) => (
-              <LetterPage key={letter.id} letter={letter} height={vh} first={i === 0 && idx === 0} onReply={focusReply} />
+              <LetterPage
+                key={letter.id}
+                letter={letter}
+                height={vh}
+                first={i === 0 && idx === 0}
+                onReply={focusReply}
+                reply={{
+                  value: drafts[letter.id] || "",
+                  onChange: (t: string) => setDrafts((d) => ({ ...d, [letter.id]: t })),
+                  onSend: send,
+                  canSend: replyOk && !sending,
+                  sending,
+                }}
+              />
             ))}
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
@@ -348,24 +361,22 @@ function LetterReader({
   letter,
   shown,
   onClose,
-  onReply,
-  onGone,
+  reply,
 }: {
   open: boolean;
   letter: PoolLetter;
   shown: string;
   onClose: () => void;
-  onReply: () => void;
-  /* fires after the sheet has finished leaving — see the page below for why
-     a timeout can't do this job */
-  onGone: () => void;
+  reply: ReplyBinding;
 }) {
   const insets = useSafeAreaInsets();
   const st = getStamp(letter.stamp);
+  const inputRef = useRef<TextInput>(null);
+  const [writing, setWriting] = useState(false);
   if (!open) return null;
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} onDismiss={onGone}>
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: P.penWash }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
           <Pressable onPress={onClose} hitSlop={12} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -400,16 +411,48 @@ function LetterReader({
           </Text>
         </ScrollView>
 
-        {/* WRITE BACK sat flush against the bottom edge, right on top of the
-            floating post key in the tab bar underneath — taps meant for it
-            were landing on that instead, which is why it looked like the
-            button did nothing. It clears the home indicator now with real
-            room to spare. */}
-        <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) + 16 }}>
-          <Pressable onPress={onReply} hitSlop={6} style={{ backgroundColor: P.pen, paddingVertical: 17, alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>WRITE BACK</Text>
-          </Pressable>
-        </View>
+        {/* YOU ANSWER WITHOUT LEAVING THE LETTER. WRITE BACK used to dismiss
+            the sheet and focus the box on the page underneath — which worked,
+            and was still wrong: you had just read a long letter and were then
+            put somewhere you couldn't see it, sometimes not even on the same
+            page. The field opens here instead, with the letter still above
+            it. The draft is the same one the page holds, so a reply started
+            here and finished there is one reply. */}
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) + 12 }}>
+            {writing ? (
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingVertical: 2 }}>
+                <TextInput
+                  ref={inputRef}
+                  value={reply.value}
+                  onChangeText={reply.onChange}
+                  placeholder="write back…"
+                  placeholderTextColor={P.ink40}
+                  multiline
+                  autoFocus
+                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+                />
+                <Pressable
+                  onPress={reply.onSend}
+                  disabled={!reply.canSend}
+                  style={{ paddingHorizontal: 12, paddingVertical: 9, backgroundColor: reply.canSend ? P.pen : "transparent" }}
+                >
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: reply.canSend ? "#fff" : P.ink40 }}>
+                    {reply.sending ? "···" : "SEND"}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setWriting(true)}
+                hitSlop={6}
+                style={{ backgroundColor: P.pen, paddingVertical: 17, alignItems: "center" }}
+              >
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>WRITE BACK</Text>
+              </Pressable>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -425,7 +468,27 @@ function LetterReader({
 
    That keeps Today consistent with every other room — white is always where
    you read — without shrinking the one thing this screen exists to show. */
-function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; height: number; first: boolean; onReply: () => void }) {
+interface ReplyBinding {
+  value: string;
+  onChange: (t: string) => void;
+  onSend: () => void;
+  canSend: boolean;
+  sending: boolean;
+}
+
+function LetterPage({
+  letter,
+  height,
+  first,
+  onReply,
+  reply,
+}: {
+  letter: PoolLetter;
+  height: number;
+  first: boolean;
+  onReply: () => void;
+  reply: ReplyBinding;
+}) {
   const wren = useWrenName();
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -436,7 +499,6 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
   const [frameH, setFrameH] = useState(0);
   const [textH, setTextH] = useState(0);
   const [open, setOpen] = useState(false);
-  const wantsReply = useRef(false);
   const [xl, setXl] = useState<string | null>(null);
   const [xlOn, setXlOn] = useState(false);
   const [xlBusy, setXlBusy] = useState(false);
@@ -663,34 +725,16 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
         open={open}
         letter={letter}
         shown={shown}
-        onClose={() => {
-          wantsReply.current = false;
-          setOpen(false);
-        }}
-        onGone={() => {
-          if (!wantsReply.current) return;
-          wantsReply.current = false;
-          onReply();
-        }}
-        onReply={() => {
-          /* WRITE BACK USED TO DO NOTHING VISIBLE. It closed the sheet and
-             called focus() behind a 260ms timeout — but a pageSheet takes
-             about 400ms to leave, and until it has, its window is still the
-             key window, so the focus lands nowhere and the keyboard never
-             arrives. The reader just seemed to close.
-
-             Modal's onDismiss fires AFTER the dismissal completes, which is
-             exactly the event this needs; the intent is carried across in a
-             ref so a timeout never has to guess. */
-          wantsReply.current = true;
-          setOpen(false);
-          /* belt and braces: onDismiss is iOS-only, and the ref guard means
-             this late fallback either fires once or finds it already done */
-          setTimeout(() => {
-            if (!wantsReply.current) return;
-            wantsReply.current = false;
-            onReply();
-          }, 650);
+        onClose={() => setOpen(false)}
+        reply={{
+          ...reply,
+          /* once it's gone the letter is answered, so the reader closes with
+             it — otherwise you'd be left reading a letter whose thread has
+             already opened, with a send key that can't fire again */
+          onSend: () => {
+            setOpen(false);
+            reply.onSend();
+          },
         }}
       />
       </View>
