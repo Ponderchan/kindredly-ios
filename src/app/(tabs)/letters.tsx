@@ -168,15 +168,22 @@ function Feed({
     setIdx(i);
   };
 
-  const send = async () => {
-    if (!current || sending) return;
-    const text = (drafts[current.id] || "").trim();
+  /* THE LETTER BEING ANSWERED IS PASSED IN, never read from the pager.
+     It used to take `current` — feed[idx] — while the reader's draft was
+     keyed on its OWN letter.id. Those agree only while the pager's index and
+     the page you're looking at agree, and this pager demonstrably drifts. The
+     failure isn't a no-op either: with a stale draft under the other key, a
+     reply meant for one stranger would have been sent to a different one. */
+  const send = async (target?: PoolLetter) => {
+    const to = target ?? current;
+    if (!to || sending) return;
+    const text = (drafts[to.id] || "").trim();
     const w = weightedCount(text);
     if (w < REPLY_MIN || w > LETTER_MAX) return;
     setSending(true);
     Keyboard.dismiss();
-    if (demo || current.author?.startsWith("demo-")) {
-      seedDemoThread(current, text);
+    if (demo || to.author?.startsWith("demo-")) {
+      seedDemoThread(to, text);
     } else {
       /* THIS RESULT USED TO BE THROWN AWAY. replyToLetter returns null for a
          reader with no session, and the screen cleared the box, popped the
@@ -184,7 +191,7 @@ function Feed({
          their reply "send" and open a thread that never existed. Of every
          silent failure in the product this was the only one that actively
          lied about something the reader cares about. */
-      const threadId = await replyToLetter(current, text);
+      const threadId = await replyToLetter(to, text);
       if (!threadId) {
         setSending(false);
         if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
@@ -193,7 +200,7 @@ function Feed({
       }
     }
     setSending(false);
-    setDrafts((d) => ({ ...d, [current.id]: "" }));
+    setDrafts((d) => ({ ...d, [to.id]: "" }));
     setToast(true);
     setTimeout(() => setToast(false), 2200);
     goto(idx + 1); // a thread opened — it lives in Kindreds now; move along
@@ -242,8 +249,12 @@ function Feed({
                 reply={{
                   value: drafts[letter.id] || "",
                   onChange: (t: string) => setDrafts((d) => ({ ...d, [letter.id]: t })),
-                  onSend: send,
-                  canSend: replyOk && !sending,
+                  // bound to THIS letter, not to whatever the pager thinks is current
+                  onSend: () => send(letter),
+                  canSend: (() => {
+                    const w = weightedCount(drafts[letter.id] || "");
+                    return w >= REPLY_MIN && w <= LETTER_MAX && !sending;
+                  })(),
                   sending,
                 }}
               />
@@ -296,7 +307,7 @@ function Feed({
                   style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
                 />
                 <Pressable
-                  onPress={send}
+                  onPress={() => send(current)}
                   disabled={!replyOk || sending}
                   style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
                 >
