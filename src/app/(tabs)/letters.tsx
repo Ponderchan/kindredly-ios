@@ -349,19 +349,23 @@ function LetterReader({
   shown,
   onClose,
   onReply,
+  onGone,
 }: {
   open: boolean;
   letter: PoolLetter;
   shown: string;
   onClose: () => void;
   onReply: () => void;
+  /* fires after the sheet has finished leaving — see the page below for why
+     a timeout can't do this job */
+  onGone: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const st = getStamp(letter.stamp);
   if (!open) return null;
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} onDismiss={onGone}>
       <View style={{ flex: 1, backgroundColor: P.penWash }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
           <Pressable onPress={onClose} hitSlop={12} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -396,8 +400,13 @@ function LetterReader({
           </Text>
         </ScrollView>
 
-        <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) }}>
-          <Pressable onPress={onReply} style={{ backgroundColor: P.pen, paddingVertical: 16, alignItems: "center" }}>
+        {/* WRITE BACK sat flush against the bottom edge, right on top of the
+            floating post key in the tab bar underneath — taps meant for it
+            were landing on that instead, which is why it looked like the
+            button did nothing. It clears the home indicator now with real
+            room to spare. */}
+        <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) + 16 }}>
+          <Pressable onPress={onReply} hitSlop={6} style={{ backgroundColor: P.pen, paddingVertical: 17, alignItems: "center" }}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>WRITE BACK</Text>
           </Pressable>
         </View>
@@ -427,6 +436,7 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
   const [frameH, setFrameH] = useState(0);
   const [textH, setTextH] = useState(0);
   const [open, setOpen] = useState(false);
+  const wantsReply = useRef(false);
   const [xl, setXl] = useState<string | null>(null);
   const [xlOn, setXlOn] = useState(false);
   const [xlBusy, setXlBusy] = useState(false);
@@ -653,11 +663,34 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
         open={open}
         letter={letter}
         shown={shown}
-        onClose={() => setOpen(false)}
-        onReply={() => {
+        onClose={() => {
+          wantsReply.current = false;
           setOpen(false);
-          // let the sheet finish leaving before the keyboard arrives
-          setTimeout(onReply, 260);
+        }}
+        onGone={() => {
+          if (!wantsReply.current) return;
+          wantsReply.current = false;
+          onReply();
+        }}
+        onReply={() => {
+          /* WRITE BACK USED TO DO NOTHING VISIBLE. It closed the sheet and
+             called focus() behind a 260ms timeout — but a pageSheet takes
+             about 400ms to leave, and until it has, its window is still the
+             key window, so the focus lands nowhere and the keyboard never
+             arrives. The reader just seemed to close.
+
+             Modal's onDismiss fires AFTER the dismissal completes, which is
+             exactly the event this needs; the intent is carried across in a
+             ref so a timeout never has to guess. */
+          wantsReply.current = true;
+          setOpen(false);
+          /* belt and braces: onDismiss is iOS-only, and the ref guard means
+             this late fallback either fires once or finds it already done */
+          setTimeout(() => {
+            if (!wantsReply.current) return;
+            wantsReply.current = false;
+            onReply();
+          }, 650);
         }}
       />
       </View>
