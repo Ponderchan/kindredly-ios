@@ -82,7 +82,7 @@ export default function Compose() {
      away. The sheet itself is components/LeaveSheet — this used to be
      Alert.alert, which is right behaviour in stock iOS clothes. */
   const [leaving, setLeaving] = useState(false);
-  const { session } = useAuth();
+  const { isGuest } = useAuth();
   const [needsAccount, setNeedsAccount] = useState(false);
   const closeWithGuard = () => {
     if (!text.trim()) return goBack();
@@ -173,7 +173,7 @@ export default function Compose() {
            before publishLetter, so this — not the publish — is where someone
            with no session gets stopped, and it was a stock alert saying
            "sign in AGAIN" to a person who never signed in once. */
-        if (!session) openSignUpSheet(() => setNeedsAccount(true));
+        if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
         else Alert.alert("Sign in", "Your session expired. Sign in again to send.");
       } else {
         Alert.alert("Couldn't send", "Something went wrong. Try again in a moment.");
@@ -192,7 +192,7 @@ export default function Compose() {
     /* A ghost's publishLetter always returns null, and "The letter didn't go
        out. Try again." turns "you aren't signed in" into "the network broke" —
        so they retry forever. Ask for the account instead, and only here. */
-    if (!ok && !session) {
+    if (!ok && isGuest) {
       openSignUpSheet(() => setNeedsAccount(true));
       return;
     }

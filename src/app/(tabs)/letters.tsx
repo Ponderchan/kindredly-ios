@@ -139,7 +139,7 @@ function Feed({
   const [toast, setToast] = useState(false);
   const [sending, setSending] = useState(false);
   const [kbOpen, setKbOpen] = useState(false);
-  const { session } = useAuth();
+  const { isGuest } = useAuth();
   const [needsAccount, setNeedsAccount] = useState(false);
 
   useEffect(() => {
@@ -179,7 +179,7 @@ function Feed({
       const threadId = await replyToLetter(current, text);
       if (!threadId) {
         setSending(false);
-        if (!session) openSignUpSheet(() => setNeedsAccount(true));
+        if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
         else Alert.alert("Couldn't send", "That reply didn't go out. Try again.");
         return; // the draft stays in the box
       }

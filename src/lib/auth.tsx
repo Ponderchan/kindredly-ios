@@ -35,7 +35,15 @@ interface AuthValue {
   profile: Record<string, any>;
   handle: string;
   onboarded: boolean;
+  /* THE ONLY QUESTION THAT MATTERS ONCE ANONYMOUS AUTH EXISTS.
+     "Is there a session?" and "is this a real account?" stop being the same
+     question the moment guests are signed in anonymously — and every guard
+     written as `!session` silently stops firing. The change made to help
+     guests is the one that disables their guardrails, so the app asks this
+     instead, everywhere, and never asks about `session` directly. */
+  isGuest: boolean;
   appleAvailable: boolean;
+  signInAnonymously: () => Promise<AuthResult>;
   signInWithApple: () => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
   signInWithEmail: (email: string, name?: string) => Promise<AuthResult>;
@@ -74,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   } as Record<string, any>;
   const handle: string = profile.handle || profile.full_name || profile.name || "";
   const onboarded = !!profile.onboarded;
+  // no session at all, or one that belongs to nobody yet
+  const isGuest = !session || user?.is_anonymous === true;
 
   useEffect(() => {
     AsyncStorage.getItem(LOCAL_PROFILE_KEY)
@@ -111,13 +121,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      mean "keep this" instead of "start over". */
   const adopted = useRef(false);
   useEffect(() => {
-    if (!supabase || !session || adopted.current) return;
+    /* An anonymous session is NOT an account adopting anything — it is the
+       guest themselves. Adoption is for the moment a real identity arrives. */
+    if (!supabase || !session || user?.is_anonymous || adopted.current) return;
     const meta = (session.user?.user_metadata as Record<string, any>) || {};
     if (meta.onboarded) return; // the account already knows
     if (!Object.keys(localProfile).length) return; // nothing to adopt
     adopted.current = true;
     void saveProfileRef.current({});
-  }, [session, localProfile]);
+  }, [session, user, localProfile]);
 
   useEffect(() => {
     if (Platform.OS === "ios") {
@@ -151,6 +163,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(data.session ?? null);
   }, []);
 
+  /* "Just looking" gets a REAL session, not no session. Every RLS policy in
+     this project is `to authenticated`, and an anonymous user carries exactly
+     that role — so the pool becomes readable, the first letter can actually
+     publish, a fingerprint exists, and the matcher can name them. A guest
+     experiences the product instead of a version of it with the mechanism
+     removed.
+
+     It is also the safer of the two options that were on the table: opening
+     the tables to `anon` would have let anyone with the app's shipped key
+     read every letter with nobody to hold responsible. An anonymous user has
+     a uid — rate-limitable, bannable, auditable. */
+  const signInAnonymously = useCallback(async (): Promise<AuthResult> => {
+    if (!supabase) return { error: "Auth not configured." };
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) return { error: error.message };
+      return { ok: true };
+    } catch (e: any) {
+      return { error: e?.message || "Couldn't start a session." };
+    }
+  }, []);
+
   const signInWithApple = useCallback(async (): Promise<AuthResult> => {
     if (!supabase) return { error: "Auth not configured." };
     try {
@@ -162,11 +196,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (!cred.identityToken)
         return { error: "No identity token returned by Apple." };
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: "apple",
-        token: cred.identityToken,
-      });
+      /* UPGRADING A GHOST KEEPS THE GHOST'S ROW. For an anonymous session
+         this LINKS the Apple identity onto the same user id — the letters,
+         threads and fingerprint written while just looking stay theirs.
+         signInWithIdToken here would mint a fresh account and orphan all of
+         it, which is exactly the "start over" this whole path exists to
+         avoid. Needs "Allow manual linking" ON in Supabase auth settings. */
+      const anon = (await supabase.auth.getUser()).data.user?.is_anonymous === true;
+      const { error } = anon
+        ? await supabase.auth.linkIdentity({ provider: "apple", token: cred.identityToken })
+        : await supabase.auth.signInWithIdToken({ provider: "apple", token: cred.identityToken });
       if (error) return { error: error.message };
+      if (anon) await refresh();
       // Apple only returns the name on the FIRST authorization — capture it.
       const name = [cred.fullName?.givenName, cred.fullName?.familyName]
         .filter(Boolean)
@@ -184,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (e?.code === "ERR_REQUEST_CANCELED") return { cancelled: true };
       return { error: e?.message || "Apple sign-in failed." };
     }
-  }, []);
+  }, [refresh]);
 
   const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
     if (!supabase) return { error: "Auth not configured." };
@@ -216,6 +257,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, name?: string): Promise<AuthResult> => {
       if (!supabase) return { error: "Auth not configured." };
       try {
+        /* Same principle as Apple: an anonymous user doesn't sign in with
+           email, they ATTACH an email to the account they already are.
+           updateUser sends the confirmation ("Confirm email" is on), and
+           until it's clicked they simply remain anonymous — nothing lost,
+           nothing orphaned. */
+        const anonUser = (await supabase.auth.getUser()).data.user;
+        if (anonUser?.is_anonymous) {
+          const { error } = await supabase.auth.updateUser(
+            { email, data: name ? { full_name: name } : undefined },
+            { emailRedirectTo: redirectTo },
+          );
+          if (error) return { error: error.message };
+          return { sent: true };
+        }
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
@@ -278,8 +333,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     handle,
     onboarded,
+    isGuest,
     appleAvailable,
     signInWithApple,
+    signInAnonymously,
     signInWithGoogle,
     signInWithEmail,
     saveProfile,

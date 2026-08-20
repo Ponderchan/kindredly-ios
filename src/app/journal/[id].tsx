@@ -56,7 +56,7 @@ export default function JournalDetail() {
     setE({ ...e, coverIndex: sel, mediaUri: e.media?.[sel] || e.mediaUri });
   };
 
-  const { session } = useAuth();
+  const { isGuest } = useAuth();
   const [needsAccount, setNeedsAccount] = useState(false);
   const [pendingLine, setPendingLine] = useState<string | null>(null);
 
@@ -87,7 +87,7 @@ export default function JournalDetail() {
     const sent = await insertMorningFragment(line, e.mood, "en");
     if (!sent) {
       setPendingLine(line);
-      if (!session) openSignUpSheet(() => setNeedsAccount(true));
+      if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
       else Alert.alert("Couldn't send it out", "That line stayed put. Try again.");
       return;
     }

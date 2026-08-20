@@ -197,7 +197,7 @@ export default function Onboarding() {
 
   // signed in but not set up → start the console at step two
   useEffect(() => {
-    if (session && !onboarded && step === "welcome") setStep("username");
+    if (session && !auth.isGuest && !onboarded && step === "welcome") setStep("username");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, onboarded]);
 
@@ -455,7 +455,16 @@ export default function Onboarding() {
                 </Pressable>
                 {/* clear of the email key's hard shadow — it used to follow a
                     line of text, and now it follows a bevelled button */}
-                <Pressable onPress={() => setStep("username")} style={{ alignItems: "center", paddingTop: 18 }}>
+                <Pressable
+                  onPress={() => {
+                    /* fire-and-forget: the session usually lands before they
+                       finish typing a pen name, and nothing on the next few
+                       screens needs it yet */
+                    void auth.signInAnonymously();
+                    setStep("username");
+                  }}
+                  style={{ alignItems: "center", paddingTop: 18 }}
+                >
                   {/* "Explore first, sign in later" promised something the product can't
                       keep: without a session the pool is unreadable (RLS is
                       `to authenticated`), so there is very little to explore.
