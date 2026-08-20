@@ -1,7 +1,7 @@
 import { useWrenName } from "../../lib/wren-name";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -34,6 +34,7 @@ const CLOSE = "#EFE8D8"; // the close-of-day paper (CloseOfDay)
 const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
 const WINDOW_H = Dimensions.get("window").height;
+const WINDOW_W = Dimensions.get("window").width;
 const RITUAL_FLAG = "today_ritual";
 
 export default function LettersTab() {
@@ -331,6 +332,80 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
   );
 }
 
+/* THE UNFOLDED LETTER.
+   ────────────────────────────────────────────────────────────────────────
+   A Modal rather than a route, and that's the whole reason this works: the
+   reader lives inside the page that opened it, so REPLY just dismisses and
+   focuses the box that was already there — no route to push, no letter to
+   re-fetch by id, no cold-start deep link into a letter that may have left
+   the pool. Unfolding isn't a destination; it's a gesture on the page.
+
+   It carries the docket so you never lose track of whose letter this is, and
+   it scrolls the way any long document does — here there is no pager to
+   argue with, so a swipe means one thing. */
+function LetterReader({
+  open,
+  letter,
+  shown,
+  onClose,
+  onReply,
+}: {
+  open: boolean;
+  letter: PoolLetter;
+  shown: string;
+  onClose: () => void;
+  onReply: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const st = getStamp(letter.stamp);
+  if (!open) return null;
+
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: P.penWash }}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
+          <Pressable onPress={onClose} hitSlop={12} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>✕</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink60 }}>FOLD IT BACK</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={{ flex: 1, backgroundColor: P.sheet, marginHorizontal: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 22, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* the same docket the page carries, so the letter keeps its face */}
+          <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 22 }}>
+            <MosaicId seed={letter.author} />
+            <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.6, color: P.ink60, marginLeft: 12, marginTop: 3 }}>
+              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
+            </Text>
+            {st && (
+              <View style={{ transform: [{ rotate: "3deg" }] }}>
+                <StampTile id={letter.stamp} w={40} r={5} />
+              </View>
+            )}
+          </View>
+
+          <Text style={{ fontFamily: PF.letter, fontSize: 19, lineHeight: 31, color: P.ink }}>{shown}</Text>
+
+          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginTop: 26 }}>
+            WRITTEN {sinceShort(letter.created_at)}
+            {letter.close != null ? " · YOUR AURAS ARE CLOSE" : ""}
+          </Text>
+        </ScrollView>
+
+        <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) }}>
+          <Pressable onPress={onReply} style={{ backgroundColor: P.pen, paddingVertical: 16, alignItems: "center" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>WRITE BACK</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 /* One letter, and the paper IS the screen.
 
    Full bleed and white at the same time — those were never in conflict. The
@@ -349,11 +424,33 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
 
   // Wren translating this letter. Kept per-letter — each page holds its own,
   // so translating one doesn't touch the others in the stack.
+  const [frameH, setFrameH] = useState(0);
+  const [textH, setTextH] = useState(0);
+  const [open, setOpen] = useState(false);
   const [xl, setXl] = useState<string | null>(null);
   const [xlOn, setXlOn] = useState(false);
   const [xlBusy, setXlBusy] = useState(false);
   const shown = xlOn && xl ? xl : letter.body;
   const tier = letterTier(weightedCount(shown || ""));
+  /* WHAT FITS IS A GEOMETRY QUESTION, so it's answered with geometry rather
+     than a magic number. The frame reports its height, the tier fixes the
+     line height, so the page holds `frameH / tier.line` lines; the tier's
+     size also fixes roughly how many characters sit on one — and CJK packs
+     about half as many per line as Latin at the same point size, which is the
+     whole reason a fixed threshold failed here. The long Chinese letter in
+     the pool weighs 325: nowhere near letterTier's >600 "long" tier, yet far
+     past what one screen holds. A tuned constant would have been wrong for
+     one script or the other.
+
+     Measurement stays as the first signal — it's exact when the layout
+     callback lands — and this estimate is the floor beneath it. */
+  const weighted = weightedCount(shown || "");
+  const cjkHeavy = ((shown || "").match(/[㐀-鿿]/g) || []).length > (shown || "").length * 0.3;
+  const perLine = Math.max(8, Math.round((WINDOW_W - 52) / (tier.size * (cjkHeavy ? 1 : 0.52))));
+  const linesThatFit = frameH > 0 ? Math.floor(frameH / tier.line) : 22;
+  const measuredOverflow = frameH > 0 && textH > frameH + tier.line;
+  const folded = !isVoice && (measuredOverflow || weighted > perLine * linesThatFit);
+
 
   const doTranslate = async () => {
     if (xl) {
@@ -410,19 +507,34 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
           )}
         </View>
 
-        {/* THE LETTER SCROLLS INSIDE ITS PAGE. A pager page has one screen of
-            height, and a real letter doesn't — the long Chinese letter in the
-            pool simply ran off the bottom with no way to read the rest, which
-            for a letters product is the worst possible bug. bounces=false is
-            what makes it coexist with the pager: mid-letter, a swipe scrolls
-            the text; at either end the same gesture escalates to the pager
-            and turns the page. Short letters still sit centred (flexGrow). */}
-        <ScrollView
-          style={{ flex: 1 }}
-          bounces={false}
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingVertical: 6 }}
+        {/* A PAGE IS ALWAYS ONE SCREEN. The previous attempt put a ScrollView
+            inside the page so a long letter could scroll in place — which gave
+            one gesture two meanings and left the reader unable to tell whether
+            a swipe would scroll the text or turn the page.
+
+            A long letter is FOLDED instead: the page shows what fits, and
+            UNFOLD opens the whole thing in a reader. That keeps the pager's
+            contract intact — one page, one screen, no exceptions — and it is
+            the postal reading of the problem, which is usually the sign that
+            it's the right one.
+
+            Overflow is measured, not guessed from a character count — a count
+            can't know how a given script wraps at a given size.
+
+            THE TRAP, which cost three attempts: a Text laid out inside a frame
+            of definite height is MEASURED AGAINST THAT HEIGHT, so onLayout
+            reports the constrained value and can never exceed it — the visible
+            copy simply cannot tell you it overflowed. (flexShrink: 0 doesn't
+            help; RN flex items already default to it. onTextLayout doesn't
+            either — it reports the lines actually laid out.)
+
+            So the height is learned from an absolutely-positioned twin: out of
+            the layout flow, it has no height constraint and reports the
+            letter's true height. It's invisible and untouchable, and it exists
+            only to answer one question. */}
+        <View
+          style={{ flex: 1, overflow: "hidden", justifyContent: "center" }}
+          onLayout={(ev) => setFrameH(ev.nativeEvent.layout.height)}
         >
         {isVoice && audioUrl ? (
           <View>
@@ -445,7 +557,39 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
             {shown}
           </Text>
         )}
-        </ScrollView>
+
+        {/* the twin — unconstrained, invisible, measured once per letter */}
+        {!isVoice && (
+          <Text
+            pointerEvents="none"
+            onLayout={(ev) => setTextH(ev.nativeEvent.layout.height)}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: 0,
+              opacity: 0,
+              zIndex: -1,
+              fontFamily: PF.letter,
+              fontSize: tier.size,
+              lineHeight: tier.line,
+              textAlign: tier.center ? "center" : "auto",
+            }}
+          >
+            {shown}
+          </Text>
+        )}
+        </View>
+
+        {/* the fold — only when there is genuinely more letter than screen */}
+        {folded && (
+          <Pressable onPress={() => setOpen(true)} hitSlop={8} style={{ paddingTop: 10 }}>
+            <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>THERE'S MORE OF THIS ONE</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>UNFOLD ↓</Text>
+            </View>
+          </Pressable>
+        )}
 
         {/* The channel, in its stamp's own colour — the pasted tile and the
             readable word are the same thing said twice, so they can't be two
@@ -504,6 +648,18 @@ function LetterPage({ letter, height, first, onReply }: { letter: PoolLetter; he
           </Pressable>
         </View>
       </Animated.View>
+
+      <LetterReader
+        open={open}
+        letter={letter}
+        shown={shown}
+        onClose={() => setOpen(false)}
+        onReply={() => {
+          setOpen(false);
+          // let the sheet finish leaving before the keyboard arrives
+          setTimeout(onReply, 260);
+        }}
+      />
       </View>
     </View>
   );
