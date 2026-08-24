@@ -47,6 +47,11 @@ export default function KindredsTab() {
   const source = __DEV__ && loaded && threads.length === 0 ? DEMO_THREADS : threads;
   const orbit = useMemo(() => source.filter((t) => t.mine > 0).sort((a, b) => b.lastAt - a.lastAt), [source]);
   const named = orbit.filter((t) => t.revealed).length;
+  const coming = orbit.length - named;
+  /* someone enclosed their name and it is waiting on yours — the one state
+     on this tab that asks something of you, so it is what the plate reports
+     when it is true, in brass, ahead of any count */
+  const atDoor = orbit.filter((t) => !t.revealed && t.theirSigned).length;
   const empty = loaded && orbit.length === 0;
 
   return (
@@ -54,8 +59,24 @@ export default function KindredsTab() {
       {/* the same plate Today and Sealed carry */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>KINDREDS</Text>
+        {/* the plate speaks the tab's own vocabulary: strangers are COMING
+            INTO VIEW, the landed are KINDREDS. 'IN ORBIT · NAMED' was left
+            over from the era when five letters named people automatically —
+            nothing is 'named' at you any more, you trade names. */}
         <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
-          {empty ? "NONE" : `${String(orbit.length - named).padStart(2, "0")} IN ORBIT${named ? ` · ${named} NAMED` : ""}`}
+          {empty ? (
+            "NONE"
+          ) : atDoor ? (
+            <Text style={{ color: P.brassSeal }}>
+              {atDoor === 1 ? "A NAME AWAITS YOURS" : `${atDoor} NAMES AWAIT YOURS`}
+            </Text>
+          ) : (
+            <>
+              {coming > 0 ? `${String(coming).padStart(2, "0")} COMING INTO VIEW` : null}
+              {coming > 0 && named > 0 ? " · " : null}
+              {named > 0 ? `${named} KINDRED${named > 1 ? "S" : ""}` : null}
+            </>
+          )}
         </Text>
       </View>
 

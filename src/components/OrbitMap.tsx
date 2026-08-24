@@ -64,6 +64,7 @@ const H = Math.round(RY_MAX * 2 + 52);
 const CX = W / 2;
 const CY = H / 2;
 
+const RX_VOID = RX_MAX + 14; // hasn't written back yet — out past every ring
 const SEAT_RX = 38; // where the named sit: clear of you, clear of every ring
 const SEAT_RY = SEAT_RX * SQUASH;
 
@@ -80,10 +81,15 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
   const landed = items.filter((t) => t.revealed);
 
   const faces = approaching.map((t, i) => {
-    // radius runs on THEIR letters, like the face itself — one mechanic,
-    // two projections
-    const p = Math.max(1, Math.min(t.theirs, REVEAL));
-    const rx = ringRx(p);
+    /* radius runs on THEIR letters, like the face itself — one mechanic,
+       two projections. Ring p holds the person who has written p letters,
+       so EVERY letter moves them exactly one ring in. Nobody who has
+       written nothing stands on a ring: they wait in the void outside,
+       not yet on the path. (This used to clamp to 1, which parked the
+       silent and the once-answered on the same ring and made the first
+       letter — the hardest one — count for nothing.) */
+    const p = Math.min(t.theirs, REVEAL);
+    const rx = p === 0 ? RX_VOID : ringRx(p);
     return {
       t,
       rx,
