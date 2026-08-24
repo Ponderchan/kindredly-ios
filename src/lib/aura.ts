@@ -39,7 +39,15 @@ export interface AuraSources {
   conversations: number; // thread messages, yours
 }
 
-export type AuraPhase = "empty" | "early" | "building" | "rich";
+/* the ladder, as the owner froze it on the design canvas:
+     empty      pieces == 0            nothing claimed
+     forming    locked ≤ 2             first signals speak
+     shaping    locked 3–5             the glow takes shape
+     clearing   locked 6–8, OR 9/9     everything read — but a name off
+                while pieces < 10      six pieces is a horoscope, so the
+                                       name waits for ten real pieces
+     formed     locked 9 AND ≥10 pieces  the name, earned */
+export type AuraPhase = "empty" | "forming" | "shaping" | "clearing" | "formed";
 
 export interface Aura {
   phase: AuraPhase;
@@ -49,7 +57,9 @@ export interface Aura {
   dims: DimScore[];
   locked: DimScore[];
   sealed: DimScore[];
-  archetype: Archetype | null; // withheld until the aura is actually building
+  archetype: Archetype | null; // null until FORMED — the name is the last thing earned
+  /** the day the ninth signal locked, from local history (formed phase only) */
+  formedOn?: string | null;
   sources: AuraSources;
   /** the words you lean on — counted, top of the list, rarest first kept */
   commonWords: string[];
@@ -132,11 +142,24 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   const sealed = h.dims.filter((d) => !d.locked);
   const formed = locked.length / h.dims.length;
 
-  /* the phases from the owner's design — and the archetype is WITHHELD
-     until the aura is genuinely building. Naming someone off one line is a
-     horoscope; the name has to be earned by evidence, like everything else
-     in this system. */
-  const phase: AuraPhase = pieces <= 3 ? "early" : pieces <= 10 ? "building" : "rich";
+  const phase: AuraPhase =
+    locked.length <= 2
+      ? "forming"
+      : locked.length <= 5
+        ? "shaping"
+        : locked.length === 9 && pieces >= 10
+          ? "formed"
+          : "clearing";
+
+  let formedOn: string | null = null;
+  if (phase === "formed") {
+    try {
+      const hist: AuraSnapshot[] = JSON.parse((await AsyncStorage.getItem(HIST_KEY)) || "[]");
+      formedOn = hist.find((x) => x.locked.length === 9)?.date ?? new Date().toISOString().slice(0, 10);
+    } catch {
+      formedOn = new Date().toISOString().slice(0, 10);
+    }
+  }
 
   return {
     phase,
@@ -145,7 +168,8 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     dims: h.dims,
     locked,
     sealed,
-    archetype: phase === "early" ? null : h.archetype,
+    formedOn,
+    archetype: phase === "formed" ? h.archetype : null,
     sources: {
       letters: mine.letters.length,
       sealed: sealedCount,

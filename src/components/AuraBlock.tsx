@@ -1,135 +1,152 @@
 import { Pressable, Text, View } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
 import { P, PF, panel } from "../theme/post";
-import { WrenBird } from "./WrenBird";
+import { AuraGlow, AuraSpecks } from "./AuraGlow";
 import { useWrenName } from "../lib/wren-name";
+import { dLong } from "../lib/format";
 import type { Aura } from "../lib/aura";
 
-/* the aura's silhouette — the same nine-dim shape the radar draws, small
-   and unlabeled. The name on this card belongs to this shape; without it
-   the archetype reads as a caption floating on nothing. */
-function Silhouette({ aura, size = 74 }: { aura: Aura; size?: number }) {
-  const c = size / 2;
-  const r = c - 4;
-  const pts = aura.dims
-    .map((d, i) => {
-      const a = -Math.PI / 2 + (i / aura.dims.length) * Math.PI * 2;
-      const rr = (Math.max(d.score, 8) / 100) * r;
-      return `${c + rr * Math.cos(a)},${c + rr * Math.sin(a)}`;
-    })
-    .join(" ");
-  return (
-    <Svg width={size} height={size}>
-      <Polygon points={pts} fill="rgba(58,58,245,0.12)" stroke="#3A3AF5" strokeWidth={1.3} />
-    </Svg>
-  );
-}
-
-/* YOUR WRITING AURA — four phases, each showing only what is earned.
+/* YOUR WRITING AURA — five stages, one growing glow.
    ────────────────────────────────────────────────────────────────────────
-   The old card rendered a complete nine-row portrait, an aura name and a
-   Share button off a single line of writing — a conclusion dressed over a
-   guess, and the "don't know yet" state could never appear because
-   onboarding guarantees one line. The owner's redesign makes the phases
-   the design:
-
-     empty     no writing at all — say so, plainly
-     early     1–3 pieces — N% FORMED and which dims have come through;
-               no name, no share. Naming someone off one line is a
-               horoscope.
-     building  4–10 — the archetype arrives with its trait lines
-     rich      10+ — the full portrait, and the share is honest now
-
-   The percentage is lockedCount/9 — a real fraction of evidence, not a
-   vibe. This is the same locked/sealed structure the hatch screen and the
-   correspondent read already use; the product now reads you and the
-   person you write to with one instrument. */
+   The ladder as frozen on the design canvas. The visual is the aura
+   itself: a soft glow that swells and deepens as signals lock, with one
+   ink speck landing on it per locked signal — nine stars when the whole
+   voice has come through. The name arrives only at FORMED (nine locked
+   AND ten pieces): everything earlier says honestly how far along the
+   reading is, in the words the owner set — still forming, taking shape,
+   coming clear. */
 
 export function AuraBlock({ aura, onOpen, onShare }: { aura: Aura; onOpen: () => void; onShare: () => void }) {
   const wren = useWrenName();
+  const nOf9 = `${aura.locked.length} OF 9`;
 
+  const Glow = (
+    <View style={{ width: 104, height: 104 }}>
+      <AuraGlow formed={aura.formed} uid="me" />
+      <AuraSpecks locked={aura.locked.length} />
+    </View>
+  );
+
+  /* stage 0 — nothing claimed, and the card says so */
   if (aura.phase === "empty") {
     return (
       <View style={[panel, { padding: 18, marginTop: 14 }]}>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>YOUR WRITING AURA</Text>
-        <Text style={{ fontFamily: PF.letter, fontSize: 20, color: P.ink, marginTop: 12 }}>Nothing to read yet.</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
-          <WrenBird size={22} mood="listen" />
-          <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
-            {wren} is listening. Every word you write helps.
-          </Text>
+        <Header />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 }}>
+          {Glow}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: PF.letter, fontSize: 20, color: P.ink }}>No data yet.</Text>
+            <Text style={{ fontFamily: PF.letter, fontSize: 12.5, lineHeight: 18, color: P.ink60, marginTop: 5 }}>
+              Nine things your writing will tell. None have spoken.
+            </Text>
+          </View>
         </View>
+        <View style={{ height: 1, backgroundColor: P.ink12, marginVertical: 12 }} />
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 14, lineHeight: 20, color: P.ink60 }}>
+          Write anything — a letter, a sealed page. {wren} is listening.
+        </Text>
       </View>
     );
   }
 
-  const pct = Math.round(aura.formed * 100);
+  const title =
+    aura.phase === "forming" ? "Still forming." : aura.phase === "shaping" ? "Taking shape." : "Coming clear.";
 
+  if (aura.phase !== "formed") {
+    return (
+      <Pressable onPress={onOpen} style={({ pressed }) => [panel, { padding: 18, marginTop: 14, opacity: pressed ? 0.7 : 1 }]}>
+        <Header chevron />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 }}>
+          {Glow}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: PF.letter, fontSize: 20, color: P.ink }}>{title}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+              <View style={{ flex: 1, height: 3, backgroundColor: P.ink12 }}>
+                <View style={{ width: `${Math.max(aura.formed * 100, 4)}%`, height: 3, backgroundColor: P.pen }} />
+              </View>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, color: P.pen }}>{nOf9}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 1, backgroundColor: P.ink12, marginTop: 12, marginBottom: 10 }} />
+
+        {aura.phase === "clearing" ? (
+          <>
+            {/* everything read but the last line — name the holdout, and let
+                Wren say how close she is */}
+            {aura.sealed.length > 0 && (
+              <>
+                <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.2, color: P.ink40 }}>
+                  STILL QUIET — {aura.sealed[0].sealed.toUpperCase()}
+                </Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: P.ink, marginTop: 4 }}>
+                  The little habits nobody else has take the longest to show.
+                </Text>
+              </>
+            )}
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 19, color: P.ink60, marginTop: 10 }}>
+              {aura.sealed.length > 0 ? `${wren} nearly has a name for this.` : `${wren} nearly has a name for this — a few more letters and it holds.`}
+            </Text>
+          </>
+        ) : (
+          <>
+            {aura.locked.slice(0, aura.phase === "forming" ? 1 : 2).map((d, i) => (
+              <Text
+                key={d.key}
+                style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: i === 0 ? P.ink : P.ink60, marginTop: i ? 4 : 0 }}
+              >
+                {d.line}
+              </Text>
+            ))}
+            {aura.phase === "forming" && (
+              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40, marginTop: 10 }}>
+                PATTERNS TAKE A FEW LETTERS — KEEP WRITING
+              </Text>
+            )}
+          </>
+        )}
+      </Pressable>
+    );
+  }
+
+  /* FORMED — the ninth star landed, and the name is earned */
   return (
     <Pressable onPress={onOpen} style={({ pressed }) => [panel, { padding: 18, marginTop: 14, opacity: pressed ? 0.7 : 1 }]}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>
-          YOUR WRITING AURA
-        </Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>›</Text>
-      </View>
-
-      {aura.phase === "early" ? (
-        <>
-          <Text style={{ fontFamily: PF.letter, fontSize: 20, color: P.ink, marginTop: 12 }}>Taking shape.</Text>
-          {/* the honest fraction: locked dims over nine, never a vibe */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 }}>
-            <View style={{ flex: 1, height: 3, backgroundColor: P.ink12 }}>
-              <View style={{ width: `${Math.max(pct, 3)}%`, height: 3, backgroundColor: P.pen }} />
-            </View>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, color: P.pen }}>{pct}% FORMED</Text>
-          </View>
-          {aura.locked.length > 0 && (
-            <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 10 }}>
-              {aura.locked[0].line}
-            </Text>
-          )}
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40, marginTop: 12 }}>
-            KEEP WRITING — {wren.toUpperCase()} IS PICKING UP PATTERNS
+      <Header chevron />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 }}>
+        {Glow}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.4, color: P.brassSeal }}>
+            FORMED{aura.formedOn ? ` · ${dLong(aura.formedOn).toUpperCase()}` : ""}
           </Text>
-        </>
-      ) : (
-        <>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 10 }}>
-            <Silhouette aura={aura} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 23, fontWeight: "600", color: P.ink }}>
-                {aura.archetype?.name}
-              </Text>
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, lineHeight: 19, color: P.ink60, marginTop: 3 }}>
-                {/* hatch writes in the second person because it was built to
-                    describe you to yourself — here that is exactly right */}
-                {aura.archetype?.desc ?? ""}
-              </Text>
-            </View>
-          </View>
-
-          {/* the strongest three, as chips — evidence, not decoration */}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 }}>
-            {aura.locked.slice(0, 3).map((d) => (
-              <View key={d.key} style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 9, paddingVertical: 5 }}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.ink }}>{d.label.toLowerCase()}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14 }}>
-            <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40 }}>
-              {pct}% FORMED · {aura.pieces} PIECES
-            </Text>
-            {aura.phase === "rich" && (
-              <Pressable onPress={onShare} hitSlop={8} style={{ backgroundColor: P.pen, paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1, color: "#fff" }}>SHARE</Text>
-              </Pressable>
-            )}
-          </View>
-        </>
-      )}
+          <Text style={{ fontFamily: PF.letter, fontSize: 21, fontWeight: "600", color: P.ink, marginTop: 2 }}>
+            {aura.archetype?.name}
+          </Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, lineHeight: 18, color: P.ink60, marginTop: 3 }}>
+            {aura.archetype?.desc ?? ""}
+          </Text>
+        </View>
+      </View>
+      <View style={{ height: 1, backgroundColor: P.ink12, marginTop: 12 }} />
+      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
+        <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40 }}>
+          9 OF 9 · {aura.pieces} PIECES
+        </Text>
+        <Pressable onPress={onShare} hitSlop={8} style={{ backgroundColor: P.pen, paddingHorizontal: 12, paddingVertical: 8 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1, color: "#fff" }}>SHARE</Text>
+        </Pressable>
+      </View>
     </Pressable>
+  );
+}
+
+function Header({ chevron }: { chevron?: boolean }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>
+        YOUR WRITING AURA
+      </Text>
+      {chevron && <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>›</Text>}
+    </View>
   );
 }
