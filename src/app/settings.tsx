@@ -38,7 +38,7 @@ export default function Settings() {
   const editName = () => {
     Alert.prompt?.(
       "Your pen name",
-      "Strangers never see it — only a kindred, after five letters.",
+      "Strangers never see it — only a kindred, once you've both enclosed your names.",
       async (next?: string) => {
         const n = (next || "").trim();
         if (!n || n === handle) return;

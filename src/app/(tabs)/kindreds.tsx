@@ -18,7 +18,8 @@ import { DEMO_THREADS } from "../../data/demo";
    in. COMING INTO VIEW: both the orbit radius and the mosaic's resolution are
    driven by the letters THEY send — one currency, two projections. You come to
    know someone by reading them, so it's their writing that draws them closer
-   and their face that develops; at five each way Wren trades your names. The
+   and their face that develops. From five letters each way, either side may
+   enclose their name; when both have, Wren trades them (0010). The
    map up top is the whole sky at a glance; the list is where you act.
 
    Same surface as every other tab — white, with rules doing the separation. */

@@ -60,7 +60,7 @@ export function WrenHome({
     }
     const meta = SKINS.find((s) => s.id === id);
     if (meta?.lock === "plus") onLocked();
-    else Alert.alert("Not yet", "The Plush look unlocks when you make your first kindred — five letters each with one person.");
+    else Alert.alert("Not yet", "The Plush look unlocks with your first kindred — when you and a stranger trade names.");
   };
 
   const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium)).length;

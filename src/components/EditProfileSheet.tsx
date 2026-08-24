@@ -122,7 +122,7 @@ export function EditProfileSheet({
               />
             </View>
             <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, marginTop: 8 }}>
-              Strangers never see it — only a kindred, after five letters.
+              Strangers never see it — only a kindred, once you've both enclosed your names.
             </Text>
 
             <Pressable
