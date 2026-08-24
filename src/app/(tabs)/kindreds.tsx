@@ -1,5 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -11,6 +11,7 @@ import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { setWaiting } from "../../lib/waiting";
 import { reactionLabel } from "../../data/reactions";
 import { DEMO_THREADS } from "../../data/demo";
 
@@ -73,6 +74,9 @@ export default function KindredsTab() {
   // they wrote and you never have — the loudest state on the tab
   const waiting = orbit.filter(answered).length;
   const empty = loaded && orbit.length === 0;
+
+  // feed the tab-bar signal from the count this screen already computed
+  useEffect(() => setWaiting(waiting), [waiting]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: GROUND }} edges={["top"]}>

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { PostTabBar } from "../../components/PostTabBar";
+import { refreshWaiting, useWaiting } from "../../lib/waiting";
 import { PostChooser } from "../../components/PostChooser";
 
 /* The chooser lives HERE rather than inside the tab bar, and as a plain
@@ -12,11 +13,17 @@ import { PostChooser } from "../../components/PostChooser";
    right on top of it — one continuous move forward. */
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
+  const waiting = useWaiting();
+
+  // prime the signal at launch — it has to be true before Kindreds is opened
+  useEffect(() => {
+    void refreshWaiting();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
       <Tabs
-        tabBar={(props) => <PostTabBar {...props} onPost={() => setChoosing(true)} />}
+        tabBar={(props) => <PostTabBar {...props} onPost={() => setChoosing(true)} waiting={waiting} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#FFFFFF" } }}
       >
         <Tabs.Screen name="letters" />

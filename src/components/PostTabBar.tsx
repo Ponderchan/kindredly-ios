@@ -23,7 +23,7 @@ import { useAuth } from "../lib/auth";
 
 const CELL = 54;
 
-export function PostTabBar({ state, navigation, onPost }: any) {
+export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
@@ -36,7 +36,7 @@ export function PostTabBar({ state, navigation, onPost }: any) {
     if (!focused && !event.defaultPrevented) navigation.navigate(name);
   };
 
-  const Window = ({ name, children }: { name: string; children: React.ReactNode }) => {
+  const Window = ({ name, children, dot }: { name: string; children: React.ReactNode; dot?: boolean }) => {
     const active = current === name;
     return (
       <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: CELL }}>
@@ -53,6 +53,12 @@ export function PostTabBar({ state, navigation, onPost }: any) {
           }}
         />
         {children}
+        {/* one square of pen ink — someone answered and it is your turn. A
+            square, not a dot: this counter is made of squares and rules, and
+            a count would turn correspondence into an inbox. */}
+        {dot && (
+          <View style={{ position: "absolute", top: 13, right: "30%", width: 6, height: 6, backgroundColor: P.pen }} />
+        )}
       </Pressable>
     );
   };
@@ -91,7 +97,7 @@ export function PostTabBar({ state, navigation, onPost }: any) {
             </View>
           </Pressable>
 
-          <Window name="kindreds">
+          <Window name="kindreds" dot={waiting > 0}>
             <OrbitGlyph color={tint("kindreds")} />
           </Window>
           <Window name="me">
