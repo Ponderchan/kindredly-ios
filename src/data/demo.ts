@@ -101,6 +101,7 @@ export const DEMO_DETAILS: Record<
     iSigned?: boolean;
     theirSigned?: boolean;
     otherFace?: string | null;
+    since?: string | null;
     opening: string;
     openingFromMe: boolean;
     messages: { body: string; mine: boolean; date: string }[];
@@ -114,6 +115,7 @@ export const DEMO_DETAILS: Record<
     other: "demo-mira",
     myCount: 6,
     otherCount: 6,
+    since: iso(200 * H),
     opening: "I read your fridge line twice on the way to bed last night. It felt like something I might have written.",
     openingFromMe: false,
     messages: [

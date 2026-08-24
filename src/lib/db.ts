@@ -417,6 +417,7 @@ export interface ThreadDetail {
   iSigned?: boolean; // my pen name is enclosed with this correspondence
   theirSigned?: boolean; // theirs is — one signature from a reveal
   otherFace?: string | null; // the face they chose to give at signing (library id)
+  since?: string | null; // when the first reply opened this thread
   opening: string;
   openingFromMe: boolean;
   openingMedia?: string | null; // voice-letter opening (storage path)
@@ -432,14 +433,14 @@ export async function fetchThreadMessages(
   try {
     let { data: t } = await supabase!
       .from("threads")
-      .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s")
+      .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at")
       .eq("id", threadId)
       .maybeSingle();
     if (!t) {
       // pre-0007 fallback: media columns absent
       const retry = await supabase!
         .from("threads")
-        .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening")
+        .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,created_at")
         .eq("id", threadId)
         .maybeSingle();
       t = retry.data as any;
@@ -461,6 +462,7 @@ export async function fetchThreadMessages(
       otherCount: iamA ? t.b_count : t.a_count,
       iSigned: !!(iamA ? t.a_name : t.b_name),
       theirSigned: !!(iamA ? t.b_name : t.a_name),
+      since: (t as any).created_at ?? null,
       opening: t.opening || "",
       openingFromMe: t.b === me,
       openingMedia: (t as any).opening_media ?? null,

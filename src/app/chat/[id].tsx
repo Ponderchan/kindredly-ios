@@ -146,7 +146,12 @@ export default function ChatScreen() {
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 }}>
+        <Pressable
+          disabled={!detail?.revealed}
+          onPress={() => router.push(`/kindred/${id}`)}
+          hitSlop={6}
+          style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, opacity: pressed ? 0.6 : 1 })}
+        >
           {detail?.revealed && detail.otherFace ? (
             <AvatarImage id={detail.otherFace} seed={detail.other} size={32} />
           ) : (
@@ -168,7 +173,7 @@ export default function ChatScreen() {
                     : "COMING INTO VIEW"}
             </Text>
           </View>
-        </View>
+        </Pressable>
         <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={goBack} />
       </View>
 
