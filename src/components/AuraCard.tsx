@@ -32,8 +32,9 @@ import type { Aura } from "../lib/aura";
 type Stage = Aura["phase"];
 
 /* the letter's own palette — cream paper, pencil, and the system's pen
-   and postmark inks. Local to this object, like the sealed page's brass. */
-const L = {
+   and postmark inks. Shared with /aura-card, which renders this same
+   letter as the thing you send out of the app. */
+export const L = {
   paper: "#F8F4E7",
   env: "#F1ECDD", // envelope back — a shade deeper than the sheet
   flap: "#EDE7D6",
@@ -45,7 +46,19 @@ const L = {
   amber: "#E8A33D",
 } as const;
 
-const dear = (name: string) => name.replace(/^The\s+/i, "");
+export const dear = (name: string) => name.replace(/^The\s+/i, "");
+
+/* THE P.S. IS COUNTED, NEVER GENERATED — behaviour, not style. Wren only
+   says what she can count and print the evidence for (notice.ts's
+   philosophy): no LLM ever paraphrases a person on this letter. Evidence
+   or silence. Shared with the share card so both faces say the same. */
+export function letterPS(aura: Aura): string | null {
+  if (aura.phase === "formed" || aura.phase === "empty") return null;
+  if (aura.nightOwl) return "P.S. most of this reached me after midnight.";
+  if (aura.commonWords[0]) return `P.S. you keep coming back to "${aura.commonWords[0]}". I like it.`;
+  if (aura.pieces >= 3) return `P.S. ${aura.pieces} pieces in. I keep them all.`;
+  return null;
+}
 
 /* deterministic decoy names for the crossed-out drafts — seeded by the
    real working name so they never reshuffle between renders */
@@ -57,7 +70,7 @@ function draftDecoys(real: string): string[] {
   return [first.name, rest[(h >>> 5) % rest.length].name];
 }
 
-function DottedRule({ style }: { style?: object }) {
+export function DottedRule({ style }: { style?: object }) {
   return (
     <Svg height={2} width="100%" style={style}>
       <Line x1="0" y1="1" x2="100%" y2="1" stroke={L.rule} strokeWidth={1.6} strokeDasharray="1.6,4.5" />
@@ -65,7 +78,7 @@ function DottedRule({ style }: { style?: object }) {
   );
 }
 
-function DashedRule({ color = "#DCD4BF" }: { color?: string }) {
+export function DashedRule({ color = "#DCD4BF" }: { color?: string }) {
   return (
     <Svg height={2} width="100%">
       <Line x1="0" y1="1" x2="100%" y2="1" stroke={color} strokeWidth={1.2} strokeDasharray="6,4" />
@@ -128,20 +141,7 @@ export function AuraCard({
       ? `— so close, ${wren}`
       : `— still writing, ${wren}`;
 
-  /* THE P.S. IS COUNTED, NEVER GENERATED. The letter's nine lines are
-     already alive (the engine picks each one for this writer's scores);
-     the P.S. is the other kind of alive — behaviour, not style. Wren only
-     says what she can count and print the evidence for, in notice.ts's
-     philosophy: no LLM ever paraphrases a person on this card. */
-  const ps = formed
-    ? null
-    : aura.nightOwl
-      ? "P.S. most of this reached me after midnight."
-      : aura.commonWords[0]
-        ? `P.S. you keep coming back to "${aura.commonWords[0]}". I like it.`
-        : aura.pieces >= 3
-          ? `P.S. ${aura.pieces} pieces in. I keep them all.`
-          : null;
+  const ps = letterPS(aura);
 
   return (
     <Pressable onPress={onOpen} style={frame}>
@@ -375,7 +375,7 @@ function StageWren({ stage, size = 26, mood }: { stage: Stage; size?: number; mo
    it BECOMES you. A writer who never chose a library face has no pool to
    draw from, so their stamp stays the honest system face (their mosaic). */
 
-function Stamp({ seed, stage, pct, formedOn, pool, topDimKey }: { seed: string; stage: Stage; pct: number; formedOn?: string | null; pool: "m" | "f" | null; topDimKey: string | null }) {
+export function Stamp({ seed, stage, pct, formedOn, pool, topDimKey }: { seed: string; stage: Stage; pct: number; formedOn?: string | null; pool: "m" | "f" | null; topDimKey: string | null }) {
   if (stage === "empty")
     return (
       <View style={{ width: 62, height: 76, borderWidth: 1, borderStyle: "dashed", borderColor: "#B9B19C", alignItems: "center", justifyContent: "center" }}>
