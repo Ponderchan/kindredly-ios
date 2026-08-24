@@ -5,7 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { P, PF, rule } from "../theme/post";
 import { MosaicId } from "../components/MosaicId";
 import { useWrenName } from "../lib/wren-name";
-import { dLong } from "../lib/format";
+import { dLong, postNo } from "../lib/format";
 import { fetchBlocks, unblockUser, type BlockRow } from "../lib/db";
 
 /* Blocked & reported — the settings row that used to be a dead label.
@@ -87,7 +87,13 @@ export default function BlockedScreen() {
             >
               <MosaicId seed={b.blocked} cell={7} />
               <View style={{ flex: 1, paddingLeft: 14 }}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.ink40 }}>
+                {/* face AND number, always the pair — faces alone collide
+                    (~25k of them); the pair space is ~300M. Without the
+                    number, a twin face here reads as "they're back". */}
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: P.ink }}>
+                  NO. {postNo(b.blocked)}
+                </Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.ink40, marginTop: 3 }}>
                   BLOCKED {dLong(b.created_at).toUpperCase()}
                 </Text>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60, marginTop: 3 }}>

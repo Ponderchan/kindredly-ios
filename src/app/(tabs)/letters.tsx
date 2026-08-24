@@ -72,7 +72,7 @@ export default function LettersTab() {
     const score = new Map(m.closest.map((c) => [c.uid, c.score]));
     setPool((cur) =>
       cur
-        .map((l) => ({ ...l, close: score.get(l.author) }))
+        .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
         // matched first; everything else keeps the server's newest-first order
         .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
     );
@@ -405,7 +405,8 @@ function LetterReader({
           <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 22 }}>
             <MosaicId seed={letter.author} />
             <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.6, color: P.ink60, marginLeft: 12, marginTop: 3 }}>
-              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
+              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
+              {letter.author ? `NO.${postNo(letter.author)}` : "UNSIGNED"}
             </Text>
             {st && (
               <View style={{ transform: [{ rotate: "3deg" }] }}>
@@ -580,7 +581,8 @@ function LetterPage({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 4 }}>
             <MosaicId seed={letter.author} />
             <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
-              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} · NO.{postNo(letter.author)}
+              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
+              {letter.author ? `NO.${postNo(letter.author)}` : "UNSIGNED"}
             </Text>
           </View>
           {st && (
@@ -860,7 +862,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <MosaicId seed={first.author} cell={3} gap={1} />
                     <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginLeft: 10 }}>
-                      NO.{postNo(first.author)} · A STRANGER
+                      {first.author ? `NO.${postNo(first.author)}` : "UNSIGNED"} · A STRANGER
                     </Text>
                   </View>
                   <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, marginTop: 10 }}>

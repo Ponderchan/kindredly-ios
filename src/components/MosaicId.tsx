@@ -97,13 +97,34 @@ export function MosaicId({
   gap = 1.5,
   develop = 1,
 }: {
-  seed: string;
+  seed: string | null | undefined;
   cell?: number;
   gap?: number;
   develop?: number;
 }) {
   const cols = COLS;
   const rows = ROWS;
+
+  /* THE VEIL · a null seed is not "anonymous", it is NO ONE — the author
+     deleted their account (0009) and the letter stays, unsigned. Hashing
+     a placeholder would dress every ghost in the same face and falsely
+     bind their letters as one author's. Instead: a full grid at ink12,
+     grey where every real face is pure ink — unmistakably not a person,
+     identical for all ghosts BECAUSE it claims nothing. */
+  if (!seed) {
+    return (
+      <View style={{ gap }}>
+        {Array.from({ length: rows }).map((_, r) => (
+          <View key={r} style={{ flexDirection: "row", gap }}>
+            {Array.from({ length: cols }).map((_, c) => (
+              <View key={c} style={{ width: cell, height: cell, backgroundColor: P.ink12 }} />
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
   const inked = inkedCells(seed);
   const on = (r: number, c: number) => inked.has(r + "," + c);
 

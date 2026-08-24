@@ -147,7 +147,7 @@ export async function publishLetter(
 
 export interface PoolLetter {
   id: string;
-  author: string;
+  author: string | null; // null since 0009: the author deleted their account; the letter stays, unsigned
   stamp: string;
   body: string;
   lang: string;

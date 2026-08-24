@@ -207,7 +207,7 @@ export function seedDemoThread(letter: PoolLetter, reply: string): string {
     stamp: letter.stamp,
     revealed: false,
     otherName: null,
-    other: letter.author,
+    other: letter.author || "demo-ghost", // demo authors always exist; belt for the type
     myCount: 1,
     otherCount: 1,
     opening: letter.body,
