@@ -356,6 +356,10 @@ YOU WENT FIRST — WAITING ON THEIRS
         otherArchetype={read?.archetype ? theyify(read.archetype.name) : null}
         myName={auth.handle || "you"}
         onClose={() => setCeremony(false)}
+        onTalk={() => {
+          setCeremony(false);
+          router.replace(`/room/${id}`);
+        }}
       />
     </SafeAreaView>
   );

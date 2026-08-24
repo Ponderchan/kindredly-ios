@@ -240,7 +240,7 @@ export default function KindredScreen() {
           )}
 
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => (detail.revealed ? router.replace(`/room/${id}`) : router.back())}
             style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>

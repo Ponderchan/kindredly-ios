@@ -99,8 +99,10 @@ export default function KindredsTab() {
             <OrbitMap items={orbit} />
           </View>
           <View style={{ paddingHorizontal: 20 }}>
+            {/* two different places: a correspondence with a stranger,
+                a room with someone you know */}
             {orbit.map((t) => (
-              <Card key={t.id} t={t} onPress={() => router.push(`/chat/${t.id}`)} />
+              <Card key={t.id} t={t} onPress={() => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)} />
             ))}
           </View>
         </ScrollView>

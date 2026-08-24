@@ -27,6 +27,7 @@ export function Introduction({
   otherArchetype,
   myName,
   onClose,
+  onTalk,
 }: {
   open: boolean;
   wren: string;
@@ -37,6 +38,8 @@ export function Introduction({
   otherArchetype?: string | null;
   myName: string;
   onClose: () => void;
+  /** the exit isn't "dismiss" — it's the door into the room */
+  onTalk: () => void;
 }) {
   const insets = useSafeAreaInsets();
   return (
@@ -86,7 +89,7 @@ export function Introduction({
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
-          <Pressable onPress={onClose} style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}>
+          <Pressable onPress={onTalk} style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>
 TALK TO {otherName.toUpperCase()}
             </Text>
