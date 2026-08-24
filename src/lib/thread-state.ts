@@ -34,9 +34,12 @@ export function threadState(t: {
 
   // step 5 — five letters each way, so names may be traded
   if (t.mine >= 5 && t.theirs >= 5) {
-    if (t.theirSigned) return { label: "THEY'VE PUT THEIR NAME IN", tone: P.brassSeal, needsYou: true };
-    if (t.iSigned) return { label: "WAITING ON THEIR NAME", tone: P.ink40, needsYou: false };
-    return { label: "YOU CAN TRADE NAMES", tone: P.brassSeal, needsYou: true };
+    /* "went first" rather than "has enclosed their name": the same fact,
+       said as courage instead of as a step in a process. Whoever signs
+       first is taking the risk, and the copy should know that. */
+    if (t.theirSigned) return { label: "THEY WENT FIRST", tone: P.brassSeal, needsYou: true };
+    if (t.iSigned) return { label: "YOU WENT FIRST", tone: P.ink40, needsYou: false };
+    return { label: "SWAP NAMES?", tone: P.brassSeal, needsYou: true };
   }
 
   // steps 3 and 4 — whose letter is owed

@@ -5,8 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { P, PF, ruleSoft } from "../../theme/post";
-import { AvatarImage } from "../../components/AvatarImage";
-import { MosaicId } from "../../components/MosaicId";
+import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
@@ -125,18 +124,14 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
       style={({ pressed }) => [{ paddingBottom: 16, marginBottom: 16, opacity: pressed ? 0.5 : 1 }, ruleSoft]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        {/* the face, as far as their letters have carried it — and once
-            revealed, the face they CHOSE to give (0011), if they gave one */}
-        {t.revealed && t.otherFace ? (
-          <AvatarImage id={t.otherFace} seed={t.other} size={28} />
-        ) : (
-          <MosaicId
-            seed={t.other}
-            cell={4.4}
-            gap={1.2}
-            develop={t.revealed ? 1 : 0.15 + 0.85 * (Math.min(t.theirs, REVEAL) / REVEAL)}
-          />
-        )}
+        <CorrespondentFace
+          seed={t.other}
+          theirs={t.theirs}
+          revealed={t.revealed}
+          otherFace={t.otherFace}
+          theirSigned={t.theirSigned}
+          iSigned={t.iSigned}
+        />
         {t.revealed && (
           <Text style={{ fontFamily: PF.letter, fontSize: 18, fontWeight: "600", color: P.ink }}>{t.otherName || "A kindred"}</Text>
         )}

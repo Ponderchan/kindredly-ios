@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../../theme/post";
-import { AvatarImage } from "../../components/AvatarImage";
+import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { Introduction } from "../../components/Introduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
@@ -180,15 +180,15 @@ export default function ChatScreen() {
           hitSlop={6}
           style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, opacity: pressed ? 0.6 : 1 })}
         >
-          {detail?.revealed && detail.otherFace ? (
-            <AvatarImage id={detail.otherFace} seed={detail.other} size={32} />
-          ) : (
-            <MosaicId
-              seed={detail?.other || "anon"}
-              cell={5.5}
-              develop={detail ? (detail.revealed ? 1 : 0.15 + 0.85 * (Math.min(detail.otherCount, REVEAL) / REVEAL)) : 0.15}
-            />
-          )}
+          <CorrespondentFace
+            seed={detail?.other || "anon"}
+            theirs={detail?.otherCount ?? 0}
+            revealed={!!detail?.revealed}
+            otherFace={detail?.otherFace}
+            theirSigned={detail?.theirSigned}
+            iSigned={detail?.iSigned}
+            size="lg"
+          />
           <View>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{name.toUpperCase()}</Text>
             {!!state && (
@@ -259,7 +259,7 @@ export default function ChatScreen() {
           <View style={{ alignItems: "center", paddingBottom: 10 }}>
             {detail.iSigned ? (
               <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>
-                WAITING ON THEIR NAME
+YOU WENT FIRST — WAITING ON THEIRS
               </Text>
             ) : (
               <Pressable
@@ -275,7 +275,7 @@ export default function ChatScreen() {
                     color: detail.theirSigned ? P.brassSeal : P.ink,
                   }}
                 >
-                  {detail.theirSigned ? "THEY'VE PUT THEIR NAME IN — ADD YOURS" : "PUT YOUR NAME IN"}
+                  {detail.theirSigned ? "THEY WENT FIRST — SEND YOURS" : "SEND THEM YOUR NAME"}
                 </Text>
               </Pressable>
             )}
