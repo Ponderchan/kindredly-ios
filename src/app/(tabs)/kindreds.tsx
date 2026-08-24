@@ -12,6 +12,7 @@ import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { setWaiting } from "../../lib/waiting";
+import { readCorrespondent, stageLine } from "../../lib/correspondent";
 import { reactionLabel } from "../../data/reactions";
 import { DEMO_THREADS } from "../../data/demo";
 
@@ -131,6 +132,10 @@ export default function KindredsTab() {
 function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
   const theirTurn = !t.lastSenderMe; // they wrote last → your move / a new letter
   const isAnswered = answered(t); // they wrote, you never have
+  /* what has actually come through of them — never how many letters have
+     gone by. A number of letters is a task; a number of moments is a person
+     arriving. */
+  const read = useMemo(() => readCorrespondent(t.theirTexts || [], t.revealed), [t.theirTexts, t.revealed]);
 
   return (
     <Pressable
@@ -198,7 +203,7 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
             ? "THEY ANSWERED YOUR LETTER — YOUR TURN"
             : t.theirSigned
               ? "THEIR NAME IS ENCLOSED — ADD YOURS"
-              : `COMING INTO VIEW · ${theirTurn ? "YOUR TURN" : "WAITING ON THEM"}`}
+              : `${stageLine(read.stage)}${read.moments ? ` · ${read.moments} MOMENT${read.moments > 1 ? "S" : ""}` : ""}`}
         </Text>
       )}
     </Pressable>

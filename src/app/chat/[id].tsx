@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +14,7 @@ import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
+import { readCorrespondent, stageLine } from "../../lib/correspondent";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
 
@@ -94,6 +95,13 @@ export default function ChatScreen() {
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" }, ...detail.messages].filter((m) => m.body)
     : [];
   const name = detail?.revealed ? detail.otherName || "A kindred" : detail ? `No. ${postNo(detail.other)}` : "…";
+  /* the read, from their letters in this very thread */
+  const read = useMemo(() => {
+    if (!detail) return null;
+    const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
+    if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
+    return readCorrespondent(theirs, detail.revealed);
+  }, [detail]);
 
   const weight = weightedCount(text);
   const over = weight > LETTER_MAX;
@@ -170,7 +178,9 @@ export default function ChatScreen() {
                   ? "THEIR NAME IS ENCLOSED"
                   : detail?.iSigned
                     ? "YOUR NAME IS ENCLOSED"
-                    : "COMING INTO VIEW"}
+                    : read
+                      ? stageLine(read.stage)
+                      : "COMING INTO VIEW"}
             </Text>
           </View>
         </Pressable>

@@ -317,6 +317,8 @@ export interface ThreadSummary {
   mine: number; // my message count on this thread
   theirs: number; // their count — what drives a face coming into view
   theirSigned?: boolean; // their name is enclosed, waiting on mine
+  /** everything they have written to me — what lib/correspondent reads */
+  theirTexts?: string[];
   otherName: string | null;
   otherFace?: string | null; // the face they chose to give at signing (library id)
   other: string; // correspondent's user id
@@ -372,6 +374,32 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
       /* table not there yet — the app runs without reactions */
     }
 
+    /* THEIR WRITING, for the read (lib/correspondent). One batched query for
+       every thread at once, the same shape as the reactions fetch above —
+       a slow-letter product tops out around ten letters per correspondence,
+       so this is tens of rows, not thousands. Without it the list could only
+       count letters, which is the thing the archaeology reframe exists to
+       stop doing. */
+    const theirs = new Map<string, string[]>();
+    try {
+      const ids = data.map((r: any) => r.id);
+      if (ids.length) {
+        const { data: msgs } = await supabase!
+          .from("messages")
+          .select("thread_id,sender,body")
+          .in("thread_id", ids)
+          .order("created_at");
+        for (const m of msgs || []) {
+          if (m.sender === me || !m.body) continue;
+          const list = theirs.get(m.thread_id) || [];
+          list.push(m.body);
+          theirs.set(m.thread_id, list);
+        }
+      }
+    } catch {
+      /* the read degrades to counts — never blocks the list */
+    }
+
     return data.map((r: any) => {
       const iamA = r.a === me;
       return {
@@ -381,6 +409,8 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         mine: iamA ? r.a_count : r.b_count,
         theirs: iamA ? r.b_count : r.a_count,
         theirSigned: !!(iamA ? r.b_name : r.a_name),
+        // the opening was written by b; it is theirs unless I am b
+        theirTexts: (iamA && r.opening ? [r.opening as string] : []).concat(theirs.get(r.id) || []),
         otherName: iamA ? r.b_name : r.a_name,
         otherFace: (iamA ? r.b_face : r.a_face) ?? null,
         other: iamA ? r.b : r.a,
