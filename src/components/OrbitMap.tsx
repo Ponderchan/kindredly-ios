@@ -44,6 +44,19 @@ const R_LANDED = 30; // inside the innermost ring, almost at the table
 const FACE = 19; // 5 cells × 3 + 4 gaps × 1
 const FACE_LANDED = 23; // 5 × 3.8 + 4 × 1
 
+/* ONE RING PER LETTER. The sky used to draw three rings while placing
+   faces on five radii, so anyone at two or four letters floated in a gap
+   and the rings described a structure that wasn't there. Now the ring
+   radii and the face radii come from this one function, so they cannot
+   drift apart again: every face sits ON a ring, and the rings still
+   between it and you are exactly the letters still to come. The count
+   stays readable without a counter — which was the point of killing the
+   counters, not to hide the structure but to stop naming a number. */
+function ringRadius(p: number): number {
+  return R_MIN + (R_MAX - R_MIN) * ((REVEAL - p) / (REVEAL - 1));
+}
+const RINGS = Array.from({ length: REVEAL }, (_, i) => ringRadius(i + 1));
+
 export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boolean }) {
   const approaching = items.filter((t) => !t.revealed);
   const landed = items.filter((t) => t.revealed);
@@ -52,7 +65,7 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
     // radius runs on THEIR letters, like the face itself — one mechanic,
     // two projections
     const p = Math.max(1, Math.min(t.theirs, REVEAL));
-    const r = R_MIN + (R_MAX - R_MIN) * ((REVEAL - p) / (REVEAL - 1));
+    const r = ringRadius(p);
     const a = -Math.PI / 2 + (i / Math.max(approaching.length, 1)) * Math.PI * 2 + (((hashStr(t.other) % 44) - 22) * Math.PI) / 180;
     return {
       t,
@@ -71,11 +84,21 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
   return (
     <View style={{ width: W, height: H }}>
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        {/* the sky — three hairline rings, ink like every other rule.
-            ink12 vanished into the wash; ink40 with a denser dash stays
-            quiet but actually reads as a path for the faces to ride */}
-        {[R_MIN, (R_MIN + R_MAX) / 2, R_MAX].map((r, i) => (
-          <Circle key={i} cx={CX} cy={CY} r={r} stroke={P.ink40} strokeWidth={1} strokeDasharray="3 5" fill="none" />
+        {/* five hairline rings, one per letter. They fade outward: the ring
+            someone is about to step onto is the one you should feel, and
+            depth reads as distance without any ring shouting. */}
+        {RINGS.map((r, i) => (
+          <Circle
+            key={i}
+            cx={CX}
+            cy={CY}
+            r={r}
+            stroke={P.ink}
+            strokeOpacity={0.18 + i * 0.055 /* RINGS[0] is the outermost */}
+            strokeWidth={1}
+            strokeDasharray="3 5"
+            fill="none"
+          />
         ))}
       </Svg>
 
