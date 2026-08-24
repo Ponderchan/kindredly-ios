@@ -1,38 +1,53 @@
 import { Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import { C, F } from "../theme/tokens";
+import { P, PF } from "../theme/post";
 import { hashStr } from "../lib/format";
+import { MosaicId } from "./MosaicId";
 import type { ThreadSummary } from "../lib/db";
 
-/* Kindreds as an orbit (design K1f): you're the dark point at the centre, each
-   stranger a dot on a ring, drawn inward by the letters they send. The orbit
-   is the grammar of APPROACH — coming into view — so once names are traded
-   the approach is over and the dot doesn't keep circling with a name tag on:
-   it LANDS. The named leave the rings and sit just beside you, inside the
-   innermost ring. The orbit belongs to strangers; the centre is a table.
-   Labels are real <Text> laid over the SVG so they render crisp. */
+/* Kindreds as an orbit (design K1f): you're the ink square at the centre,
+   each stranger drawn inward by the letters they send. The orbit is the
+   grammar of APPROACH — coming into view — so once names are traded the
+   approach is over: the named LAND, off the rings, beside you. The orbit
+   belongs to strangers; the centre is a table.
+
+   The dots used to be purple circles from the pre-postal palette — colour
+   blobs in a product built of squares and ink, and a contradiction besides:
+   slice 170 made the face and the radius one mechanic in two projections,
+   then hung anonymous beads in the sky. Now the sky shows the faces
+   themselves: every marker is that correspondent's MosaicId, developed
+   exactly as far as their letters have carried it. The map IS the list,
+   seen from above. SVG carries only the rings; faces and labels are real
+   views laid over it so they render crisp. */
 
 const REVEAL = 5;
-const RING = "#C7C3DE";
 const W = 358;
 const H = 292;
 const CX = W / 2;
 const CY = H / 2;
 const R_MIN = 46;
 const R_MAX = 120;
-const R_LANDED = 26; // inside the innermost ring, almost touching you
+const R_LANDED = 30; // inside the innermost ring, almost at the table
+
+const FACE = 19; // 5 cells × 3 + 4 gaps × 1
+const FACE_LANDED = 23; // 5 × 3.8 + 4 × 1
 
 export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boolean }) {
   const approaching = items.filter((t) => !t.revealed);
   const landed = items.filter((t) => t.revealed);
 
-  const dots = approaching.map((t, i) => {
-    // radius runs on THEIR letters, like the developing face — coming into
-    // view is one mechanic in two projections
+  const faces = approaching.map((t, i) => {
+    // radius runs on THEIR letters, like the face itself — one mechanic,
+    // two projections
     const p = Math.max(1, Math.min(t.theirs, REVEAL));
     const r = R_MIN + (R_MAX - R_MIN) * ((REVEAL - p) / (REVEAL - 1));
     const a = -Math.PI / 2 + (i / Math.max(approaching.length, 1)) * Math.PI * 2 + (((hashStr(t.other) % 44) - 22) * Math.PI) / 180;
-    return { t, p, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+    return {
+      t,
+      develop: 0.15 + 0.85 * (Math.min(t.theirs, REVEAL) / REVEAL),
+      x: CX + r * Math.cos(a),
+      y: CY + r * Math.sin(a),
+    };
   });
 
   const seats = landed.map((t, i) => {
@@ -44,34 +59,38 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
   return (
     <View style={{ width: W, height: H }}>
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        {/* the sky — three quiet rings */}
+        {/* the sky — three hairline rings, ink like every other rule */}
         {[R_MIN, (R_MIN + R_MAX) / 2, R_MAX].map((r, i) => (
-          <Circle key={i} cx={CX} cy={CY} r={r} stroke={RING} strokeWidth={1} strokeDasharray="2 6" fill="none" />
-        ))}
-        {/* you */}
-        <Circle cx={CX} cy={CY} r={11} fill={C.ink} />
-        {/* the ones who landed — beside you, off the rings */}
-        {seats.map(({ t, x, y }) => (
-          <Circle key={t.id} cx={x} cy={y} r={9} fill={C.purpleMid} />
-        ))}
-        {/* the ones circling in */}
-        {dots.map(({ t, p, x, y }) => (
-          <Circle key={t.id} cx={x} cy={y} r={7} fill={`rgba(109,109,246,${(0.32 + 0.5 * (p / REVEAL)).toFixed(2)})`} />
+          <Circle key={i} cx={CX} cy={CY} r={r} stroke={P.ink12} strokeWidth={1} strokeDasharray="2 6" fill="none" />
         ))}
       </Svg>
 
-      {/* crisp labels over the top */}
-      <Label x={CX} y={CY + 15} hidden={!empty}>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 2, color: C.faint }}>YOU</Text>
-      </Label>
-      {/* only the named get a label, pushed away from the centre so it never
-          sits on your dot — an approaching stranger is just a dot drawing
-          inward; the radius says everything a fraction used to */}
+      {/* you — the fixed point, one solid cell */}
+      <View pointerEvents="none" style={{ position: "absolute", left: CX - 6, top: CY - 6, width: 12, height: 12, backgroundColor: P.ink }} />
+
+      {/* the ones who landed — full faces at the table, named */}
       {seats.map(({ t, x, y, above }) => (
-        <Label key={t.id} x={x} y={above ? y - 28 : y + 12}>
-          <Text style={{ fontFamily: F.serif, fontSize: 14, color: C.ink }}>{t.otherName || "A kindred"}</Text>
+        <View key={t.id} pointerEvents="none" style={{ position: "absolute", left: x - FACE_LANDED / 2, top: y - FACE_LANDED / 2 }}>
+          <MosaicId seed={t.other} cell={3.8} gap={1} />
+        </View>
+      ))}
+      {seats.map(({ t, x, y, above }) => (
+        <Label key={t.id} x={x} y={above ? y - FACE_LANDED / 2 - 22 : y + FACE_LANDED / 2 + 5}>
+          <Text style={{ fontFamily: PF.letter, fontSize: 13.5, fontWeight: "600", color: P.ink }}>{t.otherName || "A kindred"}</Text>
         </Label>
       ))}
+
+      {/* the ones circling in — each face developed exactly as far as their
+          letters have carried it; no label, no number. The sky says it. */}
+      {faces.map(({ t, develop, x, y }) => (
+        <View key={t.id} pointerEvents="none" style={{ position: "absolute", left: x - FACE / 2, top: y - FACE / 2 }}>
+          <MosaicId seed={t.other} cell={3} gap={1} develop={develop} />
+        </View>
+      ))}
+
+      <Label x={CX} y={CY + 12} hidden={!empty}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 2, color: P.ink40 }}>YOU</Text>
+      </Label>
     </View>
   );
 }
