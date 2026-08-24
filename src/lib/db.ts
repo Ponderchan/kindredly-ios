@@ -561,6 +561,45 @@ export async function upsertWindow(
   }
 }
 
+/* The block list — the two policies 0004 already granted (read own,
+   remove own) finally get a screen. The only identity we ever had for a
+   blocked writer is their uuid, which is also the only identity the reader
+   ever saw — the MosaicId on their letters is derived from it, so the list
+   can show exactly the face you blocked and nothing more. */
+export interface BlockRow {
+  blocked: string;
+  created_at: string;
+}
+
+export async function fetchBlocks(): Promise<BlockRow[] | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("blocks")
+      .select("blocked, created_at")
+      .eq("blocker", me)
+      .order("created_at", { ascending: false });
+    if (error || !data) return null;
+    return data as BlockRow[];
+  } catch {
+    return null;
+  }
+}
+
+export async function unblockUser(targetUser: string): Promise<true | null> {
+  if (!supabaseReady || !targetUser) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { error } = await supabase!.from("blocks").delete().eq("blocker", me).eq("blocked", targetUser);
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}
+
 export async function blockUser(targetUser: string): Promise<true | null> {
   if (!supabaseReady || !targetUser) return null;
   const me = await uid();

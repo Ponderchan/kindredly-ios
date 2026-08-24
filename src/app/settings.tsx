@@ -1,6 +1,6 @@
 import { useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { P, PF, panel } from "../theme/post";
@@ -143,11 +143,13 @@ export default function Settings() {
           <Row label="Unsent letters" onPress={() => router.push("/drafts")} />
         </View>
 
-        {/* safety */}
+        {/* safety — every row here must actually go somewhere; a dead row on
+            THIS panel is the one a reviewer is most likely to press */}
         <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>SAFETY</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label="Blocked & reported" />
-          <Row label="Privacy" last />
+          <Row label="Blocked & reported" onPress={() => router.push("/blocked")} />
+          <Row label="Terms" onPress={() => Linking.openURL("https://kindredly.io/terms")} />
+          <Row label="Privacy policy" onPress={() => Linking.openURL("https://kindredly.io/privacy")} last />
         </View>
 
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2 }]}>

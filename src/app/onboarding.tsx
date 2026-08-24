@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Dimensions, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -473,6 +473,21 @@ export default function Onboarding() {
                       as guest it doesn't imply they're dodging the real thing. */}
                   <Text style={[mono(11, "r"), { color: Y.dim }]}>Just looking →</Text>
                 </Pressable>
+
+                {/* the agreement line (1.2 UGC): every door in, including "Just
+                    looking", passes this sentence. Underlines mark what's a
+                    link; Y.dim keeps it quiet — consent copy that shouts reads
+                    as a trap. */}
+                <Text style={[mono(9.5, "r"), { color: Y.dim, textAlign: "center", paddingTop: 14, lineHeight: 15 }]}>
+                  BY CONTINUING YOU AGREE TO THE{" "}
+                  <Text onPress={() => Linking.openURL("https://kindredly.io/terms")} style={{ textDecorationLine: "underline" }}>
+                    TERMS
+                  </Text>{" "}
+                  &{" "}
+                  <Text onPress={() => Linking.openURL("https://kindredly.io/privacy")} style={{ textDecorationLine: "underline" }}>
+                    PRIVACY POLICY
+                  </Text>
+                </Text>
               </>
             )}
           </View>
