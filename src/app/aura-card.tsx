@@ -5,22 +5,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
-import { DashedRule, DottedRule, L, Stamp, dear, letterPS } from "../components/AuraCard";
+import { PF } from "../theme/post";
+import { TypedPage, dear } from "../components/AuraCard";
 import { WrenBird } from "../components/WrenBird";
-import { getAvatar } from "../data/avatar-lib";
 import { myAura, type Aura } from "../lib/aura";
 import { useAuth } from "../lib/auth";
 
-/* The share card IS the letter — the same sheet the Me tab carries,
-   compacted to one screenshot, travelling through the night the way
-   every letter in this world does. The old orb card ran on the retired
-   voice engine and could disagree with the letter about your own name;
-   one artifact, one engine, one name.
+/* The share card is the page PULLED FROM THE MACHINE — the same typed
+   sheet the Me tab shows mid-type, free of the housing, travelling the
+   night like everything else this bird carries. One artifact, one
+   engine, one name.
 
    Chrome stays at the very edges (✕ / Share / screenshot to keep / Done)
-   so a screenshot crops clean. The wordmark rides UNDER the sheet — if
-   it's cropped away, the letter still says who carried it. */
+   so a screenshot crops clean. The wordmark rides UNDER the page — if
+   it's cropped away, the page still reads — YOUR AURA — in its own type. */
 
 const INK = "#12101F";
 
@@ -47,13 +45,13 @@ export default function AuraShareCard() {
     Share.share({
       message:
         aura.phase === "formed"
-          ? `Dear ${dear(aura.archetype?.name || "")} — the letter ${wren} wrote about me, on Kindredly.`
-          : `${pct}% written — ${wren} is still writing my letter, on Kindredly.`,
+          ? `THE ${dear(aura.archetype?.name || "").toUpperCase()} — my writing aura, typed by ${wren} on Kindredly.`
+          : `${pct}% typed — ${wren} is still typing my aura, on Kindredly.`,
     });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: INK }}>
-      {/* the night, softly starred — the sky every letter crosses */}
+      {/* the night, softly starred — the sky every page crosses */}
       <Svg pointerEvents="none" style={{ position: "absolute", top: 0, left: 0 }} width={402} height={874} viewBox="0 0 402 874">
         {[
           [42, 120, 1.6, 0.5], [340, 90, 1.2, 0.4], [300, 210, 1.8, 0.55], [70, 320, 1.2, 0.35],
@@ -70,13 +68,16 @@ export default function AuraShareCard() {
       {aura && (
         <Animated.View entering={FadeIn.duration(420)} style={{ flex: 1, justifyContent: "space-between", paddingTop: 64, paddingBottom: 10 }}>
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <ShareLetter aura={aura} wren={wren} seed={user?.id || "you"} avatarId={(profile?.avatarId as string) || null} />
+            {/* the pulled page, a breath of a tilt — room above for the clip */}
+            <View style={{ marginHorizontal: 34, paddingTop: 22, transform: [{ rotate: "-0.6deg" }] }}>
+              <TypedPage aura={aura} wren={wren} seed={user?.id || "you"} avatarId={(profile?.avatarId as string) || null} />
+            </View>
 
-            {/* under the sheet, in the night — crops away clean */}
-            <View style={{ alignItems: "center", gap: 7, marginTop: 18 }}>
+            {/* under the page, in the night — crops away clean */}
+            <View style={{ alignItems: "center", gap: 7, marginTop: 20 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                 <WrenBird size={20} bare mood="content" />
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>Carried by {wren}</Text>
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>Typed by {wren}</Text>
               </View>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 3.5, color: "rgba(255,255,255,0.65)" }}>KINDREDLY</Text>
             </View>
@@ -95,150 +96,5 @@ export default function AuraShareCard() {
         </Animated.View>
       )}
     </SafeAreaView>
-  );
-}
-
-/* the letter, compacted to fit one screenshot — same palette, same stamp,
-   same engine lines as the Me-tab card, none of its interactivity */
-function ShareLetter({ aura, wren, seed, avatarId }: { aura: Aura; wren: string; seed: string; avatarId: string | null }) {
-  const stage = aura.phase;
-  const formed = stage === "formed";
-  const pct = Math.round(aura.formed * 100);
-  const lines = [...aura.locked].sort((a, b) => b.score - a.score);
-  const rereading = stage === "clearing" && lines.length === 9;
-  const ps = letterPS(aura);
-  // nine wrapped lines must still fit the frame — the hand shrinks a step
-  const hand = lines.length >= 7 ? 15.5 : 17.5;
-
-  const fromLine = stage === "empty" ? "UNWRITTEN" : formed ? "FINISHED" : `${pct}% WRITTEN`;
-  const fromColor = stage === "empty" ? L.pencil : formed ? P.post : P.pen;
-
-  return (
-    <View
-      style={{
-        marginHorizontal: 30,
-        backgroundColor: L.paper,
-        borderWidth: 1,
-        borderColor: P.ink,
-        borderBottomWidth: formed ? 4 : 1,
-        borderBottomColor: formed ? P.post : P.ink,
-        paddingHorizontal: 16,
-        paddingTop: 14,
-        paddingBottom: 12,
-      }}
-    >
-      <View style={{ paddingRight: 80 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.8, color: "#79715E" }}>
-          A LETTER ABOUT YOU
-        </Text>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.6, color: fromColor, marginTop: 5 }}>
-          FROM {wren.toUpperCase()} · {fromLine}
-        </Text>
-      </View>
-      <View style={{ position: "absolute", top: 12, right: 12 }}>
-        <Stamp seed={seed} stage={stage} pct={pct} formedOn={aura.formedOn} pool={getAvatar(avatarId)?.pool ?? null} topDimKey={lines[0]?.key ?? null} />
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 10 }}>
-        <Text style={{ fontFamily: PF.handSemi, fontSize: 30, color: L.ink }}>Dear</Text>
-        {formed ? (
-          <Text style={{ fontFamily: PF.handSemi, fontSize: 29, color: P.pen, marginLeft: 9 }}>
-            {dear(aura.archetype?.name || "")}
-          </Text>
-        ) : (
-          <View style={{ width: 104, marginLeft: 9, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: "#B4AC98", alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.hand, fontSize: 15, color: stage === "clearing" ? "#8F82C8" : L.pencil }}>
-              {stage === "shaping" ? "soon" : stage === "clearing" ? "almost..." : " "}
-            </Text>
-          </View>
-        )}
-        <Text style={{ fontFamily: PF.handSemi, fontSize: 30, color: L.ink, marginLeft: 7 }}>,</Text>
-      </View>
-
-      {stage === "empty" ? (
-        <>
-          <Text style={{ fontFamily: PF.hand, fontSize: 20, lineHeight: 27, color: L.ink, marginTop: 10 }}>
-            We haven't met on paper yet.
-          </Text>
-          {[0, 1, 2].map((i) => (
-            <DottedRule key={i} style={{ marginTop: 24 }} />
-          ))}
-          <Text style={{ fontFamily: PF.hand, fontSize: 18, color: "#7C7462", marginTop: 20 }}>
-            — I'll start the moment you do.
-          </Text>
-        </>
-      ) : (
-        <>
-          <View style={{ marginTop: 2 }}>
-            {lines.map((d) => (
-              <Text key={d.key} style={{ fontFamily: PF.hand, fontSize: hand, lineHeight: hand * 1.32, color: L.ink, marginTop: 7 }}>
-                {d.line}
-              </Text>
-            ))}
-            {formed ? (
-              <Text style={{ fontFamily: PF.hand, fontSize: hand, lineHeight: hand * 1.32, color: L.ink, marginTop: 11 }}>
-                That's who I've been writing to, all this time.
-              </Text>
-            ) : stage === "clearing" && !rereading ? (
-              <Text style={{ fontFamily: PF.hand, fontSize: hand, color: P.pen, marginTop: 10 }}>
-                one more thing and I can name you —
-              </Text>
-            ) : !rereading ? (
-              <View style={{ marginTop: 14 }}>
-                <Text style={{ fontFamily: PF.hand, fontSize: 13.5, color: L.pencil, textAlign: "right", marginBottom: 2 }}>
-                  (next letter...)
-                </Text>
-                <DottedRule />
-              </View>
-            ) : null}
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 14 }}>
-            <Text style={{ flex: 1, fontFamily: PF.hand, fontSize: formed ? 21 : 17, color: formed ? L.ink : "#7C7462" }}>
-              {formed
-                ? `yours, ${wren}`
-                : rereading
-                  ? `I have it. Let me read you once more to be sure. — ${wren[0]}.`
-                  : stage === "clearing"
-                    ? `— so close, ${wren}`
-                    : `— still writing, ${wren}`}
-            </Text>
-            <WrenBird size={22} bare mood={formed ? "delight" : "content"} />
-          </View>
-
-          {ps && (
-            <Text style={{ fontFamily: PF.hand, fontSize: 14.5, color: L.pencil, marginTop: 7 }}>
-              {ps}
-            </Text>
-          )}
-        </>
-      )}
-
-      <View style={{ marginTop: 11 }}>
-        <DashedRule />
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 8.5, letterSpacing: 1.7, color: "#8A8270" }}>
-            {formed
-              ? `FORMED FROM ${aura.pieces} PIECES`
-              : stage === "empty"
-                ? "NO DATA YET"
-                : stage === "forming"
-                  ? "STILL FORMING"
-                  : stage === "shaping"
-                    ? "TAKING SHAPE"
-                    : "COMING CLEAR"}
-          </Text>
-          <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.3, color: "#8A8270" }}>
-            {formed
-              ? "SHE KEEPS WRITING"
-              : stage === "empty"
-                ? "WAITING ON YOU"
-                : rereading
-                  ? "RE-READING YOU"
-                  : `${lines.length} OF 9 LINES`}
-          </Text>
-        </View>
-      </View>
-    </View>
   );
 }
