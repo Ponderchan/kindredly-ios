@@ -14,7 +14,7 @@ import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
-import { readCorrespondent } from "../../lib/correspondent";
+import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
@@ -348,6 +348,7 @@ YOU WENT FIRST — WAITING ON THEIRS
         otherSeed={detail?.other || "anon"}
         otherFace={detail?.otherFace ?? null}
         otherName={detail?.otherName || "A kindred"}
+        otherArchetype={read?.archetype ? theyify(read.archetype.name) : null}
         myName={auth.handle || "you"}
         onClose={() => setCeremony(false)}
       />

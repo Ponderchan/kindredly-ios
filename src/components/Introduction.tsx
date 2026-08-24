@@ -2,7 +2,7 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule, solidBtn } from "../theme/post";
 import { AvatarImage } from "./AvatarImage";
-import { MosaicId } from "./MosaicId";
+import { TheirMark } from "./TheirMark";
 import { WrenBird } from "./WrenBird";
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
@@ -24,6 +24,7 @@ export function Introduction({
   otherSeed,
   otherFace,
   otherName,
+  otherArchetype,
   myName,
   onClose,
 }: {
@@ -32,6 +33,8 @@ export function Introduction({
   otherSeed: string;
   otherFace?: string | null;
   otherName: string;
+  /** the read of their writing — the part a name could never have said */
+  otherArchetype?: string | null;
   myName: string;
   onClose: () => void;
 }) {
@@ -52,26 +55,32 @@ export function Introduction({
           <WrenBird size={44} mood="content" />
 
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
-            You both enclosed your names, so I carried them across — the way I was always going to.{"\n\n"}The one whose
-            letters you've been reading is called
+            You both went first, in the end. So I carried the names across — the way I was always going to.
           </Text>
 
-          {/* the face you watched come into view — and, if they gave one,
-              the face they chose. The mosaic was assigned; this was picked
-              for you. Both on the table: the one you knew, the one they are. */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 22 }}>
-            <MosaicId seed={otherSeed} cell={7} gap={2} />
-            {otherFace ? (
-              <>
-                <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink40 }}>→</Text>
-                <AvatarImage id={otherFace} seed={otherSeed} size={46} />
-              </>
-            ) : null}
-            <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 32, fontWeight: "600", color: P.ink }}>{otherName}</Text>
+          {/* THE RITUAL. Not "here is their name": the face they watched
+              arrive over ten letters comes apart, and the same squares fly
+              into a postmark. Everything in this world gets stamped, and a
+              kindred is someone whose own stamp you now carry. The name
+              lands inside it, under the read of their writing — because
+              what you actually came to know is how they write, and this
+              was never a real-name product. */}
+          <View style={{ alignItems: "center", marginTop: 26, marginBottom: 8 }}>
+            <TheirMark seed={otherSeed} name={otherName} archetype={otherArchetype} />
           </View>
 
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 22 }}>
-            — and they know you now as {myName}.{"\n\n"}Nothing else changes. Same letters, same pace. Only now they're
+          {/* the face they chose to give, small, under their mark */}
+          {otherFace ? (
+            <View style={{ alignItems: "center", marginTop: 4 }}>
+              <AvatarImage id={otherFace} seed={otherSeed} size={40} />
+              <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.2, color: P.ink40, marginTop: 7 }}>
+                THE FACE THEY CHOSE TO GIVE YOU
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
+            They know you now as {myName}.{"\n\n"}Nothing else changes. Same letters, same pace. Only now they're
             signed.
           </Text>
         </ScrollView>

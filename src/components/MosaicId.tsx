@@ -48,14 +48,17 @@ import { P } from "../theme/post";
    plate. Mirror cells rank independently: a half-made face sits slightly
    asymmetric and only settles into symmetry when it completes. */
 
-const COLS = 5;
-const ROWS = 5;
+export const COLS = 5;
+export const ROWS = 5;
 const HALF = Math.ceil(COLS / 2); // 3 — the right half mirrors the left
 const MIN_INK = 8; // every face substantial…
 const MAX_INK = 16; // …none a solid block
 
-/** FACE v1 bit field: which of the 25 cells are inked, density-normalised. */
-function inkedCells(seed: string): Set<string> {
+/** FACE v1 bit field: which of the 25 cells are inked, density-normalised.
+    Exported so a ceremony can take a face apart cell by cell — the ritual
+    has to move the SAME squares the reader has been watching arrive, not a
+    lookalike drawn beside them. */
+export function inkedCells(seed: string): Set<string> {
   const h = hashStr("mosaic:" + String(seed || "anon"));
   // 15 independent positions: [row 0..4] × [left-half col 0..2]
   const bit = (r: number, hc: number) => ((h >>> (r * HALF + hc)) & 1) === 1;
