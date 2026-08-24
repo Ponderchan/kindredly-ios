@@ -17,6 +17,7 @@ export const DEMO_THREADS: ThreadSummary[] = [
     mine: 6,
     theirs: 6,
     otherName: "Mira",
+    otherFace: "f-cloud",
     other: "demo-mira",
     preview: "I kept your line about the fridge hum. I read it twice on the bus.",
     lastSenderMe: false,
@@ -99,6 +100,7 @@ export const DEMO_DETAILS: Record<
     otherCount: number;
     iSigned?: boolean;
     theirSigned?: boolean;
+    otherFace?: string | null;
     opening: string;
     openingFromMe: boolean;
     messages: { body: string; mine: boolean; date: string }[];
@@ -108,6 +110,7 @@ export const DEMO_DETAILS: Record<
     stamp: "off-chest",
     revealed: true,
     otherName: "Mira",
+    otherFace: "f-cloud",
     other: "demo-mira",
     myCount: 6,
     otherCount: 6,

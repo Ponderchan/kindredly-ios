@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../../theme/post";
+import { AvatarImage } from "../../components/AvatarImage";
 import { Introduction } from "../../components/Introduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
@@ -146,11 +147,15 @@ export default function ChatScreen() {
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 }}>
-          <MosaicId
-            seed={detail?.other || "anon"}
-            cell={5.5}
-            develop={detail ? (detail.revealed ? 1 : 0.15 + 0.85 * (Math.min(detail.otherCount, REVEAL) / REVEAL)) : 0.15}
-          />
+          {detail?.revealed && detail.otherFace ? (
+            <AvatarImage id={detail.otherFace} seed={detail.other} size={32} />
+          ) : (
+            <MosaicId
+              seed={detail?.other || "anon"}
+              cell={5.5}
+              develop={detail ? (detail.revealed ? 1 : 0.15 + 0.85 * (Math.min(detail.otherCount, REVEAL) / REVEAL)) : 0.15}
+            />
+          )}
           <View>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{name.toUpperCase()}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginTop: 2, textAlign: "center" }}>
@@ -312,6 +317,7 @@ export default function ChatScreen() {
         open={ceremony}
         wren={wren}
         otherSeed={detail?.other || "anon"}
+        otherFace={detail?.otherFace ?? null}
         otherName={detail?.otherName || "A kindred"}
         myName={auth.handle || "you"}
         onClose={() => setCeremony(false)}

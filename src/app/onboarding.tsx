@@ -47,7 +47,7 @@ import { MoodIcon } from "../components/MoodIcon";
      username  your pen name
      you       your pronouns — asked, never guessed
      cakeday   your birthday, which exists for the 18+ gate
-     avatar    a face, purely for you
+     avatar    a face — yours alone until reveal, then it travels with your name
      egg       CHOOSE YOUR COURIER — the shell she'll come out of
      naming    her name AND her pronoun, so the hatch key says HIM/HER/THEM
      write     feed her words; the meter fills as you write
@@ -629,7 +629,7 @@ export default function Onboarding() {
     return (
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
-          <Head plain="Pick a" em="face." sub="Just for you — strangers never see it. Change it anytime." />
+          <Head plain="Pick a" em="face." sub="Strangers never see it. A kindred does — it travels with your name when you trade them." />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { padding: 12, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
               {shown.map((a) => {

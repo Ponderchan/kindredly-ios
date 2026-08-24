@@ -27,6 +27,19 @@ async function currentHandle(): Promise<string> {
   }
 }
 
+/** the chosen LIBRARY face for signing (0011). Library ids only — a photo
+    avatar stays on its owner's device and is never snapshotted. */
+async function currentFace(): Promise<string | null> {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    const m: any = data.user?.user_metadata || {};
+    return typeof m.avatarId === "string" && m.avatarId ? m.avatarId : null;
+  } catch {
+    return null;
+  }
+}
+
 const REVEAL_AT = 5;
 
 /* ── Voice Match ── */
@@ -288,6 +301,7 @@ export interface ThreadSummary {
   theirs: number; // their count — what drives a face coming into view
   theirSigned?: boolean; // their name is enclosed, waiting on mine
   otherName: string | null;
+  otherFace?: string | null; // the face they chose to give at signing (library id)
   other: string; // correspondent's user id
   preview: string;
   lastSenderMe: boolean;
@@ -300,13 +314,25 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
   const me = await uid();
   if (!me) return null;
   try {
-    const { data, error } = await supabase!
+    let { data, error } = await supabase!
       .from("threads")
       .select(
-        "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,last_sender,last_body,last_at",
+        "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at",
       )
       .or(`a.eq.${me},b.eq.${me}`)
       .order("last_at", { ascending: false });
+    if (error) {
+      // pre-0011 fallback: face columns absent
+      const retry = await supabase!
+        .from("threads")
+        .select(
+          "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,last_sender,last_body,last_at",
+        )
+        .or(`a.eq.${me},b.eq.${me}`)
+        .order("last_at", { ascending: false });
+      data = retry.data as any;
+      error = retry.error;
+    }
     if (error || !data) return null;
 
     // one-tap reactions, both directions (null-safe until migration 0008 lands)
@@ -339,6 +365,7 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         theirs: iamA ? r.b_count : r.a_count,
         theirSigned: !!(iamA ? r.b_name : r.a_name),
         otherName: iamA ? r.b_name : r.a_name,
+        otherFace: (iamA ? r.b_face : r.a_face) ?? null,
         other: iamA ? r.b : r.a,
         preview: r.last_body || r.opening || "",
         lastSenderMe: r.last_sender === me,
@@ -389,6 +416,7 @@ export interface ThreadDetail {
   otherCount: number;
   iSigned?: boolean; // my pen name is enclosed with this correspondence
   theirSigned?: boolean; // theirs is — one signature from a reveal
+  otherFace?: string | null; // the face they chose to give at signing (library id)
   opening: string;
   openingFromMe: boolean;
   openingMedia?: string | null; // voice-letter opening (storage path)
@@ -404,7 +432,7 @@ export async function fetchThreadMessages(
   try {
     let { data: t } = await supabase!
       .from("threads")
-      .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,opening_media,opening_duration_s")
+      .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s")
       .eq("id", threadId)
       .maybeSingle();
     if (!t) {
@@ -427,6 +455,7 @@ export async function fetchThreadMessages(
       stamp: t.stamp,
       revealed: !!t.revealed,
       otherName: iamA ? t.b_name : t.a_name,
+      otherFace: ((iamA ? (t as any).b_face : (t as any).a_face) as string | undefined) ?? null,
       other: iamA ? t.b : t.a,
       myCount: iamA ? t.a_count : t.b_count,
       otherCount: iamA ? t.b_count : t.a_count,
@@ -504,8 +533,16 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
     const iamA = t.a === me;
     const theirs = iamA ? t.b_name : t.a_name;
     const patch: Record<string, unknown> = { [iamA ? "a_name" : "b_name"]: await currentHandle() };
+    const face = await currentFace();
+    if (face) patch[iamA ? "a_face" : "b_face"] = face;
     if (theirs) patch.revealed = true;
-    const { error } = await supabase!.from("threads").update(patch).eq("id", threadId);
+    let { error } = await supabase!.from("threads").update(patch).eq("id", threadId);
+    if (error && face) {
+      // pre-0011 backend: the face columns don't exist yet — sign with the name alone
+      delete patch[iamA ? "a_face" : "b_face"];
+      const retry = await supabase!.from("threads").update(patch).eq("id", threadId);
+      error = retry.error;
+    }
     if (error) return null;
     return { revealed: !!theirs || !!t.revealed };
   } catch {

@@ -1,6 +1,7 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule, solidBtn } from "../theme/post";
+import { AvatarImage } from "./AvatarImage";
 import { MosaicId } from "./MosaicId";
 import { WrenBird } from "./WrenBird";
 
@@ -21,6 +22,7 @@ export function Introduction({
   open,
   wren,
   otherSeed,
+  otherFace,
   otherName,
   myName,
   onClose,
@@ -28,6 +30,7 @@ export function Introduction({
   open: boolean;
   wren: string;
   otherSeed: string;
+  otherFace?: string | null;
   otherName: string;
   myName: string;
   onClose: () => void;
@@ -53,8 +56,17 @@ export function Introduction({
             letters you've been reading is called
           </Text>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginTop: 22 }}>
+          {/* the face you watched come into view — and, if they gave one,
+              the face they chose. The mosaic was assigned; this was picked
+              for you. Both on the table: the one you knew, the one they are. */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 22 }}>
             <MosaicId seed={otherSeed} cell={7} gap={2} />
+            {otherFace ? (
+              <>
+                <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink40 }}>→</Text>
+                <AvatarImage id={otherFace} seed={otherSeed} size={46} />
+              </>
+            ) : null}
             <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 32, fontWeight: "600", color: P.ink }}>{otherName}</Text>
           </View>
 
