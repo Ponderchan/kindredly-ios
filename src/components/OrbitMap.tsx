@@ -20,7 +20,9 @@ const R_MAX = 120;
 
 export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boolean }) {
   const dots = items.map((t, i) => {
-    const p = t.revealed ? REVEAL : Math.max(1, Math.min(t.mine, REVEAL));
+    // radius runs on THEIR letters, like the developing face — coming into
+    // view is one mechanic in two projections
+    const p = t.revealed ? REVEAL : Math.max(1, Math.min(t.theirs, REVEAL));
     const r = R_MIN + (R_MAX - R_MIN) * ((REVEAL - p) / (REVEAL - 1));
     const a = -Math.PI / 2 + (i / Math.max(items.length, 1)) * Math.PI * 2 + (((hashStr(t.other) % 44) - 22) * Math.PI) / 180;
     return { t, p, x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
@@ -45,15 +47,15 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
       <Label x={CX} y={CY + 15} hidden={!empty}>
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 2, color: C.faint }}>YOU</Text>
       </Label>
-      {dots.map(({ t, p, x, y }) => (
-        <Label key={t.id} x={x} y={y + (t.revealed ? 14 : 12)}>
-          {t.revealed ? (
+      {/* only the named get a label — an approaching stranger is just a dot
+          drawing inward; the radius says everything a fraction used to */}
+      {dots
+        .filter(({ t }) => t.revealed)
+        .map(({ t, x, y }) => (
+          <Label key={t.id} x={x} y={y + 14}>
             <Text style={{ fontFamily: F.serif, fontSize: 14, color: C.ink }}>{t.otherName || "A kindred"}</Text>
-          ) : (
-            <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, color: "#8B84B8" }}>{p}/5</Text>
-          )}
-        </Label>
-      ))}
+          </Label>
+        ))}
     </View>
   );
 }

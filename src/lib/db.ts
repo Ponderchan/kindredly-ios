@@ -287,6 +287,7 @@ export interface ThreadSummary {
   stamp: string;
   revealed: boolean;
   mine: number; // my message count on this thread
+  theirs: number; // their count — what drives a face coming into view
   otherName: string | null;
   other: string; // correspondent's user id
   preview: string;
@@ -336,6 +337,7 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         stamp: r.stamp,
         revealed: !!r.revealed,
         mine: iamA ? r.a_count : r.b_count,
+        theirs: iamA ? r.b_count : r.a_count,
         otherName: iamA ? r.b_name : r.a_name,
         other: iamA ? r.b : r.a,
         preview: r.last_body || r.opening || "",

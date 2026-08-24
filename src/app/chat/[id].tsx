@@ -4,19 +4,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../../theme/post";
+import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
-import { StrangerAvatar } from "../../components/StrangerAvatar";
 import { Toast } from "../../components/ui";
 import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, type ThreadDetail } from "../../lib/db";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 
-/* The correspondence, seen from Kindreds: a slow chat. The whole back-and-forth
-   as bubbles, a milestone strip walking VOICE → RHYTHM → RESONANCE → NAME, and
-   a letter-writing field at the bottom. Tap any bubble to open THAT letter
-   full-page in the reader (thread/[id]?i=N) — two lenses on one correspondence:
-   this is the relationship, that is the letter.
+/* The correspondence, seen from Kindreds: a slow chat. The other person's
+   mosaic develops in the header with every letter THEY send — coming into
+   view — and a letter-writing field sits at the bottom. Tap any bubble to
+   open THAT letter full-page in the reader (thread/[id]?i=N) — two lenses on
+   one correspondence: this is the relationship, that is the letter.
+
+   There used to be a milestone strip here (VOICE → RHYTHM → RESONANCE →
+   NAME) and a 3/5 progress bar over the composer. Both cut: a counter makes
+   intimacy transactional — insert two more letters, receive human — and it
+   invites exactly the throwaway writing that would make the reveal worthless.
+   The developing face carries the same information without ever naming a
+   number.
 
    Same surface as everywhere: white, rules doing the separation, mono for what
    the system says, the system font for what either of you wrote. The bubbles
@@ -25,13 +32,6 @@ import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 
 const GROUND = P.paper;
 const REVEAL = 5;
-// what each letter earns you on the way to a name
-const STAGES: [string, number][] = [
-  ["VOICE", 1],
-  ["RHYTHM", 2],
-  ["RESONANCE", 4],
-  ["NAME", REVEAL],
-];
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -64,7 +64,6 @@ export default function ChatScreen() {
   const conv = detail
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" }, ...detail.messages].filter((m) => m.body)
     : [];
-  const mine = detail?.myCount ?? 0;
   const name = detail?.revealed ? detail.otherName || "A kindred" : detail ? `No. ${postNo(detail.other)}` : "…";
 
   const weight = weightedCount(text);
@@ -102,45 +101,23 @@ export default function ChatScreen() {
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 }}>
-          <StrangerAvatar seed={detail?.other || "anon"} size={30} round />
+          <MosaicId
+            seed={detail?.other || "anon"}
+            cell={5.5}
+            develop={detail ? (detail.revealed ? 1 : 0.15 + 0.85 * (Math.min(detail.otherCount, REVEAL) / REVEAL)) : 0.15}
+          />
           <View>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{name.toUpperCase()}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginTop: 2, textAlign: "center" }}>
-              {detail?.revealed ? "NAMES REVEALED" : `${Math.min(mine, REVEAL)}/5 LETTERS`}
+              {detail?.revealed ? "NAMES REVEALED" : "COMING INTO VIEW"}
             </Text>
           </View>
         </View>
         <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={goBack} />
       </View>
 
-      {/* milestones — what the letters are earning */}
-      <View style={{ flexDirection: "row", justifyContent: "space-evenly", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-        {(() => {
-          const firstUndone = STAGES.findIndex(([label, t]) => (label === "NAME" ? !detail?.revealed : mine < t));
-          return STAGES.map(([label, t], i) => {
-            const done = label === "NAME" ? !!detail?.revealed : mine >= t;
-            const active = !done && i === firstUndone;
-            return (
-              <View key={label} style={{ alignItems: "center", gap: 5 }}>
-                <View
-                  style={{
-                    width: 18,
-                    height: 18,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: done || active ? P.pen : "transparent",
-                    borderWidth: done || active ? 0 : 1.5,
-                    borderColor: P.ink12,
-                  }}
-                >
-                  {done && <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 10 }}>✓</Text>}
-                </View>
-                <Text style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 1, color: active ? P.pen : done ? P.ink60 : P.ink40 }}>{label}</Text>
-              </View>
-            );
-          });
-        })()}
-      </View>
+      {/* the rule the milestone strip used to carry */}
+      <View style={{ borderBottomWidth: 1, borderBottomColor: P.ink }} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {/* the correspondence */}
@@ -190,15 +167,12 @@ export default function ChatScreen() {
           })}
         </ScrollView>
 
-        {/* progress to a name */}
-        {detail && !detail.revealed && (
+        {/* the only number left is the one that stops a letter going out */}
+        {over && (
           <View style={{ alignItems: "center", paddingBottom: 8 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: over ? P.post : P.ink40 }}>
-              {over ? `${weight - LETTER_MAX} OVER THE LIMIT` : `${Math.min(mine, REVEAL)} / 5 LETTERS EXCHANGED`}
+            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post }}>
+              {weight - LETTER_MAX} OVER THE LIMIT
             </Text>
-            <View style={{ width: 92, height: 3, backgroundColor: P.ink12, marginTop: 6, overflow: "hidden" }}>
-              <View style={{ width: `${Math.min(100, (mine / REVEAL) * 100)}%`, height: 3, backgroundColor: P.pen }} />
-            </View>
           </View>
         )}
 

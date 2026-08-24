@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { P, PF, ruleSoft } from "../../theme/post";
+import { MosaicId } from "../../components/MosaicId";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
@@ -13,9 +14,11 @@ import { reactionLabel } from "../../data/reactions";
 import { DEMO_THREADS } from "../../data/demo";
 
 /* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
-   in. Each reply pulls a stranger one ring closer; at five each way Wren trades
-   your names. The map up top is the whole sky at a glance; the list is where
-   you act.
+   in. COMING INTO VIEW: both the orbit radius and the mosaic's resolution are
+   driven by the letters THEY send — one currency, two projections. You come to
+   know someone by reading them, so it's their writing that draws them closer
+   and their face that develops; at five each way Wren trades your names. The
+   map up top is the whole sky at a glance; the list is where you act.
 
    Same surface as every other tab — white, with rules doing the separation. */
 
@@ -75,21 +78,23 @@ export default function KindredsTab() {
 }
 
 function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
-  const p = Math.min(t.mine, REVEAL);
   const theirTurn = !t.lastSenderMe; // they wrote last → your move / a new letter
-  const status = theirTurn ? `${Math.max(0, REVEAL - t.mine)} MORE TO A NAME` : "WAITING ON THEM";
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [{ paddingBottom: 16, marginBottom: 16, opacity: pressed ? 0.5 : 1 }, ruleSoft]}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <View style={{ width: 9, height: 9, backgroundColor: t.revealed ? P.pen : `rgba(58,58,245,${0.28 + 0.55 * (p / REVEAL)})` }} />
-        {t.revealed ? (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        {/* the face, as far as their letters have carried it */}
+        <MosaicId
+          seed={t.other}
+          cell={4.4}
+          gap={1.2}
+          develop={t.revealed ? 1 : 0.15 + 0.85 * (Math.min(t.theirs, REVEAL) / REVEAL)}
+        />
+        {t.revealed && (
           <Text style={{ fontFamily: PF.letter, fontSize: 18, fontWeight: "600", color: P.ink }}>{t.otherName || "A kindred"}</Text>
-        ) : (
-          <Dots p={p} />
         )}
         <View style={{ flex: 1 }} />
         {/* they caught your last letter with a reaction */}
@@ -98,14 +103,11 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
             <Text style={{ fontSize: 14 }}>{t.theirReaction}</Text>
           </View>
         )}
-        <View style={{ alignItems: "flex-end", gap: 5 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>{p}/5</Text>
-          {theirTurn && (
-            <View style={{ backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 2.5 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: "#fff" }}>NEW</Text>
-            </View>
-          )}
-        </View>
+        {theirTurn && (
+          <View style={{ backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 2.5 }}>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: "#fff" }}>NEW</Text>
+          </View>
+        )}
       </View>
       {t.theirReaction && (
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.5, color: P.pen, marginTop: 9 }}>
@@ -120,20 +122,10 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
         </Text>
       ) : (
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, marginTop: 12 }}>
-          RING {t.mine} · {status}
+          COMING INTO VIEW · {theirTurn ? "YOUR TURN" : "WAITING ON THEM"}
         </Text>
       )}
     </Pressable>
-  );
-}
-
-function Dots({ p }: { p: number }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 5 }}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <View key={i} style={{ width: 7, height: 7, backgroundColor: i < p ? P.pen : P.ink12 }} />
-      ))}
-    </View>
   );
 }
 
@@ -155,7 +147,7 @@ function Empty({ onWrite }: { onWrite: () => void }) {
         But someone out there might be looking for a voice like yours.
       </Text>
       <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, textAlign: "center", marginTop: 14, maxWidth: 300, lineHeight: 17 }}>
-        EVERY REPLY PULLS A STRANGER ONE RING CLOSER{"\n"}AT THE CENTRE, YOU TRADE NAMES
+        EVERY LETTER THEY SEND PULLS THEM ONE RING CLOSER{"\n"}AT THE CENTRE, YOU TRADE NAMES
       </Text>
       <Pressable
         onPress={onWrite}
