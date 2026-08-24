@@ -18,11 +18,8 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
-import { VoiceCard } from "../../components/VoiceCard";
+import { AuraCard } from "../../components/AuraCard";
 import { analyzeVoice, type VoiceRead } from "../../lib/voice";
-import { fingerprint } from "../../lib/signature";
-import { journalHourBand } from "../../lib/report";
-import type { OrbSky } from "../../components/VoiceCard";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -62,10 +59,6 @@ export default function MeTab() {
   const [room, setRoom] = useState<"you" | "wren">("you");
   const [aura, setAura] = useState<Aura | null>(null);
   const [voice, setVoice] = useState<VoiceRead | null>(null);
-  const [units, setUnits] = useState<number[]>([]);
-  const [warmth, setWarmth] = useState(0.5);
-  const [marks, setMarks] = useState<string[]>([]);
-  const [sky, setSky] = useState<OrbSky>("day");
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -101,28 +94,10 @@ export default function MeTab() {
            it may claim: tier and the name slot come from lib/aura, and the
            archetype only lands at FORMED. */
         const v = analyzeVoice(a.texts);
-        /* the personal layers: warmth from which dims lead (feeling warms,
-           structure cools), and the writer's real tics as engraved marks */
-        const score = (k: string) => a.dims.find((d) => d.key === k)?.score ?? 50;
-        const warm = (score("emotion") + score("quirks")) / 2;
-        const cool = (score("structure") + score("sentence")) / 2;
-        setWarmth(Math.max(0, Math.min(1, 0.5 + (warm - cool) / 200)));
-        const all = a.texts.join("\n");
-        const tics: string[] = [];
-        if ((all.match(/\bi(?=['\s,.])/g) || []).length >= 2) tics.push("i");
-        if ((all.match(/(\.\.\.|…)/g) || []).length >= 2) tics.push("…");
-        if ((all.match(/[?？]/g) || []).length >= 2) tics.push("?");
-        setMarks(tics);
-        /* the hour your writing lives in — a night writer's orb is night */
-        void journalHourBand().then((band) => {
-          if (!alive || !band) return;
-          setSky(band.startsWith("05") ? "dawn" : band.startsWith("11") ? "day" : band.startsWith("17") ? "dusk" : "night");
-        });
         setVoice({
           ...v,
           tier: a.phase === "empty" ? "empty" : a.phase === "formed" ? "formed" : "evolving",
         });
-        setUnits(fingerprint(a.texts.join(" ")).units.slice(0, 24));
         void recordAuraSnapshot(a);
       })();
 
@@ -207,36 +182,15 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
-            {/* the aura — the owner's hero card, gated by the ladder */}
+            {/* the aura — the owner's card, five stages, their spec sheet */}
             {aura && voice && (
               <View style={{ marginTop: 14 }}>
-                <VoiceCard
-                  read={voice}
-                  quote={voice.discovery}
-                  units={units}
-                  auraName={
-                    aura.phase === "formed"
-                      ? aura.archetype?.name || voice.stage.name
-                      : aura.phase === "forming"
-                        ? "Still forming"
-                        : aura.phase === "shaping"
-                          ? "Taking shape"
-                          : "Coming clear"
-                  }
-                  lettersSent={stats.lettersSent}
+                <AuraCard
+                  aura={aura}
+                  traits={voice.traits}
+                  quote={voice.quote}
                   onOpen={() => router.push("/aura")}
                   onShare={() => router.push("/aura-card")}
-                  shareReady={aura.phase === "formed"}
-                  warmth={warmth}
-                  marks={marks}
-                  signals={aura.locked.length}
-                  sky={sky}
-                  dimScores={aura.dims.map((d) => d.score)}
-                  words={aura.commonWords}
-                  stage={aura.phase}
-                  texts={aura.texts}
-                  pieces={aura.pieces}
-                  formedOn={aura.formedOn}
                 />
               </View>
             )}

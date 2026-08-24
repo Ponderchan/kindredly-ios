@@ -143,7 +143,10 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   const h = hatch(texts);
   const locked = h.dims.filter((d) => d.locked);
   const sealed = h.dims.filter((d) => !d.locked);
-  const formed = locked.length / h.dims.length;
+  /* the owner's blend (design canvas, frozen): dimensions carry 70%,
+     sample volume 30% — so 9/9 off six pieces reads 88%, not a false
+     100%, and the last stretch to Formed is visibly about writing more */
+  const formed = 0.7 * (locked.length / h.dims.length) + 0.3 * Math.min(pieces / 10, 1);
 
   const phase: AuraPhase =
     locked.length <= 2
