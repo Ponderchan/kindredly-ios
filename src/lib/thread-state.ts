@@ -29,11 +29,10 @@ export function threadState(t: {
   iSigned?: boolean;
   theirSigned?: boolean;
 }): ThreadState | null {
-  // step 6 — you know each other. The name says it; nothing else is needed.
-  if (t.revealed) return null;
-
-  // step 5 — five letters each way, so names may be traded
-  if (t.mine >= 5 && t.theirs >= 5) {
+  /* step 5 — five letters each way, so names may be traded. Only while
+     they still can be: once you know each other this question is answered
+     and asking it again would be noise. */
+  if (!t.revealed && t.mine >= 5 && t.theirs >= 5) {
     /* "went first" rather than "has enclosed their name": the same fact,
        said as courage instead of as a step in a process. Whoever signs
        first is taking the risk, and the copy should know that. */
@@ -42,7 +41,12 @@ export function threadState(t: {
     return { label: "SWAP NAMES?", tone: P.brassSeal, needsYou: true };
   }
 
-  // steps 3 and 4 — whose letter is owed
+  /* steps 3, 4 and 6 — whose letter is owed. This applies to kindreds too.
+     A first pass returned null the moment a thread was revealed, on the
+     theory that the name says everything; it also meant the people you
+     care about MOST lost their turn indicator — never sorted to the top,
+     never marked, never counted in "waiting on you". Names change what
+     you call someone, not whether they are owed a letter. */
   return t.lastSenderMe
     ? { label: "WAITING ON THEM", tone: P.ink40, needsYou: false }
     : { label: "YOUR TURN", tone: P.pen, needsYou: true };
