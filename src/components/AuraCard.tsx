@@ -5,7 +5,6 @@ import { PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { speakAs, useWrenName } from "../lib/wren-name";
 import type { Aura } from "../lib/aura";
-import type { AuraTrait } from "../lib/voice";
 
 /* AURA CARD — the owner's visual, built to their spec sheet.
    ────────────────────────────────────────────────────────────────────────
@@ -38,15 +37,26 @@ const MEMORY: Record<Stage, string> = {
   formed: "This is you. This is how your words leave the world.\n\nI'll keep learning with you.",
 };
 
+/* per-dimension chip icons, in the card's own cute register */
+const CHIP_ICON: Record<string, string> = {
+  rhythm: "⚡",
+  sentence: "🖋",
+  vocabulary: "📖",
+  emotion: "🌊",
+  perspective: "🔭",
+  function: "🧩",
+  punctuation: "🌙",
+  structure: "🌱",
+  quirks: "✨",
+};
+
 export function AuraCard({
   aura,
-  traits,
   quote,
   onOpen,
   onShare,
 }: {
   aura: Aura;
-  traits: AuraTrait[];
   quote: string;
   onOpen: () => void;
   onShare: () => void;
@@ -57,6 +67,16 @@ export function AuraCard({
   const pct = Math.round(aura.formed * 100);
   const lockedN = aura.locked.length;
   const dark = aura.phase === "clearing" || aura.phase === "formed";
+
+  /* WHAT PIP NOTICED IS ALIVE. The chips are the locked signals
+     themselves, strongest first — each one's phrasing chosen by the same
+     branch that chose its full read, so they change as the writing does
+     and no two writers need match. (The old traits had exactly four
+     possible combinations across all of humanity.) */
+  const chips = [...aura.locked]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, aura.phase === "forming" ? 2 : 4)
+    .map((d) => ({ icon: CHIP_ICON[d.key] ?? "✦", label: d.chip }));
 
   const frame = {
     backgroundColor: s.bg,
@@ -140,13 +160,13 @@ export function AuraCard({
           </View>
 
           {/* Wren noticed — chips with their icons */}
-          {(aura.phase === "forming" ? traits.slice(0, 1) : traits).length > 0 && (
+          {chips.length > 0 && (
             <View style={{ marginTop: 8 }}>
               <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: s.sub }}>
                 {wren.toUpperCase()} NOTICED:
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 8 }}>
-                {(aura.phase === "forming" ? traits.slice(0, 2) : traits).map((t) => (
+                {chips.map((t) => (
                   <View key={t.label} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: s.chip, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 7 }}>
                     <Text style={{ fontSize: 11 }}>{t.icon}</Text>
                     <Text style={{ fontFamily: PF.monoMed, fontSize: 11, color: s.chipInk }}>{t.label}</Text>

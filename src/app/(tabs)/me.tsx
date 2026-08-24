@@ -187,7 +187,6 @@ export default function MeTab() {
               <View style={{ marginTop: 14 }}>
                 <AuraCard
                   aura={aura}
-                  traits={voice.traits}
                   quote={voice.quote}
                   onOpen={() => router.push("/aura")}
                   onShare={() => router.push("/aura-card")}

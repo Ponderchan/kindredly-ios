@@ -38,6 +38,7 @@ export interface DimScore {
   score: number; // 0..100
   locked: boolean; // enough evidence to trust it; false = still growing
   line: string; // the read, in warm words — never metric-speak
+  chip: string; // the same read compressed to a card chip — alive, not canned
   sealed: string; // "Your hidden quirks" — how the growth list names it
 }
 
@@ -126,6 +127,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(30 + uniq * 40 * Math.min(1, latin.length / 50) + (avgLen - 3.6) * 11 + Math.min(14, emoHits * 4) + abstractR * 60),
       locked: latin.length >= 40,
       line: avgLen >= 5 || abstractR > 0.02 ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
+      chip: avgLen >= 5 || abstractR > 0.02 ? "Observed, not performed" : "Plain words, well aimed",
       sealed: "the words only you choose",
     },
     {
@@ -135,6 +137,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(34 + mean * 2.2 + pausePerSent * 16 + frags * 6),
       locked: sents.length >= 4,
       line: mean >= 11 ? "You let thoughts breathe instead of forcing conclusions." : "Short lines. You trust the reader to fill the rest.",
+      chip: mean >= 11 ? "Long, breathing lines" : "Short, direct lines",
       sealed: "the shape your sentences take",
     },
     {
@@ -144,6 +147,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(28 + varc * 1.3 + swings * 12),
       locked: sents.length >= 5,
       line: swings >= 2 ? "Your writing moves like a conversation." : "One steady pace, held all the way through.",
+      chip: swings >= 2 ? "Quick line, long line" : "One steady pace",
       sealed: "the rhythm hiding in your sentences",
     },
     {
@@ -153,6 +157,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(22 + emoHits * 9 + (contrast ? 22 : 0) + (owned ? 14 : 0)),
       locked: words >= 30,
       line: contrast ? "You hold two feelings at once without dropping either." : owned ? "You notice feelings before naming them." : "You keep the feeling under the words, where it hums.",
+      chip: contrast ? "Two feelings at once" : owned ? "Names its feelings" : "Feeling kept low",
       sealed: "the feelings under your words",
     },
     {
@@ -162,6 +167,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(30 + inward * 200 + (distance ? 24 : 0) + outward * 90),
       locked: words >= 40,
       line: distance ? "You often look at yourself from the outside." : inward > outward ? "You write from the inside out." : "You watch the world first, then let it in.",
+      chip: distance ? "Sees itself from outside" : inward > outward ? "Writes inside out" : "Watches the world first",
       sealed: "how you see the world",
     },
     {
@@ -171,6 +177,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(26 + hedges * 16),
       locked: words >= 50,
       line: hedges >= 2 ? "Your small words reveal hesitation and curiosity." : "No hedging — you commit to the sentence.",
+      chip: hedges >= 2 ? "Maybes and almosts" : "Commits to the sentence",
       sealed: "the small words you lean on",
     },
     {
@@ -180,6 +187,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(24 + commas * 7 + dashes * 10 + dots * 12),
       locked: punctTotal >= 6,
       line: dots >= 1 || dashes >= 1 ? "You pause where most people rush." : commas >= 2 ? "Commas carry your breathing." : "Clean stops. No decoration.",
+      chip: dots >= 1 || dashes >= 1 ? "Pauses on purpose" : commas >= 2 ? "Breathes in commas" : "Clean stops",
       sealed: "where you pause, and why",
     },
     {
@@ -189,6 +197,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(28 + detailOpen * 16 + feelingEnd * 16 + Math.min(20, texts.length * 5)),
       locked: texts.length >= 3,
       line: detailOpen >= 1 && feelingEnd >= 1 ? "You often start with a detail and arrive at a feeling." : "You open where the thought opens, no throat-clearing.",
+      chip: detailOpen >= 1 && feelingEnd >= 1 ? "Detail, then feeling" : "No throat-clearing",
       sealed: "how your thoughts land",
     },
     {
@@ -198,6 +207,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       score: clamp(20 + q.length * 19),
       locked: q.length >= 2 || words >= 80,
       line: q.length ? "You have small ways of saying things that feel unmistakably yours." : "No tics yet — they show up as you relax.",
+      chip: q.length ? q.slice(0, 2).join(", ") : "No tics yet",
       sealed: "the patterns nobody else has",
     },
   ];
