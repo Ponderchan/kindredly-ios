@@ -54,19 +54,24 @@ export default function KindredsTab() {
      answered you and, from the inside, nothing happened. A first-timer could
      be shown "Nobody knows your name yet" over a live reply in the database.
      A thread belongs here the moment EITHER side has written. */
-  const orbit = useMemo(
-    () =>
-      source
-        .filter((t) => t.mine > 0 || t.theirs > 0)
-        // whatever is on you comes first; the rest by recency
-        .sort(
-          (a, b) =>
-            Number(!!threadState(b)?.needsYou) - Number(!!threadState(a)?.needsYou) ||
-            b.lastAt - a.lastAt,
-        ),
-    [source],
-  );
-  const named = orbit.filter((t) => t.revealed).length;
+  const orbit = useMemo(() => source.filter((t) => t.mine > 0 || t.theirs > 0), [source]);
+
+  /* THE LIST NOW SAYS WHAT THE MAP SAYS. The sky has always separated
+     these two: strangers ride the rings, kindreds land at the centre. The
+     list underneath mixed them, so a person you had traded names with sat
+     between two anonymous mosaics looking like one more of them — and
+     tapping her goes somewhere else entirely (a room, not a
+     correspondence). Same people, two groups, in both places.
+
+     Inside each group the old rule holds: whatever is on you first, then
+     by recency. Sorting the WHOLE list that way would have buried a
+     kindred under five strangers on a busy day, which gets the priority
+     exactly backwards. */
+  const bySort = (a: ThreadSummary, b: ThreadSummary) =>
+    Number(!!threadState(b)?.needsYou) - Number(!!threadState(a)?.needsYou) || b.lastAt - a.lastAt;
+  const kindreds = useMemo(() => orbit.filter((t) => t.revealed).sort(bySort), [orbit]);
+  const coming = useMemo(() => orbit.filter((t) => !t.revealed).sort(bySort), [orbit]);
+  const named = kindreds.length;
   // anything at all that is on you — one number, one sentence
   const waiting = orbit.filter((t) => threadState(t)?.needsYou).length;
   const empty = loaded && orbit.length === 0;
@@ -99,10 +104,16 @@ export default function KindredsTab() {
             <OrbitMap items={orbit} />
           </View>
           <View style={{ paddingHorizontal: 20 }}>
-            {/* two different places: a correspondence with a stranger,
-                a room with someone you know */}
-            {orbit.map((t) => (
-              <Card key={t.id} t={t} onPress={() => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)} />
+            {/* a room with someone you know, or a correspondence with a
+                stranger — two different places, so two different groups */}
+            {kindreds.length > 0 && coming.length > 0 && <GroupLabel>KINDREDS</GroupLabel>}
+            {kindreds.map((t) => (
+              <Card key={t.id} t={t} onPress={() => router.push(`/room/${t.id}`)} />
+            ))}
+
+            {kindreds.length > 0 && coming.length > 0 && <GroupLabel>COMING INTO VIEW</GroupLabel>}
+            {coming.map((t) => (
+              <Card key={t.id} t={t} onPress={() => router.push(`/chat/${t.id}`)} />
             ))}
           </View>
         </ScrollView>
@@ -110,6 +121,16 @@ export default function KindredsTab() {
 
       <PlushCelebration kindreds={named} />
     </SafeAreaView>
+  );
+}
+
+/* Only shown when both groups exist — a lone header over the only group
+   there is would be labelling the obvious. */
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.6, color: P.ink40, marginTop: 6, marginBottom: 14 }}>
+      {children}
+    </Text>
   );
 }
 
