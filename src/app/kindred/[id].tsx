@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -10,6 +10,8 @@ import { StampTile } from "../../components/StampTile";
 import { getStamp } from "../../data/stamps";
 import { dLong } from "../../lib/format";
 import { fetchThreadMessages, type ThreadDetail } from "../../lib/db";
+import { readCorrespondent, theyify, type CorrespondentRead } from "../../lib/correspondent";
+import type { DimScore } from "../../lib/hatch-engine";
 
 /* A kindred's page — the room behind the name.
    ────────────────────────────────────────────────────────────────────────
@@ -51,6 +53,18 @@ export default function KindredScreen() {
   );
 
   const name = detail?.otherName || "A kindred";
+  /* THE READ, and it arrives BEFORE the name. Five letters used to buy a
+     pen name — a string, arbitrary, and knowable on day one. What ten
+     letters have actually earned you is a read of how they write, and this
+     product's whole claim is that how you write is who you are. So the room
+     opens at RECOGNIZING, unnamed, with the read as its subject; the name
+     lands later and changes only the title. */
+  const read = useMemo<CorrespondentRead | null>(() => {
+    if (!detail) return null;
+    const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
+    if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
+    return readCorrespondent(theirs, detail.revealed);
+  }, [detail]);
   const letters = (detail?.myCount ?? 0) + (detail?.otherCount ?? 0);
   const st = detail ? getStamp(detail.stamp) : null;
 
@@ -60,7 +74,9 @@ export default function KindredScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>A KINDRED</Text>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>
+          {detail?.revealed ? "A KINDRED" : "A VOICE YOU KNOW"}
+        </Text>
         <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
       </View>
       <View style={{ ...rule }} />
@@ -76,16 +92,68 @@ export default function KindredScreen() {
                 <MosaicId seed={detail.other} cell={9} gap={2.4} />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: PF.letter, fontSize: 28, fontWeight: "600", color: P.ink }}>{name}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7 }}>
-                  <MosaicId seed={detail.other} cell={3} gap={1} />
-                  <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40 }}>
-                    THE FACE YOU WATCHED ARRIVE
-                  </Text>
-                </View>
+                {detail.revealed ? (
+                  <>
+                    <Text style={{ fontFamily: PF.letter, fontSize: 28, fontWeight: "600", color: P.ink }}>{name}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7 }}>
+                      <MosaicId seed={detail.other} cell={3} gap={1} />
+                      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40 }}>
+                        THE FACE YOU WATCHED ARRIVE
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    {/* no name yet, and that is the point: the archetype is
+                        what their writing has told you, which is the part
+                        a name could never have said */}
+                    <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink }}>
+                      {read?.archetype?.name || "Still a voice"}
+                    </Text>
+                    <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
+                      {read?.archetype ? theyify(read.archetype.desc) : "Not enough of them has arrived yet."}
+                    </Text>
+                  </>
+                )}
               </View>
             </View>
           </View>
+
+          {/* WHAT THEIR LETTERS HAVE TOLD YOU. The same object onboarding
+              shows you about yourself at the hatch — a line per dimension
+              that has come through, and the rest still sealed under KEEP
+              WRITING. Built here from THEIR letters, on this device: no
+              server, no aura row, and no LLM, so every line is a
+              deterministic read of words they really wrote rather than a
+              paraphrase of them in someone else's voice. */}
+          {!!read?.found.length && (
+            <View style={{ backgroundColor: P.sheet, padding: 18, marginBottom: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>
+                  WHAT YOU'VE LEARNED
+                </Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen }}>
+                  {read.moments} MOMENT{read.moments > 1 ? "S" : ""}
+                </Text>
+              </View>
+
+              {read.found.map((d) => (
+                <Moment key={d.key} d={d} />
+              ))}
+
+              {read.sealed.length > 0 && (
+                <>
+                  <View style={{ height: 1, backgroundColor: P.ink12, marginTop: 14, marginBottom: 12 }} />
+                  <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>
+                    KEEP WRITING TO EACH OTHER TO LEARN:
+                  </Text>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 10.5, lineHeight: 19, color: P.ink60, marginTop: 6 }}>
+                    {read.sealed.slice(0, 4).map((d) => `□ ${theyify(d.sealed).toLowerCase()}`).join("   ")}
+                  </Text>
+                </>
+              )}
+            </View>
+          )}
 
           {/* the correspondence, as facts */}
           <View style={[panel, { paddingHorizontal: 18, paddingVertical: 4, marginBottom: 14 }]}>
@@ -132,6 +200,27 @@ export default function KindredScreen() {
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+/* one dimension that has come through. The bar is the strength, the line is
+   the read in warm words — hatch-engine writes both, and the line never
+   speaks in metrics. */
+function Moment({ d }: { d: DimScore }) {
+  return (
+    <View style={{ marginTop: 14 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.ink }}>
+          {d.label.toUpperCase()}
+        </Text>
+        <View style={{ flex: 1, height: 3, backgroundColor: P.ink12 }}>
+          <View style={{ width: `${d.score}%`, height: 3, backgroundColor: P.pen }} />
+        </View>
+      </View>
+      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink, marginTop: 5 }}>
+        {theyify(d.line)}
+      </Text>
+    </View>
   );
 }
 

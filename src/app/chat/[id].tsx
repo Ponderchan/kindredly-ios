@@ -155,7 +155,10 @@ export default function ChatScreen() {
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         <Pressable
-          disabled={!detail?.revealed}
+          /* the room opens once you know their voice — not only after names.
+             A stranger still has no page: at FOUND and FORMING they are
+             their letters and nothing else, which is the whole point. */
+          disabled={!detail?.revealed && read?.stage !== "recognizing"}
           onPress={() => router.push(`/kindred/${id}`)}
           hitSlop={6}
           style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, opacity: pressed ? 0.6 : 1 })}

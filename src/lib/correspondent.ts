@@ -84,6 +84,31 @@ export function readCorrespondent(theirLetters: string[], revealed = false): Cor
   return { stage, moments, found, sealed, archetype: moments ? h.archetype : null };
 }
 
+/* hatch-engine writes every line in the second person, because it was built
+   to describe you to yourself. Pointed at a correspondent, the same copy has
+   to speak about them — and half-converting it (only the first word, say)
+   produces the worst possible sentence: "Short lines. You trust the reader
+   to fill the rest," which now addresses the wrong person mid-thought.
+
+   English lets this be a clean swap: second person and third person plural
+   take the same verb form, so you→they / your→their is grammatical wherever
+   it lands. Word boundaries only, and the leading capital is preserved. */
+export function theyify(text: string): string {
+  return (text || "").replace(
+    /\b(you're|yours|yourself|your|you)\b/gi,
+    (m) => {
+      const lower = m.toLowerCase();
+      const out =
+        lower === "you're" ? "they're"
+        : lower === "yours" ? "theirs"
+        : lower === "yourself" ? "themselves"
+        : lower === "your" ? "their"
+        : "they";
+      return m[0] === m[0].toUpperCase() ? out[0].toUpperCase() + out.slice(1) : out;
+    },
+  );
+}
+
 /* What each state says out loud. FOUND and FORMING keep the phrasing already
    shipped, so this is a state machine being named, not a new vocabulary. */
 export function stageLine(stage: Stage): string {
