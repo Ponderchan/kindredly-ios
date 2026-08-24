@@ -16,6 +16,7 @@ import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
+import { refreshFingerprint } from "../../lib/aura";
 import { screen, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -227,6 +228,7 @@ function Feed({
     }
     setSending(false);
     setDrafts((d) => ({ ...d, [to.id]: "" }));
+    void refreshFingerprint(); // the reply is part of your voice now
     setToast(true);
     setTimeout(() => setToast(false), 2200);
     /* AND IT LEAVES THE POOL. This only scrolled, so the letter you had just

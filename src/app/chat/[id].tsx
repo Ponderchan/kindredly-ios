@@ -14,6 +14,7 @@ import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
+import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
@@ -135,6 +136,7 @@ export default function ChatScreen() {
       return;
     }
     setText("");
+    void refreshFingerprint();
     await load();
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };

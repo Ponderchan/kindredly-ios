@@ -15,6 +15,7 @@ import Animated, { ZoomIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
+import { refreshFingerprint } from "../lib/aura";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
@@ -206,6 +207,10 @@ export default function Compose() {
       return;
     }
     if (mode === "speak") setFlag("voiceSent"); // growth stamp: Your Voice
+    /* the vector that matching runs on finally moves with your writing —
+       letters only, never the journal. Fire-and-forget: a staler match is
+       fine, a blocked send is not. */
+    void refreshFingerprint();
     if (draftId) {
       deleteDraft(draftId);
       setDraftId(null);

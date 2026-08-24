@@ -7,6 +7,7 @@ import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, type ThreadDetail } from "../../lib/db";
+import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { noticeThings } from "../../lib/notice";
 import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
@@ -134,6 +135,7 @@ export default function RoomScreen() {
       return;
     }
     setText("");
+    void refreshFingerprint();
     await load();
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
