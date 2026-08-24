@@ -19,6 +19,7 @@ export function VoiceCard({
   lettersSent,
   onOpen,
   onShare,
+  shareReady = true,
 }: {
   read: VoiceRead;
   quote: string; // Wren's line (AI when available, local otherwise)
@@ -27,6 +28,8 @@ export function VoiceCard({
   lettersSent: number;
   onOpen: () => void;
   onShare: () => void;
+  /** the ladder's rule: sharing waits until the aura is truly formed */
+  shareReady?: boolean;
 }) {
   const tier = read.tier;
   const wren = useWrenName();
@@ -135,9 +138,11 @@ export function VoiceCard({
             <Text style={{ flex: 1, fontFamily: F.sansBold, fontSize: 9.5, letterSpacing: 1, color: C.faint, marginRight: 10 }}>
               {count} LETTERS · {speakAs(read.taking, wren).toUpperCase()}
             </Text>
-            <Pressable onPress={share} hitSlop={6} style={({ pressed }) => ({ backgroundColor: C.purpleLt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.85 : 1 })}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>Share my aura ✨</Text>
-            </Pressable>
+            {shareReady && (
+              <Pressable onPress={share} hitSlop={6} style={({ pressed }) => ({ backgroundColor: C.purpleLt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.85 : 1 })}>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>Share my aura ✨</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       )}

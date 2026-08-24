@@ -18,7 +18,9 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
-import { AuraBlock } from "../../components/AuraBlock";
+import { VoiceCard } from "../../components/VoiceCard";
+import { analyzeVoice, type VoiceRead } from "../../lib/voice";
+import { fingerprint } from "../../lib/signature";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -57,6 +59,8 @@ export default function MeTab() {
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [room, setRoom] = useState<"you" | "wren">("you");
   const [aura, setAura] = useState<Aura | null>(null);
+  const [voice, setVoice] = useState<VoiceRead | null>(null);
+  const [units, setUnits] = useState<number[]>([]);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -85,6 +89,18 @@ export default function MeTab() {
         const a = await myAura((profile?.firstLine as string) || null);
         if (!alive) return;
         setAura(a);
+        /* THE OWNER'S CARD, THE NEW RULES. The original VoiceCard is the
+           design the owner ruled stays — the orb, the constellation, the
+           trait pills. It renders voice.ts's warm copy over the merged
+           corpus (letters finally included), while the LADDER decides what
+           it may claim: tier and the name slot come from lib/aura, and the
+           archetype only lands at FORMED. */
+        const v = analyzeVoice(a.texts);
+        setVoice({
+          ...v,
+          tier: a.phase === "empty" ? "empty" : a.phase === "formed" ? "formed" : "evolving",
+        });
+        setUnits(fingerprint(a.texts.join(" ")).units.slice(0, 24));
         void recordAuraSnapshot(a);
       })();
 
@@ -169,13 +185,28 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
-            {/* the aura — the hero, four honest phases */}
-            {aura && (
-              <AuraBlock
-                aura={aura}
-                onOpen={() => router.push("/aura")}
-                onShare={() => router.push("/aura-card")}
-              />
+            {/* the aura — the owner's hero card, gated by the ladder */}
+            {aura && voice && (
+              <View style={{ marginTop: 14 }}>
+                <VoiceCard
+                  read={voice}
+                  quote={voice.discovery}
+                  units={units}
+                  auraName={
+                    aura.phase === "formed"
+                      ? aura.archetype?.name || voice.stage.name
+                      : aura.phase === "forming"
+                        ? "Still forming"
+                        : aura.phase === "shaping"
+                          ? "Taking shape"
+                          : "Coming clear"
+                  }
+                  lettersSent={stats.lettersSent}
+                  onOpen={() => router.push("/aura")}
+                  onShare={() => router.push("/aura-card")}
+                  shareReady={aura.phase === "formed"}
+                />
+              </View>
             )}
 
             {/* one quiet row — Kindredly+ */}

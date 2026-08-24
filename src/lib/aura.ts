@@ -51,6 +51,8 @@ export type AuraPhase = "empty" | "forming" | "shaping" | "clearing" | "formed";
 
 export interface Aura {
   phase: AuraPhase;
+  /** the corpus the reading came from — for renderers that want the words */
+  texts: string[];
   /** 0..1 — lockedCount / 9. The honest "how formed" number. */
   formed: number;
   pieces: number;
@@ -126,6 +128,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   if (!pieces) {
     return {
       phase: "empty",
+      texts: [],
       formed: 0,
       pieces: 0,
       dims: [],
@@ -163,6 +166,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
 
   return {
     phase,
+    texts,
     formed,
     pieces,
     dims: h.dims,
