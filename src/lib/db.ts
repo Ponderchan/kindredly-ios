@@ -259,6 +259,23 @@ export async function replyToLetter(
   const me = await uid();
   if (!me) return null;
   try {
+    /* ONE CORRESPONDENCE PER STRANGER. `threads` has no unique constraint on
+       (a, b) and this function never looked, so answering the same person
+       twice — trivial, since an answered letter stayed in the pool — forked
+       them into two parallel correspondences, each with its own counts and
+       its own road to a name. If one already exists, this is just the next
+       letter in it. */
+    const { data: open } = await supabase!
+      .from("threads")
+      .select("id")
+      .or(`and(a.eq.${me},b.eq.${letter.author}),and(a.eq.${letter.author},b.eq.${me})`)
+      .limit(1)
+      .maybeSingle();
+    if (open?.id) {
+      const sent = await sendThreadMessage(open.id as string, body);
+      return sent ? (open.id as string) : null;
+    }
+
     const row: Record<string, unknown> = {
       a: me,
       b: letter.author,

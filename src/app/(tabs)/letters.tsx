@@ -16,7 +16,7 @@ import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp } from "../../data/stamps";
 import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
-import { translate } from "../../lib/wren";
+import { screen, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
 import { STARTER_STAMPS } from "../../data/stamps";
@@ -104,7 +104,16 @@ export default function LettersTab() {
     );
   }
 
-  return <Feed feed={feed} loaded={loaded} onReloaded={load} router={router} demo={demo} />;
+  return (
+    <Feed
+      feed={feed}
+      loaded={loaded}
+      onReloaded={load}
+      router={router}
+      demo={demo}
+      onAnswered={(id) => setPool((cur) => cur.filter((l) => l.id !== id))}
+    />
+  );
 }
 
 /* ── the everyday swipe feed ── */
@@ -114,13 +123,17 @@ function Feed({
   onReloaded,
   router,
   demo,
+  onAnswered,
 }: {
   feed: PoolLetter[];
   loaded: boolean;
   onReloaded: () => void;
   router: ReturnType<typeof useRouter>;
   demo: boolean;
+  /** an answered letter leaves this reader's desk */
+  onAnswered: (letterId: string) => void;
 }) {
+  const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const tabH = 62 + Math.max(insets.bottom, 8); // matches the custom TabBar height
@@ -174,6 +187,9 @@ function Feed({
      the page you're looking at agree, and this pager demonstrably drifts. The
      failure isn't a no-op either: with a stale draft under the other key, a
      reply meant for one stranger would have been sent to a different one. */
+  /* the letter a blocked send was aimed at, so signing in resumes THAT one */
+  const pendingReply = useRef<PoolLetter | null>(null);
+
   const send = async (target?: PoolLetter) => {
     const to = target ?? current;
     if (!to || sending) return;
@@ -185,6 +201,15 @@ function Feed({
     if (demo || to.author?.startsWith("demo-")) {
       seedDemoThread(to, text);
     } else {
+      /* Wren's gate ran on open letters (compose.tsx) and never on replies —
+         so the one place you write to a named stranger was the one place
+         nothing was screened. Same call, same copy. */
+      const gate = await screen(text);
+      if (!gate.ok) {
+        setSending(false);
+        Alert.alert(`${wren} held this back`, "This can't go out as written. Keep it to strangers — no contact details.");
+        return; // the draft stays in the box
+      }
       /* THIS RESULT USED TO BE THROWN AWAY. replyToLetter returns null for a
          reader with no session, and the screen cleared the box, popped the
          toast and moved to the next letter regardless — so a ghost watched
@@ -194,6 +219,7 @@ function Feed({
       const threadId = await replyToLetter(to, text);
       if (!threadId) {
         setSending(false);
+        pendingReply.current = to;
         if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
         else Alert.alert("Couldn't send", "That reply didn't go out. Try again.");
         return; // the draft stays in the box
@@ -203,7 +229,13 @@ function Feed({
     setDrafts((d) => ({ ...d, [to.id]: "" }));
     setToast(true);
     setTimeout(() => setToast(false), 2200);
-    goto(idx + 1); // a thread opened — it lives in Kindreds now; move along
+    /* AND IT LEAVES THE POOL. This only scrolled, so the letter you had just
+       answered stayed in the pager behind you and came back at the top of
+       Today on every visit — offering "write back…" to someone you were
+       already corresponding with. Dropping it locally makes the pager land
+       on the next letter by itself; the server-side pool is shared and
+       tracks no reads, so this is the reader's own desk being cleared. */
+    onAnswered(to.id);
   };
 
   if (quiet) {
@@ -338,7 +370,10 @@ function Feed({
         onClose={() => setNeedsAccount(false)}
         onSignedIn={() => {
           setNeedsAccount(false);
-          void send();
+          // carry the letter that triggered the sheet: bare send() falls back
+          // to `current`, and the pager may have drifted since — the exact
+          // wrong-recipient hazard send(target) exists to close
+          void send(pendingReply.current ?? undefined);
         }}
       />
     </SafeAreaView>
