@@ -9,7 +9,6 @@ import { P, PF, rule } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
-import { VoiceCard } from "../../components/VoiceCard";
 import { WrenHome } from "../../components/WrenHome";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
@@ -18,9 +17,8 @@ import { getWrenType, type WrenType } from "../../lib/wren-type";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
-import { fingerprint } from "../../lib/signature";
-import { analyzeVoice, auraName, gatherWriting, type VoiceRead } from "../../lib/voice";
-import { journalHourBand } from "../../lib/report";
+import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
+import { AuraBlock } from "../../components/AuraBlock";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -30,7 +28,7 @@ import { DEMO_JOURNAL } from "../../data/demo";
 
    The SHELL speaks the postal system: paper, the same header rule as Today and
    Sealed, mono for everything the system files about you, your pen name in
-   your own register. VoiceCard and WrenHome are deliberately untouched — the
+   your own register. WrenHome is deliberately untouched — the
    owner ruled those two stay as designed, and this pass was only ever about
    the frame around them. */
 
@@ -58,9 +56,7 @@ export default function MeTab() {
 
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [room, setRoom] = useState<"you" | "wren">("you");
-  const [voice, setVoice] = useState<VoiceRead | null>(null);
-  const [units, setUnits] = useState<number[]>([]);
-  const [hourBand, setHourBand] = useState<string | null>(null);
+  const [aura, setAura] = useState<Aura | null>(null);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -83,15 +79,13 @@ export default function MeTab() {
       getWrenAccessory().then((a) => alive && setAccessory(a));
       getWrenType().then((t) => alive && setWrenType(t));
 
-      // Your Voice — read every piece of real writing on this device
+      // Your aura — one engine (hatch), every piece of your real writing:
+      // the hatch line, the sealed pages, and now your letters too
       (async () => {
-        let texts = await gatherWriting((profile?.firstLine as string) || null);
-        // dev preview: borrow the sample pages so the card has a shape
-        if (__DEV__ && texts.length === 0) texts = DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3);
+        const a = await myAura((profile?.firstLine as string) || null);
         if (!alive) return;
-        setVoice(analyzeVoice(texts));
-        setUnits(fingerprint(texts.join(" ")).units.slice(0, 24));
-        journalHourBand().then((h) => alive && setHourBand(h));
+        setAura(a);
+        void recordAuraSnapshot(a);
       })();
 
       return () => {
@@ -175,19 +169,13 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
-            {/* the aura — the hero */}
-            {voice && (
-              <View style={{ marginTop: 14 }}>
-                <VoiceCard
-                  read={voice}
-                  quote={voice.discovery}
-                  units={units}
-                  auraName={auraName(voice, wrenType?.name ?? null, hourBand)}
-                  lettersSent={stats.lettersSent}
-                  onOpen={() => router.push("/voice")}
-                  onShare={() => router.push("/aura-card")}
-                />
-              </View>
+            {/* the aura — the hero, four honest phases */}
+            {aura && (
+              <AuraBlock
+                aura={aura}
+                onOpen={() => router.push("/aura")}
+                onShare={() => router.push("/aura-card")}
+              />
             )}
 
             {/* one quiet row — Kindredly+ */}
@@ -204,7 +192,7 @@ export default function MeTab() {
             <View style={{ marginTop: 14 }}>
               <WrenHome
                 stats={stats}
-                pieces={voice?.pieces ?? 0}
+                pieces={aura?.pieces ?? 0}
                 accessory={accessory}
                 premium={premium}
                 stageFloor={stageFloor}
