@@ -29,12 +29,22 @@ const SKIN: Record<Stage, { bg: string; border: string; ink: string; sub: string
   formed:   { bg: "#1A1730", border: "#E8B84B", ink: "#FFF8E8", sub: "#9A92CC", chip: "#28234A", chipInk: "#D8D2F4", bar: "#F5C542", barBg: "#332E56", star: "#6A62A0", lit: "#F5C542" },
 };
 
-const MEMORY: Record<Stage, string> = {
-  empty: "Every word you write teaches me a little more about you.\n\nKeep writing. I'm listening.",
-  forming: "I'm picking up your patterns…\n\nThank you for trusting me.",
-  shaping: "Patterns connect. Your voice gets clearer.\n\nYou're showing me who you are.",
-  clearing: "I see it now. Just one more piece to name it.\n\nAlmost there.",
-  formed: "This is you. This is how your words leave the world.\n\nI'll keep learning with you.",
+const MEMORY: Record<Stage, { body: string; foot: string }> = {
+  empty: { body: "Every word you write teaches me a little more about you.", foot: "Keep writing. I'm listening." },
+  forming: { body: "I'm picking up your patterns…", foot: "Thank you for trusting me." },
+  shaping: { body: "Patterns connect. Your voice gets clearer.", foot: "You're showing me who you are." },
+  clearing: { body: "I see it now. Just one more piece to name it.", foot: "Almost there." },
+  formed: { body: "This is you. This is how your words leave the world.", foot: "I'll keep learning with you." },
+};
+
+/* the backs run HOTTER than the fronts — the owner's sheet takes the
+   mid-stages to a full bright purple before settling into night */
+const BACK: Record<Stage, { bg: string; ink: string; sub: string; glow: string; border: string }> = {
+  empty: { bg: "#FAF6ED", ink: "#4A443A", sub: "#8A8272", glow: "#E8DFC8", border: "#D8D0BC" },
+  forming: { bg: "#CFC4F4", ink: "#2E2850", sub: "#5A5288", glow: "#EDE8FF", border: "#B8AAE8" },
+  shaping: { bg: "#7B5BD6", ink: "#FFFFFF", sub: "#D8CFF6", glow: "#A88FF0", border: "#6A4CC4" },
+  clearing: { bg: "#221E3D", ink: "#F2EFFF", sub: "#8F87C9", glow: "#4A4080", border: "#332E56" },
+  formed: { bg: "#1A1730", ink: "#FFF3D0", sub: "#C9B36B", glow: "#8A6E20", border: "#E8B84B" },
 };
 
 /* per-dimension chip icons, in the card's own cute register */
@@ -87,19 +97,37 @@ export function AuraCard({
     overflow: "hidden" as const,
   };
 
-  /* ── the back: Wren's memory ── */
+  /* ── the back: Wren's memory, one Wren, centred in her glow ── */
   if (back) {
+    const b = BACK[aura.phase];
+    const mem = MEMORY[aura.phase];
     return (
-      <Pressable onPress={() => setBack(false)} style={[frame, { minHeight: 300, alignItems: "center", justifyContent: "center" }]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2, color: s.sub, position: "absolute", top: 16 }}>
+      <Pressable
+        onPress={() => setBack(false)}
+        style={{
+          backgroundColor: b.bg,
+          borderRadius: 18,
+          borderWidth: aura.phase === "formed" ? 2 : 1,
+          borderColor: b.border,
+          minHeight: 320,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+          overflow: "hidden",
+        }}
+      >
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2.4, color: b.sub, position: "absolute", top: 18 }}>
           {wren.toUpperCase()}'S MEMORY
         </Text>
-        <WrenBird size={64} mood={aura.phase === "formed" ? "delight" : "content"} />
-        <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: s.ink, textAlign: "center", marginTop: 16, paddingHorizontal: 16 }}>
-          {speakAs(MEMORY[aura.phase], wren)}
+        <Text style={{ fontFamily: PF.letter, fontSize: 16.5, lineHeight: 25, color: b.ink, textAlign: "center", paddingHorizontal: 10 }}>
+          {speakAs(mem.body, wren)}
         </Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: s.sub, position: "absolute", bottom: 14 }}>
-          TAP TO TURN BACK
+        <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: b.glow, opacity: 0.45, position: "absolute", bottom: 44 }} />
+        <View style={{ marginTop: 22 }}>
+          <WrenBird size={62} bare mood={aura.phase === "formed" ? "delight" : aura.phase === "clearing" ? "think" : "content"} />
+        </View>
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: b.sub, position: "absolute", bottom: 18 }}>
+          {speakAs(mem.foot, wren)}
         </Text>
       </Pressable>
     );
@@ -113,7 +141,7 @@ export function AuraCard({
           YOUR WRITING AURA
         </Text>
         <Pressable onPress={() => setBack(true)} hitSlop={10}>
-          <WrenBird size={26} mood="content" />
+          <WrenBird size={26} bare mood="content" />
         </Pressable>
       </View>
 
@@ -126,7 +154,7 @@ export function AuraCard({
             Your aura starts with your first letter.
           </Text>
           <View style={{ alignItems: "center", marginVertical: 14 }}>
-            <WrenBird size={56} mood="listen" stage="hatch" />
+            <WrenBird size={56} bare mood="listen" stage="hatch" />
           </View>
           <View style={{ borderTopWidth: 1, borderTopColor: s.border, paddingTop: 12, flexDirection: "row", alignItems: "center" }}>
             <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11, letterSpacing: 1, color: s.chipInk }}>
@@ -178,14 +206,11 @@ export function AuraCard({
 
           {/* the voice of the stage */}
           {(aura.phase === "clearing" || aura.phase === "formed") && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, backgroundColor: s.chip, borderRadius: 12, padding: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: s.ink }}>
-                  “{aura.phase === "clearing" ? "I nearly have a name for this." : speakAs(quote, wren)}”
-                </Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: s.sub, marginTop: 4 }}>— {wren}</Text>
-              </View>
-              <WrenBird size={30} mood={aura.phase === "formed" ? "delight" : "think"} />
+            <View style={{ marginTop: 14, backgroundColor: s.chip, borderRadius: 12, padding: 12 }}>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: s.ink }}>
+                “{aura.phase === "clearing" ? "I nearly have a name for this." : speakAs(quote, wren)}”
+              </Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: s.sub, marginTop: 4 }}>— {wren}</Text>
             </View>
           )}
 
