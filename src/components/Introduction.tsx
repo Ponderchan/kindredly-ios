@@ -88,7 +88,7 @@ export function Introduction({
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
           <Pressable onPress={onClose} style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>
-              WRITE TO {otherName.toUpperCase()}
+TALK TO {otherName.toUpperCase()}
             </Text>
           </Pressable>
         </View>

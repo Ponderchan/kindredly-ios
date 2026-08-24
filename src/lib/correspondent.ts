@@ -1,4 +1,5 @@
-import { hatch, type Archetype, type DimScore } from "./hatch-engine";
+import { hatch, type Archetype, type DimKey, type DimScore } from "./hatch-engine";
+import { cosineSim } from "./signature";
 import { weightedCount } from "./weighted-count";
 
 /* WHAT YOU KNOW ABOUT THE PERSON WRITING TO YOU.
@@ -82,6 +83,68 @@ export function readCorrespondent(theirLetters: string[], revealed = false): Cor
       : "forming";
 
   return { stage, moments, found, sealed, archetype: moments ? h.archetype : null };
+}
+
+/* ── RESONANCE ─────────────────────────────────────────────────────────
+   Where two people's writing overlaps, and where it doesn't.
+
+   Both reads come from THIS correspondence — my letters to them, their
+   letters to me — never from a global profile. So resonance belongs to the
+   relationship rather than to either person, and the same two writers would
+   score differently with someone else. It is also why it needs no backend:
+   every letter in the pair is already on this device.
+
+   cosineSim has sat in signature.ts with no caller since the port. It was
+   written for exactly this and never got the chance. */
+
+export interface ResonanceRow {
+  key: DimKey;
+  label: string;
+  mine: number;
+  theirs: number;
+  /** the two of you land within a hair of each other on this one */
+  together: boolean;
+}
+
+export interface Resonance {
+  /** 0..100 — how alike the two of you write, over the nine dimensions */
+  score: number;
+  rows: ResonanceRow[];
+  /** the dimension you share most, and the one you share least */
+  closest: ResonanceRow | null;
+  furthest: ResonanceRow | null;
+}
+
+const TOGETHER = 12; // points apart, out of 100
+
+export function resonance(myLetters: string[], theirLetters: string[]): Resonance | null {
+  const mineTexts = myLetters.map((t) => (t || "").trim()).filter(Boolean);
+  const theirTexts = theirLetters.map((t) => (t || "").trim()).filter(Boolean);
+  if (!mineTexts.length || !theirTexts.length) return null;
+
+  const byKey = (dims: DimScore[]) => new Map(dims.map((d) => [d.key, d]));
+  const a = byKey(hatch(mineTexts).dims);
+  const b = byKey(hatch(theirTexts).dims);
+
+  const rows: ResonanceRow[] = [];
+  for (const [key, mine] of a) {
+    const theirs = b.get(key);
+    if (!theirs) continue;
+    rows.push({
+      key,
+      label: mine.label,
+      mine: mine.score,
+      theirs: theirs.score,
+      together: Math.abs(mine.score - theirs.score) <= TOGETHER,
+    });
+  }
+  if (!rows.length) return null;
+
+  const score = Math.round(
+    cosineSim(rows.map((r) => r.mine), rows.map((r) => r.theirs)) * 100,
+  );
+  const sorted = [...rows].sort((x, y) => Math.abs(x.mine - x.theirs) - Math.abs(y.mine - y.theirs));
+  return { score, rows, closest: sorted[0] ?? null, furthest: sorted[sorted.length - 1] ?? null };
 }
 
 /* hatch-engine writes every line in the second person, because it was built

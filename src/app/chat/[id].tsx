@@ -317,7 +317,12 @@ YOU WENT FIRST — WAITING ON THEIRS
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="write your letter…"
+              /* the register loosens once you know each other. Not a
+                 different mechanic — REPLY_MIN has always been 2, so "ok."
+                 was always a whole answer — but the product never admitted
+                 it. Before names it is a letter you are composing; after,
+                 it is a person you are talking to. */
+              placeholder={detail?.revealed ? `say something to ${name}…` : "write your letter…"}
               placeholderTextColor={P.ink40}
               multiline
               style={{ maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
