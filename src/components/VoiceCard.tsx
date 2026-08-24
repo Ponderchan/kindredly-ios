@@ -23,6 +23,9 @@ export function VoiceCard({
   warmth = 0.5,
   marks = [],
   signals,
+  sky = "day",
+  dimScores,
+  words = [],
 }: {
   read: VoiceRead;
   quote: string; // Wren's line (AI when available, local otherwise)
@@ -38,6 +41,10 @@ export function VoiceCard({
   marks?: string[];
   /** locked signals; when given, stars grow with evidence not volume */
   signals?: number;
+  sky?: OrbSky;
+  dimScores?: number[];
+  /** the words this writer reaches for — nobody else's card has them */
+  words?: string[];
 }) {
   const tier = read.tier;
   const wren = useWrenName();
@@ -55,9 +62,14 @@ export function VoiceCard({
           </View>
 
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraOrb size={190} dark units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} />
+            <AuraOrb size={190} dark units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} sky={sky} dimScores={dimScores} />
             <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>AURA NAME</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
+            {words.length > 0 && (
+              <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: "#A9A2CE", marginTop: 5, textAlign: "center" }}>
+                {words.slice(0, 3).join(" · ")}
+              </Text>
+            )}
           </View>
 
           <View style={{ gap: 13, marginTop: 18 }}>
@@ -122,10 +134,15 @@ export function VoiceCard({
       ) : (
         <View>
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraOrb size={190} units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} />
+            <AuraOrb size={190} units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} sky={sky} dimScores={dimScores} />
           </View>
           <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: C.faint }}>AURA</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink, marginTop: 4 }}>{auraName}</Text>
+          {words.length > 0 && (
+            <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 4 }}>
+              {words.slice(0, 3).join(" · ")}
+            </Text>
+          )}
 
           <View style={{ gap: 8, marginTop: 14 }}>
             {read.traits.map((t) => (
@@ -179,6 +196,16 @@ function lerpHex(a: string, b: string, t: number): string {
    writer's real typographic tics — a lowercase i, an ellipsis, a question
    mark — set in tiny mono at the orb's edge like initials engraved on a
    ring. Both deterministic; nobody chooses them, they are simply true. */
+export type OrbSky = "dawn" | "day" | "dusk" | "night";
+
+/* the sky each writing hour lives under — four structurally different orbs */
+const SKIES: Record<OrbSky, { top: [string, string]; mid: [string, string]; glow: string }> = {
+  dawn: { top: ["#F2C4AE", "#F2AEC8"], mid: ["#FAE6DF", "#F6DFEE"], glow: "#F0BC6E" },
+  day: { top: ["#AEB6F2", "#DCAAE8"], mid: ["#DFE4FA", "#F0DEF6"], glow: "#F0BC6E" },
+  dusk: { top: ["#C89AE0", "#E09AB8"], mid: ["#EBD8F2", "#F4DCE8"], glow: "#E88A5A" },
+  night: { top: ["#5A64C8", "#8A64C8"], mid: ["#8C93DE", "#AC8FDE"], glow: "#C9C4F2" },
+};
+
 export function AuraOrb({
   size,
   units = [],
@@ -187,6 +214,8 @@ export function AuraOrb({
   empty,
   warmth = 0.5,
   marks = [],
+  sky = "day",
+  dimScores,
   children,
 }: {
   size: number;
@@ -198,12 +227,17 @@ export function AuraOrb({
   warmth?: number;
   /** the writer's real typographic tics, worn at the orb's edge */
   marks?: string[];
+  /** the hour your writing lives in — a night writer's orb is a night orb */
+  sky?: OrbSky;
+  /** nine scores 0–100 — the constellation takes the writer's own shape */
+  dimScores?: number[];
   children?: React.ReactNode;
 }) {
   const S = size;
   const w = Math.max(0, Math.min(1, warmth));
-  const top = dark ? lerpHex("#7F8AE8", "#B58AE8", w) : lerpHex("#AEB6F2", "#DCAAE8", w);
-  const mid = dark ? lerpHex("#4E52B8", "#7A50B8", w) : lerpHex("#DFE4FA", "#F0DEF6", w);
+  const pal = SKIES[sky];
+  const top = dark ? lerpHex("#7F8AE8", "#B58AE8", w) : lerpHex(pal.top[0], pal.top[1], w);
+  const mid = dark ? lerpHex("#4E52B8", "#7A50B8", w) : lerpHex(pal.mid[0], pal.mid[1], w);
   return (
     <View style={{ width: S, height: S, alignItems: "center", justifyContent: "center" }}>
       <Svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} style={{ position: "absolute" }}>
@@ -214,8 +248,8 @@ export function AuraOrb({
             <Stop offset="100%" stopColor={dark ? "#2A2450" : "#FFFFFF"} stopOpacity={dark ? 0.1 : 0} />
           </RadialGradient>
           <RadialGradient id="glow" cx="62%" cy="34%" r="45%">
-            <Stop offset="0%" stopColor="#F0BC6E" stopOpacity={0.3 + 0.4 * w} />
-            <Stop offset="100%" stopColor="#F0BC6E" stopOpacity={0} />
+            <Stop offset="0%" stopColor={pal.glow} stopOpacity={0.3 + 0.4 * w} />
+            <Stop offset="100%" stopColor={pal.glow} stopOpacity={0} />
           </RadialGradient>
         </Defs>
         <Circle cx={S / 2} cy={S / 2} r={S * 0.36} fill="url(#orb)" />
@@ -224,7 +258,7 @@ export function AuraOrb({
           <Circle cx={S / 2} cy={S / 2} r={S * 0.42} stroke={dark ? "#575093" : "#C9C4E8"} strokeWidth={1.4} strokeDasharray="3 7" fill="none" />
         )}
       </Svg>
-      {empty ? children : <ConstellationOverlay S={S} units={units} stars={stars} dark={dark} />}
+      {empty ? children : <ConstellationOverlay S={S} units={units} stars={stars} dark={dark} dimScores={dimScores} />}
       {/* the engraving: your own tics, worn small at the edge */}
       {!empty &&
         marks.slice(0, 3).map((m, i) => {
@@ -252,16 +286,26 @@ export function AuraOrb({
 }
 
 /* stars over the orb — same star-tree as ever, one of them gilded */
-function ConstellationOverlay({ S, units, stars, dark }: { S: number; units: number[]; stars: number; dark?: boolean }) {
+function ConstellationOverlay({ S, units, stars, dark, dimScores }: { S: number; units: number[]; stars: number; dark?: boolean; dimScores?: number[] }) {
   const cx = S / 2;
   const cy = S / 2;
   const k = S / 190;
   const u = (i: number) => units[i % Math.max(1, units.length)] ?? 0.5;
-  const pts = Array.from({ length: stars }, (_, i) => {
-    const a = i * 2.399 + u(i) * 1.4;
-    const r = (16 + (i / Math.max(1, stars - 1)) * 58 + u(i + 3) * 10) * k;
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) * 0.8, big: i % 3 === 0, w: 0.45 + u(i + 1) * 0.55 };
-  });
+  /* WITH DIMS, THE SHAPE IS THE WRITER. Nine stars, one per dimension,
+     each at its own compass point, radius by score — a rhythm-led writer's
+     sky is spiked where a balanced writer's is round. The generic spiral
+     below remains only as the fallback for callers without a reading. */
+  const pts = dimScores?.length
+    ? dimScores.map((sc, i) => {
+        const a = -Math.PI / 2 + (i / dimScores.length) * Math.PI * 2 + (u(i) - 0.5) * 0.3;
+        const r = (14 + (sc / 100) * 58 + u(i + 3) * 6) * k;
+        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) * 0.8, big: sc >= 70, w: 0.45 + (sc / 100) * 0.55 };
+      })
+    : Array.from({ length: stars }, (_, i) => {
+        const a = i * 2.399 + u(i) * 1.4;
+        const r = (16 + (i / Math.max(1, stars - 1)) * 58 + u(i + 3) * 10) * k;
+        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) * 0.8, big: i % 3 === 0, w: 0.45 + u(i + 1) * 0.55 };
+      });
   const links = pts.slice(1).map((p, kk) => {
     const i = kk + 1;
     let best = 0;

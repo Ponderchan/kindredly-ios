@@ -21,6 +21,8 @@ import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { VoiceCard } from "../../components/VoiceCard";
 import { analyzeVoice, type VoiceRead } from "../../lib/voice";
 import { fingerprint } from "../../lib/signature";
+import { journalHourBand } from "../../lib/report";
+import type { OrbSky } from "../../components/VoiceCard";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -63,6 +65,7 @@ export default function MeTab() {
   const [units, setUnits] = useState<number[]>([]);
   const [warmth, setWarmth] = useState(0.5);
   const [marks, setMarks] = useState<string[]>([]);
+  const [sky, setSky] = useState<OrbSky>("day");
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -110,6 +113,11 @@ export default function MeTab() {
         if ((all.match(/(\.\.\.|…)/g) || []).length >= 2) tics.push("…");
         if ((all.match(/[?？]/g) || []).length >= 2) tics.push("?");
         setMarks(tics);
+        /* the hour your writing lives in — a night writer's orb is night */
+        void journalHourBand().then((band) => {
+          if (!alive || !band) return;
+          setSky(band.startsWith("05") ? "dawn" : band.startsWith("11") ? "day" : band.startsWith("17") ? "dusk" : "night");
+        });
         setVoice({
           ...v,
           tier: a.phase === "empty" ? "empty" : a.phase === "formed" ? "formed" : "evolving",
@@ -222,6 +230,9 @@ export default function MeTab() {
                   warmth={warmth}
                   marks={marks}
                   signals={aura.locked.length}
+                  sky={sky}
+                  dimScores={aura.dims.map((d) => d.score)}
+                  words={aura.commonWords}
                 />
               </View>
             )}
