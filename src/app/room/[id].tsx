@@ -5,10 +5,12 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
-import { dShort } from "../../lib/format";
+import { dLong, dShort } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, type ThreadDetail } from "../../lib/db";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { noticeThings } from "../../lib/notice";
+import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
+import { STAMPS } from "../../data/stamps";
 import { WrenBird } from "../../components/WrenBird";
 import { useWrenName } from "../../lib/wren-name";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
@@ -46,6 +48,34 @@ export default function RoomScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const wren = useWrenName();
+  const [tracing, setTracing] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+
+  /* Every row adds something to the relationship rather than to the
+     scroll. Three are live and need nothing but words; the two that would
+     need storage, moderation and a media pipeline are shown locked rather
+     than live-and-dead. */
+  const TRACES: TraceAction[] = [
+    { id: "thought", glyph: "💭", title: "Drop a thought", sub: "whatever's in your head" },
+    { id: "ask", glyph: "❓", title: "Ask something", sub: "open a new thread of talk" },
+    { id: "wren", glyph: "🐦", title: `A question from ${wren}`, sub: "she hands you one to pass on" },
+    { id: "moment", glyph: "📷", title: "Tiny moment", sub: "a picture of today", locked: true },
+    { id: "song", glyph: "🎵", title: "Leave a song", sub: "one they should hear", locked: true },
+    { id: "save", glyph: "🔖", title: "Save this moment", sub: "keep it in your lore", locked: true },
+  ];
+
+  const onTrace = (kind: string) => {
+    setTracing(false);
+    if (kind === "wren") {
+      /* the seed library has been in stamps.ts since the port — 36 prompts
+         in three languages, never once rendered. She hands you one; YOU
+         send it, because a question arrives differently when a person
+         chose to ask it. */
+      const seed = STAMPS[Math.floor(Math.random() * STAMPS.length)];
+      setText(seed.prompt.en);
+    }
+    setTimeout(() => inputRef.current?.focus(), 160);
+  };
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -133,11 +163,15 @@ export default function RoomScreen() {
           />
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: PF.letter, fontSize: 19, fontWeight: "600", color: P.ink }}>{name}</Text>
-            {!!read?.archetype && (
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink40, marginTop: 1 }}>
-                {theyify(read.archetype.name)}
-              </Text>
-            )}
+            <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.1, color: P.ink40, marginTop: 2 }}>
+              {detail?.since ? `KINDRED SINCE ${dLong(detail.since).toUpperCase()}` : theyify(read?.archetype?.name || "")}
+            </Text>
+            {/* she carried every letter that got you here, and the room
+                should say so once rather than her hovering in it */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 }}>
+              <WrenBird size={13} mood="content" />
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40 }}>{wren} found you two</Text>
+            </View>
           </View>
         </Pressable>
         <ReportMenu
@@ -208,11 +242,19 @@ export default function RoomScreen() {
         )}
 
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 22, paddingBottom: 14 }}>
+          <Pressable
+            onPress={() => setTracing(true)}
+            hitSlop={6}
+            style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink }}>+</Text>
+          </Pressable>
           <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
             <TextInput
+              ref={inputRef}
               value={text}
               onChangeText={setText}
-              placeholder={`say something to ${name}…`}
+              placeholder="leave something here…"
               placeholderTextColor={P.ink40}
               multiline
               style={{ maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16.5, lineHeight: 24, color: P.ink }}
@@ -229,6 +271,8 @@ export default function RoomScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <LeaveATrace open={tracing} actions={TRACES} onPick={onTrace} onClose={() => setTracing(false)} />
     </SafeAreaView>
   );
 }
