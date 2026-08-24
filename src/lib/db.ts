@@ -317,6 +317,7 @@ export interface ThreadSummary {
   mine: number; // my message count on this thread
   theirs: number; // their count — what drives a face coming into view
   theirSigned?: boolean; // their name is enclosed, waiting on mine
+  iSigned?: boolean; // mine is enclosed, waiting on theirs
   /** everything they have written to me — what lib/correspondent reads */
   theirTexts?: string[];
   otherName: string | null;
@@ -409,6 +410,7 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         mine: iamA ? r.a_count : r.b_count,
         theirs: iamA ? r.b_count : r.a_count,
         theirSigned: !!(iamA ? r.b_name : r.a_name),
+        iSigned: !!(iamA ? r.a_name : r.b_name),
         // the opening was written by b; it is theirs unless I am b
         theirTexts: (iamA && r.opening ? [r.opening as string] : []).concat(theirs.get(r.id) || []),
         otherName: iamA ? r.b_name : r.a_name,

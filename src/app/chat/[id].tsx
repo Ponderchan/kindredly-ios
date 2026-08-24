@@ -14,7 +14,8 @@ import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
-import { readCorrespondent, stageLine } from "../../lib/correspondent";
+import { readCorrespondent } from "../../lib/correspondent";
+import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
 
@@ -102,6 +103,22 @@ export default function ChatScreen() {
     if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
     return readCorrespondent(theirs, detail.revealed);
   }, [detail]);
+  /* the same sentence the list row shows — same words, not a second
+     vocabulary for the same state */
+  const state = useMemo(
+    () =>
+      detail
+        ? threadState({
+            mine: detail.myCount,
+            theirs: detail.otherCount,
+            revealed: detail.revealed,
+            lastSenderMe: !detail.messages.length || !!detail.messages[detail.messages.length - 1]?.mine,
+            iSigned: detail.iSigned,
+            theirSigned: detail.theirSigned,
+          })
+        : null,
+    [detail],
+  );
 
   const weight = weightedCount(text);
   const over = weight > LETTER_MAX;
@@ -174,17 +191,11 @@ export default function ChatScreen() {
           )}
           <View>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{name.toUpperCase()}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginTop: 2, textAlign: "center" }}>
-              {detail?.revealed
-                ? "NAMES REVEALED"
-                : detail?.theirSigned
-                  ? "THEIR NAME IS ENCLOSED"
-                  : detail?.iSigned
-                    ? "YOUR NAME IS ENCLOSED"
-                    : read
-                      ? stageLine(read.stage)
-                      : "COMING INTO VIEW"}
-            </Text>
+            {!!state && (
+              <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: state.tone, marginTop: 2, textAlign: "center" }}>
+                {state.label}
+              </Text>
+            )}
           </View>
         </Pressable>
         <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={goBack} />
@@ -248,7 +259,7 @@ export default function ChatScreen() {
           <View style={{ alignItems: "center", paddingBottom: 10 }}>
             {detail.iSigned ? (
               <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>
-                YOUR NAME IS ENCLOSED · WAITING ON THEIRS
+                WAITING ON THEIR NAME
               </Text>
             ) : (
               <Pressable
@@ -264,7 +275,7 @@ export default function ChatScreen() {
                     color: detail.theirSigned ? P.brassSeal : P.ink,
                   }}
                 >
-                  {detail.theirSigned ? "THEIR NAME IS ENCLOSED — ADD YOURS" : "ENCLOSE YOUR NAME"}
+                  {detail.theirSigned ? "THEY'VE PUT THEIR NAME IN — ADD YOURS" : "PUT YOUR NAME IN"}
                 </Text>
               </Pressable>
             )}

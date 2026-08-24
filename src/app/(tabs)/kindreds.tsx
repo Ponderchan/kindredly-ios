@@ -12,7 +12,7 @@ import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { setWaiting } from "../../lib/waiting";
-import { readCorrespondent, stageLine } from "../../lib/correspondent";
+import { threadState } from "../../lib/thread-state";
 import { reactionLabel } from "../../data/reactions";
 import { DEMO_THREADS } from "../../data/demo";
 
@@ -31,9 +31,6 @@ import { DEMO_THREADS } from "../../data/demo";
    down, with no sheet anywhere. */
 const GROUND = P.penWash;
 const REVEAL = 5;
-
-/** they answered your letter and you have not written back yet */
-const answered = (t: ThreadSummary) => t.mine === 0 && t.theirs > 0;
 
 export default function KindredsTab() {
   const router = useRouter();
@@ -62,18 +59,17 @@ export default function KindredsTab() {
     () =>
       source
         .filter((t) => t.mine > 0 || t.theirs > 0)
-        // whoever is waiting on you comes first; the rest by recency
-        .sort((a, b) => Number(answered(b)) - Number(answered(a)) || b.lastAt - a.lastAt),
+        // whatever is on you comes first; the rest by recency
+        .sort(
+          (a, b) =>
+            Number(!!threadState(b)?.needsYou) - Number(!!threadState(a)?.needsYou) ||
+            b.lastAt - a.lastAt,
+        ),
     [source],
   );
   const named = orbit.filter((t) => t.revealed).length;
-  const coming = orbit.length - named;
-  /* someone enclosed their name and it is waiting on yours — the one state
-     on this tab that asks something of you, so it is what the plate reports
-     when it is true, in brass, ahead of any count */
-  const atDoor = orbit.filter((t) => !t.revealed && t.theirSigned).length;
-  // they wrote and you never have — the loudest state on the tab
-  const waiting = orbit.filter(answered).length;
+  // anything at all that is on you — one number, one sentence
+  const waiting = orbit.filter((t) => threadState(t)?.needsYou).length;
   const empty = loaded && orbit.length === 0;
 
   // feed the tab-bar signal from the count this screen already computed
@@ -84,27 +80,14 @@ export default function KindredsTab() {
       {/* the same plate Today and Sealed carry */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>KINDREDS</Text>
-        {/* the plate speaks the tab's own vocabulary: strangers are COMING
-            INTO VIEW, the landed are KINDREDS. 'IN ORBIT · NAMED' was left
-            over from the era when five letters named people automatically —
-            nothing is 'named' at you any more, you trade names. */}
+        {/* the plate answers one question — is anything on me? */}
         <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
           {empty ? (
             "NONE"
           ) : waiting ? (
-            <Text style={{ color: P.pen }}>
-              {waiting === 1 ? "SOMEONE ANSWERED YOU" : `${waiting} ANSWERED YOU`}
-            </Text>
-          ) : atDoor ? (
-            <Text style={{ color: P.brassSeal }}>
-              {atDoor === 1 ? "A NAME AWAITS YOURS" : `${atDoor} NAMES AWAIT YOURS`}
-            </Text>
+            <Text style={{ color: P.pen }}>{waiting} WAITING ON YOU</Text>
           ) : (
-            <>
-              {coming > 0 ? `${String(coming).padStart(2, "0")} COMING INTO VIEW` : null}
-              {coming > 0 && named > 0 ? " · " : null}
-              {named > 0 ? `${named} KINDRED${named > 1 ? "S" : ""}` : null}
-            </>
+            "ALL ANSWERED"
           )}
         </Text>
       </View>
@@ -130,12 +113,11 @@ export default function KindredsTab() {
 }
 
 function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
-  const theirTurn = !t.lastSenderMe; // they wrote last → your move / a new letter
-  const isAnswered = answered(t); // they wrote, you never have
-  /* what has actually come through of them — never how many letters have
-     gone by. A number of letters is a task; a number of moments is a person
-     arriving. */
-  const read = useMemo(() => readCorrespondent(t.theirTexts || [], t.revealed), [t.theirTexts, t.revealed]);
+  /* ONE LINE, AND IT ANSWERS "WHAT DO I DO NOW?". The row used to carry a
+     chip AND a caption AND a moment count, in six combinations — three
+     answers to a question nobody asked while scanning a list. How well you
+     know someone lives on their page, where it is the subject. */
+  const state = threadState(t);
 
   return (
     <Pressable
@@ -165,13 +147,8 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
             <Text style={{ fontSize: 14 }}>{t.theirReaction}</Text>
           </View>
         )}
-        {theirTurn && (
-          <View style={{ backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 2.5 }}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: "#fff" }}>
-              {isAnswered ? "ANSWERED YOU" : "NEW"}
-            </Text>
-          </View>
-        )}
+        {/* one square of ink, the same mark the tab bar carries */}
+        {state?.needsYou && <View style={{ width: 7, height: 7, backgroundColor: state.tone }} />}
       </View>
       {t.theirReaction && (
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.5, color: P.pen, marginTop: 9 }}>
@@ -189,21 +166,9 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
           {t.preview}
         </Text>
       )}
-      {!t.revealed && (
-        <Text
-          style={{
-            fontFamily: PF.mono,
-            fontSize: 10,
-            letterSpacing: 0.8,
-            color: isAnswered ? P.pen : t.theirSigned ? P.brassSeal : P.ink40,
-            marginTop: 9,
-          }}
-        >
-          {isAnswered
-            ? "THEY ANSWERED YOUR LETTER — YOUR TURN"
-            : t.theirSigned
-              ? "THEIR NAME IS ENCLOSED — ADD YOURS"
-              : `${stageLine(read.stage)}${read.moments ? ` · ${read.moments} MOMENT${read.moments > 1 ? "S" : ""}` : ""}`}
+      {state && (
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: state.tone, marginTop: 9 }}>
+          {state.label}
         </Text>
       )}
     </Pressable>
