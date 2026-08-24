@@ -49,6 +49,7 @@ interface AuthValue {
   signInWithEmail: (email: string, name?: string) => Promise<AuthResult>;
   saveProfile: (p: Record<string, any>) => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<AuthResult>;
   refresh: () => Promise<void>;
 }
 
@@ -325,6 +326,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
   }, []);
 
+  /* Account deletion (App Store 5.1.1(v) — and the decent thing to offer).
+     The server side is one RPC: delete_account() removes the auth.users row
+     as the user themself, and migration 0009's FK rules decide what death
+     leaves behind — letters stay in the world unsigned, threads keep the
+     survivor's half, everything private to the account cascades away.
+
+     Locally, everything resets EXCEPT the sealed journal. The journal never
+     belonged to the account — "No one sees this. Not even me." — so it
+     doesn't die with it; it belongs to the phone and stays on the phone.
+     The scrub runs BEFORE sign-out so the adopt-on-sign-in effect can never
+     resurrect the old pen name into some future session. */
+  const deleteAccount = useCallback(async (): Promise<AuthResult> => {
+    if (!supabase) return { error: "Not connected." };
+    const { error } = await supabase.rpc("delete_account");
+    if (error) {
+      return { error: "The account couldn't be deleted just now. Nothing was changed — try again in a moment." };
+    }
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const gone = keys.filter((k) => k.startsWith("kindredly") && k !== "kindredly_journal");
+      if (gone.length) await AsyncStorage.multiRemove(gone);
+    } catch {
+      /* the account is already gone; a failed local scrub must not block that */
+    }
+    setLocalProfile({});
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      /* the server user no longer exists; only the local session matters */
+    }
+    setSession(null);
+    return { ok: true };
+  }, []);
+
   const value: AuthValue = {
     ready,
     enabled: supabaseReady,
@@ -340,6 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signInWithEmail,
     saveProfile,
+    deleteAccount,
     signOut,
     refresh,
   };

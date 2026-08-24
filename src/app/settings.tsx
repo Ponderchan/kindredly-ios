@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { P, PF, panel } from "../theme/post";
 import { useAuth } from "../lib/auth";
+import { LeaveSheet } from "../components/LeaveSheet";
 import { disableMorningKnock, enableMorningKnock, morningKnockEnabled } from "../lib/notify";
 
 /* Settings — everything that isn't the profile itself, behind Me's gear. */
@@ -62,6 +63,27 @@ export default function Settings() {
 
   const onSignOut = async () => {
     await auth.signOut();
+    router.replace("/onboarding");
+  };
+
+  /* Account deletion (5.1.1(v)) — a real, in-app, no-email-required exit.
+     The confirm is a LeaveSheet, not an Alert: this is the one moment we
+     have someone's full attention, and the body is where the product
+     decision lives in reader-facing words — letters stay unsigned, kindreds
+     keep what you wrote, the sealed journal stays on the phone. */
+  const [askDelete, setAskDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const onDeleteAccount = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    const r = await auth.deleteAccount();
+    setDeleting(false);
+    setAskDelete(false);
+    if ("error" in r) {
+      Alert.alert("Still here", r.error);
+      return;
+    }
     router.replace("/onboarding");
   };
 
@@ -129,11 +151,26 @@ export default function Settings() {
         </View>
 
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2 }]}>
-          <Pressable onPress={onSignOut} style={{ paddingVertical: 15 }}>
+          <Pressable onPress={onSignOut} style={{ paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>Sign out</Text>
+          </Pressable>
+          <Pressable onPress={() => setAskDelete(true)} style={{ paddingVertical: 13 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>Delete account</Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 2 }}>
+              Your letters stay, unsigned. Everything else goes.
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
+
+      <LeaveSheet
+        open={askDelete}
+        title="Delete your account"
+        body={`Your letters stay out in the world, unsigned — nothing about them traces back to you. A kindred keeps what you wrote them; you simply go quiet. Your sealed pages never left this phone, so they stay. Everything else — your aura, your kindreds, ${wren} — goes for good. There's no undo.`}
+        actions={[{ label: deleting ? "…" : "DELETE MY ACCOUNT", kind: "destructive", onPress: onDeleteAccount }]}
+        cancelLabel="KEEP MY ACCOUNT"
+        onCancel={() => !deleting && setAskDelete(false)}
+      />
     </SafeAreaView>
   );
 }
