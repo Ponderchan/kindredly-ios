@@ -2,7 +2,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Stop } from "react-native-svg";
 import { C, F, cardStyle } from "../theme/tokens";
-import { AuraStamp } from "./AuraStamp";
+import { AuraPoem } from "./AuraPoem";
 import { WrenBird } from "./WrenBird";
 import type { VoiceRead } from "../lib/voice";
 
@@ -72,17 +72,9 @@ export function VoiceCard({
           </View>
 
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraStamp
-              stage={stage ?? "formed"}
-              texts={texts}
-              name={auraName}
-              pieces={pieces || read.pieces}
-              sky={sky}
-              warmth={warmth}
-              marks={marks}
-              formedOn={formedOn}
-              holderBg="#221E3D"
-            />
+            <View style={{ alignSelf: "stretch", borderRadius: 14, overflow: "hidden" }}>
+              <AuraPoem stage={stage ?? "formed"} texts={texts} keepWords={words} dark />
+            </View>
             <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>AURA NAME</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
             {words.length > 0 && (
@@ -154,17 +146,9 @@ export function VoiceCard({
       ) : (
         <View>
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraStamp
-              stage={stage ?? "shaping"}
-              texts={texts}
-              name={auraName}
-              pieces={pieces || read.pieces}
-              sky={sky}
-              warmth={warmth}
-              marks={marks}
-              formedOn={formedOn}
-              holderBg="#FFFFFF"
-            />
+            <View style={{ alignSelf: "stretch", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: C.lineSoft }}>
+              <AuraPoem stage={stage ?? "shaping"} texts={texts} keepWords={words} />
+            </View>
           </View>
           <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: C.faint }}>AURA</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink, marginTop: 4 }}>{auraName}</Text>
