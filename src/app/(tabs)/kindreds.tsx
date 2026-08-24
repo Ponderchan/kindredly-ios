@@ -53,7 +53,7 @@ export default function KindredsTab() {
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>KINDREDS</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
-          {empty ? "NONE" : `${String(orbit.length).padStart(2, "0")} IN ORBIT${named ? ` · ${named} NAMED` : ""}`}
+          {empty ? "NONE" : `${String(orbit.length - named).padStart(2, "0")} IN ORBIT${named ? ` · ${named} NAMED` : ""}`}
         </Text>
       </View>
 
