@@ -121,8 +121,10 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
           {t.preview}
         </Text>
       ) : (
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, marginTop: 12 }}>
-          COMING INTO VIEW · {theirTurn ? "YOUR TURN" : "WAITING ON THEM"}
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: t.theirSigned ? P.brassSeal : P.ink40, marginTop: 12 }}>
+          {t.theirSigned
+            ? "THEIR NAME IS ENCLOSED — ADD YOURS"
+            : `COMING INTO VIEW · ${theirTurn ? "YOUR TURN" : "WAITING ON THEM"}`}
         </Text>
       )}
     </Pressable>

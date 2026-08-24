@@ -1,16 +1,20 @@
 import { useCallback, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../../theme/post";
+import { Introduction } from "../../components/Introduction";
+import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
-import { Toast } from "../../components/ui";
 import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
-import { fetchThreadMessages, sendThreadMessage, setThreadReaction, type ThreadDetail } from "../../lib/db";
+import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
+import { useAuth } from "../../lib/auth";
+import { useWrenName } from "../../lib/wren-name";
 
 /* The correspondence, seen from Kindreds: a slow chat. The other person's
    mosaic develops in the header with every letter THEY send — coming into
@@ -33,6 +37,20 @@ import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 const GROUND = P.paper;
 const REVEAL = 5;
 
+/* one introduction per thread, ever — the ceremony is a moment, not a
+   recurring screen */
+const SEEN_KEY = "kindredly_introductions";
+async function introduceOnce(threadId: string, show: () => void) {
+  try {
+    const seen: string[] = JSON.parse((await AsyncStorage.getItem(SEEN_KEY)) || "[]");
+    if (seen.includes(threadId)) return;
+    await AsyncStorage.setItem(SEEN_KEY, JSON.stringify([...seen, threadId]));
+  } catch {
+    /* if the ledger is unreadable, showing twice beats never showing */
+  }
+  show();
+}
+
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -40,17 +58,27 @@ export default function ChatScreen() {
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [revealToast, setRevealToast] = useState(false);
   const [reacting, setReacting] = useState(false);
+  const [askSign, setAskSign] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [ceremony, setCeremony] = useState(false);
+  const auth = useAuth();
+  const wren = useWrenName();
 
   const load = useCallback(async () => {
     if (!id) return;
     if (__DEV__ && id.startsWith("demo-")) {
       const { DEMO_DETAILS } = await import("../../data/demo");
-      setDetail(DEMO_DETAILS[id] ?? null);
+      const demo = DEMO_DETAILS[id] ?? null;
+      setDetail(demo);
+      if (demo?.revealed) void introduceOnce(id, () => setCeremony(true));
       return;
     }
-    setDetail(await fetchThreadMessages(id));
+    const d = await fetchThreadMessages(id);
+    setDetail(d);
+    // The introduction is held for whoever arrives after the second
+    // signature — including the one who signed FIRST and finds out later.
+    if (d?.revealed) void introduceOnce(id, () => setCeremony(true));
   }, [id]);
 
   useFocusEffect(
@@ -74,7 +102,6 @@ export default function ChatScreen() {
     const body = text.trim();
     if (!id || !canSend || !detail) return;
     setSending(true);
-    const wasRevealed = detail.revealed;
     const res = await sendThreadMessage(id, body);
     setSending(false);
     if (!res) {
@@ -84,7 +111,25 @@ export default function ChatScreen() {
     setText("");
     await load();
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-    if (res.revealed && !wasRevealed) setRevealToast(true);
+  };
+
+  /* enclose my name. Whoever signs second completes the reveal and gets
+     the introduction on the spot; the first signer gets it on their next
+     visit, via load(). */
+  const onSign = async () => {
+    if (!id || signing) return;
+    setSigning(true);
+    const res = __DEV__ && id.startsWith("demo-") ? { revealed: true } : await signThread(id);
+    setSigning(false);
+    setAskSign(false);
+    if (!res) {
+      Alert.alert("Your name stayed here", "It didn't go through. Try again in a moment.");
+      return;
+    }
+    await load();
+    if (res.revealed) {
+      await introduceOnce(id, () => setCeremony(true));
+    }
   };
 
   const react = (emoji: string) => {
@@ -109,7 +154,13 @@ export default function ChatScreen() {
           <View>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{name.toUpperCase()}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginTop: 2, textAlign: "center" }}>
-              {detail?.revealed ? "NAMES REVEALED" : "COMING INTO VIEW"}
+              {detail?.revealed
+                ? "NAMES REVEALED"
+                : detail?.theirSigned
+                  ? "THEIR NAME IS ENCLOSED"
+                  : detail?.iSigned
+                    ? "YOUR NAME IS ENCLOSED"
+                    : "COMING INTO VIEW"}
             </Text>
           </View>
         </View>
@@ -167,6 +218,36 @@ export default function ChatScreen() {
           })}
         </ScrollView>
 
+        {/* the door — from the fifth letter, names can be enclosed. Three
+            states: yours to offer, yours offered and waiting, or theirs
+            waiting on you (brass — the one warm signal in the product). */}
+        {detail && !detail.revealed && detail.myCount >= REVEAL && (
+          <View style={{ alignItems: "center", paddingBottom: 10 }}>
+            {detail.iSigned ? (
+              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>
+                YOUR NAME IS ENCLOSED · WAITING ON THEIRS
+              </Text>
+            ) : (
+              <Pressable
+                onPress={() => setAskSign(true)}
+                hitSlop={8}
+                style={{ borderWidth: 1, borderColor: detail.theirSigned ? P.brassSeal : P.ink, paddingHorizontal: 14, paddingVertical: 8 }}
+              >
+                <Text
+                  style={{
+                    fontFamily: PF.monoSemi,
+                    fontSize: 10.5,
+                    letterSpacing: 1.2,
+                    color: detail.theirSigned ? P.brassSeal : P.ink,
+                  }}
+                >
+                  {detail.theirSigned ? "THEIR NAME IS ENCLOSED — ADD YOURS" : "ENCLOSE YOUR NAME"}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
         {/* the only number left is the one that stops a letter going out */}
         {over && (
           <View style={{ alignItems: "center", paddingBottom: 8 }}>
@@ -218,7 +299,23 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {revealToast && <Toast msg="you're no longer strangers." bottom={150} />}
+      <LeaveSheet
+        open={askSign}
+        title="Enclose your name"
+        body={`Your pen name — ${auth.handle || "the one you chose"} — travels with your next letters. They'll see it's enclosed, but can't open it until they enclose theirs. If they never do, you stay lovely strangers, and that's allowed.`}
+        actions={[{ label: signing ? "…" : "ENCLOSE IT", kind: "primary", onPress: onSign }]}
+        cancelLabel="NOT YET"
+        onCancel={() => !signing && setAskSign(false)}
+      />
+
+      <Introduction
+        open={ceremony}
+        wren={wren}
+        otherSeed={detail?.other || "anon"}
+        otherName={detail?.otherName || "A kindred"}
+        myName={auth.handle || "you"}
+        onClose={() => setCeremony(false)}
+      />
     </SafeAreaView>
   );
 }

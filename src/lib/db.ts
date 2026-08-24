@@ -246,14 +246,12 @@ export async function replyToLetter(
   const me = await uid();
   if (!me) return null;
   try {
-    const handle = await currentHandle();
     const row: Record<string, unknown> = {
       a: me,
       b: letter.author,
       stamp: letter.stamp || "off-chest",
       opening: letter.body || "",
       a_count: 1,
-      a_name: handle,
       last_sender: me,
       last_body: body,
       last_at: new Date().toISOString(),
@@ -288,6 +286,7 @@ export interface ThreadSummary {
   revealed: boolean;
   mine: number; // my message count on this thread
   theirs: number; // their count — what drives a face coming into view
+  theirSigned?: boolean; // their name is enclosed, waiting on mine
   otherName: string | null;
   other: string; // correspondent's user id
   preview: string;
@@ -338,6 +337,7 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         revealed: !!r.revealed,
         mine: iamA ? r.a_count : r.b_count,
         theirs: iamA ? r.b_count : r.a_count,
+        theirSigned: !!(iamA ? r.b_name : r.a_name),
         otherName: iamA ? r.b_name : r.a_name,
         other: iamA ? r.b : r.a,
         preview: r.last_body || r.opening || "",
@@ -387,6 +387,8 @@ export interface ThreadDetail {
   other: string; // correspondent user id
   myCount: number;
   otherCount: number;
+  iSigned?: boolean; // my pen name is enclosed with this correspondence
+  theirSigned?: boolean; // theirs is — one signature from a reveal
   opening: string;
   openingFromMe: boolean;
   openingMedia?: string | null; // voice-letter opening (storage path)
@@ -428,6 +430,8 @@ export async function fetchThreadMessages(
       other: iamA ? t.b : t.a,
       myCount: iamA ? t.a_count : t.b_count,
       otherCount: iamA ? t.b_count : t.a_count,
+      iSigned: !!(iamA ? t.a_name : t.b_name),
+      theirSigned: !!(iamA ? t.b_name : t.a_name),
       opening: t.opening || "",
       openingFromMe: t.b === me,
       openingMedia: (t as any).opening_media ?? null,
@@ -443,10 +447,15 @@ export async function fetchThreadMessages(
   }
 }
 
+/* Send a message; bump counts. Names and reveal no longer move here —
+   since 0010 a name is written only by the act of SIGNING (signThread),
+   and revealed flips when the second signature lands. Auto-reveal at 5/5
+   was a vending machine, and it force-unmasked people who wanted to stay
+   pen pals forever. */
 export async function sendThreadMessage(
   threadId: string,
   body: string,
-): Promise<{ revealed: boolean } | null> {
+): Promise<{ ok: true } | null> {
   if (!supabaseReady) return null;
   const me = await uid();
   if (!me) return null;
@@ -460,21 +469,45 @@ export async function sendThreadMessage(
     const iamA = t.a === me;
     const a_count = t.a_count + (iamA ? 1 : 0);
     const b_count = t.b_count + (iamA ? 0 : 1);
-    const revealed = a_count >= REVEAL_AT && b_count >= REVEAL_AT;
     await supabase!
       .from("messages")
       .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
     const patch: Record<string, unknown> = {
       a_count,
       b_count,
-      revealed,
       last_sender: me,
       last_body: body,
       last_at: new Date().toISOString(),
     };
-    patch[iamA ? "a_name" : "b_name"] = await currentHandle();
     await supabase!.from("threads").update(patch).eq("id", threadId);
-    return { revealed };
+    return { ok: true };
+  } catch {
+    return null;
+  }
+}
+
+/* Enclose my pen name with this correspondence. From the fifth letter on
+   (client-gated in the UI), either side may sign; whoever signs second
+   completes the reveal. Returns { revealed } — true when the second
+   signature just landed (mine), so the caller can hold the ceremony. */
+export async function signThread(threadId: string): Promise<{ revealed: boolean } | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { data: t } = await supabase!
+      .from("threads")
+      .select("a,b,a_name,b_name,revealed")
+      .eq("id", threadId)
+      .maybeSingle();
+    if (!t) return null;
+    const iamA = t.a === me;
+    const theirs = iamA ? t.b_name : t.a_name;
+    const patch: Record<string, unknown> = { [iamA ? "a_name" : "b_name"]: await currentHandle() };
+    if (theirs) patch.revealed = true;
+    const { error } = await supabase!.from("threads").update(patch).eq("id", threadId);
+    if (error) return null;
+    return { revealed: !!theirs || !!t.revealed };
   } catch {
     return null;
   }

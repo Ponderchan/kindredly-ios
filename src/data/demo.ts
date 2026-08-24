@@ -40,9 +40,10 @@ export const DEMO_THREADS: ThreadSummary[] = [
     revealed: false,
     mine: 5,
     theirs: 4,
+    theirSigned: true,
     otherName: "Someone at Blackberry Row",
     other: "demo-blackberry",
-    preview: "One more from you and Wren tells us each other's names. Strange to want that this much.",
+    preview: "I've enclosed my name with this one. No hurry — it keeps.",
     lastSenderMe: false,
     lastAt: now - 16 * H,
     theirReaction: "🫂", // they caught your last letter
@@ -96,6 +97,8 @@ export const DEMO_DETAILS: Record<
     other: string;
     myCount: number;
     otherCount: number;
+    iSigned?: boolean;
+    theirSigned?: boolean;
     opening: string;
     openingFromMe: boolean;
     messages: { body: string; mine: boolean; date: string }[];
@@ -138,6 +141,7 @@ export const DEMO_DETAILS: Record<
     other: "demo-blackberry",
     myCount: 5,
     otherCount: 4,
+    theirSigned: true,
     opening: "My mother sold the house last month. I found out from my sister.",
     openingFromMe: false,
     messages: [
@@ -145,7 +149,7 @@ export const DEMO_DETAILS: Record<
       { body: "Yes. Exactly that. Everyone keeps saying 'it's just a house.'", mine: false, date: iso(70 * H) },
       { body: "The kitchen table is what I'd miss. Ours had a burn mark shaped like Portugal.", mine: true, date: iso(50 * H) },
       { body: "Ours had initials under it. I checked before the viewing. Still there.", mine: false, date: iso(30 * H) },
-      { body: "One more from you and Wren tells us each other's names. Strange to want that this much.", mine: false, date: iso(16 * H) },
+      { body: "I've enclosed my name with this one. No hurry — it keeps.", mine: false, date: iso(16 * H) },
     ],
   },
   "demo-north": {

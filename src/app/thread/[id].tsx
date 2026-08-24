@@ -8,7 +8,6 @@ import { P, PF, channelInk, channelWash } from "../../theme/post";
 import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
-import { Toast } from "../../components/ui";
 import { AudioCard } from "../../components/AudioCard";
 import { getStamp } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
@@ -34,7 +33,6 @@ export default function ThreadScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [sending, setSending] = useState(false);
-  const [revealToast, setRevealToast] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [reply, setReply] = useState("");
   const [myR, setMyR] = useState<string | null>(null);
@@ -62,7 +60,6 @@ export default function ThreadScreen() {
     const text = reply.trim();
     if (!id || sending || !replyOk) return;
     setSending(true);
-    const wasRevealed = detail?.revealed;
     const res = await sendThreadMessage(id, text);
     setSending(false);
     if (!res) {
@@ -71,7 +68,8 @@ export default function ThreadScreen() {
     }
     setReply("");
     await load();
-    if (res.revealed && !wasRevealed) setRevealToast(true);
+    // reveal no longer rides a send — names move only by signing, and the
+    // chat screen holds the introduction
   };
 
   const react = (emoji: string) => {
@@ -290,7 +288,6 @@ export default function ThreadScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {revealToast && <Toast msg="you're no longer strangers." bottom={150} />}
     </SafeAreaView>
   );
 }

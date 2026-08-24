@@ -94,9 +94,11 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
         </Animated.View>
       ))}
 
-      {/* the ones circling in — no label, no number; the sky says it */}
+      {/* the ones circling in — no label, no number; the sky says it.
+          A brass cell rides with anyone whose name is enclosed and
+          waiting on yours: the one warm signal in the sky. */}
       {faces.map(({ t, develop, x, y }, i) => (
-        <OrbitingFace key={t.id} seed={t.other} develop={develop} x={x} y={y} order={i} />
+        <OrbitingFace key={t.id} seed={t.other} develop={develop} x={x} y={y} order={i} signed={!!t.theirSigned} />
       ))}
 
       {seats.map(({ t, x, y, above }) => (
@@ -121,7 +123,7 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
    it stays upright — a moon that always shows you the same side. Speed and
    direction are deterministic per correspondent (2.5–4.5 minutes a circuit),
    slow enough to be weather, not spectacle. Honors Reduce Motion. */
-function OrbitingFace({ seed, develop, x, y, order }: { seed: string; develop: number; x: number; y: number; order: number }) {
+function OrbitingFace({ seed, develop, x, y, order, signed }: { seed: string; develop: number; x: number; y: number; order: number; signed?: boolean }) {
   const h = hashStr(seed + "@drift");
   const dir = (h & 1) === 0 ? 1 : -1;
   const duration = 150000 + (h % 120000); // ms per full circuit
@@ -145,6 +147,9 @@ function OrbitingFace({ seed, develop, x, y, order }: { seed: string; develop: n
         style={[{ position: "absolute", left: x - FACE / 2, top: y - FACE / 2 }, upright]}
       >
         <MosaicId seed={seed} cell={3} gap={1} develop={develop} />
+        {signed && (
+          <View style={{ position: "absolute", right: -6, top: -6, width: 5, height: 5, backgroundColor: P.brassSeal }} />
+        )}
       </Animated.View>
     </Animated.View>
   );
