@@ -2,22 +2,94 @@ import { View } from "react-native";
 import { hashStr } from "../lib/format";
 import { P } from "../theme/post";
 
-/* A stranger's face, redacted. The generative "seal" avatar carries its own
-   palette, which lands as a stray colour blob in a page made only of black
-   rules and mono type — so in the postal system the identity is a literal
-   mosaic instead: a small grid of inked cells, deterministic from the author's
-   id, mirrored down the middle so it reads as a face you can't resolve.
+/* ═══════════════════════════════════════════════════════════════════════
+   FACE v1 — the formation spec. THIS IS A CONTRACT, NOT A STYLE.
+   ═══════════════════════════════════════════════════════════════════════
+   People recognise their correspondents by these faces the way they'd
+   recognise handwriting. Change the hash, the namespace strings, the bit
+   mapping or the density rule and every remembered face in the product
+   is a stranger again — so v1 is frozen as of 2026-08-24 (pre-launch,
+   zero real users: the last cheap moment to freeze it).
 
-   Same job as StrangerAvatar (stable, anonymous, recognisable across letters),
-   but built from the only two things this system owns: squares and ink.
+   THE ROOT · everything derives from one 32-bit FNV-1a (lib/format
+   hashStr), fanned out through NAMESPACED sub-seeds so channels never
+   interfere. The registry of every derived channel in the product:
 
-   COMING INTO VIEW · `develop` (0..1) is how much of the face has arrived.
-   A correspondent starts as a few floating specks and develops with every
-   letter THEY send — you come to know someone by reading them, so it is
-   received letters, never sent ones, that expose the plate. The develop
-   order is deterministic per seed (a face always develops the same way),
-   and mirror cells rank independently: a half-made face sits slightly
+     "mosaic:"+uid          → which cells this face inks   (here)
+     seed+"@"+r+","+c       → the order the face develops  (here)
+     seed+"@drift"          → orbit drift speed/direction  (OrbitMap)
+     "post:"+uid            → No. 1000–9999               (format.postNo)
+     "av:"+seed             → legacy glyph avatar          (format.avatarFor)
+
+   Claiming a new channel = add a new prefix, list it here. Never reuse.
+
+   THE SHAPE · 5×5 cells, right half mirrors the left → 15 independent
+   bits (h's low bits, row-major over the left half + centre column).
+   Ink or nothing; the palette is the page's.
+
+   THE DENSITY RULE · raw hash bits could deal a face 2 specks or a
+   near-solid block — at develop 0.15 the sparse one would be a single
+   floating dot with no presence at all. So the count of INKED CELLS is
+   normalised to 8..16 (of 25): positions are ranked by the deterministic
+   sub-seed "#w:"+i and flipped in rank order, faintest claims first,
+   until the count is in range. Same seed, same flips, forever — the
+   correction is part of the face, not a render-time accident.
+
+   Same job as StrangerAvatar once had (stable, anonymous, recognisable
+   across letters), built from the only two things this system owns:
+   squares and ink. KNOWN DEBT: the web app still renders the legacy
+   glyph avatars, so one stranger wears two faces across platforms —
+   owner's call to migrate web to this spec.
+
+   COMING INTO VIEW · `develop` (0..1) is how much of the face has
+   arrived. A correspondent starts as a few floating specks and develops
+   with every letter THEY send — you come to know someone by reading
+   them, so it is received letters, never sent ones, that expose the
+   plate. Mirror cells rank independently: a half-made face sits slightly
    asymmetric and only settles into symmetry when it completes. */
+
+const COLS = 5;
+const ROWS = 5;
+const HALF = Math.ceil(COLS / 2); // 3 — the right half mirrors the left
+const MIN_INK = 8; // every face substantial…
+const MAX_INK = 16; // …none a solid block
+
+/** FACE v1 bit field: which of the 25 cells are inked, density-normalised. */
+function inkedCells(seed: string): Set<string> {
+  const h = hashStr("mosaic:" + String(seed || "anon"));
+  // 15 independent positions: [row 0..4] × [left-half col 0..2]
+  const bit = (r: number, hc: number) => ((h >>> (r * HALF + hc)) & 1) === 1;
+  const pos: { r: number; hc: number; on: boolean; w: number }[] = [];
+  for (let r = 0; r < ROWS; r++)
+    for (let hc = 0; hc < HALF; hc++)
+      pos.push({ r, hc, on: bit(r, hc), w: hashStr(seed + "#w:" + (r * HALF + hc)) });
+
+  const cellsOf = (p: { hc: number }) => (p.hc === HALF - 1 ? 1 : 2); // centre column has no mirror
+  let ink = pos.reduce((n, p) => n + (p.on ? cellsOf(p) : 0), 0);
+
+  // flip in deterministic rank order until the count lands in range
+  if (ink < MIN_INK) {
+    for (const p of pos.filter((p) => !p.on).sort((a, b) => a.w - b.w)) {
+      p.on = true;
+      ink += cellsOf(p);
+      if (ink >= MIN_INK) break;
+    }
+  } else if (ink > MAX_INK) {
+    for (const p of pos.filter((p) => p.on).sort((a, b) => a.w - b.w)) {
+      p.on = false;
+      ink -= cellsOf(p);
+      if (ink <= MAX_INK) break;
+    }
+  }
+
+  const cells = new Set<string>();
+  for (const p of pos)
+    if (p.on) {
+      cells.add(p.r + "," + p.hc);
+      cells.add(p.r + "," + (COLS - 1 - p.hc));
+    }
+  return cells;
+}
 
 export function MosaicId({
   seed,
@@ -30,16 +102,10 @@ export function MosaicId({
   gap?: number;
   develop?: number;
 }) {
-  const h = hashStr("mosaic:" + String(seed || "anon"));
-  const cols = 5;
-  const rows = 5;
-  const half = Math.ceil(cols / 2); // 3 — the right half mirrors the left
-
-  // one bit per cell of the left half + centre column
-  const on = (r: number, c: number) => {
-    const i = r * half + Math.min(c, cols - 1 - c);
-    return ((h >>> i % 31) & 1) === 1;
-  };
+  const cols = COLS;
+  const rows = ROWS;
+  const inked = inkedCells(seed);
+  const on = (r: number, c: number) => inked.has(r + "," + c);
 
   // Which inked cells have come through: rank every ON cell by a per-seed
   // hash and show exactly ceil(share) of them — an exact count, so even the
