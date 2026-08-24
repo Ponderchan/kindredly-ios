@@ -12,6 +12,7 @@ import { AudioCard } from "../../components/AudioCard";
 import { getStamp } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
+import { threadState } from "../../lib/thread-state";
 import {
   clearThreadReaction,
   fetchThreadMessages,
@@ -23,7 +24,6 @@ import {
 import { translate } from "../../lib/wren";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 
-const REVEAL_AT = 5;
 const PAPER = P.paper;
 
 export default function ThreadScreen() {
@@ -88,9 +88,18 @@ export default function ThreadScreen() {
     : [];
   const alias = detail ? `No. ${postNo(detail.other)}` : "…";
   const name = detail?.revealed ? detail.otherName || alias : null;
+  /* the same sentence the list row and the chat header show */
+  const state = detail
+    ? threadState({
+        mine: detail.myCount,
+        theirs: detail.otherCount,
+        revealed: detail.revealed,
+        lastSenderMe: !detail.messages.length || !!detail.messages[detail.messages.length - 1]?.mine,
+        iSigned: detail.iSigned,
+        theirSigned: detail.theirSigned,
+      })
+    : null;
   const stamp = getStamp(detail?.stamp);
-  const remaining = detail ? Math.max(0, REVEAL_AT - detail.myCount) : REVEAL_AT;
-  const filled = detail ? Math.min(REVEAL_AT, detail.myCount) : 0;
   // the letter you came to read = their latest (fall back to the newest)
   // you read the letter you tapped; with no index, their latest
   const heroIdx = (() => {
@@ -149,7 +158,13 @@ export default function ThreadScreen() {
                 </View>
               )}
               <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60, paddingRight: 64 }}>
-                {[heroDate, `NO. ${detail ? postNo(detail.other) : "…"}`, name ? name.toUpperCase() : "A STRANGER, FOR YOU"].filter(Boolean).join(" · ")}
+                {/* the number is what you call someone WITHOUT a name. Once
+                    they have one it replaces the number rather than sitting
+                    beside it — printing both says the reveal only half
+                    happened. */}
+                {[heroDate, name ? name.toUpperCase() : `NO. ${detail ? postNo(detail.other) : "…"}`]
+                  .filter(Boolean)
+                  .join(" · ")}
               </Text>
 
               {detail?.openingMedia && conv.length === 1 ? (
@@ -181,16 +196,15 @@ export default function ThreadScreen() {
                     </Text>
                   </View>
                 )}
-                {detail?.revealed ? (
-                  <View style={{ backgroundColor: P.penWash, paddingHorizontal: 10, paddingVertical: 6 }}>
-                    <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.pen }}>NO LONGER STRANGERS</Text>
-                  </View>
-                ) : (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
-                    {[0, 1, 2, 3, 4].map((k) => (
-                      <View key={k} style={{ width: 6, height: 6, backgroundColor: k < filled ? P.pen : P.ink12 }} />
-                    ))}
-                    <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink60, marginLeft: 4 }}>{remaining} TO NAMES</Text>
+                {/* This screen never got the memo. It still printed NO
+                    LONGER STRANGERS — retired when the twelve sentences
+                    became five — and five progress pips, which were the last
+                    counter left in the product after slice 170 took the rest
+                    out. Both gone: the state line is the same sentence every
+                    other surface shows. */}
+                {!!state && (
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: P.ink12 }}>
+                    <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: state.tone }}>{state.label}</Text>
                   </View>
                 )}
               </View>
@@ -234,7 +248,11 @@ export default function ThreadScreen() {
                 style={{ borderWidth: 1, borderColor: m.mine ? P.ink12 : P.ink, backgroundColor: m.mine ? P.paperDeep : P.paper, padding: 15, marginTop: 10, marginLeft: m.mine ? 28 : 0, marginRight: m.mine ? 0 : 28 }}
               >
                 <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 24, color: P.ink }}>{m.body}</Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>{m.mine ? "YOU" : alias.toUpperCase()}</Text>
+                {/* once they have a name, everything they ever wrote is signed with
+                    it — the letters didn't change, but who wrote them did */}
+                <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
+                  {m.mine ? "YOU" : (name || alias).toUpperCase()}
+                </Text>
               </View>
             ))}
         </ScrollView>
@@ -267,7 +285,7 @@ export default function ThreadScreen() {
             <TextInput
               value={reply}
               onChangeText={setReply}
-              placeholder="write back to them…"
+              placeholder={detail?.revealed ? `say something to ${name}…` : "write back to them…"}
               placeholderTextColor={P.ink40}
               multiline
               style={{ flex: 1, maxHeight: 120, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
@@ -283,7 +301,11 @@ export default function ThreadScreen() {
             </Pressable>
           </View>
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 9 }}>
-            {replyW > LETTER_MAX ? `${replyW - LETTER_MAX} OVER THE LIMIT` : "THIS REPLY GOES STRAIGHT TO THEM"}
+            {replyW > LETTER_MAX
+              ? `${replyW - LETTER_MAX} OVER THE LIMIT`
+              : detail?.revealed
+                ? "THIS GOES STRAIGHT TO THEM"
+                : "THIS REPLY GOES STRAIGHT TO THEM"}
           </Text>
         </View>
       </KeyboardAvoidingView>
