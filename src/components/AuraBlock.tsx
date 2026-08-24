@@ -1,8 +1,29 @@
 import { Pressable, Text, View } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
 import { P, PF, panel } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
 import type { Aura } from "../lib/aura";
+
+/* the aura's silhouette — the same nine-dim shape the radar draws, small
+   and unlabeled. The name on this card belongs to this shape; without it
+   the archetype reads as a caption floating on nothing. */
+function Silhouette({ aura, size = 74 }: { aura: Aura; size?: number }) {
+  const c = size / 2;
+  const r = c - 4;
+  const pts = aura.dims
+    .map((d, i) => {
+      const a = -Math.PI / 2 + (i / aura.dims.length) * Math.PI * 2;
+      const rr = (Math.max(d.score, 8) / 100) * r;
+      return `${c + rr * Math.cos(a)},${c + rr * Math.sin(a)}`;
+    })
+    .join(" ");
+  return (
+    <Svg width={size} height={size}>
+      <Polygon points={pts} fill="rgba(58,58,245,0.12)" stroke="#3A3AF5" strokeWidth={1.3} />
+    </Svg>
+  );
+}
 
 /* YOUR WRITING AURA — four phases, each showing only what is earned.
    ────────────────────────────────────────────────────────────────────────
@@ -74,14 +95,19 @@ export function AuraBlock({ aura, onOpen, onShare }: { aura: Aura; onOpen: () =>
         </>
       ) : (
         <>
-          <Text style={{ fontFamily: PF.letter, fontSize: 24, fontWeight: "600", color: P.ink, marginTop: 10 }}>
-            {aura.archetype?.name}
-          </Text>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 3 }}>
-            {/* hatch writes in the second person because it was built to
-                describe you to yourself — here that is exactly right */}
-            {aura.archetype?.desc ?? ""}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 10 }}>
+            <Silhouette aura={aura} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: PF.letter, fontSize: 23, fontWeight: "600", color: P.ink }}>
+                {aura.archetype?.name}
+              </Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, lineHeight: 19, color: P.ink60, marginTop: 3 }}>
+                {/* hatch writes in the second person because it was built to
+                    describe you to yourself — here that is exactly right */}
+                {aura.archetype?.desc ?? ""}
+              </Text>
+            </View>
+          </View>
 
           {/* the strongest three, as chips — evidence, not decoration */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 }}>
