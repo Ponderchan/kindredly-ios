@@ -149,7 +149,16 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
 
       {/* the ones circling in — no label, no number; the sky says it */}
       {faces.map(({ t, develop, rx, ry, a0 }, i) => (
-        <OrbitingFace key={t.id} seed={t.other} develop={develop} rx={rx} ry={ry} a0={a0} order={i} signed={!!t.theirSigned} />
+        <OrbitingFace
+          key={t.id}
+          seed={t.other}
+          develop={develop}
+          rx={rx}
+          ry={ry}
+          a0={a0}
+          order={i}
+          mark={t.mine === 0 && t.theirs > 0 ? "answered" : t.theirSigned ? "signed" : null}
+        />
       ))}
 
       {/* A name sits BESIDE its face, never above or below it. Stacked
@@ -180,7 +189,7 @@ function OrbitingFace({
   ry,
   a0,
   order,
-  signed,
+  mark,
 }: {
   seed: string;
   develop: number;
@@ -188,7 +197,9 @@ function OrbitingFace({
   ry: number;
   a0: number;
   order: number;
-  signed?: boolean;
+  /** the two states that ask something of you: they answered and you never
+      wrote back (pen), or their name is enclosed waiting on yours (brass) */
+  mark?: "answered" | "signed" | null;
 }) {
   const h = hashStr(seed + "@drift");
   const dir = (h & 1) === 0 ? 1 : -1;
@@ -212,8 +223,17 @@ function OrbitingFace({
     <Animated.View pointerEvents="none" style={[{ position: "absolute", left: CX - FACE / 2, top: CY - FACE / 2 }, orbit]}>
       <Animated.View entering={FadeIn.duration(500).delay(160 + order * 80)}>
         <MosaicId seed={seed} cell={2.8} gap={0.9} develop={develop} />
-        {signed && (
-          <View style={{ position: "absolute", right: -6, top: -6, width: 5, height: 5, backgroundColor: P.brassSeal }} />
+        {mark && (
+          <View
+            style={{
+              position: "absolute",
+              right: -6,
+              top: -6,
+              width: 5,
+              height: 5,
+              backgroundColor: mark === "answered" ? P.pen : P.brassSeal,
+            }}
+          />
         )}
       </Animated.View>
     </Animated.View>

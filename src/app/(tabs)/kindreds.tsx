@@ -30,6 +30,9 @@ import { DEMO_THREADS } from "../../data/demo";
 const GROUND = P.penWash;
 const REVEAL = 5;
 
+/** they answered your letter and you have not written back yet */
+const answered = (t: ThreadSummary) => t.mine === 0 && t.theirs > 0;
+
 export default function KindredsTab() {
   const router = useRouter();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -45,13 +48,30 @@ export default function KindredsTab() {
   );
 
   const source = __DEV__ && loaded && threads.length === 0 ? DEMO_THREADS : threads;
-  const orbit = useMemo(() => source.filter((t) => t.mine > 0).sort((a, b) => b.lastAt - a.lastAt), [source]);
+  /* THE FILTER THAT HID HALF THE PRODUCT.
+     This read `t.mine > 0` — my own letter count — so a thread where a
+     stranger had answered YOUR pool letter and you had not yet written back
+     was dropped on the floor. Since this tab and lib/stats are the only two
+     callers of fetchThreads, that reply existed nowhere in the app: someone
+     answered you and, from the inside, nothing happened. A first-timer could
+     be shown "Nobody knows your name yet" over a live reply in the database.
+     A thread belongs here the moment EITHER side has written. */
+  const orbit = useMemo(
+    () =>
+      source
+        .filter((t) => t.mine > 0 || t.theirs > 0)
+        // whoever is waiting on you comes first; the rest by recency
+        .sort((a, b) => Number(answered(b)) - Number(answered(a)) || b.lastAt - a.lastAt),
+    [source],
+  );
   const named = orbit.filter((t) => t.revealed).length;
   const coming = orbit.length - named;
   /* someone enclosed their name and it is waiting on yours — the one state
      on this tab that asks something of you, so it is what the plate reports
      when it is true, in brass, ahead of any count */
   const atDoor = orbit.filter((t) => !t.revealed && t.theirSigned).length;
+  // they wrote and you never have — the loudest state on the tab
+  const waiting = orbit.filter(answered).length;
   const empty = loaded && orbit.length === 0;
 
   return (
@@ -66,6 +86,10 @@ export default function KindredsTab() {
         <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
           {empty ? (
             "NONE"
+          ) : waiting ? (
+            <Text style={{ color: P.pen }}>
+              {waiting === 1 ? "SOMEONE ANSWERED YOU" : `${waiting} ANSWERED YOU`}
+            </Text>
           ) : atDoor ? (
             <Text style={{ color: P.brassSeal }}>
               {atDoor === 1 ? "A NAME AWAITS YOURS" : `${atDoor} NAMES AWAIT YOURS`}
@@ -102,6 +126,7 @@ export default function KindredsTab() {
 
 function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
   const theirTurn = !t.lastSenderMe; // they wrote last → your move / a new letter
+  const isAnswered = answered(t); // they wrote, you never have
 
   return (
     <Pressable
@@ -133,7 +158,9 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
         )}
         {theirTurn && (
           <View style={{ backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 2.5 }}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: "#fff" }}>NEW</Text>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: "#fff" }}>
+              {isAnswered ? "ANSWERED YOU" : "NEW"}
+            </Text>
           </View>
         )}
       </View>
@@ -143,16 +170,31 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
         </Text>
       )}
 
-      {/* a revealed friend gets their last line; a stranger stays status-only */}
-      {t.revealed ? (
-        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 10 }}>
+      {/* Every row carries the last line written, revealed or not. It used to
+          be withheld from strangers, so a brand-new thread was a near-blank
+          square and five words of mono — you couldn't even see what you had
+          just written, let alone what they said. The line IS the
+          relationship; the status underneath is only its weather. */}
+      {!!t.preview && (
+        <Text numberOfLines={t.revealed ? 1 : 2} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 10 }}>
           {t.preview}
         </Text>
-      ) : (
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: t.theirSigned ? P.brassSeal : P.ink40, marginTop: 12 }}>
-          {t.theirSigned
-            ? "THEIR NAME IS ENCLOSED — ADD YOURS"
-            : `COMING INTO VIEW · ${theirTurn ? "YOUR TURN" : "WAITING ON THEM"}`}
+      )}
+      {!t.revealed && (
+        <Text
+          style={{
+            fontFamily: PF.mono,
+            fontSize: 10,
+            letterSpacing: 0.8,
+            color: isAnswered ? P.pen : t.theirSigned ? P.brassSeal : P.ink40,
+            marginTop: 9,
+          }}
+        >
+          {isAnswered
+            ? "THEY ANSWERED YOUR LETTER — YOUR TURN"
+            : t.theirSigned
+              ? "THEIR NAME IS ENCLOSED — ADD YOURS"
+              : `COMING INTO VIEW · ${theirTurn ? "YOUR TURN" : "WAITING ON THEM"}`}
         </Text>
       )}
     </Pressable>

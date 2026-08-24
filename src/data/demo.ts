@@ -50,6 +50,21 @@ export const DEMO_THREADS: ThreadSummary[] = [
     theirReaction: "🫂", // they caught your last letter
   },
   {
+    /* the state the old `t.mine > 0` filter erased: a stranger answered your
+       pool letter and you have not written back. Kept in the demo set so the
+       row, the ring mark and the tab signal can never silently regress. */
+    id: "demo-answered",
+    stamp: "almosts",
+    revealed: false,
+    mine: 0,
+    theirs: 1,
+    otherName: null,
+    other: "demo-answered",
+    preview: "You wrote that you'd stopped waiting for it to feel like home. I've been in mine four years and it still doesn't.",
+    lastSenderMe: false,
+    lastAt: now - 5 * H,
+  },
+  {
     id: "demo-north",
     stamp: "overthinking",
     revealed: false,
