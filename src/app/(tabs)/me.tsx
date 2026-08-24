@@ -233,6 +233,10 @@ export default function MeTab() {
                   sky={sky}
                   dimScores={aura.dims.map((d) => d.score)}
                   words={aura.commonWords}
+                  stage={aura.phase}
+                  texts={aura.texts}
+                  pieces={aura.pieces}
+                  formedOn={aura.formedOn}
                 />
               </View>
             )}

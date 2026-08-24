@@ -2,6 +2,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Stop } from "react-native-svg";
 import { C, F, cardStyle } from "../theme/tokens";
+import { AuraStamp } from "./AuraStamp";
 import { WrenBird } from "./WrenBird";
 import type { VoiceRead } from "../lib/voice";
 
@@ -26,6 +27,10 @@ export function VoiceCard({
   sky = "day",
   dimScores,
   words = [],
+  stage,
+  texts = [],
+  pieces = 0,
+  formedOn,
 }: {
   read: VoiceRead;
   quote: string; // Wren's line (AI when available, local otherwise)
@@ -45,6 +50,11 @@ export function VoiceCard({
   dimScores?: number[];
   /** the words this writer reaches for — nobody else's card has them */
   words?: string[];
+  /** the ladder stage + corpus — the stamp is printed from these */
+  stage?: "empty" | "forming" | "shaping" | "clearing" | "formed";
+  texts?: string[];
+  pieces?: number;
+  formedOn?: string | null;
 }) {
   const tier = read.tier;
   const wren = useWrenName();
@@ -62,7 +72,17 @@ export function VoiceCard({
           </View>
 
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraOrb size={190} dark units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} sky={sky} dimScores={dimScores} />
+            <AuraStamp
+              stage={stage ?? "formed"}
+              texts={texts}
+              name={auraName}
+              pieces={pieces || read.pieces}
+              sky={sky}
+              warmth={warmth}
+              marks={marks}
+              formedOn={formedOn}
+              holderBg="#221E3D"
+            />
             <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>AURA NAME</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
             {words.length > 0 && (
@@ -134,7 +154,17 @@ export function VoiceCard({
       ) : (
         <View>
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraOrb size={190} units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} sky={sky} dimScores={dimScores} />
+            <AuraStamp
+              stage={stage ?? "shaping"}
+              texts={texts}
+              name={auraName}
+              pieces={pieces || read.pieces}
+              sky={sky}
+              warmth={warmth}
+              marks={marks}
+              formedOn={formedOn}
+              holderBg="#FFFFFF"
+            />
           </View>
           <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: C.faint }}>AURA</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink, marginTop: 4 }}>{auraName}</Text>
