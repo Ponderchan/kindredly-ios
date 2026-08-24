@@ -20,6 +20,9 @@ export function VoiceCard({
   onOpen,
   onShare,
   shareReady = true,
+  warmth = 0.5,
+  marks = [],
+  signals,
 }: {
   read: VoiceRead;
   quote: string; // Wren's line (AI when available, local otherwise)
@@ -30,6 +33,11 @@ export function VoiceCard({
   onShare: () => void;
   /** the ladder's rule: sharing waits until the aura is truly formed */
   shareReady?: boolean;
+  /** the writer's cast and tics — see AuraOrb */
+  warmth?: number;
+  marks?: string[];
+  /** locked signals; when given, stars grow with evidence not volume */
+  signals?: number;
 }) {
   const tier = read.tier;
   const wren = useWrenName();
@@ -47,7 +55,7 @@ export function VoiceCard({
           </View>
 
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraOrb size={190} dark units={units} stars={3 + Math.min(read.pieces, 9)} />
+            <AuraOrb size={190} dark units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} />
             <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>AURA NAME</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
           </View>
@@ -114,7 +122,7 @@ export function VoiceCard({
       ) : (
         <View>
           <View style={{ alignItems: "center", marginTop: 6 }}>
-            <AuraOrb size={190} units={units} stars={3 + Math.min(read.pieces, 9)} />
+            <AuraOrb size={190} units={units} stars={3 + (signals ?? Math.min(read.pieces, 9))} warmth={warmth} marks={marks} />
           </View>
           <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: C.faint }}>AURA</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink, marginTop: 4 }}>{auraName}</Text>
@@ -150,14 +158,35 @@ export function VoiceCard({
   );
 }
 
+/* one colour slid toward another — for the orb's personal cast */
+function lerpHex(a: string, b: string, t: number): string {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  const c = (sh: number) => [(sh >> 16) & 255, (sh >> 8) & 255, sh & 255];
+  const [ar, ag, ab] = c(ah);
+  const [br, bg, bb] = c(bh);
+  const m = (x: number, y: number) => Math.round(x + (y - x) * t);
+  return `#${((m(ar, br) << 16) | (m(ag, bg) << 8) | m(ab, bb)).toString(16).padStart(6, "0")}`;
+}
+
 /* the aura orb — a soft glowing sphere; the constellation lives on it once
-   there's writing. `empty` renders the waiting ring instead. */
+   there's writing. `empty` renders the waiting ring instead.
+
+   PERSONAL CAST · `warmth` (0..1) slides the sphere's hue between a cool
+   indigo and a warm rose-violet, computed from the writer's own dims —
+   feeling-led writing warms the orb, structure-led cools it. Two people
+   holding their cards side by side see different weather. `marks` are the
+   writer's real typographic tics — a lowercase i, an ellipsis, a question
+   mark — set in tiny mono at the orb's edge like initials engraved on a
+   ring. Both deterministic; nobody chooses them, they are simply true. */
 export function AuraOrb({
   size,
   units = [],
   stars = 0,
   dark,
   empty,
+  warmth = 0.5,
+  marks = [],
   children,
 }: {
   size: number;
@@ -165,20 +194,27 @@ export function AuraOrb({
   stars?: number;
   dark?: boolean;
   empty?: boolean;
+  /** 0 cool (structure-led) .. 1 warm (feeling-led) — the writer's cast */
+  warmth?: number;
+  /** the writer's real typographic tics, worn at the orb's edge */
+  marks?: string[];
   children?: React.ReactNode;
 }) {
   const S = size;
+  const w = Math.max(0, Math.min(1, warmth));
+  const top = dark ? lerpHex("#7F8AE8", "#B58AE8", w) : lerpHex("#AEB6F2", "#DCAAE8", w);
+  const mid = dark ? lerpHex("#4E52B8", "#7A50B8", w) : lerpHex("#DFE4FA", "#F0DEF6", w);
   return (
     <View style={{ width: S, height: S, alignItems: "center", justifyContent: "center" }}>
       <Svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} style={{ position: "absolute" }}>
         <Defs>
           <RadialGradient id="orb" cx="50%" cy="42%" r="60%">
-            <Stop offset="0%" stopColor={dark ? "#8F87E8" : "#C9C4F2"} stopOpacity={dark ? 0.95 : 0.9} />
-            <Stop offset="55%" stopColor={dark ? "#5A50B8" : "#E4E1F8"} stopOpacity={dark ? 0.8 : 0.8} />
+            <Stop offset="0%" stopColor={top} stopOpacity={dark ? 0.95 : 0.9} />
+            <Stop offset="55%" stopColor={mid} stopOpacity={dark ? 0.8 : 0.8} />
             <Stop offset="100%" stopColor={dark ? "#2A2450" : "#FFFFFF"} stopOpacity={dark ? 0.1 : 0} />
           </RadialGradient>
           <RadialGradient id="glow" cx="62%" cy="34%" r="45%">
-            <Stop offset="0%" stopColor="#F0BC6E" stopOpacity={0.55} />
+            <Stop offset="0%" stopColor="#F0BC6E" stopOpacity={0.3 + 0.4 * w} />
             <Stop offset="100%" stopColor="#F0BC6E" stopOpacity={0} />
           </RadialGradient>
         </Defs>
@@ -189,6 +225,28 @@ export function AuraOrb({
         )}
       </Svg>
       {empty ? children : <ConstellationOverlay S={S} units={units} stars={stars} dark={dark} />}
+      {/* the engraving: your own tics, worn small at the edge */}
+      {!empty &&
+        marks.slice(0, 3).map((m, i) => {
+          const a = -0.6 + i * 1.15;
+          const r = S * 0.44;
+          return (
+            <Text
+              key={m + i}
+              style={{
+                position: "absolute",
+                left: S / 2 + r * Math.cos(a) - 7,
+                top: S / 2 + r * Math.sin(a) * 0.86 - 9,
+                fontFamily: "IBMPlexMono_500Medium",
+                fontSize: 13,
+                color: dark ? "#B9B2FF" : "#9A93E8",
+                opacity: 0.85,
+              }}
+            >
+              {m}
+            </Text>
+          );
+        })}
     </View>
   );
 }

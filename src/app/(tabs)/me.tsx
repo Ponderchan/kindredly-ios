@@ -61,6 +61,8 @@ export default function MeTab() {
   const [aura, setAura] = useState<Aura | null>(null);
   const [voice, setVoice] = useState<VoiceRead | null>(null);
   const [units, setUnits] = useState<number[]>([]);
+  const [warmth, setWarmth] = useState(0.5);
+  const [marks, setMarks] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -96,6 +98,18 @@ export default function MeTab() {
            it may claim: tier and the name slot come from lib/aura, and the
            archetype only lands at FORMED. */
         const v = analyzeVoice(a.texts);
+        /* the personal layers: warmth from which dims lead (feeling warms,
+           structure cools), and the writer's real tics as engraved marks */
+        const score = (k: string) => a.dims.find((d) => d.key === k)?.score ?? 50;
+        const warm = (score("emotion") + score("quirks")) / 2;
+        const cool = (score("structure") + score("sentence")) / 2;
+        setWarmth(Math.max(0, Math.min(1, 0.5 + (warm - cool) / 200)));
+        const all = a.texts.join("\n");
+        const tics: string[] = [];
+        if ((all.match(/\bi(?=['\s,.])/g) || []).length >= 2) tics.push("i");
+        if ((all.match(/(\.\.\.|…)/g) || []).length >= 2) tics.push("…");
+        if ((all.match(/[?？]/g) || []).length >= 2) tics.push("?");
+        setMarks(tics);
         setVoice({
           ...v,
           tier: a.phase === "empty" ? "empty" : a.phase === "formed" ? "formed" : "evolving",
@@ -205,6 +219,9 @@ export default function MeTab() {
                   onOpen={() => router.push("/aura")}
                   onShare={() => router.push("/aura-card")}
                   shareReady={aura.phase === "formed"}
+                  warmth={warmth}
+                  marks={marks}
+                  signals={aura.locked.length}
                 />
               </View>
             )}
