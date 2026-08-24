@@ -8,6 +8,9 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { dShort } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, type ThreadDetail } from "../../lib/db";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
+import { noticeThings } from "../../lib/notice";
+import { WrenBird } from "../../components/WrenBird";
+import { useWrenName } from "../../lib/wren-name";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 
 /* THE ROOM — where you are once you know each other.
@@ -42,6 +45,7 @@ export default function RoomScreen() {
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const wren = useWrenName();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -65,6 +69,20 @@ export default function RoomScreen() {
     const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
     if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
     return readCorrespondent(theirs, true);
+  }, [detail]);
+
+  /* WREN'S NOTICES. Counted, never guessed — every line is a measurement
+     of words the two of you really wrote, with the count printed beside it
+     so it can be checked. Naming what a count MEANS is your job, not
+     hers; that is the difference between a shared story and a label wall.
+     One at a time, the rarest thing first: she is a messenger who leaves
+     something on the table, not a feed. */
+  const notices = useMemo(() => {
+    if (!detail) return [];
+    return noticeThings(
+      detail.messages.filter((m) => m.mine),
+      detail.messages.filter((m) => !m.mine),
+    );
   }, [detail]);
 
   const conv = detail
@@ -163,6 +181,25 @@ export default function RoomScreen() {
             );
           })}
         </ScrollView>
+
+        {/* she leaves one thing on the table, at the foot of the room */}
+        {!!notices.length && (
+          <View style={{ marginHorizontal: 22, marginBottom: 10, borderWidth: 1, borderColor: P.ink12, padding: 13 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <WrenBird size={20} mood="curious" />
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.2, color: P.ink40 }}>
+                {wren.toUpperCase()} NOTICED
+              </Text>
+              <View style={{ flex: 1 }} />
+              <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1, color: P.ink40 }}>
+                {notices[0].evidence}
+              </Text>
+            </View>
+            <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink, marginTop: 7 }}>
+              {notices[0].line}
+            </Text>
+          </View>
+        )}
 
         {over && (
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post, textAlign: "center", paddingBottom: 6 }}>
