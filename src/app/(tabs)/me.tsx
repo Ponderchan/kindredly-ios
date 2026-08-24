@@ -19,7 +19,6 @@ import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { AuraCard } from "../../components/AuraCard";
-import { analyzeVoice, type VoiceRead } from "../../lib/voice";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -58,7 +57,6 @@ export default function MeTab() {
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [room, setRoom] = useState<"you" | "wren">("you");
   const [aura, setAura] = useState<Aura | null>(null);
-  const [voice, setVoice] = useState<VoiceRead | null>(null);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -87,17 +85,6 @@ export default function MeTab() {
         const a = await myAura((profile?.firstLine as string) || null);
         if (!alive) return;
         setAura(a);
-        /* THE OWNER'S CARD, THE NEW RULES. The original VoiceCard is the
-           design the owner ruled stays — the orb, the constellation, the
-           trait pills. It renders voice.ts's warm copy over the merged
-           corpus (letters finally included), while the LADDER decides what
-           it may claim: tier and the name slot come from lib/aura, and the
-           archetype only lands at FORMED. */
-        const v = analyzeVoice(a.texts);
-        setVoice({
-          ...v,
-          tier: a.phase === "empty" ? "empty" : a.phase === "formed" ? "formed" : "evolving",
-        });
         void recordAuraSnapshot(a);
       })();
 
@@ -182,12 +169,13 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
-            {/* the aura — the owner's card, five stages, their spec sheet */}
-            {aura && voice && (
+            {/* the aura — a letter about you, from Wren, mid-draft */}
+            {aura && (
               <View style={{ marginTop: 14 }}>
                 <AuraCard
                   aura={aura}
-                  quote={voice.quote}
+                  seed={seed}
+                  avatarId={avatarId}
                   onOpen={() => router.push("/aura")}
                   onShare={() => router.push("/aura-card")}
                 />

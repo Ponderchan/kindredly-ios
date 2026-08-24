@@ -39,6 +39,10 @@ export const PF = {
   letter: undefined as unknown as string,
   serif: "Fraunces_400Regular",
   serifItalic: "Fraunces_400Regular_Italic",
+  // Wren's handwriting — reserved for words she physically puts on paper
+  // (the letter about you), never for the machine or for people's letters
+  hand: "Caveat_400Regular",
+  handSemi: "Caveat_600SemiBold",
 } as const;
 
 /* A panel. What used to be a white card with a radius and a shadow is, in this

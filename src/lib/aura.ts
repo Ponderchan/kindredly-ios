@@ -60,31 +60,43 @@ export interface Aura {
   locked: DimScore[];
   sealed: DimScore[];
   archetype: Archetype | null; // null until FORMED — the name is the last thing earned
+  /** the engine's working name, available BEFORE formed — only for Wren's
+      crossed-out naming drafts on the envelope back (owner-designed tease:
+      "The Quick Sp—"). Never show it whole before `archetype` is non-null. */
+  draft: Archetype | null;
   /** the day the ninth signal locked, from local history (formed phase only) */
   formedOn?: string | null;
   sources: AuraSources;
   /** the words you lean on — counted, top of the list, rarest first kept */
   commonWords: string[];
+  /** counted, never generated: over half your letters left after 22:00 or
+      before 06:00. Evidence for a live P.S., in notice.ts's philosophy —
+      Wren only says what she can count. Journal pages are deliberately
+      excluded from the count: the sealed room stays out of her mouth. */
+  nightOwl: boolean;
 }
 
 /* everything I have written INTO THE WORLD — pool letters and thread
    messages. Server-fetched (they live there), fail-safe to []. */
-async function fetchMyLetters(): Promise<{ letters: string[]; messages: string[] }> {
-  if (!supabaseReady) return { letters: [], messages: [] };
+async function fetchMyLetters(): Promise<{ letters: string[]; messages: string[]; hours: number[] }> {
+  if (!supabaseReady) return { letters: [], messages: [], hours: [] };
   try {
     const { data: u } = await supabase!.auth.getUser();
     const me = u.user?.id;
-    if (!me) return { letters: [], messages: [] };
+    if (!me) return { letters: [], messages: [], hours: [] };
     const [l, m] = await Promise.all([
-      supabase!.from("letters").select("body").eq("author", me).limit(200),
-      supabase!.from("messages").select("body").eq("sender", me).limit(400),
+      supabase!.from("letters").select("body,created_at").eq("author", me).limit(200),
+      supabase!.from("messages").select("body,created_at").eq("sender", me).limit(400),
     ]);
+    const rows = [...(l.data || []), ...(m.data || [])];
     return {
       letters: (l.data || []).map((r: any) => r.body).filter(Boolean),
       messages: (m.data || []).map((r: any) => r.body).filter(Boolean),
+      // local wall-clock hour of each piece — evidence for counted notices
+      hours: rows.filter((r: any) => r.body && r.created_at).map((r: any) => new Date(r.created_at).getHours()),
     };
   } catch {
-    return { letters: [], messages: [] };
+    return { letters: [], messages: [], hours: [] };
   }
 }
 
@@ -135,8 +147,10 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
       locked: [],
       sealed: [],
       archetype: null,
+      draft: null,
       sources: { letters: 0, sealed: 0, conversations: 0 },
       commonWords: [],
+      nightOwl: false,
     };
   }
 
@@ -177,12 +191,16 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     sealed,
     formedOn,
     archetype: phase === "formed" ? h.archetype : null,
+    draft: h.archetype ?? null,
     sources: {
       letters: mine.letters.length,
       sealed: sealedCount,
       conversations: mine.messages.length,
     },
     commonWords: topWords(texts),
+    nightOwl:
+      mine.hours.length >= 3 &&
+      mine.hours.filter((h) => h >= 22 || h < 6).length / mine.hours.length > 0.5,
   };
 }
 

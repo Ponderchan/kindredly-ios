@@ -17,6 +17,7 @@ import {
   IBMPlexMono_500Medium,
   IBMPlexMono_600SemiBold,
 } from "@expo-google-fonts/ibm-plex-mono";
+import { Caveat_400Regular, Caveat_600SemiBold } from "@expo-google-fonts/caveat";
 
 /* v20 typography — Fraunces (serif) + Inter (sans), on the blue-white palette.
    IBM Plex Mono carries the postal system's own voice: counters, dockets,
@@ -35,5 +36,9 @@ export function useAppFonts() {
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,
+    // Wren's hand — what she writes ON PAPER (the letter about you). Her
+    // spoken voice stays serif italic; this face exists for ink she leaves.
+    Caveat_400Regular,
+    Caveat_600SemiBold,
   });
 }
