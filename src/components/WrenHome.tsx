@@ -196,11 +196,12 @@ export function WrenHome({
         </View>
       </View>
 
-      {/* ── souvenirs: what she kept from journeys that really happened ── */}
+      {/* ── keepsakes: what she kept from journeys that really happened.
+          ("souvenirs" read like a gift shop; a keepsake is kept for love) ── */}
       {souvenirs.length > 0 && (
         <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingTop: 12, paddingBottom: 14 }}>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.6, color: P.ink40, paddingHorizontal: 16 }}>
-            SOUVENIRS
+            KEEPSAKES
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 9, paddingTop: 10 }}>
             {souvenirs.map((s) => (
