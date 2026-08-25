@@ -14,6 +14,8 @@ import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
+import { kindredGate } from "../../lib/kindred-gate";
+import { useEntitlement } from "../../lib/entitlement";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
@@ -70,6 +72,7 @@ export default function ChatScreen() {
   const [ceremony, setCeremony] = useState(false);
   const auth = useAuth();
   const wren = useWrenName();
+  const { premium } = useEntitlement();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -285,7 +288,13 @@ YOU WENT FIRST — WAITING ON THEIRS
               </Text>
             ) : (
               <Pressable
-                onPress={() => setAskSign(true)}
+                onPress={async () => {
+                  /* the gate stands here, before the name is enclosed —
+                     see lib/kindred-gate */
+                  const gate = await kindredGate(premium, String(id));
+                  if (gate.allowed) setAskSign(true);
+                  else router.push("/paywall");
+                }}
                 hitSlop={8}
                 style={{ borderWidth: 1, borderColor: detail.theirSigned ? P.brassSeal : P.ink, paddingHorizontal: 14, paddingVertical: 8 }}
               >
