@@ -198,7 +198,28 @@ export async function fetchPool(limit = 40): Promise<PoolLetter[] | null> {
       if (fallback.error || !data) return null;
     }
     if (!data) return null;
-    return (data as PoolLetter[]).filter((r) => r.author !== me);
+
+    /* WHOEVER IS ALREADY IN KINDREDS IS NOT A STRANGER.
+       Today is where you meet people you don't know; the moment a
+       correspondence exists, that person lives in Kindreds instead. The
+       app used to enforce this and the rule was lost in a refactor — so a
+       kindred you had traded names with could reappear in Today as an
+       anonymous mosaic, and answering "their letter" would silently drop
+       your reply into the correspondence you already had, under a letter
+       it wasn't written about. Both sides of the reveal are covered: a
+       named kindred and a stranger you're mid-letters with are equally
+       not-strangers. */
+    const known = new Set<string>();
+    if (me) {
+      const { data: mine } = await supabase!.from("threads").select("a,b").or(`a.eq.${me},b.eq.${me}`);
+      // a ghost's side is null since 0009 — nobody to keep out of the pool
+      for (const t of mine || []) {
+        const other = t.a === me ? t.b : t.a;
+        if (other) known.add(other);
+      }
+    }
+    // a ghost's letter has no author at all, so it belongs to no one you know
+    return (data as PoolLetter[]).filter((r) => r.author !== me && !(r.author && known.has(r.author)));
   } catch {
     return null;
   }
