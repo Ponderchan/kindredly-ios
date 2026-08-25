@@ -196,29 +196,6 @@ export function WrenHome({
         </View>
       )}
 
-      {/* ── her four places — where a messenger's day happens ── */}
-      <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 }}>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>
-          {wren.toUpperCase()} IS…
-        </Text>
-        <View style={{ flexDirection: "row", marginTop: 10 }}>
-          {(Object.keys(WB) as (keyof typeof WB)[]).map((k) => {
-            const on = where.state === k;
-            return (
-              <View key={k} style={{ flex: 1, alignItems: "center", opacity: on ? 1 : 0.38 }}>
-                <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", borderWidth: on ? 1.5 : 0, borderColor: P.pen, borderRadius: 22 }}>
-                  <WrenBird size={30} bare mood={WB[k].mood} />
-                </View>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 8, letterSpacing: 0.5, color: on ? P.pen : P.ink60, marginTop: 5, textAlign: "center" }}>
-                  {WB[k].label.toUpperCase()}
-                </Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: 7.5, color: P.ink40, marginTop: 2, textAlign: "center" }}>{WB[k].sub}</Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
       {/* ── looks & dress (unchanged mechanics, postal clothes) ── */}
       <Row
         label="LOOKS"

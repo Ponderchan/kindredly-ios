@@ -10,7 +10,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenHome } from "../../components/WrenHome";
-import type { WrenAccessory } from "../../components/WrenBird";
+import { WrenBird, type WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
 import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
 import { getWrenType, type WrenType } from "../../lib/wren-type";
@@ -170,12 +170,14 @@ export default function MeTab() {
               <Pressable
                 key={id}
                 onPress={() => setRoom(id)}
-                style={{ flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7, paddingVertical: 11, backgroundColor: on ? P.ink : "transparent" }}
+                style={{ flex: id === "wren" ? 1.5 : 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 8, backgroundColor: on ? P.ink : "transparent" }}
               >
+                {/* she rides her own side of the switch, in her live mood —
+                    the status is visible before her room ever opens */}
+                {id === "wren" && <WrenBird size={30} bare mood={WHEREABOUTS_META[where.state].mood} />}
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 12.5, letterSpacing: 1.4, color: on ? P.paper : P.ink60 }}>
                   {label.toUpperCase()}
                 </Text>
-                {/* her side of the switch carries her live status dot */}
                 {id === "wren" && <View style={{ width: 7, height: 7, backgroundColor: on ? P.paper : tone }} />}
               </Pressable>
             );
