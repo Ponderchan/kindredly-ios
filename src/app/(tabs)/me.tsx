@@ -18,6 +18,8 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
+import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { recordStageDate } from "../../lib/whereabouts";
 import { AuraCard } from "../../components/AuraCard";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -57,6 +59,7 @@ export default function MeTab() {
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [room, setRoom] = useState<"you" | "wren">("you");
   const [aura, setAura] = useState<Aura | null>(null);
+  const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
@@ -71,10 +74,15 @@ export default function MeTab() {
         if (!alive) return;
         setStats(s);
         const live = wrenStage(s);
-        // stage only ever moves forward; remember the highest ever reached
+        // stage only ever moves forward; remember the highest ever reached,
+        // and the DAY it turned — the journey strip prints it
         setStageFloor(stageIndex(live) >= stageIndex(floor) ? live : floor);
-        if (stageIndex(live) > stageIndex(floor)) void bumpStageFloor(live);
+        if (stageIndex(live) > stageIndex(floor)) {
+          void bumpStageFloor(live);
+          void recordStageDate(live);
+        }
       });
+      fetchThreads().then((t) => alive && setThreads(t || []));
       getAvatarPhoto().then((p) => alive && setPhoto(p));
       getWrenAccessory().then((a) => alive && setAccessory(a));
       getWrenType().then((t) => alive && setWrenType(t));
@@ -196,23 +204,19 @@ export default function MeTab() {
             <View style={{ marginTop: 14 }}>
               <WrenHome
                 stats={stats}
+                threads={threads}
                 pieces={aura?.pieces ?? 0}
                 accessory={accessory}
                 premium={premium}
                 stageFloor={stageFloor}
-                typeName={wrenType?.name}
-                bornWith={wrenType?.accessory}
+                joinedAt={user?.created_at ?? null}
+                topWord={aura?.commonWords[0] ?? null}
                 onEquip={equipWren}
                 onLocked={() => router.push("/paywall")}
+                onTrack={() => router.push("/(tabs)/kindreds")}
+                onPlus={() => router.push("/paywall")}
               />
             </View>
-            <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>KINDREDLY+</Text>
-              <View style={{ flex: 1 }} />
-              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
-                {premium ? "ACTIVE" : "UNLIMITED"} →
-              </Text>
-            </Pressable>
           </>
         )}
       </ScrollView>
