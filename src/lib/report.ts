@@ -1,7 +1,7 @@
 /* The Voice report (文心 Wrapped) — Wren wraps a stretch of your writing into
    a night-sky story. The tiers, per the owner's call:
      · your FIRST report is free, once you've written enough (10 pieces)
-     · after that it's a Kindredly+ thing, one per calendar month
+     · after that it's a First Class thing, one per calendar month
      · sharing the end card is always free; Wren never sells mid-story
    Being heard is never gated — this is the reflective layer, not the
    connection layer. All analysis is honest local math over real text; the

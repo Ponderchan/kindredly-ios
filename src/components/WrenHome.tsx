@@ -257,7 +257,7 @@ export function WrenHome({
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 9, color: on ? P.pen : P.ink60, marginTop: 3 }}>{sk.name.toUpperCase()}</Text>
                 {!unlocked && (
                   <Text style={{ fontFamily: PF.mono, fontSize: 7.5, color: P.brassSeal, marginTop: 2 }}>
-                    {sk.lock === "plus" ? "KINDREDLY+" : "FIRST KINDRED"}
+                    {sk.lock === "plus" ? "FIRST CLASS" : "FIRST KINDRED"}
                   </Text>
                 )}
               </Pressable>
@@ -292,10 +292,10 @@ export function WrenHome({
         </ScrollView>
       )}
 
-      {/* ── the door to Kindredly+: her archive, not your words ── */}
+      {/* ── the door to First Class: her archive, not your words ── */}
       <Pressable onPress={onPlus} style={{ borderTopWidth: 1, borderTopColor: P.ink, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, backgroundColor: P.penWash }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.ink }}>KINDREDLY+</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.ink }}>FIRST CLASS</Text>
           <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: P.ink60, marginTop: 3 }}>
             {`${wren}'s full journey archive, and a year of her in one letter.`}
           </Text>

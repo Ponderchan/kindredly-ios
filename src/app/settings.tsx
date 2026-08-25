@@ -44,6 +44,10 @@ export default function Settings() {
     const y = parseInt(dob.slice(0, 4), 10);
     if (!y) return null;
     const a = new Date().getFullYear() - y;
+    /* the lowest band used to be the FALLBACK, so a bad date of birth —
+       or any age under the gate — printed "18–24" and looked checked.
+       Under 18 shows the real number instead of being laundered. */
+    if (a < 18) return `${a}`;
     return a >= 45 ? "45+" : a >= 35 ? "35–44" : a >= 25 ? "25–34" : "18–24";
   })();
 
@@ -110,7 +114,7 @@ export default function Settings() {
     setRestoring(true);
     const ok = await iapRestore();
     setRestoring(false);
-    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your Kindredly+ is back." : "No previous purchase was found on this Apple ID.");
+    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your First Class is back." : "No previous purchase was found on this Apple ID.");
   };
 
   const onToggleKnock = async (want: boolean) => {
@@ -208,9 +212,9 @@ export default function Settings() {
           <Row label="Unsent letters" onPress={() => router.push("/drafts")} />
         </View>
 
-        {/* Kindredly+ — Apple wants restore and a way to manage a running
+        {/* First Class — Apple wants restore and a way to manage a running
             subscription reachable outside the paywall */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>KINDREDLY+</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>FIRST CLASS</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label="Membership" value={premium ? "Active" : "Not yet"} onPress={() => router.push("/paywall")} />
           <Row label="Restore purchases" value={restoring ? "…" : "›"} onPress={onRestore} />
@@ -221,7 +225,7 @@ export default function Settings() {
         <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>HELP</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label="How Kindredly works" onPress={() => router.push("/help")} />
-          <Row label="Contact us" onPress={contact} />
+          <Row label="Write to us" onPress={() => router.push("/write-to-us")} />
           <Row label="Rate Kindredly" onPress={rate} last />
         </View>
 

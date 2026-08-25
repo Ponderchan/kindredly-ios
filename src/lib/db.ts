@@ -744,3 +744,29 @@ export async function blockUser(targetUser: string): Promise<true | null> {
     return null;
   }
 }
+
+/* ── a letter to us ─────────────────────────────────────────────────────
+   Not a thread: support is not a correspondence, and giving the company a
+   row in Kindreds would dress it as a kindred and feed it into counts a
+   real relationship has to earn. It lands in its own table (0013), where
+   only the service role can read it. */
+export async function sendSupportLetter(
+  body: string,
+  replyTo: string | null,
+  appVersion: string,
+): Promise<true | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { error } = await supabase!.from("support_letters").insert({
+      author: me,
+      body: String(body).slice(0, 4000),
+      reply_to: replyTo?.trim() || null,
+      app_version: appVersion,
+    });
+    return error ? null : true;
+  } catch {
+    return null;
+  }
+}

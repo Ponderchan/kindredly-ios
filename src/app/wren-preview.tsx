@@ -104,7 +104,7 @@ export default function WrenPreview() {
           <WrenBird size={128} pose="fly" />
         </View>
 
-        <Section title="DRESS-UP (KINDREDLY+ / DROPS)" />
+        <Section title="DRESS-UP (FIRST CLASS / DROPS)" />
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
           {ACCS.map((a) => (
             <Cell key={a} label={a}>

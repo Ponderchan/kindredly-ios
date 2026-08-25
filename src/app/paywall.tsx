@@ -9,12 +9,17 @@ import { Wren } from "../components/Wren";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
 
+/* EVERY LINE HERE IS A GATE THAT EXISTS IN THE CODE. The list used to
+   promise "Wren's Peek" (a function with zero callers, and the one read we
+   deliberately refused to build because it points an LLM at a real
+   person), "Your Aura Portrait" (free — the Me tab hands it to everyone),
+   and a wax seal that nothing gates. Selling what isn't there is the
+   fastest way to lose a reader on the day they pay you. */
 const BENEFITS: [string, string][] = [
   ["Unlimited letters", "Write to as many strangers as you like — no daily cap."],
-  ["An Aura report, every month", "Wren wraps the month you wrote — your aura, your hours, your words — in a letter just for you."],
-  ["Wren's Peek", "A deeper read on a correspondent: how they write, and whether they're leaning closer."],
-  ["Your Aura Portrait", "Wren's evolving, warm read of how you write — yours to keep."],
-  ["The wax seal", "Your letters go out pressed with the Kindredly seal."],
+  ["Voice letters", "Some things only land in a voice. Record instead of writing, whenever you want."],
+  ["An aura report, every month", "She wraps the month you wrote — your hours, your words, your read — in a letter just for you."],
+  ["Her whole wardrobe", "The ink-and-post look, and every seasonal piece she's ever been given."],
 ];
 
 // shown when RevenueCat isn't configured yet, so the screen is reviewable.
@@ -51,7 +56,7 @@ export default function Paywall() {
     if (!IAP_READY || !chosen.raw) {
       Alert.alert(
         "Almost there",
-        "Kindredly+ purchasing turns on once RevenueCat + the App Store subscription products are configured (see SETUP.md).",
+        "First Class purchasing turns on once RevenueCat + the App Store subscription products are configured (see SETUP.md).",
       );
       return;
     }
@@ -72,7 +77,7 @@ export default function Paywall() {
     const ok = await iapRestore();
     setBusy(false);
     await refresh();
-    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your Kindredly+ is active." : "No previous purchase was found.");
+    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your First Class is active." : "No previous purchase was found.");
     if (ok) router.back();
   };
 
@@ -87,7 +92,8 @@ export default function Paywall() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
         <View style={{ alignItems: "center", marginTop: 4 }}>
           <Seal size={82} />
-          <Text style={{ fontFamily: PF.letter, fontSize: 30, color: P.ink, marginTop: 18 }}>Kindredly+</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 30, color: P.ink, marginTop: 18 }}>First Class</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, marginTop: 6 }}>For the kindred spirits.</Text>
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, marginTop: 8, textAlign: "center", lineHeight: 23 }}>
             More letters, and a closer read from Wren.
           </Text>
@@ -151,7 +157,7 @@ export default function Paywall() {
 
         <Pressable onPress={subscribe} disabled={busy} style={[solidBtn, { paddingVertical: 18, width: "100%", marginTop: 22, opacity: busy ? 0.4 : 1 }]}>
           <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 1.4 }}>
-            {busy ? "…" : "START KINDREDLY+"}
+            {busy ? "…" : "TRAVEL FIRST CLASS"}
           </Text>
         </Pressable>
 

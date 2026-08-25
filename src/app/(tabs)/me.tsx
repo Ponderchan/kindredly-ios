@@ -199,9 +199,9 @@ export default function MeTab() {
               </View>
             )}
 
-            {/* one quiet row — Kindredly+ */}
+            {/* one quiet row — First Class */}
             <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>KINDREDLY+</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>FIRST CLASS</Text>
               <View style={{ flex: 1 }} />
               <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
                 {premium ? "ACTIVE" : "UNLIMITED"} →

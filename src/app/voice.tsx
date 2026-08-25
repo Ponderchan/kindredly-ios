@@ -114,7 +114,7 @@ export default function VoiceDetail() {
             ]}
           >
             <Text style={{ fontFamily: F.sansExtra, fontSize: 9.5, letterSpacing: 1.8, color: "#8C86E8" }}>
-              {gate.state === "locked" ? "👑 KINDREDLY+" : "🌙 YOUR AURA · WRAPPED"}
+              {gate.state === "locked" ? "👑 FIRST CLASS" : "🌙 YOUR AURA · WRAPPED"}
             </Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 17, color: "#fff", marginTop: 8 }}>
               {gate.state === "ready" && (gate.kind === "first" ? `${wren} wrote you a letter.` : "This month's letter is here.")}
@@ -125,7 +125,7 @@ export default function VoiceDetail() {
             <Text style={{ fontFamily: F.sans, fontSize: 12.5, lineHeight: 19, color: "#B9B4D6", marginTop: 6 }}>
               {gate.state === "ready" && "How you write, wrapped in a night sky. Tap to open."}
               {gate.state === "progress" && `Write ${gate.need - gate.have} more ${gate.need - gate.have === 1 ? "piece" : "pieces"} and she'll seal the first one — free.`}
-              {gate.state === "locked" && `Your voice, your hours, your words — a wrapped read from ${wren} with Kindredly+.`}
+              {gate.state === "locked" && `Your voice, your hours, your words — a wrapped read from ${wren} with First Class.`}
               {gate.state === "done" && "The next one arrives with the new month."}
             </Text>
             {gate.state === "progress" && (

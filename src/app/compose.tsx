@@ -425,10 +425,10 @@ export default function Compose() {
             <View style={{ marginTop: 16, padding: 16, borderWidth: 1, borderColor: P.ink }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "600", color: P.ink }}>{capMsg}</Text>
               <Text style={{ fontFamily: PF.letter, fontSize: 13, color: P.ink60, marginTop: 5 }}>
-                Replies are always free. Lift the daily cap with Kindredly+.
+                Replies are always free. Lift the daily cap with First Class.
               </Text>
               <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 10 }}>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>DISCOVER KINDREDLY+ →</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>DISCOVER FIRST CLASS →</Text>
               </Pressable>
             </View>
           )}
@@ -490,7 +490,7 @@ export default function Compose() {
             <Text style={{ fontSize: 20 }}>🙂</Text>
           </Pressable>
 
-          {/* A voice letter is a Kindredly+ thing. It has to be VISIBLE — you
+          {/* A voice letter is a First Class thing. It has to be VISIBLE — you
               can't want what you can't see — and unmistakably shut. So the key
               is always here, wearing a lock, and pressing it explains rather
               than refuses. */}
