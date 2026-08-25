@@ -10,7 +10,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenHome } from "../../components/WrenHome";
-import { WrenBird, type WrenAccessory } from "../../components/WrenBird";
+import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
 import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
 import { getWrenType, type WrenType } from "../../lib/wren-type";
@@ -170,11 +170,8 @@ export default function MeTab() {
               <Pressable
                 key={id}
                 onPress={() => setRoom(id)}
-                style={{ flex: id === "wren" ? 1.5 : 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 8, backgroundColor: on ? P.ink : "transparent" }}
+                style={{ flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 11, backgroundColor: on ? P.ink : "transparent" }}
               >
-                {/* she rides her own side of the switch, in her live mood —
-                    the status is visible before her room ever opens */}
-                {id === "wren" && <WrenBird size={30} bare mood={WHEREABOUTS_META[where.state].mood} />}
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 12.5, letterSpacing: 1.4, color: on ? P.paper : P.ink60 }}>
                   {label.toUpperCase()}
                 </Text>
@@ -222,7 +219,7 @@ export default function MeTab() {
                 topWord={aura?.commonWords[0] ?? null}
                 onEquip={equipWren}
                 onLocked={() => router.push("/paywall")}
-                onTrack={() => router.push("/(tabs)/kindreds")}
+                onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
                 onPlus={() => router.push("/paywall")}
               />
             </View>

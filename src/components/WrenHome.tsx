@@ -1,4 +1,5 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
+import { dShort, postNo } from "../lib/format";
 import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { P, PF } from "../theme/post";
@@ -35,7 +36,7 @@ export function WrenHome({
   pieces = 0,
   onEquip,
   onLocked,
-  onTrack,
+  onOpenThread,
   onPlus,
 }: {
   stats: GrowthStats;
@@ -48,7 +49,7 @@ export function WrenHome({
   pieces?: number;
   onEquip: (a: WrenAccessory) => void;
   onLocked: () => void;
-  onTrack: () => void;
+  onOpenThread: (t: ThreadSummary) => void;
   onPlus: () => void;
 }) {
   const { skin, pick } = useWrenSkinControl();
@@ -60,6 +61,7 @@ export function WrenHome({
   const [dozy, setDozy] = useState(false);
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
   const [open, setOpen] = useState<null | "looks" | "dress">(null);
+  const [tracking, setTracking] = useState(false);
   const wearsHere = info.stage === "wren" || info.stage === "hatch";
 
   useEffect(() => {
@@ -119,19 +121,25 @@ export function WrenHome({
               {`WHILE YOU WERE AWAY${away.carriedOut ? ` · ${away.carriedOut} CARRIED OUT` : ""}${away.broughtBack ? ` · ${away.broughtBack} BROUGHT BACK` : ""}`}
             </Text>
           )}
-          <Pressable onPress={onTrack} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: P.ink60 }}>TRACK {wren.toUpperCase()}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.ink60 }}>→</Text>
+          <Pressable onPress={() => setTracking((v) => !v)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: tracking ? P.pen : P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: tracking ? P.pen : P.ink60 }}>TRACK {wren.toUpperCase()}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 10, color: tracking ? P.pen : P.ink60 }}>{tracking ? "↓" : "→"}</Text>
           </Pressable>
         </View>
-        <View style={{ alignItems: "center", justifyContent: "center" }}>
+        <View style={{ alignItems: "center", justifyContent: "flex-end" }}>
           {/* what she'd yell over her shoulder */}
-          <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 6 }}>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink60 }}>{dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+          <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 9, paddingVertical: 5, marginBottom: 8 }}>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60 }}>{dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
-          <WrenBird size={64} bare stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
+          <WrenBird size={108} bare stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
         </View>
       </View>
+
+      {/* ── the tracking slip: her run, as the post would file it ──────────
+          Not a navigation — a document. Every row is real (the thread that
+          set her status, the hour your letter left, whose door she's at),
+          and the last row is the door itself. */}
+      {tracking && <TrackingSlip threads={threads} state={where.state} wren={wren} onOpenThread={onOpenThread} />}
 
       {/* ── the journey: ONE ladder, with the days it really turned ── */}
       <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 }}>
@@ -278,5 +286,53 @@ function Row({ label, sub, count, openState, onPress }: { label: string; sub: st
       <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.ink40 }}>{count}</Text>
       <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40, transform: [{ rotate: openState ? "90deg" : "0deg" }] }}>›</Text>
     </Pressable>
+  );
+}
+
+/* which journey set her status — the same rules whereabouts() reads */
+function drivingThread(threads: ThreadSummary[], state: string): ThreadSummary | null {
+  const by = (f: (t: ThreadSummary) => boolean) =>
+    threads.filter(f).sort((a, b) => b.lastAt - a.lastAt)[0] ?? null;
+  if (state === "bringing") return by((t) => t.mine === 0 ? t.theirs > 0 : !t.lastSenderMe && t.theirs > 0);
+  if (state === "delivery") return by((t) => t.lastSenderMe && t.mine > 0);
+  return null;
+}
+
+function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadSummary[]; state: string; wren: string; onOpenThread: (t: ThreadSummary) => void }) {
+  const t = drivingThread(threads, state);
+  const who = t ? (t.revealed && t.otherName ? t.otherName : `No. ${postNo(t.other)}`) : null;
+  const rows: string[] = t
+    ? state === "delivery"
+      ? [
+          `YOUR LETTER LEFT — ${dShort(new Date(t.lastAt).toISOString()).toUpperCase()}`,
+          `AT ${who!.toUpperCase()}'S DOOR`,
+          "WAITING FOR AN ANSWER",
+        ]
+      : [
+          `${who!.toUpperCase()} WROTE BACK — ${dShort(new Date(t.lastAt).toISOString()).toUpperCase()}`,
+          `${wren.toUpperCase()} CARRIED IT HOME`,
+          "IT'S WAITING FOR YOU",
+        ]
+    : ["NOTHING IN TRANSIT", "WRITE, AND SHE FLIES"];
+
+  return (
+    <View style={{ marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: P.ink12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>TRACKING SLIP</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
+      </View>
+      {rows.map((r, i) => (
+        <View key={r} style={{ flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 12, paddingVertical: 7 }}>
+          <View style={{ width: 5, height: 5, backgroundColor: i === rows.length - 1 && t ? P.pen : P.ink40 }} />
+          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: i === rows.length - 1 && t ? P.ink : P.ink60 }}>{r}</Text>
+        </View>
+      ))}
+      {t && (
+        <Pressable onPress={() => onOpenThread(t)} style={{ borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 11 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.pen }}>GO TO THE DOOR</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.pen }}>→</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
