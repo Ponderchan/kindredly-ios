@@ -1,12 +1,22 @@
 import { useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { P, PF, panel } from "../theme/post";
 import { useAuth } from "../lib/auth";
 import { LeaveSheet } from "../components/LeaveSheet";
 import { disableMorningKnock, enableMorningKnock, morningKnockEnabled } from "../lib/notify";
+import Constants from "expo-constants";
+import { useEntitlement } from "../lib/entitlement";
+import { iapRestore } from "../lib/iap";
+import { saveWrenName } from "../lib/wren-name";
+
+/* WHERE A READER CAN REACH A PERSON. App Review 1.2 wants public contact
+   for a UGC app, and a support address is the one thing in this file the
+   product cannot infer — set it to a mailbox that is actually watched. */
+const SUPPORT = "hello@kindredly.io";
+const APP_VERSION = `${Constants.expoConfig?.version ?? "1.0.0"}${Constants.expoConfig?.ios?.buildNumber ? ` (${Constants.expoConfig.ios.buildNumber})` : ""}`;
 
 /* Settings — everything that isn't the profile itself, behind Me's gear. */
 
@@ -16,6 +26,8 @@ export default function Settings() {
   const router = useRouter();
   const wren = useWrenName();
   const [knock, setKnock] = useState(false);
+  const { premium } = useEntitlement();
+  const [restoring, setRestoring] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,6 +60,57 @@ export default function Settings() {
       "plain-text",
       handle,
     );
+  };
+
+  /* HER NAME COULD BE SET ONCE AND NEVER AGAIN. saveWrenName had exactly
+     one caller — the naming step in onboarding — so a reader who typed
+     something they regretted in their first five minutes was stuck with it
+     for the life of the account. */
+  const renameWren = () => {
+    Alert.prompt?.(
+      `Rename ${wren}`,
+      "She'll answer to it everywhere — in her room, on your letters, in the introduction she carries.",
+      async (next?: string) => {
+        const n = (next || "").trim().slice(0, 18);
+        if (!n || n === wren) return;
+        await saveWrenName(n);
+      },
+      "plain-text",
+      wren,
+    );
+  };
+
+  /* the mail a support address actually needs: what they run, on what */
+  const contact = () => {
+    const body = `\n\n—\nKindredly ${APP_VERSION} · ${Platform.OS} ${Platform.Version}`;
+    void Linking.openURL(`mailto:${SUPPORT}?subject=${encodeURIComponent("Kindredly")}&body=${encodeURIComponent(body)}`);
+  };
+
+  /* RATE, WITHOUT A HARD NATIVE DEPENDENCY. expo-store-review is native,
+     so any client built before it was installed crashes on a static
+     import — including every dev client already on a device. Reached
+     lazily it simply isn't there yet, and the store link stands in until
+     the next native build. iOS also decides on its own whether the
+     in-app prompt may appear at all, so the fallback is never dead code. */
+  const rate = async () => {
+    try {
+      const SR = require("expo-store-review");
+      if (await SR.hasAction()) {
+        await SR.requestReview();
+        return;
+      }
+    } catch {
+      /* no native module in this build — fall through */
+    }
+    void Linking.openURL("https://kindredly.io");
+  };
+
+  const onRestore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    const ok = await iapRestore();
+    setRestoring(false);
+    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your Kindredly+ is back." : "No previous purchase was found on this Apple ID.");
   };
 
   const onToggleKnock = async (want: boolean) => {
@@ -122,7 +185,9 @@ export default function Settings() {
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label="Pen name" value={handle || "You"} onPress={editName} />
           {age && <Row label="Age" value={age} />}
-          <Row label="Language" value="English" last />
+          {/* the Language row sat here showing "English" and doing nothing —
+              a dead row on a settings page reads as a broken app */}
+          <Row label={`${wren}'s name`} value={wren} onPress={renameWren} last />
         </View>
 
         {/* quiet */}
@@ -141,6 +206,23 @@ export default function Settings() {
           {/* the way back to a saved draft. Without this the composer's
               "save as draft" wrote somewhere nobody could reach. */}
           <Row label="Unsent letters" onPress={() => router.push("/drafts")} />
+        </View>
+
+        {/* Kindredly+ — Apple wants restore and a way to manage a running
+            subscription reachable outside the paywall */}
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>KINDREDLY+</Text>
+        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
+          <Row label="Membership" value={premium ? "Active" : "Not yet"} onPress={() => router.push("/paywall")} />
+          <Row label="Restore purchases" value={restoring ? "…" : "›"} onPress={onRestore} />
+          <Row label="Manage subscription" onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")} last />
+        </View>
+
+        {/* help — the questions a new reader actually has, and a person */}
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>HELP</Text>
+        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
+          <Row label="How Kindredly works" onPress={() => router.push("/help")} />
+          <Row label="Contact us" onPress={contact} />
+          <Row label="Rate Kindredly" onPress={rate} last />
         </View>
 
         {/* safety — every row here must actually go somewhere; a dead row on
@@ -163,6 +245,9 @@ export default function Settings() {
             </Text>
           </Pressable>
         </View>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, textAlign: "center", marginTop: 22 }}>
+          KINDREDLY {APP_VERSION} · MADE SLOWLY
+        </Text>
       </ScrollView>
 
       <LeaveSheet
