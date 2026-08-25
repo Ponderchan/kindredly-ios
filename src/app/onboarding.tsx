@@ -79,9 +79,13 @@ import { MoodIcon } from "../components/MoodIcon";
    the handoff. The Y2K-ness is all form — 2px borders, hard shadows, meters —
    and none of it hue. */
 
-type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "naming" | "write" | "hatch";
-const ORDER: Step[] = ["welcome", "username", "you", "cakeday", "avatar", "egg", "naming", "write", "hatch"];
-const BARS = ORDER.length - 1; // the reveal isn't a step you're working through
+type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "write" | "hatch" | "naming" | "flight";
+/* THE DOCTRINE ORDER (owner, 2026-08-25): you feed the egg BEFORE anything
+   has a name — the bird must exist before it can be named, and naming an
+   egg is naming a stranger. So: shell → words → hatch → name → first
+   flight. Everything after the hatch is post-birth: no meter, no back. */
+const ORDER: Step[] = ["welcome", "username", "you", "cakeday", "avatar", "egg", "write", "hatch", "naming", "flight"];
+const BARS = ORDER.indexOf("hatch"); // the form ends where the bird begins
 
 /* EVERY STEP'S CONTENT IS OPTICALLY CENTRED between the progress meter and
    the key. It used to be top-aligned, so a short step — the welcome worst of
@@ -159,7 +163,8 @@ export default function Onboarding() {
   const [note, setNote] = useState(""); // the thought being typed
   const [thoughts, setThoughts] = useState<string[]>([]); // the fed ones, 3–5
   const [mood, setMood] = useState<MoodId | null>(null);
-  const [hatchPhase, setHatchPhase] = useState<"crack" | "card" | "fly">("crack");
+  const [hatchPhase, setHatchPhase] = useState<"crack" | "born">("crack");
+  const [flying, setFlying] = useState(false);
   const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
   const [busy, setBusy] = useState<null | "apple" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
@@ -228,7 +233,7 @@ export default function Onboarding() {
       setReadStep((n) => {
         if (n >= total) {
           clearInterval(t);
-          setHatchPhase("card");
+          setHatchPhase("born");
           return n;
         }
         return n + 1;
@@ -278,7 +283,6 @@ export default function Onboarding() {
   const pro = pronoun(birdPro);
   // the key says HATCH OTIS once she's named, HATCH HIM/HER/THEM before that
   const HER = (her || pro.obj).toUpperCase();
-  const feedPlain = `Feed ${her || "them"} what’s`;
   /* WHO HATCHES comes from the Hatch Engine (lib/hatch-engine.ts): nine
      dimensions scored 0–100 with a locked/growing confidence each, blended by
      the owner's weights, matched against the archetype table. Wren is grown
@@ -343,7 +347,7 @@ export default function Onboarding() {
 
   // LET'S GO — she actually leaves, carrying it, before the app appears
   const letHerGo = () => {
-    setHatchPhase("fly");
+    setFlying(true);
     flyY.value = withTiming(-620, { duration: 1500, easing: Easing.in(Easing.cubic) });
     flyX.value = withSequence(
       withTiming(-30, { duration: 480, easing: Easing.inOut(Easing.quad) }),
@@ -686,9 +690,9 @@ export default function Onboarding() {
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head
-            plain="Choose your"
-            em="courier."
-            sub="This one carries your letters out and brings the answers back. The shell is yours to pick — who's inside is decided by what you write."
+            plain="Pick your"
+            em="messenger's shell."
+            sub="Your words decide what hatches. The shell only leaves a birthmark — the bird inside is written, not chosen."
           />
 
           {/* the handheld: a device inside the device */}
@@ -777,25 +781,23 @@ export default function Onboarding() {
           </View>
           <Text style={[mono(10, "b"), { textAlign: "center", marginTop: 12, color: Y.dim }]}>{EGG_SHELLS[eggVar].name.toUpperCase()}</Text>
         </ScrollView>
-        <Foot label="THIS ONE'S MINE ›" on onPress={() => setStep("naming")} />
+        <Foot label="THIS ONE'S MINE ›" on onPress={() => setStep("write")} />
       </Console>
     );
   }
 
-  /* ── 7 · name, and what to call her ─────────────────────────────────── */
+  /* ── 8 · name what hatched ── POST-BIRTH: no meter, no back. You cannot
+     climb back into the shell, and the form is over — this is the first
+     thing you do FOR someone rather than about yourself. */
   if (step === "naming") {
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView contentContainerStyle={CENTRED} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Head plain="Now" em="name them." sub="This is what they're called from here on — in every line they ever write you." />
+            <Head plain="Your messenger" em="needs a name." sub="This is what they're called from here on — in every line they ever write you." />
 
             <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
-              <View style={[card, bevel(4, 4), { width: 146, height: 126, borderRadius: 18, alignItems: "center", justifyContent: "center" }]}>
-                <Animated.View style={breathe}>
-                  <EggShell variant={eggVar} size={96} />
-                </Animated.View>
-              </View>
+              <Hatchling mood={hatchMood} shell={eggVar} />
             </Animated.View>
 
             <View style={{ paddingHorizontal: 18, marginTop: 16 }}>
@@ -847,7 +849,7 @@ export default function Onboarding() {
               </View>
             </View>
           </ScrollView>
-          <Foot label="NEXT ›" on={her.length > 0} onPress={() => setStep("write")} />
+          <Foot label="FIRST FLIGHT ›" on={her.length > 0} tone="brass" onPress={() => setStep("flight")} />
         </KeyboardAvoidingView>
       </Console>
     );
@@ -865,7 +867,7 @@ export default function Onboarding() {
                 and perspective read across pieces, not within one. */}
             <View style={{ paddingHorizontal: 18, paddingTop: 4 }}>
               <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9 }]}>
-                <Text style={[mono(9.5, "b"), { flex: 1 }]}>FEED {HER} THOUGHTS</Text>
+                <Text style={[mono(9.5, "b"), { flex: 1 }]}>FEED THE EGG</Text>
                 <View style={{ flexDirection: "row", marginRight: 8 }}>
                   {[0, 1, 2, 3, 4].map((i) => (
                     <View
@@ -878,7 +880,7 @@ export default function Onboarding() {
               </View>
             </View>
 
-            <Head plain={feedPlain} em="on your mind." sub="One thought is enough to hatch. Each extra one locks in more of the read." />
+            <Head plain="Give it something" em="only you'd write." sub="One thought is enough to hatch. Each extra one locks in more of who comes out." />
 
             {/* what's been fed, swallowed into little rows */}
             {thoughts.length > 0 && (
@@ -953,13 +955,70 @@ export default function Onboarding() {
             </View>
           </ScrollView>
           <Foot
-            label={canHatch ? `HATCH ${HER} 🥚` : "FEED ONE THOUGHT FIRST"}
+            label={canHatch ? "HATCH IT 🥚" : "FEED ONE THOUGHT FIRST"}
             on={canHatch}
             tone="brass"
             onPress={() => setStep("hatch")}
           />
         </KeyboardAvoidingView>
       </Console>
+    );
+  }
+
+  /* ── 10 · FIRST FLIGHT — the ending that teaches everything ─────────
+     The fed words fold into a letter; the newly named bird picks it up and
+     leaves with it. Three things land wordlessly: it came from my words,
+     it is mine, it carries my letters. The button is a release, not a
+     next — she goes because you let her. */
+  if (step === "flight") {
+    const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0] || "";
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 }}>
+          {!flying ? (
+            <>
+              <Animated.Text entering={FadeIn.duration(400)} style={{ fontFamily: F2.serif, fontSize: 31, color: Y.ink, textAlign: "center" }}>
+                {her}’s <Text style={{ fontFamily: F2.serifItalic }}>first flight.</Text>
+              </Animated.Text>
+              <Text style={[mono(10, "b"), { color: Y.dim, marginTop: 10, letterSpacing: 0.6 }]}>YOUR WORDS, FOLDED INTO A LETTER</Text>
+
+              <Animated.View entering={FadeInDown.delay(220).duration(480)} style={{ alignItems: "center", marginTop: 22 }}>
+                <Animated.View style={breathe}>
+                  <WrenBird size={110} mood="delight" stage="hatch" bare />
+                </Animated.View>
+                {/* the letter is the words they just fed — real, not an icon */}
+                <View style={[card, bevel(4, 4), { maxWidth: 300, marginTop: -8, paddingHorizontal: 16, paddingVertical: 13, transform: [{ rotate: "-2deg" }] }]}>
+                  <Text numberOfLines={3} style={{ fontFamily: F2.serifItalic, fontSize: 15, lineHeight: 22, color: Y.ink }}>
+                    {opener}
+                  </Text>
+                  <Text style={[mono(8.5, "b"), { color: Y.faint, marginTop: 8 }]}>CARRIED BY {her.toUpperCase()}</Text>
+                </View>
+              </Animated.View>
+
+              <Animated.View entering={FadeInDown.delay(500).duration(480)} style={{ width: "100%", maxWidth: 340, marginTop: 30 }}>
+                <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.blue }]}>
+                  <Text style={[mono(12.5, "b"), { color: "#fff" }]}>LET {HER} GO ›</Text>
+                </Pressable>
+              </Animated.View>
+            </>
+          ) : (
+            <>
+              <Animated.View style={[flyStyle, { alignItems: "center" }]}>
+                <WrenBird size={132} mood="delight" bare />
+                <View style={{ marginTop: -26, transform: [{ rotate: "-11deg" }] }}>
+                  <CarriedLetter />
+                </View>
+              </Animated.View>
+              <Animated.Text
+                entering={FadeIn.delay(500).duration(400)}
+                style={[mono(10.5, "b"), { color: Y.dim, position: "absolute", bottom: 96, textAlign: "center" }]}
+              >
+                OFF TO FIND SOMEONE WHO WRITES LIKE YOU
+              </Animated.Text>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -972,7 +1031,7 @@ export default function Onboarding() {
      the app's blue = still growing. Colour carries the confidence, so the
      GROWING tags and the OF-9 counter could go. */
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: hatchPhase === "born" ? "#211C36" : Y.ground }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: hatchPhase === "crack" ? "flex-start" : "center", paddingHorizontal: 22, paddingVertical: 18 }}>
         {hatchPhase === "crack" && (
           <View style={{ width: "100%", maxWidth: 360, alignSelf: "center" }}>
@@ -992,7 +1051,7 @@ export default function Onboarding() {
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
               <ReadingEgg progress={readStep / (fed.length + 3)} />
               <View style={{ flex: 1, marginLeft: 18 }}>
-                {[...fed.map((_, i) => `THOUGHT ${String(i + 1).padStart(2, "0")} READ`), "FINDING RHYTHM…", "SHAPING VOICE", `WAKING ${HER}`].map(
+                {[...fed.map((_, i) => `THOUGHT ${String(i + 1).padStart(2, "0")} READ`), "FINDING RHYTHM…", "SHAPING VOICE", "WAKING SOMETHING"].map(
                   (label, i) => {
                     const done = readStep > i;
                     const now = readStep === i;
@@ -1045,84 +1104,42 @@ export default function Onboarding() {
           </View>
         )}
 
-        {hatchPhase === "card" && (
-          <>
-            <Animated.View entering={FadeIn.duration(400)} style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass, marginBottom: 2 }]}>
-              <Text style={mono(9.5, "b")}>✦ NEW HATCH UNLOCKED ✦</Text>
-            </Animated.View>
+        {hatchPhase === "born" && (
+          <View style={{ flex: 1, width: "100%", maxWidth: 360, alignItems: "center", justifyContent: "center" }}>
+            {/* THE DOCTRINE: no verdict at birth. No archetype, no nine bars,
+                no percent — "Something hatched.", the thing itself (eyes
+                first, out of the dark), ONE thing it caught in your words,
+                and the honest close: still learning. The read all happened —
+                it just doesn't get to define a newborn. */}
+            <Animated.Text entering={FadeIn.duration(600)} style={{ fontFamily: F2.serif, fontSize: 31, color: "#F2EFFF" }}>
+              Something <Text style={{ fontFamily: F2.serifItalic }}>hatched.</Text>
+            </Animated.Text>
 
-            {/* she hatches into daylight, a warm glow instead of a dark card */}
-            <Animated.View entering={ZoomIn.duration(520).easing(Easing.out(Easing.back(1.4)))} style={{ alignItems: "center" }}>
-              <View style={{ width: 240, height: 220, alignItems: "center", justifyContent: "center" }}>
-                <Svg width={240} height={220} viewBox="0 0 240 220" style={{ position: "absolute" }}>
-                  <Defs>
-                    <RadialGradient id="hatchGlow" cx="50%" cy="52%" r="52%">
-                      <Stop offset="0%" stopColor="#F0BC6E" stopOpacity={0.5} />
-                      <Stop offset="55%" stopColor="#EAC9F2" stopOpacity={0.28} />
-                      <Stop offset="100%" stopColor="#F0BC6E" stopOpacity={0} />
-                    </RadialGradient>
-                  </Defs>
-                  <Circle cx={120} cy={112} r={108} fill="url(#hatchGlow)" />
-                </Svg>
+            <View style={{ height: 190, alignItems: "center", justifyContent: "center", marginTop: 8 }}>
+              {/* the eyes arrive before the body does */}
+              <Animated.View entering={FadeIn.delay(600).duration(420)} style={{ position: "absolute", flexDirection: "row", gap: 20 }}>
+                <View style={{ width: 9, height: 13, borderRadius: 5, backgroundColor: "#F2EFFF" }} />
+                <View style={{ width: 9, height: 13, borderRadius: 5, backgroundColor: "#F2EFFF" }} />
+              </Animated.View>
+              <Animated.View entering={ZoomIn.delay(1500).duration(460).easing(Easing.out(Easing.back(1.6)))}>
                 <Hatchling mood={hatchMood} shell={eggVar} />
+              </Animated.View>
+            </View>
+
+            <Animated.View entering={FadeIn.delay(2400).duration(500)} style={{ alignItems: "center" }}>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16.5, color: "#9C94D6" }}>It picked up something in your words.</Text>
+              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass, marginTop: 12 }]}>
+                <Text style={mono(10.5, "b")}>{(SEALED_SHORT[hatched.dims[0].key] ?? hatched.dims[0].label.toLowerCase()).toUpperCase()}</Text>
               </View>
-
-              <Text style={{ fontFamily: F2.serif, fontSize: 34, color: Y.ink, marginTop: 2 }}>
-                <Text style={{ fontFamily: F2.serifItalic, fontSize: 20, color: Y.dim }}>Meet </Text>
-                {her || "Wren"}
-              </Text>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 19, color: Y.brass, marginTop: 3 }}>{hatched.archetype.name}</Text>
-              <Text style={[mono(8.5, "b"), { color: Y.faint, marginTop: 7 }]}>TAP {HER} ✦</Text>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: Y.dim, marginTop: 12, textAlign: "center", lineHeight: 24, maxWidth: 320 }}>
-                “{hatched.desc}”
-              </Text>
+              <Text style={[mono(9.5, "b"), { color: "#6F68A8", marginTop: 14, letterSpacing: 1 }]}>STILL LEARNING.</Text>
             </Animated.View>
 
-            {/* the read: white panel, brass rule, bars instead of glyphs */}
-            <Animated.View
-              entering={FadeInDown.delay(360).duration(520)}
-              style={[
-                card,
-                bevel(5, 5),
-                { width: "100%", maxWidth: 340, paddingVertical: 16, paddingHorizontal: 18, marginTop: 18 },
-              ]}
-            >
-              <Text style={[mono(9.5, "b"), { color: Y.brass, marginBottom: 12 }]}>{HER} IS LEARNING YOU</Text>
-              {hatched.dims.slice(0, 4).map((d) => (
-                <BarRow key={d.key} d={d} />
-              ))}
-
-              <View style={{ height: 2, backgroundColor: "rgba(17,17,19,0.1)", marginTop: 6, marginBottom: 12 }} />
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16, color: Y.ink }}>{her || "Wren"} is still learning you.</Text>
-              <Text style={[mono(9, "b"), { color: Y.faint, marginTop: 7 }]}>KEEP WRITING TO REVEAL:</Text>
-              <Text style={[mono(10, "r"), { color: Y.dim, marginTop: 6, lineHeight: 19, letterSpacing: 0.4 }]}>
-                {hatched.dims.slice(4).filter((d) => !d.locked).slice(0, 4).map((d) => `□ ${SEALED_SHORT[d.key] ?? d.label.toLowerCase()}`).join("  ·  ")}
-              </Text>
-            </Animated.View>
-
-            <Animated.View entering={FadeInDown.delay(520).duration(500)} style={{ width: "100%", maxWidth: 340, marginTop: 18 }}>
-              <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass }]}>
-                <Text style={mono(12.5, "b")}>KEEP WRITING</Text>
+            <Animated.View entering={FadeInDown.delay(3200).duration(500)} style={{ width: "100%", maxWidth: 340, marginTop: 30 }}>
+              <Pressable onPress={() => setStep("naming")} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass }]}>
+                <Text style={mono(12.5, "b")}>GIVE IT A NAME ›</Text>
               </Pressable>
             </Animated.View>
-          </>
-        )}
-
-        {hatchPhase === "fly" && (
-          <>
-            <Animated.View style={[flyStyle, { alignItems: "center" }]}>
-              <WrenBird size={132} mood="delight" bare />
-              <View style={{ marginTop: -26, transform: [{ rotate: "-11deg" }] }}>
-                <CarriedLetter />
-              </View>
-            </Animated.View>
-            <Animated.Text
-              entering={FadeIn.delay(500).duration(400)}
-              style={[mono(10.5, "b"), { color: Y.dim, position: "absolute", bottom: 96, textAlign: "center" }]}
-            >
-              OFF TO FIND SOMEONE WHO WRITES LIKE YOU
-            </Animated.Text>
-          </>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
