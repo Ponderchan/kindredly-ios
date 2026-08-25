@@ -16,6 +16,7 @@ import { STAMPS } from "../../data/stamps";
 import { WrenBird } from "../../components/WrenBird";
 import { useWrenName } from "../../lib/wren-name";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
+import { fieldBox } from "../../lib/field";
 
 /* THE ROOM — where you are once you know each other.
    ────────────────────────────────────────────────────────────────────────
@@ -270,7 +271,7 @@ export default function RoomScreen() {
               placeholder="leave something here…"
               placeholderTextColor={P.ink40}
               multiline
-              style={{ maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16.5, lineHeight: 24, color: P.ink }}
+              style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16.5, lineHeight: 24, color: P.ink }}
             />
           </View>
           <Pressable

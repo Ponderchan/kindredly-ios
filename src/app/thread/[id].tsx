@@ -23,6 +23,7 @@ import {
 } from "../../lib/db";
 import { translate } from "../../lib/wren";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
+import { fieldBox } from "../../lib/field";
 
 const PAPER = P.paper;
 
@@ -288,7 +289,7 @@ export default function ThreadScreen() {
               placeholder={detail?.revealed ? `say something to ${name}…` : "write back to them…"}
               placeholderTextColor={P.ink40}
               multiline
-              style={{ flex: 1, maxHeight: 120, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+              style={{ flex: 1, ...fieldBox(reply, 23, 120), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
             />
             <Pressable
               onPress={onSend}

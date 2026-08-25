@@ -20,6 +20,7 @@ import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
+import { fieldBox } from "../../lib/field";
 
 /* The correspondence, seen from Kindreds: a slow chat. The other person's
    mosaic develops in the header with every letter THEY send — coming into
@@ -346,7 +347,7 @@ YOU WENT FIRST — WAITING ON THEIRS
               placeholder={detail?.revealed ? `say something to ${name}…` : "write your letter…"}
               placeholderTextColor={P.ink40}
               multiline
-              style={{ maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
+              style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
             />
           </View>
           <Pressable

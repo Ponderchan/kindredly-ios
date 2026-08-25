@@ -22,6 +22,7 @@ import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
+import { fieldBox } from "../../lib/field";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
    the screen; if it moves you, write back and a thread opens (it moves to
@@ -338,7 +339,7 @@ function Feed({
                   placeholder="write back…"
                   placeholderTextColor={P.ink40}
                   multiline
-                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
                 />
                 <Pressable
                   onPress={() => send(current)}
@@ -479,7 +480,7 @@ function LetterReader({
                   placeholderTextColor={P.ink40}
                   multiline
                   autoFocus
-                  style={{ flex: 1, maxHeight: 104, paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+                  style={{ flex: 1, ...fieldBox(reply.value, 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
                 />
                 <Pressable
                   onPress={reply.onSend}
