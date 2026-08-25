@@ -10,6 +10,8 @@ import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { useMyThreadsLive } from "../../lib/live";
+import { useAuth } from "../../lib/auth";
 import { setWaiting } from "../../lib/waiting";
 import { threadState } from "../../lib/thread-state";
 import { reactionLabel } from "../../data/reactions";
@@ -33,17 +35,19 @@ const REVEAL = 5;
 
 export default function KindredsTab() {
   const router = useRouter();
+  const { user } = useAuth();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchThreads().then((t) => {
-        setThreads(t || []);
-        setLoaded(true);
-      });
-    }, []),
-  );
+  const load = useCallback(() => {
+    fetchThreads().then((t) => {
+      setThreads(t || []);
+      setLoaded(true);
+    });
+  }, []);
+  useFocusEffect(load);
+  // the sky moves while you watch it — a reply lands on its ring live
+  useMyThreadsLive(user?.id, load);
 
   const source = __DEV__ && loaded && threads.length === 0 ? DEMO_THREADS : threads;
   /* THE FILTER THAT HID HALF THE PRODUCT.

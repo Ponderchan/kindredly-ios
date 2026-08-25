@@ -13,6 +13,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { REACTIONS } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
+import { useThreadLive } from "../../lib/live";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
@@ -90,6 +91,11 @@ export default function ChatScreen() {
       load();
     }, [load]),
   );
+  /* the correspondence hears the server. This is also how the FIRST
+     signer gets their ceremony the moment the second signature lands:
+     the threads UPDATE pokes load(), load() sees revealed, and
+     introduceOnce holds the door. */
+  useThreadLive(id, load);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"));
 
@@ -125,20 +131,33 @@ export default function ChatScreen() {
   const over = weight > LETTER_MAX;
   const canSend = weight >= REPLY_MIN && !over && !sending;
 
+  /* OPTIMISTIC — same contract as the room: the letter appears as you
+     release it; a failure drops the ghost and hands your words back. */
   const onSend = async () => {
     const body = text.trim();
     if (!id || !canSend || !detail) return;
     setSending(true);
+    setText("");
+    setDetail((d) =>
+      d
+        ? {
+            ...d,
+            myCount: d.myCount + 1,
+            messages: [...d.messages, { body, mine: true, date: new Date().toISOString() }],
+          }
+        : d,
+    );
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 40);
     const res = await sendThreadMessage(id, body);
     setSending(false);
     if (!res) {
+      setText(body);
+      void load();
       Alert.alert("Your letter stayed here", "It didn't go out. Try again in a moment.");
       return;
     }
-    setText("");
     void refreshFingerprint();
-    await load();
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 
   /* enclose my name. Whoever signs second completes the reveal and gets

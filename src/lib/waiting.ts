@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchThreads } from "./db";
+import { threadState } from "./thread-state";
 
 /* How many correspondences are waiting on YOU — someone answered your letter
    and you have not written back.
@@ -35,8 +36,10 @@ export function useWaiting(): number {
   return n;
 }
 
-/** one query at launch so the signal is true before Kindreds is ever opened */
+/** one query at launch — and on every realtime poke — so the signal is
+    true before Kindreds is ever opened. Same rule as the tab itself
+    (threadState.needsYou), not a second, narrower vocabulary. */
 export async function refreshWaiting(): Promise<void> {
   const t = await fetchThreads();
-  if (t) setWaiting(t.filter((x) => x.mine === 0 && x.theirs > 0).length);
+  if (t) setWaiting(t.filter((x) => threadState(x)?.needsYou).length);
 }

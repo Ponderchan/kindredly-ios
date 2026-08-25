@@ -7,6 +7,7 @@ import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, type ThreadDetail } from "../../lib/db";
+import { useThreadLive } from "../../lib/live";
 import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { noticeThings } from "../../lib/notice";
@@ -93,6 +94,8 @@ export default function RoomScreen() {
       load();
     }, [load]),
   );
+  // the room hears the server: their message, their reaction, live
+  useThreadLive(id, load);
 
   const name = detail?.otherName || "A kindred";
   const read = useMemo(() => {
@@ -124,20 +127,28 @@ export default function RoomScreen() {
   const over = weight > LETTER_MAX;
   const canSend = weight >= REPLY_MIN && !over && !sending;
 
+  /* OPTIMISTIC. Your words appear the moment you let go of them — the
+     network settles behind. On failure the reload drops the ghost line
+     and your words come back to the input instead of vanishing. */
   const onSend = async () => {
     const body = text.trim();
     if (!id || !canSend) return;
     setSending(true);
+    setText("");
+    setDetail((d) =>
+      d ? { ...d, messages: [...d.messages, { body, mine: true, date: new Date().toISOString() }] } : d,
+    );
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 40);
     const res = await sendThreadMessage(id, body);
     setSending(false);
     if (!res) {
+      setText(body);
+      void load();
       Alert.alert("It stayed here", "That didn't go out. Try again in a moment.");
       return;
     }
-    setText("");
     void refreshFingerprint();
-    await load();
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 
   return (
