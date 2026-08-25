@@ -99,10 +99,6 @@ export function buildSouvenirs(
   if (answered)
     out.push({ id: "first-reply", glyph: "📨", title: "Someone wrote back", detail: `NO. ${String(threads.filter((t) => t.theirs > 0).length).padStart(2, "0")} CARRIED`, at: answered.lastAt });
 
-  const kindred = threads.find((t) => t.revealed);
-  if (kindred)
-    out.push({ id: "first-kindred", glyph: "🤝", title: "Names traded", detail: kindred.otherName ? kindred.otherName.toUpperCase() : "A KINDRED", at: kindred.lastAt });
-
   if (topWord) out.push({ id: "kept-word", glyph: "💬", title: "A word you keep", detail: `"${topWord}"` });
 
   return out.slice(0, 8);
