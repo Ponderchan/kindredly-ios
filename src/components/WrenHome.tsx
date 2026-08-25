@@ -98,6 +98,14 @@ export function WrenHome({
     wren: "first kindred",
   };
 
+  const STAGE_BLURB: Record<WrenStage, string> = {
+    egg: "Still in the egg — waiting for your first word.",
+    hatch: "Newly hatched, and listening to your words.",
+    fledge: "Learning to fly, finding the right windows.",
+    wren: "Many journeys together.",
+  };
+  const flies = info.stage !== "egg";
+
   const items = ACCESSORY_META.filter((a) => a.id !== "none");
   const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium)).length;
 
@@ -110,26 +118,29 @@ export function WrenHome({
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, marginTop: 3 }}>
             YOUR MESSENGER
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14 }}>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, lineHeight: 19, color: P.ink60, marginTop: 8, paddingRight: 6 }}>
+            {STAGE_BLURB[info.stage]}
+          </Text>
+          {flies && (<View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12 }}>
             <View style={{ width: 7, height: 7, backgroundColor: where.state === "bringing" ? P.pen : P.ink40 }} />
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: where.state === "bringing" ? P.pen : P.ink }}>
               {where.line.toUpperCase()}
             </Text>
-          </View>
+          </View>)}
           {away && (
             <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 0.8, color: P.ink60, marginTop: 7 }}>
               {`WHILE YOU WERE AWAY${away.carriedOut ? ` · ${away.carriedOut} CARRIED OUT` : ""}${away.broughtBack ? ` · ${away.broughtBack} BROUGHT BACK` : ""}`}
             </Text>
           )}
-          <Pressable onPress={() => setTracking((v) => !v)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: tracking ? P.pen : P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
+          {flies && (<Pressable onPress={() => setTracking((v) => !v)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: tracking ? P.pen : P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: tracking ? P.pen : P.ink60 }}>TRACK {wren.toUpperCase()}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, color: tracking ? P.pen : P.ink60 }}>{tracking ? "↓" : "→"}</Text>
-          </Pressable>
+          </Pressable>)}
         </View>
         <View style={{ alignItems: "center", justifyContent: "flex-end" }}>
           {/* what she'd yell over her shoulder */}
           <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 9, paddingVertical: 5, marginBottom: 8 }}>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60 }}>{dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60 }}>{!flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
           <WrenBird size={108} bare stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
         </View>
@@ -139,7 +150,7 @@ export function WrenHome({
           Not a navigation — a document. Every row is real (the thread that
           set her status, the hour your letter left, whose door she's at),
           and the last row is the door itself. */}
-      {tracking && <TrackingSlip threads={threads} state={where.state} wren={wren} onOpenThread={onOpenThread} />}
+      {flies && tracking && <TrackingSlip threads={threads} state={where.state} wren={wren} onOpenThread={onOpenThread} />}
 
       {/* ── the journey: ONE ladder, with the days it really turned ── */}
       <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 }}>
