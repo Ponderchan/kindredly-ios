@@ -151,6 +151,16 @@ export default function Onboarding() {
   const { session, onboarded, appleAvailable } = auth;
 
   const [step, setStep] = useState<Step>("welcome");
+
+  /* EVERY STEP, NOT JUST THE LAST ONE. onboard_done alone tells you how
+     many finished and nothing about the ones who didn't — and this is the
+     steepest stretch in the whole funnel. One event per step ARRIVED-AT
+     makes each drop-off visible: how many saw the egg, how many fed it,
+     how many never named her. Only the step name and its index travel;
+     nothing anyone typed does. */
+  useEffect(() => {
+    track("onboard_step", { step, i: ORDER.indexOf(step) });
+  }, [step]);
   const [cardI, setCardI] = useState(0);
   const cardRef = useRef<ScrollView>(null);
   const [username, setUsername] = useState("");

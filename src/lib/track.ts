@@ -19,6 +19,7 @@ import { supabase, supabaseReady } from "./supabase";
 
 export type EventName =
   // the funnel that decides whether this product works at all
+  | "onboard_step"
   | "onboard_done"
   | "letter_sent"
   | "reply_sent"
