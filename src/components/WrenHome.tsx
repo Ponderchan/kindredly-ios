@@ -5,7 +5,7 @@ import { P, PF } from "../theme/post";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
 import { ACCESSORY_META, SKINS, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
-import { buildSouvenirs, fetchCarried, getStageDates, whereabouts, type Souvenir } from "../lib/whereabouts";
+import { fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, type AwayReport, type Souvenir } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
 import type { GrowthStats } from "../data/growth";
 
@@ -61,13 +61,21 @@ export function WrenHome({
   const wren = useWrenName();
   const where = whereabouts(threads);
   const [souvenirs, setSouvenirs] = useState<Souvenir[]>([]);
+  const [away, setAway] = useState<AwayReport | null>(null);
+  const [dozy, setDozy] = useState(false);
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
   const [open, setOpen] = useState<null | "looks" | "dress">(null);
   const wearsHere = info.stage === "wren" || info.stage === "hatch";
 
   useEffect(() => {
     let alive = true;
-    fetchCarried().then((c) => alive && setSouvenirs(buildSouvenirs(c, threads, topWord)));
+    fetchCarried().then(async (c) => {
+      const [shelf, diff] = await Promise.all([mintSouvenirs(c, threads, topWord), sinceLastVisit(c, threads)]);
+      if (!alive) return;
+      setSouvenirs(shelf);
+      setAway(diff);
+      setDozy(isDozing(c));
+    });
     getStageDates().then((d) => alive && setDates(d));
     return () => {
       alive = false;
@@ -111,6 +119,11 @@ export function WrenHome({
               {where.line.toUpperCase()}
             </Text>
           </View>
+          {away && (
+            <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 0.8, color: P.ink60, marginTop: 7 }}>
+              {`WHILE YOU WERE AWAY${away.carriedOut ? ` · ${away.carriedOut} CARRIED OUT` : ""}${away.broughtBack ? ` · ${away.broughtBack} BROUGHT BACK` : ""}`}
+            </Text>
+          )}
           <Pressable onPress={onTrack} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: P.ink60 }}>TRACK {wren.toUpperCase()}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.ink60 }}>→</Text>
@@ -119,9 +132,9 @@ export function WrenHome({
         <View style={{ alignItems: "center", justifyContent: "center" }}>
           {/* what she'd yell over her shoulder */}
           <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 6 }}>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink60 }}>{speakAs(where.bubble, wren)}</Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink60 }}>{dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
-          <WrenBird size={64} stage={info.stage} mood={WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
+          <WrenBird size={64} stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
         </View>
       </View>
 

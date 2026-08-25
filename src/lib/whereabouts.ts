@@ -134,3 +134,85 @@ export async function getStageDates(): Promise<Partial<Record<WrenStage, string>
 }
 
 export { STAGE_ORDER };
+
+/* ── the shelf is a LEDGER now — she keeps what she earns, forever ──────
+   The derived list above only knew firsts, so after week one the room
+   went still. Minting fixes that: recurring milestones (the 10th letter,
+   the 25th, each new kindred) become souvenirs the moment they happen,
+   dated by the actual event, and persist locally so the shelf only ever
+   grows. Derivation stays the source of truth for WHAT exists; the
+   ledger remembers WHEN it was first seen. */
+
+const SHELF_KEY = "kindredly_wren_souvenirs";
+const CARRY_MARKS = [10, 25, 50, 100, 250];
+
+export async function mintSouvenirs(
+  carried: { at: string }[],
+  threads: ThreadSummary[],
+  topWord?: string | null,
+): Promise<Souvenir[]> {
+  const fresh = buildSouvenirs(carried, threads, topWord);
+
+  // recurring: the Nth letter she carried, dated by that very letter
+  for (const n of CARRY_MARKS) {
+    const nth = carried[n - 1];
+    if (nth)
+      fresh.push({ id: `carried-${n}`, glyph: "📮", title: `${n} letters carried`, detail: day(nth.at), at: Date.parse(nth.at) });
+  }
+  // each kindred is her own souvenir — she introduced you
+  for (const t of threads.filter((x) => x.revealed))
+    fresh.push({ id: `kindred-${t.id}`, glyph: "🤝", title: "Names traded", detail: (t.otherName || "A KINDRED").toUpperCase(), at: t.lastAt });
+
+  try {
+    const raw = (await AsyncStorage.getItem(SHELF_KEY)) || "[]";
+    const shelf: Souvenir[] = JSON.parse(raw);
+    const have = new Set(shelf.map((s) => s.id));
+    let grew = false;
+    for (const s of fresh)
+      if (!have.has(s.id)) {
+        shelf.push(s);
+        have.add(s.id);
+        grew = true;
+      }
+    if (grew) await AsyncStorage.setItem(SHELF_KEY, JSON.stringify(shelf.slice(-60)));
+    return shelf.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+  } catch {
+    return fresh.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+  }
+}
+
+/* ── while you were away: the diff that makes change FELT ───────────────
+   Every visit stores {carried, repliesIn}; the next visit reports the
+   difference in her voice. This is the owner's actual ask — you write,
+   you come back, and something in her room has moved because of it. */
+
+const VISIT_KEY = "kindredly_wren_lastvisit";
+
+export interface AwayReport {
+  carriedOut: number; // letters/messages of yours she took since last visit
+  broughtBack: number; // replies that arrived since last visit
+}
+
+export async function sinceLastVisit(
+  carried: { at: string }[],
+  threads: ThreadSummary[],
+): Promise<AwayReport | null> {
+  const now = { carried: carried.length, replies: threads.reduce((n, t) => n + t.theirs, 0) };
+  try {
+    const raw = await AsyncStorage.getItem(VISIT_KEY);
+    await AsyncStorage.setItem(VISIT_KEY, JSON.stringify(now));
+    if (!raw) return null;
+    const prev = JSON.parse(raw) as { carried: number; replies: number };
+    const carriedOut = Math.max(0, now.carried - (prev.carried ?? 0));
+    const broughtBack = Math.max(0, now.replies - (prev.replies ?? 0));
+    return carriedOut || broughtBack ? { carriedOut, broughtBack } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** she dozes when nothing has left the house in five days */
+export function isDozing(carried: { at: string }[]): boolean {
+  const last = carried[carried.length - 1];
+  return !last || Date.now() - Date.parse(last.at) > 5 * 24 * 3600 * 1000;
+}
