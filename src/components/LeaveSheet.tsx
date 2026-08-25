@@ -25,7 +25,9 @@ import { P, PF, rule, solidBtn } from "../theme/post";
 
 export interface LeaveAction {
   label: string;
-  kind: "primary" | "destructive";
+  /** primary = the filled pen button · destructive = ruled in postal red ·
+      quiet = ruled in ink, for a serious act that is not the red one */
+  kind: "primary" | "destructive" | "quiet";
   onPress: () => void;
 }
 
@@ -85,10 +87,14 @@ export function LeaveSheet({
                   ? { ...solidBtn, opacity: pressed ? 0.85 : 1 }
                   : {
                       borderWidth: 1,
-                      borderColor: P.post,
+                      borderColor: a.kind === "quiet" ? P.ink : P.post,
                       paddingVertical: 15,
                       alignItems: "center",
-                      backgroundColor: pressed ? "rgba(224,72,60,0.08)" : "transparent",
+                      backgroundColor: pressed
+                        ? a.kind === "quiet"
+                          ? P.paperDeep
+                          : "rgba(224,72,60,0.08)"
+                        : "transparent",
                     }
               }
             >
@@ -97,7 +103,7 @@ export function LeaveSheet({
                   fontFamily: PF.monoSemi,
                   fontSize: 12.5,
                   letterSpacing: 1.8,
-                  color: a.kind === "primary" ? "#fff" : P.post,
+                  color: a.kind === "primary" ? "#fff" : a.kind === "quiet" ? P.ink : P.post,
                 }}
               >
                 {a.label}
