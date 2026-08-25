@@ -228,3 +228,53 @@ export function isDozing(carried: { at: string }[]): boolean {
   const last = carried[carried.length - 1];
   return !last || Date.now() - Date.parse(last.at) > 5 * 24 * 3600 * 1000;
 }
+
+/* ── HER FLIGHT LOG — what you get for tapping her ──────────────────────
+   Every row is counted from real rows (letters you sent, replies that
+   came back, the hour of the last flight). Nothing is estimated and
+   nothing is promised.
+
+   The closing line exists to answer a question this product must never
+   answer with a price: how fast is she? She is instant — she leaves the
+   moment you press send. What takes days is the person at the other end,
+   and no subscription can or should shorten that. */
+
+const H = 3600e3;
+/** a bare span — "6H". The row decides whether that means AGO or FOR. */
+function span(iso: string | number): string {
+  const ms = Date.now() - (typeof iso === "number" ? iso : Date.parse(iso));
+  if (ms < H) return `${Math.max(1, Math.round(ms / 60e3))}M`;
+  if (ms < 24 * H) return `${Math.round(ms / H)}H`;
+  return `${Math.round(ms / (24 * H))}D`;
+}
+
+export function flightLog(
+  state: Whereabouts | "dozing",
+  carried: { at: string }[],
+  threads: ThreadSummary[],
+  driving: ThreadSummary | null,
+): { rows: string[]; line: string } {
+  const total = carried.length;
+  const back = threads.reduce((n, t) => n + t.theirs, 0);
+  const last = carried[carried.length - 1];
+  const week = carried.filter((c) => Date.now() - Date.parse(c.at) < 7 * 24 * H).length;
+
+  const rows =
+    state === "delivery" && driving
+      ? [`OUT FOR ${span(driving.lastAt)}`, `${total} CARRIED IN ALL`, `${week} THIS WEEK`]
+      : state === "bringing" && driving
+        ? [`LANDED ${span(driving.lastAt)} AGO`, `${back} BROUGHT BACK IN ALL`, `${total} CARRIED OUT`]
+        : state === "dozing"
+          ? [
+              last ? `LAST FLIGHT ${span(last.at)} AGO` : "NEVER FLOWN",
+              `${total} CARRIED · ${back} BROUGHT BACK`,
+              "WAKES THE MOMENT YOU WRITE",
+            ]
+          : [
+              last ? `LAST FLIGHT ${span(last.at)} AGO` : "NEVER FLOWN",
+              `${total} CARRIED · ${back} BROUGHT BACK`,
+              `${week} FLIGHT${week === 1 ? "" : "S"} THIS WEEK`,
+            ];
+
+  return { rows, line: "I leave the second you press send. The waiting is theirs, not mine." };
+}

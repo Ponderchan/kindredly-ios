@@ -6,7 +6,7 @@ import { P, PF } from "../theme/post";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
 import { ACCESSORY_META, SKINS, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
-import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
+import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, flightLog, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
 import type { GrowthStats } from "../data/growth";
 
@@ -59,9 +59,11 @@ export function WrenHome({
   const [souvenirs, setSouvenirs] = useState<Souvenir[]>([]);
   const [away, setAway] = useState<AwayReport | null>(null);
   const [dozy, setDozy] = useState(false);
+  const [carried, setCarried] = useState<{ at: string }[]>([]);
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
   const [open, setOpen] = useState<null | "looks" | "dress">(null);
   const [tracking, setTracking] = useState(false);
+  const [log, setLog] = useState(false);
   const wearsHere = info.stage === "wren" || info.stage === "hatch";
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function WrenHome({
     fetchCarried().then(async (c) => {
       const [shelf, diff] = await Promise.all([mintSouvenirs(c, threads, topWord), sinceLastVisit(c, threads)]);
       if (!alive) return;
+      setCarried(c);
       setSouvenirs(shelf);
       setAway(diff);
       setDozy(isDozing(c));
@@ -151,6 +154,7 @@ export function WrenHome({
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60 }}>{!flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
           <HeroWren
+            onPress={() => setLog((v) => !v)}
             stage={info.stage}
             state={dozy && where.state === "home" ? "dozing" : where.state}
             mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood}
@@ -158,6 +162,9 @@ export function WrenHome({
           />
         </View>
       </View>
+
+      {/* what she says when you actually tap her — counted, never sold */}
+      {flies && log && <FlightLog state={dozy && where.state === "home" ? "dozing" : where.state} carried={carried} threads={threads} driving={drivingThread(threads, where.state)} wren={wren} />}
 
       {/* ── the tracking slip: her run, as the post would file it ──────────
           Not a navigation — a document. Every row is real (the thread that
@@ -377,16 +384,39 @@ const GRACE: Record<WrenStage, { amp: number; speed: number; wobble: number }> =
   wren: { amp: 1, speed: 1, wobble: 0 }, // she has done this a thousand times
 };
 
+function FlightLog({ state, carried, threads, driving, wren }: { state: Whereabouts | "dozing"; carried: { at: string }[]; threads: ThreadSummary[]; driving: ThreadSummary | null; wren: string }) {
+  const { rows, line } = flightLog(state, carried, threads, driving);
+  return (
+    <View style={{ marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: P.ink12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>FLIGHT LOG</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
+      </View>
+      {rows.map((r) => (
+        <View key={r} style={{ flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 12, paddingVertical: 7 }}>
+          <View style={{ width: 5, height: 5, backgroundColor: P.ink40 }} />
+          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink60 }}>{r}</Text>
+        </View>
+      ))}
+      <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, lineHeight: 19, color: P.ink60, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 11 }}>
+        {speakAs(line, wren)}
+      </Text>
+    </View>
+  );
+}
+
 function HeroWren({
   stage,
   state,
   mood,
   accessory,
+  onPress,
 }: {
   stage: WrenStage;
   state: Whereabouts | "dozing";
   mood: WrenMood;
   accessory: WrenAccessory;
+  onPress: () => void;
 }) {
   const t = useRef(new Animated.Value(0)).current;
   const g = GRACE[stage];
@@ -432,9 +462,29 @@ function HeroWren({
             ? [{ translateY: to([0, -12 * A]) }, { rotate: spin(6 * A + g.wobble) }]
             : [{ translateX: to([-3 * A, 3 * A]) }, { rotate: spin(5 * A + g.wobble) }];
 
+  /* she reacts to being touched — a startle that plays over the idle */
+  const poke = useRef(new Animated.Value(0)).current;
+  const startle = () => {
+    poke.setValue(0);
+    Animated.sequence([
+      Animated.timing(poke, { toValue: 1, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.spring(poke, { toValue: 0, friction: 4, tension: 120, useNativeDriver: true }),
+    ]).start();
+    onPress();
+  };
+
   return (
-    <Animated.View style={{ transform }}>
-      <WrenBird size={108} bare stage={stage} mood={mood} accessory={accessory} />
-    </Animated.View>
+    <Pressable onPress={startle} hitSlop={8}>
+      <Animated.View
+        style={{
+          transform: [
+            ...transform,
+            { scale: poke.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) },
+          ],
+        }}
+      >
+        <WrenBird size={108} bare stage={stage} mood={mood} accessory={accessory} />
+      </Animated.View>
+    </Pressable>
   );
 }
