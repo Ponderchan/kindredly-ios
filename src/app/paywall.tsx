@@ -164,13 +164,12 @@ export default function Paywall() {
         </Text>
         <View style={{ gap: 11 }}>
           {packages.map((p) => (
-            <Stub
-              key={p.id}
-              pkg={p}
-              on={selected === p.id}
-              onPress={() => setSelected(p.id)}
-              wren={wren}
-            />
+            <View key={p.id}>
+              <Stub pkg={p} on={selected === p.id} onPress={() => setSelected(p.id)} wren={wren} />
+              {/* the founder's own marks — shown only when the fare is
+                  chosen, so picking it is itself a small reveal */}
+              {p.period === "lifetime" && selected === p.id && <CofounderMarks wren={wren} />}
+            </View>
           ))}
         </View>
 
@@ -417,5 +416,36 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
         )}
       </Animated.View>
     </Pressable>
+  );
+}
+
+/* what only a Cofounder gets — four marks, gold, and one line saying the
+   rest is simply everything else, forever */
+function CofounderMarks({ wren }: { wren: string }) {
+  const MARKS: [string, string][] = [
+    ["A number of your own", `one of ${COFOUNDERS_TOTAL}, in the order you arrived`],
+    [`A ring on ${wren}'s leg`, "never sold again, to anyone"],
+    ["Everything first", "new looks and rooms before they open"],
+    ["A letter, at one year", "she brings it herself"],
+  ];
+  return (
+    <View style={{ borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2, borderColor: GOLD, backgroundColor: "#FBF6E6", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 }}>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: "#8A6E20" }}>
+        WHAT ONLY A COFOUNDER GETS
+      </Text>
+      {MARKS.map(([title, sub]) => (
+        <View key={title} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 12 }}>
+          <View style={{ width: 8, height: 8, backgroundColor: GOLD, marginTop: 5 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, color: P.ink }}>{speakAs(title, wren)}</Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60, marginTop: 2 }}>{speakAs(sub, wren)}</Text>
+          </View>
+        </View>
+      ))}
+      <View style={{ height: 1, backgroundColor: GOLD, opacity: 0.4, marginTop: 15 }} />
+      <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: "#8A6E20", marginTop: 11 }}>
+        {speakAs("And everything in First Class — the kindreds, the voice, the reports, her wardrobe — for as long as there is a Kindredly.", wren)}
+      </Text>
+    </View>
   );
 }
