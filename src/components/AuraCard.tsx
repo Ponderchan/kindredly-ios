@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Image, Pressable, Text, View } from "react-native";
 import { P, PF } from "../theme/post";
 import { getAvatar } from "../data/avatar-lib";
 import { pickAuraAvatar } from "../data/aura-avatar-lib";
@@ -75,6 +75,78 @@ export function splitRead(d: DimScore): { title: string; sub?: string } {
 }
 
 const CHIPS_AT: Record<AuraPhase, number> = { empty: 0, forming: 1, shaping: 3, clearing: 4, formed: 6 };
+
+/* HER FIVE IDLES, ONE PER STAGE OF THE PAGE.
+   ────────────────────────────────────────────────────────────────────────
+   She is at a machine, so the motion is what a typist's body does, not what
+   a mascot does: an idle wait, a peck, a carriage nudge, a lean into the
+   last line, and one clean look-up when the page is done. All
+   transform-only on the native driver, all quiet enough to sit under
+   running text. */
+const IDLE: Record<AuraPhase, { mood: "listen" | "curious" | "content" | "think" | "delight"; note: string }> = {
+  empty: { mood: "listen", note: "waiting at the keys" },
+  forming: { mood: "curious", note: "pecking out the first line" },
+  shaping: { mood: "content", note: "nudging the carriage along" },
+  clearing: { mood: "think", note: "leaning into the last line" },
+  formed: { mood: "delight", note: "looks up — it's done" },
+};
+
+function PageWren({ stage, size = 26 }: { stage: AuraPhase; size?: number }) {
+  const t = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    t.setValue(0);
+    const ease = (to: number, duration: number, easing = Easing.inOut(Easing.sin)) =>
+      Animated.timing(t, { toValue: to, duration, easing, useNativeDriver: true });
+    const seq =
+      stage === "empty"
+        ? // breathing, hands resting
+          Animated.sequence([ease(1, 1500), ease(0, 1500)])
+        : stage === "forming"
+          ? // two pecks at the keys, then a beat to read what landed
+            Animated.sequence([
+              ease(1, 130, Easing.in(Easing.quad)),
+              ease(0, 190, Easing.out(Easing.quad)),
+              ease(1, 130, Easing.in(Easing.quad)),
+              ease(0, 190, Easing.out(Easing.quad)),
+              Animated.delay(900),
+            ])
+          : stage === "shaping"
+            ? // the carriage goes back: a shove left, a slow drift home
+              Animated.sequence([ease(1, 260, Easing.out(Easing.cubic)), ease(0, 900), Animated.delay(500)])
+            : stage === "clearing"
+              ? // leaning in, faster — she can nearly name it
+                Animated.sequence([ease(1, 620), ease(0, 620)])
+              : // the page is done: one hop, then she just sits with it
+                Animated.sequence([
+                  ease(1, 240, Easing.out(Easing.quad)),
+                  ease(0, 300, Easing.bounce),
+                  Animated.delay(2200),
+                ]);
+    const loop = Animated.loop(seq);
+    loop.start();
+    return () => loop.stop();
+  }, [stage, t]);
+
+  const range = (out: [number, number]) => t.interpolate({ inputRange: [0, 1], outputRange: out });
+  const spin = (out: [string, string]) => t.interpolate({ inputRange: [0, 1], outputRange: out });
+  const transform =
+    stage === "empty"
+      ? [{ scale: range([1, 1.045]) }]
+      : stage === "forming"
+        ? [{ translateY: range([0, 3.5]) }, { rotate: spin(["0deg", "13deg"]) }]
+        : stage === "shaping"
+          ? [{ translateX: range([0, -7]) }]
+          : stage === "clearing"
+            ? [{ rotate: spin(["0deg", "-10deg"]) }, { translateX: range([0, -2]) }]
+            : [{ translateY: range([0, -7]) }];
+
+  return (
+    <Animated.View style={{ transform }}>
+      <WrenBird size={size} bare mood={IDLE[stage].mood} />
+    </Animated.View>
+  );
+}
 
 const CAPTION: Record<AuraPhase, string> = {
   empty: "A blank page is loaded.",
@@ -183,7 +255,7 @@ export function AuraCard({
           {formed && more > 0 && (
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen, marginRight: 10 }}>{more} MORE →</Text>
           )}
-          <WrenBird size={26} bare mood={formed ? "delight" : stage === "empty" ? "listen" : "content"} />
+          <PageWren stage={stage} />
         </View>
       </Pressable>
 
