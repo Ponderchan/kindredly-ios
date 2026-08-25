@@ -26,7 +26,7 @@ export default function Settings() {
   const router = useRouter();
   const wren = useWrenName();
   const [knock, setKnock] = useState(false);
-  const { premium } = useEntitlement();
+  const { premium, cofounderNo } = useEntitlement();
   const [restoring, setRestoring] = useState(false);
 
   useFocusEffect(
@@ -216,7 +216,7 @@ export default function Settings() {
             subscription reachable outside the paywall */}
         <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>FIRST CLASS</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label="Membership" value={premium ? "Active" : "Not yet"} onPress={() => router.push("/paywall")} />
+          <Row label="Membership" value={cofounderNo != null ? `Cofounder No. ${String(cofounderNo).padStart(3, "0")}` : premium ? "First Class" : "Not yet"} onPress={() => router.push("/paywall")} />
           <Row label="Restore purchases" value={restoring ? "…" : "›"} onPress={onRestore} />
           <Row label="Manage subscription" onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")} last />
         </View>

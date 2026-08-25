@@ -21,6 +21,7 @@ import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { WHEREABOUTS_META, recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard } from "../../components/AuraCard";
+import { CofounderMark } from "../../components/CofounderMark";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -53,7 +54,7 @@ function Gear() {
 export default function MeTab() {
   const auth = useAuth();
   const { user, handle, profile } = auth;
-  const { premium } = useEntitlement();
+  const { premium, cofounderNo } = useEntitlement();
   const router = useRouter();
   const name = handle || "You";
 
@@ -155,6 +156,11 @@ export default function MeTab() {
               DAY {stats.day} · {stats.lettersSent} LETTERS · {stats.journalN} SEALED · {stats.kindreds}{" "}
               {stats.kindreds === 1 ? "KINDRED" : "KINDREDS"}
             </Text>
+            {cofounderNo != null && (
+              <View style={{ marginTop: 8 }}>
+                <CofounderMark no={cofounderNo} />
+              </View>
+            )}
           </Pressable>
         </View>
 
@@ -224,6 +230,7 @@ export default function MeTab() {
                 onLocked={() => router.push("/paywall")}
                 onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
                 onOpenKeepsake={(id) => router.push(`/keepsake/${id}`)}
+                cofounderNo={cofounderNo}
                 onPlus={() => router.push("/paywall")}
               />
             </View>

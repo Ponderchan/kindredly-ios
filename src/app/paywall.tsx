@@ -10,6 +10,7 @@ import { WrenBird } from "../components/WrenBird";
 import { keepsake } from "../data/keepsakes";
 import { loadShelf, type Minted } from "../lib/keepsakes";
 import { fetchThreads, type ThreadSummary } from "../lib/db";
+import { CofounderMark } from "../components/CofounderMark";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
 
@@ -56,7 +57,7 @@ const NEVER: string[] = [
 const PLACEHOLDERS: IapPackage[] = [
   { id: "annual", priceString: "$39.99 / year", title: "Annual", period: "annual", raw: null },
   { id: "monthly", priceString: "$6.99 / month", title: "Monthly", period: "monthly", raw: null },
-  { id: "lifetime", priceString: "$129 once", title: "Cofounder", period: "lifetime", raw: null },
+  { id: "lifetime", priceString: "$129", title: "Lifetime", period: "lifetime", raw: null },
 ];
 
 const COFOUNDERS_TOTAL = 500;
@@ -245,14 +246,14 @@ function Stub({ pkg, on, onPress, wren }: { pkg: IapPackage; on: boolean; onPres
       <View style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 1, color: life ? "#8A6E20" : P.ink }}>
-            {life ? "COFOUNDER" : pkg.title.toUpperCase()}
+            {life ? "LIFETIME" : pkg.title.toUpperCase()}
           </Text>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 14, color: P.ink }}>{pkg.priceString}</Text>
         </View>
 
         <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
           {life
-            ? `Paid once, and it never ends. A number that is yours — one of ${COFOUNDERS_TOTAL} — a ring on ${wren}'s leg that nobody can buy later, and every new thing before anyone else.`
+            ? "Paid once. You become a Kindredly Cofounder."
             : year
               ? "About three dollars a month. The way most people travel."
               : "Month to month. Leave whenever you like."}
@@ -423,16 +424,24 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
    rest is simply everything else, forever */
 function CofounderMarks({ wren }: { wren: string }) {
   const MARKS: [string, string][] = [
-    ["A number of your own", `one of ${COFOUNDERS_TOTAL}, in the order you arrived`],
-    [`A ring on ${wren}'s leg`, "never sold again, to anyone"],
-    ["Everything first", "new looks and rooms before they open"],
-    ["A letter, at one year", "she brings it herself"],
+    ["Your own number", `one of ${COFOUNDERS_TOTAL}`],
+    [`A gold ring on ${wren}`, "she wears it always"],
+    ["Everything first", "before anyone else"],
+    ["A letter at one year", "she brings it herself"],
   ];
   return (
     <View style={{ borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2, borderColor: GOLD, backgroundColor: "#FBF6E6", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 }}>
       <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: "#8A6E20" }}>
-        WHAT ONLY A COFOUNDER GETS
+        KINDREDLY COFOUNDER
       </Text>
+      {/* the mark itself, exactly as it will sit on their own desk — the
+          thing being sold is visible before it is bought */}
+      <View style={{ alignItems: "center", paddingVertical: 14 }}>
+        <CofounderMark no={47} size="lg" />
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 7 }}>
+          yours, everywhere the app says who you are
+        </Text>
+      </View>
       {MARKS.map(([title, sub]) => (
         <View key={title} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 12 }}>
           <View style={{ width: 8, height: 8, backgroundColor: GOLD, marginTop: 5 }} />
@@ -444,7 +453,7 @@ function CofounderMarks({ wren }: { wren: string }) {
       ))}
       <View style={{ height: 1, backgroundColor: GOLD, opacity: 0.4, marginTop: 15 }} />
       <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: "#8A6E20", marginTop: 11 }}>
-        {speakAs("And everything in First Class — the kindreds, the voice, the reports, her wardrobe — for as long as there is a Kindredly.", wren)}
+        {speakAs("And all of First Class, for as long as there is a Kindredly.", wren)}
       </Text>
     </View>
   );

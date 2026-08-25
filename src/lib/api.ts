@@ -20,6 +20,8 @@ export interface Entitlement {
   plan?: string | null;
   status?: string | null;
   premium_until?: string | null;
+  /** issued once, in the order they arrived — see entitlement.tsx */
+  cofounder_no?: number | null;
   cancel_at_period_end?: boolean;
   next_amount?: number | null;
   next_currency?: string | null;

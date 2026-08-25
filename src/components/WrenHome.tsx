@@ -2,6 +2,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { dShort, postNo } from "../lib/format";
 import { Image } from "react-native";
 import { keepsake } from "../data/keepsakes";
+import { COFOUNDER_GOLD, CofounderMark } from "./CofounderMark";
 import { mint, unseen, type Minted } from "../lib/keepsakes";
 import { loadJournal } from "../lib/journal";
 import { useEffect, useRef, useState } from "react";
@@ -42,6 +43,7 @@ export function WrenHome({
   onLocked,
   onOpenThread,
   onOpenKeepsake,
+  cofounderNo = null,
   onPlus,
 }: {
   stats: GrowthStats;
@@ -56,6 +58,8 @@ export function WrenHome({
   onLocked: () => void;
   onOpenThread: (t: ThreadSummary) => void;
   onOpenKeepsake: (id: string) => void;
+  /** her ring — the one cofounder mark another person ever sees */
+  cofounderNo?: number | null;
   onPlus: () => void;
 }) {
   const { skin, pick } = useWrenSkinControl();
@@ -142,6 +146,11 @@ export function WrenHome({
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, marginTop: 3 }}>
             YOUR MESSENGER
           </Text>
+          {cofounderNo != null && (
+            <View style={{ marginTop: 7 }}>
+              <CofounderMark no={cofounderNo} />
+            </View>
+          )}
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, lineHeight: 19, color: P.ink60, marginTop: 8, paddingRight: 6 }}>
             {STAGE_BLURB[info.stage]}
           </Text>
@@ -166,6 +175,9 @@ export function WrenHome({
           <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 9, paddingVertical: 5, marginBottom: 8 }}>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60 }}>{!flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
+          {cofounderNo != null && (
+            <View style={{ position: "absolute", bottom: -3, alignSelf: "center", zIndex: 2, width: 26, height: 5, borderRadius: 3, backgroundColor: COFOUNDER_GOLD }} />
+          )}
           <HeroWren
             onPress={() => setLog((v) => !v)}
             stage={info.stage}
