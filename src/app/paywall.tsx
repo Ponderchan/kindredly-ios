@@ -39,30 +39,10 @@ const NIGHT = "#221E3D";
    discovered, not recited. Each wears a keepsake's art, so the stamps on
    this page speak the same language as the shelf in her room. */
 const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
-  {
-    id: "kindreds",
-    title: "Every kindred after the first",
-    sub: "The first person who trades names with you is free, always. The rest travel with you.",
-    icon: "three-kindreds",
-  },
-  {
-    id: "voice",
-    title: "Voice letters",
-    sub: "Some things only land in a voice. Record one instead of writing it.",
-    icon: "first-voice-letter",
-  },
-  {
-    id: "report",
-    title: "An aura report, every month",
-    sub: "She wraps the month you wrote — your hours, your words, your read — into a letter just for you.",
-    icon: "first-anniversary",
-  },
-  {
-    id: "wardrobe",
-    title: "Her whole wardrobe",
-    sub: "The ink-and-post look, and every seasonal piece she has ever been given.",
-    icon: "otis-changed",
-  },
+  { id: "kindreds", title: "More kindreds", sub: "the first stays free", icon: "three-kindreds" },
+  { id: "voice", title: "Voice letters", sub: "say it out loud", icon: "first-voice-letter" },
+  { id: "report", title: "A monthly report", sub: "the month you wrote", icon: "first-anniversary" },
+  { id: "wardrobe", title: "Her wardrobe", sub: "every look she owns", icon: "otis-changed" },
 ];
 
 const NEVER: string[] = [
@@ -418,11 +398,11 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
       >
         {open ? (
           <>
-            {def ? <Image source={def.icon} style={{ width: 38, height: 38 }} resizeMode="contain" /> : null}
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, color: P.ink, textAlign: "center", marginTop: 7 }}>
+            {def ? <Image source={def.icon} style={{ width: 74, height: 74 }} resizeMode="contain" /> : null}
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 0.4, color: P.ink, textAlign: "center", marginTop: 10 }}>
               {speakAs(item.title, wren)}
             </Text>
-            <Text style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 17, color: P.ink60, textAlign: "center", marginTop: 5 }}>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, textAlign: "center", marginTop: 3 }}>
               {speakAs(item.sub, wren)}
             </Text>
           </>
