@@ -21,6 +21,20 @@ import type { WrenStage } from "../components/WrenBird";
 
 export type Whereabouts = "home" | "delivery" | "bringing" | "exploring";
 
+/* one registry for everything a status shows, wherever it shows — her
+   room, the YOU|PIP switch, whatever comes next. The owner is planning
+   more states; adding one means adding one entry here. `tone` is the
+   colour any surface should dot itself with. */
+export const WHEREABOUTS_META: Record<
+  Whereabouts,
+  { label: string; sub: string; mood: "content" | "curious" | "delight" | "listen"; tone: "pen" | "ink" | "faint" }
+> = {
+  home: { label: "At home", sub: "no letters out", mood: "content", tone: "faint" },
+  delivery: { label: "On a delivery", sub: "at someone's door", mood: "curious", tone: "ink" },
+  bringing: { label: "Bringing something", sub: "on the way back", mood: "delight", tone: "pen" },
+  exploring: { label: "Exploring", sub: "looking for you", mood: "listen", tone: "faint" },
+};
+
 export interface WhereaboutsRead {
   state: Whereabouts;
   /** her status line, present tense */
@@ -161,7 +175,9 @@ export async function mintSouvenirs(
 
   try {
     const raw = (await AsyncStorage.getItem(SHELF_KEY)) || "[]";
-    const shelf: Souvenir[] = JSON.parse(raw);
+    // ledger repair: the generic first-kindred card predates per-kindred
+    // minting and duplicated it on every shelf that had one
+    const shelf: Souvenir[] = (JSON.parse(raw) as Souvenir[]).filter((x) => x.id !== "first-kindred");
     const have = new Set(shelf.map((s) => s.id));
     let grew = false;
     for (const s of fresh)

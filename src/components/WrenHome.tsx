@@ -2,10 +2,10 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { P, PF } from "../theme/post";
-import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
+import { WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "./WrenBird";
 import { ACCESSORY_META, SKINS, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
-import { fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, type AwayReport, type Souvenir } from "../lib/whereabouts";
+import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, type AwayReport, type Souvenir } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
 import type { GrowthStats } from "../data/growth";
 
@@ -22,12 +22,7 @@ import type { GrowthStats } from "../data/growth";
    happened. The souvenirs are counted, the whereabouts are read off the
    threads, the dates are the days the stages really turned. */
 
-const WB: Record<string, { mood: WrenMood; label: string; sub: string }> = {
-  home: { mood: "content", label: "At home", sub: "no letters out" },
-  delivery: { mood: "curious", label: "On a delivery", sub: "at someone's door" },
-  bringing: { mood: "delight", label: "Bringing something", sub: "on the way back" },
-  exploring: { mood: "listen", label: "Exploring", sub: "looking for you" },
-};
+const WB = WHEREABOUTS_META;
 
 export function WrenHome({
   stats,
@@ -134,7 +129,7 @@ export function WrenHome({
           <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 6 }}>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink60 }}>{dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
-          <WrenBird size={64} stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
+          <WrenBird size={64} bare stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
         </View>
       </View>
 
@@ -240,7 +235,7 @@ export function WrenHome({
             return (
               <Pressable key={sk.id} onPress={() => tapSkin(sk.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderWidth: on ? 1.5 : 1, borderColor: on ? P.pen : P.ink12 }}>
                 <View style={{ opacity: unlocked ? 1 : 0.4 }}>
-                  <WrenBird size={44} mood="happy" skin={sk.id} />
+                  <WrenBird size={44} bare mood="happy" skin={sk.id} />
                 </View>
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 9, color: on ? P.pen : P.ink60, marginTop: 3 }}>{sk.name.toUpperCase()}</Text>
                 {!unlocked && (
@@ -269,7 +264,7 @@ export function WrenHome({
             return (
               <Pressable key={a.id} onPress={() => (locked ? onLocked() : onEquip(a.id))} style={{ width: 70, alignItems: "center", paddingVertical: 8, borderWidth: on ? 1.5 : 1, borderColor: on ? P.pen : P.ink12 }}>
                 <View style={{ opacity: locked ? 0.4 : 1 }}>
-                  <WrenBird size={44} mood="happy" accessory={a.id === "none" ? "none" : a.id} />
+                  <WrenBird size={44} bare mood="happy" accessory={a.id === "none" ? "none" : a.id} />
                 </View>
                 <Text style={{ fontFamily: PF.mono, fontSize: 8, color: on ? P.pen : P.ink60, marginTop: 2 }}>
                   {locked ? `🔒 ${a.label}` : a.label}

@@ -19,7 +19,7 @@ import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
-import { recordStageDate } from "../../lib/whereabouts";
+import { WHEREABOUTS_META, recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard } from "../../components/AuraCard";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -107,6 +107,11 @@ export default function MeTab() {
     void setWrenAccessory(a);
   };
 
+  /* her status rides the switch itself — you see she moved before you
+     even open her room */
+  const where = whereabouts(threads);
+  const tone = { pen: P.pen, ink: P.ink, faint: P.ink40 }[WHEREABOUTS_META[where.state].tone];
+
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
 
@@ -165,11 +170,13 @@ export default function MeTab() {
               <Pressable
                 key={id}
                 onPress={() => setRoom(id)}
-                style={{ flex: 1, alignItems: "center", paddingVertical: 11, backgroundColor: on ? P.ink : "transparent" }}
+                style={{ flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7, paddingVertical: 11, backgroundColor: on ? P.ink : "transparent" }}
               >
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 12.5, letterSpacing: 1.4, color: on ? P.paper : P.ink60 }}>
                   {label.toUpperCase()}
                 </Text>
+                {/* her side of the switch carries her live status dot */}
+                {id === "wren" && <View style={{ width: 7, height: 7, backgroundColor: on ? P.paper : tone }} />}
               </Pressable>
             );
           })}
