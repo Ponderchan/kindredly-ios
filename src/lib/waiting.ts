@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchThreads } from "./db";
 import { threadState } from "./thread-state";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { track } from "./track";
 
 /* How many correspondences are waiting on YOU — someone answered your letter
    and you have not written back.
@@ -41,5 +43,27 @@ export function useWaiting(): number {
     (threadState.needsYou), not a second, narrower vocabulary. */
 export async function refreshWaiting(): Promise<void> {
   const t = await fetchThreads();
-  if (t) setWaiting(t.filter((x) => threadState(x)?.needsYou).length);
+  if (!t) return;
+  setWaiting(t.filter((x) => threadState(x)?.needsYou).length);
+  void countNewReplies(t);
+}
+
+/* REPLY_RECEIVED, COUNTED ONCE PER CORRESPONDENCE. This is the event the
+   whole product lives or dies on — someone wrote back — and it has no
+   screen of its own, so it is counted here, where the app first learns of
+   it. A local ledger of thread ids keeps a refresh from counting the same
+   reply on every poll. */
+const SEEN_REPLIES = "kindredly_seen_replies";
+async function countNewReplies(threads: Awaited<ReturnType<typeof fetchThreads>>): Promise<void> {
+  if (!threads) return;
+  try {
+    const seen: string[] = JSON.parse((await AsyncStorage.getItem(SEEN_REPLIES)) || "[]");
+    const have = new Set(seen);
+    const fresh = threads.filter((t) => t.theirs > 0 && !have.has(t.id));
+    if (!fresh.length) return;
+    for (const t of fresh) track("reply_received", { theirs: t.theirs });
+    await AsyncStorage.setItem(SEEN_REPLIES, JSON.stringify([...have, ...fresh.map((t) => t.id)].slice(-300)));
+  } catch {
+    /* a miscount is better than a crash on a background refresh */
+  }
 }

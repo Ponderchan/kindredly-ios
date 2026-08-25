@@ -16,6 +16,7 @@ import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from 
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
+import { track } from "../lib/track";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
@@ -188,6 +189,7 @@ export default function Compose() {
     } else {
       const body = ask.trim() ? `${text.trim()}\n\n${ask.trim()}` : text.trim();
       ok = await publishLetter(sel, body, LANG);
+      if (ok) track("letter_sent", { kind: "text", weight: weightedCount(body) });
     }
     setBusy(false);
     /* A ghost's publishLetter always returns null, and "The letter didn't go
@@ -427,7 +429,7 @@ export default function Compose() {
               <Text style={{ fontFamily: PF.letter, fontSize: 13, color: P.ink60, marginTop: 5 }}>
                 Replies are always free. Lift the daily cap with First Class.
               </Text>
-              <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 10 }}>
+              <Pressable onPress={() => router.push("/paywall?src=daily_cap")} style={{ marginTop: 10 }}>
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>DISCOVER FIRST CLASS →</Text>
               </Pressable>
             </View>
@@ -495,7 +497,7 @@ export default function Compose() {
               is always here, wearing a lock, and pressing it explains rather
               than refuses. */}
           <Pressable
-            onPress={() => (premium ? setMode(mode === "speak" ? "write" : "speak") : router.push("/paywall"))}
+            onPress={() => (premium ? setMode(mode === "speak" ? "write" : "speak") : router.push("/paywall?src=voice_lock"))}
             style={{
               width: 50,
               height: 50,

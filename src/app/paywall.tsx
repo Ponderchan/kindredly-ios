@@ -2,7 +2,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Animated, Easing, Image } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
@@ -11,6 +11,7 @@ import { keepsake } from "../data/keepsakes";
 import { loadShelf, type Minted } from "../lib/keepsakes";
 import { fetchThreads, type ThreadSummary } from "../lib/db";
 import { CofounderMark } from "../components/CofounderMark";
+import { track, type PaywallSource } from "../lib/track";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
 
@@ -64,6 +65,12 @@ const COFOUNDERS_TOTAL = 500;
 
 export default function Paywall() {
   const router = useRouter();
+  /* WHICH DOOR THEY CAME THROUGH. Eight surfaces open this screen and
+     they are not the same offer — someone stopped at the kindred gate is
+     mid-relationship, someone tapping a hat is browsing. Without the
+     source every number here averages those two into nonsense. */
+  const { src } = useLocalSearchParams<{ src?: string }>();
+  const source = (src || "unknown") as PaywallSource;
   const wren = useWrenName();
   const { refresh } = useEntitlement();
   const [packages, setPackages] = useState<IapPackage[]>([]);
@@ -71,6 +78,10 @@ export default function Paywall() {
   const [busy, setBusy] = useState(false);
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
+
+  useEffect(() => {
+    track("paywall_shown", { source });
+  }, [source]);
 
   useEffect(() => {
     let alive = true;
@@ -100,12 +111,15 @@ export default function Paywall() {
       return;
     }
     setBusy(true);
+    track("purchase_started", { source, fare: chosen.period, price: chosen.priceString });
     const res = await iapPurchase(chosen);
     setBusy(false);
     if (res.ok) {
+      track("purchase_done", { source, fare: chosen.period, price: chosen.priceString });
       await refresh();
       router.back();
     } else if (!res.cancelled) {
+      track("purchase_failed", { source, fare: chosen.period });
       Alert.alert("Purchase", "That didn't go through. Please try again.");
     }
   };
@@ -123,7 +137,14 @@ export default function Paywall() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       <View style={{ paddingHorizontal: 18, paddingTop: 4, flexDirection: "row", justifyContent: "flex-end" }}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ padding: 8 }}>
+        <Pressable
+          onPress={() => {
+            track("paywall_dismissed", { source, fare: chosen?.period ?? "none" });
+            router.back();
+          }}
+          hitSlop={10}
+          style={{ padding: 8 }}
+        >
           <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink40 }}>✕</Text>
         </Pressable>
       </View>
@@ -166,7 +187,15 @@ export default function Paywall() {
         <View style={{ gap: 11 }}>
           {packages.map((p) => (
             <View key={p.id}>
-              <Stub pkg={p} on={selected === p.id} onPress={() => setSelected(p.id)} wren={wren} />
+              <Stub
+                pkg={p}
+                on={selected === p.id}
+                onPress={() => {
+                  setSelected(p.id);
+                  track("fare_selected", { source, fare: p.period });
+                }}
+                wren={wren}
+              />
               {/* the founder's own marks — shown only when the fare is
                   chosen, so picking it is itself a small reveal */}
               {p.period === "lifetime" && selected === p.id && <CofounderMarks wren={wren} />}

@@ -15,6 +15,7 @@ import { dShort, postNo } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { kindredGate } from "../../lib/kindred-gate";
+import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { refreshFingerprint } from "../../lib/aura";
@@ -179,6 +180,7 @@ export default function ChatScreen() {
     }
     await load();
     if (res.revealed) {
+      track("kindred_made");
       await introduceOnce(id, () => setCeremony(true));
     }
   };
@@ -293,7 +295,10 @@ YOU WENT FIRST — WAITING ON THEIRS
                      see lib/kindred-gate */
                   const gate = await kindredGate(premium, String(id));
                   if (gate.allowed) setAskSign(true);
-                  else router.push("/paywall");
+                  else {
+                    track("gate_hit", { gate: "kindred", have: gate.have });
+                    router.push("/paywall?src=kindred_gate");
+                  }
                 }}
                 hitSlop={8}
                 style={{ borderWidth: 1, borderColor: detail.theirSigned ? P.brassSeal : P.ink, paddingHorizontal: 14, paddingVertical: 8 }}

@@ -105,7 +105,7 @@ export default function VoiceDetail() {
           <Pressable
             onPress={() => {
               if (gate.state === "ready") router.push("/report");
-              else if (gate.state === "locked") router.push("/paywall");
+              else if (gate.state === "locked") router.push("/paywall?src=report_lock");
             }}
             disabled={gate.state === "progress" || gate.state === "done"}
             style={({ pressed }) => [

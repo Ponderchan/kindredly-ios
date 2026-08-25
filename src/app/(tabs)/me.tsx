@@ -206,7 +206,7 @@ export default function MeTab() {
             )}
 
             {/* one quiet row — First Class */}
-            <Pressable onPress={() => router.push("/paywall")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
+            <Pressable onPress={() => router.push("/paywall?src=me_row")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>FIRST CLASS</Text>
               <View style={{ flex: 1 }} />
               <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
@@ -227,11 +227,11 @@ export default function MeTab() {
                 joinedAt={user?.created_at ?? null}
                 topWord={aura?.commonWords[0] ?? null}
                 onEquip={equipWren}
-                onLocked={() => router.push("/paywall")}
+                onLocked={() => router.push("/paywall?src=wardrobe_lock")}
                 onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
                 onOpenKeepsake={(id) => router.push(`/keepsake/${id}`)}
                 cofounderNo={cofounderNo}
-                onPlus={() => router.push("/paywall")}
+                onPlus={() => router.push("/paywall?src=journey_archive")}
               />
             </View>
           </>

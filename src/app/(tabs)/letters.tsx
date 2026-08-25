@@ -17,6 +17,7 @@ import { getStamp } from "../../data/stamps";
 import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
+import { track } from "../../lib/track";
 import { screen, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -226,6 +227,9 @@ function Feed({
         else Alert.alert("Couldn't send", "That reply didn't go out. Try again.");
         return; // the draft stays in the box
       }
+      /* the moment a stranger's letter becomes a correspondence — the
+         single most important conversion in the product */
+      track("reply_sent", { weight: weightedCount(text) });
     }
     setSending(false);
     setDrafts((d) => ({ ...d, [to.id]: "" }));

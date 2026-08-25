@@ -32,6 +32,7 @@ import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
 import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
 import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-engine";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
+import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
@@ -324,6 +325,7 @@ export default function Onboarding() {
       if (opener && weightedCount(opener) >= OPENING_MIN) {
         try {
           await publishLetter(starterStamp(mood, opener), opener, "en");
+        track("onboard_done", { fed: fed.length });
         } catch {
           /* best-effort — never block getting in */
         }
