@@ -1,11 +1,15 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Animated, Easing, Image } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { WrenBird } from "../components/WrenBird";
+import { keepsake } from "../data/keepsakes";
+import { loadShelf, type Minted } from "../lib/keepsakes";
+import { fetchThreads, type ThreadSummary } from "../lib/db";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
 
@@ -31,11 +35,34 @@ import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } f
 const GOLD = "#C9A227";
 const NIGHT = "#221E3D";
 
-const TRAVELS: [string, string][] = [
-  ["Every kindred after the first", "The first person who trades names with you is free, always. The rest travel with you."],
-  ["Voice letters", "Some things only land in a voice. Record one instead of writing it."],
-  ["An aura report, every month", "She wraps the month you wrote — your hours, your words, your read — into a letter just for you."],
-  ["Her whole wardrobe", "The ink-and-post look, and every seasonal piece she's ever been given."],
+/* THE ROAD PAST THE GATE. Face-down until you peel one — the offer is
+   discovered, not recited. Each wears a keepsake's art, so the stamps on
+   this page speak the same language as the shelf in her room. */
+const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
+  {
+    id: "kindreds",
+    title: "Every kindred after the first",
+    sub: "The first person who trades names with you is free, always. The rest travel with you.",
+    icon: "three-kindreds",
+  },
+  {
+    id: "voice",
+    title: "Voice letters",
+    sub: "Some things only land in a voice. Record one instead of writing it.",
+    icon: "first-voice-letter",
+  },
+  {
+    id: "report",
+    title: "An aura report, every month",
+    sub: "She wraps the month you wrote — your hours, your words, your read — into a letter just for you.",
+    icon: "first-anniversary",
+  },
+  {
+    id: "wardrobe",
+    title: "Her whole wardrobe",
+    sub: "The ink-and-post look, and every seasonal piece she has ever been given.",
+    icon: "otis-changed",
+  },
 ];
 
 const NEVER: string[] = [
@@ -61,9 +88,13 @@ export default function Paywall() {
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shelf, setShelf] = useState<Minted[]>([]);
+  const [threads, setThreads] = useState<ThreadSummary[]>([]);
 
   useEffect(() => {
     let alive = true;
+    loadShelf().then((k) => alive && setShelf(k));
+    fetchThreads().then((t) => alive && setThreads(t || []));
     iapGetPackages().then((pkgs) => {
       if (!alive) return;
       const list = pkgs.length ? pkgs : PLACEHOLDERS;
@@ -142,21 +173,10 @@ export default function Paywall() {
           <AirmailEdge />
         </View>
 
-        {/* ── what travels with you ── */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 26, marginBottom: 4 }}>
-          WHAT TRAVELS WITH YOU
-        </Text>
-        {TRAVELS.map(([title, sub]) => (
-          <View key={title} style={{ flexDirection: "row", gap: 11, marginTop: 16 }}>
-            <View style={{ width: 9, height: 9, backgroundColor: P.post, marginTop: 5 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 14.5, color: P.ink }}>{speakAs(title, wren)}</Text>
-              <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: P.ink60, marginTop: 3 }}>
-                {speakAs(sub, wren)}
-              </Text>
-            </View>
-          </View>
-        ))}
+        {/* ── YOUR ROUTE: what she has already carried you through, and the
+            exact place it stops. The offer is your own history with a gate
+            drawn across it, not a list of features you have to imagine. ── */}
+        <Route shelf={shelf} threads={threads} wren={wren} />
 
         {/* ── the fares ── */}
         <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 30, marginBottom: 12 }}>
@@ -294,5 +314,128 @@ function AirmailEdge() {
         />
       ))}
     </Svg>
+  );
+}
+
+/* ── the route: your own stops, then the gate, then the sealed ones ───── */
+
+function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSummary[]; wren: string }) {
+  const kindreds = threads.filter((t) => t.revealed).length;
+  /* the stops she has actually flown you through — real keepsakes, oldest
+     first, so the road reads forward */
+  const flown = [...shelf].sort((a, b) => a.at - b.at).slice(0, 4);
+
+  return (
+    <View style={{ marginTop: 26 }}>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40 }}>
+        YOUR ROUTE SO FAR
+      </Text>
+
+      {flown.length === 0 ? (
+        <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink60, marginTop: 12 }}>
+          {speakAs("You haven't sent me anywhere yet. Write one letter and the road starts.", wren)}
+        </Text>
+      ) : (
+        <View style={{ marginTop: 14 }}>
+          {flown.map((k, i) => {
+            const def = keepsake(k.id);
+            return (
+              <View key={k.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={{ width: 34, alignItems: "center" }}>
+                  {def ? <Image source={def.icon} style={{ width: 30, height: 30 }} resizeMode="contain" /> : null}
+                  {i < flown.length - 1 && <View style={{ width: 1, height: 16, backgroundColor: P.ink12 }} />}
+                </View>
+                <View style={{ flex: 1, paddingBottom: i < flown.length - 1 ? 16 : 0 }}>
+                  <Text style={{ fontFamily: PF.monoMed, fontSize: 13, color: P.ink }}>{def?.name ?? k.id}</Text>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 0.8, color: P.ink40, marginTop: 2 }}>
+                    {k.evidence}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* THE GATE — drawn across the road, at the exact place it closes */}
+      <View style={{ marginTop: 18, borderWidth: 1.5, borderColor: P.post, paddingHorizontal: 14, paddingVertical: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
+          <View style={{ width: 9, height: 9, backgroundColor: P.post }} />
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: P.post }}>
+            THE ROAD CLOSES HERE
+          </Text>
+        </View>
+        <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink, marginTop: 8 }}>
+          {kindreds >= 1
+            ? speakAs(`You have ${kindreds === 1 ? "one kindred" : `${kindreds} kindreds`}. I can carry you to one more — but not past it, not on this fare.`, wren)
+            : speakAs("Your first kindred is free, and always will be. It's the second one I can't reach on this fare.", wren)}
+        </Text>
+      </View>
+
+      {/* what waits past it — sealed, and you peel them yourself */}
+      <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 24, marginBottom: 10 }}>
+        PAST THE GATE · PEEL TO SEE
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        {BEYOND.map((b) => (
+          <PeelStamp key={b.id} item={b} wren={wren} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/* a stamp face-down on its gum, until you turn it over */
+function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: string; icon: string }; wren: string }) {
+  const [open, setOpen] = useState(false);
+  const t = useRef(new Animated.Value(0)).current;
+  const def = keepsake(item.icon);
+
+  const flip = () => {
+    Animated.timing(t, {
+      toValue: open ? 0 : 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+    setOpen((v) => !v);
+  };
+
+  return (
+    <Pressable onPress={flip} style={{ width: "47.5%" }}>
+      <Animated.View
+        style={{
+          borderWidth: 1,
+          borderColor: open ? P.ink : P.ink12,
+          borderStyle: open ? "solid" : "dashed",
+          backgroundColor: open ? P.paper : "#F3F1E8",
+          minHeight: 132,
+          padding: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }],
+        }}
+      >
+        {open ? (
+          <>
+            {def ? <Image source={def.icon} style={{ width: 38, height: 38 }} resizeMode="contain" /> : null}
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, color: P.ink, textAlign: "center", marginTop: 7 }}>
+              {speakAs(item.title, wren)}
+            </Text>
+            <Text style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 17, color: P.ink60, textAlign: "center", marginTop: 5 }}>
+              {speakAs(item.sub, wren)}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={{ fontFamily: PF.mono, fontSize: 21, color: P.ink40 }}>▧</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 9 }}>
+              SEALED
+            </Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink40, marginTop: 4 }}>peel</Text>
+          </>
+        )}
+      </Animated.View>
+    </Pressable>
   );
 }
