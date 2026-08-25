@@ -1,12 +1,12 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { dShort, postNo } from "../lib/format";
-import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import { P, PF } from "../theme/post";
-import { WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "./WrenBird";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
 import { ACCESSORY_META, SKINS, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
-import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, type AwayReport, type Souvenir } from "../lib/whereabouts";
+import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
 import type { GrowthStats } from "../data/growth";
 
@@ -87,16 +87,21 @@ export function WrenHome({
   };
 
   const dateFor = (st: WrenStage): string | null => {
-    if (st === "egg" && joinedAt) return short(joinedAt);
+    if ((st === "egg" || st === "hatch") && !dates[st] && joinedAt) return short(joinedAt);
     const d = dates[st];
     return d ? short(d) : null;
   };
   /* display names — the stored ids stay (floors are persisted by index).
      The species is not a stage: her final form is GROWN, not "wren". */
+  /* NO EGG IN THE PRODUCT. Onboarding hatches her before anyone reaches
+     this room, so an EGG node would be a tick nobody ever watched turn.
+     HATCH is her birthday; the ladder starts where the user does. */
+  const JOURNEY: WrenStage[] = ["hatch", "fledge", "wren"];
   const STAGE_LABEL: Record<WrenStage, string> = { egg: "EGG", hatch: "HATCH", fledge: "FLEDGE", wren: "GROWN" };
   const milestones: Record<WrenStage, string> = {
     egg: "signed up",
-    hatch: "first letter",
+
+    hatch: "born",
     fledge: "a reply, or 5 letters",
     wren: "first kindred",
   };
@@ -145,7 +150,12 @@ export function WrenHome({
           <View style={{ borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 9, paddingVertical: 5, marginBottom: 8 }}>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60 }}>{!flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
           </View>
-          <WrenBird size={108} bare stage={info.stage} mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood} accessory={wearsHere ? accessory : "none"} />
+          <HeroWren
+            stage={info.stage}
+            state={dozy && where.state === "home" ? "dozing" : where.state}
+            mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood}
+            accessory={wearsHere ? accessory : "none"}
+          />
         </View>
       </View>
 
@@ -161,7 +171,7 @@ export function WrenHome({
           {wren.toUpperCase()}'S JOURNEY
         </Text>
         <View style={{ flexDirection: "row", marginTop: 12 }}>
-          {STAGE_ORDER.map((st, i) => {
+          {JOURNEY.map((st, i) => {
             const cur = stageIndex(info.stage);
             const idx = stageIndex(st);
             const state = idx < cur ? "done" : idx === cur ? "now" : "later";
@@ -187,7 +197,7 @@ export function WrenHome({
                     {d ?? milestones[st]}
                   </Text>
                 </View>
-                {i < STAGE_ORDER.length - 1 && (
+                {i < JOURNEY.length - 1 && (
                   <View style={{ flex: 1, height: 1, backgroundColor: idx < cur ? P.ink : P.ink12, marginTop: state === "now" ? 11 : 10, marginHorizontal: 2 }} />
                 )}
               </View>
@@ -349,5 +359,82 @@ function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadS
         </Pressable>
       )}
     </View>
+  );
+}
+
+/* ── HER MOTION: STATUS × STAGE ─────────────────────────────────────────
+   The status decides WHAT she is doing — resting, flying out, hurrying
+   home with something, scanning the sky, asleep. The stage decides HOW
+   WELL she does it: a hatchling's version of every one of those is
+   smaller, quicker and wobblier than a grown bird's, because she is new
+   at this. So Day 1 and Day 60 read differently even in the same state,
+   which is the whole point of a bird that grows. */
+
+const GRACE: Record<WrenStage, { amp: number; speed: number; wobble: number }> = {
+  egg: { amp: 0.35, speed: 1.15, wobble: 0 },
+  hatch: { amp: 0.55, speed: 1.5, wobble: 5 }, // small, fast, unsteady
+  fledge: { amp: 0.8, speed: 1.15, wobble: 2.5 },
+  wren: { amp: 1, speed: 1, wobble: 0 }, // she has done this a thousand times
+};
+
+function HeroWren({
+  stage,
+  state,
+  mood,
+  accessory,
+}: {
+  stage: WrenStage;
+  state: Whereabouts | "dozing";
+  mood: WrenMood;
+  accessory: WrenAccessory;
+}) {
+  const t = useRef(new Animated.Value(0)).current;
+  const g = GRACE[stage];
+
+  useEffect(() => {
+    t.setValue(0);
+    const ms = (base: number) => Math.round(base * g.speed);
+    const ease = (to: number, base: number, e = Easing.inOut(Easing.sin)) =>
+      Animated.timing(t, { toValue: to, duration: ms(base), easing: e, useNativeDriver: true });
+    const seq =
+      state === "dozing"
+        ? Animated.sequence([ease(1, 2000), ease(0, 2000)]) // the long breath of sleep
+        : state === "home"
+          ? Animated.sequence([ease(1, 1400), ease(0, 1400)])
+          : state === "delivery"
+            ? // out on the wing: a flight bob that never quite settles
+              Animated.sequence([ease(1, 520), ease(0, 620), Animated.delay(160)])
+            : state === "bringing"
+              ? // hurrying home with something for you
+                Animated.sequence([
+                  ease(1, 220, Easing.out(Easing.quad)),
+                  ease(0, 260, Easing.bounce),
+                  Animated.delay(320),
+                ])
+              : // exploring: a slow scan of the sky
+                Animated.sequence([ease(1, 900), Animated.delay(260), ease(0, 900), Animated.delay(260)]);
+    const loop = Animated.loop(seq);
+    loop.start();
+    return () => loop.stop();
+  }, [state, stage, g.speed, t]);
+
+  const to = (out: [number, number]) => t.interpolate({ inputRange: [0, 1], outputRange: out });
+  const spin = (deg: number) => t.interpolate({ inputRange: [0, 1], outputRange: ["0deg", `${deg}deg`] });
+  const A = g.amp;
+  const transform =
+    state === "dozing"
+      ? [{ translateY: to([0, 4 * A]) }, { scale: to([1, 0.985]) }]
+      : state === "home"
+        ? [{ scale: to([1, 1 + 0.05 * A]) }]
+        : state === "delivery"
+          ? [{ translateY: to([0, -9 * A]) }, { translateX: to([0, 4 * A]) }, { rotate: spin(-4 * A - g.wobble) }]
+          : state === "bringing"
+            ? [{ translateY: to([0, -12 * A]) }, { rotate: spin(6 * A + g.wobble) }]
+            : [{ translateX: to([-3 * A, 3 * A]) }, { rotate: spin(5 * A + g.wobble) }];
+
+  return (
+    <Animated.View style={{ transform }}>
+      <WrenBird size={108} bare stage={stage} mood={mood} accessory={accessory} />
+    </Animated.View>
   );
 }
