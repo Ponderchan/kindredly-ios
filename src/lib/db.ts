@@ -276,12 +276,15 @@ export async function replyToLetter(
       return sent ? (open.id as string) : null;
     }
 
+    /* counts start at ZERO — the first message's insert bumps a_count to 1
+       via 0012's trigger. Seeding 1 here would double-count it. last_* are
+       a harmless preview for the instant before that insert lands. */
     const row: Record<string, unknown> = {
       a: me,
       b: letter.author,
       stamp: letter.stamp || "off-chest",
       opening: letter.body || "",
-      a_count: 1,
+      a_count: 0,
       last_sender: me,
       last_body: body,
       last_at: new Date().toISOString(),
@@ -527,11 +530,12 @@ export async function fetchThreadMessages(
   }
 }
 
-/* Send a message; bump counts. Names and reveal no longer move here —
-   since 0010 a name is written only by the act of SIGNING (signThread),
-   and revealed flips when the second signature lands. Auto-reveal at 5/5
-   was a vending machine, and it force-unmasked people who wanted to stay
-   pen pals forever. */
+/* Send a message — ONE insert. Counts and last_* move in the database
+   (0012's trigger), atomically: the old read-modify-write here lost
+   updates the moment realtime made simultaneous sending an everyday
+   event, and a lost count silently costs the 5/5 signing gate and the
+   face's develop. Names and reveal don't move here either — since 0010
+   a name is written only by the act of SIGNING (signThread). */
 export async function sendThreadMessage(
   threadId: string,
   body: string,
@@ -540,27 +544,10 @@ export async function sendThreadMessage(
   const me = await uid();
   if (!me) return null;
   try {
-    const { data: t } = await supabase!
-      .from("threads")
-      .select("a,b,a_count,b_count")
-      .eq("id", threadId)
-      .maybeSingle();
-    if (!t) return null;
-    const iamA = t.a === me;
-    const a_count = t.a_count + (iamA ? 1 : 0);
-    const b_count = t.b_count + (iamA ? 0 : 1);
-    await supabase!
+    const { error } = await supabase!
       .from("messages")
       .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
-    const patch: Record<string, unknown> = {
-      a_count,
-      b_count,
-      last_sender: me,
-      last_body: body,
-      last_at: new Date().toISOString(),
-    };
-    await supabase!.from("threads").update(patch).eq("id", threadId);
-    return { ok: true };
+    return error ? null : { ok: true };
   } catch {
     return null;
   }
