@@ -6,16 +6,13 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { P, PF, ruleSoft } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
-import { SkyMap } from "../../components/SkyMap";
+import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { setWaiting } from "../../lib/waiting";
-import { fetchTheirHours, meanHour } from "../../lib/sky";
-import { fetchCarried, whereabouts, isDozing } from "../../lib/whereabouts";
-import { mintSouvenirs, type Souvenir } from "../../lib/whereabouts";
 import { threadState } from "../../lib/thread-state";
 import { reactionLabel } from "../../data/reactions";
 import { DEMO_THREADS } from "../../data/demo";
@@ -39,25 +36,13 @@ const REVEAL = 5;
 export default function KindredsTab() {
   const router = useRouter();
   const { user } = useAuth();
-  const wren = useWrenName();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
-  /* the sky's two axes: when THEY write, when YOU do */
-  const [hours, setHours] = useState<Record<string, number>>({});
-  const [myHour, setMyHour] = useState<number | null>(null);
-  const [dozy, setDozy] = useState(false);
-  const [keepsakes, setKeepsakes] = useState<Souvenir[]>([]);
 
   const load = useCallback(() => {
-    fetchThreads().then(async (t) => {
-      const list = t || [];
-      setThreads(list);
+    fetchThreads().then((t) => {
+      setThreads(t || []);
       setLoaded(true);
-      const [h, carried] = await Promise.all([fetchTheirHours(list), fetchCarried()]);
-      setHours(h);
-      setMyHour(meanHour(carried.map((c) => c.at)));
-      setDozy(isDozing(carried));
-      setKeepsakes(await mintSouvenirs(carried, list));
     });
   }, []);
   useFocusEffect(load);
@@ -119,16 +104,8 @@ export default function KindredsTab() {
         <Empty onWrite={() => router.push("/compose")} />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12 }}>
-            <SkyMap
-              threads={orbit}
-              hours={hours}
-              myHour={myHour}
-              state={dozy && whereabouts(orbit).state === "home" ? "dozing" : whereabouts(orbit).state}
-              keepsakes={keepsakes}
-              wren={wren}
-              onOpen={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
-            />
+          <View style={{ alignItems: "center", paddingTop: 6, paddingBottom: 10 }}>
+            <OrbitMap items={orbit} />
           </View>
           <View style={{ paddingHorizontal: 20 }}>
             {/* a room with someone you know, or a correspondence with a
@@ -225,9 +202,7 @@ function Empty({ onWrite }: { onWrite: () => void }) {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 50 }}>
       <View>
-        <View style={{ width: 260, height: 150, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40 }}>AN EMPTY SKY</Text>
-        </View>
+        <OrbitMap items={[]} empty />
         {/* Wren waits at the edge of the empty sky */}
         <View style={{ position: "absolute", right: 26, bottom: 28 }}>
           <WrenBird size={40} mood="curious" />
