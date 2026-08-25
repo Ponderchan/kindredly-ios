@@ -6,6 +6,7 @@ import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { P, PF, rule } from "../../theme/post";
+import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { SealedEntry } from "../../components/SealedEntry";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../lib/journal";
@@ -91,6 +92,7 @@ export default function JournalTab() {
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, marginBottom: 20 }}>
             MOMENTS YOU'VE CHOSEN TO KEEP
           </Text>
+          <WrenSaysOnce id="sealed" line="These never leave your phone. I don't read them either — that's the whole point of the wax." />
           <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>
             SEALED ON THIS DEVICE

@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { P, PF, ruleSoft } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
+import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
@@ -108,6 +109,7 @@ export default function KindredsTab() {
             <OrbitMap items={orbit} />
           </View>
           <View style={{ paddingHorizontal: 20 }}>
+            <WrenSaysOnce id="kindreds" line="Everyone you write to lands here. They come closer with every letter they send you." />
             {/* a room with someone you know, or a correspondence with a
                 stranger — two different places, so two different groups */}
             {kindreds.length > 0 && coming.length > 0 && <GroupLabel>KINDREDS</GroupLabel>}

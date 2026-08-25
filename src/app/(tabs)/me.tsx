@@ -21,6 +21,7 @@ import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { WHEREABOUTS_META, recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard } from "../../components/AuraCard";
+import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -183,6 +184,7 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
+            <WrenSaysOnce id="me" line="Two rooms: what your writing sounds like, and me. Both fill up as you write." />
             {/* the aura — a letter about you, from Wren, mid-draft */}
             {aura && (
               <View style={{ marginTop: 14 }}>
