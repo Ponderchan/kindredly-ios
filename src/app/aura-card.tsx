@@ -6,7 +6,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 import { PF } from "../theme/post";
-import { TypedPage, dear } from "../components/AuraCard";
+import { AuraTicket, dear } from "../components/AuraCard";
 import { WrenBird } from "../components/WrenBird";
 import { myAura, type Aura } from "../lib/aura";
 import { useAuth } from "../lib/auth";
@@ -68,9 +68,9 @@ export default function AuraShareCard() {
       {aura && (
         <Animated.View entering={FadeIn.duration(420)} style={{ flex: 1, justifyContent: "space-between", paddingTop: 64, paddingBottom: 10 }}>
           <View style={{ flex: 1, justifyContent: "center" }}>
-            {/* the pulled page, a breath of a tilt — room above for the clip */}
-            <View style={{ marginHorizontal: 34, paddingTop: 22, transform: [{ rotate: "-0.6deg" }] }}>
-              <TypedPage aura={aura} wren={wren} seed={user?.id || "you"} avatarId={(profile?.avatarId as string) || null} />
+            {/* the specimen ticket — the page's evidence, torn off to travel */}
+            <View style={{ marginHorizontal: 30 }}>
+              <AuraTicket aura={aura} wren={wren} />
             </View>
 
             {/* under the page, in the night — crops away clean */}

@@ -192,6 +192,7 @@ export default function MeTab() {
                   avatarId={avatarId}
                   onOpen={() => router.push("/aura")}
                   onShare={() => router.push("/aura-card")}
+                  onWrite={() => router.push("/compose")}
                 />
               </View>
             )}
