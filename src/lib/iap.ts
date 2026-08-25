@@ -71,7 +71,9 @@ export interface IapPackage {
   id: string;
   priceString: string;
   title: string;
-  period: "monthly" | "annual" | "other";
+  /* lifetime is a NON-CONSUMABLE, not a subscription — RevenueCat reports
+     it as LIFETIME, and the paywall prices and words it differently */
+  period: "monthly" | "annual" | "lifetime" | "other";
   raw: any;
 }
 
@@ -91,7 +93,9 @@ export async function iapGetPackages(): Promise<IapPackage[]> {
           ? "annual"
           : p.packageType === "MONTHLY"
             ? "monthly"
-            : "other",
+            : p.packageType === "LIFETIME"
+              ? "lifetime"
+              : "other",
       raw: p,
     }));
   } catch {
