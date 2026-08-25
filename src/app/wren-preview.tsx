@@ -11,7 +11,7 @@ const STAGES: { s: WrenStage; label: string }[] = [
   { s: "egg", label: "Egg · sign up" },
   { s: "hatch", label: "Hatchling · 1st" },
   { s: "fledge", label: "Fledgling · ~5" },
-  { s: "wren", label: "Wren · kindred" },
+  { s: "wren", label: "Grown · kindred" },
 ];
 const ACCS: WrenAccessory[] = ["beanie", "scarf", "phones", "flower", "party", "shades"];
 

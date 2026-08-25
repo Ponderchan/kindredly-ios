@@ -91,6 +91,9 @@ export function WrenHome({
     const d = dates[st];
     return d ? short(d) : null;
   };
+  /* display names — the stored ids stay (floors are persisted by index).
+     The species is not a stage: her final form is GROWN, not "wren". */
+  const STAGE_LABEL: Record<WrenStage, string> = { egg: "EGG", hatch: "HATCH", fledge: "FLEDGE", wren: "GROWN" };
   const milestones: Record<WrenStage, string> = {
     egg: "signed up",
     hatch: "first letter",
@@ -177,7 +180,7 @@ export function WrenHome({
                     }}
                   />
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 0.8, color: state === "now" ? P.pen : state === "done" ? P.ink : P.ink40, marginTop: 6 }}>
-                    {st.toUpperCase()}
+                    {STAGE_LABEL[st]}
                     {state === "done" ? " ✓" : ""}
                   </Text>
                   <Text style={{ fontFamily: PF.mono, fontSize: 7.5, letterSpacing: 0.4, color: P.ink40, marginTop: 3, textAlign: "center" }}>

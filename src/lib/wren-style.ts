@@ -158,12 +158,12 @@ export function stageInfo(s: GrowthStats, floor: WrenStage = "egg"): StageInfo {
       label: "Fledgling",
       blurb: "Finding her wings — someone is writing back to you now.",
       // a kindred needs five letters from each side; the bar shows your five.
-      next: { label: "Wren", milestone: "Trade five letters each to make a kindred", progress: [Math.min(5, s.deepest), 5] },
+      next: { label: "Grown", milestone: "Trade five letters each to make a kindred", progress: [Math.min(5, s.deepest), 5] },
     };
   }
   return {
     stage,
-    label: "Wren",
+    label: "Grown",
     blurb: "Fully grown, and unmistakably yours.",
   };
 }
