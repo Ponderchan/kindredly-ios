@@ -223,6 +223,7 @@ export default function MeTab() {
                 onEquip={equipWren}
                 onLocked={() => router.push("/paywall")}
                 onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
+                onOpenKeepsake={(id) => router.push(`/keepsake/${id}`)}
                 onPlus={() => router.push("/paywall")}
               />
             </View>

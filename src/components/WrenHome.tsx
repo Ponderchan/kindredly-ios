@@ -1,5 +1,9 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { dShort, postNo } from "../lib/format";
+import { Image } from "react-native";
+import { keepsake } from "../data/keepsakes";
+import { mint, unseen, type Minted } from "../lib/keepsakes";
+import { loadJournal } from "../lib/journal";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import { P, PF } from "../theme/post";
@@ -37,6 +41,7 @@ export function WrenHome({
   onEquip,
   onLocked,
   onOpenThread,
+  onOpenKeepsake,
   onPlus,
 }: {
   stats: GrowthStats;
@@ -50,6 +55,7 @@ export function WrenHome({
   onEquip: (a: WrenAccessory) => void;
   onLocked: () => void;
   onOpenThread: (t: ThreadSummary) => void;
+  onOpenKeepsake: (id: string) => void;
   onPlus: () => void;
 }) {
   const { skin, pick } = useWrenSkinControl();
@@ -60,6 +66,8 @@ export function WrenHome({
   const [away, setAway] = useState<AwayReport | null>(null);
   const [dozy, setDozy] = useState(false);
   const [carried, setCarried] = useState<{ at: string }[]>([]);
+  const [shelf, setShelf] = useState<Minted[]>([]);
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
   const [open, setOpen] = useState<null | "looks" | "dress">(null);
   const [tracking, setTracking] = useState(false);
@@ -73,6 +81,11 @@ export function WrenHome({
       if (!alive) return;
       setCarried(c);
       setSouvenirs(shelf);
+      const journal = await loadJournal().catch(() => []);
+      const minted = await mint({ carried: c, threads, journal, commonWords: topWord ? [topWord] : [] });
+      if (!alive) return;
+      setShelf(minted);
+      setFresh(await unseen(minted));
       setAway(diff);
       setDozy(isDozing(c));
     });
@@ -215,23 +228,36 @@ export function WrenHome({
 
       {/* ── keepsakes: what she kept from journeys that really happened.
           ("souvenirs" read like a gift shop; a keepsake is kept for love) ── */}
-      {souvenirs.length > 0 && (
+      {shelf.length > 0 && (
         <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingTop: 12, paddingBottom: 14 }}>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.6, color: P.ink40, paddingHorizontal: 16 }}>
-            KEEPSAKES
+            RECENT KEEPSAKES
           </Text>
+          {/* RECENT only — the library's fifth law is rationing. Four at a
+              time, newest first; the rest live in the archive. */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 9, paddingTop: 10 }}>
-            {souvenirs.map((s) => (
-              <View key={s.id} style={{ width: 108, borderWidth: 1, borderColor: P.ink12, padding: 10, alignItems: "center" }}>
-                <Text style={{ fontSize: 20 }}>{s.glyph}</Text>
-                <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 7 }}>
-                  {s.title}
-                </Text>
-                <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>
-                  {s.detail}
-                </Text>
-              </View>
-            ))}
+            {shelf.slice(0, 4).map((k) => {
+              const def = keepsake(k.id);
+              if (!def) return null;
+              return (
+                <Pressable
+                  key={k.id}
+                  onPress={() => onOpenKeepsake(k.id)}
+                  style={({ pressed }) => ({ width: 112, borderWidth: 1, borderColor: P.ink12, padding: 10, alignItems: "center", opacity: pressed ? 0.6 : 1 })}
+                >
+                  <Image source={def.icon} style={{ width: 46, height: 46 }} resizeMode="contain" />
+                  <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 7, textAlign: "center" }}>
+                    {def.name}
+                  </Text>
+                  <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 7.5, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>
+                    {k.evidence}
+                  </Text>
+                  {fresh.has(k.id) && (
+                    <Text style={{ position: "absolute", top: 5, right: 6, fontFamily: PF.monoSemi, fontSize: 7, letterSpacing: 1, color: P.pen }}>NEW</Text>
+                  )}
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
       )}
