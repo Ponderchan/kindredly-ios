@@ -5,7 +5,7 @@ import { C, F, cardStyle } from "../theme/tokens";
 import { t } from "../lib/i18n";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
-import { getMood } from "../data/moods";
+import { getMood, moodName } from "../data/moods";
 import { dLong, fmt } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
@@ -48,7 +48,7 @@ export function JournalCard({
         ) : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: m.bg }}>
             <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: m.col }} />
-            <Text style={{ fontFamily: F.sansSemi, fontSize: 11, color: "#4A4A52" }}>{m.n}</Text>
+            <Text style={{ fontFamily: F.sansSemi, fontSize: 11, color: "#4A4A52" }}>{moodName(e.mood)}</Text>
           </View>
         )}
         <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.2, color: C.label }}>

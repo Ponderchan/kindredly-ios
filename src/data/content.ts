@@ -133,6 +133,20 @@ export const WREN_OPENERS: Record<"letter" | "journal", Partial<Record<Lang, str
       "Una línea verdadera ya es una página entera aquí.",
       "Déjalo desordenado. Esta habitación no ordena por ti.",
     ],
+    pt: [
+      "Ninguém vê isto. Nem eu.",
+      "Ninguém lê isto além de você. Então não atue.",
+      "Como o dia caiu de verdade — não como deveria.",
+      "Uma linha verdadeira já é uma página inteira aqui.",
+      "Deixe bagunçado. Este cômodo não arruma atrás de você.",
+    ],
+    id: [
+      "Tak ada yang melihat ini. Bahkan aku pun tidak.",
+      "Tak ada yang membaca ini selain kamu. Jadi jangan berpura-pura.",
+      "Bagaimana hari ini benar-benar terasa — bukan seharusnya.",
+      "Satu baris yang jujur sudah jadi satu halaman penuh di sini.",
+      "Biarkan berantakan. Ruang ini tak akan merapikan setelahmu.",
+    ],
   },
 };
 

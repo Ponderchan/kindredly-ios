@@ -13,6 +13,12 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── journal / post chooser ── */
+    "pc.post": "POST SOMETHING",
+    "pc.tapBack": "TAP ANYWHERE TO GO BACK",
+    "je.justForMe": "JUST FOR ME",
+    "mm.sub": "One word. {wren} keeps the rest.",
+
     /* ── relative time ── */
     "fmt.justNow": "JUST NOW",
     "fmt.minAgo": "{n} MINUTES AGO",
@@ -941,6 +947,12 @@ strings(
 
   /* ── es ── */
   {
+    /* ── journal / post chooser ── */
+    "pc.post": "ESCRIBIR ALGO",
+    "pc.tapBack": "TOCA DONDE SEA PARA VOLVER",
+    "je.justForMe": "SOLO PARA MÍ",
+    "mm.sub": "Una palabra. {wren} guarda el resto.",
+
     /* ── relative time ── */
     "fmt.justNow": "AHORA MISMO",
     "fmt.minAgo": "HACE {n} MINUTOS",
@@ -1869,6 +1881,12 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── journal / post chooser ── */
+    "pc.post": "ESCREVER ALGO",
+    "pc.tapBack": "TOQUE EM QUALQUER LUGAR PARA VOLTAR",
+    "je.justForMe": "SÓ PRA MIM",
+    "mm.sub": "Uma palavra. {wren} guarda o resto.",
+
     /* ── relative time ── */
     "fmt.justNow": "AGORA MESMO",
     "fmt.minAgo": "HÁ {n} MINUTOS",
@@ -2797,6 +2815,12 @@ strings(
 
   /* ── id ── */
   {
+    /* ── journal / post chooser ── */
+    "pc.post": "TULIS SESUATU",
+    "pc.tapBack": "KETUK DI MANA SAJA UNTUK KEMBALI",
+    "je.justForMe": "HANYA UNTUKKU",
+    "mm.sub": "Satu kata. {wren} menyimpan sisanya.",
+
     /* ── relative time ── */
     "fmt.justNow": "BARU SAJA",
     "fmt.minAgo": "{n} MENIT LALU",

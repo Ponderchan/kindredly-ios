@@ -1,4 +1,5 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { useWrenName } from "../lib/wren-name";
 import { t, useLang } from "../lib/i18n";
 import { C, F } from "../theme/tokens";
 import { MoodIcon } from "./MoodIcon";
@@ -16,6 +17,7 @@ export function MoodModal({
   onCancel: () => void;
 }) {
   useLang();
+  const wren = useWrenName();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable
@@ -28,7 +30,7 @@ export function MoodModal({
         >
           <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink, textAlign: "center" }}>{t("mm.title")}</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 6 }}>
-            One word. Wren keeps the rest.
+            {t("mm.sub", { wren })}
           </Text>
           <ScrollView style={{ maxHeight: 380, marginTop: 20 }} showsVerticalScrollIndicator={false}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }}>

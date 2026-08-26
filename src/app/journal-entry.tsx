@@ -56,7 +56,7 @@ export default function JournalEntryRoute() {
             <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke={P.ink40} strokeWidth={1.3} strokeLinecap="round" />
             <Rect x={2.5} y={5.6} width={7} height={5} fill={P.ink40} />
           </Svg>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40 }}>JUST FOR ME</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40 }}>{t("je.justForMe")}</Text>
         </View>
       </View>
       <SelfCompose text={text} setText={setText} onDone={goBack} />

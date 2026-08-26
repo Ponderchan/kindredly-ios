@@ -58,7 +58,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
             <View style={{ flex: 1, alignItems: "center", paddingTop: insets.top + 64 }}>
               <Animated.View entering={FadeIn.duration(240)} style={{ alignItems: "center" }}>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2.2, color: P.ink60 }}>
-                  POST SOMETHING
+                  {t("pc.post")}
                 </Text>
 
                 {/* One letter under each wing. They tuck UNDER her and sit low
@@ -123,7 +123,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
               </View>
 
               <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 22, marginBottom: Math.max(insets.bottom, 16) + 8 }}>
-                TAP ANYWHERE TO GO BACK
+                {t("pc.tapBack")}
               </Text>
             </View>
           </Pressable>

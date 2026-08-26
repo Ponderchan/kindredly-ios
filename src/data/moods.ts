@@ -1,3 +1,4 @@
+import { getLang } from "../lib/i18n";
 /* The Kindredly moods — 30 icons designed as colored shapes-with-faces
    (art in data/mood-art.ts). Colors/tones come from that design file.
    `n` = display name; `col` the shape color; `bg` a light plate tint;
@@ -126,4 +127,44 @@ export const getMood = (id?: string | null): Mood => {
   if (MOODS[id as MoodId]) return MOODS[id as MoodId];
   const alias = LEGACY_MOOD[id];
   return (alias && MOODS[alias]) || MOODS.calm;
+};
+
+/* localized display names — en is the mood's own `n`; es/pt/id here.
+   The web backend keeps its own copy of `n`; this is display-only. */
+const MOOD_LOC: Partial<Record<MoodId, { es: string; pt: string; id: string }>> = {
+  "calm": { es: "Tranquilo", pt: "Calmo", id: "Tenang" },
+  "numb": { es: "Insensible", pt: "Entorpecido", id: "Mati rasa" },
+  "content": { es: "A gusto", pt: "Contente", id: "Puas" },
+  "in-love": { es: "Enamorado", pt: "Apaixonado", id: "Jatuh cinta" },
+  "surprised": { es: "Sorprendido", pt: "Surpreso", id: "Terkejut" },
+  "shocked": { es: "Impactado", pt: "Chocado", id: "Kaget" },
+  "frustrated": { es: "Frustrado", pt: "Frustrado", id: "Frustrasi" },
+  "stunned": { es: "Atónito", pt: "Atônito", id: "Tercengang" },
+  "cheerful": { es: "Alegre", pt: "Alegre", id: "Ceria" },
+  "pleased": { es: "Satisfecho", pt: "Satisfeito", id: "Senang" },
+  "sleepy": { es: "Con sueño", pt: "Com sono", id: "Mengantuk" },
+  "irritable": { es: "Irritable", pt: "Irritado", id: "Mudah kesal" },
+  "amazed": { es: "Asombrado", pt: "Maravilhado", id: "Takjub" },
+  "angry": { es: "Enojado", pt: "Bravo", id: "Marah" },
+  "okay": { es: "Bien", pt: "Ok", id: "Baik saja" },
+  "heartbroken": { es: "Con el corazón roto", pt: "De coração partido", id: "Patah hati" },
+  "grumpy": { es: "Gruñón", pt: "Rabugento", id: "Uring-uringan" },
+  "meh": { es: "Meh", pt: "Meh", id: "Biasa aja" },
+  "smug": { es: "Presumido", pt: "Convencido", id: "Puas diri" },
+  "nervous": { es: "Nervioso", pt: "Nervoso", id: "Gugup" },
+  "drained": { es: "Agotado", pt: "Esgotado", id: "Terkuras" },
+  "crying": { es: "Llorando", pt: "Chorando", id: "Menangis" },
+  "shy": { es: "Tímido", pt: "Tímido", id: "Malu-malu" },
+  "mischievous": { es: "Travieso", pt: "Travesso", id: "Jahil" },
+  "unimpressed": { es: "Indiferente", pt: "Sem entusiasmo", id: "Datar" },
+  "delighted": { es: "Encantado", pt: "Encantado", id: "Girang" },
+  "excited": { es: "Emocionado", pt: "Empolgado", id: "Bersemangat" },
+  "mad": { es: "Furioso", pt: "Furioso", id: "Berang" },
+  "playful": { es: "Juguetón", pt: "Brincalhão", id: "Iseng" },
+  "over-it": { es: "Harto", pt: "De saco cheio", id: "Muak" },
+};
+export const moodName = (id: MoodId): string => {
+  const lang = getLang();
+  if (lang === "en") return getMood(id).n;
+  return (MOOD_LOC[id] as any)?.[lang] || getMood(id).n;
 };

@@ -5,7 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {C} from "../theme/tokens";
-import { t, useLang } from "../lib/i18n";
+import { getLang, t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { Wren } from "./Wren";
 import { WrenBird } from "./WrenBird";
@@ -15,6 +15,7 @@ import { MoodIcon } from "./MoodIcon";
 import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
+import type { Lang } from "../data/stamps";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
@@ -69,7 +70,7 @@ export function SelfCompose({
   const [sealed, setSealed] = useState(false);
   const [mood, setMood] = useState<MoodId | null>(null);
 
-  const openers = byLang(WREN_OPENERS.journal, LANG);
+  const openers = byLang(WREN_OPENERS.journal, getLang() as Lang);
   const hasMedia = att === "photo" ? photos.length > 0 : !!mediaUri;
   const hasSomething = text.trim().length > 0 || (hasMedia && att !== null);
   // a sealed page without a mood can't be found again — the calendar is made
