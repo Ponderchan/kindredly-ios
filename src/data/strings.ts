@@ -81,6 +81,8 @@ strings(
     "settings.howItWorks": "How Kindredly works",
     "settings.writeToUs": "Write to us",
     "settings.rate": "Rate Kindredly",
+    "lang.send": "Write in whatever language is yours. If they don’t share it, they can read it in theirs — I carry letters, not dictionaries.",
+    "lang.read": "Not your language? Read it in yours.",
   },
 
   /* ── es ── */
@@ -153,6 +155,8 @@ strings(
     "settings.howItWorks": "Cómo funciona Kindredly",
     "settings.writeToUs": "Escríbenos",
     "settings.rate": "Valorar Kindredly",
+    "lang.send": "Escribe en tu idioma, sea cual sea. Si no lo comparten, podrán leerlo en el suyo — yo llevo cartas, no diccionarios.",
+    "lang.read": "¿No es tu idioma? Léela en el tuyo.",
   },
 
   /* ── pt-BR ── */
@@ -225,6 +229,8 @@ strings(
     "settings.howItWorks": "Como o Kindredly funciona",
     "settings.writeToUs": "Escreva para nós",
     "settings.rate": "Avaliar o Kindredly",
+    "lang.send": "Escreva na sua língua, seja qual for. Se não for a deles, podem ler na deles — eu carrego cartas, não dicionários.",
+    "lang.read": "Não é a sua língua? Leia na sua.",
   },
 
   /* ── id ── */
@@ -297,5 +303,7 @@ strings(
     "settings.howItWorks": "Cara kerja Kindredly",
     "settings.writeToUs": "Tulis surat untuk kami",
     "settings.rate": "Beri nilai Kindredly",
+    "lang.send": "Tulis dalam bahasamu, apa pun itu. Kalau mereka tak memakainya, mereka bisa membacanya dalam bahasa mereka — aku membawa surat, bukan kamus.",
+    "lang.read": "Bukan bahasamu? Baca dalam bahasamu.",
   },
 );

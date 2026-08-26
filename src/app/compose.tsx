@@ -17,7 +17,8 @@ import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
 import { track } from "../lib/track";
-import { getLang } from "../lib/i18n";
+import { getLang, t } from "../lib/i18n";
+import { WrenSaysOnce } from "../components/WrenSaysOnce";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
@@ -388,6 +389,12 @@ export default function Compose() {
               filling in a form on a desk; the letter you READ is full bleed, so
               the one you write should be too. */}
           <View>
+            {/* SHE SAYS IT ONCE, BEFORE ANYONE HOLDS BACK THEIR OWN
+                LANGUAGE. The pool is one room in every language (the
+                owner's call), so the only thing missing was somebody
+                telling a writer that theirs is welcome in it. */}
+            <WrenSaysOnce id="lang-send" line={t("lang.send")} />
+
             {/* Wren reads you live */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>

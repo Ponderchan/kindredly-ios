@@ -18,7 +18,7 @@ import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
 import { track } from "../../lib/track";
-import { getLang, useLang } from "../../lib/i18n";
+import { getLang, t, useLang } from "../../lib/i18n";
 import { screen, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -62,33 +62,32 @@ export default function LettersTab() {
      correct, not a gap: a letter floats to the top only when the matcher
      genuinely named its author, and the docket line stays silent about
      closeness for every other one. */
-  /* WHAT YOU CAN READ COMES FIRST — but nothing is hidden.
-     The pool is one shared room in four languages now, and the first act
-     in this product is reading a stranger's letter: hand someone a page
-     they can't read and the loop breaks at step one. A hard filter would
-     be worse, though — the pool is thin, and a Spanish reader with three
-     Spanish letters should still see the rest of the world underneath,
-     where the translate button already waits. So: your language first,
-     then the matcher's closest, then whatever is newest. */
-  const byReadability = (a: PoolLetter, b: PoolLetter) => {
-    const mine = getLang();
-    const readable = (l: PoolLetter) => ((l.lang || "en") === mine ? 1 : 0);
-    return readable(b) - readable(a) || (b.close ?? -1) - (a.close ?? -1);
-  };
-
+  /* ONE POOL, EVERY LANGUAGE — owner's call, and the right one. Sorting
+     a reader's own language to the top was tried and pulled: four
+     languages would have split an already thin pool into four thinner
+     ones, and the product's claim is that a stranger anywhere might
+     write like you, not a stranger who shares your keyboard. Translation
+     already exists on every letter; what was missing was somebody saying
+     so, which is now her job at both ends — see WrenSaysOnce on the
+     composer and the line beside TRANSLATE. */
   const load = useCallback(async () => {
     /* THE LETTERS DON'T WAIT ON THE MATCHER. Awaiting both together meant the
        feed appeared only once the nightly-matches lookup also came back — a
        query that adds nothing to the first paint and, for most readers, comes
        back empty anyway. The pool paints as soon as it lands; the closeness
        scores fold in a moment later and re-sort in place. */
-    const p = ((await fetchPool()) || []).sort(byReadability);
+    const p = (await fetchPool()) || [];
     setPool(p);
     setLoaded(true);
     const m = await fetchMatches();
     if (!m?.closest?.length) return;
     const score = new Map(m.closest.map((c) => [c.uid, c.score]));
-    setPool((cur) => cur.map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined })).sort(byReadability));
+    setPool((cur) =>
+      cur
+        .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
+        // matched first; everything else keeps the server's newest-first order
+        .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
+    );
   }, []);
   useFocusEffect(
     useCallback(() => {
@@ -769,6 +768,15 @@ function LetterPage({
           WRITTEN {sinceShort(letter.created_at)}
           {letter.close != null ? " · YOUR AURAS ARE CLOSE" : ""}
         </Text>
+
+        {/* HER LINE GETS ITS OWN ROW. Sharing the actions row put three
+            things on one line and pushed TRANSLATE off the screen — and
+            it is a sentence, not a control; it belongs above them. */}
+        {!isVoice && !!letter.body && (letter.lang || "en") !== getLang() && !xlOn && (
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: P.ink40, paddingTop: 10 }}>
+            {t("lang.read")}
+          </Text>
+        )}
 
         {/* the two moves, on a rule */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
