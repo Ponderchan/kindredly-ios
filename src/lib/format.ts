@@ -1,4 +1,7 @@
-import { t } from "./i18n";
+import { t, getLang } from "./i18n";
+
+/* dates format in the reader's locale, so JUL 29 becomes 29 de jul. / 29 jul */
+const LOCALE = () => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US");
 /* Small pure formatters + deterministic identity helpers.
    shade/dLong/dShort/today ported from kindredly-v20.jsx; hashStr/postNo/
    avatarFor ported from the web system.js so anonymous "correspondent
@@ -13,14 +16,14 @@ export function shade(hex: string, d: number): string {
 }
 
 export const dLong = (d: string | number | Date) =>
-  new Date(d).toLocaleDateString("en-US", {
+  new Date(d).toLocaleDateString(LOCALE(), {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
 
 export const dShort = (d: string | number | Date) =>
-  new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  new Date(d).toLocaleDateString(LOCALE(), { month: "short", day: "numeric" });
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
