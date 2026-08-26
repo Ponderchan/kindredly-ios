@@ -1,5 +1,6 @@
 import type { WrenMood } from "../components/WrenBird";
 import { OPENING_MIN } from "./weighted-count";
+import { t } from "./i18n";
 
 /* How Wren reads a piece of writing — words, tone, and emoji, in English and
    Chinese. Heavy signals are checked first: if in doubt she'd rather be tender
@@ -37,19 +38,13 @@ export function readMood(text: string, enough = true): WrenMood {
 /** Wren's one-line voice for a mood (composer register). */
 export function wrenLine(m: WrenMood): string {
   switch (m) {
-    case "worry":
-      return "I hear you. Take your time.";
-    case "delight":
-      return "Oh — I love this.";
-    case "happy":
-      return "Got it. Send whenever you're ready.";
-    case "curious":
-      return "Ooh — go on, I'm all ears.";
-    case "think":
-      return "Mm… I'm sitting with that too.";
+    case "worry": return t("wr.mood.worry");
+    case "delight": return t("wr.mood.delight");
+    case "happy": return t("wr.mood.happy");
+    case "curious": return t("wr.mood.curious");
+    case "think": return t("wr.mood.think");
     case "listen":
-    default:
-      return "I'm right here, listening.";
+    default: return t("wr.mood.listen");
   }
 }
 
@@ -65,27 +60,22 @@ export function wrenLine(m: WrenMood): string {
    present and unhurried; the coaxing only starts once there are words to
    coax. */
 export function openingLadder(weighted: number): { line: string; ready: boolean } {
-  if (weighted >= OPENING_MIN) return { line: "Okay. I know a little more of you now. Go meet your kindred.", ready: true };
-  if (weighted >= 30) return { line: "Almost there. I want one more thought.", ready: false };
-  if (weighted >= 15) return { line: "Tell me a little more.", ready: false };
-  return { line: "I'm here. Take your time.", ready: false };
+  if (weighted >= OPENING_MIN) return { line: t("wr.ladder.ready"), ready: true };
+  if (weighted >= 30) return { line: t("wr.ladder.almost"), ready: false };
+  if (weighted >= 15) return { line: t("wr.ladder.more"), ready: false };
+  return { line: t("wr.ladder.start"), ready: false };
 }
 
 /** Wren's first words to a newly-written line at the hatch (warmer register). */
 export function hatchLine(m: WrenMood): string {
   switch (m) {
-    case "worry":
-      return "I hear you. I've got this one.";
-    case "delight":
-      return "Oh, I love that you wrote that.";
-    case "curious":
-      return "Ooh — tell me more, always.";
-    case "think":
-      return "I'll sit with that, as long as it takes.";
+    case "worry": return t("wr.hatch.worry");
+    case "delight": return t("wr.hatch.delight");
+    case "curious": return t("wr.hatch.curious");
+    case "think": return t("wr.hatch.think");
     case "happy":
     case "listen":
-    default:
-      return "I read every word. I've got you now.";
+    default: return t("wr.hatch.default");
   }
 }
 
@@ -107,14 +97,10 @@ export function thoughtState(weighted: number, chosen: "seal" | "drift" | null):
 /** the label — a condition being reported, never an option being set */
 export function thoughtLabel(s: ThoughtState): string {
   switch (s) {
-    case "sealed":
-      return "SEALED";
-    case "drifting":
-      return "READY TO DRIFT";
-    case "becoming":
-      return "STILL BECOMING";
-    default:
-      return "WITH ME";
+    case "sealed": return t("wr.state.sealed");
+    case "drifting": return t("wr.state.drifting");
+    case "becoming": return t("wr.state.becoming");
+    default: return t("wr.state.withMe");
   }
 }
 
@@ -124,14 +110,10 @@ export function thoughtLabel(s: ThoughtState): string {
    works and shouldn't be replaced. */
 export function thoughtLine(s: ThoughtState, weighted: number): string {
   switch (s) {
-    case "becoming":
-      return "this feels like something someone else might be carrying too.";
-    case "sealed":
-      return "some words are only for the person who wrote them.";
-    case "drifting":
-      return "I'll look for where this belongs.";
-    default:
-      return openingLadder(weighted).line;
+    case "becoming": return t("wr.line.becoming");
+    case "sealed": return t("wr.line.sealed");
+    case "drifting": return t("wr.line.drifting");
+    default: return openingLadder(weighted).line;
   }
 }
 
@@ -141,15 +123,18 @@ export function thoughtLine(s: ThoughtState, weighted: number): string {
    asked. ("Drift" stays the word for a single line leaving a journal entry —
    a smaller, quieter departure.) "Seal it here" names the room it lands in,
    and "here" carries the promise: this phone. */
-export const DRIFT_LABEL = "LET IT TRAVEL";
-export const SEAL_LABEL = "SEAL IT HERE";
+export const DRIFT_LABEL = "LET IT TRAVEL"; // legacy const; prefer t("wr.drift")
+export function driftLabel(): string { return t("wr.drift"); }
+export function sealLabel(): string { return t("wr.seal"); }
 
 /* Releasing something you'd meant to keep is the one move that can cost the
    writer something, so Wren asks — in her own voice, on the page. Going the
    other way is free and silent: moving toward safety shouldn't need consent. */
-export const DRIFT_CONFIRM = {
-  note: "this one feels close to the heart.",
-  question: "let it drift anyway?",
-  go: "LET IT GO",
-  stay: "KEEP IT HERE",
-} as const;
+export function driftConfirm() {
+  return {
+    note: t("wr.confirm.note"),
+    question: t("wr.confirm.question"),
+    go: t("wr.confirm.go"),
+    stay: t("wr.confirm.stay"),
+  };
+}

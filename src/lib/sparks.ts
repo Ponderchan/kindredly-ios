@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { t } from "./i18n";
 
 /* Writing sparks — the line in the empty LETTER (to a stranger).
    ────────────────────────────────────────────────────────────────────────
@@ -35,27 +36,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const KEY = "kindredly_spark_n";
 
 /* The opening run teaches the place, then the rotation keeps it fresh. */
-const SPARKS = [
-  "tell a stranger something you never posted.",
-  "what small thing stayed with you today?",
-  "write the memory you almost forgot.",
-  "say the thing you'd only say to someone you'll never meet.",
-  "what are you pretending not to think about?",
-  "describe a room you miss.",
-  "what did you notice today that no one else would have?",
-  "what were you like a year ago?",
-  "something you changed your mind about.",
-  "the last time you felt understood.",
-];
+const DAY_COUNT = 10;
 
 /* 22:00–04:00. Shorter, plainer, and it doesn't ask you to summarise a day
    you're still inside. */
-const NIGHT = [
-  "it's late. what's still awake in you?",
-  "nobody's up. say it plainly.",
-  "what keeps coming back at this hour?",
-  "what would you say if it cost you nothing?",
-];
+const NIGHT_COUNT = 4;
 
 export function isNight(d = new Date()): boolean {
   const h = d.getHours();
@@ -71,6 +56,7 @@ export async function nextSpark(): Promise<string> {
   } catch {
     /* a spark is not worth failing over */
   }
-  const list = isNight() ? NIGHT : SPARKS;
-  return list[n % list.length];
+  // resolve in the reader's current language at selection time; the counter
+  // still picks which prompt, the catalog decides how it reads
+  return isNight() ? t(`sp.night.${(n % NIGHT_COUNT) + 1}`) : t(`sp.day.${(n % DAY_COUNT) + 1}`);
 }
