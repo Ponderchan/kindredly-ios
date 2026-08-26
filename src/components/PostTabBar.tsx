@@ -1,9 +1,9 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
-import { P, PF } from "../theme/post";
+import { P } from "../theme/post";
 import { MosaicId } from "./MosaicId";
 import { useAuth } from "../lib/auth";
 
@@ -18,11 +18,10 @@ import { useAuth } from "../lib/auth";
    me       — YOUR mosaic; in this system your identity is a redacted grid,
               so the tab is literally you, and no two users' bars match
 
-   EVERY WINDOW HAS A SIGN. Five unlabelled glyphs asked the reader to
-   learn a private alphabet; a real counter hangs a word over each window,
-   so this one does too — 7.5pt mono, the same voice the whole product
-   files things in. The signs also fixed the strip's worst habit: the
-   glyphs had to shout to be understood, and now they don't.
+   NO LABELS — owner's call, and the icon has to carry the word on its
+   own. What the labels were really fixing was the glyphs' unequal
+   optical weight; that fix stays (one stroke weight, no filled masses
+   fighting the line art), and the row reads as a family without them.
 
    The slot sits IN the row, flush and full height, not floating above the
    rule on a raised square. It reads as the one inked window in a counter
@@ -30,8 +29,7 @@ import { useAuth } from "../lib/auth";
 
    The active window is marked by a solid bar on the rule above it. */
 
-const CELL = 58;
-const LABEL = { fontFamily: PF.monoMed, fontSize: 7.5, letterSpacing: 1, marginTop: 4 } as const;
+const CELL = 54;
 
 export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
   const insets = useSafeAreaInsets();
@@ -46,7 +44,7 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
     if (!focused && !event.defaultPrevented) navigation.navigate(name);
   };
 
-  const Window = ({ name, label, children, dot }: { name: string; label: string; children: React.ReactNode; dot?: boolean }) => {
+  const Window = ({ name, children, dot }: { name: string; children: React.ReactNode; dot?: boolean }) => {
     const active = current === name;
     return (
       <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: CELL }}>
@@ -63,7 +61,6 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
           }}
         />
         {children}
-        <Text style={{ ...LABEL, color: active ? P.pen : P.ink40 }}>{label}</Text>
         {/* one square of pen ink — someone answered and it is your turn. A
             square, not a dot: this counter is made of squares and rules, and
             a count would turn correspondence into an inbox. */}
@@ -81,10 +78,10 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: P.paper }}>
         <View style={{ height: 1, backgroundColor: P.ink }} />
         <View style={{ flexDirection: "row", alignItems: "center", paddingBottom: Math.max(insets.bottom, 6) }}>
-          <Window name="letters" label="TODAY">
+          <Window name="letters">
             <EnvelopeGlyph color={tint("letters")} />
           </Window>
-          <Window name="journal" label="SEALED">
+          <Window name="journal">
             <SealedGlyph color={tint("journal")} />
           </Window>
 
@@ -109,14 +106,13 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
                 {/* the lip — solid, and it crosses the letter */}
                 <Rect x={1.5} y={13} width={21} height={3} fill="#fff" />
               </Svg>
-              <Text style={{ ...LABEL, color: "#fff" }}>POST</Text>
             </View>
           </Pressable>
 
-          <Window name="kindreds" label="KINDREDS" dot={waiting > 0}>
+          <Window name="kindreds" dot={waiting > 0}>
             <OrbitGlyph color={tint("kindreds")} />
           </Window>
-          <Window name="me" label="ME">
+          <Window name="me">
             {/* YOUR mosaic, in a frame. Loose at 24px it read as dirt;
                 inside a ruled square it reads as what it is — the face
                 this system gives you, filed like everything else. */}
