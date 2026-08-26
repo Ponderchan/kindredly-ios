@@ -110,7 +110,7 @@ export default function RoomScreen() {
      of words the two of you really wrote, with the count printed beside it
      so it can be checked. Naming what a count MEANS is your job, not
      hers; that is the difference between a shared story and a label wall.
-     One at a time, the rarest thing first: she is a messenger who leaves
+     One at a time, the rarest thing first: she is a courier who leaves
      something on the table, not a feed. */
   const notices = useMemo(() => {
     if (!detail) return [];

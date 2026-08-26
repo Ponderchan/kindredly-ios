@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/* YOUR MESSENGER — her name, and the shell she came out of.
+/* YOUR COURIER — her name, and the shell she came out of.
+   (One word for her job, everywhere: courier, never messenger — it is
+   the word First Class travels on.)
    ────────────────────────────────────────────────────────────────────────
    The bird was called Wren by us. Now she's called whatever you called her
    in onboarding, and every line she speaks anywhere in the app uses that

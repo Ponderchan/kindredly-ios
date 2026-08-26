@@ -47,7 +47,7 @@ const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
      delivery, not a reading. The letter is about YOU; she only carries
      it, the way she carries everything. */
   { id: "report", title: "Monthly Letter About You", sub: "a closer read of how your writing changed", icon: "first-anniversary" },
-  { id: "wardrobe", title: "Your Courier's Wardrobe", sub: "more looks, outfits, bags, seals, and trails", icon: "otis-changed" },
+  { id: "wardrobe", title: "Your Courier's Wardrobe", sub: "every look and seasonal piece she owns", icon: "otis-changed" },
 ];
 
 /* One line, not three. The other two promises (her speed, your history)

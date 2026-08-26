@@ -703,7 +703,7 @@ export default function Onboarding() {
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head
             plain="Pick your"
-            em="messenger's shell."
+            em="courier's shell."
             sub="Your words decide what hatches. The shell only leaves a birthmark — the bird inside is written, not chosen."
           />
 
@@ -806,7 +806,7 @@ export default function Onboarding() {
       <Console>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView contentContainerStyle={CENTRED} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Head plain="Your messenger" em="needs a name." sub="This is what they're called from here on — in every line they ever write you." />
+            <Head plain="Your courier" em="needs a name." sub="This is what they're called from here on — in every line they ever write you." />
 
             <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
               <Hatchling mood={hatchMood} shell={eggVar} />

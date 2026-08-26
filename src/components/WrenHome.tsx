@@ -17,7 +17,7 @@ import type { GrowthStats } from "../data/growth";
 
 /* HER ROOM — the owner's mockup, built in the postal grammar.
    ────────────────────────────────────────────────────────────────────────
-   One identity: she is your MESSENGER. The page answers, top to bottom:
+   One identity: she is your COURIER. The page answers, top to bottom:
    where is she right now → how far the two of you have come (ONE ladder,
    with dates) → what she kept from real journeys → the four places her
    day happens → what she's wearing. The second XP bar ("how well she
@@ -144,7 +144,7 @@ export function WrenHome({
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "700", color: P.ink }}>{wren}</Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, marginTop: 3 }}>
-            YOUR MESSENGER
+            YOUR COURIER
           </Text>
           {cofounderNo != null && (
             <View style={{ marginTop: 7 }}>
