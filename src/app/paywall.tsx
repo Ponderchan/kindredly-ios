@@ -277,26 +277,15 @@ function Stub({ pkg, on, onPress, wren }: { pkg: IapPackage; on: boolean; onPres
 
         <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
           {life
-            ? "Paid once. You become a Kindredly Cofounder."
+            ? `Founding ${COFOUNDERS_TOTAL} only · numbered in order`
             : year
               ? "about $3.33/month · best value"
               : "stay as long as you like"}
         </Text>
 
-        {life && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 }}>
-            <View style={{ width: 7, height: 7, backgroundColor: GOLD }} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: "#8A6E20" }}>
-              FOUNDING {COFOUNDERS_TOTAL} ONLY · NUMBERED IN ORDER
-            </Text>
-          </View>
-        )}
-        {year && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 }}>
-            <View style={{ width: 7, height: 7, backgroundColor: P.post }} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post }}>BEST VALUE</Text>
-          </View>
-        )}
+        {/* no accent row: each fare says its one thing once. The sub-line
+            already carries "best value" and "numbered in order", and
+            printing them twice made the stubs shout. */}
       </View>
     </Pressable>
   );
