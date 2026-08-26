@@ -15,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import Svg, { Circle, ClipPath, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
@@ -105,48 +106,25 @@ const CENTRED = { flexGrow: 1, justifyContent: "center" } as const;
 const WIN_W = Dimensions.get("window").width;
 const PAGE_W = WIN_W - 40;
 
-// the recap cards inside the KINDREDLY.EXE window — a letter's whole life
-const CARDS: { tag: string; h: string; hi: string; s: string }[] = [
-  { tag: "WRITE IT DOWN", h: "Write down", hi: "what's real.", s: "Tired, glad, or just true — a line is enough." },
-  { tag: "OFF IT GOES", h: "It finds", hi: "your kind of person.", s: "Matched by how you write — not by who you are." },
-  { tag: "THEY WRITE BACK", h: "And slowly,", hi: "you're not strangers.", s: "Five letters each, and you trade names." },
-];
+// the recap cards inside the KINDREDLY.EXE window — a letter's whole life.
+// Copy lives in the catalog (ob.c1..c3); these are just the card indices.
+const CARDS = [1, 2, 3] as const;
 
-/* the sealed list's inline short forms — the long sealed lines are for a
-   stacked checklist; run together with dots they need two words each */
-const SEALED_SHORT: Partial<Record<string, string>> = {
-  rhythm: "hidden rhythm",
-  vocabulary: "rare words",
-  perspective: "way of seeing",
-  emotion: "emotional patterns",
-  function: "small tells",
-  punctuation: "where you pause",
-  structure: "thought patterns",
-  sentence: "sentence shape",
-  quirks: "personal patterns",
-};
+/* the sealed list's inline short forms live in the catalog as ob.sealed.<key>;
+   this set says which dimension keys actually have one */
+const SEALED_KEYS = new Set(["rhythm","vocabulary","perspective","emotion","function","punctuation","structure","sentence","quirks"]);
 
-/* one hint per feeding — each slot invites a different register, because
-   three samples of the same register teach the engine less than one each of
-   observation, memory and confession */
-const FEED_HINTS = [
-  "i keep rehearsing conversations i will never have",
-  "something you noticed today that nobody else did…",
-  "a small thing you remember for no reason…",
-  "the thing you almost said out loud…",
-  "one more, if it's already on your tongue…",
-];
+/* one hint per feeding (ob.feed.1..5) — each slot invites a different
+   register, because three samples of the same register teach the engine less
+   than one each of observation, memory and confession */
+const FEED_COUNT = 5;
 
-// what the readout says about the egg at each stage of the flow
-const EGG_STATUS: Partial<Record<Step, string>> = {
-  username: "SOMETHING'S IN HERE.",
-  you: "STILL ASLEEP.",
-  cakeday: "WARM. NOT READY.",
-  avatar: "IT MOVED. DID YOU SEE?",
-};
+// what the readout says about the egg at each stage (ob.eggstat.<step>)
+const EGG_STATUS_STEPS: Step[] = ["username", "you", "cakeday", "avatar"];
 
 export default function Onboarding() {
   const router = useRouter();
+  useLang(); // repaint when the reader changes language
   const auth = useAuth();
   const { session, onboarded, appleAvailable } = auth;
 
@@ -258,12 +236,12 @@ export default function Onboarding() {
     setBusy("apple");
     const r = await auth.signInWithApple();
     setBusy(null);
-    if ("error" in r) Alert.alert("Continue with Apple", r.error);
+    if ("error" in r) Alert.alert(t("ob.apple.title"), r.error);
   };
   const doEmail = () => {
     Alert.prompt?.(
-      "Your email",
-      "We'll send you a quiet sign-in link.",
+      t("ob.email.title"),
+      t("ob.email.body"),
       async (email?: string) => {
         if (!email || !email.trim()) return;
         setBusy("email");
@@ -373,11 +351,11 @@ export default function Onboarding() {
 
   const stepIdx = ORDER.indexOf(step);
   const back = () => setStep(ORDER[Math.max(0, stepIdx - 1)]);
-  const eggStatus = EGG_STATUS[step];
+  const eggStatus = EGG_STATUS_STEPS.includes(step) ? t(`ob.eggstat.${step}`) : undefined;
 
   /* ── 1 · KINDREDLY.EXE ──────────────────────────────────────────────── */
   if (step === "welcome") {
-    const c = CARDS[cardI];
+    const c = CARDS[cardI]; // 1..3
     return (
       <Console>
         <ScrollView contentContainerStyle={{ ...CENTRED, paddingVertical: 18 }} showsVerticalScrollIndicator={false}>
@@ -394,7 +372,7 @@ export default function Onboarding() {
                 }}
               >
                 <View style={{ width: 9, height: 9, borderRadius: 5, borderWidth: 1.6, borderColor: Y.ink, marginRight: 8 }} />
-                <Text style={[mono(10.5, "b"), { flex: 1 }]}>KINDREDLY.EXE</Text>
+                <Text style={[mono(10.5, "b"), { flex: 1 }]}>{t("ob.exe")}</Text>
                 <Text style={mono(11, "r")}>✕</Text>
               </View>
 
@@ -407,7 +385,7 @@ export default function Onboarding() {
                 style={{ height: 172 }}
               >
                 {CARDS.map((k, i) => (
-                  <View key={k.tag} style={{ width: PAGE_W, height: 172, alignItems: "center", justifyContent: "center" }}>
+                  <View key={k} style={{ width: PAGE_W, height: 172, alignItems: "center", justifyContent: "center" }}>
                     <RecapArt i={i} />
                   </View>
                 ))}
@@ -415,7 +393,7 @@ export default function Onboarding() {
 
               <View style={{ position: "absolute", left: 12, bottom: 12 }}>
                 <View style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass }]}>
-                  <Text style={mono(9.5, "b")}>✎ {c.tag}</Text>
+                  <Text style={mono(9.5, "b")}>✎ {t(`ob.c${c}.tag`)}</Text>
                 </View>
               </View>
             </View>
@@ -423,22 +401,22 @@ export default function Onboarding() {
             <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 14 }}>
               {CARDS.map((k, i) => (
                 <View
-                  key={k.tag}
+                  key={k}
                   style={{ width: 13, height: 8, marginHorizontal: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: i === cardI ? Y.blue : "transparent" }}
                 />
               ))}
             </View>
 
             <Text style={{ fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center", marginTop: 18, lineHeight: 36 }}>
-              {c.h} <Text style={{ fontFamily: F2.serifItalic }}>{c.hi}</Text>
+              {t(`ob.c${c}.h`)} <Text style={{ fontFamily: F2.serifItalic }}>{t(`ob.c${c}.hi`)}</Text>
             </Text>
-            <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }]}>{c.s}</Text>
+            <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }]}>{t(`ob.c${c}.s`)}</Text>
           </View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
             {emailSent ? (
               <View style={[card, bevel(4, 4), { padding: 16, alignItems: "center" }]}>
-                <Text style={[mono(11, "b"), { color: Y.blue }]}>LINK SENT</Text>
+                <Text style={[mono(11, "b"), { color: Y.blue }]}>{t("ob.linkSent")}</Text>
                 <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 6, textAlign: "center", lineHeight: 18 }]}>
                   Open it on this phone and you'll land right back here.
                 </Text>
@@ -467,7 +445,7 @@ export default function Onboarding() {
                   disabled={!!busy}
                   style={[card, bevel(4, 4), { height: 52, alignItems: "center", justifyContent: "center", marginTop: 12, opacity: busy ? 0.5 : 1 }]}
                 >
-                  <Text style={[mono(12, "b"), { color: Y.blue }]}>{busy === "email" ? "…" : "CONTINUE WITH EMAIL"}</Text>
+                  <Text style={[mono(12, "b"), { color: Y.blue }]}>{busy === "email" ? "…" : t("ob.continueEmail")}</Text>
                 </Pressable>
                 {/* clear of the email key's hard shadow — it used to follow a
                     line of text, and now it follows a bevelled button */}
@@ -487,7 +465,7 @@ export default function Onboarding() {
                       "Just looking" is what a person actually says walking into
                       a shop — it promises nothing, and unlike Skip or Continue
                       as guest it doesn't imply they're dodging the real thing. */}
-                  <Text style={[mono(11, "r"), { color: Y.dim }]}>Just looking →</Text>
+                  <Text style={[mono(11, "r"), { color: Y.dim }]}>{t("ob.justLooking")}</Text>
                 </Pressable>
 
                 {/* the agreement line (1.2 UGC): every door in, including "Just
@@ -495,13 +473,13 @@ export default function Onboarding() {
                     link; Y.dim keeps it quiet — consent copy that shouts reads
                     as a trap. */}
                 <Text style={[mono(9.5, "r"), { color: Y.dim, textAlign: "center", paddingTop: 14, lineHeight: 15 }]}>
-                  BY CONTINUING YOU AGREE TO THE{" "}
+                  {t("ob.agree.pre")}{" "}
                   <Text onPress={() => Linking.openURL("https://kindredly.io/terms")} style={{ textDecorationLine: "underline" }}>
-                    TERMS
+                    {t("ob.agree.terms")}
                   </Text>{" "}
                   &{" "}
                   <Text onPress={() => Linking.openURL("https://kindredly.io/privacy")} style={{ textDecorationLine: "underline" }}>
-                    PRIVACY POLICY
+                    {t("ob.agree.privacy")}
                   </Text>
                 </Text>
               </>
@@ -518,7 +496,7 @@ export default function Onboarding() {
       <Console step={stepIdx} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={{ flex: 1 }} />
-          <Head plain="Pick a" em="pen name." sub="Not your real name — change it anytime. Strangers never see it; you are how you write." />
+          <Head plain={t("ob.username.plain")} em={t("ob.username.em")} sub={t("ob.username.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 20 }}>
             <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, height: 56 }]}>
               <Text style={[mono(15, "b"), { color: Y.blue, marginRight: 8 }]}>›</Text>
@@ -529,7 +507,7 @@ export default function Onboarding() {
                 autoCorrect={false}
                 maxLength={20}
                 autoFocus
-                placeholder="robin"
+                placeholder={t("ob.username.placeholder")}
                 placeholderTextColor={Y.faint}
                 style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 21, color: Y.ink }}
               />
@@ -543,7 +521,7 @@ export default function Onboarding() {
           <View style={{ flex: 1, justifyContent: "flex-end" }}>
             <EggDock variant={eggVar} status={eggStatus} style={breathe} />
           </View>
-          <Foot label="NEXT ›" on={handle.length > 0} onPress={() => setStep("you")} />
+          <Foot label={`${t("ob.next")} ›`} on={handle.length > 0} onPress={() => setStep("you")} />
         </KeyboardAvoidingView>
       </Console>
     );
@@ -554,7 +532,7 @@ export default function Onboarding() {
     return (
       <Console step={stepIdx} onBack={back}>
         <View style={{ flex: 1 }} />
-        <Head plain={`${handle || "Hey"} — what do we`} em="call you?" sub="Only used in how the app talks about you. Skip it and we'll say they." />
+        <Head plain={t("ob.you.plain", { name: handle || t("ob.hey") })} em={t("ob.you.em")} sub={t("ob.you.sub")} />
         <View style={{ paddingHorizontal: 18, marginTop: 20 }}>
           {PRONOUNS.map((p, i) => {
             const on = youPro === p.id;
@@ -598,7 +576,7 @@ export default function Onboarding() {
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <EggDock variant={eggVar} status={eggStatus} style={breathe} />
         </View>
-        <Foot label="NEXT ›" on onPress={() => setStep("cakeday")} skip={youPro ? undefined : "PREFER NOT TO SAY"} onSkip={() => setStep("cakeday")} />
+        <Foot label={`${t("ob.next")} ›`} on onPress={() => setStep("cakeday")} skip={youPro ? undefined : t("ob.preferNot")} onSkip={() => setStep("cakeday")} />
       </Console>
     );
   }
@@ -608,7 +586,7 @@ export default function Onboarding() {
     return (
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
-          <Head plain={`${handle || "Hey"}, when's your`} em="cakeday?" sub="🎂 Whoever hatches keeps it, and writes to you on the day." />
+          <Head plain={t("ob.cakeday.plain", { name: handle || t("ob.hey") })} em={t("ob.cakeday.em")} sub={t("ob.cakeday.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { flexDirection: "row", overflow: "hidden" }]}>
               <Wheel items={MONTHS} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
@@ -634,7 +612,7 @@ export default function Onboarding() {
           </Animated.View>
         </ScrollView>
         <EggDock variant={eggVar} status={eggStatus} style={breathe} />
-        <Foot label="NEXT ›" on={ageOk} onPress={() => setStep("avatar")} />
+        <Foot label={`${t("ob.next")} ›`} on={ageOk} onPress={() => setStep("avatar")} />
       </Console>
     );
   }
@@ -645,7 +623,7 @@ export default function Onboarding() {
     return (
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
-          <Head plain="Pick a" em="face." sub="Strangers never see it. A kindred does — it travels with your name when you trade them." />
+          <Head plain={t("ob.avatar.plain")} em={t("ob.avatar.em")} sub={t("ob.avatar.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { padding: 12, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
               {shown.map((a) => {
@@ -691,7 +669,7 @@ export default function Onboarding() {
           </Animated.View>
         </ScrollView>
         <EggDock variant={eggVar} status={eggStatus} style={breathe} />
-        <Foot label="NEXT ›" on onPress={() => setStep("egg")} skip="SKIP FOR NOW" onSkip={() => setStep("egg")} />
+        <Foot label={`${t("ob.next")} ›`} on onPress={() => setStep("egg")} skip={t("ob.skipNow")} onSkip={() => setStep("egg")} />
       </Console>
     );
   }
@@ -702,9 +680,9 @@ export default function Onboarding() {
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head
-            plain="Pick your"
-            em="courier's shell."
-            sub="Your words decide what hatches. The shell only leaves a birthmark — the bird inside is written, not chosen."
+            plain={t("ob.egg.plain")}
+            em={t("ob.egg.em")}
+            sub={t("ob.egg.sub")}
           />
 
           {/* the handheld: a device inside the device */}
@@ -793,7 +771,7 @@ export default function Onboarding() {
           </View>
           <Text style={[mono(10, "b"), { textAlign: "center", marginTop: 12, color: Y.dim }]}>{EGG_SHELLS[eggVar].name.toUpperCase()}</Text>
         </ScrollView>
-        <Foot label="THIS ONE'S MINE ›" on onPress={() => setStep("write")} />
+        <Foot label={t("ob.egg.cta")} on onPress={() => setStep("write")} />
       </Console>
     );
   }
@@ -806,7 +784,7 @@ export default function Onboarding() {
       <Console>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView contentContainerStyle={CENTRED} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Head plain="Your courier" em="needs a name." sub="This is what they're called from here on — in every line they ever write you." />
+            <Head plain={t("ob.naming.plain")} em={t("ob.naming.em")} sub={t("ob.naming.sub")} />
 
             <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
               <Hatchling mood={hatchMood} shell={eggVar} />
@@ -820,7 +798,7 @@ export default function Onboarding() {
                   onChangeText={setBirdName}
                   autoCorrect={false}
                   maxLength={16}
-                  placeholder="Wren"
+                  placeholder={t("ob.naming.placeholder")}
                   placeholderTextColor={Y.faint}
                   style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 21, color: Y.ink }}
                 />
@@ -843,7 +821,7 @@ export default function Onboarding() {
               {/* and what to call them — this is what makes the hatch key read
                   HATCH HIM / HATCH HER / HATCH THEM */}
               <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 20, textAlign: "center" }]}>
-                {her ? `AND ${her.toUpperCase()} GOES BY` : "AND THEY GO BY"}
+                {her ? t("ob.naming.goesBy", { name: her.toUpperCase() }) : t("ob.naming.goesByThey")}
               </Text>
               <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 10 }}>
                 {PRONOUNS.map((p) => {
@@ -861,7 +839,7 @@ export default function Onboarding() {
               </View>
             </View>
           </ScrollView>
-          <Foot label="FIRST FLIGHT ›" on={her.length > 0} tone="brass" onPress={() => setStep("flight")} />
+          <Foot label={t("ob.naming.cta")} on={her.length > 0} tone="brass" onPress={() => setStep("flight")} />
         </KeyboardAvoidingView>
       </Console>
     );
@@ -892,7 +870,7 @@ export default function Onboarding() {
               </View>
             </View>
 
-            <Head plain="Give it something" em="only you'd write." sub="One thought is enough to hatch. Each extra one locks in more of who comes out." />
+            <Head plain={t("ob.write.plain")} em={t("ob.write.em")} sub={t("ob.write.sub")} />
 
             {/* what's been fed, swallowed into little rows */}
             {thoughts.length > 0 && (
@@ -920,7 +898,7 @@ export default function Onboarding() {
                   onChangeText={setNote}
                   multiline
                   autoFocus
-                  placeholder={FEED_HINTS[Math.min(thoughts.length, FEED_HINTS.length - 1)]}
+                  placeholder={t(`ob.feed.${Math.min(thoughts.length, FEED_COUNT - 1) + 1}`)}
                   placeholderTextColor={Y.faint}
                   style={{ fontFamily: F2.serifItalic, fontSize: 17, lineHeight: 26, color: Y.ink, minHeight: 64 }}
                 />
@@ -967,7 +945,7 @@ export default function Onboarding() {
             </View>
           </ScrollView>
           <Foot
-            label={canHatch ? "HATCH IT 🥚" : "FEED ONE THOUGHT FIRST"}
+            label={canHatch ? t("ob.write.hatch") : t("ob.write.feedFirst")}
             on={canHatch}
             tone="brass"
             onPress={() => setStep("hatch")}
@@ -1063,7 +1041,7 @@ export default function Onboarding() {
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
               <ReadingEgg progress={readStep / (fed.length + 3)} />
               <View style={{ flex: 1, marginLeft: 18 }}>
-                {[...fed.map((_, i) => `THOUGHT ${String(i + 1).padStart(2, "0")} READ`), "FINDING RHYTHM…", "SHAPING VOICE", "WAKING SOMETHING"].map(
+                {[...fed.map((_, i) => t("ob.read.thought", { n: String(i + 1).padStart(2, "0") })), t("ob.read.rhythm"), t("ob.read.voice"), t("ob.read.waking")].map(
                   (label, i) => {
                     const done = readStep > i;
                     const now = readStep === i;
@@ -1139,16 +1117,16 @@ export default function Onboarding() {
             </View>
 
             <Animated.View entering={FadeIn.delay(2400).duration(500)} style={{ alignItems: "center" }}>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16.5, color: "#9C94D6" }}>It picked up something in your words.</Text>
+              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16.5, color: "#9C94D6" }}>{t("ob.born.line")}</Text>
               <View style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass, marginTop: 12 }]}>
-                <Text style={mono(10.5, "b")}>{(SEALED_SHORT[hatched.dims[0].key] ?? hatched.dims[0].label.toLowerCase()).toUpperCase()}</Text>
+                <Text style={mono(10.5, "b")}>{(SEALED_KEYS.has(hatched.dims[0].key) ? t(`ob.sealed.${hatched.dims[0].key}`) : hatched.dims[0].label.toLowerCase()).toUpperCase()}</Text>
               </View>
-              <Text style={[mono(9.5, "b"), { color: "#6F68A8", marginTop: 14, letterSpacing: 1 }]}>STILL LEARNING.</Text>
+              <Text style={[mono(9.5, "b"), { color: "#6F68A8", marginTop: 14, letterSpacing: 1 }]}>{t("ob.born.still")}</Text>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(3200).duration(500)} style={{ width: "100%", maxWidth: 340, marginTop: 30 }}>
               <Pressable onPress={() => setStep("naming")} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass }]}>
-                <Text style={mono(12.5, "b")}>GIVE IT A NAME ›</Text>
+                <Text style={mono(12.5, "b")}>{t("ob.born.name")}</Text>
               </Pressable>
             </Animated.View>
           </View>
