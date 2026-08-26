@@ -1,5 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { voiceSignature } from "./signature";
+
+/* AsyncStorage is lazy-required only inside the two persistence functions so
+   the pure scoring path (scoreNine/hatch) imports cleanly under plain node for
+   tests — the rest of this file is model-free and deterministic. */
+const AsyncStorage = () => require("@react-native-async-storage/async-storage").default;
 
 /* THE HATCH ENGINE — product logic specification, owner's spec, Aug 2026.
    ────────────────────────────────────────────────────────────────────────
@@ -456,7 +460,7 @@ const KEY = "kindredly_hatch_archetype";
 
 export async function saveArchetype(id: string): Promise<void> {
   try {
-    await AsyncStorage.setItem(KEY, id);
+    await AsyncStorage().setItem(KEY, id);
   } catch {
     /* never worth blocking a hatch */
   }
@@ -464,7 +468,7 @@ export async function saveArchetype(id: string): Promise<void> {
 
 export async function getArchetype(): Promise<Archetype | null> {
   try {
-    const id = await AsyncStorage.getItem(KEY);
+    const id = await AsyncStorage().getItem(KEY);
     return ARCHETYPES.find((a) => a.id === id) || null;
   } catch {
     return null;
