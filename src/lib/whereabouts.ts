@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { t } from "./i18n";
+import { t, t as tr, getLang } from "./i18n";
 import type { ThreadSummary } from "./db";
 import { threadState } from "./thread-state";
 import { supabase, supabaseReady } from "./supabase";
@@ -87,7 +87,7 @@ export async function fetchCarried(): Promise<{ at: string }[]> {
 }
 
 const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+  new Date(iso).toLocaleDateString(({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US"), { month: "short", day: "numeric" }).toUpperCase();
 const clock = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -100,7 +100,7 @@ export function buildSouvenirs(
 
   const first = carried[0];
   if (first)
-    out.push({ id: "first-flight", glyph: "✈️", title: "First flight", detail: day(first.at), at: Date.parse(first.at) });
+    out.push({ id: "first-flight", glyph: "✈️", title: tr("sv.firstFlight"), detail: day(first.at), at: Date.parse(first.at) });
 
   // a letter that left between midnight and five — she flew it in the dark
   const night = carried.find((c) => {
@@ -108,13 +108,13 @@ export function buildSouvenirs(
     return h >= 0 && h < 5;
   });
   if (night)
-    out.push({ id: "night-run", glyph: "🌙", title: "Late night run", detail: `${day(night.at)} · ${clock(night.at)}`, at: Date.parse(night.at) });
+    out.push({ id: "night-run", glyph: "🌙", title: tr("sv.lateNight"), detail: `${day(night.at)} · ${clock(night.at)}`, at: Date.parse(night.at) });
 
   const answered = threads.find((t) => t.theirs > 0);
   if (answered)
-    out.push({ id: "first-reply", glyph: "📨", title: "Someone wrote back", detail: `NO. ${String(threads.filter((t) => t.theirs > 0).length).padStart(2, "0")} CARRIED`, at: answered.lastAt });
+    out.push({ id: "first-reply", glyph: "📨", title: tr("sv.someoneBack"), detail: tr("sv.carriedDetail", { n: String(threads.filter((t) => t.theirs > 0).length).padStart(2, "0") }), at: answered.lastAt });
 
-  if (topWord) out.push({ id: "kept-word", glyph: "💬", title: "A word you keep", detail: `"${topWord}"` });
+  if (topWord) out.push({ id: "kept-word", glyph: "💬", title: tr("sv.wordKeep"), detail: `"${topWord}"` });
 
   return out.slice(0, 8);
 }
@@ -168,11 +168,11 @@ export async function mintSouvenirs(
   for (const n of CARRY_MARKS) {
     const nth = carried[n - 1];
     if (nth)
-      fresh.push({ id: `carried-${n}`, glyph: "📮", title: `${n} letters carried`, detail: day(nth.at), at: Date.parse(nth.at) });
+      fresh.push({ id: `carried-${n}`, glyph: "📮", title: tr("sv.lettersCarried", { n }), detail: day(nth.at), at: Date.parse(nth.at) });
   }
   // each kindred is her own souvenir — she introduced you
   for (const t of threads.filter((x) => x.revealed))
-    fresh.push({ id: `kindred-${t.id}`, glyph: "🤝", title: "Names traded", detail: (t.otherName || "A KINDRED").toUpperCase(), at: t.lastAt });
+    fresh.push({ id: `kindred-${t.id}`, glyph: "🤝", title: tr("sv.namesTraded"), detail: (t.otherName ? t.otherName.toUpperCase() : tr("ev.aKindred")), at: t.lastAt });
 
   try {
     const raw = (await AsyncStorage.getItem(SHELF_KEY)) || "[]";
@@ -262,19 +262,19 @@ export function flightLog(
 
   const rows =
     state === "delivery" && driving
-      ? [`OUT FOR ${span(driving.lastAt)}`, `${total} CARRIED IN ALL`, `${week} THIS WEEK`]
+      ? [tr("fl.outFor", { span: span(driving.lastAt) }), tr("fl.carriedAll", { n: total }), tr("fl.thisWeek", { n: week })]
       : state === "bringing" && driving
-        ? [`LANDED ${span(driving.lastAt)} AGO`, `${back} BROUGHT BACK IN ALL`, `${total} CARRIED OUT`]
+        ? [tr("fl.landed", { span: span(driving.lastAt) }), tr("fl.broughtAll", { n: back }), tr("fl.carriedOut", { n: total })]
         : state === "dozing"
           ? [
-              last ? `LAST FLIGHT ${span(last.at)} AGO` : "NEVER FLOWN",
-              `${total} CARRIED · ${back} BROUGHT BACK`,
-              "WAKES THE MOMENT YOU WRITE",
+              last ? tr("fl.lastFlight", { span: span(last.at) }) : tr("fl.neverFlown"),
+              tr("fl.carriedBrought", { c: total, b: back }),
+              tr("fl.wakes"),
             ]
           : [
-              last ? `LAST FLIGHT ${span(last.at)} AGO` : "NEVER FLOWN",
-              `${total} CARRIED · ${back} BROUGHT BACK`,
-              `${week} FLIGHT${week === 1 ? "" : "S"} THIS WEEK`,
+              last ? tr("fl.lastFlight", { span: span(last.at) }) : tr("fl.neverFlown"),
+              tr("fl.carriedBrought", { c: total, b: back }),
+              (week === 1 ? tr("fl.flightsWeekOne", { n: week }) : tr("fl.flightsWeekMany", { n: week })),
             ];
 
   return { rows, line: t("wren.log.line") };

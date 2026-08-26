@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { t as tr, getLang } from "./i18n";
 import type { ThreadSummary } from "./db";
 import type { JournalEntry } from "./journal";
 
@@ -41,11 +42,12 @@ export interface KeepsakeCtx {
 
 const DAY = 864e5;
 const hourOf = (iso: string | number) => new Date(iso).getHours();
-const dayName = (t: number) => new Date(t).toLocaleDateString("en-US", { weekday: "long" });
+const LOCALE = () => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US");
+const dayName = (t: number) => new Date(t).toLocaleDateString(LOCALE(), { weekday: "long" });
 const stamp = (t: number) =>
-  new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase() +
+  new Date(t).toLocaleDateString(LOCALE(), { month: "short", day: "numeric" }).toUpperCase() +
   " · " +
-  new Date(t).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  new Date(t).toLocaleTimeString(LOCALE(), { hour: "2-digit", minute: "2-digit", hour12: false });
 
 /* which correspondence last spoke inbound — the only reply timestamp a
    thread summary carries, and an honest one: it IS when they last wrote */
@@ -76,13 +78,13 @@ export function evaluate(ctx: KeepsakeCtx): Keepsake[] {
   }
   const twice = [...byHour.entries()].find(([, list]) => list.length >= 2);
   if (twice)
-    add("same-hour-twice", Date.parse(twice[1][1]), `${String(twice[0]).padStart(2, "0")}:00 · TWICE`);
+    add("same-hour-twice", Date.parse(twice[1][1]), tr("ev.twice", { h: String(twice[0]).padStart(2, "0") }));
 
   /* a favourite hour only exists once one hour clearly leads */
   if (carried.length >= 8) {
     const ranked = [...byHour.entries()].sort((a, b) => b[1].length - a[1].length);
     if (ranked[0] && ranked[0][1].length >= 3 && (!ranked[1] || ranked[0][1].length > ranked[1][1].length))
-      add("favorite-hour", Date.now(), `${String(ranked[0][0]).padStart(2, "0")}:00 · ${ranked[0][1].length} FLIGHTS`);
+      add("favorite-hour", Date.now(), tr("ev.flightsHour", { h: String(ranked[0][0]).padStart(2, "0"), n: ranked[0][1].length }));
   }
 
   if (carried.length >= 8) {
@@ -93,7 +95,7 @@ export function evaluate(ctx: KeepsakeCtx): Keepsake[] {
     }
     const ranked = [...byDay.entries()].sort((a, b) => b[1] - a[1]);
     if (ranked[0] && ranked[0][1] >= 3 && (!ranked[1] || ranked[0][1] > ranked[1][1]))
-      add("favorite-day", Date.now(), `${ranked[0][0].toUpperCase()} · ${ranked[0][1]} FLIGHTS`);
+      add("favorite-day", Date.now(), tr("ev.flightsDay", { day: ranked[0][0].toUpperCase(), n: ranked[0][1] }));
   }
 
   const lateBack = threads.filter(inbound).find((t) => hourOf(t.lastAt) < 5);
@@ -120,7 +122,7 @@ export function evaluate(ctx: KeepsakeCtx): Keepsake[] {
       const theirs = (t.theirTexts || []).join(" ").toLowerCase();
       const echoed = commonWords.find((w) => w.length >= 4 && theirs.includes(w));
       if (echoed) {
-        add("word-came-back", t.lastAt, `"${echoed}" · THREAD`, { threadId: t.id });
+        add("word-came-back", t.lastAt, tr("ev.wordThread", { w: echoed }), { threadId: t.id });
         break;
       }
     }
@@ -131,10 +133,10 @@ export function evaluate(ctx: KeepsakeCtx): Keepsake[] {
   if (oldestThread) add("first-thread", oldestThread.lastAt, stamp(oldestThread.lastAt), { threadId: oldestThread.id });
 
   const turnedBack = threads.find((t) => t.mine >= 2 && t.theirs >= 1);
-  if (turnedBack) add("first-turn-back", turnedBack.lastAt, `${turnedBack.mine} OUT · ${turnedBack.theirs} BACK`, { threadId: turnedBack.id });
+  if (turnedBack) add("first-turn-back", turnedBack.lastAt, tr("ev.outBack", { out: turnedBack.mine, back: turnedBack.theirs }), { threadId: turnedBack.id });
 
   const deep = threads.find((t) => t.mine >= 5 && t.theirs >= 5);
-  if (deep) add("five-letters-deep", deep.lastAt, "5 EACH WAY", { threadId: deep.id });
+  if (deep) add("five-letters-deep", deep.lastAt, tr("ev.eachWay"), { threadId: deep.id });
 
   /* who put their name in first — only knowable while it is still true */
   const iFirst = threads.find((t) => t.iSigned && !t.theirSigned);
@@ -146,18 +148,18 @@ export function evaluate(ctx: KeepsakeCtx): Keepsake[] {
 
   const kindreds = threads.filter((t) => t.revealed).sort((a, b) => a.lastAt - b.lastAt);
   if (kindreds[0])
-    add("first-kindred", kindreds[0].lastAt, (kindreds[0].otherName || "A KINDRED").toUpperCase(), { threadId: kindreds[0].id });
-  if (kindreds.length >= 3) add("three-kindreds", kindreds[2].lastAt, "3 KINDREDS");
-  if (kindreds.length >= 5) add("five-kindreds", kindreds[4].lastAt, "5 KINDREDS");
+    add("first-kindred", kindreds[0].lastAt, (kindreds[0].otherName ? kindreds[0].otherName.toUpperCase() : tr("ev.aKindred")), { threadId: kindreds[0].id });
+  if (kindreds.length >= 3) add("three-kindreds", kindreds[2].lastAt, tr("ev.kindreds", { n: 3 }));
+  if (kindreds.length >= 5) add("five-kindreds", kindreds[4].lastAt, tr("ev.kindreds", { n: 5 }));
 
   const longest = [...threads].sort((a, b) => b.mine + b.theirs - (a.mine + a.theirs))[0];
   if (longest && longest.mine + longest.theirs >= 12)
-    add("longest-thread", longest.lastAt, `${longest.mine + longest.theirs} LETTERS`, { threadId: longest.id });
+    add("longest-thread", longest.lastAt, tr("ev.letters", { n: longest.mine + longest.theirs }), { threadId: longest.id });
 
   /* ── Writing ────────────────────────────────────────────────────── */
   if (commonWords[0] && carried.length >= 5)
-    add("word-spotted", Date.now(), `"${commonWords[0]}"`);
-  if (ctx.voiceSent) add("first-voice-letter", Date.now(), "A VOICE, NOT A PAGE");
+    add("word-spotted", Date.now(), tr("ev.word", { w: commonWords[0] }));
+  if (ctx.voiceSent) add("first-voice-letter", Date.now(), tr("ev.aVoice"));
 
   /* ── Firsts (sealed side) ───────────────────────────────────────── */
   const sealed = [...journal]
@@ -175,10 +177,10 @@ export function evaluate(ctx: KeepsakeCtx): Keepsake[] {
   /* ── Time ───────────────────────────────────────────────────────── */
   for (const n of [10, 50, 100]) {
     const nth = carried[n - 1];
-    if (nth) add(`${n}-letters-carried`, Date.parse(nth.at), `${n} CARRIED · ${stamp(Date.parse(nth.at))}`);
+    if (nth) add(`${n}-letters-carried`, Date.parse(nth.at), tr("ev.carriedStamp", { n, stamp: stamp(Date.parse(nth.at)) }));
   }
   if (ctx.joinedAt && Date.now() - Date.parse(ctx.joinedAt) >= 365 * DAY)
-    add("first-anniversary", Date.parse(ctx.joinedAt) + 365 * DAY, "ONE YEAR");
+    add("first-anniversary", Date.parse(ctx.joinedAt) + 365 * DAY, tr("ev.oneYear"));
 
   return out;
 }
