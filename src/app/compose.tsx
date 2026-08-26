@@ -310,14 +310,14 @@ export default function Compose() {
             <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
           </Pressable>
           <View style={{ paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: P.ink }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>STAMPS</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>{t("cp.stampsHeader")}</Text>
           </View>
         </View>
 
         <View style={{ paddingHorizontal: 22, paddingTop: 24, paddingBottom: 16 }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 30, fontWeight: "600", color: P.ink }}>Pick a stamp.</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 30, fontWeight: "600", color: P.ink }}>{t("cp.pickTitle")}</Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
-            A stamp guides your letter to the right people — or skip it.
+            {t("cp.pickSub")}
           </Text>
         </View>
 
@@ -335,7 +335,7 @@ export default function Compose() {
                 </Text>
               </Pressable>
               <Text style={{ textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
-                Six to start. The rest are here when you want them.
+                {t("cp.pickMore")}
               </Text>
             </>
           ) : (
@@ -475,7 +475,7 @@ export default function Compose() {
             <View style={{ marginTop: 16, padding: 16, borderWidth: 1, borderColor: P.ink }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "600", color: P.ink }}>{capMsg}</Text>
               <Text style={{ fontFamily: PF.letter, fontSize: 13, color: P.ink60, marginTop: 5 }}>
-                Replies are always free. Lift the daily cap with First Class.
+                {t("cp.repliesFree")}
               </Text>
               <Pressable onPress={() => router.push("/paywall?src=daily_cap")} style={{ marginTop: 10 }}>
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("cp.discover")}</Text>

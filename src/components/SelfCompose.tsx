@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useWrenName } from "../lib/wren-name";
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -49,6 +50,7 @@ export function SelfCompose({
   onDone: () => void;
 }) {
   useLang();
+  const wren = useWrenName();
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
   const [tools, setTools] = useState(false);
@@ -250,7 +252,7 @@ export function SelfCompose({
                         <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                         {isCover && (
                           <View style={{ position: "absolute", left: 5, bottom: 5, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 3 }}>
-                            <Text style={{ color: "#fff", fontSize: 8.5, fontFamily: PF.mono }}>COVER</Text>
+                            <Text style={{ color: "#fff", fontSize: 8.5, fontFamily: PF.mono }}>{t("sc.cover")}</Text>
                           </View>
                         )}
                         <Pressable onPress={() => removePhoto(i)} hitSlop={6} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" }}>
@@ -273,7 +275,7 @@ export function SelfCompose({
                   {photos.length >= 2 && (
                     <Pressable onPress={wrenPickCover} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: P.pen }}>
                       <Wren size={13} mode="line" />
-                      <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: P.pen }}>LET WREN PICK</Text>
+                      <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: P.pen }}>{t("sc.wrenPick", { wren: wren.toUpperCase() })}</Text>
                     </Pressable>
                   )}
                 </View>
@@ -361,7 +363,7 @@ export function SelfCompose({
           <>
             <MoodIcon id={mood} size={22} />
             <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.4, color: MOODS[mood].col }}>{MOODS[mood].n.toLowerCase()}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>CHANGE ›</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>{t("cp.change")}</Text>
           </>
         ) : (
           <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: P.ink60 }}>

@@ -13,6 +13,15 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── composer pickers ── */
+    "cp.stampsHeader": "STAMPS",
+    "cp.pickTitle": "Pick a stamp.",
+    "cp.pickSub": "A stamp guides your letter to the right people — or skip it.",
+    "cp.pickMore": "Six to start. The rest are here when you want them.",
+    "cp.repliesFree": "Replies are always free. Lift the daily cap with First Class.",
+    "sc.cover": "COVER",
+    "sc.wrenPick": "LET {wren} PICK",
+
     /* ── compose header/stamp ── */
     "cp.header": "TO A STRANGER",
     "cp.moodStamp": "MOOD STAMP",
@@ -922,6 +931,15 @@ strings(
 
   /* ── es ── */
   {
+    /* ── composer pickers ── */
+    "cp.stampsHeader": "SELLOS",
+    "cp.pickTitle": "Elige un sello.",
+    "cp.pickSub": "Un sello guía tu carta hacia las personas indicadas — o sáltalo.",
+    "cp.pickMore": "Seis para empezar. El resto está aquí cuando quieras.",
+    "cp.repliesFree": "Responder siempre es gratis. Sube el límite diario con Primera Clase.",
+    "sc.cover": "PORTADA",
+    "sc.wrenPick": "QUE ELIJA {wren}",
+
     /* ── compose header/stamp ── */
     "cp.header": "A UN EXTRAÑO",
     "cp.moodStamp": "SELLO",
@@ -1831,6 +1849,15 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── composer pickers ── */
+    "cp.stampsHeader": "SELOS",
+    "cp.pickTitle": "Escolha um selo.",
+    "cp.pickSub": "Um selo guia sua carta às pessoas certas — ou pule.",
+    "cp.pickMore": "Seis pra começar. O resto está aqui quando quiser.",
+    "cp.repliesFree": "Responder é sempre grátis. Aumente o limite diário com a Primeira Classe.",
+    "sc.cover": "CAPA",
+    "sc.wrenPick": "DEIXE {wren} ESCOLHER",
+
     /* ── compose header/stamp ── */
     "cp.header": "A UM ESTRANHO",
     "cp.moodStamp": "SELO",
@@ -2740,6 +2767,15 @@ strings(
 
   /* ── id ── */
   {
+    /* ── composer pickers ── */
+    "cp.stampsHeader": "STEMPEL",
+    "cp.pickTitle": "Pilih stempel.",
+    "cp.pickSub": "Stempel menuntun suratmu ke orang yang tepat — atau lewati.",
+    "cp.pickMore": "Enam untuk mulai. Sisanya di sini kapan pun kamu mau.",
+    "cp.repliesFree": "Membalas selalu gratis. Naikkan batas harian dengan Kelas Utama.",
+    "sc.cover": "SAMPUL",
+    "sc.wrenPick": "BIAR {wren} PILIH",
+
     /* ── compose header/stamp ── */
     "cp.header": "UNTUK ORANG ASING",
     "cp.moodStamp": "STEMPEL",
