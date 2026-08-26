@@ -13,6 +13,7 @@ import { getStamp } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
+import { t } from "../../lib/i18n";
 import {
   clearThreadReaction,
   fetchThreadMessages,
@@ -234,7 +235,7 @@ export default function ThreadScreen() {
                 )}
                 <Pressable onPress={doTranslate} hitSlop={8}>
                   <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
-                    {xlBusy ? "TRANSLATING…" : xlOn ? "ORIGINAL" : "TRANSLATE"}
+                    {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.translate")}
                   </Text>
                 </Pressable>
               </View>

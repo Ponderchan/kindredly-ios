@@ -784,7 +784,7 @@ function LetterPage({
           {!isVoice && !!letter.body && (
             <Pressable onPress={doTranslate} hitSlop={10}>
               <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: xlOn ? P.pen : P.ink60 }}>
-                {xlBusy ? "TRANSLATING…" : xlOn ? "ORIGINAL" : "TRANSLATE"}
+                {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.translate")}
               </Text>
             </Pressable>
           )}

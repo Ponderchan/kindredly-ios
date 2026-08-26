@@ -83,6 +83,9 @@ strings(
     "settings.rate": "Rate Kindredly",
     "lang.send": "Write in whatever language is yours. If they don’t share it, they can read it in theirs — I carry letters, not dictionaries.",
     "lang.read": "Not your language? Read it in yours.",
+    "read.translate": "TRANSLATE",
+    "read.translating": "TRANSLATING…",
+    "read.original": "ORIGINAL",
   },
 
   /* ── es ── */
@@ -157,6 +160,9 @@ strings(
     "settings.rate": "Valorar Kindredly",
     "lang.send": "Escribe en tu idioma, sea cual sea. Si no lo comparten, podrán leerlo en el suyo — yo llevo cartas, no diccionarios.",
     "lang.read": "¿No es tu idioma? Léela en el tuyo.",
+    "read.translate": "TRADUCIR",
+    "read.translating": "TRADUCIENDO…",
+    "read.original": "ORIGINAL",
   },
 
   /* ── pt-BR ── */
@@ -231,6 +237,9 @@ strings(
     "settings.rate": "Avaliar o Kindredly",
     "lang.send": "Escreva na sua língua, seja qual for. Se não for a deles, podem ler na deles — eu carrego cartas, não dicionários.",
     "lang.read": "Não é a sua língua? Leia na sua.",
+    "read.translate": "TRADUZIR",
+    "read.translating": "TRADUZINDO…",
+    "read.original": "ORIGINAL",
   },
 
   /* ── id ── */
@@ -305,5 +314,8 @@ strings(
     "settings.rate": "Beri nilai Kindredly",
     "lang.send": "Tulis dalam bahasamu, apa pun itu. Kalau mereka tak memakainya, mereka bisa membacanya dalam bahasa mereka — aku membawa surat, bukan kamus.",
     "lang.read": "Bukan bahasamu? Baca dalam bahasamu.",
+    "read.translate": "TERJEMAHKAN",
+    "read.translating": "MENERJEMAHKAN…",
+    "read.original": "ASLINYA",
   },
 );
