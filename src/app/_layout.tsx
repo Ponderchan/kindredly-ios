@@ -8,6 +8,8 @@ import { AuthProvider } from "../lib/auth";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
 import { useAppFonts } from "../theme/fonts";
+import { loadLang } from "../lib/i18n";
+import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
 
@@ -19,6 +21,10 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
+  // the reader's own language choice, restored before the first paint
+  useEffect(() => {
+    void loadLang();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) SplashScreen.hideAsync();

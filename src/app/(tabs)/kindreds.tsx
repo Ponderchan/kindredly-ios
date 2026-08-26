@@ -1,4 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
+import { t, useLang } from "../../lib/i18n";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ const REVEAL = 5;
 
 export default function KindredsTab() {
   const router = useRouter();
+  useLang(); // repaint when the reader changes language
   const { user } = useAuth();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -88,15 +90,15 @@ export default function KindredsTab() {
     <SafeAreaView style={{ flex: 1, backgroundColor: GROUND }} edges={["top"]}>
       {/* the same plate Today and Sealed carry */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>KINDREDS</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("kindreds.title")}</Text>
         {/* the plate answers one question — is anything on me? */}
         <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
           {empty ? (
-            "NONE"
+            t("kindreds.none")
           ) : waiting ? (
-            <Text style={{ color: P.pen }}>{waiting} WAITING ON YOU</Text>
+            <Text style={{ color: P.pen }}>{t("kindreds.waitingOnYou", { n: waiting })}</Text>
           ) : (
-            "ALL ANSWERED"
+            t("kindreds.allAnswered")
           )}
         </Text>
       </View>
@@ -109,17 +111,17 @@ export default function KindredsTab() {
             <OrbitMap items={orbit} />
           </View>
           <View style={{ paddingHorizontal: 20 }}>
-            <WrenSaysOnce id="kindreds" line="Everyone you write to lands here. They come closer with every letter they send you." />
+            <WrenSaysOnce id="kindreds" line={t("kindreds.said")} />
             {/* a room with someone you know, or a correspondence with a
                 stranger — two different places, so two different groups */}
-            {kindreds.length > 0 && coming.length > 0 && <GroupLabel>KINDREDS</GroupLabel>}
-            {kindreds.map((t) => (
-              <Card key={t.id} t={t} onPress={() => router.push(`/room/${t.id}`)} />
+            {kindreds.length > 0 && coming.length > 0 && <GroupLabel>{t("kindreds.group.kindreds")}</GroupLabel>}
+            {kindreds.map((th) => (
+              <Card key={th.id} t={th} onPress={() => router.push(`/room/${th.id}`)} />
             ))}
 
-            {kindreds.length > 0 && coming.length > 0 && <GroupLabel>COMING INTO VIEW</GroupLabel>}
-            {coming.map((t) => (
-              <Card key={t.id} t={t} onPress={() => router.push(`/chat/${t.id}`)} />
+            {kindreds.length > 0 && coming.length > 0 && <GroupLabel>{t("kindreds.group.coming")}</GroupLabel>}
+            {coming.map((th) => (
+              <Card key={th.id} t={th} onPress={() => router.push(`/chat/${th.id}`)} />
             ))}
           </View>
         </ScrollView>
@@ -140,12 +142,12 @@ function GroupLabel({ children }: { children: string }) {
   );
 }
 
-function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
+function Card({ t: th, onPress }: { t: ThreadSummary; onPress: () => void }) {
   /* ONE LINE, AND IT ANSWERS "WHAT DO I DO NOW?". The row used to carry a
      chip AND a caption AND a moment count, in six combinations — three
      answers to a question nobody asked while scanning a list. How well you
      know someone lives on their page, where it is the subject. */
-  const state = threadState(t);
+  const state = threadState(th);
 
   return (
     <Pressable
@@ -154,29 +156,29 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <CorrespondentFace
-          seed={t.other}
-          theirs={t.theirs}
-          revealed={t.revealed}
-          otherFace={t.otherFace}
-          theirSigned={t.theirSigned}
-          iSigned={t.iSigned}
+          seed={th.other}
+          theirs={th.theirs}
+          revealed={th.revealed}
+          otherFace={th.otherFace}
+          theirSigned={th.theirSigned}
+          iSigned={th.iSigned}
         />
-        {t.revealed && (
-          <Text style={{ fontFamily: PF.letter, fontSize: 18, fontWeight: "600", color: P.ink }}>{t.otherName || "A kindred"}</Text>
+        {th.revealed && (
+          <Text style={{ fontFamily: PF.letter, fontSize: 18, fontWeight: "600", color: P.ink }}>{th.otherName || "A kindred"}</Text>
         )}
         <View style={{ flex: 1 }} />
         {/* they caught your last letter with a reaction */}
-        {t.theirReaction && (
+        {th.theirReaction && (
           <View style={{ width: 28, height: 28, backgroundColor: P.penWash, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 14 }}>{t.theirReaction}</Text>
+            <Text style={{ fontSize: 14 }}>{th.theirReaction}</Text>
           </View>
         )}
         {/* one square of ink, the same mark the tab bar carries */}
         {state?.needsYou && <View style={{ width: 7, height: 7, backgroundColor: state.tone }} />}
       </View>
-      {t.theirReaction && (
+      {th.theirReaction && (
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.5, color: P.pen, marginTop: 9 }}>
-          {(reactionLabel(t.theirReaction) || "they reacted").toUpperCase()} — TO YOUR LAST LETTER
+          {(reactionLabel(th.theirReaction) || "they reacted").toUpperCase()} — TO YOUR LAST LETTER
         </Text>
       )}
 
@@ -185,9 +187,9 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
           square and five words of mono — you couldn't even see what you had
           just written, let alone what they said. The line IS the
           relationship; the status underneath is only its weather. */}
-      {!!t.preview && (
-        <Text numberOfLines={t.revealed ? 1 : 2} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 10 }}>
-          {t.preview}
+      {!!th.preview && (
+        <Text numberOfLines={th.revealed ? 1 : 2} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 10 }}>
+          {th.preview}
         </Text>
       )}
       {state && (
@@ -201,6 +203,7 @@ function Card({ t, onPress }: { t: ThreadSummary; onPress: () => void }) {
 
 function Empty({ onWrite }: { onWrite: () => void }) {
   const wren = useWrenName();
+  useLang(); // re-render when the reader changes language
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 50 }}>
       <View>
@@ -211,20 +214,20 @@ function Empty({ onWrite }: { onWrite: () => void }) {
         </View>
       </View>
       <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 14, lineHeight: 33 }}>
-        Nobody knows your{"\n"}name yet.
+        {t("kindreds.empty.title")}
       </Text>
       <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, textAlign: "center", marginTop: 14, maxWidth: 300 }}>
-        But someone out there might be looking for a voice like yours.
+        {t("kindreds.empty.body")}
       </Text>
       <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, textAlign: "center", marginTop: 14, maxWidth: 300, lineHeight: 17 }}>
-        EVERY LETTER THEY SEND PULLS THEM ONE RING CLOSER{"\n"}AT THE CENTRE, YOU TRADE NAMES
+        {t("kindreds.empty.rule")}
       </Text>
       <Pressable
         onPress={onWrite}
         style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: P.pen, paddingVertical: 16, paddingHorizontal: 20, marginTop: 34, alignSelf: "stretch", opacity: pressed ? 0.85 : 1 })}
       >
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13.5, color: "#fff", letterSpacing: 1 }}>PUT SOMEONE IN ORBIT</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: "rgba(255,255,255,0.72)" }}>{wren.toUpperCase()} PICKS</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13.5, color: "#fff", letterSpacing: 1 }}>{t("kindreds.empty.cta")}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: "rgba(255,255,255,0.72)" }}>{t("kindreds.empty.picks", { wren: wren.toUpperCase() })}</Text>
       </Pressable>
     </View>
   );

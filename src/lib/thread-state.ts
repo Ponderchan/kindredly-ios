@@ -1,4 +1,6 @@
 import { P } from "../theme/post";
+// `t` is taken here — the thread itself is called t in this file
+import { t as say } from "./i18n";
 
 /* WHAT THIS CORRESPONDENCE NEEDS FROM YOU — one sentence, one place.
    ────────────────────────────────────────────────────────────────────────
@@ -36,9 +38,9 @@ export function threadState(t: {
     /* "went first" rather than "has enclosed their name": the same fact,
        said as courage instead of as a step in a process. Whoever signs
        first is taking the risk, and the copy should know that. */
-    if (t.theirSigned) return { label: "THEY WENT FIRST", tone: P.brassSeal, needsYou: true };
-    if (t.iSigned) return { label: "YOU WENT FIRST", tone: P.ink40, needsYou: false };
-    return { label: "SWAP NAMES?", tone: P.brassSeal, needsYou: true };
+    if (t.theirSigned) return { label: say("state.theyWentFirst"), tone: P.brassSeal, needsYou: true };
+    if (t.iSigned) return { label: say("state.youWentFirst"), tone: P.ink40, needsYou: false };
+    return { label: say("state.swapNames"), tone: P.brassSeal, needsYou: true };
   }
 
   /* steps 3, 4 and 6 — whose letter is owed. This applies to kindreds too.
@@ -48,6 +50,6 @@ export function threadState(t: {
      never marked, never counted in "waiting on you". Names change what
      you call someone, not whether they are owed a letter. */
   return t.lastSenderMe
-    ? { label: "WAITING ON THEM", tone: P.ink40, needsYou: false }
-    : { label: "YOUR TURN", tone: P.pen, needsYou: true };
+    ? { label: say("state.waitingThem"), tone: P.ink40, needsYou: false }
+    : { label: say("state.yourTurn"), tone: P.pen, needsYou: true };
 }

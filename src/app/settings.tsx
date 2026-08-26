@@ -11,6 +11,7 @@ import Constants from "expo-constants";
 import { useEntitlement } from "../lib/entitlement";
 import { iapRestore } from "../lib/iap";
 import { saveWrenName } from "../lib/wren-name";
+import { LANGS, getLang, setLang, t, useLang } from "../lib/i18n";
 
 /* WHERE A READER CAN REACH A PERSON. App Review 1.2 wants public contact
    for a UGC app, and a support address is the one thing in this file the
@@ -28,6 +29,8 @@ export default function Settings() {
   const [knock, setKnock] = useState(false);
   const { premium, cofounderNo } = useEntitlement();
   const [restoring, setRestoring] = useState(false);
+  const lang = useLang();
+  const [picking, setPicking] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -179,18 +182,23 @@ export default function Settings() {
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>SETTINGS</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("settings.title")}</Text>
         <View style={{ width: 42 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* account */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>ACCOUNT</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("settings.account")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label="Pen name" value={handle || "You"} onPress={editName} />
           {age && <Row label="Age" value={age} />}
           {/* the Language row sat here showing "English" and doing nothing —
               a dead row on a settings page reads as a broken app */}
+          <Row
+            label={t("settings.language")}
+            value={LANGS.find((l) => l.id === lang)?.label ?? "English"}
+            onPress={() => setPicking(true)}
+          />
           <Row label={`${wren}'s name`} value={wren} onPress={renameWren} last />
         </View>
 
@@ -222,11 +230,11 @@ export default function Settings() {
         </View>
 
         {/* help — the questions a new reader actually has, and a person */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>HELP</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("settings.help")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label="How Kindredly works" onPress={() => router.push("/help")} />
-          <Row label="Write to us" onPress={() => router.push("/write-to-us")} />
-          <Row label="Rate Kindredly" onPress={rate} last />
+          <Row label={t("settings.howItWorks")} onPress={() => router.push("/help")} />
+          <Row label={t("settings.writeToUs")} onPress={() => router.push("/write-to-us")} />
+          <Row label={t("settings.rate")} onPress={rate} last />
         </View>
 
         {/* safety — every row here must actually go somewhere; a dead row on
@@ -253,6 +261,22 @@ export default function Settings() {
           KINDREDLY {APP_VERSION} · MADE SLOWLY
         </Text>
       </ScrollView>
+
+      <LeaveSheet
+        open={picking}
+        title={t("settings.language")}
+        body="Kindredly speaks three languages. Letters themselves always travel in whatever language they were written."
+        actions={LANGS.map((l) => ({
+          label: l.label.toUpperCase(),
+          kind: l.id === lang ? ("primary" as const) : ("quiet" as const),
+          onPress: () => {
+            setLang(l.id);
+            setPicking(false);
+          },
+        }))}
+        cancelLabel="NEVER MIND"
+        onCancel={() => setPicking(false)}
+      />
 
       <LeaveSheet
         open={askDelete}
