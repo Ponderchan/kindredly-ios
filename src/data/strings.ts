@@ -13,6 +13,16 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── relative time ── */
+    "fmt.justNow": "JUST NOW",
+    "fmt.minAgo": "{n} MINUTES AGO",
+    "fmt.hourAgo": "AN HOUR AGO",
+    "fmt.hoursAgo": "{n} HOURS AGO",
+    "fmt.yesterday": "YESTERDAY",
+    "fmt.daysAgo": "{n} DAYS AGO",
+    "ld.written": "WRITTEN",
+    "ld.aurasClose": "YOUR AURAS ARE CLOSE",
+
     /* ── composer pickers ── */
     "cp.stampsHeader": "STAMPS",
     "cp.pickTitle": "Pick a stamp.",
@@ -931,6 +941,16 @@ strings(
 
   /* ── es ── */
   {
+    /* ── relative time ── */
+    "fmt.justNow": "AHORA MISMO",
+    "fmt.minAgo": "HACE {n} MINUTOS",
+    "fmt.hourAgo": "HACE UNA HORA",
+    "fmt.hoursAgo": "HACE {n} HORAS",
+    "fmt.yesterday": "AYER",
+    "fmt.daysAgo": "HACE {n} DÍAS",
+    "ld.written": "ESCRITO",
+    "ld.aurasClose": "VUESTRAS AURAS SON CERCANAS",
+
     /* ── composer pickers ── */
     "cp.stampsHeader": "SELLOS",
     "cp.pickTitle": "Elige un sello.",
@@ -1849,6 +1869,16 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── relative time ── */
+    "fmt.justNow": "AGORA MESMO",
+    "fmt.minAgo": "HÁ {n} MINUTOS",
+    "fmt.hourAgo": "HÁ UMA HORA",
+    "fmt.hoursAgo": "HÁ {n} HORAS",
+    "fmt.yesterday": "ONTEM",
+    "fmt.daysAgo": "HÁ {n} DIAS",
+    "ld.written": "ESCRITO",
+    "ld.aurasClose": "SUAS AURAS SÃO PRÓXIMAS",
+
     /* ── composer pickers ── */
     "cp.stampsHeader": "SELOS",
     "cp.pickTitle": "Escolha um selo.",
@@ -2767,6 +2797,16 @@ strings(
 
   /* ── id ── */
   {
+    /* ── relative time ── */
+    "fmt.justNow": "BARU SAJA",
+    "fmt.minAgo": "{n} MENIT LALU",
+    "fmt.hourAgo": "1 JAM LALU",
+    "fmt.hoursAgo": "{n} JAM LALU",
+    "fmt.yesterday": "KEMARIN",
+    "fmt.daysAgo": "{n} HARI LALU",
+    "ld.written": "DITULIS",
+    "ld.aurasClose": "AURA KALIAN BERDEKATAN",
+
     /* ── composer pickers ── */
     "cp.stampsHeader": "STEMPEL",
     "cp.pickTitle": "Pilih stempel.",

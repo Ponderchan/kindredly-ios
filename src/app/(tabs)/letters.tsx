@@ -471,8 +471,8 @@ function LetterReader({
           <Text style={{ fontFamily: PF.letter, fontSize: 19, lineHeight: 31, color: P.ink }}>{shown}</Text>
 
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginTop: 26 }}>
-            WRITTEN {sinceShort(letter.created_at)}
-            {letter.close != null ? " · YOUR AURAS ARE CLOSE" : ""}
+            {t("ld.written")} {sinceShort(letter.created_at)}
+            {letter.close != null ? ` · ${t("ld.aurasClose")}` : ""}
           </Text>
         </ScrollView>
 
@@ -766,8 +766,8 @@ function LetterPage({
             it was written, and, when the matcher actually named this author,
             why it reached you. */}
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginBottom: 10 }}>
-          WRITTEN {sinceShort(letter.created_at)}
-          {letter.close != null ? " · YOUR AURAS ARE CLOSE" : ""}
+          {t("ld.written")} {sinceShort(letter.created_at)}
+          {letter.close != null ? ` · ${t("ld.aurasClose")}` : ""}
         </Text>
 
         {/* THE TRANSLATE INVITATION — its own centered line, not a sentence

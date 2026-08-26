@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 /* Small pure formatters + deterministic identity helpers.
    shade/dLong/dShort/today ported from kindredly-v20.jsx; hashStr/postNo/
    avatarFor ported from the web system.js so anonymous "correspondent
@@ -39,12 +40,12 @@ export function fmt(seconds: number): string {
 export function sinceShort(iso: string | number | Date): string {
   const ms = Date.now() - new Date(iso).getTime();
   const min = Math.floor(ms / 60000);
-  if (min < 2) return "JUST NOW";
-  if (min < 60) return `${min} MINUTES AGO`;
+  if (min < 2) return t("fmt.justNow");
+  if (min < 60) return t("fmt.minAgo", { n: min });
   const h = Math.floor(min / 60);
-  if (h < 24) return h === 1 ? "AN HOUR AGO" : `${h} HOURS AGO`;
+  if (h < 24) return h === 1 ? t("fmt.hourAgo") : t("fmt.hoursAgo", { n: h });
   const d = Math.floor(h / 24);
-  return d === 1 ? "YESTERDAY" : `${d} DAYS AGO`;
+  return d === 1 ? t("fmt.yesterday") : t("fmt.daysAgo", { n: d });
 }
 
 export function hashStr(s: string): number {
