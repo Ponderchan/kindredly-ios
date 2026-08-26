@@ -1,9 +1,9 @@
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
-import { P } from "../theme/post";
+import { P, PF } from "../theme/post";
 import { MosaicId } from "./MosaicId";
 import { useAuth } from "../lib/auth";
 
@@ -18,10 +18,20 @@ import { useAuth } from "../lib/auth";
    me       — YOUR mosaic; in this system your identity is a redacted grid,
               so the tab is literally you, and no two users' bars match
 
-   The active window is marked by a solid bar on the rule above it — the only
-   colour in the strip besides the slot. */
+   EVERY WINDOW HAS A SIGN. Five unlabelled glyphs asked the reader to
+   learn a private alphabet; a real counter hangs a word over each window,
+   so this one does too — 7.5pt mono, the same voice the whole product
+   files things in. The signs also fixed the strip's worst habit: the
+   glyphs had to shout to be understood, and now they don't.
 
-const CELL = 54;
+   The slot sits IN the row, flush and full height, not floating above the
+   rule on a raised square. It reads as the one inked window in a counter
+   of drawn ones, which is what it is.
+
+   The active window is marked by a solid bar on the rule above it. */
+
+const CELL = 58;
+const LABEL = { fontFamily: PF.monoMed, fontSize: 7.5, letterSpacing: 1, marginTop: 4 } as const;
 
 export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
   const insets = useSafeAreaInsets();
@@ -36,7 +46,7 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
     if (!focused && !event.defaultPrevented) navigation.navigate(name);
   };
 
-  const Window = ({ name, children, dot }: { name: string; children: React.ReactNode; dot?: boolean }) => {
+  const Window = ({ name, label, children, dot }: { name: string; label: string; children: React.ReactNode; dot?: boolean }) => {
     const active = current === name;
     return (
       <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: CELL }}>
@@ -53,11 +63,12 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
           }}
         />
         {children}
+        <Text style={{ ...LABEL, color: active ? P.pen : P.ink40 }}>{label}</Text>
         {/* one square of pen ink — someone answered and it is your turn. A
             square, not a dot: this counter is made of squares and rules, and
             a count would turn correspondence into an inbox. */}
         {dot && (
-          <View style={{ position: "absolute", top: 13, right: "30%", width: 6, height: 6, backgroundColor: P.pen }} />
+          <View style={{ position: "absolute", top: 11, right: "28%", width: 6, height: 6, backgroundColor: P.pen }} />
         )}
       </Pressable>
     );
@@ -70,10 +81,10 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: P.paper }}>
         <View style={{ height: 1, backgroundColor: P.ink }} />
         <View style={{ flexDirection: "row", alignItems: "center", paddingBottom: Math.max(insets.bottom, 6) }}>
-          <Window name="letters">
+          <Window name="letters" label="TODAY">
             <EnvelopeGlyph color={tint("letters")} />
           </Window>
-          <Window name="journal">
+          <Window name="journal" label="SEALED">
             <SealedGlyph color={tint("journal")} />
           </Window>
 
@@ -83,9 +94,13 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
               same letter sits at rest above the same lip. One object, two
               directions. It's also the one element allowed to break the rule
               it stands on. */}
-          <Pressable onPress={onPost} style={{ width: 62, alignItems: "center" }}>
-            <View style={{ width: 44, height: 44, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", marginTop: -10 }}>
-              <Svg width={26} height={26} viewBox="0 0 24 24">
+          <Pressable onPress={onPost} style={{ width: 66, height: CELL, alignItems: "center", justifyContent: "center" }}>
+            {/* inset from the rule above it: the counter's line runs
+                unbroken across every window, and the slot is a window,
+                not a thing sitting on top of the counter */}
+            <View style={{ position: "absolute", top: 5, left: 7, right: 7, bottom: 5, backgroundColor: P.pen }} />
+            <View style={{ alignItems: "center" }}>
+              <Svg width={24} height={24} viewBox="0 0 24 24">
                 {/* the letter, going down and in */}
                 <G transform="rotate(-13 12 10)">
                   <Rect x={6} y={2.5} width={12} height={9.5} fill="#fff" />
@@ -94,15 +109,29 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
                 {/* the lip — solid, and it crosses the letter */}
                 <Rect x={1.5} y={13} width={21} height={3} fill="#fff" />
               </Svg>
+              <Text style={{ ...LABEL, color: "#fff" }}>POST</Text>
             </View>
           </Pressable>
 
-          <Window name="kindreds" dot={waiting > 0}>
+          <Window name="kindreds" label="KINDREDS" dot={waiting > 0}>
             <OrbitGlyph color={tint("kindreds")} />
           </Window>
-          <Window name="me">
-            <View style={{ width: S, height: S, alignItems: "center", justifyContent: "center", opacity: current === "me" ? 1 : 0.42 }}>
-              <MosaicId seed={user?.id || "you"} cell={2.6} gap={0.95} />
+          <Window name="me" label="ME">
+            {/* YOUR mosaic, in a frame. Loose at 24px it read as dirt;
+                inside a ruled square it reads as what it is — the face
+                this system gives you, filed like everything else. */}
+            <View
+              style={{
+                width: S,
+                height: S,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: current === "me" ? P.pen : P.ink40,
+                opacity: current === "me" ? 1 : 0.6,
+              }}
+            >
+              <MosaicId seed={user?.id || "you"} cell={2.5} gap={0.9} />
             </View>
           </Window>
         </View>
@@ -136,10 +165,12 @@ const stroke = (color: string, w = 1.7) => ({ stroke: color, strokeWidth: w, fil
 function EnvelopeGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Rect x={6.5} y={3} width={11} height={9.5} {...stroke(color)} />
-      <Path d="M6.5 3l5.5 4.2L17.5 3" {...stroke(color, 1.4)} />
-      <Rect x={3} y={12.4} width={18} height={2.6} fill={color} />
-      <Path d="M3.9 15.6V20.4H20.1V15.6" {...stroke(color, 1.5)} />
+      <Rect x={6.5} y={3.5} width={11} height={9} {...stroke(color)} />
+      <Path d="M6.5 3.5l5.5 4.2L17.5 3.5" {...stroke(color, 1.4)} />
+      {/* the tray's lip, drawn not filled — a solid bar here outweighed
+          every other glyph in the row and dragged the eye left */}
+      <Line x1={3} y1={13.6} x2={21} y2={13.6} {...stroke(color, 1.7)} />
+      <Path d="M4 14.6V20H20V14.6" {...stroke(color, 1.5)} />
     </Svg>
   );
 }
@@ -152,7 +183,7 @@ function SealedGlyph({ color }: { color: string }) {
     <Svg width={S} height={S} viewBox="0 0 24 24">
       <Rect x={3.5} y={3} width={17} height={18} {...stroke(color)} />
       <Line x1={3.5} y1={8.6} x2={20.5} y2={8.6} {...stroke(color, 1.4)} />
-      <Rect x={6.6} y={5.1} width={6} height={1.7} fill={color} opacity={0.8} />
+      <Line x1={6.6} y1={5.9} x2={12.6} y2={5.9} {...stroke(color, 1.5)} />
       <Circle cx={15.4} cy={14.8} r={2.4} {...stroke(color, 1.5)} />
       <Line x1={15.4} y1={14.8} x2={15.4} y2={17.6} {...stroke(color, 1.5)} />
     </Svg>
@@ -164,10 +195,10 @@ function SealedGlyph({ color }: { color: string }) {
 function OrbitGlyph({ color }: { color: string }) {
   return (
     <Svg width={S} height={S} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={9} {...stroke(color, 1.1)} opacity={0.45} />
-      <Circle cx={12} cy={12} r={4.8} {...stroke(color, 1.5)} />
-      <Rect x={10.4} y={10.4} width={3.2} height={3.2} fill={color} />
-      <Rect x={13.6} y={6.2} width={4} height={4} fill={color} />
+      <Circle cx={12} cy={12} r={9} {...stroke(color, 1.4)} opacity={0.55} />
+      <Circle cx={12} cy={12} r={4.6} {...stroke(color, 1.7)} />
+      <Rect x={10.6} y={10.6} width={2.8} height={2.8} fill={color} />
+      <Rect x={14.4} y={5.6} width={3.2} height={3.2} fill={color} />
     </Svg>
   );
 }
