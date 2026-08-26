@@ -13,7 +13,7 @@ import { MoodModal } from "./MoodModal";
 import { MoodIcon } from "./MoodIcon";
 import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
-import { WREN_OPENERS } from "../data/content";
+import { WREN_OPENERS, byLang } from "../data/content";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
@@ -67,7 +67,7 @@ export function SelfCompose({
   const [sealed, setSealed] = useState(false);
   const [mood, setMood] = useState<MoodId | null>(null);
 
-  const openers = WREN_OPENERS.journal[LANG];
+  const openers = byLang(WREN_OPENERS.journal, LANG);
   const hasMedia = att === "photo" ? photos.length > 0 : !!mediaUri;
   const hasSomething = text.trim().length > 0 || (hasMedia && att !== null);
   // a sealed page without a mood can't be found again — the calendar is made

@@ -14,7 +14,7 @@ import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { noticeThings } from "../../lib/notice";
 import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
-import { STAMPS } from "../../data/stamps";
+import { STAMPS, sname } from "../../data/stamps";
 import { WrenBird } from "../../components/WrenBird";
 import { useWrenName } from "../../lib/wren-name";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
@@ -78,7 +78,7 @@ export default function RoomScreen() {
          send it, because a question arrives differently when a person
          chose to ask it. */
       const seed = STAMPS[Math.floor(Math.random() * STAMPS.length)];
-      setText(seed.prompt.en);
+      setText(sname(seed.prompt));
     }
     setTimeout(() => inputRef.current?.focus(), 160);
   };

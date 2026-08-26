@@ -85,7 +85,7 @@ export function byLang(pack: Partial<Record<Lang, string[]>>, lang: Lang): strin
   return (pack && (pack[lang] || pack.en)) || [];
 }
 
-export const WREN_OPENERS: Record<"letter" | "journal", Record<Lang, string[]>> = {
+export const WREN_OPENERS: Record<"letter" | "journal", Partial<Record<Lang, string[]>>> = {
   letter: {
     en: [
       "No one's waiting on the other end yet — so write like no one is.",

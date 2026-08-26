@@ -9,7 +9,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
 import { AudioCard } from "../../components/AudioCard";
-import { getStamp } from "../../data/stamps";
+import { getStamp, sname } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
@@ -195,7 +195,7 @@ export default function ThreadScreen() {
                 {stamp && (
                   <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
                     <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.2, color: channelInk(stamp.color) }}>
-                      #{stamp.name.en.toLowerCase()}
+                      #{sname(stamp.name).toLowerCase()}
                     </Text>
                   </View>
                 )}

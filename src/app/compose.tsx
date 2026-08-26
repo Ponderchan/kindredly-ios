@@ -13,7 +13,7 @@ import { CourierSendOff } from "../components/CourierSendOff";
 import { postNo } from "../lib/format";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
-import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
+import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat, sname } from "../data/stamps";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
@@ -297,7 +297,7 @@ export default function Compose() {
         >
           <StampTile id={id} w={46} r={7} />
           <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.3, color: channelInk(st?.color), textAlign: "center" }}>
-            {st?.name.en.toUpperCase()}
+            {sname(st?.name).toUpperCase()}
           </Text>
         </Pressable>
       );
@@ -342,7 +342,7 @@ export default function Compose() {
             STAMP_CATEGORIES.map((cat) => (
               <View key={cat.id} style={{ marginBottom: 22 }}>
                 <View style={{ paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: C.line }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink }}>{cat.name.en.toUpperCase()}</Text>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink }}>{sname(cat.name).toUpperCase()}</Text>
                 </View>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 16 }}>
                   {stampsByCat(cat.id).map((s) => (
@@ -501,7 +501,7 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>MOOD STAMP</Text>
           {stamp && (
             <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{stamp.name.en.toLowerCase()}</Text>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{sname(stamp.name).toLowerCase()}</Text>
             </View>
           )}
           <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>

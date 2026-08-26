@@ -14,7 +14,7 @@ import { AudioCard } from "../../components/AudioCard";
 import { CloseOfDay } from "../../components/CloseOfDay";
 import { Toast } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
-import { getStamp } from "../../data/stamps";
+import { getStamp, sname } from "../../data/stamps";
 import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
@@ -750,7 +750,7 @@ function LetterPage({
               }}
             >
               <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.2, color: channelInk(st.color) }}>
-                #{st.name.en.toLowerCase()}
+                #{sname(st.name).toLowerCase()}
               </Text>
             </View>
           </View>

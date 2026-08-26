@@ -9,7 +9,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
-import { getStamp } from "../../data/stamps";
+import { getStamp, sname } from "../../data/stamps";
 import { dLong } from "../../lib/format";
 import { fetchThreadMessages, type ThreadDetail } from "../../lib/db";
 import { readCorrespondent, resonance, theyify, type CorrespondentRead, type ResonanceRow } from "../../lib/correspondent";
@@ -218,7 +218,7 @@ export default function KindredScreen() {
               <Text style={{ fontFamily: PF.mono, fontSize: 14.5, color: P.ink }}>{t("kd.beganUnder")}</Text>
               {st ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.ink60 }}>{st.name.en}</Text>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.ink60 }}>{sname(st.name)}</Text>
                   <View style={{ transform: [{ rotate: "-4deg" }] }}>
                     <StampTile id={detail.stamp} w={30} r={4} />
                   </View>
