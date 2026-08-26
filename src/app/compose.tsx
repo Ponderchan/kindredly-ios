@@ -28,7 +28,7 @@ import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
 import { DRIFT_LABEL, openingLadder, readMood, wrenLine } from "../lib/wren-read";
 import { nextSpark } from "../lib/sparks";
-import { COUNTER_FROM, LETTER_MAX, weightedCount } from "../lib/weighted-count";
+import { COUNTER_FROM, LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
 
 const LANG = "en";
 const LAV = P.paper; // the same surface every room uses
@@ -145,7 +145,16 @@ export default function Compose() {
   const weight = weightedCount(text);
   const over = weight - LETTER_MAX;
   const ladder = openingLadder(weight);
-  const canSend = mode === "speak" ? !!recUri : ladder.ready && over <= 0;
+  /* A VOICE LETTER MUST CARRY A WRITTEN LINE.
+     Two reasons, and the first is a shipping requirement: `screen()`
+     reads text, so audio sent to a stranger had no gate at all — the one
+     unmoderated path in a UGC app. The line gives moderation something to
+     hold, and report/block still covers the audio itself.
+     The second is that it is simply better: a voice letter in the pool was
+     an unopenable black box in a feed of readable ones. Now it arrives the
+     way a parcel does — a label on the outside. */
+  const voiceLine = text.trim();
+  const canSend = mode === "speak" ? !!recUri && weightedCount(voiceLine) >= REPLY_MIN : ladder.ready && over <= 0;
   // Wren's face reads your feeling; her line reads how much you've given.
   const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, ladder.ready);
 
@@ -154,9 +163,15 @@ export default function Compose() {
     setBusy(true);
     setCapMsg(null);
 
-    // text letters pass Wren's gate; audio can't be read — report/block covers it
-    if (mode === "write") {
-      const body = ask.trim() ? `${text.trim()}\n\n${ask.trim()}` : text.trim();
+    /* both paths pass her gate now: the letter itself when written, and
+       the line that travels with the recording when spoken */
+    {
+      const body =
+        mode === "speak"
+          ? voiceLine
+          : ask.trim()
+            ? `${text.trim()}\n\n${ask.trim()}`
+            : text.trim();
       const gate = await screen(body);
       if (!gate.ok) {
         setBusy(false);
@@ -185,7 +200,7 @@ export default function Compose() {
 
     let ok: true | null = null;
     if (mode === "speak" && recUri) {
-      ok = await publishVoiceLetter(sel, recUri, recDur, text.trim(), LANG);
+      ok = await publishVoiceLetter(sel, recUri, recDur, voiceLine, LANG);
     } else {
       const body = ask.trim() ? `${text.trim()}\n\n${ask.trim()}` : text.trim();
       ok = await publishLetter(sel, body, LANG);
@@ -373,7 +388,13 @@ export default function Compose() {
                 <WrenBird size={38} mood={wrenMood} />
               </Animated.View>
               <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, lineHeight: 20 }}>
-                “{mode === "speak" ? wrenLine(wrenMood) : ladder.line}”
+                “
+                {mode === "speak"
+                  ? recUri && weightedCount(voiceLine) < REPLY_MIN
+                    ? "One line to go with it — it's what travels on the outside."
+                    : wrenLine(wrenMood)
+                  : ladder.line}
+                ”
               </Text>
             </View>
             {/* the line she stands on — the same one in both composers */}
@@ -414,7 +435,7 @@ export default function Compose() {
                 <TextInput
                   value={text}
                   onChangeText={setText}
-                  placeholder="a line to go with it… (optional)"
+                  placeholder="a line to go with it…"
                   placeholderTextColor="#B9B3D8"
                   style={{ color: P.ink, fontFamily: PF.letter, fontSize: 17, marginTop: 14 }}
                 />
