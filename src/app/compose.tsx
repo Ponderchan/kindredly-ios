@@ -9,7 +9,7 @@ import { C, navyBtn } from "../theme/tokens";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
-import { Seal } from "../components/Seal";
+import { CourierSendOff } from "../components/CourierSendOff";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
@@ -107,13 +107,8 @@ export default function Compose() {
     goBack();
   };
 
-  // sending → auto-dismiss
-  useEffect(() => {
-    if (step !== "sending") return;
-    const t = setTimeout(goBack, 2200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  /* the send-off animation calls goBack itself when the courier clears the
+     frame — no fixed timer, so the copy and the flight can't fall out of sync */
 
   // resume a draft
   useEffect(() => {
@@ -242,22 +237,15 @@ export default function Compose() {
     setStep("sending");
   };
 
-  /* ── sending ── */
+  /* ── sending: the courier takes the letter and flies ── */
   if (step === "sending") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper, alignItems: "center", justifyContent: "center", padding: 30 }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2, color: P.ink40, position: "absolute", top: "16%" }}>
-          KINDREDLY
-        </Text>
-        <Animated.View style={breathe}>
-          <Seal size={92} />
-        </Animated.View>
-        <Text style={{ fontFamily: PF.letter, fontSize: 25, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 28, lineHeight: 34 }}>
-          {isMorning ? "Straight to them." : "On its way."}
-        </Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 16, textAlign: "center" }}>
-          {isMorning ? "IT LANDS WITH THEM" : "THE FIRST TO ANSWER IS YOURS"}
-        </Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+        <CourierSendOff
+          onDone={goBack}
+          title={isMorning ? `Straight to them.` : undefined}
+          note={isMorning ? "IT LANDS WITH THEM" : undefined}
+        />
       </SafeAreaView>
     );
   }

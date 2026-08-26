@@ -16,6 +16,7 @@ import { WREN_OPENERS } from "../data/content";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
+import { CourierSendOff } from "./CourierSendOff";
 
 const LANG = "en";
 
@@ -61,6 +62,7 @@ export function SelfCompose({
   const [wrenNote, setWrenNote] = useState<string | null>(null);
   const [dur, setDur] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [sealed, setSealed] = useState(false);
   const [mood, setMood] = useState<MoodId | null>(null);
 
   const openers = WREN_OPENERS.journal[LANG];
@@ -206,9 +208,19 @@ export function SelfCompose({
        worth a few more samples. The signature learns from letters only, which
        were always meant to leave. */
     setBusy(false);
-    onDone();
+    // the sealed page is put away and KEPT — the opposite ending to a letter,
+    // because this one is written never to leave
+    setSealed(true);
   };
 
+
+  if (sealed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: P.paper }}>
+        <CourierSendOff keep onDone={onDone} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
