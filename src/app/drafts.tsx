@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import { P, PF, rule } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { getStamp } from "../data/stamps";
@@ -21,6 +22,7 @@ import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
    to the letter desk with its stamp and its spark intact; the draft is only
    deleted once that letter actually goes. */
 export default function DraftsScreen() {
+  useLang();
   const router = useRouter();
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -40,10 +42,10 @@ export default function DraftsScreen() {
   );
 
   const remove = (d: Draft) =>
-    Alert.alert("Throw this one away?", "It was never sent, and it won't be.", [
-      { text: "Keep it", style: "cancel" },
+    Alert.alert(t("dr.throwTitle"), t("dr.throwBody"), [
+      { text: t("dr.keep"), style: "cancel" },
       {
-        text: "Throw it away",
+        text: t("dr.throw"),
         style: "destructive",
         onPress: async () => setDrafts(await deleteDraft(d.id)),
       },
@@ -55,7 +57,7 @@ export default function DraftsScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>UNSENT</Text>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>{t("dr.title")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.2, color: P.ink40 }}>
           {loaded ? String(drafts.length).padStart(2, "0") : "··"}
         </Text>
@@ -65,10 +67,10 @@ export default function DraftsScreen() {
       {loaded && drafts.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 22, lineHeight: 30, color: P.ink, textAlign: "center" }}>
-            Nothing half-written.
+            {t("dr.emptyTitle")}
           </Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, lineHeight: 18, color: P.ink60, textAlign: "center", marginTop: 12 }}>
-            LEAVE A LETTER MID-SENTENCE AND IT WAITS HERE
+            {t("dr.emptyBody")}
           </Text>
         </View>
       ) : (

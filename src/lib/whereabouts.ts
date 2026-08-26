@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { t } from "./i18n";
 import type { ThreadSummary } from "./db";
 import { threadState } from "./thread-state";
 import { supabase, supabaseReady } from "./supabase";
@@ -45,12 +46,12 @@ export interface WhereaboutsRead {
 
 export function whereabouts(threads: ThreadSummary[]): WhereaboutsRead {
   if (!threads.length)
-    return { state: "exploring", line: "Out looking for you", bubble: "someone's out there…" };
+    return { state: "exploring", line: t("wren.where.exploring"), bubble: t("wren.bubble.exploring") };
   if (threads.some((t) => threadState(t)?.needsYou))
-    return { state: "bringing", line: "Back — something for you", bubble: "look what I found!" };
+    return { state: "bringing", line: t("wren.where.bringing"), bubble: t("wren.bubble.bringing") };
   if (threads.some((t) => t.lastSenderMe && t.theirs >= 0 && !threadState(t)?.needsYou && t.mine > 0))
-    return { state: "delivery", line: "On a delivery", bubble: "be right back!" };
-  return { state: "home", line: "At home, with you", bubble: "hi." };
+    return { state: "delivery", line: t("wren.where.delivery"), bubble: t("wren.bubble.delivery") };
+  return { state: "home", line: t("wren.where.home"), bubble: t("wren.bubble.home") };
 }
 
 /* ── souvenirs ── */
@@ -276,5 +277,5 @@ export function flightLog(
               `${week} FLIGHT${week === 1 ? "" : "S"} THIS WEEK`,
             ];
 
-  return { rows, line: "I leave the second you press send. The waiting is theirs, not mine." };
+  return { rows, line: t("wren.log.line") };
 }

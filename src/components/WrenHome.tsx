@@ -7,6 +7,7 @@ import { mint, unseen, type Minted } from "../lib/keepsakes";
 import { loadJournal } from "../lib/journal";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
+import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
 import { ACCESSORY_META, SKINS, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
@@ -62,6 +63,7 @@ export function WrenHome({
   cofounderNo?: number | null;
   onPlus: () => void;
 }) {
+  useLang();
   const { skin, pick } = useWrenSkinControl();
   const info = stageInfo(stats, stageFloor);
   const wren = useWrenName();
@@ -103,7 +105,7 @@ export function WrenHome({
     if (skinUnlocked(id, stats, premium)) return pick(id);
     const meta = SKINS.find((s) => s.id === id);
     if (meta?.lock === "plus") onLocked();
-    else Alert.alert("Not yet", "The Plush look unlocks with your first kindred — when you and a stranger trade names.");
+    else Alert.alert(tr("wren.plush.title"), tr("wren.plush.body"));
   };
 
   const dateFor = (st: WrenStage): string | null => {
@@ -117,7 +119,7 @@ export function WrenHome({
      this room, so an EGG node would be a tick nobody ever watched turn.
      HATCH is her birthday; the ladder starts where the user does. */
   const JOURNEY: WrenStage[] = ["hatch", "fledge", "wren"];
-  const STAGE_LABEL: Record<WrenStage, string> = { egg: "EGG", hatch: "HATCH", fledge: "FLEDGE", wren: "GROWN" };
+  const STAGE_LABEL: Record<WrenStage, string> = { egg: tr("wren.stage.egg"), hatch: tr("wren.stage.hatch"), fledge: tr("wren.stage.fledge"), wren: tr("wren.stage.grown") };
   const milestones: Record<WrenStage, string> = {
     egg: "signed up",
 
@@ -127,10 +129,10 @@ export function WrenHome({
   };
 
   const STAGE_BLURB: Record<WrenStage, string> = {
-    egg: "Still in the egg — waiting for your first word.",
-    hatch: "Newly hatched, and listening to your words.",
-    fledge: "Learning to fly, finding the right windows.",
-    wren: "Many journeys together.",
+    egg: tr("wren.blurb.egg"),
+    hatch: tr("wren.blurb.hatch"),
+    fledge: tr("wren.blurb.fledge"),
+    wren: tr("wren.blurb.grown"),
   };
   const flies = info.stage !== "egg";
 
@@ -144,7 +146,7 @@ export function WrenHome({
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "700", color: P.ink }}>{wren}</Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, marginTop: 3 }}>
-            YOUR COURIER
+            {tr("wren.yourCourier")}
           </Text>
           {cofounderNo != null && (
             <View style={{ marginTop: 7 }}>
@@ -162,11 +164,11 @@ export function WrenHome({
           </View>)}
           {away && (
             <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 0.8, color: P.ink60, marginTop: 7 }}>
-              {`WHILE YOU WERE AWAY${away.carriedOut ? ` · ${away.carriedOut} CARRIED OUT` : ""}${away.broughtBack ? ` · ${away.broughtBack} BROUGHT BACK` : ""}`}
+              {[tr("wren.away"), away.carriedOut ? tr("wren.away.out", { n: away.carriedOut }) : null, away.broughtBack ? tr("wren.away.back", { n: away.broughtBack }) : null].filter(Boolean).join(" · ")}
             </Text>
           )}
           {flies && (<Pressable onPress={() => setTracking((v) => !v)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: tracking ? P.pen : P.ink12, paddingHorizontal: 10, paddingVertical: 6 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: tracking ? P.pen : P.ink60 }}>TRACK {wren.toUpperCase()}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: tracking ? P.pen : P.ink60 }}>{tr("wren.track", { wren: wren.toUpperCase() })}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, color: tracking ? P.pen : P.ink60 }}>{tracking ? "↓" : "→"}</Text>
           </Pressable>)}
         </View>
@@ -200,7 +202,7 @@ export function WrenHome({
       {/* ── the journey: ONE ladder, with the days it really turned ── */}
       <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 }}>
         <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>
-          {wren.toUpperCase()}'S JOURNEY
+          {tr("wren.journey", { wren: wren.toUpperCase() })}
         </Text>
         <View style={{ flexDirection: "row", marginTop: 12 }}>
           {JOURNEY.map((st, i) => {
@@ -243,7 +245,7 @@ export function WrenHome({
       {shelf.length > 0 && (
         <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingTop: 12, paddingBottom: 14 }}>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.6, color: P.ink40, paddingHorizontal: 16 }}>
-            RECENT KEEPSAKES
+            {tr("wren.keepsakes")}
           </Text>
           {/* RECENT only — the library's fifth law is rationing. Four at a
               time, newest first; the rest live in the archive. */}
@@ -276,8 +278,8 @@ export function WrenHome({
 
       {/* ── looks & dress (unchanged mechanics, postal clothes) ── */}
       <Row
-        label="LOOKS"
-        sub={SKINS.find((s) => s.id === skin)?.name ?? "Sticker"}
+        label={tr("wren.looks")}
+        sub={SKINS.find((s) => s.id === skin)?.name ?? tr("wren.sticker")}
         count={`${looksOwned}/3`}
         openState={open === "looks"}
         onPress={() => setOpen(open === "looks" ? null : "looks")}
@@ -295,7 +297,7 @@ export function WrenHome({
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 9, color: on ? P.pen : P.ink60, marginTop: 3 }}>{sk.name.toUpperCase()}</Text>
                 {!unlocked && (
                   <Text style={{ fontFamily: PF.mono, fontSize: 7.5, color: P.brassSeal, marginTop: 2 }}>
-                    {sk.lock === "plus" ? "FIRST CLASS" : "FIRST KINDRED"}
+                    {sk.lock === "plus" ? tr("wren.lock.plus") : tr("wren.lock.kindred")}
                   </Text>
                 )}
               </Pressable>
@@ -305,8 +307,8 @@ export function WrenHome({
       )}
 
       <Row
-        label="DRESS"
-        sub={accessory === "none" ? "Bare" : ACCESSORY_META.find((a) => a.id === accessory)?.label ?? ""}
+        label={tr("wren.dress")}
+        sub={accessory === "none" ? tr("wren.bare") : ACCESSORY_META.find((a) => a.id === accessory)?.label ?? ""}
         count={`${items.filter((a) => a.free || premium).length}/${items.length}`}
         openState={open === "dress"}
         onPress={() => setOpen(open === "dress" ? null : "dress")}
@@ -374,21 +376,21 @@ function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadS
   const rows: string[] = t
     ? state === "delivery"
       ? [
-          `YOUR LETTER LEFT — ${dShort(new Date(t.lastAt).toISOString()).toUpperCase()}`,
-          `AT ${who!.toUpperCase()}'S DOOR`,
-          "WAITING FOR AN ANSWER",
+          tr("wren.slip.left", { day: dShort(new Date(t.lastAt).toISOString()).toUpperCase() }),
+          tr("wren.slip.door", { who: who!.toUpperCase() }),
+          tr("wren.slip.waiting"),
         ]
       : [
-          `${who!.toUpperCase()} WROTE BACK — ${dShort(new Date(t.lastAt).toISOString()).toUpperCase()}`,
-          `${wren.toUpperCase()} CARRIED IT HOME`,
-          "IT'S WAITING FOR YOU",
+          tr("wren.slip.wrote", { who: who!.toUpperCase(), day: dShort(new Date(t.lastAt).toISOString()).toUpperCase() }),
+          tr("wren.slip.carried", { wren: wren.toUpperCase() }),
+          tr("wren.slip.forYou"),
         ]
-    : ["NOTHING IN TRANSIT", "WRITE, AND SHE FLIES"];
+    : [tr("wren.slip.nothing"), tr("wren.slip.write")];
 
   return (
     <View style={{ marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: P.ink12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>TRACKING SLIP</Text>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.slip")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
       </View>
       {rows.map((r, i) => (
@@ -399,7 +401,7 @@ function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadS
       ))}
       {t && (
         <Pressable onPress={() => onOpenThread(t)} style={{ borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 11 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.pen }}>GO TO THE DOOR</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.pen }}>{tr("wren.slip.go")}</Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.pen }}>→</Text>
         </Pressable>
       )}
@@ -427,7 +429,7 @@ function FlightLog({ state, carried, threads, driving, wren }: { state: Whereabo
   return (
     <View style={{ marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: P.ink12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>FLIGHT LOG</Text>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.log")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
       </View>
       {rows.map((r) => (

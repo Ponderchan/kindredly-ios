@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import { C, F, cardStyle } from "../theme/tokens";
 import { WrenBird } from "../components/WrenBird";
 import { analyzeVoice, cachedVoiceAI, gatherWriting, storeVoiceAI, type VoiceRead } from "../lib/voice";
@@ -16,6 +17,7 @@ import { useEntitlement } from "../lib/entitlement";
    should feel like "this sounds like me", not "AI has analyzed me". */
 
 export default function VoiceDetail() {
+  useLang();
   const router = useRouter();
   const wren = useWrenName();
   const { profile } = useAuth();
@@ -57,9 +59,9 @@ export default function VoiceDetail() {
           <Text style={{ fontSize: 24, color: C.ink }}>‹</Text>
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>YOUR WRITING AURA</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>{t("vc.title")}</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 2 }}>
-            {read ? `Based on ${read.pieces} ${read.pieces === 1 ? "piece" : "pieces"} · ${speakAs(read.stage.line, wren).toLowerCase()}` : "…"}
+            {read ? (read.pieces === 1 ? t("vc.basedOnOne", { n: read.pieces, line: speakAs(read.stage.line, wren).toLowerCase() }) : t("vc.basedOnMany", { n: read.pieces, line: speakAs(read.stage.line, wren).toLowerCase() })) : "…"}
           </Text>
         </View>
       </View>
@@ -88,7 +90,7 @@ export default function VoiceDetail() {
                     an unread row admits it rather than printing a reading it
                     hasn't earned */}
                 <Text style={{ fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 }}>
-                  {r.read ? speakAs(r.line, wren) : "Not enough writing yet."}
+                  {r.read ? speakAs(r.line, wren) : t("vc.notEnough")}
                 </Text>
               </View>
               <View style={{ flexDirection: "row", gap: 3.5 }}>
@@ -117,16 +119,16 @@ export default function VoiceDetail() {
               {gate.state === "locked" ? "👑 FIRST CLASS" : "🌙 YOUR AURA · WRAPPED"}
             </Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 17, color: "#fff", marginTop: 8 }}>
-              {gate.state === "ready" && (gate.kind === "first" ? `${wren} wrote you a letter.` : "This month's letter is here.")}
+              {gate.state === "ready" && (gate.kind === "first" ? t("vc.gate.wrote", { wren }) : t("vc.gate.here"))}
               {gate.state === "progress" && `${wren} is saving up a letter about you.`}
-              {gate.state === "locked" && "A letter about you, every month."}
-              {gate.state === "done" && "This month's letter is read."}
+              {gate.state === "locked" && t("vc.gate.locked")}
+              {gate.state === "done" && t("vc.gate.read")}
             </Text>
             <Text style={{ fontFamily: F.sans, fontSize: 12.5, lineHeight: 19, color: "#B9B4D6", marginTop: 6 }}>
-              {gate.state === "ready" && "How you write, wrapped in a night sky. Tap to open."}
-              {gate.state === "progress" && `Write ${gate.need - gate.have} more ${gate.need - gate.have === 1 ? "piece" : "pieces"} and she'll seal the first one — free.`}
+              {gate.state === "ready" && t("vc.gate.readySub")}
+              {gate.state === "progress" && (gate.need - gate.have === 1 ? t("vc.gate.progressOne", { n: gate.need - gate.have }) : t("vc.gate.progressMany", { n: gate.need - gate.have }))}
               {gate.state === "locked" && `Your voice, your hours, your words — a wrapped read from ${wren} with First Class.`}
-              {gate.state === "done" && "The next one arrives with the new month."}
+              {gate.state === "done" && t("vc.gate.doneSub")}
             </Text>
             {gate.state === "progress" && (
               <View style={{ height: 5, borderRadius: 3, backgroundColor: "#2A2450", overflow: "hidden", marginTop: 12 }}>
@@ -137,7 +139,7 @@ export default function VoiceDetail() {
         )}
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18 }}>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint }}>Wren keeps learning as you write.</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint }}>{t("vc.learning")}</Text>
           <WrenBird size={22} mood="content" />
         </View>
       </ScrollView>

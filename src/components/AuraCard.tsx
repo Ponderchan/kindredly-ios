@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, Pressable, Text, View } from "react-native";
+import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { getAvatar } from "../data/avatar-lib";
 import { pickAuraAvatar } from "../data/aura-avatar-lib";
@@ -149,11 +150,11 @@ function PageWren({ stage, size = 26 }: { stage: AuraPhase; size?: number }) {
 }
 
 const CAPTION: Record<AuraPhase, string> = {
-  empty: "A blank page is loaded.",
-  forming: "First line set. The portrait just went into the developer.",
-  shaping: "The page rises. A face is surfacing.",
-  clearing: "The page rises. A face is surfacing.",
-  formed: "The page is done. She clipped your photo to it.",
+  empty: "ac.cap.empty",
+  forming: "ac.cap.forming",
+  shaping: "ac.cap.shaping",
+  clearing: "ac.cap.shaping",
+  formed: "ac.cap.formed",
 };
 
 export function AuraCard({
@@ -171,6 +172,7 @@ export function AuraCard({
   onShare: () => void;
   onWrite?: () => void;
 }) {
+  useLang();
   const wren = useWrenName();
   const blink = useBlink();
   const stage = aura.phase;
@@ -186,16 +188,16 @@ export function AuraCard({
   const workingName = (formed ? aura.archetype?.name : aura.draft?.name) || "";
   const title =
     stage === "empty"
-      ? "— UNSET —"
+      ? t("ac.unset")
       : aura.formed < 0.25 || !workingName
-        ? "THE ???"
+        ? t("ac.unknown")
         : typed(workingName.toUpperCase(), Math.min(1, aura.formed)).text;
 
   /* her one sentence about you — the archetype's own line, typed in */
   const full = (formed ? aura.archetype?.desc : aura.draft?.desc) || "";
-  const line = stage === "empty" ? { text: "nothing to read yet.", done: false } : typed(full, Math.min(1, aura.formed));
+  const line = stage === "empty" ? { text: t("ac.nothing"), done: false } : typed(full, Math.min(1, aura.formed));
 
-  const cta = formed ? "SHARE THIS PAGE" : stage === "empty" ? "WRITE YOUR FIRST PIECE →" : stage === "forming" ? "WRITE ANOTHER →" : "SHARE DRAFT";
+  const cta = formed ? t("ac.share") : stage === "empty" ? t("ac.first") : stage === "forming" ? t("ac.another") : t("ac.draft");
   const ctaFilled = formed || stage === "forming";
   const onCta = formed ? onShare : stage === "empty" || stage === "forming" ? onWrite ?? onOpen : onShare;
 
@@ -247,10 +249,10 @@ export function AuraCard({
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
           <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: L.grey }}>
             {stage === "empty"
-              ? "0% TYPED · RIBBON FRESH"
+              ? t("ac.ribbonEmpty")
               : formed
-                ? `FROM ${aura.pieces} PIECES`
-                : `${pct}% TYPED · ${locked.length}/9 LINES SET`}
+                ? t("ac.ribbonFrom", { n: aura.pieces })
+                : t("ac.ribbonTyped", { pct, n: locked.length })}
           </Text>
           {formed && more > 0 && (
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen, marginRight: 10 }}>{more} MORE →</Text>
@@ -275,7 +277,7 @@ export function AuraCard({
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: ctaFilled ? "#FFFFFF" : L.ink }}>{cta}</Text>
         </Pressable>
         <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, lineHeight: 19, color: "#7C7462", textAlign: "center", marginTop: 12, paddingHorizontal: 8 }}>
-          {CAPTION[stage].replace("She", wren === "Wren" ? "She" : wren)}
+          {t(CAPTION[stage], { wren: wren === "Wren" ? t("ac.shePronoun") : wren })}
         </Text>
       </View>
     </View>
@@ -337,7 +339,7 @@ export function AuraTicket({ aura, wren }: { aura: Aura; wren: string }) {
   return (
     <View style={{ backgroundColor: L.paper, borderWidth: 2, borderColor: L.ink }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: L.ink }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 2, color: L.grey }}>SPECIMEN</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 2, color: L.grey }}>{t("ac.specimen")}</Text>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 22, lineHeight: 29, letterSpacing: 1.2, color: L.red, marginTop: 8 }}>
           {n.toUpperCase()}
         </Text>

@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import { P, PF, rule } from "../theme/post";
 import { MosaicId } from "../components/MosaicId";
 import { useWrenName } from "../lib/wren-name";
@@ -24,6 +25,7 @@ import { fetchBlocks, unblockUser, type BlockRow } from "../lib/db";
    handed to the bird, not a case file the reporter owns. What matters to
    the person who filed one is what it DOES, so that's what the line says. */
 export default function BlockedScreen() {
+  useLang();
   const router = useRouter();
   const wren = useWrenName();
   const [rows, setRows] = useState<BlockRow[]>([]);
@@ -44,14 +46,14 @@ export default function BlockedScreen() {
   );
 
   const unblock = (b: BlockRow) =>
-    Alert.alert("Let them back in?", "Their letters can reach you again, and yours can reach them.", [
-      { text: "Keep them out", style: "cancel" },
+    Alert.alert(t("bl.letBackTitle"), t("bl.letBackBody"), [
+      { text: t("bl.keepOut"), style: "cancel" },
       {
-        text: "Unblock",
+        text: t("bl.unblockAction"),
         onPress: async () => {
           const ok = await unblockUser(b.blocked);
           if (ok) setRows((r) => r.filter((x) => x.blocked !== b.blocked));
-          else Alert.alert("Couldn't unblock", "Nothing changed — try again in a moment.");
+          else Alert.alert(t("bl.fail"), t("bl.failBody"));
         },
       },
     ]);
@@ -62,7 +64,7 @@ export default function BlockedScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>BLOCKED & REPORTED</Text>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>{t("bl.title")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.2, color: P.ink40 }}>
           {loaded ? String(rows.length).padStart(2, "0") : "··"}
         </Text>
@@ -72,10 +74,10 @@ export default function BlockedScreen() {
       {loaded && rows.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 22, lineHeight: 30, color: P.ink, textAlign: "center" }}>
-            No one's shut out.
+            {t("bl.emptyTitle")}
           </Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, lineHeight: 18, color: P.ink60, textAlign: "center", marginTop: 12 }}>
-            BLOCK A WRITER FROM ANY OF THEIR LETTERS
+            {t("bl.emptyBody")}
           </Text>
         </View>
       ) : (
@@ -94,14 +96,14 @@ export default function BlockedScreen() {
                   NO. {postNo(b.blocked)}
                 </Text>
                 <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.ink40, marginTop: 3 }}>
-                  BLOCKED {dLong(b.created_at).toUpperCase()}
+                  {t("bl.blockedOn", { day: dLong(b.created_at).toUpperCase() })}
                 </Text>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60, marginTop: 3 }}>
                   Their letters don't reach you.
                 </Text>
               </View>
               <Pressable onPress={() => unblock(b)} hitSlop={10} style={{ paddingVertical: 6, paddingLeft: 10 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.pen }}>UNBLOCK</Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.pen }}>{t("bl.unblock")}</Text>
               </Pressable>
             </View>
           ))}
@@ -111,7 +113,7 @@ export default function BlockedScreen() {
       {/* what a report does — the part the reporter never sees */}
       <View style={{ paddingHorizontal: 26, paddingTop: 12, paddingBottom: 18, borderTopWidth: 1, borderTopColor: P.ink12 }}>
         <Text style={{ fontFamily: PF.mono, fontSize: 10, lineHeight: 16, letterSpacing: 0.8, color: P.ink40, textAlign: "center" }}>
-          REPORTS GO TO {wren.toUpperCase()} · THREE DIFFERENT READERS REPORTING ONE WRITER SILENCES THEM FOR EVERYONE
+          {t("bl.footer", { wren: wren.toUpperCase() })}
         </Text>
       </View>
     </SafeAreaView>
