@@ -17,11 +17,9 @@ export const ES: LangResources = {
   detailOpeners: /^(el|la|los|las|un|una|hay|esto|eso|aquella|aquel|la lluvia|la noche|la mañana|mi|su)\b/i,
   quirks: (text, tokens) => {
     const q: string[] = [];
-    if ((text.match(/(\.\.\.|…)/g) || []).length >= 2) q.push("ellipses");
     if (/jaja+|jeje+/i.test(text)) q.push("laugh-jaja");
     // chat spellings — repeated to count as a quirk
     if (tokens.filter((t) => ["q", "xq", "pq", "tmb", "tb", "pa", "xa", "d", "k"].includes(t)).length >= 2) q.push("chat-spelling");
-    if (/[a-záéíóúñ]([!?¡¿])\1{1,}/i.test(text)) q.push("repeated-punct");
     if (/¿/.test(text) && /\?/.test(text)) q.push("inverted-question");
     return q;
   },

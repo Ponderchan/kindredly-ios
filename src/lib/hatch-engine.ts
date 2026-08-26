@@ -1,4 +1,9 @@
 import { voiceSignature } from "./signature";
+import { resolveLanguage } from "./writing-engine/resolve-language";
+import { resources, tokenize, countMatches } from "./writing-engine/dictionaries";
+import { baseline } from "./writing-engine/baselines";
+import { bornRead } from "./writing-engine/aura/born-types";
+import type { HatchRead } from "./writing-engine/types";
 
 /* AsyncStorage is lazy-required only inside the two persistence functions so
    the pure scoring path (scoreNine/hatch) imports cleanly under plain node for
@@ -52,16 +57,13 @@ export interface HatchResult {
   identity: number; // the weighted blend, 0..100
   archetype: Archetype;
   desc: string; // the archetype's one-liner
+  born: HatchRead; // the first-impression born type + strongest early signals
 }
 
-const HEDGES = /\b(actually|maybe|just|somehow|kind of|sort of|probably|honestly|i guess|i think)\b/gi;
-const EMOTION =
-  /\b(feel|felt|feeling|love|loved|miss|missed|hate|scared|afraid|happy|sad|tired|angry|lonely|hope|hurt|glad|ashamed|proud|jealous|grateful|numb)\b/gi;
-const POSITIVE = /\b(love|happy|glad|hope|proud|grateful|warm|nice|beautiful|smile|laugh)\b/i;
-const NEGATIVE = /\b(miss|hate|scared|sad|tired|angry|lonely|hurt|ashamed|numb|heavy|cold)\b/i;
-const ABSTRACT = /\b\w+(ness|tion|sion|ity|ment|ance|ence)\b/gi;
-const FIRST_PERSON = /\b(i|me|my|myself|i'm|i've|i'll)\b/gi;
-const OUTWARD = /\b(they|he|she|people|someone|everyone|the world|outside|street|window|room)\b/gi;
+/* The language-specific matchers (function words, affect, pronouns, abstract
+   morphology, openers, quirks) now live in writing-engine/dictionaries; the
+   two length dimensions read their per-language centre from baselines. English
+   uses the shipped constants, so English output is unchanged. */
 
 const clamp = (n: number) => Math.max(4, Math.min(98, Math.round(n)));
 
@@ -77,11 +79,20 @@ export function scoreNine(thoughts: string[]): DimScore[] {
   const mean = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
   const varc = lens.length ? lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length : 0;
 
+  // ANALYZE LOCALLY: resolve the language and read it with its own resources;
+  // the two length dimensions normalize against that language's baseline.
+  const lang = resolveLanguage(all);
+  const res = resources(lang);
+  const B = baseline(lang);
+  const lower = all.toLowerCase();
+  const toks = tokenize(all);
+  const affectAll = res.emotionWords ?? [...res.affectPos, ...res.affectNeg];
+
   // vocabulary: uniqueness, concreteness, emotional reach
   const uniq = latin.length ? new Set(latin.map((w) => w.toLowerCase())).size / latin.length : 0;
   const avgLen = latin.length ? latin.reduce((a, w) => a + w.length, 0) / latin.length : 4;
-  const abstractR = (all.match(ABSTRACT) || []).length / words;
-  const emoHits = (all.match(EMOTION) || []).length;
+  const abstractR = (all.match(res.abstract) || []).length / words;
+  const emoHits = countMatches(lower, toks, affectAll);
 
   // sentence shape: length, fragments, pauses inside a line
   const frags = lens.filter((l) => l <= 3).length;
@@ -92,16 +103,16 @@ export function scoreNine(thoughts: string[]): DimScore[] {
   for (let i = 1; i < lens.length; i++) if (Math.abs(lens[i] - lens[i - 1]) >= 5) swings++;
 
   // emotion: depth, contrast, ownership
-  const contrast = POSITIVE.test(all) && NEGATIVE.test(all);
-  const owned = /\bi (feel|felt|miss|love|hate|hope)\b/i.test(all);
+  const contrast = countMatches(lower, toks, res.affectPos) > 0 && countMatches(lower, toks, res.affectNeg) > 0;
+  const owned = res.ownedFrame.test(all);
 
   // perspective: introspection vs observation, and self-distance
-  const inward = (all.match(FIRST_PERSON) || []).length / words;
-  const outward = (all.match(OUTWARD) || []).length / words;
-  const distance = /\b(someone who|the kind of person|a person who|myself from)\b/i.test(all);
+  const inward = countMatches(lower, toks, res.firstPerson) / words;
+  const outward = countMatches(lower, toks, res.outward) / words;
+  const distance = res.distanceFrame.test(all);
 
   // function words: the small unconscious tells
-  const hedges = (all.match(HEDGES) || []).length;
+  const hedges = countMatches(lower, toks, res.hedges);
 
   // punctuation fingerprint
   const commas = (all.match(/[,，]/g) || []).length;
@@ -110,16 +121,25 @@ export function scoreNine(thoughts: string[]): DimScore[] {
   const punctTotal = commas + dashes + dots + (all.match(/[.!?。！？]/g) || []).length;
 
   // structure: does a thought travel — detail openings, feeling endings
-  const detailOpen = texts.filter((t) => /^(the|a|an|it|there|rain|night|morning|my)\b/i.test(t.trim())).length;
-  const feelingEnd = texts.filter((t) => EMOTION.test(t.split(/[.!?]/).slice(-2).join(" "))).length;
+  const detailOpen = texts.filter((t) => res.detailOpeners.test(t.trim())).length;
+  // NOTE (intentional bug fix): the shipped code called a GLOBAL regex's
+  // .test() inside this filter, so its lastIndex advanced between thoughts and
+  // it UNDERCOUNTED feeling-endings. Counting statelessly is correct; it can
+  // nudge the structure dimension (and thus an archetype) up on some English
+  // samples vs the old snapshot. Documented, not silent.
+  const feelingEnd = texts.filter((t) => {
+    const tail = t.split(/[.!?]/).slice(-2).join(" ");
+    return countMatches(tail.toLowerCase(), tokenize(tail), affectAll) > 0;
+  }).length;
 
-  // quirks: personal signatures
+  // quirks: personal signatures — shared, language-neutral tells plus the
+  // resolved language's own (lowercase-i for en, particles for id, …)
   const q: string[] = [];
-  if ((all.match(/\bi(?=[\s,.'])/g) || []).length >= 2) q.push("lowercase i");
   if (dots >= 2) q.push("ellipses");
-  if ((all.match(/[!！]/g) || []).length === 0 && words > 40) q.push("no exclamation");
+  if ((all.match(/[!！]/g) || []).length === 0 && words > 40) q.push("no-exclamation");
   if (/[\u{1F300}-\u{1FAFF}]/u.test(all)) q.push("emoji");
-  if (hedges >= 3) q.push("soft hedges");
+  if (hedges >= 3) q.push("soft-hedges");
+  q.push(...res.quirks(all, toks));
 
   const dims: DimScore[] = [
     {
@@ -128,20 +148,20 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       label: "Vocabulary",
       // type-token ratio is ~1.0 on any short text, so it only counts once
       // there are enough words for repetition to be possible at all
-      score: clamp(30 + uniq * 40 * Math.min(1, latin.length / 50) + (avgLen - 3.6) * 11 + Math.min(14, emoHits * 4) + abstractR * 60),
+      score: clamp(30 + uniq * 40 * Math.min(1, latin.length / 50) + (avgLen - B.wordLenCenter) * 11 + Math.min(14, emoHits * 4) + abstractR * 60),
       locked: latin.length >= 40,
-      line: avgLen >= 5 || abstractR > 0.02 ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
-      chip: avgLen >= 5 || abstractR > 0.02 ? "Observed, not performed" : "Plain words, well aimed",
+      line: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
+      chip: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "Observed, not performed" : "Plain words, well aimed",
       sealed: "the words only you choose",
     },
     {
       key: "sentence",
       icon: "▬",
       label: "Sentence Shape",
-      score: clamp(34 + mean * 2.2 + pausePerSent * 16 + frags * 6),
+      score: clamp(34 + (mean - B.sentenceLenOffset) * 2.2 + pausePerSent * 16 + frags * 6),
       locked: sents.length >= 4,
-      line: mean >= 11 ? "You let thoughts breathe instead of forcing conclusions." : "Short lines. You trust the reader to fill the rest.",
-      chip: mean >= 11 ? "Long, breathing lines" : "Short, direct lines",
+      line: mean >= B.sentenceCopyThreshold ? "You let thoughts breathe instead of forcing conclusions." : "Short lines. You trust the reader to fill the rest.",
+      chip: mean >= B.sentenceCopyThreshold ? "Long, breathing lines" : "Short, direct lines",
       sealed: "the shape your sentences take",
     },
     {
@@ -390,6 +410,7 @@ export function hatch(thoughts: string[], when = new Date()): HatchResult {
     identity: identityScore(dims),
     archetype,
     desc: archetype.desc,
+    born: bornRead(dims, dims.filter((d) => d.locked).length),
   };
 }
 

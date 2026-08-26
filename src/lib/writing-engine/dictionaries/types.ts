@@ -24,6 +24,9 @@ export interface LangResources {
   affectPos: string[];
   /** heavy / negative affect words. */
   affectNeg: string[];
+  /** words counted for emotional EXPLICITNESS (emoHits/feeling-endings).
+      Defaults to affectPos+affectNeg; en overrides it to the shipped set. */
+  emotionWords?: string[];
   /** laughter & playful runs — jaja / kkkk / wkwk / haha, repeated. */
   laughter: RegExp;
   /** question habits beyond a bare "?" (particles, tags). */
@@ -64,4 +67,24 @@ export function countAny(tokens: string[], list: string[]): number {
 export function hasAny(tokens: string[], list: string[]): boolean {
   const set = new Set(list);
   return tokens.some((tk) => set.has(tk));
+}
+
+/* phrase-aware occurrence count: single-word entries counted by token
+   membership (fast, exact), multi-word entries ("kind of", "por fin", "sei
+   lá") counted by substring on the lowercased text. Used where the shipped
+   English behaviour counted phrases via regex. */
+export function countMatches(lowerText: string, tokens: string[], list: string[]): number {
+  const singles = new Set<string>();
+  const phrases: string[] = [];
+  for (const w of list) (w.includes(" ") ? phrases.push(w) : singles.add(w));
+  let n = 0;
+  for (const tk of tokens) if (singles.has(tk)) n++;
+  for (const p of phrases) {
+    let i = lowerText.indexOf(p);
+    while (i !== -1) {
+      n++;
+      i = lowerText.indexOf(p, i + p.length);
+    }
+  }
+  return n;
 }

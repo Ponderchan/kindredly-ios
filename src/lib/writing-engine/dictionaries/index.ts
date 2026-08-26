@@ -13,4 +13,4 @@ export function resources(lang: SupportedLanguage): LangResources {
 }
 
 export type { LangResources } from "./types";
-export { tokenize, countAny, hasAny } from "./types";
+export { tokenize, countAny, hasAny, countMatches } from "./types";

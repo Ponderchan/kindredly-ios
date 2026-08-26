@@ -17,10 +17,8 @@ export const PT: LangResources = {
   detailOpeners: /^(o|a|os|as|um|uma|tem|isso|esse|essa|aquela|aquele|a chuva|a noite|a manhã|meu|minha|seu|sua)\b/i,
   quirks: (text, tokens) => {
     const q: string[] = [];
-    if ((text.match(/(\.\.\.|…)/g) || []).length >= 2) q.push("ellipses");
     if (/(k{3,}|rs{2,})/i.test(text)) q.push("laugh-kkk");
     if (tokens.filter((t) => ["vc", "pq", "tb", "tbm", "q", "mano", "mina", "blz", "pra", "cê"].includes(t)).length >= 2) q.push("chat-spelling");
-    if (/[a-zãõáéíóúâêôç]([!?])\1{1,}/i.test(text)) q.push("repeated-punct");
     return q;
   },
   themes: [

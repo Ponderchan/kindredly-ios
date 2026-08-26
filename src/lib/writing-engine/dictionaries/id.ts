@@ -21,13 +21,11 @@ export const ID: LangResources = {
   detailOpeners: /^(hujan|malam|pagi|langit|di|ada|itu|ini|sebuah|seorang|rumah|kamar|jendela)\b/i,
   quirks: (text, tokens) => {
     const q: string[] = [];
-    if ((text.match(/(\.\.\.|…)/g) || []).length >= 2) q.push("ellipses");
     if (/wk{2,}|wkwk+/i.test(text)) q.push("laugh-wkwk");
     // colloquial particles used as a habit — a strong Indonesian style tell
     if (tokens.filter((t) => ["sih", "deh", "dong", "kok", "nih", "aja", "banget"].includes(t)).length >= 2) q.push("particles");
     if (tokens.filter((t) => ["gue", "gw", "gua", "gak", "nggak", "ga", "ngga", "udah", "udh", "aja", "gitu"].includes(t)).length >= 2) q.push("slang-spelling");
     if (/([a-z])\1{2,}/i.test(text)) q.push("stretched-letters"); // "senengggg"
-    if (/[a-z]([!?])\1{1,}/i.test(text)) q.push("repeated-punct");
     return q;
   },
   themes: [
