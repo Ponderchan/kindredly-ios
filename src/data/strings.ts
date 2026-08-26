@@ -2,14 +2,13 @@ import { strings } from "../lib/i18n";
 
 /* THE CATALOG.
    ────────────────────────────────────────────────────────────────────────
-   English is the source and the fallback. The Chinese is written as
-   Chinese — not as English rearranged — because her voice is the product
-   and a literal translation of "the road closes here" would read like a
-   parking sign. Same for the Spanish.
+   English is the source and the fallback. The Spanish is written as
+   Spanish — not as English rearranged — because her voice is the product
+   and a literal "the road closes here" would read like a parking sign.
 
-   Two rules that hold across all three:
+   Two rules that hold across both:
    · the machine speaks in caps and stays short; she speaks in sentences
-   · postal words stay postal — 信/carta, 邮戳/matasellos, 邮费/tarifa */
+   · postal words stay postal — carta, matasellos, tarifa */
 
 strings(
   /* ── en ── */
@@ -82,78 +81,6 @@ strings(
     "settings.howItWorks": "How Kindredly works",
     "settings.writeToUs": "Write to us",
     "settings.rate": "Rate Kindredly",
-  },
-
-  /* ── zh ── */
-  {
-    "tab.today": "今天",
-    "tab.sealed": "封存",
-    "tab.kindreds": "同类",
-    "tab.me": "我",
-
-    "kindreds.title": "同类",
-    "kindreds.none": "还没有",
-    "kindreds.allAnswered": "都回过了",
-    "kindreds.waitingOnYou": "{n} 封等你",
-    "kindreds.group.kindreds": "同类",
-    "kindreds.group.coming": "正在显影",
-    "kindreds.empty.title": "还没有人\n知道你的名字。",
-    "kindreds.empty.body": "但外面也许有人,正在找一个像你这样写字的人。",
-    "kindreds.empty.rule": "他们每寄来一封信,就往里靠近一圈\n到了中心,你们交换名字",
-    "kindreds.empty.cta": "让一个人进入轨道",
-    "kindreds.empty.picks": "{wren} 来挑",
-    "kindreds.said": "你写给的每个人都会落在这里。他们每寄来一封信,就离你近一点。",
-
-    "state.yourTurn": "该你了",
-    "state.waitingThem": "等他回信",
-    "state.swapNames": "交换名字?",
-    "state.theyWentFirst": "他先署名了",
-    "state.youWentFirst": "你先署名了",
-    "state.aKindred": "一位同类",
-
-    "wren.yourCourier": "你的信使",
-    "wren.journey": "{wren} 的旅程",
-    "wren.stage.hatch": "破壳",
-    "wren.stage.fledge": "学飞",
-    "wren.stage.grown": "长成",
-    "wren.blurb.egg": "还在蛋里 —— 等你的第一个字。",
-    "wren.blurb.hatch": "刚孵出来,正在听你写字。",
-    "wren.blurb.fledge": "学着飞,找对的那扇窗。",
-    "wren.blurb.grown": "一起飞过很多趟了。",
-    "wren.where.home": "在家,陪着你",
-    "wren.where.delivery": "送信途中",
-    "wren.where.bringing": "回来了 —— 带了东西给你",
-    "wren.where.exploring": "出去找人了",
-    "wren.bubble.home": "嗨。",
-    "wren.bubble.delivery": "去去就回!",
-    "wren.bubble.bringing": "看我带回了什么!",
-    "wren.bubble.exploring": "外面总有人的……",
-    "wren.bubble.dozing": "呼……",
-    "wren.track": "追踪 {wren}",
-    "wren.away": "你不在的时候",
-    "wren.away.out": "送出 {n} 封",
-    "wren.away.back": "带回 {n} 封",
-    "wren.keepsakes": "最近的纪念",
-    "wren.slip": "投递单",
-    "wren.slip.left": "你的信出发了 — {day}",
-    "wren.slip.door": "在 {who} 的门口",
-    "wren.slip.waiting": "等一个回音",
-    "wren.slip.wrote": "{who} 回信了 — {day}",
-    "wren.slip.carried": "{wren} 把它带回了家",
-    "wren.slip.forYou": "它在等你",
-    "wren.slip.nothing": "没有在途的信",
-    "wren.slip.write": "写一封,她就出发",
-    "wren.slip.go": "去那扇门",
-    "wren.log": "飞行记录",
-    "wren.log.line": "你一按发送我就走了。等待是他们那边的事,不是我的。",
-
-    "settings.title": "设置",
-    "settings.language": "语言",
-    "settings.account": "账号",
-    "settings.help": "帮助",
-    "settings.howItWorks": "Kindredly 是怎么运作的",
-    "settings.writeToUs": "写信给我们",
-    "settings.rate": "给 Kindredly 评分",
   },
 
   /* ── es ── */

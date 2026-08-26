@@ -12,18 +12,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
    writing in Spanish on an English phone should not have to fight it.
 
    TRANSLATION RULE, and it matters more here than in most apps: her voice
-   is the product. Wren speaks plainly and never performs — so the Chinese
-   is written as 中文 rather than as translated English, and the Spanish
-   the same. Where a phrase is postal (a stamp, a fare, a postmark), the
-   local postal word wins over a literal one.
+   is the product. Wren speaks plainly and never performs, so the Spanish
+   is written AS Spanish rather than as English rearranged. Where a phrase
+   is postal (a stamp, a fare, a postmark), the local postal word wins
+   over a literal one.
+
+   Chinese was written and then withdrawn (slice 256): mainland
+   distribution needs an ICP filing, and more importantly the aura's nine
+   signals are English-shaped — hedges, word length, type-token ratio —
+   so a Chinese writer would have read as permanently unformed. It is in
+   git history, and it comes back with a Chinese engine, not before.
 
    Missing keys fall back to English rather than showing a key — a reader
    should never see machinery. */
 
-export type Lang = "en" | "zh" | "es";
+export type Lang = "en" | "es";
 export const LANGS: { id: Lang; label: string }[] = [
   { id: "en", label: "English" },
-  { id: "zh", label: "中文" },
   { id: "es", label: "Español" },
 ];
 
@@ -32,7 +37,6 @@ const KEY = "kindredly_lang";
 function deviceLang(): Lang {
   try {
     const tag = (Intl.DateTimeFormat().resolvedOptions().locale || "en").toLowerCase();
-    if (tag.startsWith("zh")) return "zh";
     if (tag.startsWith("es")) return "es";
   } catch {
     /* an app that can't read a locale is still an app in English */
@@ -83,15 +87,13 @@ export function useLang(): Lang {
 type Dict = Record<string, string>;
 
 const EN: Dict = {};
-const ZH: Dict = {};
 const ES: Dict = {};
 
-const DICTS: Record<Lang, Dict> = { en: EN, zh: ZH, es: ES };
+const DICTS: Record<Lang, Dict> = { en: EN, es: ES };
 
 /** register a screen's strings — one call per surface, kept beside it */
-export function strings(en: Dict, zh: Dict, es: Dict): void {
+export function strings(en: Dict, es: Dict): void {
   Object.assign(EN, en);
-  Object.assign(ZH, zh);
   Object.assign(ES, es);
 }
 
