@@ -13,6 +13,30 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── report / aura / voicecard / window / wren-on-you ── */
+    "rt.sky": "YOUR SKY",
+    "rt.hour": "YOUR HOUR",
+    "rt.words": "WORDS YOU KEEP",
+    "rt.marks": "THE MARKS YOU MAKE",
+    "rt.after": "AFTER READING YOU",
+    "rt.keep": "KEEP THIS ONE",
+    "rt.brand": "KINDREDLY · YOUR AURA",
+    "rt.share": "Share",
+    "rt.done": "Done",
+    "au.readFrom": "READ FROM",
+    "au.allAtOnce": "Most of your voice came through at once.",
+    "au.came": "Your {list} came through.",
+    "vk.auraName": "AURA NAME",
+    "vk.aura": "AURA",
+    "vk.fullyFormed": "FULLY FORMED",
+    "vk.shareMine": "Share my aura ✨",
+    "vk.shareYours": "Share your aura ✨",
+    "wc.ph": "What are you leaving in the window today…",
+    "wc.put": "PUT IT IN THE WINDOW",
+    "wc.putLine": "Put a line in your window",
+    "wy.reading": "Still reading you. A few more letters and I'll have the shape of your hand.",
+    "wy.start": "Write one true line and I'll start reading how you write.",
+
     /* ── shared components ── */
     "su.title": "ONE THING FIRST",
     "su.notYet": "NOT YET",
@@ -601,6 +625,30 @@ strings(
 
   /* ── es ── */
   {
+    /* ── report / aura / voicecard / window / wren-on-you ── */
+    "rt.sky": "TU CIELO",
+    "rt.hour": "TU HORA",
+    "rt.words": "PALABRAS QUE GUARDAS",
+    "rt.marks": "LAS MARCAS QUE HACES",
+    "rt.after": "DESPUÉS DE LEERTE",
+    "rt.keep": "QUÉDATE CON ESTA",
+    "rt.brand": "KINDREDLY · TU AURA",
+    "rt.share": "Compartir",
+    "rt.done": "Listo",
+    "au.readFrom": "LEÍDO DE",
+    "au.allAtOnce": "Casi toda tu voz llegó de una vez.",
+    "au.came": "Llegó tu {list}.",
+    "vk.auraName": "NOMBRE DEL AURA",
+    "vk.aura": "AURA",
+    "vk.fullyFormed": "COMPLETA",
+    "vk.shareMine": "Compartir mi aura ✨",
+    "vk.shareYours": "Comparte tu aura ✨",
+    "wc.ph": "¿Qué dejas hoy en la ventana…",
+    "wc.put": "PONLO EN LA VENTANA",
+    "wc.putLine": "Pon una línea en tu ventana",
+    "wy.reading": "Aún te leo. Unas cartas más y tendré la forma de tu mano.",
+    "wy.start": "Escribe una línea verdadera y empezaré a leer cómo escribes.",
+
     /* ── shared components ── */
     "su.title": "UNA COSA ANTES",
     "su.notYet": "AHORA NO",
@@ -1189,6 +1237,30 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── report / aura / voicecard / window / wren-on-you ── */
+    "rt.sky": "SEU CÉU",
+    "rt.hour": "SUA HORA",
+    "rt.words": "PALAVRAS QUE VOCÊ GUARDA",
+    "rt.marks": "AS MARCAS QUE VOCÊ FAZ",
+    "rt.after": "DEPOIS DE TE LER",
+    "rt.keep": "FIQUE COM ESTA",
+    "rt.brand": "KINDREDLY · SUA AURA",
+    "rt.share": "Compartilhar",
+    "rt.done": "Pronto",
+    "au.readFrom": "LIDO DE",
+    "au.allAtOnce": "Quase toda a sua voz veio de uma vez.",
+    "au.came": "Veio o seu {list}.",
+    "vk.auraName": "NOME DA AURA",
+    "vk.aura": "AURA",
+    "vk.fullyFormed": "COMPLETA",
+    "vk.shareMine": "Compartilhar minha aura ✨",
+    "vk.shareYours": "Compartilhe sua aura ✨",
+    "wc.ph": "O que você está deixando na janela hoje…",
+    "wc.put": "COLOQUE NA JANELA",
+    "wc.putLine": "Ponha uma linha na sua janela",
+    "wy.reading": "Ainda estou te lendo. Mais algumas cartas e terei o formato da sua mão.",
+    "wy.start": "Escreva uma linha verdadeira e eu começo a ler como você escreve.",
+
     /* ── shared components ── */
     "su.title": "UMA COISA ANTES",
     "su.notYet": "AGORA NÃO",
@@ -1777,6 +1849,30 @@ strings(
 
   /* ── id ── */
   {
+    /* ── report / aura / voicecard / window / wren-on-you ── */
+    "rt.sky": "LANGITMU",
+    "rt.hour": "JAMMU",
+    "rt.words": "KATA YANG KAMU SIMPAN",
+    "rt.marks": "JEJAK YANG KAMU BUAT",
+    "rt.after": "SETELAH MEMBACAMU",
+    "rt.keep": "SIMPAN YANG INI",
+    "rt.brand": "KINDREDLY · AURAMU",
+    "rt.share": "Bagikan",
+    "rt.done": "Selesai",
+    "au.readFrom": "DIBACA DARI",
+    "au.allAtOnce": "Hampir seluruh suaramu muncul sekaligus.",
+    "au.came": "{list}-mu muncul.",
+    "vk.auraName": "NAMA AURA",
+    "vk.aura": "AURA",
+    "vk.fullyFormed": "UTUH",
+    "vk.shareMine": "Bagikan auraku ✨",
+    "vk.shareYours": "Bagikan auramu ✨",
+    "wc.ph": "Apa yang kamu tinggalkan di jendela hari ini…",
+    "wc.put": "LETAKKAN DI JENDELA",
+    "wc.putLine": "Letakkan satu baris di jendelamu",
+    "wy.reading": "Masih membacamu. Beberapa surat lagi dan aku akan tahu bentuk tanganmu.",
+    "wy.start": "Tulis satu baris yang jujur dan aku mulai membaca caramu menulis.",
+
     /* ── shared components ── */
     "su.title": "SATU HAL DULU",
     "su.notYet": "BELUM",

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Text, TextInput, View } from "react-native";
+import { t, useLang } from "../lib/i18n";
 import { C, F, cardStyle, navyBtn } from "../theme/tokens";
 import { MoodIcon } from "./MoodIcon";
 import { MOOD_IDS, type MoodId } from "../data/moods";
@@ -18,6 +19,7 @@ export function WindowComposer({
   onSet: (body: string, mood: MoodId) => void;
   onClose: () => void;
 }) {
+  useLang();
   const [text, setText] = useState("");
   const [mood, setMood] = useState<MoodId>("calm");
 
@@ -34,7 +36,7 @@ export function WindowComposer({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={{ flex: 1, backgroundColor: "rgba(19,26,38,0.35)", justifyContent: "flex-end" }} onPress={onClose}>
         <Pressable style={{ backgroundColor: C.cream, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }} onPress={() => {}}>
-          <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink }}>Put a line in your window</Text>
+          <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink }}>{t("wc.putLine")}</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, marginTop: 6 }}>
             Only your kindreds can see it. Change it whenever.
           </Text>
@@ -44,7 +46,7 @@ export function WindowComposer({
               autoFocus
               value={text}
               onChangeText={setText}
-              placeholder="What are you leaving in the window today…"
+              placeholder={t("wc.ph")}
               placeholderTextColor={C.faint}
               multiline
               maxLength={400}
@@ -64,7 +66,7 @@ export function WindowComposer({
           </View>
 
           <Pressable onPress={() => can && onSet(text.trim(), mood)} disabled={!can} style={[navyBtn, { paddingVertical: 17, width: "100%", marginTop: 6, opacity: can ? 1 : 0.3 }]}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13.5, letterSpacing: 1.4 }}>PUT IT IN THE WINDOW</Text>
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 13.5, letterSpacing: 1.4 }}>{t("wc.put")}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

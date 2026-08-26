@@ -2,6 +2,7 @@ import { useWrenName } from "../lib/wren-name";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { t, useLang } from "../lib/i18n";
 import { C, F, shadow } from "../theme/tokens";
 import { Wren } from "./Wren";
 import { useBreathe, usePulse } from "./anim";
@@ -21,6 +22,7 @@ export function WrenOnYou({
   hasText: boolean;
   onReadAgain: () => Promise<void> | void;
 }) {
+  useLang();
   const wren = useWrenName();
   const breathe = useBreathe(4, 3600);
   const glowPulse = usePulse(0.14, 0.26, 5200);
@@ -40,8 +42,8 @@ export function WrenOnYou({
   const text =
     line ||
     (hasText
-      ? "Still reading you. A few more letters and I'll have the shape of your hand."
-      : "Write one true line and I'll start reading how you write.");
+      ? t("wy.reading")
+      : t("wy.start"));
 
   return (
     <Animated.View

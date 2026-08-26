@@ -6,6 +6,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 import { F } from "../theme/tokens";
+import { t, useLang } from "../lib/i18n";
 import { Constellation } from "../components/VoiceCard";
 import { WrenBird } from "../components/WrenBird";
 import { DEMO_JOURNAL } from "../data/demo";
@@ -27,6 +28,7 @@ const DIM = "#B9B4D6";
 type Screen = { key: string; render: () => React.ReactNode };
 
 export default function VoiceReport() {
+  useLang();
   const router = useRouter();
   const wren = useWrenName();
   const { profile } = useAuth();
@@ -82,7 +84,7 @@ export default function VoiceReport() {
       key: K("stars"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>YOUR SKY</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.sky")}</Text>
           <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} />
           <Text style={{ fontFamily: F.serifSemi, fontSize: 18, color: "#fff", textAlign: "center", marginTop: 6 }}>
             The brightest of your nine:
@@ -104,7 +106,7 @@ export default function VoiceReport() {
         key: K("hour"),
         render: () => (
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>YOUR HOUR</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.hour")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 34, color: "#fff", marginTop: 14 }}>{data.hourBand}</Text>
             <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: DIM, marginTop: 12, lineHeight: 23 }}>
               That's when the true lines come out of you.
@@ -118,7 +120,7 @@ export default function VoiceReport() {
         key: K("words"),
         render: () => (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>WORDS YOU KEEP</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.words")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 40, color: "#fff", marginTop: 22 }}>{data.words[0]}</Text>
             <Text style={{ fontFamily: F.serifItalic, fontSize: 16, color: STARLIGHT, marginTop: 14, textAlign: "center", lineHeight: 26 }}>
               {data.words.slice(1).join("   ·   ")}
@@ -135,7 +137,7 @@ export default function VoiceReport() {
         key: K("punct"),
         render: () => (
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>THE MARKS YOU MAKE</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.marks")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 56, color: "#fff", marginTop: 8 }}>{data.punct[0].mark}</Text>
             <View style={{ gap: 10, marginTop: 8 }}>
               {data.punct.map((p) => (
@@ -157,7 +159,7 @@ export default function VoiceReport() {
       key: K("quote"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>AFTER READING YOU</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.after")}</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 21, lineHeight: 33, color: "#fff", marginTop: 16 }}>“{data.quote}”</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 12, color: STARLIGHT, marginTop: 14 }}>— {wren}</Text>
           <View style={{ marginTop: 26, alignSelf: "flex-start" }}>
@@ -171,9 +173,9 @@ export default function VoiceReport() {
       key: K("end"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>KEEP THIS ONE</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.keep")}</Text>
           <View style={{ backgroundColor: NIGHT2, borderRadius: 18, padding: 18, marginTop: 14 }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>KINDREDLY · YOUR AURA</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>{t("rt.brand")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 20, color: "#fff", marginTop: 8 }}>{data.archetype}</Text>
             <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} size={110} />
             <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, lineHeight: 20, color: DIM }}>“{data.quote}”</Text>
@@ -185,10 +187,10 @@ export default function VoiceReport() {
               }
               style={{ flex: 1, borderWidth: 1, borderColor: "rgba(255,255,255,0.4)", borderRadius: 16, paddingVertical: 13, alignItems: "center" }}
             >
-              <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: "#fff" }}>Share</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: "#fff" }}>{t("rt.share")}</Text>
             </Pressable>
             <Pressable onPress={done} style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, paddingVertical: 13, alignItems: "center" }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: NIGHT }}>Done</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: NIGHT }}>{t("rt.done")}</Text>
             </Pressable>
           </View>
         </View>

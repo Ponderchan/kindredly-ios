@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Line, Polygon } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
+import { t as tr, useLang } from "../lib/i18n";
 import { P, PF, panel, rule } from "../theme/post";
 import { WrenBird } from "../components/WrenBird";
 import { useWrenName } from "../lib/wren-name";
@@ -32,6 +33,7 @@ const CX = 160;
 const CY = 138;
 
 export default function AuraScreen() {
+  useLang();
   const router = useRouter();
   const wren = useWrenName();
   const { profile } = useAuth();
@@ -72,7 +74,7 @@ export default function AuraScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>YOUR WRITING AURA</Text>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>{tr("vc.title")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>
           {aura ? `${Math.round(aura.formed * 100)}%` : ""}
         </Text>
@@ -162,7 +164,7 @@ export default function AuraScreen() {
 
           {/* where the reading comes from — honest bookkeeping */}
           <View style={[panel, { paddingHorizontal: 16, paddingVertical: 12 }]}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>READ FROM</Text>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{tr("au.readFrom")}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 11.5, lineHeight: 20, color: P.ink60, marginTop: 8 }}>
               {aura.sources.letters} LETTERS · {aura.sources.conversations} REPLIES · {aura.sources.sealed} SEALED PAGES
             </Text>
@@ -206,8 +208,8 @@ export default function AuraScreen() {
                         {/* keys are for machines; a sentence is for a person.
                             Four or more at once is simply your voice arriving. */}
                         {gained.length >= 4
-                          ? "Most of your voice came through at once."
-                          : `Your ${gained.map((k) => labelOf(k)).join(" and ")} came through.`}
+                          ? tr("au.allAtOnce")
+                          : tr("au.came", { list: gained.map((k) => labelOf(k)).join(" and ") })}
                       </Text>
                     ) : (
                       <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink60, marginTop: 3 }}>

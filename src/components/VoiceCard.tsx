@@ -1,6 +1,7 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Stop } from "react-native-svg";
+import { t as tr, useLang } from "../lib/i18n";
 import { C, F, cardStyle } from "../theme/tokens";
 import { AuraPoem } from "./AuraPoem";
 import { WrenBird } from "./WrenBird";
@@ -56,6 +57,7 @@ export function VoiceCard({
   pieces?: number;
   formedOn?: string | null;
 }) {
+  useLang();
   const tier = read.tier;
   const wren = useWrenName();
   const count = Math.max(lettersSent, read.pieces);
@@ -67,15 +69,15 @@ export function VoiceCard({
       <View>
         <Pressable onPress={onOpen} style={({ pressed }) => [{ backgroundColor: "#221E3D", borderRadius: 22, padding: 20, overflow: "hidden", opacity: pressed ? 0.95 : 1 }]}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: "#CFC9F2", flex: 1 }}>YOUR WRITING AURA</Text>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 1.4, color: "#8F87C9" }}>FULLY FORMED</Text>
+            <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: "#CFC9F2", flex: 1 }}>{tr("vc.title")}</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 1.4, color: "#8F87C9" }}>{tr("vk.fullyFormed")}</Text>
           </View>
 
           <View style={{ alignItems: "center", marginTop: 6 }}>
             <View style={{ alignSelf: "stretch", borderRadius: 14, overflow: "hidden" }}>
               <AuraPoem stage={stage ?? "formed"} texts={texts} keepWords={words} dark />
             </View>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>AURA NAME</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>{tr("vk.auraName")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
             {words.length > 0 && (
               <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: "#A9A2CE", marginTop: 5, textAlign: "center" }}>
@@ -106,7 +108,7 @@ export function VoiceCard({
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
           <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted }}>{speakAs(read.taking, wren)}</Text>
           <Pressable onPress={share} style={({ pressed }) => ({ backgroundColor: C.purple, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 11, opacity: pressed ? 0.9 : 1 })}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: "#fff" }}>Share your aura ✨</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: "#fff" }}>{tr("vk.shareYours")}</Text>
           </Pressable>
         </View>
       </View>
@@ -119,7 +121,7 @@ export function VoiceCard({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
         <View style={{ width: 14, height: 14, borderRadius: 5, backgroundColor: C.purpleMid }} />
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.label }}>YOUR WRITING AURA</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10.5, letterSpacing: 1.6, color: C.label }}>{tr("vc.title")}</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: C.faint, marginTop: 2 }}>the feeling your words leave behind.</Text>
         </View>
         {tier !== "empty" && <Text style={{ fontSize: 15, color: C.faint }}>›</Text>}
@@ -179,7 +181,7 @@ export function VoiceCard({
             </Text>
             {shareReady && (
               <Pressable onPress={share} hitSlop={6} style={({ pressed }) => ({ backgroundColor: C.purpleLt, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.85 : 1 })}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>Share my aura ✨</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>{tr("vk.shareMine")}</Text>
               </Pressable>
             )}
           </View>
