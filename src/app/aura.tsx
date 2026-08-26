@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { dimLabel, dimLine, dimSealed } from "../lib/aura-copy";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Line, Polygon } from "react-native-svg";
@@ -148,7 +149,7 @@ export default function AuraScreen() {
                       color: d.locked ? P.ink : P.ink40,
                     }}
                   >
-                    {d.label.toUpperCase()}
+                    {dimLabel(d.key).toUpperCase()}
                   </Text>
                 );
               })}
@@ -247,7 +248,7 @@ function DimRow({ d, last, open, onToggle, words }: { d: DimScore; last: boolean
     <Pressable onPress={onToggle} style={{ paddingVertical: 12, borderBottomWidth: last ? 0 : 1, borderBottomColor: P.ink12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <Text style={{ width: 108, fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: d.locked ? P.ink : P.ink40 }}>
-          {d.label.toUpperCase()}
+          {dimLabel(d.key).toUpperCase()}
         </Text>
         <View style={{ flex: 1, height: 3, backgroundColor: P.ink12 }}>
           <View style={{ width: `${d.score}%`, height: 3, backgroundColor: d.locked ? P.pen : P.ink12 }} />
@@ -259,7 +260,7 @@ function DimRow({ d, last, open, onToggle, words }: { d: DimScore; last: boolean
       {open && (
         <View style={{ marginTop: 9, paddingLeft: 2 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: d.locked ? P.ink : P.ink60 }}>
-            {d.locked ? d.line : `Still sealed — ${d.sealed.toLowerCase()}.`}
+            {d.locked ? dimLine(d) : tr("dim.stillSealed", { s: dimSealed(d.key).toLowerCase() })}
           </Text>
           {d.locked && words.length > 0 && (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 9 }}>

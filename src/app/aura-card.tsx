@@ -1,4 +1,5 @@
 import { useWrenName } from "../lib/wren-name";
+import { archName } from "../lib/aura-copy";
 import { useCallback, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -45,7 +46,7 @@ export default function AuraShareCard() {
     Share.share({
       message:
         aura.phase === "formed"
-          ? `THE ${dear(aura.archetype?.name || "").toUpperCase()} — my writing aura, typed by ${wren} on Kindredly.`
+          ? `THE ${dear(archName(aura.archetype?.id)).toUpperCase()} — my writing aura, typed by ${wren} on Kindredly.`
           : `${pct}% typed — ${wren} is still typing my aura, on Kindredly.`,
     });
 

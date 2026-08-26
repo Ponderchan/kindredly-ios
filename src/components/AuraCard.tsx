@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { archName, archDesc, dimChip, dimLine } from "../lib/aura-copy";
 import { Animated, Easing, Image, Pressable, Text, View } from "react-native";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
@@ -65,14 +66,15 @@ function typed(full: string, pct: number): { text: string; done: boolean } {
    chip is the compressed read, and the last clause of the full line is the
    thing that clause was really about. */
 export function splitRead(d: DimScore): { title: string; sub?: string } {
-  const title = d.chip.charAt(0).toUpperCase() + d.chip.slice(1);
-  const parts = d.line
+  const chip = dimChip(d);
+  const title = chip.charAt(0).toUpperCase() + chip.slice(1);
+  const parts = dimLine(d)
     .split(/[,.—]/)
     .map((x) => x.trim())
     .filter(Boolean);
   const tail = parts.length > 1 ? parts[parts.length - 1] : "";
   const sub = tail.split(/\s+/).slice(0, 5).join(" ").toLowerCase();
-  return { title, sub: sub && sub !== d.chip.toLowerCase() ? sub : undefined };
+  return { title, sub: sub && sub !== chip.toLowerCase() ? sub : undefined };
 }
 
 const CHIPS_AT: Record<AuraPhase, number> = { empty: 0, forming: 1, shaping: 3, clearing: 4, formed: 6 };
@@ -185,7 +187,7 @@ export function AuraCard({
   const portrait = pool ? pickAuraAvatar(pool, seed, locked[0]?.key ?? null) : null;
 
   /* the name, revealed as it is earned — ??? until she has enough to guess */
-  const workingName = (formed ? aura.archetype?.name : aura.draft?.name) || "";
+  const workingName = archName(formed ? aura.archetype?.id : aura.draft?.id);
   const title =
     stage === "empty"
       ? t("ac.unset")
@@ -194,7 +196,7 @@ export function AuraCard({
         : typed(workingName.toUpperCase(), Math.min(1, aura.formed)).text;
 
   /* her one sentence about you — the archetype's own line, typed in */
-  const full = (formed ? aura.archetype?.desc : aura.draft?.desc) || "";
+  const full = archDesc(formed ? aura.archetype?.id : aura.draft?.id);
   const line = stage === "empty" ? { text: t("ac.nothing"), done: false } : typed(full, Math.min(1, aura.formed));
 
   const cta = formed ? t("ac.share") : stage === "empty" ? t("ac.first") : stage === "forming" ? t("ac.another") : t("ac.draft");
@@ -335,7 +337,7 @@ export function Polaroid({ seed, avatarId, topDimKey }: { seed: string; avatarId
 
 export function AuraTicket({ aura, wren }: { aura: Aura; wren: string }) {
   const locked = [...aura.locked].sort((a, b) => b.score - a.score).slice(0, 4);
-  const n = aura.archetype?.name || aura.draft?.name || "";
+  const n = archName(aura.archetype?.id || aura.draft?.id);
   return (
     <View style={{ backgroundColor: L.paper, borderWidth: 2, borderColor: L.ink }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 2, borderBottomColor: L.ink }}>

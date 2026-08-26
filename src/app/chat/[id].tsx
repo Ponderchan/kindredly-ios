@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { archNameThird } from "../../lib/aura-copy";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -391,7 +392,7 @@ YOU WENT FIRST — WAITING ON THEIRS
         otherSeed={detail?.other || "anon"}
         otherFace={detail?.otherFace ?? null}
         otherName={detail?.otherName || t("cm.kindred")}
-        otherArchetype={read?.archetype ? theyify(read.archetype.name) : null}
+        otherArchetype={read?.archetype ? archNameThird(read.archetype.id) : null}
         myName={auth.handle || "you"}
         onClose={() => setCeremony(false)}
         onTalk={() => {

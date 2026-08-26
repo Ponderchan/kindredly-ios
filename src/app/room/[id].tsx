@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { archNameThird } from "../../lib/aura-copy";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -180,7 +181,7 @@ export default function RoomScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: PF.letter, fontSize: 19, fontWeight: "600", color: P.ink }}>{name}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.1, color: P.ink40, marginTop: 2 }}>
-              {detail?.since ? `KINDRED SINCE ${dLong(detail.since).toUpperCase()}` : theyify(read?.archetype?.name || "")}
+              {detail?.since ? `KINDRED SINCE ${dLong(detail.since).toUpperCase()}` : archNameThird(read?.archetype?.id)}
             </Text>
             {/* she carried every letter that got you here, and the room
                 should say so once rather than her hovering in it */}

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { archName, archDescThird, dimLabel, dimLineThird, dimSealedThird } from "../../lib/aura-copy";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -123,10 +124,10 @@ export default function KindredScreen() {
                         what their writing has told you, which is the part
                         a name could never have said */}
                     <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink }}>
-                      {read?.archetype?.name || t("kd.stillVoice")}
+                      {read?.archetype ? archName(read.archetype.id) : t("kd.stillVoice")}
                     </Text>
                     <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
-                      {read?.archetype ? theyify(read.archetype.desc) : t("kd.notEnough")}
+                      {read?.archetype ? archDescThird(read.archetype.id) : t("kd.notEnough")}
                     </Text>
                   </>
                 )}
@@ -163,7 +164,7 @@ export default function KindredScreen() {
                     KEEP WRITING TO EACH OTHER TO LEARN:
                   </Text>
                   <Text style={{ fontFamily: PF.mono, fontSize: 10.5, lineHeight: 19, color: P.ink60, marginTop: 6 }}>
-                    {read.sealed.slice(0, 4).map((d) => `□ ${theyify(d.sealed).toLowerCase()}`).join("   ")}
+                    {read.sealed.slice(0, 4).map((d) => `□ ${dimSealedThird(d.key).toLowerCase()}`).join("   ")}
                   </Text>
                 </>
               )}
@@ -196,12 +197,12 @@ export default function KindredScreen() {
               <View style={{ height: 1, backgroundColor: P.ink12, marginTop: 14, marginBottom: 12 }} />
               {!!res.closest && (
                 <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink }}>
-                  You write {res.closest.label.toLowerCase()} almost identically.
+                  {t("kd.resClose", { label: dimLabel(res.closest.key).toLowerCase() })}
                 </Text>
               )}
               {!!res.furthest && (
                 <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink60, marginTop: 4 }}>
-                  {res.furthest.label} is where you're least alike — which is usually the interesting part.
+                  {t("kd.resFar", { label: dimLabel(res.furthest.key) })}
                 </Text>
               )}
             </View>
@@ -263,14 +264,14 @@ function Moment({ d }: { d: DimScore }) {
     <View style={{ marginTop: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.ink }}>
-          {d.label.toUpperCase()}
+          {dimLabel(d.key).toUpperCase()}
         </Text>
         <View style={{ flex: 1, height: 3, backgroundColor: P.ink12 }}>
           <View style={{ width: `${d.score}%`, height: 3, backgroundColor: P.pen }} />
         </View>
       </View>
       <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink, marginTop: 5 }}>
-        {theyify(d.line)}
+        {dimLineThird(d)}
       </Text>
     </View>
   );
@@ -285,7 +286,7 @@ function ResonanceLine({ r }: { r: ResonanceRow }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 11 }}>
       <Text style={{ width: 86, fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink60 }}>
-        {r.label.toUpperCase()}
+        {dimLabel(r.key).toUpperCase()}
       </Text>
       <View style={{ flex: 1, height: 12, justifyContent: "center" }}>
         <View style={{ height: 1, backgroundColor: P.ink12 }} />

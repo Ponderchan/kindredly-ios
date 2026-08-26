@@ -46,9 +46,13 @@ export interface DimScore {
   label: string;
   score: number; // 0..100
   locked: boolean; // enough evidence to trust it; false = still growing
-  line: string; // the read, in warm words — never metric-speak
-  chip: string; // the same read compressed to a card chip — alive, not canned
+  line: string; // the read, in warm words — never metric-speak (English source)
+  chip: string; // the same read compressed to a card chip (English source)
   sealed: string; // "Your hidden quirks" — how the growth list names it
+  /* stable copy ids — the presentation layer (lib/aura-copy) localizes these;
+     the engine stays free of i18n so it remains node-testable. */
+  lineId: string;
+  chipId: string;
 }
 
 export interface HatchResult {
@@ -153,6 +157,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
       chip: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "Observed, not performed" : "Plain words, well aimed",
       sealed: "the words only you choose",
+      lineId: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "dim.line.vocabulary.observed" : "dim.line.vocabulary.plain",
+      chipId: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "dim.chip.vocabulary.observed" : "dim.chip.vocabulary.plain",
     },
     {
       key: "sentence",
@@ -163,6 +169,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: mean >= B.sentenceCopyThreshold ? "You let thoughts breathe instead of forcing conclusions." : "Short lines. You trust the reader to fill the rest.",
       chip: mean >= B.sentenceCopyThreshold ? "Long, breathing lines" : "Short, direct lines",
       sealed: "the shape your sentences take",
+      lineId: mean >= B.sentenceCopyThreshold ? "dim.line.sentence.breathe" : "dim.line.sentence.short",
+      chipId: mean >= B.sentenceCopyThreshold ? "dim.chip.sentence.breathe" : "dim.chip.sentence.short",
     },
     {
       key: "rhythm",
@@ -173,6 +181,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: swings >= 2 ? "Your writing moves like a conversation." : "One steady pace, held all the way through.",
       chip: swings >= 2 ? "Quick line, long line" : "One steady pace",
       sealed: "the rhythm hiding in your sentences",
+      lineId: swings >= 2 ? "dim.line.rhythm.conversation" : "dim.line.rhythm.steady",
+      chipId: swings >= 2 ? "dim.chip.rhythm.conversation" : "dim.chip.rhythm.steady",
     },
     {
       key: "emotion",
@@ -183,6 +193,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: contrast ? "You hold two feelings at once without dropping either." : owned ? "You notice feelings before naming them." : "You keep the feeling under the words, where it hums.",
       chip: contrast ? "Two feelings at once" : owned ? "Names its feelings" : "Feeling kept low",
       sealed: "the feelings under your words",
+      lineId: contrast ? "dim.line.emotion.contrast" : owned ? "dim.line.emotion.owned" : "dim.line.emotion.low",
+      chipId: contrast ? "dim.chip.emotion.contrast" : owned ? "dim.chip.emotion.owned" : "dim.chip.emotion.low",
     },
     {
       key: "perspective",
@@ -193,6 +205,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: distance ? "You often look at yourself from the outside." : inward > outward ? "You write from the inside out." : "You watch the world first, then let it in.",
       chip: distance ? "Sees itself from outside" : inward > outward ? "Writes inside out" : "Watches the world first",
       sealed: "how you see the world",
+      lineId: distance ? "dim.line.perspective.distance" : inward > outward ? "dim.line.perspective.inside" : "dim.line.perspective.world",
+      chipId: distance ? "dim.chip.perspective.distance" : inward > outward ? "dim.chip.perspective.inside" : "dim.chip.perspective.world",
     },
     {
       key: "function",
@@ -203,6 +217,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: hedges >= 2 ? "Your small words reveal hesitation and curiosity." : "No hedging — you commit to the sentence.",
       chip: hedges >= 2 ? "Maybes and almosts" : "Commits to the sentence",
       sealed: "the small words you lean on",
+      lineId: hedges >= 2 ? "dim.line.function.hedged" : "dim.line.function.commits",
+      chipId: hedges >= 2 ? "dim.chip.function.hedged" : "dim.chip.function.commits",
     },
     {
       key: "punctuation",
@@ -213,6 +229,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: dots >= 1 || dashes >= 1 ? "You pause where most people rush." : commas >= 2 ? "Commas carry your breathing." : "Clean stops. No decoration.",
       chip: dots >= 1 || dashes >= 1 ? "Pauses on purpose" : commas >= 2 ? "Breathes in commas" : "Clean stops",
       sealed: "where you pause, and why",
+      lineId: dots >= 1 || dashes >= 1 ? "dim.line.punctuation.pauses" : commas >= 2 ? "dim.line.punctuation.commas" : "dim.line.punctuation.clean",
+      chipId: dots >= 1 || dashes >= 1 ? "dim.chip.punctuation.pauses" : commas >= 2 ? "dim.chip.punctuation.commas" : "dim.chip.punctuation.clean",
     },
     {
       key: "structure",
@@ -223,6 +241,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: detailOpen >= 1 && feelingEnd >= 1 ? "You often start with a detail and arrive at a feeling." : "You open where the thought opens, no throat-clearing.",
       chip: detailOpen >= 1 && feelingEnd >= 1 ? "Detail, then feeling" : "No throat-clearing",
       sealed: "how your thoughts land",
+      lineId: detailOpen >= 1 && feelingEnd >= 1 ? "dim.line.structure.detailFeeling" : "dim.line.structure.noThroat",
+      chipId: detailOpen >= 1 && feelingEnd >= 1 ? "dim.chip.structure.detailFeeling" : "dim.chip.structure.noThroat",
     },
     {
       key: "quirks",
@@ -233,6 +253,8 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       line: q.length ? "You have small ways of saying things that feel unmistakably yours." : "No tics yet — they show up as you relax.",
       chip: q.length ? q.slice(0, 2).join(", ") : "No tics yet",
       sealed: "the patterns nobody else has",
+      lineId: q.length ? "dim.line.quirks.has" : "dim.line.quirks.none",
+      chipId: q.length ? "dim.chip.quirks.has" : "dim.chip.quirks.none",
     },
   ];
 
