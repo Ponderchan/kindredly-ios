@@ -10,6 +10,7 @@ import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { CourierSendOff } from "../components/CourierSendOff";
+import { postNo } from "../lib/format";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat } from "../data/stamps";
@@ -91,7 +92,7 @@ export default function Compose() {
      away. The sheet itself is components/LeaveSheet — this used to be
      Alert.alert, which is right behaviour in stock iOS clothes. */
   const [leaving, setLeaving] = useState(false);
-  const { isGuest } = useAuth();
+  const { user, isGuest } = useAuth();
   const [needsAccount, setNeedsAccount] = useState(false);
   const closeWithGuard = () => {
     if (!text.trim()) return goBack();
@@ -243,6 +244,8 @@ export default function Compose() {
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
         <CourierSendOff
           onDone={goBack}
+          stamp={sel ?? undefined}
+          no={user ? postNo(user.id) : undefined}
           title={isMorning ? `Straight to them.` : undefined}
           note={isMorning ? "IT LANDS WITH THEM" : undefined}
         />
