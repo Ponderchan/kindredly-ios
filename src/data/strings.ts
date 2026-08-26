@@ -13,6 +13,7 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    "read.invite": "Read it in yours",
     /* ── aura resonance ── */
     "dim.stillSealed": "Still sealed — {s}.",
     "kd.resClose": "You write {label} almost identically.",
@@ -568,7 +569,7 @@ strings(
     "ld.today": "TODAY",
     "ld.closed": "CLOSED",
     "ld.allRead": "ALL READ",
-    "ld.pass": "^ PASS",
+    "ld.pass": "↑ PASS",
     "ld.swipePass": "^ SWIPE TO PASS",
     "ld.readIt": "READ IT",
     "ld.lookAround": "LOOK AROUND",
@@ -904,13 +905,14 @@ strings(
     "settings.rate": "Rate Kindredly",
     "lang.send": "Write in whatever language is yours. If they don’t share it, they can read it in theirs — I carry letters, not dictionaries.",
     "lang.read": "Not your language? Read it in yours.",
-    "read.translate": "TRANSLATE",
-    "read.translating": "TRANSLATING…",
-    "read.original": "ORIGINAL",
+    "read.translate": "Translate",
+    "read.translating": "Translating…",
+    "read.original": "See original",
   },
 
   /* ── es ── */
   {
+    "read.invite": "Léela en el tuyo",
     /* ── aura resonance ── */
     "dim.stillSealed": "Aún sellado — {s}.",
     "kd.resClose": "Escribís {label} casi de forma idéntica.",
@@ -1466,7 +1468,7 @@ strings(
     "ld.today": "HOY",
     "ld.closed": "CERRADO",
     "ld.allRead": "TODO LEÍDO",
-    "ld.pass": "^ PASAR",
+    "ld.pass": "↑ PASAR",
     "ld.swipePass": "^ DESLIZA PARA PASAR",
     "ld.readIt": "LÉELA",
     "ld.lookAround": "ECHA UN VISTAZO",
@@ -1802,13 +1804,14 @@ strings(
     "settings.rate": "Valorar Kindredly",
     "lang.send": "Escribe en tu idioma, sea cual sea. Si no lo comparten, podrán leerlo en el suyo — yo llevo cartas, no diccionarios.",
     "lang.read": "¿No es tu idioma? Léela en el tuyo.",
-    "read.translate": "TRADUCIR",
-    "read.translating": "TRADUCIENDO…",
-    "read.original": "ORIGINAL",
+    "read.translate": "Traducir",
+    "read.translating": "Traduciendo…",
+    "read.original": "Ver original",
   },
 
   /* ── pt-BR ── */
   {
+    "read.invite": "Leia na sua língua",
     /* ── aura resonance ── */
     "dim.stillSealed": "Ainda selado — {s}.",
     "kd.resClose": "Vocês escrevem {label} de um jeito quase idêntico.",
@@ -2364,7 +2367,7 @@ strings(
     "ld.today": "HOJE",
     "ld.closed": "FECHADO",
     "ld.allRead": "TUDO LIDO",
-    "ld.pass": "^ PASSAR",
+    "ld.pass": "↑ PASSAR",
     "ld.swipePass": "^ DESLIZE PARA PASSAR",
     "ld.readIt": "LEIA",
     "ld.lookAround": "DÊ UMA OLHADA",
@@ -2700,13 +2703,14 @@ strings(
     "settings.rate": "Avaliar o Kindredly",
     "lang.send": "Escreva na sua língua, seja qual for. Se não for a deles, podem ler na deles — eu carrego cartas, não dicionários.",
     "lang.read": "Não é a sua língua? Leia na sua.",
-    "read.translate": "TRADUZIR",
-    "read.translating": "TRADUZINDO…",
-    "read.original": "ORIGINAL",
+    "read.translate": "Traduzir",
+    "read.translating": "Traduzindo…",
+    "read.original": "Ver original",
   },
 
   /* ── id ── */
   {
+    "read.invite": "Baca dalam bahasamu",
     /* ── aura resonance ── */
     "dim.stillSealed": "Masih tersegel — {s}.",
     "kd.resClose": "Kalian menulis {label} nyaris sama persis.",
@@ -3262,7 +3266,7 @@ strings(
     "ld.today": "HARI INI",
     "ld.closed": "TUTUP",
     "ld.allRead": "SEMUA DIBACA",
-    "ld.pass": "^ LEWATI",
+    "ld.pass": "↑ LEWATI",
     "ld.swipePass": "^ GESER UNTUK MELEWATI",
     "ld.readIt": "BACA",
     "ld.lookAround": "LIHAT-LIHAT",
@@ -3598,8 +3602,8 @@ strings(
     "settings.rate": "Beri nilai Kindredly",
     "lang.send": "Tulis dalam bahasamu, apa pun itu. Kalau mereka tak memakainya, mereka bisa membacanya dalam bahasa mereka — aku membawa surat, bukan kamus.",
     "lang.read": "Bukan bahasamu? Baca dalam bahasamu.",
-    "read.translate": "TERJEMAHKAN",
-    "read.translating": "MENERJEMAHKAN…",
-    "read.original": "ASLINYA",
+    "read.translate": "Terjemahkan",
+    "read.translating": "Menerjemahkan…",
+    "read.original": "Lihat aslinya",
   },
 );

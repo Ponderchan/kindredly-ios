@@ -770,26 +770,30 @@ function LetterPage({
           {letter.close != null ? " · YOUR AURAS ARE CLOSE" : ""}
         </Text>
 
-        {/* HER LINE GETS ITS OWN ROW. Sharing the actions row put three
-            things on one line and pushed TRANSLATE off the screen — and
-            it is a sentence, not a control; it belongs above them. */}
-        {!isVoice && !!letter.body && (letter.lang || "en") !== getLang() && !xlOn && (
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: P.ink40, paddingTop: 10 }}>
-            {t("lang.read")}
-          </Text>
+        {/* THE TRANSLATE INVITATION — its own centered line, not a sentence
+            crammed above the actions. It IS the button: one short phrase in
+            the reader's language (Baca dalam bahasamu / Léela en el tuyo),
+            so it stays elegant at any length and never collides. Only when
+            the letter came in another language. */}
+        {/* one rule above the whole action cluster — letter, then the moves */}
+        <View style={{ borderTopWidth: 1, borderTopColor: P.ink, marginTop: 12 }} />
+
+        {!isVoice && !!letter.body && (letter.lang || "en") !== getLang() && (
+          <Pressable
+            onPress={doTranslate}
+            hitSlop={10}
+            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingTop: 13, paddingBottom: 3 }}
+          >
+            <TranslateMark on={xlOn} />
+            <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 0.3, color: xlBusy ? P.ink40 : xlOn ? P.ink60 : P.pen }}>
+              {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.invite")}
+            </Text>
+          </Pressable>
         )}
 
-        {/* the two moves, on a rule */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? t("ld.swipePass") : t("ld.pass")}</Text>
-          {!isVoice && !!letter.body && (
-            <Pressable onPress={doTranslate} hitSlop={10} style={{ flexDirection: "row", alignItems: "center" }}>
-              <TranslateMark on={xlOn} />
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: xlOn ? P.pen : P.ink60 }}>
-                {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.translate")}
-              </Text>
-            </Pressable>
-          )}
+        {/* pass · reply — two moves. No third label to crowd it. */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 11, paddingBottom: 14 }}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink40 }}>{t("ld.pass")}</Text>
           <Pressable onPress={onReply} hitSlop={14}>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("ld.replyArrow")}</Text>
           </Pressable>
