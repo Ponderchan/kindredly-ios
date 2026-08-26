@@ -13,6 +13,7 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    "sc.moodHint": "+ how did this feel? — it's how you'll find this day again",
     /* ── journal / post chooser ── */
     "pc.post": "POST SOMETHING",
     "pc.tapBack": "TAP ANYWHERE TO GO BACK",
@@ -947,6 +948,7 @@ strings(
 
   /* ── es ── */
   {
+    "sc.moodHint": "+ ¿cómo se sintió? — así reencontrarás este día",
     /* ── journal / post chooser ── */
     "pc.post": "ESCRIBIR ALGO",
     "pc.tapBack": "TOCA DONDE SEA PARA VOLVER",
@@ -1881,6 +1883,7 @@ strings(
 
   /* ── pt-BR ── */
   {
+    "sc.moodHint": "+ como foi isso? — é assim que você reencontra este dia",
     /* ── journal / post chooser ── */
     "pc.post": "ESCREVER ALGO",
     "pc.tapBack": "TOQUE EM QUALQUER LUGAR PARA VOLTAR",
@@ -2815,6 +2818,7 @@ strings(
 
   /* ── id ── */
   {
+    "sc.moodHint": "+ bagaimana rasanya? — begini kamu menemukan hari ini lagi",
     /* ── journal / post chooser ── */
     "pc.post": "TULIS SESUATU",
     "pc.tapBack": "KETUK DI MANA SAJA UNTUK KEMBALI",

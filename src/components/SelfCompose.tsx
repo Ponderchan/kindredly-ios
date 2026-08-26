@@ -16,7 +16,7 @@ import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
+import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
 import { CourierSendOff } from "./CourierSendOff";
@@ -363,12 +363,12 @@ export function SelfCompose({
         {mood ? (
           <>
             <MoodIcon id={mood} size={22} />
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.4, color: MOODS[mood].col }}>{MOODS[mood].n.toLowerCase()}</Text>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.4, color: MOODS[mood].col }}>{moodName(mood).toLowerCase()}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>{t("cp.change")}</Text>
           </>
         ) : (
           <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: P.ink60 }}>
-            + how did this feel? — it's how you'll find this day again
+            {t("sc.moodHint")}
           </Text>
         )}
       </Pressable>
