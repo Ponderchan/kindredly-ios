@@ -261,7 +261,7 @@ export function WrenHome({
                 >
                   <Image source={def.icon} style={{ width: 46, height: 46 }} resizeMode="contain" />
                   <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 7, textAlign: "center" }}>
-                    {def.name}
+                    {tr(`ks.name.${def.id}`)}
                   </Text>
                   <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 7.5, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>
                     {k.evidence}
