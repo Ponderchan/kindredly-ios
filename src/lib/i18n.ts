@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setEngineLanguage } from "./writing-engine/app-language";
 
 /* THREE LANGUAGES, NO NATIVE MODULE.
    ────────────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ function deviceLang(): Lang {
 }
 
 let current: Lang = deviceLang();
+setEngineLanguage(current); // keep the writing engine's language in sync
 const subs = new Set<(l: Lang) => void>();
 
 /** restore the reader's own choice, if they made one */
@@ -64,6 +66,7 @@ export async function loadLang(): Promise<void> {
 export function setLang(l: Lang, persist = true): void {
   if (l === current) return;
   current = l;
+  setEngineLanguage(l);
   for (const f of subs) f(l);
   if (persist) void AsyncStorage.setItem(KEY, l).catch(() => {});
 }

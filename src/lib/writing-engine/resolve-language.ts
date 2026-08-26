@@ -1,5 +1,5 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./types";
-import { getLang } from "../i18n";
+import { engineLanguage } from "./app-language";
 
 /* RESOLVE A PIECE'S LANGUAGE — Step 3.
    ────────────────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ export function resolveLanguage(text: string, hints: LanguageHints = {}): Suppor
     coerce(hints.explicit) ??
     coerce(hints.writingLang) ??
     coerce(hints.threadLang) ??
-    coerce(getLang()) ?? // the reader's chosen app language, a real signal
+    coerce(engineLanguage()) ?? // the reader's chosen app language, a real signal
     detectLanguage(text) ??
     "en"
   );

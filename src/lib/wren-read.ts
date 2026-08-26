@@ -1,38 +1,22 @@
 import type { WrenMood } from "../components/WrenBird";
 import { OPENING_MIN } from "./weighted-count";
 import { t } from "./i18n";
+import { courierRead } from "./writing-engine/courier-read/mood-signals";
 
-/* How Wren reads a piece of writing — words, tone, and emoji, in English and
-   Chinese. Heavy signals are checked first: if in doubt she'd rather be tender
-   than celebrate the wrong thing. Not a classifier, just a companion catching
-   the drift. Shared by the composer and the onboarding hatch. */
-
-const HEAVY =
-  /(tired|exhausted|drained|sad|down|cry|crying|tears|alone|lonely|lost|empty|numb|anxious|anxiety|scared|afraid|worried|hurt|hurts|hurting|hate|angry|broke|broken|breakup|miss|missing|grief|grieving|depress|overwhelm|stress|can'?t|hopeless|worthless|ashamed|guilt|sick|pain|dying|die|scream|drowning|累|疲惫|难过|伤心|孤独|孤单|一个人|想哭|哭|崩溃|焦虑|害怕|好怕|痛苦|难受|恨|生气|烦|压力|撑不住|无力|麻木|失眠|失去|分手|抑郁|绝望|委屈|自责|愧疚|想念|舍不得|不想活|好难)/i;
-const LIGHT =
-  /(happy|glad|excited|love|loved|grateful|thankful|great|proud|amazing|wonderful|relieved|relief|joy|celebrat|yay|finally|hopeful|better|smil|laugh|best day|开心|高兴|快乐|喜欢|爱你|感激|感恩|太好了|骄傲|激动|兴奋|放松|治愈|终于|希望|变好|幸福|满足|超棒|棒|美好|感谢)/i;
-
-const HEAVY_TONE = /(唉+|呜+|哎[^呀哟]|叹气|😮‍💨|emo\b)/i;
-const LAUGH = /(哈哈+|嘻嘻+|嘿嘿+|嘎嘎+|hhh+|lol|lm+ao|233+|笑死|哈哈哈)/i;
-const EXCITED_PUNC = /[!！]{2,}/;
-const ELLIPSIS = /(\.{3,}|。{2,}|…+|⋯)/;
-const QUESTION = /[?？](\s|["'”’)]|$)|(吗|呢|吧)\s*[?？]?\s*$/;
-
-const HEAVY_EMOJI = ["😢", "😭", "😔", "😞", "😟", "😥", "😩", "😫", "😰", "😨", "💔", "🥺", "😪", "😓", "🥀", "😖", "😣", "🙁", "☹️", "😿", "😮‍💨"];
-const LIGHT_EMOJI = ["😊", "😄", "😁", "😆", "🥰", "😍", "🤗", "🎉", "✨", "💛", "💜", "❤️", "❤", "🧡", "💚", "💙", "🙌", "👍", "😌", "🥳", "😂", "🤣", "☺️", "🌈", "🌸", "💫", "⭐", "🌟"];
-const CURIOUS_EMOJI = ["🤔", "❓", "❔", "👀", "🧐"];
-const has = (t: string, arr: string[]) => arr.some((e) => t.includes(e));
+/* How Wren reads a piece of writing — words, tone, and emoji, across all four
+   languages. The mechanism moved into writing-engine/courier-read: the affect,
+   laughter and question evidence now comes from the RESOLVED language's own
+   resources (analyze locally), while the mood taxonomy and the tender-first
+   decision order are unchanged (normalize globally). Chinese affect rides
+   along as a language-neutral bonus so pool letters in zh don't regress.
+   Still synchronous — this runs per keystroke in the composer. */
 
 /** Read the drift of a piece of text into one of Wren's moods.
- *  `enough` = has the writer put down at least a line (controls listen→happy). */
+ *  `enough` = has the writer put down at least a line (controls listen→happy).
+ *  Language resolves from the writer's app language (with a marker-detector
+ *  fallback), so the same moods fire in en/es/pt/id. */
 export function readMood(text: string, enough = true): WrenMood {
-  const t = text.trim();
-  if (!t) return "listen"; // she's here, waiting
-  if (HEAVY.test(t) || has(t, HEAVY_EMOJI) || HEAVY_TONE.test(t)) return "worry";
-  if (LIGHT.test(t) || has(t, LIGHT_EMOJI) || LAUGH.test(t) || EXCITED_PUNC.test(t)) return "delight";
-  if (has(t, CURIOUS_EMOJI) || QUESTION.test(t)) return "curious";
-  if (ELLIPSIS.test(t)) return "think";
-  return enough ? "happy" : "listen";
+  return courierRead(text, enough).mood as WrenMood;
 }
 
 /** Wren's one-line voice for a mood (composer register). */
