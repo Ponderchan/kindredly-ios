@@ -13,6 +13,16 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── compose header/stamp ── */
+    "cp.header": "TO A STRANGER",
+    "cp.moodStamp": "MOOD STAMP",
+    "cp.change": "CHANGE ›",
+    "cp.useThis": "USE THIS ONE →",
+    "cp.seeAll": "See all {n} →",
+    "cp.discover": "DISCOVER FIRST CLASS →",
+    "cp.morningTitle": "Straight to them.",
+    "cp.morningNote": "IT LANDS WITH THEM",
+
     "read.invite": "Read it in yours",
     /* ── aura resonance ── */
     "dim.stillSealed": "Still sealed — {s}.",
@@ -912,6 +922,16 @@ strings(
 
   /* ── es ── */
   {
+    /* ── compose header/stamp ── */
+    "cp.header": "A UN EXTRAÑO",
+    "cp.moodStamp": "SELLO",
+    "cp.change": "CAMBIAR ›",
+    "cp.useThis": "USAR ESTE →",
+    "cp.seeAll": "Ver los {n} →",
+    "cp.discover": "DESCUBRE PRIMERA CLASE →",
+    "cp.morningTitle": "Directo a ellos.",
+    "cp.morningNote": "LE LLEGA A ELLA",
+
     "read.invite": "Léela en el tuyo",
     /* ── aura resonance ── */
     "dim.stillSealed": "Aún sellado — {s}.",
@@ -1811,6 +1831,16 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── compose header/stamp ── */
+    "cp.header": "A UM ESTRANHO",
+    "cp.moodStamp": "SELO",
+    "cp.change": "TROCAR ›",
+    "cp.useThis": "USAR ESTE →",
+    "cp.seeAll": "Ver os {n} →",
+    "cp.discover": "CONHEÇA A PRIMEIRA CLASSE →",
+    "cp.morningTitle": "Direto pra ela.",
+    "cp.morningNote": "CHEGA ATÉ ELA",
+
     "read.invite": "Leia na sua língua",
     /* ── aura resonance ── */
     "dim.stillSealed": "Ainda selado — {s}.",
@@ -2710,6 +2740,16 @@ strings(
 
   /* ── id ── */
   {
+    /* ── compose header/stamp ── */
+    "cp.header": "UNTUK ORANG ASING",
+    "cp.moodStamp": "STEMPEL",
+    "cp.change": "GANTI ›",
+    "cp.useThis": "PAKAI INI →",
+    "cp.seeAll": "Lihat {n} →",
+    "cp.discover": "LIHAT KELAS UTAMA →",
+    "cp.morningTitle": "Langsung ke dia.",
+    "cp.morningNote": "SAMPAI PADANYA",
+
     "read.invite": "Baca dalam bahasamu",
     /* ── aura resonance ── */
     "dim.stillSealed": "Masih tersegel — {s}.",

@@ -267,8 +267,8 @@ export default function Compose() {
           onDone={goBack}
           stamp={sel ?? undefined}
           no={user ? postNo(user.id) : undefined}
-          title={isMorning ? `Straight to them.` : undefined}
-          note={isMorning ? "IT LANDS WITH THEM" : undefined}
+          title={isMorning ? t("cp.morningTitle") : undefined}
+          note={isMorning ? t("cp.morningNote") : undefined}
         />
       </SafeAreaView>
     );
@@ -331,7 +331,7 @@ export default function Compose() {
               </View>
               <Pressable onPress={() => setShowAll(true)} style={{ paddingVertical: 18 }}>
                 <Text style={{ textAlign: "center", fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
-                  See all {STAMPS.length} →
+                  {t("cp.seeAll", { n: STAMPS.length })}
                 </Text>
               </Pressable>
               <Text style={{ textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
@@ -359,7 +359,7 @@ export default function Compose() {
             onPress={() => sel && setStep("write")}
             style={[navyBtn, { paddingVertical: 18, width: "100%", opacity: sel ? 1 : 0.3 }]}
           >
-            <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2 }}>USE THIS ONE →</Text>
+            <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2 }}>{t("cp.useThis")}</Text>
           </Pressable>
         </LinearGradient>
       </SafeAreaView>
@@ -379,7 +379,7 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>TO A STRANGER</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>{t("cp.header")}</Text>
         </View>
         {true ? (
           <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
@@ -478,7 +478,7 @@ export default function Compose() {
                 Replies are always free. Lift the daily cap with First Class.
               </Text>
               <Pressable onPress={() => router.push("/paywall?src=daily_cap")} style={{ marginTop: 10 }}>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>DISCOVER FIRST CLASS →</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("cp.discover")}</Text>
               </Pressable>
             </View>
           )}
@@ -498,14 +498,14 @@ export default function Compose() {
         controls that act on the letter — and it stays visible while you
         write instead of drifting wherever the text happens to end. */}
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 22, paddingVertical: 12, borderTopWidth: 1, borderTopColor: P.ink12 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>MOOD STAMP</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>{t("cp.moodStamp")}</Text>
           {stamp && (
             <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
               <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{sname(stamp.name).toLowerCase()}</Text>
             </View>
           )}
           <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>CHANGE ›</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>{t("cp.change")}</Text>
           </Pressable>
         </View>
 
