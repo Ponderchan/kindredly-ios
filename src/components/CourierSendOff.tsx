@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, Text } from "react-native";
 import Animated, {
   Easing,
@@ -94,6 +94,7 @@ function Postmark() {
 
 export function CourierSendOff({
   keep = false,
+  ready = true,
   title,
   note,
   stamp,
@@ -101,6 +102,9 @@ export function CourierSendOff({
   onDone,
 }: {
   keep?: boolean;
+  /** the work behind the ritual is truly done — the courier won't take the
+   *  letter until it is. Strike and docket play over the wait. */
+  ready?: boolean;
   title?: string;
   note?: string;
   /** the stamp id the writer picked — it rides the envelope and gets cancelled */
@@ -124,14 +128,18 @@ export function CourierSendOff({
   const sink = useSharedValue(0); // keep: the page goes into the desk
   const after = useSharedValue(0); // keep: "Kept." fades up
 
+  const mountAt = useRef(Date.now());
+
   useEffect(() => {
     const finish = () => onDone?.();
     if (reduce) {
-      // motion-sensitive: the finished tableau, held still, then leave
+      // motion-sensitive: the finished tableau, held still; the letter's
+      // dismissal waits for ready in the effect below
       strike.value = 1;
       press.value = 1;
       after.value = 1;
       setDocket(docketFull);
+      if (!keep) return;
       const t = setTimeout(finish, 1500);
       return () => clearTimeout(t);
     }
@@ -171,7 +179,8 @@ export function CourierSendOff({
       };
     }
 
-    // the counter: strike → kick + docket → the courier takes it
+    // the counter: strike → kick + docket. These play over whatever wait the
+    // network imposes; the courier herself is gated on `ready` below.
     strike.value = withDelay(
       380,
       withTiming(1, { duration: 190, easing: Easing.in(Easing.quad) }, (ok) => {
@@ -181,19 +190,33 @@ export function CourierSendOff({
         shake.value = withSequence(withTiming(3, { duration: 55 }), withTiming(0, { duration: 140 }));
       }),
     );
-    birdIn.value = withDelay(1550, withTiming(1, { duration: 340, easing: Easing.out(Easing.back(1.6)) }));
-    fly.value = withDelay(
-      2050,
-      withSequence(
-        withTiming(-0.04, { duration: 160, easing: Easing.out(Easing.quad) }),
-        withTiming(1, { duration: 1400, easing: Easing.in(Easing.cubic) }, (ok) => ok && runOnJS(finish)()),
-      ),
-    );
     return () => {
       if (typer) clearInterval(typer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keep, reduce]);
+
+  /* THE FLIGHT WAITS FOR THE TRUTH. She only takes the letter once it has
+     actually gone through — never sooner than the ritual needs (1.9s from
+     mount), never later than the work allows. */
+  useEffect(() => {
+    if (keep || !ready) return;
+    const finish = () => onDone?.();
+    if (reduce) {
+      const t = setTimeout(finish, 900);
+      return () => clearTimeout(t);
+    }
+    const wait = Math.max(0, 1900 - (Date.now() - mountAt.current));
+    birdIn.value = withDelay(wait, withTiming(1, { duration: 340, easing: Easing.out(Easing.back(1.6)) }));
+    fly.value = withDelay(
+      wait + 500,
+      withSequence(
+        withTiming(-0.04, { duration: 160, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: 1400, easing: Easing.in(Easing.cubic) }, (ok) => ok && runOnJS(finish)()),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, keep, reduce]);
 
   const deskStyle = useAnimatedStyle(() => ({ transform: [{ translateY: shake.value }] }));
 

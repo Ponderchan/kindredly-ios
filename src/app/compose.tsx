@@ -66,6 +66,7 @@ export default function Compose() {
   const [text, setText] = useState(params.seed ?? "");
   const [ask, setAsk] = useState("");
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false); // the publish truly landed — the courier waits for this
   const [capMsg, setCapMsg] = useState<string | null>(null);
   const [recUri, setRecUri] = useState<string | null>(null);
   const [recDur, setRecDur] = useState(0);
@@ -127,8 +128,8 @@ export default function Compose() {
   // silent autosave on leave — "they never send themselves"
   const snap = useRef({ sel, text, ask, mode, sent: false, draftId });
   useEffect(() => {
-    snap.current = { ...snap.current, sel, text, ask, mode, draftId, sent: step === "sending" };
-  }, [sel, text, ask, mode, step, draftId]);
+    snap.current = { ...snap.current, sel, text, ask, mode, draftId, sent: done };
+  }, [sel, text, ask, mode, done, draftId]);
   useEffect(
     () => () => {
       const s = snap.current;
@@ -165,6 +166,15 @@ export default function Compose() {
     if (!canSend || busy || !sel) return;
     setBusy(true);
     setCapMsg(null);
+    setDone(false);
+    /* THE COUNTER OPENS THE MOMENT YOU HAND IT OVER. The gate, the cap and
+       the publish used to run before the sending screen appeared — three
+       network round-trips (one of them an LLM) of frozen composer between the
+       tap and the first frame. Now the strike and the docket play over that
+       wait, and the courier only takes the letter once it has truly gone
+       through. Every failure steps back to the desk and explains. */
+    setStep("sending");
+    const back = () => setStep("write");
 
     /* both paths pass her gate now: the letter itself when written, and
        the line that travels with the recording when spoken */
@@ -178,6 +188,7 @@ export default function Compose() {
       const gate = await screen(body);
       if (!gate.ok) {
         setBusy(false);
+        back();
         Alert.alert(`${wren} held this back`, "This can't go out as written. Keep it to strangers — no contact details.");
         return;
       }
@@ -186,6 +197,7 @@ export default function Compose() {
     const bump = await bumpLetters();
     if (!bump.ok) {
       setBusy(false);
+      back();
       if (bump.reason === "daily_cap") {
         setCapMsg(`That's your ${bump.cap ?? 3} letters for today.`);
       } else if (bump.reason === "unauthorized") {
@@ -214,10 +226,12 @@ export default function Compose() {
        out. Try again." turns "you aren't signed in" into "the network broke" —
        so they retry forever. Ask for the account instead, and only here. */
     if (!ok && isGuest) {
+      back();
       openSignUpSheet(() => setNeedsAccount(true));
       return;
     }
     if (!ok) {
+      back();
       Alert.alert(
         "Couldn't send",
         mode === "speak"
@@ -235,7 +249,7 @@ export default function Compose() {
       deleteDraft(draftId);
       setDraftId(null);
     }
-    setStep("sending");
+    setDone(true);
   };
 
   /* ── sending: the courier takes the letter and flies ── */
@@ -243,6 +257,7 @@ export default function Compose() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
         <CourierSendOff
+          ready={done}
           onDone={goBack}
           stamp={sel ?? undefined}
           no={user ? postNo(user.id) : undefined}
