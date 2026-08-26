@@ -41,17 +41,19 @@ const NIGHT = "#221E3D";
    discovered, not recited. Each wears a keepsake's art, so the stamps on
    this page speak the same language as the shelf in her room. */
 const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
-  { id: "kindreds", title: "More kindreds", sub: "the first stays free", icon: "three-kindreds" },
-  { id: "voice", title: "Voice letters", sub: "say it out loud", icon: "first-voice-letter" },
-  { id: "report", title: "A monthly report", sub: "the month you wrote", icon: "first-anniversary" },
-  { id: "wardrobe", title: "Her wardrobe", sub: "every look she owns", icon: "otis-changed" },
+  { id: "threads", title: "More Open Threads", sub: "keep more connections going at once", icon: "three-kindreds" },
+  { id: "voice", title: "Voice Letters", sub: "say it when typing isn't enough", icon: "first-voice-letter" },
+  /* "Monthly Courier Letter" read as post arriving FROM the courier — a
+     delivery, not a reading. The letter is about YOU; she only carries
+     it, the way she carries everything. */
+  { id: "report", title: "Monthly Letter About You", sub: "a closer read of how your writing changed", icon: "first-anniversary" },
+  { id: "wardrobe", title: "Your Courier's Wardrobe", sub: "more looks, outfits, bags, seals, and trails", icon: "otis-changed" },
 ];
 
-const NEVER: string[] = [
-  "Being heard is never sold — writing, matching and replies stay free.",
-  "Her speed is never sold. She leaves the second you press send.",
-  "Your history is never sold. Keepsakes are earned, not bought.",
-];
+/* One line, not three. The other two promises (her speed, your history)
+   are still true and still enforced in code — they live in How Kindredly
+   Works now, where someone reads rather than scans. */
+const FOOT = "Being heard is always free.";
 
 /* shown until RevenueCat + the App Store products exist, so the screen is
    reviewable and the fares can be judged before they can be bought */
@@ -160,8 +162,8 @@ export default function Paywall() {
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 27, letterSpacing: 1.4, color: P.ink, marginTop: 6 }}>
                   FIRST{"\n"}CLASS
                 </Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, marginTop: 8 }}>
-                  For the kindred spirits.
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 8, paddingRight: 4 }}>
+                  More room for your letters, your courier, and the people you find.
                 </Text>
               </View>
               <View style={{ alignItems: "center", paddingTop: 6 }}>
@@ -219,17 +221,10 @@ export default function Paywall() {
           </Text>
         </Pressable>
 
-        {/* ── what is never for sale ── */}
-        <View style={{ borderWidth: 1, borderColor: P.ink12, padding: 14, marginTop: 22 }}>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: P.ink40, marginBottom: 9 }}>
-            NEVER FOR SALE
-          </Text>
-          {NEVER.map((n) => (
-            <Text key={n} style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 21, color: P.ink60, marginTop: 4 }}>
-              {speakAs(n, wren)}
-            </Text>
-          ))}
-        </View>
+        {/* the one promise that outranks the offer */}
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, textAlign: "center", marginTop: 24 }}>
+          {FOOT}
+        </Text>
 
         <Pressable onPress={restore} style={{ alignItems: "center", paddingVertical: 16 }}>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.5, color: P.ink60 }}>Restore purchase</Text>
@@ -284,22 +279,22 @@ function Stub({ pkg, on, onPress, wren }: { pkg: IapPackage; on: boolean; onPres
           {life
             ? "Paid once. You become a Kindredly Cofounder."
             : year
-              ? "About three dollars a month. The way most people travel."
-              : "Month to month. Leave whenever you like."}
+              ? "about $3.33/month · best value"
+              : "stay as long as you like"}
         </Text>
 
         {life && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 }}>
             <View style={{ width: 7, height: 7, backgroundColor: GOLD }} />
             <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: "#8A6E20" }}>
-              {COFOUNDERS_TOTAL} ONLY · NUMBERED IN ORDER
+              FOUNDING {COFOUNDERS_TOTAL} ONLY · NUMBERED IN ORDER
             </Text>
           </View>
         )}
         {year && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 }}>
             <View style={{ width: 7, height: 7, backgroundColor: P.post }} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post }}>SAVES 52%</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post }}>BEST VALUE</Text>
           </View>
         )}
       </View>
