@@ -121,11 +121,10 @@ export function WrenHome({
   const JOURNEY: WrenStage[] = ["hatch", "fledge", "wren"];
   const STAGE_LABEL: Record<WrenStage, string> = { egg: tr("wren.stage.egg"), hatch: tr("wren.stage.hatch"), fledge: tr("wren.stage.fledge"), wren: tr("wren.stage.grown") };
   const milestones: Record<WrenStage, string> = {
-    egg: "signed up",
-
-    hatch: "born",
-    fledge: "a reply, or 5 letters",
-    wren: "first kindred",
+    egg: tr("wren.milestone.egg"),
+    hatch: tr("wren.milestone.hatch"),
+    fledge: tr("wren.milestone.fledge"),
+    wren: tr("wren.milestone.wren"),
   };
 
   const STAGE_BLURB: Record<WrenStage, string> = {
@@ -308,7 +307,7 @@ export function WrenHome({
 
       <Row
         label={tr("wren.dress")}
-        sub={accessory === "none" ? tr("wren.bare") : ACCESSORY_META.find((a) => a.id === accessory)?.label ?? ""}
+        sub={accessory === "none" ? tr("wren.bare") : (() => { const a = ACCESSORY_META.find((x) => x.id === accessory); return a ? tr(`ws.acc.${a.id}`) : ""; })()}
         count={`${items.filter((a) => a.free || premium).length}/${items.length}`}
         openState={open === "dress"}
         onPress={() => setOpen(open === "dress" ? null : "dress")}
@@ -324,7 +323,7 @@ export function WrenHome({
                   <WrenBird size={44} bare mood="happy" accessory={a.id === "none" ? "none" : a.id} />
                 </View>
                 <Text style={{ fontFamily: PF.mono, fontSize: 8, color: on ? P.pen : P.ink60, marginTop: 2 }}>
-                  {locked ? `🔒 ${a.label}` : a.label}
+                  {locked ? `🔒 ${tr(`ws.acc.${a.id}`)}` : tr(`ws.acc.${a.id}`)}
                 </Text>
               </Pressable>
             );

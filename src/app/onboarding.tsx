@@ -567,7 +567,7 @@ export default function Onboarding() {
                   >
                     {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Y.panel }} /> : null}
                   </View>
-                  <Text style={{ fontFamily: F2.serifItalic, fontSize: 20, color: on ? Y.panel : Y.ink }}>{p.label}</Text>
+                  <Text style={{ fontFamily: F2.serifItalic, fontSize: 20, color: on ? Y.panel : Y.ink }}>{t(`pr.${p.id}`)}</Text>
                 </Pressable>
               </Animated.View>
             );
@@ -832,7 +832,7 @@ export default function Onboarding() {
                       onPress={() => setBirdPro(p.id)}
                       style={[tag, bevel(on ? 3 : 2, on ? 3 : 2), { marginHorizontal: 4, paddingHorizontal: 12, backgroundColor: on ? Y.blue : Y.panel }]}
                     >
-                      <Text style={[mono(9.5, "b"), { color: on ? Y.panel : Y.ink }]}>{p.label.toUpperCase()}</Text>
+                      <Text style={[mono(9.5, "b"), { color: on ? Y.panel : Y.ink }]}>{t(`pr.${p.id}`).toUpperCase()}</Text>
                     </Pressable>
                   );
                 })}
