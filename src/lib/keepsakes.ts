@@ -197,17 +197,34 @@ export interface Minted extends Keepsake {
 
 export async function mint(ctx: KeepsakeCtx): Promise<Minted[]> {
   const found = evaluate(ctx);
+  const fresh = new Map(found.map((k) => [k.id, k]));
   try {
     const shelf: Minted[] = JSON.parse((await AsyncStorage.getItem(KEY)) || "[]");
     const have = new Set(shelf.map((k) => k.id));
-    let grew = false;
+    let changed = false;
+    /* REFRESH THE PROOF, KEEP THE HISTORY. evaluate() re-derives evidence in
+       the reader's current language every run; a keepsake's evidence string
+       was otherwise frozen at first mint (so a date read AUG 3 forever, even
+       after the app switched to Portuguese). We refresh evidence and line
+       from the fresh read while preserving the immutable facts — id, `at`
+       (when it happened), minted (when it landed on your shelf). Non-date
+       stats localize the same way, since evaluate builds them from the
+       catalog too. */
+    for (const m of shelf) {
+      const f = fresh.get(m.id);
+      if (f && (f.evidence !== m.evidence || f.line !== m.line)) {
+        m.evidence = f.evidence;
+        m.line = f.line;
+        changed = true;
+      }
+    }
     for (const k of found)
       if (!have.has(k.id)) {
         shelf.push({ ...k, minted: Date.now() });
         have.add(k.id);
-        grew = true;
+        changed = true;
       }
-    if (grew) await AsyncStorage.setItem(KEY, JSON.stringify(shelf.slice(-120)));
+    if (changed) await AsyncStorage.setItem(KEY, JSON.stringify(shelf.slice(-120)));
     return shelf.sort((a, b) => b.at - a.at);
   } catch {
     return found.map((k) => ({ ...k, minted: Date.now() })).sort((a, b) => b.at - a.at);
