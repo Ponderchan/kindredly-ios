@@ -13,7 +13,8 @@ import { getStamp } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
-import { t } from "../../lib/i18n";
+import { getLang, t } from "../../lib/i18n";
+import { TranslateMark } from "../../components/TranslateMark";
 import {
   clearThreadReaction,
   fetchThreadMessages,
@@ -126,11 +127,10 @@ export default function ThreadScreen() {
     }
     if (xlBusy) return;
     setXlBusy(true);
-    const to = (Intl.DateTimeFormat().resolvedOptions().locale || "en").split("-")[0];
-    const t = await translate(hero.body, to);
+    const out = await translate(hero.body, getLang());
     setXlBusy(false);
-    if (t) {
-      setXl(t);
+    if (out) {
+      setXl(out);
       setXlOn(true);
     } else Alert.alert(`${wren} couldn't translate this`, "Try again in a moment.");
   };
@@ -233,7 +233,8 @@ export default function ThreadScreen() {
                 ) : (
                   <View />
                 )}
-                <Pressable onPress={doTranslate} hitSlop={8}>
+                <Pressable onPress={doTranslate} hitSlop={8} style={{ flexDirection: "row", alignItems: "center" }}>
+                  <TranslateMark on={xlOn} />
                   <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
                     {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.translate")}
                   </Text>

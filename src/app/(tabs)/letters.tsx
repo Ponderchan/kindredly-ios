@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useFocusEffect, useRouter } from "expo-router";
 import { P, PF, channelInk, channelWash, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
+import { TranslateMark } from "../../components/TranslateMark";
 import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
@@ -594,11 +595,10 @@ function LetterPage({
     }
     if (xlBusy || !letter.body) return;
     setXlBusy(true);
-    const to = (Intl.DateTimeFormat().resolvedOptions().locale || "en").split("-")[0];
-    const t = await translate(letter.body, to);
+    const out = await translate(letter.body, getLang());
     setXlBusy(false);
-    if (t) {
-      setXl(t);
+    if (out) {
+      setXl(out);
       setXlOn(true);
     } else Alert.alert(`${wren} couldn't translate this`, "Try again in a moment.");
   };
@@ -782,7 +782,8 @@ function LetterPage({
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
           {!isVoice && !!letter.body && (
-            <Pressable onPress={doTranslate} hitSlop={10}>
+            <Pressable onPress={doTranslate} hitSlop={10} style={{ flexDirection: "row", alignItems: "center" }}>
+              <TranslateMark on={xlOn} />
               <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: xlOn ? P.pen : P.ink60 }}>
                 {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.translate")}
               </Text>
