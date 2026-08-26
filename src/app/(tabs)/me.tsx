@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { C, F, cardStyle, shadow } from "../../theme/tokens";
+import { t, useLang } from "../../lib/i18n";
 import { P, PF, rule } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
@@ -52,6 +53,7 @@ function Gear() {
 }
 
 export default function MeTab() {
+  useLang();
   const auth = useAuth();
   const { user, handle, profile } = auth;
   const { premium, cofounderNo } = useEntitlement();
@@ -190,7 +192,7 @@ export default function MeTab() {
 
         {room === "you" ? (
           <>
-            <WrenSaysOnce id="me" line="Two rooms: what your writing sounds like, and me. Both fill up as you write." />
+            <WrenSaysOnce id="me" line={t("me.intro")} />
             {/* the aura — a letter about you, from Wren, mid-draft */}
             {aura && (
               <View style={{ marginTop: 14 }}>
@@ -207,10 +209,10 @@ export default function MeTab() {
 
             {/* one quiet row — First Class */}
             <Pressable onPress={() => router.push("/paywall?src=me_row")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>FIRST CLASS</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{t("me.firstClass")}</Text>
               <View style={{ flex: 1 }} />
               <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
-                {premium ? "ACTIVE" : "UNLIMITED"} →
+                {premium ? t("me.active") : t("me.unlimited")} →
               </Text>
             </Pressable>
           </>

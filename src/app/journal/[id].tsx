@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import Svg, { Path } from "react-native-svg";
+import { t, useLang } from "../../lib/i18n";
 import { P, PF, rule } from "../../theme/post";
 import { AudioCard } from "../../components/AudioCard";
 import { LinePicker } from "../../components/LinePicker";
@@ -22,6 +23,7 @@ import { useAuth } from "../../lib/auth";
    mono for what the system files, the system font for what you wrote. The mood
    face and the photos keep their colour — they're content. */
 export default function JournalDetail() {
+  useLang();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [e, setE] = useState<JournalEntry | null>(null);
@@ -64,10 +66,10 @@ export default function JournalDetail() {
     if (!e) return;
     if (isDemo) {
       // a sample tears out locally and never comes back
-      Alert.alert("Tear this sample out?", "It's one of ours, not yours — it just stops appearing here.", [
-        { text: "Keep it", style: "cancel" },
+      Alert.alert(t("jd.tearSample.title"), t("jd.tearSample.body"), [
+        { text: t("jd.keep"), style: "cancel" },
         {
-          text: "Tear it out",
+          text: t("jd.tear"),
           style: "destructive",
           onPress: async () => {
             await hideDemoEntry(e.id);
@@ -77,10 +79,10 @@ export default function JournalDetail() {
       ]);
       return;
     }
-    Alert.alert("Tear this page out?", "It disappears from the sealed room. A line that already drifted stays out in the world.", [
-      { text: "Keep it", style: "cancel" },
+    Alert.alert(t("jd.tearPage.title"), t("jd.tearPage.body"), [
+      { text: t("jd.keep"), style: "cancel" },
       {
-        text: "Tear it out",
+        text: t("jd.tear"),
         style: "destructive",
         onPress: async () => {
           await deleteEntry(e.id);
@@ -101,7 +103,7 @@ export default function JournalDetail() {
     if (!sent) {
       setPendingLine(line);
       if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
-      else Alert.alert("Couldn't send it out", "That line stayed put. Try again.");
+      else Alert.alert(t("jd.fail"), t("jd.failBody"));
       return;
     }
     await setDrift(e.id, line);
@@ -216,7 +218,7 @@ export default function JournalDetail() {
                 letter desk, where you give it a stamp and send it yourself. */}
             {!isDemo && e.body.trim().length >= 3 && (
               <MenuRow
-                label="LET THIS DRIFT OUT"
+                label={t("jd.driftThis")}
                 icon={<DriftIcon />}
                 onPress={() => {
                   setMenuOpen(false);
@@ -226,7 +228,7 @@ export default function JournalDetail() {
             )}
             {canDrift && (
               <MenuRow
-                label="LET ONE LINE DRIFT OUT"
+                label={t("jd.driftOne")}
                 icon={<DriftIcon />}
                 onPress={() => {
                   setMenuOpen(false);
@@ -235,7 +237,7 @@ export default function JournalDetail() {
               />
             )}
             <MenuRow
-              label="DELETE"
+              label={t("jd.delete")}
               icon={<BinIcon />}
               destructive
               onPress={() => {
@@ -251,7 +253,7 @@ export default function JournalDetail() {
 
       <SignUpSheet
         open={needsAccount}
-        reason="This line is the one thing that leaves the sealed room, so it needs an account to travel under. The page itself stays here either way."
+        reason={t("jd.signup.reason")}
         onClose={() => setNeedsAccount(false)}
         onSignedIn={() => {
           setNeedsAccount(false);

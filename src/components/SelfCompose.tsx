@@ -4,6 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {C} from "../theme/tokens";
+import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { Wren } from "./Wren";
 import { WrenBird } from "./WrenBird";
@@ -47,6 +48,7 @@ export function SelfCompose({
   setText: (t: string) => void;
   onDone: () => void;
 }) {
+  useLang();
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
   const [tools, setTools] = useState(false);
@@ -113,7 +115,7 @@ export function SelfCompose({
       }
     });
     setCoverIdx(best);
-    setWrenNote("I'd lead with this one — it holds the eye.");
+    setWrenNote(t("sc.leadPhoto"));
   };
 
   const pickVideo = async () => {
@@ -173,7 +175,7 @@ export function SelfCompose({
       );
       if (!uris.length) {
         setBusy(false);
-        Alert.alert("Journal", "Couldn't save the photos. Try again.");
+        Alert.alert(t("sc.journalTitle"), t("sc.failPhotos"));
         return;
       }
       const ci = Math.min(coverIdx, uris.length - 1);
@@ -190,7 +192,7 @@ export function SelfCompose({
       persisted = (await persistMedia(mediaUri, ext)) || undefined;
       if (!persisted) {
         setBusy(false);
-        Alert.alert("Journal", "Couldn't save the media file. Try again.");
+        Alert.alert(t("sc.journalTitle"), t("sc.failMedia"));
         return;
       }
     }
@@ -328,7 +330,7 @@ export function SelfCompose({
               <TextInput
                 value={text}
                 onChangeText={setText}
-                placeholder={att ? "a line to go with it… (optional)" : spark}
+                placeholder={att ? t("sc.ph") : spark}
                 placeholderTextColor="#C4B48D"
                 multiline
                 style={{
@@ -422,7 +424,7 @@ export function SelfCompose({
             }}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSave && !busy ? "#fff" : P.ink40 }}>
-              {busy ? "SEALING…" : "SEAL IT HERE"}
+              {busy ? t("sc.sealing") : t("sc.seal")}
             </Text>
           </Pressable>
         </View>

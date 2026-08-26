@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { C, F, cardStyle } from "../theme/tokens";
+import { t } from "../lib/i18n";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
 import { getMood } from "../data/moods";
@@ -103,7 +104,7 @@ export function JournalCard({
             {drifted && <Text style={{ color: "#fff", fontSize: 9 }}>✓</Text>}
           </View>
           <Text style={{ fontFamily: F.sans, fontSize: 12, color: drifted ? C.purple : C.muted }}>
-            {drifted ? "One line is out in the world" : "Let one line drift out"}
+            {drifted ? t("jc.oneOut") : t("jc.driftOut")}
           </Text>
         </Pressable>
       )}

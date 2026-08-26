@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
+import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { SelfCompose } from "../components/SelfCompose";
 
@@ -21,6 +22,7 @@ import { SelfCompose } from "../components/SelfCompose";
    afterwards, and a thought that sits for two days before you release it is
    more this product than one you toggled while typing. */
 export default function JournalEntryRoute() {
+  useLang();
   const router = useRouter();
   const [text, setText] = useState("");
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
@@ -61,8 +63,8 @@ export default function JournalEntryRoute() {
 
       <LeaveSheet
         open={leaving}
-        title="Leave this page?"
-        body="You've written something. Nothing is saved until you seal it."
+        title={t("je.leaveTitle")}
+        body={t("je.leaveBody")}
         actions={[{ label: "DISCARD", kind: "destructive", onPress: goBack }]}
         onCancel={() => setLeaving(false)}
       />

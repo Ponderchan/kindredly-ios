@@ -5,6 +5,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 
+import { t, useLang } from "../../lib/i18n";
 import { P, PF, rule } from "../../theme/post";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { SealedEntry } from "../../components/SealedEntry";
@@ -20,6 +21,7 @@ import { hiddenDemoIds } from "../../lib/journal";
 type View2 = "line" | "calendar";
 
 export default function JournalTab() {
+  useLang();
   const router = useRouter();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [hiddenDemo, setHiddenDemo] = useState<string[]>([]);
@@ -59,9 +61,9 @@ export default function JournalTab() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       {/* header — the box's own plate, on the same rule Today uses */}
       <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>SEALED</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("jt.sealed")}</Text>
         {empty ? (
-          <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>JUST YOU</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>{t("jt.justYou")}</Text>
         ) : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
@@ -80,22 +82,22 @@ export default function JournalTab() {
       ) : view === "calendar" ? (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>
-            MOMENTS YOU'VE CHOSEN TO KEEP
+            {t("jt.moments")}
           </Text>
           <SealedCalendar entries={all} onPickDay={openDay} />
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 26 }}>
-            SEALED ON THIS DEVICE
+            {t("jt.onDevice")}
           </Text>
         </Animated.ScrollView>
       ) : (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, marginBottom: 20 }}>
-            MOMENTS YOU'VE CHOSEN TO KEEP
+            {t("jt.moments")}
           </Text>
-          <WrenSaysOnce id="sealed" line="These never leave your phone. I don't read them either — that's the whole point of the wax." />
+          <WrenSaysOnce id="sealed" line={t("jt.said")} />
           <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>
-            SEALED ON THIS DEVICE
+            {t("jt.onDevice")}
           </Text>
         </Animated.ScrollView>
       )}
@@ -143,26 +145,26 @@ function Empty({ onWrite }: { onWrite: (start?: string) => void }) {
           <View style={{ position: "absolute", left: 46, top: -11, width: 78, height: 22, backgroundColor: "#BFE0C8", opacity: 0.85, transform: [{ rotate: "-5deg" }], zIndex: 2 }} />
           <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 26, paddingVertical: 30, transform: [{ rotate: "-1deg" }] }}>
             <Text style={{ fontFamily: PF.serif, fontSize: 27, lineHeight: 34, color: P.ink, textAlign: "center" }}>
-              nothing here yet{"\n"}& that's fine
+              {t("jt.emptyTitle")}
             </Text>
             <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink60, textAlign: "center", marginTop: 14 }}>
-              dump a thought, a blurry photo, a 3am voice note. no one sees it — not even the algorithm.
+              {t("jt.emptyBody")}
             </Text>
           </View>
           {/* NEW sticker */}
           <View style={{ position: "absolute", right: 8, bottom: -14, backgroundColor: "#F5D33A", paddingHorizontal: 9, paddingVertical: 6, transform: [{ rotate: "6deg" }] }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: "#2A2620" }}>NEW</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: "#2A2620" }}>{t("jt.new")}</Text>
           </View>
         </View>
 
         {/* four ways in */}
         <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-          <ActionBtn label="type it" glyph="↵" wash="#E4E2EA" fg={P.ink} onPress={() => onWrite()} />
-          <ActionBtn label="snap it" glyph="▢" wash="#DFE9F3" fg="#294055" onPress={() => onWrite("photo")} />
+          <ActionBtn label={t("jt.typeIt")} glyph="↵" wash="#E4E2EA" fg={P.ink} onPress={() => onWrite()} />
+          <ActionBtn label={t("jt.snapIt")} glyph="▢" wash="#DFE9F3" fg="#294055" onPress={() => onWrite("photo")} />
         </View>
         <View style={{ flexDirection: "row", gap: 12 }}>
-          <ActionBtn label="say it" glyph="●" wash="#F5E1E7" fg="#7A2E44" onPress={() => onWrite("voice")} />
-          <ActionBtn label="film it" glyph="▶" wash="#F3E7D6" fg="#6B4A22" onPress={() => onWrite("video")} />
+          <ActionBtn label={t("jt.sayIt")} glyph="●" wash="#F5E1E7" fg="#7A2E44" onPress={() => onWrite("voice")} />
+          <ActionBtn label={t("jt.filmIt")} glyph="▶" wash="#F3E7D6" fg="#6B4A22" onPress={() => onWrite("video")} />
         </View>
       </View>
     </Animated.View>
