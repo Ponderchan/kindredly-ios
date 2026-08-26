@@ -4,7 +4,7 @@ import { P, PF } from "../theme/post";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
 import { getMood } from "../data/moods";
-import { fmt } from "../lib/format";
+import { fmt, localeTag } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
 /* One filed page in your box, closed by a rule in that day's mood colour — so
@@ -23,7 +23,7 @@ import type { JournalEntry } from "../lib/journal";
 
 function meta(e: JournalEntry): string {
   const d = new Date(e.date);
-  const mon = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  const mon = d.toLocaleDateString(localeTag(), { month: "short" }).toUpperCase();
   const day = String(d.getDate()).padStart(2, "0");
   const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
   return `${mon} ${day} · ${time}`;

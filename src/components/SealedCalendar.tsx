@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { localeTag } from "../lib/format";
 import { Pressable, Text, View } from "react-native";
 import { F } from "../theme/tokens";
 import { P, PF } from "../theme/post";
@@ -38,7 +39,7 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
   const first = new Date(ym.y, ym.m, 1);
   const lead = first.getDay(); // 0=Sun
   const days = new Date(ym.y, ym.m + 1, 0).getDate();
-  const monthName = first.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
+  const monthName = first.toLocaleDateString(localeTag(), { month: "long" }).toUpperCase();
 
   const cells: (number | null)[] = [];
   for (let i = 0; i < lead; i++) cells.push(null);

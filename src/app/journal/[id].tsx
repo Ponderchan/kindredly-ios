@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { localeTag } from "../../lib/format";
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -148,7 +149,7 @@ export default function JournalDetail() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
             <CalGlyph />
             <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.ink60 }}>
-              {new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}
+              {new Date(e.date).toLocaleDateString(localeTag(), { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}
               {isDemo ? " · SAMPLE" : ""}
             </Text>
           </View>

@@ -1,7 +1,8 @@
 import { t, getLang } from "./i18n";
 
 /* dates format in the reader's locale, so JUL 29 becomes 29 de jul. / 29 jul */
-const LOCALE = () => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US");
+export const localeTag = (): string => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US");
+const LOCALE = localeTag;
 /* Small pure formatters + deterministic identity helpers.
    shade/dLong/dShort/today ported from kindredly-v20.jsx; hashStr/postNo/
    avatarFor ported from the web system.js so anonymous "correspondent
