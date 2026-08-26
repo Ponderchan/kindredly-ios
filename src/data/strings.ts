@@ -13,6 +13,17 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── paywall route / me stats ── */
+    "pw.route": "YOUR ROUTE SO FAR",
+    "pw.roadCloses": "THE ROAD CLOSES HERE",
+    "pw.pastGate": "PAST THE GATE · PEEL TO SEE",
+    "pw.sealed": "SEALED",
+    "pw.peel": "peel",
+    "pw.haveOne": "You have one kindred. I can carry you to one more — but not past it, not on this fare.",
+    "pw.haveMany": "You have {n} kindreds. I can carry you to one more — but not past it, not on this fare.",
+    "me.statsOne": "DAY {day} · {letters} LETTERS · {sealed} SEALED · 1 KINDRED",
+    "me.statsMany": "DAY {day} · {letters} LETTERS · {sealed} SEALED · {kindreds} KINDREDS",
+
     "sc.moodHint": "+ how did this feel? — it's how you'll find this day again",
     /* ── journal / post chooser ── */
     "pc.post": "POST SOMETHING",
@@ -948,6 +959,17 @@ strings(
 
   /* ── es ── */
   {
+    /* ── paywall route / me stats ── */
+    "pw.route": "TU RUTA HASTA AHORA",
+    "pw.roadCloses": "EL CAMINO SE CIERRA AQUÍ",
+    "pw.pastGate": "MÁS ALLÁ · DESPÉGALO PARA VER",
+    "pw.sealed": "SELLADO",
+    "pw.peel": "despega",
+    "pw.haveOne": "Tienes un afín. Puedo llevarte a uno más — pero no más allá, no con esta tarifa.",
+    "pw.haveMany": "Tienes {n} afines. Puedo llevarte a uno más — pero no más allá, no con esta tarifa.",
+    "me.statsOne": "DÍA {day} · {letters} CARTAS · {sealed} SELLADAS · 1 AFÍN",
+    "me.statsMany": "DÍA {day} · {letters} CARTAS · {sealed} SELLADAS · {kindreds} AFINES",
+
     "sc.moodHint": "+ ¿cómo se sintió? — así reencontrarás este día",
     /* ── journal / post chooser ── */
     "pc.post": "ESCRIBIR ALGO",
@@ -1883,6 +1905,17 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── paywall route / me stats ── */
+    "pw.route": "SUA ROTA ATÉ AQUI",
+    "pw.roadCloses": "A ESTRADA SE FECHA AQUI",
+    "pw.pastGate": "ALÉM DA PORTEIRA · DESCASQUE PARA VER",
+    "pw.sealed": "SELADO",
+    "pw.peel": "descasque",
+    "pw.haveOne": "Você tem um afim. Posso te levar a mais um — mas não além, não com esta tarifa.",
+    "pw.haveMany": "Você tem {n} afins. Posso te levar a mais um — mas não além, não com esta tarifa.",
+    "me.statsOne": "DIA {day} · {letters} CARTAS · {sealed} SELADAS · 1 AFIM",
+    "me.statsMany": "DIA {day} · {letters} CARTAS · {sealed} SELADAS · {kindreds} AFINS",
+
     "sc.moodHint": "+ como foi isso? — é assim que você reencontra este dia",
     /* ── journal / post chooser ── */
     "pc.post": "ESCREVER ALGO",
@@ -2818,6 +2851,17 @@ strings(
 
   /* ── id ── */
   {
+    /* ── paywall route / me stats ── */
+    "pw.route": "RUTEMU SEJAUH INI",
+    "pw.roadCloses": "JALAN BERAKHIR DI SINI",
+    "pw.pastGate": "DI BALIK GERBANG · KUPAS UNTUK MELIHAT",
+    "pw.sealed": "TERSEGEL",
+    "pw.peel": "kupas",
+    "pw.haveOne": "Kamu punya satu kerabat. Aku bisa membawamu ke satu lagi — tapi tak lebih, tidak dengan tarif ini.",
+    "pw.haveMany": "Kamu punya {n} kerabat. Aku bisa membawamu ke satu lagi — tapi tak lebih, tidak dengan tarif ini.",
+    "me.statsOne": "HARI {day} · {letters} SURAT · {sealed} TERSEGEL · 1 KERABAT",
+    "me.statsMany": "HARI {day} · {letters} SURAT · {sealed} TERSEGEL · {kindreds} KERABAT",
+
     "sc.moodHint": "+ bagaimana rasanya? — begini kamu menemukan hari ini lagi",
     /* ── journal / post chooser ── */
     "pc.post": "TULIS SESUATU",

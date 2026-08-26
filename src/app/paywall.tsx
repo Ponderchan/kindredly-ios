@@ -323,7 +323,7 @@ function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSumma
   return (
     <View style={{ marginTop: 26 }}>
       <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40 }}>
-        YOUR ROUTE SO FAR
+        {tr("pw.route")}
       </Text>
 
       {flown.length === 0 ? (
@@ -341,7 +341,7 @@ function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSumma
                   {i < flown.length - 1 && <View style={{ width: 1, height: 16, backgroundColor: P.ink12 }} />}
                 </View>
                 <View style={{ flex: 1, paddingBottom: i < flown.length - 1 ? 16 : 0 }}>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 13, color: P.ink }}>{def?.name ?? k.id}</Text>
+                  <Text style={{ fontFamily: PF.monoMed, fontSize: 13, color: P.ink }}>{def ? tr(`ks.name.${k.id}`) : k.id}</Text>
                   <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 0.8, color: P.ink40, marginTop: 2 }}>
                     {k.evidence}
                   </Text>
@@ -357,19 +357,19 @@ function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSumma
         <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
           <View style={{ width: 9, height: 9, backgroundColor: P.post }} />
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: P.post }}>
-            THE ROAD CLOSES HERE
+            {tr("pw.roadCloses")}
           </Text>
         </View>
         <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink, marginTop: 8 }}>
           {kindreds >= 1
-            ? speakAs(`You have ${kindreds === 1 ? "one kindred" : `${kindreds} kindreds`}. I can carry you to one more — but not past it, not on this fare.`, wren)
+            ? speakAs(kindreds === 1 ? tr("pw.haveOne") : tr("pw.haveMany", { n: kindreds }), wren)
             : speakAs(tr("pw.road.oneKindred"), wren)}
         </Text>
       </View>
 
       {/* what waits past it — sealed, and you peel them yourself */}
       <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 24, marginBottom: 10 }}>
-        PAST THE GATE · PEEL TO SEE
+        {tr("pw.pastGate")}
       </Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {BEYOND.map((b) => (
@@ -425,9 +425,9 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
           <>
             <Text style={{ fontFamily: PF.mono, fontSize: 21, color: P.ink40 }}>▧</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 9 }}>
-              SEALED
+              {tr("pw.sealed")}
             </Text>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink40, marginTop: 4 }}>peel</Text>
+            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink40, marginTop: 4 }}>{tr("pw.peel")}</Text>
           </>
         )}
       </Animated.View>

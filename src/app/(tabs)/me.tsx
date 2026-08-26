@@ -155,8 +155,9 @@ export default function MeTab() {
           <Pressable onPress={() => setEditing(true)} style={{ flex: 1 }} hitSlop={6}>
             <Text style={{ fontFamily: PF.letter, fontSize: 27, fontWeight: "600", color: P.ink }}>{name}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 5 }}>
-              DAY {stats.day} · {stats.lettersSent} LETTERS · {stats.journalN} SEALED · {stats.kindreds}{" "}
-              {stats.kindreds === 1 ? "KINDRED" : "KINDREDS"}
+              {stats.kindreds === 1
+                ? t("me.statsOne", { day: stats.day, letters: stats.lettersSent, sealed: stats.journalN })
+                : t("me.statsMany", { day: stats.day, letters: stats.lettersSent, sealed: stats.journalN, kindreds: stats.kindreds })}
             </Text>
             {cofounderNo != null && (
               <View style={{ marginTop: 8 }}>
