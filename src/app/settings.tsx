@@ -56,13 +56,13 @@ export default function Settings() {
 
   const editName = () => {
     Alert.prompt?.(
-      "Your pen name",
-      "Strangers never see it — only a kindred, once you've both enclosed your names.",
+      t("set.penPrompt.title"),
+      t("set.penPrompt.body"),
       async (next?: string) => {
         const n = (next || "").trim();
         if (!n || n === handle) return;
         const r = await auth.saveProfile({ handle: n });
-        if ("error" in r) Alert.alert("Couldn't save", r.error);
+        if ("error" in r) Alert.alert(t("set.cantSave"), r.error);
       },
       "plain-text",
       handle,
@@ -75,8 +75,8 @@ export default function Settings() {
      for the life of the account. */
   const renameWren = () => {
     Alert.prompt?.(
-      `Rename ${wren}`,
-      "She'll answer to it everywhere — in her room, on your letters, in the introduction she carries.",
+      t("set.renameWren", { wren }),
+      t("set.wrenPrompt.body"),
       async (next?: string) => {
         const n = (next || "").trim().slice(0, 18);
         if (!n || n === wren) return;
@@ -117,7 +117,7 @@ export default function Settings() {
     setRestoring(true);
     const ok = await iapRestore();
     setRestoring(false);
-    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your First Class is back." : "No previous purchase was found on this Apple ID.");
+    Alert.alert(ok ? t("set.restored") : t("set.nothingRestore"), ok ? t("set.restoredBody") : t("set.nothingRestoreBody"));
   };
 
   const onToggleKnock = async (want: boolean) => {
@@ -190,43 +190,43 @@ export default function Settings() {
         {/* account */}
         <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("settings.account")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label="Pen name" value={handle || "You"} onPress={editName} />
-          {age && <Row label="Age" value={age} />}
+          <Row label={t("set.penName")} value={handle || t("set.you")} onPress={editName} />
+          {age && <Row label={t("set.age")} value={age} />}
           {/* the Language row sat here showing "English" and doing nothing —
               a dead row on a settings page reads as a broken app */}
           <Row
             label={t("settings.language")}
-            value={LANGS.find((l) => l.id === lang)?.label ?? "English"}
+            value={LANGS.find((l) => l.id === lang)?.label ?? "English"} /* language names are endonyms — never translated */
             onPress={() => setPicking(true)}
           />
-          <Row label={`${wren}'s name`} value={wren} onPress={renameWren} last />
+          <Row label={t("set.wrenName", { wren })} value={wren} onPress={renameWren} last />
         </View>
 
         {/* quiet */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>THE QUIET</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.quiet")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>The 8 o'clock knock</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>{t("set.knock.title")}</Text>
               <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 2 }}>
-                One quiet knock when the Morning Page arrives. Nothing else, ever.
+                {t("set.knock.sub")}
               </Text>
             </View>
             <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
           </View>
-          <Row label="Pages you've kept" onPress={() => router.push("/kept")} />
+          <Row label={t("set.kept")} onPress={() => router.push("/kept")} />
           {/* the way back to a saved draft. Without this the composer's
               "save as draft" wrote somewhere nobody could reach. */}
-          <Row label="Unsent letters" onPress={() => router.push("/drafts")} />
+          <Row label={t("set.drafts")} onPress={() => router.push("/drafts")} />
         </View>
 
         {/* First Class — Apple wants restore and a way to manage a running
             subscription reachable outside the paywall */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>FIRST CLASS</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.firstClass")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label="Membership" value={cofounderNo != null ? `Cofounder No. ${String(cofounderNo).padStart(3, "0")}` : premium ? "First Class" : "Not yet"} onPress={() => router.push("/paywall?src=settings_row")} />
-          <Row label="Restore purchases" value={restoring ? "…" : "›"} onPress={onRestore} />
-          <Row label="Manage subscription" onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")} last />
+          <Row label={t("set.membership")} value={cofounderNo != null ? t("set.member.cofounder", { n: String(cofounderNo).padStart(3, "0") }) : premium ? t("set.member.first") : t("set.member.not")} onPress={() => router.push("/paywall?src=settings_row")} />
+          <Row label={t("set.restore")} value={restoring ? "…" : "›"} onPress={onRestore} />
+          <Row label={t("set.manage")} onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")} last />
         </View>
 
         {/* help — the questions a new reader actually has, and a person */}
@@ -239,33 +239,33 @@ export default function Settings() {
 
         {/* safety — every row here must actually go somewhere; a dead row on
             THIS panel is the one a reviewer is most likely to press */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>SAFETY</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.safety")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label="Blocked & reported" onPress={() => router.push("/blocked")} />
-          <Row label="Terms" onPress={() => Linking.openURL("https://kindredly.io/terms")} />
-          <Row label="Privacy policy" onPress={() => Linking.openURL("https://kindredly.io/privacy")} last />
+          <Row label={t("set.blocked")} onPress={() => router.push("/blocked")} />
+          <Row label={t("set.terms")} onPress={() => Linking.openURL("https://kindredly.io/terms")} />
+          <Row label={t("set.privacy")} onPress={() => Linking.openURL("https://kindredly.io/privacy")} last />
         </View>
 
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2 }]}>
           <Pressable onPress={onSignOut} style={{ paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>Sign out</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>{t("set.signOut")}</Text>
           </Pressable>
           <Pressable onPress={() => setAskDelete(true)} style={{ paddingVertical: 13 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>Delete account</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>{t("set.deleteAcct")}</Text>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 2 }}>
-              Your letters stay, unsigned. Everything else goes.
+              {t("set.deleteSub")}
             </Text>
           </Pressable>
         </View>
         <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, textAlign: "center", marginTop: 22 }}>
-          KINDREDLY {APP_VERSION} · MADE SLOWLY
+          {t("set.version", { v: APP_VERSION })}
         </Text>
       </ScrollView>
 
       <LeaveSheet
         open={picking}
         title={t("settings.language")}
-        body={`Kindredly speaks ${LANGS.length} languages. A letter always travels in whatever language it was written in.`}
+        body={t("set.langBody", { n: LANGS.length })}
         actions={LANGS.map((l) => ({
           label: l.label.toUpperCase(),
           kind: l.id === lang ? ("primary" as const) : ("quiet" as const),
@@ -274,16 +274,16 @@ export default function Settings() {
             setPicking(false);
           },
         }))}
-        cancelLabel="NEVER MIND"
+        cancelLabel={t("set.neverMind")}
         onCancel={() => setPicking(false)}
       />
 
       <LeaveSheet
         open={askDelete}
-        title="Delete your account"
-        body={`Your letters stay out in the world, unsigned — nothing about them traces back to you. A kindred keeps what you wrote them; you simply go quiet. Your sealed pages never left this phone, so they stay. Everything else — your aura, your kindreds, ${wren} — goes for good. There's no undo.`}
-        actions={[{ label: deleting ? "…" : "DELETE MY ACCOUNT", kind: "destructive", onPress: onDeleteAccount }]}
-        cancelLabel="KEEP MY ACCOUNT"
+        title={t("set.delTitle")}
+        body={t("set.delBody", { wren })}
+        actions={[{ label: deleting ? "…" : t("set.delConfirm"), kind: "destructive", onPress: onDeleteAccount }]}
+        cancelLabel={t("set.delKeep")}
         onCancel={() => !deleting && setAskDelete(false)}
       />
     </SafeAreaView>
