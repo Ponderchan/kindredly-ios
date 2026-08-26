@@ -13,7 +13,7 @@ import { getStamp } from "../../data/stamps";
 import { REACTIONS, reactionLabel } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
-import { getLang, t } from "../../lib/i18n";
+import { getLang, t, useLang } from "../../lib/i18n";
 import { TranslateMark } from "../../components/TranslateMark";
 import {
   clearThreadReaction,
@@ -31,6 +31,7 @@ const PAPER = P.paper;
 
 export default function ThreadScreen() {
   const { id, i } = useLocalSearchParams<{ id: string; i?: string }>();
+  useLang(); // repaint on language change
   const router = useRouter();
   const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
@@ -66,7 +67,7 @@ export default function ThreadScreen() {
     const res = await sendThreadMessage(id, text);
     setSending(false);
     if (!res) {
-      Alert.alert("Your letter stayed here", "It didn't go out. Try again in a moment.");
+      Alert.alert(t("th.fail.title"), t("th.fail.body"));
       return;
     }
     setReply("");
@@ -141,7 +142,7 @@ export default function ThreadScreen() {
       <View style={{ paddingHorizontal: 12, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View style={{ width: 42 }} />
         <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.2, color: P.ink60 }}>
-          {conv.length} {conv.length === 1 ? "LETTER" : "LETTERS"} IN THIS THREAD
+          {conv.length === 1 ? t("th.inThreadOne", { n: conv.length }) : t("th.inThreadMany", { n: conv.length })}
         </Text>
         <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
       </View>
@@ -226,7 +227,7 @@ export default function ThreadScreen() {
                     <View>
                       <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink }}>{(name || alias).toUpperCase()}</Text>
                       <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 2 }}>
-                        {expanded ? "HIDE THE THREAD" : `${conv.length} LETTERS BETWEEN YOU ›`}
+                        {expanded ? t("th.hide") : t("th.between", { n: conv.length })}
                       </Text>
                     </View>
                   </Pressable>
@@ -278,7 +279,7 @@ export default function ThreadScreen() {
             })}
           </View>
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: myR ? P.pen : P.ink40, marginTop: 10 }}>
-            {myR ? `${(reactionLabel(myR) || "").toUpperCase()} — THEY'LL SEE IT` : "OR ANSWER WITH ONE TAP"}
+            {myR ? t("th.reactSeen", { r: (reactionLabel(myR) || "").toUpperCase() }) : t("th.answerOneTap")}
           </Text>
         </View>
 
@@ -288,7 +289,7 @@ export default function ThreadScreen() {
             <TextInput
               value={reply}
               onChangeText={setReply}
-              placeholder={detail?.revealed ? `say something to ${name}…` : "write back to them…"}
+              placeholder={detail?.revealed ? t("th.sayTo", { name: name ?? "" }) : t("th.writeBackThem")}
               placeholderTextColor={P.ink40}
               multiline
               style={{ flex: 1, ...fieldBox(reply, 23, 120), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
@@ -299,16 +300,16 @@ export default function ThreadScreen() {
               style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
             >
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : P.ink40 }}>
-                {sending ? "···" : "SEND"}
+                {sending ? "···" : t("ld.send")}
               </Text>
             </Pressable>
           </View>
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 9 }}>
             {replyW > LETTER_MAX
-              ? `${replyW - LETTER_MAX} OVER THE LIMIT`
+              ? t("th.over", { n: replyW - LETTER_MAX })
               : detail?.revealed
-                ? "THIS GOES STRAIGHT TO THEM"
-                : "THIS REPLY GOES STRAIGHT TO THEM"}
+                ? t("th.goesStraight")
+                : t("th.replyGoesStraight")}
           </Text>
         </View>
       </KeyboardAvoidingView>

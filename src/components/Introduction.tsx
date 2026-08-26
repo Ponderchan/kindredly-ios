@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule, solidBtn } from "../theme/post";
 import { AvatarImage } from "./AvatarImage";
 import { TheirMark } from "./TheirMark";
+import { t } from "../lib/i18n";
 import { WrenBird } from "./WrenBird";
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
@@ -77,21 +78,20 @@ export function Introduction({
             <View style={{ alignItems: "center", marginTop: 4 }}>
               <AvatarImage id={otherFace} seed={otherSeed} size={40} />
               <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.2, color: P.ink40, marginTop: 7 }}>
-                THE FACE THEY CHOSE TO GIVE YOU
+                {t("in.faceGiven")}
               </Text>
             </View>
           ) : null}
 
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
-            They know you now as {myName}.{"\n\n"}Nothing else changes. Same letters, same pace. Only now they're
-            signed.
+            {t("in.knowYou", { name: myName })}
           </Text>
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
           <Pressable onPress={onTalk} style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>
-TALK TO {otherName.toUpperCase()}
+{t("in.talkTo", { name: otherName.toUpperCase() })}
             </Text>
           </Pressable>
         </View>

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
@@ -44,6 +45,7 @@ import { fieldBox } from "../../lib/field";
    NOT AN INBOX. There is no typing indicator, no read receipt, no
    presence. Nothing here reports on the other person's attention. */
 export default function RoomScreen() {
+  useLang(); // repaint on language change
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -59,12 +61,12 @@ export default function RoomScreen() {
      need storage, moderation and a media pipeline are shown locked rather
      than live-and-dead. */
   const TRACES: TraceAction[] = [
-    { id: "thought", glyph: "💭", title: "Drop a thought", sub: "whatever's in your head" },
-    { id: "ask", glyph: "❓", title: "Ask something", sub: "open a new thread of talk" },
-    { id: "wren", glyph: "🐦", title: `A question from ${wren}`, sub: "she hands you one to pass on" },
-    { id: "moment", glyph: "📷", title: "Tiny moment", sub: "a picture of today", locked: true },
-    { id: "song", glyph: "🎵", title: "Leave a song", sub: "one they should hear", locked: true },
-    { id: "save", glyph: "🔖", title: "Save this moment", sub: "keep it in your lore", locked: true },
+    { id: "thought", glyph: "💭", title: t("rm.thought.t"), sub: t("rm.thought.s") },
+    { id: "ask", glyph: "❓", title: t("rm.ask.t"), sub: t("rm.ask.s") },
+    { id: "wren", glyph: "🐦", title: t("rm.wren.t", { wren }), sub: t("rm.wren.s") },
+    { id: "moment", glyph: "📷", title: t("rm.moment.t"), sub: t("rm.moment.s"), locked: true },
+    { id: "song", glyph: "🎵", title: t("rm.song.t"), sub: t("rm.song.s"), locked: true },
+    { id: "save", glyph: "🔖", title: t("rm.save.t"), sub: t("rm.save.s"), locked: true },
   ];
 
   const onTrace = (kind: string) => {
@@ -98,7 +100,7 @@ export default function RoomScreen() {
   // the room hears the server: their message, their reaction, live
   useThreadLive(id, load);
 
-  const name = detail?.otherName || "A kindred";
+  const name = detail?.otherName || t("cm.kindred");
   const read = useMemo(() => {
     if (!detail) return null;
     const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
@@ -145,7 +147,7 @@ export default function RoomScreen() {
     if (!res) {
       setText(body);
       void load();
-      Alert.alert("It stayed here", "That didn't go out. Try again in a moment.");
+      Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
       return;
     }
     void refreshFingerprint();
@@ -268,7 +270,7 @@ export default function RoomScreen() {
               ref={inputRef}
               value={text}
               onChangeText={setText}
-              placeholder="leave something here…"
+              placeholder={t("rm.ph")}
               placeholderTextColor={P.ink40}
               multiline
               style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16.5, lineHeight: 24, color: P.ink }}
@@ -280,7 +282,7 @@ export default function RoomScreen() {
             style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: canSend ? P.pen : "transparent" }}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: canSend ? "#fff" : P.ink40 }}>
-              {sending ? "···" : "SEND"}
+              {sending ? "···" : t("ld.send")}
             </Text>
           </Pressable>
         </View>

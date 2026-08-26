@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { Introduction } from "../../components/Introduction";
@@ -61,6 +62,7 @@ async function introduceOnce(threadId: string, show: () => void) {
 }
 
 export default function ChatScreen() {
+  useLang();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -107,7 +109,7 @@ export default function ChatScreen() {
   const conv = detail
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" }, ...detail.messages].filter((m) => m.body)
     : [];
-  const name = detail?.revealed ? detail.otherName || "A kindred" : detail ? `No. ${postNo(detail.other)}` : "…";
+  const name = detail?.revealed ? detail.otherName || t("cm.kindred") : detail ? `No. ${postNo(detail.other)}` : "…";
   /* the read, from their letters in this very thread */
   const read = useMemo(() => {
     if (!detail) return null;
@@ -158,7 +160,7 @@ export default function ChatScreen() {
     if (!res) {
       setText(body);
       void load();
-      Alert.alert("Your letter stayed here", "It didn't go out. Try again in a moment.");
+      Alert.alert(t("th.fail.title"), t("th.fail.body"));
       return;
     }
     void refreshFingerprint();
@@ -175,7 +177,7 @@ export default function ChatScreen() {
     setSigning(false);
     setAskSign(false);
     if (!res) {
-      Alert.alert("Your name stayed here", "It didn't go through. Try again in a moment.");
+      Alert.alert(t("ch.name.fail.title"), t("ch.name.fail.body"));
       return;
     }
     await load();
@@ -311,7 +313,7 @@ YOU WENT FIRST — WAITING ON THEIRS
                     color: detail.theirSigned ? P.brassSeal : P.ink,
                   }}
                 >
-                  {detail.theirSigned ? "THEY WENT FIRST — SEND YOURS" : "SEND THEM YOUR NAME"}
+                  {detail.theirSigned ? t("ch.theyFirst") : t("ch.sendYours")}
                 </Text>
               </Pressable>
             )}
@@ -358,7 +360,7 @@ YOU WENT FIRST — WAITING ON THEIRS
                  was always a whole answer — but the product never admitted
                  it. Before names it is a letter you are composing; after,
                  it is a person you are talking to. */
-              placeholder={detail?.revealed ? `say something to ${name}…` : "write your letter…"}
+              placeholder={detail?.revealed ? t("th.sayTo", { name }) : t("ch.ph")}
               placeholderTextColor={P.ink40}
               multiline
               style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
@@ -369,17 +371,17 @@ YOU WENT FIRST — WAITING ON THEIRS
             disabled={!canSend}
             style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: canSend ? P.pen : "transparent" }}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: canSend ? "#fff" : P.ink40 }}>SEND</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: canSend ? "#fff" : P.ink40 }}>{t("ld.send")}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
 
       <LeaveSheet
         open={askSign}
-        title="Enclose your name"
-        body={`Your pen name — ${auth.handle || "the one you chose"} — travels with your next letters. They'll see it's enclosed, but can't open it until they enclose theirs. If they never do, you stay lovely strangers, and that's allowed.`}
-        actions={[{ label: signing ? "…" : "ENCLOSE IT", kind: "primary", onPress: onSign }]}
-        cancelLabel="NOT YET"
+        title={t("ch.sign.title")}
+        body={t("ch.sign.body", { name: auth.handle || t("ch.sign.fallback") })}
+        actions={[{ label: signing ? "…" : t("ch.sign.confirm"), kind: "primary", onPress: onSign }]}
+        cancelLabel={t("ch.sign.cancel")}
         onCancel={() => !signing && setAskSign(false)}
       />
 
@@ -388,7 +390,7 @@ YOU WENT FIRST — WAITING ON THEIRS
         wren={wren}
         otherSeed={detail?.other || "anon"}
         otherFace={detail?.otherFace ?? null}
-        otherName={detail?.otherName || "A kindred"}
+        otherName={detail?.otherName || t("cm.kindred")}
         otherArchetype={read?.archetype ? theyify(read.archetype.name) : null}
         myName={auth.handle || "you"}
         onClose={() => setCeremony(false)}
