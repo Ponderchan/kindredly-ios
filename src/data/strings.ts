@@ -13,6 +13,26 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── compose ── */
+    "cp.voiceLine.prompt": "One line to go with it — it's what travels on the outside.",
+    "cp.voiceLine.ph": "a line to go with it…",
+    "cp.travel": "LET IT TRAVEL",
+    "cp.sending": "SENDING…",
+    "cp.cap": "That's your {n} letters for today.",
+    "cp.gate.title": "{wren} held this back",
+    "cp.gate.body": "This can't go out as written. Keep it to strangers — no contact details.",
+    "cp.signin.title": "Sign in",
+    "cp.signin.body": "Your session expired. Sign in again to send.",
+    "cp.fail.title": "Couldn't send",
+    "cp.fail.generic": "Something went wrong. Try again in a moment.",
+    "cp.fail.voice": "The voice letter didn't go out. (Voice needs the storage bucket from migration 0007 — see SETUP.md.)",
+    "cp.fail.text": "The letter didn't go out. Try again.",
+    "cp.signup.reason": "This one's addressed to a stranger, so it needs somewhere for their reply to land. Your letter stays exactly as you left it.",
+    "cp.leave.title": "Leave this letter?",
+    "cp.leave.body": "You've written something. It hasn't gone anywhere yet.",
+    "cp.leave.draft": "SAVE AS DRAFT",
+    "cp.leave.discard": "DISCARD",
+
     /* ── paywall ── */
     "pw.kindreds.t": "More Kindreds",
     "pw.kindreds.s": "the first one is always free",
@@ -264,6 +284,26 @@ strings(
 
   /* ── es ── */
   {
+    /* ── compose ── */
+    "cp.voiceLine.prompt": "Una línea para acompañarlo — es lo que viaja por fuera.",
+    "cp.voiceLine.ph": "una línea para acompañarlo…",
+    "cp.travel": "QUE VIAJE",
+    "cp.sending": "ENVIANDO…",
+    "cp.cap": "Esas son tus {n} cartas de hoy.",
+    "cp.gate.title": "{wren} la retuvo",
+    "cp.gate.body": "Así no puede salir. Guárdala para extraños — sin datos de contacto.",
+    "cp.signin.title": "Inicia sesión",
+    "cp.signin.body": "Tu sesión caducó. Inicia sesión otra vez para enviar.",
+    "cp.fail.title": "No se pudo enviar",
+    "cp.fail.generic": "Algo salió mal. Inténtalo en un momento.",
+    "cp.fail.voice": "La carta de voz no salió. (La voz necesita el bucket de almacenamiento de la migración 0007 — ver SETUP.md.)",
+    "cp.fail.text": "La carta no salió. Inténtalo de nuevo.",
+    "cp.signup.reason": "Esta va dirigida a un extraño, así que necesita un lugar donde caiga su respuesta. Tu carta queda tal como la dejaste.",
+    "cp.leave.title": "¿Dejar esta carta?",
+    "cp.leave.body": "Escribiste algo. Todavía no ha ido a ninguna parte.",
+    "cp.leave.draft": "GUARDAR BORRADOR",
+    "cp.leave.discard": "DESCARTAR",
+
     /* ── paywall ── */
     "pw.kindreds.t": "Más afines",
     "pw.kindreds.s": "el primero es siempre gratis",
@@ -515,6 +555,26 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── compose ── */
+    "cp.voiceLine.prompt": "Uma linha para acompanhar — é o que viaja por fora.",
+    "cp.voiceLine.ph": "uma linha para acompanhar…",
+    "cp.travel": "DEIXE VIAJAR",
+    "cp.sending": "ENVIANDO…",
+    "cp.cap": "Essas são suas {n} cartas de hoje.",
+    "cp.gate.title": "{wren} segurou esta",
+    "cp.gate.body": "Assim não pode sair. Guarde para estranhos — sem dados de contato.",
+    "cp.signin.title": "Entre",
+    "cp.signin.body": "Sua sessão expirou. Entre de novo para enviar.",
+    "cp.fail.title": "Não foi possível enviar",
+    "cp.fail.generic": "Algo deu errado. Tente daqui a pouco.",
+    "cp.fail.voice": "A carta de voz não saiu. (A voz precisa do bucket de armazenamento da migração 0007 — ver SETUP.md.)",
+    "cp.fail.text": "A carta não saiu. Tente de novo.",
+    "cp.signup.reason": "Esta é endereçada a um estranho, então precisa de um lugar para a resposta dele chegar. Sua carta fica exatamente como você deixou.",
+    "cp.leave.title": "Sair desta carta?",
+    "cp.leave.body": "Você escreveu algo. Ainda não foi a lugar nenhum.",
+    "cp.leave.draft": "SALVAR RASCUNHO",
+    "cp.leave.discard": "DESCARTAR",
+
     /* ── paywall ── */
     "pw.kindreds.t": "Mais afins",
     "pw.kindreds.s": "o primeiro é sempre grátis",
@@ -766,6 +826,26 @@ strings(
 
   /* ── id ── */
   {
+    /* ── compose ── */
+    "cp.voiceLine.prompt": "Satu baris untuk menyertainya — itulah yang berjalan di luar.",
+    "cp.voiceLine.ph": "satu baris untuk menyertainya…",
+    "cp.travel": "BIARKAN BERJALAN",
+    "cp.sending": "MENGIRIM…",
+    "cp.cap": "Itu {n} suratmu untuk hari ini.",
+    "cp.gate.title": "{wren} menahan yang ini",
+    "cp.gate.body": "Begini tak bisa dikirim. Simpan untuk orang asing — tanpa info kontak.",
+    "cp.signin.title": "Masuk",
+    "cp.signin.body": "Sesimu berakhir. Masuk lagi untuk mengirim.",
+    "cp.fail.title": "Tak bisa mengirim",
+    "cp.fail.generic": "Ada yang salah. Coba lagi sebentar.",
+    "cp.fail.voice": "Surat suara tak terkirim. (Suara butuh storage bucket dari migrasi 0007 — lihat SETUP.md.)",
+    "cp.fail.text": "Surat tak terkirim. Coba lagi.",
+    "cp.signup.reason": "Yang ini ditujukan ke orang asing, jadi butuh tempat agar balasannya mendarat. Suratmu tetap persis seperti kamu tinggalkan.",
+    "cp.leave.title": "Tinggalkan surat ini?",
+    "cp.leave.body": "Kamu sudah menulis sesuatu. Ia belum pergi ke mana-mana.",
+    "cp.leave.draft": "SIMPAN DRAF",
+    "cp.leave.discard": "BUANG",
+
     /* ── paywall ── */
     "pw.kindreds.t": "Lebih banyak kerabat",
     "pw.kindreds.s": "yang pertama selalu gratis",

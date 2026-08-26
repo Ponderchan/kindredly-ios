@@ -29,7 +29,7 @@ import { setFlag } from "../lib/flags";
 import { useEntitlement } from "../lib/entitlement";
 import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
-import { DRIFT_LABEL, openingLadder, readMood, wrenLine } from "../lib/wren-read";
+import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
 import { nextSpark } from "../lib/sparks";
 import { COUNTER_FROM, LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
 
@@ -197,7 +197,7 @@ export default function Compose() {
       if (!gate.ok) {
         setBusy(false);
         back();
-        Alert.alert(`${wren} held this back`, "This can't go out as written. Keep it to strangers — no contact details.");
+        Alert.alert(t("cp.gate.title", { wren }), t("cp.gate.body"));
         return;
       }
     }
@@ -207,16 +207,16 @@ export default function Compose() {
       setBusy(false);
       back();
       if (bump.reason === "daily_cap") {
-        setCapMsg(`That's your ${bump.cap ?? 3} letters for today.`);
+        setCapMsg(t("cp.cap", { n: bump.cap ?? 3 }));
       } else if (bump.reason === "unauthorized") {
         /* THE FIRST WALL A GHOST ACTUALLY HITS. The daily-cap check runs
            before publishLetter, so this — not the publish — is where someone
            with no session gets stopped, and it was a stock alert saying
            "sign in AGAIN" to a person who never signed in once. */
         if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
-        else Alert.alert("Sign in", "Your session expired. Sign in again to send.");
+        else Alert.alert(t("cp.signin.title"), t("cp.signin.body"));
       } else {
-        Alert.alert("Couldn't send", "Something went wrong. Try again in a moment.");
+        Alert.alert(t("cp.fail.title"), t("cp.fail.generic"));
       }
       return;
     }
@@ -241,10 +241,8 @@ export default function Compose() {
     if (!ok) {
       back();
       Alert.alert(
-        "Couldn't send",
-        mode === "speak"
-          ? "The voice letter didn't go out. (Voice needs the storage bucket from migration 0007 — see SETUP.md.)"
-          : "The letter didn't go out. Try again.",
+        t("cp.fail.title"),
+        mode === "speak" ? t("cp.fail.voice") : t("cp.fail.text"),
       );
       return;
     }
@@ -420,7 +418,7 @@ export default function Compose() {
                   ? speakAs(t("lang.send"), wren)
                   : mode === "speak"
                     ? recUri && weightedCount(voiceLine) < REPLY_MIN
-                      ? "One line to go with it — it's what travels on the outside."
+                      ? t("cp.voiceLine.prompt")
                       : wrenLine(wrenMood)
                     : ladder.line}
                 ”
@@ -464,7 +462,7 @@ export default function Compose() {
                 <TextInput
                   value={text}
                   onChangeText={setText}
-                  placeholder="a line to go with it…"
+                  placeholder={t("cp.voiceLine.ph")}
                   placeholderTextColor="#B9B3D8"
                   style={{ color: P.ink, fontFamily: PF.letter, fontSize: 17, marginTop: 14 }}
                 />
@@ -575,7 +573,7 @@ export default function Compose() {
             }}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : P.ink40 }}>
-              {busy ? "SENDING…" : DRIFT_LABEL}
+              {busy ? t("cp.sending") : t("cp.travel")}
             </Text>
           </Pressable>
         </View>
@@ -584,7 +582,7 @@ export default function Compose() {
 
       <SignUpSheet
         open={needsAccount}
-        reason="This one's addressed to a stranger, so it needs somewhere for their reply to land. Your letter stays exactly as you left it."
+        reason={t("cp.signup.reason")}
         onClose={() => setNeedsAccount(false)}
         onSignedIn={() => {
           setNeedsAccount(false);
@@ -594,11 +592,11 @@ export default function Compose() {
 
       <LeaveSheet
         open={leaving}
-        title="Leave this letter?"
-        body="You've written something. It hasn't gone anywhere yet."
+        title={t("cp.leave.title")}
+        body={t("cp.leave.body")}
         actions={[
-          { label: "SAVE AS DRAFT", kind: "primary", onPress: saveAndLeave },
-          { label: "DISCARD", kind: "destructive", onPress: goBack },
+          { label: t("cp.leave.draft"), kind: "primary", onPress: saveAndLeave },
+          { label: t("cp.leave.discard"), kind: "destructive", onPress: goBack },
         ]}
         onCancel={() => setLeaving(false)}
       />
