@@ -1,4 +1,5 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
+import { t as tr, useLang } from "../lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -53,7 +54,7 @@ const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
 /* One line, not three. The other two promises (her speed, your history)
    are still true and still enforced in code — they live in How Kindredly
    Works now, where someone reads rather than scans. */
-const FOOT = "Being heard is always free.";
+const FOOT_KEY = "pw.foot";
 
 /* shown until RevenueCat + the App Store products exist, so the screen is
    reviewable and the fares can be judged before they can be bought */
@@ -74,6 +75,7 @@ export default function Paywall() {
   const { src } = useLocalSearchParams<{ src?: string }>();
   const source = (src || "unknown") as PaywallSource;
   const wren = useWrenName();
+  useLang(); // repaint on language change
   const { refresh } = useEntitlement();
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -107,8 +109,8 @@ export default function Paywall() {
     if (!chosen || busy) return;
     if (!IAP_READY || !chosen.raw) {
       Alert.alert(
-        "Almost there",
-        "First Class turns on once RevenueCat and the App Store products are configured (see SETUP.md).",
+        tr("pw.almost.title"),
+        tr("pw.almost.body"),
       );
       return;
     }
@@ -122,7 +124,7 @@ export default function Paywall() {
       router.back();
     } else if (!res.cancelled) {
       track("purchase_failed", { source, fare: chosen.period });
-      Alert.alert("Purchase", "That didn't go through. Please try again.");
+      Alert.alert(tr("pw.purchase.title"), tr("pw.purchase.fail"));
     }
   };
 
@@ -132,7 +134,7 @@ export default function Paywall() {
     const ok = await iapRestore();
     setBusy(false);
     await refresh();
-    Alert.alert(ok ? "Restored" : "Nothing to restore", ok ? "Your First Class is active." : "No previous purchase was found.");
+    Alert.alert(ok ? tr("pw.restored") : tr("pw.nothingRestore"), ok ? tr("pw.restoredBody") : tr("pw.nothingRestoreBody"));
     if (ok) router.back();
   };
 
@@ -158,18 +160,18 @@ export default function Paywall() {
           <View style={{ paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16 }}>
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 2.4, color: P.ink40 }}>FARE</Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 2.4, color: P.ink40 }}>{tr("pw.fare")}</Text>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 27, letterSpacing: 1.4, color: P.ink, marginTop: 6 }}>
-                  FIRST{"\n"}CLASS
+                  {tr("pw.firstClass")}
                 </Text>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 8, paddingRight: 4 }}>
-                  More room for your letters, your courier, and the people you find.
+                  {tr("pw.hero.sub")}
                 </Text>
               </View>
               <View style={{ alignItems: "center", paddingTop: 6 }}>
                 <WrenBird size={64} bare mood="delight" />
                 <Text style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 1.4, color: P.ink40, marginTop: 4 }}>
-                  {wren.toUpperCase()} · CARRIER
+                  {wren.toUpperCase()} · {tr("pw.carrier")}
                 </Text>
               </View>
             </View>
@@ -217,27 +219,27 @@ export default function Paywall() {
           })}
         >
           <Text style={{ color: lifetime ? GOLD : "#fff", fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2 }}>
-            {busy ? "…" : lifetime ? "BECOME A COFOUNDER" : "TRAVEL FIRST CLASS"}
+            {busy ? "…" : lifetime ? tr("pw.cta.cofounder") : tr("pw.cta.first")}
           </Text>
         </Pressable>
 
         {/* the one promise that outranks the offer */}
         <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, textAlign: "center", marginTop: 24 }}>
-          {FOOT}
+          {tr(FOOT_KEY)}
         </Text>
 
         <Pressable onPress={restore} style={{ alignItems: "center", paddingVertical: 16 }}>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.5, color: P.ink60 }}>Restore purchase</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.5, color: P.ink60 }}>{tr("pw.restore")}</Text>
         </Pressable>
 
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.ink40, textAlign: "center", lineHeight: 17 }}>
-          Subscriptions auto-renew until cancelled; the Cofounder fare is paid once. Manage anytime in your App Store settings.{" "}
+          {tr("pw.termsLine")}{" "}
           <Text onPress={() => Linking.openURL("https://kindredly.io/terms")} style={{ textDecorationLine: "underline" }}>
-            Terms
+            {tr("pw.terms")}
           </Text>{" "}
           &{" "}
           <Text onPress={() => Linking.openURL("https://kindredly.io/privacy")} style={{ textDecorationLine: "underline" }}>
-            Privacy
+            {tr("pw.privacy")}
           </Text>
         </Text>
       </ScrollView>
@@ -263,24 +265,24 @@ function Stub({ pkg, on, onPress, wren }: { pkg: IapPackage; on: boolean; onPres
       {/* the perforation: a stub is torn from something */}
       <View style={{ width: 22, alignItems: "center", justifyContent: "center", borderRightWidth: 1, borderRightColor: P.ink12, borderStyle: "dashed" }}>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: life ? GOLD : P.ink40, transform: [{ rotate: "-90deg" }], width: 60, textAlign: "center" }}>
-          {life ? "No." : year ? "BEST" : "TRY"}
+          {life ? tr("pw.stub.no") : year ? tr("pw.stub.best") : tr("pw.stub.try")}
         </Text>
       </View>
 
       <View style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 1, color: life ? "#8A6E20" : P.ink }}>
-            {life ? "LIFETIME" : pkg.title.toUpperCase()}
+            {tr(`pw.plan.${pkg.period}`).toUpperCase()}
           </Text>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 14, color: P.ink }}>{pkg.priceString}</Text>
         </View>
 
         <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
           {life
-            ? `Founding ${COFOUNDERS_TOTAL} only · numbered in order`
+            ? tr("pw.plan.lifetimeSub", { n: COFOUNDERS_TOTAL })
             : year
-              ? "about $3.33/month · best value"
-              : "stay as long as you like"}
+              ? tr("pw.plan.annualSub")
+              : tr("pw.plan.monthlySub")}
         </Text>
 
         {/* no accent row: each fare says its one thing once. The sub-line
@@ -326,7 +328,7 @@ function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSumma
 
       {flown.length === 0 ? (
         <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink60, marginTop: 12 }}>
-          {speakAs("You haven't sent me anywhere yet. Write one letter and the road starts.", wren)}
+          {speakAs(tr("pw.road.none"), wren)}
         </Text>
       ) : (
         <View style={{ marginTop: 14 }}>
@@ -361,7 +363,7 @@ function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSumma
         <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink, marginTop: 8 }}>
           {kindreds >= 1
             ? speakAs(`You have ${kindreds === 1 ? "one kindred" : `${kindreds} kindreds`}. I can carry you to one more — but not past it, not on this fare.`, wren)
-            : speakAs("Your first kindred is free, and always will be. It's the second one I can't reach on this fare.", wren)}
+            : speakAs(tr("pw.road.oneKindred"), wren)}
         </Text>
       </View>
 
@@ -413,10 +415,10 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
           <>
             {def ? <Image source={def.icon} style={{ width: 74, height: 74 }} resizeMode="contain" /> : null}
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 0.4, color: P.ink, textAlign: "center", marginTop: 10 }}>
-              {speakAs(item.title, wren)}
+              {speakAs(tr(`pw.${item.id}.t`), wren)}
             </Text>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, textAlign: "center", marginTop: 3 }}>
-              {speakAs(item.sub, wren)}
+              {speakAs(tr(`pw.${item.id}.s`), wren)}
             </Text>
           </>
         ) : (
@@ -437,15 +439,15 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
    rest is simply everything else, forever */
 function CofounderMarks({ wren }: { wren: string }) {
   const MARKS: [string, string][] = [
-    ["Your own number", `one of ${COFOUNDERS_TOTAL}`],
-    [`A gold ring on ${wren}`, "she wears it always"],
-    ["Everything first", "before anyone else"],
-    ["A letter at one year", "she brings it herself"],
+    [tr("pw.cf.number"), tr("pw.cf.numberSub", { n: COFOUNDERS_TOTAL })],
+    [tr("pw.cf.ring", { wren }), tr("pw.cf.ringSub")],
+    [tr("pw.cf.first"), tr("pw.cf.firstSub")],
+    [tr("pw.cf.letter"), tr("pw.cf.letterSub")],
   ];
   return (
     <View style={{ borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2, borderColor: GOLD, backgroundColor: "#FBF6E6", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 }}>
       <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: "#8A6E20" }}>
-        KINDREDLY COFOUNDER
+        {tr("pw.cf.title")}
       </Text>
       {/* the mark itself, exactly as it will sit on their own desk — the
           thing being sold is visible before it is bought */}
@@ -466,7 +468,7 @@ function CofounderMarks({ wren }: { wren: string }) {
       ))}
       <View style={{ height: 1, backgroundColor: GOLD, opacity: 0.4, marginTop: 15 }} />
       <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: "#8A6E20", marginTop: 11 }}>
-        {speakAs("And all of First Class, for as long as there is a Kindredly.", wren)}
+        {speakAs(tr("pw.cf.foot"), wren)}
       </Text>
     </View>
   );
