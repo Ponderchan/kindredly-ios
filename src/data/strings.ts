@@ -13,6 +13,11 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── wren first-class teaser ── */
+    "wren.fcSub": "{wren}'s full journey archive, and a year of her in one letter.",
+    "wren.unlock": "UNLOCK →",
+    "wren.activeArrow": "ACTIVE →",
+
     /* ── paywall route / me stats ── */
     "pw.route": "YOUR ROUTE SO FAR",
     "pw.roadCloses": "THE ROAD CLOSES HERE",
@@ -959,6 +964,11 @@ strings(
 
   /* ── es ── */
   {
+    /* ── wren first-class teaser ── */
+    "wren.fcSub": "El archivo completo del viaje de {wren}, y un año de ella en una carta.",
+    "wren.unlock": "DESBLOQUEAR →",
+    "wren.activeArrow": "ACTIVA →",
+
     /* ── paywall route / me stats ── */
     "pw.route": "TU RUTA HASTA AHORA",
     "pw.roadCloses": "EL CAMINO SE CIERRA AQUÍ",
@@ -1905,6 +1915,11 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── wren first-class teaser ── */
+    "wren.fcSub": "O arquivo completo da jornada de {wren}, e um ano dela em uma carta.",
+    "wren.unlock": "DESBLOQUEAR →",
+    "wren.activeArrow": "ATIVA →",
+
     /* ── paywall route / me stats ── */
     "pw.route": "SUA ROTA ATÉ AQUI",
     "pw.roadCloses": "A ESTRADA SE FECHA AQUI",
@@ -2851,6 +2866,11 @@ strings(
 
   /* ── id ── */
   {
+    /* ── wren first-class teaser ── */
+    "wren.fcSub": "Arsip lengkap perjalanan {wren}, dan setahun tentangnya dalam satu surat.",
+    "wren.unlock": "BUKA →",
+    "wren.activeArrow": "AKTIF →",
+
     /* ── paywall route / me stats ── */
     "pw.route": "RUTEMU SEJAUH INI",
     "pw.roadCloses": "JALAN BERAKHIR DI SINI",

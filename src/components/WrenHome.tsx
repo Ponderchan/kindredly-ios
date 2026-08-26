@@ -334,12 +334,12 @@ export function WrenHome({
       {/* ── the door to First Class: her archive, not your words ── */}
       <Pressable onPress={onPlus} style={{ borderTopWidth: 1, borderTopColor: P.ink, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, backgroundColor: P.penWash }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.ink }}>FIRST CLASS</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.ink }}>{tr("me.firstClass")}</Text>
           <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: P.ink60, marginTop: 3 }}>
-            {`${wren}'s full journey archive, and a year of her in one letter.`}
+            {tr("wren.fcSub", { wren })}
           </Text>
         </View>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1, color: P.pen }}>{premium ? "ACTIVE →" : "UNLOCK →"}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1, color: P.pen }}>{premium ? tr("wren.activeArrow") : tr("wren.unlock")}</Text>
       </Pressable>
     </View>
   );
