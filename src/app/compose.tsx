@@ -18,7 +18,7 @@ import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
 import { track } from "../lib/track";
-import { getLang, t } from "../lib/i18n";
+import { getLang, t, useLang } from "../lib/i18n";
 import { useWrenOnce } from "../components/WrenSaysOnce";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
@@ -161,8 +161,14 @@ export default function Compose() {
   const canSend = mode === "speak" ? !!recUri && weightedCount(voiceLine) >= REPLY_MIN : ladder.ready && over <= 0;
   // Wren's face reads your feeling; her line reads how much you've given.
   const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, ladder.ready);
-  // her first-visit language line, folded into the same mouth
-  const langHello = useWrenOnce("lang-send") && mode === "write" && !text.trim();
+  /* Her language line — the courier's own promise ("I carry letters, not
+     dictionaries"), so it stays in her mouth and nowhere else. Said only to
+     writers whose interface isn't English (an English writer never wonders
+     whether their language is welcome), and once PER LANGUAGE, not once ever:
+     switch to Spanish and she makes the promise again, in Spanish. */
+  useLang(); // the id below keys on the language, so re-render when it moves
+  const langHello =
+    useWrenOnce(`lang-send:${getLang()}`) && getLang() !== "en" && mode === "write" && !text.trim();
 
   const send = async () => {
     if (!canSend || busy || !sel) return;
