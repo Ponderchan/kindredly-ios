@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { t, useLang } from "../lib/i18n";
 import { C, F } from "../theme/tokens";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
 
@@ -8,16 +9,17 @@ import { LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
    Ported from kindredly-v20.jsx (1222-1277). */
 
 export function ReplyBar({
-  placeholder = "Write a response…",
+  placeholder,
   onSend,
   onExpand,
-  footnote = "Short is fine. It leaves at the morning chime either way.",
+  footnote,
 }: {
   placeholder?: string;
   onSend: (text: string) => void;
   onExpand?: () => void;
   footnote?: string;
 }) {
+  useLang();
   const [text, setText] = useState("");
   const [h, setH] = useState(44);
   const weight = weightedCount(text);
@@ -72,7 +74,7 @@ export function ReplyBar({
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("rb.ph")}
           placeholderTextColor={C.faint}
           multiline
           onContentSizeChange={(e) =>
@@ -114,7 +116,7 @@ export function ReplyBar({
         </Pressable>
       </View>
       <Text style={{ textAlign: "center", fontSize: 10.5, color: over ? "#C0503A" : C.faint, marginTop: 10, fontFamily: F.serifItalic }}>
-        {over ? `${weight - LETTER_MAX} over the limit` : footnote}
+        {over ? t("th.over", { n: weight - LETTER_MAX }).toLowerCase() : footnote ?? t("rb.note")}
       </Text>
     </View>
   );

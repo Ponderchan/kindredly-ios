@@ -3,6 +3,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 
@@ -29,6 +30,7 @@ import { WrenBird } from "./WrenBird";
    importing the EGG OS tokens here would blur two systems that are meant to
    stay separable, and the hue is an app token either way. */
 export function PostChooser({ onClose }: { onClose: () => void }) {
+  useLang();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -91,7 +93,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                 </View>
 
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 21, color: P.ink, marginTop: 26, textAlign: "center" }}>
-                  where should this thought travel?
+                  {t("pc.prompt")}
                 </Text>
               </Animated.View>
 
@@ -99,8 +101,8 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
 
               <View style={{ alignSelf: "stretch", paddingHorizontal: 18, gap: 14, paddingBottom: 4 }}>
                 <WrenChoice
-                  title="To a stranger"
-                  said="I'll find who it's for"
+                  title={t("pc.stranger")}
+                  said={t("pc.strangerSaid")}
                   delay={140}
                   onPress={() => {
                     go("/compose");
@@ -109,8 +111,8 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                   <Tile><EnvelopeGlyph /></Tile>
                 </WrenChoice>
                 <WrenChoice
-                  title="To yourself"
-                  said="I'll keep it for later"
+                  title={t("pc.yourself")}
+                  said={t("pc.yourselfSaid")}
                   delay={220}
                   onPress={() => {
                     go("/journal-entry");

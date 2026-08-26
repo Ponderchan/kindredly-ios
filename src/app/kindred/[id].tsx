@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { t, useLang } from "../../lib/i18n";
 import { P, PF, panel, rule, solidBtn } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
@@ -29,6 +30,7 @@ import type { DimScore } from "../../lib/hatch-engine";
    Report/block stays reachable on a person page — intimacy is exactly
    where safety tools must not disappear. */
 export default function KindredScreen() {
+  useLang();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
@@ -52,7 +54,7 @@ export default function KindredScreen() {
     }, [id]),
   );
 
-  const name = detail?.otherName || "A kindred";
+  const name = detail?.otherName || t("cm.kindred");
   /* THE READ, and it arrives BEFORE the name. Five letters used to buy a
      pen name — a string, arbitrary, and knowable on day one. What ten
      letters have actually earned you is a read of how they write, and this
@@ -88,7 +90,7 @@ export default function KindredScreen() {
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>
-          {detail?.revealed ? "A KINDRED" : "A VOICE YOU KNOW"}
+          {detail?.revealed ? t("kd.kindred") : t("kd.voiceKnown")}
         </Text>
         <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
       </View>
@@ -121,10 +123,10 @@ export default function KindredScreen() {
                         what their writing has told you, which is the part
                         a name could never have said */}
                     <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink }}>
-                      {read?.archetype?.name || "Still a voice"}
+                      {read?.archetype?.name || t("kd.stillVoice")}
                     </Text>
                     <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
-                      {read?.archetype ? theyify(read.archetype.desc) : "Not enough of them has arrived yet."}
+                      {read?.archetype ? theyify(read.archetype.desc) : t("kd.notEnough")}
                     </Text>
                   </>
                 )}
@@ -208,11 +210,11 @@ export default function KindredScreen() {
           {/* the correspondence, as facts */}
           <View style={[panel, { paddingHorizontal: 18, paddingVertical: 4, marginBottom: 14 }]}>
             {detail.since ? (
-              <Row label="Corresponding since" value={dLong(detail.since)} />
+              <Row label={t("kd.since")} value={dLong(detail.since)} />
             ) : null}
-            <Row label="Letters" value={`${letters} — ${detail.myCount} yours · ${detail.otherCount} theirs`} />
+            <Row label={t("kd.letters")} value={t("kd.lettersVal", { n: letters, mine: detail.myCount, theirs: detail.otherCount })} />
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 11 }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 14.5, color: P.ink }}>Began under</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 14.5, color: P.ink }}>{t("kd.beganUnder")}</Text>
               {st ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.ink60 }}>{st.name.en}</Text>
@@ -229,12 +231,12 @@ export default function KindredScreen() {
           {/* the letter that started it */}
           {!!detail.opening && (
             <View style={{ backgroundColor: P.sheet, padding: 18, marginBottom: 18 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>WHERE IT BEGAN</Text>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{t("kd.whereBegan")}</Text>
               <Text numberOfLines={5} style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink, marginTop: 10 }}>
                 {detail.opening}
               </Text>
               <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40, marginTop: 10 }}>
-                {detail.openingFromMe ? "YOU WROTE FIRST" : `${name.toUpperCase()} WROTE FIRST`}
+                {detail.openingFromMe ? t("kd.youFirst") : t("kd.theyFirst", { name: name.toUpperCase() })}
               </Text>
             </View>
           )}

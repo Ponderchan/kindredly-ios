@@ -6,6 +6,7 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
 } from "expo-audio";
+import { t, useLang } from "../lib/i18n";
 import { C, F } from "../theme/tokens";
 import { fmt } from "../lib/format";
 
@@ -28,6 +29,7 @@ export function Recorder({
   doneUri?: string | null;
   doneDur?: number;
 }) {
+  useLang();
   const recorder = useAudioRecorder(RecordingPresets.LOW_QUALITY);
   const [rec, setRec] = useState(false);
   const [dur, setDur] = useState(0);
@@ -42,7 +44,7 @@ export function Recorder({
   const start = async () => {
     const status = await requestRecordingPermissionsAsync();
     if (!status.granted) {
-      Alert.alert("Microphone", "Kindredly needs the microphone to record. Enable it in Settings.");
+      Alert.alert(t("rc.micTitle"), t("rc.micBody"));
       return;
     }
     await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
@@ -68,9 +70,9 @@ export function Recorder({
       const uri = recorder.uri;
       const seconds = finalDur ?? dur;
       if (uri && seconds >= 2) onDone(uri, seconds);
-      else if (uri) Alert.alert("Too short", "Say a little more — a voice letter needs at least a couple of seconds.");
+      else if (uri) Alert.alert(t("rc.shortTitle"), t("rc.shortBody"));
     } catch {
-      Alert.alert("Recording", "Something went wrong with the recording. Try again.");
+      Alert.alert(t("rc.failTitle"), t("rc.failBody"));
     }
   };
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal, Pressable, Text } from "react-native";
+import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { useWrenName } from "../lib/wren-name";
 import { blockUser, reportContent } from "../lib/db";
@@ -37,6 +38,7 @@ export function ReportMenu({
   snapshot?: string;
   onBlocked?: () => void;
 }) {
+  useLang();
   const wren = useWrenName();
   const [stage, setStage] = useState<Stage>(null);
   const [busy, setBusy] = useState(false);
@@ -81,31 +83,31 @@ export function ReportMenu({
       >
       <LeaveSheet
         open={stage === "menu"}
-        title="This correspondent"
-        body={`Nobody here knows who anyone is, so ${wren} only ever sees what you hand her. Report a letter and she reads it; block them and the road between you closes, both ways.`}
+        title={t("rp.title")}
+        body={t("rp.body", { wren })}
         actions={[
-          { label: busy ? "…" : "REPORT THIS LETTER", kind: "quiet", onPress: report },
-          { label: "BLOCK THIS PERSON", kind: "destructive", onPress: () => setStage("block") },
+          { label: busy ? "…" : t("rp.report"), kind: "quiet", onPress: report },
+          { label: t("rp.block"), kind: "destructive", onPress: () => setStage("block") },
         ]}
-        cancelLabel="NEVER MIND"
+        cancelLabel={t("set.neverMind")}
         onCancel={() => !busy && setStage(null)}
       />
 
       <LeaveSheet
         open={stage === "block"}
-        title="Block this person?"
-        body="You won't see their letters, and they won't see yours. Nothing you've already written is deleted, and you can undo this in Settings, under Blocked & reported."
-        actions={[{ label: busy ? "…" : "BLOCK", kind: "destructive", onPress: block }]}
-        cancelLabel="NEVER MIND"
+        title={t("rp.blockTitle")}
+        body={t("rp.blockBody")}
+        actions={[{ label: busy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: block }]}
+        cancelLabel={t("set.neverMind")}
         onCancel={() => !busy && setStage(null)}
       />
 
       <LeaveSheet
         open={stage === "sent"}
-        title="Reported"
-        body={`Thank you — ${wren} has it. Repeated reports take a writer out of Kindredly, so this is not a small thing you just did.`}
+        title={t("rp.reportedTitle")}
+        body={t("rp.reportedBody", { wren })}
         actions={[]}
-        cancelLabel="DONE"
+        cancelLabel={t("wu.done")}
         onCancel={() => setStage(null)}
       />
       </Modal>

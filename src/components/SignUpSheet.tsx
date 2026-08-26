@@ -3,6 +3,7 @@ import { Alert, Keyboard, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { t, useLang } from "../lib/i18n";
 import { P, PF, rule } from "../theme/post";
 import { useAuth } from "../lib/auth";
 
@@ -39,6 +40,7 @@ export function SignUpSheet({
   onClose: () => void;
   onSignedIn: () => void;
 }) {
+  useLang();
   const insets = useSafeAreaInsets();
   const auth = useAuth();
   const [busy, setBusy] = useState<null | "apple" | "email">(null);
@@ -54,7 +56,7 @@ export function SignUpSheet({
     const r = await auth.signInWithApple();
     if ("error" in r) {
       setBusy(null);
-      Alert.alert("Continue with Apple", r.error);
+      Alert.alert(t("ob.apple.title"), r.error);
       return;
     }
     done();
@@ -62,15 +64,15 @@ export function SignUpSheet({
 
   const doEmail = () => {
     Alert.prompt?.(
-      "Your email",
-      "We'll send a link. Your letter stays right here while you fetch it.",
+      t("ob.email.title"),
+      t("su.emailBody"),
       async (email?: string) => {
         if (!email?.trim()) return;
         setBusy("email");
         const r = await auth.signInWithEmail(email.trim());
         setBusy(null);
         if ("error" in r) Alert.alert("Email", r.error);
-        else Alert.alert("Link sent", "Open it on this phone and come back — nothing here is lost.");
+        else Alert.alert(t("su.linkSent"), t("su.linkSentBody"));
       },
       "plain-text",
       "",
@@ -89,7 +91,7 @@ export function SignUpSheet({
         style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, ...rule }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>ONE THING FIRST</Text>
+          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{t("su.title")}</Text>
           <Pressable onPress={onClose} hitSlop={12}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>
@@ -122,7 +124,7 @@ export function SignUpSheet({
             })}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: P.pen }}>
-              {busy === "email" ? "…" : "CONTINUE WITH EMAIL"}
+              {busy === "email" ? "…" : t("ob.continueEmail")}
             </Text>
           </Pressable>
 
@@ -130,7 +132,7 @@ export function SignUpSheet({
               refuse is a wall, and a wall this early costs more than the
               account is worth. */}
           <Pressable onPress={onClose} style={{ paddingVertical: 16, alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>NOT YET</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{t("su.notYet")}</Text>
           </Pressable>
         </View>
       </Animated.View>

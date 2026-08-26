@@ -1,4 +1,5 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { t, useLang } from "../lib/i18n";
 import { C, F } from "../theme/tokens";
 import { MoodIcon } from "./MoodIcon";
 import { MOOD_IDS, MOODS, type MoodId } from "../data/moods";
@@ -14,6 +15,7 @@ export function MoodModal({
   onPick: (id: MoodId) => void;
   onCancel: () => void;
 }) {
+  useLang();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable
@@ -24,7 +26,7 @@ export function MoodModal({
           style={{ backgroundColor: C.cream, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 44 }}
           onPress={() => {}}
         >
-          <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink, textAlign: "center" }}>How did today feel?</Text>
+          <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink, textAlign: "center" }}>{t("mm.title")}</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 6 }}>
             One word. Wren keeps the rest.
           </Text>

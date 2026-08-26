@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { t, useLang } from "../lib/i18n";
 import { C, F, cardStyle, navyBtn } from "../theme/tokens";
 import { AVATARS } from "../data/avatar-lib";
 import { AvatarImage } from "./AvatarImage";
@@ -24,6 +25,7 @@ export function EditProfileSheet({
   onSave: (name: string, avatarId: string | null, photoUri: string | null) => void;
   onClose: () => void;
 }) {
+  useLang();
   const [name, setName] = useState(initialName);
   const [avatarId, setAvatarId] = useState<string | null>(initialAvatarId ?? null);
   const [photoUri, setPhotoUri] = useState<string | null>(initialPhotoUri ?? null);
@@ -68,7 +70,7 @@ export function EditProfileSheet({
         >
           {/* header */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink }}>Edit profile</Text>
+            <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink }}>{t("ep.title")}</Text>
             <Pressable onPress={onClose} hitSlop={8} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: "center", justifyContent: "center" }}>
               <Text style={{ fontSize: 16, color: C.muted }}>✕</Text>
             </Pressable>
@@ -85,16 +87,16 @@ export function EditProfileSheet({
                 style={[cardStyle, { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 22, marginTop: 14 }]}
               >
                 <Text style={{ fontSize: 15 }}>🖼️</Text>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 14, color: C.ink }}>Choose a photo</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 14, color: C.ink }}>{t("ep.choosePhoto")}</Text>
               </Pressable>
             </View>
 
             {/* pick a face */}
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label }}>OR PICK A FACE</Text>
+              <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label }}>{t("ep.pickFace")}</Text>
               <Pressable onPress={roll} style={[cardStyle, { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18 }]}>
                 <Text style={{ fontSize: 14 }}>🎲</Text>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: C.ink }}>Random</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: C.ink }}>{t("ep.random")}</Text>
               </Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4, paddingRight: 12 }}>
@@ -111,12 +113,12 @@ export function EditProfileSheet({
             </ScrollView>
 
             {/* name */}
-            <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label, marginTop: 20, marginBottom: 10 }}>PEN NAME</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 1.4, color: C.label, marginTop: 20, marginBottom: 10 }}>{t("ep.penName")}</Text>
             <View style={[cardStyle, { paddingHorizontal: 16, paddingVertical: 4 }]}>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Your pen name…"
+                placeholder={t("ep.penPh")}
                 placeholderTextColor={C.faint}
                 style={{ fontFamily: F.serif, fontSize: 18, color: C.ink, paddingVertical: 12 }}
               />
@@ -130,7 +132,7 @@ export function EditProfileSheet({
               disabled={!canSave}
               style={[navyBtn, { paddingVertical: 17, width: "100%", marginTop: 22, backgroundColor: C.purple, opacity: canSave ? 1 : 0.35 }]}
             >
-              <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 15.5 }}>Save</Text>
+              <Text style={{ color: "#fff", fontFamily: F.sansBold, fontSize: 15.5 }}>{t("ep.save")}</Text>
             </Pressable>
           </ScrollView>
         </Pressable>

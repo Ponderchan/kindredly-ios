@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
+import { t, useLang } from "../lib/i18n";
 import { C, F } from "../theme/tokens";
 import { WrenBird } from "./WrenBird";
 import { useWrenSkinControl } from "../lib/wren-skin";
@@ -12,6 +13,7 @@ const FLAG = "plush_celebrated";
    milestone gate opens on its own). This surfaces it once, as a gift — the
    emotional payoff of that first reveal. Fires a single time, ever. */
 export function PlushCelebration({ kindreds }: { kindreds: number }) {
+  useLang();
   const { pick } = useWrenSkinControl();
   const [show, setShow] = useState(false);
 
@@ -47,17 +49,17 @@ export function PlushCelebration({ kindreds }: { kindreds: number }) {
             <WrenBird size={128} skin="plush" mood="happy" />
           </View>
           <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, marginTop: 8, textAlign: "center" }}>
-            Meet <Text style={{ color: C.purple }}>Plush</Text>.
+            {t("pl.meetPre")}<Text style={{ color: C.purple }}>Plush</Text>{t("pl.meetPost")}
           </Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.muted, marginTop: 8, textAlign: "center", lineHeight: 21, maxWidth: 300 }}>
-            Your first kindred softened her. This look is yours now — want to try her on?
+            {t("pl.body")}
           </Text>
 
           <Pressable onPress={wear} style={{ backgroundColor: C.purple, borderRadius: 24, paddingVertical: 15, alignItems: "center", alignSelf: "stretch", marginTop: 20 }}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 0.5 }}>Wear Plush</Text>
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 0.5 }}>{t("pl.wear", { name: "Plush" })}</Text>
           </Pressable>
           <Pressable onPress={() => setShow(false)} style={{ alignItems: "center", paddingTop: 12, paddingBottom: 2 }} hitSlop={8}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.faint }}>Keep Sticker for now</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.faint }}>{t("pl.keep", { name: "Sticker" })}</Text>
           </Pressable>
         </Animated.View>
       </View>
