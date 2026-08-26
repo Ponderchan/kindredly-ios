@@ -41,7 +41,7 @@ const NIGHT = "#221E3D";
    discovered, not recited. Each wears a keepsake's art, so the stamps on
    this page speak the same language as the shelf in her room. */
 const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
-  { id: "threads", title: "More Open Threads", sub: "keep more connections going at once", icon: "three-kindreds" },
+  { id: "kindreds", title: "More Kindreds", sub: "the first one is always free", icon: "three-kindreds" },
   { id: "voice", title: "Voice Letters", sub: "say it when typing isn't enough", icon: "first-voice-letter" },
   /* "Monthly Courier Letter" read as post arriving FROM the courier — a
      delivery, not a reading. The letter is about YOU; she only carries
