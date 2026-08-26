@@ -43,6 +43,7 @@ const WINDOW_W = Dimensions.get("window").width;
 const RITUAL_FLAG = "today_ritual";
 
 export default function LettersTab() {
+  useLang(); // repaint when the reader changes language
   const router = useRouter();
   const [pool, setPool] = useState<PoolLetter[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -220,7 +221,7 @@ function Feed({
       const gate = await screen(text);
       if (!gate.ok) {
         setSending(false);
-        Alert.alert(`${wren} held this back`, "This can't go out as written. Keep it to strangers — no contact details.");
+        Alert.alert(t("cp.gate.title", { wren }), t("cp.gate.body"));
         return; // the draft stays in the box
       }
       /* THIS RESULT USED TO BE THROWN AWAY. replyToLetter returns null for a
@@ -234,7 +235,7 @@ function Feed({
         setSending(false);
         pendingReply.current = to;
         if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
-        else Alert.alert("Couldn't send", "That reply didn't go out. Try again.");
+        else Alert.alert(t("cp.fail.title"), t("ld.replyFail"));
         return; // the draft stays in the box
       }
       /* the moment a stranger's letter becomes a correspondence — the
@@ -350,7 +351,7 @@ function Feed({
                   ref={replyRef}
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
-                  placeholder="write back…"
+                  placeholder={t("ld.writeBackPh")}
                   placeholderTextColor={P.ink40}
                   multiline
                   style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
@@ -361,7 +362,7 @@ function Feed({
                   style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
                 >
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : P.ink40 }}>
-                    {sending ? "···" : "SEND"}
+                    {sending ? "···" : t("ld.send")}
                   </Text>
                 </Pressable>
               </View>
@@ -369,8 +370,8 @@ function Feed({
                 {replyW > LETTER_MAX
                   ? `${replyW - LETTER_MAX} OVER THE LIMIT`
                   : replyOk
-                    ? "A THREAD OPENS — JUST THE TWO OF YOU"
-                    : "REPLY AND A THREAD OPENS"}
+                    ? t("ld.threadOpensTwo")
+                    : t("ld.replyThreadOpens")}
               </Text>
             </Pressable>
           ) : (
@@ -379,11 +380,11 @@ function Feed({
         </View>
       </KeyboardAvoidingView>
 
-      {toast && <Toast msg="a thread opened — find it in Kindreds" bottom={150} />}
+      {toast && <Toast msg={t("ld.toast.thread")} bottom={150} />}
 
       <SignUpSheet
         open={needsAccount}
-        reason="A reply opens a thread between the two of you, so it needs somewhere their answer can reach you. What you wrote is still in the box."
+        reason={t("ld.signup.reason")}
         onClose={() => setNeedsAccount(false)}
         onSignedIn={() => {
           setNeedsAccount(false);
@@ -400,9 +401,9 @@ function Feed({
 function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.groundInk }}>TODAY</Text>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.groundInk }}>{t("ld.today")}</Text>
       <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.groundInk60 }}>
-        {count === 0 ? "CLOSED" : atEnd ? "ALL READ" : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
+        {count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
       </Text>
     </View>
   );
@@ -444,7 +445,7 @@ function LetterReader({
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
           <Pressable onPress={onClose} hitSlop={12} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>✕</Text>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink60 }}>FOLD IT BACK</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink60 }}>{t("ld.foldBack")}</Text>
           </Pressable>
         </View>
 
@@ -490,7 +491,7 @@ function LetterReader({
                   ref={inputRef}
                   value={reply.value}
                   onChangeText={reply.onChange}
-                  placeholder="write back…"
+                  placeholder={t("ld.writeBackPh")}
                   placeholderTextColor={P.ink40}
                   multiline
                   autoFocus
@@ -502,7 +503,7 @@ function LetterReader({
                   style={{ paddingHorizontal: 12, paddingVertical: 9, backgroundColor: reply.canSend ? P.pen : "transparent" }}
                 >
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: reply.canSend ? "#fff" : P.ink40 }}>
-                    {reply.sending ? "···" : "SEND"}
+                    {reply.sending ? "···" : t("ld.send")}
                   </Text>
                 </Pressable>
               </View>
@@ -512,7 +513,7 @@ function LetterReader({
                 hitSlop={6}
                 style={{ backgroundColor: P.pen, paddingVertical: 17, alignItems: "center" }}
               >
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>WRITE BACK</Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>{t("ld.writeBack")}</Text>
               </Pressable>
             )}
           </View>
@@ -600,7 +601,7 @@ function LetterPage({
     if (out) {
       setXl(out);
       setXlOn(true);
-    } else Alert.alert(`${wren} couldn't translate this`, "Try again in a moment.");
+    } else Alert.alert(t("ld.xlFail.title", { wren }), t("ld.xlFail.body"));
   };
 
   return (
@@ -674,7 +675,7 @@ function LetterPage({
         >
         {isVoice && audioUrl ? (
           <View>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>VOICE LETTER</Text>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>{t("ld.voiceLetter")}</Text>
             <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} system />
             {!!letter.body && letter.body !== "🎙 A voice letter" && (
               <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 24, color: P.ink60, marginTop: 16 }}>{letter.body}</Text>
@@ -721,8 +722,8 @@ function LetterPage({
         {folded && (
           <Pressable onPress={() => setOpen(true)} hitSlop={8} style={{ paddingTop: 10 }}>
             <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>THERE'S MORE OF THIS ONE</Text>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>UNFOLD ↓</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>{t("ld.more")}</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("ld.unfold")}</Text>
             </View>
           </Pressable>
         )}
@@ -780,7 +781,7 @@ function LetterPage({
 
         {/* the two moves, on a rule */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: P.ink }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? "^ SWIPE TO PASS" : "^ PASS"}</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink60 }}>{first ? t("ld.swipePass") : t("ld.pass")}</Text>
           {!isVoice && !!letter.body && (
             <Pressable onPress={doTranslate} hitSlop={10} style={{ flexDirection: "row", alignItems: "center" }}>
               <TranslateMark on={xlOn} />
@@ -790,7 +791,7 @@ function LetterPage({
             </Pressable>
           )}
           <Pressable onPress={onReply} hitSlop={14}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>REPLY ↓</Text>
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("ld.replyArrow")}</Text>
           </Pressable>
         </View>
       </Animated.View>
@@ -863,8 +864,8 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingBottom: 10 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink, flex: 1 }}>TODAY</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.ink40 }}>SHE'S BACK</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink, flex: 1 }}>{t("ld.today")}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.ink40 }}>{t("ld.shesBack")}</Text>
       </View>
       <View style={{ ...rule }} />
 
@@ -876,7 +877,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
 
         {/* 1 · the receipt — the same docket the world will see on it */}
         <Animated.View entering={FadeIn.delay(280).duration(560)} style={{ marginTop: 18 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2, color: P.ink60, marginBottom: 10 }}>YOUR LETTER LEFT</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2, color: P.ink60, marginBottom: 10 }}>{t("ld.yourLetterLeft")}</Text>
           <View style={{ borderWidth: 1, borderColor: P.ink, padding: 16 }}>
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
               <MosaicId seed={uid} />
@@ -893,7 +894,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
               </Text>
             )}
             <View style={{ marginTop: 14, alignSelf: "flex-start", borderWidth: 1.4, borderColor: P.post, paddingHorizontal: 9, paddingVertical: 3, transform: [{ rotate: "-1.5deg" }] }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.post }}>POSTED</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.post }}>{t("ld.posted")}</Text>
             </View>
           </View>
         </Animated.View>
@@ -904,7 +905,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
               <WrenBird size={34} mood="listen" />
               <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink, marginLeft: 12, marginTop: 2 }}>
-                Nothing's come back yet — it's too soon. Answers take hours, sometimes days. That's the point.
+                {t("ld.wait")}
               </Text>
             </View>
           </Animated.View>
@@ -917,13 +918,13 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
             {first ? (
               <>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
-                  But {wren} picked this up on the way home.
+                  {t("ld.found", { wren })}
                 </Text>
                 <View style={{ borderWidth: 1, borderColor: P.ink12, padding: 14, marginTop: 14 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <MosaicId seed={first.author} cell={3} gap={1} />
                     <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginLeft: 10 }}>
-                      {first.author ? `NO.${postNo(first.author)}` : "UNSIGNED"} · A STRANGER
+                      {first.author ? `NO.${postNo(first.author)}` : t("ld.unsigned")} · {t("ld.stranger")}
                     </Text>
                   </View>
                   <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, marginTop: 10 }}>
@@ -934,7 +935,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
             ) : (
               <>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
-                  The post is empty today — you're early. When the first one lands, {wren} brings it straight here.
+                  {t("ld.empty", { wren })}
                 </Text>
               </>
             )}
@@ -965,7 +966,7 @@ function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => vo
             }
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: first ? "#fff" : P.ink }}>
-              {first ? "READ IT" : "LOOK AROUND"}
+              {first ? t("ld.readIt") : t("ld.lookAround")}
             </Text>
           </Pressable>
         </Animated.View>
