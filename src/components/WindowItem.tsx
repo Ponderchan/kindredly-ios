@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { C, F, cardStyle } from "../theme/tokens";
+import { t } from "../lib/i18n";
 import { MoodIcon } from "./MoodIcon";
 import { getMood } from "../data/moods";
 import type { WindowPost } from "../lib/db";
@@ -10,7 +11,7 @@ export function WindowItem({ item, empty }: { item: WindowPost | null; empty?: s
     return (
       <View style={[cardStyle, { padding: 20, alignItems: "center" }]}>
         <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.faint, textAlign: "center", lineHeight: 22 }}>
-          {empty || "Nothing in the window yet."}
+          {empty || t("wi.empty")}
         </Text>
       </View>
     );

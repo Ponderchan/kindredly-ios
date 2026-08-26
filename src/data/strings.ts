@@ -13,6 +13,7 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    "wi.empty": "Nothing in the window yet.",
     /* ── wren-style / pronouns ── */
     "wren.milestone.egg": "signed up",
     "wren.milestone.hatch": "born",
@@ -817,6 +818,7 @@ strings(
 
   /* ── es ── */
   {
+    "wi.empty": "Nada en la ventana todavía.",
     /* ── wren-style / pronouns ── */
     "wren.milestone.egg": "te registraste",
     "wren.milestone.hatch": "nació",
@@ -1621,6 +1623,7 @@ strings(
 
   /* ── pt-BR ── */
   {
+    "wi.empty": "Nada na janela ainda.",
     /* ── wren-style / pronouns ── */
     "wren.milestone.egg": "você se cadastrou",
     "wren.milestone.hatch": "nasceu",
@@ -2425,6 +2428,7 @@ strings(
 
   /* ── id ── */
   {
+    "wi.empty": "Belum ada apa-apa di jendela.",
     /* ── wren-style / pronouns ── */
     "wren.milestone.egg": "mendaftar",
     "wren.milestone.hatch": "lahir",
