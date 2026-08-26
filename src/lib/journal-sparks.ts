@@ -1,5 +1,7 @@
 import type { JournalEntry } from "./journal";
 import { t as tr } from "./i18n";
+import { detectThemes } from "./writing-engine/journal-sparks/detect-themes";
+import { THEME_SPARK } from "./writing-engine/journal-sparks/themes";
 import { getMood } from "../data/moods";
 
 /* The line on an empty SEALED page (just for me).
@@ -83,16 +85,11 @@ const PRIVATE = [
    time; a companion who speaks on every single visit is a notification. */
 const WREN = ["js.33", "js.34", "js.35"];
 
-/* Themes worth naming, matched locally against your own words. Deliberately
-   few: a wrong guess about someone's life is worse than a general question. */
-const THEMES: { hit: RegExp; line: string }[] = [
-  { hit: /\b(miss|missed|missing)\b/i, line: "js.37" },
-  { hit: /\b(tired|exhausted|drained|burnt|burned out)\b/i, line: "js.38" },
-  { hit: /\b(mum|mom|dad|family|parents|brother|sister)\b/i, line: "js.39" },
-  { hit: /\b(work|job|boss|deadline|meeting)\b/i, line: "js.40" },
-  { hit: /\b(sleep|awake|insomnia|2am|3am)\b/i, line: "js.32" },
-  { hit: /\b(friend|friends|lonely|alone)\b/i, line: "js.41" },
-];
+/* Themes are detected multilingually now — writing-engine resolves the
+   language and votes with that language's own lexicon, then THEME_SPARK maps
+   the winning stable id to the curated spark. A wrong guess about someone's
+   life is still worse than a general question, so this only fires with real
+   evidence and falls through to the general rotation otherwise. */
 
 const pick = (list: string[], n: number) => list[Math.abs(n) % list.length];
 const isNight = (d: Date) => d.getHours() >= 22 || d.getHours() < 4;
@@ -113,8 +110,9 @@ export function journalSpark(entries: JournalEntry[], now = new Date()): string 
       .slice(0, 25)
       .map((e) => e.body || "")
       .join(" ");
-    const hits = THEMES.filter((t) => (text.match(t.hit) || []).length >= 3);
-    if (hits.length) return tr(pick(hits.map((h) => h.line), seed));
+    const themes = detectThemes(text).themes.filter((th) => th.confidence >= 1); // repeated evidence — a theme that keeps coming back
+    const sparks = themes.map((th) => THEME_SPARK[th.theme]).filter((k): k is string => !!k);
+    if (sparks.length) return tr(pick(sparks, seed));
   }
 
   // SETTLED — the recent moods choose, because the writer already told us
