@@ -18,6 +18,7 @@ import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
 import { track } from "../../lib/track";
+import { getLang, useLang } from "../../lib/i18n";
 import { screen, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -61,24 +62,33 @@ export default function LettersTab() {
      correct, not a gap: a letter floats to the top only when the matcher
      genuinely named its author, and the docket line stays silent about
      closeness for every other one. */
+  /* WHAT YOU CAN READ COMES FIRST — but nothing is hidden.
+     The pool is one shared room in four languages now, and the first act
+     in this product is reading a stranger's letter: hand someone a page
+     they can't read and the loop breaks at step one. A hard filter would
+     be worse, though — the pool is thin, and a Spanish reader with three
+     Spanish letters should still see the rest of the world underneath,
+     where the translate button already waits. So: your language first,
+     then the matcher's closest, then whatever is newest. */
+  const byReadability = (a: PoolLetter, b: PoolLetter) => {
+    const mine = getLang();
+    const readable = (l: PoolLetter) => ((l.lang || "en") === mine ? 1 : 0);
+    return readable(b) - readable(a) || (b.close ?? -1) - (a.close ?? -1);
+  };
+
   const load = useCallback(async () => {
     /* THE LETTERS DON'T WAIT ON THE MATCHER. Awaiting both together meant the
        feed appeared only once the nightly-matches lookup also came back — a
        query that adds nothing to the first paint and, for most readers, comes
        back empty anyway. The pool paints as soon as it lands; the closeness
        scores fold in a moment later and re-sort in place. */
-    const p = (await fetchPool()) || [];
+    const p = ((await fetchPool()) || []).sort(byReadability);
     setPool(p);
     setLoaded(true);
     const m = await fetchMatches();
     if (!m?.closest?.length) return;
     const score = new Map(m.closest.map((c) => [c.uid, c.score]));
-    setPool((cur) =>
-      cur
-        .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
-        // matched first; everything else keeps the server's newest-first order
-        .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
-    );
+    setPool((cur) => cur.map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined })).sort(byReadability));
   }, []);
   useFocusEffect(
     useCallback(() => {

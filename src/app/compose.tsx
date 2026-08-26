@@ -17,6 +17,7 @@ import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
 import { track } from "../lib/track";
+import { getLang } from "../lib/i18n";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
@@ -30,7 +31,12 @@ import { DRIFT_LABEL, openingLadder, readMood, wrenLine } from "../lib/wren-read
 import { nextSpark } from "../lib/sparks";
 import { COUNTER_FROM, LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
 
-const LANG = "en";
+/* A LETTER REMEMBERS ITS OWN LANGUAGE. This was hardcoded "en", so every
+   letter ever written — in any language — was filed as English, and the
+   pool had no way to hand a reader something they could read. The tag is
+   the writer's interface language, which is the best available guess and
+   the one they chose deliberately. */
+const letterLang = () => getLang();
 const LAV = P.paper; // the same surface every room uses
 type Step = "pick" | "write" | "sending";
 type Mode = "write" | "speak";
@@ -200,10 +206,10 @@ export default function Compose() {
 
     let ok: true | null = null;
     if (mode === "speak" && recUri) {
-      ok = await publishVoiceLetter(sel, recUri, recDur, voiceLine, LANG);
+      ok = await publishVoiceLetter(sel, recUri, recDur, voiceLine, letterLang());
     } else {
       const body = ask.trim() ? `${text.trim()}\n\n${ask.trim()}` : text.trim();
-      ok = await publishLetter(sel, body, LANG);
+      ok = await publishLetter(sel, body, letterLang());
       if (ok) track("letter_sent", { kind: "text", weight: weightedCount(body) });
     }
     setBusy(false);

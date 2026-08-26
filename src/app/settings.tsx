@@ -265,7 +265,7 @@ export default function Settings() {
       <LeaveSheet
         open={picking}
         title={t("settings.language")}
-        body="Kindredly speaks three languages. Letters themselves always travel in whatever language they were written."
+        body={`Kindredly speaks ${LANGS.length} languages. A letter always travels in whatever language it was written in.`}
         actions={LANGS.map((l) => ({
           label: l.label.toUpperCase(),
           kind: l.id === lang ? ("primary" as const) : ("quiet" as const),

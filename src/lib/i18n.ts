@@ -26,10 +26,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
    Missing keys fall back to English rather than showing a key — a reader
    should never see machinery. */
 
-export type Lang = "en" | "es";
+export type Lang = "en" | "es" | "pt" | "id";
 export const LANGS: { id: Lang; label: string }[] = [
   { id: "en", label: "English" },
   { id: "es", label: "Español" },
+  { id: "pt", label: "Português" },
+  { id: "id", label: "Bahasa Indonesia" },
 ];
 
 const KEY = "kindredly_lang";
@@ -38,6 +40,8 @@ function deviceLang(): Lang {
   try {
     const tag = (Intl.DateTimeFormat().resolvedOptions().locale || "en").toLowerCase();
     if (tag.startsWith("es")) return "es";
+    if (tag.startsWith("pt")) return "pt";
+    if (tag.startsWith("id") || tag.startsWith("in")) return "id"; // "in" is the legacy Indonesian tag
   } catch {
     /* an app that can't read a locale is still an app in English */
   }
@@ -88,13 +92,17 @@ type Dict = Record<string, string>;
 
 const EN: Dict = {};
 const ES: Dict = {};
+const PT: Dict = {};
+const ID: Dict = {};
 
-const DICTS: Record<Lang, Dict> = { en: EN, es: ES };
+const DICTS: Record<Lang, Dict> = { en: EN, es: ES, pt: PT, id: ID };
 
 /** register a screen's strings — one call per surface, kept beside it */
-export function strings(en: Dict, es: Dict): void {
+export function strings(en: Dict, es: Dict, pt: Dict, id: Dict): void {
   Object.assign(EN, en);
   Object.assign(ES, es);
+  Object.assign(PT, pt);
+  Object.assign(ID, id);
 }
 
 /** t("kindreds.waiting", { n: 2 }) — {vars} are replaced in place */
