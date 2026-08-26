@@ -196,46 +196,33 @@ function Dots() {
 }
 
 /* two tiny icons drawn from Views (no emoji, renders identically everywhere) */
-/* The owner's own calendar mark: a rounded frame with two binder tabs, a header
-   rule, and a tick in the body. Drawn to the same 24×24 / 18×18 live-area grid
-   the tab glyphs use, so it sits at the same optical size as everything else. */
+/* The month, in the system's own hand: a square frame, rules doing the
+   division, and one day holding a drop of ink — exactly what the calendar
+   behind this control is (mood faces in ruled cells). The old mark was a
+   binder-tab rounded rectangle with a checkmark, in two colours from a
+   palette this app no longer owns — a habit tracker's glyph. Sealed is not a
+   habit; a day is never "done". */
 function CalendarIcon() {
-  const body = "#7C6CE8";
-  const tick = "#4FC8C0";
   return (
     <Svg width={21} height={21} viewBox="0 0 24 24">
-      {/* binder tabs */}
-      <Rect x={7.2} y={1.8} width={2.6} height={4.4} rx={1.3} fill={body} />
-      <Rect x={14.2} y={1.8} width={2.6} height={4.4} rx={1.3} fill={body} />
-      {/* frame */}
-      <Rect x={3.2} y={4} width={17.6} height={17.4} rx={3.6} fill="none" stroke={body} strokeWidth={2.4} />
-      {/* header rule */}
-      <Path d="M4.4 10.2h15.2" stroke={body} strokeWidth={2.2} strokeLinecap="round" />
-      {/* the tick */}
-      <Path
-        d="M8.7 15.6l2.6 2.6 4.4-4.9"
-        fill="none"
-        stroke={tick}
-        strokeWidth={2.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <Rect x={3} y={4} width={18} height={17} fill="none" stroke={P.ink60} strokeWidth={1.7} />
+      <Path d="M3 9.2h18" stroke={P.ink60} strokeWidth={1.7} />
+      <Path d="M9 9.2v11.8 M15 9.2v11.8 M3 15.1h18" stroke={P.ink60} strokeWidth={1.1} />
+      <Rect x={10.7} y={10.9} width={2.7} height={2.7} fill={P.ink60} />
     </Svg>
   );
 }
-/* The calendar's sibling — a toggle shows two states of one control, so the
-   pair has to be drawn as one thing: same canvas, same weight, same palette.
-   Timeline = stacked entries, each with its mood dot. */
+/* Its sibling, drawn as the timeline it toggles to: entry rows on rules,
+   each led by the same square of ink the rest of the app uses as a marker. */
 function ListIcon() {
-  const body = "#7C6CE8";
-  const tick = "#4FC8C0";
   return (
     <Svg width={21} height={21} viewBox="0 0 24 24">
-      <Rect x={3.2} y={4} width={17.6} height={17.4} rx={3.6} fill="none" stroke={body} strokeWidth={2.4} />
-      <Circle cx={8} cy={9.6} r={1.7} fill={tick} />
-      <Path d="M12 9.6h5.2" stroke={body} strokeWidth={2.2} strokeLinecap="round" />
-      <Circle cx={8} cy={15.8} r={1.7} fill={tick} />
-      <Path d="M12 15.8h5.2" stroke={body} strokeWidth={2.2} strokeLinecap="round" />
+      <Rect x={3} y={4.6} width={3} height={3} fill={P.ink60} />
+      <Path d="M9 6.1h12" stroke={P.ink60} strokeWidth={1.7} />
+      <Rect x={3} y={10.5} width={3} height={3} fill={P.ink60} />
+      <Path d="M9 12h12" stroke={P.ink60} strokeWidth={1.7} />
+      <Rect x={3} y={16.4} width={3} height={3} fill={P.ink60} />
+      <Path d="M9 17.9h12" stroke={P.ink60} strokeWidth={1.7} />
     </Svg>
   );
 }
