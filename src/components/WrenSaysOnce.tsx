@@ -27,8 +27,10 @@ import { getFlags, setFlag } from "../lib/flags";
    passes reach the same answer. */
 const decided = new Map<string, boolean>();
 
-export function WrenSaysOnce({ id, line }: { id: string; line: string }) {
-  const wren = useWrenName();
+/* the once-logic alone — for a screen that already has a speech slot and
+   wants her first-visit line IN it rather than stacked above it. Two birds
+   talking at the same time is a crowd, not a companion. */
+export function useWrenOnce(id: string): boolean {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -50,12 +52,20 @@ export function WrenSaysOnce({ id, line }: { id: string; line: string }) {
     };
   }, [id]);
 
-  if (!show) return null;
+  return show;
+}
+
+export function WrenSaysOnce({ id, line }: { id: string; line: string }) {
+  const wren = useWrenName();
+  const once = useWrenOnce(id);
+  const [hidden, setHidden] = useState(false);
+
+  if (!once || hidden) return null;
 
   return (
     <Animated.View entering={FadeIn.duration(420)} exiting={FadeOut.duration(200)}>
       <Pressable
-        onPress={() => setShow(false)}
+        onPress={() => setHidden(true)}
         style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11 }}
       >
         <WrenBird size={22} bare mood="content" />

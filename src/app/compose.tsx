@@ -1,4 +1,4 @@
-import { useWrenName } from "../lib/wren-name";
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,7 +19,7 @@ import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
 import { track } from "../lib/track";
 import { getLang, t } from "../lib/i18n";
-import { WrenSaysOnce } from "../components/WrenSaysOnce";
+import { useWrenOnce } from "../components/WrenSaysOnce";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
@@ -161,6 +161,8 @@ export default function Compose() {
   const canSend = mode === "speak" ? !!recUri && weightedCount(voiceLine) >= REPLY_MIN : ladder.ready && over <= 0;
   // Wren's face reads your feeling; her line reads how much you've given.
   const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, ladder.ready);
+  // her first-visit language line, folded into the same mouth
+  const langHello = useWrenOnce("lang-send") && mode === "write" && !text.trim();
 
   const send = async () => {
     if (!canSend || busy || !sel) return;
@@ -395,24 +397,26 @@ export default function Compose() {
               filling in a form on a desk; the letter you READ is full bleed, so
               the one you write should be too. */}
           <View>
-            {/* SHE SAYS IT ONCE, BEFORE ANYONE HOLDS BACK THEIR OWN
-                LANGUAGE. The pool is one room in every language (the
-                owner's call), so the only thing missing was somebody
-                telling a writer that theirs is welcome in it. */}
-            <WrenSaysOnce id="lang-send" line={t("lang.send")} />
-
-            {/* Wren reads you live */}
+            {/* Wren reads you live. Her first time here she instead says the
+                language line — the pool is one room in every language (the
+                owner's call), and someone has to tell a writer that theirs is
+                welcome in it. ONE speech slot: it stacked as a second bird
+                row once, and two birds talking at the same time in two
+                languages read as a crowd, not a companion. The moment you
+                start writing, the live read takes the slot back. */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>
                 <WrenBird size={38} mood={wrenMood} />
               </Animated.View>
               <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, lineHeight: 20 }}>
                 “
-                {mode === "speak"
-                  ? recUri && weightedCount(voiceLine) < REPLY_MIN
-                    ? "One line to go with it — it's what travels on the outside."
-                    : wrenLine(wrenMood)
-                  : ladder.line}
+                {langHello
+                  ? speakAs(t("lang.send"), wren)
+                  : mode === "speak"
+                    ? recUri && weightedCount(voiceLine) < REPLY_MIN
+                      ? "One line to go with it — it's what travels on the outside."
+                      : wrenLine(wrenMood)
+                    : ladder.line}
                 ”
               </Text>
             </View>
