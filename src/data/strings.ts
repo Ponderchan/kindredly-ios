@@ -13,6 +13,15 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── skins ── */
+    "skin.sticker.name": "Sticker",
+    "skin.plush.name": "Plush",
+    "skin.ink.name": "Ink & Post",
+    /* ── what the two of you share ── */
+    "nc.hourLate.line": "You both write once the world has gone quiet.",
+    "nc.hourLate.ev": "{n} OF {m} AFTER TEN",
+    "nc.lenMatched.line": "You answer each other at almost exactly the same length.",
+    "nc.lenMatched.ev": "{a} AND {b} CHARACTERS",
     /* ── the morning knock (a scheduled local notification) ── */
     "nt.knockTitle": "The Morning Page is waiting.",
     "nt.knockBody": "A line someone let drift out arrived at eight.",
@@ -1020,6 +1029,15 @@ strings(
 
   /* ── es ── */
   {
+    /* ── skins ── */
+    "skin.sticker.name": "Sticker",
+    "skin.plush.name": "Peluche",
+    "skin.ink.name": "Tinta y Correo",
+    /* ── what the two of you share ── */
+    "nc.hourLate.line": "Los dos escribís cuando el mundo ya se ha callado.",
+    "nc.hourLate.ev": "{n} DE {m} DESPUÉS DE LAS DIEZ",
+    "nc.lenMatched.line": "Se responden con casi exactamente el mismo largo.",
+    "nc.lenMatched.ev": "{a} Y {b} CARACTERES",
     /* ── the morning knock (a scheduled local notification) ── */
     "nt.knockTitle": "La Página de la mañana te espera.",
     "nt.knockBody": "Una línea que alguien dejó ir llegó a las ocho.",
@@ -2027,6 +2045,15 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── skins ── */
+    "skin.sticker.name": "Sticker",
+    "skin.plush.name": "Pelúcia",
+    "skin.ink.name": "Tinta e Correio",
+    /* ── what the two of you share ── */
+    "nc.hourLate.line": "Vocês dois escrevem quando o mundo já ficou quieto.",
+    "nc.hourLate.ev": "{n} DE {m} DEPOIS DAS DEZ",
+    "nc.lenMatched.line": "Vocês se respondem quase exatamente no mesmo tamanho.",
+    "nc.lenMatched.ev": "{a} E {b} CARACTERES",
     /* ── the morning knock (a scheduled local notification) ── */
     "nt.knockTitle": "A Página da manhã está esperando.",
     "nt.knockBody": "Uma linha que alguém deixou ir chegou às oito.",
@@ -3034,6 +3061,15 @@ strings(
 
   /* ── id ── */
   {
+    /* ── skins ── */
+    "skin.sticker.name": "Stiker",
+    "skin.plush.name": "Boneka",
+    "skin.ink.name": "Tinta & Pos",
+    /* ── what the two of you share ── */
+    "nc.hourLate.line": "Kalian berdua nulis pas dunia udah sepi.",
+    "nc.hourLate.ev": "{n} DARI {m} LEWAT JAM SEPULUH",
+    "nc.lenMatched.line": "Kalian saling bales dengan panjang yang hampir sama persis.",
+    "nc.lenMatched.ev": "{a} DAN {b} KARAKTER",
     /* ── the morning knock (a scheduled local notification) ── */
     "nt.knockTitle": "Halaman Pagi lagi nunggu.",
     "nt.knockBody": "Satu baris yang dilepas seseorang datang jam delapan.",

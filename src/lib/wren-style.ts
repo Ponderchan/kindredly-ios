@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { t } from "./i18n";
 import type { GrowthStats } from "../data/growth";
 import type { WrenAccessory, WrenSkin, WrenStage } from "../components/WrenBird";
 
@@ -25,11 +26,16 @@ export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; 
    this just remembers the pick. */
 const SKIN_KEY = "kindredly_wren_skin";
 
-export const SKINS: { id: WrenSkin; name: string; blurb: string; lock: "free" | "milestone" | "plus" }[] = [
-  { id: "sticker", name: "Sticker", blurb: "Bold and outlined — your everyday Wren.", lock: "free" },
-  { id: "plush", name: "Plush", blurb: "Soft and squishy. Unlocks with your first kindred.", lock: "milestone" },
-  { id: "ink", name: "Ink & Post", blurb: "The quiet postal bird. A First Class look.", lock: "plus" },
+export const SKINS: { id: WrenSkin; lock: "free" | "milestone" | "plus" }[] = [
+  { id: "sticker", lock: "free" },
+  { id: "plush", lock: "milestone" },
+  { id: "ink", lock: "plus" },
 ];
+
+/* The skin's display name. A module constant is evaluated once at import, so
+   the name can't live in SKINS — it would freeze in whatever language the app
+   started in. This is a lookup the UI calls at render instead. */
+export const skinName = (id: WrenSkin): string => t(`skin.${id}.name`);
 
 export async function getWrenSkin(): Promise<WrenSkin> {
   try {

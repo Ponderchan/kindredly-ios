@@ -10,7 +10,7 @@ import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "reac
 import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
-import { ACCESSORY_META, SKINS, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
+import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, flightLog, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
@@ -278,7 +278,7 @@ export function WrenHome({
       {/* ── looks & dress (unchanged mechanics, postal clothes) ── */}
       <Row
         label={tr("wren.looks")}
-        sub={SKINS.find((s) => s.id === skin)?.name ?? tr("wren.sticker")}
+        sub={skinName(skin)}
         count={`${looksOwned}/3`}
         openState={open === "looks"}
         onPress={() => setOpen(open === "looks" ? null : "looks")}
@@ -293,7 +293,7 @@ export function WrenHome({
                 <View style={{ opacity: unlocked ? 1 : 0.4 }}>
                   <WrenBird size={44} bare mood="happy" skin={sk.id} />
                 </View>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 9, color: on ? P.pen : P.ink60, marginTop: 3 }}>{sk.name.toUpperCase()}</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 9, color: on ? P.pen : P.ink60, marginTop: 3 }}>{skinName(sk.id).toUpperCase()}</Text>
                 {!unlocked && (
                   <Text style={{ fontFamily: PF.mono, fontSize: 7.5, color: P.brassSeal, marginTop: 2 }}>
                     {sk.lock === "plus" ? tr("wren.lock.plus") : tr("wren.lock.kindred")}

@@ -15,6 +15,8 @@
    Naming what a count MEANS is the two of you. That is the difference
    between a shared story and an algorithm's label wall. */
 
+import { t } from "./i18n";
+
 export interface Msg {
   body: string;
   date: string;
@@ -84,8 +86,8 @@ export function noticeThings(mine: Msg[], theirs: Msg[]): Notice[] {
     if (lm / mh.length >= 0.5 && lt / th.length >= 0.5) {
       out.push({
         id: "hour:late",
-        line: "You both write once the world has gone quiet.",
-        evidence: `${lm + lt} OF ${mh.length + th.length} AFTER TEN`,
+        line: t("nc.hourLate.line"),
+        evidence: t("nc.hourLate.ev", { n: String(lm + lt), m: String(mh.length + th.length) }),
       });
     }
   }
@@ -101,8 +103,8 @@ export function noticeThings(mine: Msg[], theirs: Msg[]): Notice[] {
     if (ratio >= 0.8) {
       out.push({
         id: "len:matched",
-        line: "You answer each other at almost exactly the same length.",
-        evidence: `${Math.round(am)} AND ${Math.round(at)} CHARACTERS`,
+        line: t("nc.lenMatched.line"),
+        evidence: t("nc.lenMatched.ev", { a: String(Math.round(am)), b: String(Math.round(at)) }),
       });
     }
   }
