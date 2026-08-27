@@ -13,6 +13,18 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── close of day: the post office shuts ── */
+    "cod.wholePost": "THAT'S THE WHOLE POST",
+    "cod.hold": "PRESS AND HOLD TO CLOSE",
+    "cod.closed": "THE POST IS CLOSED",
+    "cod.goLive": "go have a life — it's better material.",
+    "cod.stillOpen": "WRITING STAYS OPEN\nIT LEAVES WITH THE MORNING VAN",
+    "cod.toStranger": "to a stranger",
+    "cod.toSelf": "to yourself",
+    "cod.reread": "reread",
+    "cod.offClock": "{name} IS OFF THE CLOCK",
+    "cod.stamp": "CLOSED",
+    "cod.nextPost": "NEXT POST IN",
     /* ── wren first-class teaser ── */
     "wren.fcSub": "{wren}'s full journey archive, and a year of her in one letter.",
     "wren.unlock": "UNLOCK →",
@@ -964,6 +976,18 @@ strings(
 
   /* ── es ── */
   {
+    /* ── close of day: the post office shuts ── */
+    "cod.wholePost": "ESO ES TODO EL CORREO",
+    "cod.hold": "MANTÉN PRESIONADO PARA CERRAR",
+    "cod.closed": "EL CORREO ESTÁ CERRADO",
+    "cod.goLive": "vive un poco — es mejor material.",
+    "cod.stillOpen": "ESCRIBIR SIGUE ABIERTO\nSALE CON EL CORREO DE LA MAÑANA",
+    "cod.toStranger": "a un extraño",
+    "cod.toSelf": "a ti",
+    "cod.reread": "releer",
+    "cod.offClock": "{name} FUERA DE SERVICIO",
+    "cod.stamp": "CERRADO",
+    "cod.nextPost": "PRÓXIMO CORREO EN",
     /* ── wren first-class teaser ── */
     "wren.fcSub": "El archivo completo del viaje de {wren}, y un año de ella en una carta.",
     "wren.unlock": "DESBLOQUEAR →",
@@ -1915,6 +1939,18 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── close of day: the post office shuts ── */
+    "cod.wholePost": "ISSO É TODO O CORREIO",
+    "cod.hold": "SEGURE PARA FECHAR",
+    "cod.closed": "O CORREIO ESTÁ FECHADO",
+    "cod.goLive": "vai viver um pouco — rende material melhor.",
+    "cod.stillOpen": "ESCREVER CONTINUA ABERTO\nSAI COM O CORREIO DA MANHÃ",
+    "cod.toStranger": "pra um estranho",
+    "cod.toSelf": "pra você",
+    "cod.reread": "reler",
+    "cod.offClock": "{name} SAIU DO EXPEDIENTE",
+    "cod.stamp": "FECHADO",
+    "cod.nextPost": "PRÓXIMO CORREIO EM",
     /* ── wren first-class teaser ── */
     "wren.fcSub": "O arquivo completo da jornada de {wren}, e um ano dela em uma carta.",
     "wren.unlock": "DESBLOQUEAR →",
@@ -2866,6 +2902,18 @@ strings(
 
   /* ── id ── */
   {
+    /* ── close of day: the post office shuts ── */
+    "cod.wholePost": "UDAH SEGITU AJA HARI INI",
+    "cod.hold": "TEKAN TAHAN UNTUK TUTUP",
+    "cod.closed": "KANTOR POS TUTUP",
+    "cod.goLive": "hidup dulu gih — bahannya lebih bagus.",
+    "cod.stillOpen": "NULIS TETAP BUKA\nBERANGKAT SAMA POS PAGI",
+    "cod.toStranger": "ke orang asing",
+    "cod.toSelf": "buat sendiri",
+    "cod.reread": "baca lagi",
+    "cod.offClock": "{name} UDAH OFF",
+    "cod.stamp": "TUTUP",
+    "cod.nextPost": "POS BERIKUTNYA",
     /* ── wren first-class teaser ── */
     "wren.fcSub": "Arsip lengkap perjalanan {wren}, dan setahun tentangnya dalam satu surat.",
     "wren.unlock": "BUKA →",

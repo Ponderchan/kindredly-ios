@@ -15,6 +15,10 @@ import { F } from "../theme/tokens";
 import { P, PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { MORNING_HOUR } from "../lib/notify";
+// `t` is bound as a local timer handle further down, so the translator comes
+// in as `tr` — the same convention the other timer/loop files use.
+import { t as tr, useLang } from "../lib/i18n";
+import { localeTag } from "../lib/format";
 
 /* Close of day — the post office shuts, and you're the one who shuts it.
    The object is a POSTMARK, not a wax seal: ink on paper, the thing a real
@@ -43,6 +47,7 @@ export function CloseOfDay({
   onSelf: () => void;
   onKept: () => void;
 }) {
+  useLang(); // repaint when the reader changes language
   return (
     <View style={{ flex: 1, backgroundColor: PAPER }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
@@ -86,7 +91,7 @@ function ToSeal({ onSeal }: { onSeal: () => void }) {
   return (
     <Animated.View entering={FadeIn.duration(400)} style={{ alignItems: "center" }}>
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, textAlign: "center" }}>
-        THAT'S THE WHOLE POST
+        {tr("cod.wholePost")}
       </Text>
 
       {/* a drag that merely starts on the stamp must not stamp it — this page
@@ -111,7 +116,7 @@ function ToSeal({ onSeal }: { onSeal: () => void }) {
       </Pressable>
 
       <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.groundInk60, marginTop: 24 }}>
-        PRESS AND HOLD TO CLOSE
+        {tr("cod.hold")}
       </Text>
     </Animated.View>
   );
@@ -132,9 +137,9 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
         <Postmark dated />
       </Animated.View>
 
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, marginTop: 26 }}>THE POST IS CLOSED</Text>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, marginTop: 26 }}>{tr("cod.closed")}</Text>
       <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.groundInk60, marginTop: 10, textAlign: "center", lineHeight: 22 }}>
-        go have a life — it's better material.
+        {tr("cod.goLive")}
       </Text>
 
       <Board />
@@ -142,18 +147,20 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
       {/* the lock is on reading, never on writing */}
       <View style={{ alignItems: "center", marginTop: 22 }}>
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.groundInk40, textAlign: "center", lineHeight: 17 }}>
-          WRITING STAYS OPEN{"\n"}IT LEAVES WITH THE MORNING VAN
+          {tr("cod.stillOpen")}
         </Text>
         <View style={{ flexDirection: "row", gap: 9, marginTop: 14 }}>
-          <Ghost label="to a stranger" onPress={onWrite} />
-          <Ghost label="to yourself" onPress={onSelf} />
-          <Ghost label="reread" onPress={onKept} />
+          <Ghost label={tr("cod.toStranger")} onPress={onWrite} />
+          <Ghost label={tr("cod.toSelf")} onPress={onSelf} />
+          <Ghost label={tr("cod.reread")} onPress={onKept} />
         </View>
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginTop: 28 }}>
         <WrenBird size={30} mood="sleepy" />
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.groundInk40 }}>{wren.toUpperCase()} IS OFF THE CLOCK</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.groundInk40 }}>
+          {tr("cod.offClock", { name: wren.toUpperCase() })}
+        </Text>
       </View>
     </Animated.View>
   );
@@ -180,7 +187,9 @@ function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
 function Postmark({ dated }: { dated?: boolean }) {
   const d = new Date();
   const day = String(d.getDate());
-  const mon = d.toLocaleString("en", { month: "short" }).toUpperCase();
+  // a real postmark is stamped in the language of the post office you're
+  // standing in — so the month follows the reader, not the build
+  const mon = d.toLocaleString(localeTag(), { month: "short" }).toUpperCase();
   return (
     <View
       style={{
@@ -201,7 +210,7 @@ function Postmark({ dated }: { dated?: boolean }) {
         {dated ? `${day} ${mon}` : "— —"}
       </Text>
       <View style={{ width: 76, height: 1.5, backgroundColor: INK, marginVertical: 5 }} />
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1.4, color: INK }}>CLOSED</Text>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1.4, color: INK }}>{tr("cod.stamp")}</Text>
     </View>
   );
 }
@@ -211,7 +220,7 @@ function Board() {
   const [h, m] = useUntilMorning();
   return (
     <View style={{ backgroundColor: BOARD, paddingVertical: 13, paddingHorizontal: 16, marginTop: 22, alignItems: "center" }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: "#8A8880" }}>NEXT POST IN</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: "#8A8880" }}>{tr("cod.nextPost")}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 }}>
         <Flap ch={h[0]} />
         <Flap ch={h[1]} />
