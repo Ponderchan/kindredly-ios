@@ -13,6 +13,20 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── onboarding: the strays the first sweep missed ── */
+    "ob.feed.label": "FEED THE EGG",
+    "ob.feed.fed": "{n} FED ✓",
+    "ob.feed.hungry": "HUNGRY",
+    "ob.flight.plain": "{name}’s",
+    "ob.flight.em": "first flight.",
+    "ob.flight.sub": "YOUR WORDS, FOLDED INTO A LETTER",
+    "ob.reading.plain": "Reading you",
+    "ob.reading.em": "right now.",
+    "ob.reading.sub": "Don't close it. This takes about ten seconds.",
+    "ob.fed.label": "WHAT YOU FED ME",
+    "ob.hatched.plain": "Something",
+    "ob.hatched.em": "hatched.",
+    "ob.incubator": "INCUBATOR",
     /* ── close of day: the post office shuts ── */
     "cod.wholePost": "THAT'S THE WHOLE POST",
     "cod.hold": "PRESS AND HOLD TO CLOSE",
@@ -976,6 +990,20 @@ strings(
 
   /* ── es ── */
   {
+    /* ── onboarding: the strays the first sweep missed ── */
+    "ob.feed.label": "ALIMENTA EL HUEVO",
+    "ob.feed.fed": "{n} DADOS ✓",
+    "ob.feed.hungry": "TIENE HAMBRE",
+    "ob.flight.plain": "El primer vuelo de",
+    "ob.flight.em": "{name}.",
+    "ob.flight.sub": "TUS PALABRAS, DOBLADAS EN UNA CARTA",
+    "ob.reading.plain": "Te está leyendo",
+    "ob.reading.em": "ahora mismo.",
+    "ob.reading.sub": "No la cierres. Son unos diez segundos.",
+    "ob.fed.label": "LO QUE ME DISTE",
+    "ob.hatched.plain": "Algo",
+    "ob.hatched.em": "acaba de nacer.",
+    "ob.incubator": "INCUBADORA",
     /* ── close of day: the post office shuts ── */
     "cod.wholePost": "ESO ES TODO EL CORREO",
     "cod.hold": "MANTÉN PRESIONADO PARA CERRAR",
@@ -1939,6 +1967,20 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── onboarding: the strays the first sweep missed ── */
+    "ob.feed.label": "ALIMENTE O OVO",
+    "ob.feed.fed": "{n} DADOS ✓",
+    "ob.feed.hungry": "COM FOME",
+    "ob.flight.plain": "O primeiro voo de",
+    "ob.flight.em": "{name}.",
+    "ob.flight.sub": "SUAS PALAVRAS, DOBRADAS EM UMA CARTA",
+    "ob.reading.plain": "Está te lendo",
+    "ob.reading.em": "agora mesmo.",
+    "ob.reading.sub": "Não feche. São uns dez segundos.",
+    "ob.fed.label": "O QUE VOCÊ ME DEU",
+    "ob.hatched.plain": "Algo",
+    "ob.hatched.em": "acabou de nascer.",
+    "ob.incubator": "INCUBADORA",
     /* ── close of day: the post office shuts ── */
     "cod.wholePost": "ISSO É TODO O CORREIO",
     "cod.hold": "SEGURE PARA FECHAR",
@@ -2902,6 +2944,20 @@ strings(
 
   /* ── id ── */
   {
+    /* ── onboarding: the strays the first sweep missed ── */
+    "ob.feed.label": "KASIH MAKAN TELUR",
+    "ob.feed.fed": "{n} MASUK ✓",
+    "ob.feed.hungry": "LAPAR",
+    "ob.flight.plain": "Penerbangan pertama",
+    "ob.flight.em": "{name}.",
+    "ob.flight.sub": "KATA-KATAMU, DILIPAT JADI SURAT",
+    "ob.reading.plain": "Lagi baca kamu",
+    "ob.reading.em": "sekarang juga.",
+    "ob.reading.sub": "Jangan ditutup. Sekitar sepuluh detik.",
+    "ob.fed.label": "YANG KAMU KASIH",
+    "ob.hatched.plain": "Ada yang",
+    "ob.hatched.em": "baru menetas.",
+    "ob.incubator": "INKUBATOR",
     /* ── close of day: the post office shuts ── */
     "cod.wholePost": "UDAH SEGITU AJA HARI INI",
     "cod.hold": "TEKAN TAHAN UNTUK TUTUP",

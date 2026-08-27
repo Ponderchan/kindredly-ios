@@ -857,7 +857,7 @@ export default function Onboarding() {
                 and perspective read across pieces, not within one. */}
             <View style={{ paddingHorizontal: 18, paddingTop: 4 }}>
               <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9 }]}>
-                <Text style={[mono(9.5, "b"), { flex: 1 }]}>FEED THE EGG</Text>
+                <Text style={[mono(9.5, "b"), { flex: 1 }]}>{t("ob.feed.label")}</Text>
                 <View style={{ flexDirection: "row", marginRight: 8 }}>
                   {[0, 1, 2, 3, 4].map((i) => (
                     <View
@@ -866,7 +866,7 @@ export default function Onboarding() {
                     />
                   ))}
                 </View>
-                <Text style={mono(9.5, "b")}>{fed.length ? `${fed.length} FED ✓` : "HUNGRY"}</Text>
+                <Text style={mono(9.5, "b")}>{fed.length ? t("ob.feed.fed", { n: String(fed.length) }) : t("ob.feed.hungry")}</Text>
               </View>
             </View>
 
@@ -968,9 +968,11 @@ export default function Onboarding() {
           {!flying ? (
             <>
               <Animated.Text entering={FadeIn.duration(400)} style={{ fontFamily: F2.serif, fontSize: 31, color: Y.ink, textAlign: "center" }}>
-                {her}’s <Text style={{ fontFamily: F2.serifItalic }}>first flight.</Text>
+                {/* the emphasis lands on the possessive in English and on the
+                    courier's name elsewhere — grammar decides, per language */}
+                {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.flight.em", { name: her })}</Text>
               </Animated.Text>
-              <Text style={[mono(10, "b"), { color: Y.dim, marginTop: 10, letterSpacing: 0.6 }]}>YOUR WORDS, FOLDED INTO A LETTER</Text>
+              <Text style={[mono(10, "b"), { color: Y.dim, marginTop: 10, letterSpacing: 0.6 }]}>{t("ob.flight.sub")}</Text>
 
               <Animated.View entering={FadeInDown.delay(220).duration(480)} style={{ alignItems: "center", marginTop: 22 }}>
                 <Animated.View style={breathe}>
@@ -1033,9 +1035,9 @@ export default function Onboarding() {
             </View>
 
             <Text style={{ fontFamily: F2.serif, fontSize: 30, color: Y.ink, marginTop: 22, lineHeight: 37 }}>
-              Reading you <Text style={{ fontFamily: F2.serifItalic }}>right now.</Text>
+              {t("ob.reading.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.reading.em")}</Text>
             </Text>
-            <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 8, lineHeight: 18 }]}>Don't close it. This takes about ten seconds.</Text>
+            <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 8, lineHeight: 18 }]}>{t("ob.reading.sub")}</Text>
 
             {/* the egg filling with ink, and the passes it's making */}
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
@@ -1067,7 +1069,7 @@ export default function Onboarding() {
 
             {/* what she's reading, in evidence */}
             <View style={[card, bevel(4, 4), { marginTop: 16, paddingHorizontal: 16, paddingVertical: 13 }]}>
-              <Text style={[mono(9.5, "b"), { color: Y.faint, marginBottom: 4 }]}>WHAT YOU FED ME</Text>
+              <Text style={[mono(9.5, "b"), { color: Y.faint, marginBottom: 4 }]}>{t("ob.fed.label")}</Text>
               {fed.map((t, i) => (
                 <View key={i} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: "rgba(17,17,19,0.1)", paddingVertical: 9, flexDirection: "row" }}>
                   <Text style={[mono(10, "b"), { color: Y.blue, marginRight: 10, marginTop: 2 }]}>{String(i + 1).padStart(2, "0")}</Text>
@@ -1102,7 +1104,7 @@ export default function Onboarding() {
                 and the honest close: still learning. The read all happened —
                 it just doesn't get to define a newborn. */}
             <Animated.Text entering={FadeIn.duration(600)} style={{ fontFamily: F2.serif, fontSize: 31, color: "#F2EFFF" }}>
-              Something <Text style={{ fontFamily: F2.serifItalic }}>hatched.</Text>
+              {t("ob.hatched.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.hatched.em")}</Text>
             </Animated.Text>
 
             <View style={{ height: 190, alignItems: "center", justifyContent: "center", marginTop: 8 }}>
@@ -1208,7 +1210,7 @@ function EggDock({ variant, status, style }: { variant: number; status?: string;
           </Animated.View>
         </View>
         <View style={{ marginLeft: 12, flex: 1 }}>
-          <Text style={[mono(9, "b"), { color: Y.faint }]}>INCUBATOR</Text>
+          <Text style={[mono(9, "b"), { color: Y.faint }]}>{t("ob.incubator")}</Text>
           <Text style={[mono(10.5, "b"), { marginTop: 3 }]}>{status}</Text>
         </View>
         <Dots />
