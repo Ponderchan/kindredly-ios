@@ -52,11 +52,16 @@ const SEED = 44; // the hairline's width before it runs out — matches the nati
 const CENTRE = H / 2;
 const TOP_RULE = CENTRE - SLOT_H / 2;
 
-/* the beats, in ms — kept here so the whole rhythm reads in one place */
-const RUN_OUT = { at: 80, ms: 340 };
-const LETTER = { at: 360, step: 30, ms: 220 };
-const AIRMAIL = { at: 700, ms: 300 };
-const OPEN = { at: 1020, ms: 340 };
+/* The beats, in ms — the whole rhythm in one place, and deliberately short.
+   A launch is a threshold, not a title sequence: nobody opens an app to
+   watch it open. The four beats OVERLAP rather than queue — the airmail
+   starts under the last letters, the counter starts opening under the last
+   stripes — so the sequence still reads as four distinct events while
+   costing about half of what running them end to end would. */
+const RUN_OUT = { at: 0, ms: 200 };
+const LETTER = { at: 130, step: 16, ms: 140 };
+const AIRMAIL = { at: 320, ms: 170 };
+const OPEN = { at: 500, ms: 240 }; // done at 740ms
 
 export function CounterOpen({ onDone }: { onDone: () => void }) {
   const reduce = useReducedMotion();
@@ -80,7 +85,7 @@ export function CounterOpen({ onDone }: { onDone: () => void }) {
     if (reduce) {
       runOut.value = 1;
       airmail.value = 1;
-      open.value = withDelay(320, withTiming(1, { duration: 240 }, (ok) => ok && runOnJS(finish)()));
+      open.value = withDelay(180, withTiming(1, { duration: 200 }, (ok) => ok && runOnJS(finish)()));
     } else {
       runOut.value = withDelay(RUN_OUT.at, withTiming(1, { duration: RUN_OUT.ms, easing: Easing.out(Easing.cubic) }));
       airmail.value = withDelay(AIRMAIL.at, withTiming(1, { duration: AIRMAIL.ms, easing: Easing.out(Easing.quad) }));
@@ -94,7 +99,7 @@ export function CounterOpen({ onDone }: { onDone: () => void }) {
   /* a tap opens the counter now — nobody should have to watch this twice */
   const skip = () => {
     if (done.current || open.value > 0) return;
-    open.value = withTiming(1, { duration: 240, easing: Easing.inOut(Easing.cubic) }, (ok) => ok && runOnJS(finish)());
+    open.value = withTiming(1, { duration: 170, easing: Easing.inOut(Easing.cubic) }, (ok) => ok && runOnJS(finish)());
   };
 
   // the rules run out from a seed the width of the native splash's mark
