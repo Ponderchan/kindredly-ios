@@ -68,6 +68,14 @@ export function setLang(l: Lang, persist = true): void {
   current = l;
   setEngineLanguage(l);
   for (const f of subs) f(l);
+  /* the morning knock lives in the OS schedule, not in a React tree, so no
+     subscriber can repaint it — it has to be re-stamped. Lazy require:
+     notify imports this module. */
+  try {
+    void (require("./notify") as typeof import("./notify")).refreshMorningKnock();
+  } catch {
+    /* notifications unavailable — the knock simply isn't scheduled */
+  }
   if (persist) void AsyncStorage.setItem(KEY, l).catch(() => {});
 }
 

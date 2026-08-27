@@ -72,7 +72,6 @@ export const SEASON: MoodId[] = [
   "sleepy", "calm", "in-love", "sleepy", "calm", "cheerful", "calm", "sleepy",
 ];
 
-export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /* ══════════ Wren line libraries (web wren-prompts.js) ══════════ */
 

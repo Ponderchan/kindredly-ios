@@ -13,6 +13,9 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── the morning knock (a scheduled local notification) ── */
+    "nt.knockTitle": "The Morning Page is waiting.",
+    "nt.knockBody": "A line someone let drift out arrived at eight.",
     "ac.typedBy": "Typed by {name}",
     "ac.shareFormed": "THE {arch} — my writing aura, typed by {name} on Kindredly.",
     "ac.shareTyping": "{pct}% typed — {name} is still typing my aura, on Kindredly.",
@@ -1017,6 +1020,9 @@ strings(
 
   /* ── es ── */
   {
+    /* ── the morning knock (a scheduled local notification) ── */
+    "nt.knockTitle": "La Página de la mañana te espera.",
+    "nt.knockBody": "Una línea que alguien dejó ir llegó a las ocho.",
     "ac.typedBy": "Escrito por {name}",
     "ac.shareFormed": "{arch} — mi aura de escritura, escrita por {name} en Kindredly.",
     "ac.shareTyping": "{pct}% escrito — {name} sigue escribiendo mi aura, en Kindredly.",
@@ -2021,6 +2027,9 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── the morning knock (a scheduled local notification) ── */
+    "nt.knockTitle": "A Página da manhã está esperando.",
+    "nt.knockBody": "Uma linha que alguém deixou ir chegou às oito.",
     "ac.typedBy": "Escrito por {name}",
     "ac.shareFormed": "{arch} — minha aura de escrita, escrita por {name} no Kindredly.",
     "ac.shareTyping": "{pct}% escrito — {name} ainda está escrevendo minha aura, no Kindredly.",
@@ -3025,6 +3034,9 @@ strings(
 
   /* ── id ── */
   {
+    /* ── the morning knock (a scheduled local notification) ── */
+    "nt.knockTitle": "Halaman Pagi lagi nunggu.",
+    "nt.knockBody": "Satu baris yang dilepas seseorang datang jam delapan.",
     "ac.typedBy": "Ditulis {name}",
     "ac.shareFormed": "{arch} — aura tulisanku, diketik {name} di Kindredly.",
     "ac.shareTyping": "{pct}% jadi — {name} masih ngetik auraku, di Kindredly.",

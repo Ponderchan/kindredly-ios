@@ -16,11 +16,11 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
+import { monthsShort } from "../lib/format";
 import Svg, { Circle, ClipPath, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
 import { Wheel } from "../components/Wheel";
-import { MONTHS } from "../data/content";
 import { useAuth } from "../lib/auth";
 import { publishLetter, upsertFingerprint } from "../lib/db";
 import { signatureVector, voiceSignature } from "../lib/signature";
@@ -589,7 +589,7 @@ export default function Onboarding() {
           <Head plain={t("ob.cakeday.plain", { name: handle || t("ob.hey") })} em={t("ob.cakeday.em")} sub={t("ob.cakeday.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { flexDirection: "row", overflow: "hidden" }]}>
-              <Wheel items={MONTHS} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
+              <Wheel items={monthsShort()} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
               <Wheel items={days} value={dob.d - 1} onChange={(i) => setDob((d) => ({ ...d, d: i + 1 }))} />
               <Wheel items={years} value={yi} onChange={(i) => setDob((d) => ({ ...d, y: years[i] }))} />
               <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 88, height: 2, backgroundColor: "rgba(17,17,19,0.14)" }} />

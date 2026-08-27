@@ -98,3 +98,14 @@ export function avatarFor(seed: string) {
     AVATAR_COLORS[Math.floor(h / AVATAR_GLYPHS.length) % AVATAR_COLORS.length];
   return { glyph, fg: col.fg, bg: col.bg };
 }
+
+/* The cakeday wheel's twelve months. Derived from the reader's locale rather
+   than kept as four hand-written arrays — Intl already knows every month name
+   in every language we ship, and a hardcoded English list is exactly the kind
+   of stale copy that survives a localization sweep unnoticed. The trailing
+   period some locales add ("jan.") is dropped; the wheel sets its own case. */
+export const monthsShort = (): string[] =>
+  Array.from({ length: 12 }, (_, i) => {
+    const m = new Date(2000, i, 1).toLocaleString(localeTag(), { month: "short" }).replace(/\.$/, "");
+    return m.charAt(0).toUpperCase() + m.slice(1);
+  });

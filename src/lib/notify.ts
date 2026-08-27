@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import { t } from "./i18n";
 
 /* The 8 o'clock knock — a fully local daily notification for the Morning
    Page. No server push involved; nothing else ever notifies (the product
@@ -21,8 +22,8 @@ export async function enableMorningKnock(): Promise<boolean> {
     await Notifications.scheduleNotificationAsync({
       identifier: KNOCK_ID,
       content: {
-        title: "The Morning Page is waiting.",
-        body: "A line someone let drift out arrived at eight.",
+        title: t("nt.knockTitle"),
+        body: t("nt.knockBody"),
         sound: false,
       },
       trigger: {
@@ -43,6 +44,14 @@ export async function disableMorningKnock(): Promise<void> {
   } catch {
     /* nothing scheduled */
   }
+}
+
+/* The knock's words are copied into the OS schedule the moment it's set, so
+   they don't follow a later language change on their own — re-stamp them.
+   A no-op when nothing is scheduled, and permission is already granted by
+   definition if it is, so this never raises a prompt. */
+export async function refreshMorningKnock(): Promise<void> {
+  if (await morningKnockEnabled()) await enableMorningKnock();
 }
 
 export async function morningKnockEnabled(): Promise<boolean> {
