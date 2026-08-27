@@ -15,7 +15,6 @@ import { t, useLang } from "../lib/i18n";
    + the navy CTA + caps labels + cards). */
 
 export function PrimaryButton({
-  useLang(); // repaint when the reader changes language
   label,
   onPress,
   disabled,
@@ -119,6 +118,7 @@ export function Dots({ i, n, onPick }: { i: number; n: number; onPick?: (k: numb
 }
 
 export function Skip({ onPress, top = 26 }: { onPress?: () => void; top?: number }) {
+  useLang(); // repaint when the reader changes language
   return (
     <Pressable
       onPress={onPress}
