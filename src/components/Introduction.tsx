@@ -49,7 +49,7 @@ export function Introduction({
       <View style={{ flex: 1, backgroundColor: P.paper }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12, ...rule }}>
           <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>
-            CARRIED BY {wren.toUpperCase()}
+            {t("intro.carriedBy", { name: wren.toUpperCase() })}
           </Text>
           <Pressable onPress={onClose} hitSlop={12}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>

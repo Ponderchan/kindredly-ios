@@ -149,7 +149,7 @@ export default function KindredScreen() {
                   {t("kd.learned")}
                 </Text>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen }}>
-                  {read.moments} MOMENT{read.moments > 1 ? "S" : ""}
+                  {t(read.moments === 1 ? "kd.momentsOne" : "kd.momentsMany", { n: String(read.moments) })}
                 </Text>
               </View>
 
@@ -247,7 +247,7 @@ export default function KindredScreen() {
             style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>
-TALK TO {name.toUpperCase()}
+{t("kd.talkTo", { name: name.toUpperCase() })}
             </Text>
           </Pressable>
         </ScrollView>

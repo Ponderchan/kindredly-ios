@@ -9,11 +9,13 @@ import {
   type ViewStyle,
 } from "react-native";
 import { C, F, cardStyle, navyBtn, radius } from "../theme/tokens";
+import { t, useLang } from "../lib/i18n";
 
 /* Small shared UI atoms ported from kindredly-v20.jsx (Dots/Skip/TopBar/Toast
    + the navy CTA + caps labels + cards). */
 
 export function PrimaryButton({
+  useLang(); // repaint when the reader changes language
   label,
   onPress,
   disabled,
@@ -124,7 +126,7 @@ export function Skip({ onPress, top = 26 }: { onPress?: () => void; top?: number
       style={{ position: "absolute", top, right: 22, zIndex: 5, padding: 8 }}
     >
       <Text style={{ fontSize: 11, fontFamily: F.sansBold, letterSpacing: 1.4, color: C.faint }}>
-        SKIP
+        {t("ui.skip")}
       </Text>
     </Pressable>
   );

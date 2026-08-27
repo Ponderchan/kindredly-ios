@@ -13,6 +13,7 @@ import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../lib/journal";
 import { DEMO_JOURNAL } from "../../data/demo";
 import { hiddenDemoIds } from "../../lib/journal";
+import { localeTag } from "../../lib/format";
 
 /* Sealed — letters to yourself. Clean stacked cards (design 1a): mood shows as
    its face alone, no label; a line can drift out from the card. Top-right flips
@@ -113,7 +114,7 @@ function Timeline({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: s
     const mk = `${d.getFullYear()}-${d.getMonth()}`;
     // only mark a month when it changes — no redundant label at the very top
     if (prevMonth !== null && mk !== prevMonth) {
-      rows.push(<MonthLabel key={`m-${mk}`} label={d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()} />);
+      rows.push(<MonthLabel key={`m-${mk}`} label={d.toLocaleDateString(localeTag(), { month: "long", year: "numeric" }).toUpperCase()} />);
     }
     prevMonth = mk;
     rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} />);

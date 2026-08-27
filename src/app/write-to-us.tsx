@@ -122,7 +122,7 @@ export default function WriteToUs() {
           </Pressable>
 
           <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, textAlign: "center", marginTop: 14 }}>
-            KINDREDLY {VERSION} TRAVELS WITH IT
+            {t("wu.travelsWith", { v: VERSION })}
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

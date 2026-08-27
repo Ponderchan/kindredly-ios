@@ -457,7 +457,7 @@ export default function Compose() {
                   </View>
                 )}
                 <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 14, lineHeight: 17 }}>
-                  Up to three minutes. Your voice travels as it is — {wren} doesn't listen in.
+                  {t("cp.voiceNote", { wren })}
                 </Text>
                 <TextInput
                   value={text}

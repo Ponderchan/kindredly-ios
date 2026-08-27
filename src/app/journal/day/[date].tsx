@@ -7,10 +7,12 @@ import { SealedEntry } from "../../../components/SealedEntry";
 import { dayKey } from "../../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../../lib/journal";
 import { DEMO_JOURNAL } from "../../../data/demo";
+import { t, useLang } from "../../../lib/i18n";
 
 /* One day of the sealed thread — every scrap you left on this date, oldest at
    the top of the day. Tap one to open the full page. */
 export default function SealedDay() {
+  useLang(); // repaint when the reader changes language
   const { date } = useLocalSearchParams<{ date: string }>();
   const router = useRouter();
   const [day, setDay] = useState<JournalEntry[]>([]);
@@ -49,7 +51,7 @@ export default function SealedDay() {
           <SealedEntry key={e.id} e={e} onPress={() => router.push(`/journal/${e.id}`)} />
         ))}
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
-          {day.length} ON THIS DAY
+          {t("jd.onThisDay", { n: String(day.length) })}
         </Text>
       </ScrollView>
     </SafeAreaView>

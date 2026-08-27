@@ -271,7 +271,7 @@ export function SelfCompose({
 
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
                   <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
-                    {photos.length}/9 · tap a photo to make it the cover
+                    {t("sc.coverHint", { n: String(photos.length) })}
                   </Text>
                   {photos.length >= 2 && (
                     <Pressable onPress={wrenPickCover} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: P.pen }}>

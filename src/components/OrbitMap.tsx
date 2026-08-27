@@ -14,6 +14,7 @@ import { P, PF } from "../theme/post";
 import { hashStr } from "../lib/format";
 import { MosaicId } from "./MosaicId";
 import type { ThreadSummary } from "../lib/db";
+import { t, useLang } from "../lib/i18n";
 
 /* Kindreds as an orbit (design K1f): you're the ink square at the centre,
    each stranger drawn inward by the letters they send. The orbit is the
@@ -175,7 +176,7 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
       ))}
 
       <Label x={CX} y={CY + 13} hidden={!empty}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 2, color: P.ink40 }}>YOU</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 2, color: P.ink40 }}>{t("ui.you")}</Text>
       </Label>
     </View>
   );

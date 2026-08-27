@@ -13,7 +13,7 @@ import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { REACTIONS } from "../../data/reactions";
-import { dShort, postNo } from "../../lib/format";
+import { dShort, postNo, localeTag } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { kindredGate } from "../../lib/kindred-gate";
@@ -248,7 +248,7 @@ export default function ChatScreen() {
             const prevDay = prev?.date ? dShort(prev.date).toUpperCase() : "";
             const showLabel = !prev || prev.mine !== m.mine || day !== prevDay;
             const time = m.date
-              ? new Date(m.date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+              ? new Date(m.date).toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit", hour12: false })
               : "";
             return (
               <Pressable
@@ -258,7 +258,7 @@ export default function ChatScreen() {
               >
                 {showLabel && (
                   <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginBottom: 6, marginHorizontal: 2 }}>
-                    {m.mine ? "YOU" : name.toUpperCase()}
+                    {m.mine ? t("ui.you") : name.toUpperCase()}
                     {day ? ` · ${day}` : ""}
                   </Text>
                 )}
@@ -325,7 +325,7 @@ export default function ChatScreen() {
         {over && (
           <View style={{ alignItems: "center", paddingBottom: 8 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post }}>
-              {weight - LETTER_MAX} OVER THE LIMIT
+              {t("ui.overLimit", { n: String(weight - LETTER_MAX) })}
             </Text>
           </View>
         )}

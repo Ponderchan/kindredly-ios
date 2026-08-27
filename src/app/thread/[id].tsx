@@ -255,7 +255,7 @@ export default function ThreadScreen() {
                 {/* once they have a name, everything they ever wrote is signed with
                     it — the letters didn't change, but who wrote them did */}
                 <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
-                  {m.mine ? "YOU" : (name || alias).toUpperCase()}
+                  {m.mine ? t("ui.you") : (name || alias).toUpperCase()}
                 </Text>
               </View>
             ))}

@@ -178,7 +178,7 @@ function Card({ t: th, onPress }: { t: ThreadSummary; onPress: () => void }) {
       </View>
       {th.theirReaction && (
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.5, color: P.pen, marginTop: 9 }}>
-          {(reactionLabel(th.theirReaction) || "they reacted").toUpperCase()} — TO YOUR LAST LETTER
+          {(reactionLabel(th.theirReaction) || t("kd.reactedAny")).toUpperCase()} {t("kd.toLastLetter")}
         </Text>
       )}
 

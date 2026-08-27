@@ -210,7 +210,7 @@ export function AuraCard({
         <View style={{ flexDirection: "row" }}>
           <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 2, color: L.grey }}>
-              YOUR AURA{formed && portrait ? ` · NO. ${String(portrait.n).padStart(2, "0")}` : ""}
+              {t("ac.yourAura")}{formed && portrait ? ` · NO. ${String(portrait.n).padStart(2, "0")}` : ""}
             </Text>
             <Text
               style={{
@@ -295,7 +295,7 @@ export function PhotoSlot({ seed, stage, pct, pool, topDimKey }: { seed: string;
     <View style={{ width: 74, height: 88, borderWidth: 1.2, borderStyle: "dashed", borderColor: stage === "empty" ? "#B9B19C" : L.slotEdge, backgroundColor: stage === "empty" ? "transparent" : L.slot, alignItems: "center", justifyContent: "center", overflow: "hidden", transform: [{ rotate: "2deg" }] }}>
       {stage === "empty" ? (
         <Text style={{ fontFamily: PF.mono, fontSize: 7.5, letterSpacing: 1.2, color: L.slotEdge, textAlign: "center", lineHeight: 12 }}>
-          PORTRAIT{"\n"}PENDING
+          {t("ac.portraitPending")}
         </Text>
       ) : rung ? (
         <Image source={rung} style={{ width: 70, height: 84 }} resizeMode="cover" />
@@ -375,7 +375,7 @@ export function AuraTicket({ aura, wren }: { aura: Aura; wren: string }) {
       <View style={{ borderTopWidth: 1, borderTopColor: L.hair, borderStyle: "dashed", flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 14, paddingVertical: 11 }}>
         <WrenBird size={22} bare mood="content" />
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.6, color: L.grey }}>
-          TYPED BY {wren.toUpperCase()} · KINDREDLY
+          {t("ac.typedByMark", { name: wren.toUpperCase() })}
         </Text>
       </View>
     </View>

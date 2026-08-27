@@ -7,6 +7,7 @@ import Svg, { Path, Rect } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { SelfCompose } from "../components/SelfCompose";
+import { localeTag } from "../lib/format";
 
 /* The sealed room's desk — its own page again.
 
@@ -48,7 +49,7 @@ export default function JournalEntryRoute() {
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <Text style={{ fontFamily: PF.letter, fontSize: 22, fontWeight: "700", color: P.ink, marginLeft: 6 }}>
-          {new Date().toLocaleString("en-US", { month: "short", day: "numeric" }).toLowerCase()}
+          {new Date().toLocaleString(localeTag(), { month: "short", day: "numeric" }).toLowerCase()}
         </Text>
         <View style={{ flex: 1 }} />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>

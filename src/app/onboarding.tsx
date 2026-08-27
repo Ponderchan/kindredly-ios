@@ -740,7 +740,7 @@ export default function Onboarding() {
                 <Animated.View key={`egg${eggVar}`} entering={ZoomIn.duration(240)} style={breathe}>
                   <EggShell variant={eggVar} size={116} />
                 </Animated.View>
-                <Text style={[mono(8.5, "b"), { position: "absolute", right: 8, bottom: 6, color: "rgba(255,255,255,0.55)" }]}>LV.0 · UNMATCHED</Text>
+                <Text style={[mono(8.5, "b"), { position: "absolute", right: 8, bottom: 6, color: "rgba(255,255,255,0.55)" }]}>{t("ob.eggLv")}</Text>
               </View>
 
               {/* A, B, C — and they work. A console button that does nothing is
@@ -1017,7 +1017,7 @@ export default function Onboarding() {
                   <Text numberOfLines={3} style={{ fontFamily: F2.serifItalic, fontSize: 15, lineHeight: 22, color: Y.ink }}>
                     {opener}
                   </Text>
-                  <Text style={[mono(8.5, "b"), { color: Y.faint, marginTop: 8 }]}>CARRIED BY {her.toUpperCase()}</Text>
+                  <Text style={[mono(8.5, "b"), { color: Y.faint, marginTop: 8 }]}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
                 </View>
               </Animated.View>
 

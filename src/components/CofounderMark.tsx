@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { PF } from "../theme/post";
+import { t, useLang } from "../lib/i18n";
 
 /* THE MARK. A cofounder is not a receipt, they are a number — so the
    number is what appears, in gold, wherever the product says who you
@@ -36,7 +37,7 @@ export function CofounderMark({ no, size = "sm" }: { no: number | null; size?: "
           color: "#8A6E20",
         }}
       >
-        COFOUNDER No. {String(no).padStart(3, "0")}
+        {t("cf.no", { n: String(no).padStart(3, "0") })}
       </Text>
     </View>
   );

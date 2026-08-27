@@ -43,7 +43,7 @@ export function PlushCelebration({ kindreds }: { kindreds: number }) {
           style={{ backgroundColor: C.cream, borderRadius: 28, paddingTop: 26, paddingBottom: 22, paddingHorizontal: 24, alignItems: "center", width: "100%" }}
         >
           <Animated.Text entering={FadeIn.delay(200)} style={{ fontFamily: F.sansBold, fontSize: 11, letterSpacing: 2, color: C.purple }}>
-            ✦ A NEW LOOK UNLOCKED
+            {t("pl.newLook")}
           </Animated.Text>
           <View style={{ marginTop: 10 }}>
             <WrenBird size={128} skin="plush" mood="happy" />

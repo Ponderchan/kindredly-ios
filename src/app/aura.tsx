@@ -167,7 +167,7 @@ export default function AuraScreen() {
           <View style={[panel, { paddingHorizontal: 16, paddingVertical: 12 }]}>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{tr("au.readFrom")}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 11.5, lineHeight: 20, color: P.ink60, marginTop: 8 }}>
-              {aura.sources.letters} LETTERS · {aura.sources.conversations} REPLIES · {aura.sources.sealed} SEALED PAGES
+              {tr("au.sources", { letters: String(aura.sources.letters), replies: String(aura.sources.conversations), sealed: String(aura.sources.sealed) })}
             </Text>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, lineHeight: 18, color: P.ink40, marginTop: 6 }}>
               {tr("au.sealedNote")}
@@ -202,7 +202,7 @@ export default function AuraScreen() {
                     </Text>
                     {becameName ? (
                       <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink, marginTop: 3 }}>
-                        {wren} started calling you something new.
+                        {tr("au.calledNew", { wren })}
                       </Text>
                     ) : gained.length ? (
                       <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink, marginTop: 3 }}>
@@ -214,7 +214,7 @@ export default function AuraScreen() {
                       </Text>
                     ) : (
                       <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink60, marginTop: 3 }}>
-                        {wren} met you. ({s.pieces} piece{s.pieces === 1 ? "" : "s"} of writing)
+                        {tr(s.pieces === 1 ? "au.metYouOne" : "au.metYouMany", { wren, n: String(s.pieces) })}
                       </Text>
                     )}
                   </View>

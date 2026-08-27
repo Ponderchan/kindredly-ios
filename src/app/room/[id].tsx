@@ -3,7 +3,7 @@ import { archNameThird } from "../../lib/aura-copy";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { t, useLang } from "../../lib/i18n";
+import { t, useLang, t as tr } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
@@ -187,7 +187,7 @@ export default function RoomScreen() {
                 should say so once rather than her hovering in it */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 }}>
               <WrenBird size={13} mood="content" />
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40 }}>{wren} found you two</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40 }}>{tr("rm.foundYouTwo", { wren })}</Text>
             </View>
           </View>
         </Pressable>
@@ -222,7 +222,7 @@ export default function RoomScreen() {
                 )}
                 {newSpeaker && (
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: m.mine ? P.ink40 : P.pen, marginTop: newDay ? 0 : 16, marginBottom: 5 }}>
-                    {m.mine ? "YOU" : name.toUpperCase()}
+                    {m.mine ? tr("ui.you") : name.toUpperCase()}
                   </Text>
                 )}
                 <Text style={{ fontFamily: PF.letter, fontSize: 16.5, lineHeight: 25, color: m.mine ? P.ink60 : P.ink, marginBottom: 3 }}>
@@ -239,7 +239,7 @@ export default function RoomScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <WrenBird size={20} mood="curious" />
               <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.2, color: P.ink40 }}>
-                {wren.toUpperCase()} NOTICED
+                {tr("rm.noticed", { wren: wren.toUpperCase() })}
               </Text>
               <View style={{ flex: 1 }} />
               <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1, color: P.ink40 }}>
@@ -254,7 +254,7 @@ export default function RoomScreen() {
 
         {over && (
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post, textAlign: "center", paddingBottom: 6 }}>
-            {weight - LETTER_MAX} OVER THE LIMIT
+            {tr("ui.overLimit", { n: String(weight - LETTER_MAX) })}
           </Text>
         )}
 

@@ -266,7 +266,7 @@ export function WrenHome({
                     {k.evidence}
                   </Text>
                   {fresh.has(k.id) && (
-                    <Text style={{ position: "absolute", top: 5, right: 6, fontFamily: PF.monoSemi, fontSize: 7, letterSpacing: 1, color: P.pen }}>NEW</Text>
+                    <Text style={{ position: "absolute", top: 5, right: 6, fontFamily: PF.monoSemi, fontSize: 7, letterSpacing: 1, color: P.pen }}>{tr("ui.new")}</Text>
                   )}
                 </Pressable>
               );
