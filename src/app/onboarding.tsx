@@ -110,6 +110,11 @@ const PAGE_W = WIN_W - 40;
 // Copy lives in the catalog (ob.c1..c3); these are just the card indices.
 const CARDS = [1, 2, 3] as const;
 
+/* the welcome headline + sub, shared by the visible copy and the off-screen
+   measuring pass so the two can never drift apart */
+const HEAD = { fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center" as const, marginTop: 18, lineHeight: 36 };
+const SUB = [mono(11, "r"), { color: Y.dim, textAlign: "center" as const, marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }];
+
 /* the sealed list's inline short forms live in the catalog as ob.sealed.<key>;
    this set says which dimension keys actually have one */
 const SEALED_KEYS = new Set(["rhythm","vocabulary","perspective","emotion","function","punctuation","structure","sentence","quirks"]);
@@ -124,7 +129,7 @@ const EGG_STATUS_STEPS: Step[] = ["username", "you", "cakeday", "avatar"];
 
 export default function Onboarding() {
   const router = useRouter();
-  useLang(); // repaint when the reader changes language
+  const lang = useLang(); // repaint when the reader changes language
   const auth = useAuth();
   const { session, onboarded, appleAvailable } = auth;
 
@@ -140,6 +145,15 @@ export default function Onboarding() {
     track("onboard_step", { step, i: ORDER.indexOf(step) });
   }, [step]);
   const [cardI, setCardI] = useState(0);
+
+  /* The welcome headline is one line on some cards and two on others, and the
+     sub wraps differently again in every language — so the sign-in buttons
+     underneath used to walk up and down as the carousel cycled, which reads
+     as the page being unsure of itself. Reserve the tallest of the three,
+     measured off-screen, and they hold still. Re-measured when the language
+     changes, because the tallest card is not the same one in every language. */
+  const [headMin, setHeadMin] = useState(0);
+  useEffect(() => setHeadMin(0), [lang]);
   const cardRef = useRef<ScrollView>(null);
   const [username, setUsername] = useState("");
   const [youPro, setYouPro] = useState<PronounId | null>(null);
@@ -407,10 +421,32 @@ export default function Onboarding() {
               ))}
             </View>
 
-            <Text style={{ fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center", marginTop: 18, lineHeight: 36 }}>
-              {t(`ob.c${c}.h`)} <Text style={{ fontFamily: F2.serifItalic }}>{t(`ob.c${c}.hi`)}</Text>
-            </Text>
-            <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }]}>{t(`ob.c${c}.s`)}</Text>
+            <View style={{ minHeight: headMin || undefined }}>
+              <Text style={HEAD}>
+                {t(`ob.c${c}.h`)} <Text style={{ fontFamily: F2.serifItalic }}>{t(`ob.c${c}.hi`)}</Text>
+              </Text>
+              <Text style={SUB}>{t(`ob.c${c}.s`)}</Text>
+            </View>
+
+            {/* the measuring pass — all three cards' copy, laid out at the real
+                width but never drawn and never touchable, so the reserve above
+                is the true tallest rather than a guessed constant */}
+            <View style={{ position: "absolute", left: 18, right: 18, opacity: 0 }} pointerEvents="none">
+              {CARDS.map((k) => (
+                <View
+                  key={k}
+                  onLayout={(e) => {
+                    const h = e.nativeEvent.layout.height;
+                    setHeadMin((m) => (h > m ? h : m));
+                  }}
+                >
+                  <Text style={HEAD}>
+                    {t(`ob.c${k}.h`)} <Text style={{ fontFamily: F2.serifItalic }}>{t(`ob.c${k}.hi`)}</Text>
+                  </Text>
+                  <Text style={SUB}>{t(`ob.c${k}.s`)}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
