@@ -12,7 +12,7 @@ import { loadLang } from "../lib/i18n";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
-import { CounterOpen } from "../components/CounterOpen";
+import { SameShape } from "../components/SameShape";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -63,8 +63,8 @@ export default function RootLayout() {
                 <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
               </Stack>
 
-              {/* the counter, over everything, until it has opened */}
-              {booting && <CounterOpen onDone={() => setBooting(false)} />}
+              {/* the launch, over everything, until it has lifted away */}
+              {booting && <SameShape onDone={() => setBooting(false)} />}
             </View>
             </WrenSkinProvider>
           </EntitlementProvider>
