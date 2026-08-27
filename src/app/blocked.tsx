@@ -99,7 +99,7 @@ export default function BlockedScreen() {
                   {t("bl.blockedOn", { day: dLong(b.created_at).toUpperCase() })}
                 </Text>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60, marginTop: 3 }}>
-                  Their letters don't reach you.
+                  {t("bl.noReach")}
                 </Text>
               </View>
               <Pressable onPress={() => unblock(b)} hitSlop={10} style={{ paddingVertical: 6, paddingLeft: 10 }}>

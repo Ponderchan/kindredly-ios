@@ -287,7 +287,7 @@ export function CourierSendOff({
           {/* she keeps her back to it — this one is not hers to carry */}
           <Animated.View style={[{ position: "absolute", right: 16, bottom: 152, zIndex: 5, alignItems: "flex-end" }, afterStyle]}>
             <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 0.5, color: P.ink40, marginBottom: 6 }}>
-              not mine to carry
+              {t("so.notMine")}
             </Text>
             <View style={{ transform: [{ scaleX: -1 }] }}>
               <WrenBird size={44} mood="content" bare />

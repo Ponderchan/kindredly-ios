@@ -38,7 +38,7 @@ export function WindowComposer({
         <Pressable style={{ backgroundColor: C.cream, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }} onPress={() => {}}>
           <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink }}>{t("wc.putLine")}</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, marginTop: 6 }}>
-            Only your kindreds can see it. Change it whenever.
+            {t("wc.privateNote")}
           </Text>
 
           <View style={[cardStyle, { padding: 18, marginTop: 18, minHeight: 110 }]}>

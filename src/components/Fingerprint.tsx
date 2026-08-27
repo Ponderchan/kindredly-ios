@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { C, F, cardStyle } from "../theme/tokens";
+import { t, useLang } from "../lib/i18n";
 
 /* Your writing fingerprint — a living instrument, not a bar chart. Bars rise
    in with a stagger like type being set; a soft indigo light sweeps across
@@ -28,6 +29,7 @@ export function Fingerprint({
   read: string; // "Quick pace · short sentences · few pauses"
   desc: string;
 }) {
+  useLang(); // repaint when the reader changes language
   const [width, setWidth] = useState(0);
   const sweep = useSharedValue(-120);
 
@@ -55,7 +57,7 @@ export function Fingerprint({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: hasText ? C.purple : C.faint }} />
           <Text style={{ fontSize: 10.5, letterSpacing: 1.6, color: C.label, fontFamily: F.sansBold }}>
-            YOUR WRITING FINGERPRINT
+            {t("fp.title")}
           </Text>
         </View>
 

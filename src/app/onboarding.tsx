@@ -36,7 +36,7 @@ import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
-import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
+import { MOODS, MOOD_IDS, moodName, type MoodId } from "../data/moods";
 import { MoodIcon } from "../components/MoodIcon";
 
 /* Onboarding — EGG OS.
@@ -454,7 +454,7 @@ export default function Onboarding() {
               <View style={[card, bevel(4, 4), { padding: 16, alignItems: "center" }]}>
                 <Text style={[mono(11, "b"), { color: Y.blue }]}>{t("ob.linkSent")}</Text>
                 <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 6, textAlign: "center", lineHeight: 18 }]}>
-                  Open it on this phone and you'll land right back here.
+                  {t("ob.linkSentSub")}
                 </Text>
               </View>
             ) : (
@@ -548,11 +548,6 @@ export default function Onboarding() {
                 style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 21, color: Y.ink }}
               />
             </View>
-            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 14 }}>
-              <Pressable onPress={() => setUsername(NAME_IDEAS[Math.floor(Math.random() * NAME_IDEAS.length)].toLowerCase())} style={[tag, bevel(2.5, 2.5)]}>
-                <Text style={mono(9.5, "b")}>⚄ RANDOMIZE</Text>
-              </Pressable>
-            </View>
           </Animated.View>
           <View style={{ flex: 1, justifyContent: "flex-end" }}>
             <EggDock variant={eggVar} status={eggStatus} style={breathe} />
@@ -641,7 +636,7 @@ export default function Onboarding() {
             {!ageOk && (
               <View style={{ borderWidth: 2, borderColor: Y.warn, borderStyle: "dashed", borderRadius: 10, padding: 12, marginTop: 14 }}>
                 <Text style={[mono(10.5, "r"), { color: Y.warn, lineHeight: 17, letterSpacing: 0.2 }]}>
-                  ⚠ Kindredly is for 18 and over — you'll meet strangers here, and we can't keep that safe for anyone younger.
+                  {t("ob.age.warn")}
                 </Text>
               </View>
             )}
@@ -943,11 +938,14 @@ export default function Onboarding() {
                   disabled={!canFeed}
                   style={[tag, bevel(2.5, 2.5), { alignSelf: "flex-end", backgroundColor: canFeed ? Y.blue : Y.panel, opacity: canFeed ? 1 : 0.4 }]}
                 >
-                  <Text style={[mono(9.5, "b"), { color: canFeed ? "#fff" : Y.ink }]}>FEED ↑</Text>
+                  <Text style={[mono(9.5, "b"), { color: canFeed ? "#fff" : Y.ink }]}>{t("ob.feed.btn")}</Text>
                 </Pressable>
               </View>
 
-              <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 14 }]}>HOW IT FEELS{mood ? ` · ${MOODS[mood].n.toUpperCase()}` : ""}</Text>
+              <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 14 }]}>
+                {t("ob.feel")}
+                {mood ? ` · ${moodName(mood).toUpperCase()}` : ""}
+              </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
                 {MOOD_IDS.slice(0, 9).map((id) => {
                   const on = mood === id;
@@ -1025,7 +1023,7 @@ export default function Onboarding() {
 
               <Animated.View entering={FadeInDown.delay(500).duration(480)} style={{ width: "100%", maxWidth: 340, marginTop: 30 }}>
                 <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.blue }]}>
-                  <Text style={[mono(12.5, "b"), { color: "#fff" }]}>LET {HER} GO ›</Text>
+                  <Text style={[mono(12.5, "b"), { color: "#fff" }]}>{t("ob.letGo", { name: HER })}</Text>
                 </Pressable>
               </Animated.View>
             </>
@@ -1041,7 +1039,7 @@ export default function Onboarding() {
                 entering={FadeIn.delay(500).duration(400)}
                 style={[mono(10.5, "b"), { color: Y.dim, position: "absolute", bottom: 96, textAlign: "center" }]}
               >
-                OFF TO FIND SOMEONE WHO WRITES LIKE YOU
+                {t("ob.offToFind")}
               </Animated.Text>
             </>
           )}
@@ -1127,7 +1125,7 @@ export default function Onboarding() {
             </View>
 
             <View style={{ borderWidth: 2, borderColor: "rgba(17,17,19,0.2)", borderRadius: 16, paddingVertical: 16, alignItems: "center", marginTop: 26 }}>
-              <Text style={[mono(12, "b"), { color: Y.faint }]}>HATCHING…</Text>
+              <Text style={[mono(12, "b"), { color: Y.faint }]}>{t("ob.hatching")}</Text>
             </View>
           </View>
         )}

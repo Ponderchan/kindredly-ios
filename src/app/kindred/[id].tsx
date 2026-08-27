@@ -114,7 +114,7 @@ export default function KindredScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7 }}>
                       <MosaicId seed={detail.other} cell={3} gap={1} />
                       <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1, color: P.ink40 }}>
-                        THE FACE YOU WATCHED ARRIVE
+                        {t("kd.faceArrive")}
                       </Text>
                     </View>
                   </>
@@ -146,7 +146,7 @@ export default function KindredScreen() {
             <View style={{ backgroundColor: P.sheet, padding: 18, marginBottom: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>
-                  WHAT YOU'VE LEARNED
+                  {t("kd.learned")}
                 </Text>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen }}>
                   {read.moments} MOMENT{read.moments > 1 ? "S" : ""}
@@ -161,7 +161,7 @@ export default function KindredScreen() {
                 <>
                   <View style={{ height: 1, backgroundColor: P.ink12, marginTop: 14, marginBottom: 12 }} />
                   <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>
-                    KEEP WRITING TO EACH OTHER TO LEARN:
+                    {t("kd.keepWriting")}
                   </Text>
                   <Text style={{ fontFamily: PF.mono, fontSize: 10.5, lineHeight: 19, color: P.ink60, marginTop: 6 }}>
                     {read.sealed.slice(0, 4).map((d) => `□ ${dimSealedThird(d.key).toLowerCase()}`).join("   ")}
@@ -181,7 +181,7 @@ export default function KindredScreen() {
             <View style={{ backgroundColor: P.sheet, padding: 18, marginBottom: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>
-                  HOW ALIKE YOU WRITE
+                  {t("kd.howAlike")}
                 </Text>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 15, letterSpacing: 0.5, color: P.pen }}>
                   {res.score}%

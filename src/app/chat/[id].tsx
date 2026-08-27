@@ -289,7 +289,7 @@ export default function ChatScreen() {
           <View style={{ alignItems: "center", paddingBottom: 10 }}>
             {detail.iSigned ? (
               <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>
-YOU WENT FIRST — WAITING ON THEIRS
+{t("ch.wentFirst")}
               </Text>
             ) : (
               <Pressable

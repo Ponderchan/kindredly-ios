@@ -106,7 +106,7 @@ export default function DraftsScreen() {
             );
           })}
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
-            TAP TO PICK ONE UP · HOLD TO THROW IT AWAY
+            {t("dr.hint")}
           </Text>
         </ScrollView>
       )}

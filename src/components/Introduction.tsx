@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule, solidBtn } from "../theme/post";
 import { AvatarImage } from "./AvatarImage";
 import { TheirMark } from "./TheirMark";
-import { t } from "../lib/i18n";
+import { t, useLang } from "../lib/i18n";
 import { WrenBird } from "./WrenBird";
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
@@ -42,6 +42,7 @@ export function Introduction({
   /** the exit isn't "dismiss" — it's the door into the room */
   onTalk: () => void;
 }) {
+  useLang(); // repaint when the reader changes language
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -59,7 +60,7 @@ export function Introduction({
           <WrenBird size={44} mood="content" />
 
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
-            You both went first, in the end. So I carried the names across — the way I was always going to.
+            {t("intro.body")}
           </Text>
 
           {/* THE RITUAL. Not "here is their name": the face they watched

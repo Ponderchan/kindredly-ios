@@ -186,7 +186,7 @@ export default function Paywall() {
 
         {/* ── the fares ── */}
         <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 30, marginBottom: 12 }}>
-          CHOOSE YOUR FARE
+          {tr("pw.chooseFare")}
         </Text>
         <View style={{ gap: 11 }}>
           {packages.map((p) => (
@@ -454,7 +454,7 @@ function CofounderMarks({ wren }: { wren: string }) {
       <View style={{ alignItems: "center", paddingVertical: 14 }}>
         <CofounderMark no={47} size="lg" />
         <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 7 }}>
-          yours, everywhere the app says who you are
+          {tr("pw.nameEverywhere")}
         </Text>
       </View>
       {MARKS.map(([title, sub]) => (

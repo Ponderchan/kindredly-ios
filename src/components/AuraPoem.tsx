@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { P, PF } from "../theme/post";
+import { t, useLang } from "../lib/i18n";
 
 /* THE AURA IS WHAT SURVIVES REDACTION.
    ────────────────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ export function AuraPoem({
   dark?: boolean;
   maxLines?: number;
 }) {
+  useLang(); // repaint when the reader changes language
   const keep = new Set(keepWords.map((w) => w.toLowerCase()));
 
   /* pick short real sentences that contain at least one survivor — each
@@ -65,7 +67,7 @@ export function AuraPoem({
     return (
       <View style={{ backgroundColor: paper, padding: 18, minHeight: 120, justifyContent: "center" }}>
         <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 24, color: dark ? "#8F87C9" : P.ink40 }}>
-          A blank page. Nothing to redact yet.
+          {t("ap.blank")}
         </Text>
       </View>
     );

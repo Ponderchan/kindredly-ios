@@ -182,11 +182,11 @@ export default function JournalDetail() {
         {e.driftedLine && (
           <View style={{ marginTop: 28, borderTopWidth: 1, borderTopColor: P.ink, paddingTop: 14 }}>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.pen, marginBottom: 10 }}>
-              ONE LINE IS OUT IN THE WORLD
+              {t("jd.oneLineOut")}
             </Text>
             <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 24, color: P.ink, backgroundColor: "#F6E7A6" }}>{e.driftedLine}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
-              TOMORROW IT MIGHT BE THE FIRST THING A STRANGER READS
+              {t("jd.tomorrowStranger")}
             </Text>
           </View>
         )}
@@ -413,7 +413,7 @@ function PhotoGallery({
 
       {canSetCover && photos.length > 1 && (
         <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
-          TAP TO VIEW · HOLD TO MAKE IT THE COVER
+          {t("jd.coverHint")}
         </Text>
       )}
 

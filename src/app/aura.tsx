@@ -170,7 +170,7 @@ export default function AuraScreen() {
               {aura.sources.letters} LETTERS · {aura.sources.conversations} REPLIES · {aura.sources.sealed} SEALED PAGES
             </Text>
             <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, lineHeight: 18, color: P.ink40, marginTop: 6 }}>
-              Sealed pages shape this reading on your phone only — they are never sent anywhere, not even for matching.
+              {tr("au.sealedNote")}
             </Text>
           </View>
         </ScrollView>
@@ -182,7 +182,7 @@ export default function AuraScreen() {
             <View style={{ alignItems: "center", paddingTop: 60 }}>
               <WrenBird size={34} mood="listen" />
               <Text style={{ fontFamily: PF.letter, fontSize: 16, color: P.ink60, marginTop: 12, textAlign: "center" }}>
-                The story starts once something changes.
+                {tr("au.storyStarts")}
               </Text>
             </View>
           ) : (

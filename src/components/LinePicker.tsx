@@ -44,7 +44,7 @@ export function LinePicker({
             ))}
             {lines.length === 0 && (
               <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.faint }}>
-                This page is too short to drift a line.
+                {t("lp.tooShort")}
               </Text>
             )}
           </ScrollView>
