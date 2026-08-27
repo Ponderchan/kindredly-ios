@@ -2,6 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule } from "../theme/post";
+import { t, useLang } from "../lib/i18n";
 
 /* THE "+" IS NOT AN ATTACHMENT BUTTON.
    ────────────────────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ export function LeaveATrace({
   onPick: (id: string) => void;
   onClose: () => void;
 }) {
+  useLang(); // repaint when the reader changes language
   const insets = useSafeAreaInsets();
   if (!open) return null;
 
@@ -50,7 +52,7 @@ export function LeaveATrace({
         style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, ...rule }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>LEAVE A TRACE</Text>
+          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{t("lat.title")}</Text>
           <Pressable onPress={onClose} hitSlop={12}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>

@@ -1,5 +1,6 @@
 import { Modal, Pressable, ScrollView, Text } from "react-native";
 import { C, F } from "../theme/tokens";
+import { t, useLang } from "../lib/i18n";
 import { sentencesOf } from "../lib/journal";
 
 /* Bottom-sheet to choose which sentence of a journal page drifts out
@@ -15,6 +16,7 @@ export function LinePicker({
   onPick: (line: string) => void;
   onClose: () => void;
 }) {
+  useLang(); // repaint when the reader changes language
   const lines = sentencesOf(body);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -26,9 +28,9 @@ export function LinePicker({
           style={{ backgroundColor: C.cream, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: "72%" }}
           onPress={() => {}}
         >
-          <Text style={{ fontFamily: F.serif, fontSize: 21, color: C.ink }}>Which line drifts out?</Text>
+          <Text style={{ fontFamily: F.serif, fontSize: 21, color: C.ink }}>{t("lp.title")}</Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, marginTop: 6, marginBottom: 16 }}>
-            It leaves anonymously — someone, somewhere, might wake to it.
+            {t("lp.sub")}
           </Text>
           <ScrollView>
             {lines.map((l, i) => (

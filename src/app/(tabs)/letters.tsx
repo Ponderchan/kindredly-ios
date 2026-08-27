@@ -459,7 +459,7 @@ function LetterReader({
             <MosaicId seed={letter.author} />
             <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.6, color: P.ink60, marginLeft: 12, marginTop: 3 }}>
               {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
-              {letter.author ? `NO.${postNo(letter.author)}` : "UNSIGNED"}
+              {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
             {st && (
               <View style={{ transform: [{ rotate: "3deg" }] }}>
@@ -634,7 +634,7 @@ function LetterPage({
             <MosaicId seed={letter.author} />
             <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
               {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
-              {letter.author ? `NO.${postNo(letter.author)}` : "UNSIGNED"}
+              {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
           </View>
           {st && (

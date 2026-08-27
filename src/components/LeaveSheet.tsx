@@ -2,6 +2,7 @@ import { Keyboard, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule, solidBtn } from "../theme/post";
+import { t, useLang } from "../lib/i18n";
 
 /* LEAVING A COMPOSER WITH WORDS IN IT.
    ────────────────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ export function LeaveSheet({
   title,
   body,
   actions,
-  cancelLabel = "KEEP WRITING",
+  cancelLabel,
   onCancel,
 }: {
   open: boolean;
@@ -46,6 +47,7 @@ export function LeaveSheet({
   cancelLabel?: string;
   onCancel: () => void;
 }) {
+  useLang(); // repaint when the reader changes language
   const insets = useSafeAreaInsets();
   if (!open) return null;
 
@@ -112,7 +114,7 @@ export function LeaveSheet({
           ))}
 
           <Pressable onPress={onCancel} style={{ paddingVertical: 16, alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{cancelLabel}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
           </Pressable>
         </View>
       </Animated.View>

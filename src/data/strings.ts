@@ -13,6 +13,33 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    "ac.typedBy": "Typed by {name}",
+    "ac.shareFormed": "THE {arch} — my writing aura, typed by {name} on Kindredly.",
+    "ac.shareTyping": "{pct}% typed — {name} is still typing my aura, on Kindredly.",
+    /* ── leave sheet's default cancel ── */
+    "cp.leave.keep": "KEEP WRITING",
+    /* ── kept ── */
+    "kp.sub2": "Conversations get sealed away — kept lines stay.",
+    "kp.from": "from {who}",
+    "kp.src.morning": "a morning page",
+    "kp.src.letter": "a stranger's letter",
+    "kp.src.thread": "a correspondence",
+    "kp.cool": "let it cool",
+    "kp.emptyBody": "Tap the ♡ on a morning page or a letter, and the line stays here — even after the thread cools.",
+    /* ── the shareable aura card ── */
+    "ac.shareSm": "Share",
+    "ac.done": "Done",
+    "ac.screenshot": "screenshot to keep",
+    /* ── line picker: what drifts out of a sealed page ── */
+    "lp.title": "Which line drifts out?",
+    "lp.sub": "It leaves anonymously — someone, somewhere, might wake to it.",
+    "lat.title": "LEAVE A TRACE",
+    /* ── the send-off ── */
+    "so.docket": "ACCEPTED FOR CARRIAGE",
+    "so.kept": "Kept.",
+    "so.keptNote": "NO ONE READS THIS — NOT EVEN {name}",
+    "so.hasIt": "{name} has it.",
+    "so.firstAnswer": "THE FIRST TO ANSWER IS YOURS",
     /* ── onboarding: the strays the first sweep missed ── */
     "ob.feed.label": "FEED THE EGG",
     "ob.feed.fed": "{n} FED ✓",
@@ -990,6 +1017,33 @@ strings(
 
   /* ── es ── */
   {
+    "ac.typedBy": "Escrito por {name}",
+    "ac.shareFormed": "{arch} — mi aura de escritura, escrita por {name} en Kindredly.",
+    "ac.shareTyping": "{pct}% escrito — {name} sigue escribiendo mi aura, en Kindredly.",
+    /* ── leave sheet's default cancel ── */
+    "cp.leave.keep": "SEGUIR ESCRIBIENDO",
+    /* ── kept ── */
+    "kp.sub2": "Las conversaciones se sellan — las líneas guardadas se quedan.",
+    "kp.from": "de {who}",
+    "kp.src.morning": "una página matinal",
+    "kp.src.letter": "la carta de un extraño",
+    "kp.src.thread": "una correspondencia",
+    "kp.cool": "dejar enfriar",
+    "kp.emptyBody": "Toca el ♡ en una página o en una carta, y la línea se queda aquí — aunque el hilo se enfríe.",
+    /* ── the shareable aura card ── */
+    "ac.shareSm": "Compartir",
+    "ac.done": "Listo",
+    "ac.screenshot": "captura para guardarla",
+    /* ── line picker: what drifts out of a sealed page ── */
+    "lp.title": "¿Qué línea sale a la deriva?",
+    "lp.sub": "Sale en anónimo — alguien, en algún lugar, podría despertar con ella.",
+    "lat.title": "DEJA UN RASTRO",
+    /* ── the send-off ── */
+    "so.docket": "ACEPTADA PARA TRANSPORTE",
+    "so.kept": "Guardado.",
+    "so.keptNote": "NADIE LEE ESTO — NI SIQUIERA {name}",
+    "so.hasIt": "{name} la tiene.",
+    "so.firstAnswer": "EL PRIMERO QUE RESPONDA ES TUYO",
     /* ── onboarding: the strays the first sweep missed ── */
     "ob.feed.label": "ALIMENTA EL HUEVO",
     "ob.feed.fed": "{n} DADOS ✓",
@@ -1967,6 +2021,33 @@ strings(
 
   /* ── pt-BR ── */
   {
+    "ac.typedBy": "Escrito por {name}",
+    "ac.shareFormed": "{arch} — minha aura de escrita, escrita por {name} no Kindredly.",
+    "ac.shareTyping": "{pct}% escrito — {name} ainda está escrevendo minha aura, no Kindredly.",
+    /* ── leave sheet's default cancel ── */
+    "cp.leave.keep": "CONTINUAR ESCREVENDO",
+    /* ── kept ── */
+    "kp.sub2": "As conversas são seladas — as linhas guardadas ficam.",
+    "kp.from": "de {who}",
+    "kp.src.morning": "uma página da manhã",
+    "kp.src.letter": "a carta de um estranho",
+    "kp.src.thread": "uma correspondência",
+    "kp.cool": "deixar esfriar",
+    "kp.emptyBody": "Toque no ♡ numa página ou numa carta, e a linha fica aqui — mesmo depois que o fio esfria.",
+    /* ── the shareable aura card ── */
+    "ac.shareSm": "Compartilhar",
+    "ac.done": "Pronto",
+    "ac.screenshot": "print pra guardar",
+    /* ── line picker: what drifts out of a sealed page ── */
+    "lp.title": "Qual linha vai à deriva?",
+    "lp.sub": "Sai anônima — alguém, em algum lugar, pode acordar com ela.",
+    "lat.title": "DEIXE UM RASTRO",
+    /* ── the send-off ── */
+    "so.docket": "ACEITA PARA TRANSPORTE",
+    "so.kept": "Guardado.",
+    "so.keptNote": "NINGUÉM LÊ ISSO — NEM {name}",
+    "so.hasIt": "{name} está com ela.",
+    "so.firstAnswer": "O PRIMEIRO QUE RESPONDER É SEU",
     /* ── onboarding: the strays the first sweep missed ── */
     "ob.feed.label": "ALIMENTE O OVO",
     "ob.feed.fed": "{n} DADOS ✓",
@@ -2944,6 +3025,33 @@ strings(
 
   /* ── id ── */
   {
+    "ac.typedBy": "Ditulis {name}",
+    "ac.shareFormed": "{arch} — aura tulisanku, diketik {name} di Kindredly.",
+    "ac.shareTyping": "{pct}% jadi — {name} masih ngetik auraku, di Kindredly.",
+    /* ── leave sheet's default cancel ── */
+    "cp.leave.keep": "LANJUT NULIS",
+    /* ── kept ── */
+    "kp.sub2": "Obrolan tersegel — baris yang disimpan tetap ada.",
+    "kp.from": "dari {who}",
+    "kp.src.morning": "halaman pagi",
+    "kp.src.letter": "surat orang asing",
+    "kp.src.thread": "korespondensi",
+    "kp.cool": "biarin dingin",
+    "kp.emptyBody": "Tap ♡ di halaman pagi atau surat, barisnya nyangkut di sini — walau obrolannya udah dingin.",
+    /* ── the shareable aura card ── */
+    "ac.shareSm": "Bagikan",
+    "ac.done": "Selesai",
+    "ac.screenshot": "screenshot buat simpan",
+    /* ── line picker: what drifts out of a sealed page ── */
+    "lp.title": "Baris mana yang dilepas?",
+    "lp.sub": "Keluar anonim — seseorang di suatu tempat mungkin bangun sama ini.",
+    "lat.title": "TINGGALKAN JEJAK",
+    /* ── the send-off ── */
+    "so.docket": "DITERIMA UNTUK DIKIRIM",
+    "so.kept": "Tersimpan.",
+    "so.keptNote": "GAK ADA YANG BACA — {name} JUGA ENGGAK",
+    "so.hasIt": "{name} udah bawa.",
+    "so.firstAnswer": "YANG PERTAMA BALAS JADI MILIKMU",
     /* ── onboarding: the strays the first sweep missed ── */
     "ob.feed.label": "KASIH MAKAN TELUR",
     "ob.feed.fed": "{n} MASUK ✓",

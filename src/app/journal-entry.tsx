@@ -65,7 +65,7 @@ export default function JournalEntryRoute() {
         open={leaving}
         title={t("je.leaveTitle")}
         body={t("je.leaveBody")}
-        actions={[{ label: "DISCARD", kind: "destructive", onPress: goBack }]}
+        actions={[{ label: t("cp.leave.discard"), kind: "destructive", onPress: goBack }]}
         onCancel={() => setLeaving(false)}
       />
     </SafeAreaView>

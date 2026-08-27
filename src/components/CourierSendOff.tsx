@@ -18,6 +18,7 @@ import { WrenBird } from "./WrenBird";
 import { StampTile } from "./StampTile";
 import { useWrenName } from "../lib/wren-name";
 import { dShort } from "../lib/format";
+import { t, useLang } from "../lib/i18n";
 
 /* THE TWO ENDINGS, AND WHY THEY ARE OPPOSITES.
 
@@ -113,10 +114,11 @@ export function CourierSendOff({
   no?: number;
   onDone?: () => void;
 }) {
+  useLang(); // repaint when the reader changes language
   const wren = useWrenName();
   const reduce = useReducedMotion();
 
-  const docketFull = `${no ? `No. ${String(no).padStart(4, "0")} — ` : ""}ACCEPTED FOR CARRIAGE`;
+  const docketFull = `${no ? `No. ${String(no).padStart(4, "0")} — ` : ""}${t("so.docket")}`;
   const [docket, setDocket] = useState("");
 
   // the beats
@@ -293,9 +295,9 @@ export function CourierSendOff({
           </Animated.View>
 
           <Animated.View style={[{ position: "absolute", left: 0, right: 0, bottom: 36, alignItems: "center", zIndex: 5 }, afterStyle]}>
-            <Text style={{ fontFamily: PF.letter, fontSize: 25, fontWeight: "600", color: P.ink }}>Kept.</Text>
+            <Text style={{ fontFamily: PF.letter, fontSize: 25, fontWeight: "600", color: P.ink }}>{t("so.kept")}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "center" }}>
-              NO ONE READS THIS — NOT EVEN {wren.toUpperCase()}
+              {t("so.keptNote", { name: wren.toUpperCase() })}
             </Text>
           </Animated.View>
         </Animated.View>
@@ -333,10 +335,10 @@ export function CourierSendOff({
 
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, bottom: 36, alignItems: "center" }, titleStyle]}>
           <Text style={{ fontFamily: PF.letter, fontSize: 25, fontWeight: "600", color: P.ink, textAlign: "center" }}>
-            {title ?? `${wren} has it.`}
+            {title ?? t("so.hasIt", { name: wren })}
           </Text>
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "center" }}>
-            {note ?? "THE FIRST TO ANSWER IS YOURS"}
+            {note ?? t("so.firstAnswer")}
           </Text>
         </Animated.View>
       </Animated.View>

@@ -11,6 +11,7 @@ import { AuraTicket, dear } from "../components/AuraCard";
 import { WrenBird } from "../components/WrenBird";
 import { myAura, type Aura } from "../lib/aura";
 import { useAuth } from "../lib/auth";
+import { t, useLang } from "../lib/i18n";
 
 /* The share card is the page PULLED FROM THE MACHINE — the same typed
    sheet the Me tab shows mid-type, free of the housing, travelling the
@@ -24,6 +25,7 @@ import { useAuth } from "../lib/auth";
 const INK = "#12101F";
 
 export default function AuraShareCard() {
+  useLang(); // repaint when the reader changes language
   const router = useRouter();
   const wren = useWrenName();
   const { user, profile } = useAuth();
@@ -46,8 +48,8 @@ export default function AuraShareCard() {
     Share.share({
       message:
         aura.phase === "formed"
-          ? `THE ${dear(archName(aura.archetype?.id)).toUpperCase()} — my writing aura, typed by ${wren} on Kindredly.`
-          : `${pct}% typed — ${wren} is still typing my aura, on Kindredly.`,
+          ? t("ac.shareFormed", { arch: dear(archName(aura.archetype?.id)).toUpperCase(), name: wren })
+          : t("ac.shareTyping", { pct: String(pct), name: wren }),
     });
 
   return (
@@ -78,7 +80,7 @@ export default function AuraShareCard() {
             <View style={{ alignItems: "center", gap: 7, marginTop: 20 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                 <WrenBird size={20} bare mood="content" />
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>Typed by {wren}</Text>
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>{t("ac.typedBy", { name: wren })}</Text>
               </View>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 3.5, color: "rgba(255,255,255,0.65)" }}>KINDREDLY</Text>
             </View>
@@ -87,11 +89,11 @@ export default function AuraShareCard() {
           {/* dim actions at the very edge — easy to crop out */}
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 26, paddingTop: 10 }}>
             <Pressable onPress={shareText} hitSlop={8}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Share</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{t("ac.shareSm")}</Text>
             </Pressable>
-            <Text style={{ fontFamily: PF.mono, fontSize: 12, color: "rgba(255,255,255,0.28)" }}>screenshot to keep</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 12, color: "rgba(255,255,255,0.28)" }}>{t("ac.screenshot")}</Text>
             <Pressable onPress={done} hitSlop={8}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Done</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{t("ac.done")}</Text>
             </Pressable>
           </View>
         </Animated.View>
