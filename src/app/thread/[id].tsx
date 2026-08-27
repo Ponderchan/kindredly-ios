@@ -133,7 +133,7 @@ export default function ThreadScreen() {
     if (out) {
       setXl(out);
       setXlOn(true);
-    } else Alert.alert(`${wren} couldn't translate this`, "Try again in a moment.");
+    } else Alert.alert(t("th.noTransTitle", { wren }), t("th.noTransBody"));
   };
 
   return (

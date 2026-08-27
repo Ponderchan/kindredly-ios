@@ -103,7 +103,7 @@ export default function KeepsakeDetail() {
             )}
 
             <Pressable
-              onPress={() => Share.share({ message: `${t(`ks.name.${def.id}`)} — ${mine.evidence} · a keepsake from Kindredly.` })}
+              onPress={() => Share.share({ message: t("ks.shareTail", { name: t(`ks.name.${def.id}`), evidence: mine.evidence }) })}
               style={({ pressed }) => ({ borderWidth: 1, borderColor: P.ink, paddingVertical: 14, alignItems: "center", marginTop: 34, opacity: pressed ? 0.7 : 1 })}
             >
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.8, color: P.ink }}>{t("ks.share")}</Text>

@@ -124,7 +124,7 @@ export default function Settings() {
     if (want) {
       const ok = await enableMorningKnock();
       setKnock(ok);
-      if (!ok) Alert.alert("Notifications are off", `Allow notifications for Kindredly in Settings, and ${wren} will knock at eight.`);
+      if (!ok) Alert.alert(t("set.knock.deniedTitle"), t("set.knock.deniedBody", { wren }));
     } else {
       await disableMorningKnock();
       setKnock(false);

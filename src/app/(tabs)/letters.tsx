@@ -368,7 +368,7 @@ function Feed({
               </View>
               <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
-                  ? `${replyW - LETTER_MAX} OVER THE LIMIT`
+                  ? t("ui.overLimit", { n: String(replyW - LETTER_MAX) })
                   : replyOk
                     ? t("ld.threadOpensTwo")
                     : t("ld.replyThreadOpens")}

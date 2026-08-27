@@ -13,6 +13,14 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    /* ── English that lived inside template literals ── */
+    "ob.ageIs": "You're {n}.",
+    "ks.shareTail": "{name} — {evidence} · a keepsake from Kindredly.",
+    "rm.kindredSince": "KINDRED SINCE {date}",
+    "set.knock.deniedTitle": "Notifications are off",
+    "set.knock.deniedBody": "Allow notifications for Kindredly in Settings, and {wren} will knock at eight.",
+    "th.noTransTitle": "{wren} couldn't translate this",
+    "th.noTransBody": "Try again in a moment.",
     "me.header": "ME",
     "me.roomYou": "You",
     /* ── the strays that lived inside JSX expressions ── */
@@ -1088,6 +1096,14 @@ strings(
 
   /* ── es ── */
   {
+    /* ── English that lived inside template literals ── */
+    "ob.ageIs": "Tienes {n}.",
+    "ks.shareTail": "{name} — {evidence} · un recuerdo de Kindredly.",
+    "rm.kindredSince": "AFINES DESDE {date}",
+    "set.knock.deniedTitle": "Las notificaciones están apagadas",
+    "set.knock.deniedBody": "Permite las notificaciones de Kindredly en Ajustes, y {wren} tocará a las ocho.",
+    "th.noTransTitle": "{wren} no pudo traducir esto",
+    "th.noTransBody": "Inténtalo en un momento.",
     "me.header": "YO",
     "me.roomYou": "Tú",
     /* ── the strays that lived inside JSX expressions ── */
@@ -2163,6 +2179,14 @@ strings(
 
   /* ── pt-BR ── */
   {
+    /* ── English that lived inside template literals ── */
+    "ob.ageIs": "Você tem {n}.",
+    "ks.shareTail": "{name} — {evidence} · uma lembrança do Kindredly.",
+    "rm.kindredSince": "AFINS DESDE {date}",
+    "set.knock.deniedTitle": "As notificações estão desligadas",
+    "set.knock.deniedBody": "Permita as notificações do Kindredly nos Ajustes, e {wren} vai bater às oito.",
+    "th.noTransTitle": "{wren} não conseguiu traduzir isto",
+    "th.noTransBody": "Tente de novo daqui a pouco.",
     "me.header": "EU",
     "me.roomYou": "Você",
     /* ── the strays that lived inside JSX expressions ── */
@@ -3238,6 +3262,14 @@ strings(
 
   /* ── id ── */
   {
+    /* ── English that lived inside template literals ── */
+    "ob.ageIs": "Umurmu {n}.",
+    "ks.shareTail": "{name} — {evidence} · kenang-kenangan dari Kindredly.",
+    "rm.kindredSince": "SEJIWA SEJAK {date}",
+    "set.knock.deniedTitle": "Notifikasi lagi mati",
+    "set.knock.deniedBody": "Izinkan notifikasi Kindredly di Pengaturan, nanti {wren} ketuk jam delapan.",
+    "th.noTransTitle": "{wren} nggak bisa nerjemahin ini",
+    "th.noTransBody": "Coba lagi sebentar.",
     "me.header": "AKU",
     "me.roomYou": "Kamu",
     /* ── the strays that lived inside JSX expressions ── */

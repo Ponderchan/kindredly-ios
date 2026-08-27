@@ -629,7 +629,7 @@ export default function Onboarding() {
 
             <View style={{ alignItems: "center", marginTop: 14 }}>
               <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? "#BFE8C9" : Y.panel }]}>
-                <Text style={mono(10, "b")}>{ageOk ? `You're ${age}. ✓` : `You're ${age}.`}</Text>
+                <Text style={mono(10, "b")}>{t("ob.ageIs", { n: String(age) }) + (ageOk ? " ✓" : "")}</Text>
               </View>
             </View>
 
