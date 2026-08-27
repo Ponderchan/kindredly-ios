@@ -13,6 +13,8 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en ── */
   {
+    "me.header": "ME",
+    "me.roomYou": "You",
     /* ── the strays that lived inside JSX expressions ── */
     "ui.you": "YOU",
     "ui.new": "NEW",
@@ -1086,6 +1088,8 @@ strings(
 
   /* ── es ── */
   {
+    "me.header": "YO",
+    "me.roomYou": "Tú",
     /* ── the strays that lived inside JSX expressions ── */
     "ui.you": "TÚ",
     "ui.new": "NUEVO",
@@ -2159,6 +2163,8 @@ strings(
 
   /* ── pt-BR ── */
   {
+    "me.header": "EU",
+    "me.roomYou": "Você",
     /* ── the strays that lived inside JSX expressions ── */
     "ui.you": "VOCÊ",
     "ui.new": "NOVO",
@@ -3232,6 +3238,8 @@ strings(
 
   /* ── id ── */
   {
+    "me.header": "AKU",
+    "me.roomYou": "Kamu",
     /* ── the strays that lived inside JSX expressions ── */
     "ui.you": "KAMU",
     "ui.new": "BARU",

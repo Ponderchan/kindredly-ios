@@ -139,7 +139,7 @@ export default function MeTab() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       {/* the same plate Today and Sealed carry */}
       <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>ME</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("me.header")}</Text>
         <Pressable onPress={() => router.push("/settings")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
           <Gear />
         </Pressable>
@@ -171,7 +171,7 @@ export default function MeTab() {
         <View style={{ flexDirection: "row", marginTop: 20, borderWidth: 1, borderColor: P.ink }}>
           {(
             [
-              ["you", "You"],
+              ["you", t("me.roomYou")],
               ["wren", wren],
             ] as const
           ).map(([id, label]) => {
