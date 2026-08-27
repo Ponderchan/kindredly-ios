@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -12,6 +12,7 @@ import { loadLang } from "../lib/i18n";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
+import { CounterOpen } from "../components/CounterOpen";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,6 +22,9 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
+  /* the launch runs ONCE per cold start, over an app that is already
+     mounting underneath it — it is a curtain, never a gate */
+  const [booting, setBooting] = useState(true);
   // the reader's own language choice, restored before the first paint
   useEffect(() => {
     void loadLang();
@@ -58,6 +62,9 @@ export default function RootLayout() {
                     it doesn't slide in from the side or pop up as a card */}
                 <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
               </Stack>
+
+              {/* the counter, over everything, until it has opened */}
+              {booting && <CounterOpen onDone={() => setBooting(false)} />}
             </View>
             </WrenSkinProvider>
           </EntitlementProvider>
