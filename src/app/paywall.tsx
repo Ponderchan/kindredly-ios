@@ -58,6 +58,17 @@ const FOOT_KEY = "pw.foot";
 
 /* shown until RevenueCat + the App Store products exist, so the screen is
    reviewable and the fares can be judged before they can be bought */
+/* The fare ladder is a design decision, not a dashboard setting. RevenueCat
+   returns packages in whatever order the offering happens to list them, and
+   nobody will remember to go check that — so the order is fixed here, where
+   the reasoning lives: annual first, because it is the anchor the other two
+   are read against, then monthly, then the lifetime seat. */
+const FARE_ORDER: IapPackage["period"][] = ["annual", "monthly", "lifetime"];
+const fareRank = (p: IapPackage) => {
+  const i = FARE_ORDER.indexOf(p.period);
+  return i === -1 ? FARE_ORDER.length : i; // anything unrecognised sinks
+};
+
 const PLACEHOLDERS: IapPackage[] = [
   { id: "annual", priceString: "$39.99 / year", title: "Annual", period: "annual", raw: null },
   { id: "monthly", priceString: "$6.99 / month", title: "Monthly", period: "monthly", raw: null },
@@ -93,7 +104,7 @@ export default function Paywall() {
     fetchThreads().then((t) => alive && setThreads(t || []));
     iapGetPackages().then((pkgs) => {
       if (!alive) return;
-      const list = pkgs.length ? pkgs : PLACEHOLDERS;
+      const list = [...(pkgs.length ? pkgs : PLACEHOLDERS)].sort((a, b) => fareRank(a) - fareRank(b));
       setPackages(list);
       setSelected((list.find((p) => p.period === "annual") || list[0])?.id ?? null);
     });
