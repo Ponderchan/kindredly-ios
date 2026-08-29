@@ -20,7 +20,7 @@ import type { WrenStage } from "../components/WrenBird";
      never generated (notice.ts's law): every souvenir names the query
      that would verify it. */
 
-export type Whereabouts = "home" | "delivery" | "bringing" | "exploring";
+export type Whereabouts = "home" | "delivery" | "bringing" | "exploring" | "unsent";
 
 /* one registry for everything a status shows, wherever it shows — her
    room, the YOU|PIP switch, whatever comes next. The owner is planning
@@ -34,6 +34,7 @@ export const WHEREABOUTS_META: Record<
   delivery: { label: "On a delivery", sub: "at someone's door", mood: "curious", tone: "ink" },
   bringing: { label: "Bringing something", sub: "on the way back", mood: "delight", tone: "pen" },
   exploring: { label: "Exploring", sub: "looking for you", mood: "listen", tone: "faint" },
+  unsent: { label: "Waiting", sub: "nothing to carry yet", mood: "curious", tone: "faint" },
 };
 
 export interface WhereaboutsRead {
@@ -44,7 +45,17 @@ export interface WhereaboutsRead {
   bubble: string;
 }
 
-export function whereabouts(threads: ThreadSummary[]): WhereaboutsRead {
+export function whereabouts(threads: ThreadSummary[], sent: number | null = null): WhereaboutsRead {
+  /* SHE CANNOT BE OUT LOOKING WITH AN EMPTY BAG. This read threads alone, so
+     it said "Out looking for you" to a reader whose letter had never gone
+     out — and that reader exists: hatching asks for one thought of any
+     length, while the pool asks for forty characters, and when the two
+     disagree the opening letter is dropped in silence. Nobody can answer a
+     letter that was never sent, so they wait forever and are never told why.
+     `sent` is null while the count is still loading; only a KNOWN zero
+     changes what she says, or she'd claim an empty bag on every cold start. */
+  if (!threads.length && sent === 0)
+    return { state: "unsent", line: t("wren.where.unsent"), bubble: t("wren.bubble.unsent") };
   if (!threads.length)
     return { state: "exploring", line: t("wren.where.exploring"), bubble: t("wren.bubble.exploring") };
   if (threads.some((t) => threadState(t)?.needsYou))

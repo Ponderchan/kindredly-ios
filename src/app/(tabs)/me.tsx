@@ -126,7 +126,7 @@ export default function MeTab() {
 
   /* her status rides the switch itself — you see she moved before you
      even open her room */
-  const where = whereabouts(threads);
+  const where = whereabouts(threads, statsIn ? stats.lettersSent : null);
   const tone = { pen: P.pen, ink: P.ink, faint: P.ink40 }[WHEREABOUTS_META[where.state].tone];
 
   const avatarId = (profile?.avatarId as string) || null;

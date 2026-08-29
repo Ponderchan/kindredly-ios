@@ -15,7 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { t, useLang } from "../lib/i18n";
+import { getLang, t, useLang } from "../lib/i18n";
 import { monthsShort } from "../lib/format";
 import Svg, { Circle, ClipPath, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -325,7 +325,12 @@ export default function Onboarding() {
       const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0];
       if (opener && weightedCount(opener) >= OPENING_MIN) {
         try {
-          await publishLetter(starterStamp(mood, opener), opener, "en");
+          /* the language was HARDCODED "en". Every opening letter this
+             product has ever seeded was stamped English regardless of what
+             it was written in — which is the same fact that decides whether
+             a reader is offered "read it in yours". Their language, not a
+             constant. */
+          await publishLetter(starterStamp(mood, opener), opener, getLang());
         track("onboard_done", { fed: fed.length });
         } catch {
           /* best-effort — never block getting in */

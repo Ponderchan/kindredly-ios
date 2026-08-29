@@ -68,11 +68,12 @@ export function WrenHome({
   const { skin, pick } = useWrenSkinControl();
   const info = stageInfo(stats, stageFloor);
   const wren = useWrenName();
-  const where = whereabouts(threads);
   const [souvenirs, setSouvenirs] = useState<Souvenir[]>([]);
   const [away, setAway] = useState<AwayReport | null>(null);
   const [dozy, setDozy] = useState(false);
   const [carried, setCarried] = useState<{ at: string }[]>([]);
+  const [carriedIn, setCarriedIn] = useState(false); // null vs zero — see whereabouts()
+  const where = whereabouts(threads, carriedIn ? carried.length : null);
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
@@ -87,6 +88,7 @@ export function WrenHome({
       const [shelf, diff] = await Promise.all([mintSouvenirs(c, threads, topWord), sinceLastVisit(c, threads)]);
       if (!alive) return;
       setCarried(c);
+      setCarriedIn(true);
       setSouvenirs(shelf);
       const journal = await loadJournal().catch(() => []);
       const minted = await mint({ carried: c, threads, journal, commonWords: topWord ? [topWord] : [] });
@@ -469,8 +471,9 @@ function HeroWren({
     const seq =
       state === "dozing"
         ? Animated.sequence([ease(1, 2000), ease(0, 2000)]) // the long breath of sleep
-        : state === "home"
-          ? Animated.sequence([ease(1, 1400), ease(0, 1400)])
+        : state === "home" || state === "unsent"
+          ? // nothing in the bag is not a journey — she waits the way she rests
+            Animated.sequence([ease(1, 1400), ease(0, 1400)])
           : state === "delivery"
             ? // out on the wing: a flight bob that never quite settles
               Animated.sequence([ease(1, 520), ease(0, 620), Animated.delay(160)])
