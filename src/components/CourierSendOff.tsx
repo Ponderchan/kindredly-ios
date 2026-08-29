@@ -47,6 +47,10 @@ function kaChunk(heavy: boolean) {
   } catch {}
 }
 
+/* when the courier reaches the counter, measured from mount — the ritual's
+   own clock, never the network's */
+const ARRIVES = 1900;
+
 const ENV_W = 150;
 const ENV_H = 100;
 
@@ -140,6 +144,7 @@ export function CourierSendOff({
       strike.value = 1;
       press.value = 1;
       after.value = 1;
+      birdIn.value = 1;
       setDocket(docketFull);
       if (!keep) return;
       const t = setTimeout(finish, 1500);
@@ -181,8 +186,10 @@ export function CourierSendOff({
       };
     }
 
-    // the counter: strike → kick + docket. These play over whatever wait the
-    // network imposes; the courier herself is gated on `ready` below.
+    /* the counter: strike → kick + docket → she steps up. ALL of it runs on
+       the ritual's own clock, over whatever wait the network imposes. Only
+       the flight is gated on `ready` below — she can stand at the counter
+       holding the letter, but she cannot leave with it until it has gone. */
     strike.value = withDelay(
       380,
       withTiming(1, { duration: 190, easing: Easing.in(Easing.quad) }, (ok) => {
@@ -192,15 +199,22 @@ export function CourierSendOff({
         shake.value = withSequence(withTiming(3, { duration: 55 }), withTiming(0, { duration: 140 }));
       }),
     );
+    birdIn.value = withDelay(
+      ARRIVES,
+      withTiming(1, { duration: 340, easing: Easing.out(Easing.back(1.6)) }),
+    );
     return () => {
       if (typer) clearInterval(typer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keep, reduce]);
 
-  /* THE FLIGHT WAITS FOR THE TRUTH. She only takes the letter once it has
-     actually gone through — never sooner than the ritual needs (1.9s from
-     mount), never later than the work allows. */
+  /* THE FLIGHT WAITS FOR THE TRUTH, AND NOTHING ELSE DOES. Gating her
+     ARRIVAL on `ready` meant three round-trips of empty counter — the desk
+     sat there, struck and docketed, with no one to hand the letter to, and
+     the wait read as a hang. So she comes on schedule and waits with you.
+     She only LEAVES once the letter has actually gone through: never sooner
+     than the ritual needs, never later than the work allows. */
   useEffect(() => {
     if (keep || !ready) return;
     const finish = () => onDone?.();
@@ -208,10 +222,10 @@ export function CourierSendOff({
       const t = setTimeout(finish, 900);
       return () => clearTimeout(t);
     }
-    const wait = Math.max(0, 1900 - (Date.now() - mountAt.current));
-    birdIn.value = withDelay(wait, withTiming(1, { duration: 340, easing: Easing.out(Easing.back(1.6)) }));
+    // she has been at the counter since ARRIVES; let her be seen holding it
+    const wait = Math.max(0, ARRIVES + 500 - (Date.now() - mountAt.current));
     fly.value = withDelay(
-      wait + 500,
+      wait,
       withSequence(
         withTiming(-0.04, { duration: 160, easing: Easing.out(Easing.quad) }),
         withTiming(1, { duration: 1400, easing: Easing.in(Easing.cubic) }, (ok) => ok && runOnJS(finish)()),

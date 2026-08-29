@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useWrenName } from "../lib/wren-name";
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -54,6 +54,7 @@ export function SelfCompose({
   const wren = useWrenName();
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
+  const sealOnPick = useRef(false); // the mood sheet was opened BY the seal
   const [tools, setTools] = useState(false);
   // the empty page's line, chosen from what's already on this device
   const [spark, setSpark] = useState("today felt like…");
@@ -75,7 +76,19 @@ export function SelfCompose({
   const hasSomething = text.trim().length > 0 || (hasMedia && att !== null);
   // a sealed page without a mood can't be found again — the calendar is made
   // of these faces, so it isn't optional
-  const canSave = hasSomething && !!mood;
+  /* SEAL USED TO BE A DEAD BUTTON. It greyed out until a mood was picked and
+     said nothing about why, so a page you had just written refused to close
+     and gave no reason — with the keyboard over the pill that was asking. So
+     the button is live the moment there are words, and pressing it with no
+     mood yet ASKS for one and then seals. The requirement didn't move; the
+     explanation did — from a disabled state nobody can read into the next
+     step of the ritual. Dismiss the keyboard first, or the sheet opens
+     underneath it. */
+  const askMood = (thenSeal: boolean) => {
+    Keyboard.dismiss();
+    sealOnPick.current = thenSeal;
+    setMoodOpen(true);
+  };
 
   const addPhotos = async () => {
     const remaining = 9 - photos.length;
@@ -357,7 +370,7 @@ export function SelfCompose({
           reason given is the true one: Sealed's calendar is built out of
           these faces, so the mood is literally how you find a day again. */}
       <Pressable
-        onPress={() => setMoodOpen(true)}
+        onPress={() => askMood(false)}
         style={{ flexDirection: "row", alignItems: "center", gap: 9, alignSelf: "flex-start", marginHorizontal: 20, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: mood ? MOODS[mood].bg : P.paperDeep }}
       >
         {mood ? (
@@ -415,18 +428,22 @@ export function SelfCompose({
           </Pressable>
 
           <Pressable
-            onPress={() => canSave && mood && void pickMood(mood)}
-            disabled={!canSave || busy}
+            onPress={() => {
+              if (busy || !hasSomething) return;
+              if (!mood) return askMood(true);
+              void pickMood(mood);
+            }}
+            disabled={!hasSomething || busy}
             style={{
               flex: 1,
-              backgroundColor: canSave && !busy ? P.ink : "transparent",
+              backgroundColor: hasSomething && !busy ? P.ink : "transparent",
               borderWidth: 1,
-              borderColor: canSave && !busy ? P.ink : P.ink12,
+              borderColor: hasSomething && !busy ? P.ink : P.ink12,
               paddingVertical: 17,
               alignItems: "center",
             }}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSave && !busy ? "#fff" : P.ink40 }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: hasSomething && !busy ? "#fff" : P.ink40 }}>
               {busy ? t("sc.sealing") : t("sc.seal")}
             </Text>
           </Pressable>
@@ -438,8 +455,16 @@ export function SelfCompose({
         onPick={(m) => {
           setMood(m);
           setMoodOpen(false);
+          // asked for on the way to sealing — don't make them press it twice
+          if (sealOnPick.current) {
+            sealOnPick.current = false;
+            void pickMood(m);
+          }
         }}
-        onCancel={() => setMoodOpen(false)}
+        onCancel={() => {
+          sealOnPick.current = false;
+          setMoodOpen(false);
+        }}
       />
     </View>
   );
