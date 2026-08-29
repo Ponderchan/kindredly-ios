@@ -35,7 +35,7 @@ import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
-import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
+import { weightedCount } from "../lib/weighted-count";
 import { MOODS, MOOD_IDS, moodName, type MoodId } from "../data/moods";
 import { MoodIcon } from "../components/MoodIcon";
 
@@ -320,10 +320,18 @@ export default function Onboarding() {
         /* best-effort */
       }
       /* the pool gets ONE thought, not a concatenation — a letter is a single
-         coherent thing. The longest fed thought that clears the same floor
-         every other opening has to clear. */
+         coherent thing. The longest of what they fed.
+
+         AND IT GOES, HOWEVER SHORT IT IS. This used to hold the opener to
+         the same forty characters a cold letter written at the desk has to
+         clear, which put it out of reach of the hatch gate beside it: you
+         may hatch on one thought of any length. When the two disagreed the
+         letter was dropped inside a try/catch, so a reader watched her fly
+         off carrying nothing, and the first kindred at the end of that chain
+         could never arrive because its first link was never made. What she
+         is handed is what they fed her. */
       const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0];
-      if (opener && weightedCount(opener) >= OPENING_MIN) {
+      if (opener) {
         try {
           /* the language was HARDCODED "en". Every opening letter this
              product has ever seeded was stamped English regardless of what
@@ -331,7 +339,7 @@ export default function Onboarding() {
              a reader is offered "read it in yours". Their language, not a
              constant. */
           await publishLetter(starterStamp(mood, opener), opener, getLang());
-        track("onboard_done", { fed: fed.length });
+          track("onboard_done", { fed: fed.length });
         } catch {
           /* best-effort — never block getting in */
         }
