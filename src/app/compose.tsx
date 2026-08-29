@@ -102,7 +102,12 @@ export default function Compose() {
   const saveAndLeave = async () => {
     setLeaving(false);
     try {
-      await saveDraft({ id: draftId, stamp: sel || STARTER_STAMPS[0], body: text.trim(), ask: spark });
+      /* `ask` rides with the letter — send() appends it under the body. This
+         wrote the PLACEHOLDER into it, so saving a draft and resuming it
+         glued the app's own prompt to the bottom of a letter a stranger
+         then read as the writer's words. The draft carries what the writer
+         has, which is currently nothing. */
+      await saveDraft({ id: draftId, stamp: sel || STARTER_STAMPS[0], body: text.trim(), ask });
     } catch {
       /* a draft is not worth blocking the exit */
     }
