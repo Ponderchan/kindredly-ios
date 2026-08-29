@@ -17,6 +17,10 @@ import { IAP_READY, iapCheckPremium, iapConfigure } from "./iap";
 interface EntValue {
   premium: boolean;
   loading: boolean;
+  /** the first answer is in — before this, `premium: false` means "not asked
+   *  yet", not "no". Anything that TAKES something away on a false must wait
+   *  for this, or it strips a paying reader mid-load. */
+  settled: boolean;
   plan: string | null;
   status: string | null;
   /* A COFOUNDER IS A PERSON, NOT A RECEIPT. The lifetime fare buys a
@@ -42,6 +46,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [status, setStatus] = useState<string | null>(null);
   const [cofounderNo, setCofounderNo] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -49,6 +54,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       setPlan(null);
       setStatus(null);
       setCofounderNo(null);
+      setSettled(true); // signed out is an answer, not a gap
       return;
     }
     setLoading(true);
@@ -64,6 +70,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       setCofounderNo(typeof server?.cofounder_no === "number" ? server.cofounder_no : null);
     } finally {
       setLoading(false);
+      setSettled(true);
     }
   }, [user]);
 
@@ -73,7 +80,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
 
   return (
     <Ctx.Provider
-      value={{ premium, loading, plan, status, cofounder: cofounderNo != null, cofounderNo, refresh }}
+      value={{ premium, loading, settled, plan, status, cofounder: cofounderNo != null, cofounderNo, refresh }}
     >
       {children}
     </Ctx.Provider>

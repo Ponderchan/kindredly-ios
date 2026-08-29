@@ -19,7 +19,7 @@ import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
 import { track } from "../../lib/track";
-import { getLang, t, useLang } from "../../lib/i18n";
+import { getLang, needsTranslating, t, useLang } from "../../lib/i18n";
 import { screen, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -778,7 +778,7 @@ function LetterPage({
         {/* one rule above the whole action cluster — letter, then the moves */}
         <View style={{ borderTopWidth: 1, borderTopColor: P.ink, marginTop: 12 }} />
 
-        {!isVoice && !!letter.body && (letter.lang || "en") !== getLang() && (
+        {!isVoice && !!letter.body && needsTranslating(letter.body, letter.lang) && (
           <Pressable
             onPress={doTranslate}
             hitSlop={10}

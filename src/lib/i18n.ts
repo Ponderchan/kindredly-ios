@@ -122,3 +122,29 @@ export function t(key: string, vars?: Record<string, string | number>): string {
   if (!vars) return s;
   return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
 }
+
+/* WHAT LANGUAGE A LETTER IS IN, versus what its writer's app was set to.
+
+   `lang` is stamped at publish from the writer's UI language, and those are
+   not the same thing. A Chinese speaker running Kindredly in English writes
+   a letter in Chinese and it ships tagged "en" — so an English reader was
+   never offered to read it in theirs, while the letter beside it, from
+   someone whose app happened to be set differently, was. Same language on
+   the page, two different offers.
+
+   All four languages Kindredly speaks are Latin-script, so a body that is
+   substantially NOT Latin cannot be in any of them. That is enough to catch
+   what the tag gets wrong — deterministically, on device, no model. Telling
+   Spanish from Portuguese still rests on the tag, which is what the tag is
+   actually good for. */
+const OTHER_SCRIPT =
+  /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0e00-\u0e7f\u0900-\u097f]/g;
+
+export function needsTranslating(body: string | null | undefined, lang: string | null | undefined): boolean {
+  if (body) {
+    const other = (body.match(OTHER_SCRIPT) || []).length;
+    const dense = body.replace(/\s/g, "").length;
+    if (other >= 4 && dense > 0 && other / dense > 0.2) return true;
+  }
+  return (lang || "en") !== getLang();
+}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useWrenName } from "../lib/wren-name";
-import { Alert, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Keyboard, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -55,6 +57,22 @@ export function SelfCompose({
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false);
   const sealOnPick = useRef(false); // the mood sheet was opened BY the seal
+
+  /* THE BOTTOM CLUSTER RIDES THE KEYBOARD. KeyboardAvoidingView was doing
+     this and getting it wrong here: it lifted the page by ~200pt against a
+     337pt keyboard, so the mood, the tools and SEAL — every control this
+     page has — sat underneath it, and the mood the seal was waiting for was
+     the first thing to go under. The letter desk gets away with the same
+     component only because its page is short enough to fit either way.
+
+     So the keyboard's real height drives the padding, on the UI thread, and
+     the arithmetic is ours: the safe-area inset is already paid by the
+     SafeAreaView above us, and the keyboard covers it. */
+  const keyboard = useAnimatedKeyboard();
+  const insets = useSafeAreaInsets();
+  const lift = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(0, keyboard.height.value - insets.bottom),
+  }));
   const [tools, setTools] = useState(false);
   // the empty page's line, chosen from what's already on this device
   const [spark, setSpark] = useState("today felt like…");
@@ -242,8 +260,14 @@ export function SelfCompose({
 
   return (
     <View style={{ flex: 1 }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, paddingTop: 10 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <Animated.View style={[{ flex: 1 }, lift]}>
+        {/* `flex: 1` is what keeps the mood, the tools and SEAL above the
+            keyboard. Without it the scroller takes its CONTENT height — the
+            page is 430pt of writing room before anything else — so when the
+            keyboard took its 336pt the whole bottom cluster was pushed off
+            the screen, and the mood the seal was waiting for was the first
+            thing to go under. The page is free to be long; it scrolls. */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, paddingTop: 10 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* The page IS the screen. It used to be a bordered sheet taped down
               inside the view — but tape holds paper ONTO something, and once
               the paper fills the screen there's nothing left to hold it to.
@@ -448,7 +472,7 @@ export function SelfCompose({
             </Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </Animated.View>
 
       <MoodModal
         visible={moodOpen}

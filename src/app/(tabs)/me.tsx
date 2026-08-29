@@ -1,5 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -13,7 +13,8 @@ import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenHome } from "../../components/WrenHome";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
-import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
+import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
+import { useWrenSkinControl } from "../../lib/wren-skin";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
@@ -55,11 +56,13 @@ export default function MeTab() {
   useLang();
   const auth = useAuth();
   const { user, handle, profile } = auth;
-  const { premium, cofounderNo } = useEntitlement();
+  const { premium, settled, cofounderNo } = useEntitlement();
+  const { skin, pick } = useWrenSkinControl();
   const router = useRouter();
   const name = handle || "You";
 
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
+  const [statsIn, setStatsIn] = useState(false);
   const [room, setRoom] = useState<"you" | "wren">("you");
   const [aura, setAura] = useState<Aura | null>(null);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -69,12 +72,25 @@ export default function MeTab() {
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
   const wren = useWrenName();
 
+  /* THE WARDROBE IS ON THE DEVICE; WHAT UNLOCKS IT IS ON THE ACCOUNT. The
+     gate was only ever checked at the moment of picking, so a look outlived
+     the thing that earned it: sign out, sign in as someone new, and the
+     previous reader's Plush is still on a chick who has never had a kindred.
+     The same hole let a lapsed subscriber keep Ink forever. Check it where
+     it's worn, not only where it's chosen — and only once both answers are
+     actually in, or a mid-load `false` undresses a paying reader. */
+  useEffect(() => {
+    if (!statsIn || !settled) return;
+    if (!skinUnlocked(skin, stats, premium)) pick("sticker");
+  }, [statsIn, settled, skin, stats, premium, pick]);
+
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       Promise.all([collectGrowthStats(user?.created_at), getStageFloor()]).then(([s, floor]) => {
         if (!alive) return;
         setStats(s);
+        setStatsIn(true);
         const live = wrenStage(s);
         // stage only ever moves forward; remember the highest ever reached,
         // and the DAY it turned — the journey strip prints it

@@ -68,22 +68,27 @@ const SEEN = "kindredly_launch_seen";
    two blocks then sit apart, finished and obviously identical, for a beat
    before they move. Without that hold the merge happens before the eye has
    registered that there are two of anything, and the whole screen collapses
-   into "one paragraph with a shadow". */
+   into "one paragraph with a shadow".
+
+   These beats were once tuned for speed and the screen went by before it had
+   said anything — the lockstep writing is the whole claim, and at 22ms a line
+   nobody could see two hands moving together. Slow enough to be read, and
+   only once. */
 const FULL = {
-  draw: { at: 0, step: 22, ms: 110 }, // both blocks, in lockstep — done at 242
-  merge: { at: 330, ms: 200, from: 0 }, // ~90ms of two finished paragraphs first
-  name: { at: 450, step: 11, ms: 100 },
-  lift: { at: 660, ms: 160 }, // done at 820ms
+  draw: { at: 0, step: 40, ms: 140 }, // seven lines, in lockstep — done at 380
+  merge: { at: 620, ms: 280, from: 0 }, // 240ms of two finished paragraphs first
+  name: { at: 900, step: 14, ms: 100 },
+  lift: { at: 1140, ms: 190 }, // done at 1330ms
 };
 /* Every launch after — the claim has already been made to this reader, so it
-   joins the merge half-done and gets out of the way. */
+   joins the merge half-done and gets out of the way. Still not a blink: the
+   merge is the one thing the screen says, and it has to be seen happening. */
 const SHORT = {
   draw: { at: 0, step: 0, ms: 0 },
-  merge: { at: 0, ms: 180, from: 0.5 },
-  name: { at: 40, step: 8, ms: 80 },
-  lift: { at: 210, ms: 150 }, // done at 360ms
+  merge: { at: 0, ms: 260, from: 0.45 },
+  name: { at: 60, step: 10, ms: 90 },
+  lift: { at: 330, ms: 170 }, // done at 500ms
 };
-
 export function SameShape({ onDone }: { onDone: () => void }) {
   const reduce = useReducedMotion();
   const done = useRef(false);
