@@ -1031,8 +1031,14 @@ export default function Onboarding() {
             </>
           ) : (
             <>
+              {/* THE BIRD THAT LEAVES IS THE BIRD THAT HATCHED. This drew her
+                  with no stage, so WrenBird fell through to the grown wren —
+                  a chick came out of the shell, you poked her, and one screen
+                  later an adult flew off with your letter, and then the Me tab
+                  showed a chick again. She is a hatchling here, in the
+                  proportions your own writing just gave her. */}
               <Animated.View style={[flyStyle, { alignItems: "center" }]}>
-                <WrenBird size={132} mood="delight" bare />
+                <WrenBird size={132} mood="delight" bare stage="hatch" form={hatchlingForm(hatched.dims)} />
                 <View style={{ marginTop: -26, transform: [{ rotate: "-11deg" }] }}>
                   <CarriedLetter />
                 </View>
