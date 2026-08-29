@@ -1,3 +1,4 @@
+import type { HatchlingForm } from "../lib/hatchling-form";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { WREN_FAMILY, type WShape } from "./wren-family-data";
 import { useWrenSkin } from "../lib/wren-skin";
@@ -50,6 +51,7 @@ export function WrenBird({
   pose = "perch",
   skin: skinProp,
   bare = false,
+  form,
 }: {
   size?: number;
   mood?: WrenMood;
@@ -64,6 +66,9 @@ export function WrenBird({
      there. Opt-in, per call site: the skin itself is untouched (and must stay
      that way — `ink` is a paid skin and is never chosen in code). */
   bare?: boolean;
+  /* the hatchling's own proportions, read from the writing that hatched her.
+     Only meaningful at the hatch stage; every other stage ignores it. */
+  form?: HatchlingForm;
 }) {
   const ctxSkin = useWrenSkin();
   const skin = skinProp ?? ctxSkin; // explicit prop wins (gallery); else the app-wide pick
@@ -86,12 +91,75 @@ export function WrenBird({
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
       {keys.map((k) => (
-        <Shapes key={k} list={WREN_FAMILY[k] || []} bare={bare} />
+        <Shapes
+          key={k}
+          list={stage === "hatch" && form ? shapeHatchling(WREN_FAMILY[k] || [], form) : WREN_FAMILY[k] || []}
+          bare={bare}
+        />
       ))}
+      {stage === "hatch" && form?.tail && <TailFeather />}
       {hatchMood && <HatchEyes mood={hatchMood} skin={skin} />}
       {stage === "hatch" && pose !== "fly" && accessory !== "none" && size > 20 && <HatchAcc a={accessory} />}
     </Svg>
   );
+}
+
+/* SHAPING THE HATCHLING TO THE READ.
+   The parts are identified by geometry rather than by position in the list:
+   all three skins ship the same eleven shapes, but relying on index would
+   make a reordered export silently deform the wrong thing. Each rule below
+   states what it is looking at. */
+function shapeHatchling(list: WShape[], f: HatchlingForm): WShape[] {
+  const num = (v: unknown) => (typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN);
+  const CX = 100; // her axis of symmetry in the 200x200 viewBox
+
+  return list.map((sh) => {
+    const cx = num((sh as any).cx);
+    const cy = num((sh as any).cy);
+    const r = num((sh as any).r);
+
+    // BODY — the one big circle. Stretching it vertically is the whole of
+    // "long sentences read longer", so it becomes an ellipse.
+    if (sh.t === "c" && r >= 40) {
+      const { r: _drop, ...rest } = sh as any;
+      return { ...rest, t: "e", rx: String(r / Math.sqrt(f.bodyStretch)), ry: String(r * f.bodyStretch) };
+    }
+
+    // EYES — the dark pair. Radius carries emotion, x carries perspective.
+    if (sh.t === "c" && r > 4 && r < 14 && /^#1E1B33$/i.test(String(sh.f))) {
+      const out = cx < CX ? -f.eyeSpread : f.eyeSpread;
+      return { ...sh, cx: String(cx + out), r: String(r * f.eyeScale) } as WShape;
+    }
+    // the highlights ride with the eye they belong to
+    if (sh.t === "c" && r <= 4 && isWhite(sh.f)) {
+      const out = cx < CX ? -f.eyeSpread : f.eyeSpread;
+      return { ...sh, cx: String(cx + out), r: String(r * f.eyeScale) } as WShape;
+    }
+
+    // CHEEKS — the pink pair. Punctuation can remove them entirely.
+    if (sh.t === "c" && /^#EF9CB4$/i.test(String(sh.f))) {
+      if (f.cheek <= 0.02) return { ...sh, r: "0" } as WShape;
+      return { ...sh, r: String(r * Math.min(1.5, f.cheek)) } as WShape;
+    }
+
+    // CREST — the only stroke-only path she has.
+    if (sh.t === "p" && String(sh.f) === "none" && f.crestLift !== 0) {
+      return { ...sh, tf: `translate(0 ${-f.crestLift})` } as WShape;
+    }
+
+    // BEAK — the small amber path, scaled about its own centre.
+    if (sh.t === "p" && /^#EFB050$/i.test(String(sh.f)) && f.beakScale !== 1) {
+      const k = f.beakScale;
+      return { ...sh, tf: `translate(${CX * (1 - k)} ${132 * (1 - k)}) scale(${k})` } as WShape;
+    }
+
+    return sh;
+  });
+}
+
+/* the extra feather a distinctive hand earns — drawn, not selected */
+function TailFeather() {
+  return <Path d="M36 118 q-20 -8 -24 6 q13 9 26 3 Z" fill="#4646DB" stroke="#FFFFFF" strokeWidth={5} strokeLinejoin="round" />;
 }
 
 const isWhite = (c?: string) => !!c && /^#(fff|ffffff)$/i.test(c.trim());

@@ -29,8 +29,8 @@ import { EGG_SHELLS, EggShell } from "../components/EggShell";
 import { AvatarImage } from "../components/AvatarImage";
 import { AVATARS } from "../data/avatar-lib";
 import { readMood } from "../lib/wren-read";
-import { bumpStageFloor, setWrenAccessory } from "../lib/wren-style";
-import { saveWrenType, wrenTypeFor } from "../lib/wren-type";
+import { bumpStageFloor } from "../lib/wren-style";
+import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../lib/hatchling-form";
 import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-engine";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { track } from "../lib/track";
@@ -300,7 +300,6 @@ export default function Onboarding() {
   const fed = [...thoughts, ...(line.length >= 2 ? [line] : [])];
   const corpus = fed.join("\n\n");
   const hatched = hatch(fed);
-  const noteType = wrenTypeFor(corpus); // still decides the accessory
   const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(corpus); // picked mood wins
   const canFeed = line.length >= 2 && thoughts.length < 5;
   const canHatch = fed.length >= 1;
@@ -335,8 +334,11 @@ export default function Onboarding() {
     }
     try {
       await bumpStageFloor("hatch");
-      await saveWrenType(noteType.id);
-      await setWrenAccessory(noteType.accessory);
+      /* She is shaped by what she was fed, not sorted into one of four types
+         and handed a pair of headphones for it. The read that produced her
+         nine dimensions produces her proportions too, and it is kept so she
+         is the same chick tomorrow. */
+      await saveHatchlingForm(hatchlingForm(hatched.dims));
       await saveWrenEgg(eggVar);
       await saveWrenName(her);
       await saveWrenPronoun(birdPro);
@@ -818,7 +820,7 @@ export default function Onboarding() {
             <Head plain={t("ob.naming.plain")} em={t("ob.naming.em")} sub={t("ob.naming.sub")} />
 
             <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
-              <Hatchling mood={hatchMood} shell={eggVar} />
+              <Hatchling mood={hatchMood} shell={eggVar} form={hatchlingForm(hatched.dims)} />
             </Animated.View>
 
             <View style={{ paddingHorizontal: 18, marginTop: 16 }}>
@@ -1010,7 +1012,7 @@ export default function Onboarding() {
 
               <Animated.View entering={FadeInDown.delay(220).duration(480)} style={{ alignItems: "center", marginTop: 22 }}>
                 <Animated.View style={breathe}>
-                  <WrenBird size={110} mood="delight" stage="hatch" bare />
+                  <WrenBird size={110} mood="delight" stage="hatch" bare form={hatchlingForm(hatched.dims)} />
                 </Animated.View>
                 {/* the letter is the words they just fed — real, not an icon */}
                 <View style={[card, bevel(4, 4), { maxWidth: 300, marginTop: -8, paddingHorizontal: 16, paddingVertical: 13, transform: [{ rotate: "-2deg" }] }]}>
@@ -1148,7 +1150,7 @@ export default function Onboarding() {
                 <View style={{ width: 9, height: 13, borderRadius: 5, backgroundColor: "#F2EFFF" }} />
               </Animated.View>
               <Animated.View entering={ZoomIn.delay(1500).duration(460).easing(Easing.out(Easing.back(1.6)))}>
-                <Hatchling mood={hatchMood} shell={eggVar} />
+                <Hatchling mood={hatchMood} shell={eggVar} form={hatchlingForm(hatched.dims)} />
               </Animated.View>
             </View>
 
@@ -1340,7 +1342,7 @@ function Foot({
    third poke isn't the second poke again. */
 const POKES: WrenMood[] = ["delight", "curious", "wink", "happy"];
 
-function Hatchling({ mood, shell }: { mood: WrenMood; shell: number }) {
+function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?: HatchlingForm }) {
   const [pokes, setPokes] = useState(0);
   const squish = useSharedValue(0); // 0 rest, drives the whole hop
   const spark = useSharedValue(0);
@@ -1389,7 +1391,7 @@ function Hatchling({ mood, shell }: { mood: WrenMood; shell: number }) {
           range. The colour is the one you picked two screens ago — the only
           part of her you got to choose, kept and shown. */}
       <Animated.View style={[body, { marginBottom: 30 }]}>
-        <WrenBird size={104} mood={face} stage="hatch" bare />
+        <WrenBird size={104} mood={face} stage="hatch" bare form={form} />
       </Animated.View>
 
       <Svg width={150} height={62} viewBox="0 0 150 62" style={{ position: "absolute", bottom: 0 }}>

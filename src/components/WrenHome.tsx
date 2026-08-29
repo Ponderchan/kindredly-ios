@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
+import { useHatchlingForm } from "../lib/hatchling-form";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
 import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
@@ -512,6 +513,10 @@ function HeroWren({
     onPress();
   };
 
+  /* her proportions came out of the writing that hatched her — the same
+     chick here as at the hatch, not a stock one */
+  const form = useHatchlingForm();
+
   return (
     <Pressable onPress={startle} hitSlop={8}>
       <Animated.View
@@ -522,7 +527,7 @@ function HeroWren({
           ],
         }}
       >
-        <WrenBird size={108} bare stage={stage} mood={mood} accessory={accessory} />
+        <WrenBird size={108} bare stage={stage} mood={mood} accessory={accessory} form={form} />
       </Animated.View>
     </Pressable>
   );

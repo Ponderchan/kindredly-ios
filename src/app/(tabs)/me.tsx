@@ -14,7 +14,6 @@ import { WrenHome } from "../../components/WrenHome";
 import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
 import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../../lib/wren-style";
-import { getWrenType, type WrenType } from "../../lib/wren-type";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
@@ -68,7 +67,6 @@ export default function MeTab() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [accessory, setAccessory] = useState<WrenAccessory>("none");
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
-  const [wrenType, setWrenType] = useState<WrenType | null>(null);
   const wren = useWrenName();
 
   useFocusEffect(
@@ -89,7 +87,6 @@ export default function MeTab() {
       fetchThreads().then((t) => alive && setThreads(t || []));
       getAvatarPhoto().then((p) => alive && setPhoto(p));
       getWrenAccessory().then((a) => alive && setAccessory(a));
-      getWrenType().then((t) => alive && setWrenType(t));
 
       // Your aura — one engine (hatch), every piece of your real writing:
       // the hatch line, the sealed pages, and now your letters too
