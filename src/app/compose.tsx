@@ -2,10 +2,9 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Path, Rect } from "react-native-svg";
-import { C, navyBtn } from "../theme/tokens";
+import { C } from "../theme/tokens";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
@@ -286,7 +285,12 @@ export default function Compose() {
       const on = sel === id;
       return (
         <Pressable
-          onPress={() => setSel(id)}
+          onPress={() => {
+            /* ONE TAP. Choosing then confirming was two decisions about a
+               sticker — tap it, it's on the envelope, you're back writing. */
+            setSel(id);
+            setStep("write");
+          }}
           style={{
             width: "31%",
             backgroundColor: "transparent",
@@ -326,7 +330,7 @@ export default function Compose() {
           </Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {!showAll ? (
             <>
               <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
@@ -359,14 +363,6 @@ export default function Compose() {
           )}
         </ScrollView>
 
-        <LinearGradient colors={["transparent", C.cream]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 22, paddingTop: 28, paddingBottom: 30 }}>
-          <Pressable
-            onPress={() => sel && setStep("write")}
-            style={[navyBtn, { paddingVertical: 18, width: "100%", opacity: sel ? 1 : 0.3 }]}
-          >
-            <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.2 }}>{t("cp.useThis")}</Text>
-          </Pressable>
-        </LinearGradient>
       </SafeAreaView>
     );
   }
@@ -514,18 +510,26 @@ export default function Compose() {
           </Pressable>
         </View>
 
-        {/* The quick feelings, in a tray. On the page they read as part of the
-            letter — six boxes sitting under your own words, easy to mistake for
-            the MOOD STAMP above them. They're neither: they're characters you
-            drop INTO the sentence. So they behave like a keyboard — a key opens
-            them, they cover the bottom, they close when you're done. */}
+        {/* THE QUESTION RIDES UNDER THE LETTER. This tray held six preset
+            emoji — a six-key keyboard sitting one key away from the system
+            one with thousands, in the product whose claim is that nobody
+            writes like you. Gone. What earns the slot is the thing that was
+            wired end-to-end and never given a door: `ask` has always been
+            appended below the body at send and carried by drafts, with no
+            way to type it. A letter that ends in a question is an invitation
+            to answer — and an answer is where every kindred begins. */}
         {feelings && (
-          <View style={{ flexDirection: "row", justifyContent: "space-around", paddingHorizontal: 14, paddingVertical: 14, borderTopWidth: 1, borderTopColor: P.ink12 }}>
-            {["🥹", "😤", "🫥", "✨", "🫶", "💀"].map((e) => (
-              <Pressable key={e} onPress={() => setText((t) => t + e)} hitSlop={6} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-                <Text style={{ fontSize: 27 }}>{e}</Text>
-              </Pressable>
-            ))}
+          <View style={{ paddingHorizontal: 22, paddingVertical: 12, borderTopWidth: 1, borderTopColor: P.ink12 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginBottom: 7 }}>{t("cp.askLabel")}</Text>
+            <TextInput
+              value={ask}
+              onChangeText={setAsk}
+              placeholder={t("cp.askPh")}
+              placeholderTextColor="#B9B3D8"
+              autoFocus
+              maxLength={140}
+              style={{ fontFamily: PF.letter, fontSize: 16.5, color: P.ink, paddingVertical: 4 }}
+            />
           </View>
         )}
 
@@ -535,14 +539,14 @@ export default function Compose() {
             style={{
               width: 50,
               height: 50,
-              backgroundColor: feelings ? P.ink : "transparent",
+              backgroundColor: feelings || ask.trim() ? P.ink : "transparent",
               borderWidth: 1,
               borderColor: P.ink,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontSize: 20 }}>🙂</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 21, color: feelings || ask.trim() ? "#fff" : P.ink }}>?</Text>
           </Pressable>
 
           {/* A voice letter is a First Class thing. It has to be VISIBLE — you

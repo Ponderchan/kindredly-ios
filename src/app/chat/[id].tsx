@@ -12,7 +12,7 @@ import { Introduction } from "../../components/Introduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
-import { REACTIONS } from "../../data/reactions";
+import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
 import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
@@ -330,14 +330,17 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* one-tap reactions, tucked behind the + */}
+        {/* the one-tap promise, tucked behind the + */}
         {reacting && (
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 10, paddingBottom: 8 }}>
-            {REACTIONS.map((r) => (
-              <Pressable key={r.emoji} onPress={() => react(r.emoji)} hitSlop={4} style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 17 }}>{r.emoji}</Text>
-              </Pressable>
-            ))}
+          <View style={{ alignItems: "center", paddingBottom: 8 }}>
+            <Pressable
+              onPress={() => react(ON_WAY.emoji)}
+              hitSlop={6}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: P.ink12 }}
+            >
+              <Text style={{ fontSize: 15 }}>{ON_WAY.emoji}</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.5, color: P.ink60 }}>{t("rx.onWay")}</Text>
+            </Pressable>
           </View>
         )}
 

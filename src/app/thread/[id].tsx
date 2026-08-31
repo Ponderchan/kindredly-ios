@@ -10,7 +10,7 @@ import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
 import { AudioCard } from "../../components/AudioCard";
 import { getStamp, sname } from "../../data/stamps";
-import { REACTIONS, reactionLabel } from "../../data/reactions";
+import { ON_WAY, reactionLabel } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
 import { getLang, t, useLang } from "../../lib/i18n";
@@ -261,25 +261,18 @@ export default function ThreadScreen() {
             ))}
         </ScrollView>
 
-        {/* reactions */}
+        {/* the one-tap promise — read, and a reply is coming */}
         <View style={{ alignItems: "center", paddingBottom: 4 }}>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            {REACTIONS.map((r) => {
-              const on = myR === r.emoji;
-              return (
-                <Pressable
-                  key={r.emoji}
-                  onPress={() => react(r.emoji)}
-                  hitSlop={4}
-                  style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: on ? P.penWash : "transparent", borderWidth: 1, borderColor: on ? P.pen : P.ink12 }}
-                >
-                  <Text style={{ fontSize: 18 }}>{r.emoji}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: myR ? P.pen : P.ink40, marginTop: 10 }}>
-            {myR ? t("th.reactSeen", { r: (reactionLabel(myR) || "").toUpperCase() }) : t("th.answerOneTap")}
+          <Pressable
+            onPress={() => react(ON_WAY.emoji)}
+            hitSlop={6}
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: myR === ON_WAY.emoji ? P.pen : P.ink12, backgroundColor: myR === ON_WAY.emoji ? P.penWash : "transparent" }}
+          >
+            <Text style={{ fontSize: 15 }}>{ON_WAY.emoji}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.5, color: myR === ON_WAY.emoji ? P.pen : P.ink60 }}>{t("rx.onWay")}</Text>
+          </Pressable>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: myR === ON_WAY.emoji ? P.pen : P.ink40, marginTop: 10 }}>
+            {myR === ON_WAY.emoji ? t("th.reactSeen") : t("th.answerOneTap")}
           </Text>
         </View>
 
