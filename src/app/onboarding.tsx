@@ -501,15 +501,18 @@ export default function Onboarding() {
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
               <>
+                {/* THE OFFICIAL COMPONENT, ALWAYS. A hand-drawn Apple key is
+                    a 4.8 rejection — the mark, the wording and the sizing
+                    belong to Apple, and the system button also localises
+                    itself. It sets the row's geometry; AuthKey below matches
+                    IT, not the other way round. */}
                 {appleAvailable ? (
-                  <AuthKey
-                    dark
-                    first
-                    icon={<Text style={{ fontSize: 21, color: "#FFFFFF", marginTop: -2 }}>{"\uF8FF"}</Text>}
-                    label={t("ob.continueApple")}
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={10}
+                    style={{ height: 52, width: "100%", opacity: busy && busy !== "apple" ? 0.5 : 1 }}
                     onPress={doApple}
-                    disabled={!!busy}
-                    dim={!!busy && busy !== "apple"}
                   />
                 ) : null}
                 <AuthKey
