@@ -77,6 +77,7 @@ const OWNED_KEYS = [
   "kindredly_spark_n",
   "kindredly_hidden_demo",
   "kindredly_avatar_photo",
+  "kindredly_lore",
 ];
 
 const MIGRATED = "kindredly_ns_claimed"; // bare, device-level marker

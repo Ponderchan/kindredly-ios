@@ -49,6 +49,11 @@ export function useThreadLive(threadId: string | undefined, onChange: () => void
       )
       .on(
         "postgres_changes",
+        { event: "INSERT", schema: "public", table: "folds", filter: `thread_id=eq.${threadId}` },
+        poke,
+      )
+      .on(
+        "postgres_changes",
         { event: "UPDATE", schema: "public", table: "threads", filter: `id=eq.${threadId}` },
         poke,
       );

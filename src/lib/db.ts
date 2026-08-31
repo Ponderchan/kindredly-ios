@@ -285,6 +285,32 @@ export async function publishVoiceLetter(
   }
 }
 
+/** upload a tiny-moment photo into the 'moments' bucket; returns its path. */
+export async function uploadMoment(fileUri: string): Promise<string | null> {
+  if (!supabaseReady || !fileUri) return null;
+  const id = await uid();
+  if (!id) return null;
+  try {
+    const path = `${id}/${Date.now()}.jpg`;
+    const res = await fetch(fileUri);
+    const blob = await res.arrayBuffer();
+    const { error } = await supabase!.storage.from("moments").upload(path, blob, { contentType: "image/jpeg" });
+    return error ? null : path;
+  } catch {
+    return null;
+  }
+}
+
+export function momentUrl(mediaPath?: string | null): string | null {
+  if (!supabase || !mediaPath) return null;
+  try {
+    const { data } = supabase.storage.from("moments").getPublicUrl(mediaPath);
+    return data?.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /* ── Threads + messages (real 1:1 conversations) ── */
 export async function replyToLetter(
   letter: PoolLetter,
@@ -509,7 +535,16 @@ export interface ThreadDetail {
   openingFromMe: boolean;
   openingMedia?: string | null; // voice-letter opening (storage path)
   openingDurationS?: number | null;
-  messages: { body: string; mine: boolean; date: string }[];
+  messages: ThreadMessage[];
+}
+export interface ThreadMessage {
+  body: string;
+  mine: boolean;
+  date: string;
+  /** 'text' | 'photo' (a tiny moment) | 'song' — absent pre-0015 */
+  kind?: string;
+  mediaPath?: string | null;
+  meta?: { url?: string; title?: string } | null;
 }
 export async function fetchThreadMessages(
   threadId: string,
@@ -532,11 +567,20 @@ export async function fetchThreadMessages(
         .maybeSingle();
       t = retry.data as any;
     }
-    const { data: msgs } = await supabase!
+    let { data: msgs, error: msgErr } = await supabase!
       .from("messages")
-      .select("sender,body,created_at")
+      .select("sender,body,created_at,kind,media_path,meta")
       .eq("thread_id", threadId)
       .order("created_at");
+    if (msgErr) {
+      // pre-0015 fallback: kind/media columns absent
+      const retry = await supabase!
+        .from("messages")
+        .select("sender,body,created_at")
+        .eq("thread_id", threadId)
+        .order("created_at");
+      msgs = retry.data as any;
+    }
     if (!t) return null;
     const iamA = t.a === me;
     return {
@@ -558,6 +602,9 @@ export async function fetchThreadMessages(
         body: m.body,
         mine: m.sender === me,
         date: m.created_at,
+        kind: m.kind ?? "text",
+        mediaPath: m.media_path ?? null,
+        meta: m.meta ?? null,
       })),
     };
   } catch {
@@ -574,14 +621,28 @@ export async function fetchThreadMessages(
 export async function sendThreadMessage(
   threadId: string,
   body: string,
+  extra?: { kind: "photo" | "song"; mediaPath?: string; meta?: { url?: string; title?: string } },
 ): Promise<{ ok: true } | null> {
   if (!supabaseReady) return null;
   const me = await uid();
   if (!me) return null;
   try {
-    const { error } = await supabase!
-      .from("messages")
-      .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
+    /* body always carries a readable fallback, so the web app and any
+       pre-0015 reader degrade to plain text instead of an empty bubble */
+    const row: Record<string, unknown> = { thread_id: threadId, sender: me, body: String(body).slice(0, 2000) };
+    if (extra) {
+      row.kind = extra.kind;
+      if (extra.mediaPath) row.media_path = extra.mediaPath;
+      if (extra.meta) row.meta = extra.meta;
+    }
+    let { error } = await supabase!.from("messages").insert(row);
+    if (error && extra) {
+      // pre-0015 columns — the moment/song still arrives as its text fallback
+      const retry = await supabase!
+        .from("messages")
+        .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
+      error = retry.error;
+    }
     return error ? null : { ok: true };
   } catch {
     return null;
