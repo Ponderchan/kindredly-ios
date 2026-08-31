@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 
 /* YOUR COURIER — her name, and the shell she came out of.
    (One word for her job, everywhere: courier, never messenger — it is

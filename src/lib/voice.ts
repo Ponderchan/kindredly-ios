@@ -8,7 +8,7 @@
    Evidence rule: strength grows with how much writing exists — never a strong
    claim from one line. */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { loadJournal } from "./journal";
 import { voiceSignature } from "./signature";
 

@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { voiceSignature } from "./signature";
 import type { WrenAccessory } from "../components/WrenBird";
 

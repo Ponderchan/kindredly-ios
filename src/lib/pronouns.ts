@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 
 /* WHAT TO CALL PEOPLE — the reader's, and the courier's.
    ────────────────────────────────────────────────────────────────────────

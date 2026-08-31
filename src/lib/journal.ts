@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { Directory, File, Paths } from "expo-file-system";
 import type { MoodId } from "../data/moods";
 

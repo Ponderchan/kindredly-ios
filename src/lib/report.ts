@@ -7,7 +7,7 @@
    connection layer. All analysis is honest local math over real text; the
    AI portrait line rides along when it's cached. */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { loadJournal } from "./journal";
 import { analyzeVoice, type VoiceRead } from "./voice";
 import { fingerprint } from "./signature";

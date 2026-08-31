@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { adoptGuestBucket, claimLegacyKeys, scoped, setStorageUser } from "./scoped-store";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
@@ -90,13 +91,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // no session at all, or one that belongs to nobody yet
   const isGuest = !session || user?.is_anonymous === true;
 
+  /* the storage namespace follows the session — set the moment it is known
+     (including "nobody" → the anon bucket), so no module can read another
+     account's bucket during boot. scoped reads gate on this. */
   useEffect(() => {
-    AsyncStorage.getItem(LOCAL_PROFILE_KEY)
+    const u = session?.user;
+    setStorageUser(u && !u.is_anonymous ? u.id : null);
+  }, [session]);
+
+  useEffect(() => {
+    scoped
+      .getItem(LOCAL_PROFILE_KEY)
       .then((raw) => {
         if (raw) setLocalProfile(JSON.parse(raw));
       })
       .catch(() => {});
     if (!supabase) {
+      setStorageUser(null);
       setReady(true);
       return;
     }
@@ -133,7 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (meta.onboarded) return; // the account already knows
     if (!Object.keys(localProfile).length) return; // nothing to adopt
     adopted.current = true;
-    void saveProfileRef.current({});
+    // the guest's whole local life — bird, journal, drafts — moves with them
+    void adoptGuestBucket(session.user.id).then(() => saveProfileRef.current({}));
   }, [session, user, localProfile]);
 
   useEffect(() => {
@@ -167,6 +179,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = await supabase.auth.getSession();
     setSession(data.session ?? null);
   }, []);
+
+  /* one-time: bare pre-namespacing keys are claimed by the first real
+     account to sign in on this build — see scoped-store.claimLegacyKeys */
+  useEffect(() => {
+    const u = session?.user;
+    if (u && !u.is_anonymous) void claimLegacyKeys(u.id);
+  }, [session]);
 
   /* "Just looking" gets a REAL session, not no session. Every RLS policy in
      this project is `to authenticated`, and an anonymous user carries exactly
@@ -319,7 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // local first — edits stick immediately, with or without a session
       const nextLocal = { ...localProfile, ...p };
       setLocalProfile(nextLocal);
-      AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch(() => {});
+      scoped.setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch(() => {});
       // then best-effort sync to the account when signed in
       if (supabase && session) {
         /* The whole local picture goes up, not just this call's delta. A
@@ -370,8 +389,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: "The account couldn't be deleted just now. Nothing was changed — try again in a moment." };
     }
     try {
+      const uid = session?.user?.id;
       const keys = await AsyncStorage.getAllKeys();
-      const gone = keys.filter((k) => k.startsWith("kindredly") && k !== "kindredly_journal");
+      /* namespaced now: scrub exactly the deleted account's bucket (its
+         journal included — the account is gone, its sealed pages go with
+         it), plus any legacy bare keys. Other accounts' buckets stay. */
+      const gone = keys.filter(
+        (k) => k.startsWith("kindredly") && (uid ? k.endsWith(`::${uid}`) || !k.includes("::") : !k.includes("::")),
+      );
       if (gone.length) await AsyncStorage.multiRemove(gone);
     } catch {
       /* the account is already gone; a failed local scrub must not block that */

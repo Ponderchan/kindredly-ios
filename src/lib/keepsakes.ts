@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { t as tr, getLang } from "./i18n";
 import type { ThreadSummary } from "./db";
 import type { JournalEntry } from "./journal";

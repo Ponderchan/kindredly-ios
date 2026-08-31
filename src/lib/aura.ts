@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { hatch, type Archetype, type DimScore } from "./hatch-engine";
 import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";

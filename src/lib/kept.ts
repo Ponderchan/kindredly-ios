@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 
 /* Kept passages — local-only, like the web's Kept: "Conversations get sealed
    away, but kept lines stay. Each one notes who it came from, and which day." */

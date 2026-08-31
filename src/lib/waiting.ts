@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchThreads } from "./db";
 import { threadState } from "./thread-state";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { track } from "./track";
 
 /* How many correspondences are waiting on YOU — someone answered your letter

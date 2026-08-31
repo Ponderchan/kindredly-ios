@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { t } from "./i18n";
 import type { GrowthStats } from "../data/growth";
 import type { WrenAccessory, WrenSkin, WrenStage } from "../components/WrenBird";

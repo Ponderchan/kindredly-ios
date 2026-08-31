@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 
 /* Letter drafts — local-only, like the web: "Drafts are only ever yours to
    see, and they never send themselves." Text drafts only (voice recordings

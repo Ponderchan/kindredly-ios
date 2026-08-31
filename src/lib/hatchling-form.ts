@@ -96,7 +96,7 @@ export function hatchlingForm(dims: DimScore[] | null | undefined): HatchlingFor
    reader who hatched a compact, wide-eyed chick should meet the same chick
    in her room tomorrow. */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scoped as AsyncStorage } from "./scoped-store";
 import { useEffect, useState } from "react";
 
 const KEY = "kindredly_hatchling_form";

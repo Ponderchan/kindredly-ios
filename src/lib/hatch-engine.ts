@@ -8,7 +8,7 @@ import type { HatchRead } from "./writing-engine/types";
 /* AsyncStorage is lazy-required only inside the two persistence functions so
    the pure scoring path (scoreNine/hatch) imports cleanly under plain node for
    tests — the rest of this file is model-free and deterministic. */
-const AsyncStorage = () => require("@react-native-async-storage/async-storage").default;
+const AsyncStorage = () => require("./scoped-store").scoped;
 
 /* THE HATCH ENGINE — product logic specification, owner's spec, Aug 2026.
    ────────────────────────────────────────────────────────────────────────
