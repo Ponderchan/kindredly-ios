@@ -155,6 +155,7 @@ export default function Onboarding() {
   const [headMin, setHeadMin] = useState(0);
   useEffect(() => setHeadMin(0), [lang]);
   const cardRef = useRef<ScrollView>(null);
+  const authScrollRef = useRef<ScrollView>(null);
   const [username, setUsername] = useState("");
   const [youPro, setYouPro] = useState<PronounId | null>(null);
   const nowY = new Date().getFullYear();
@@ -268,6 +269,14 @@ export default function Onboarding() {
      unfolds IN PLACE: the same key geometry becomes an input, the primary
      action sits under it, and nothing ever leaves the page. */
   const doEmail = () => setEmailOpen((v) => !v);
+  /* the unfolded form lives at the bottom of a scroll view — when the
+     keyboard rises it covers exactly that region, so the fold-out walks the
+     page down to meet it (and again when the code stage swaps in). */
+  useEffect(() => {
+    if (!emailOpen) return;
+    const tm = setTimeout(() => authScrollRef.current?.scrollToEnd({ animated: true }), 320);
+    return () => clearTimeout(tm);
+  }, [emailOpen, codeStage]);
   const sendEmailLink = async () => {
     const email = emailVal.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -412,7 +421,8 @@ export default function Onboarding() {
     const c = CARDS[cardI]; // 1..3
     return (
       <Console>
-        <ScrollView contentContainerStyle={{ ...CENTRED, paddingVertical: 18 }} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView ref={authScrollRef} contentContainerStyle={{ ...CENTRED, paddingVertical: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={{ paddingHorizontal: 18, paddingTop: 6 }}>
             <View style={[card, bevel(5, 5), { overflow: "hidden" }]}>
               <View
@@ -638,6 +648,7 @@ export default function Onboarding() {
               </>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </Console>
     );
   }
