@@ -15,6 +15,7 @@ import { CloseOfDay } from "../../components/CloseOfDay";
 import { Toast } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
+import { ReportMenu } from "../../components/ReportMenu";
 import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
@@ -136,6 +137,7 @@ export default function LettersTab() {
       router={router}
       demo={demo}
       onAnswered={(id) => setPool((cur) => cur.filter((l) => l.id !== id))}
+      onBlockedAuthor={(a) => setPool((cur) => cur.filter((l) => l.author !== a))}
     />
   );
 }
@@ -148,6 +150,7 @@ function Feed({
   router,
   demo,
   onAnswered,
+  onBlockedAuthor,
 }: {
   feed: PoolLetter[];
   loaded: boolean;
@@ -156,6 +159,8 @@ function Feed({
   demo: boolean;
   /** an answered letter leaves this reader's desk */
   onAnswered: (letterId: string) => void;
+  /** every letter by this writer leaves the desk the moment you block them */
+  onBlockedAuthor: (author: string) => void;
 }) {
   const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
@@ -305,6 +310,7 @@ function Feed({
                 letter={letter}
                 height={vh}
                 first={i === 0 && idx === 0}
+                onBlockedAuthor={onBlockedAuthor}
                 onReply={focusReply}
                 reply={{
                   value: drafts[letter.id] || "",
@@ -557,12 +563,14 @@ function LetterPage({
   first,
   onReply,
   reply,
+  onBlockedAuthor,
 }: {
   letter: PoolLetter;
   height: number;
   first: boolean;
   onReply: () => void;
   reply: ReplyBinding;
+  onBlockedAuthor: (author: string) => void;
 }) {
   const wren = useWrenName();
   const st = getStamp(letter.stamp);
@@ -647,11 +655,25 @@ function LetterPage({
               {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
           </View>
-          {st && (
-            <View style={{ transform: [{ rotate: "3deg" }] }}>
-              <StampTile id={letter.stamp} w={46} r={5} />
-            </View>
-          )}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+            {st && (
+              <View style={{ transform: [{ rotate: "3deg" }] }}>
+                <StampTile id={letter.stamp} w={46} r={5} />
+              </View>
+            )}
+            {/* THE POOL IS WHERE REPORT MATTERS MOST — a total stranger's
+                words, before any correspondence exists. Every other reading
+                surface had the ⋯; the one place you meet people you never
+                chose to hear from did not, so reporting required REPLYING
+                to the very letter you objected to. */}
+            <ReportMenu
+              targetUser={letter.author ?? undefined}
+              context="letter"
+              refId={letter.id}
+              snapshot={letter.body}
+              onBlocked={() => letter.author && onBlockedAuthor(letter.author)}
+            />
+          </View>
         </View>
 
         {/* A PAGE IS ALWAYS ONE SCREEN. The previous attempt put a ScrollView

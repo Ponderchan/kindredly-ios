@@ -218,12 +218,19 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
        not-strangers. */
     const known = new Set<string>();
     if (me) {
-      const { data: mine } = await supabase!.from("threads").select("a,b").or(`a.eq.${me},b.eq.${me}`);
+      const [{ data: mine }, { data: blocks }] = await Promise.all([
+        supabase!.from("threads").select("a,b").or(`a.eq.${me},b.eq.${me}`),
+        /* blocking someone must empty the desk of them too — the blocks table
+           only ever gated threads, so a blocked writer's pool letters kept
+           arriving as if nothing had been said */
+        supabase!.from("blocks").select("blocked").eq("blocker", me),
+      ]);
       // a ghost's side is null since 0009 — nobody to keep out of the pool
       for (const t of mine || []) {
         const other = t.a === me ? t.b : t.a;
         if (other) known.add(other);
       }
+      for (const b of blocks || []) if (b.blocked) known.add(b.blocked as string);
     }
     // a ghost's letter has no author at all, so it belongs to no one you know
     return (data as PoolLetter[]).filter((r) => r.author !== me && !(r.author && known.has(r.author)));

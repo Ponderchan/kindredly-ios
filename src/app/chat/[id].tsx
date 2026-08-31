@@ -14,7 +14,7 @@ import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
-import { fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
+import { clearThreadReaction, fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { kindredGate } from "../../lib/kindred-gate";
 import { track } from "../../lib/track";
@@ -70,7 +70,7 @@ export default function ChatScreen() {
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [reacting, setReacting] = useState(false);
+  const [promised, setPromised] = useState(false); // ✍️ sent this visit
   const [askSign, setAskSign] = useState(false);
   const [signing, setSigning] = useState(false);
   const [ceremony, setCeremony] = useState(false);
@@ -165,6 +165,9 @@ export default function ChatScreen() {
       return;
     }
     void refreshFingerprint();
+    // the reply IS the promise, kept — withdraw the standing "on its way"
+    setPromised(false);
+    void clearThreadReaction(id);
     // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 
@@ -188,10 +191,10 @@ export default function ChatScreen() {
     }
   };
 
-  const react = (emoji: string) => {
-    if (!id) return;
-    setReacting(false);
-    void setThreadReaction(id, emoji);
+  const promise = () => {
+    if (!id || promised) return;
+    setPromised(true);
+    void setThreadReaction(id, ON_WAY.emoji);
   };
 
   return (
@@ -330,29 +333,31 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* the one-tap promise, tucked behind the + */}
-        {reacting && (
+        {/* THE PROMISE, ONLY WHEN A PROMISE MAKES SENSE. This lived behind a
+            "+" — the attach-something glyph, opening onto a sentence — and it
+            was offered even when the turn wasn't yours. It appears by itself
+            now, exactly when their letter is waiting and you haven't started
+            yours: one tap tells them a reply is coming, and actually sending
+            the reply withdraws it, because a promise a courier has already
+            kept is noise. */}
+        {state?.needsYou && !text.trim() && (
           <View style={{ alignItems: "center", paddingBottom: 8 }}>
             <Pressable
-              onPress={() => react(ON_WAY.emoji)}
+              onPress={promise}
               hitSlop={6}
-              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: P.ink12 }}
+              disabled={promised}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: promised ? P.pen : P.ink12, backgroundColor: promised ? P.penWash : "transparent" }}
             >
               <Text style={{ fontSize: 15 }}>{ON_WAY.emoji}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.5, color: P.ink60 }}>{t("rx.onWay")}</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.5, color: promised ? P.pen : P.ink60 }}>
+                {promised ? t("th.reactSeen") : t("rx.onWay")}
+              </Text>
             </Pressable>
           </View>
         )}
 
         {/* write */}
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 12, paddingBottom: 14 }}>
-          <Pressable
-            onPress={() => setReacting((v) => !v)}
-            hitSlop={6}
-            style={{ width: 40, height: 40, borderWidth: 1, borderColor: reacting ? P.pen : P.ink, backgroundColor: reacting ? P.penWash : "transparent", alignItems: "center", justifyContent: "center" }}
-          >
-            <Text style={{ fontFamily: PF.mono, fontSize: 18, color: reacting ? P.pen : P.ink }}>+</Text>
-          </Pressable>
           {/* an underlined field, like Today's — writing looks the same
               wherever you do it */}
           <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink }}>
