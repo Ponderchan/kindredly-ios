@@ -11,12 +11,27 @@ export interface VoiceSig {
   long: boolean;
 }
 
-/** CJK-aware shared reader used by the fallbacks. */
+/* WHAT COUNTS AS A WORD, ACROSS SCRIPTS. "cjk + latin" counted every Han
+   character as a word — a Chinese sentence's denominator ran ~1.7× hot, so
+   every per-word dimension was shifted for exactly the writers this product
+   launches to. And scripts outside those two ranges counted as ZERO: a
+   Korean or Russian letter had words=1, every ratio pinned at the clamp,
+   and its vector matched everyone. The divisors are mean word lengths —
+   first-order, no segmenter, so the shared-file constraint holds.
+   Thai and other spaceless non-ideographic scripts remain wrong (an honest
+   word count needs a real segmenter); left uncounted, flagged here. */
+export function scriptWords(t: string): number {
+  const han = (t.match(/[㐀-鿿]/g) || []).length;
+  const kana = (t.match(/[぀-ヿ]/g) || []).length;
+  const hangul = (t.match(/[가-힣]/g) || []).length;
+  const alpha = (t.match(/[A-Za-zÀ-ɏͰ-ϿЀ-ӿ]+/g) || []).length;
+  return alpha + han / 1.7 + kana / 2 + hangul / 2;
+}
+
+/** Script-aware shared reader used by the fallbacks. */
 export function voiceSignature(text: string): VoiceSig {
   const t = (text || "").trim();
-  const cjk = (t.match(/[㐀-鿿]/g) || []).length;
-  const latin = (t.match(/[A-Za-zÀ-ɏ]+/g) || []).length;
-  const words = cjk + latin;
+  const words = scriptWords(t);
   const sents = t.split(/[.!?。！？\n]+/).filter((s) => s.trim().length);
   const len = sents.length ? words / sents.length : words;
   const pauses = (t.match(/[,;—…、，]/g) || []).length;
@@ -48,24 +63,46 @@ export function fingerprint(text: string): Fingerprint {
 export function signatureVector(text: string): number[] {
   const t = (text || "").trim();
   const sig = voiceSignature(t);
-  const cjk = (t.match(/[㐀-鿿]/g) || []).length;
-  const latin = (t.match(/[A-Za-zÀ-ɏ]+/g) || []).length;
-  const words = Math.max(1, cjk + latin);
-  const sents = Math.max(
-    1,
-    t.split(/[.!?。！？\n]+/).filter((s) => s.trim().length).length,
-  );
-  const fp = fingerprint(t);
-  const u = fp.units.length ? fp.units : [0.3];
+  const words = Math.max(1, sig.words);
+  const sentences = t.split(/[.!?。！？\n]+/).filter((s) => s.trim().length);
+  const sents = Math.max(1, sentences.length);
+
+  /* dim 2 — sentence-length burstiness. Its predecessor was cjk/words: a
+     language tag wearing a dimension's clothes, pulling every cross-script
+     pair apart in the one product whose claim is that a stranger anywhere
+     might write like you. Burstiness is the classic stylometric read that
+     needs no language at all: does this hand write in even breaths, or in
+     short-long-short? Dim 0 holds the MEAN sentence length; this holds its
+     unevenness — "all short" and "short-long-short" finally separate. */
+  const lens = sentences.map((x) => voiceSignature(x).words);
+  const lmean = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
+  const lvar = lens.length ? lens.reduce((a, b) => a + (b - lmean) * (b - lmean), 0) / lens.length : 0;
+  const burst = lmean > 0 ? Math.sqrt(lvar) / lmean : 0;
+
+  /* dims 3/4 — rhythm, read as BREATHS, not charcodes. fingerprint()'s beats
+     size a Han character by its codepoint (charCodeAt % 40): decorative for
+     the Me-tab bars, but as a matching dimension it made every Chinese hand
+     average the same ~0.66 while a Latin hand averaged by real word length —
+     one more language separator, and zero style signal for CJK. A breath is
+     the span between punctuation stops, measured in script-aware words: the
+     same instrument for every script. fingerprint() itself is untouched —
+     the bars in Me still draw exactly as they always have. */
+  const breaths = t
+    .split(/[,;:.!?—…、，。！？；：\n]+/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .map((x) => Math.min(1, scriptWords(x) / 12));
+  const u = breaths.length ? breaths : [0.3];
   const mean = u.reduce((a, b) => a + b, 0) / u.length;
   const varc = u.reduce((a, b) => a + (b - mean) * (b - mean), 0) / u.length;
+
   const clamp = (x: number) => Math.max(0, Math.min(1, x));
   return [
     clamp(sig.sentenceLen / 30), // 0 sentence length
     clamp((sig.pauses / words) * 4), // 1 pause density
-    clamp(cjk / words), // 2 CJK-ness
-    clamp(mean), // 3 avg beat weight
-    clamp(varc * 6), // 4 rhythm variance
+    clamp(burst * 1.2), // 2 sentence-length burstiness
+    clamp(mean), // 3 avg breath length
+    clamp(varc * 6), // 4 breath variance
     clamp((t.match(/[?？]/g) || []).length / sents), // 5 question density
     clamp((t.match(/[!！]/g) || []).length / sents), // 6 exclaim density
     clamp(((t.match(/[…—]|\.\.\./g) || []).length / words) * 6), // 7 trailing-off
