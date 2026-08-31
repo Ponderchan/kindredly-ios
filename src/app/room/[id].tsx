@@ -13,7 +13,6 @@ import { useThreadLive } from "../../lib/live";
 import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { noticeThings } from "../../lib/notice";
-import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
 import { STAMPS, sname } from "../../data/stamps";
 import { WrenBird } from "../../components/WrenBird";
 import { useWrenName } from "../../lib/wren-name";
@@ -54,33 +53,25 @@ export default function RoomScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const wren = useWrenName();
-  const [tracing, setTracing] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   /* Every row adds something to the relationship rather than to the
      scroll. Three are live and need nothing but words; the two that would
      need storage, moderation and a media pipeline are shown locked rather
      than live-and-dead. */
-  const TRACES: TraceAction[] = [
-    { id: "thought", glyph: "💭", title: t("rm.thought.t"), sub: t("rm.thought.s") },
-    { id: "ask", glyph: "❓", title: t("rm.ask.t"), sub: t("rm.ask.s") },
-    { id: "wren", glyph: "🐦", title: t("rm.wren.t", { wren }), sub: t("rm.wren.s") },
-    { id: "moment", glyph: "📷", title: t("rm.moment.t"), sub: t("rm.moment.s"), locked: true },
-    { id: "song", glyph: "🎵", title: t("rm.song.t"), sub: t("rm.song.s"), locked: true },
-    { id: "save", glyph: "🔖", title: t("rm.save.t"), sub: t("rm.save.s"), locked: true },
-  ];
-
-  const onTrace = (kind: string) => {
-    setTracing(false);
-    if (kind === "wren") {
-      /* the seed library has been in stamps.ts since the port — 36 prompts
-         in three languages, never once rendered. She hands you one; YOU
-         send it, because a question arrives differently when a person
-         chose to ask it. */
-      const seed = STAMPS[Math.floor(Math.random() * STAMPS.length)];
-      setText(sname(seed.prompt));
-    }
-    setTimeout(() => inputRef.current?.focus(), 160);
+  /* THE MENU OF THINGS YOU COULD SAY IS GONE. "Drop a thought" and "Ask
+     something" both did exactly one thing — focus the input — which is a
+     menu narrating a text field. Three more rows sat permanently locked
+     with nothing behind them: furniture from a feature that was never
+     built, dressed as a paywall. What survives is the single real item:
+     she hands you a question. The seed library has been in stamps.ts since
+     the port — 36 prompts in three languages; she hands you one and YOU
+     send it, because a question arrives differently when a person chose
+     to ask it. */
+  const seedQuestion = () => {
+    const seed = STAMPS[Math.floor(Math.random() * STAMPS.length)];
+    setText(sname(seed.prompt));
+    setTimeout(() => inputRef.current?.focus(), 60);
   };
 
   const load = useCallback(async () => {
@@ -260,11 +251,11 @@ export default function RoomScreen() {
 
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 22, paddingBottom: 14 }}>
           <Pressable
-            onPress={() => setTracing(true)}
+            onPress={seedQuestion}
             hitSlop={6}
             style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink, alignItems: "center", justifyContent: "center" }}
           >
-            <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink }}>+</Text>
+            <WrenBird size={20} bare mood="curious" />
           </Pressable>
           <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
             <TextInput
@@ -289,7 +280,6 @@ export default function RoomScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <LeaveATrace open={tracing} actions={TRACES} onPick={onTrace} onClose={() => setTracing(false)} />
     </SafeAreaView>
   );
 }
