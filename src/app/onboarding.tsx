@@ -169,7 +169,7 @@ export default function Onboarding() {
   const [hatchPhase, setHatchPhase] = useState<"crack" | "born">("crack");
   const [flying, setFlying] = useState(false);
   const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
-  const [busy, setBusy] = useState<null | "apple" | "email">(null);
+  const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailSent, setEmailSent] = useState(false);
   const finishing = useRef(false);
 
@@ -251,6 +251,12 @@ export default function Onboarding() {
     const r = await auth.signInWithApple();
     setBusy(null);
     if ("error" in r) Alert.alert(t("ob.apple.title"), r.error);
+  };
+  const doGoogle = async () => {
+    setBusy("google");
+    const r = await auth.signInWithGoogle();
+    setBusy(null);
+    if ("error" in r) Alert.alert("Google", r.error);
   };
   const doEmail = () => {
     Alert.prompt?.(
@@ -485,12 +491,16 @@ export default function Onboarding() {
                     />
                   </View>
                 ) : null}
-                {/* Two ways in, not three. Google came out on the owner's
-                    call; lib/auth keeps signInWithGoogle so nothing in the
-                    session layer had to change and it can come back as one
-                    button whenever it's wanted. Email is now the second real
-                    option rather than a footnote under a third, so it gets a
-                    key of its own instead of a line of text. */}
+                {/* Google is back on the owner's call — the session layer
+                    kept signInWithGoogle the whole time, so its return is
+                    exactly the one button it was promised to be. */}
+                <Pressable
+                  onPress={doGoogle}
+                  disabled={!!busy}
+                  style={[card, bevel(4, 4), { height: 52, alignItems: "center", justifyContent: "center", marginTop: 12, opacity: busy ? 0.5 : 1 }]}
+                >
+                  <Text style={[mono(12, "b"), { color: Y.blue }]}>{busy === "google" ? "…" : t("ob.continueGoogle")}</Text>
+                </Pressable>
                 <Pressable
                   onPress={doEmail}
                   disabled={!!busy}
