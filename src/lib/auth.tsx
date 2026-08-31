@@ -25,7 +25,10 @@ export type AuthResult =
   | { ok: true }
   | { error: string }
   | { cancelled: true }
-  | { sent: true };
+  /* mode says which verify path the emailed code belongs to: "otp" for a
+     plain sign-in, "attach" when an anonymous account is claiming an email —
+     Supabase files those under different OTP types. */
+  | { sent: true; mode?: "otp" | "attach" };
 
 interface AuthValue {
   ready: boolean; // initial session check complete
@@ -47,6 +50,7 @@ interface AuthValue {
   signInWithApple: () => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
   signInWithEmail: (email: string, name?: string) => Promise<AuthResult>;
+  verifyEmailCode: (email: string, token: string, mode: "otp" | "attach") => Promise<AuthResult>;
   saveProfile: (p: Record<string, any>) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<AuthResult>;
@@ -270,7 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             { emailRedirectTo: redirectTo },
           );
           if (error) return { error: error.message };
-          return { sent: true };
+          return { sent: true, mode: "attach" };
         }
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -280,12 +284,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         });
         if (error) return { error: error.message };
-        return { sent: true };
+        return { sent: true, mode: "otp" };
       } catch (e: any) {
         return { error: e?.message || "Could not send the link." };
       }
     },
     [],
+  );
+
+  /* the 6-digit code from the email — the sign-in that never leaves the
+     app. The emailed LINK still works too; this is the path that doesn't
+     depend on it. */
+  const verifyEmailCode = useCallback(
+    async (email: string, token: string, mode: "otp" | "attach"): Promise<AuthResult> => {
+      if (!supabase) return { error: "Auth not configured." };
+      try {
+        const { error } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type: mode === "attach" ? "email_change" : "email",
+        });
+        if (error) return { error: error.message };
+        await refresh();
+        return { ok: true };
+      } catch (e: any) {
+        return { error: e?.message || "Could not verify the code." };
+      }
+    },
+    [refresh],
   );
 
   const saveProfile = useCallback(
@@ -374,6 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInAnonymously,
     signInWithGoogle,
     signInWithEmail,
+    verifyEmailCode,
     saveProfile,
     deleteAccount,
     signOut,

@@ -170,7 +170,12 @@ export default function Onboarding() {
   const [flying, setFlying] = useState(false);
   const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
-  const [emailSent, setEmailSent] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailVal, setEmailVal] = useState("");
+  const [emailBad, setEmailBad] = useState(false);
+  const [codeStage, setCodeStage] = useState<null | "otp" | "attach">(null);
+  const [codeVal, setCodeVal] = useState("");
+  const [codeBad, setCodeBad] = useState(false);
   const finishing = useRef(false);
 
   /* the egg breathes wherever it appears, and twitches harder once it's
@@ -258,22 +263,36 @@ export default function Onboarding() {
     setBusy(null);
     if ("error" in r) Alert.alert("Google", r.error);
   };
-  const doEmail = () => {
-    Alert.prompt?.(
-      t("ob.email.title"),
-      t("ob.email.body"),
-      async (email?: string) => {
-        if (!email || !email.trim()) return;
-        setBusy("email");
-        const r = await auth.signInWithEmail(email.trim());
-        setBusy(null);
-        if ("error" in r) Alert.alert("Email", r.error);
-        else setEmailSent(true);
-      },
-      "plain-text",
-      "",
-      "email-address",
-    );
+  /* Alert.prompt was the last stock dialog on this screen — a system text
+     box floating over the sign-in stack it didn't match. The email key now
+     unfolds IN PLACE: the same key geometry becomes an input, the primary
+     action sits under it, and nothing ever leaves the page. */
+  const doEmail = () => setEmailOpen((v) => !v);
+  const sendEmailLink = async () => {
+    const email = emailVal.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailBad(true);
+      return;
+    }
+    setEmailBad(false);
+    setBusy("email");
+    const r = await auth.signInWithEmail(email);
+    setBusy(null);
+    if ("error" in r) Alert.alert("Email", r.error);
+    else setCodeStage("sent" in r && r.mode === "attach" ? "attach" : "otp");
+  };
+  const verifyCode = async (raw?: string) => {
+    const token = (raw ?? codeVal).trim();
+    if (token.length !== 6 || !codeStage) return;
+    setBusy("email");
+    const r = await auth.verifyEmailCode(emailVal.trim(), token, codeStage);
+    setBusy(null);
+    if ("error" in r) {
+      setCodeBad(true);
+      setCodeVal("");
+    }
+    // success needs no navigation here — the session lands and the
+    // welcome step's own effect walks the reader forward
   };
 
   // birthday derived — the only reason this screen exists is the 18 below
@@ -471,14 +490,6 @@ export default function Onboarding() {
           </View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
-            {emailSent ? (
-              <View style={[card, bevel(4, 4), { padding: 16, alignItems: "center" }]}>
-                <Text style={[mono(11, "b"), { color: Y.blue }]}>{t("ob.linkSent")}</Text>
-                <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 6, textAlign: "center", lineHeight: 18 }]}>
-                  {t("ob.linkSentSub")}
-                </Text>
-              </View>
-            ) : (
               <>
                 {appleAvailable ? (
                   <AuthKey
@@ -499,13 +510,96 @@ export default function Onboarding() {
                   dim={!!busy && busy !== "google"}
                   first={!appleAvailable}
                 />
-                <AuthKey
-                  icon={<MailGlyph />}
-                  label={busy === "email" ? "…" : t("ob.continueEmail")}
-                  onPress={doEmail}
-                  disabled={!!busy}
-                  dim={!!busy && busy !== "email"}
-                />
+                {!emailOpen ? (
+                  <AuthKey
+                    icon={<MailGlyph />}
+                    label={t("ob.continueEmail")}
+                    onPress={doEmail}
+                    disabled={!!busy}
+                    dim={!!busy && busy !== "email"}
+                  />
+                ) : codeStage ? (
+                  <>
+                    <View
+                      style={{
+                        height: 52,
+                        borderRadius: 10,
+                        marginTop: 12,
+                        backgroundColor: "#FFFFFF",
+                        borderWidth: 1,
+                        borderColor: codeBad ? "#D0342C" : "rgba(0,0,0,0.18)",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <TextInput
+                        value={codeVal}
+                        onChangeText={(v) => {
+                          const d = v.replace(/\D/g, "").slice(0, 6);
+                          setCodeVal(d);
+                          if (codeBad) setCodeBad(false);
+                          if (d.length === 6) void verifyCode(d);
+                        }}
+                        autoFocus
+                        keyboardType="number-pad"
+                        textContentType="oneTimeCode"
+                        placeholder="••••••"
+                        placeholderTextColor="rgba(31,31,31,0.3)"
+                        style={{ fontSize: 24, letterSpacing: 12, color: "#1F1F1F", textAlign: "center", height: 52 }}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 13, color: codeBad ? "#D0342C" : Y.dim, textAlign: "center", marginTop: 10, lineHeight: 19 }}>
+                      {busy === "email" ? "…" : codeBad ? t("ob.code.bad") : t("ob.code.cap", { email: emailVal.trim() })}
+                    </Text>
+                    <Pressable onPress={() => { setCodeStage(null); setCodeVal(""); setCodeBad(false); }} hitSlop={8} style={{ alignSelf: "center", marginTop: 8, padding: 4 }}>
+                      <Text style={{ fontSize: 13, color: Y.blue }}>{t("ob.code.again")}</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <View
+                      style={{
+                        height: 52,
+                        borderRadius: 10,
+                        marginTop: 12,
+                        backgroundColor: "#FFFFFF",
+                        borderWidth: 1,
+                        borderColor: emailBad ? "#D0342C" : "rgba(0,0,0,0.18)",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <View style={{ position: "absolute", left: 18, top: 0, bottom: 0, width: 24, alignItems: "center", justifyContent: "center" }}>
+                        <MailGlyph />
+                      </View>
+                      <TextInput
+                        value={emailVal}
+                        onChangeText={(v) => {
+                          setEmailVal(v);
+                          if (emailBad) setEmailBad(false);
+                        }}
+                        autoFocus
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="email-address"
+                        textContentType="emailAddress"
+                        placeholder={t("ob.email.ph")}
+                        placeholderTextColor="rgba(31,31,31,0.35)"
+                        onSubmitEditing={sendEmailLink}
+                        returnKeyType="send"
+                        style={{ fontSize: 17, color: "#1F1F1F", paddingLeft: 54, paddingRight: 18, height: 52 }}
+                      />
+                    </View>
+                    <AuthKey
+                      dark
+                      icon={<MailGlyph size={18} color="#FFFFFF" />}
+                      label={busy === "email" ? "…" : t("ob.email.send")}
+                      onPress={sendEmailLink}
+                      disabled={!!busy}
+                    />
+                    <Text style={{ fontSize: 13, color: emailBad ? "#D0342C" : Y.dim, textAlign: "center", marginTop: 10 }}>
+                      {emailBad ? t("ob.email.bad") : t("ob.email.body")}
+                    </Text>
+                  </>
+                )}
                 {/* clear of the email key's hard shadow — it used to follow a
                     line of text, and now it follows a bevelled button */}
                 <Pressable
@@ -542,7 +636,6 @@ export default function Onboarding() {
                   </Text>
                 </Text>
               </>
-            )}
           </View>
         </ScrollView>
       </Console>
@@ -1426,11 +1519,11 @@ function GoogleG({ size = 20 }: { size?: number }) {
     </Svg>
   );
 }
-function MailGlyph({ size = 20 }: { size?: number }) {
+function MailGlyph({ size = 20, color = Y.ink }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Rect x={2.2} y={4.8} width={19.6} height={14.4} rx={2.6} fill="none" stroke={Y.ink} strokeWidth={1.8} />
-      <Path d="M3.4 6.6 12 13.2 20.6 6.6" fill="none" stroke={Y.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Rect x={2.2} y={4.8} width={19.6} height={14.4} rx={2.6} fill="none" stroke={color} strokeWidth={1.8} />
+      <Path d="M3.4 6.6 12 13.2 20.6 6.6" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
