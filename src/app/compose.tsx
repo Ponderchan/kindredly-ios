@@ -60,6 +60,7 @@ export default function Compose() {
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
   const [feelings, setFeelings] = useState(false);
+  const [stampStrip, setStampStrip] = useState(false); // the in-place stamp row
   const [sel, setSel] = useState<string | null>(params.stamp ?? (params.draft ? null : STARTER_STAMPS[0]));
   // arriving from a sealed page that decided to leave — the words come with it
   const [text, setText] = useState(params.seed ?? "");
@@ -505,10 +506,45 @@ export default function Compose() {
               <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{sname(stamp.name).toLowerCase()}</Text>
             </View>
           )}
-          <Pressable onPress={() => setStep("pick")} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
+          <Pressable onPress={() => setStampStrip((v) => !v)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>{t("cp.change")}</Text>
           </Pressable>
         </View>
+
+        {/* CHANGING A STICKER IS NOT A JOURNEY. CHANGE used to flip to a
+            full-screen picker — a page turn to swap a 46px square. The six
+            starters now slide out right here; a tap swaps the stamp and the
+            row folds away. The full page survives one level deeper, behind
+            ALL, for the other thirty. */}
+        {stampStrip && (
+          <ScrollView horizontal showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 10, gap: 12, alignItems: "center" }} style={{ borderTopWidth: 1, borderTopColor: P.ink12, flexGrow: 0 }}>
+            {STARTER_STAMPS.map((id) => (
+              <Pressable
+                key={id}
+                onPress={() => {
+                  setSel(id);
+                  setStampStrip(false);
+                }}
+                style={{ padding: 3, borderWidth: 2, borderColor: sel === id ? P.pen : "transparent" }}
+              >
+                <StampTile id={id} w={40} r={5} />
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={() => {
+                setStampStrip(false);
+                // the strip already showed the six starters — landing on the
+                // same six again is a wasted page. Open on the full album.
+                setShowAll(true);
+                setStep("pick");
+              }}
+              hitSlop={8}
+              style={{ paddingHorizontal: 10, paddingVertical: 12 }}
+            >
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.pen }}>{t("cp.seeAll", { n: STAMPS.length })}</Text>
+            </Pressable>
+          </ScrollView>
+        )}
 
         {/* THE QUESTION RIDES UNDER THE LETTER. This tray held six preset
             emoji — a six-key keyboard sitting one key away from the system
