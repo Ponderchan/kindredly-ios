@@ -517,19 +517,23 @@ export default function Compose() {
             row folds away. The full page survives one level deeper, behind
             ALL, for the other thirty. */}
         {stampStrip && (
-          <ScrollView horizontal showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 10, gap: 12, alignItems: "center" }} style={{ borderTopWidth: 1, borderTopColor: P.ink12, flexGrow: 0 }}>
-            {STARTER_STAMPS.map((id) => (
-              <Pressable
-                key={id}
-                onPress={() => {
-                  setSel(id);
-                  setStampStrip(false);
-                }}
-                style={{ padding: 3, borderWidth: 2, borderColor: sel === id ? P.pen : "transparent" }}
-              >
-                <StampTile id={id} w={40} r={5} />
-              </Pressable>
-            ))}
+          <View style={{ flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: P.ink12 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 18, paddingRight: 8, paddingVertical: 10, gap: 12, alignItems: "center" }} style={{ flex: 1 }}>
+              {STARTER_STAMPS.map((id) => (
+                <Pressable
+                  key={id}
+                  onPress={() => {
+                    setSel(id);
+                    setStampStrip(false);
+                  }}
+                  style={{ padding: 3, borderWidth: 2, borderColor: sel === id ? P.pen : "transparent" }}
+                >
+                  <StampTile id={id} w={40} r={5} />
+                </Pressable>
+              ))}
+            </ScrollView>
+            {/* pinned OUTSIDE the scroller — on a 430pt screen it sat past the
+                sixth stamp, scroll-reachable and therefore invisible */}
             <Pressable
               onPress={() => {
                 setStampStrip(false);
@@ -539,11 +543,11 @@ export default function Compose() {
                 setStep("pick");
               }}
               hitSlop={8}
-              style={{ paddingHorizontal: 10, paddingVertical: 12 }}
+              style={{ paddingHorizontal: 14, paddingVertical: 16, borderLeftWidth: 1, borderLeftColor: P.ink12 }}
             >
               <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.pen }}>{t("cp.seeAll", { n: STAMPS.length })}</Text>
             </Pressable>
-          </ScrollView>
+          </View>
         )}
 
         {/* THE QUESTION RIDES UNDER THE LETTER. This tray held six preset
