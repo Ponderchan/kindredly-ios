@@ -84,12 +84,22 @@ export default function LettersTab() {
     const m = await fetchMatches();
     if (!m?.closest?.length) return;
     const score = new Map(m.closest.map((c) => [c.uid, c.score]));
-    setPool((cur) =>
-      cur
+    /* THE MATCHER CHOOSES PEOPLE NOW, NOT JUST THE ORDER. It used to run
+       downstream of recency: fetchPool picked the newest forty, and the
+       scores could only shuffle those forty. The writer closest to you,
+       if their letter sat forty-first, was unreachable — the better the
+       pool did, the less the matching mattered. So the scores come back
+       WITH those writers' letters: one narrowed fetch, deduped into the
+       pool. fetchPool's own filters (not-me, no known correspondents)
+       already ran on this second pass too. */
+    const theirs = (await fetchPool(40, m.closest.map((c) => c.uid))) || [];
+    setPool((cur) => {
+      const seen = new Set(cur.map((l) => l.id));
+      return [...cur, ...theirs.filter((l) => !seen.has(l.id))]
         .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
         // matched first; everything else keeps the server's newest-first order
-        .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
-    );
+        .sort((a, b) => (b.close ?? -1) - (a.close ?? -1));
+    });
   }, []);
   useFocusEffect(
     useCallback(() => {

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { AuthProvider } from "../lib/auth";
+import { AuthProvider, useAuth } from "../lib/auth";
+import { refreshFingerprint } from "../lib/aura";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
 import { useAppFonts } from "../theme/fonts";
@@ -15,6 +16,22 @@ import { P } from "../theme/post";
 import { SameShape } from "../components/SameShape";
 
 SplashScreen.preventAutoHideAsync();
+
+/* THE VECTOR WAKES UP WITH THE APP. refreshFingerprint ran only after a
+   send, so someone who wrote five letters last week and none since was
+   matched all week on last week's vector — and any future change to the
+   signature itself would never reach a reader who happened not to write.
+   Once per cold start, when a session exists, off the critical path. */
+function FingerprintOnLaunch() {
+  const { user, isGuest } = useAuth();
+  const ran = useRef(false);
+  useEffect(() => {
+    if (ran.current || !user || isGuest) return;
+    ran.current = true;
+    void refreshFingerprint();
+  }, [user, isGuest]);
+  return null;
+}
 
 // Simulator-only expo-notifications keychain noise. The toast it raises sits
 // over the bottom controls and eats taps — silence it in dev.
@@ -42,6 +59,7 @@ export default function RootLayout() {
         <AuthProvider>
           <EntitlementProvider>
             <WrenSkinProvider>
+            <FingerprintOnLaunch />
             <View style={{ flex: 1, backgroundColor: P.paper }}>
               <Stack
                 screenOptions={{

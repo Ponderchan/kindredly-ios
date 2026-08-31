@@ -176,24 +176,31 @@ export interface PoolLetter {
 }
 /** active pool rows excluding the viewer's own, newest first. Falls back to
    the pre-0007 column set if the media columns don't exist yet. */
-export async function fetchPool(limit = 40): Promise<PoolLetter[] | null> {
+/** `authors` narrows the pool to those writers — the matcher's second pass
+ *  uses it to REACH people recency already scrolled past (see letters.tsx). */
+export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLetter[] | null> {
   if (!supabaseReady) return null;
+  if (authors && !authors.length) return [];
   const me = await uid();
   try {
-    let { data, error } = await supabase!
+    let q = supabase!
       .from("letters")
       .select("id, author, stamp, body, lang, created_at, kind, media_path, duration_s")
       .eq("active", true)
       .order("created_at", { ascending: false })
       .limit(limit);
+    if (authors) q = q.in("author", authors);
+    let { data, error } = await q;
     if (error) {
       // migration 0007 not applied yet → retry without media columns
-      const fallback = await supabase!
+      let fq = supabase!
         .from("letters")
         .select("id, author, stamp, body, lang, created_at")
         .eq("active", true)
         .order("created_at", { ascending: false })
         .limit(limit);
+      if (authors) fq = fq.in("author", authors);
+      const fallback = await fq;
       data = fallback.data as any;
       if (fallback.error || !data) return null;
     }

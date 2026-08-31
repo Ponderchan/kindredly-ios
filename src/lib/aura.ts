@@ -209,8 +209,28 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
 export async function refreshFingerprint(firstLine?: string | null): Promise<void> {
   try {
     const mine = await fetchMyLetters();
+    /* THE HATCH LINE RIDES ALONG BY DEFAULT. Every existing caller invoked
+       this bare, so the first refresh after onboarding OVERWROTE the rich
+       hatch-corpus vector with one derived from a single published letter —
+       the fingerprint got thinner the moment you started writing. The line
+       lives in user_metadata (saveProfile syncs it there), so fetch it here
+       once instead of threading it through four call sites. */
+    /* nothing published yet → nothing the hatch didn't already know. The
+       hatch vector was built from EVERY fed thought; rebuilding here from
+       the one saved line alone would make the fingerprint thinner. */
+    if (!mine.letters.length && !mine.messages.length) return;
+    let line = firstLine;
+    if (line == null && supabaseReady) {
+      try {
+        const { data } = await supabase!.auth.getUser();
+        const fl = (data.user?.user_metadata as Record<string, unknown> | undefined)?.firstLine;
+        if (typeof fl === "string") line = fl;
+      } catch {
+        /* the corpus alone is still worth refreshing */
+      }
+    }
     const parts = [
-      ...(firstLine && firstLine.trim().length >= 3 ? [firstLine.trim()] : []),
+      ...(line && line.trim().length >= 3 ? [line.trim()] : []),
       ...mine.letters,
       ...mine.messages,
     ];
