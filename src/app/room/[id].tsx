@@ -65,6 +65,13 @@ export default function RoomScreen() {
   const [mode, setMode] = useState<null | { kind: "note" } | { kind: "question"; prompt: string } | { kind: "answer"; fold: Fold } | { kind: "song" }>(null);
   const wren = useWrenName();
   const inputRef = useRef<TextInput>(null);
+  /* DEMO ROOMS DO NOT REACH THE DATABASE. The fixtures exist so every
+     state can be seen on a simulator; on a real phone they sit in Kindreds
+     looking like rooms, and every write from one was rejected by RLS with
+     "That didn't go out. Try again in a moment." — an error that blames
+     the network for a room that was never real. Demo writes now land in
+     local state, which is the only honest thing a fixture can do. */
+  const isDemo = !!id?.startsWith("demo-");
 
   /* Every row adds something to the relationship rather than to the
      scroll. Three are live and need nothing but words; the two that would
@@ -160,6 +167,18 @@ export default function RoomScreen() {
 
     if (mode?.kind === "note" || mode?.kind === "question" || mode?.kind === "answer") {
       if (!body) return;
+      if (isDemo) {
+        setFolds((f) => [
+          ...f,
+          mode.kind === "answer"
+            ? { id: `d-${Date.now()}`, mine: true, kind: mode.fold.kind, prompt: null, parentId: mode.fold.id, body, date: new Date().toISOString() }
+            : { id: `d-${Date.now()}`, mine: true, kind: mode.kind, prompt: mode.kind === "question" ? mode.prompt : null, parentId: null, body, date: new Date().toISOString() },
+        ]);
+        setText("");
+        setMode(null);
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+        return;
+      }
       setSending(true);
       const ok =
         mode.kind === "answer"
@@ -186,6 +205,13 @@ export default function RoomScreen() {
       setSending(true);
       const title = await fetchSongTitle(card);
       const fallback = `${title ? title + " — " : ""}${card.url}`;
+      if (isDemo) {
+        setDetail((d) => (d ? { ...d, messages: [...d.messages, { body: fallback, mine: true, date: new Date().toISOString(), kind: "song", meta: { url: card.url, title: title ?? undefined } }] } : d));
+        setSending(false);
+        setText("");
+        setMode(null);
+        return;
+      }
       const res = await sendThreadMessage(id, fallback, { kind: "song", meta: { url: card.url, title: title ?? undefined } });
       setSending(false);
       if (!res) {
@@ -198,6 +224,33 @@ export default function RoomScreen() {
       return;
     }
 
+    /* A LINK PASTED WITHOUT THE MENU IS STILL A SONG. Nobody opens a
+       drawer first — they paste. If a plain line is nothing but a song
+       link, it travels as one. */
+    const bare = parseSongUrl(body);
+    if (bare && body.replace(bare.url, "").trim().length === 0) {
+      setSending(true);
+      const title = await fetchSongTitle(bare);
+      if (isDemo) {
+        setDetail((d) => (d ? { ...d, messages: [...d.messages, { body: `${title ? title + " — " : ""}${bare.url}`, mine: true, date: new Date().toISOString(), kind: "song", meta: { url: bare.url, title: title ?? undefined } }] } : d));
+        setSending(false);
+        setText("");
+        return;
+      }
+      const res = await sendThreadMessage(id, `${title ? title + " — " : ""}${bare.url}`, {
+        kind: "song",
+        meta: { url: bare.url, title: title ?? undefined },
+      });
+      setSending(false);
+      if (!res) {
+        Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
+        return;
+      }
+      setText("");
+      void load();
+      return;
+    }
+
     if (!canSend) return;
     setSending(true);
     setText("");
@@ -205,6 +258,10 @@ export default function RoomScreen() {
       d ? { ...d, messages: [...d.messages, { body, mine: true, date: new Date().toISOString() }] } : d,
     );
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 40);
+    if (isDemo) {
+      setSending(false);
+      return;
+    }
     const res = await sendThreadMessage(id, body);
     setSending(false);
     if (!res) {
@@ -222,6 +279,11 @@ export default function RoomScreen() {
     if (!id || sending) return;
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
     if (res.canceled || !res.assets?.[0]?.uri) return;
+    if (isDemo) {
+      const local = res.assets[0].uri;
+      setDetail((d) => (d ? { ...d, messages: [...d.messages, { body: t("rm.moment.fallback"), mine: true, date: new Date().toISOString(), kind: "photo", meta: { url: local } }] } : d));
+      return;
+    }
     setSending(true);
     const path = await uploadMoment(res.assets[0].uri);
     const ok = path ? await sendThreadMessage(id, t("rm.moment.fallback"), { kind: "photo", mediaPath: path }) : null;
@@ -384,7 +446,7 @@ export default function RoomScreen() {
             const m = it.msg;
             const prevMsg = prev?.type === "msg" ? prev.msg : null;
             const newSpeaker = !prevMsg || prevMsg.mine !== m.mine;
-            const url = m.kind === "photo" ? momentUrl(m.mediaPath) : null;
+            const url = m.kind === "photo" ? (m.mediaPath ? momentUrl(m.mediaPath) : (m.meta?.url ?? null)) : null;
             return (
               <View key={`m-${i}`}>
                 {dayRule}

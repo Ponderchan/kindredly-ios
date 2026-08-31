@@ -10,10 +10,15 @@ export interface SongCard {
   title: string | null;
 }
 
+/* Share sheets emit more shapes than the docs suggest: youtu.be short
+   links, m. and music. subdomains, /shorts/, and Spotify's localised
+   /intl-es/ path segment. Match the HOST plus a media-ish path rather
+   than an exact URL shape — a link that is plainly a song should never
+   be refused for its punctuation. */
 const HOSTS: [SongCard["host"], RegExp][] = [
-  ["spotify", /open\.spotify\.com\/(track|album|playlist|episode)/i],
+  ["spotify", /open\.spotify\.com\/([\w-]+\/)?(track|album|playlist|episode)/i],
   ["apple", /music\.apple\.com\//i],
-  ["youtube", /(youtube\.com\/watch|youtu\.be\/|music\.youtube\.com)/i],
+  ["youtube", /(youtube\.com\/(watch|shorts|playlist)|youtu\.be\/)/i],
 ];
 
 export function parseSongUrl(raw: string): SongCard | null {
