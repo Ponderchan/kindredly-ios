@@ -11,9 +11,11 @@ import { dLong, dShort } from "../../lib/format";
 import { fetchThreadMessages, momentUrl, sendThreadMessage, uploadMoment, type ThreadDetail, type ThreadMessage } from "../../lib/db";
 import { answerFold, fetchFolds, leaveFold, type Fold } from "../../lib/folds";
 import { fetchSongTitle, parseSongUrl } from "../../lib/song";
+import { sharedSongs, songNotice } from "../../lib/shared-songs";
+import { markMomentUsed, momentUsedToday, shotToday } from "../../lib/daily-moment";
 import { saveToLore } from "../../lib/lore";
 import * as ImagePicker from "expo-image-picker";
-import { Image, Linking } from "react-native";
+import { Image, Linking, Modal } from "react-native";
 import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
 import { useThreadLive } from "../../lib/live";
 import { refreshFingerprint } from "../../lib/aura";
@@ -72,6 +74,8 @@ export default function RoomScreen() {
      the network for a room that was never real. Demo writes now land in
      local state, which is the only honest thing a fixture can do. */
   const isDemo = !!id?.startsWith("demo-");
+  const [shelf, setShelf] = useState(false);
+  const [momentSpent, setMomentSpent] = useState(false);
 
   /* Every row adds something to the relationship rather than to the
      scroll. Three are live and need nothing but words; the two that would
@@ -92,6 +96,19 @@ export default function RoomScreen() {
       const { DEMO_DETAILS } = await import("../../data/demo");
       setDetail(DEMO_DETAILS[id] ?? null);
       // every fold state the room can render, for eyes-on verification
+      setDetail((d) =>
+        d
+          ? {
+              ...d,
+              messages: [
+                ...d.messages,
+                { body: "Nightcall — https://open.spotify.com/track/demo1", mine: false, date: "2026-08-29T23:40:00Z", kind: "song", meta: { url: "https://open.spotify.com/track/demo1", title: "Nightcall" } },
+                { body: "Motion Picture Soundtrack — https://youtu.be/demo2", mine: true, date: "2026-08-30T01:10:00Z", kind: "song", meta: { url: "https://youtu.be/demo2", title: "Motion Picture Soundtrack" } },
+                { body: "Alaska — https://open.spotify.com/track/demo3", mine: false, date: "2026-08-31T02:05:00Z", kind: "song", meta: { url: "https://open.spotify.com/track/demo3", title: "Alaska" } },
+              ],
+            }
+          : d,
+      );
       setFolds([
         { id: "df-1", mine: false, kind: "note", prompt: null, parentId: null, body: null, date: "2026-08-30T09:00:00Z" },
         { id: "df-2", mine: true, kind: "question", prompt: "the song you replay and never post?", parentId: null, body: "the one i sent you, obviously", date: "2026-08-30T21:00:00Z" },
@@ -100,9 +117,10 @@ export default function RoomScreen() {
       ]);
       return;
     }
-    const [d, f] = await Promise.all([fetchThreadMessages(id), fetchFolds(id)]);
+    const [d, f, spent] = await Promise.all([fetchThreadMessages(id), fetchFolds(id), momentUsedToday(id)]);
     setDetail(d);
     if (f) setFolds(f);
+    setMomentSpent(spent);
   }, [id]);
 
   useFocusEffect(
@@ -154,6 +172,9 @@ export default function RoomScreen() {
     }
     return items.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   }, [conv, folds]);
+
+  const songs = useMemo(() => sharedSongs(detail?.messages ?? []), [detail]);
+  const songSays = useMemo(() => songNotice(songs), [songs]);
 
   const weight = weightedCount(text);
   const over = weight > LETTER_MAX;
@@ -274,11 +295,22 @@ export default function RoomScreen() {
     // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 
-  /* a tiny moment — pick, upload, send. The body is a readable fallback. */
+  /* A TINY MOMENT IS RATIONED LIKE FILM: one frame a day, and the shutter
+     has to have been pressed today. An unlimited photo button is a chat
+     app's photo button; this product is not one. Absent EXIF is trusted —
+     refusing a privacy-stripped image would punish the wrong instinct. */
   const sendMoment = async () => {
     if (!id || sending) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
+    if (momentSpent && !isDemo) {
+      Alert.alert(t("rm.moment.spentTitle"), t("rm.moment.spentBody"));
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7, exif: true });
     if (res.canceled || !res.assets?.[0]?.uri) return;
+    if (!shotToday(res.assets[0].exif)) {
+      Alert.alert(t("rm.moment.oldTitle"), t("rm.moment.oldBody"));
+      return;
+    }
     if (isDemo) {
       const local = res.assets[0].uri;
       setDetail((d) => (d ? { ...d, messages: [...d.messages, { body: t("rm.moment.fallback"), mine: true, date: new Date().toISOString(), kind: "photo", meta: { url: local } }] } : d));
@@ -292,6 +324,8 @@ export default function RoomScreen() {
       Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
       return;
     }
+    await markMomentUsed(id);
+    setMomentSpent(true);
     void load();
   };
 
@@ -460,6 +494,8 @@ export default function RoomScreen() {
                 ) : m.kind === "song" && m.meta?.url ? (
                   <Pressable
                     onPress={() => Linking.openURL(m.meta!.url!)}
+                    onLongPress={() => setShelf(true)}
+                    delayLongPress={350}
                     style={{ borderWidth: 1, borderColor: P.ink12, padding: 12, marginBottom: 6, flexDirection: "row", alignItems: "center", gap: 10 }}
                   >
                     <Text style={{ fontSize: 17 }}>🎵</Text>
@@ -472,6 +508,13 @@ export default function RoomScreen() {
                       </Text>
                     </View>
                     <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>›</Text>
+                  </Pressable>
+                ) : null}
+                {m.kind === "song" && m.meta?.url && songs.length >= 2 && conv[conv.length - 1] === m ? (
+                  <Pressable onPress={() => setShelf(true)} hitSlop={6} style={{ marginBottom: 8 }}>
+                    <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1, color: P.pen }}>
+                      {t("rm.shelf.open", { n: String(songs.length) })} ›
+                    </Text>
                   </Pressable>
                 ) : (
                   <Pressable onLongPress={() => !m.mine && keep(m.body, null, m.date)} delayLongPress={350}>
@@ -591,6 +634,55 @@ export default function RoomScreen() {
       </KeyboardAvoidingView>
 
       <LeaveATrace open={tracing} actions={TRACES} onPick={onTrace} onClose={() => setTracing(false)} />
+
+      {/* THE SHELF — every song either of you left, in order. A song in a
+          scroll is gone by tomorrow; gathered, the same messages become
+          what this product is for: accumulated evidence that you are
+          alike, curated by nobody. */}
+      <Modal visible={shelf} transparent animationType="slide" onRequestClose={() => setShelf(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.32)", justifyContent: "flex-end" }}>
+          <Pressable style={{ flex: 1 }} onPress={() => setShelf(false)} />
+          <View style={{ backgroundColor: P.paper, maxHeight: "72%", paddingBottom: 28 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12 }}>
+              <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.6, color: P.ink }}>
+                {t("rm.shelf.title", { name: name.toUpperCase() })}
+              </Text>
+              <Pressable onPress={() => setShelf(false)} hitSlop={10}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
+              </Pressable>
+            </View>
+            {!!songSays && (
+              <View style={{ marginHorizontal: 22, marginBottom: 12, borderWidth: 1, borderColor: P.ink12, padding: 11, flexDirection: "row", alignItems: "center", gap: 9 }}>
+                <WrenBird size={18} mood="curious" />
+                <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: P.ink }}>
+                  {t(songSays.line === "late" ? "rm.shelf.late" : "rm.shelf.both", { name })}
+                </Text>
+                <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40 }}>{songSays.evidence}</Text>
+              </View>
+            )}
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 8 }}>
+              {songs.map((sg) => (
+                <Pressable
+                  key={sg.url}
+                  onPress={() => Linking.openURL(sg.url)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: P.ink12 }}
+                >
+                  <Text style={{ fontSize: 15 }}>🎵</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 15, color: P.ink }}>
+                      {sg.title || sg.url.replace(/^https?:\/\//, "").split("/")[0]}
+                    </Text>
+                    <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1, color: P.ink40, marginTop: 3 }}>
+                      {(sg.mine ? tr("ui.you") : name).toUpperCase()} · {dShort(sg.at).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>›</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
