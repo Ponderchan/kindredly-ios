@@ -262,7 +262,7 @@ export default function Onboarding() {
     setBusy("google");
     const r = await auth.signInWithGoogle();
     setBusy(null);
-    if ("error" in r) Alert.alert("Google", r.error);
+    if ("error" in r) Alert.alert(t("ob.continueGoogle"), r.error);
   };
   /* Alert.prompt was the last stock dialog on this screen — a system text
      box floating over the sign-in stack it didn't match. The email key now
@@ -287,7 +287,7 @@ export default function Onboarding() {
     setBusy("email");
     const r = await auth.signInWithEmail(email);
     setBusy(null);
-    if ("error" in r) Alert.alert("Email", r.error);
+    if ("error" in r) Alert.alert(t("ob.continueEmail"), r.error);
     else setCodeStage("sent" in r && r.mode === "attach" ? "attach" : "otp");
   };
   const verifyCode = async (raw?: string) => {

@@ -85,6 +85,7 @@ strings(
     "skin.ink.name": "Ink & Post",
     /* ── what the two of you share ── */
     "nc.hourLate.line": "You both write once the world has gone quiet.",
+    "nc.word.ev": "YOU {a} · THEM {b}",
     "nc.hourLate.ev": "{n} OF {m} AFTER TEN",
     "nc.lenMatched.line": "You answer each other at almost exactly the same length.",
     "nc.lenMatched.ev": "{a} AND {b} CHARACTERS",
@@ -1198,6 +1199,7 @@ strings(
     "skin.ink.name": "Tinta y Correo",
     /* ── what the two of you share ── */
     "nc.hourLate.line": "Los dos escriben cuando el mundo ya se ha callado.",
+    "nc.word.ev": "TÚ {a} · ELLA {b}",
     "nc.hourLate.ev": "{n} DE {m} DESPUÉS DE LAS DIEZ",
     "nc.lenMatched.line": "Se responden con casi exactamente el mismo largo.",
     "nc.lenMatched.ev": "{a} Y {b} CARACTERES",
@@ -2311,6 +2313,7 @@ strings(
     "skin.ink.name": "Tinta e Correio",
     /* ── what the two of you share ── */
     "nc.hourLate.line": "Vocês dois escrevem quando o mundo já ficou quieto.",
+    "nc.word.ev": "VOCÊ {a} · ELA {b}",
     "nc.hourLate.ev": "{n} DE {m} DEPOIS DAS DEZ",
     "nc.lenMatched.line": "Vocês se respondem quase exatamente no mesmo tamanho.",
     "nc.lenMatched.ev": "{a} E {b} CARACTERES",
@@ -3424,6 +3427,7 @@ strings(
     "skin.ink.name": "Tinta & Pos",
     /* ── what the two of you share ── */
     "nc.hourLate.line": "Kalian berdua nulis pas dunia udah sepi.",
+    "nc.word.ev": "KAMU {a} · DIA {b}",
     "nc.hourLate.ev": "{n} DARI {m} LEWAT JAM SEPULUH",
     "nc.lenMatched.line": "Kalian saling bales dengan panjang yang hampir sama persis.",
     "nc.lenMatched.ev": "{a} DAN {b} KARAKTER",

@@ -70,7 +70,7 @@ export function noticeThings(mine: Msg[], theirs: Msg[]): Notice[] {
     out.push({
       id: "word:" + best.w,
       line: `You've both reached for "${best.w}".`,
-      evidence: `YOU ${best.mine} · THEM ${best.theirs}`,
+      evidence: t("nc.word.ev", { a: String(best.mine), b: String(best.theirs) }),
     });
   }
 
