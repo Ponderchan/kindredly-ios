@@ -481,61 +481,31 @@ export default function Onboarding() {
             ) : (
               <>
                 {appleAvailable ? (
-                  <View style={[bevel(4, 4), { borderRadius: 10 }]}>
-                    <AppleAuthentication.AppleAuthenticationButton
-                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                      cornerRadius={10}
-                      style={{ height: 52, width: "100%" }}
-                      onPress={doApple}
-                    />
-                  </View>
+                  <AuthKey
+                    dark
+                    first
+                    icon={<Text style={{ fontSize: 21, color: "#FFFFFF", marginTop: -2 }}>{"\uF8FF"}</Text>}
+                    label={t("ob.continueApple")}
+                    onPress={doApple}
+                    disabled={!!busy}
+                    dim={!!busy && busy !== "apple"}
+                  />
                 ) : null}
-                {/* see GoogleG above: these two speak iOS, not EGG OS */}
-                <Pressable
+                <AuthKey
+                  icon={<GoogleG />}
+                  label={busy === "google" ? "…" : t("ob.continueGoogle")}
                   onPress={doGoogle}
                   disabled={!!busy}
-                  style={({ pressed }) => ({
-                    height: 52,
-                    borderRadius: 10,
-                    backgroundColor: pressed ? "#F2F2F2" : "#FFFFFF",
-                    borderWidth: 1,
-                    borderColor: "rgba(0,0,0,0.18)",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    marginTop: 12,
-                    opacity: busy && busy !== "google" ? 0.5 : 1,
-                  })}
-                >
-                  <GoogleG />
-                  <Text style={{ fontSize: 17, fontWeight: "600", color: "#1F1F1F" }}>
-                    {busy === "google" ? "…" : t("ob.continueGoogle")}
-                  </Text>
-                </Pressable>
-                <Pressable
+                  dim={!!busy && busy !== "google"}
+                  first={!appleAvailable}
+                />
+                <AuthKey
+                  icon={<MailGlyph />}
+                  label={busy === "email" ? "…" : t("ob.continueEmail")}
                   onPress={doEmail}
                   disabled={!!busy}
-                  style={({ pressed }) => ({
-                    height: 52,
-                    borderRadius: 10,
-                    backgroundColor: pressed ? "#F2F2F2" : "#FFFFFF",
-                    borderWidth: 1,
-                    borderColor: "rgba(0,0,0,0.18)",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    marginTop: 12,
-                    opacity: busy && busy !== "email" ? 0.5 : 1,
-                  })}
-                >
-                  <MailGlyph />
-                  <Text style={{ fontSize: 17, fontWeight: "600", color: "#1F1F1F" }}>
-                    {busy === "email" ? "…" : t("ob.continueEmail")}
-                  </Text>
-                </Pressable>
+                  dim={!!busy && busy !== "email"}
+                />
                 {/* clear of the email key's hard shadow — it used to follow a
                     line of text, and now it follows a bevelled button */}
                 <Pressable
@@ -1403,6 +1373,49 @@ function Foot({
    they match the native Apple button's geometry exactly (52pt, radius 10),
    carry the real four-colour G, and speak in the system face with sentence
    case. A sign-in button that looks like every other app's is the point. */
+function AuthKey({
+  icon,
+  label,
+  dark = false,
+  first = false,
+  onPress,
+  disabled,
+  dim,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  dark?: boolean;
+  first?: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+  dim?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => ({
+        height: 52,
+        borderRadius: 10,
+        marginTop: first ? 0 : 12,
+        backgroundColor: dark ? (pressed ? "#222222" : "#000000") : pressed ? "#F2F2F2" : "#FFFFFF",
+        borderWidth: dark ? 0 : 1,
+        borderColor: "rgba(0,0,0,0.18)",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: dim ? 0.5 : 1,
+      })}
+    >
+      {/* the icon is PINNED, the label is centred. Centring icon+label as one
+          group let each label's length drag its icon sideways — three keys,
+          three icon positions. A fixed 18pt inset puts the marks in one
+          column, the way every real sign-in stack does it. */}
+      <View style={{ position: "absolute", left: 18, top: 0, bottom: 0, width: 24, alignItems: "center", justifyContent: "center" }}>{icon}</View>
+      <Text style={{ fontSize: 17, fontWeight: "600", color: dark ? "#FFFFFF" : "#1F1F1F" }}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function GoogleG({ size = 20 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
