@@ -425,7 +425,11 @@ export function SelfCompose({
               return (
                 <Pressable
                   key={icon}
-                  onPress={() => (k === "photo" ? addPhotos() : k === "video" ? pickVideo() : setAtt(att === "voice" ? null : "voice"))}
+                  /* the tool key called the PICKER but never set `att` — so a
+                     picked photo landed in state with nothing rendering it:
+                     no strip, SEAL stayed grey, and the pick read as failed.
+                     toggleMode is the one path that sets the mode first. */
+                  onPress={() => k && toggleMode(k)}
                   style={{
                     width: 50,
                     height: 50,
