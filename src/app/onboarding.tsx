@@ -491,22 +491,50 @@ export default function Onboarding() {
                     />
                   </View>
                 ) : null}
-                {/* Google is back on the owner's call — the session layer
-                    kept signInWithGoogle the whole time, so its return is
-                    exactly the one button it was promised to be. */}
+                {/* see GoogleG above: these two speak iOS, not EGG OS */}
                 <Pressable
                   onPress={doGoogle}
                   disabled={!!busy}
-                  style={[card, bevel(4, 4), { height: 52, alignItems: "center", justifyContent: "center", marginTop: 12, opacity: busy ? 0.5 : 1 }]}
+                  style={({ pressed }) => ({
+                    height: 52,
+                    borderRadius: 10,
+                    backgroundColor: pressed ? "#F2F2F2" : "#FFFFFF",
+                    borderWidth: 1,
+                    borderColor: "rgba(0,0,0,0.18)",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    marginTop: 12,
+                    opacity: busy && busy !== "google" ? 0.5 : 1,
+                  })}
                 >
-                  <Text style={[mono(12, "b"), { color: Y.blue }]}>{busy === "google" ? "…" : t("ob.continueGoogle")}</Text>
+                  <GoogleG />
+                  <Text style={{ fontSize: 17, fontWeight: "600", color: "#1F1F1F" }}>
+                    {busy === "google" ? "…" : t("ob.continueGoogle")}
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={doEmail}
                   disabled={!!busy}
-                  style={[card, bevel(4, 4), { height: 52, alignItems: "center", justifyContent: "center", marginTop: 12, opacity: busy ? 0.5 : 1 }]}
+                  style={({ pressed }) => ({
+                    height: 52,
+                    borderRadius: 10,
+                    backgroundColor: pressed ? "#F2F2F2" : "#FFFFFF",
+                    borderWidth: 1,
+                    borderColor: "rgba(0,0,0,0.18)",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    marginTop: 12,
+                    opacity: busy && busy !== "email" ? 0.5 : 1,
+                  })}
                 >
-                  <Text style={[mono(12, "b"), { color: Y.blue }]}>{busy === "email" ? "…" : t("ob.continueEmail")}</Text>
+                  <MailGlyph />
+                  <Text style={{ fontSize: 17, fontWeight: "600", color: "#1F1F1F" }}>
+                    {busy === "email" ? "…" : t("ob.continueEmail")}
+                  </Text>
                 </Pressable>
                 {/* clear of the email key's hard shadow — it used to follow a
                     line of text, and now it follows a bevelled button */}
@@ -1369,6 +1397,31 @@ function Foot({
    breathes on her own, and she answers a finger — a squash-and-stretch hop,
    a change of face, and a small mark over her head. Four faces cycle, so the
    third poke isn't the second poke again. */
+/* THE SIGN-IN ROW SPEAKS iOS, NOT EGG OS. Everywhere else this screen
+   wears the console skin — bevels, mono caps, the blue. The three keys that
+   ask for a person's account are the one place familiarity IS the design:
+   they match the native Apple button's geometry exactly (52pt, radius 10),
+   carry the real four-colour G, and speak in the system face with sentence
+   case. A sign-in button that looks like every other app's is the point. */
+function GoogleG({ size = 20 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.46c-.28 1.5-1.12 2.77-2.4 3.62v3.01h3.88c2.27-2.09 3.58-5.17 3.58-8.82z" />
+      <Path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.28v3.11C3.25 21.3 7.31 24 12 24z" />
+      <Path fill="#FBBC05" d="M5.29 14.28A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.38-2.28V6.61H1.28A11.97 11.97 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l4.01-3.11z" />
+      <Path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.28 6.61l4.01 3.11C6.23 6.88 8.88 4.77 12 4.77z" />
+    </Svg>
+  );
+}
+function MailGlyph({ size = 20 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x={2.2} y={4.8} width={19.6} height={14.4} rx={2.6} fill="none" stroke={Y.ink} strokeWidth={1.8} />
+      <Path d="M3.4 6.6 12 13.2 20.6 6.6" fill="none" stroke={Y.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 const POKES: WrenMood[] = ["delight", "curious", "wink", "happy"];
 
 function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?: HatchlingForm }) {
