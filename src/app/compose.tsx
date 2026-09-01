@@ -31,6 +31,7 @@ import { AudioCard } from "../components/AudioCard";
 import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
 import { nextSpark } from "../lib/sparks";
 import { COUNTER_FROM, LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
+import { alertFail } from "../lib/fail";
 
 /* A LETTER REMEMBERS ITS OWN LANGUAGE. This was hardcoded "en", so every
    letter ever written — in any language — was filed as English, and the
@@ -221,7 +222,7 @@ export default function Compose() {
         if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
         else Alert.alert(t("cp.signin.title"), t("cp.signin.body"));
       } else {
-        Alert.alert(t("cp.fail.title"), t("cp.fail.generic"));
+        alertFail(t("cp.fail.title"), t("cp.fail.generic"));
       }
       return;
     }

@@ -3,6 +3,7 @@
    Supabase JWT as a Bearer token — the exact contract the web app uses. */
 
 import { API_BASE, supabase } from "./supabase";
+import { WRITE_MS, fetchWithin } from "./net";
 
 async function bearer(): Promise<string | null> {
   if (!supabase) return null;
@@ -33,9 +34,11 @@ export async function fetchEntitlement(): Promise<Entitlement | null> {
   const token = await bearer();
   if (!token) return null;
   try {
-    const r = await fetch(`${API_BASE}/api/entitlement`, {
+    /* the paywall reads this; an unbounded call meant a dead connection
+       could leave First Class in limbo rather than simply unproven */
+    const r = await fetchWithin(`${API_BASE}/api/entitlement`, {
       headers: { authorization: `Bearer ${token}` },
-    });
+    }, WRITE_MS);
     if (!r.ok) return null;
     return (await r.json()) as Entitlement;
   } catch {
@@ -54,11 +57,11 @@ export async function bumpLetters(): Promise<BumpResult> {
   const token = await bearer();
   if (!token) return { ok: false, reason: "unauthorized" };
   try {
-    const r = await fetch(`${API_BASE}/api/bump-letters`, {
+    const r = await fetchWithin(`${API_BASE}/api/bump-letters`, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: "{}",
-    });
+    }, WRITE_MS);
     const j: any = await r.json().catch(() => ({}));
     if (r.status === 429) return { ok: false, reason: "daily_cap", cap: j.cap, used: j.used };
     if (r.status === 401) return { ok: false, reason: "unauthorized" };

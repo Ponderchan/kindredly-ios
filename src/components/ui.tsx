@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { C, F, cardStyle, navyBtn, radius } from "../theme/tokens";
 import { t, useLang } from "../lib/i18n";
+import { SLOW_MS } from "../lib/net";
 
 /* Small shared UI atoms ported from kindredly-v20.jsx (Dots/Skip/TopBar/Toast
    + the navy CTA + caps labels + cards). */
@@ -166,4 +167,23 @@ export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
       </View>
     </View>
   );
+}
+
+/* IS THIS SLOW, OR IS IT BROKEN? A spinner answers neither. On a weak
+   connection every send in this app showed the same "···" whether it was
+   about to land or about to time out, so the reader's only move was to
+   wait and then wonder. This flips true once an action has been in flight
+   longer than a send normally takes; the screens use it to say so out loud
+   rather than to spin harder. */
+export function useSlow(active: boolean, after: number = SLOW_MS): boolean {
+  const [slow, setSlow] = React.useState(false);
+  React.useEffect(() => {
+    if (!active) {
+      setSlow(false);
+      return;
+    }
+    const id = setTimeout(() => setSlow(true), after);
+    return () => clearTimeout(id);
+  }, [active, after]);
+  return slow;
 }

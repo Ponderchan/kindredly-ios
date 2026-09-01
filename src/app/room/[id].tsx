@@ -26,6 +26,7 @@ import { WrenBird } from "../../components/WrenBird";
 import { useWrenName } from "../../lib/wren-name";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { fieldBox } from "../../lib/field";
+import { alertFail } from "../../lib/fail";
 
 /* THE ROOM — where you are once you know each other.
    ────────────────────────────────────────────────────────────────────────
@@ -207,7 +208,7 @@ export default function RoomScreen() {
           : await leaveFold(id, mode.kind, body, mode.kind === "question" ? mode.prompt : undefined);
       setSending(false);
       if (!ok) {
-        Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
+        alertFail(t("rm.fail.title"), t("rm.fail.body"));
         return;
       }
       setText("");
@@ -236,7 +237,7 @@ export default function RoomScreen() {
       const res = await sendThreadMessage(id, fallback, { kind: "song", meta: { url: card.url, title: title ?? undefined } });
       setSending(false);
       if (!res) {
-        Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
+        alertFail(t("rm.fail.title"), t("rm.fail.body"));
         return;
       }
       setText("");
@@ -264,7 +265,7 @@ export default function RoomScreen() {
       });
       setSending(false);
       if (!res) {
-        Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
+        alertFail(t("rm.fail.title"), t("rm.fail.body"));
         return;
       }
       setText("");
@@ -288,7 +289,7 @@ export default function RoomScreen() {
     if (!res) {
       setText(body);
       void load();
-      Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
+      alertFail(t("rm.fail.title"), t("rm.fail.body"));
       return;
     }
     void refreshFingerprint();
@@ -321,7 +322,7 @@ export default function RoomScreen() {
     const ok = path ? await sendThreadMessage(id, t("rm.moment.fallback"), { kind: "photo", mediaPath: path }) : null;
     setSending(false);
     if (!ok) {
-      Alert.alert(t("rm.fail.title"), t("rm.fail.body"));
+      alertFail(t("rm.fail.title"), t("rm.fail.body"));
       return;
     }
     await markMomentUsed(id);

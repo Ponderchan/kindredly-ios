@@ -8,6 +8,7 @@ import { API_BASE } from "./supabase";
 import { voiceSignature } from "./signature";
 import { WREN_FALLBACK, oneOf, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
+import { WREN_MS, fetchWithin } from "./net";
 
 const ENDPOINT = `${API_BASE}/api/wren`;
 
@@ -15,14 +16,25 @@ async function callWren(
   job: string,
   payload: Record<string, unknown>,
   signal?: AbortSignal,
+  ms: number = WREN_MS,
 ): Promise<any | null> {
   try {
-    const r = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ job, ...payload }),
-      signal,
-    });
+    /* A DEADLINE, BECAUSE EVERY ONE OF THESE FALLS BACK. Wren went from a
+       404 that failed in milliseconds to a live reasoning model, and this
+       call sits in the blocking path of every send — so the day the model
+       started working was the day sending got slow. Nothing here is worth
+       waiting on: `screen` degrades to a regex, every other job to written
+       copy. Three seconds, then we use what we already have. */
+    const r = await fetchWithin(
+      ENDPOINT,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ job, ...payload }),
+        signal,
+      },
+      ms,
+    );
     if (!r.ok) return null; // 501 (no key) / 5xx → fall back
     return await r.json();
   } catch {
@@ -30,18 +42,44 @@ async function callWren(
   }
 }
 
-/** THRESHOLD — screen a letter for harm before it lands. {ok, reason?} */
+/** THE LOCAL VERDICT, WITH NO NETWORK IN IT AT ALL.
+ *
+ *  A reply goes to ONE person who already wrote to you and who has Report
+ *  and Block a tap away — and the second letter to that same person, sent
+ *  from the chat screen, has never been screened by anything. Putting a
+ *  remote model in front of the first one bought no safety the product
+ *  didn't already have, and it cost the slowest moment in the product.
+ *  This is the check that was doing the real work anyway: contact details
+ *  walking off the page. It is synchronous, so it costs nothing. */
+export function screenNow(text: string): { ok: boolean; reason?: string } {
+  return /(https?:\/\/|www\.|@[\w.]+\.\w|\b\d{7,}\b)/i.test(text || "")
+    ? { ok: false, reason: "offpage" }
+    : { ok: true };
+}
+
+/** THRESHOLD — screen a letter for harm before it lands. {ok, reason?}
+ *
+ *  THE LOCAL CHECK IS THE FLOOR, THE MODEL IS A BONUS. This used to await
+ *  the model and only fall back once it had failed, which put an unbounded
+ *  remote call in front of the SEND button — a letter could not leave the
+ *  desk until a reasoning model somewhere had an opinion about it. The
+ *  regex below is what actually catches the thing this gate exists to catch
+ *  (contact details walking off the page), it costs nothing, and it is
+ *  never wrong about a letter that has no link in it. So it runs first and
+ *  decides; the model gets `ms` to improve on that answer and is otherwise
+ *  simply not part of the send. */
 export async function screen(
   text: string,
   signal?: AbortSignal,
+  ms: number = WREN_MS,
 ): Promise<{ ok: boolean; reason?: string }> {
-  const ai = await callWren("screen", { text }, signal);
-  if (ai) return ai;
-  const t = text || "";
-  if (/(https?:\/\/|www\.|@[\w.]+\.\w|\b\d{7,}\b)/i.test(t)) {
-    return { ok: false, reason: "offpage" };
-  }
-  return { ok: true };
+  const local = screenNow(text);
+  const ai = await callWren("screen", { text }, signal, ms);
+  /* and only if it actually answered the question. A 200 carrying `{}` —
+     a truncated completion, a reshaped response — used to read as `ok:
+     undefined`, which is falsy, which blocked a perfectly ordinary letter
+     and told its writer Wren had refused it. */
+  return typeof ai?.ok === "boolean" ? (ai as { ok: boolean; reason?: string }) : local;
 }
 
 /** WREN'S NOTE — one quiet line on what a letter is reaching for. */

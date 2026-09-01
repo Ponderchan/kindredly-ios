@@ -4,6 +4,32 @@
    user's user_metadata (the web read it from a localStorage session mirror). */
 
 import { supabase, supabaseReady } from "./supabase";
+import { isOffline } from "./net";
+/* WHY IT DIDN'T GO. Every write in here returns a bare null on failure, so
+   the screens could only ever say "try again" — advice that is wrong when
+   there is no network to try on, and wrong again when the row was refused
+   for a reason no amount of retrying will change. Tracking the last failure
+   costs one assignment and lets the interface tell the reader something
+   true. It is deliberately not part of any return type: callers that don't
+   care are unaffected. */
+export type WriteFail = "offline" | "timeout" | "denied" | "server";
+let lastFail: WriteFail | null = null;
+export const lastWriteFail = (): WriteFail | null => lastFail;
+export function noteFail(e: unknown): null {
+  const m = (e as { message?: string })?.message ?? String(e ?? "");
+  lastFail = /abort|timeout/i.test(m)
+    ? "timeout"
+    : isOffline(e) || /network request failed|fetch failed/i.test(m)
+      ? "offline"
+      : /row-level security|violates|permission|policy/i.test(m)
+        ? "denied"
+        : "server";
+  return null;
+}
+const clearFail = () => {
+  lastFail = null;
+};
+
 
 async function uid(): Promise<string | null> {
   if (!supabase) return null;
@@ -145,6 +171,7 @@ export async function publishLetter(
   if (!supabaseReady || !body) return null;
   const id = await uid();
   if (!id) return null;
+  clearFail();
   try {
     const { error } = await supabase!.from("letters").insert({
       author: id,
@@ -152,9 +179,9 @@ export async function publishLetter(
       body: String(body).slice(0, 2000),
       lang: lang || "en",
     });
-    return error ? null : true;
-  } catch {
-    return null;
+    return error ? (noteFail(error) as null) : true;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -187,6 +214,7 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
       .from("letters")
       .select("id, author, stamp, body, lang, created_at, kind, media_path, duration_s")
       .eq("active", true)
+      .not("author", "is", null)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (authors) q = q.in("author", authors);
@@ -197,6 +225,7 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
         .from("letters")
         .select("id, author, stamp, body, lang, created_at")
         .eq("active", true)
+        .not("author", "is", null)
         .order("created_at", { ascending: false })
         .limit(limit);
       if (authors) fq = fq.in("author", authors);
@@ -232,8 +261,17 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
       }
       for (const b of blocks || []) if (b.blocked) known.add(b.blocked as string);
     }
-    // a ghost's letter has no author at all, so it belongs to no one you know
-    return (data as PoolLetter[]).filter((r) => r.author !== me && !(r.author && known.has(r.author)));
+    /* A GHOST'S LETTER IS NOT AN INVITATION. 0009 keeps letters alive when
+       their author deletes their account — the reader's side of a finished
+       correspondence should not be vaporized. But `author` goes null with
+       the account, and 0009's own "start thread" policy requires `b is not
+       null`: the server has bolted this door. Showing the letter anyway put
+       a normal-looking card in Today whose SEND lit up and whose every reply
+       came back "Couldn't send. Try again." — advice that could never work.
+       Filtered in the query as well, so ghosts don't eat the page budget. */
+    return (data as PoolLetter[]).filter(
+      (r) => r.author && r.author !== me && !known.has(r.author),
+    );
   } catch {
     return null;
   }
@@ -269,7 +307,7 @@ export async function publishVoiceLetter(
     const { error: upErr } = await supabase!.storage
       .from("voice-letters")
       .upload(path, blob, { contentType: "audio/m4a" });
-    if (upErr) return null;
+    if (upErr) return noteFail(upErr);
     const { error } = await supabase!.from("letters").insert({
       author: id,
       stamp: stamp || "off-chest",
@@ -279,9 +317,9 @@ export async function publishVoiceLetter(
       media_path: path,
       duration_s: Math.round(durationS) || null,
     });
-    return error ? null : true;
-  } catch {
-    return null;
+    return error ? (noteFail(error) as null) : true;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -319,7 +357,21 @@ export async function replyToLetter(
   if (!supabaseReady || !letter || !letter.author) return null;
   const me = await uid();
   if (!me) return null;
+  clearFail();
   try {
+    /* ONE ROUND TRIP, WHEN THE SERVER HAS 0017. The three statements below
+       are the same three this function used to run from the phone, one at a
+       time, with the reader watching a button between each. Doing them in
+       the database makes the reply atomic — and closes the window where two
+       fast taps forked a stranger into two correspondences. The fallback is
+       not dead weight: the RPC is absent until the migration is run by hand,
+       and PostgREST answers a missing function with PGRST202. */
+    const rpc = await supabase!.rpc("reply_to_letter", { p_letter: letter.id, p_body: body });
+    if (!rpc.error && rpc.data) return rpc.data as string;
+    if (rpc.error && !/PGRST202|function .* does not exist|schema cache/i.test(rpc.error.message || "")) {
+      return noteFail(rpc.error);
+    }
+
     /* ONE CORRESPONDENCE PER STRANGER. `threads` has no unique constraint on
        (a, b) and this function never looked, so answering the same person
        twice — trivial, since an answered letter stayed in the pool — forked
@@ -364,13 +416,13 @@ export async function replyToLetter(
       data = retry.data;
       error = retry.error;
     }
-    if (error || !data) return null;
+    if (error || !data) return noteFail(error);
     await supabase!
       .from("messages")
       .insert({ thread_id: data.id, sender: me, body: String(body).slice(0, 2000) });
     return data.id as string;
-  } catch {
-    return null;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -387,6 +439,15 @@ export interface ThreadSummary {
   otherName: string | null;
   otherFace?: string | null; // the face they chose to give at signing (library id)
   other: string; // correspondent's user id
+  /* THE CORRESPONDENT DELETED THEIR ACCOUNT. 0009 sets threads.a/b to null
+     rather than cascading, so the survivor keeps their half of the letters
+     — that is the point. But `other` then reads null while every screen
+     went on treating the correspondence as live: the composer stayed open,
+     and `messages` insert still passes RLS (the policy asks only that you
+     are a participant, and you still are). So letters kept sending, kept
+     succeeding, and went nowhere. It stays readable; it stops being a
+     place you can write to. */
+  gone?: boolean; // they closed their account — read it, don't write to it
   preview: string;
   lastSenderMe: boolean;
   lastAt: number;
@@ -480,6 +541,7 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         otherName: iamA ? r.b_name : r.a_name,
         otherFace: (iamA ? r.b_face : r.a_face) ?? null,
         other: iamA ? r.b : r.a,
+        gone: !(iamA ? r.b : r.a),
         preview: r.last_body || r.opening || "",
         lastSenderMe: r.last_sender === me,
         lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
@@ -525,6 +587,7 @@ export interface ThreadDetail {
   revealed: boolean;
   otherName: string | null;
   other: string; // correspondent user id
+  gone?: boolean; // they closed their account — see ThreadSummary.gone
   myCount: number;
   otherCount: number;
   iSigned?: boolean; // my pen name is enclosed with this correspondence
@@ -589,6 +652,7 @@ export async function fetchThreadMessages(
       otherName: iamA ? t.b_name : t.a_name,
       otherFace: ((iamA ? (t as any).b_face : (t as any).a_face) as string | undefined) ?? null,
       other: iamA ? t.b : t.a,
+      gone: !(iamA ? t.b : t.a),
       myCount: iamA ? t.a_count : t.b_count,
       otherCount: iamA ? t.b_count : t.a_count,
       iSigned: !!(iamA ? t.a_name : t.b_name),
@@ -626,7 +690,21 @@ export async function sendThreadMessage(
   if (!supabaseReady) return null;
   const me = await uid();
   if (!me) return null;
+  clearFail();
   try {
+    /* NOBODY HOME. Four surfaces write through here — chat, the room's three
+       traces, and thread — so this is the one place the check cannot be
+       forgotten. RLS lets a participant insert into a thread whose other
+       side 0009 has set to null, which meant letters to a deleted
+       correspondent were accepted and stored and never read. The composer is
+       closed upstream; this is the lock behind it. */
+    const { data: sides } = await supabase!
+      .from("threads")
+      .select("a,b")
+      .eq("id", threadId)
+      .maybeSingle();
+    if (sides && !(sides.a === me ? sides.b : sides.a)) return null;
+
     /* body always carries a readable fallback, so the web app and any
        pre-0015 reader degrade to plain text instead of an empty bubble */
     const row: Record<string, unknown> = { thread_id: threadId, sender: me, body: String(body).slice(0, 2000) };
@@ -643,9 +721,9 @@ export async function sendThreadMessage(
         .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
       error = retry.error;
     }
-    return error ? null : { ok: true };
-  } catch {
-    return null;
+    return error ? (noteFail(error) as null) : { ok: true };
+  } catch (e) {
+    return noteFail(e);
   }
 }
 

@@ -26,6 +26,8 @@ import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
 import { fieldBox } from "../../lib/field";
+import { alertFail } from "../../lib/fail";
+import { Toast, useSlow } from "../../components/ui";
 
 /* The correspondence, seen from Kindreds: a slow chat. The other person's
    mosaic develops in the header with every letter THEY send — coming into
@@ -70,6 +72,7 @@ export default function ChatScreen() {
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const slow = useSlow(sending);
   const [promised, setPromised] = useState(false); // ✍️ sent this visit
   const [askSign, setAskSign] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -161,7 +164,7 @@ export default function ChatScreen() {
     if (!res) {
       setText(body);
       void load();
-      Alert.alert(t("th.fail.title"), t("th.fail.body"));
+      alertFail(t("th.fail.title"), t("th.fail.body"));
       return;
     }
     void refreshFingerprint();
@@ -181,7 +184,7 @@ export default function ChatScreen() {
     setSigning(false);
     setAskSign(false);
     if (!res) {
-      Alert.alert(t("ch.name.fail.title"), t("ch.name.fail.body"));
+      alertFail(t("ch.name.fail.title"), t("ch.name.fail.body"));
       return;
     }
     await load();
@@ -340,7 +343,7 @@ export default function ChatScreen() {
             yours: one tap tells them a reply is coming, and actually sending
             the reply withdraws it, because a promise a courier has already
             kept is noise. */}
-        {state?.needsYou && !text.trim() && (
+        {state?.needsYou && !text.trim() && !detail?.gone && (
           <View style={{ alignItems: "center", paddingBottom: 8 }}>
             <Pressable
               onPress={promise}
@@ -356,7 +359,22 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* write */}
+        {/* write — unless there is no longer anyone at the other end. 0009
+            nulls threads.a/b when an account is deleted instead of cascading,
+            so the survivor keeps every letter. What it did NOT do is close
+            the composer: RLS asks only that the sender be a participant, and
+            you still are, so letters written to a deleted correspondent were
+            accepted, stored, and read by no one, forever. The correspondence
+            stays open to read. It stops being somewhere you can write. */}
+        {detail?.gone ? (
+          <View style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 20 }}>
+            <Text
+              style={{ fontFamily: PF.mono, fontSize: 11.5, lineHeight: 18, letterSpacing: 0.3, color: P.ink40, textAlign: "center" }}
+            >
+              {t("ch.gone")}
+            </Text>
+          </View>
+        ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 12, paddingBottom: 14 }}>
           {/* an underlined field, like Today's — writing looks the same
               wherever you do it */}
@@ -383,7 +401,14 @@ export default function ChatScreen() {
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: canSend ? "#fff" : P.ink40 }}>{t("ld.send")}</Text>
           </Pressable>
         </View>
+        )}
       </KeyboardAvoidingView>
+
+      {/* The bubble is already on screen — this send is optimistic — so the
+          only thing left to report is that it has not landed yet. Without
+          it a stalled connection looks exactly like a delivered letter
+          until the alert arrives and takes the words back. */}
+      {slow && <Toast msg={t("net.slow")} bottom={96} />}
 
       <LeaveSheet
         open={askSign}

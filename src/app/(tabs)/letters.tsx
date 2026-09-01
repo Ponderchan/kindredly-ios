@@ -12,21 +12,23 @@ import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
 import { CloseOfDay } from "../../components/CloseOfDay";
-import { Toast } from "../../components/ui";
+import { Toast, useSlow } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dShort, postNo, sinceShort } from "../../lib/format";
-import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter } from "../../lib/db";
+import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, t, useLang } from "../../lib/i18n";
-import { screen, translate } from "../../lib/wren";
+import { screenNow, translate } from "../../lib/wren";
 import { getFlags, setFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { fieldBox } from "../../lib/field";
+import { SEND_BEAT_MS } from "../../lib/net";
+import { LetterInFlight } from "../../components/LetterInFlight";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
    the screen; if it moves you, write back and a thread opens (it moves to
@@ -181,6 +183,7 @@ function Feed({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [toast, setToast] = useState(false);
   const [sending, setSending] = useState(false);
+  const slow = useSlow(sending);
   const [kbOpen, setKbOpen] = useState(false);
   /* REPLY ↓ WAS NEVER A BUTTON. It was a bare <Text> — no Pressable, no
      handler, nothing in this file ever called .focus() — so the one
@@ -222,18 +225,40 @@ function Feed({
   const send = async (target?: PoolLetter) => {
     const to = target ?? current;
     if (!to || sending) return;
+    /* THE WRITER DELETED THEIR ACCOUNT WHILE THIS WAS BEING WRITTEN. 0009
+       keeps their letter but nulls the author, and the server's "start
+       thread" policy requires b is not null — so replyToLetter bails and the
+       reader got "Try again", advice that could never work no matter how
+       many times it was taken. fetchPool no longer serves these, but the
+       race is real: the account can die between the fetch and this tap. */
+    if (!to.author) {
+      Alert.alert(t("ld.gone.title"), t("ld.gone.body"));
+      return;
+    }
     const text = (drafts[to.id] || "").trim();
     const w = weightedCount(text);
     if (w < REPLY_MIN || w > LETTER_MAX) return;
     setSending(true);
     Keyboard.dismiss();
+    /* A FLOOR, NOT A DELAY — and a low one. The send can finish in less
+       time than it takes to draw the courier leaving; on the demo path it
+       finishes in the same tick, so React batched the flag on and off and
+       nothing was ever drawn. The write races the beat rather than waiting
+       behind it, and the beat is kept short enough that it is never what
+       the reader is waiting on. */
+    const beat = new Promise<void>((r) => setTimeout(r, SEND_BEAT_MS));
     if (demo || to.author?.startsWith("demo-")) {
       seedDemoThread(to, text);
     } else {
-      /* Wren's gate ran on open letters (compose.tsx) and never on replies —
-         so the one place you write to a named stranger was the one place
-         nothing was screened. Same call, same copy. */
-      const gate = await screen(text);
+      /* NO NETWORK LEFT IN FRONT OF THE SEND. The model gate lived here
+         for exactly one day. It was inconsistent (the second letter to the
+         same person, written in chat, has never been screened by anything),
+         it bought no safety over Report and Block on a one-to-one reply,
+         and it was the slowest thing in the product. The local check that
+         was doing the real work is synchronous — see screenNow. The model
+         still screens open letters in compose, where a stranger at large
+         is the audience and a send-off animation covers the wait. */
+      const gate = screenNow(text);
       if (!gate.ok) {
         setSending(false);
         Alert.alert(t("cp.gate.title", { wren }), t("cp.gate.body"));
@@ -247,9 +272,12 @@ function Feed({
          lied about something the reader cares about. */
       const threadId = await replyToLetter(to, text);
       if (!threadId) {
+        await beat;
         setSending(false);
         pendingReply.current = to;
         if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
+        else if (lastWriteFail() === "offline")
+          Alert.alert(t("net.offline.title"), t("net.offline.body"));
         else Alert.alert(t("cp.fail.title"), t("ld.replyFail"));
         return; // the draft stays in the box
       }
@@ -257,6 +285,7 @@ function Feed({
          single most important conversion in the product */
       track("reply_sent", { weight: weightedCount(text) });
     }
+    await beat;
     setSending(false);
     setDrafts((d) => ({ ...d, [to.id]: "" }));
     void refreshFingerprint(); // the reply is part of your voice now
@@ -322,6 +351,7 @@ function Feed({
                     return w >= REPLY_MIN && w <= LETTER_MAX && !sending;
                   })(),
                   sending,
+                  slow,
                 }}
               />
             ))}
@@ -361,7 +391,15 @@ function Feed({
                with only its rule, it reads as a pen hovering — your words
                become a page when you send them, and that page lives in the
                thread that opens. */
-            <Pressable onPress={focusReply} style={{ minHeight: 78 }}>
+            <Pressable onPress={focusReply} style={{ minHeight: 78 }} disabled={sending}>
+              {/* THE WORDS ARE NOT YOURS TO EDIT ANY MORE. Leaving a live
+                  text field on screen under a "···" button asked the reader
+                  to believe two things at once — that the letter was gone,
+                  and that they were still writing it. The composer gives way
+                  to the mark instead, addressed to the person it is going to. */}
+              {sending ? (
+                <LetterInFlight to={current.author ? `NO.${postNo(current.author)}` : null} slow={slow} />
+              ) : (
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingRight: 2, paddingVertical: 2 }}>
                 <TextInput
                   ref={replyRef}
@@ -378,10 +416,12 @@ function Feed({
                   style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
                 >
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : P.ink40 }}>
-                    {sending ? "···" : t("ld.send")}
+                    {t("ld.send")}
                   </Text>
                 </Pressable>
               </View>
+              )}
+              {!sending && (
               <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
                   ? t("ui.overLimit", { n: String(replyW - LETTER_MAX) })
@@ -389,6 +429,7 @@ function Feed({
                     ? t("ld.threadOpensTwo")
                     : t("ld.replyThreadOpens")}
               </Text>
+              )}
             </Pressable>
           ) : (
             <View style={{ minHeight: 78 }} />
@@ -397,6 +438,8 @@ function Feed({
       </KeyboardAvoidingView>
 
       {toast && <Toast msg={t("ld.toast.thread")} bottom={150} />}
+      {/* the send is taking longer than a send takes — say so rather than
+          leaving "···" to mean both "landing" and "about to time out" */}
 
       <SignUpSheet
         open={needsAccount}
@@ -501,7 +544,9 @@ function LetterReader({
             here and finished there is one reply. */}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) + 12 }}>
-            {writing ? (
+            {reply.sending ? (
+              <LetterInFlight to={letter.author ? `NO.${postNo(letter.author)}` : null} slow={reply.slow} />
+            ) : writing ? (
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingVertical: 2 }}>
                 <TextInput
                   ref={inputRef}
@@ -519,7 +564,7 @@ function LetterReader({
                   style={{ paddingHorizontal: 12, paddingVertical: 9, backgroundColor: reply.canSend ? P.pen : "transparent" }}
                 >
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: reply.canSend ? "#fff" : P.ink40 }}>
-                    {reply.sending ? "···" : t("ld.send")}
+                    {t("ld.send")}
                   </Text>
                 </Pressable>
               </View>
@@ -555,6 +600,7 @@ interface ReplyBinding {
   onSend: () => void;
   canSend: boolean;
   sending: boolean;
+  slow: boolean;
 }
 
 function LetterPage({

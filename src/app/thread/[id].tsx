@@ -26,6 +26,7 @@ import {
 import { translate } from "../../lib/wren";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { fieldBox } from "../../lib/field";
+import { alertFail } from "../../lib/fail";
 
 const PAPER = P.paper;
 
@@ -67,7 +68,7 @@ export default function ThreadScreen() {
     const res = await sendThreadMessage(id, text);
     setSending(false);
     if (!res) {
-      Alert.alert(t("th.fail.title"), t("th.fail.body"));
+      alertFail(t("th.fail.title"), t("th.fail.body"));
       return;
     }
     setReply("");
