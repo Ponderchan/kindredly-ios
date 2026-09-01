@@ -8,8 +8,8 @@
  * words, and the rule: reply to twenty people and it means nothing.
  *
  * So the day has a shape now:
- *   · TEN letters on the desk, rotated daily — tomorrow is a different ten
- *   · THREE letters in flight — see the in-flight note below; scarcity is
+ *   · FIFTEEN letters on the desk, rotated daily — tomorrow is different
+ *   · FIVE letters in flight — see the in-flight note below; scarcity is
  *     what makes a reply a decision, and an answer is what buys the next
  *   · replies INSIDE a correspondence are never counted, ever. The paywall
  *     prints "Being heard is always free" and a conversation that a meter
@@ -24,7 +24,7 @@
  * suspend).
  */
 
-export const DAY_LETTERS = 10;
+export const DAY_LETTERS = 15;
 
 /** local calendar day — the ration resets when the reader's day does */
 export const dayKey = (): string => {
@@ -33,7 +33,7 @@ export const dayKey = (): string => {
 };
 
 /* FNV-1a — a stable per-day shuffle, not randomness. The same reader sees
-   the same ten all day (no re-roll by re-opening), and a different ten
+   the same fifteen all day (no re-roll by re-opening), and different ones
    tomorrow. Seeded with the letter id and the day only: matching, not the
    shuffle, is what personalises the desk. */
 const fnv = (s: string): number => {
@@ -64,7 +64,7 @@ export function rationPool<T extends { id: string; close?: number }>(pool: T[]):
  * stranger is a promise to be there if they answer back — so the cap is on
  * promises outstanding, not on actions per calendar day.
  *
- * You may have THREE letters in flight: correspondences you opened where
+ * You may have FIVE letters in flight: correspondences you opened where
  * the other person has not yet written back. An answer frees the slot.
  * There is nothing to reset at midnight and nothing to game by waiting —
  * the only way to open more doors is for someone to walk through one you
@@ -76,7 +76,7 @@ export function rationPool<T extends { id: string; close?: number }>(pool: T[]):
  * returns: no local storage, nothing to desync across devices.
  */
 
-export const MAX_IN_FLIGHT = 3;
+export const MAX_IN_FLIGHT = 5;
 const FLIGHT_EXPIRES_MS = 7 * 24 * 3600 * 1000;
 
 export interface FlightThread {
