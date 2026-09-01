@@ -68,7 +68,7 @@ export function WrenSaysOnce({ id, line }: { id: string; line: string }) {
         onPress={() => setHidden(true)}
         style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11 }}
       >
-        <WrenBird size={22} bare mood="content" />
+        <WrenBird size={22} mood="content" />
         <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
           {speakAs(line, wren)}
         </Text>

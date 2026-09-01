@@ -26,7 +26,7 @@ export function noteFail(e: unknown): null {
         : "server";
   return null;
 }
-const clearFail = () => {
+export const clearFail = () => {
   lastFail = null;
 };
 
@@ -328,14 +328,15 @@ export async function uploadMoment(fileUri: string): Promise<string | null> {
   if (!supabaseReady || !fileUri) return null;
   const id = await uid();
   if (!id) return null;
+  clearFail();
   try {
     const path = `${id}/${Date.now()}.jpg`;
     const res = await fetch(fileUri);
     const blob = await res.arrayBuffer();
     const { error } = await supabase!.storage.from("moments").upload(path, blob, { contentType: "image/jpeg" });
-    return error ? null : path;
-  } catch {
-    return null;
+    return error ? (noteFail(error) as null) : path;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -735,6 +736,10 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
   if (!supabaseReady) return null;
   const me = await uid();
   if (!me) return null;
+  /* chat/[id] reports this failure through alertFail, which reads the module
+     flag — without clearing it first, a failed signature inherits whatever
+     the last write said and can announce a lost connection over a live one. */
+  clearFail();
   try {
     const { data: t } = await supabase!
       .from("threads")

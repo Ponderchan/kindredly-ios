@@ -85,7 +85,7 @@ export function PostChooser({ onClose }: { onClose: () => void }) {
                       justifyContent: "center",
                     }}
                   >
-                    <WrenBird size={84} mood="curious" bare />
+                    <WrenBird size={84} mood="curious" />
                   </View>
                   <View style={{ transform: [{ rotate: "14deg" }], marginLeft: -22, marginBottom: -4, zIndex: 0 }}>
                     <NotebookIcon k={0.8} />

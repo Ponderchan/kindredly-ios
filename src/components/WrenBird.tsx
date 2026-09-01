@@ -5,7 +5,7 @@ import { useWrenSkin } from "../lib/wren-skin";
 
 /* Wren — the mascot. As of the wren-family delivery she comes in THREE skins
    sharing one skeleton (same geometry, same mood semantics, same anchors):
-     sticker — thick white outline, bold indigo (brand default)
+     sticker — bold indigo, with a white die-cut outline it can wear (brand default)
      plush   — soft lavender squish
      ink     — cream postal bird, navy accents
    The art itself is data (wren-family-data.ts, generated from the design
@@ -50,7 +50,7 @@ export function WrenBird({
   accessory = "none",
   pose = "perch",
   skin: skinProp,
-  bare = false,
+  outlined = false,
   form,
 }: {
   size?: number;
@@ -59,13 +59,17 @@ export function WrenBird({
   accessory?: WrenAccessory;
   pose?: WrenPose;
   skin?: WrenSkin;
-  /* Drop the sticker skin's white die-cut outline. That outline exists to lift
-     her off a busy page and it earns its keep almost everywhere — but on a
-     dark card where she is the only object, a thick white keyline is exactly
-     what makes her read as a sticker pasted on rather than something alive in
-     there. Opt-in, per call site: the skin itself is untouched (and must stay
-     that way — `ink` is a paid skin and is never chosen in code). */
-  bare?: boolean;
+  /* THE WHITE DIE-CUT OUTLINE, AND WHY IT IS NOW OPT-IN.
+     It shipped as opt-OUT, the theory being that a keyline lifts her off a
+     busy page. In practice twenty-five of forty-two call sites had already
+     turned it off by hand, nine more sat on white paper where it changes
+     nothing, and every remaining place it was actually visible was a place
+     it looked wrong: a halo on the lavender desk, a pasted-on sticker on a
+     dark card. A default that nearly every caller overrides is not a
+     default. She is drawn without it now; a surface that genuinely needs
+     the lift — over a photograph, say — asks. The skin data is untouched
+     (and must stay that way: `ink` is paid and is never chosen in code). */
+  outlined?: boolean;
   /* the hatchling's own proportions, read from the writing that hatched her.
      Only meaningful at the hatch stage; every other stage ignores it. */
   form?: HatchlingForm;
@@ -94,7 +98,7 @@ export function WrenBird({
         <Shapes
           key={k}
           list={stage === "hatch" && form ? shapeHatchling(WREN_FAMILY[k] || [], form) : WREN_FAMILY[k] || []}
-          bare={bare}
+          bare={!outlined}
         />
       ))}
       {stage === "hatch" && form?.tail && <TailFeather />}

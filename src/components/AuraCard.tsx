@@ -146,7 +146,7 @@ function PageWren({ stage, size = 26 }: { stage: AuraPhase; size?: number }) {
 
   return (
     <Animated.View style={{ transform }}>
-      <WrenBird size={size} bare mood={IDLE[stage].mood} />
+      <WrenBird size={size} mood={IDLE[stage].mood} />
     </Animated.View>
   );
 }
@@ -373,7 +373,7 @@ export function AuraTicket({ aura, wren }: { aura: Aura; wren: string }) {
       </View>
 
       <View style={{ borderTopWidth: 1, borderTopColor: L.hair, borderStyle: "dashed", flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 14, paddingVertical: 11 }}>
-        <WrenBird size={22} bare mood="content" />
+        <WrenBird size={22} mood="content" />
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.6, color: L.grey }}>
           {t("ac.typedByMark", { name: wren.toUpperCase() })}
         </Text>

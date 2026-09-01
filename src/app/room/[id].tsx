@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { archNameThird } from "../../lib/aura-copy";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { t, useLang, t as tr } from "../../lib/i18n";
@@ -587,9 +587,31 @@ export default function RoomScreen() {
           </View>
         )}
 
+        {/* NOBODY HOME — the same guard chat/[id] already had. A kindred can
+            delete their account, and 0009 nulls their side of the thread
+            rather than taking the letters with it. The room stayed fully
+            operable: the tray opened, the composer accepted words, and only
+            the send failed, with a dialog blaming the moment. It stays
+            readable; it stops being somewhere you can leave things. */}
+        {detail?.gone ? (
+          <View style={{ paddingHorizontal: 26, paddingTop: 6, paddingBottom: 22 }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, lineHeight: 18, letterSpacing: 0.3, color: P.ink40, textAlign: "center" }}>
+              {t("ch.gone")}
+            </Text>
+          </View>
+        ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 22, paddingBottom: 14 }}>
           <Pressable
-            onPress={() => setTracing(true)}
+            onPress={() => {
+              /* THE TRAY LIVES IN THIS SCREEN, NOT IN A MODAL, so with the
+                 keyboard up it opened underneath it — the sheet and its own
+                 backdrop were both pinned to the bottom of the shrunken
+                 area, and tapping + appeared to do nothing at all. Choosing
+                 something to leave is not something you do mid-sentence, so
+                 the keyboard goes first and the tray gets the whole screen. */
+              Keyboard.dismiss();
+              setTracing(true);
+            }}
             hitSlop={6}
             style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink, alignItems: "center", justifyContent: "center" }}
           >
@@ -600,7 +622,7 @@ export default function RoomScreen() {
             hitSlop={6}
             style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}
           >
-            <WrenBird size={20} bare mood="curious" />
+            <WrenBird size={20} mood="curious" />
           </Pressable>
           <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
             <TextInput
@@ -632,6 +654,7 @@ export default function RoomScreen() {
             </Text>
           </Pressable>
         </View>
+        )}
       </KeyboardAvoidingView>
 
       <LeaveATrace open={tracing} actions={TRACES} onPick={onTrace} onClose={() => setTracing(false)} />

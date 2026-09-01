@@ -72,6 +72,7 @@ export async function morningKnockEnabled(): Promise<boolean> {
    with answers waiting for them; nothing existed to say so. */
 
 import { supabase, supabaseReady } from "./supabase";
+import { getLang } from "./i18n";
 
 /** register this device for the reply knock. Idempotent; silent on refusal. */
 export async function registerForReplies(): Promise<void> {
@@ -94,9 +95,15 @@ export async function registerForReplies(): Promise<void> {
 
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     if (!token) return;
-    await supabase!
-      .from("push_tokens")
-      .upsert({ token, user_id: uid, platform: "ios", updated_at: new Date().toISOString() }, { onConflict: "token" });
+    /* AND WHAT LANGUAGE TO KNOCK IN. The one sentence this product ever
+       pushes is written server-side, where none of the app's four
+       translations are reachable — so the language rides on the token and
+       is refreshed on every launch, which also means changing it in
+       Settings changes the next knock. */
+    await supabase!.from("push_tokens").upsert(
+      { token, user_id: uid, platform: "ios", lang: getLang(), updated_at: new Date().toISOString() },
+      { onConflict: "token" },
+    );
   } catch {
     /* a device that cannot be reached is not a broken app */
   }

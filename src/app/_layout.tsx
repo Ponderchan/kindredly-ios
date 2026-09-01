@@ -17,6 +17,7 @@ import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
 import { SameShape } from "../components/SameShape";
+import { fetchThreadMessages } from "../lib/db";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,12 +32,28 @@ SplashScreen.preventAutoHideAsync();
 function KnockRouting() {
   const router = useRouter();
   useEffect(() => {
-    const open = (res: Notifications.NotificationResponse) => {
+    /* AND IT HAS TO LAND IN THE RIGHT ROOM. Kindreds sends a named
+       correspondence to /room (folds, songs, the shelf) and a stranger
+       still coming into view to /chat — two deliberately different places.
+       This pushed everyone to /chat, so a knock from someone whose name you
+       already know opened the screen you had both outgrown. The outbox row
+       carries only a thread id, so the split is resolved here, from the
+       thread itself; if that read fails we still open something rather than
+       nothing. */
+    const open = async (res: Notifications.NotificationResponse) => {
       const id = (res.notification.request.content.data as { thread?: string } | undefined)?.thread;
-      if (typeof id === "string" && id) router.push(`/chat/${id}`);
+      if (typeof id !== "string" || !id) return;
+      let revealed = false;
+      try {
+        const d = await fetchThreadMessages(id);
+        revealed = !!d?.revealed;
+      } catch {
+        /* fall through to /chat — the pre-reveal screen reads either way */
+      }
+      router.push(revealed ? `/room/${id}` : `/chat/${id}`);
     };
-    Notifications.getLastNotificationResponseAsync().then((r) => r && open(r));
-    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    Notifications.getLastNotificationResponseAsync().then((r) => r && void open(r));
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => void open(r));
     return () => sub.remove();
   }, [router]);
   return null;

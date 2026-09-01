@@ -1,6 +1,6 @@
 import { fetchThreads } from "./db";
 import { loadJournal } from "./journal";
-import { loadKept } from "./kept";
+import { loadLore } from "./lore";
 import { getFlags } from "./flags";
 import type { GrowthStats } from "../data/growth";
 
@@ -9,7 +9,7 @@ export async function collectGrowthStats(createdAt?: string | null): Promise<Gro
   const [threads, journal, kept, flags] = await Promise.all([
     fetchThreads(),
     loadJournal(),
-    loadKept(),
+    loadLore(),
     getFlags(),
   ]);
   const t = threads || [];
@@ -21,7 +21,7 @@ export async function collectGrowthStats(createdAt?: string | null): Promise<Gro
     gotReply: t.some((x) => !x.lastSenderMe),
     deepest: t.reduce((m, x) => Math.max(m, x.mine), 0),
     kindreds: t.filter((x) => x.revealed).length,
-    keptN: kept.length,
+    keptN: kept.length, // lore entries — the keeping that has a gesture
     journalN: journal.length,
     driftN: journal.filter((e) => !!e.driftedLine).length,
     voiceSent: !!flags.voiceSent,

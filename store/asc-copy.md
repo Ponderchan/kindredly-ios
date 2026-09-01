@@ -29,33 +29,30 @@ pen pal,slow,letters,penpals,writing,journal,strangers,anti social media,mindful
 
 **Description**
 ```
-A letter takes days to be answered. Five letters each before you trade names. That is not a bug.
+Kindredly matches strangers by how they write — sentence length, where you pause, what you never say directly. Write one honest letter, and days later someone whose sentences move like yours writes back.
 
-Kindredly matches strangers by HOW THEY WRITE — the length of your sentences, where you pause, what you never say directly. Not your photos. Not your age. Nine dimensions of your own handwriting, read on your phone, and never shown to anyone as a score.
+What you can do with Kindredly:
 
-HOW IT WORKS
+• Send a letter to a stranger and get one back — in days, not seconds
+• Be matched by your writing, not your photo, age, or location
+• Trade names only after five letters each
+• Keep a sealed journal — text, photo, voice, video — that never leaves your phone
+• Raise a courier that grows from your own words; no two are alike
+• Read any letter in your own language, and keep the original
 
-1. Write down what's real. Tired, glad, or just true — a line is enough.
-2. Your letter goes out to strangers. One of them writes back.
-3. Five letters each, and you trade names. Only then.
+No profiles. No faces. No swiping, likes, or follower counts. No feed. Nobody can search for you — you are found by writing.
 
-WHAT IS NOT HERE
+Kindredly is for adults who would rather be read than seen. The first kindred is always free.
 
-No profiles. No photos of faces. No swiping, no likes, no follower counts. No feed to scroll. No way to search for someone. Nobody can find you; you are found by writing.
+First Class is optional and includes more kindreds, voice letters, and a monthly letter about how your writing has changed. Pricing is shown before purchase. The subscription renews automatically unless canceled at least 24 hours before the end of the current period.
 
-A SEALED ROOM OF YOUR OWN
+Kindredly speaks English, Español, Português and Bahasa Indonesia.
 
-Journal pages that never leave your phone. Photos, voice, video — sealed, private, and feeding nothing. "No one sees this. Not even me."
+Terms of Use:
+https://kindredly.io/terms
 
-WHAT GROWS
-
-A courier hatches from the first words you feed her, shaped by your own writing — no two are alike. She carries every letter you send and brings back every answer.
-
-FIRST CLASS
-
-More kindreds than the free one. Voice letters. A monthly letter about how your writing has changed. Optional, and the first kindred is always free.
-
-Kindredly speaks English, Español, Português and Bahasa Indonesia. A letter always travels in whatever language it was written in — and can be read in yours.
+Privacy Policy:
+https://kindredly.io/privacy
 ```
 
 ---
@@ -84,33 +81,30 @@ amigo por carta,cartas,lento,escribir,diario,desconocidos,anti redes,tranquilo,p
 
 **Descripción**
 ```
-Una carta tarda días en ser respondida. Cinco cartas de cada lado antes de intercambiar nombres. No es un error.
+Kindredly empareja a desconocidos por cómo escriben: el largo de tus frases, dónde haces una pausa, lo que nunca dices directamente. Escribe una carta honesta y, días después, te responde alguien cuyas frases se mueven como las tuyas.
 
-Kindredly une a desconocidos por CÓMO ESCRIBEN — el largo de tus frases, dónde haces una pausa, lo que nunca dices directamente. No tus fotos. No tu edad. Nueve dimensiones de tu propia letra, leídas en tu teléfono y jamás mostradas a nadie como un puntaje.
+Lo que puedes hacer en Kindredly:
 
-CÓMO FUNCIONA
+• Enviar una carta a un desconocido y recibir otra de vuelta, en días, no en segundos
+• Que te emparejen por tu escritura, no por tu foto, tu edad ni tu ubicación
+• Intercambiar nombres solo después de cinco cartas cada uno
+• Guardar un diario sellado —texto, foto, voz, video— que nunca sale de tu teléfono
+• Criar a una mensajera que crece de tus propias palabras; no hay dos iguales
+• Leer cualquier carta en tu idioma, conservando el original
 
-1. Escribe lo que es real. Cansado, contento o simplemente cierto — basta una línea.
-2. Tu carta sale hacia desconocidos. Alguno responde.
-3. Cinco cartas cada uno, y se cambian los nombres. Recién ahí.
+Sin perfiles. Sin caras. Sin swipe, sin me gusta, sin seguidores. Sin feed. Nadie puede buscarte: te encuentran por cómo escribes.
 
-LO QUE NO HAY
+Kindredly es para adultos que prefieren ser leídos antes que vistos. El primer afín siempre es gratis.
 
-Sin perfiles. Sin fotos de caras. Sin swipe, sin likes, sin seguidores. Sin feed para scrollear. Sin manera de buscar a alguien. Nadie puede encontrarte; te encuentran por cómo escribes.
+Primera Clase es opcional e incluye más afines, cartas de voz y una carta mensual sobre cómo ha cambiado tu escritura. El precio se muestra antes de comprar. La suscripción se renueva automáticamente a menos que se cancele al menos 24 horas antes del final del período en curso.
 
-UN CUARTO SELLADO, SOLO TUYO
+Kindredly habla English, Español, Português y Bahasa Indonesia.
 
-Páginas de diario que nunca salen de tu teléfono. Fotos, voz, video — sellados, privados, y no alimentan nada. "Nadie ve esto. Ni siquiera yo."
+Términos de uso:
+https://kindredly.io/terms
 
-LO QUE CRECE
-
-Un mensajero nace de las primeras palabras que le das, con la forma de tu propia escritura — no hay dos iguales. Lleva cada carta que envías y trae de vuelta cada respuesta.
-
-PRIMERA CLASE
-
-Más afines que el primero. Cartas de voz. Una carta mensual sobre cómo cambió tu escritura. Opcional, y el primer afín siempre es gratis.
-
-Kindredly habla English, Español, Português y Bahasa Indonesia. Una carta siempre viaja en el idioma en que fue escrita — y puede leerse en el tuyo.
+Política de privacidad:
+https://kindredly.io/privacy
 ```
 
 ---
@@ -139,33 +133,30 @@ amigo por carta,cartas,devagar,escrever,diário,desconhecidos,anti rede social,c
 
 **Descrição**
 ```
-Uma carta leva dias para ser respondida. Cinco cartas de cada lado antes de vocês trocarem os nomes. Isso não é um defeito.
+O Kindredly conecta desconhecidos pelo jeito como escrevem: o tamanho das suas frases, onde você faz uma pausa, o que você nunca diz diretamente. Escreva uma carta honesta e, dias depois, alguém cujas frases se movem como as suas responde.
 
-O Kindredly aproxima desconhecidos por COMO ELES ESCREVEM — o tamanho das suas frases, onde você pausa, o que você nunca diz diretamente. Não suas fotos. Não sua idade. Nove dimensões da sua própria letra, lidas no seu telefone e nunca mostradas a ninguém como nota.
+O que você pode fazer no Kindredly:
 
-COMO FUNCIONA
+• Enviar uma carta a um desconhecido e receber outra de volta, em dias, não em segundos
+• Ser conectado pela sua escrita, não pela sua foto, idade ou localização
+• Trocar nomes só depois de cinco cartas de cada lado
+• Manter um diário selado — texto, foto, voz, vídeo — que nunca sai do seu telefone
+• Criar uma mensageira que cresce das suas próprias palavras; não existem duas iguais
+• Ler qualquer carta no seu idioma, mantendo o original
 
-1. Escreva o que é real. Cansado, contente ou só verdadeiro — uma linha basta.
-2. Sua carta sai para desconhecidos. Alguém responde.
-3. Cinco cartas de cada lado, e vocês trocam os nomes. Só então.
+Sem perfis. Sem rostos. Sem swipe, sem curtidas, sem seguidores. Sem feed. Ninguém pode procurar por você — você é encontrado pelo que escreve.
 
-O QUE NÃO EXISTE AQUI
+O Kindredly é para adultos que preferem ser lidos a serem vistos. O primeiro afim é sempre grátis.
 
-Sem perfis. Sem fotos de rosto. Sem swipe, sem curtidas, sem seguidores. Sem feed para rolar. Sem jeito de procurar alguém. Ninguém consegue te achar; você é encontrado pela escrita.
+A Primeira Classe é opcional e inclui mais afins, cartas de voz e uma carta mensal sobre como sua escrita mudou. O preço é exibido antes da compra. A assinatura é renovada automaticamente, a menos que seja cancelada pelo menos 24 horas antes do fim do período atual.
 
-UM QUARTO LACRADO, SÓ SEU
+O Kindredly fala English, Español, Português e Bahasa Indonesia.
 
-Páginas de diário que nunca saem do seu telefone. Fotos, voz, vídeo — lacrados, privados, e não alimentam nada. "Ninguém vê isso. Nem eu."
+Termos de uso:
+https://kindredly.io/terms
 
-O QUE CRESCE
-
-Uma mensageira nasce das primeiras palavras que você dá a ela, com a forma da sua própria escrita — não existem duas iguais. Ela leva cada carta que você envia e traz de volta cada resposta.
-
-PRIMEIRA CLASSE
-
-Mais afins além do primeiro. Cartas de voz. Uma carta mensal sobre como sua escrita mudou. Opcional, e o primeiro afim é sempre grátis.
-
-O Kindredly fala English, Español, Português e Bahasa Indonesia. Uma carta sempre viaja no idioma em que foi escrita — e pode ser lida no seu.
+Política de privacidade:
+https://kindredly.io/privacy
 ```
 
 ---
@@ -194,31 +185,28 @@ sahabat pena,surat,pelan,menulis,jurnal,orang asing,anti medsos,tenang,diary,pen
 
 **Deskripsi**
 ```
-Satu surat butuh berhari-hari untuk dibalas. Lima surat masing-masing sebelum kalian bertukar nama. Itu bukan kesalahan.
+Kindredly mempertemukan orang asing lewat cara mereka menulis: panjang kalimatmu, di mana kamu berhenti, apa yang tak pernah kamu katakan langsung. Tulis satu surat yang jujur, dan beberapa hari kemudian seseorang yang kalimatnya bergerak sepertimu membalas.
 
-Kindredly mempertemukan orang asing lewat CARA MEREKA MENULIS — panjang kalimatmu, di mana kamu berhenti sejenak, apa yang tidak pernah kamu katakan langsung. Bukan fotomu. Bukan umurmu. Sembilan dimensi tulisan tanganmu sendiri, dibaca di ponselmu, dan tidak pernah ditunjukkan ke siapa pun sebagai nilai.
+Yang bisa kamu lakukan di Kindredly:
 
-CARA KERJANYA
+• Mengirim surat ke orang asing dan menerima balasan — dalam hitungan hari, bukan detik
+• Dipertemukan lewat tulisanmu, bukan foto, umur, atau lokasimu
+• Bertukar nama hanya setelah lima surat dari masing-masing
+• Menyimpan jurnal tersegel — teks, foto, suara, video — yang tak pernah meninggalkan ponselmu
+• Membesarkan kurir yang tumbuh dari kata-katamu sendiri; tak ada dua yang sama
+• Membaca surat apa pun dalam bahasamu, dengan aslinya tetap tersimpan
 
-1. Tulis yang nyata. Capek, senang, atau sekadar jujur — satu baris sudah cukup.
-2. Suratmu berangkat ke orang-orang asing. Salah satunya membalas.
-3. Lima surat masing-masing, lalu kalian bertukar nama. Baru saat itu.
+Tanpa profil. Tanpa wajah. Tanpa swipe, suka, atau jumlah pengikut. Tanpa feed. Tak ada yang bisa mencarimu — kamu ditemukan lewat tulisanmu.
 
-YANG TIDAK ADA DI SINI
+Kindredly untuk orang dewasa yang lebih ingin dibaca daripada dilihat. Kerabat pertama selalu gratis.
 
-Tanpa profil. Tanpa foto wajah. Tanpa swipe, tanpa like, tanpa jumlah pengikut. Tanpa feed untuk di-scroll. Tanpa cara mencari seseorang. Tidak ada yang bisa menemukanmu; kamu ditemukan lewat tulisan.
+Kelas Utama bersifat opsional dan mencakup lebih banyak kerabat, surat suara, dan satu surat bulanan tentang bagaimana tulisanmu berubah. Harga ditampilkan sebelum pembelian. Langganan diperpanjang otomatis kecuali dibatalkan setidaknya 24 jam sebelum periode berjalan berakhir.
 
-KAMAR TERSEGEL MILIKMU SENDIRI
+Kindredly berbicara English, Español, Português dan Bahasa Indonesia.
 
-Halaman jurnal yang tidak pernah keluar dari ponselmu. Foto, suara, video — tersegel, privat, dan tidak memberi makan apa pun. "Nggak ada yang lihat ini. Aku pun tidak."
+Ketentuan Penggunaan:
+https://kindredly.io/terms
 
-YANG TUMBUH
-
-Seekor kurir menetas dari kata-kata pertama yang kamu beri, berbentuk mengikuti tulisanmu sendiri — tidak ada dua yang sama. Dia membawa setiap suratmu dan pulang membawa setiap balasan.
-
-KELAS UTAMA
-
-Lebih banyak kerabat dari yang pertama. Surat suara. Surat bulanan tentang bagaimana tulisanmu berubah. Opsional, dan kerabat pertama selalu gratis.
-
-Kindredly bicara English, Español, Português dan Bahasa Indonesia. Sebuah surat selalu berjalan dalam bahasa saat ia ditulis — dan bisa dibaca dalam bahasamu.
+Kebijakan Privasi:
+https://kindredly.io/privacy
 ```

@@ -1141,7 +1141,7 @@ export default function Onboarding() {
 
               <Animated.View entering={FadeInDown.delay(220).duration(480)} style={{ alignItems: "center", marginTop: 22 }}>
                 <Animated.View style={breathe}>
-                  <WrenBird size={110} mood="delight" stage="hatch" bare form={hatchlingForm(hatched.dims)} />
+                  <WrenBird size={110} mood="delight" stage="hatch" form={hatchlingForm(hatched.dims)} />
                 </Animated.View>
                 {/* the letter is the words they just fed — real, not an icon */}
                 <View style={[card, bevel(4, 4), { maxWidth: 300, marginTop: -8, paddingHorizontal: 16, paddingVertical: 13, transform: [{ rotate: "-2deg" }] }]}>
@@ -1167,7 +1167,7 @@ export default function Onboarding() {
                   showed a chick again. She is a hatchling here, in the
                   proportions your own writing just gave her. */}
               <Animated.View style={[flyStyle, { alignItems: "center" }]}>
-                <WrenBird size={132} mood="delight" bare stage="hatch" form={hatchlingForm(hatched.dims)} />
+                <WrenBird size={132} mood="delight" stage="hatch" form={hatchlingForm(hatched.dims)} />
                 <View style={{ marginTop: -26, transform: [{ rotate: "-11deg" }] }}>
                   <CarriedLetter />
                 </View>
@@ -1594,7 +1594,7 @@ function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?
           range. The colour is the one you picked two screens ago — the only
           part of her you got to choose, kept and shown. */}
       <Animated.View style={[body, { marginBottom: 30 }]}>
-        <WrenBird size={104} mood={face} stage="hatch" bare form={form} />
+        <WrenBird size={104} mood={face} stage="hatch" form={form} />
       </Animated.View>
 
       <Svg width={150} height={62} viewBox="0 0 150 62" style={{ position: "absolute", bottom: 0 }}>

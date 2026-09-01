@@ -37,7 +37,7 @@ export default function Help() {
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 18 }}>
-          <WrenBird size={26} bare mood="content" />
+          <WrenBird size={26} mood="content" />
           <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
             {speakAs(t("hp.intro"), wren)}
           </Text>

@@ -16,6 +16,8 @@ import { CofounderMark } from "../components/CofounderMark";
 import { track, type PaywallSource } from "../lib/track";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
+import { FirstClassWelcome } from "../components/FirstClassWelcome";
+import { Seal } from "../components/Seal";
 
 /* FIRST CLASS — a fare, not a feature list.
    ────────────────────────────────────────────────────────────────────────
@@ -92,6 +94,7 @@ export default function Paywall() {
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [welcome, setWelcome] = useState<"plus" | "lifetime" | null>(null);
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
 
@@ -133,7 +136,11 @@ export default function Paywall() {
     if (res.ok) {
       track("purchase_done", { source, fare: chosen.period, price: chosen.priceString });
       await refresh();
-      router.back();
+      /* THE PRODUCT SAYS SOMETHING NOW. This used to be `router.back()` —
+         the paywall simply vanished, leaving Apple's receipt sheet as the
+         last word on the most important decision anyone makes here. A
+         receipt is not a welcome. */
+      setWelcome(chosen.period === "lifetime" ? "lifetime" : "plus");
     } else if (!res.cancelled) {
       track("purchase_failed", { source, fare: chosen.period });
       Alert.alert(tr("pw.purchase.title"), tr("pw.purchase.fail"));
@@ -146,9 +153,20 @@ export default function Paywall() {
     const ok = await iapRestore();
     setBusy(false);
     await refresh();
-    Alert.alert(ok ? tr("pw.restored") : tr("pw.nothingRestore"), ok ? tr("pw.restoredBody") : tr("pw.nothingRestoreBody"));
-    if (ok) router.back();
+    if (ok) {
+      setWelcome("plus");
+      return;
+    }
+    Alert.alert(tr("pw.nothingRestore"), tr("pw.nothingRestoreBody"));
   };
+
+  if (welcome) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+        <FirstClassWelcome lifetime={welcome === "lifetime"} onDone={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
@@ -181,7 +199,7 @@ export default function Paywall() {
                 </Text>
               </View>
               <View style={{ alignItems: "center", paddingTop: 6 }}>
-                <WrenBird size={64} bare mood="delight" />
+                <WrenBird size={64} mood="delight" />
                 <Text style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 1.4, color: P.ink40, marginTop: 4 }}>
                   {wren.toUpperCase()} · {tr("pw.carrier")}
                 </Text>
@@ -434,12 +452,18 @@ function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: str
             </Text>
           </>
         ) : (
+          /* SOMETHING WORTH TOUCHING. These flip — they always have — but
+             the closed face was a grey glyph over two grey words, six of
+             them in a row, and nothing in it said press me. The product
+             already owns the object that means sealed: the blind emboss
+             from the envelope and the sealed page. A round disc against a
+             rectangular grid is the only thing on this screen that looks
+             pressable, which is exactly what it is. */
           <>
-            <Text style={{ fontFamily: PF.mono, fontSize: 21, color: P.ink40 }}>▧</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 9 }}>
-              {tr("pw.sealed")}
+            <Seal size={44} />
+            <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 10 }}>
+              {tr("pw.peel").toUpperCase()}
             </Text>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink40, marginTop: 4 }}>{tr("pw.peel")}</Text>
           </>
         )}
       </Animated.View>

@@ -79,7 +79,7 @@ export default function AuraShareCard() {
             {/* under the page, in the night — crops away clean */}
             <View style={{ alignItems: "center", gap: 7, marginTop: 20 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                <WrenBird size={20} bare mood="content" />
+                <WrenBird size={20} mood="content" />
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: "#8F87C9" }}>{t("ac.typedBy", { name: wren })}</Text>
               </View>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 3.5, color: "rgba(255,255,255,0.65)" }}>KINDREDLY</Text>

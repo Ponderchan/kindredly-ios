@@ -304,7 +304,7 @@ export function CourierSendOff({
               {t("so.notMine")}
             </Text>
             <View style={{ transform: [{ scaleX: -1 }] }}>
-              <WrenBird size={44} mood="content" bare />
+              <WrenBird size={44} mood="content" />
             </View>
           </Animated.View>
 
@@ -330,7 +330,7 @@ export function CourierSendOff({
         <Animated.View style={[{ alignItems: "center", marginTop: 58 }, flyerStyle]}>
           <Animated.View style={birdStyle}>
             <View style={{ transform: [{ scaleX: -1 }] }}>
-              <WrenBird size={84} pose="fly" bare />
+              <WrenBird size={84} pose="fly" />
             </View>
           </Animated.View>
           <View style={{ marginTop: -10 }}>

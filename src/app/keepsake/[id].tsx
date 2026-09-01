@@ -70,7 +70,7 @@ export default function KeepsakeDetail() {
         {mine ? (
           <>
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 30 }}>
-              <WrenBird size={24} bare mood="content" />
+              <WrenBird size={24} mood="content" />
               <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 23, color: P.ink60 }}>
                 {speakAs(HAS_WHY.has(def.id) ? t(`ks.why.${def.id}`) : t("ks.happened"), wren)}
               </Text>

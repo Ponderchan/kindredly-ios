@@ -215,7 +215,7 @@ export default function Settings() {
             </View>
             <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
           </View>
-          <Row label={t("set.kept")} onPress={() => router.push("/kept")} />
+          <Row label={t("lore.head")} onPress={() => router.push("/lore")} />
           {/* the way back to a saved draft. Without this the composer's
               "save as draft" wrote somewhere nobody could reach. */}
           <Row label={t("set.drafts")} onPress={() => router.push("/drafts")} />

@@ -143,24 +143,3 @@ export async function peek(
   return WREN_FALLBACK.peek[lang] || WREN_FALLBACK.peek.en;
 }
 
-/** MORNING PAGE curation — Wren picks the best-fit fragment index, or -1. */
-export async function curateMorning(
-  candidates: { fragment: string }[] | string[],
-  mood: string | undefined,
-  lang: Lang,
-  signal?: AbortSignal,
-): Promise<number> {
-  if (!candidates || !candidates.length) return -1;
-  const ai = await callWren(
-    "morning",
-    {
-      candidates: candidates.map((c: any) => c.fragment || c),
-      mood,
-      lang,
-    },
-    signal,
-  );
-  if (ai && typeof ai.index === "number" && ai.index >= 0 && ai.index < candidates.length)
-    return ai.index;
-  return -1;
-}

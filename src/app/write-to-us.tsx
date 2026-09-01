@@ -49,7 +49,7 @@ export default function WriteToUs() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 34 }}>
-          <WrenBird size={64} bare mood="delight" />
+          <WrenBird size={64} mood="delight" />
           <Text style={{ fontFamily: PF.letter, fontSize: 24, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 18 }}>
             {t("wu.taken")}
           </Text>
@@ -76,7 +76,7 @@ export default function WriteToUs() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 16 }}>
-            <WrenBird size={24} bare mood="listen" />
+            <WrenBird size={24} mood="listen" />
             <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
               {speakAs(t("wu.intro"), wren)}
             </Text>

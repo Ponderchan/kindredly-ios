@@ -294,7 +294,7 @@ export function WrenHome({
             return (
               <Pressable key={sk.id} onPress={() => tapSkin(sk.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderWidth: on ? 1.5 : 1, borderColor: on ? P.pen : P.ink12 }}>
                 <View style={{ opacity: unlocked ? 1 : 0.4 }}>
-                  <WrenBird size={44} bare mood="happy" skin={sk.id} />
+                  <WrenBird size={44} mood="happy" skin={sk.id} />
                 </View>
                 <Text style={{ fontFamily: PF.monoMed, fontSize: 9, color: on ? P.pen : P.ink60, marginTop: 3 }}>{skinName(sk.id).toUpperCase()}</Text>
                 {!unlocked && (
@@ -323,7 +323,7 @@ export function WrenHome({
             return (
               <Pressable key={a.id} onPress={() => (locked ? onLocked() : onEquip(a.id))} style={{ width: 70, alignItems: "center", paddingVertical: 8, borderWidth: on ? 1.5 : 1, borderColor: on ? P.pen : P.ink12 }}>
                 <View style={{ opacity: locked ? 0.4 : 1 }}>
-                  <WrenBird size={44} bare mood="happy" accessory={a.id === "none" ? "none" : a.id} />
+                  <WrenBird size={44} mood="happy" accessory={a.id === "none" ? "none" : a.id} />
                 </View>
                 <Text style={{ fontFamily: PF.mono, fontSize: 8, color: on ? P.pen : P.ink60, marginTop: 2 }}>
                   {locked ? `🔒 ${tr(`ws.acc.${a.id}`)}` : tr(`ws.acc.${a.id}`)}
@@ -530,7 +530,7 @@ function HeroWren({
           ],
         }}
       >
-        <WrenBird size={108} bare stage={stage} mood={mood} accessory={accessory} form={form} />
+        <WrenBird size={108} stage={stage} mood={mood} accessory={accessory} form={form} />
       </Animated.View>
     </Pressable>
   );

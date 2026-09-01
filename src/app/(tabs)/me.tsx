@@ -27,6 +27,7 @@ import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
+import { FirstClassStub } from "../../components/FirstClassStub";
 
 /* Me — a mirror, not a profile: who you are here (pen name + day), how you
    sound (the aura — the hero), and who's growing beside you (Wren).
@@ -221,14 +222,12 @@ export default function MeTab() {
               </View>
             )}
 
-            {/* one quiet row — First Class */}
-            <Pressable onPress={() => router.push("/paywall?src=me_row")} style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingVertical: 14 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1, color: P.ink }}>{t("me.firstClass")}</Text>
-              <View style={{ flex: 1 }} />
-              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
-                {premium ? t("me.active") : t("me.unlimited")} →
-              </Text>
-            </Pressable>
+            {/* the fare's front door — a stub torn from the ticket it opens */}
+            <FirstClassStub
+              premium={premium}
+              cofounderNo={cofounderNo}
+              onPress={() => router.push("/paywall?src=me_row")}
+            />
           </>
         ) : (
           <>

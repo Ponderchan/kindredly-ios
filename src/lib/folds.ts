@@ -1,4 +1,5 @@
 import { supabase, supabaseReady } from "./supabase";
+import { clearFail, noteFail } from "./db";
 
 /* THE FOLD — sealed until reciprocated.
    ────────────────────────────────────────────────────────────────────────
@@ -56,8 +57,8 @@ export async function fetchFolds(threadId: string): Promise<Fold[] | null> {
       body: bodies.get(r.id) ?? null,
       date: r.created_at,
     }));
-  } catch {
-    return null;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -84,6 +85,7 @@ async function insertFold(
   parentId: string | null,
 ): Promise<true | null> {
   if (!supabaseReady || !body.trim()) return null;
+  clearFail();
   try {
     const { data: u } = await supabase!.auth.getUser();
     const me = u.user?.id;
@@ -93,7 +95,7 @@ async function insertFold(
       .insert({ thread_id: threadId, author: me, kind, prompt, parent_id: parentId })
       .select("id")
       .single();
-    if (error || !fold?.id) return null;
+    if (error || !fold?.id) return noteFail(error);
     const { error: bErr } = await supabase!
       .from("fold_bodies")
       .insert({ fold_id: fold.id, body: body.trim().slice(0, 600) });
@@ -101,9 +103,10 @@ async function insertFold(
       // a fold without a body is a lie on the table — take it back
       await supabase!.from("folds").delete().eq("id", fold.id);
       return null;
+      noteFail(bErr);
     }
     return true;
-  } catch {
-    return null;
+  } catch (e) {
+    return noteFail(e);
   }
 }

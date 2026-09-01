@@ -24,8 +24,13 @@ export const UPLOAD_MS = 60000;
 export const SLOW_MS = 2200;
 
 /** An AbortSignal that fires after `ms`, chained to an optional outer one.
-    Always call cancel() — an uncancelled timer keeps a timeout alive. */
-export function deadline(ms: number, outer?: AbortSignal): { signal: AbortSignal; cancel: () => void } {
+    `release` drops the chain to the outer signal; `cancel` also disarms the
+    timer. They are separate because a response is not finished when its
+    headers arrive — see fetchWithin. */
+export function deadline(
+  ms: number,
+  outer?: AbortSignal,
+): { signal: AbortSignal; cancel: () => void; release: () => void } {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(new Error("timeout")), ms);
   const relay = () => ctl.abort(outer?.reason);
@@ -33,11 +38,13 @@ export function deadline(ms: number, outer?: AbortSignal): { signal: AbortSignal
     if (outer.aborted) relay();
     else outer.addEventListener("abort", relay);
   }
+  const release = () => outer?.removeEventListener("abort", relay);
   return {
     signal: ctl.signal,
+    release,
     cancel: () => {
       clearTimeout(timer);
-      outer?.removeEventListener("abort", relay);
+      release();
     },
   };
 }
@@ -51,9 +58,19 @@ export async function fetchWithin(
 ): Promise<Response> {
   const d = deadline(ms, init?.signal ?? undefined);
   try {
+    /* HEADERS ARE NOT THE ANSWER. fetch resolves the moment the status line
+       lands, with the body still in flight — so disarming the timer here
+       (which the first cut did, in a finally) left every response body
+       unbounded, which is the exact hang this function exists to prevent.
+       The deadline stays armed through the body; aborting a request that
+       has already settled is a no-op, and the timer clears itself when it
+       fires. Only the chain to the caller's signal is dropped. */
     return await fetch(input, { ...init, signal: d.signal });
-  } finally {
+  } catch (e) {
     d.cancel();
+    throw e;
+  } finally {
+    d.release();
   }
 }
 
