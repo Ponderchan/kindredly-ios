@@ -17,7 +17,7 @@ import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dShort, postNo, sinceShort } from "../../lib/format";
-import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail } from "../../lib/db";
+import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, t, useLang } from "../../lib/i18n";
@@ -29,6 +29,7 @@ import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weig
 import { fieldBox } from "../../lib/field";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { LetterInFlight } from "../../components/LetterInFlight";
+import { MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
    the screen; if it moves you, write back and a thread opens (it moves to
@@ -48,6 +49,7 @@ const RITUAL_FLAG = "today_ritual";
 export default function LettersTab() {
   useLang(); // repaint when the reader changes language
   const router = useRouter();
+  const [flightsUp, setFlightsUp] = useState(0);
   const [pool, setPool] = useState<PoolLetter[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [ritualDone, setRitualDone] = useState<boolean | null>(null);
@@ -81,8 +83,9 @@ export default function LettersTab() {
        query that adds nothing to the first paint and, for most readers, comes
        back empty anyway. The pool paints as soon as it lands; the closeness
        scores fold in a moment later and re-sort in place. */
-    const p = (await fetchPool()) || [];
-    setPool(p);
+    const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
+    setFlightsUp(inFlight((th || []) as FlightThread[]));
+    setPool(rationPool(p || []));
     setLoaded(true);
     const m = await fetchMatches();
     if (!m?.closest?.length) return;
@@ -98,10 +101,12 @@ export default function LettersTab() {
     const theirs = (await fetchPool(40, m.closest.map((c) => c.uid))) || [];
     setPool((cur) => {
       const seen = new Set(cur.map((l) => l.id));
-      return [...cur, ...theirs.filter((l) => !seen.has(l.id))]
-        .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
-        // matched first; everything else keeps the server's newest-first order
-        .sort((a, b) => (b.close ?? -1) - (a.close ?? -1));
+      return rationPool(
+        [...cur, ...theirs.filter((l) => !seen.has(l.id))]
+          .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
+          // matched first; everything else keeps the server's newest-first order
+          .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
+      );
     });
   }, []);
   useFocusEffect(
@@ -136,6 +141,7 @@ export default function LettersTab() {
       feed={feed}
       loaded={loaded}
       onReloaded={load}
+      flights={flightsUp}
       router={router}
       demo={demo}
       onAnswered={(id) => setPool((cur) => cur.filter((l) => l.id !== id))}
@@ -149,6 +155,7 @@ function Feed({
   feed,
   loaded,
   onReloaded,
+  flights: flightsIn,
   router,
   demo,
   onAnswered,
@@ -157,6 +164,8 @@ function Feed({
   feed: PoolLetter[];
   loaded: boolean;
   onReloaded: () => void;
+  /** correspondences opened and not yet answered — the pouch, see lib/ration */
+  flights: number;
   router: ReturnType<typeof useRouter>;
   demo: boolean;
   /** an answered letter leaves this reader's desk */
@@ -183,6 +192,8 @@ function Feed({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [toast, setToast] = useState(false);
   const [sending, setSending] = useState(false);
+  const [extraFlights, setExtraFlights] = useState(0);
+  const flights = flightsIn + extraFlights; // sends this session count immediately
   const slow = useSlow(sending);
   const [kbOpen, setKbOpen] = useState(false);
   /* REPLY ↓ WAS NEVER A BUTTON. It was a bare <Text> — no Pressable, no
@@ -238,6 +249,15 @@ function Feed({
     const text = (drafts[to.id] || "").trim();
     const w = weightedCount(text);
     if (w < REPLY_MIN || w > LETTER_MAX) return;
+    /* THE POUCH IS FULL. Three answers are out there waiting on their
+       people; a fourth door doesn't open until one of them walks back
+       through. Not a daily meter — an answer frees the slot, so the way
+       to more correspondence is being worth answering. Demo letters are
+       rehearsal and never count. */
+    if (!demo && !to.author?.startsWith("demo-") && flights >= MAX_IN_FLIGHT) {
+      Alert.alert(t("ld.flightFull.title"), t("ld.flightFull.body"));
+      return;
+    }
     setSending(true);
     Keyboard.dismiss();
     /* A FLOOR, NOT A DELAY — and a low one. The send can finish in less
@@ -284,6 +304,7 @@ function Feed({
       /* the moment a stranger's letter becomes a correspondence — the
          single most important conversion in the product */
       track("reply_sent", { weight: weightedCount(text) });
+      setExtraFlights((f) => f + 1);
     }
     await beat;
     setSending(false);
@@ -425,9 +446,11 @@ function Feed({
               <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 8 }}>
                 {replyW > LETTER_MAX
                   ? t("ui.overLimit", { n: String(replyW - LETTER_MAX) })
-                  : replyOk
-                    ? t("ld.threadOpensTwo")
-                    : t("ld.replyThreadOpens")}
+                  : flights >= MAX_IN_FLIGHT
+                    ? t("ld.flightFull")
+                    : replyOk
+                      ? t("ld.threadOpensTwo")
+                      : t("ld.replyThreadOpens")}
               </Text>
               )}
             </Pressable>
@@ -461,8 +484,11 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
   return (
     <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.groundInk }}>{t("ld.today")}</Text>
+      {/* the founding spec: "no counter". The 01/28 progress meter turned
+          a desk of letters into a to-do list — the day states remain, the
+          arithmetic is nobody's business. */}
       <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.groundInk60 }}>
-        {count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : `${String(idx + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`}
+        {count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : ""}
       </Text>
     </View>
   );
