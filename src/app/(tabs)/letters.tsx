@@ -30,6 +30,7 @@ import { fieldBox } from "../../lib/field";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
+import { LeaveSheet } from "../../components/LeaveSheet";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
    the screen; if it moves you, write back and a thread opens (it moves to
@@ -193,6 +194,7 @@ function Feed({
   const [toast, setToast] = useState(false);
   const [sending, setSending] = useState(false);
   const [extraFlights, setExtraFlights] = useState(0);
+  const [flightSheet, setFlightSheet] = useState(false);
   const flights = flightsIn + extraFlights; // sends this session count immediately
   const slow = useSlow(sending);
   const [kbOpen, setKbOpen] = useState(false);
@@ -255,7 +257,9 @@ function Feed({
        to more correspondence is being worth answering. Demo letters are
        rehearsal and never count. */
     if (!demo && !to.author?.startsWith("demo-") && flights >= MAX_IN_FLIGHT) {
-      Alert.alert(t("ld.flightFull.title"), t("ld.flightFull.body"));
+      /* the product's own sheet, not the OS dialog — the pouch being full
+         is a state of the post, and the post speaks in its own voice */
+      setFlightSheet(true);
       return;
     }
     setSending(true);
@@ -331,7 +335,6 @@ function Feed({
             onSeal={seal}
             onWrite={() => router.push("/compose")}
             onSelf={() => router.push("/journal-entry")}
-            onKept={() => router.push("/lore")}
           />
         </View>
       </SafeAreaView>
@@ -394,7 +397,6 @@ function Feed({
                 onSeal={seal}
                 onWrite={() => router.push("/compose")}
                 onSelf={() => router.push("/journal-entry")}
-                onKept={() => router.push("/lore")}
               />
             </View>
             )}
@@ -461,6 +463,13 @@ function Feed({
       </KeyboardAvoidingView>
 
       {toast && <Toast msg={t("ld.toast.thread")} bottom={150} />}
+      <LeaveSheet
+        open={flightSheet}
+        title={t("ld.flightFull.title")}
+        body={t("ld.flightFull.body")}
+        actions={[{ label: t("ld.flightFull.ok"), kind: "primary", onPress: () => setFlightSheet(false) }]}
+        onCancel={() => setFlightSheet(false)}
+      />
       {/* the send is taking longer than a send takes — say so rather than
           leaving "···" to mean both "landing" and "about to time out" */}
 

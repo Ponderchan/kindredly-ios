@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
@@ -25,17 +24,21 @@ import { SEND_BEAT_MS } from "../lib/net";
  * So she carries it. The route ahead is drawn as the dashes on an airmail
  * envelope; the part she has already flown inks in solid behind her, which
  * is the one honest thing an indeterminate wait can show — not how much is
- * left, but how far she has come. She reaches the destination's postmark,
- * and if the letter still hasn't landed she sets off again.
+ * left, but how far she has come.
+ *
+ * SHE CROSSES ONCE. The first cut looped her, so on any send slower than
+ * the beat she snapped back to the left edge and set off again — a delivery
+ * that un-delivers itself, twitching. One crossing is the whole gesture:
+ * she leaves, she arrives, she stays on the mark. If the letter is still in
+ * the air after that, the headwind line says so in words, which is what
+ * words are for.
  *
  * When the reader has asked the system for less motion, the animation is
  * the message, so the words come back instead of the flight.
  */
 const BIRD = 34;
 /* just inside the beat, so she is on the postmark — not still over the
-   dashes — at the instant the row is taken away. Past the first crossing
-   the repeat is the honest signal: more than one lap means the send is
-   taking longer than a send takes, which is when the headwind line shows. */
+   dashes — at the instant the row is taken away. */
 const CYCLE = Math.max(380, SEND_BEAT_MS - 70);
 
 export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolean }) {
@@ -45,7 +48,12 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
 
   useEffect(() => {
     if (reduced) return;
-    p.value = withRepeat(withTiming(1, { duration: CYCLE, easing: Easing.inOut(Easing.quad) }), -1, false);
+    /* SINE, NOT QUAD. inOut(quad) peaks at twice the average speed halfway
+       across, so however long the crossing is she still whips through the
+       middle of it — which is the part that read as hurried. inOut(sin) is
+       the gentlest ease that still starts and stops at rest: it peaks at
+       1.57x, so most of the flight happens near one steady speed. */
+    p.value = withTiming(1, { duration: CYCLE, easing: Easing.inOut(Easing.sin) });
   }, [reduced, p]);
 
   const span = Math.max(0, w - BIRD - 30);
@@ -53,13 +61,17 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
   const birdStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: p.value * span },
-      // she rides the air rather than sliding along a rail
-      { translateY: -3.5 * Math.sin(p.value * Math.PI * 3) },
-      // and tips into the climb
-      { rotate: `${-2.5 * Math.cos(p.value * Math.PI * 3)}deg` },
+      /* ONE arc, not three. Three half-sine bobs inside a 600ms crossing
+         read as panic — a bird fighting the air. A single rise and settle
+         is a glide: up out of the composer, down onto the mark. The pitch
+         follows the same story, nose lifting into the climb and dipping
+         for the landing, instead of wobbling. */
+      { translateY: -5 * Math.sin(p.value * Math.PI) },
+      { rotate: `${-3 + p.value * 6}deg` },
     ],
-    // she fades in off the left edge and out into the postmark
-    opacity: p.value < 0.05 ? 0.35 + (p.value / 0.05) * 0.65 : p.value > 0.95 ? 0.35 + ((1 - p.value) / 0.05) * 0.65 : 1,
+    /* she fades in off the left edge, and does NOT fade out again — she is
+       landing, not disappearing. */
+    opacity: p.value < 0.05 ? 0.35 + (p.value / 0.05) * 0.65 : 1,
   }));
 
   // the road she has already flown

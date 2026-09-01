@@ -39,19 +39,17 @@ export function CloseOfDay({
   onSeal,
   onWrite,
   onSelf,
-  onKept,
 }: {
   sealed: boolean;
   onSeal: () => void;
   onWrite: () => void;
   onSelf: () => void;
-  onKept: () => void;
 }) {
   useLang(); // repaint when the reader changes language
   return (
     <View style={{ flex: 1, backgroundColor: PAPER }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
-        {sealed ? <Sealed onWrite={onWrite} onSelf={onSelf} onKept={onKept} /> : <ToSeal onSeal={onSeal} />}
+        {sealed ? <Sealed onWrite={onWrite} onSelf={onSelf} /> : <ToSeal onSeal={onSeal} />}
       </View>
     </View>
   );
@@ -123,7 +121,7 @@ function ToSeal({ onSeal }: { onSeal: () => void }) {
 }
 
 /* ── after: it's stamped, and the board says when the next one lands ── */
-function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () => void; onKept: () => void }) {
+function Sealed({ onWrite, onSelf }: { onWrite: () => void; onSelf: () => void }) {
   const wren = useWrenName();
   const land = useSharedValue(0);
   useEffect(() => {
@@ -152,7 +150,6 @@ function Sealed({ onWrite, onSelf, onKept }: { onWrite: () => void; onSelf: () =
         <View style={{ flexDirection: "row", gap: 9, marginTop: 14 }}>
           <Ghost label={tr("cod.toStranger")} onPress={onWrite} />
           <Ghost label={tr("cod.toSelf")} onPress={onSelf} />
-          <Ghost label={tr("cod.reread")} onPress={onKept} />
         </View>
       </View>
 

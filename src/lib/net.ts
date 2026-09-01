@@ -101,9 +101,13 @@ export function isOffline(err: unknown): boolean {
  *  a bug, because it is one.
  *
  *  The fix is not to hold the send until the animation catches up; it is to
- *  make them the same length, and to pick the shortest length at which a
- *  crossing can still be read. Six hundred milliseconds is about a good
- *  page transition: fast enough that nobody feels held, slow enough to see
- *  her go. The write races this rather than waiting behind it, so on a
- *  healthy network the letter has landed before she does. */
-export const SEND_BEAT_MS = 660;
+ *  make them the same length. The first cut then picked the shortest length
+ *  at which a crossing could still be read — 660ms — and that was the wrong
+ *  target: legible is not the same as calm. Across the width of a phone it
+ *  put her peak speed past a thousand points a second, and a bird moving
+ *  that fast is fleeing, not delivering. A second is the honest length of
+ *  this gesture — still nobody's idea of waiting, and slow enough that the
+ *  crossing reads as carrying something. The write races this rather than
+ *  waiting behind it, so on a healthy network the letter has landed before
+ *  she does. */
+export const SEND_BEAT_MS = 1000;
