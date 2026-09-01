@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Dimensions, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -16,6 +16,7 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { getLang, t, useLang } from "../lib/i18n";
+import { openPrivacy, openTerms } from "../lib/legal";
 import { monthsShort } from "../lib/format";
 import Svg, { Circle, ClipPath, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -640,11 +641,11 @@ export default function Onboarding() {
                     as a trap. */}
                 <Text style={[mono(9.5, "r"), { color: Y.dim, textAlign: "center", paddingTop: 14, lineHeight: 15 }]}>
                   {t("ob.agree.pre")}{" "}
-                  <Text onPress={() => Linking.openURL("https://kindredly.io/terms")} style={{ textDecorationLine: "underline" }}>
+                  <Text onPress={() => openTerms()} style={{ textDecorationLine: "underline" }}>
                     {t("ob.agree.terms")}
                   </Text>{" "}
                   &{" "}
-                  <Text onPress={() => Linking.openURL("https://kindredly.io/privacy")} style={{ textDecorationLine: "underline" }}>
+                  <Text onPress={() => openPrivacy()} style={{ textDecorationLine: "underline" }}>
                     {t("ob.agree.privacy")}
                   </Text>
                 </Text>

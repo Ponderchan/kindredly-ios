@@ -9,6 +9,7 @@ import React, {
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { adoptGuestBucket, claimLegacyKeys, scoped, setStorageUser } from "./scoped-store";
+import { forgetThisDevice } from "./notify";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
@@ -361,6 +362,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   saveProfileRef.current = saveProfile;
 
   const signOut = useCallback(async () => {
+    // stop knocking a phone whose owner has left the account
+    await forgetThisDevice();
     if (supabase) {
       try {
         await supabase.auth.signOut({ scope: "local" });
@@ -384,6 +387,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      resurrect the old pen name into some future session. */
   const deleteAccount = useCallback(async (): Promise<AuthResult> => {
     if (!supabase) return { error: "Not connected." };
+    await forgetThisDevice();
     const { error } = await supabase.rpc("delete_account");
     if (error) {
       return { error: "The account couldn't be deleted just now. Nothing was changed — try again in a moment." };

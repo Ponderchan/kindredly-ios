@@ -1,7 +1,8 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
+import { openPrivacy, openTerms } from "../lib/legal";
 import { t as tr, useLang } from "../lib/i18n";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Animated, Easing, Image } from "react-native";
@@ -245,11 +246,11 @@ export default function Paywall() {
 
         <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.ink40, textAlign: "center", lineHeight: 17 }}>
           {tr("pw.termsLine")}{" "}
-          <Text onPress={() => Linking.openURL("https://kindredly.io/terms")} style={{ textDecorationLine: "underline" }}>
+          <Text onPress={() => openTerms()} style={{ textDecorationLine: "underline" }}>
             {tr("pw.terms")}
           </Text>{" "}
           &{" "}
-          <Text onPress={() => Linking.openURL("https://kindredly.io/privacy")} style={{ textDecorationLine: "underline" }}>
+          <Text onPress={() => openPrivacy()} style={{ textDecorationLine: "underline" }}>
             {tr("pw.privacy")}
           </Text>
         </Text>

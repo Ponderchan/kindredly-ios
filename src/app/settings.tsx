@@ -1,4 +1,5 @@
 import { useWrenName } from "../lib/wren-name";
+import { openPrivacy, openTerms } from "../lib/legal";
 import { useCallback, useState } from "react";
 import { Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -242,8 +243,8 @@ export default function Settings() {
         <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.safety")}</Text>
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
           <Row label={t("set.blocked")} onPress={() => router.push("/blocked")} />
-          <Row label={t("set.terms")} onPress={() => Linking.openURL("https://kindredly.io/terms")} />
-          <Row label={t("set.privacy")} onPress={() => Linking.openURL("https://kindredly.io/privacy")} last />
+          <Row label={t("set.terms")} onPress={() => openTerms()} />
+          <Row label={t("set.privacy")} onPress={() => openPrivacy()} last />
         </View>
 
         <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2 }]}>

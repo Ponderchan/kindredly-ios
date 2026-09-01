@@ -62,3 +62,51 @@ export async function morningKnockEnabled(): Promise<boolean> {
     return false;
   }
 }
+
+/* ── THE ONE PUSH THIS PRODUCT SENDS ────────────────────────────────
+   "Nothing nudges you" was written for everything the app might want to
+   say, and it still holds for all of it: no digests, no streaks, no
+   "someone read your letter". But it also silenced the single event the
+   whole product turns on — a stranger answered — and a letter that takes
+   days to arrive needs a letterbox. Nine of eleven readers had gone quiet
+   with answers waiting for them; nothing existed to say so. */
+
+import { supabase, supabaseReady } from "./supabase";
+
+/** register this device for the reply knock. Idempotent; silent on refusal. */
+export async function registerForReplies(): Promise<void> {
+  if (!supabaseReady) return;
+  try {
+    const { data: u } = await supabase!.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid || u.user?.is_anonymous) return; // a guest has no correspondence
+
+    const perm = await Notifications.getPermissionsAsync();
+    let status = perm.status;
+    /* asked only once, and only after a session exists — a permission
+       sheet on first launch, before anyone has written a word, is a
+       stranger asking to buzz you about nothing */
+    if (status !== "granted") {
+      if (!perm.canAskAgain) return;
+      status = (await Notifications.requestPermissionsAsync()).status;
+    }
+    if (status !== "granted") return;
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    if (!token) return;
+    await supabase!
+      .from("push_tokens")
+      .upsert({ token, user_id: uid, platform: "ios", updated_at: new Date().toISOString() }, { onConflict: "token" });
+  } catch {
+    /* a device that cannot be reached is not a broken app */
+  }
+}
+
+/** stop knocking this device — called on sign-out and account deletion. */
+export async function forgetThisDevice(): Promise<void> {
+  if (!supabaseReady) return;
+  try {
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    if (token) await supabase!.from("push_tokens").delete().eq("token", token);
+  } catch {}
+}

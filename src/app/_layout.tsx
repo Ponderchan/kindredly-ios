@@ -6,6 +6,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { refreshFingerprint } from "../lib/aura";
+import { registerForReplies } from "../lib/notify";
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
 import { useAppFonts } from "../theme/fonts";
@@ -22,6 +25,23 @@ SplashScreen.preventAutoHideAsync();
    matched all week on last week's vector — and any future change to the
    signature itself would never reach a reader who happened not to write.
    Once per cold start, when a session exists, off the critical path. */
+/* A KNOCK THAT LANDS NOWHERE IS A WASTED ONE. Tapping the notification
+   opens the correspondence it was about, not the app's front door — the
+   whole point was to carry someone back to the letter. */
+function KnockRouting() {
+  const router = useRouter();
+  useEffect(() => {
+    const open = (res: Notifications.NotificationResponse) => {
+      const id = (res.notification.request.content.data as { thread?: string } | undefined)?.thread;
+      if (typeof id === "string" && id) router.push(`/chat/${id}`);
+    };
+    Notifications.getLastNotificationResponseAsync().then((r) => r && open(r));
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [router]);
+  return null;
+}
+
 function FingerprintOnLaunch() {
   const { user, isGuest } = useAuth();
   const ran = useRef(false);
@@ -29,6 +49,7 @@ function FingerprintOnLaunch() {
     if (ran.current || !user || isGuest) return;
     ran.current = true;
     void refreshFingerprint();
+    void registerForReplies();
   }, [user, isGuest]);
   return null;
 }
@@ -60,6 +81,7 @@ export default function RootLayout() {
           <EntitlementProvider>
             <WrenSkinProvider>
             <FingerprintOnLaunch />
+            <KnockRouting />
             <View style={{ flex: 1, backgroundColor: P.paper }}>
               <Stack
                 screenOptions={{
