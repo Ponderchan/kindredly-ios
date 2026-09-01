@@ -14,8 +14,17 @@
  * has no fallback, so it gets room to finish, but still ends.
  */
 
-/** Wren's gate: it fails open, so it is allowed almost no time. */
+/** Wren's gate and her asides: every one of them falls back to something
+    written, so none is worth waiting on. */
 export const WREN_MS = 3000;
+
+/** TRANSLATION IS NOT AN ASIDE. It has no fallback by design — a made-up
+    translation would be a lie — so a deadline that fires does not degrade
+    the feature, it deletes it. And it is the one Wren job a reader has
+    actually asked for and is watching a spinner for, so the budget is what
+    a person will wait for, not what a background task may steal. A real
+    letter through a reasoning model measures around seven seconds. */
+export const TRANSLATE_MS = 30000;
 /** A write we cannot fake the result of. Generous, but finite. */
 export const WRITE_MS = 20000;
 /** Uploads move real bytes; a photo on 3G is slow, not stuck. */

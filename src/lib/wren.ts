@@ -8,7 +8,7 @@ import { API_BASE } from "./supabase";
 import { voiceSignature } from "./signature";
 import { WREN_FALLBACK, oneOf, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { WREN_MS, fetchWithin } from "./net";
+import { TRANSLATE_MS, WREN_MS, fetchWithin } from "./net";
 
 const ENDPOINT = `${API_BASE}/api/wren`;
 
@@ -104,7 +104,7 @@ export async function portrait(
 ): Promise<string | null> {
   const sig = voiceSignature(text);
   if (sig.words < 12) return null; // too little to read yet
-  const ai = await callWren("portrait", { text, lang }, signal);
+  const ai = await callWren("portrait", { text, lang }, signal, TRANSLATE_MS);
   return ai && ai.line ? ai.line : null;
 }
 
@@ -115,7 +115,7 @@ export async function translate(
   to: string,
   signal?: AbortSignal,
 ): Promise<string | null> {
-  const ai = await callWren("translate", { text, to }, signal);
+  const ai = await callWren("translate", { text, to }, signal, TRANSLATE_MS);
   const out = ai && (ai.text || ai.line);
   return typeof out === "string" && out.trim() ? out.trim() : null;
 }
@@ -128,7 +128,7 @@ export async function voiceRead(
   signal?: AbortSignal,
 ): Promise<{ voice_summary?: string; signature_traits?: string[]; sample_size?: number } | null> {
   if (!texts.length) return null;
-  const ai = await callWren("voice", { texts: texts.slice(0, 20) }, signal);
+  const ai = await callWren("voice", { texts: texts.slice(0, 20) }, signal, TRANSLATE_MS);
   return ai && (ai.voice_summary || ai.signature_traits) ? ai : null;
 }
 
