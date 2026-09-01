@@ -113,7 +113,15 @@ export default function ChatScreen() {
   const conv = detail
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" }, ...detail.messages].filter((m) => m.body)
     : [];
-  const name = detail?.revealed ? detail.otherName || t("cm.kindred") : detail ? `No. ${postNo(detail.other)}` : "…";
+  /* a deleted correspondent has no number to show — every one of them would
+     otherwise collapse onto the same No. 1000 */
+  const name = detail?.revealed
+    ? detail.otherName || t("cm.kindred")
+    : detail
+      ? detail.other
+        ? `No. ${postNo(detail.other)}`
+        : t("ld.unsigned")
+      : "…";
   /* the read, from their letters in this very thread */
   const read = useMemo(() => {
     if (!detail) return null;

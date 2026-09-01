@@ -52,7 +52,14 @@ export function sinceShort(iso: string | number | Date): string {
   return d === 1 ? t("fmt.yesterday") : t("fmt.daysAgo", { n: d });
 }
 
-export function hashStr(s: string): number {
+/* A HASH THAT CANNOT CRASH A SCREEN. Every caller feeds this an id, and
+   since 0009 an id can be null: a correspondent who deletes their account
+   leaves their side of the thread empty rather than taking the letters with
+   them. OrbitMap read `t.other` straight into here and the whole Kindreds
+   tab died on `null.length` — a red box in dev, an abort in Release. The
+   seed for a deterministic placement is not worth a crash. */
+export function hashStr(s: string | null | undefined): number {
+  if (!s) return 0;
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -62,8 +69,8 @@ export function hashStr(s: string): number {
 }
 
 /** stable anonymous "No. 1000–9999" from a user id (shown before reveal). */
-export function postNo(uid: string): number {
-  return 1000 + (hashStr("post:" + uid) % 9000);
+export function postNo(uid: string | null | undefined): number {
+  return 1000 + (hashStr("post:" + (uid || "")) % 9000);
 }
 
 /* 12 abstract glyph avatars × 8 palettes = 96 stable identities (system.js). */

@@ -78,8 +78,13 @@ function ringRx(p: number): number {
 const RINGS = Array.from({ length: REVEAL }, (_, i) => ringRx(i + 1));
 
 export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boolean }) {
-  const approaching = items.filter((t) => !t.revealed);
-  const landed = items.filter((t) => t.revealed);
+  /* NOBODY WHO IS NO LONGER THERE. 0009 nulls a deleted account's side of
+     the thread — the letters survive, the person does not — so `other` can
+     be null and there is no one to place on a ring. The correspondence is
+     still readable in the list; it just has nothing to draw here. */
+  const present = items.filter((t) => !!t.other);
+  const approaching = present.filter((t) => !t.revealed);
+  const landed = present.filter((t) => t.revealed);
 
   const faces = approaching.map((t, i) => {
     /* radius runs on THEIR letters, like the face itself — one mechanic,
