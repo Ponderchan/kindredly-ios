@@ -121,12 +121,14 @@ sahabat pena,raven,roost,surat,orang asing,jurnal,diari,menulis,anonim,pelan,tem
 
 # App Review · Notes for the reviewer (build 10 · 1.1.0)
 
-Kindredly is a slow pen-pal app: write one letter, receive a few from strangers who write like you.
+Hi! Kindredly is a slow pen pal app - you write one letter and get a few back from strangers who write kind of like you. Thats it, no swiping.
 
-No demo account needed — tap "Just looking →" on the first screen. Sign in with Apple / Google / email code also work.
+You don't need a demo account, just tap "Just looking →" on the first screen and everything works without an email. Apple / Google / email code sign in are there too if you prefer.
 
-New in 1.1.0: a short animation after onboarding (tap to skip); Me → Writing Aura, a read of the user's own writing computed on the device, no generated text; Me → Share card → "Save image" (photo add-only permission); First Class subscription with prices from StoreKit, restore/terms/privacy on the same screen.
+Whats new in this version: a little animation after onboarding (tap anywhere to skip it), a "Writing Aura" on the Me tab that describes your own writing style (all computed on the phone from your own letters, we dont generate text about the user), a Save image button on the share card (only asks for add-to-photos permission), and the First Class subscription page now shows the prices directly, with restore / terms / privacy on the same screen.
 
-Safety: 18+ gate, letters screened before posting, Report and Block on every letter and thread, journal pages never leave the device.
+Safety stuff is the same as before: 18+ check at signup, letters are screened before they go out, Report and Block on every letter and thread, and journal pages never leave the device.
 
 Terms https://kindredly.io/terms · Privacy https://kindredly.io/privacy · Support https://kindredly.io/support
+
+Thanks for reviewing, happy to anwser anything.
