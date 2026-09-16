@@ -33,12 +33,14 @@ export function AvatarImage({
   }
   const face = getFace(id);
   if (face) {
+    /* the portrait carries its own ink rim at the very edge of the file
+       (7 px of 512); clipped to a circle it reads as a black hairline. Draw
+       it a touch larger than the clip so the rim falls outside. */
+    const over = Math.ceil(size * 0.05);
     return (
-      <Image
-        source={face.src}
-        style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#EFEDFA" }}
-        contentFit="cover"
-      />
+      <View style={{ width: size, height: size, borderRadius: radius, overflow: "hidden", backgroundColor: "#EFEDFA" }}>
+        <Image source={face.src} style={{ width: size + over * 2, height: size + over * 2, marginLeft: -over, marginTop: -over }} contentFit="cover" />
+      </View>
     );
   }
   const a = getAvatar(id);

@@ -282,7 +282,7 @@ export function WrenHome({
       <Row
         label={tr("wren.looks")}
         sub={skinName(skin)}
-        count={`${looksOwned}/3`}
+        count={`${looksOwned}/${SKINS.length}`}
         openState={open === "looks"}
         onPress={() => setOpen(open === "looks" ? null : "looks")}
       />

@@ -204,7 +204,7 @@ function Feed({
   const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
-  const tabH = 62 + Math.max(insets.bottom, 8); // matches the custom TabBar height
+  const tabH = 54 + Math.max(insets.bottom, 8); // matches the custom TabBar height
   // "did I close the post today" — one flag per date
   const sealKey = `sealed:${new Date().toISOString().slice(0, 10)}`;
   const [sealed, setSealed] = useState(false);

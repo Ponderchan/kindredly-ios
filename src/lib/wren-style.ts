@@ -29,7 +29,7 @@ const SKIN_KEY = "kindredly_wren_skin";
 export const SKINS: { id: WrenSkin; lock: "free" | "milestone" | "plus" }[] = [
   { id: "sticker", lock: "free" },     // Sky
   { id: "moss", lock: "milestone" },   // Moss
-  { id: "plush", lock: "milestone" },  // Mist
+  { id: "plush", lock: "plus" },  // Mist
   { id: "peach", lock: "plus" },       // Peach
   { id: "ink", lock: "plus" },         // Night
 ];
@@ -56,8 +56,8 @@ export async function setWrenSkin(s: WrenSkin): Promise<void> {
   }
 }
 
-/** Is a skin available to this user? sticker always; plush after first
- *  kindred; ink with premium. */
+/** Is a skin available to this user? Sky always; Moss after the first
+ *  kindred; Mist, Peach and Night with First Class (owner's ladder, 2026-09-16). */
 export function skinUnlocked(id: WrenSkin, stats: GrowthStats, premium: boolean): boolean {
   const meta = SKINS.find((s) => s.id === id);
   if (!meta || meta.lock === "free") return true;

@@ -9,10 +9,8 @@ import { P, PF } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
-import { WrenHome } from "../../components/WrenHome";
-import type { WrenAccessory } from "../../components/WrenBird";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
-import { bumpStageFloor, getStageFloor, getWrenAccessory, setWrenAccessory, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
+import { bumpStageFloor, getStageFloor, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
 import { useWrenSkinControl } from "../../lib/wren-skin";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
@@ -63,12 +61,10 @@ export default function MeTab() {
 
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [statsIn, setStatsIn] = useState(false);
-  const [room, setRoom] = useState<"you" | "wren">("you");
   const [aura, setAura] = useState<Aura | null>(null);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
-  const [accessory, setAccessory] = useState<WrenAccessory>("none");
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
   const wren = useWrenName();
 
@@ -102,7 +98,6 @@ export default function MeTab() {
       });
       fetchThreads().then((t) => alive && setThreads(t || []));
       getAvatarPhoto().then((p) => alive && setPhoto(p));
-      getWrenAccessory().then((a) => alive && setAccessory(a));
 
       // Your aura — one engine (hatch), every piece of your real writing:
       // the hatch line, the sealed pages, and now your letters too
@@ -119,15 +114,9 @@ export default function MeTab() {
     }, [user?.created_at, profile?.firstLine]),
   );
 
-  const equipWren = (a: WrenAccessory) => {
-    setAccessory(a);
-    void setWrenAccessory(a);
-  };
-
   /* her status rides the switch itself — you see she moved before you
      even open her room */
   const where = whereabouts(threads, statsIn ? stats.lettersSent : null);
-  const tone = { pen: P.pen, ink: P.ink, faint: P.ink40 }[WHEREABOUTS_META[where.state].tone];
 
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
@@ -183,8 +172,8 @@ export default function MeTab() {
 
         {/* the courier's card — tap to open her room */}
         <Pressable
-          onPress={() => setRoom(room === "wren" ? "you" : "wren")}
-          style={({ pressed }) => ({ marginTop: 14, backgroundColor: "#FFFFFF", borderRadius: 16, flexDirection: "row", overflow: "hidden", shadowColor: "#1E1B35", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, opacity: pressed ? 0.92 : 1 })}
+          onPress={() => router.push("/courier")}
+          style={({ pressed }) => ({ marginTop: 14, backgroundColor: "#FFFFFF", borderRadius: 16, flexDirection: "row", alignItems: "stretch", overflow: "hidden", shadowColor: "#1E1B35", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, opacity: pressed ? 0.92 : 1 })}
         >
           <View style={{ width: 104, backgroundColor: where.state === "unsent" ? "#FFF3DC" : "#E4E1FA", overflow: "hidden" }}>
             {/* the route: two posts and a dashed line, the courier above it */}
@@ -211,54 +200,31 @@ export default function MeTab() {
               </View>
             </View>
             <Text style={{ fontFamily: PF.letter, fontSize: 13, color: W14.ink }}>{where.line}</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 11, color: "rgba(30,27,53,0.5)" }} numberOfLines={1}>{where.bubble}</Text>
-              <Text style={{ fontFamily: PF.letter, fontSize: 16, color: "rgba(30,27,53,0.35)" }}>{room === "wren" ? "▾" : "›"}</Text>
-            </View>
+            <Text style={{ fontFamily: PF.letter, fontSize: 11, color: "rgba(30,27,53,0.5)" }} numberOfLines={1}>{where.bubble}</Text>
+          </View>
+          <View style={{ width: 34, alignItems: "center", justifyContent: "center", paddingRight: 6 }}>
+            <Text style={{ fontFamily: PF.letter, fontSize: 18, color: "rgba(30,27,53,0.35)" }}>›</Text>
           </View>
         </Pressable>
 
-        {room === "you" ? (
-          <>
-            <View style={{ marginTop: 12 }}>
-              {aura && (
-                <AuraCard
-                  aura={aura}
-                  seed={seed}
-                  avatarId={avatarId}
-                  onOpen={() => router.push("/aura")}
-                  onShare={() => router.push("/aura-card")}
-                  onWrite={() => router.push("/compose")}
-                />
-              )}
-            </View>
+        <View style={{ marginTop: 12 }}>
+          {aura && (
+            <AuraCard
+              aura={aura}
+              seed={seed}
+              avatarId={avatarId}
+              onOpen={() => router.push("/aura")}
+              onShare={() => router.push("/aura-card")}
+              onWrite={() => router.push("/compose")}
+            />
+          )}
+        </View>
 
-            <FirstClassStub
-              premium={premium}
-              cofounderNo={cofounderNo}
-              onPress={() => router.push("/paywall?src=me_row")}
-            />
-          </>
-        ) : (
-          <View style={{ marginTop: 12 }}>
-            <WrenHome
-              stats={stats}
-              threads={threads}
-              pieces={aura?.pieces ?? 0}
-              accessory={accessory}
-              premium={premium}
-              stageFloor={stageFloor}
-              joinedAt={user?.created_at ?? null}
-              topWord={aura?.commonWords[0] ?? null}
-              onEquip={equipWren}
-              onLocked={() => router.push("/paywall?src=wardrobe_lock")}
-              onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
-              onOpenKeepsake={(id) => router.push(`/keepsake/${id}`)}
-              cofounderNo={cofounderNo}
-              onPlus={() => router.push("/paywall?src=journey_archive")}
-            />
-          </View>
-        )}
+        <FirstClassStub
+          premium={premium}
+          cofounderNo={cofounderNo}
+          onPress={() => router.push("/paywall?src=me_row")}
+        />
       </ScrollView>
 
       <EditProfileSheet
