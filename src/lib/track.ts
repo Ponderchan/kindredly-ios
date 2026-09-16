@@ -51,8 +51,8 @@ export function track(name: EventName, props: Record<string, string | number | b
   if (!supabaseReady) return;
   void (async () => {
     try {
-      const { data } = await supabase!.auth.getUser();
-      const uid = data.user?.id;
+      const { data } = await supabase!.auth.getSession();
+      const uid = data.session?.user?.id;
       if (!uid) return; // a ghost's events belong to nobody; drop them
       await supabase!.from("events").insert({ user_id: uid, name, props });
     } catch {

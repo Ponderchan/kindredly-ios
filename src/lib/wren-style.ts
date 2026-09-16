@@ -27,9 +27,11 @@ export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; 
 const SKIN_KEY = "kindredly_wren_skin";
 
 export const SKINS: { id: WrenSkin; lock: "free" | "milestone" | "plus" }[] = [
-  { id: "sticker", lock: "free" },
-  { id: "plush", lock: "milestone" },
-  { id: "ink", lock: "plus" },
+  { id: "sticker", lock: "free" },     // Sky
+  { id: "moss", lock: "milestone" },   // Moss
+  { id: "plush", lock: "milestone" },  // Mist
+  { id: "peach", lock: "plus" },       // Peach
+  { id: "ink", lock: "plus" },         // Night
 ];
 
 /* The skin's display name. A module constant is evaluated once at import, so

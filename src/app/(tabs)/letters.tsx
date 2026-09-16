@@ -3,8 +3,11 @@ import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, Keyframe, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Path, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { wrenStageDirty } from "../../lib/wren-stage";
 import { P, PF, channelInk, channelWash, rule } from "../../theme/post";
 import { StampTile } from "../../components/StampTile";
 import { TranslateMark } from "../../components/TranslateMark";
@@ -17,12 +20,12 @@ import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dShort, postNo, sinceShort } from "../../lib/format";
-import { fetchMatches, fetchPool, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads } from "../../lib/db";
+import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, t, useLang } from "../../lib/i18n";
 import { screenNow, translate } from "../../lib/wren";
-import { getFlags, setFlag } from "../../lib/flags";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, getFlags, setFlag, unsetFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
@@ -39,24 +42,54 @@ import { LeaveSheet } from "../../components/LeaveSheet";
    door. New users meet the post through a one-time ritual first (Wren's welcome),
    then land here forever. The lavender ground marks the strangers' space. */
 
-const LAV = "#B9A8F0";
 const CLOSE = "#EFE8D8"; // the close-of-day paper (CloseOfDay)
 const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
 const WINDOW_H = Dimensions.get("window").height;
 const WINDOW_W = Dimensions.get("window").width;
-const RITUAL_FLAG = "today_ritual";
 
 export default function LettersTab() {
   useLang(); // repaint when the reader changes language
   const router = useRouter();
   const [flightsUp, setFlightsUp] = useState(0);
   const [pool, setPool] = useState<PoolLetter[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [ritualDone, setRitualDone] = useState<boolean | null>(null);
-
+  /* LAST TIME'S LETTERS PAINT FIRST. A cold open used to show an empty desk
+     until two queries came back; now yesterday's pool is on screen at once
+     and the fresh one replaces it when it lands. Never used for the first-run
+     ceremony (that waits for the real pool) — there is nothing cached yet. */
+  const lastLoad = useRef(0);
   useEffect(() => {
-    getFlags().then((f) => setRitualDone(!!f[RITUAL_FLAG]));
+    AsyncStorage.getItem(POOL_CACHE_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const c = JSON.parse(raw) as PoolLetter[];
+        if (Array.isArray(c) && c.length) setPool((cur) => (cur.length ? cur : rationPool(c)));
+      })
+      .catch(() => {});
+  }, []);
+  const [loaded, setLoaded] = useState(false);
+  /* THE FIRST ARRIVAL. Onboarding ends with her first crossing; when Today
+     opens after it she lands on the header rule with the three envelopes,
+     and the first of them unfolds. The slot stays until the third is behind
+     you or you answer one of them — a delivery is not a toast, so a tab
+     switch does not end it — and it expires with the day she came back. */
+  const [fresh, setFresh] = useState(false);
+  useEffect(() => {
+    Promise.all([getFlags(), AsyncStorage.getItem(ARRIVAL_AT_KEY)])
+      .then(([f, at]) => {
+        if (!f[ARRIVAL_FRESH]) return;
+        const t0 = at ? Number(at) : 0;
+        if (t0 && Date.now() - t0 < ARRIVAL_TTL) setFresh(true);
+        else void unsetFlag(ARRIVAL_FRESH); // the day she came back has passed
+      })
+      .catch(() => {});
+  }, []);
+  const freshRef = useRef(false);
+  freshRef.current = fresh;
+  const settle = useCallback(() => {
+    if (!freshRef.current) return;
+    setFresh(false);
+    void unsetFlag(ARRIVAL_FRESH);
   }, []);
 
   /* THE POOL IS NOW ACTUALLY MATCHED. fetchMatches() has existed since the
@@ -88,6 +121,7 @@ export default function LettersTab() {
     setFlightsUp(inFlight((th || []) as FlightThread[]));
     setPool(rationPool(p || []));
     setLoaded(true);
+    if (p && p.length) void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify(p.slice(0, 40))).catch(() => {});
     const m = await fetchMatches();
     if (!m?.closest?.length) return;
     const score = new Map(m.closest.map((c) => [c.uid, c.score]));
@@ -112,30 +146,16 @@ export default function LettersTab() {
   }, []);
   useFocusEffect(
     useCallback(() => {
-      void load();
+      // every tab switch used to refetch the whole desk; a fresh pool is fresh for a minute
+      if (Date.now() - lastLoad.current >= 45_000) {
+        lastLoad.current = Date.now();
+        void load();
+      }
     }, [load]),
   );
 
   const demo = __DEV__ && loaded && pool.length === 0;
   const feed = demo ? DEMO_POOL : pool;
-
-  // first run: the ritual gate hasn't resolved yet
-  if (ritualDone === null) return <SafeAreaView style={{ flex: 1, backgroundColor: LAV }} />;
-
-  // the one-time ceremony — open your first letter, then the post is yours
-  if (!ritualDone) {
-    // wait for the pool before deciding what she came back with
-    if (!loaded) return <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} />;
-    return (
-      <Arrival
-        first={feed[0] ?? null}
-        onDone={async () => {
-          await setFlag(RITUAL_FLAG);
-          setRitualDone(true);
-        }}
-      />
-    );
-  }
 
   return (
     <Feed
@@ -145,6 +165,8 @@ export default function LettersTab() {
       flights={flightsUp}
       router={router}
       demo={demo}
+      fresh={fresh}
+      onSettled={settle}
       onAnswered={(id) => setPool((cur) => cur.filter((l) => l.id !== id))}
       onBlockedAuthor={(a) => setPool((cur) => cur.filter((l) => l.author !== a))}
     />
@@ -159,10 +181,15 @@ function Feed({
   flights: flightsIn,
   router,
   demo,
+  fresh,
+  onSettled,
   onAnswered,
   onBlockedAuthor,
 }: {
   feed: PoolLetter[];
+  /** her first crossing just landed — the arrival chrome shows once */
+  fresh: boolean;
+  onSettled: () => void;
   loaded: boolean;
   onReloaded: () => void;
   /** correspondences opened and not yet answered — the pouch, see lib/ration */
@@ -225,6 +252,19 @@ function Feed({
     scrollRef.current?.scrollTo({ y: i * vh, animated: true });
     setIdx(i);
   };
+  /* the page height moves — the arrival slot folds away, the keyboard rises —
+     and a paged ScrollView keeps its OFFSET, not its page. Re-seat the page
+     you are on whenever the height changes, so the pager never lands between
+     two letters. */
+  const idxRef = useRef(0);
+  idxRef.current = idx;
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: idxRef.current * vh, animated: false });
+  }, [vh]);
+  /* the third envelope is behind you: the arrival is over, the desk is the desk */
+  useEffect(() => {
+    if (fresh && idx >= 3) onSettled();
+  }, [fresh, idx, onSettled]);
 
   /* THE LETTER BEING ANSWERED IS PASSED IN, never read from the pager.
      It used to take `current` — feed[idx] — while the reader's draft was
@@ -309,6 +349,8 @@ function Feed({
          single most important conversion in the product */
       track("reply_sent", { weight: weightedCount(text) });
       setExtraFlights((f) => f + 1);
+      wrenStageDirty(); // a first reply is where she fledges
+      onSettled(); // answering one of what she brought back ends the arrival
     }
     await beat;
     setSending(false);
@@ -347,6 +389,7 @@ function Feed({
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={loaded && atEnd} />
+      <Arrival open={fresh} idx={idx} onGoto={goto} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
           <ScrollView
@@ -358,8 +401,8 @@ function Feed({
             onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.y / vh))}
           >
             {feed.map((letter, i) => (
+              <Animated.View key={letter.id + (fresh && i === 0 ? ":fresh" : "")} entering={fresh && i === 0 ? UNFOLD : undefined}>
               <LetterPage
-                key={letter.id}
                 letter={letter}
                 height={vh}
                 first={i === 0 && idx === 0}
@@ -378,6 +421,7 @@ function Feed({
                   slow,
                 }}
               />
+              </Animated.View>
             ))}
             {/* swipe past the last letter and the post closes: you stamp the
                 day shut. The screen behind switches to the same paper so the
@@ -431,7 +475,7 @@ function Feed({
                   placeholder={t("ld.writeBackPh")}
                   placeholderTextColor={P.ink40}
                   multiline
-                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
                 />
                 <Pressable
                   onPress={() => send(current)}
@@ -468,6 +512,13 @@ function Feed({
         title={t("ld.flightFull.title")}
         body={t("ld.flightFull.body")}
         actions={[{ label: t("ld.flightFull.ok"), kind: "primary", onPress: () => setFlightSheet(false) }]}
+        /* "I'll wait." IS the way out of this one; the sheet's usual KEEP
+           WRITING row underneath it would be the composer's copy answering
+           a question this sheet never asks. And Today is a tab screen — the
+           tab bar paints over the sheet, so the buttons are lifted clear
+           of it rather than hiding behind it. */
+        cancelLabel={null}
+        bottomExtra={55}
         onCancel={() => setFlightSheet(false)}
       />
       {/* the send is taking longer than a send takes — say so rather than
@@ -489,7 +540,92 @@ function Feed({
   );
 }
 
-function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boolean }) {
+/* THE ARRIVAL SLOT — the last frame of the crossing, continued.
+   She lands on the header rule; the three envelopes she carried sit under
+   her sentence and open one by one as you page (tap one to go to it). It
+   folds away, height and all, when the third is behind you or you answer
+   any of them, and Today re-seats the page under the fold. Not a counter:
+   the desk never shows arithmetic, but three envelopes she physically
+   brought back are an object, not a meter. */
+const ARRIVAL_TTL = 20 * 60 * 60 * 1000;
+const ARRIVAL_H = 120;
+const LAND = new Keyframe({
+  0: { opacity: 0, transform: [{ translateY: -28 }] },
+  72: { opacity: 1, transform: [{ translateY: 4 }] },
+  100: { opacity: 1, transform: [{ translateY: 0 }] },
+}).duration(560).delay(80);
+
+function Arrival({ open, idx, onGoto }: { open: boolean; idx: number; onGoto: (i: number) => void }) {
+  const p = useSharedValue(open ? 1 : 0);
+  const [gone, setGone] = useState(!open);
+  useEffect(() => {
+    if (open) {
+      setGone(false);
+      p.value = 1;
+      return;
+    }
+    if (gone) return;
+    p.value = withTiming(0, { duration: 380 }, (fin) => {
+      if (fin) runOnJS(setGone)(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  const style = useAnimatedStyle(() => ({
+    opacity: p.value,
+    maxHeight: p.value * ARRIVAL_H,
+    transform: [{ scaleY: 0.35 + 0.65 * p.value }],
+  }));
+  if (gone) return null;
+  return (
+    <Animated.View style={[{ overflow: "hidden", paddingHorizontal: 22 }, style]}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, paddingTop: 12, paddingBottom: 10 }}>
+        <Animated.View entering={LAND} style={{ paddingTop: 2 }}>
+          <WrenBird size={34} mood="content" />
+        </Animated.View>
+        <View style={{ flex: 1 }}>
+          <Animated.Text entering={FadeIn.duration(360).delay(320)} style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
+            {t("ld.arrived")}
+          </Animated.Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 9, marginTop: 9 }}>
+            {[0, 1, 2].map((i) => (
+              <Animated.View key={i} entering={FadeInDown.duration(320).delay(480 + i * 120)}>
+                <Pressable onPress={() => onGoto(i)} hitSlop={8}>
+                  <Env state={i < idx ? "opened" : i === idx ? "current" : "sealed"} />
+                </Pressable>
+              </Animated.View>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+/* the envelope from the route chart, at glyph size: sealed, open in your hand, or read */
+function Env({ state }: { state: "sealed" | "current" | "opened" }) {
+  const stroke = state === "sealed" ? P.ink : state === "current" ? P.pen : P.ink40;
+  const up = state !== "sealed";
+  return (
+    <Svg width={30} height={28} viewBox="0 -9 30 28">
+      {/* open: the flap folded back and the letter standing out of it — the
+          sheet, not the raised flap alone, is what reads as "opened" (the flap
+          alone reads as a roof) */}
+      {up && <Path d="M3 1 L15 -6 L27 1 Z" fill={P.paper} stroke={stroke} strokeWidth={1.3} strokeLinejoin="round" />}
+      {up && <Rect x={7.5} y={-5} width={15} height={8} fill={P.paper} stroke={stroke} strokeWidth={1.3} />}
+      <Rect x={1} y={1} width={28} height={17} fill={P.paper} stroke={stroke} strokeWidth={1.3} />
+      {!up && <Path d="M1 1 L15 11 L29 1" fill="none" stroke={stroke} strokeWidth={1.3} strokeLinejoin="round" />}
+      <Rect x={22} y={4} width={4.5} height={4} fill={state === "opened" ? P.ink40 : P.pen} />
+    </Svg>
+  );
+}
+
+/* the first of what she brought back opens the way your letter folded, in reverse */
+const UNFOLD = new Keyframe({
+  0: { opacity: 0.5, transform: [{ scaleY: 0.55 }] },
+  100: { opacity: 1, transform: [{ scaleY: 1 }] },
+}).duration(520).delay(140);
+
+function Header({ count, idx, atEnd, note }: { count: number; idx: number; atEnd?: boolean; note?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.groundInk }}>{t("ld.today")}</Text>
@@ -497,7 +633,7 @@ function Header({ count, idx, atEnd }: { count: number; idx: number; atEnd?: boo
           a desk of letters into a to-do list — the day states remain, the
           arithmetic is nobody's business. */}
       <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.groundInk60 }}>
-        {count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : ""}
+        {note ?? (count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : "")}
       </Text>
     </View>
   );
@@ -562,7 +698,7 @@ function LetterReader({
             )}
           </View>
 
-          <Text style={{ fontFamily: PF.letter, fontSize: 19, lineHeight: 31, color: P.ink }}>{shown}</Text>
+          <Text style={{ fontFamily: PF.letterSerif, fontSize: 19, lineHeight: 31, color: P.ink }}>{shown}</Text>
 
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginTop: 26 }}>
             {t("ld.written")} {sinceShort(letter.created_at)}
@@ -591,7 +727,7 @@ function LetterReader({
                   placeholderTextColor={P.ink40}
                   multiline
                   autoFocus
-                  style={{ flex: 1, ...fieldBox(reply.value, 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letter, fontSize: 17, lineHeight: 23 }}
+                  style={{ flex: 1, ...fieldBox(reply.value, 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
                 />
                 <Pressable
                   onPress={reply.onSend}
@@ -797,7 +933,7 @@ function LetterPage({
         ) : (
           <Text
             style={{
-              fontFamily: PF.letter,
+              fontFamily: PF.letterSerif,
               fontSize: tier.size,
               lineHeight: tier.line,
               color: P.ink,
@@ -820,7 +956,7 @@ function LetterPage({
               top: 0,
               opacity: 0,
               zIndex: -1,
-              fontFamily: PF.letter,
+              fontFamily: PF.letterSerif,
               fontSize: tier.size,
               lineHeight: tier.line,
               textAlign: tier.center ? "center" : "auto",
@@ -958,140 +1094,6 @@ function LetterPage({
 
    If the pool is genuinely empty, beat 3 says that plainly rather than
    inventing something to hand over. */
-function Arrival({ first, onDone }: { first: PoolLetter | null; onDone: () => void }) {
-  const insets = useSafeAreaInsets();
-  // the tab bar floats over this screen — clear it the way Feed does rather
-  // than guessing a number, which clipped READ IT on a device with a home bar
-  const tabH = 62 + Math.max(insets.bottom, 8);
-  const { user, profile } = useAuth();
-  const wren = useWrenName();
-  const [beat, setBeat] = useState(0);
-  const line = ((profile?.firstLine as string) || "").trim();
-  const uid = user?.id || "you";
-
-  useEffect(() => {
-    const a = setTimeout(() => setBeat(1), 1500);
-    const b = setTimeout(() => setBeat(2), 3200);
-    return () => {
-      clearTimeout(a);
-      clearTimeout(b);
-    };
-  }, []);
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingBottom: 10 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink, flex: 1 }}>{t("ld.today")}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.ink40 }}>{t("ld.shesBack")}</Text>
-      </View>
-      <View style={{ ...rule }} />
-
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 26, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
-        {/* she lands */}
-        <Animated.View entering={FadeIn.duration(520)} style={{ alignItems: "center" }}>
-          <WrenBird size={92} mood="delight" />
-        </Animated.View>
-
-        {/* 1 · the receipt — the same docket the world will see on it */}
-        <Animated.View entering={FadeIn.delay(280).duration(560)} style={{ marginTop: 18 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2, color: P.ink60, marginBottom: 10 }}>{t("ld.yourLetterLeft")}</Text>
-          <View style={{ borderWidth: 1, borderColor: P.ink, padding: 16 }}>
-            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-              <MosaicId seed={uid} />
-              <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.6, color: P.ink60, marginLeft: 12, marginTop: 3 }}>
-                {dShort(new Date().toISOString()).toUpperCase().replace(" ", ".")} · NO.{postNo(uid)}
-              </Text>
-              <View style={{ transform: [{ rotate: "-5deg" }] }}>
-                <StampTile id={STARTER_STAMPS[0]} w={44} r={5} />
-              </View>
-            </View>
-            {!!line && (
-              <Text numberOfLines={3} style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink, marginTop: 14 }}>
-                {line}
-              </Text>
-            )}
-            <View style={{ marginTop: 14, alignSelf: "flex-start", borderWidth: 1.4, borderColor: P.post, paddingHorizontal: 9, paddingVertical: 3, transform: [{ rotate: "-1.5deg" }] }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.post }}>{t("ld.posted")}</Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* 2 · the honest wait */}
-        {beat >= 1 && (
-          <Animated.View entering={FadeInDown.duration(520)} style={{ marginTop: 26 }}>
-            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-              <WrenBird size={34} mood="listen" />
-              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink, marginLeft: 12, marginTop: 2 }}>
-                {t("ld.wait")}
-              </Text>
-            </View>
-          </Animated.View>
-        )}
-
-        {/* 3 · what she found on the way, or the truth that she found nothing */}
-        {beat >= 2 && (
-          <Animated.View entering={FadeInDown.duration(560)} style={{ marginTop: 26 }}>
-            <View style={{ ...rule, marginBottom: 18 }} />
-            {first ? (
-              <>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
-                  {t("ld.found", { wren })}
-                </Text>
-                <View style={{ borderWidth: 1, borderColor: P.ink12, padding: 14, marginTop: 14 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <MosaicId seed={first.author} cell={3} gap={1} />
-                    <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginLeft: 10 }}>
-                      {first.author ? `NO.${postNo(first.author)}` : t("ld.unsigned")} · {t("ld.stranger")}
-                    </Text>
-                  </View>
-                  <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, marginTop: 10 }}>
-                    {(first.body || "").trim()}
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 25, color: P.ink }}>
-                  {t("ld.empty", { wren })}
-                </Text>
-              </>
-            )}
-          </Animated.View>
-        )}
-      </ScrollView>
-
-      {/* THE KEY IS PINNED. Beats 1-3 together are taller than the screen, so
-          inside the scroller the primary action sat below the fold — no amount
-          of bottom padding fixes that, since padding only adds space after a
-          button that was already off-screen. It appears with beat 3 and clears
-          the floating tab bar. */}
-      {beat >= 2 && (
-        <Animated.View
-          entering={FadeInDown.duration(420)}
-          /* a rule and a paper ground: without them the pinned key looked like
-             it had sliced the letter card in half rather than sitting under a
-             scroller — the same hairline every onboarding step puts above its
-             key, doing the same job */
-          style={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: tabH + 10, backgroundColor: P.paper, ...rule, borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: P.ink }}
-        >
-          <Pressable
-            onPress={onDone}
-            style={
-              first
-                ? { backgroundColor: P.pen, paddingVertical: 16, alignItems: "center" }
-                : { borderWidth: 1, borderColor: P.ink, paddingVertical: 16, alignItems: "center" }
-            }
-          >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: first ? "#fff" : P.ink }}>
-              {first ? t("ld.readIt") : t("ld.lookAround")}
-            </Text>
-          </Pressable>
-        </Animated.View>
-      )}
-    </SafeAreaView>
-  );
-}
-
 /* airmail striped border */
 function Airmail() {
   const bars = Array.from({ length: 60 });

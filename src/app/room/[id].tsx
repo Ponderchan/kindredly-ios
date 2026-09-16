@@ -331,10 +331,10 @@ export default function RoomScreen() {
   };
 
   const TRACES: TraceAction[] = [
-    { id: "note", glyph: "📄", title: t("rm.note.t"), sub: t("rm.note.s") },
-    { id: "ask", glyph: "❓", title: t("rm.ask.t"), sub: t("rm.ask.s") },
-    { id: "moment", glyph: "📷", title: t("rm.moment.t"), sub: t("rm.moment.s") },
-    { id: "song", glyph: "🎵", title: t("rm.song.t"), sub: t("rm.song.s") },
+    { id: "note", title: t("rm.note.t"), sub: t("rm.note.s") },
+    { id: "ask", title: t("rm.ask.t"), sub: t("rm.ask.s") },
+    { id: "moment", title: t("rm.moment.t"), sub: t("rm.moment.s") },
+    { id: "song", title: t("rm.song.t"), sub: t("rm.song.s") },
   ];
   const onTrace = (kind: string) => {
     setTracing(false);
@@ -519,7 +519,7 @@ export default function RoomScreen() {
                   </Pressable>
                 ) : (
                   <Pressable onLongPress={() => !m.mine && keep(m.body, null, m.date)} delayLongPress={350}>
-                    <Text style={{ fontFamily: PF.letter, fontSize: 16.5, lineHeight: 25, color: m.mine ? P.ink60 : P.ink, marginBottom: 3 }}>
+                    <Text style={{ fontFamily: PF.letterSerif, fontSize: 16.5, lineHeight: 26, color: m.mine ? P.ink60 : P.ink, marginBottom: 3 }}>
                       {m.body}
                     </Text>
                   </Pressable>
@@ -641,7 +641,7 @@ export default function RoomScreen() {
               placeholderTextColor={P.ink40}
               multiline
               autoCapitalize={mode?.kind === "song" ? "none" : "sentences"}
-              style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16.5, lineHeight: 24, color: P.ink }}
+              style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letterSerif, fontSize: 16.5, lineHeight: 24, color: P.ink }}
             />
           </View>
           <Pressable

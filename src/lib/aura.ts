@@ -4,96 +4,88 @@ import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";
 import { supabase, supabaseReady } from "./supabase";
 import { upsertFingerprint } from "./db";
+import { readStickers, toPiece, type Piece, type PieceSource, type StickerReadout, type StickerState, type AuraPhase as StickerPhase } from "./writing-engine/stickers";
 
-/* THE AURA, ON ONE ENGINE.
+/* THE AURA, ON ONE ENGINE — AND NOW ON EVIDENCE.
    ────────────────────────────────────────────────────────────────────────
-   The product grew three separate "read your writing" engines: voice.ts
-   (nine two-way switches, strength driven mostly by HOW MANY pieces you
-   wrote), signature.ts (the 8-dim server vector), and hatch-engine (nine
-   continuous 0–100 dims, twelve archetypes, evidence-locking). The Me tab
-   ran on the weakest of the three, while the resonance map and the read of
-   a correspondent already ran on hatch — so "your" nine dimensions and
-   "your match's" nine dimensions didn't even share names. You and the
-   person you write to must be measured with the same instrument, or the
-   overlap between you means nothing. hatch is the instrument.
+   hatch (nine continuous dims, evidence-locking) is still the instrument
+   the correspondent read and the resonance map are measured with, and its
+   radar still draws the shape. What the reader is TOLD about themselves no
+   longer comes from it: the sticker layer (writing-engine/stickers) reads
+   every piece on its own, counts pieces rather than hits, and only names a
+   habit it can quote. Phases, stickers and the title all come from there.
 
    TWO CORPORA, DELIBERATELY DIFFERENT.
    · The LOCAL aura reads everything you wrote on this phone — the hatch
-     line, your sealed pages, your letters. It never leaves the device.
+     line, your sealed pages, your letters. It never leaves the device, and
+     neither do the quotes it shows you.
    · The SERVER vector (matching) reads LETTERS ONLY. The sealed journal
      feeds nothing that leaves the phone — "No one sees this. Not even
-     me." is load-bearing, and SelfCompose records the day journal text
-     was cut from the vector. That line stays cut.
-
-   AND THE VECTOR FINALLY GROWS. upsertFingerprint had exactly one caller
-   in the whole app: onboarding. The nightly matcher — the thing deciding
-   whose letters reach whom — was scoring everyone by the paragraph they
-   typed on day one, forever. refreshFingerprint() re-derives it from the
-   letters corpus and is called after every published letter and reply.
-   The owner's spec says it outright: the more you write, the sharper the
-   match. That requires the vector to move. */
+     me." is load-bearing. That line stays cut. */
 
 export interface AuraSources {
-  letters: number; // pool letters + thread messages, yours
+  letters: number; // pool letters, yours
   sealed: number; // journal pages (LOCAL AURA ONLY — never the vector)
   conversations: number; // thread messages, yours
 }
 
-/* the ladder, as the owner froze it on the design canvas:
-     empty      pieces == 0            nothing claimed
-     forming    locked ≤ 2             first signals speak
-     shaping    locked 3–5             the glow takes shape
-     clearing   locked 6–8, OR 9/9     everything read — but a name off
-                while pieces < 10      six pieces is a horoscope, so the
-                                       name waits for ten real pieces
-     formed     locked 9 AND ≥10 pieces  the name, earned */
-export type AuraPhase = "empty" | "forming" | "shaping" | "clearing" | "formed";
+export type AuraPhase = StickerPhase;
 
 export interface Aura {
   phase: AuraPhase;
   /** the corpus the reading came from — for renderers that want the words */
   texts: string[];
-  /** 0..1 — lockedCount / 9. The honest "how formed" number. */
+  /** every piece's words by id, for quoting evidence. Local only. */
+  pieceText: Record<string, { text: string; source: PieceSource; createdAt: string }>;
+  /** the observation layer: stickers, title, evidence */
+  stickers: StickerReadout | null;
+  /** 0..1 — established observations over nine, blended with sample size.
+      A progress feel for the card, never spoken as accuracy. */
   formed: number;
   pieces: number;
   dims: DimScore[];
   locked: DimScore[];
   sealed: DimScore[];
-  archetype: Archetype | null; // null until FORMED — the name is the last thing earned
-  /** the engine's working name, available BEFORE formed — only for Wren's
-      crossed-out naming drafts on the envelope back (owner-designed tease:
-      "The Quick Sp—"). Never show it whole before `archetype` is non-null. */
+  /** legacy: hatch's archetype, only once FORMED — kept for the correspondent
+      read and the resonance map; the reader no longer sees it as their name */
+  archetype: Archetype | null;
   draft: Archetype | null;
-  /** the day the ninth signal locked, from local history (formed phase only) */
   formedOn?: string | null;
   sources: AuraSources;
   /** the words you lean on — counted, top of the list, rarest first kept */
   commonWords: string[];
   /** counted, never generated: over half your letters left after 22:00 or
-      before 06:00. Evidence for a live P.S., in notice.ts's philosophy —
-      Wren only says what she can count. Journal pages are deliberately
-      excluded from the count: the sealed room stays out of her mouth. */
+      before 06:00. Journal pages are deliberately excluded from the count. */
   nightOwl: boolean;
 }
 
+interface Row {
+  id: string;
+  body: string;
+  created_at: string | null;
+  lang?: string | null;
+}
+
 /* everything I have written INTO THE WORLD — pool letters and thread
-   messages. Server-fetched (they live there), fail-safe to []. */
-async function fetchMyLetters(): Promise<{ letters: string[]; messages: string[]; hours: number[] }> {
+   messages, with their ids and dates so each is one piece with one day.
+   Server-fetched (they live there), fail-safe to []. */
+async function fetchMyLetters(): Promise<{ letters: Row[]; messages: Row[]; hours: number[] }> {
   if (!supabaseReady) return { letters: [], messages: [], hours: [] };
   try {
-    const { data: u } = await supabase!.auth.getUser();
-    const me = u.user?.id;
+    const { data: s } = await supabase!.auth.getSession();
+    const me = s.session?.user?.id;
     if (!me) return { letters: [], messages: [], hours: [] };
     const [l, m] = await Promise.all([
-      supabase!.from("letters").select("body,created_at").eq("author", me).limit(200),
-      supabase!.from("messages").select("body,created_at").eq("sender", me).limit(400),
+      supabase!.from("letters").select("id,body,created_at,lang").eq("author", me).order("created_at", { ascending: false }).limit(200),
+      supabase!.from("messages").select("id,body,created_at").eq("sender", me).order("created_at", { ascending: false }).limit(400),
     ]);
-    const rows = [...(l.data || []), ...(m.data || [])];
+    const letters = ((l.data || []) as Row[]).filter((r) => r.body);
+    const messages = ((m.data || []) as Row[]).filter((r) => r.body);
     return {
-      letters: (l.data || []).map((r: any) => r.body).filter(Boolean),
-      messages: (m.data || []).map((r: any) => r.body).filter(Boolean),
+      letters,
+      messages,
       // local wall-clock hour of each piece — evidence for counted notices
-      hours: rows.filter((r: any) => r.body && r.created_at).map((r: any) => new Date(r.created_at).getHours()),
+      hours: [...letters, ...messages].filter((r) => r.created_at).map((r) => new Date(r.created_at!).getHours()),
     };
   } catch {
     return { letters: [], messages: [], hours: [] };
@@ -118,15 +110,95 @@ function topWords(texts: string[], n = 8): string[] {
     .map(([w]) => w);
 }
 
-export async function myAura(firstLine?: string | null): Promise<Aura> {
-  const local: string[] = [];
-  if (firstLine && firstLine.trim().length >= 3) local.push(firstLine.trim());
-  let sealedCount = 0;
+/* ── which of your text is in scope: letters and replies always; sealed
+   pages only when you turn them on (off by default — the owner's call) ── */
+const SCOPE_KEY = "kindredly_aura_scope";
+export interface AuraScope {
+  sealed: boolean;
+}
+export async function getAuraScope(): Promise<AuraScope> {
   try {
-    for (const e of await loadJournal()) {
+    const raw = await AsyncStorage.getItem(SCOPE_KEY);
+    return raw ? { sealed: false, ...(JSON.parse(raw) as Partial<AuraScope>) } : { sealed: false };
+  } catch {
+    return { sealed: false };
+  }
+}
+export async function setAuraScope(scope: AuraScope): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SCOPE_KEY, JSON.stringify(scope));
+  } catch {
+    /* the toggle just does not stick — never worth an alert */
+  }
+}
+
+/* counted, never read into — for the Habits lens */
+export function wordCounts(texts: string[], n = 6): [string, number][] {
+  const freq = new Map<string, number>();
+  for (const t of texts)
+    for (const w of (t.toLowerCase().match(/[\p{L}']{4,}/gu) || []))
+      if (!STOP.has(w)) freq.set(w, (freq.get(w) || 0) + 1);
+  return [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, n);
+}
+export function pauseCounts(texts: string[]): [string, number][] {
+  const all = texts.join("\n");
+  const c = (re: RegExp) => (all.match(re) || []).length;
+  return [
+    [". / 。", c(/[.。](?!\.)/g)],
+    ["? / ？", c(/[?？]/g)],
+    [", / ，", c(/[,，]/g)],
+    ["— / …", c(/[—–]|\.{3,}|…/g)],
+  ];
+}
+
+/* ── the sticker layer's memory: seats, challengers, retired stickers ── */
+const STATE_KEY = "kindredly_sticker_state";
+
+async function loadStickerState(): Promise<StickerState | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STATE_KEY);
+    return raw ? (JSON.parse(raw) as StickerState) : null;
+  } catch {
+    return null;
+  }
+}
+async function saveStickerState(next: StickerState, prev: StickerState | null): Promise<void> {
+  try {
+    const a = JSON.stringify(next);
+    if (prev && JSON.stringify(prev) === a) return;
+    await AsyncStorage.setItem(STATE_KEY, a);
+  } catch {
+    /* the seats are recomputed next time; nothing is lost but the debounce */
+  }
+}
+
+const EMPTY: Aura = {
+  phase: "empty",
+  texts: [],
+  pieceText: {},
+  stickers: null,
+  formed: 0,
+  pieces: 0,
+  dims: [],
+  locked: [],
+  sealed: [],
+  archetype: null,
+  draft: null,
+  sources: { letters: 0, sealed: 0, conversations: 0 },
+  commonWords: [],
+  nightOwl: false,
+};
+
+export async function myAura(firstLine?: string | null): Promise<Aura> {
+  const pieces: Piece[] = [];
+  if (firstLine && firstLine.trim().length >= 3) pieces.push(toPiece("hatch-line", "hatch", firstLine.trim(), "", null));
+  let sealedCount = 0;
+  const scope = await getAuraScope();
+  try {
+    for (const e of scope.sealed ? await loadJournal() : []) {
       if (e.id.startsWith("demo-")) continue;
       if (e.body && e.body.trim().length >= 3) {
-        local.push(e.body.trim());
+        pieces.push(toPiece(e.id, "sealed", e.body.trim(), e.date, null));
         sealedCount++;
       }
     }
@@ -134,48 +206,33 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     /* the sealed room stays sealed — the aura just reads less */
   }
   const mine = await fetchMyLetters();
-  const texts = [...local, ...mine.letters, ...mine.messages];
+  for (const r of mine.letters) pieces.push(toPiece(r.id, "letter", r.body, r.created_at, r.lang));
+  for (const r of mine.messages) pieces.push(toPiece(r.id, "reply", r.body, r.created_at, null));
 
-  const pieces = texts.length;
-  if (!pieces) {
-    return {
-      phase: "empty",
-      texts: [],
-      formed: 0,
-      pieces: 0,
-      dims: [],
-      locked: [],
-      sealed: [],
-      archetype: null,
-      draft: null,
-      sources: { letters: 0, sealed: 0, conversations: 0 },
-      commonWords: [],
-      nightOwl: false,
-    };
-  }
+  if (!pieces.length) return EMPTY;
 
+  const texts = pieces.map((p) => p.text);
+  const pieceText: Aura["pieceText"] = {};
+  for (const p of pieces) pieceText[p.id] = { text: p.text, source: p.source, createdAt: p.createdAt };
+
+  // the observation layer — deterministic over pieces + saved state. This is
+  // what the reader is told: phase, stickers, title, all quotable.
+  const prevState = await loadStickerState();
+  const { readout, state, phase } = readStickers(pieces, prevState, { now: new Date().toISOString(), hours: mine.hours });
+  void saveStickerState(state, prevState);
+
+  // the instrument — still the shape, the correspondent read, the vector
   const h = hatch(texts);
   const locked = h.dims.filter((d) => d.locked);
   const sealed = h.dims.filter((d) => !d.locked);
-  /* the owner's blend (design canvas, frozen): dimensions carry 70%,
-     sample volume 30% — so 9/9 off six pieces reads 88%, not a false
-     100%, and the last stretch to Formed is visibly about writing more */
-  const formed = 0.7 * (locked.length / h.dims.length) + 0.3 * Math.min(pieces / 10, 1);
-
-  const phase: AuraPhase =
-    locked.length <= 2
-      ? "forming"
-      : locked.length <= 5
-        ? "shaping"
-        : locked.length === 9 && pieces >= 10
-          ? "formed"
-          : "clearing";
+  const established = readout.observations.filter((o) => o.state === "established").length;
+  const formed = Math.min(1, 0.7 * (Math.min(established, 9) / 9) + 0.3 * Math.min(readout.windowPieces / 10, 1));
 
   let formedOn: string | null = null;
   if (phase === "formed") {
     try {
       const hist: AuraSnapshot[] = JSON.parse((await AsyncStorage.getItem(HIST_KEY)) || "[]");
-      formedOn = hist.find((x) => x.locked.length === 9)?.date ?? new Date().toISOString().slice(0, 10);
+      formedOn = hist.find((x) => x.phase === "formed")?.date ?? new Date().toISOString().slice(0, 10);
     } catch {
       formedOn = new Date().toISOString().slice(0, 10);
     }
@@ -184,8 +241,10 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   return {
     phase,
     texts,
+    pieceText,
+    stickers: readout,
     formed,
-    pieces,
+    pieces: pieces.length,
     dims: h.dims,
     locked,
     sealed,
@@ -209,12 +268,6 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
 export async function refreshFingerprint(firstLine?: string | null): Promise<void> {
   try {
     const mine = await fetchMyLetters();
-    /* THE HATCH LINE RIDES ALONG BY DEFAULT. Every existing caller invoked
-       this bare, so the first refresh after onboarding OVERWROTE the rich
-       hatch-corpus vector with one derived from a single published letter —
-       the fingerprint got thinner the moment you started writing. The line
-       lives in user_metadata (saveProfile syncs it there), so fetch it here
-       once instead of threading it through four call sites. */
     /* nothing published yet → nothing the hatch didn't already know. The
        hatch vector was built from EVERY fed thought; rebuilding here from
        the one saved line alone would make the fingerprint thinner. */
@@ -222,8 +275,8 @@ export async function refreshFingerprint(firstLine?: string | null): Promise<voi
     let line = firstLine;
     if (line == null && supabaseReady) {
       try {
-        const { data } = await supabase!.auth.getUser();
-        const fl = (data.user?.user_metadata as Record<string, unknown> | undefined)?.firstLine;
+        const { data } = await supabase!.auth.getSession();
+        const fl = (data.session?.user?.user_metadata as Record<string, unknown> | undefined)?.firstLine;
         if (typeof fl === "string") line = fl;
       } catch {
         /* the corpus alone is still worth refreshing */
@@ -231,8 +284,8 @@ export async function refreshFingerprint(firstLine?: string | null): Promise<voi
     }
     const parts = [
       ...(line && line.trim().length >= 3 ? [line.trim()] : []),
-      ...mine.letters,
-      ...mine.messages,
+      ...mine.letters.map((r) => r.body),
+      ...mine.messages.map((r) => r.body),
     ];
     if (!parts.length) return;
     const corpus = parts.join("\n\n");
@@ -248,10 +301,21 @@ const HIST_KEY = "kindredly_aura_history";
 
 export interface AuraSnapshot {
   date: string; // ISO day
-  locked: string[]; // dim keys locked as of this day
+  locked: string[]; // dim keys locked as of this day (the instrument)
+  /** established sticker ids as of this day */
+  stickers?: string[];
+  /** "quick-observer" once formed, "observer" while partial, null before */
+  title?: string | null;
+  phase?: AuraPhase;
   archetype: string | null;
   pieces: number;
 }
+
+const titleKey = (a: Aura): string | null => {
+  const t = a.stickers?.title;
+  if (!t || !t.noun) return null;
+  return t.adjective ? `${t.adjective}-${t.noun}` : t.noun;
+};
 
 export async function recordAuraSnapshot(a: Aura): Promise<AuraSnapshot[]> {
   try {
@@ -262,6 +326,9 @@ export async function recordAuraSnapshot(a: Aura): Promise<AuraSnapshot[]> {
     const snap: AuraSnapshot = {
       date: today,
       locked: a.locked.map((d) => d.key),
+      stickers: (a.stickers?.home ?? []).filter((s) => s.state === "established").map((s) => s.stickerId).sort(),
+      title: titleKey(a),
+      phase: a.phase,
       archetype: a.archetype?.id ?? null,
       pieces: a.pieces,
     };
@@ -269,8 +336,9 @@ export async function recordAuraSnapshot(a: Aura): Promise<AuraSnapshot[]> {
     // not a heartbeat
     const changed =
       !last ||
-      last.archetype !== snap.archetype ||
-      last.locked.join() !== snap.locked.join();
+      last.title !== snap.title ||
+      (last.stickers ?? []).join() !== (snap.stickers ?? []).join() ||
+      last.phase !== snap.phase;
     if (changed && a.pieces > 0) {
       hist.push(snap);
       await AsyncStorage.setItem(HIST_KEY, JSON.stringify(hist.slice(-40)));

@@ -11,6 +11,7 @@ import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
+import { WrenStageProvider } from "../lib/wren-stage";
 import { useAppFonts } from "../theme/fonts";
 import { loadLang } from "../lib/i18n";
 import "../data/strings"; // registers every surface's catalog
@@ -97,6 +98,7 @@ export default function RootLayout() {
         <AuthProvider>
           <EntitlementProvider>
             <WrenSkinProvider>
+            <WrenStageProvider>
             <FingerprintOnLaunch />
             <KnockRouting />
             <View style={{ flex: 1, backgroundColor: P.paper }}>
@@ -123,6 +125,7 @@ export default function RootLayout() {
               {/* the launch, over everything, until it has lifted away */}
               {booting && <SameShape onDone={() => setBooting(false)} />}
             </View>
+            </WrenStageProvider>
             </WrenSkinProvider>
           </EntitlementProvider>
         </AuthProvider>

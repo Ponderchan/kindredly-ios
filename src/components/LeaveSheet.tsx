@@ -38,13 +38,21 @@ export function LeaveSheet({
   body,
   actions,
   cancelLabel,
+  bottomExtra = 0,
   onCancel,
 }: {
   open: boolean;
   title: string;
   body: string;
   actions: LeaveAction[];
-  cancelLabel?: string;
+  /** null hides the cancel row entirely — for a sheet whose single action
+      IS the dismissal, where a second "go back" row would be a question the
+      reader was never asked. */
+  cancelLabel?: string | null;
+  /** extra room under the buttons, for a sheet raised inside a tab screen:
+      the tab bar draws OVER this one, so without it the bottom row sits
+      behind the bar — untappable, and invisible. */
+  bottomExtra?: number;
   onCancel: () => void;
 }) {
   useLang(); // repaint when the reader changes language
@@ -65,7 +73,7 @@ export function LeaveSheet({
           backgroundColor: P.paper,
           borderTopWidth: 1,
           borderTopColor: P.ink,
-          paddingBottom: Math.max(insets.bottom, 12) + 6,
+          paddingBottom: Math.max(insets.bottom, 12) + 6 + bottomExtra,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, ...rule }}>
@@ -113,9 +121,11 @@ export function LeaveSheet({
             </Pressable>
           ))}
 
-          <Pressable onPress={onCancel} style={{ paddingVertical: 16, alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
-          </Pressable>
+          {cancelLabel === null ? null : (
+            <Pressable onPress={onCancel} style={{ paddingVertical: 16, alignItems: "center" }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
+            </Pressable>
+          )}
         </View>
       </Animated.View>
     </View>

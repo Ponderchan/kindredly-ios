@@ -57,7 +57,7 @@ export function Introduction({
         </View>
 
         <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-          <WrenBird size={44} mood="content" />
+          <WrenBird size={44} mood="content" stage="wren" />
 
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
             {t("intro.body")}

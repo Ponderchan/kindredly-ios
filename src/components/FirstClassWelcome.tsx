@@ -96,7 +96,7 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
         <AirmailEdge w={360} />
 
         <View style={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 26, alignItems: "center" }}>
-          <WrenBird size={92} mood="delight" accessory="scarf" />
+          <WrenBird size={92} mood="delight" accessory="scarf" stage="wren" />
 
           {/* the strike — absolutely placed so it lands ACROSS her, the way a
               postmark lands across whatever is already on the envelope */}

@@ -286,7 +286,7 @@ export default function ChatScreen() {
                     paddingVertical: 11,
                   }}
                 >
-                  <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink }}>{m.body}</Text>
+                  <Text style={{ fontFamily: PF.letterSerif, fontSize: 15.5, lineHeight: 24, color: P.ink }}>{m.body}</Text>
                   {!!time && (
                     <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40, alignSelf: "flex-end", marginTop: 6 }}>{time}</Text>
                   )}
@@ -398,7 +398,7 @@ export default function ChatScreen() {
               placeholder={detail?.revealed ? t("th.sayTo", { name }) : t("ch.ph")}
               placeholderTextColor={P.ink40}
               multiline
-              style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
+              style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letterSerif, fontSize: 16, lineHeight: 23, color: P.ink }}
             />
           </View>
           <Pressable

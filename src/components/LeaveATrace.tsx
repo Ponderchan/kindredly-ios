@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from "react-native";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule } from "../theme/post";
@@ -18,12 +19,64 @@ import { t, useLang } from "../lib/i18n";
    lesson: a row that looks like a feature and does nothing is worse than
    no row, but a row that plainly says "not yet" is an honest promise. */
 
+export type TraceKind = "note" | "ask" | "moment" | "song";
+
 export interface TraceAction {
-  id: string;
+  id: TraceKind;
   title: string;
   sub: string;
-  glyph: string;
   locked?: boolean;
+}
+
+/* line icons in the post's own hand — the sheet is a list of things to
+   leave, so each row is drawn, not pasted in from the emoji keyboard */
+function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
+  const c = { stroke: color, strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
+  switch (kind) {
+    case "note":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Path d="M4 2.5h7l3 3v10H4z" {...c} />
+          <Path d="M11 2.5v3h3" {...c} />
+          <Line x1={6.5} y1={9} x2={11.5} y2={9} {...c} />
+          <Line x1={6.5} y1={12} x2={10} y2={12} {...c} />
+        </Svg>
+      );
+    case "ask":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Path d="M3 3.5h12v8H8.5L5.5 14v-2.5H3z" {...c} />
+          <Path d="M7.6 6.6a1.5 1.5 0 1 1 2.1 1.4c-.5.3-.7.6-.7 1.1" {...c} />
+          <Circle cx={9} cy={10.6} r={0.5} fill={color} />
+        </Svg>
+      );
+    case "moment":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Rect x={2.5} y={5} width={13} height={9.5} {...c} />
+          <Path d="M6.5 5l1-2h3l1 2" {...c} />
+          <Circle cx={9} cy={9.7} r={2.4} {...c} />
+        </Svg>
+      );
+    case "song":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Path d="M7 13.5V4.5l7-1.5v9" {...c} />
+          <Circle cx={5} cy={13.5} r={2} {...c} />
+          <Circle cx={12} cy={12} r={2} {...c} />
+        </Svg>
+      );
+  }
+}
+
+function LockIcon({ color }: { color: string }) {
+  const c = { stroke: color, strokeWidth: 1.3, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
+  return (
+    <Svg width={14} height={14} viewBox="0 0 14 14">
+      <Rect x={2.5} y={6} width={9} height={6.5} {...c} />
+      <Path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" {...c} />
+    </Svg>
+  );
 }
 
 export function LeaveATrace({
@@ -75,13 +128,13 @@ export function LeaveATrace({
               })}
             >
               <View style={{ width: 34, height: 34, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 15 }}>{a.glyph}</Text>
+                <TraceIcon kind={a.id} color={P.ink} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: PF.letter, fontSize: 16.5, color: P.ink }}>{a.title}</Text>
                 <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: P.ink40, marginTop: 1 }}>{a.sub}</Text>
               </View>
-              <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>{a.locked ? "🔒" : "›"}</Text>
+              {a.locked ? <LockIcon color={P.ink40} /> : <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>›</Text>}
             </Pressable>
           ))}
         </View>

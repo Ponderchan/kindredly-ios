@@ -76,6 +76,20 @@ export const AURA_AVATARS: AuraAvatarDef[] = [
 /* Which of the 25 is yours: seeded by WHO you are and WHAT leads your
    writing — the pick can drift while the aura is still forming (it lives
    behind coarse pixels there), and settles as the leading signal does. */
+/** the faces offered at onboarding and in Edit Profile — the owner's fifty
+    portraits, m and f pools interleaved so the first row is never one pool */
+export const FACES: AuraAvatarDef[] = (() => {
+  const m = AURA_AVATARS.filter((a) => a.pool === "m");
+  const f = AURA_AVATARS.filter((a) => a.pool === "f");
+  const out: AuraAvatarDef[] = [];
+  for (let i = 0; i < Math.max(m.length, f.length); i++) {
+    if (f[i]) out.push(f[i]);
+    if (m[i]) out.push(m[i]);
+  }
+  return out;
+})();
+export const getFace = (id?: string | null): AuraAvatarDef | null => AURA_AVATARS.find((a) => a.id === id) ?? null;
+
 export function pickAuraAvatar(pool: "m" | "f", uid: string, topDimKey?: string | null): AuraAvatarDef {
   const set = AURA_AVATARS.filter((a) => a.pool === pool);
   return set[hashStr("aura-av:" + uid + ":" + (topDimKey || "")) % set.length];

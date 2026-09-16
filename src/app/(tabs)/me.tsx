@@ -4,9 +4,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
-import { C, F, cardStyle, shadow } from "../../theme/tokens";
 import { t, useLang } from "../../lib/i18n";
-import { P, PF, rule } from "../../theme/post";
+import { P, PF } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
@@ -21,9 +20,9 @@ import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
 import { WHEREABOUTS_META, recordStageDate, whereabouts } from "../../lib/whereabouts";
-import { AuraCard } from "../../components/AuraCard";
+import { AuraCard, W14 } from "../../components/AuraCard";
+import { WrenBird } from "../../components/WrenBird";
 import { CofounderMark } from "../../components/CofounderMark";
-import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -147,28 +146,29 @@ export default function MeTab() {
     await auth.saveProfile({ handle: newName, avatarId: newAvatarId });
   };
 
+  const stageKey = `me.stage.${stageFloor}`;
+
   return (
-    /* Readings, counts and growth — the system talking about you rather than
-       anything you wrote — so this is desk, not paper. */
+    /* W14 · Me tab final: name, the courier's card, the writing aura, the
+       fare. White cards on the lavender ground; tapping the courier opens
+       her room in place. */
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
-      {/* the same plate Today and Sealed carry */}
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("me.header")}</Text>
-        <Pressable onPress={() => router.push("/settings")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 22, paddingTop: 10, paddingBottom: 4 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2.6, color: W14.ink }}>{t("me.header")}</Text>
+        <Pressable onPress={() => router.push("/settings")} hitSlop={10} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
           <Gear />
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-        {/* who you are here — your name in your own register, the numbers filed
-            in the machine's */}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        {/* who you are here */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <Pressable onPress={() => setEditing(true)} hitSlop={6}>
-            <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={58} />
+            <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={52} />
           </Pressable>
           <Pressable onPress={() => setEditing(true)} style={{ flex: 1 }} hitSlop={6}>
-            <Text style={{ fontFamily: PF.letter, fontSize: 27, fontWeight: "600", color: P.ink }}>{name}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 5 }}>
+            <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "700", letterSpacing: -0.5, color: W14.ink }}>{name}</Text>
+            <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.2, color: "rgba(30,27,53,0.5)", marginTop: 6 }}>
               {stats.kindreds === 1
                 ? t("me.statsOne", { day: stats.day, letters: stats.lettersSent, sealed: stats.journalN })
                 : t("me.statsMany", { day: stats.day, letters: stats.lettersSent, sealed: stats.journalN, kindreds: stats.kindreds })}
@@ -181,36 +181,47 @@ export default function MeTab() {
           </Pressable>
         </View>
 
-        {/* two rooms: You (your voice) · Wren (your companion) */}
-        <View style={{ flexDirection: "row", marginTop: 20, borderWidth: 1, borderColor: P.ink }}>
-          {(
-            [
-              ["you", t("me.roomYou")],
-              ["wren", wren],
-            ] as const
-          ).map(([id, label]) => {
-            const on = room === id;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setRoom(id)}
-                style={{ flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 11, backgroundColor: on ? P.ink : "transparent" }}
-              >
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 12.5, letterSpacing: 1.4, color: on ? P.paper : P.ink60 }}>
-                  {label.toUpperCase()}
-                </Text>
-                {id === "wren" && <View style={{ width: 7, height: 7, backgroundColor: on ? P.paper : tone }} />}
-              </Pressable>
-            );
-          })}
-        </View>
+        {/* the courier's card — tap to open her room */}
+        <Pressable
+          onPress={() => setRoom(room === "wren" ? "you" : "wren")}
+          style={({ pressed }) => ({ marginTop: 14, backgroundColor: "#FFFFFF", borderRadius: 16, flexDirection: "row", overflow: "hidden", shadowColor: "#1E1B35", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, opacity: pressed ? 0.92 : 1 })}
+        >
+          <View style={{ width: 104, backgroundColor: where.state === "unsent" ? "#FFF3DC" : "#E4E1FA", overflow: "hidden" }}>
+            {/* the route: two posts and a dashed line, the courier above it */}
+            <View style={{ position: "absolute", left: 10, right: 10, top: 50, borderTopWidth: 2, borderStyle: "dashed", borderColor: "rgba(91,85,255,0.35)" }} />
+            <View style={{ position: "absolute", left: 8, top: 44, width: 12, height: 12, borderRadius: 3, backgroundColor: P.pen }} />
+            <View style={{ position: "absolute", right: 8, top: 42, width: 14, height: 16, borderWidth: 2, borderColor: P.pen, borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
+            <View style={{ position: "absolute", left: 30, top: 8, transform: [{ rotate: where.state === "unsent" ? "0deg" : "-12deg" }] }}>
+              <WrenBird size={46} mood={WHEREABOUTS_META[where.state].mood} />
+            </View>
+            {where.state !== "unsent" && where.state !== "home" && (
+              <View style={{ position: "absolute", left: 66, top: 46, width: 16, height: 11, backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#DAD6EE", transform: [{ rotate: "-12deg" }] }}>
+                <View style={{ height: 3, backgroundColor: P.post }} />
+              </View>
+            )}
+            <Text style={{ position: "absolute", left: 0, right: 0, bottom: 6, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.45)" }}>
+              {t("me.dayN", { n: stats.day })}
+            </Text>
+          </View>
+          <View style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 12, justifyContent: "center", gap: 5 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: W14.ink }}>{wren}</Text>
+              <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: where.state === "unsent" ? "#FFF3DC" : P.penWash }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: where.state === "unsent" ? W14.goldInk : P.pen }}>{t(stageKey)}</Text>
+              </View>
+            </View>
+            <Text style={{ fontFamily: PF.letter, fontSize: 13, color: W14.ink }}>{where.line}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 11, color: "rgba(30,27,53,0.5)" }} numberOfLines={1}>{where.bubble}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 16, color: "rgba(30,27,53,0.35)" }}>{room === "wren" ? "▾" : "›"}</Text>
+            </View>
+          </View>
+        </Pressable>
 
         {room === "you" ? (
           <>
-            <WrenSaysOnce id="me" line={t("me.intro")} />
-            {/* the aura — a letter about you, from Wren, mid-draft */}
-            {aura && (
-              <View style={{ marginTop: 14 }}>
+            <View style={{ marginTop: 12 }}>
+              {aura && (
                 <AuraCard
                   aura={aura}
                   seed={seed}
@@ -219,10 +230,9 @@ export default function MeTab() {
                   onShare={() => router.push("/aura-card")}
                   onWrite={() => router.push("/compose")}
                 />
-              </View>
-            )}
+              )}
+            </View>
 
-            {/* the fare's front door — a stub torn from the ticket it opens */}
             <FirstClassStub
               premium={premium}
               cofounderNo={cofounderNo}
@@ -230,26 +240,24 @@ export default function MeTab() {
             />
           </>
         ) : (
-          <>
-            <View style={{ marginTop: 14 }}>
-              <WrenHome
-                stats={stats}
-                threads={threads}
-                pieces={aura?.pieces ?? 0}
-                accessory={accessory}
-                premium={premium}
-                stageFloor={stageFloor}
-                joinedAt={user?.created_at ?? null}
-                topWord={aura?.commonWords[0] ?? null}
-                onEquip={equipWren}
-                onLocked={() => router.push("/paywall?src=wardrobe_lock")}
-                onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
-                onOpenKeepsake={(id) => router.push(`/keepsake/${id}`)}
-                cofounderNo={cofounderNo}
-                onPlus={() => router.push("/paywall?src=journey_archive")}
-              />
-            </View>
-          </>
+          <View style={{ marginTop: 12 }}>
+            <WrenHome
+              stats={stats}
+              threads={threads}
+              pieces={aura?.pieces ?? 0}
+              accessory={accessory}
+              premium={premium}
+              stageFloor={stageFloor}
+              joinedAt={user?.created_at ?? null}
+              topWord={aura?.commonWords[0] ?? null}
+              onEquip={equipWren}
+              onLocked={() => router.push("/paywall?src=wardrobe_lock")}
+              onOpenThread={(t) => router.push(t.revealed ? `/room/${t.id}` : `/chat/${t.id}`)}
+              onOpenKeepsake={(id) => router.push(`/keepsake/${id}`)}
+              cofounderNo={cofounderNo}
+              onPlus={() => router.push("/paywall?src=journey_archive")}
+            />
+          </View>
         )}
       </ScrollView>
 

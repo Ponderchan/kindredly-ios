@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { localeTag } from "../lib/format";
+import { t } from "../lib/i18n";
 import { Pressable, Text, View } from "react-native";
 import { F } from "../theme/tokens";
 import { P, PF } from "../theme/post";
@@ -40,6 +41,9 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
   const lead = first.getDay(); // 0=Sun
   const days = new Date(ym.y, ym.m + 1, 0).getDate();
   const monthName = first.toLocaleDateString(localeTag(), { month: "long" }).toUpperCase();
+  const prefix = `${ym.y}-${String(ym.m + 1).padStart(2, "0")}-`;
+  let inMonth = 0;
+  for (const [k, c] of byDay) if (k.startsWith(prefix)) inMonth += c.count;
 
   const cells: (number | null)[] = [];
   for (let i = 0; i < lead; i++) cells.push(null);
@@ -116,6 +120,11 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
           );
         })}
       </View>
+
+      {/* the month, summed — so an empty grid still says something */}
+      <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>
+        {inMonth === 0 ? t("jt.monthNone") : inMonth === 1 ? t("jt.month1") : t("jt.monthN", { n: inMonth })}
+      </Text>
     </View>
   );
 }

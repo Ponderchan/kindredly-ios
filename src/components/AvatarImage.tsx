@@ -2,10 +2,12 @@ import { View } from "react-native";
 import { Image } from "expo-image";
 import { SvgXml } from "react-native-svg";
 import { getAvatar } from "../data/avatar-lib";
+import { getFace } from "../data/aura-avatar-lib";
 import { StrangerAvatar } from "./StrangerAvatar";
 
-/* Your face on Kindredly — a photo you chose, or one of the 30 hand-drawn
-   library avatars. Falls back to the generative glyph. */
+/* Your face on Kindredly — a photo you chose, one of the fifty portraits,
+   or (for accounts that chose one before 2026-09-16) one of the thirty
+   hand-drawn faces, which stay renderable. Falls back to the glyph. */
 export function AvatarImage({
   id,
   photoUri,
@@ -25,6 +27,16 @@ export function AvatarImage({
       <Image
         source={{ uri: photoUri }}
         style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#EDEDEA" }}
+        contentFit="cover"
+      />
+    );
+  }
+  const face = getFace(id);
+  if (face) {
+    return (
+      <Image
+        source={face.src}
+        style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#EFEDFA" }}
         contentFit="cover"
       />
     );

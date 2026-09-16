@@ -1,111 +1,79 @@
-import { speakAs, useWrenName } from "../lib/wren-name";
-import { openPrivacy, openTerms } from "../lib/legal";
-import { t as tr, useLang } from "../lib/i18n";
-import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Animated, Easing, Image } from "react-native";
-import Svg, { Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
-import { WrenBird } from "../components/WrenBird";
-import { keepsake } from "../data/keepsakes";
-import { loadShelf, type Minted } from "../lib/keepsakes";
-import { fetchThreads, type ThreadSummary } from "../lib/db";
+import { W14 } from "../components/AuraCard";
 import { CofounderMark } from "../components/CofounderMark";
-import { track, type PaywallSource } from "../lib/track";
+import { FirstClassWelcome } from "../components/FirstClassWelcome";
+import { t, useLang } from "../lib/i18n";
+import { useAuth } from "../lib/auth";
+import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
-import { FirstClassWelcome } from "../components/FirstClassWelcome";
-import { Seal } from "../components/Seal";
+import { openPrivacy, openTerms } from "../lib/legal";
+import { track, type PaywallSource } from "../lib/track";
 
-/* FIRST CLASS — a fare, not a feature list.
+/* FIRST CLASS — the boarding pass, with the fares on it (owner's sheet).
    ────────────────────────────────────────────────────────────────────────
-   Every subscription screen in the world is a bulleted card with a green
-   tick column. This product is a postal service, and the postal service
-   already has a word for premium and an object for it: a ticket. So the
-   page is one — airmail edges, a torn stub per fare, and a bird waiting
-   with it. Nothing here is a "plan"; it is how you travel.
+   One page, one decision. The pass says who is travelling and what the
+   fare opens; the stub under the perforation holds the fares themselves,
+   so nobody is sent to a second screen to find out the price. Paid, the
+   same pass reads MEMBERSHIP ACTIVE and the button manages the
+   subscription through Apple.
 
-   THE THREE FARES. Monthly exists to make Annual look like what it is.
-   The lifetime fare is not a discount, it is a ROLE: a numbered
-   Cofounder, limited, with a permanent ring on her leg — the one thing
-   that can't be bought later because the numbers run out.
+   EVERY LINE IS A GATE THAT EXISTS IN THE CODE: more kindreds, voice
+   letters, the monthly report, the wardrobe. Nothing else is promised. */
 
-   EVERY LINE IS A GATE THAT EXISTS IN THE CODE. The old list promised
-   Wren's Peek (zero callers — and the LLM read of a real person we
-   deliberately refused to build), an Aura Portrait (free), and a wax seal
-   nothing gates. Selling what isn't there is the fastest way to lose a
-   reader on the day they pay you. */
+const NIGHT = "#1E1B35";
+const GOLD = "#D8A63F";
+const GOLD_INK = "#8A6E20";
+const COFOUNDERS_TOTAL = 500;
 
-const GOLD = "#C9A227";
-const NIGHT = "#221E3D";
-
-/* THE ROAD PAST THE GATE. Face-down until you peel one — the offer is
-   discovered, not recited. Each wears a keepsake's art, so the stamps on
-   this page speak the same language as the shelf in her room. */
-const BEYOND: { id: string; title: string; sub: string; icon: string }[] = [
-  { id: "kindreds", title: "More Kindreds", sub: "the first one is always free", icon: "three-kindreds" },
-  { id: "voice", title: "Voice Letters", sub: "say it when typing isn't enough", icon: "first-voice-letter" },
-  /* "Monthly Courier Letter" read as post arriving FROM the courier — a
-     delivery, not a reading. The letter is about YOU; she only carries
-     it, the way she carries everything. */
-  { id: "report", title: "Monthly Letter About You", sub: "a closer read of how your writing changed", icon: "first-anniversary" },
-  { id: "wardrobe", title: "Your Courier's Wardrobe", sub: "every look and seasonal piece she owns", icon: "otis-changed" },
-];
-
-/* One line, not three. The other two promises (her speed, your history)
-   are still true and still enforced in code — they live in How Kindredly
-   Works now, where someone reads rather than scans. */
-const FOOT_KEY = "pw.foot";
-
-/* shown until RevenueCat + the App Store products exist, so the screen is
-   reviewable and the fares can be judged before they can be bought */
-/* The fare ladder is a design decision, not a dashboard setting. RevenueCat
-   returns packages in whatever order the offering happens to list them, and
-   nobody will remember to go check that — so the order is fixed here, where
-   the reasoning lives: annual first, because it is the anchor the other two
-   are read against, then monthly, then the lifetime seat. */
+/* the fare ladder is a design decision, not a dashboard setting: annual is
+   the anchor the others are read against, then monthly, then the seat */
 const FARE_ORDER: IapPackage["period"][] = ["annual", "monthly", "lifetime"];
 const fareRank = (p: IapPackage) => {
   const i = FARE_ORDER.indexOf(p.period);
-  return i === -1 ? FARE_ORDER.length : i; // anything unrecognised sinks
+  return i === -1 ? FARE_ORDER.length : i;
 };
-
+/* shown until RevenueCat + the App Store products exist, so the page is
+   reviewable before the fares can be bought */
 const PLACEHOLDERS: IapPackage[] = [
   { id: "annual", priceString: "$39.99 / year", title: "Annual", period: "annual", raw: null },
   { id: "monthly", priceString: "$6.99 / month", title: "Monthly", period: "monthly", raw: null },
   { id: "lifetime", priceString: "$129", title: "Lifetime", period: "lifetime", raw: null },
 ];
 
-const COFOUNDERS_TOTAL = 500;
+/* the store's own string, taken apart only far enough to show a per-month
+   figure and a saving — never re-priced */
+function money(priceString: string): { amount: number; symbol: string; short: string } | null {
+  const m = priceString.match(/^\s*([^\d\s]*)\s*([\d.,]+)/);
+  if (!m) return null;
+  const amount = parseFloat(m[2].replace(",", "."));
+  if (!Number.isFinite(amount)) return null;
+  return { amount, symbol: m[1] || "", short: `${m[1] || ""}${m[2]}` };
+}
 
 export default function Paywall() {
+  useLang();
   const router = useRouter();
-  /* WHICH DOOR THEY CAME THROUGH. Eight surfaces open this screen and
-     they are not the same offer — someone stopped at the kindred gate is
-     mid-relationship, someone tapping a hat is browsing. Without the
-     source every number here averages those two into nonsense. */
+  const wren = useWrenName();
+  const { handle } = useAuth();
+  const { premium, refresh } = useEntitlement();
   const { src } = useLocalSearchParams<{ src?: string }>();
   const source = (src || "unknown") as PaywallSource;
-  const wren = useWrenName();
-  useLang(); // repaint on language change
-  const { refresh } = useEntitlement();
+
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [welcome, setWelcome] = useState<"plus" | "lifetime" | null>(null);
-  const [shelf, setShelf] = useState<Minted[]>([]);
-  const [threads, setThreads] = useState<ThreadSummary[]>([]);
 
   useEffect(() => {
     track("paywall_shown", { source });
   }, [source]);
-
   useEffect(() => {
     let alive = true;
-    loadShelf().then((k) => alive && setShelf(k));
-    fetchThreads().then((t) => alive && setThreads(t || []));
     iapGetPackages().then((pkgs) => {
       if (!alive) return;
       const list = [...(pkgs.length ? pkgs : PLACEHOLDERS)].sort((a, b) => fareRank(a) - fareRank(b));
@@ -118,15 +86,20 @@ export default function Paywall() {
   }, []);
 
   const chosen = packages.find((p) => p.id === selected);
-  const lifetime = chosen?.period === "lifetime";
+  const annual = packages.find((p) => p.period === "annual");
+  const monthly = packages.find((p) => p.period === "monthly");
+  const aM = annual ? money(annual.priceString) : null;
+  const mM = monthly ? money(monthly.priceString) : null;
+  const saving = aM && mM && mM.amount > 0 ? Math.round((1 - aM.amount / (mM.amount * 12)) * 100) : null;
 
+  const back = () => {
+    track("paywall_dismissed", { source, fare: chosen?.period ?? "none" });
+    router.canGoBack() ? router.back() : router.replace("/(tabs)/me");
+  };
   const subscribe = async () => {
     if (!chosen || busy) return;
     if (!IAP_READY || !chosen.raw) {
-      Alert.alert(
-        tr("pw.almost.title"),
-        tr("pw.almost.body"),
-      );
+      Alert.alert(t("pw.almost.title"), t("pw.almost.body"));
       return;
     }
     setBusy(true);
@@ -136,28 +109,19 @@ export default function Paywall() {
     if (res.ok) {
       track("purchase_done", { source, fare: chosen.period, price: chosen.priceString });
       await refresh();
-      /* THE PRODUCT SAYS SOMETHING NOW. This used to be `router.back()` —
-         the paywall simply vanished, leaving Apple's receipt sheet as the
-         last word on the most important decision anyone makes here. A
-         receipt is not a welcome. */
       setWelcome(chosen.period === "lifetime" ? "lifetime" : "plus");
     } else if (!res.cancelled) {
       track("purchase_failed", { source, fare: chosen.period });
-      Alert.alert(tr("pw.purchase.title"), tr("pw.purchase.fail"));
+      Alert.alert(t("pw.purchase.title"), t("pw.purchase.fail"));
     }
   };
-
   const restore = async () => {
     if (busy) return;
     setBusy(true);
     const ok = await iapRestore();
     setBusy(false);
     await refresh();
-    if (ok) {
-      setWelcome("plus");
-      return;
-    }
-    Alert.alert(tr("pw.nothingRestore"), tr("pw.nothingRestoreBody"));
+    Alert.alert(ok ? t("pw.restored") : t("pw.nothingRestore"), ok ? t("pw.restoredBody") : t("pw.nothingRestoreBody"));
   };
 
   if (welcome) {
@@ -168,344 +132,164 @@ export default function Paywall() {
     );
   }
 
+  const lifetime = !premium && chosen?.period === "lifetime";
+  /* the pass lists what the chosen fare opens. First Class: the four gates
+     that exist in code. The Lifetime seat: the cofounder's marks — and all
+     of First Class underneath, said once. */
+  const benefits: [string, string][] = lifetime
+    ? [
+        [t("pw.cf.number"), t("pw.cf.numberSub", { n: COFOUNDERS_TOTAL })],
+        [speakAs(t("pw.cf.ring", { wren }), wren), speakAs(t("pw.cf.ringSub"), wren)],
+        [t("pw.cf.first"), t("pw.cf.firstSub")],
+        [t("pw.cf.letter"), speakAs(t("pw.cf.letterSub"), wren)],
+      ]
+    : [
+        [t("fc.b1"), t("fc.b1s")],
+        [t("fc.b2"), t("fc.b2s")],
+        [t("fc.b3"), t("fc.b3s")],
+        [t("fc.b4", { wren }), t("fc.b4s")],
+      ];
+  const glyphs = lifetime ? ["■", "■", "■", "■"] : ["◎", "✉", "▤", "✦"];
+  const price = chosen ? (money(chosen.priceString)?.short ?? chosen.priceString) : "";
+  const ctaLabel = premium
+    ? t("fc.manage")
+    : !chosen
+      ? t("fc.board")
+      : lifetime
+        ? `${t("pw.cta.cofounder")} · ${price}`
+        : `${t("fc.board")} · ${price} ${chosen.period === "annual" ? t("fc.perYr") : t("fc.perMo")}`;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ paddingHorizontal: 18, paddingTop: 4, flexDirection: "row", justifyContent: "flex-end" }}>
-        <Pressable
-          onPress={() => {
-            track("paywall_dismissed", { source, fare: chosen?.period ?? "none" });
-            router.back();
-          }}
-          hitSlop={10}
-          style={{ padding: 8 }}
-        >
-          <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink40 }}>✕</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: NIGHT }} edges={["top", "bottom"]}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
+        <Pressable onPress={back} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: "#FFFFFF" }}>‹</Text>
         </Pressable>
+        <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.6, color: GOLD }}>{t("me.firstClass")}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
-        {/* ── the ticket ── */}
-        <View style={{ borderWidth: 1.5, borderColor: P.ink }}>
-          <AirmailEdge />
-          <View style={{ paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16 }}>
-            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 2.4, color: P.ink40 }}>{tr("pw.fare")}</Text>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 27, letterSpacing: 1.4, color: P.ink, marginTop: 6 }}>
-                  {tr("pw.firstClass")}
-                </Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 8, paddingRight: 4 }}>
-                  {tr("pw.hero.sub")}
-                </Text>
-              </View>
-              <View style={{ alignItems: "center", paddingTop: 6 }}>
-                <WrenBird size={64} mood="delight" />
-                <Text style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 1.4, color: P.ink40, marginTop: 4 }}>
-                  {wren.toUpperCase()} · {tr("pw.carrier")}
-                </Text>
-              </View>
-            </View>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 24, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <Text style={{ fontFamily: PF.serif, fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : t("fc.introHead")}</Text>
+        <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: "rgba(255,255,255,0.62)", marginTop: 10 }}>
+          {premium ? t("fc.paidIntroSub", { wren }) : t("fc.introSub")}
+        </Text>
+
+        {/* ── the boarding pass ── */}
+        <View style={{ marginTop: 20, backgroundColor: "#F9F8FF", borderRadius: 18, overflow: "hidden" }}>
+          <View style={{ flexDirection: "row", height: 6 }}>
+            {Array.from({ length: 40 }, (_, i) => (
+              <View key={i} style={{ flex: 1, backgroundColor: i % 4 === 0 ? P.pen : i % 4 === 2 ? GOLD : "#F9F8FF" }} />
+            ))}
           </View>
-          <AirmailEdge />
-        </View>
-
-        {/* ── YOUR ROUTE: what she has already carried you through, and the
-            exact place it stops. The offer is your own history with a gate
-            drawn across it, not a list of features you have to imagine. ── */}
-        <Route shelf={shelf} threads={threads} wren={wren} />
-
-        {/* ── the fares ── */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 30, marginBottom: 12 }}>
-          {tr("pw.chooseFare")}
-        </Text>
-        <View style={{ gap: 11 }}>
-          {packages.map((p) => (
-            <View key={p.id}>
-              <Stub
-                pkg={p}
-                on={selected === p.id}
-                onPress={() => {
-                  setSelected(p.id);
-                  track("fare_selected", { source, fare: p.period });
-                }}
-                wren={wren}
-              />
-              {/* the founder's own marks — shown only when the fare is
-                  chosen, so picking it is itself a small reveal */}
-              {p.period === "lifetime" && selected === p.id && <CofounderMarks wren={wren} />}
+          <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.passenger")}</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.messenger")}</Text>
             </View>
-          ))}
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{handle || "you"}</Text>
+              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{wren}</Text>
+            </View>
+            {lifetime && (
+              /* the mark itself, as it will sit on their own desk — the thing
+                 being sold is visible before it is bought */
+              <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#EAE6F5" }}>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: GOLD_INK }}>{t("pw.cf.title")}</Text>
+                <View style={{ alignItems: "flex-start", marginTop: 10 }}>
+                  <CofounderMark no={47} size="lg" />
+                </View>
+                <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 7 }}>{t("pw.nameEverywhere")}</Text>
+              </View>
+            )}
+            <View style={{ marginTop: 16, gap: 11 }}>
+              {benefits.map(([title, sub], i) => (
+                <View key={title} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  {lifetime ? (
+                    <View style={{ width: 26, alignItems: "center" }}>
+                      <View style={{ width: 9, height: 9, backgroundColor: GOLD }} />
+                    </View>
+                  ) : (
+                    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#E4E1FA", alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontFamily: PF.mono, fontSize: 11.5, color: P.pen }}>{glyphs[i]}</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: W14.ink }}>{title}</Text>
+                    <Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(30,27,53,0.55)", marginTop: 1 }}>{sub}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+            {lifetime && (
+              <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: GOLD_INK, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#EAE6F5" }}>{t("pw.cf.foot")}</Text>
+            )}
+          </View>
+
+          {/* ── the stub: the fares, or the active membership ── */}
+          <View style={{ position: "relative", borderTopWidth: 2, borderStyle: "dashed", borderColor: "#C9C5E6", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
+            <View style={{ position: "absolute", left: -10, top: -11, width: 20, height: 20, borderRadius: 10, backgroundColor: NIGHT }} />
+            <View style={{ position: "absolute", right: -10, top: -11, width: 20, height: 20, borderRadius: 10, backgroundColor: NIGHT }} />
+            {premium ? (
+              <View style={{ alignItems: "center", gap: 4, paddingVertical: 4 }}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 1.6, color: "rgba(30,27,53,0.55)" }}>{t("fc.active")}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 14, color: "rgba(30,27,53,0.65)", textAlign: "center" }}>{t("fc.paidSub")}</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {packages.map((p) => {
+                  const on = p.id === selected;
+                  const m = money(p.priceString);
+                  const perMonth = p.period === "annual" && m ? `${m.symbol}${(m.amount / 12).toFixed(2)}` : null;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      onPress={() => {
+                        setSelected(p.id);
+                        track("fare_selected", { source, fare: p.period });
+                      }}
+                      style={{ flex: p.period === "lifetime" ? 0.9 : 1, paddingHorizontal: 11, paddingVertical: 12, borderRadius: 12, borderWidth: on ? 2 : 1.5, borderColor: on ? P.pen : "#DCD9F0", backgroundColor: "#FFFFFF", position: "relative" }}
+                    >
+                      {p.period === "annual" && saving != null && saving > 0 && (
+                        <View style={{ position: "absolute", right: 8, top: -9, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: GOLD }}>
+                          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: W14.ink }}>{t("fc.save", { n: saving })}</Text>
+                        </View>
+                      )}
+                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? P.pen : "rgba(30,27,53,0.5)" }}>
+                        {p.period === "annual" ? t("fc.yearly") : p.period === "monthly" ? t("fc.monthly") : t("fc.lifetimeLabel")}
+                      </Text>
+                      <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 20, letterSpacing: -0.4, color: W14.ink, marginTop: 5 }} numberOfLines={1} adjustsFontSizeToFit>
+                        {m?.short ?? p.priceString}
+                      </Text>
+                      <Text style={{ fontFamily: PF.letter, fontSize: 10.5, lineHeight: 13, color: "rgba(30,27,53,0.5)", marginTop: 3 }} numberOfLines={2}>
+                        {p.period === "annual" ? (perMonth ? t("fc.perMonth", { p: perMonth }) : t("fc.perYr")) : p.period === "monthly" ? t("fc.cancelAnytime") : t("fc.foundingOnly", { n: COFOUNDERS_TOTAL })}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         </View>
 
-        <Pressable
-          onPress={subscribe}
-          disabled={busy}
-          style={({ pressed }) => ({
-            backgroundColor: lifetime ? NIGHT : P.pen,
-            paddingVertical: 17,
-            alignItems: "center",
-            marginTop: 20,
-            opacity: busy ? 0.4 : pressed ? 0.88 : 1,
-          })}
-        >
-          <Text style={{ color: lifetime ? GOLD : "#fff", fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2 }}>
-            {busy ? "…" : lifetime ? tr("pw.cta.cofounder") : tr("pw.cta.first")}
-          </Text>
-        </Pressable>
-
-        {/* the one promise that outranks the offer */}
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, color: P.ink60, textAlign: "center", marginTop: 24 }}>
-          {tr(FOOT_KEY)}
-        </Text>
-
-        <Pressable onPress={restore} style={{ alignItems: "center", paddingVertical: 16 }}>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.5, color: P.ink60 }}>{tr("pw.restore")}</Text>
-        </Pressable>
-
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.ink40, textAlign: "center", lineHeight: 17 }}>
-          {tr("pw.termsLine")}{" "}
-          <Text onPress={() => openTerms()} style={{ textDecorationLine: "underline" }}>
-            {tr("pw.terms")}
-          </Text>{" "}
-          &{" "}
-          <Text onPress={() => openPrivacy()} style={{ textDecorationLine: "underline" }}>
-            {tr("pw.privacy")}
-          </Text>
-        </Text>
+        <View style={{ marginTop: "auto", paddingTop: 20, gap: 10 }}>
+          <Pressable
+            onPress={() => (premium ? Linking.openURL("https://apps.apple.com/account/subscriptions") : subscribe())}
+            disabled={busy}
+            style={({ pressed }) => ({ backgroundColor: lifetime ? "#FFFFFF" : GOLD, borderRadius: 14, paddingVertical: 18, alignItems: "center", opacity: busy ? 0.5 : pressed ? 0.88 : 1 })}
+          >
+            <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: lifetime ? GOLD_INK : W14.ink }}>{busy ? "…" : `${ctaLabel} →`}</Text>
+          </Pressable>
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8 }}>
+            <Pressable onPress={restore} hitSlop={6}><Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.restore")}</Text></Pressable>
+            <Text style={{ color: "rgba(255,255,255,0.3)" }}>·</Text>
+            <Pressable onPress={openTerms} hitSlop={6}><Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.terms")}</Text></Pressable>
+            <Text style={{ color: "rgba(255,255,255,0.3)" }}>·</Text>
+            <Pressable onPress={openPrivacy} hitSlop={6}><Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.privacy")}</Text></Pressable>
+          </View>
+          <Text style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 16, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>{premium ? t("fc.manageNote") : lifetime ? t("pw.foot") : t("fc.managedByApple")}</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-/* one fare, torn off along a perforation */
-function Stub({ pkg, on, onPress, wren }: { pkg: IapPackage; on: boolean; onPress: () => void; wren: string }) {
-  const life = pkg.period === "lifetime";
-  const year = pkg.period === "annual";
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        borderWidth: on ? 2 : 1,
-        borderColor: on ? (life ? GOLD : P.pen) : P.ink12,
-        backgroundColor: life ? (on ? "#FBF6E6" : P.paper) : P.paper,
-        opacity: pressed ? 0.85 : 1,
-      })}
-    >
-      {/* the perforation: a stub is torn from something */}
-      <View style={{ width: 22, alignItems: "center", justifyContent: "center", borderRightWidth: 1, borderRightColor: P.ink12, borderStyle: "dashed" }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9, color: life ? GOLD : P.ink40, transform: [{ rotate: "-90deg" }], width: 60, textAlign: "center" }}>
-          {life ? tr("pw.stub.no") : year ? tr("pw.stub.best") : tr("pw.stub.try")}
-        </Text>
-      </View>
-
-      <View style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 14 }}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 1, color: life ? "#8A6E20" : P.ink }}>
-            {tr(`pw.plan.${pkg.period}`).toUpperCase()}
-          </Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 14, color: P.ink }}>{pkg.priceString}</Text>
-        </View>
-
-        <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
-          {life
-            ? tr("pw.plan.lifetimeSub", { n: COFOUNDERS_TOTAL })
-            : year
-              ? tr("pw.plan.annualSub")
-              : tr("pw.plan.monthlySub")}
-        </Text>
-
-        {/* no accent row: each fare says its one thing once. The sub-line
-            already carries "best value" and "numbered in order", and
-            printing them twice made the stubs shout. */}
-      </View>
-    </Pressable>
-  );
-}
-
-/* the red-and-blue diagonal border every airmail envelope has worn since
-   1920 — the one place theme/post lets the airmail blue out */
-function AirmailEdge() {
-  const W = 400;
-  const bars = Array.from({ length: 46 }, (_, i) => i);
-  return (
-    <Svg width="100%" height={9} viewBox={`0 0 ${W} 9`} preserveAspectRatio="none">
-      <Rect x={0} y={0} width={W} height={9} fill={P.paper} />
-      {bars.map((i) => (
-        <Path
-          key={i}
-          d={`M ${i * 9 - 4} 9 L ${i * 9 + 5} 0 L ${i * 9 + 9} 0 L ${i * 9} 9 Z`}
-          fill={i % 2 === 0 ? P.post : P.air}
-        />
-      ))}
-    </Svg>
-  );
-}
-
-/* ── the route: your own stops, then the gate, then the sealed ones ───── */
-
-function Route({ shelf, threads, wren }: { shelf: Minted[]; threads: ThreadSummary[]; wren: string }) {
-  const kindreds = threads.filter((t) => t.revealed).length;
-  /* the stops she has actually flown you through — real keepsakes, oldest
-     first, so the road reads forward */
-  const flown = [...shelf].sort((a, b) => a.at - b.at).slice(0, 4);
-
-  return (
-    <View style={{ marginTop: 26 }}>
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40 }}>
-        {tr("pw.route")}
-      </Text>
-
-      {flown.length === 0 ? (
-        <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink60, marginTop: 12 }}>
-          {speakAs(tr("pw.road.none"), wren)}
-        </Text>
-      ) : (
-        <View style={{ marginTop: 14 }}>
-          {flown.map((k, i) => {
-            const def = keepsake(k.id);
-            return (
-              <View key={k.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <View style={{ width: 34, alignItems: "center" }}>
-                  {def ? <Image source={def.icon} style={{ width: 30, height: 30 }} resizeMode="contain" /> : null}
-                  {i < flown.length - 1 && <View style={{ width: 1, height: 16, backgroundColor: P.ink12 }} />}
-                </View>
-                <View style={{ flex: 1, paddingBottom: i < flown.length - 1 ? 16 : 0 }}>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 13, color: P.ink }}>{def ? tr(`ks.name.${k.id}`) : k.id}</Text>
-                  <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 0.8, color: P.ink40, marginTop: 2 }}>
-                    {k.evidence}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* THE GATE — drawn across the road, at the exact place it closes */}
-      <View style={{ marginTop: 18, borderWidth: 1.5, borderColor: P.post, paddingHorizontal: 14, paddingVertical: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
-          <View style={{ width: 9, height: 9, backgroundColor: P.post }} />
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: P.post }}>
-            {tr("pw.roadCloses")}
-          </Text>
-        </View>
-        <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 22, color: P.ink, marginTop: 8 }}>
-          {kindreds >= 1
-            ? speakAs(kindreds === 1 ? tr("pw.haveOne") : tr("pw.haveMany", { n: kindreds }), wren)
-            : speakAs(tr("pw.road.oneKindred"), wren)}
-        </Text>
-      </View>
-
-      {/* what waits past it — sealed, and you peel them yourself */}
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 2, color: P.ink40, marginTop: 24, marginBottom: 10 }}>
-        {tr("pw.pastGate")}
-      </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        {BEYOND.map((b) => (
-          <PeelStamp key={b.id} item={b} wren={wren} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/* a stamp face-down on its gum, until you turn it over */
-function PeelStamp({ item, wren }: { item: { id: string; title: string; sub: string; icon: string }; wren: string }) {
-  const [open, setOpen] = useState(false);
-  const t = useRef(new Animated.Value(0)).current;
-  const def = keepsake(item.icon);
-
-  const flip = () => {
-    Animated.timing(t, {
-      toValue: open ? 0 : 1,
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-    setOpen((v) => !v);
-  };
-
-  return (
-    <Pressable onPress={flip} style={{ width: "47.5%" }}>
-      <Animated.View
-        style={{
-          borderWidth: 1,
-          borderColor: open ? P.ink : P.ink12,
-          borderStyle: open ? "solid" : "dashed",
-          backgroundColor: open ? P.paper : "#F3F1E8",
-          minHeight: 132,
-          padding: 12,
-          alignItems: "center",
-          justifyContent: "center",
-          transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }],
-        }}
-      >
-        {open ? (
-          <>
-            {def ? <Image source={def.icon} style={{ width: 74, height: 74 }} resizeMode="contain" /> : null}
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 0.4, color: P.ink, textAlign: "center", marginTop: 10 }}>
-              {speakAs(tr(`pw.${item.id}.t`), wren)}
-            </Text>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, textAlign: "center", marginTop: 3 }}>
-              {speakAs(tr(`pw.${item.id}.s`), wren)}
-            </Text>
-          </>
-        ) : (
-          /* SOMETHING WORTH TOUCHING. These flip — they always have — but
-             the closed face was a grey glyph over two grey words, six of
-             them in a row, and nothing in it said press me. The product
-             already owns the object that means sealed: the blind emboss
-             from the envelope and the sealed page. A round disc against a
-             rectangular grid is the only thing on this screen that looks
-             pressable, which is exactly what it is. */
-          <>
-            <Seal size={44} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 10 }}>
-              {tr("pw.peel").toUpperCase()}
-            </Text>
-          </>
-        )}
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-/* what only a Cofounder gets — four marks, gold, and one line saying the
-   rest is simply everything else, forever */
-function CofounderMarks({ wren }: { wren: string }) {
-  const MARKS: [string, string][] = [
-    [tr("pw.cf.number"), tr("pw.cf.numberSub", { n: COFOUNDERS_TOTAL })],
-    [tr("pw.cf.ring", { wren }), tr("pw.cf.ringSub")],
-    [tr("pw.cf.first"), tr("pw.cf.firstSub")],
-    [tr("pw.cf.letter"), tr("pw.cf.letterSub")],
-  ];
-  return (
-    <View style={{ borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2, borderColor: GOLD, backgroundColor: "#FBF6E6", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 }}>
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: "#8A6E20" }}>
-        {tr("pw.cf.title")}
-      </Text>
-      {/* the mark itself, exactly as it will sit on their own desk — the
-          thing being sold is visible before it is bought */}
-      <View style={{ alignItems: "center", paddingVertical: 14 }}>
-        <CofounderMark no={47} size="lg" />
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 7 }}>
-          {tr("pw.nameEverywhere")}
-        </Text>
-      </View>
-      {MARKS.map(([title, sub]) => (
-        <View key={title} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 12 }}>
-          <View style={{ width: 8, height: 8, backgroundColor: GOLD, marginTop: 5 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, color: P.ink }}>{speakAs(title, wren)}</Text>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60, marginTop: 2 }}>{speakAs(sub, wren)}</Text>
-          </View>
-        </View>
-      ))}
-      <View style={{ height: 1, backgroundColor: GOLD, opacity: 0.4, marginTop: 15 }} />
-      <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 20, color: "#8A6E20", marginTop: 11 }}>
-        {speakAs(tr("pw.cf.foot"), wren)}
-      </Text>
-    </View>
   );
 }

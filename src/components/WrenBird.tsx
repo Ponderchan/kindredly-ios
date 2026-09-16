@@ -2,6 +2,7 @@ import type { HatchlingForm } from "../lib/hatchling-form";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { WREN_FAMILY, type WShape } from "./wren-family-data";
 import { useWrenSkin } from "../lib/wren-skin";
+import { useWrenStage } from "../lib/wren-stage";
 
 /* Wren — the mascot. As of the wren-family delivery she comes in THREE skins
    sharing one skeleton (same geometry, same mood semantics, same anchors):
@@ -25,7 +26,7 @@ export type WrenMood =
 export type WrenStage = "egg" | "hatch" | "fledge" | "wren";
 export type WrenAccessory = "none" | "beanie" | "scarf" | "phones" | "flower" | "party" | "shades";
 export type WrenPose = "perch" | "fly";
-export type WrenSkin = "sticker" | "plush" | "ink";
+export type WrenSkin = "sticker" | "plush" | "ink" | "moss" | "peach";
 
 const STAGE_KEY: Record<Exclude<WrenStage, "wren">, string> = {
   egg: "egg",
@@ -36,9 +37,11 @@ const STAGE_KEY: Record<Exclude<WrenStage, "wren">, string> = {
 // chick body fill per skin — used to patch over the baked-in eyes when a
 // hatch-stage mood needs a different eye shape
 const CHICK_FILL: Record<WrenSkin, string> = {
-  sticker: "#6D6DF6",
-  plush: "#A5A1F2",
-  ink: "#F3ECDA",
+  sticker: "#5757EC",
+  plush: "#A9C6F2",
+  ink: "#2B2A4A",
+  moss: "#6DAE78",
+  peach: "#F2A08C",
 };
 const EYE = "#1E1B33";
 const HI = "#FFFFFF";
@@ -46,12 +49,12 @@ const HI = "#FFFFFF";
 export function WrenBird({
   size = 96,
   mood = "content",
-  stage = "wren",
+  stage: stageProp,
   accessory = "none",
   pose = "perch",
   skin: skinProp,
   outlined = false,
-  form,
+  form: formProp,
 }: {
   size?: number;
   mood?: WrenMood;
@@ -76,6 +79,11 @@ export function WrenBird({
 }) {
   const ctxSkin = useWrenSkin();
   const skin = skinProp ?? ctxSkin; // explicit prop wins (gallery); else the app-wide pick
+  /* the stage the same way: a screen that means a specific stage says so; every
+     other surface draws her where she actually is (see lib/wren-stage) */
+  const ctxStage = useWrenStage();
+  const stage: WrenStage = stageProp ?? ctxStage.stage ?? "wren";
+  const form = formProp ?? (stage === "hatch" ? ctxStage.form ?? undefined : undefined);
   const keys: string[] = [];
   let hatchMood: WrenMood | null = null;
 
@@ -152,7 +160,7 @@ function shapeHatchling(list: WShape[], f: HatchlingForm): WShape[] {
     }
 
     // BEAK — the small amber path, scaled about its own centre.
-    if (sh.t === "p" && /^#EFB050$/i.test(String(sh.f)) && f.beakScale !== 1) {
+    if (sh.t === "p" && /^#(EFB050|F2A0B5|F2887E|E8B04A|5B55FF)$/i.test(String(sh.f)) && f.beakScale !== 1) {
       const k = f.beakScale;
       return { ...sh, tf: `translate(${CX * (1 - k)} ${132 * (1 - k)}) scale(${k})` } as WShape;
     }

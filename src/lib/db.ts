@@ -31,11 +31,23 @@ export const clearFail = () => {
 };
 
 
+/* WHO AM I, WITHOUT ASKING THE SERVER. getUser() is a round trip to the
+   auth server, and every query here called it first — so a cold open paid
+   two extra network hops before the first letter could paint, and every
+   tap that touched the database waited on one. The session is already on
+   the device; its user id is the same id. */
+let uidCache: string | null = null;
+if (supabase) supabase.auth.onAuthStateChange((_e, s) => { uidCache = s?.user?.id ?? null; });
 async function uid(): Promise<string | null> {
   if (!supabase) return null;
+  if (uidCache) return uidCache;
   try {
-    const { data } = await supabase.auth.getUser();
-    return data.user?.id ?? null;
+    const { data } = await supabase.auth.getSession();
+    const id = data.session?.user?.id ?? null;
+    if (id) { uidCache = id; return id; }
+    const u = await supabase.auth.getUser();
+    uidCache = u.data.user?.id ?? null;
+    return uidCache;
   } catch {
     return null;
   }
@@ -45,8 +57,8 @@ async function uid(): Promise<string | null> {
 async function currentHandle(): Promise<string> {
   if (!supabase) return "";
   try {
-    const { data } = await supabase.auth.getUser();
-    const m: any = data.user?.user_metadata || {};
+    const { data } = await supabase.auth.getSession(); // the metadata is on the local session
+    const m: any = data.session?.user?.user_metadata || {};
     return m.handle || m.full_name || m.name || "";
   } catch {
     return "";
@@ -58,8 +70,8 @@ async function currentHandle(): Promise<string> {
 async function currentFace(): Promise<string | null> {
   if (!supabase) return null;
   try {
-    const { data } = await supabase.auth.getUser();
-    const m: any = data.user?.user_metadata || {};
+    const { data } = await supabase.auth.getSession(); // the metadata is on the local session
+    const m: any = data.session?.user?.user_metadata || {};
     return typeof m.avatarId === "string" && m.avatarId ? m.avatarId : null;
   } catch {
     return null;
@@ -205,6 +217,9 @@ export interface PoolLetter {
    the pre-0007 column set if the media columns don't exist yet. */
 /** `authors` narrows the pool to those writers — the matcher's second pass
  *  uses it to REACH people recency already scrolled past (see letters.tsx). */
+/* last time's pool, so a cold open paints before the network answers (Today
+   reads it; onboarding primes it) */
+export const POOL_CACHE_KEY = "kindredly_pool_cache";
 export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLetter[] | null> {
   if (!supabaseReady) return null;
   if (authors && !authors.length) return [];

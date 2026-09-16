@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-nativ
 import * as ImagePicker from "expo-image-picker";
 import { t, useLang } from "../lib/i18n";
 import { C, F, cardStyle, navyBtn } from "../theme/tokens";
-import { AVATARS } from "../data/avatar-lib";
+import { FACES } from "../data/aura-avatar-lib";
 import { AvatarImage } from "./AvatarImage";
 
 /* Edit profile — bottom sheet: big preview, choose a photo OR pick a face
@@ -57,7 +57,7 @@ export function EditProfileSheet({
     setPhotoUri(null);
   };
 
-  const roll = () => pickFace(AVATARS[Math.floor(Math.random() * AVATARS.length)].id);
+  const roll = () => pickFace(FACES[Math.floor(Math.random() * FACES.length)].id);
 
   const canSave = name.trim().length > 0;
 
@@ -100,7 +100,7 @@ export function EditProfileSheet({
               </Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4, paddingRight: 12 }}>
-              {AVATARS.map((a) => {
+              {FACES.map((a) => {
                 const on = avatarId === a.id && !photoUri;
                 return (
                   <Pressable key={a.id} onPress={() => pickFace(a.id)}>

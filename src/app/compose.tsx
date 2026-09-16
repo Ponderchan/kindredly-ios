@@ -8,6 +8,7 @@ import { C } from "../theme/tokens";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
+import { wrenStageDirty } from "../lib/wren-stage";
 import { CourierSendOff } from "../components/CourierSendOff";
 import { postNo } from "../lib/format";
 import { useBreathe } from "../components/anim";
@@ -262,6 +263,7 @@ export default function Compose() {
       setDraftId(null);
     }
     setDone(true);
+    wrenStageDirty(); // her first letter is what hatches her
   };
 
   /* ── sending: the courier takes the letter and flies ── */
@@ -438,7 +440,7 @@ export default function Compose() {
                 placeholder={spark}
                 placeholderTextColor="#B9B3D8"
                 multiline
-                style={{ minHeight: 340, color: P.ink, fontFamily: PF.letter, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
+                style={{ minHeight: 340, color: P.ink, fontFamily: PF.letterSerif, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
               />
             ) : (
               <View style={{ paddingTop: 12, minHeight: 250 }}>

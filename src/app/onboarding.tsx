@@ -23,12 +23,17 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
 import { Wheel } from "../components/Wheel";
 import { useAuth } from "../lib/auth";
-import { publishLetter, upsertFingerprint } from "../lib/db";
+import { fetchPool, POOL_CACHE_KEY, publishLetter, upsertFingerprint, type PoolLetter } from "../lib/db";
+import { FirstFlight } from "../components/FirstFlight";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, setFlag, TODAY_RITUAL } from "../lib/flags";
+import { rationPool } from "../lib/ration";
 import { signatureVector, voiceSignature } from "../lib/signature";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
+import { wrenStageDirty } from "../lib/wren-stage";
 import { EGG_SHELLS, EggShell } from "../components/EggShell";
 import { AvatarImage } from "../components/AvatarImage";
-import { AVATARS } from "../data/avatar-lib";
+import { FACES } from "../data/aura-avatar-lib";
 import { readMood } from "../lib/wren-read";
 import { bumpStageFloor } from "../lib/wren-style";
 import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../lib/hatchling-form";
@@ -170,6 +175,8 @@ export default function Onboarding() {
   const [mood, setMood] = useState<MoodId | null>(null);
   const [hatchPhase, setHatchPhase] = useState<"crack" | "born">("crack");
   const [flying, setFlying] = useState(false);
+  const [stops, setStops] = useState<PoolLetter[]>([]); // what she brings back from the first crossing
+  const finishP = useRef<Promise<void> | null>(null);
   const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailOpen, setEmailOpen] = useState(false);
@@ -195,15 +202,20 @@ export default function Onboarding() {
     transform: [{ rotate: `${wob.value * 2.6}deg` }, { scale: 1 + wob.value * 0.012 }],
   }));
 
-  // she leaves with it
-  const flyY = useSharedValue(0);
-  const flyX = useSharedValue(0);
-  const flyScale = useSharedValue(1);
-  const flyOp = useSharedValue(1);
-  const flyStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: flyX.value }, { translateY: flyY.value }, { scale: flyScale.value }, { rotate: `${flyX.value * 0.06}deg` }],
-    opacity: flyOp.value,
-  }));
+  /* THE LETTERS SHE BRINGS BACK ARE REAL. The pool is fetched while you
+     name her, so the first crossing has three genuine stops — and Today
+     paints from the same cache the moment it opens. */
+  useEffect(() => {
+    if ((step !== "naming" && step !== "flight") || stops.length) return;
+    fetchPool(40)
+      .then((p) => {
+        const l = p || [];
+        setStops(rationPool(l).slice(0, 3)); // the same three that will head the desk
+        if (l.length) void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify(l.slice(0, 40))).catch(() => {});
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // returning, already-onboarded → straight in
   useEffect(() => {
@@ -396,21 +408,29 @@ export default function Onboarding() {
       /* best-effort */
     }
     await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: fed[0] || undefined });
-    router.replace("/(tabs)/letters");
+    wrenStageDirty();
   };
 
-  // LET'S GO — she actually leaves, carrying it, before the app appears
+  /* LET'S GO — her first crossing plays over this page while the letter
+     posts and the profile saves underneath; when both are done, Today. */
   const letHerGo = () => {
     setFlying(true);
-    flyY.value = withTiming(-620, { duration: 1500, easing: Easing.in(Easing.cubic) });
-    flyX.value = withSequence(
-      withTiming(-30, { duration: 480, easing: Easing.inOut(Easing.quad) }),
-      withTiming(46, { duration: 560, easing: Easing.inOut(Easing.quad) }),
-      withTiming(6, { duration: 460, easing: Easing.inOut(Easing.quad) }),
-    );
-    flyScale.value = withDelay(280, withTiming(0.42, { duration: 1220, easing: Easing.in(Easing.cubic) }));
-    flyOp.value = withDelay(950, withTiming(0, { duration: 520 }));
-    setTimeout(() => void finish(), 1650);
+    finishP.current = finish();
+  };
+  const onFlightDone = async () => {
+    try {
+      await finishP.current;
+    } catch {
+      /* finish is best-effort by construction */
+    }
+    await setFlag(TODAY_RITUAL);
+    await setFlag(ARRIVAL_FRESH);
+    try {
+      await AsyncStorage.setItem(ARRIVAL_AT_KEY, String(Date.now()));
+    } catch {
+      /* best-effort */
+    }
+    router.replace("/(tabs)/letters");
   };
 
   const stepIdx = ORDER.indexOf(step);
@@ -781,17 +801,16 @@ export default function Onboarding() {
 
   /* ── 5 · a face ─────────────────────────────────────────────────────── */
   if (step === "avatar") {
-    const shown = AVATARS.slice(0, 14);
     return (
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={t("ob.avatar.plain")} em={t("ob.avatar.em")} sub={t("ob.avatar.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
-            <View style={[card, bevel(4, 4), { padding: 12, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
-              {shown.map((a) => {
+            <View style={[card, bevel(4, 4), { padding: 10, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
+              {FACES.map((a) => {
                 const on = avatarId === a.id;
                 return (
-                  <Pressable key={a.id} onPress={() => setAvatarId(on ? null : a.id)} style={{ margin: 5 }}>
+                  <Pressable key={a.id} onPress={() => setAvatarId(on ? null : a.id)} style={{ margin: 4 }}>
                     <View
                       style={[
                         on ? bevel(2.5, 2.5) : null,
@@ -812,21 +831,6 @@ export default function Onboarding() {
                   </Pressable>
                 );
               })}
-              <View
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: 27,
-                  borderWidth: 2,
-                  borderColor: Y.ink,
-                  borderStyle: "dashed",
-                  margin: 5,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={mono(10, "b")}>+{AVATARS.length - shown.length}</Text>
-              </View>
             </View>
           </Animated.View>
         </ScrollView>
@@ -1159,26 +1163,7 @@ export default function Onboarding() {
               </Animated.View>
             </>
           ) : (
-            <>
-              {/* THE BIRD THAT LEAVES IS THE BIRD THAT HATCHED. This drew her
-                  with no stage, so WrenBird fell through to the grown wren —
-                  a chick came out of the shell, you poked her, and one screen
-                  later an adult flew off with your letter, and then the Me tab
-                  showed a chick again. She is a hatchling here, in the
-                  proportions your own writing just gave her. */}
-              <Animated.View style={[flyStyle, { alignItems: "center" }]}>
-                <WrenBird size={132} mood="delight" stage="hatch" form={hatchlingForm(hatched.dims)} />
-                <View style={{ marginTop: -26, transform: [{ rotate: "-11deg" }] }}>
-                  <CarriedLetter />
-                </View>
-              </Animated.View>
-              <Animated.Text
-                entering={FadeIn.delay(500).duration(400)}
-                style={[mono(10.5, "b"), { color: Y.dim, position: "absolute", bottom: 96, textAlign: "center" }]}
-              >
-                {t("ob.offToFind")}
-              </Animated.Text>
-            </>
+            <FirstFlight her={her} opener={opener} stops={stops} form={hatchlingForm(hatched.dims)} onDone={() => void onFlightDone()} />
           )}
         </View>
       </SafeAreaView>
