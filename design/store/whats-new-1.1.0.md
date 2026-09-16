@@ -116,3 +116,27 @@ sahabat pena,raven,roost,surat,orang asing,jurnal,diari,menulis,anonim,pelan,tem
 - ES  Cartas de desconocidos afines        (30)
 - PT  Cartas de desconhecidos afins        (29)
 - ID  Surat dari orang asing sejiwa        (28)
+
+---
+
+# App Review · Notes for the reviewer (build 10 · 1.1.0)
+
+Kindredly is a slow pen-pal app: you write one open letter, and the app delivers a few open letters from strangers whose writing style is close to yours. Replies open a private one-to-one thread. Names and faces are only exchanged after five letters each way, by mutual choice.
+
+HOW TO GET IN
+No demo account is needed. On the first screen tap "Just looking →" (under the sign-in buttons) — the whole app is usable without an email. Sign in with Apple, Google and email code sign-in are also available. Guests are anonymous sessions; nothing is collected until a person chooses to attach an email.
+
+WHAT'S NEW IN 1.1.0 (where to look)
+1. Onboarding ends with the courier's "first flight": she folds your letter, flies a route chart, and lands on the Today tab with three letters. Tap anywhere to skip the animation.
+2. Me tab → "Writing Aura": a portrait of the person's own writing style. Everything shown is computed on the device from the person's own letters — no AI-generated text about the user, no third-party analysis. Stickers quote the user's own sentences back to them.
+3. Me tab → Share card → "Save image" uses the photo library ADD-ONLY permission (NSPhotoLibraryAddUsageDescription) to save a PNG of the card. The card contains only the portrait title and sticker names — never letter text.
+4. First Class (Me tab → "See First Class"): the subscription. Three auto-renewable/one-time products via RevenueCat; prices shown on the boarding pass come from StoreKit. "Restore purchase", Terms and Privacy are on the same screen.
+
+SAFETY (unchanged, listed for convenience)
+- Age gate at onboarding: 18+; under-18 dates of birth are refused.
+- Every open letter is screened before it enters the pool; replies too.
+- Every letter and thread has a "..." menu with Report and Block. Blocked users are listed under Settings → Blocked & reported and can be unblocked.
+- Sealed (journal) pages never leave the device. They are excluded from matching; since 1.1.0 they also stay out of the Writing Aura unless the user turns them on.
+- Microphone is used only for voice letters (First Class) and voice journal pages, on explicit tap.
+
+Terms: https://kindredly.io/terms · Privacy: https://kindredly.io/privacy · Support: https://kindredly.io/support
