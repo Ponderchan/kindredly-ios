@@ -124,11 +124,11 @@ setEngineLanguage("id"); // the UI language must not matter — every check belo
   let r = readStickers(pieces(OBSERVER), state, { now: NOW });
   state = r.state;
   const seat0 = r.readout.byDimension.sentence?.stickerId;
-  ok(seat0 === "short_sweet", `7: observer's sentence seat is short_sweet (${seat0})`);
+  ok(seat0 === "straight_shooter", `7: observer's sentence seat is straight_shooter (${seat0})`);
   // one long, hedged letter arrives
   r = readStickers([...pieces(OBSERVER), ...pieces(ANXIOUS_LONG.slice(0, 1), "letter", 20)], state, { now: NOW });
   state = r.state;
-  ok(r.readout.byDimension.sentence?.stickerId === "short_sweet", "7: one odd letter leaves the seat alone");
+  ok(r.readout.byDimension.sentence?.stickerId === "straight_shooter", "7: one odd letter leaves the seat alone");
   // the voice changes for good: six long letters, in two batches
   r = readStickers([...pieces(OBSERVER), ...pieces(ANXIOUS_LONG.slice(0, 3), "letter", 20)], state, { now: NOW });
   state = r.state;
@@ -137,8 +137,8 @@ setEngineLanguage("id"); // the UI language must not matter — every check belo
   state = r.state;
   const afterTwo = r.readout.byDimension.sentence?.stickerId;
   console.log(`     seat after batch one: ${afterOne}, after batch two: ${afterTwo}; candidates: ${JSON.stringify(state.candidates)}`);
-  ok(afterOne === "short_sweet" || afterOne === undefined, "7: not replaced after a single batch");
-  ok(afterTwo !== "short_sweet", "7: replaced (or withdrawn) once the change is sustained");
+  ok(afterOne === "straight_shooter" || afterOne === undefined, "7: not replaced after a single batch");
+  ok(afterTwo !== "straight_shooter", "7: replaced (or withdrawn) once the change is sustained");
 }
 
 /* ── 8 · the share snapshot carries no private text ── */

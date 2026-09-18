@@ -21,6 +21,18 @@ export interface StickerLexicon {
   stance: RegExp;
   /** emotional context: topics where a feeling is in the room even if unnamed */
   emotionalContext: string[];
+  /** first person plural — we, us, our */
+  we: string[];
+  /** "honestly" frames */
+  honestly: string[];
+  /** reasons — because, since */
+  because: string[];
+  /** narrative links — and then, so, after that */
+  andThen: string[];
+  /** a greeting that opens a letter */
+  greeting: RegExp;
+  /** an opening that reports the time of day */
+  timeOpen: RegExp;
 }
 
 const EN: StickerLexicon = {
@@ -32,6 +44,12 @@ const EN: StickerLexicon = {
   // a feeling in the room, even unnamed. Deliberately no "broken", "lost",
   // "heart": a broken chair and a lost key are furniture, not feelings.
   emotionalContext: "miss missed missing lonely alone tired exhausted love crush cry cried crying scared afraid anxious worried sad happy angry hurt ashamed proud grateful hope hopeless jealous guilt guilty grief numb overwhelmed homesick".split(" "),
+  we: ["we", "us", "our", "ours", "we're", "we've"],
+  honestly: ["honestly", "to be honest", "tbh", "truthfully", "real talk", "not gonna lie", "ngl"],
+  because: ["because", "since", "cause", "cuz", "that's why", "the reason"],
+  andThen: ["and then", "then", "after that", "so then", "next thing", "eventually"],
+  greeting: /^(hi|hey|hello|dear|hiya|yo|good (morning|evening|night))\b/i,
+  timeOpen: /^(it's|its|it is)?\s*(\d{1,2}\s?(am|pm)|\d{1,2}:\d{2}|midnight|noon|this (morning|afternoon|evening)|tonight|last night|early|late)\b/i,
 };
 
 const ES: StickerLexicon = {
@@ -41,6 +59,12 @@ const ES: StickerLexicon = {
   askers: ["qué", "cómo", "dónde", "cuándo", "por", "quién", "cuál", "alguien", "alguna", "algún", "tienes", "has", "sabes", "crees"],
   stance: /\b(creo que|pienso que|sé que|quiero|necesito|decidí|me di cuenta|supongo|la verdad es|siento que)\b/i,
   emotionalContext: "extraño extraña solo sola soledad cansado cansada amor corazón llorar lloré miedo ansiedad triste feliz enojado enfadada dolor vergüenza orgullo esperanza perdido perdida roto rota celos culpa duelo abrumado".split(" "),
+  we: ["nosotros", "nosotras", "nos", "nuestro", "nuestra", "nuestros", "nuestras"],
+  honestly: ["honestamente", "la verdad", "sinceramente", "en serio", "de verdad", "para ser honesto", "para ser honesta"],
+  because: ["porque", "ya que", "puesto que", "por eso", "es que"],
+  andThen: ["y luego", "luego", "después", "entonces", "y entonces", "al final"],
+  greeting: /^(hola|hey|buenas|buenos días|buenas noches|querido|querida|estimado|estimada)\b/i,
+  timeOpen: /^(son las|es la|a las)?\s*(\d{1,2}\s?(am|pm)|\d{1,2}:\d{2}|medianoche|mediodía|esta (mañana|tarde|noche)|anoche|de madrugada|temprano|tarde)\b/i,
 };
 
 const PT: StickerLexicon = {
@@ -50,6 +74,12 @@ const PT: StickerLexicon = {
   askers: ["que", "como", "onde", "quando", "por", "quem", "qual", "alguém", "alguma", "algum", "tem", "já", "sabe", "acha"],
   stance: /\b(acho que|penso que|sei que|quero|preciso|decidi|percebi|acho|a verdade é|sinto que)\b/i,
   emotionalContext: "saudade sozinho sozinha solidão cansado cansada amor coração chorar chorei medo ansiedade triste feliz raiva dor vergonha orgulho esperança perdido perdida quebrado ciúme culpa luto sobrecarregado".split(" "),
+  we: ["nós", "a gente", "nos", "nosso", "nossa", "nossos", "nossas"],
+  honestly: ["honestamente", "a verdade", "sinceramente", "sério", "de verdade", "pra ser honesto", "pra ser honesta"],
+  because: ["porque", "já que", "pois", "por isso", "é que"],
+  andThen: ["e depois", "depois", "então", "e então", "aí", "no fim"],
+  greeting: /^(oi|olá|ei|e aí|bom dia|boa noite|querido|querida|caro|cara)\b/i,
+  timeOpen: /^(são|é|às)?\s*(\d{1,2}\s?(am|pm|h)|\d{1,2}:\d{2}|meia-noite|meio-dia|hoje (de manhã|à tarde|à noite)|ontem à noite|de madrugada|cedo|tarde)\b/i,
 };
 
 const ID: StickerLexicon = {
@@ -59,6 +89,12 @@ const ID: StickerLexicon = {
   askers: ["apa", "gimana", "bagaimana", "kenapa", "mengapa", "kapan", "dimana", "di", "siapa", "ada", "pernah", "udah", "sudah"],
   stance: /\b(aku rasa|kurasa|aku pikir|aku tahu|aku mau|aku butuh|aku putuskan|aku sadar|sebenarnya|jujur)\b/i,
   emotionalContext: "rindu kangen sendiri sendirian kesepian capek lelah cinta sayang hati nangis menangis takut cemas sedih senang marah sakit malu bangga harapan hilang patah cemburu bersalah duka".split(" "),
+  we: ["kita", "kami", "punya kita", "punya kami"],
+  honestly: ["jujur", "sejujurnya", "terus terang", "serius", "beneran", "sumpah"],
+  because: ["karena", "soalnya", "sebab", "makanya", "gara-gara"],
+  andThen: ["terus", "lalu", "kemudian", "habis itu", "setelah itu", "akhirnya"],
+  greeting: /^(hai|halo|hei|hey|selamat (pagi|siang|sore|malam)|dear)\b/i,
+  timeOpen: /^(sekarang|jam|pukul)?\s*(\d{1,2}\s?(am|pm)|\d{1,2}[:.]\d{2}|tengah malam|siang bolong|pagi ini|sore ini|malam ini|tadi malam|subuh|dini hari|pagi-pagi|larut)\b/i,
 };
 
 const ALL: Record<SupportedLanguage, StickerLexicon> = { en: EN, es: ES, pt: PT, id: ID };

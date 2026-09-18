@@ -1,31 +1,46 @@
-# Stickers · colour rule
+# Sticker labels · colour rule (v2, 2026-09-18)
 
-**Colour is the dimension.** Nine kinds of observation, nine inks. A sticker
-wears the ink of the dimension it was found in, so:
+Two families, two looks. **Colour is the dimension** for what she READ;
+**a clear sticker** for what the product COUNTED. Nothing is chosen at
+runtime; a label never changes colour.
 
-- the three stickers on the Me card are always three different colours
-  (one sticker per dimension, always);
-- the same colour always means the same kind of thing — blue is word
-  choice wherever it appears, green is feeling, coral is a quirk;
-- two stickers of one dimension (Short & sweet / Sentence weaver) share an
-  ink and never appear together, so nothing clashes;
-- a sticker never changes colour, and no colour is chosen at runtime.
+## Read from your writing — solid candy fills, black name
 
-| dimension | ink | text | shape | stickers |
-|---|---|---|---|---|
-| Vocabulary · word choice | pen blue `#5B55FF` | white | pill | Detail collector · Idea explorer |
-| Emotion · feeling | moss `#8CC4A2` | ink | tag | Quiet type · Heart on the page |
-| Quirks · your tics | coral `#F2887E` | ink | pill | Open ender · Lowercase loyalist · Emoji accent |
-| Sentence · shape | ink `#1E1B35` | white | tag | Short & sweet · Sentence weaver |
-| Rhythm | gold `#E9C15A` | ink | tag | Steady beat · Tempo shifter |
-| Perspective · way of seeing | lavender `#E4E1FA` | pen `#3D38C9` | pill | Inside voice · World watcher |
-| Function words · little words | peach `#F5B99F` | ink | tag | Maybe maker · Thought turner |
-| Punctuation · pauses | periwinkle `#B9B4F0` | ink | tag | Full-stop fan · Dash lover · Ellipsis keeper |
-| Structure | sky `#A9D0F2` | ink | tag | Scene setter · Point first |
+| dimension | ink | text | shape |
+|---|---|---|---|
+| Vocabulary · word choice | pen blue `#5B55FF` | white | pill |
+| Sentence · shape | black `#1E1B35` | white | tag |
+| Rhythm | butter `#FFE14D` | ink | tag |
+| Emotion · feeling | hot pink `#FF5FA8` | ink | tag |
+| Quirks · your tics | lime `#C8F542` | ink | pill |
+| Perspective · way of seeing | lilac `#C9A8FF` | ink | pill |
+| Function words · little words | tangerine `#FF8A4C` | ink | tag |
+| Punctuation · pauses | mint `#7DEFC4` | ink | tag |
+| Structure | sky `#7AC7FF` | ink | tag |
 
-Every sticker: 3 px white cut edge, a soft shadow, a tilt of ±1.5–3° that
-alternates along the row, the name in bold and nothing else on it. State
-(first signs / often) is said next to the sticker on the sheet, never
-printed on it.
+The v1 inks (moss / gold / peach / lavender / periwinkle) read lukewarm and
+were rejected as "not Gen-Z". One black label stays: it is the most
+Gen-Z sticker there is.
 
-Source of truth: `DIMENSION_INK` in `src/lib/sticker-copy.ts`.
+## Counted from how you use it — white, coloured edge, coloured name
+
+| group | ink | shape |
+|---|---|---|
+| Time · when you write | violet `#5B2CC9` | pill |
+| Habit · what you do with letters | teal `#0E9C8F` | tag |
+| Subject · what you write about | rust `#D9481F` | pill |
+| Sealed room | plum `#7A2E9E` | tag |
+| Courier · the bird | raspberry `#E0457B` | pill |
+
+## Every label
+
+3 px white cut edge, a soft shadow, a tilt of ±1.5–3° alternating along
+the row, the name in bold and nothing else on it. Rows wrap; a label
+never runs past the card. State (first signs / holds / only you) is said
+next to the label on the sheet, never printed on it.
+
+**Dashed edge = provisional** (a first-lines read before any letter, or a
+label being challenged after formed). Same ink, white fill, dashed border.
+Not built yet — see `design/aura-forming-ladder.html`.
+
+Source of truth: `DIMENSION_INK` and `USAGE_INK` in `src/lib/sticker-copy.ts`.

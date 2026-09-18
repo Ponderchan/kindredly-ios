@@ -10,6 +10,7 @@ import { t, useLang } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
 import { useEntitlement } from "../lib/entitlement";
 import { useWrenName } from "../lib/wren-name";
+import { bump } from "../lib/usage-counters";
 import { EMPTY_STATS, collectGrowthStats } from "../lib/stats";
 import type { GrowthStats } from "../data/growth";
 import { fetchThreads, type ThreadSummary } from "../lib/db";
@@ -39,6 +40,7 @@ export default function CourierRoom() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
+      void bump("courierVisits"); // a visit to her room, for the Homebody sticker
       Promise.all([collectGrowthStats(user?.created_at), getStageFloor()]).then(([s, floor]) => {
         if (!alive) return;
         setStats(s);

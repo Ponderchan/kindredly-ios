@@ -1,6 +1,6 @@
 import type { DimKey } from "../../hatch-engine";
 import { dimensionBalanced, THRESHOLDS } from "./aggregate";
-import { STICKER_BY_ID, STICKER_BY_TRAIT, TITLE_ADJECTIVES, TITLE_NOUNS, TRAITS_OF } from "./catalog";
+import { PRIMARY_TRAITS, STICKER_BY_ID, STICKER_BY_TRAIT, TITLE_ADJECTIVES, TITLE_NOUNS, TRAITS_OF } from "./catalog";
 import type { AuraTitle, ResolvedSticker, ShareSnapshot, StickerState, TraitId, TraitObservation } from "./types";
 import { RULE_VERSION } from "./types";
 
@@ -18,7 +18,8 @@ import { RULE_VERSION } from "./types";
 const strength = (o: TraitObservation): number => o.metrics.share + Math.min(o.supportingPieceCount, 10) / 50;
 
 function lead(obs: TraitObservation[], dim: DimKey): TraitObservation | null {
-  const mine = obs.filter((o) => o.dimension === dim && o.stickerId && (o.state === "established" || o.state === "emerging"));
+  const primary = PRIMARY_TRAITS[dim] ?? [];
+  const mine = obs.filter((o) => o.dimension === dim && o.stickerId && primary.includes(o.traitId) && (o.state === "established" || o.state === "emerging"));
   if (!mine.length) return null;
   mine.sort((a, b) => Number(b.state === "established") - Number(a.state === "established") || strength(b) - strength(a));
   // two established, opposite poles → the dimension has no lean
@@ -99,6 +100,14 @@ export function resolveStickers(
     }
   }
   return { byDimension, state };
+}
+
+/* ── the board: every sticker that holds, seat or not ── */
+export function board(obs: TraitObservation[], today: string): ResolvedSticker[] {
+  return obs
+    .filter((o) => o.stickerId && (o.state === "established" || o.state === "emerging"))
+    .map((o) => toResolved(o, o.firstSeenAt || today))
+    .sort((a, b) => Number(b.state === "established") - Number(a.state === "established") || b.supporting - a.supporting);
 }
 
 /* ── the home three ── */

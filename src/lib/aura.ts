@@ -3,7 +3,12 @@ import { hatch, type Archetype, type DimScore } from "./hatch-engine";
 import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";
 import { supabase, supabaseReady } from "./supabase";
-import { upsertFingerprint } from "./db";
+import { fetchThreads, upsertFingerprint } from "./db";
+import { loadLore } from "./lore";
+import { getCounters } from "./usage-counters";
+import { usageStickers, type UsageSticker } from "./usage-stickers";
+import { getWrenAccessory, getWrenSkin } from "./wren-style";
+import { DEFAULT_WREN, getWrenName } from "./wren-name";
 import { readStickers, toPiece, type Piece, type PieceSource, type StickerReadout, type StickerState, type AuraPhase as StickerPhase } from "./writing-engine/stickers";
 
 /* THE AURA, ON ONE ENGINE — AND NOW ON EVIDENCE.
@@ -39,6 +44,11 @@ export interface Aura {
   pieceText: Record<string, { text: string; source: PieceSource; createdAt: string }>;
   /** the observation layer: stickers, title, evidence */
   stickers: StickerReadout | null;
+  /** when your last letter or reply left — the courier's log reads the clock off it */
+  lastWrittenAt: string | null;
+  /** what the product counted — when you write, what about, what you keep.
+      `private` ones never leave the phone. */
+  usage: UsageSticker[];
   /** 0..1 — established observations over nine, blended with sample size.
       A progress feel for the card, never spoken as accuracy. */
   formed: number;
@@ -59,25 +69,33 @@ export interface Aura {
   nightOwl: boolean;
 }
 
-interface Row {
+export interface WritingRow {
   id: string;
   body: string;
   created_at: string | null;
   lang?: string | null;
+  stamp?: string | null;
+  thread_id?: string | null;
+  /** how many people have read it — present once 0020 is applied */
+  reads?: number | null;
 }
+type Row = WritingRow;
 
 /* everything I have written INTO THE WORLD — pool letters and thread
    messages, with their ids and dates so each is one piece with one day.
    Server-fetched (they live there), fail-safe to []. */
-async function fetchMyLetters(): Promise<{ letters: Row[]; messages: Row[]; hours: number[] }> {
+export async function fetchMyLetters(): Promise<{ letters: Row[]; messages: Row[]; hours: number[] }> {
   if (!supabaseReady) return { letters: [], messages: [], hours: [] };
   try {
     const { data: s } = await supabase!.auth.getSession();
     const me = s.session?.user?.id;
     if (!me) return { letters: [], messages: [], hours: [] };
-    const [l, m] = await Promise.all([
-      supabase!.from("letters").select("id,body,created_at,lang").eq("author", me).order("created_at", { ascending: false }).limit(200),
-      supabase!.from("messages").select("id,body,created_at").eq("sender", me).order("created_at", { ascending: false }).limit(400),
+    const mine = (cols: string) => supabase!.from("letters").select(cols).eq("author", me).eq("active", true).order("created_at", { ascending: false }).limit(200);
+    let l: { data: unknown; error: unknown } = await mine("id,body,created_at,lang,stamp,reads");
+    // pre-0020: no `reads` column yet — read the rest without it
+    if (l.error) l = await mine("id,body,created_at,lang,stamp");
+    const [m] = await Promise.all([
+      supabase!.from("messages").select("id,body,created_at,thread_id").eq("sender", me).order("created_at", { ascending: false }).limit(400),
     ]);
     const letters = ((l.data || []) as Row[]).filter((r) => r.body);
     const messages = ((m.data || []) as Row[]).filter((r) => r.body);
@@ -184,19 +202,50 @@ const EMPTY: Aura = {
   sealed: [],
   archetype: null,
   draft: null,
+  lastWrittenAt: null,
+  usage: [],
   sources: { letters: 0, sealed: 0, conversations: 0 },
   commonWords: [],
   nightOwl: false,
 };
+
+/* the counted layer — threads, kept letters, the bird, the Today taps.
+   Each source fails to "nothing counted", never to an error. */
+async function readUsage(mine: Awaited<ReturnType<typeof fetchMyLetters>>, journal: Awaited<ReturnType<typeof loadJournal>>): Promise<UsageSticker[]> {
+  const [threads, lore, counters, skin, accessory, name] = await Promise.all([
+    fetchThreads().catch(() => null),
+    loadLore().catch(() => []),
+    getCounters(),
+    getWrenSkin().catch(() => "sticker" as const),
+    getWrenAccessory().catch(() => "none" as const),
+    getWrenName().catch(() => DEFAULT_WREN),
+  ]);
+  try {
+    return usageStickers({
+      now: new Date().toISOString(),
+      letters: mine.letters.map((r) => ({ at: r.created_at, text: r.body, stamp: r.stamp })),
+      replies: mine.messages.map((r) => ({ at: r.created_at, text: r.body })),
+      threads: threads ?? [],
+      journal,
+      keptN: lore.length,
+      dressed: skin !== "sticker" || accessory !== "none",
+      named: !!name && name.trim() !== DEFAULT_WREN,
+      counters,
+    });
+  } catch {
+    return [];
+  }
+}
 
 export async function myAura(firstLine?: string | null): Promise<Aura> {
   const pieces: Piece[] = [];
   if (firstLine && firstLine.trim().length >= 3) pieces.push(toPiece("hatch-line", "hatch", firstLine.trim(), "", null));
   let sealedCount = 0;
   const scope = await getAuraScope();
+  let journal: Awaited<ReturnType<typeof loadJournal>> = [];
   try {
-    for (const e of scope.sealed ? await loadJournal() : []) {
-      if (e.id.startsWith("demo-")) continue;
+    journal = (scope.sealed ? await loadJournal() : []).filter((e) => !e.id.startsWith("demo-"));
+    for (const e of journal) {
       if (e.body && e.body.trim().length >= 3) {
         pieces.push(toPiece(e.id, "sealed", e.body.trim(), e.date, null));
         sealedCount++;
@@ -209,7 +258,9 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   for (const r of mine.letters) pieces.push(toPiece(r.id, "letter", r.body, r.created_at, r.lang));
   for (const r of mine.messages) pieces.push(toPiece(r.id, "reply", r.body, r.created_at, null));
 
-  if (!pieces.length) return EMPTY;
+  const usage = await readUsage(mine, journal);
+  const lastWrittenAt = [...mine.letters, ...mine.messages].map((r) => r.created_at).filter(Boolean).sort().pop() ?? null;
+  if (!pieces.length) return { ...EMPTY, usage, lastWrittenAt };
 
   const texts = pieces.map((p) => p.text);
   const pieceText: Aura["pieceText"] = {};
@@ -251,6 +302,8 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     formedOn,
     archetype: phase === "formed" ? h.archetype : null,
     draft: h.archetype ?? null,
+    lastWrittenAt,
+    usage,
     sources: {
       letters: mine.letters.length,
       sealed: sealedCount,

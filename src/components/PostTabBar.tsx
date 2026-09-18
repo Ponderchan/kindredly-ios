@@ -16,7 +16,7 @@ import { P } from "../theme/post";
 const BAR = 54;
 const ICON = 24;
 
-function Envelope({ color }: { color: string }) {
+export function Envelope({ color }: { color: string }) {
   return (
     <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round">
       <Rect x={3} y={5.5} width={18} height={13} rx={2} />
@@ -41,7 +41,7 @@ function Plane({ color }: { color: string }) {
     </Svg>
   );
 }
-function Kindreds({ color }: { color: string }) {
+export function Kindreds({ color }: { color: string }) {
   return (
     <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6}>
       <Circle cx={9} cy={12} r={5.5} />

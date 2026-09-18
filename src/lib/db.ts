@@ -365,6 +365,25 @@ export function momentUrl(mediaPath?: string | null): string | null {
   }
 }
 
+/* ── Your own letters: taking one back, and who has read it ── */
+
+/** withdraw a pool letter — it stops being offered; correspondences it
+    already opened are untouched (they are the other person's too) */
+export async function withdrawLetter(id: string): Promise<boolean> {
+  if (!supabaseReady) return false;
+  const me = await uid();
+  if (!me) return false;
+  const { error } = await supabase!.from("letters").update({ active: false }).eq("id", id).eq("author", me);
+  return !error;
+}
+
+/** one reader, once — the eye on My letters. Fire-and-forget; before 0020
+    lands the function does not exist and the call is simply dropped. */
+export function markLetterRead(id: string): void {
+  if (!supabaseReady || !id || id.startsWith("demo")) return;
+  void supabase!.rpc("mark_letter_read", { p_letter: id }).then(() => {}, () => {});
+}
+
 /* ── Threads + messages (real 1:1 conversations) ── */
 export async function replyToLetter(
   letter: PoolLetter,
@@ -467,6 +486,14 @@ export interface ThreadSummary {
   preview: string;
   lastSenderMe: boolean;
   lastAt: number;
+  /** the pool letter this correspondence grew from — its id once 0020 has
+      stamped it, its text always — and whether it was mine (I am `b`:
+      someone answered my letter). My letters counts answers by it. */
+  letterId?: string | null;
+  opening?: string;
+  fromMyLetter?: boolean;
+  /** when both names were sealed (0020) — the date on a Kindred's card */
+  revealedAt?: number | null;
   myReaction?: string | null; // my one-tap reaction on this thread
   theirReaction?: string | null; // theirs — how they caught your last letter
 }
@@ -478,7 +505,7 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
     let { data, error } = await supabase!
       .from("threads")
       .select(
-        "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at",
+        "id,a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at",
       )
       .or(`a.eq.${me},b.eq.${me}`)
       .order("last_at", { ascending: false });
@@ -559,6 +586,10 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
         other: iamA ? r.b : r.a,
         gone: !(iamA ? r.b : r.a),
         preview: r.last_body || r.opening || "",
+        opening: r.opening || "",
+        letterId: r.letter ?? null,
+        fromMyLetter: !iamA,
+        revealedAt: r.revealed_at ? Date.parse(r.revealed_at) : null,
         lastSenderMe: r.last_sender === me,
         lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
         myReaction: rx.get(r.id)?.mine ?? null,

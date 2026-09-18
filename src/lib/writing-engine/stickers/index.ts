@@ -1,6 +1,6 @@
 import { aggregateObservations, currentWindow, dedupPieces, THRESHOLDS } from "./aggregate";
 import { contentHash, extractPiece } from "./extract";
-import { buildShareSnapshot, homeThree, resolveStickers, resolveTitle } from "./resolve";
+import { board, buildShareSnapshot, homeThree, resolveStickers, resolveTitle } from "./resolve";
 import type { Piece, PieceFeatures, PieceSource, StickerReadout, StickerState } from "./types";
 import { EMPTY_STATE, RULE_VERSION } from "./types";
 
@@ -13,7 +13,7 @@ import { EMPTY_STATE, RULE_VERSION } from "./types";
 
 export type { Piece, PieceSource, StickerReadout, StickerState, ResolvedSticker, TraitObservation, AuraTitle, ShareSnapshot, Span } from "./types";
 export { EMPTY_STATE, RULE_VERSION } from "./types";
-export { STICKERS, STICKER_BY_ID, TITLE_NOUNS, TITLE_ADJECTIVES } from "./catalog";
+export { STICKERS, STICKER_BY_ID, PRIMARY_TRAITS, TITLE_NOUNS, TITLE_ADJECTIVES } from "./catalog";
 export { THRESHOLDS } from "./aggregate";
 export { contentHash } from "./extract";
 export { buildShareSnapshot } from "./resolve";
@@ -84,6 +84,7 @@ export function readStickers(pieces: Piece[], prev: StickerState | null, opts: R
     observations,
     byDimension,
     home,
+    board: board(observations, today),
     title,
     nightShare,
   };

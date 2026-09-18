@@ -17,14 +17,17 @@ import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { fetchThreads, type ThreadSummary } from "../../lib/db";
-import { WHEREABOUTS_META, recordStageDate, whereabouts } from "../../lib/whereabouts";
-import { AuraCard, W14 } from "../../components/AuraCard";
-import { WrenBird } from "../../components/WrenBird";
+import { recordStageDate, whereabouts } from "../../lib/whereabouts";
+import { AuraCard, W14, cardShadow } from "../../components/AuraCard";
+import { Envelope, Kindreds } from "../../components/PostTabBar";
+import { dShort } from "../../lib/format";
 import { CofounderMark } from "../../components/CofounderMark";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { DEMO_JOURNAL } from "../../data/demo";
 import { FirstClassStub } from "../../components/FirstClassStub";
+import { CourierCard } from "../../components/CourierCard";
+import { getCounters, seenToday } from "../../lib/usage-counters";
 
 /* Me — a mirror, not a profile: who you are here (pen name + day), how you
    sound (the aura — the hero), and who's growing beside you (Wren).
@@ -50,6 +53,11 @@ function Gear() {
   );
 }
 
+/* the two count cells: the number bold, the label in the plate's mono */
+const KIN_GREEN = "#2E7D4F";
+const countNum = { fontFamily: PF.letter, fontWeight: "700" as const, fontSize: 18, letterSpacing: -0.3, color: W14.ink };
+const countLabel = { fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.55)" };
+
 export default function MeTab() {
   useLang();
   const auth = useAuth();
@@ -63,6 +71,7 @@ export default function MeTab() {
   const [statsIn, setStatsIn] = useState(false);
   const [aura, setAura] = useState<Aura | null>(null);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
+  const [seenTodayN, setSeenTodayN] = useState(0);
   const [editing, setEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
@@ -97,6 +106,7 @@ export default function MeTab() {
         }
       });
       fetchThreads().then((t) => alive && setThreads(t || []));
+      getCounters().then((c) => alive && setSeenTodayN(seenToday(c)));
       getAvatarPhoto().then((p) => alive && setPhoto(p));
 
       // Your aura — one engine (hatch), every piece of your real writing:
@@ -117,6 +127,11 @@ export default function MeTab() {
   /* her status rides the switch itself — you see she moved before you
      even open her room */
   const where = whereabouts(threads, statsIn ? stats.lettersSent : null);
+  /* the plate's LETTERS is what the My letters page lists: letters you sent
+     into the pool. Replies live in Kindreds; the aura card says "letters &
+     replies" for what it read. GrowthStats keeps counting replies alone (the
+     stamps and the courier's route rest on it). */
+  const lettersWritten = aura ? aura.sources.letters : 0;
 
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
@@ -135,7 +150,6 @@ export default function MeTab() {
     await auth.saveProfile({ handle: newName, avatarId: newAvatarId });
   };
 
-  const stageKey = `me.stage.${stageFloor}`;
 
   return (
     /* W14 · Me tab final: name, the courier's card, the writing aura, the
@@ -151,62 +165,63 @@ export default function MeTab() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-        {/* who you are here */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Pressable onPress={() => setEditing(true)} hitSlop={6}>
-            <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={52} />
-          </Pressable>
-          <Pressable onPress={() => setEditing(true)} style={{ flex: 1 }} hitSlop={6}>
-            <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "700", letterSpacing: -0.5, color: W14.ink }}>{name}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.2, color: "rgba(30,27,53,0.5)", marginTop: 6 }}>
-              {stats.kindreds === 1
-                ? t("me.statsOne", { day: stats.day, letters: stats.lettersSent, sealed: stats.journalN })
-                : t("me.statsMany", { day: stats.day, letters: stats.lettersSent, sealed: stats.journalN, kindreds: stats.kindreds })}
-            </Text>
-            {cofounderNo != null && (
-              <View style={{ marginTop: 8 }}>
-                <CofounderMark no={cofounderNo} />
-              </View>
-            )}
-          </Pressable>
+        {/* who you are here — the owner's plate: one white card, the pencil
+            edits, and the two counts are cells you can press */}
+        <View style={[{ backgroundColor: W14.card, borderRadius: 18, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.05 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14 }}>
+            <View style={{ width: 60, height: 60 }}>
+              <AvatarImage id={avatarId} photoUri={photo} seed={seed} size={56} />
+              <Pressable
+                onPress={() => setEditing(true)}
+                hitSlop={8}
+                accessibilityLabel={t("me.edit")}
+                style={({ pressed }) => ({ position: "absolute", right: -4, bottom: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DCD9F0", alignItems: "center", justifyContent: "center", shadowColor: "#1E1B35", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, opacity: pressed ? 0.7 : 1 })}
+              >
+                <Svg width={12} height={12} viewBox="0 0 24 24">
+                  <Path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z M13.5 7.5l3 3" fill="none" stroke={KIN_GREEN} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Pressable>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "700", letterSpacing: -0.5, color: W14.ink }}>{name}</Text>
+              {!!user?.created_at && (
+                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.2, color: "rgba(30,27,53,0.5)", marginTop: 5 }}>
+                  {t("me.joined", { date: dShort(user.created_at).toUpperCase() })}
+                </Text>
+              )}
+              {cofounderNo != null && (
+                <View style={{ marginTop: 8 }}>
+                  <CofounderMark no={cofounderNo} />
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", borderTopWidth: 1, borderTopColor: W14.hair }}>
+            <Pressable onPress={() => router.push("/my-letters")} style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRightWidth: 1, borderRightColor: W14.hair, backgroundColor: pressed ? "#F6F5FD" : "transparent" })}>
+              <Envelope color={P.pen} />
+              <Text style={countNum}>{lettersWritten}</Text>
+              <Text style={countLabel}>{t("me.lettersLabel")}</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push("/my-kindreds")} style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, backgroundColor: pressed ? "#F6F5FD" : "transparent" })}>
+              <Kindreds color={KIN_GREEN} />
+              <Text style={countNum}>{stats.kindreds}</Text>
+              <Text style={countLabel}>{stats.kindreds === 1 ? t("me.kindredLabelOne") : t("me.kindredLabel")}</Text>
+            </Pressable>
+          </View>
         </View>
 
-        {/* the courier's card — tap to open her room */}
-        <Pressable
-          onPress={() => router.push("/courier")}
-          style={({ pressed }) => ({ marginTop: 14, backgroundColor: "#FFFFFF", borderRadius: 16, flexDirection: "row", alignItems: "stretch", overflow: "hidden", shadowColor: "#1E1B35", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, opacity: pressed ? 0.92 : 1 })}
-        >
-          <View style={{ width: 104, backgroundColor: where.state === "unsent" ? "#FFF3DC" : "#E4E1FA", overflow: "hidden" }}>
-            {/* the route: two posts and a dashed line, the courier above it */}
-            <View style={{ position: "absolute", left: 10, right: 10, top: 50, borderTopWidth: 2, borderStyle: "dashed", borderColor: "rgba(91,85,255,0.35)" }} />
-            <View style={{ position: "absolute", left: 8, top: 44, width: 12, height: 12, borderRadius: 3, backgroundColor: P.pen }} />
-            <View style={{ position: "absolute", right: 8, top: 42, width: 14, height: 16, borderWidth: 2, borderColor: P.pen, borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
-            <View style={{ position: "absolute", left: 30, top: 8, transform: [{ rotate: where.state === "unsent" ? "0deg" : "-12deg" }] }}>
-              <WrenBird size={46} mood={WHEREABOUTS_META[where.state].mood} />
-            </View>
-            {where.state !== "unsent" && where.state !== "home" && (
-              <View style={{ position: "absolute", left: 66, top: 46, width: 16, height: 11, backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#DAD6EE", transform: [{ rotate: "-12deg" }] }}>
-                <View style={{ height: 3, backgroundColor: P.post }} />
-              </View>
-            )}
-            <Text style={{ position: "absolute", left: 0, right: 0, bottom: 6, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.45)" }}>
-              {t("me.dayN", { n: stats.day })}
-            </Text>
-          </View>
-          <View style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 12, justifyContent: "center", gap: 5 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: W14.ink }}>{wren}</Text>
-              <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: where.state === "unsent" ? "#FFF3DC" : P.penWash }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: where.state === "unsent" ? W14.goldInk : P.pen }}>{t(stageKey)}</Text>
-              </View>
-            </View>
-            <Text style={{ fontFamily: PF.letter, fontSize: 13, color: W14.ink }}>{where.line}</Text>
-            <Text style={{ fontFamily: PF.letter, fontSize: 11, color: "rgba(30,27,53,0.5)" }} numberOfLines={1}>{where.bubble}</Text>
-          </View>
-          <View style={{ width: 34, alignItems: "center", justifyContent: "center", paddingRight: 6 }}>
-            <Text style={{ fontFamily: PF.letter, fontSize: 18, color: "rgba(30,27,53,0.35)" }}>›</Text>
-          </View>
-        </Pressable>
+        {/* the courier's card — the delivery as a scene; tap to open her room */}
+        <View style={{ marginTop: 14 }}>
+          <CourierCard
+            wren={wren}
+            where={where}
+            threads={threads}
+            lastWrittenAt={aura?.lastWrittenAt ?? null}
+            seenToday={seenTodayN}
+            stage={stageFloor}
+            onPress={() => router.push("/courier")}
+          />
+        </View>
 
         <View style={{ marginTop: 12 }}>
           {aura && (

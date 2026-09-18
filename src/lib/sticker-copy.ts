@@ -2,6 +2,7 @@ import { t } from "./i18n";
 import type { AuraPhase } from "./aura";
 import { STICKER_BY_ID, type AuraTitle, type ResolvedSticker, type Span, type TraitObservation } from "./writing-engine/stickers";
 import type { DimKey } from "./hatch-engine";
+import { usageGroupOf, type UsageGroup, type UsageSticker } from "./usage-stickers";
 
 /* THE STICKER COPY LAYER — ids in, the reader's language out.
    ────────────────────────────────────────────────────────────────────────
@@ -10,30 +11,35 @@ import type { DimKey } from "./hatch-engine";
    with counted facts; the quote is sliced from their own words. Nothing is
    generated. */
 
-export const stickerName = (id: string): string => t(`st.${id}.name`);
+/** a sticker's name — a writing sticker reads from `st.`, a counted one from `us.` */
+export const stickerName = (id: string): string => t(STICKER_BY_ID[id] ? `st.${id}.name` : `us.${id}.name`);
 
-/* traits whose evidence marks are words worth repeating on the sticker —
-   "rain, sill, water" says more than a count; the rest get a short template */
-const WORDY = new Set(["detail_collector", "idea_explorer", "maybe_maker", "thought_turner", "heart_on_page", "inside_voice", "world_watcher", "dash_lover", "ellipsis_keeper", "emoji_accent"]);
-
-/** the fixed one-line meaning under a sticker's name on the sheet */
-export const stickerShort = (id: string): string => t(`st.${id}.short`);
-
-/** the second line on a sticker: the words it fired on, or a counted phrase */
-export function stickerSub(s: ResolvedSticker, pieceText: Record<string, { text: string }>): string {
-  if (WORDY.has(s.stickerId)) {
-    const words: string[] = [];
-    for (const e of s.evidence) {
-      const p = pieceText[e.pieceId];
-      if (!p || !e.mark) continue;
-      const w = p.text.slice(e.mark[0], e.mark[1]).trim().toLowerCase();
-      if (w && !words.includes(w)) words.push(w);
-      if (words.length === 3) break;
-    }
-    if (words.length) return words.join(", ");
-  }
-  return t(`st.${s.stickerId}.sub`, { n: s.supporting, m: s.eligible });
+/* ── one list for the card: writing stickers first, then what the product
+   counted. `line` is the sentence under the name; `private` never travels. ── */
+export interface Chip {
+  id: string;
+  kind: "writing" | "usage";
+  line: string;
+  private: boolean;
 }
+
+export function chipsFor(home: ResolvedSticker[], usage: UsageSticker[], max: number, opts?: { publicOnly?: boolean }): Chip[] {
+  const out: Chip[] = home.map((s) => ({ id: s.stickerId, kind: "writing" as const, line: stickerLine(s), private: false }));
+  for (const u of usage) {
+    if (out.length >= max) break;
+    if (opts?.publicOnly && u.private) continue;
+    out.push({ id: u.id, kind: "usage", line: usageLine(u), private: u.private });
+  }
+  return out.slice(0, max);
+}
+
+/** the counted sentence under a usage sticker — "{n} of your {m} letters…" */
+export function usageLine(u: UsageSticker): string {
+  // a count of one reads as "one", where the sticker has that line
+  if (u.n === 1 && t(`us.${u.id}.line1`) !== `us.${u.id}.line1`) return t(`us.${u.id}.line1`);
+  return t(`us.${u.id}.line`, { n: u.n, m: u.of ?? u.n });
+}
+export const usageGroupLabel = (g: UsageGroup): string => t(`us.group.${g}`);
 
 /** the read, in her words — "You often…" once established, "In these
     letters…" while the signs are first */
@@ -92,49 +98,39 @@ export interface StickerLook {
 
 export const DIMENSION_INK: Record<DimKey, { bg: string; fg: string; shape: "pill" | "tag" }> = {
   vocabulary: { bg: "#5B55FF", fg: "#FFFFFF", shape: "pill" }, // word choice — pen blue
-  emotion: { bg: "#8CC4A2", fg: "#1E1B35", shape: "tag" }, // feeling — moss
-  quirks: { bg: "#F2887E", fg: "#1E1B35", shape: "pill" }, // your tics — coral
-  sentence: { bg: "#1E1B35", fg: "#FFFFFF", shape: "tag" }, // sentence shape — ink
-  rhythm: { bg: "#E9C15A", fg: "#1E1B35", shape: "tag" }, // rhythm — gold
-  perspective: { bg: "#E4E1FA", fg: "#3D38C9", shape: "pill" }, // way of seeing — lavender
-  function: { bg: "#F5B99F", fg: "#1E1B35", shape: "tag" }, // little words — peach
-  punctuation: { bg: "#B9B4F0", fg: "#1E1B35", shape: "tag" }, // pauses — periwinkle
-  structure: { bg: "#A9D0F2", fg: "#1E1B35", shape: "tag" }, // structure — sky
+  sentence: { bg: "#1E1B35", fg: "#FFFFFF", shape: "tag" }, // sentence shape — black label
+  rhythm: { bg: "#FFE14D", fg: "#1E1B35", shape: "tag" }, // rhythm — butter
+  emotion: { bg: "#FF5FA8", fg: "#1E1B35", shape: "tag" }, // feeling — hot pink
+  quirks: { bg: "#C8F542", fg: "#1E1B35", shape: "pill" }, // your tics — lime
+  perspective: { bg: "#C9A8FF", fg: "#1E1B35", shape: "pill" }, // way of seeing — lilac
+  function: { bg: "#FF8A4C", fg: "#1E1B35", shape: "tag" }, // little words — tangerine
+  punctuation: { bg: "#7DEFC4", fg: "#1E1B35", shape: "tag" }, // pauses — mint
+  structure: { bg: "#7AC7FF", fg: "#1E1B35", shape: "tag" }, // structure — sky
+};
+
+/* the counted labels are the other family: a clear sticker — white, a
+   coloured edge, coloured name — so "what you do" never passes for "how
+   you write". Five deep inks, one per group. */
+export const USAGE_INK: Record<UsageGroup, { ink: string; shape: "pill" | "tag" }> = {
+  time: { ink: "#5B2CC9", shape: "pill" }, // the hour on a letter — violet
+  habit: { ink: "#0E9C8F", shape: "tag" }, // what you do with letters — teal
+  subject: { ink: "#D9481F", shape: "pill" }, // what you write about — rust
+  sealed: { ink: "#7A2E9E", shape: "tag" }, // the sealed room — plum
+  courier: { ink: "#E0457B", shape: "pill" }, // the bird — raspberry
 };
 
 const TILT = ["-3deg", "2deg", "-2deg", "2.5deg", "-1.5deg", "1.5deg"];
 
 export function stickerLook(id: string, i = 0): StickerLook {
-  const dim = STICKER_BY_ID[id]?.dimension ?? "vocabulary";
+  const dim = STICKER_BY_ID[id]?.dimension;
+  const tilt = TILT[i % TILT.length];
+  if (!dim) {
+    const g = usageGroupOf(id);
+    const u = USAGE_INK[g ?? "habit"];
+    return { bg: "#FFFFFF", fg: u.ink, border: u.ink, radius: u.shape === "pill" ? 999 : 8, tilt };
+  }
   const ink = DIMENSION_INK[dim];
-  return { bg: ink.bg, fg: ink.fg, border: ink.bg, radius: ink.shape === "pill" ? 999 : 8, tilt: TILT[i % TILT.length] };
-}
-
-/** the glyph for a sticker's icon id — plain characters, so it works in any font */
-export function stickerGlyph(id: string): string {
-  const G: Record<string, string> = {
-    magnifier: "⌕",
-    compass: "◎",
-    arrow: "→",
-    wave: "∿",
-    metronome: "∣",
-    bolt: "↯",
-    heart: "♥",
-    bubble: "◌",
-    pen: "✎",
-    window: "▢",
-    tilde: "~",
-    turn: "↩",
-    dot: "•",
-    dash: "—",
-    dots: "…",
-    frame: "▣",
-    pin: "◆",
-    question: "?",
-    lowercase: "a",
-    sparkle: "✦",
-  };
-  return G[STICKER_BY_ID[id]?.icon ?? ""] ?? "•";
+  return { bg: ink.bg, fg: ink.fg, border: ink.bg, radius: ink.shape === "pill" ? 999 : 8, tilt };
 }
 
 /** lowercase the first character — for "{wren} has noticed something: you often…" */

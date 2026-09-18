@@ -78,6 +78,7 @@ const OWNED_KEYS = [
   "kindredly_hidden_demo",
   "kindredly_avatar_photo",
   "kindredly_lore",
+  "kindredly_usage_counters",
   "kindredly_moment_day",
 ];
 

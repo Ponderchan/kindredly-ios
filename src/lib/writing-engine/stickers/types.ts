@@ -50,29 +50,30 @@ export interface PieceVerdict {
   spans: Span[]; // evidence, only for support
 }
 
-export type TraitId =
-  | "concrete_detail"
-  | "abstract_ideas"
-  | "short_lines"
-  | "long_lines"
-  | "steady_beat"
-  | "tempo_shift"
-  | "heart_open"
-  | "quiet_feeling"
-  | "inside_voice"
-  | "world_watch"
-  | "maybe_maker"
-  | "thought_turn"
-  | "firm_voice"
-  | "full_stop"
-  | "dash_lover"
-  | "ellipsis_keeper"
-  | "comma_breath"
-  | "scene_open"
-  | "point_first"
-  | "open_ender"
-  | "lowercase_loyal"
-  | "emoji_accent";
+/* every trait a rule can vote on. Writing traits live in the nine
+   dimensions; the list is the source of truth for TraitId, so a sticker in
+   the catalog cannot point at a trait no rule produces. */
+export const TRAITS = [
+  // vocabulary
+  "concrete_detail", "abstract_ideas", "big_words", "repeat_word", "number_person",
+  // sentence
+  "short_lines", "long_lines", "one_liner", "fragment_fan", "question_asker", "list_maker",
+  // rhythm
+  "steady_beat", "tempo_shift", "slow_burner", "quick_note", "paragraph_person", "wall_of_text",
+  // emotion
+  "heart_open", "quiet_feeling", "sunny_side", "heavy_heart", "both_ways", "feeling_namer",
+  // perspective
+  "inside_voice", "world_watch", "you_person", "we_person", "third_person",
+  // function words
+  "maybe_maker", "thought_turn", "firm_voice", "honestly_person", "reason_giver", "and_then",
+  // punctuation
+  "full_stop", "dash_lover", "ellipsis_keeper", "comma_breath", "exclaimer", "side_noter", "quote_collector", "stream_conscious", "semicolon",
+  // structure
+  "scene_open", "point_first", "time_stamper", "greeter", "ps_writer", "circle_back",
+  // quirks
+  "open_ender", "lowercase_loyal", "emoji_accent", "caps_locker", "laugh_tracker", "stretcher",
+] as const;
+export type TraitId = (typeof TRAITS)[number];
 
 export type ObservationState = "unknown" | "emerging" | "established" | "balanced";
 
@@ -157,6 +158,8 @@ export interface StickerReadout {
   byDimension: Partial<Record<DimKey, ResolvedSticker>>;
   /** the home three: established first, complementary, deduped */
   home: ResolvedSticker[];
+  /** every sticker that holds right now, seats and extras alike */
+  board: ResolvedSticker[];
   title: AuraTitle;
   /** counted, from dated letters/replies only: over half left 22:00–06:00 */
   nightShare: number | null;

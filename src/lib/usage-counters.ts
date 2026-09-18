@@ -1,0 +1,40 @@
+import { scoped } from "./scoped-store";
+import { EMPTY_COUNTERS, type LocalCounters } from "./usage-stickers";
+
+/* LOCAL COUNTERS — the handful of taps the usage stickers count.
+   ────────────────────────────────────────────────────────────────────────
+   Letters shown, replies sent, translations asked for, visits to the
+   courier's room. Kept per account on this phone (the scoped store follows
+   the session), never sent anywhere; they only ever become a sticker the
+   reader sees about themselves. Read from storage each time — a bump is a
+   rare event and a cache would have to follow account switches. */
+
+const KEY = "kindredly_usage_counters";
+
+export async function getCounters(): Promise<LocalCounters> {
+  try {
+    const raw = await scoped.getItem(KEY);
+    return raw ? { ...EMPTY_COUNTERS, ...(JSON.parse(raw) as Partial<LocalCounters>) } : { ...EMPTY_COUNTERS };
+  } catch {
+    return { ...EMPTY_COUNTERS };
+  }
+}
+
+/** letters shown today — zero once the day has turned */
+export const seenToday = (c: LocalCounters): number => (c.seenDay === new Date().toISOString().slice(0, 10) ? c.seenToday ?? 0 : 0);
+
+export async function bump(key: "seen" | "replied" | "translated" | "courierVisits", by = 1): Promise<void> {
+  const c = await getCounters();
+  c[key] += by;
+  if (key === "seen") {
+    // the day's own count, for the courier's "3 letters went past your desk today"
+    const day = new Date().toISOString().slice(0, 10);
+    c.seenToday = (c.seenDay === day ? c.seenToday ?? 0 : 0) + by;
+    c.seenDay = day;
+  }
+  try {
+    await scoped.setItem(KEY, JSON.stringify(c));
+  } catch {
+    /* a counter is not worth an error */
+  }
+}

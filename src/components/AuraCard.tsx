@@ -5,7 +5,7 @@ import { AURA_SCENES, AURA_SKETCHES } from "../data/aura-scenes";
 import { MosaicId } from "./MosaicId";
 import { useWrenName } from "../lib/wren-name";
 import type { Aura, AuraPhase } from "../lib/aura";
-import { lc, phaseCta, phaseFoot, phaseHeadline, phaseLabel, stickerLine, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
+import { chipsFor, phaseCta, phaseFoot, phaseHeadline, phaseLabel, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
 import type { ResolvedSticker } from "../lib/writing-engine/stickers";
 
 /* WRITING AURA — the card, built to the owner's W14 sheet (Me tab · final).
@@ -38,8 +38,20 @@ export const cardShadow = {
   shadowOffset: { width: 0, height: 8 },
 } as const;
 
-/* the card shows this many; the sheet shows every one */
-const CHIPS_AT: Record<AuraPhase, number> = { empty: 0, forming: 1, shaping: 2, clearing: 3, formed: 3 };
+/** "Based on your 13 letters" — pool letters and replies, the ones the aura
+    actually read; before any letter it rests on the first lines alone */
+export function basedOn(aura: Aura): string {
+  const n = aura.sources.letters + aura.sources.conversations;
+  if (n === 0) return t("ap.basedOnFirst");
+  if (n === 1) return t("ap.basedOnOne");
+  return aura.sources.conversations > 0 ? t("ap.basedOnBoth", { n }) : t("ap.basedOn", { n });
+}
+
+/* the card shows this many; the sheet shows every one. Writing stickers
+   come first; what the product counted (the hour on your letters, the
+   stamps you pick) fills the rest, so the first sticker can be there the
+   day the first letter leaves. */
+const CHIPS_AT: Record<AuraPhase, number> = { empty: 0, forming: 3, shaping: 3, clearing: 3, formed: 3 };
 
 /* ── the sticker: its dimension's ink, a white cut edge, a little tilt, and
    nothing on it but its name (the owner's sheet) ── */
@@ -78,7 +90,7 @@ export function StickerChip({
           borderColor: W14.ink,
         }}
       >
-        <View style={{ backgroundColor: look.bg, borderRadius: look.radius, paddingHorizontal: lg ? 15 : 12, paddingVertical: lg ? 8 : 6 }}>
+        <View style={{ backgroundColor: look.bg, borderRadius: look.radius, borderWidth: 2, borderColor: look.border, paddingHorizontal: lg ? 13 : 10, paddingVertical: lg ? 6 : 4 }}>
           <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: lg ? 13.5 : 12.5, color: look.fg }} numberOfLines={1}>
             {stickerName(id)}
           </Text>
@@ -162,7 +174,7 @@ export function AuraCard({
   const stage = aura.phase;
   const formed = stage === "formed";
   const st = aura.stickers;
-  const shown = (st?.home ?? []).slice(0, CHIPS_AT[stage]);
+  const shown = chipsFor(st?.home ?? [], aura.usage, CHIPS_AT[stage]);
   const toFirst = Math.min(aura.pieces, 3);
 
   const headline = formed ? titleName(st?.title) : phaseHeadline(stage);
@@ -171,32 +183,35 @@ export function AuraCard({
     : stage === "empty"
       ? t("ap.empty.desc", { wren })
       : shown[0]
-        ? t("ap.noticed", { wren, line: lc(stickerLine(shown[0])) })
+        ? shown[0].line // the owner's sheet: the read itself, no "she has noticed"
         : t("ap.nothingYet");
   const onCta = stage === "empty" || stage === "forming" ? onWrite ?? onOpen : onOpen;
 
   return (
-    <Pressable onPress={onOpen} style={[{ backgroundColor: W14.card, borderRadius: 20, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16 }, cardShadow]}>
-      <View style={{ flexDirection: "row", gap: 14, alignItems: "flex-start" }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: "row", alignItems: "baseline" }}>
-            <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 2.2, color: P.pen }}>{t("ap.title")}</Text>
-          </View>
-          <Text style={{ fontFamily: PF.letter, fontSize: 12, color: W14.grey, marginTop: 3 }}>{t("ap.sub")}</Text>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 30, lineHeight: 32, letterSpacing: -1, color: stage === "empty" ? "rgba(30,27,53,0.22)" : W14.ink, marginTop: 14 }}>
-            {headline}
-          </Text>
+    <Pressable onPress={onOpen} style={[{ backgroundColor: W14.card, borderRadius: 20, overflow: "hidden", paddingBottom: 16 }, cardShadow]}>
+      {/* the head (owner's V9): a chip inside the card, the art beside it,
+          then a thin band that says the phase — nothing floats outside */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 14, paddingTop: 12 }}>
+        <View style={{ backgroundColor: P.pen, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, marginTop: 4 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{t("me.sec.aura").toUpperCase()}</Text>
         </View>
-        <View style={{ alignItems: "flex-end", gap: 10 }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 13, color: formed ? "#2E7D4F" : W14.grey }}>{phaseLabel(stage)}</Text>
-          <AuraArt aura={aura} seed={seed} avatarId={avatarId} width={140} height={stage === "empty" ? 110 : 104} />
-        </View>
+        <AuraArt aura={aura} seed={seed} avatarId={avatarId} width={formed ? 104 : 72} height={formed ? 78 : 54} radius={10} />
+      </View>
+      <View style={{ backgroundColor: formed ? "#2E7D4F" : P.pen, paddingHorizontal: 18, paddingVertical: 4, marginTop: 8 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{phaseLabel(stage).toUpperCase()}</Text>
       </View>
 
-      <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: W14.ink, marginTop: 12 }}>{desc}</Text>
+      <View style={{ paddingHorizontal: 18, paddingTop: 14 }}>
+        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: formed ? 30 : 23, lineHeight: formed ? 33 : 27, letterSpacing: -0.8, color: W14.ink }}>
+          {formed ? headline : t("ap.what")}
+        </Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)", marginTop: 6 }}>{basedOn(aura).toUpperCase()}</Text>
+      </View>
+
+      <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: W14.ink, marginTop: 12, paddingHorizontal: 18 }}>{desc}</Text>
 
       {shown.length === 0 && !formed && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 16 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 16, paddingHorizontal: 18 }}>
           <View style={{ width: 72, height: 3, borderRadius: 2, backgroundColor: "#E4E1FA", overflow: "hidden" }}>
             <View style={{ width: `${(toFirst / 3) * 100}%`, height: 3, backgroundColor: P.pen }} />
           </View>
@@ -205,14 +220,14 @@ export function AuraCard({
       )}
 
       {shown.length > 0 && (
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 14 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 8, rowGap: 10, marginTop: 14, paddingHorizontal: 18 }}>
           {shown.map((s, i) => (
-            <StickerChip key={s.stickerId} id={s.stickerId} i={i} />
+            <StickerChip key={s.id} id={s.id} i={i} />
           ))}
         </View>
       )}
 
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 14, paddingHorizontal: 18 }}>
         <Pressable onPress={onCta} style={({ pressed }) => ({ flex: 1, backgroundColor: W14.navy, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
           <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: "#FFFFFF" }}>{phaseCta(stage)} →</Text>
         </Pressable>
@@ -234,8 +249,9 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
   const formed = aura.phase === "formed";
   const name = formed ? titleName(st?.title) : st?.title?.noun ? titleName(st.title) : phaseHeadline(aura.phase);
   // the three on the card: the kernel already chose them (one per locked dimension)
-  const held = (st?.home ?? []).slice(0, 3);
-  const desc = st?.title?.noun ? titleDesc(st.title) : held[0] ? stickerLine(held[0]) : "";
+  // what travels: the writing stickers, then only the counted ones that may leave the phone
+  const held = chipsFor(st?.home ?? [], aura.usage, 3, { publicOnly: true });
+  const desc = st?.title?.noun ? titleDesc(st.title) : held[0] ? held[0].line : "";
   const letters = st?.windowPieces ?? aura.pieces;
   return (
     <View style={[{ backgroundColor: W14.card, borderRadius: 18, borderWidth: 1.5, borderColor: P.pen, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 18 }, cardShadow, { shadowOpacity: 0.14, shadowRadius: 44, shadowOffset: { width: 0, height: 20 } }]}>
@@ -251,7 +267,7 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
       {held.length > 0 && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 16 }}>
           {held.map((s, i) => (
-            <StickerChip key={s.stickerId} id={s.stickerId} i={i} size="lg" />
+            <StickerChip key={s.id} id={s.id} i={i} size="lg" />
           ))}
         </View>
       )}

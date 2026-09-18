@@ -20,8 +20,9 @@ import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dShort, postNo, sinceShort } from "../../lib/format";
-import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads } from "../../lib/db";
+import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
 import { refreshFingerprint } from "../../lib/aura";
+import { bump } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, t, useLang } from "../../lib/i18n";
 import { screenNow, translate } from "../../lib/wren";
@@ -247,6 +248,23 @@ function Feed({
   const quiet = loaded && feed.length === 0;
   const atEnd = idx >= feed.length;
   const current = feed[idx];
+  /* counted, for the reader's own stickers: every letter the pager lands on,
+     once, and each reply sent — the share behind Picky / Generous */
+  const seenIds = useRef(new Set<string>());
+  useEffect(() => {
+    if (!current || current.id.startsWith("demo") || seenIds.current.has(current.id)) return;
+    seenIds.current.add(current.id);
+    void bump("seen");
+  }, [current]);
+  /* the writer's eye: a letter counts as read once it has been the page on
+     the desk for two seconds — flicking past is not reading. One per reader,
+     the database keeps that. */
+  useEffect(() => {
+    if (!current || current.id.startsWith("demo")) return;
+    const id = current.id;
+    const timer = setTimeout(() => markLetterRead(id), 2000);
+    return () => clearTimeout(timer);
+  }, [current]);
 
   const goto = (i: number) => {
     scrollRef.current?.scrollTo({ y: i * vh, animated: true });
@@ -348,6 +366,7 @@ function Feed({
       /* the moment a stranger's letter becomes a correspondence — the
          single most important conversion in the product */
       track("reply_sent", { weight: weightedCount(text) });
+      void bump("replied");
       setExtraFlights((f) => f + 1);
       wrenStageDirty(); // a first reply is where she fledges
       onSettled(); // answering one of what she brought back ends the arrival
@@ -836,6 +855,7 @@ function LetterPage({
     if (out) {
       setXl(out);
       setXlOn(true);
+      void bump("translated");
     } else Alert.alert(t("ld.xlFail.title", { wren }), t("ld.xlFail.body"));
   };
 

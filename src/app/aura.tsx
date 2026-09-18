@@ -4,11 +4,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
-import { AuraTicket, W14, cardShadow } from "../components/AuraCard";
+import { AuraTicket, StickerChip, W14, cardShadow } from "../components/AuraCard";
 import { useAuth } from "../lib/auth";
 import { getAuraScope, myAura, pauseCounts, setAuraScope, wordCounts, type Aura } from "../lib/aura";
 import { dimLabel } from "../lib/aura-copy";
-import { observationState, stickerCount, stickerLine, stickerName } from "../lib/sticker-copy";
+import { observationState, stickerCount, stickerLine, stickerName, usageGroupLabel, usageLine } from "../lib/sticker-copy";
+import type { UsageGroup } from "../lib/usage-stickers";
 import type { DimKey } from "../lib/hatch-engine";
 import type { TraitObservation } from "../lib/writing-engine/stickers";
 import { dShort } from "../lib/format";
@@ -26,6 +27,7 @@ import { dShort } from "../lib/format";
               turn them on. Nothing here leaves the phone. */
 
 const ORDER: DimKey[] = ["sentence", "structure", "perspective", "rhythm", "function", "vocabulary", "punctuation", "emotion", "quirks"];
+const GROUPS: UsageGroup[] = ["time", "habit", "subject", "courier", "sealed"];
 const PAGE = Dimensions.get("window").width - 44;
 
 type Tab = "portrait" | "dims" | "habits";
@@ -68,6 +70,12 @@ export default function AuraScreen() {
 
   const words = useMemo(() => (aura ? wordCounts(aura.texts) : []), [aura]);
   const pauses = useMemo(() => (aura ? pauseCounts(aura.texts) : []), [aura]);
+  // writing stickers that hold but did not get a seat on the card
+  const extras = useMemo(() => {
+    const home = new Set((aura?.stickers?.home ?? []).map((s) => s.stickerId));
+    return (aura?.stickers?.board ?? []).filter((s) => !home.has(s.stickerId));
+  }, [aura]);
+  const usageBy = useMemo(() => GROUPS.map((g) => ({ g, items: (aura?.usage ?? []).filter((u) => u.group === g) })).filter((x) => x.items.length), [aura]);
   const wordHit = useMemo(() => {
     if (!aura || !word) return null;
     const re = new RegExp(`(^|[^\\p{L}])${word}(?=[^\\p{L}]|$)`, "iu");
@@ -218,6 +226,44 @@ export default function AuraScreen() {
             </View>
             <Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(30,27,53,0.5)", marginTop: 12 }}>{tr("wa.pausesHint")}</Text>
           </View>
+
+          {/* the rest of the stickers: writing ones without a seat, then what the product counted */}
+          {extras.length > 0 && (
+            <View style={[{ backgroundColor: W14.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)" }}>{tr("us.more")}</Text>
+              <View style={{ marginTop: 14, gap: 14 }}>
+                {extras.map((s, i) => (
+                  <View key={s.stickerId} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <StickerChip id={s.stickerId} i={i} />
+                    <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 13, lineHeight: 18, color: "rgba(30,27,53,0.7)" }}>{stickerCount(s)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+          {usageBy.length === 0 ? (
+            <View style={[{ backgroundColor: W14.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)" }}>{usageGroupLabel("habit")}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: "rgba(30,27,53,0.55)", marginTop: 12 }}>{tr("us.none")}</Text>
+            </View>
+          ) : (
+            usageBy.map(({ g, items }) => (
+              <View key={g} style={[{ backgroundColor: W14.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)" }}>{usageGroupLabel(g)}</Text>
+                <View style={{ marginTop: 14, gap: 14 }}>
+                  {items.map((u, i) => (
+                    <View key={u.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                      <StickerChip id={u.id} i={i} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: PF.letter, fontSize: 13, lineHeight: 18, color: "rgba(30,27,53,0.7)" }}>{usageLine(u)}</Text>
+                        {u.private && <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.2, color: "rgba(30,27,53,0.45)", marginTop: 3 }}>🔒 {tr("us.private")}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))
+          )}
 
           <Pressable onPress={() => setScope(true)} style={{ marginTop: 12, backgroundColor: W14.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 13, color: "rgba(30,27,53,0.6)" }}>🔒</Text>
