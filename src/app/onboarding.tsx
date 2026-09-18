@@ -217,10 +217,15 @@ export default function Onboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  // returning, already-onboarded → straight in
+  /* returning, already-onboarded → straight in. ONLY from the door: the
+     flag also flips at the end of THIS run (finish() saves the profile with
+     onboarded: true while her first flight is still playing), and this
+     redirect used to fire the moment that save came back — a fast network
+     cut the flight short, a slow one let it finish. The flight's own
+     onFlightDone is the only way out of the flight. */
   useEffect(() => {
-    if (session && onboarded) router.replace("/(tabs)/letters");
-  }, [session, onboarded, router]);
+    if (session && onboarded && step === "welcome") router.replace("/(tabs)/letters");
+  }, [session, onboarded, step, router]);
 
   // signed in but not set up → start the console at step two
   useEffect(() => {
