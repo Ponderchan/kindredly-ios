@@ -1,7 +1,8 @@
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { P } from "../theme/post";
+import { P, PF } from "../theme/post";
+import { t } from "../lib/i18n";
 
 /* THE TAB BAR — five plain windows (owner's sheet, 2026-09-16).
    ────────────────────────────────────────────────────────────────────────
@@ -13,26 +14,39 @@ import { P } from "../theme/post";
    under them — the owner's call — so the icons have to be the ordinary
    ones. Active is pen blue; the rest are quiet ink. */
 
-const BAR = 54;
-const ICON = 24;
+const BAR = 58;
+const ICON = 26;
+const SW = 1.5;
 
-export function Envelope({ color }: { color: string }) {
+/* the owner's sheet (四个 TAB 各自激活): four outline marks, each one a
+   thing from the post — the house the letters come to, the sealed
+   envelope, the letter changing hands, the writing itself — and the active
+   one fills with the pen's wash. Labels under all four. */
+
+/** TODAY — the house the letters come to, a little bird on the ridge */
+export function Envelope({ color, active }: { color: string; active?: boolean }) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round">
-      <Rect x={3} y={5.5} width={18} height={13} rx={2} />
-      <Path d="M3.5 7l8.5 6 8.5-6" />
+    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 11.5 L12 5.5 L20 11.5" />
+      <Path d="M6 10.5 V20 H18 V10.5" fill={active ? WASH : "none"} />
+      <Path d="M10 20 V15 H14 V20" fill={active ? "#FFFFFF" : "none"} />
+      {/* the bird on the ridge */}
+      <Path d="M12 5.5 c0-1.6 1-2.6 2.4-2.6 l1.6 0.9 -1.2 0.6 c-0.3 1-1.3 1.6-2.8 1.1z" fill={color} stroke="none" />
     </Svg>
   );
 }
-function Sealed({ color }: { color: string }) {
+
+/** SEALED — the envelope with its wax seal */
+function Sealed({ color, active }: { color: string; active?: boolean }) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round">
-      <Rect x={5} y={3.5} width={14} height={17} rx={2} />
-      <Path d="M9 3.5v17" />
-      <Path d="M12.5 8h3.5M12.5 11.5h3.5" />
+    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinejoin="round">
+      <Rect x={3} y={6} width={18} height={13} rx={2} fill={active ? WASH : "none"} />
+      <Path d="M3.5 7.5 L12 13.5 L20.5 7.5" />
+      <Circle cx={12} cy={13.2} r={2.7} fill={active ? "#F2887E" : "#FFFFFF"} />
     </Svg>
   );
 }
+
 function Plane({ color }: { color: string }) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.7} strokeLinejoin="round" strokeLinecap="round">
@@ -41,22 +55,34 @@ function Plane({ color }: { color: string }) {
     </Svg>
   );
 }
-export function Kindreds({ color }: { color: string }) {
+
+/** KINDREDS — a letter changing hands: the tray, and the card lifting out of it */
+export function Kindreds({ color, active }: { color: string; active?: boolean }) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6}>
-      <Circle cx={9} cy={12} r={5.5} />
-      <Circle cx={15} cy={12} r={5.5} />
+    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 13 V19.5 H20 V13" fill={active ? WASH : "none"} />
+      <Path d="M4 13 L7 8.5 H17 L20 13" />
+      <Path d="M4 13 H8.5 L10 15.5 H14 L15.5 13 H20" />
+      {/* the card, lifting */}
+      <Path d="M9 8.5 V4.5 H15 V8.5" fill={active ? "#FFFFFF" : "none"} />
+      <Path d="M11 6.5 h2" />
     </Svg>
   );
 }
-function Me({ color }: { color: string }) {
+
+/** ME — the writing itself: a card with three lines of hand */
+function Me({ color, active }: { color: string; active?: boolean }) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.6} strokeLinecap="round">
-      <Circle cx={12} cy={8.5} r={4} />
-      <Path d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6" />
+    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={4} y={4.5} width={16} height={15} rx={2} fill={active ? WASH : "none"} />
+      <Path d="M7.5 9.5 c1.2-1 2.2-1 3.3 0 s2.1 1 3.3 0 s2.1-1 2.9 0" />
+      <Path d="M7.5 12.5 c1.2-1 2.2-1 3.3 0 s2.1 1 3.3 0 s2.1-1 2.9 0" />
+      <Path d="M7.5 15.5 c1.2-1 2.2-1 3.3 0 s2.1 1 3.3 0" />
     </Svg>
   );
 }
+
+const WASH = "#E4E1FA";
 
 export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
   const insets = useSafeAreaInsets();
@@ -69,16 +95,17 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
     if (!focused && !event.defaultPrevented) navigation.navigate(name);
   };
 
-  const Window = ({ name, Icon, dot }: { name: string; Icon: (p: { color: string }) => React.ReactNode; dot?: boolean }) => {
+  const Window = ({ name, label, Icon, dot }: { name: string; label: string; Icon: (p: { color: string; active?: boolean }) => React.ReactNode; dot?: boolean }) => {
     const active = current === name;
-    const color = active ? P.pen : "rgba(30,27,53,0.55)";
+    const color = active ? P.pen : "#4A4766";
     return (
-      <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>
+      <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR, gap: 3 }}>
         <View>
-          <Icon color={color} />
-          {/* one square of pen ink — someone answered and it is your turn */}
-          {dot && <View style={{ position: "absolute", top: -3, right: -6, width: 7, height: 7, borderRadius: 4, backgroundColor: P.pen }} />}
+          <Icon color={color} active={active} />
+          {/* one dot of pen ink — someone answered and it is your turn */}
+          {dot && <View style={{ position: "absolute", top: -2, right: -5, width: 7, height: 7, borderRadius: 4, backgroundColor: P.pen, borderWidth: 1.5, borderColor: "#FFFFFF" }} />}
         </View>
+        <Text style={{ fontFamily: PF.letter, fontWeight: active ? "600" : "400", fontSize: 10, color: active ? P.pen : "#4A4766" }}>{label}</Text>
       </Pressable>
     );
   };
@@ -101,8 +128,8 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 6 }}>
-        <Window name="letters" Icon={Envelope} />
-        <Window name="journal" Icon={Sealed} />
+        <Window name="letters" label={t("tab.today")} Icon={Envelope} />
+        <Window name="journal" label={t("tab.sealed")} Icon={Sealed} />
 
         {/* WRITE — the one action, raised above the rest on its own square */}
         <Pressable onPress={onPost} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>
@@ -125,8 +152,8 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
           </View>
         </Pressable>
 
-        <Window name="kindreds" Icon={Kindreds} dot={waiting > 0} />
-        <Window name="me" Icon={Me} />
+        <Window name="kindreds" label={t("tab.kindreds")} Icon={Kindreds} dot={waiting > 0} />
+        <Window name="me" label={t("tab.me")} Icon={Me} />
       </View>
     </View>
   );

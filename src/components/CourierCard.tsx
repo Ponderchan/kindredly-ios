@@ -42,8 +42,8 @@ export function daylight(hour = new Date().getHours()): Daylight {
   if (hour >= 17 && hour < 20) return "evening";
   return "night";
 }
-interface Palette { text: string; scrim: string; button: string; buttonText: string; sky: [string, string]; sea: string; land: string; forest: string; rock: string; ink: string; chip: string; chipText: string; sun: string | null; sunAt: [number, number]; moon: boolean; stars: boolean; lit: boolean; cloud: string | null }
-const PALETTE: Record<Daylight, Palette> = {
+export interface Palette { text: string; scrim: string; button: string; buttonText: string; sky: [string, string]; sea: string; land: string; forest: string; rock: string; ink: string; chip: string; chipText: string; sun: string | null; sunAt: [number, number]; moon: boolean; stars: boolean; lit: boolean; cloud: string | null }
+export const PALETTE: Record<Daylight, Palette> = {
   // `ink` draws on the sky; `body` draws on the white below it (the stage chip, the button)
   morning: { text: "#1E1B35", scrim: "#C4E1C6", button: "#2D5B3A", buttonText: "#FFFFFF", land: "#B4DCA6", forest: "#4E9A5C", rock: "#9AA3B0", sea: "#9CC8E6", sky: ["#FBE3D6", "#EAF1E4"], ink: "#2D5B3A", chip: "#2D5B3A", chipText: "#FFFFFF", sun: "#FFD79A", sunAt: [0.1, 0.42], moon: false, stars: false, lit: false, cloud: "#FFFFFF" },
   day: { text: "#1E1B35", scrim: "#ADDBB5", button: "#1F5C33", buttonText: "#FFFFFF", land: "#9CD48C", forest: "#3F8F52", rock: "#8E9AA6", sea: "#6FB6E8", sky: ["#BFE3F8", "#E3F3FB"], ink: "#1F5C33", chip: "#1F5C33", chipText: "#FFFFFF", sun: "#FFD54A", sunAt: [0.82, 0.16], moon: false, stars: false, lit: false, cloud: "#FFFFFF" },
