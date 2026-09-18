@@ -9,6 +9,7 @@ import { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { P, PF } from "../theme/post";
 import { AuraTicket, W14, dear } from "../components/AuraCard";
+import { ShareIcon } from "../components/Icons";
 import { WrenBird } from "../components/WrenBird";
 import { myAura, type Aura } from "../lib/aura";
 import { useAuth } from "../lib/auth";
@@ -101,7 +102,10 @@ export default function AuraShareCard() {
 
             <View style={{ marginTop: "auto", paddingTop: 22, gap: 10 }}>
               <Pressable onPress={share} disabled={!!busy} style={({ pressed }) => ({ backgroundColor: W14.navy, borderRadius: 12, paddingVertical: 17, alignItems: "center", opacity: pressed || busy ? 0.85 : 1 })}>
-                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: "#FFFFFF" }}>{busy === "share" ? t("ac.working") : `${t("ac.shareCard")}  ⇧`}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: "#FFFFFF" }}>{busy === "share" ? t("ac.working") : t("ac.shareCard")}</Text>
+                  {busy !== "share" && <ShareIcon size={18} color="#FFFFFF" />}
+                </View>
               </Pressable>
               <Pressable onPress={save} disabled={!!busy} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: "#DCD9F0", borderRadius: 12, paddingVertical: 15, alignItems: "center", backgroundColor: "#FFFFFF", opacity: pressed || busy ? 0.85 : 1 })}>
                 <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: W14.ink }}>{busy === "save" ? t("ac.working") : t("ac.saveImage")}</Text>

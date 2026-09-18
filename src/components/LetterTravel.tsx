@@ -1,0 +1,384 @@
+import { useEffect, useRef, useState } from "react";
+import { Animated, Text, View, useWindowDimensions } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { PF } from "../theme/post";
+import { WrenBird } from "./WrenBird";
+import { useWrenName } from "../lib/wren-name";
+import { t, useLang } from "../lib/i18n";
+
+/* LET IT TRAVEL — the owner's Travel Animation sheet (2026-09-19), ported
+   beat for beat.
+   ────────────────────────────────────────────────────────────────────────
+   Four scenes, 3.7 s: the written page FOLDS itself into an envelope and a
+   coral wax seal drops on; the courier swoops in and PICKS it up; the
+   camera pulls back from your desk until the whole daylit planet is in
+   frame — your desk becoming the YOU pin (WORLD); and she arcs across the
+   globe on a dotted great-circle route, other people's letters crossing
+   beside her, toward the SOMEWHERE pin on the night side (CROSS).
+
+   Daylight, not night: the point is that the letter crosses the world.
+
+   Same construction as the launch piece: the sheet's numbers, driven by
+   one clock; the bird is the product's own WrenBird laid over the SVG,
+   the envelope in her beak drawn beneath her. The clock HOLDS just before
+   the pull-back until the letter has actually gone through — she can
+   hover with it, she cannot leave with it. */
+
+const W = 393;
+const H = 852;
+const CUES = { Fold: 0, Pickup: 0.9, World: 1.6, Cross: 2.5 };
+const TOTAL = 3.7;
+/** she has the letter in her beak here; the world only opens once it has gone */
+const HOLD_AT = CUES.World - 0.05;
+
+const C = {
+  page: "#ECEAFA",
+  ink: "#1E1B35",
+  pen: "#5B55FF",
+  sky: "#BFE0FF",
+  skyHi: "#7AC7FF",
+  sea: "#7AB8E8",
+  seaD: "#5B99CF",
+  land: "#6DAE78",
+  landD: "#2E7D4F",
+  ylw: "#FFE14D",
+  cream: "#FFE7BE",
+  coral: "#F2887E",
+  rule: "#DDD9F0",
+  night: "#2B2650",
+} as const;
+
+/* the seal lands with a tap. expo-haptics may be missing from an older dev
+   client — it degrades to silence, never a crash */
+let Haptics: typeof import("expo-haptics") | null = null;
+try {
+  Haptics = require("expo-haptics");
+} catch {}
+const tap = () => {
+  try {
+    void Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  } catch {}
+};
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+const lerp = (t: number, a: number, b: number) => a + (b - a) * t;
+const ramp = (t: number, stops: number[], vals: number[]) => {
+  for (let i = 1; i < stops.length; i++) {
+    if (t <= stops[i]) {
+      const f = (t - stops[i - 1]) / (stops[i] - stops[i - 1] || 1);
+      return lerp(clamp(f, 0, 1), vals[i - 1], vals[i]);
+    }
+  }
+  return vals[vals.length - 1];
+};
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const easeOutBack = (t: number) => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+type Ease = (t: number) => number;
+const animate = (from: number, to: number, start: number, end: number, ease: Ease) => (T: number) => from + (to - from) * ease(clamp((T - start) / (end - start), 0, 1));
+const enter = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutCubic);
+const draw = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeInOutQuad);
+const pop = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutBack);
+
+export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; onDone: () => void; title?: string; note?: string }) {
+  useLang();
+  const wren = useWrenName();
+  const reduce = useReducedMotion();
+  const { width: sw, height: sh } = useWindowDimensions();
+  const [T, setT] = useState(0);
+  const [beat, setBeat] = useState(0); // wall-clock, for the wings while the piece holds
+  const fade = useRef(new Animated.Value(1)).current;
+  const readyRef = useRef(ready);
+  readyRef.current = ready;
+  const leaving = useRef(false);
+  const tapped = useRef(false);
+
+  /* the clock: authored seconds; it rests at HOLD_AT until `ready`, and the
+     time spent resting is subtracted so the piece resumes without a jump */
+  useEffect(() => {
+    if (reduce) {
+      setT(TOTAL - 0.3);
+      return;
+    }
+    let raf = 0;
+    const t0 = Date.now();
+    let paused = 0;
+    let pauseAt: number | null = null;
+    const tick = () => {
+      const now = Date.now();
+      const wall = (now - t0) / 1000;
+      setBeat(wall);
+      let tt = wall - paused;
+      if (tt >= HOLD_AT && !readyRef.current) {
+        if (pauseAt === null) pauseAt = now;
+        tt = HOLD_AT;
+      } else if (pauseAt !== null) {
+        paused += now - pauseAt;
+        pauseAt = null;
+        tt = wall - paused;
+      }
+      setT(tt);
+      if (!tapped.current && tt >= CUES.Pickup - 0.12) {
+        tapped.current = true;
+        tap();
+      }
+      if (!leaving.current && tt >= TOTAL) {
+        leaving.current = true;
+        onDone();
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reduce, onDone]);
+
+  /* motion-sensitive: the last tableau, held, then out once the letter has gone */
+  useEffect(() => {
+    if (!reduce || !ready) return;
+    const id = setTimeout(() => {
+      Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => onDone());
+    }, 900);
+    return () => clearTimeout(id);
+  }, [reduce, ready, fade, onDone]);
+
+  /* ── the sheet's numbers ── */
+  const fold = draw(0, 1, 0.24, CUES.Pickup - 0.1)(T);
+  const seal = pop(0, 1, CUES.Pickup - 0.4, CUES.Pickup + 0.05)(T);
+  const sealSquash = 1 - Math.max(0, Math.sin(clamp((T - (CUES.Pickup - 0.4)) / 0.45, 0, 1) * Math.PI)) * 0.16;
+
+  const swoop = enter(0, 1, CUES.Pickup - 0.05, CUES.World - 0.08)(T);
+  const lift = enter(0, 1, CUES.World - 0.24, CUES.World + 0.16)(T);
+  const taken = clamp((lift - 0.15) / 0.85, 0, 1);
+
+  const out = draw(0, 1, CUES.World - 0.05, CUES.Cross + 0.1)(T);
+  const cross = draw(0, 1, CUES.Cross + 0.05, TOTAL - 0.5)(T);
+  const markIn = enter(0, 1, TOTAL - 0.78, TOTAL - 0.3)(T);
+  const outro = draw(0, 1, TOTAL - 0.16, TOTAL)(T);
+
+  /* the globe grows in from below as we pull back */
+  const gR = ramp(out, [0, 1], [86, 166]);
+  const gCX = W / 2;
+  const gCY = ramp(out, [0, 1], [H + 150, 530]);
+  const gTop = gCY - gR;
+
+  /* the route: a great-circle arc over the top of the globe */
+  const A = -168;
+  const B = -12;
+  const onArc = (p: number): [number, number] => {
+    const ang = (lerp(p, A, B) * Math.PI) / 180;
+    const r = gR + 6 + Math.sin(p * Math.PI) * 62;
+    return [gCX + Math.cos(ang) * r, gCY + Math.sin(ang) * r];
+  };
+  const home = onArc(0);
+  const away = onArc(1);
+
+  const deskX = W / 2;
+  const deskY = 452;
+
+  /* the bird: desk pickup → up → along the arc */
+  const [ax, ay] = onArc(cross);
+  const flyUp = enter(0, 1, CUES.World - 0.2, CUES.Cross + 0.05)(T);
+  const birdX = cross > 0.001 ? ax : lerp(swoop, -120, deskX - 78) + flyUp * 34;
+  const birdY = cross > 0.001 ? ay : lerp(swoop, 700, deskY - 6) - lift * 44 - flyUp * 120;
+  const birdS = (0.6 + swoop * 0.14) * (1 - out * 0.62);
+  const nextA = onArc(Math.min(cross + 0.04, 1));
+  const heading = cross > 0.001 ? (Math.atan2(nextA[1] - ay, nextA[0] - ax) * 180) / Math.PI : -8 + swoop * 6 - flyUp * 14;
+  const wing = (beat - (CUES.Pickup - 0.05)) * (2 + cross * 5);
+  const bob = swoop > 0.01 ? Math.sin(wing * Math.PI * 2) * 3 : 0;
+
+  const envOnDesk = (1 - taken) * (1 - out);
+  const foldW = ramp(fold, [0, 0.52, 1], [214, 210, 132]);
+  const foldH = ramp(fold, [0, 0.52, 1], [268, 252, 86]);
+  const sealed = fold > 0.62;
+
+  /* other people's letters, crossing at the same time */
+  const others: [number, number, number][] = [
+    [-138, 0.3, 0.52],
+    [-96, 0.6, 0.44],
+    [-52, 0.5, 0.4],
+    [152, 0.4, 0.46],
+    [64, 0.3, 0.4],
+  ];
+
+  const land = (cx: number, cy: number, rx: number, ry: number, rot: number, op = 1, key: number) => (
+    <Ellipse key={key} cx={gCX + cx * gR} cy={gCY + cy * gR} rx={rx * gR} ry={ry * gR} transform={`rotate(${rot} ${gCX + cx * gR} ${gCY + cy * gR})`} fill={C.land} opacity={op} />
+  );
+
+  /* the authored frame covers the screen (slice); the bird and the words
+     overlay it in the same coordinates */
+  const k = Math.max(sw / W, sh / H);
+  const ox = (sw - W * k) / 2;
+  const oy = (sh - H * k) / 2;
+  const px = (x: number) => ox + x * k;
+  const py = (y: number) => oy + y * k;
+  const birdPx = 132 * Math.max(birdS, 0.001) * k;
+  const birdOn = swoop > 0.01;
+
+  return (
+    <Animated.View style={{ flex: 1, backgroundColor: C.page, opacity: fade }}>
+      <Svg width={sw} height={sh} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+        <Defs>
+          <LinearGradient id="trvSky" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#E8F4FF" />
+            <Stop offset="0.46" stopColor={C.sky} />
+            <Stop offset="1" stopColor={C.skyHi} />
+          </LinearGradient>
+          <LinearGradient id="trvSea" x1="0.1" y1="0" x2="0.9" y2="1">
+            <Stop offset="0" stopColor={C.sea} />
+            <Stop offset="1" stopColor={C.seaD} />
+          </LinearGradient>
+          {/* the terminator in user space: in bounding-box units the native
+              side painted the whole rect at the last stop — a hard wall */}
+          <LinearGradient id="trvTerm" gradientUnits="userSpaceOnUse" x1={gCX + gR * 0.34} y1={gCY} x2={gCX + gR * 1.02} y2={gCY}>
+            <Stop offset="0%" stopColor={C.night} stopOpacity="0" />
+            <Stop offset="100%" stopColor={C.night} stopOpacity="0.62" />
+          </LinearGradient>
+          <RadialGradient id="trvGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0%" stopColor={C.ylw} stopOpacity="0.5" />
+            <Stop offset="100%" stopColor={C.ylw} stopOpacity="0" />
+          </RadialGradient>
+          <ClipPath id="trvGlobe">
+            <Circle cx={gCX} cy={gCY} r={gR} />
+          </ClipPath>
+        </Defs>
+
+        {/* the room, then daylight sky */}
+        <Rect x={0} y={0} width={W} height={H} fill={C.page} />
+        <Rect x={0} y={0} width={W} height={H} fill="url(#trvSky)" opacity={out} />
+
+        {/* a few clouds only while we are still near the ground */}
+        <G opacity={out * (1 - cross) * 0.8}>
+          <Ellipse cx={74} cy={gTop - 96} rx={48} ry={14} fill="#fff" opacity={0.78} />
+          <Ellipse cx={300} cy={gTop - 150} rx={40} ry={12} fill="#fff" opacity={0.62} />
+        </G>
+
+        {/* the desk, which sinks away as the camera pulls back */}
+        <G opacity={1 - out}>
+          <Rect x={0} y={588 + out * 110} width={W} height={4} rx={2} fill={C.rule} />
+          <Rect x={46} y={592 + out * 110} width={10} height={150} fill="#E4E1F6" />
+          <Rect x={337} y={592 + out * 110} width={10} height={150} fill="#E4E1F6" />
+        </G>
+
+        {/* ═══ the planet ═══ */}
+        <G opacity={out}>
+          <Circle cx={gCX} cy={gCY} r={gR + 12} fill={C.skyHi} opacity={0.3} />
+          <Circle cx={gCX} cy={gCY} r={gR} fill="url(#trvSea)" />
+          <G clipPath="url(#trvGlobe)">
+            {land(-0.52, -0.42, 0.3, 0.17, -18, 1, 0)}
+            {land(-0.2, -0.62, 0.2, 0.1, 12, 1, 1)}
+            {land(0.12, -0.5, 0.26, 0.15, 8, 1, 2)}
+            {land(0.56, -0.3, 0.22, 0.13, -14, 1, 3)}
+            {land(-0.06, -0.18, 0.34, 0.12, 4, 0.9, 4)}
+            {land(0.4, -0.66, 0.13, 0.07, 22, 1, 5)}
+            {/* latitude hairlines — a globe, not a ball */}
+            {[-0.62, -0.42, -0.22, -0.02].map((y, i) => (
+              <Ellipse key={i} cx={gCX} cy={gCY + y * gR} rx={gR * Math.sqrt(Math.max(0.02, 1 - y * y))} ry={gR * 0.052} fill="none" stroke="#fff" strokeWidth={1} opacity={0.22} />
+            ))}
+            {/* the far side is in night — somewhere it is late */}
+            <Rect x={gCX + gR * 0.34} y={gCY - gR} width={gR * 0.7} height={gR * 2} fill="url(#trvTerm)" />
+            {[
+              [0.52, -0.52],
+              [0.66, -0.34],
+              [0.58, -0.14],
+            ].map(([x, y], i) => (
+              <Circle key={i} cx={gCX + x * gR} cy={gCY + y * gR} r={2.2} fill={C.ylw} opacity={cross > 0.4 ? 0.9 : 0.5} />
+            ))}
+          </G>
+          <Circle cx={gCX} cy={gCY} r={gR} fill="none" stroke="#fff" strokeWidth={1.6} opacity={0.5} />
+
+          {/* the route, drawn as she flies it */}
+          {Array.from({ length: 26 }, (_, i) => {
+            const p = i / 25;
+            if (p > cross + 0.001) return null;
+            const [x, y] = onArc(p);
+            return <Circle key={i} cx={x} cy={y} r={i % 4 === 0 ? 2.4 : 1.6} fill="#fff" opacity={0.72} />;
+          })}
+
+          {/* departure pin (you) — the arrival pin comes in as she nears it */}
+          <Circle cx={home[0]} cy={home[1]} r={9} fill="#fff" />
+          <Circle cx={home[0]} cy={home[1]} r={4.4} fill={C.pen} />
+          <G opacity={clamp((cross - 0.55) * 3, 0, 1)}>
+            <Circle cx={away[0]} cy={away[1]} r={11} fill="none" stroke="#fff" strokeWidth={2.4} />
+            <Circle cx={away[0]} cy={away[1]} r={4.4} fill={C.coral} />
+          </G>
+
+          {/* other people's letters crossing at the same time */}
+          {others.map(([deg, at, sc], i) => {
+            const a = clamp((cross - 0.1) * 2.4, 0, 1) * 0.72;
+            if (a < 0.02) return null;
+            const ang = (deg * Math.PI) / 180;
+            const r = gR + 4 + Math.sin(at * Math.PI) * 34;
+            return (
+              <G key={i} opacity={a} transform={`translate(${gCX + Math.cos(ang) * r} ${gCY + Math.sin(ang) * r}) scale(${sc}) rotate(${deg + 90})`}>
+                <Rect x={-11} y={-7.5} width={22} height={15} rx={1.6} fill={C.cream} stroke="#C9A93A" strokeWidth={1.4} />
+                <Path d="M-11 -7.5 L0 1.5 L11 -7.5" fill="none" stroke="#C9A93A" strokeWidth={1.4} />
+              </G>
+            );
+          })}
+        </G>
+
+        {/* the page folding into a sealed envelope, on your desk */}
+        <G opacity={envOnDesk} transform={`translate(${deskX} ${deskY}) rotate(${lerp(fold, 0, -7)})`}>
+          <Ellipse cx={0} cy={foldH / 2 + 16} rx={foldW / 2 - 8} ry={8} fill={C.ink} opacity={0.1 * (1 - out)} />
+          <Rect x={-foldW / 2} y={-foldH / 2} width={foldW} height={foldH} rx={3} fill={sealed ? C.ylw : "#fff"} stroke={sealed ? "#C9A93A" : C.rule} strokeWidth={2} />
+          <G opacity={clamp(1 - fold * 1.15, 0, 1)}>
+            {[150, 120, 164, 96, 140, 74].map((w, i) => (
+              <Rect key={i} x={-foldW / 2 + 22} y={-foldH / 2 + 30 + i * 26} width={w} height={6} rx={3} fill="#B9B3E0" />
+            ))}
+          </G>
+          <G opacity={clamp((fold - 0.3) * 2.6, 0, 1)}>
+            <Path d={`M${-foldW / 2} ${-foldH / 2} L0 ${-foldH / 2 + foldH * 0.42} L${foldW / 2} ${-foldH / 2}`} fill="none" stroke={sealed ? "#C9A93A" : C.rule} strokeWidth={2.4} strokeLinejoin="round" />
+          </G>
+          <G transform={`translate(${foldW * 0.22} ${foldH * 0.16}) scale(${Math.max(seal * sealSquash, 0.001)})`}>
+            <Circle cx={0} cy={0} r={14} fill={C.coral} />
+            <Circle cx={0} cy={0} r={6.5} fill="none" stroke="#fff" strokeWidth={2} opacity={0.72} />
+          </G>
+        </G>
+        <Circle cx={deskX + 47} cy={deskY + 14} r={Math.max(64 * seal * (1 - taken) * (1 - out), 0.001)} fill="url(#trvGlow)" opacity={(1 - taken) * (1 - out) * 0.8} />
+
+        {/* the envelope in her beak — under the bird, in her coordinates */}
+        {taken > 0.01 && (
+          <G transform={`translate(${birdX} ${birdY + bob}) rotate(${heading}) scale(${Math.max(birdS, 0.001)})`}>
+            <G transform={`translate(52 ${10 + taken * 8}) rotate(${-4 + taken * 10}) scale(${0.42 + taken * 0.5})`} opacity={taken}>
+              <Rect x={-26} y={-17} width={52} height={34} rx={2} fill={C.ylw} />
+              <Path d="M-26 -17 L0 3 L26 -17" fill="none" stroke="#C9A93A" strokeWidth={2.4} />
+              <Circle cx={17} cy={10} r={6} fill={C.coral} />
+            </G>
+          </G>
+        )}
+
+        <Rect x={0} y={0} width={W} height={H} fill={C.page} opacity={outro} />
+      </Svg>
+
+      {/* the courier: the product's own bird — her fly pose already faces right, the way she travels */}
+      {birdOn && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: px(birdX) - birdPx / 2,
+            top: py(birdY + bob) - birdPx / 2,
+            width: birdPx,
+            height: birdPx,
+            opacity: 1 - outro,
+            transform: [{ rotate: `${heading}deg` }],
+          }}
+        >
+          <WrenBird size={birdPx} pose="fly" mood="delight" />
+        </View>
+      )}
+
+      {/* the words, in real type on the sheet's grid */}
+      <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(84), alignItems: "center", opacity: markIn * (1 - outro), transform: [{ translateY: (1 - markIn) * 8 * k }] }}>
+        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 30 * k, lineHeight: 36 * k, letterSpacing: -0.7 * k, color: C.ink, textAlign: "center", paddingHorizontal: 24 }}>{title ?? t("so.travel.title")}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: "rgba(30,27,53,0.62)", marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
+      </View>
+    </Animated.View>
+  );
+}

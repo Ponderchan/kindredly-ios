@@ -45,8 +45,8 @@ export function wrenLine(m: WrenMood): string {
    coax. */
 export function openingLadder(weighted: number): { line: string; ready: boolean } {
   if (weighted >= OPENING_MIN) return { line: t("wr.ladder.ready"), ready: true };
-  if (weighted >= 30) return { line: t("wr.ladder.almost"), ready: false };
-  if (weighted >= 15) return { line: t("wr.ladder.more"), ready: false };
+  if (weighted >= 14) return { line: t("wr.ladder.almost"), ready: false };
+  if (weighted >= 7) return { line: t("wr.ladder.more"), ready: false };
   return { line: t("wr.ladder.start"), ready: false };
 }
 

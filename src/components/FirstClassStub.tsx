@@ -24,7 +24,10 @@ export function FirstClassStub({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [{ marginTop: 12, backgroundColor: "#FFFCF3", borderRadius: 18, paddingVertical: 16, paddingLeft: 18, paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 14, overflow: "hidden", opacity: pressed ? 0.92 : 1 }, cardShadow]}
+      /* white, like every other light card on the page — the gold dot and the
+         dashed gold stamp say "first class"; a cream ground only fought the
+         card above it */
+      style={({ pressed }) => [{ marginTop: 12, backgroundColor: "#FFFFFF", borderRadius: 18, paddingVertical: 16, paddingLeft: 18, paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 14, overflow: "hidden", opacity: pressed ? 0.92 : 1 }, cardShadow]}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>

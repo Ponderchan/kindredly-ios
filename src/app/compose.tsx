@@ -10,8 +10,7 @@ import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
-import { CourierSendOff } from "../components/CourierSendOff";
-import { postNo } from "../lib/format";
+import { LetterTravel } from "../components/LetterTravel";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat, sname } from "../data/stamps";
@@ -270,16 +269,14 @@ export default function Compose() {
   /* ── sending: the courier takes the letter and flies ── */
   if (step === "sending") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <CourierSendOff
+      <View style={{ flex: 1 }}>
+        <LetterTravel
           ready={done}
           onDone={goBack}
-          stamp={sel ?? undefined}
-          no={user ? postNo(user.id) : undefined}
           title={isMorning ? t("cp.morningTitle") : undefined}
           note={isMorning ? t("cp.morningNote") : undefined}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 

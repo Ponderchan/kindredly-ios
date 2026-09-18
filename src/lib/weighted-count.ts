@@ -7,10 +7,13 @@
        spaces, newlines)                           → 1 each
    Media attachments aren't text, so they don't count here at all.
 
-   Two jobs: the limits (an opening is 40–1000, a reply is 2–1000) and sizing
+   Two jobs: the limits (an opening is 20–1000, a reply is 2–1000) and sizing
    the reader (a very short letter gets the telegram tier, a long one shrinks). */
 
-export const OPENING_MIN = 40; // a cold letter to a stranger — at least a real line
+/* a cold letter to a stranger — one real line. Was 40 (two lines, or twenty
+   hanzi); the owner found the door too heavy twice, so it is one line now:
+   ten hanzi, or "I fixed the wobbly chair today." */
+export const OPENING_MIN = 20;
 export const REPLY_MIN = 2; // inside a thread, "ok." is a whole answer
 export const LETTER_MAX = 1000; // a genuine short letter, not an essay
 export const COUNTER_FROM = LETTER_MAX - 200; // only surface the count near the ceiling

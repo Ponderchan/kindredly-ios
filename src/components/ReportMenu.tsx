@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, Text } from "react-native";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
+import { PUNCH } from "../theme/punch";
 import { useWrenName } from "../lib/wren-name";
 import { blockUser, reportContent } from "../lib/db";
 import { LeaveSheet, openLeaveSheet } from "./LeaveSheet";
@@ -31,12 +32,15 @@ export function ReportMenu({
   refId,
   snapshot,
   onBlocked,
+  ring,
 }: {
   targetUser?: string;
   context: "letter" | "thread" | "message";
   refId?: string;
   snapshot?: string;
   onBlocked?: () => void;
+  /** the sticker-punch face: a small outlined ring instead of bare dots */
+  ring?: boolean;
 }) {
   useLang();
   const wren = useWrenName();
@@ -65,9 +69,13 @@ export function ReportMenu({
       <Pressable
         onPress={() => openLeaveSheet(() => setStage("menu"))}
         hitSlop={10}
-        style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
+        style={
+          ring
+            ? { width: 26, height: 26, borderRadius: 13, borderWidth: 2.2, borderColor: PUNCH.ink, alignItems: "center", justifyContent: "center" }
+            : { width: 42, height: 42, alignItems: "center", justifyContent: "center" }
+        }
       >
-        <Text style={{ fontSize: 20, color: P.ink, fontFamily: PF.mono }}>⋯</Text>
+        <Text style={ring ? { fontSize: 12, lineHeight: 14, color: PUNCH.ink, fontFamily: PF.monoSemi } : { fontSize: 20, color: P.ink, fontFamily: PF.mono }}>⋯</Text>
       </Pressable>
 
       {/* The ⋯ lives inside a header ROW, and LeaveSheet positions itself

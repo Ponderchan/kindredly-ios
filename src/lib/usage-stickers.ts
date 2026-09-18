@@ -64,6 +64,16 @@ export interface UsageFacts {
 }
 
 const DAY = 864e5;
+
+/* one piece's subjects — the rule Today's chip and the counted layer share.
+   One word is a mention, not a subject: a theme counts for a piece when the
+   detector is sure of it or it shows up more than once in the piece. */
+export const longEnough = (t: string): boolean => !!t && t.trim().split(/\s+/).length >= 12;
+export function pieceThemes(text: string): JournalTheme[] {
+  const out: JournalTheme[] = [];
+  for (const r of detectThemes(text).themes) if ((r.confidence >= 0.8 || r.evidence.length >= 2) && !out.includes(r.theme)) out.push(r.theme);
+  return out;
+}
 const STAMP_CAT = new Map(STAMPS.map((s) => [s.id, s.cat]));
 
 /* stamp category → sticker */
@@ -77,7 +87,7 @@ const STAMP_STICKER: Record<string, string> = {
 };
 
 /* journal theme → sticker; the ones a stranger could read unkindly stay private */
-const THEME_STICKER: Record<JournalTheme, { id: string; private: boolean }> = {
+export const THEME_STICKER: Record<JournalTheme, { id: string; private: boolean }> = {
   memory: { id: "memory_keeper", private: false },
   family: { id: "family_person", private: false },
   friendship: { id: "friend_first", private: false },
@@ -199,16 +209,8 @@ export function usageStickers(f: UsageFacts): UsageSticker[] {
   }
   for (const [cat, n] of cats) if (n >= 3 && STAMP_STICKER[cat]) add(STAMP_STICKER[cat], "subject", n, { of: f.letters.length });
   const themed = new Map<JournalTheme, number>();
-  const texts = [...f.letters.map((l) => l.text), ...f.replies.map((r) => r.text), ...f.journal.map((e) => e.body)].filter((t) => t && t.trim().split(/\s+/).length >= 12);
-  for (const t of texts) {
-    const seen = new Set<JournalTheme>();
-    // one word is a mention, not a subject: a theme counts for a piece when
-    // the detector is sure of it or it shows up more than once in the piece
-    for (const r of detectThemes(t).themes) if ((r.confidence >= 0.8 || r.evidence.length >= 2) && !seen.has(r.theme)) {
-      seen.add(r.theme);
-      themed.set(r.theme, (themed.get(r.theme) ?? 0) + 1);
-    }
-  }
+  const texts = [...f.letters.map((l) => l.text), ...f.replies.map((r) => r.text), ...f.journal.map((e) => e.body)].filter(longEnough);
+  for (const t of texts) for (const theme of pieceThemes(t)) themed.set(theme, (themed.get(theme) ?? 0) + 1);
   for (const [theme, n] of themed) {
     if (n >= 3 && n / texts.length >= 0.2) add(THEME_STICKER[theme].id, "subject", n, { of: texts.length, private: THEME_STICKER[theme].private });
   }

@@ -140,6 +140,30 @@ export function t(key: string, vars?: Record<string, string | number>): string {
 const OTHER_SCRIPT =
   /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0e00-\u0e7f\u0900-\u097f]/g;
 
+/* the two-letter tag on the language pair's left side: the row's tag when
+   the script agrees with it, the script's own name when it doesn't (a
+   Chinese letter filed as "en" is not English) */
+const SCRIPT_TAG: [RegExp, string][] = [
+  [/[\u3040-\u30ff]/, "JA"],
+  [/[\uac00-\ud7af]/, "KO"],
+  [/[\u3400-\u4dbf\u4e00-\u9fff]/, "ZH"],
+  [/[\u0400-\u04ff]/, "RU"],
+  [/[\u0590-\u05ff]/, "HE"],
+  [/[\u0600-\u06ff]/, "AR"],
+  [/[\u0e00-\u0e7f]/, "TH"],
+  [/[\u0900-\u097f]/, "HI"],
+];
+export function sourceTag(body: string | null | undefined, lang: string | null | undefined): string {
+  if (body) {
+    const other = (body.match(OTHER_SCRIPT) || []).length;
+    const dense = body.replace(/\s/g, "").length;
+    if (other >= 4 && dense > 0 && other / dense > 0.2) {
+      for (const [re, tag] of SCRIPT_TAG) if (re.test(body)) return tag;
+    }
+  }
+  return (lang || "en").slice(0, 2).toUpperCase();
+}
+
 export function needsTranslating(body: string | null | undefined, lang: string | null | undefined): boolean {
   if (body) {
     const other = (body.match(OTHER_SCRIPT) || []).length;

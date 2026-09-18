@@ -1,20 +1,26 @@
-import { Image, Pressable, Text, View } from "react-native";
+import { Dimensions, Image, Pressable, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { AURA_SCENES, AURA_SKETCHES } from "../data/aura-scenes";
 import { MosaicId } from "./MosaicId";
-import { useWrenName } from "../lib/wren-name";
-import type { Aura, AuraPhase } from "../lib/aura";
-import { chipsFor, phaseCta, phaseFoot, phaseHeadline, phaseLabel, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
+import type { Aura } from "../lib/aura";
+import { rungOf } from "../lib/aura-ladder";
+import { AuraScene } from "./AuraScene";
+import { ShareIcon } from "./Icons";
+import { daylight } from "./CourierCard";
+import { chipsFor, phaseHeadline, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
 import type { ResolvedSticker } from "../lib/writing-engine/stickers";
 
-/* WRITING AURA — the card, built to the owner's W14 sheet (Me tab · final).
+/* WRITING AURA — the card, built to the owner's W33 ladder sheet on the D
+   palette (Aura × Courier pairing), 2026-09-19.
    ────────────────────────────────────────────────────────────────────────
-   White card, the title in big bold type, the scene on the right, one
-   sentence in plain words, then the stickers she has put on — three at
-   most here, the sheet has the rest. Day one shows a dashed empty scene and
-   a bar to the first read instead of pretending. Every word is a fixed
-   template filled with counted facts; nothing is a score or a percentage. */
+   Cream paper. The scene at the top IS the progress: lines waiting to be
+   written, then a pencil outline, then a sketch, then colour — see
+   lib/aura-ladder for the seven rungs. Under it: the sentence, where it
+   came from, the three stickers (solid = stuck, dashed = trying on), one
+   well of counted progress, and the one thing to do next. No phase names,
+   no steps, no percentages; every number is a count. */
 
 export const dear = (name: string) => name.replace(/^The\s+/i, "");
 
@@ -47,11 +53,6 @@ export function basedOn(aura: Aura): string {
   return aura.sources.conversations > 0 ? t("ap.basedOnBoth", { n }) : t("ap.basedOn", { n });
 }
 
-/* the card shows this many; the sheet shows every one. Writing stickers
-   come first; what the product counted (the hour on your letters, the
-   stamps you pick) fills the rest, so the first sticker can be there the
-   day the first letter leaves. */
-const CHIPS_AT: Record<AuraPhase, number> = { empty: 0, forming: 3, shaping: 3, clearing: 3, formed: 3 };
 
 /* ── the sticker: its dimension's ink, a white cut edge, a little tilt, and
    nothing on it but its name (the owner's sheet) ── */
@@ -61,6 +62,7 @@ export function StickerChip({
   size = "md",
   selected,
   onPress,
+  state,
 }: {
   id: string;
   state?: ResolvedSticker["state"];
@@ -71,6 +73,9 @@ export function StickerChip({
 }) {
   const look = stickerLook(id, i);
   const lg = size === "lg";
+  /* still trying on: the same sticker, drawn as a dashed outline — no fill
+     until it holds (the ladder's one visual for state) */
+  const trying = state === "emerging";
   return (
     <Pressable
       onPress={onPress}
@@ -90,8 +95,8 @@ export function StickerChip({
           borderColor: W14.ink,
         }}
       >
-        <View style={{ backgroundColor: look.bg, borderRadius: look.radius, borderWidth: 2, borderColor: look.border, paddingHorizontal: lg ? 13 : 10, paddingVertical: lg ? 6 : 4 }}>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: lg ? 13.5 : 12.5, color: look.fg }} numberOfLines={1}>
+        <View style={{ backgroundColor: trying ? "#FFFFFF" : look.bg, borderRadius: look.radius, borderWidth: 2, borderStyle: trying ? "dashed" : "solid", borderColor: trying ? W14.ink : look.border, paddingHorizontal: lg ? 13 : 10, paddingVertical: lg ? 6 : 4 }}>
+          <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: lg ? 13.5 : 12.5, color: trying ? W14.ink : look.fg }} numberOfLines={1}>
             {stickerName(id)}
           </Text>
         </View>
@@ -154,6 +159,35 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
   );
 }
 
+/* ── the paper: white, like every other card on the page (the sheet's D
+   was moon cream; on the lavender ground it read yellow, and warm paper
+   is the one thing this system already ruled out — see theme/post). The
+   scene's own ground is the pale lavender the sticker slots use, so the
+   picture still sits IN the card rather than floating on it. Light by
+   design — the courier card is light three hours of four, and at night
+   the two make a facing pair, one deep, one pale. ── */
+const CREAM = { card: "#FFFFFF", cardNamed: "#FFFFFF", ink: "#1E1B35", dim: "rgba(30,27,53,0.66)", well: "rgba(30,27,53,0.06)", tickOff: "rgba(30,27,53,0.3)" } as const;
+
+/* the five slips on the right of the progress well: "n of your last m" */
+function Slips({ n, of }: { n: number; of: number }) {
+  return (
+    <View style={{ flexDirection: "row", gap: 3 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <View key={i} style={{ width: 9, height: 13, borderRadius: 2, backgroundColor: i < n ? CREAM.ink : "transparent", borderWidth: i < of ? 1.5 : 0, borderColor: i < n ? CREAM.ink : CREAM.tickOff, opacity: i < of ? 1 : 0.35 }} />
+      ))}
+    </View>
+  );
+}
+
+/* the three slots a name needs: a filled square with a check, or a dashed one */
+function Slot({ done }: { done: boolean }) {
+  return (
+    <View style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: done ? CREAM.ink : "transparent", borderWidth: done ? 0 : 1.5, borderStyle: "dashed", borderColor: CREAM.tickOff, alignItems: "center", justifyContent: "center" }}>
+      {done && <Svg width={10} height={8} viewBox="0 0 10 8"><Path d="M1 4l3 3 5-6" fill="none" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>}
+    </View>
+  );
+}
+
 export function AuraCard({
   aura,
   seed,
@@ -170,74 +204,112 @@ export function AuraCard({
   onWrite?: () => void;
 }) {
   useLang();
-  const wren = useWrenName();
-  const stage = aura.phase;
-  const formed = stage === "formed";
+  void seed;
+  void avatarId;
   const st = aura.stickers;
-  const shown = chipsFor(st?.home ?? [], aura.usage, CHIPS_AT[stage]);
-  const toFirst = Math.min(aura.pieces, 3);
+  const rung = rungOf(aura);
+  const named = rung.level >= 5;
+  const width = Dimensions.get("window").width - 32;
 
-  const headline = formed ? titleName(st?.title) : phaseHeadline(stage);
-  const desc = formed
-    ? titleDesc(st?.title)
-    : stage === "empty"
-      ? t("ap.empty.desc", { wren })
-      : shown[0]
-        ? shown[0].line // the owner's sheet: the read itself, no "she has noticed"
-        : t("ap.nothingYet");
-  const onCta = stage === "empty" || stage === "forming" ? onWrite ?? onOpen : onOpen;
+  /* the three on the card, and whether each is stuck or still trying */
+  const shown = chipsFor(st?.home ?? [], aura.usage, 3);
+  const stateOf = (id: string) => st?.home.find((h) => h.stickerId === id)?.state;
+
+  const from =
+    rung.level === 0
+      ? t("ap.from.first")
+      : named
+        ? t("ap.from.named", { n: rung.letters })
+        : rung.letters === 1
+          ? t("ap.from.one")
+          : t("ap.from.n", { n: rung.letters });
+
+  const progress =
+    rung.level <= 2
+      ? rung.letters > 5
+        ? t("ap.prog.notYet", { n: rung.letters }) // past the five and nothing holds — say so
+        : t("ap.prog.letters", { n: rung.letters, m: rung.level === 2 ? 5 : 3 })
+      : rung.level <= 4
+        ? t("ap.prog.stuck", { n: Math.min(rung.stuck, 3) })
+        : rung.level === 5
+          ? t("ap.prog.addUp")
+          : t(rung.changing === 1 ? "ap.prog.changing" : "ap.prog.changingMany", { n: rung.changing });
+
+  const cta = rung.level === 0 ? t("ap.cta.empty") : rung.level <= 2 ? t("ap.cta.another") : rung.level <= 4 ? t("ap.cta.labels") : t("ap.cta.full");
+  const onCta = rung.level <= 2 ? onWrite ?? onOpen : onOpen;
+  const tag = rung.fidelity === "pencil" ? t("ap.tag.pencil") : rung.fidelity === "sketch" ? t("ap.tag.sketch") : null;
+  /* on the night sky the chrome flips to cream, as the courier's does */
+  const day = daylight();
+  const onNight = rung.fidelity === "colour" && day === "night";
+  const chrome = onNight ? "#FFFFFF" : CREAM.ink;
+  const chromeText = onNight ? CREAM.ink : "#FFFFFF";
+  const tickOff = onNight ? "rgba(255,255,255,0.35)" : CREAM.tickOff;
 
   return (
-    <Pressable onPress={onOpen} style={[{ backgroundColor: W14.card, borderRadius: 20, overflow: "hidden", paddingBottom: 16 }, cardShadow]}>
-      {/* the head (owner's V9): a chip inside the card, the art beside it,
-          then a thin band that says the phase — nothing floats outside */}
-      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 14, paddingTop: 12 }}>
-        <View style={{ backgroundColor: P.pen, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, marginTop: 4 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{t("me.sec.aura").toUpperCase()}</Text>
+    <Pressable onPress={onOpen} style={[{ backgroundColor: named ? CREAM.cardNamed : CREAM.card, borderRadius: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.12 }]}>
+      {/* the picture is the progress (W33): the same scene, developing.
+          The pill sits where the courier card's does, same size, same
+          corner — the two cards are one family. */}
+      <View>
+        <AuraScene width={width} fidelity={rung.fidelity} day={day} />
+        <View style={{ position: "absolute", left: 14, top: 12, backgroundColor: chrome, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.5, color: chromeText }}>{t("me.sec.aura").toUpperCase()}</Text>
         </View>
-        <AuraArt aura={aura} seed={seed} avatarId={avatarId} width={formed ? 104 : 72} height={formed ? 78 : 54} radius={10} />
-      </View>
-      <View style={{ backgroundColor: formed ? "#2E7D4F" : P.pen, paddingHorizontal: 18, paddingVertical: 4, marginTop: 8 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{phaseLabel(stage).toUpperCase()}</Text>
-      </View>
-
-      <View style={{ paddingHorizontal: 18, paddingTop: 14 }}>
-        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: formed ? 30 : 23, lineHeight: formed ? 33 : 27, letterSpacing: -0.8, color: W14.ink }}>
-          {formed ? headline : t("ap.what")}
-        </Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)", marginTop: 6 }}>{basedOn(aura).toUpperCase()}</Text>
-      </View>
-
-      <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: W14.ink, marginTop: 12, paddingHorizontal: 18 }}>{desc}</Text>
-
-      {shown.length === 0 && !formed && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 16, paddingHorizontal: 18 }}>
-          <View style={{ width: 72, height: 3, borderRadius: 2, backgroundColor: "#E4E1FA", overflow: "hidden" }}>
-            <View style={{ width: `${(toFirst / 3) * 100}%`, height: 3, backgroundColor: P.pen }} />
-          </View>
-          <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 13.5, color: W14.grey }}>{stage === "empty" ? t("ap.firstWordsEnough") : t("ap.toFirstRead", { n: toFirst })}</Text>
-        </View>
-      )}
-
-      {shown.length > 0 && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 8, rowGap: 10, marginTop: 14, paddingHorizontal: 18 }}>
-          {shown.map((s, i) => (
-            <StickerChip key={s.id} id={s.id} i={i} />
+        <View style={{ position: "absolute", left: 16, bottom: 11, flexDirection: "row", gap: 3, alignItems: "center" }}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <View key={i} style={{ width: i < rung.ticks ? 13 : 7, height: 4, borderRadius: 2, backgroundColor: i < rung.ticks ? chrome : tickOff }} />
           ))}
         </View>
-      )}
-
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 14, paddingHorizontal: 18 }}>
-        <Pressable onPress={onCta} style={({ pressed }) => ({ flex: 1, backgroundColor: W14.navy, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: "#FFFFFF" }}>{phaseCta(stage)} →</Text>
-        </Pressable>
-        {formed && (
-          <Pressable onPress={onShare} hitSlop={6} style={({ pressed }) => ({ width: 52, borderWidth: 1.5, borderColor: "#DCD9F0", borderRadius: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
-            <Text style={{ fontFamily: PF.letter, fontSize: 18, color: W14.ink }}>⇧</Text>
-          </Pressable>
+        {tag && (
+          <Text style={{ position: "absolute", right: 13, bottom: 10, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: "rgba(30,27,53,0.6)" }}>{tag}</Text>
         )}
       </View>
-      <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: W14.grey, textAlign: "center", marginTop: 12 }}>{phaseFoot(stage)}</Text>
+
+      <View style={{ paddingHorizontal: 15, paddingTop: 13, paddingBottom: 15 }}>
+        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: named ? 25 : 23, lineHeight: named ? 28 : 26, letterSpacing: -0.6, color: CREAM.ink }}>
+          {named ? titleName(st?.title) : t("ap.what")}
+        </Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: CREAM.dim, marginTop: 6 }}>{from}</Text>
+
+        {shown.length > 0 && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 9, rowGap: 11, marginTop: 12, paddingHorizontal: 2 }}>
+            {shown.map((s, i) => (
+              <StickerChip key={s.id} id={s.id} i={i} state={s.kind === "writing" ? stateOf(s.id) : undefined} />
+            ))}
+          </View>
+        )}
+
+        {/* the well: letters counted on the way to the first label, then
+            the three slots a name needs, then what the name is made of */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: CREAM.well }}>
+          {rung.level <= 2 ? (
+            <View style={{ flexDirection: "row", gap: 3 }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <View key={i} style={{ width: 10, height: 12, borderRadius: 2, backgroundColor: i < Math.min(rung.letters, 5) ? CREAM.ink : CREAM.tickOff }} />
+              ))}
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", gap: 5 }}>
+              {[0, 1, 2].map((i) => (
+                <Slot key={i} done={i < rung.stuck} />
+              ))}
+            </View>
+          )}
+          <Text style={{ flex: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 12, color: CREAM.dim }}>{progress}</Text>
+          {rung.level >= 3 && rung.slips && <Slips n={rung.slips.n} of={rung.slips.of} />}
+        </View>
+
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+          <Pressable onPress={onCta} style={({ pressed }) => ({ flex: 1, backgroundColor: CREAM.ink, borderRadius: 12, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
+            <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: "#FFFFFF" }}>{cta}</Text>
+          </Pressable>
+          {named && (
+            <Pressable onPress={onShare} hitSlop={6} style={({ pressed }) => ({ width: 48, borderWidth: 1.5, borderColor: "rgba(30,27,53,0.2)", borderRadius: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+              <ShareIcon size={20} color={CREAM.ink} />
+            </Pressable>
+          )}
+        </View>
+      </View>
     </Pressable>
   );
 }

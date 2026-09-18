@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1160" viewBox="0 0 1160 1160"><rect width="100%" height="100%" fill="#FFFFFF"/><symbol id="stamp-never-told" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#5B3B8C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#5B3B8C1c"></path>
+<path d="M30,28h4v16h-4Z" fill="#5B3B8C"></path>
+<path d="M32,17q5,6 0,10q-5,-4 0,-10" fill="#5B3B8C"></path>
+<path d="M20,48h24" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-off-chest" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#7A4FD1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#7A4FD11c"></path>
+<path d="M20,30v14h24V30" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,38V16" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25,23l7,-7 7,7" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-guilty" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#8A4F9C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#8A4F9C1c"></path>
+<path d="M22,38a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M20,18q12,-7 24,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-hot-take" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C4306B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C4306B1c"></path>
+<path d="M32,12q11,11 7,22a11,11 0 0 1 -14,0q-4,-11 7,-22Z" fill="#C4306B"></path>
+<path d="M25,50h14" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-cringe" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#A8459E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#A8459E1c"></path>
+<path d="M17,32l7,-7 8,7 8,-7 7,7" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M42.8,45a3.2,3.2 0 1 0 6.4,0a3.2,3.2 0 1 0 -6.4,0" fill="#A8459E"></path>
+</symbol><symbol id="stamp-pretending" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#5A48B8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#5A48B81c"></path>
+<path d="M17,32a15,15 0 1 0 30,0a15,15 0 1 0 -30,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M24,28q3,4 7,0M33,28q3,4 7,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25,40q7,-5 14,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-almost-texted" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#E05A6A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#E05A6A1c"></path>
+<path d="M23,13h18v36H23Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25.8,32a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#E05A6A"></path>
+<path d="M29.8,32a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#E05A6A"></path>
+<path d="M33.8,32a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#E05A6A"></path>
+</symbol><symbol id="stamp-situationship" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#D14A66" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#D14A661c"></path>
+<path d="M18,32a9,9 0 1 1 18,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M28,32a9,9 0 1 0 18,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-not-over-it" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#A63A52" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#A63A521c"></path>
+<path d="M32,40.35C15,29.3 22.65,18.25 32,26.75C41.35,18.25 49,29.3 32,40.35Z" fill="#A63A52"></path>
+<path d="M25,26l6,7M31,25l-6,7" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-unsent" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C8506E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C8506E1c"></path>
+<path d="M48,17 17,29l11,4 3,11 6,-8Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M14,49l10,-8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-crush" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#E0447E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#E0447E1c"></path>
+<path d="M29,41.25C14,31.5 20.75,21.75 29,29.25C37.25,21.75 44,31.5 29,41.25Z" fill="#E0447E"></path>
+<path d="M47.0,12.0L48.6,15.8L52.7,16.1L49.6,18.8L50.5,22.9L47.0,20.7L43.5,22.9L44.4,18.8L41.3,16.1L45.4,15.8Z" fill="#E0447E"></path>
+</symbol><symbol id="stamp-what-if" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#D6604A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#D6604A1c"></path>
+<path d="M32,42v-6q0,-6 6,-8a8,8 0 1 0 -13,-6" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M29.4,50a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0" fill="#D6604A"></path>
+</symbol><symbol id="stamp-overthinking" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#3A4FD8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#3A4FD81c"></path>
+<path d="M32,32a3,3 0 1 1 3,3a8,8 0 1 1 -11,-3a13,13 0 1 1 16,8a18,18 0 1 1 -22,-14" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-cant-sleep" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2A3576" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2A35761c"></path>
+<path d="M36,14a15,15 0 1 0 12,24a12,12 0 1 1 -12,-24Z" fill="#2A3576"></path>
+<path d="M46,18h8l-8,8h8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-intrusive" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2F63C9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2F63C91c"></path>
+<path d="M17,36a13,13 0 1 0 26,0a13,13 0 1 0 -26,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M38,12l-9,14h6l-7,14 15,-17h-7l7,-11Z" fill="#2F63C9"></path>
+</symbol><symbol id="stamp-whats-the-point" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#4B5680" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#4B56801c"></path>
+<path d="M19,26a3,3 0 1 0 6,0a3,3 0 1 0 -6,0" fill="#4B5680"></path>
+<path d="M29,33a3,3 0 1 0 6,0a3,3 0 1 0 -6,0" fill="#4B5680"></path>
+<path d="M39,40a3,3 0 1 0 6,0a3,3 0 1 0 -6,0" fill="#4B5680"></path>
+<path d="M35,40a7,7 0 1 0 14,0a7,7 0 1 0 -14,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-spiral" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#3E6AA8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#3E6AA81c"></path>
+<path d="M17,19h30" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M21,29h22" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M26,39h12" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M30,49h4" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-too-honest" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#3F3A9E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#3F3A9E1c"></path>
+<path d="M17,17h30v20H31l-9,9v-9h-5Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,22v8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M30,33.5a2,2 0 1 0 4,0a2,2 0 1 0 -4,0" fill="#3F3A9E"></path>
+</symbol><symbol id="stamp-made-my-day" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#43903F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#43903F1c"></path>
+<path d="M23,38a9,9 0 1 0 18,0a9,9 0 1 0 -18,0" fill="#43903F"></path>
+<path d="M32,20v-6M15,38h-6" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15,38H9M55,38h-6M19,25l4,4M45,25l-4,4" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M12,50h40" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-ordinary" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#5F8A4F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#5F8A4F1c"></path>
+<path d="M22,26h18v17a6,6 0 0 1 -6,6h-6a6,6 0 0 1 -6,-6Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M40,30h5a5,5 0 0 1 0,10h-5" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M27,20q0,-4 3,-6M34,20q0,-4 3,-6" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-a-song" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#6B8A20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#6B8A201c"></path>
+<path d="M19,45a5,5 0 1 0 10,0a5,5 0 1 0 -10,0" fill="#6B8A20"></path>
+<path d="M35,41a5,5 0 1 0 10,0a5,5 0 1 0 -10,0" fill="#6B8A20"></path>
+<path d="M29,44V17l16,-4v24" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-outside" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#2F7D4F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#2F7D4F1c"></path>
+<path d="M32,50C17,41 16,25 32,13c16,12 15,28 0,37Z" fill="#2F7D4F"></path>
+<path d="M32,20v28" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-comfort" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#85873A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#85873A1c"></path>
+<path d="M17,34q7.5,-7 15,0t15,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M17,44q7.5,-7 15,0t15,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M22,23q10,-8 20,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-tiny-win" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E9452" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E94521c"></path>
+<path d="M25,51V15" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M25,15h20l-6,8 6,8H25Z" fill="#1E9452"></path>
+</symbol><symbol id="stamp-growing" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E948A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E948A1c"></path>
+<path d="M32,51V30" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,31q-2,-13 -15,-13 2,13 15,13Z" fill="#1E948A"></path>
+<path d="M32,37q2,-13 15,-13 -2,13 -15,13Z" fill="#1E948A"></path>
+</symbol><symbol id="stamp-changed" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1A93A4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1A93A41c"></path>
+<path d="M30,31 15,19q-3,17 15,19Z" fill="#1A93A4"></path>
+<path d="M34,31 49,19q3,17 -15,19Z" fill="#1A93A4"></path>
+<path d="M32,23v24" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-lost" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#3F8585" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#3F85851c"></path>
+<path d="M16,32a16,16 0 1 0 32,0a16,16 0 1 0 -32,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,16v-5M32,53v-5M11,32h5M48,32h5" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M29.4,32a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0" fill="#3F8585"></path>
+</symbol><symbol id="stamp-big-feeling" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1F7FA8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1F7FA81c"></path>
+<path d="M28,34a4,4 0 1 0 8,0a4,4 0 1 0 -8,0" fill="#1F7FA8"></path>
+<path d="M22,34a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15,34a17,17 0 1 0 34,0a17,17 0 1 0 -34,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-letting-go" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1E9A74" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1E9A741c"></path>
+<path d="M27,21a10,10 0 1 0 20,0a10,10 0 1 0 -20,0" fill="#1E9A74"></path>
+<path d="M37,31q-6,8 0,14t-4,8" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-who-am-i" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#1C6E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#1C6E7A1c"></path>
+<path d="M32,13a13,17 0 1 0 .01,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M28,26q4,-6 8,-1q-2,4 -4,5v3" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M30,40a2,2 0 1 0 4,0a2,2 0 1 0 -4,0" fill="#1C6E7A"></path>
+</symbol><symbol id="stamp-miss-someone" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#B0761C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#B0761C1c"></path>
+<path d="M14.5,25a4.5,4.5 0 1 0 9,0a4.5,4.5 0 1 0 -9,0" fill="#B0761C"></path>
+<path d="M40.5,25a4.5,4.5 0 1 0 9,0a4.5,4.5 0 1 0 -9,0" fill="#B0761C"></path>
+<path d="M19,33q13,14 26,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 5"></path>
+</symbol><symbol id="stamp-homesick" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#C2572F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#C2572F1c"></path>
+<path d="M17,32 32,17 47,32V49H17Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M32,43.95C23,38.1 27.05,32.25 32,36.75C36.95,32.25 41,38.1 32,43.95Z" fill="#C2572F"></path>
+</symbol><symbol id="stamp-grief" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#7A5236" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#7A52361c"></path>
+<path d="M28,51q3,-17 3,-25q0,-8 8,-9" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M37,16a5,5 0 1 0 10,0a5,5 0 1 0 -10,0" fill="#7A5236"></path>
+<path d="M45.8,23a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0" fill="#7A5236"></path>
+</symbol><symbol id="stamp-then-now" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9A6B3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9A6B3A1c"></path>
+<path d="M21,14h22M21,50h22" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M23,14q0,12 9,18t9,18" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M41,14q0,12 -9,18t-9,18" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-old-friend" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#9E7C24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#9E7C241c"></path>
+<path d="M17,18h30v26H17Z" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M34.8,26a3.2,3.2 0 1 0 6.4,0a3.2,3.2 0 1 0 -6.4,0" fill="#9E7C24"></path>
+<path d="M19,41l9,-9 7,5 9,-10" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><symbol id="stamp-seasons" viewBox="0 0 64 64">
+<path d="M8,3h48q5,0 5,5v48q0,5 -5,5H8q-5,0 -5,-5V8q0,-5 5,-5Z" fill="#FFFFFF" stroke="#B0452B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0.5 5"></path>
+<path d="M9,9h46v46H9Z" fill="#B0452B1c"></path>
+<path d="M35,13C24,19 23,30 35,36c11,-6 11,-17 0,-23Z" fill="#B0452B"></path>
+<path d="M13,45q8,-5 17,0t17,0" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M34,18l-7,20" fill="none" stroke="#1E1B33" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+</symbol><text x="24" y="34" font-family="Menlo" font-size="15" font-weight="bold" fill="#1E1B35" letter-spacing="2">CONFESSIONS</text><use href="#stamp-never-told" x="24" y="50" width="72" height="72"/><rect x="24" y="132" rx="12" width="126" height="24" fill="#5B3B8C" stroke="#1E1B35" stroke-width="2"/><text x="87.0" y="148" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#never told any</text><text x="24" y="174" font-family="Menlo" font-size="9" fill="#55506E">#5B3B8C</text><use href="#stamp-off-chest" x="174" y="50" width="72" height="72"/><rect x="174" y="132" rx="12" width="126" height="24" fill="#7A4FD1" stroke="#1E1B35" stroke-width="2"/><text x="237.0" y="148" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#off my chest</text><text x="174" y="174" font-family="Menlo" font-size="9" fill="#55506E">#7A4FD1</text><use href="#stamp-guilty" x="324" y="50" width="72" height="72"/><rect x="324" y="132" rx="12" width="126" height="24" fill="#8A4F9C" stroke="#1E1B35" stroke-width="2"/><text x="387.0" y="148" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#guilty</text><text x="324" y="174" font-family="Menlo" font-size="9" fill="#55506E">#8A4F9C</text><use href="#stamp-hot-take" x="474" y="50" width="72" height="72"/><rect x="474" y="132" rx="12" width="126" height="24" fill="#C4306B" stroke="#1E1B35" stroke-width="2"/><text x="537.0" y="148" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#hot take</text><text x="474" y="174" font-family="Menlo" font-size="9" fill="#55506E">#C4306B</text><use href="#stamp-cringe" x="624" y="50" width="72" height="72"/><rect x="624" y="132" rx="12" width="126" height="24" fill="#A8459E" stroke="#1E1B35" stroke-width="2"/><text x="687.0" y="148" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#cringe</text><text x="624" y="174" font-family="Menlo" font-size="9" fill="#55506E">#A8459E</text><use href="#stamp-pretending" x="774" y="50" width="72" height="72"/><rect x="774" y="132" rx="12" width="126" height="24" fill="#5A48B8" stroke="#1E1B35" stroke-width="2"/><text x="837.0" y="148" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#pretending</text><text x="774" y="174" font-family="Menlo" font-size="9" fill="#55506E">#5A48B8</text><text x="24" y="224" font-family="Menlo" font-size="15" font-weight="bold" fill="#1E1B35" letter-spacing="2">ALMOSTS</text><use href="#stamp-almost-texted" x="24" y="240" width="72" height="72"/><rect x="24" y="322" rx="12" width="126" height="24" fill="#E05A6A" stroke="#1E1B35" stroke-width="2"/><text x="87.0" y="338" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#almost texted</text><text x="24" y="364" font-family="Menlo" font-size="9" fill="#55506E">#E05A6A</text><use href="#stamp-situationship" x="174" y="240" width="72" height="72"/><rect x="174" y="322" rx="12" width="126" height="24" fill="#D14A66" stroke="#1E1B35" stroke-width="2"/><text x="237.0" y="338" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#situationship</text><text x="174" y="364" font-family="Menlo" font-size="9" fill="#55506E">#D14A66</text><use href="#stamp-not-over-it" x="324" y="240" width="72" height="72"/><rect x="324" y="322" rx="12" width="126" height="24" fill="#A63A52" stroke="#1E1B35" stroke-width="2"/><text x="387.0" y="338" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#not over it</text><text x="324" y="364" font-family="Menlo" font-size="9" fill="#55506E">#A63A52</text><use href="#stamp-unsent" x="474" y="240" width="72" height="72"/><rect x="474" y="322" rx="12" width="126" height="24" fill="#C8506E" stroke="#1E1B35" stroke-width="2"/><text x="537.0" y="338" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#unsent</text><text x="474" y="364" font-family="Menlo" font-size="9" fill="#55506E">#C8506E</text><use href="#stamp-crush" x="624" y="240" width="72" height="72"/><rect x="624" y="322" rx="12" width="126" height="24" fill="#E0447E" stroke="#1E1B35" stroke-width="2"/><text x="687.0" y="338" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#crush</text><text x="624" y="364" font-family="Menlo" font-size="9" fill="#55506E">#E0447E</text><use href="#stamp-what-if" x="774" y="240" width="72" height="72"/><rect x="774" y="322" rx="12" width="126" height="24" fill="#D6604A" stroke="#1E1B35" stroke-width="2"/><text x="837.0" y="338" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#what if</text><text x="774" y="364" font-family="Menlo" font-size="9" fill="#55506E">#D6604A</text><text x="24" y="414" font-family="Menlo" font-size="15" font-weight="bold" fill="#1E1B35" letter-spacing="2">LATENIGHTS</text><use href="#stamp-overthinking" x="24" y="430" width="72" height="72"/><rect x="24" y="512" rx="12" width="126" height="24" fill="#3A4FD8" stroke="#1E1B35" stroke-width="2"/><text x="87.0" y="528" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#overthinking</text><text x="24" y="554" font-family="Menlo" font-size="9" fill="#55506E">#3A4FD8</text><use href="#stamp-cant-sleep" x="174" y="430" width="72" height="72"/><rect x="174" y="512" rx="12" width="126" height="24" fill="#2A3576" stroke="#1E1B35" stroke-width="2"/><text x="237.0" y="528" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#can't sleep</text><text x="174" y="554" font-family="Menlo" font-size="9" fill="#55506E">#2A3576</text><use href="#stamp-intrusive" x="324" y="430" width="72" height="72"/><rect x="324" y="512" rx="12" width="126" height="24" fill="#2F63C9" stroke="#1E1B35" stroke-width="2"/><text x="387.0" y="528" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#intrusive thou</text><text x="324" y="554" font-family="Menlo" font-size="9" fill="#55506E">#2F63C9</text><use href="#stamp-whats-the-point" x="474" y="430" width="72" height="72"/><rect x="474" y="512" rx="12" width="126" height="24" fill="#4B5680" stroke="#1E1B35" stroke-width="2"/><text x="537.0" y="528" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#what's the poi</text><text x="474" y="554" font-family="Menlo" font-size="9" fill="#55506E">#4B5680</text><use href="#stamp-spiral" x="624" y="430" width="72" height="72"/><rect x="624" y="512" rx="12" width="126" height="24" fill="#3E6AA8" stroke="#1E1B35" stroke-width="2"/><text x="687.0" y="528" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#spiraling</text><text x="624" y="554" font-family="Menlo" font-size="9" fill="#55506E">#3E6AA8</text><use href="#stamp-too-honest" x="774" y="430" width="72" height="72"/><rect x="774" y="512" rx="12" width="126" height="24" fill="#3F3A9E" stroke="#1E1B35" stroke-width="2"/><text x="837.0" y="528" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#too honest</text><text x="774" y="554" font-family="Menlo" font-size="9" fill="#55506E">#3F3A9E</text><text x="24" y="604" font-family="Menlo" font-size="15" font-weight="bold" fill="#1E1B35" letter-spacing="2">SMALL</text><use href="#stamp-made-my-day" x="24" y="620" width="72" height="72"/><rect x="24" y="702" rx="12" width="126" height="24" fill="#43903F" stroke="#1E1B35" stroke-width="2"/><text x="87.0" y="718" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#made my day</text><text x="24" y="744" font-family="Menlo" font-size="9" fill="#55506E">#43903F</text><use href="#stamp-ordinary" x="174" y="620" width="72" height="72"/><rect x="174" y="702" rx="12" width="126" height="24" fill="#5F8A4F" stroke="#1E1B35" stroke-width="2"/><text x="237.0" y="718" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#ordinary</text><text x="174" y="744" font-family="Menlo" font-size="9" fill="#55506E">#5F8A4F</text><use href="#stamp-a-song" x="324" y="620" width="72" height="72"/><rect x="324" y="702" rx="12" width="126" height="24" fill="#6B8A20" stroke="#1E1B35" stroke-width="2"/><text x="387.0" y="718" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#a song</text><text x="324" y="744" font-family="Menlo" font-size="9" fill="#55506E">#6B8A20</text><use href="#stamp-outside" x="474" y="620" width="72" height="72"/><rect x="474" y="702" rx="12" width="126" height="24" fill="#2F7D4F" stroke="#1E1B35" stroke-width="2"/><text x="537.0" y="718" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#outside</text><text x="474" y="744" font-family="Menlo" font-size="9" fill="#55506E">#2F7D4F</text><use href="#stamp-comfort" x="624" y="620" width="72" height="72"/><rect x="624" y="702" rx="12" width="126" height="24" fill="#85873A" stroke="#1E1B35" stroke-width="2"/><text x="687.0" y="718" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#comfort</text><text x="624" y="744" font-family="Menlo" font-size="9" fill="#55506E">#85873A</text><use href="#stamp-tiny-win" x="774" y="620" width="72" height="72"/><rect x="774" y="702" rx="12" width="126" height="24" fill="#1E9452" stroke="#1E1B35" stroke-width="2"/><text x="837.0" y="718" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#tiny win</text><text x="774" y="744" font-family="Menlo" font-size="9" fill="#55506E">#1E9452</text><text x="24" y="794" font-family="Menlo" font-size="15" font-weight="bold" fill="#1E1B35" letter-spacing="2">BECOMING</text><use href="#stamp-growing" x="24" y="810" width="72" height="72"/><rect x="24" y="892" rx="12" width="126" height="24" fill="#1E948A" stroke="#1E1B35" stroke-width="2"/><text x="87.0" y="908" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#growing</text><text x="24" y="934" font-family="Menlo" font-size="9" fill="#55506E">#1E948A</text><use href="#stamp-changed" x="174" y="810" width="72" height="72"/><rect x="174" y="892" rx="12" width="126" height="24" fill="#1A93A4" stroke="#1E1B35" stroke-width="2"/><text x="237.0" y="908" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#changed</text><text x="174" y="934" font-family="Menlo" font-size="9" fill="#55506E">#1A93A4</text><use href="#stamp-lost" x="324" y="810" width="72" height="72"/><rect x="324" y="892" rx="12" width="126" height="24" fill="#3F8585" stroke="#1E1B35" stroke-width="2"/><text x="387.0" y="908" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#lost</text><text x="324" y="934" font-family="Menlo" font-size="9" fill="#55506E">#3F8585</text><use href="#stamp-big-feeling" x="474" y="810" width="72" height="72"/><rect x="474" y="892" rx="12" width="126" height="24" fill="#1F7FA8" stroke="#1E1B35" stroke-width="2"/><text x="537.0" y="908" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#big feeling</text><text x="474" y="934" font-family="Menlo" font-size="9" fill="#55506E">#1F7FA8</text><use href="#stamp-letting-go" x="624" y="810" width="72" height="72"/><rect x="624" y="892" rx="12" width="126" height="24" fill="#1E9A74" stroke="#1E1B35" stroke-width="2"/><text x="687.0" y="908" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#letting go</text><text x="624" y="934" font-family="Menlo" font-size="9" fill="#55506E">#1E9A74</text><use href="#stamp-who-am-i" x="774" y="810" width="72" height="72"/><rect x="774" y="892" rx="12" width="126" height="24" fill="#1C6E7A" stroke="#1E1B35" stroke-width="2"/><text x="837.0" y="908" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#who am i</text><text x="774" y="934" font-family="Menlo" font-size="9" fill="#55506E">#1C6E7A</text><text x="24" y="984" font-family="Menlo" font-size="15" font-weight="bold" fill="#1E1B35" letter-spacing="2">MISSING</text><use href="#stamp-miss-someone" x="24" y="1000" width="72" height="72"/><rect x="24" y="1082" rx="12" width="126" height="24" fill="#B0761C" stroke="#1E1B35" stroke-width="2"/><text x="87.0" y="1098" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#miss someone</text><text x="24" y="1124" font-family="Menlo" font-size="9" fill="#55506E">#B0761C</text><use href="#stamp-homesick" x="174" y="1000" width="72" height="72"/><rect x="174" y="1082" rx="12" width="126" height="24" fill="#C2572F" stroke="#1E1B35" stroke-width="2"/><text x="237.0" y="1098" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#homesick</text><text x="174" y="1124" font-family="Menlo" font-size="9" fill="#55506E">#C2572F</text><use href="#stamp-grief" x="324" y="1000" width="72" height="72"/><rect x="324" y="1082" rx="12" width="126" height="24" fill="#7A5236" stroke="#1E1B35" stroke-width="2"/><text x="387.0" y="1098" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#grief</text><text x="324" y="1124" font-family="Menlo" font-size="9" fill="#55506E">#7A5236</text><use href="#stamp-then-now" x="474" y="1000" width="72" height="72"/><rect x="474" y="1082" rx="12" width="126" height="24" fill="#9A6B3A" stroke="#1E1B35" stroke-width="2"/><text x="537.0" y="1098" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#then vs now</text><text x="474" y="1124" font-family="Menlo" font-size="9" fill="#55506E">#9A6B3A</text><use href="#stamp-old-friend" x="624" y="1000" width="72" height="72"/><rect x="624" y="1082" rx="12" width="126" height="24" fill="#9E7C24" stroke="#1E1B35" stroke-width="2"/><text x="687.0" y="1098" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#old friend</text><text x="624" y="1124" font-family="Menlo" font-size="9" fill="#55506E">#9E7C24</text><use href="#stamp-seasons" x="774" y="1000" width="72" height="72"/><rect x="774" y="1082" rx="12" width="126" height="24" fill="#B0452B" stroke="#1E1B35" stroke-width="2"/><text x="837.0" y="1098" text-anchor="middle" font-family="Menlo" font-size="10" font-weight="bold" fill="#fff">#seasons</text><text x="774" y="1124" font-family="Menlo" font-size="9" fill="#55506E">#B0452B</text></svg>

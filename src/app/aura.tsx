@@ -4,7 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
-import { AuraTicket, StickerChip, W14, cardShadow } from "../components/AuraCard";
+import { AuraCard, StickerChip, W14, cardShadow } from "../components/AuraCard";
+import { GridIcon, ShareIcon } from "../components/Icons";
 import { useAuth } from "../lib/auth";
 import { getAuraScope, myAura, pauseCounts, setAuraScope, wordCounts, type Aura } from "../lib/aura";
 import { dimLabel } from "../lib/aura-copy";
@@ -16,7 +17,8 @@ import { dShort } from "../lib/format";
 
 /* WRITING AURA — the room (owner's sheet, three tabs).
    ────────────────────────────────────────────────────────────────────────
-   PORTRAIT   the card as it travels, and the door to the stickers.
+   PORTRAIT   the card itself — the same one the Me tab shows, the
+              picture developing rung by rung (the W33 ladder).
    DIMENSIONS the nine, one card at a time: what she found there, how
               many pieces it rests on, one sentence of yours, and a link
               to the sticker it became. A dimension with nothing to say
@@ -35,7 +37,7 @@ type Tab = "portrait" | "dims" | "habits";
 export default function AuraScreen() {
   useLang();
   const router = useRouter();
-  const { user, profile, handle } = useAuth();
+  const { user, profile } = useAuth();
   const [aura, setAura] = useState<Aura | null>(null);
   const [tab, setTab] = useState<Tab>("portrait");
   const [idx, setIdx] = useState(0);
@@ -43,6 +45,7 @@ export default function AuraScreen() {
   const [scope, setScope] = useState(false);
   const [sealedOn, setSealedOn] = useState(false);
   const [word, setWord] = useState<string | null>(null);
+  const [reading, setReading] = useState<Reading | null>(null);
   const pager = useRef<ScrollView>(null);
 
   const load = useCallback(async () => {
@@ -97,7 +100,7 @@ export default function AuraScreen() {
         </Pressable>
         <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.serif, fontSize: 20, color: W14.ink }}>{tr("wa.title")}</Text>
         <Pressable onPress={() => router.push("/aura-card")} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 18, color: P.pen }}>⇧</Text>
+          <ShareIcon size={22} color={P.pen} />
         </Pressable>
       </View>
 
@@ -111,8 +114,9 @@ export default function AuraScreen() {
       </View>
 
       {aura && tab === "portrait" && (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          <AuraTicket aura={aura} seed={seed} avatarId={avatarId} who={handle || "me"} />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          {/* the same card as on Me; its door leads to the labels here */}
+          <AuraCard aura={aura} seed={seed} avatarId={avatarId} onOpen={() => setTab("dims")} onShare={() => router.push("/aura-card")} onWrite={() => router.push("/compose")} />
         </ScrollView>
       )}
 
@@ -120,15 +124,17 @@ export default function AuraScreen() {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 22, paddingTop: 16 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)" }}>{tr("wa.dimOf", { i: idx + 1 })}</Text>
-            <Pressable onPress={() => setGrid(true)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: P.pen }}>{tr("wa.allDims")}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.pen }}>⊞</Text>
+            <Pressable onPress={() => setGrid(true)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.pen }}>{tr("wa.allDims")}</Text>
+              <GridIcon size={18} color={P.pen} />
             </Pressable>
           </View>
-          <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onPage} contentContainerStyle={{ paddingHorizontal: 22 }} style={{ flexGrow: 0, marginTop: 12 }} snapToInterval={PAGE} decelerationRate="fast">
+          {/* the card takes the room down to the controls (the owner's
+              screenshot): one dimension, one full page */}
+          <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onPage} contentContainerStyle={{ paddingHorizontal: 22 }} style={{ flex: 1, marginTop: 12 }} snapToInterval={PAGE} decelerationRate="fast">
             {ORDER.map((d, i) => (
-              <View key={d} style={{ width: PAGE }}>
-                <DimCard d={d} i={i} aura={aura} />
+              <View key={d} style={{ width: PAGE, flex: 1 }}>
+                <DimCard d={d} i={i} aura={aura} onRead={(r) => setReading(r)} />
               </View>
             ))}
           </ScrollView>
@@ -141,11 +147,39 @@ export default function AuraScreen() {
               <Text style={{ fontFamily: PF.letter, fontSize: 18, color: W14.ink }}>→</Text>
             </Pressable>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 14 }}>
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 14, marginBottom: 18 }}>
             {ORDER.map((d, i) => (
               <View key={d} style={{ width: i === idx ? 14 : 5, height: 5, borderRadius: 3, backgroundColor: i === idx ? P.pen : "rgba(30,27,53,0.2)" }} />
             ))}
           </View>
+
+          {/* the sentence and the read: the whole piece, the words the rule
+              fired on marked, and what the sticker says it means */}
+          <Modal visible={!!reading} transparent animationType="slide" onRequestClose={() => setReading(null)}>
+            <Pressable onPress={() => setReading(null)} style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.35)", justifyContent: "flex-end" }}>
+              <Pressable onPress={() => {}} style={{ backgroundColor: "#FFFFFF", borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34, maxHeight: "80%" }}>
+                <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: "#D9D6E8" }} />
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
+                  <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: W14.ink }}>{tr("wa.readTitle")}</Text>
+                  <Pressable onPress={() => setReading(null)} hitSlop={10}><Text style={{ fontFamily: PF.letter, fontSize: 18, color: "rgba(30,27,53,0.5)" }}>✕</Text></Pressable>
+                </View>
+                {reading && (
+                  <ScrollView style={{ marginTop: 14 }} showsVerticalScrollIndicator={false}>
+                    <Text style={{ fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 27, color: W14.ink }}>
+                      {reading.text.slice(0, reading.start)}
+                      <Text style={{ backgroundColor: "#EEEDFB", color: "#4B44C7" }}>{reading.text.slice(reading.start, reading.end)}</Text>
+                      {reading.text.slice(reading.end)}
+                    </Text>
+                    <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 10 }}>{reading.from}</Text>
+                    <View style={{ marginTop: 16, backgroundColor: "#EEEDFB", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
+                      <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: W14.ink }}>{reading.name}</Text>
+                      <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: "rgba(30,27,53,0.75)", marginTop: 4 }}>{reading.line}</Text>
+                    </View>
+                  </ScrollView>
+                )}
+              </Pressable>
+            </Pressable>
+          </Modal>
 
           {/* the grid of nine */}
           <Modal visible={grid} transparent animationType="slide" onRequestClose={() => setGrid(false)}>
@@ -317,7 +351,17 @@ export default function AuraScreen() {
 }
 
 /* one dimension: what she found there, on what, with one sentence of yours */
-function DimCard({ d, i, aura }: { d: DimKey; i: number; aura: Aura }) {
+/* what the reading sheet shows: the piece, the span, the sticker's words */
+interface Reading {
+  text: string;
+  start: number;
+  end: number;
+  from: string;
+  name: string;
+  line: string;
+}
+
+function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onRead: (r: Reading) => void }) {
   const st = aura.stickers;
   const rep = st?.byDimension[d] ?? null;
   const obs = (st?.observations ?? []).filter((o) => o.dimension === d);
@@ -327,7 +371,7 @@ function DimCard({ d, i, aura }: { d: DimKey; i: number; aura: Aura }) {
   const quote = ev && piece ? piece.text.slice(ev.start, ev.end) : null;
   const when = piece?.createdAt ? dShort(piece.createdAt) : "";
   return (
-    <View style={[{ backgroundColor: W14.card, borderRadius: 18, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18, marginRight: 0 }, cardShadow]}>
+    <View style={[{ flex: 1, backgroundColor: W14.card, borderRadius: 18, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18, marginRight: 0 }, cardShadow]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: "#EEEDFB" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, color: "#4B44C7" }}>{String(i + 1).padStart(2, "0")}</Text>
@@ -346,6 +390,18 @@ function DimCard({ d, i, aura }: { d: DimKey; i: number; aura: Aura }) {
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 17, lineHeight: 25, color: W14.ink }} numberOfLines={4}>“{quote}”</Text>
           <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 8 }}>{tr(`wa.quoteFrom.${ev.source}`, { d: when })}</Text>
         </View>
+      )}
+      <View style={{ flex: 1 }} />
+      {/* the door to the whole sentence and what it was read as */}
+      {rep && quote && ev && piece && (
+        <Pressable
+          onPress={() => onRead({ text: piece.text, start: ev.start, end: ev.end, from: tr(`wa.quoteFrom.${ev.source}`, { d: when }), name: stickerName(rep.stickerId), line: stickerLine(rep) })}
+          hitSlop={8}
+          style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 }}
+        >
+          <Text style={{ fontFamily: PF.letter, fontSize: 13, color: P.pen }}>{tr("wa.seeRead")}</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 15, color: P.pen }}>↗</Text>
+        </Pressable>
       )}
     </View>
   );

@@ -9,9 +9,12 @@ import Svg, { Path, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { wrenStageDirty } from "../../lib/wren-stage";
-import { P, PF, channelInk, channelWash, rule } from "../../theme/post";
+import { P, PF, rule } from "../../theme/post";
+import { PUNCH, drop, outline } from "../../theme/punch";
 import { StampTile } from "../../components/StampTile";
-import { TranslateMark } from "../../components/TranslateMark";
+import { LangPair } from "../../components/LangPair";
+import { SignalChip } from "../../components/SignalChip";
+import type { Signal } from "../../lib/today-signal";
 import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
@@ -22,10 +25,10 @@ import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dShort, postNo, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
-import { refreshFingerprint } from "../../lib/aura";
+import { refreshFingerprint, signalFor } from "../../lib/aura";
 import { bump } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
-import { getLang, needsTranslating, t, useLang } from "../../lib/i18n";
+import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { screenNow, translate } from "../../lib/wren";
 import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, getFlags, setFlag, unsetFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
@@ -470,7 +473,7 @@ function Feed({
         {/* one shared reply bar, bound to the letter you're on. Always rendered
             at a constant height (even on the caught-up page) so the pager's page
             height never shifts under it. */}
-        <View style={{ paddingHorizontal: 26, paddingTop: 10, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
           {!atEnd && current ? (
             /* THE REPLY IS NOT PAPER YET, and that is the point. Giving it
                its own sheet made a second letter on the desk and turned the
@@ -487,29 +490,31 @@ function Feed({
               {sending ? (
                 <LetterInFlight to={current.author ? `NO.${postNo(current.author)}` : null} slow={slow} />
               ) : (
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingRight: 2, paddingVertical: 2 }}>
+              /* the pen is a sticker too now (G1): outlined, hard-shadowed,
+                 SEND a black pill — but still not paper; no second sheet */
+              <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 12, paddingLeft: 14, paddingRight: 8, paddingVertical: 4 }, outline(16), drop(4)]}>
                 <GlyphInput
                   ref={replyRef}
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
                   placeholder={t("ld.writeBackPh")}
-                  placeholderTextColor={P.ink40}
+                  placeholderTextColor={PUNCH.placeholder}
                   multiline
-                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
+                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
                 />
                 <Pressable
                   onPress={() => send(current)}
                   disabled={!replyOk || sending}
-                  style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: replyOk && !sending ? P.pen : "transparent" }}
+                  style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: replyOk && !sending ? PUNCH.ink : "#E4E1F6" }}
                 >
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: replyOk && !sending ? "#fff" : P.ink40 }}>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: replyOk && !sending ? "#fff" : PUNCH.placeholder }}>
                     {t("ld.send")}
                   </Text>
                 </Pressable>
               </View>
               )}
               {!sending && (
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: replyW > LETTER_MAX ? P.post : P.ink40, marginTop: 8 }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: replyW > LETTER_MAX ? P.post : PUNCH.dim, marginTop: 10 }}>
                 {replyW > LETTER_MAX
                   ? t("ui.overLimit", { n: String(replyW - LETTER_MAX) })
                   : flights >= MAX_IN_FLIGHT
@@ -647,12 +652,14 @@ const UNFOLD = new Keyframe({
 
 function Header({ count, idx, atEnd, note }: { count: number; idx: number; atEnd?: boolean; note?: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.groundInk }}>{t("ld.today")}</Text>
+    /* the plate rule is 3px now — the one hairline on the page that thickened
+       with the card, so the header and the sticker are the same hand */
+    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 10, paddingTop: 6, paddingBottom: 10, marginHorizontal: 18, borderBottomWidth: 3, borderBottomColor: PUNCH.ink }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 3, color: PUNCH.ink }}>{t("ld.today")}</Text>
       {/* the founding spec: "no counter". The 01/28 progress meter turned
           a desk of letters into a to-do list — the day states remain, the
           arithmetic is nobody's business. */}
-      <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.groundInk60 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: PUNCH.dim }}>
         {note ?? (count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : "")}
       </Text>
     </View>
@@ -700,29 +707,30 @@ function LetterReader({
         </View>
 
         <ScrollView
-          style={{ flex: 1, backgroundColor: P.sheet, marginHorizontal: 12 }}
-          contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 22, paddingBottom: 40 }}
+          style={[{ flex: 1, marginHorizontal: 16 }, outline(20), drop(5)]}
+          contentContainerStyle={{ paddingHorizontal: 17, paddingTop: 16, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           {/* the same docket the page carries, so the letter keeps its face */}
           <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 22 }}>
             <MosaicId seed={letter.author} />
-            <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.6, color: P.ink60, marginLeft: 12, marginTop: 3 }}>
+            <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.ink, marginLeft: 12, marginTop: 3 }}>
               {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
               {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
             {st && (
-              <View style={{ transform: [{ rotate: "3deg" }] }}>
-                <StampTile id={letter.stamp} w={40} r={5} />
+              <View style={[outline(11, 2.2), drop(2.5), { width: 42, height: 42 }]}>
+                <View style={{ flex: 1, borderRadius: 8, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
+                  <StampTile id={letter.stamp} w={38} r={0} />
+                </View>
               </View>
             )}
           </View>
 
-          <Text style={{ fontFamily: PF.letterSerif, fontSize: 19, lineHeight: 31, color: P.ink }}>{shown}</Text>
+          <Text style={{ fontFamily: PF.letterSerif, fontSize: 19, lineHeight: 31, color: PUNCH.ink }}>{shown}</Text>
 
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginTop: 26 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.6, color: PUNCH.dim, marginTop: 26 }}>
             {t("ld.written")} {sinceShort(letter.created_at)}
-            {letter.close != null ? ` · ${t("ld.aurasClose")}` : ""}
           </Text>
         </ScrollView>
 
@@ -734,27 +742,27 @@ function LetterReader({
             it. The draft is the same one the page holds, so a reply started
             here and finished there is one reply. */}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) + 12 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 12) + 12 }}>
             {reply.sending ? (
               <LetterInFlight to={letter.author ? `NO.${postNo(letter.author)}` : null} slow={reply.slow} />
             ) : writing ? (
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingVertical: 2 }}>
+              <View style={[{ flexDirection: "row", alignItems: "flex-end", gap: 12, paddingLeft: 14, paddingRight: 8, paddingVertical: 4 }, outline(16), drop(4)]}>
                 <GlyphInput
                   ref={inputRef}
                   value={reply.value}
                   onChangeText={reply.onChange}
                   placeholder={t("ld.writeBackPh")}
-                  placeholderTextColor={P.ink40}
+                  placeholderTextColor={PUNCH.placeholder}
                   multiline
                   autoFocus
-                  style={{ flex: 1, ...fieldBox(reply.value, 23, 104), paddingTop: 10, paddingBottom: 10, color: P.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
+                  style={{ flex: 1, ...fieldBox(reply.value, 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
                 />
                 <Pressable
                   onPress={reply.onSend}
                   disabled={!reply.canSend}
-                  style={{ paddingHorizontal: 12, paddingVertical: 9, backgroundColor: reply.canSend ? P.pen : "transparent" }}
+                  style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: reply.canSend ? PUNCH.ink : "#E4E1F6" }}
                 >
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: reply.canSend ? "#fff" : P.ink40 }}>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: reply.canSend ? "#fff" : PUNCH.placeholder }}>
                     {t("ld.send")}
                   </Text>
                 </Pressable>
@@ -763,7 +771,7 @@ function LetterReader({
               <Pressable
                 onPress={() => setWriting(true)}
                 hitSlop={6}
-                style={{ backgroundColor: P.pen, paddingVertical: 17, alignItems: "center" }}
+                style={[{ backgroundColor: PUNCH.ink, paddingVertical: 16, alignItems: "center", borderRadius: 999 }]}
               >
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>{t("ld.writeBack")}</Text>
               </Pressable>
@@ -823,6 +831,20 @@ function LetterPage({
   const [xlOn, setXlOn] = useState(false);
   const [xlBusy, setXlBusy] = useState(false);
   const shown = xlOn && xl ? xl : letter.body;
+  /* what this letter and you have in common — read on the phone from your
+     own sticker state and what the Me tab last left there. Re-read when the
+     tab comes back into view: the first visit to Me is what writes the
+     facts, and Today was already open before that. */
+  const [signal, setSignal] = useState<Signal | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      void signalFor(letter).then((sg) => live && setSignal(sg));
+      return () => {
+        live = false;
+      };
+    }, [letter.id]), // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const tier = letterTier(weightedCount(shown || ""));
   /* WHAT FITS IS A GEOMETRY QUESTION, so it's answered with geometry rather
      than a magic number. The frame reports its height, the tier fixes the
@@ -873,8 +895,12 @@ function LetterPage({
        leaves paper, and the colour step does all the separating a page needs.
        The moment this screen had a framed letter, a framed reply, a framed tag
        and a framed stamp, it had stopped being one letter on a desk. */
-    <View style={{ height, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8 }}>
-      <View style={{ flex: 1, backgroundColor: P.sheet, paddingHorizontal: 22, paddingTop: 26 }}>
+    /* STICKER PUNCH (the owner's G1). The same sheet, now a sticker: a thick
+       outline and a hard shadow instead of a colour step. The structure
+       above did not move — docket, letter, tag, provenance, rule, moves —
+       only the form each of them wears. */
+    <View style={{ height, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14 }}>
+      <View style={[{ flex: 1, paddingHorizontal: 17, paddingTop: 16 }, outline(20), drop(5)]}>
       <Animated.View entering={FadeIn.duration(240)} style={{ flex: 1 }}>
         {/* The docket row reads like the face of an envelope: who and when
             filed on the left by the machine, the stamp pasted on the right by
@@ -886,17 +912,20 @@ function LetterPage({
             body gets. Stripping the stamps to fit the palette was the mistake;
             they're the reason the tab has a world at all. */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingTop: 4 }}>
             <MosaicId seed={letter.author} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.ink }}>
               {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
               {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             {st && (
-              <View style={{ transform: [{ rotate: "3deg" }] }}>
-                <StampTile id={letter.stamp} w={46} r={5} />
+              /* the stamp is a sticker on the sticker: outlined, hard-shadowed */
+              <View style={[outline(11, 2.2), drop(2.5), { width: 42, height: 42 }]}>
+                <View style={{ flex: 1, borderRadius: 8, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
+                  <StampTile id={letter.stamp} w={38} r={0} />
+                </View>
               </View>
             )}
             {/* THE POOL IS WHERE REPORT MATTERS MOST — a total stranger's
@@ -905,6 +934,7 @@ function LetterPage({
                 chose to hear from did not, so reporting required REPLYING
                 to the very letter you objected to. */}
             <ReportMenu
+              ring
               targetUser={letter.author ?? undefined}
               context="letter"
               refId={letter.id}
@@ -957,7 +987,7 @@ function LetterPage({
               fontFamily: PF.letterSerif,
               fontSize: tier.size,
               lineHeight: tier.line,
-              color: P.ink,
+              color: PUNCH.ink,
               textAlign: tier.center ? "center" : "auto",
             }}
           >
@@ -991,9 +1021,9 @@ function LetterPage({
         {/* the fold — only when there is genuinely more letter than screen */}
         {folded && (
           <Pressable onPress={() => setOpen(true)} hitSlop={8} style={{ paddingTop: 10 }}>
-            <View style={{ borderTopWidth: 1, borderTopColor: P.ink12, paddingTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>{t("ld.more")}</Text>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("ld.unfold")}</Text>
+            <View style={{ borderTopWidth: 1.5, borderTopColor: "#E4E1F6", paddingTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.6, color: PUNCH.dim }}>{t("ld.more")}</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: PUNCH.reply }}>{t("ld.unfold")}</Text>
             </View>
           </Pressable>
         )}
@@ -1008,21 +1038,34 @@ function LetterPage({
             not assigned by the system, so it doesn't get the machine's
             all-caps voice. Everything the system itself says on this page is
             upper — this one thing isn't, because it isn't the system talking. */}
-        {st && (
-          <View style={{ flexDirection: "row", marginBottom: 12 }}>
-            <View
-              style={{
-                backgroundColor: channelWash(st.color),
-                borderWidth: 1,
-                borderColor: st.color,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-              }}
-            >
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.2, color: channelInk(st.color) }}>
-                #{sname(st.name).toLowerCase()}
-              </Text>
-            </View>
+        {(st || signal) && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 11 }}>
+            {st && (
+              /* solid now — the stamp's own colour as a pill, outlined and
+                 hard-shadowed like everything else on the sticker */
+              <View
+                style={[
+                  {
+                    backgroundColor: st.color,
+                    borderWidth: 2.2,
+                    borderColor: PUNCH.ink,
+                    borderRadius: 999,
+                    paddingHorizontal: 13,
+                    paddingVertical: 6,
+                  },
+                  drop(2.5),
+                ]}
+              >
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 0.2, color: "#FFFFFF" }}>
+                  #{sname(st.name).toLowerCase()}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }} />
+            {/* THE ACTUAL REASON (A5), or the rings (A4) when only the
+                matcher has anything to say — never a sentence about a
+                number */}
+            {signal && <SignalChip signal={signal} />}
           </View>
         )}
 
@@ -1035,9 +1078,8 @@ function LetterPage({
             reading as a feed post — so it now says only what is true: when
             it was written, and, when the matcher actually named this author,
             why it reached you. */}
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40, marginBottom: 10 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.6, color: PUNCH.dim }}>
           {t("ld.written")} {sinceShort(letter.created_at)}
-          {letter.close != null ? ` · ${t("ld.aurasClose")}` : ""}
         </Text>
 
         {/* THE TRANSLATE INVITATION — its own centered line, not a sentence
@@ -1046,26 +1088,22 @@ function LetterPage({
             so it stays elegant at any length and never collides. Only when
             the letter came in another language. */}
         {/* one rule above the whole action cluster — letter, then the moves */}
-        <View style={{ borderTopWidth: 1, borderTopColor: P.ink, marginTop: 12 }} />
+        <View style={{ height: 2.4, backgroundColor: PUNCH.ink, marginTop: 12 }} />
 
+        {/* THE LANGUAGE PAIR (B1) — their language, an arrow, yours; the
+            filled side is the one you are reading. A tap turns it round.
+            Only when the letter came in another language. */}
         {!isVoice && !!letter.body && needsTranslating(letter.body, letter.lang) && (
-          <Pressable
-            onPress={doTranslate}
-            hitSlop={10}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingTop: 13, paddingBottom: 3 }}
-          >
-            <TranslateMark on={xlOn} />
-            <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 0.3, color: xlBusy ? P.ink40 : xlOn ? P.ink60 : P.pen }}>
-              {xlBusy ? t("read.translating") : xlOn ? t("read.original") : t("read.invite")}
-            </Text>
-          </Pressable>
+          <View style={{ alignItems: "center", paddingTop: 11 }}>
+            <LangPair from={sourceTag(letter.body, letter.lang)} to={getLang().toUpperCase()} on={xlOn} busy={xlBusy} onPress={doTranslate} />
+          </View>
         )}
 
         {/* pass · reply — two moves. No third label to crowd it. */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 11, paddingBottom: 14 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 1, color: P.ink40 }}>{t("ld.pass")}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 11, paddingBottom: 15 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.dim }}>{t("ld.pass")}</Text>
           <Pressable onPress={onReply} hitSlop={14}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>{t("ld.replyArrow")}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.reply }}>{t("ld.replyArrow")}</Text>
           </Pressable>
         </View>
       </Animated.View>

@@ -80,13 +80,19 @@ export const GlyphInput = forwardRef<TextInput, TextInputProps>(function GlyphIn
      middle of the lowercase letters in any face. */
   // after a trailing newline a zero-width mark gives the bird a line to stand on
   const raw = value.slice(0, Math.min(sel.end, value.length));
-  const before = raw.endsWith("\n") ? raw + "\u200b" : raw;
+  // …and at the very start of the text the same mark keeps the line's own
+  // height, so the bird sits on the first line instead of floating above it
+  const before = raw.endsWith("\n") || raw === "" ? raw + "\u200b" : raw;
   /* an inline view's bottom lands on the line's bottom, not the baseline —
-     so the box is x-height plus descender tall and the bird sits at its
-     top: bottom on the baseline, eye in the middle of the lowercase */
+     and iOS sets the glyphs at the TOP of a taller line box, so the
+     baseline sits (lineHeight − ascent) above that bottom, not a fixed
+     share of the size. The box is that tall less the glyph's own height,
+     so the eye lands in the middle of the lowercase at 20/33 and at 17/25
+     alike. (0.92 ≈ the serif's ascent; the system face is within a point.) */
   const gw = fontSize * 1.1;
+  const glyphBox = Math.max(fontSize * 0.5, lineHeight - fontSize * 0.92);
   const glyph = focused ? (
-    <View style={{ width: gw + 2, height: fontSize * 0.74, marginLeft: Math.round(fontSize * 0.14), justifyContent: "flex-start" }}>
+    <View style={{ width: gw + 2, height: glyphBox, marginLeft: Math.round(fontSize * 0.14), justifyContent: "flex-start" }}>
       <Animated.View style={{ opacity: blink }}>
         <WrenGlyph size={fontSize} />
       </Animated.View>
@@ -95,8 +101,11 @@ export const GlyphInput = forwardRef<TextInput, TextInputProps>(function GlyphIn
 
   return (
     <View style={{ flex: (st.flex as number) ?? undefined, alignSelf: "stretch" }}>
+      {/* the wrapper carries the flex; left on the field as well, Yoga
+          sizes it from a zero basis and the height the caller set is lost */}
       <TextInput
         {...props}
+        style={[style, { flex: undefined }]}
         ref={setRefs}
         placeholder={value ? placeholder : undefined}
         caretHidden

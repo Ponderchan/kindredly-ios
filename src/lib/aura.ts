@@ -3,7 +3,8 @@ import { hatch, type Archetype, type DimScore } from "./hatch-engine";
 import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";
 import { supabase, supabaseReady } from "./supabase";
-import { fetchThreads, upsertFingerprint } from "./db";
+import { fetchThreads, upsertFingerprint, type PoolLetter } from "./db";
+import { signalFrom, type AuraFacts, type Signal } from "./today-signal";
 import { loadLore } from "./lore";
 import { getCounters } from "./usage-counters";
 import { usageStickers, type UsageSticker } from "./usage-stickers";
@@ -190,6 +191,35 @@ async function saveStickerState(next: StickerState, prev: StickerState | null): 
   }
 }
 
+/* what Today needs from the aura, left on the phone by the last full read:
+   the counted layer's ids and the stamps you have posted under. Today never
+   computes the aura; it asks "is this reader a night writer? has she posted
+   #crush?" and the answer is whatever the Me tab last showed. */
+const FACTS_KEY = "kindredly_aura_facts";
+async function loadAuraFacts(): Promise<AuraFacts> {
+  const facts: AuraFacts = { stickers: new Set(), usage: new Set(), stamps: new Set() };
+  try {
+    const [raw, state] = await Promise.all([AsyncStorage.getItem(FACTS_KEY), loadStickerState()]);
+    if (raw) {
+      const f = JSON.parse(raw) as { usage?: string[]; stamps?: string[] };
+      facts.usage = new Set(f.usage ?? []);
+      facts.stamps = new Set(f.stamps ?? []);
+    }
+    for (const h of Object.values(state?.current ?? {})) if (h?.stickerId) facts.stickers.add(h.stickerId);
+  } catch {
+    /* a phone with no read yet shares nothing */
+  }
+  return facts;
+}
+function saveAuraFacts(usage: UsageSticker[], stamps: (string | null | undefined)[]): void {
+  const f = { usage: usage.map((u) => u.id), stamps: [...new Set(stamps.filter((x): x is string => !!x))] };
+  void AsyncStorage.setItem(FACTS_KEY, JSON.stringify(f)).catch(() => {});
+}
+/** what a pool letter has in common with the reader — see lib/today-signal */
+export async function signalFor(letter: PoolLetter): Promise<Signal | null> {
+  return signalFrom(letter, await loadAuraFacts());
+}
+
 const EMPTY: Aura = {
   phase: "empty",
   texts: [],
@@ -259,6 +289,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   for (const r of mine.messages) pieces.push(toPiece(r.id, "reply", r.body, r.created_at, null));
 
   const usage = await readUsage(mine, journal);
+  saveAuraFacts(usage, mine.letters.map((r) => r.stamp));
   const lastWrittenAt = [...mine.letters, ...mine.messages].map((r) => r.created_at).filter(Boolean).sort().pop() ?? null;
   if (!pieces.length) return { ...EMPTY, usage, lastWrittenAt };
 
