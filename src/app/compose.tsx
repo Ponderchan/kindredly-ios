@@ -31,7 +31,7 @@ import { Recorder } from "../components/Recorder";
 import { AudioCard } from "../components/AudioCard";
 import { openingLadder, readMood, wrenLine } from "../lib/wren-read";
 import { nextSpark } from "../lib/sparks";
-import { COUNTER_FROM, LETTER_MAX, REPLY_MIN, weightedCount } from "../lib/weighted-count";
+import { COUNTER_FROM, LETTER_MAX, OPENING_MIN, REPLY_MIN, weightedCount } from "../lib/weighted-count";
 import { alertFail } from "../lib/fail";
 
 /* A LETTER REMEMBERS ITS OWN LANGUAGE. This was hardcoded "en", so every
@@ -63,7 +63,11 @@ export default function Compose() {
   const [showAll, setShowAll] = useState(false);
   const [feelings, setFeelings] = useState(false);
   const [stampStrip, setStampStrip] = useState(false); // the in-place stamp row
-  const [sel, setSel] = useState<string | null>(params.stamp ?? (params.draft ? null : STARTER_STAMPS[0]));
+  /* THE STAMP IS CHOSEN, NOT DEFAULTED. It used to arrive pre-set to the
+     first starter, so the pool filled with #off my chest nobody had picked
+     and the door never mentioned it. Now it is empty until you choose, the
+     row and the key both say so, and the letter cannot leave without one. */
+  const [sel, setSel] = useState<string | null>(params.stamp ?? null);
   // arriving from a sealed page that decided to leave — the words come with it
   const [text, setText] = useState(params.seed ?? "");
   const [ask, setAsk] = useState("");
@@ -109,7 +113,7 @@ export default function Compose() {
          glued the app's own prompt to the bottom of a letter a stranger
          then read as the writer's words. The draft carries what the writer
          has, which is currently nothing. */
-      await saveDraft({ id: draftId, stamp: sel || STARTER_STAMPS[0], body: text.trim(), ask });
+      await saveDraft({ id: draftId, stamp: sel || "", body: text.trim(), ask });
     } catch {
       /* a draft is not worth blocking the exit */
     }
@@ -124,7 +128,7 @@ export default function Compose() {
     if (!params.draft) return;
     getDraft(params.draft).then((d) => {
       if (!d) return;
-      setSel(d.stamp);
+      setSel(d.stamp || null);
       setText(d.body);
       setAsk(d.ask);
       setStep("write");
@@ -141,9 +145,9 @@ export default function Compose() {
     () => () => {
       const s = snap.current;
       if (s.sent) return; // sent → draft already deleted
-      if (s.mode !== "write" || !s.sel) return; // voice recordings don't survive as drafts
+      if (s.mode !== "write") return; // voice recordings don't survive as drafts
       if (s.text.trim().length >= 3) {
-        saveDraft({ id: s.draftId, stamp: s.sel, body: s.text, ask: s.ask });
+        saveDraft({ id: s.draftId, stamp: s.sel || "", body: s.text, ask: s.ask });
       }
     },
     [],
@@ -165,7 +169,8 @@ export default function Compose() {
      an unopenable black box in a feed of readable ones. Now it arrives the
      way a parcel does — a label on the outside. */
   const voiceLine = text.trim();
-  const canSend = mode === "speak" ? !!recUri && weightedCount(voiceLine) >= REPLY_MIN : ladder.ready && over <= 0;
+  const wordsReady = mode === "speak" ? !!recUri && weightedCount(voiceLine) >= REPLY_MIN : ladder.ready && over <= 0;
+  const canSend = wordsReady && !!sel;
   // Wren's face reads your feeling; her line reads how much you've given.
   const wrenMood: WrenMood = mode === "speak" ? (recUri ? "happy" : "curious") : readMood(text, ladder.ready);
   /* Her language line — the courier's own promise ("I carry letters, not
@@ -387,7 +392,12 @@ export default function Compose() {
         {true ? (
           <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
             <View style={{ padding: 3 }}>
-              <StampTile id={sel || STARTER_STAMPS[0]} w={44} r={5} />
+              {sel ? (
+                <StampTile id={sel} w={44} r={5} />
+              ) : (
+                /* the corner where the stamp goes, still empty */
+                <View style={{ width: 44, height: 44, borderWidth: 1.5, borderStyle: "dashed", borderColor: P.pen, borderRadius: 5, backgroundColor: P.penWash }} />
+              )}
             </View>
           </Pressable>
         ) : (
@@ -508,7 +518,7 @@ export default function Compose() {
             </View>
           )}
           <Pressable onPress={() => setStampStrip((v) => !v)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>{t("cp.change")}</Text>
+            <Text style={{ fontFamily: stamp ? PF.mono : PF.monoSemi, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>{stamp ? t("cp.change") : t("cp.pickOne")}</Text>
           </Pressable>
         </View>
 
@@ -610,21 +620,41 @@ export default function Compose() {
             {!premium && <LockBadge />}
           </Pressable>
 
+          {/* THE DOOR SHOWS HOW FAR IT IS. The courier's four lines said
+              "a little more" without ever saying how much, and the owner
+              could not tell when the letter would be allowed to go. So the
+              key fills as you write — a wash rising from the left to the
+              floor, the count beside it — and turns solid ink the moment
+              it clears. Only on the way up; past the floor the count goes
+              back to minding the ceiling. */}
           <Pressable
-            onPress={send}
-            disabled={!canSend || busy}
+            onPress={wordsReady && !sel ? () => setStampStrip(true) : send}
+            disabled={(!canSend && !(wordsReady && !sel)) || busy}
             style={{
               flex: 1,
               backgroundColor: canSend && !busy ? P.ink : "transparent",
               borderWidth: 1,
-              borderColor: canSend && !busy ? P.ink : P.ink12,
-              paddingVertical: 17,
-              alignItems: "center",
+              borderColor: canSend && !busy ? P.ink : wordsReady && !sel ? P.pen : P.ink12,
+              overflow: "hidden",
             }}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : P.ink40 }}>
-              {busy ? t("cp.sending") : t("cp.travel")}
-            </Text>
+            {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
+              <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round((weight / OPENING_MIN) * 100)}%`, backgroundColor: P.penWash }} />
+            )}
+            <View style={{ paddingVertical: 17, alignItems: "center" }}>
+              {/* two doors, and the key names only the one still shut: the
+                  words first, then the stamp; both open → the letter goes */}
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : wordsReady && !sel ? P.pen : P.ink40 }}>
+                {busy ? t("cp.sending") : wordsReady && !sel ? t("cp.needStamp") : t("cp.travel")}
+              </Text>
+            </View>
+            {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
+              <View style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center" }}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40 }}>
+                  {weight}/{OPENING_MIN}
+                </Text>
+              </View>
+            )}
           </Pressable>
         </View>
       </KeyboardAvoidingView>

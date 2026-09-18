@@ -2,7 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
-import { t } from "../lib/i18n";
+import { t, useLang } from "../lib/i18n";
 
 /* THE TAB BAR — five plain windows (owner's sheet, 2026-09-16).
    ────────────────────────────────────────────────────────────────────────
@@ -99,6 +99,7 @@ function Me({ color, active }: { color: string; active?: boolean }) {
 }
 
 export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
+  useLang(); // the navigator renders this bar, not a screen — subscribe here or the labels go stale
   const insets = useSafeAreaInsets();
   const current: string = state.routes[state.index]?.name ?? "letters";
 

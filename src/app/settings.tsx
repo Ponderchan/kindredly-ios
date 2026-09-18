@@ -94,23 +94,13 @@ export default function Settings() {
     void Linking.openURL(`mailto:${SUPPORT}?subject=${encodeURIComponent("Kindredly")}&body=${encodeURIComponent(body)}`);
   };
 
-  /* RATE, WITHOUT A HARD NATIVE DEPENDENCY. expo-store-review is native,
-     so any client built before it was installed crashes on a static
-     import — including every dev client already on a device. Reached
-     lazily it simply isn't there yet, and the store link stands in until
-     the next native build. iOS also decides on its own whether the
-     in-app prompt may appear at all, so the fallback is never dead code. */
-  const rate = async () => {
-    try {
-      const SR = require("expo-store-review");
-      if (await SR.hasAction()) {
-        await SR.requestReview();
-        return;
-      }
-    } catch {
-      /* no native module in this build — fall through */
-    }
-    void Linking.openURL("https://kindredly.io");
+  /* RATE GOES TO THE STORE'S OWN REVIEW PAGE. The in-app prompt
+     (expo-store-review) answered "has action" and then did nothing: iOS
+     rations that sheet on its own schedule and never shows it in
+     TestFlight or a dev client, so the row read as broken. The app is on
+     the App Store now — open its page with the review box already up. */
+  const rate = () => {
+    void Linking.openURL("https://apps.apple.com/app/id6805318131?action=write-review");
   };
 
   const onRestore = async () => {

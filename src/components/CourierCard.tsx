@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, Polygon, Rect, Stop } from "react-native-svg";
-import { t } from "../lib/i18n";
+import { t, useLang } from "../lib/i18n";
 import { PF } from "../theme/post";
 import { WrenBird, type WrenStage } from "./WrenBird";
 import type { WhereaboutsRead } from "../lib/whereabouts";
@@ -138,10 +138,12 @@ export function CourierCard({
   entry?: LogEntry;
 }) {
   const [w, setW] = useState(0);
+  const lang = useLang(); // the diary is written in the reader's language — re-write it when that changes
   const light = daylight(hour);
   const P = PALETTE[light];
   const GREEN = { ink: P.ink };
-  const entry = useMemo(() => entryProp ?? flightLog({ where, threads, lastWrittenAt, seenToday, daylight: light }), [entryProp, where, threads, lastWrittenAt, seenToday, light]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const entry = useMemo(() => entryProp ?? flightLog({ where, threads, lastWrittenAt, seenToday, daylight: light }), [entryProp, where, threads, lastWrittenAt, seenToday, light, lang]);
 
   /* ── motion, by state ──
      flying: she bobs and the route marches under her;
