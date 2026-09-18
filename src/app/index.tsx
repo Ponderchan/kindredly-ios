@@ -1,15 +1,19 @@
+import { useCallback, useState } from "react";
 import { Redirect } from "expo-router";
-import { View } from "react-native";
 import { useAuth } from "../lib/auth";
-import { P } from "../theme/post";
+import { LaunchAnimation } from "../components/LaunchAnimation";
 
-/* Entry gate. Splash covers font load; this covers the auth session check.
+/* Entry gate. The native splash covers the font load; the launch piece
+   covers the session check — the egg, the hatch, the flight, the mark —
+   on the same lavender the splash shows, so nothing flashes. It plays
+   once per cold start and holds on the wordmark until the session is
+   known; only then, and only after the mark has landed, does it leave.
    Not signed in OR not onboarded → the story. Otherwise → the app. */
 export default function Index() {
   const { ready, isGuest, onboarded } = useAuth();
-  /* the ground both doors open onto — cream here would flash pale for as long
-     as the session check takes, right as the launch screen is fading out */
-  if (!ready) return <View style={{ flex: 1, backgroundColor: P.penWash }} />;
+  const [done, setDone] = useState(false);
+  const onDone = useCallback(() => setDone(true), []);
+  if (!ready || !done) return <LaunchAnimation ready={ready} onDone={onDone} />;
   /* isGuest, not !session: with anonymous auth a guest HAS a session, and
      `!session` here would have waved them straight past onboarding into an
      app they had never set up. */

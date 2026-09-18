@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -625,7 +626,7 @@ export default function RoomScreen() {
             <WrenBird size={20} mood="curious" />
           </Pressable>
           <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-            <TextInput
+            <GlyphInput
               ref={inputRef}
               value={text}
               onChangeText={setText}

@@ -1,6 +1,6 @@
 import { useWrenName } from "../../lib/wren-name";
 import { t, useLang } from "../../lib/i18n";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -11,7 +11,7 @@ import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
-import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { setWaiting } from "../../lib/waiting";
@@ -42,15 +42,36 @@ export default function KindredsTab() {
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  /* paint the last good list at once, then ask the network — and only ask
+     if the list is more than a few seconds old, since the live channel
+     below already moves a landing reply onto its ring */
   const load = useCallback(() => {
-    fetchThreads().then((t) => {
-      setThreads(t || []);
-      setLoaded(true);
+    let alive = true;
+    readThreadsCache().then((c) => {
+      if (alive && c && !loadedRef.current) {
+        setThreads(c);
+        setLoaded(true);
+      }
     });
+    if (threadsAge() > 15) {
+      fetchThreads().then((t) => {
+        if (!alive) return;
+        if (t) setThreads(t);
+        setLoaded(true);
+      });
+    }
+    return () => {
+      alive = false;
+    };
   }, []);
+  const loadedRef = useRef(false);
+  loadedRef.current = loaded;
   useFocusEffect(load);
   // the sky moves while you watch it — a reply lands on its ring live
-  useMyThreadsLive(user?.id, load);
+  const reload = useCallback(() => {
+    fetchThreads().then((t) => t && setThreads(t));
+  }, []);
+  useMyThreadsLive(user?.id, reload);
 
   const source = __DEV__ && loaded && threads.length === 0 ? DEMO_THREADS : threads;
   /* THE FILTER THAT HID HALF THE PRODUCT.

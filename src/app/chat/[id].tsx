@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
@@ -387,7 +388,7 @@ export default function ChatScreen() {
           {/* an underlined field, like Today's — writing looks the same
               wherever you do it */}
           <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-            <TextInput
+            <GlyphInput
               value={text}
               onChangeText={setText}
               /* the register loosens once you know each other. Not a

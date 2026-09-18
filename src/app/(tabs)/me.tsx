@@ -16,7 +16,7 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
-import { fetchThreads, type ThreadSummary } from "../../lib/db";
+import { fetchThreads, readThreadsCache, type ThreadSummary } from "../../lib/db";
 import { recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard, W14, cardShadow } from "../../components/AuraCard";
 import { Envelope, Kindreds } from "../../components/PostTabBar";
@@ -105,6 +105,7 @@ export default function MeTab() {
           void recordStageDate(live);
         }
       });
+      readThreadsCache().then((c) => alive && c && setThreads(c)); // the last list, at once
       fetchThreads().then((t) => alive && setThreads(t || []));
       getCounters().then((c) => alive && setSeenTodayN(seenToday(c)));
       getAvatarPhoto().then((p) => alive && setPhoto(p));

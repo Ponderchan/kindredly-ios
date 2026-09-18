@@ -17,7 +17,6 @@ import { loadLang } from "../lib/i18n";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
-import { SameShape } from "../components/SameShape";
 import { fetchThreadMessages } from "../lib/db";
 
 SplashScreen.preventAutoHideAsync();
@@ -78,9 +77,9 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
-  /* the launch runs ONCE per cold start, over an app that is already
-     mounting underneath it — it is a curtain, never a gate */
-  const [booting, setBooting] = useState(true);
+  /* the launch piece lives on the entry route (app/index.tsx): the egg,
+     the hatch, the flight, the mark — it covers the session check and
+     leaves once the mark has landed */
   // the reader's own language choice, restored before the first paint
   useEffect(() => {
     void loadLang();
@@ -123,7 +122,6 @@ export default function RootLayout() {
               </Stack>
 
               {/* the launch, over everything, until it has lifted away */}
-              {booting && <SameShape onDone={() => setBooting(false)} />}
             </View>
             </WrenStageProvider>
             </WrenSkinProvider>

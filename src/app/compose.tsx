@@ -1,4 +1,5 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
+import { GlyphInput } from "../components/GlyphInput";
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -433,7 +434,7 @@ export default function Compose() {
             <View style={{ borderBottomWidth: 1, borderColor: P.ink12, marginTop: 12, marginBottom: 8 }} />
 
             {mode === "write" ? (
-              <TextInput
+              <GlyphInput
                 autoFocus
                 value={text}
                 onChangeText={setText}

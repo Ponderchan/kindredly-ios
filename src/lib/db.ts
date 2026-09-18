@@ -4,6 +4,7 @@
    user's user_metadata (the web read it from a localStorage session mirror). */
 
 import { supabase, supabaseReady } from "./supabase";
+import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
 /* WHY IT DIDN'T GO. Every write in here returns a bare null on failure, so
    the screens could only ever say "try again" — advice that is wrong when
@@ -497,7 +498,37 @@ export interface ThreadSummary {
   myReaction?: string | null; // my one-tap reaction on this thread
   theirReaction?: string | null; // theirs — how they caught your last letter
 }
+/* THE LAST GOOD LIST, KEPT. Kindreds is a tab; it should open like one.
+   Every fetch writes its result here (memory + the account's own storage),
+   and `readThreadsCache` hands it back before the network is asked, so the
+   sky is already there when the tab lands and only the changes move. */
+const THREADS_CACHE_KEY = "kindredly_threads_cache";
+let threadsMem: ThreadSummary[] | null = null;
+let threadsFetchedAt = 0;
+export async function readThreadsCache(): Promise<ThreadSummary[] | null> {
+  if (threadsMem) return threadsMem;
+  try {
+    const raw = await scoped.getItem(THREADS_CACHE_KEY);
+    if (raw) threadsMem = JSON.parse(raw) as ThreadSummary[];
+  } catch {
+    /* no cache is just a cold start */
+  }
+  return threadsMem;
+}
+/** seconds since the list was last fetched for real — Infinity if never */
+export const threadsAge = (): number => (threadsFetchedAt ? (Date.now() - threadsFetchedAt) / 1000 : Infinity);
+
 export async function fetchThreads(): Promise<ThreadSummary[] | null> {
+  const list = await fetchThreadsUncached();
+  if (list) {
+    threadsMem = list;
+    threadsFetchedAt = Date.now();
+    void scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(list)).catch(() => {});
+  }
+  return list;
+}
+
+async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
   if (!supabaseReady) return null;
   const me = await uid();
   if (!me) return null;
@@ -523,50 +554,32 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
     }
     if (error || !data) return null;
 
+    /* the two side tables — reactions and their letters — in ONE round trip
+       beside each other, not one after the other: this list is the tab, and
+       every serial await here was a beat the reader watched empty rings */
+    const ids = data.map((r: any) => r.id);
+    const [rxRes, msgRes] = ids.length
+      ? await Promise.all([
+          supabase!.from("reactions").select("thread_id,sender,emoji").in("thread_id", ids).then((r) => r, () => ({ data: null })),
+          supabase!.from("messages").select("thread_id,sender,body").in("thread_id", ids).order("created_at").then((r) => r, () => ({ data: null })),
+        ])
+      : [{ data: null }, { data: null }];
     // one-tap reactions, both directions (null-safe until migration 0008 lands)
     const rx = new Map<string, { mine?: string; theirs?: string }>();
-    try {
-      const ids = data.map((r: any) => r.id);
-      if (ids.length) {
-        const { data: rows } = await supabase!
-          .from("reactions")
-          .select("thread_id,sender,emoji")
-          .in("thread_id", ids);
-        for (const row of rows || []) {
-          const slot = rx.get(row.thread_id) || {};
-          if (row.sender === me) slot.mine = row.emoji;
-          else slot.theirs = row.emoji;
-          rx.set(row.thread_id, slot);
-        }
-      }
-    } catch {
-      /* table not there yet — the app runs without reactions */
+    for (const row of (rxRes.data as any[] | null) || []) {
+      const slot = rx.get(row.thread_id) || {};
+      if (row.sender === me) slot.mine = row.emoji;
+      else slot.theirs = row.emoji;
+      rx.set(row.thread_id, slot);
     }
-
-    /* THEIR WRITING, for the read (lib/correspondent). One batched query for
-       every thread at once, the same shape as the reactions fetch above —
-       a slow-letter product tops out around ten letters per correspondence,
-       so this is tens of rows, not thousands. Without it the list could only
-       count letters, which is the thing the archaeology reframe exists to
-       stop doing. */
+    /* THEIR WRITING, for the read (lib/correspondent) — tens of rows, not
+       thousands; without it the list could only count letters */
     const theirs = new Map<string, string[]>();
-    try {
-      const ids = data.map((r: any) => r.id);
-      if (ids.length) {
-        const { data: msgs } = await supabase!
-          .from("messages")
-          .select("thread_id,sender,body")
-          .in("thread_id", ids)
-          .order("created_at");
-        for (const m of msgs || []) {
-          if (m.sender === me || !m.body) continue;
-          const list = theirs.get(m.thread_id) || [];
-          list.push(m.body);
-          theirs.set(m.thread_id, list);
-        }
-      }
-    } catch {
-      /* the read degrades to counts — never blocks the list */
+    for (const m of (msgRes.data as any[] | null) || []) {
+      if (m.sender === me || !m.body) continue;
+      const list = theirs.get(m.thread_id) || [];
+      list.push(m.body);
+      theirs.set(m.thread_id, list);
     }
 
     return data.map((r: any) => {

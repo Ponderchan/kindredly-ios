@@ -1,4 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
+import { GlyphInput } from "../../components/GlyphInput";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -487,7 +488,7 @@ function Feed({
                 <LetterInFlight to={current.author ? `NO.${postNo(current.author)}` : null} slow={slow} />
               ) : (
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingRight: 2, paddingVertical: 2 }}>
-                <TextInput
+                <GlyphInput
                   ref={replyRef}
                   value={drafts[current.id] || ""}
                   onChangeText={(t) => setDrafts((d) => ({ ...d, [current.id]: t }))}
@@ -738,7 +739,7 @@ function LetterReader({
               <LetterInFlight to={letter.author ? `NO.${postNo(letter.author)}` : null} slow={reply.slow} />
             ) : writing ? (
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink, paddingVertical: 2 }}>
-                <TextInput
+                <GlyphInput
                   ref={inputRef}
                   value={reply.value}
                   onChangeText={reply.onChange}

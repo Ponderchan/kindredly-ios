@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GlyphInput } from "./GlyphInput";
 import { useWrenName } from "../lib/wren-name";
 import { Alert, Image, Keyboard, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
@@ -367,7 +368,7 @@ export function SelfCompose({
                 certain kind of writing on a certain size of line — and the
                 writing here is whatever comes. */}
             <View>
-              <TextInput
+              <GlyphInput
                 value={text}
                 onChangeText={setText}
                 placeholder={att ? t("sc.ph") : spark}

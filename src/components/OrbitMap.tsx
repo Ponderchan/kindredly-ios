@@ -145,7 +145,7 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
       {seats.map(({ t, x, y }, i) => (
         <Animated.View
           key={t.id}
-          entering={FadeIn.duration(500).delay(120 + i * 80)}
+          entering={FadeIn.duration(320).delay(40 + i * 30)}
           pointerEvents="none"
           style={{ position: "absolute", left: x - FACE_LANDED / 2, top: y - FACE_LANDED / 2 }}
         >
@@ -227,7 +227,7 @@ function OrbitingFace({
 
   return (
     <Animated.View pointerEvents="none" style={[{ position: "absolute", left: CX - FACE / 2, top: CY - FACE / 2 }, orbit]}>
-      <Animated.View entering={FadeIn.duration(500).delay(160 + order * 80)}>
+      <Animated.View entering={FadeIn.duration(320).delay(60 + order * 30)}>
         <MosaicId seed={seed} cell={2.8} gap={0.9} develop={develop} />
         {mark && (
           <View
