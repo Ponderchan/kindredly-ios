@@ -15,34 +15,50 @@ import { t } from "../lib/i18n";
    ones. Active is pen blue; the rest are quiet ink. */
 
 const BAR = 58;
-const ICON = 26;
-const SW = 1.5;
+const ICON = 28;
 
-/* the owner's sheet (四个 TAB 各自激活): four outline marks, each one a
-   thing from the post — the house the letters come to, the sealed
-   envelope, the letter changing hands, the writing itself — and the active
-   one fills with the pen's wash. Labels under all four. */
+/* the owner's Nav D2 sheet, path for path (viewBox 28). Four marks from
+   the post — the house the letters come to, the sealed envelope, two
+   envelopes changing hands, the writing itself — drawn 1.8 at rest and
+   2.2 when chosen, with the chosen one filled white and given its one
+   colour: the flag on the roof, the red wax, the green dot, the blue hand. */
+const INK = "#55506E";
+const PEN = "#3A34D6";
 
-/** TODAY — the house the letters come to, a little bird on the ridge */
+/** TODAY — the house; a flag goes up on the roof when it is the page */
 export function Envelope({ color, active }: { color: string; active?: boolean }) {
+  const sw = active ? 2.2 : 1.8;
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M4 11.5 L12 5.5 L20 11.5" />
-      <Path d="M6 10.5 V20 H18 V10.5" fill={active ? WASH : "none"} />
-      <Path d="M10 20 V15 H14 V20" fill={active ? "#FFFFFF" : "none"} />
-      {/* the bird on the ridge */}
-      <Path d="M12 5.5 c0-1.6 1-2.6 2.4-2.6 l1.6 0.9 -1.2 0.6 c-0.3 1-1.3 1.6-2.8 1.1z" fill={color} stroke="none" />
+    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round">
+      <Path d="M4 12h20v11H4z" fill={active ? "#FFFFFF" : "none"} />
+      <Path d="M4 12l10-7 10 7" />
+      {active ? (
+        <>
+          <Path d="M14 5V0" />
+          <Path d="M11 2.4l3-2.4 3 2.4" />
+        </>
+      ) : (
+        <Path d="M9 17h10" strokeWidth={1.6} />
+      )}
     </Svg>
   );
 }
 
-/** SEALED — the envelope with its wax seal */
+/** SEALED — the envelope; the wax turns red when it is the page */
 function Sealed({ color, active }: { color: string; active?: boolean }) {
+  const sw = active ? 2.2 : 1.8;
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinejoin="round">
-      <Rect x={3} y={6} width={18} height={13} rx={2} fill={active ? WASH : "none"} />
-      <Path d="M3.5 7.5 L12 13.5 L20.5 7.5" />
-      <Circle cx={12} cy={13.2} r={2.7} fill={active ? "#F2887E" : "#FFFFFF"} />
+    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round">
+      <Path d="M4 8h20v15H4z" fill={active ? "#FFFFFF" : "none"} />
+      <Path d="M4 8l10 7 10-7" />
+      {active ? (
+        <>
+          <Circle cx={14} cy={15} r={4.4} fill="#C8412E" stroke="none" />
+          <Circle cx={14} cy={15} r={2} fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth={1.4} />
+        </>
+      ) : (
+        <Circle cx={14} cy={15} r={3.4} />
+      )}
     </Svg>
   );
 }
@@ -56,33 +72,31 @@ function Plane({ color }: { color: string }) {
   );
 }
 
-/** KINDREDS — a letter changing hands: the tray, and the card lifting out of it */
+/** KINDREDS — two envelopes, one behind the other; a green dot when it is the page */
 export function Kindreds({ color, active }: { color: string; active?: boolean }) {
+  const sw = active ? 2.2 : 1.8;
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M4 13 V19.5 H20 V13" fill={active ? WASH : "none"} />
-      <Path d="M4 13 L7 8.5 H17 L20 13" />
-      <Path d="M4 13 H8.5 L10 15.5 H14 L15.5 13 H20" />
-      {/* the card, lifting */}
-      <Path d="M9 8.5 V4.5 H15 V8.5" fill={active ? "#FFFFFF" : "none"} />
-      <Path d="M11 6.5 h2" />
+    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round">
+      <Path d="M3 13h14v10H3z" fill={active ? "#EAE8FC" : "none"} />
+      <Path d="M3 13l7 5 7-5" />
+      <Path d="M11 5h14v10H11z" fill={active ? "#FFFFFF" : "#FBFAFE"} />
+      <Path d="M11 15l7-5 7 5" />
+      {active && <Circle cx={18} cy={10} r={2.6} fill="#6DAE78" stroke="none" />}
     </Svg>
   );
 }
 
-/** ME — the writing itself: a card with three lines of hand */
+/** ME — the writing itself: a card with two lines of hand */
 function Me({ color, active }: { color: string; active?: boolean }) {
+  const sw = active ? 2.2 : 1.8;
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round">
-      <Rect x={4} y={4.5} width={16} height={15} rx={2} fill={active ? WASH : "none"} />
-      <Path d="M7.5 9.5 c1.2-1 2.2-1 3.3 0 s2.1 1 3.3 0 s2.1-1 2.9 0" />
-      <Path d="M7.5 12.5 c1.2-1 2.2-1 3.3 0 s2.1 1 3.3 0 s2.1-1 2.9 0" />
-      <Path d="M7.5 15.5 c1.2-1 2.2-1 3.3 0 s2.1 1 3.3 0" />
+    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round">
+      <Path d="M5 6h18v17H5z" fill={active ? "#FFFFFF" : "none"} />
+      <Path d="M9 12q3-3 5 0t5 0" strokeWidth={active ? 2.4 : 1.6} />
+      <Path d="M9 17q3-3 5 0t5 0" strokeWidth={active ? 2.4 : 1.6} />
     </Svg>
   );
 }
-
-const WASH = "#E4E1FA";
 
 export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
   const insets = useSafeAreaInsets();
@@ -97,15 +111,15 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
 
   const Window = ({ name, label, Icon, dot }: { name: string; label: string; Icon: (p: { color: string; active?: boolean }) => React.ReactNode; dot?: boolean }) => {
     const active = current === name;
-    const color = active ? P.pen : "#4A4766";
+    const color = active ? PEN : INK;
     return (
-      <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR, gap: 3 }}>
+      <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR, gap: 4 }}>
         <View>
           <Icon color={color} active={active} />
           {/* one dot of pen ink — someone answered and it is your turn */}
-          {dot && <View style={{ position: "absolute", top: -2, right: -5, width: 7, height: 7, borderRadius: 4, backgroundColor: P.pen, borderWidth: 1.5, borderColor: "#FFFFFF" }} />}
+          {dot && !active && <View style={{ position: "absolute", top: -2, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: PEN, borderWidth: 1.6, borderColor: "#FFFFFF" }} />}
         </View>
-        <Text style={{ fontFamily: PF.letter, fontWeight: active ? "600" : "400", fontSize: 10, color: active ? P.pen : "#4A4766" }}>{label}</Text>
+        <Text style={{ fontFamily: PF.letter, fontWeight: active ? "700" : "500", fontSize: 9.5, color }}>{label}</Text>
       </Pressable>
     );
   };

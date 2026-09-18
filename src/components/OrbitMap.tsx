@@ -13,6 +13,7 @@ import Animated, {
 import { P, PF } from "../theme/post";
 import { hashStr } from "../lib/format";
 import { MosaicId } from "./MosaicId";
+import { threadState } from "../lib/thread-state";
 import type { ThreadSummary } from "../lib/db";
 import { t, useLang } from "../lib/i18n";
 
@@ -66,11 +67,8 @@ const CX = W / 2;
 const CY = H / 2;
 
 const RX_VOID = RX_MAX + 14; // hasn't written back yet — out past every ring
-const SEAT_RX = 38; // where the named sit: clear of you, clear of every ring
-const SEAT_RY = SEAT_RX * SQUASH;
 
 const FACE = 17.6; // 5 cells × 2.8 + 4 gaps × 0.9 — narrower than a lane
-const FACE_LANDED = 19.6; // 5 × 3.2 + 4 × 0.9
 
 function ringRx(p: number): number {
   return RX_MIN + (RX_MAX - RX_MIN) * ((REVEAL - p) / (REVEAL - 1));
@@ -82,9 +80,11 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
      the thread — the letters survive, the person does not — so `other` can
      be null and there is no one to place on a ring. The correspondence is
      still readable in the list; it just has nothing to draw here. */
-  const present = items.filter((t) => !!t.other);
-  const approaching = present.filter((t) => !t.revealed);
-  const landed = present.filter((t) => t.revealed);
+  /* THE LANDED ARE NOT DRAWN (the owner's B3). Names traded means they
+     have left the orbit; they sit in their own row under the sky, and the
+     sky is only ever the ones still on their way. */
+  const present = items.filter((t) => !!t.other && !t.revealed);
+  const approaching = present;
 
   const faces = approaching.map((t, i) => {
     /* radius runs on THEIR letters, like the face itself — one mechanic,
@@ -108,12 +108,6 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
         (((hashStr(t.other) % 44) - 22) * Math.PI) / 180,
       develop: 0.15 + 0.85 * (Math.min(t.theirs, REVEAL) / REVEAL),
     };
-  });
-
-  const seats = landed.map((t, i) => {
-    const a = -Math.PI / 2 + (i / Math.max(landed.length, 1)) * Math.PI * 2 + (((hashStr(t.other) % 24) - 12) * Math.PI) / 180;
-    const y = CY + SEAT_RY * Math.sin(a);
-    return { t, x: CX + SEAT_RX * Math.cos(a), y };
   });
 
   return (
@@ -141,18 +135,6 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
       {/* you — the fixed point, one solid cell */}
       <View pointerEvents="none" style={{ position: "absolute", left: CX - 6.5, top: CY - 6.5, width: 13, height: 13, backgroundColor: P.ink }} />
 
-      {/* the ones who landed — full faces at the table, named, still */}
-      {seats.map(({ t, x, y }, i) => (
-        <Animated.View
-          key={t.id}
-          entering={FadeIn.duration(320).delay(40 + i * 30)}
-          pointerEvents="none"
-          style={{ position: "absolute", left: x - FACE_LANDED / 2, top: y - FACE_LANDED / 2 }}
-        >
-          <MosaicId seed={t.other} cell={3.2} gap={0.9} />
-        </Animated.View>
-      ))}
-
       {/* the ones circling in — no label, no number; the sky says it */}
       {faces.map(({ t, develop, rx, ry, a0 }, i) => (
         <OrbitingFace
@@ -163,21 +145,8 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
           ry={ry}
           a0={a0}
           order={i}
-          mark={t.mine === 0 && t.theirs > 0 ? "answered" : t.theirSigned ? "signed" : null}
+          mark={threadState(t)?.needsYou ? "answered" : t.theirSigned ? "signed" : null}
         />
-      ))}
-
-      {/* A name sits BESIDE its face, never above or below it. Stacked
-          radially it landed on the next ring out, so the eye read it as
-          labelling whichever stranger happened to be drifting past — the
-          centre is crowded vertically (you, the seats, the inner ring) and
-          roomy horizontally, so the name goes sideways, outward, level
-          with the face it belongs to. On a wash plate and above the
-          traffic: a stranger passes BEHIND a name, never through it. */}
-      {seats.map(({ t, x, y }) => (
-        <SideLabel key={t.id} x={x} y={y} outward={x >= CX ? 1 : -1}>
-          {t.otherName || "A kindred"}
-        </SideLabel>
       ))}
 
       <Label x={CX} y={CY + 13} hidden={!empty}>
@@ -243,30 +212,6 @@ function OrbitingFace({
         )}
       </Animated.View>
     </Animated.View>
-  );
-}
-
-/* a name set level with its face, reading away from the centre */
-function SideLabel({ x, y, outward, children }: { x: number; y: number; outward: 1 | -1; children: string }) {
-  const gap = FACE_LANDED / 2 + 5;
-  return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: "absolute",
-        left: outward === 1 ? x + gap : x - gap - 120,
-        top: y - 10,
-        width: 120,
-        alignItems: outward === 1 ? "flex-start" : "flex-end",
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        style={{ fontFamily: PF.letter, fontSize: 13.5, fontWeight: "600", color: P.ink, backgroundColor: P.penWash, paddingHorizontal: 4 }}
-      >
-        {children}
-      </Text>
-    </View>
   );
 }
 

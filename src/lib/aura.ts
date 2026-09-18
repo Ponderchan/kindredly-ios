@@ -172,7 +172,7 @@ export function pauseCounts(texts: string[]): [string, number][] {
 /* ── the sticker layer's memory: seats, challengers, retired stickers ── */
 const STATE_KEY = "kindredly_sticker_state";
 
-async function loadStickerState(): Promise<StickerState | null> {
+export async function loadStickerState(): Promise<StickerState | null> {
   try {
     const raw = await AsyncStorage.getItem(STATE_KEY);
     return raw ? (JSON.parse(raw) as StickerState) : null;

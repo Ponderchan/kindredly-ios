@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -10,6 +10,8 @@ import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { Introduction } from "../../components/Introduction";
+import { noticeAboutUs, type KindredNotice } from "../../lib/kindred-read";
+import type { ThreadMessage } from "../../lib/db";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
@@ -78,6 +80,31 @@ export default function ChatScreen() {
   const [askSign, setAskSign] = useState(false);
   const [signing, setSigning] = useState(false);
   const [ceremony, setCeremony] = useState(false);
+  /* the road to the name: the first five letters each way, in the order
+     they left — and what Wren noticed, read from their side on this phone */
+  const road = useMemo(() => {
+    if (!detail) return [];
+    const out: ThreadMessage[] = [];
+    let mine = 0;
+    let theirs = 0;
+    for (const m of [...detail.messages].sort((a, b) => (a.date || "").localeCompare(b.date || ""))) {
+      if (m.mine ? mine >= 5 : theirs >= 5) continue;
+      if (m.mine) mine++;
+      else theirs++;
+      out.push(m);
+      if (mine >= 5 && theirs >= 5) break;
+    }
+    return out;
+  }, [detail]);
+  const [notice, setNotice] = useState<KindredNotice | null>(null);
+  useEffect(() => {
+    if (!ceremony || !detail) return;
+    let alive = true;
+    noticeAboutUs(detail.messages.filter((m) => !m.mine), new Date().toISOString()).then((n) => alive && setNotice(n));
+    return () => {
+      alive = false;
+    };
+  }, [ceremony, detail]);
   const auth = useAuth();
   const wren = useWrenName();
   const { premium } = useEntitlement();
@@ -248,6 +275,26 @@ export default function ChatScreen() {
 
       {/* the rule the milestone strip used to carry */}
       <View style={{ borderBottomWidth: 1, borderBottomColor: P.ink }} />
+
+      {/* THE ONE THRESHOLD, SAID ON THE PAGE. Five letters each way and
+          names can be traded — the only gate in the product, and until now
+          nothing on this screen said how far along the two of you were. */}
+      {detail && !detail.revealed && (() => {
+        const each = Math.min(detail.myCount, detail.otherCount);
+        const left = Math.max(0, 5 - each);
+        return (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 9, backgroundColor: "#E9F4EC", borderBottomWidth: 1, borderBottomColor: "#D2E6D7" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: "#1F5C33" }}>{t("ch.band.ofFive", { n: each })}</Text>
+            <View style={{ flexDirection: "row", gap: 3 }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <View key={i} style={{ width: 14, height: 4, borderRadius: 2, backgroundColor: i < each ? "#2E7D4F" : "#C5DBCB" }} />
+              ))}
+            </View>
+            <View style={{ flex: 1 }} />
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: "#1F5C33" }}>{left > 0 ? t("ch.band.more", { n: left }) : t("ch.band.names")}</Text>
+          </View>
+        );
+      })()}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {/* the correspondence */}
@@ -436,6 +483,12 @@ export default function ChatScreen() {
         otherName={detail?.otherName || t("cm.kindred")}
         otherArchetype={read?.archetype ? archNameThird(read.archetype.id) : null}
         myName={auth.handle || "you"}
+        road={road}
+        mySeed={auth.user?.id || "me"}
+        myFace={(auth.profile?.avatarId as string) || null}
+        notice={notice}
+        since={new Date().toISOString()}
+        stamp={detail?.stamp ?? null}
         onClose={() => setCeremony(false)}
         onTalk={() => {
           setCeremony(false);

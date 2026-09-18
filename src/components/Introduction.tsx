@@ -2,7 +2,11 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule, solidBtn } from "../theme/post";
 import { AvatarImage } from "./AvatarImage";
-import { TheirMark } from "./TheirMark";
+import { IntroductionRitual, T_RITUAL_DONE } from "./IntroductionRitual";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { stickerName } from "../lib/sticker-copy";
+import type { ThreadMessage } from "../lib/db";
+import { roadFact, type KindredNotice } from "../lib/kindred-read";
 import { t, useLang } from "../lib/i18n";
 import { WrenBird } from "./WrenBird";
 
@@ -27,6 +31,12 @@ export function Introduction({
   otherName,
   otherArchetype,
   myName,
+  road = [],
+  mySeed = "me",
+  myFace = null,
+  notice = null,
+  since = new Date().toISOString(),
+  stamp = null,
   onClose,
   onTalk,
 }: {
@@ -38,6 +48,16 @@ export function Introduction({
   /** the read of their writing — the part a name could never have said */
   otherArchetype?: string | null;
   myName: string;
+  /** the letters that bought this, oldest first — five each way */
+  road?: ThreadMessage[];
+  mySeed?: string;
+  myFace?: string | null;
+  /** what Wren noticed about the two of you — counted from their letters */
+  notice?: KindredNotice | null;
+  /** the day the names met */
+  since?: string;
+  /** the stamp the correspondence opened under */
+  stamp?: string | null;
   onClose: () => void;
   /** the exit isn't "dismiss" — it's the door into the room */
   onTalk: () => void;
@@ -63,26 +83,33 @@ export function Introduction({
             {t("intro.body")}
           </Text>
 
-          {/* THE RITUAL. Not "here is their name": the face they watched
-              arrive over ten letters comes apart, and the same squares fly
-              into a postmark. Everything in this world gets stamped, and a
-              kindred is someone whose own stamp you now carry. The name
-              lands inside it, under the read of their writing — because
-              what you actually came to know is how they write, and this
-              was never a real-name product. */}
-          <View style={{ alignItems: "center", marginTop: 26, marginBottom: 8 }}>
-            <TheirMark seed={otherSeed} name={otherName} archetype={otherArchetype} />
+          {/* THE RITUAL — four beats: the ten letters stamped in order, the
+              mosaic flying into a postmark, the name typed into it by •>,
+              and both faces resolving side by side. */}
+          <View style={{ marginTop: 22, marginBottom: 4 }}>
+            <IntroductionRitual road={road} otherSeed={otherSeed} otherFace={otherFace} otherName={otherName} mySeed={mySeed} myFace={myFace} myName={myName} since={since} stamp={stamp} notice={notice} />
           </View>
 
-          {/* the face they chose to give, small, under their mark */}
-          {otherFace ? (
-            <View style={{ alignItems: "center", marginTop: 4 }}>
-              <AvatarImage id={otherFace} seed={otherSeed} size={40} />
-              <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.2, color: P.ink40, marginTop: 7 }}>
-                {t("in.faceGiven")}
-              </Text>
-            </View>
-          ) : null}
+          {/* what she noticed — a label you both wear, or their strongest;
+              and when five letters were too few for any label, what the
+              road itself says. Counted, never generated. */}
+          {(() => {
+            const fact = notice ? null : roadFact(road);
+            if (!notice && !fact) return null;
+            const line = notice
+              ? notice.shared
+                ? t("in.both", { label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
+                : t("in.theirs", { name: otherName, label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
+              : fact!.nightTheirs > 0
+                ? t("in.roadNight", { n: fact!.letters, d: fact!.days, k: fact!.nightTheirs })
+                : t("in.roadWait", { n: fact!.letters, d: fact!.days, g: fact!.longestWaitDays });
+            return (
+              <Animated.View entering={FadeIn.duration(500).delay(T_RITUAL_DONE)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{line}</Text>
+              </Animated.View>
+            );
+          })()}
 
           <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
             {t("in.knowYou", { name: myName })}
