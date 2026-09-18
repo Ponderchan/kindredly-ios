@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { t, useLang } from "../../lib/i18n";
 import { P, PF, rule } from "../../theme/post";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
-import { SealedEntry } from "../../components/SealedEntry";
+import { SealedTile } from "../../components/SealedTile";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../lib/journal";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -28,6 +28,13 @@ export default function JournalTab() {
   const [hiddenDemo, setHiddenDemo] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View2>("line");
+  /* the caption lives above the top edge; it is revealed by the overscroll
+     and fades in as you pull */
+  const y = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    y.value = e.contentOffset.y;
+  });
+  const pullNote = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [-40, -8, 0], [1, 0, 0], "clamp") }));
 
   const refresh = useCallback(() => {
     loadJournal().then((e) => {
@@ -91,12 +98,13 @@ export default function JournalTab() {
           </Text>
         </Animated.ScrollView>
       ) : (
-        <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, marginBottom: 20 }}>
+        <Animated.ScrollView entering={FadeIn.duration(220)} onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+          {/* tucked under the plate — pull down past the top and it shows */}
+          <Animated.Text style={[{ position: "absolute", top: -22, left: 20, fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40 }, pullNote]}>
             {t("jt.moments")}
-          </Text>
+          </Animated.Text>
           <WrenSaysOnce id="sealed" line={t("jt.said")} />
-          <Timeline entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
+          <Wall entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
           <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>
             {t("jt.onDevice")}
           </Text>
@@ -106,27 +114,21 @@ export default function JournalTab() {
   );
 }
 
-function Timeline({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: string) => void }) {
-  const rows: React.ReactNode[] = [];
-  let prevMonth: string | null = null;
-  entries.forEach((e) => {
-    const d = new Date(e.date);
-    const mk = `${d.getFullYear()}-${d.getMonth()}`;
-    // only mark a month when it changes — no redundant label at the very top
-    if (prevMonth !== null && mk !== prevMonth) {
-      rows.push(<MonthLabel key={`m-${mk}`} label={d.toLocaleDateString(localeTag(), { month: "long", year: "numeric" }).toUpperCase()} />);
-    }
-    prevMonth = mk;
-    rows.push(<SealedEntry key={e.id} e={e} onPress={() => onOpen(e.id)} />);
-  });
-  return <>{rows}</>;
-}
-
-function MonthLabel({ label }: { label: string }) {
+/* the wall — the owner's T7: two columns of pages, dealt in turn, each
+   as tall as what is on it. Newest first, top left. The calendar keeps the
+   months and the moods; the wall is for turning. */
+function Wall({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: string) => void }) {
+  const cols: JournalEntry[][] = [[], []];
+  entries.forEach((e, i) => cols[i % 2].push(e));
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, marginBottom: 18 }}>
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.6, color: P.ink60 }}>{label}</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: P.ink12 }} />
+    <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+      {cols.map((col, ci) => (
+        <View key={ci} style={{ flex: 1, gap: 10 }}>
+          {col.map((e) => (
+            <SealedTile key={e.id} e={e} onPress={() => onOpen(e.id)} />
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
