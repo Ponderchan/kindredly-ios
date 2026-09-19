@@ -215,6 +215,26 @@ function saveAuraFacts(usage: UsageSticker[], stamps: (string | null | undefined
   const f = { usage: usage.map((u) => u.id), stamps: [...new Set(stamps.filter((x): x is string => !!x))] };
   void AsyncStorage.setItem(FACTS_KEY, JSON.stringify(f)).catch(() => {});
 }
+/* THE LAST READ, KEPT — so the Me tab paints the card the moment it opens
+   instead of after the letters have come back from the network. The card
+   is drawn from this at once and redrawn when the fresh read lands; the
+   two are usually identical, and when they differ the fresh one wins.
+   Same move the courier card makes with the threads cache. */
+const AURA_CACHE_KEY = "kindredly_aura_cache";
+export async function readAuraCache(): Promise<Aura | null> {
+  try {
+    const raw = await AsyncStorage.getItem(AURA_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Aura) : null;
+  } catch {
+    return null;
+  }
+}
+function saveAuraCache(a: Aura): void {
+  // the words themselves stay out of it: the card needs the read, not the corpus
+  const light: Aura = { ...a, texts: [], pieceText: {} };
+  void AsyncStorage.setItem(AURA_CACHE_KEY, JSON.stringify(light)).catch(() => {});
+}
+
 /** what a pool letter has in common with the reader — see lib/today-signal */
 export async function signalFor(letter: PoolLetter): Promise<Signal | null> {
   return signalFrom(letter, await loadAuraFacts());
@@ -291,7 +311,11 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   const usage = await readUsage(mine, journal);
   saveAuraFacts(usage, mine.letters.map((r) => r.stamp));
   const lastWrittenAt = [...mine.letters, ...mine.messages].map((r) => r.created_at).filter(Boolean).sort().pop() ?? null;
-  if (!pieces.length) return { ...EMPTY, usage, lastWrittenAt };
+  if (!pieces.length) {
+    const empty = { ...EMPTY, usage, lastWrittenAt };
+    saveAuraCache(empty);
+    return empty;
+  }
 
   const texts = pieces.map((p) => p.text);
   const pieceText: Aura["pieceText"] = {};
@@ -320,7 +344,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     }
   }
 
-  return {
+  const aura: Aura = {
     phase,
     texts,
     pieceText,
@@ -345,6 +369,8 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
       mine.hours.length >= 3 &&
       mine.hours.filter((h) => h >= 22 || h < 6).length / mine.hours.length > 0.5,
   };
+  saveAuraCache(aura);
+  return aura;
 }
 
 /* ── the server vector, letters only, refreshed on every send ── */

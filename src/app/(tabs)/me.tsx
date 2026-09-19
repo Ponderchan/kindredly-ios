@@ -1,6 +1,6 @@
 import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -15,7 +15,7 @@ import { useWrenSkinControl } from "../../lib/wren-skin";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
-import { myAura, recordAuraSnapshot, type Aura } from "../../lib/aura";
+import { myAura, readAuraCache, recordAuraSnapshot, type Aura } from "../../lib/aura";
 import { fetchThreads, readThreadsCache, type ThreadSummary } from "../../lib/db";
 import { recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard, W14, cardShadow } from "../../components/AuraCard";
@@ -113,6 +113,10 @@ export default function MeTab() {
       // Your aura — one engine (hatch), every piece of your real writing:
       // the hatch line, the sealed pages, and now your letters too
       (async () => {
+        // the last read first, so the card is there when the tab is; the
+        // fresh read replaces it when the letters come back
+        const cached = await readAuraCache();
+        if (alive && cached) setAura((cur) => cur ?? cached);
         const a = await myAura((profile?.firstLine as string) || null);
         if (!alive) return;
         setAura(a);
@@ -225,6 +229,13 @@ export default function MeTab() {
         </View>
 
         <View style={{ marginTop: 12 }}>
+          {/* before the first read ever lands (no cache yet): the card's
+              own silhouette, so the page does not grow under the thumb */}
+          {!aura && (
+            <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 22, overflow: "hidden", height: 372 }, cardShadow, { shadowOpacity: 0.12 }]}>
+              <View style={{ height: Math.round((Dimensions.get("window").width - 32) * 0.32), backgroundColor: "#DEDAF6" }} />
+            </View>
+          )}
           {aura && (
             <AuraCard
               aura={aura}
