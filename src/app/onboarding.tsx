@@ -49,7 +49,7 @@ import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
-import { weightedCount } from "../lib/weighted-count";
+import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
 import { MOODS, MOOD_IDS, moodName, type MoodId } from "../data/moods";
 import { MoodIcon } from "../components/MoodIcon";
 
@@ -406,16 +406,16 @@ export default function Onboarding() {
       /* the pool gets ONE thought, not a concatenation — a letter is a single
          coherent thing. The longest of what they fed.
 
-         AND IT GOES, HOWEVER SHORT IT IS. This used to hold the opener to
-         the same forty characters a cold letter written at the desk has to
-         clear, which put it out of reach of the hatch gate beside it: you
-         may hatch on one thought of any length. When the two disagreed the
-         letter was dropped inside a try/catch, so a reader watched her fly
-         off carrying nothing, and the first kindred at the end of that chain
-         could never arrive because its first link was never made. What she
-         is handed is what they fed her. */
+         It used to go at ANY length, because a hatch is allowed on one
+         thought and a gate beside it that disagreed had once dropped the
+         letter silently. The gate is now explicit and the same one the desk
+         uses. */
       const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0];
-      if (opener) {
+      /* AND IT CLEARS THE SAME FLOOR AS ANY LETTER. Below this it used to go
+         anyway — you may hatch on one word, but one word is not a letter,
+         and the pool was filling with them (owner, 2026-09-19). She still
+         flies; what's too short stays on the phone. */
+      if (opener && weightedCount(opener) >= OPENING_MIN) {
         try {
           /* the language was HARDCODED "en". Every opening letter this
              product has ever seeded was stamped English regardless of what
