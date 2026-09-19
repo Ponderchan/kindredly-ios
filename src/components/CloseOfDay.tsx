@@ -44,7 +44,11 @@ import { localeTag } from "../lib/format";
    ring before any movement, so the pager is already still by the time a
    scroll could begin. */
 
-const CANVAS = "#EFE8D8"; // the blind — the close-of-day paper Today has always used
+/* the blind is cut from the product's own neutrals: the inset grey-white
+   for the cloth, ink for the slats' shadow lines. The cream it wore first
+   (#EFE8D8) was a constant nothing else used — a fourth neutral for one
+   page. Her note stays white paper, the tape brass. */
+const CANVAS = P.paperDeep;
 const FRAME = P.ink;
 const PULL_DONE = 0.45; // past here, letting go finishes the pull
 
@@ -217,7 +221,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
       {/* the roller the blind winds onto — the one thing above the window */}
       <View style={{ width: WIN_W + 16, height: ROLLER_H, borderRadius: ROLLER_H / 2, backgroundColor: FRAME }} />
       {/* the window: she's behind it; the blind and what's on it live inside the frame */}
-      <View style={{ width: WIN_W, height: WIN_H, borderWidth: 2, borderColor: FRAME, borderTopWidth: 0, backgroundColor: "#F7F6FF", overflow: "hidden", alignItems: "center" }}>
+      <View style={{ width: WIN_W, height: WIN_H, borderWidth: 2, borderColor: FRAME, borderTopWidth: 0, backgroundColor: P.penWash, overflow: "hidden", alignItems: "center" }}>
         {/* the far wall's picture rail, so the window has depth */}
         <View style={{ position: "absolute", left: 0, right: 0, top: 64, height: 1, backgroundColor: P.ink12 }} />
         {/* the sill she stands on */}
@@ -230,7 +234,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
             note the last. */}
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, backgroundColor: CANVAS, overflow: "hidden" }, blind]}>
           {Array.from({ length: Math.ceil(WIN_H / 14) }, (_, i) => (
-            <View key={i} style={{ position: "absolute", left: 0, right: 0, top: i * 14 + 10, height: 1, backgroundColor: P.ink12 }} />
+            <View key={i} style={{ position: "absolute", left: 0, right: 0, top: i * 14 + 10, height: 1, backgroundColor: "rgba(17,17,19,0.16)" }} />
           ))}
           <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: WIN_H, alignItems: "center" }}>
             <Print />

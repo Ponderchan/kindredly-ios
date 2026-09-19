@@ -48,7 +48,6 @@ import { LeaveSheet } from "../../components/LeaveSheet";
    door. New users meet the post through a one-time ritual first (Wren's welcome),
    then land here forever. The lavender ground marks the strangers' space. */
 
-const CLOSE = "#EFE8D8"; // the close-of-day paper (CloseOfDay)
 const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
 const WINDOW_H = Dimensions.get("window").height;
