@@ -447,8 +447,6 @@ function Feed({
             sealed={sealed}
             facts={facts}
             onSeal={seal}
-            onWrite={() => router.push("/compose")}
-            onSelf={() => router.push("/journal-entry")}
           />
         </View>
       </SafeAreaView>
@@ -514,8 +512,6 @@ function Feed({
                 facts={facts}
                 onSeal={seal}
                 onGrab={setHeld}
-                onWrite={() => router.push("/compose")}
-                onSelf={() => router.push("/journal-entry")}
               />
             </View>
             )}

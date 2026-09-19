@@ -1,13 +1,12 @@
 import { useWrenName } from "../lib/wren-name";
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { P, PF } from "../theme/post";
@@ -29,10 +28,11 @@ import { localeTag } from "../lib/format";
    read by two o'clock, and a candle or a blanket would be lying then.
 
    It replaces the press-and-hold postmark (owner's call, 2026-09-19, from
-   his Day's End sheet). The postmark left nothing behind; the blind leaves
-   her slip on the ledge — a line from her that is COUNTED, never written:
-   how many went past the desk, how many you answered, how many are still
-   waiting on you. Same voice as her flight log.
+   his Day's End sheet). The postmark left nothing behind; the blind carries
+   her note, taped on — a line from her that is COUNTED, never written: how
+   many went past the desk, how many you answered, how many are still
+   waiting on you. Same voice as her flight log. Writing needs no door here:
+   the + key in the tab bar is always the way to write.
 
    THE GESTURE AND THE PAGER. This is the last page of Today's vertical
    pager, so a downward drag would normally scroll back up to the fifteenth
@@ -43,8 +43,7 @@ import { localeTag } from "../lib/format";
 
 const CANVAS = "#EFE8D8"; // the blind — the close-of-day paper Today has always used
 const FRAME = P.ink;
-const BOARD = P.ink;
-const PULL_DONE = 0.55; // past here, letting go finishes the pull
+const PULL_DONE = 0.45; // past here, letting go finishes the pull
 
 let Haptics: typeof import("expo-haptics") | null = null;
 try {
@@ -69,57 +68,45 @@ export function CloseOfDay({
   sealed,
   facts,
   onSeal,
-  onWrite,
-  onSelf,
   onGrab,
 }: {
   sealed: boolean;
   facts: DayFacts;
   onSeal: () => void;
-  onWrite: () => void;
-  onSelf: () => void;
   /** the cord is held / let go — the pager stops scrolling while it's held */
   onGrab?: (held: boolean) => void;
 }) {
   useLang(); // repaint when the reader changes language
-  /* the ledge below the counter is laid out in both states, so the counter
-     doesn't jump up the page when the blind lands and the slip appears */
-  const reveal = useSharedValue(sealed ? 1 : 0);
-  useEffect(() => {
-    reveal.value = withTiming(sealed ? 1 : 0, { duration: 360 });
-  }, [sealed, reveal]);
-  const ledge = useAnimatedStyle(() => ({ opacity: reveal.value }));
-  const cue = useAnimatedStyle(() => ({ opacity: 1 - reveal.value }));
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, textAlign: "center" }}>
           {tr("cod.wholePost")}
         </Text>
-        <Counter sealed={sealed} onSeal={onSeal} onGrab={onGrab} />
-        <View style={{ width: "100%", alignItems: "center" }}>
-          <Animated.View pointerEvents={sealed ? "auto" : "none"} style={[{ width: "100%", alignItems: "center" }, ledge]}>
-            <Closed facts={facts} onWrite={onWrite} onSelf={onSelf} />
-          </Animated.View>
-          <Animated.View pointerEvents="none" style={[{ position: "absolute", top: 18, left: 0, right: 0, alignItems: "center" }, cue]}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.groundInk60 }}>{tr("cod.pull")}</Text>
-          </Animated.View>
-        </View>
+        <Counter sealed={sealed} facts={facts} onSeal={onSeal} onGrab={onGrab} />
+        {/* the cue keeps its line after the pull so the counter doesn't shift */}
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.groundInk60, marginTop: 20, opacity: sealed ? 0 : 1 }}>{tr("cod.pull")}</Text>
       </View>
     </View>
   );
 }
 
-/* ── the counter: window, roller, blind, cord ── */
-const WIN_W = 250;
-const WIN_H = 214;
+/* ── the counter: window, roller, blind, cord ──
+   Everything the closed counter has to say is printed on, or taped to,
+   the blind itself — one object, the way a real shutter carries its
+   CLOSED sign and the note about when they're back. There used to be a
+   separate departure board and a pair of writing buttons beneath it;
+   the board was a second visual language stacked under the first, and
+   the buttons repeated the + key in the tab bar. */
+const WIN_W = 272;
+const WIN_H = 356;
 const ROLLER_H = 14;
 const LIP_H = 9;
 const CORD_L = 62;
 const RING = 30;
 const HIT = 26; // the ring's hit area reaches this far past it
 
-function Counter({ sealed, onSeal, onGrab }: { sealed: boolean; onSeal: () => void; onGrab?: (held: boolean) => void }) {
+function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: DayFacts; onSeal: () => void; onGrab?: (held: boolean) => void }) {
   /* 0 = rolled up, 1 = down on the sill */
   const y = useSharedValue(sealed ? 1 : 0);
   const from = useSharedValue(0);
@@ -158,7 +145,7 @@ function Counter({ sealed, onSeal, onGrab }: { sealed: boolean; onSeal: () => vo
     })
     .onEnd(() => {
       if (y.value >= PULL_DONE) {
-        y.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) }, (ok) => {
+        y.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) }, (ok) => {
           if (ok) runOnJS(finish)();
         });
       } else {
@@ -175,26 +162,31 @@ function Counter({ sealed, onSeal, onGrab }: { sealed: boolean; onSeal: () => vo
   const cordShow = useAnimatedStyle(() => ({ opacity: done ? 0 : 1 }));
 
   return (
-    <View style={{ marginTop: 26, width: WIN_W, alignItems: "center" }}>
+    <View style={{ marginTop: 22, width: WIN_W, alignItems: "center" }}>
       {/* the roller the blind winds onto — the one thing above the window */}
       <View style={{ width: WIN_W + 16, height: ROLLER_H, borderRadius: ROLLER_H / 2, backgroundColor: FRAME }} />
-      {/* the window: she's behind it; the blind and its print live inside the frame */}
+      {/* the window: she's behind it; the blind and what's on it live inside the frame */}
       <View style={{ width: WIN_W, height: WIN_H, borderWidth: 2, borderColor: FRAME, borderTopWidth: 0, backgroundColor: "#F7F6FF", overflow: "hidden", alignItems: "center" }}>
         {/* the far wall's picture rail, so the window has depth */}
-        <View style={{ position: "absolute", left: 0, right: 0, top: 44, height: 1, backgroundColor: P.ink12 }} />
+        <View style={{ position: "absolute", left: 0, right: 0, top: 64, height: 1, backgroundColor: P.ink12 }} />
         {/* the sill she stands on */}
-        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, backgroundColor: CANVAS, borderTopWidth: 1.5, borderTopColor: FRAME }} />
-        <View style={{ position: "absolute", bottom: 22 }}>
-          <WrenBird size={118} mood="content" />
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 30, backgroundColor: CANVAS, borderTopWidth: 1.5, borderTopColor: FRAME }} />
+        <View style={{ position: "absolute", bottom: 24 }}>
+          <WrenBird size={196} mood="content" />
         </View>
-        {/* the blind — canvas with its slats, the print near its bottom edge so it
-            descends into view as you pull */}
+        {/* the blind — canvas with its slats. What's printed on it hangs from
+            the roller, so CLOSED is the first thing the pull reveals and her
+            note the last. */}
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, backgroundColor: CANVAS, overflow: "hidden" }, blind]}>
           {Array.from({ length: Math.ceil(WIN_H / 14) }, (_, i) => (
             <View key={i} style={{ position: "absolute", left: 0, right: 0, top: i * 14 + 10, height: 1, backgroundColor: P.ink12 }} />
           ))}
-          <View style={{ position: "absolute", left: 0, right: 0, bottom: LIP_H + 34, alignItems: "center" }}>
+          <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: WIN_H, alignItems: "center" }}>
             <Print />
+            <Note facts={facts} />
+            <View style={{ position: "absolute", left: 0, right: 0, bottom: LIP_H + 10, alignItems: "center" }}>
+              <NextPost />
+            </View>
           </View>
           <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: LIP_H, backgroundColor: FRAME }} />
         </Animated.View>
@@ -210,48 +202,38 @@ function Counter({ sealed, onSeal, onGrab }: { sealed: boolean; onSeal: () => vo
   );
 }
 
-/* what's printed on the blind: the word, the date, the next post */
+/* printed on the blind: the word and the date */
 function Print() {
   const d = new Date();
   const day = String(d.getDate());
   // the date is printed in the language of the post office you're standing in
   const mon = d.toLocaleString(localeTag(), { month: "short" }).replace(/\.$/, "").toUpperCase();
-  const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
   return (
-    <View style={{ alignItems: "center" }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 30, letterSpacing: 6, color: P.post }}>{tr("cod.stamp")}</Text>
-      <View style={{ width: 132, height: 1.5, backgroundColor: P.post, marginTop: 6, opacity: 0.7 }} />
-      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.8, color: P.groundInk, marginTop: 10 }}>
-        {day} {mon} · {tr("cod.blind.next")} {next}
+    <View style={{ alignItems: "center", marginTop: 30 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 34, letterSpacing: 7, color: P.post }}>{tr("cod.stamp")}</Text>
+      <View style={{ width: 150, height: 1.5, backgroundColor: P.post, marginTop: 6, opacity: 0.7 }} />
+      <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 2, color: P.groundInk, marginTop: 9 }}>
+        {day} {mon}
       </Text>
     </View>
   );
 }
 
-/* ── after: her slip on the ledge, the board, the two doors that stay open ── */
-function Closed({ facts, onWrite, onSelf }: { facts: DayFacts; onWrite: () => void; onSelf: () => void }) {
-  const wren = useWrenName();
+/* the strip along the blind's foot: when the counter opens again, and how long that is */
+function NextPost() {
+  const [h, m] = useUntilMorning();
+  const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
   return (
-    <View style={{ alignItems: "center", width: "100%" }}>
-      <Slip facts={facts} name={wren} />
-      <Board />
-      {/* the lock is on reading, never on writing */}
-      <View style={{ alignItems: "center", marginTop: 14 }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.groundInk40, textAlign: "center", lineHeight: 17 }}>
-          {tr("cod.stillOpen")}
-        </Text>
-        <View style={{ flexDirection: "row", gap: 9, marginTop: 10 }}>
-          <Ghost label={tr("cod.toStranger")} onPress={onWrite} />
-          <Ghost label={tr("cod.toSelf")} onPress={onSelf} />
-        </View>
-      </View>
-    </View>
+    <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.groundInk60 }}>
+      {tr("cod.nextPost")} {h}H {m}M · {next}
+    </Text>
   );
 }
 
-/* HER SLIP. Every clause is a count the phone already holds; a count of
-   zero gets its own sentence rather than "0 letters". Nothing here is
-   ever made up about the day — the rule the whole product keeps. */
+/* HER NOTE, taped to the blind. Every clause is a count the phone already
+   holds; a count of zero gets its own sentence rather than "0 letters".
+   Nothing here is ever made up about the day — the rule the whole product
+   keeps. */
 export function slipLines(f: DayFacts): string[] {
   const out: string[] = [];
   out.push(f.read === 0 ? tr("cod.slip.read0") : f.read === 1 ? tr("cod.slip.read1") : tr("cod.slip.readN", { n: f.read }));
@@ -260,84 +242,21 @@ export function slipLines(f: DayFacts): string[] {
   return out;
 }
 
-function Slip({ facts, name }: { facts: DayFacts; name: string }) {
+const TAPE = "rgba(232,166,60,0.45)"; // a strip of tape, the brass of the stamps at half strength
+
+function Note({ facts }: { facts: DayFacts }) {
+  const wren = useWrenName();
   const lines = slipLines(facts);
   return (
-    <View
-      style={{
-        marginTop: 16,
-        maxWidth: 300,
-        backgroundColor: P.paper,
-        borderWidth: 1,
-        borderColor: P.ink,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        transform: [{ rotate: "-1.2deg" }],
-      }}
-    >
-      <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 22, color: P.ink }}>{lines.join(" ")}</Text>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 8, textAlign: "right" }}>— {name.toUpperCase()}</Text>
-    </View>
-  );
-}
-
-function Ghost({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        borderWidth: 1,
-        borderColor: P.groundInk,
-        paddingVertical: 8,
-        paddingHorizontal: 11,
-        opacity: pressed ? 0.5 : 1,
-      })}
-    >
-      <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.groundInk }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-/* ── split-flap departure board: the next post is the next departure ── */
-function Board() {
-  const [h, m] = useUntilMorning();
-  return (
-    <View style={{ backgroundColor: BOARD, paddingVertical: 10, paddingHorizontal: 16, marginTop: 14, alignItems: "center" }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: "#8A8880" }}>{tr("cod.nextPost")}</Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 7 }}>
-        <Flap ch={h[0]} />
-        <Flap ch={h[1]} />
-        <Text style={{ fontFamily: PF.mono, fontSize: 22, color: "#8A8880", marginHorizontal: 1 }}>:</Text>
-        <Flap ch={m[0]} />
-        <Flap ch={m[1]} />
+    <View style={{ marginTop: 26, width: 228, transform: [{ rotate: "-1.6deg" }] }}>
+      <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 13 }}>
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 24, color: P.ink }}>{lines.join(" ")}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
       </View>
+      {/* two strips of tape, one at each top corner */}
+      <View style={{ position: "absolute", top: -7, left: 14, width: 44, height: 14, backgroundColor: TAPE, transform: [{ rotate: "-6deg" }] }} />
+      <View style={{ position: "absolute", top: -7, right: 14, width: 44, height: 14, backgroundColor: TAPE, transform: [{ rotate: "5deg" }] }} />
     </View>
-  );
-}
-
-/* one flap — the top half falls when the value turns over */
-function Flap({ ch }: { ch: string }) {
-  const [shown, setShown] = useState(ch);
-  const rot = useSharedValue(0);
-
-  useEffect(() => {
-    if (ch === shown) return;
-    rot.value = withSequence(
-      withTiming(-88, { duration: 95, easing: Easing.in(Easing.quad) }, (ok) => {
-        if (ok) runOnJS(setShown)(ch);
-      }),
-      withTiming(0, { duration: 150, easing: Easing.out(Easing.quad) }),
-    );
-  }, [ch, shown, rot]);
-
-  const style = useAnimatedStyle(() => ({ transform: [{ perspective: 300 }, { rotateX: `${rot.value}deg` }] }));
-
-  return (
-    <Animated.View style={[{ backgroundColor: "#2C2C2A", paddingVertical: 6, paddingHorizontal: 8 }, style]}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 24, color: "#F1EFE8" }}>{shown}</Text>
-      {/* the seam between the two halves */}
-      <View style={{ position: "absolute", left: 0, right: 0, top: "50%", height: 1, backgroundColor: BOARD }} />
-    </Animated.View>
   );
 }
 
