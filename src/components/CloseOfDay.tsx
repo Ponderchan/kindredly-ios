@@ -101,8 +101,8 @@ export function CloseOfDay({
    separate departure board and a pair of writing buttons beneath it;
    the board was a second visual language stacked under the first, and
    the buttons repeated the + key in the tab bar. */
-const WIN_W = 272;
-const WIN_H = 384;
+const WIN_W = 312;
+const WIN_H = 404;
 const ROLLER_H = 14;
 const LIP_H = 9;
 const CORD_L = 62;
@@ -222,8 +222,8 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
         <View style={{ position: "absolute", left: 0, right: 0, top: 64, height: 1, backgroundColor: P.ink12 }} />
         {/* the sill she stands on */}
         <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 30, backgroundColor: CANVAS, borderTopWidth: 1.5, borderTopColor: FRAME }} />
-        <Animated.View style={[{ position: "absolute", bottom: 24 }, bird]}>
-          <WrenBird size={196} mood={mood} />
+        <Animated.View style={[{ position: "absolute", bottom: 26, left: (WIN_W - 4) / 2 - 108 }, bird]}>
+          <WrenBird size={200} mood={mood} />
         </Animated.View>
         {/* the blind — canvas with its slats. What's printed on it hangs from
             the roller, so CLOSED is the first thing the pull reveals and her
@@ -243,7 +243,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
         </Animated.View>
       </View>
       {/* the cord hangs from the lip; the ring is what you pull */}
-      <Animated.View pointerEvents={done ? "none" : "auto"} style={[{ position: "absolute", top: ROLLER_H + LIP_H - 2, right: 34, alignItems: "center" }, cord, cordShow]}>
+      <Animated.View pointerEvents={done ? "none" : "auto"} style={[{ position: "absolute", top: ROLLER_H + LIP_H - 2, right: 40, alignItems: "center" }, cord, cordShow]}>
         {/* the pendulum turns about the point the cord leaves the lip */}
         <Animated.View style={[{ alignItems: "center", transformOrigin: "top" }, ring]}>
           <View style={{ width: 2, height: CORD_L, backgroundColor: FRAME }} />
@@ -264,9 +264,9 @@ function Print() {
   const mon = d.toLocaleString(localeTag(), { month: "short" }).replace(/\.$/, "").toUpperCase();
   return (
     <View style={{ alignItems: "center", marginTop: 26 }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 34, letterSpacing: 7, color: P.post }}>{tr("cod.stamp")}</Text>
-      <View style={{ width: 150, height: 1.5, backgroundColor: P.post, marginTop: 6, opacity: 0.7 }} />
-      <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 2, color: P.groundInk, marginTop: 9 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 40, letterSpacing: 8, color: P.post }}>{tr("cod.stamp")}</Text>
+      <View style={{ width: 178, height: 1.5, backgroundColor: P.post, marginTop: 6, opacity: 0.7 }} />
+      <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 2.2, color: P.groundInk, marginTop: 9 }}>
         {day} {mon}
       </Text>
     </View>
@@ -280,15 +280,15 @@ function NextPost() {
   const [h, m] = useUntilMorning();
   const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
   return (
-    <View style={{ alignItems: "center", borderWidth: 1, borderColor: P.groundInk40, paddingHorizontal: 18, paddingTop: 7, paddingBottom: 8 }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost")}</Text>
+    <View style={{ alignItems: "center", borderWidth: 1, borderColor: P.groundInk40, paddingHorizontal: 22, paddingTop: 8, paddingBottom: 9 }}>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost")}</Text>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 2 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 24, letterSpacing: 1, color: P.groundInk }}>{h}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.groundInk60 }}>H</Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 24, letterSpacing: 1, color: P.groundInk, marginLeft: 6 }}>{m}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.groundInk60 }}>M</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 28, letterSpacing: 1, color: P.groundInk }}>{h}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.groundInk60 }}>H</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 28, letterSpacing: 1, color: P.groundInk, marginLeft: 8 }}>{m}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.groundInk60 }}>M</Text>
       </View>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next")} {next}</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next")} {next}</Text>
     </View>
   );
 }
@@ -311,14 +311,14 @@ function Note({ facts }: { facts: DayFacts }) {
   const wren = useWrenName();
   const lines = slipLines(facts);
   return (
-    <View style={{ marginTop: 22, width: 230, transform: [{ rotate: "-1.6deg" }] }}>
-      <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingTop: 16, paddingBottom: 12 }}>
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 16, lineHeight: 23, color: P.ink }}>{lines.join(" ")}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
+    <View style={{ marginTop: 22, width: 266, transform: [{ rotate: "-1.6deg" }] }}>
+      <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 17, paddingTop: 18, paddingBottom: 13 }}>
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 17.5, lineHeight: 25, color: P.ink }}>{lines.join(" ")}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
       </View>
       {/* two strips of tape, one at each top corner */}
-      <View style={{ position: "absolute", top: -7, left: 14, width: 44, height: 14, backgroundColor: TAPE, transform: [{ rotate: "-6deg" }] }} />
-      <View style={{ position: "absolute", top: -7, right: 14, width: 44, height: 14, backgroundColor: TAPE, transform: [{ rotate: "5deg" }] }} />
+      <View style={{ position: "absolute", top: -8, left: 16, width: 50, height: 15, backgroundColor: TAPE, transform: [{ rotate: "-6deg" }] }} />
+      <View style={{ position: "absolute", top: -8, right: 16, width: 50, height: 15, backgroundColor: TAPE, transform: [{ rotate: "5deg" }] }} />
     </View>
   );
 }
