@@ -2,10 +2,10 @@ import { fetchThreads } from "./db";
 
 /* THE ONE GATE IN THE PRODUCT.
    ────────────────────────────────────────────────────────────────────────
-   Your first kindred is free and always will be. It costs at least ten
-   letters and several days to reach, and a person who has been through
-   that has met the product properly — which is exactly why the wall goes
-   AFTER it and nowhere earlier. Nothing before this point is ever gated:
+   Your first kindreds are free and always will be. Each costs at least
+   ten letters and several days to reach, and a person who has been
+   through that has met the product properly — which is exactly why the
+   wall goes AFTER them and nowhere earlier. Nothing before this point is ever gated:
    writing, being matched, reading, replying, the aura, the keepsakes, her
    whole room.
 
@@ -20,7 +20,10 @@ import { fetchThreads } from "./db";
    means moving the rule into signThread's RPC (a migration). Erring
    generous is the right side to err on. */
 
-export const FREE_KINDREDS = 1;
+/* three, not one — the owner's call on 2026-09-19: five letters each way
+   should be able to become a kindred a few times over before the fare
+   stands in the road */
+export const FREE_KINDREDS = 3;
 
 export async function kindredGate(
   premium: boolean,
@@ -28,7 +31,11 @@ export async function kindredGate(
 ): Promise<{ allowed: boolean; have: number }> {
   if (premium) return { allowed: true, have: 0 };
   const t = await fetchThreads();
-  // this thread doesn't count itself — it isn't revealed yet
-  const have = (t || []).filter((x) => x.revealed && x.id !== threadId).length;
+  /* this thread doesn't count itself — it isn't revealed yet. A kindred
+     who closed their account doesn't count either: the free one is a
+     person you can still write to, and the Kindreds page already stops
+     listing them. Found by the owner on 2026-09-19 — his one kindred had
+     deleted their account, and the next name exchange hit the fare. */
+  const have = (t || []).filter((x) => x.revealed && !x.gone && x.id !== threadId).length;
   return { allowed: have < FREE_KINDREDS, have };
 }
