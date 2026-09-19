@@ -20,6 +20,7 @@ import { refreshFingerprint } from "../lib/aura";
 import { track } from "../lib/track";
 import { getLang, t, useLang } from "../lib/i18n";
 import { useWrenOnce } from "../components/WrenSaysOnce";
+import { startLetterOut } from "../lib/activities";
 import { publishLetter, publishVoiceLetter } from "../lib/db";
 import { deleteDraft, getDraft, saveDraft } from "../lib/drafts";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
@@ -233,13 +234,15 @@ export default function Compose() {
       return;
     }
 
-    let ok: true | null = null;
+    let ok: string | true | null = null;
     if (mode === "speak" && recUri) {
       ok = await publishVoiceLetter(sel, recUri, recDur, voiceLine, letterLang());
     } else {
       const body = ask.trim() ? `${text.trim()}\n\n${ask.trim()}` : text.trim();
       ok = await publishLetter(sel, body, letterLang());
       if (ok) track("letter_sent", { kind: "text", weight: weightedCount(body) });
+      // her, on the lock screen, out with this letter — fire-and-forget
+      if (typeof ok === "string") void startLetterOut(ok, sel);
     }
     setBusy(false);
     /* A ghost's publishLetter always returns null, and "The letter didn't go

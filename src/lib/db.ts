@@ -176,23 +176,29 @@ export async function fetchMorningCandidates(
 }
 
 /* ── Letters (shared discovery pool) ── */
+/** the new letter's id, or null. (It used to answer `true`; the lock-screen
+    activity that follows the letter needs to know which one it is.) */
 export async function publishLetter(
   stamp: string,
   body: string,
   lang: string,
-): Promise<true | null> {
+): Promise<string | null> {
   if (!supabaseReady || !body) return null;
   const id = await uid();
   if (!id) return null;
   clearFail();
   try {
-    const { error } = await supabase!.from("letters").insert({
-      author: id,
-      stamp: stamp || "off-chest",
-      body: String(body).slice(0, 2000),
-      lang: lang || "en",
-    });
-    return error ? (noteFail(error) as null) : true;
+    const { data, error } = await supabase!
+      .from("letters")
+      .insert({
+        author: id,
+        stamp: stamp || "off-chest",
+        body: String(body).slice(0, 2000),
+        lang: lang || "en",
+      })
+      .select("id")
+      .single();
+    return error ? (noteFail(error) as null) : ((data as { id: string } | null)?.id ?? null);
   } catch (e) {
     return noteFail(e);
   }

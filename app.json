@@ -66,7 +66,15 @@
         {
           "color": "#6E5FD8"
         }
-      ]
+      ],
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.io.kindredly.app",
+          "enablePushNotifications": true
+        }
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": false,

@@ -40,6 +40,7 @@ import { SEND_BEAT_MS } from "../../lib/net";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
 import { deskDay } from "../../lib/day";
+import { startDayClosed } from "../../lib/activities";
 import { LeaveSheet } from "../../components/LeaveSheet";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
@@ -275,6 +276,7 @@ function Feed({
   const seal = () => {
     setSealed(true);
     void setFlag(sealKey);
+    void startDayClosed({ read: facts.read, waiting: facts.waiting }); // her, on the lock screen, till she's back
   };
   /* the cord is held: the pager must not scroll under the pull */
   const [held, setHeld] = useState(false);

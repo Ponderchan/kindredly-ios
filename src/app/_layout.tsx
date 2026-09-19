@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LogBox, View } from "react-native";
+import { AppState, LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -7,6 +7,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { refreshFingerprint } from "../lib/aura";
 import { registerForReplies } from "../lib/notify";
+import { syncActivities } from "../lib/activities";
+import { BirdSnapshots } from "../components/BirdSnapshots";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
@@ -68,6 +70,17 @@ function FingerprintOnLaunch() {
     void refreshFingerprint();
     void registerForReplies();
   }, [user, isGuest]);
+  /* her lock-screen activities are reconciled on every foreground: the
+     closed window ends once its hour has passed, a letter out gets the
+     numbers the database has (lib/activities) */
+  useEffect(() => {
+    if (!user) return;
+    void syncActivities();
+    const sub = AppState.addEventListener("change", (st) => {
+      if (st === "active") void syncActivities();
+    });
+    return () => sub.remove();
+  }, [user]);
   return null;
 }
 
@@ -99,6 +112,7 @@ export default function RootLayout() {
             <WrenSkinProvider>
             <WrenStageProvider>
             <FingerprintOnLaunch />
+              <BirdSnapshots />
             <KnockRouting />
             <View style={{ flex: 1, backgroundColor: P.paper }}>
               <Stack
