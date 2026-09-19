@@ -7,10 +7,13 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { P, PF } from "../theme/post";
-import { WrenBird } from "./WrenBird";
+import { WrenBird, type WrenMood } from "./WrenBird";
 import { MORNING_HOUR } from "../lib/notify";
 // `t` is bound as a local timer handle further down, so the translator comes
 // in as `tr` — the same convention the other timer/loop files use.
@@ -99,7 +102,7 @@ export function CloseOfDay({
    the board was a second visual language stacked under the first, and
    the buttons repeated the + key in the tab bar. */
 const WIN_W = 272;
-const WIN_H = 356;
+const WIN_H = 384;
 const ROLLER_H = 14;
 const LIP_H = 9;
 const CORD_L = 62;
@@ -132,10 +135,20 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
   };
   const grab = (held: boolean) => onGrab?.(held);
 
+  const onGrabStart = () => {
+    setHeld(true);
+    setMood("delight");
+    grab(true);
+  };
+  const onGrabEnd = () => {
+    setHeld(false);
+    setMood("content");
+    grab(false);
+  };
   const pan = Gesture.Pan()
     .enabled(!done)
     .onBegin(() => {
-      runOnJS(grab)(true);
+      runOnJS(onGrabStart)();
     })
     .onStart(() => {
       from.value = y.value;
@@ -153,13 +166,51 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
       }
     })
     .onFinalize(() => {
-      runOnJS(grab)(false);
+      runOnJS(onGrabEnd)();
     });
 
   const blind = useAnimatedStyle(() => ({ height: y.value * WIN_H + LIP_H }));
   const cord = useAnimatedStyle(() => ({ transform: [{ translateY: y.value * WIN_H }] }));
   /* the cord has no job once the blind is down — it fades with the landing */
   const cordShow = useAnimatedStyle(() => ({ opacity: done ? 0 : 1 }));
+
+  /* SHE SHOWS YOU THE CORD. Every few seconds she hops once toward it and
+     looks up at the ring, and the ring answers with a small swing — the
+     page's only instruction that isn't a line of type. The ring also sways
+     on its own the whole time, the way a cord that has just been let go
+     of does, so it reads as something to pull before she points at it.
+     All of it stops the moment the cord is held, and for good once the
+     blind is down. */
+  const hop = useSharedValue(0); // 0..1, one hop
+  const swing = useSharedValue(0); // degrees, the ring
+  const [mood, setMood] = useState<WrenMood>("content");
+  const [held, setHeld] = useState(false);
+  useEffect(() => {
+    if (done) return;
+    swing.value = withRepeat(withSequence(withTiming(3, { duration: 900, easing: Easing.inOut(Easing.sin) }), withTiming(-3, { duration: 900, easing: Easing.inOut(Easing.sin) })), -1, true);
+    let alive = true;
+    let settle: ReturnType<typeof setTimeout> | null = null;
+    const nudge = () => {
+      if (!alive || held) return;
+      setMood("curious");
+      hop.value = withSequence(withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 260, easing: Easing.bounce }));
+      swing.value = withSequence(withTiming(9, { duration: 260 }), withTiming(-7, { duration: 420 }), withTiming(3, { duration: 700 }), withRepeat(withSequence(withTiming(-3, { duration: 900, easing: Easing.inOut(Easing.sin) }), withTiming(3, { duration: 900, easing: Easing.inOut(Easing.sin) })), -1, true));
+      settle = setTimeout(() => alive && setMood("content"), 1500);
+    };
+    const first = setTimeout(nudge, 1400);
+    const loop = setInterval(nudge, 4200);
+    return () => {
+      alive = false;
+      clearTimeout(first);
+      clearInterval(loop);
+      if (settle) clearTimeout(settle);
+    };
+  }, [done, held, hop, swing]);
+
+  const bird = useAnimatedStyle(() => ({
+    transform: [{ translateX: hop.value * 12 }, { translateY: -hop.value * 18 }, { rotate: `${-hop.value * 9}deg` }],
+  }));
+  const ring = useAnimatedStyle(() => ({ transform: [{ rotate: `${swing.value}deg` }] }));
 
   return (
     <View style={{ marginTop: 22, width: WIN_W, alignItems: "center" }}>
@@ -171,9 +222,9 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
         <View style={{ position: "absolute", left: 0, right: 0, top: 64, height: 1, backgroundColor: P.ink12 }} />
         {/* the sill she stands on */}
         <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 30, backgroundColor: CANVAS, borderTopWidth: 1.5, borderTopColor: FRAME }} />
-        <View style={{ position: "absolute", bottom: 24 }}>
-          <WrenBird size={196} mood="content" />
-        </View>
+        <Animated.View style={[{ position: "absolute", bottom: 24 }, bird]}>
+          <WrenBird size={196} mood={mood} />
+        </Animated.View>
         {/* the blind — canvas with its slats. What's printed on it hangs from
             the roller, so CLOSED is the first thing the pull reveals and her
             note the last. */}
@@ -184,7 +235,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
           <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: WIN_H, alignItems: "center" }}>
             <Print />
             <Note facts={facts} />
-            <View style={{ position: "absolute", left: 0, right: 0, bottom: LIP_H + 10, alignItems: "center" }}>
+            <View style={{ position: "absolute", left: 0, right: 0, bottom: LIP_H + 16, alignItems: "center" }}>
               <NextPost />
             </View>
           </View>
@@ -193,10 +244,13 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
       </View>
       {/* the cord hangs from the lip; the ring is what you pull */}
       <Animated.View pointerEvents={done ? "none" : "auto"} style={[{ position: "absolute", top: ROLLER_H + LIP_H - 2, right: 34, alignItems: "center" }, cord, cordShow]}>
-        <View style={{ width: 2, height: CORD_L, backgroundColor: FRAME }} />
-        <GestureDetector gesture={pan}>
-          <View hitSlop={HIT} style={{ width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: FRAME, backgroundColor: P.penWash }} />
-        </GestureDetector>
+        {/* the pendulum turns about the point the cord leaves the lip */}
+        <Animated.View style={[{ alignItems: "center", transformOrigin: "top" }, ring]}>
+          <View style={{ width: 2, height: CORD_L, backgroundColor: FRAME }} />
+          <GestureDetector gesture={pan}>
+            <View hitSlop={HIT} style={{ width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: FRAME, backgroundColor: P.penWash }} />
+          </GestureDetector>
+        </Animated.View>
       </Animated.View>
     </View>
   );
@@ -209,7 +263,7 @@ function Print() {
   // the date is printed in the language of the post office you're standing in
   const mon = d.toLocaleString(localeTag(), { month: "short" }).replace(/\.$/, "").toUpperCase();
   return (
-    <View style={{ alignItems: "center", marginTop: 30 }}>
+    <View style={{ alignItems: "center", marginTop: 26 }}>
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 34, letterSpacing: 7, color: P.post }}>{tr("cod.stamp")}</Text>
       <View style={{ width: 150, height: 1.5, backgroundColor: P.post, marginTop: 6, opacity: 0.7 }} />
       <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 2, color: P.groundInk, marginTop: 9 }}>
@@ -219,14 +273,23 @@ function Print() {
   );
 }
 
-/* the strip along the blind's foot: when the counter opens again, and how long that is */
+/* printed at the blind's foot, in the same ink as the rest: when the
+   counter opens again and how long that is — the countdown is part of the
+   sign, not a board hung under it */
 function NextPost() {
   const [h, m] = useUntilMorning();
   const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
   return (
-    <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.groundInk60 }}>
-      {tr("cod.nextPost")} {h}H {m}M · {next}
-    </Text>
+    <View style={{ alignItems: "center", borderWidth: 1, borderColor: P.groundInk40, paddingHorizontal: 18, paddingTop: 7, paddingBottom: 8 }}>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost")}</Text>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 2 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 24, letterSpacing: 1, color: P.groundInk }}>{h}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.groundInk60 }}>H</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 24, letterSpacing: 1, color: P.groundInk, marginLeft: 6 }}>{m}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.groundInk60 }}>M</Text>
+      </View>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next")} {next}</Text>
+    </View>
   );
 }
 
@@ -248,9 +311,9 @@ function Note({ facts }: { facts: DayFacts }) {
   const wren = useWrenName();
   const lines = slipLines(facts);
   return (
-    <View style={{ marginTop: 26, width: 228, transform: [{ rotate: "-1.6deg" }] }}>
-      <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 13 }}>
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 24, color: P.ink }}>{lines.join(" ")}</Text>
+    <View style={{ marginTop: 22, width: 230, transform: [{ rotate: "-1.6deg" }] }}>
+      <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 15, paddingTop: 16, paddingBottom: 12 }}>
+        <Text style={{ fontFamily: PF.serifItalic, fontSize: 16, lineHeight: 23, color: P.ink }}>{lines.join(" ")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
       </View>
       {/* two strips of tape, one at each top corner */}
