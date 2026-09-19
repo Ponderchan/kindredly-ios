@@ -146,8 +146,12 @@ export const GlyphInput = forwardRef<TextInput, TextInputProps>(function GlyphIn
       {/* while the page is empty the placeholder is ours to draw, and the
           bird stands at the head of its first line — inside the same line
           of type, so it sits exactly as it does among the words */}
+      {/* ONE LINE, ALWAYS: an empty field is sized for one line (fieldBox),
+          so a placeholder that wraps — the bird's slot in front of a long
+          one did it — spills out under the rule. It ends in an ellipsis
+          instead. */}
       {!value && (
-        <Text pointerEvents="none" style={[mirrorStyle, { color: (placeholderTextColor as string) || "#B9B3D8" }]} numberOfLines={multiline ? undefined : 1}>
+        <Text pointerEvents="none" style={[mirrorStyle, { color: (placeholderTextColor as string) || "#B9B3D8" }]} numberOfLines={1} ellipsizeMode="tail">
           {glyph}
           {focused && !!placeholder && <View style={{ width: Math.round(fontSize * 0.35), height: 1 }} />}
           {placeholder ?? ""}
