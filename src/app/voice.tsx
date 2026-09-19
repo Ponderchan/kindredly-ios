@@ -2,7 +2,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, Redirect } from "expo-router";
 import { t, useLang } from "../lib/i18n";
 import { C, F, cardStyle } from "../theme/tokens";
 import { WrenBird } from "../components/WrenBird";
@@ -17,6 +17,7 @@ import { useEntitlement } from "../lib/entitlement";
    should feel like "this sounds like me", not "AI has analyzed me". */
 
 export default function VoiceDetail() {
+  if (!__DEV__) return <Redirect href="/" />;
   useLang();
   const router = useRouter();
   const wren = useWrenName();

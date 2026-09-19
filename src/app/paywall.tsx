@@ -23,8 +23,8 @@ import { track, type PaywallSource } from "../lib/track";
    same pass reads MEMBERSHIP ACTIVE and the button manages the
    subscription through Apple.
 
-   EVERY LINE IS A GATE THAT EXISTS IN THE CODE: more kindreds, voice
-   letters, the monthly report, the wardrobe. Nothing else is promised. */
+   EVERY LINE IS A GATE THAT EXISTS IN THE CODE AND HAS A DOOR: more
+   kindreds, voice letters, the wardrobe. Nothing else is promised. */
 
 const NIGHT = "#1E1B35";
 const GOLD = "#D8A63F";
@@ -172,12 +172,15 @@ export function PaywallBody({
         [t("pw.cf.letter"), speakAs(t("pw.cf.letterSub"), wren)],
       ]
     : [
+        /* the monthly writing report (fc.b3) is gated in lib/report but its
+           page has no way in yet (app/voice → app/report are dev-only until
+           they ship); a fare must not list what can't be reached. Put the
+           line back the day the report has a door. */
         [t("fc.b1"), t("fc.b1s")],
         [t("fc.b2"), t("fc.b2s")],
-        [t("fc.b3"), t("fc.b3s")],
         [t("fc.b4", { wren }), t("fc.b4s")],
       ];
-  const glyphs = lifetime ? ["■", "■", "■", "■"] : ["◎", "✉", "▤", "✦"];
+  const glyphs = lifetime ? ["■", "■", "■", "■"] : ["◎", "✉", "✦"];
   const price = chosen ? (money(chosen.priceString)?.short ?? chosen.priceString) : "";
   const ctaLabel = premium
     ? t("fc.manage")

@@ -1,5 +1,6 @@
 /* DEV ONLY — the hatch screen on its own, replayable, with the four shells
    to hand: kindredly:///hatch-preview. Nothing links here. */
+import { Redirect } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,6 +14,7 @@ import { F2, Y, bevel, key as keyBtn, mono } from "../theme/y2k";
 const FED = ["i keep rehearsing conversations i will never have", "the kettle clicks off and for a second the flat is completely silent", "i said fine. i was not fine."];
 
 export default function HatchPreview() {
+  if (!__DEV__) return <Redirect href="/" />;
   const [run, setRun] = useState(0);
   const [shell, setShell] = useState(1);
   const [born, setBorn] = useState(false);

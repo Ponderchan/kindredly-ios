@@ -6,6 +6,8 @@ const KEY = "kindredly_flags";
 /* the first arrival: onboarding sets these, Today reads them once */
 export const TODAY_RITUAL = "today_ritual";
 export const ARRIVAL_FRESH = "arrival_fresh";
+/** the opener cleared the floor and went to the pool (unset: it stayed on the phone) */
+export const ARRIVAL_SENT = "arrival_sent";
 export const ARRIVAL_AT_KEY = "kindredly_arrival_at";
 
 export async function getFlags(): Promise<Record<string, boolean>> {

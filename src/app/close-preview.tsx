@@ -1,3 +1,4 @@
+import { Redirect } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,6 +10,7 @@ import { P, PF } from "../theme/post";
    to win over. Reachable at /close-preview; nothing here is saved. */
 
 export default function ClosePreview() {
+  if (!__DEV__) return <Redirect href="/" />;
   const [sealed, setSealed] = useState(false);
   const [held, setHeld] = useState(false);
   const [vh, setVh] = useState(600);

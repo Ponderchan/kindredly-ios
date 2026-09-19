@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, Text, useWindowDimensions, View } from "react-native";
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { PF } from "../theme/post";
+import { t } from "../lib/i18n";
 import { WrenBird } from "./WrenBird";
 
 /* THE LAUNCH — the owner's composition (export 2/launch-animation-src),
@@ -248,8 +249,8 @@ export function LaunchAnimation({ ready, onDone }: { ready: boolean; onDone: () 
           <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 62 * k, lineHeight: 74 * k, letterSpacing: -2.2 * k, color: C.ink }}>Kindredly</Text>
         </View>
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(512) - 25 * k + (1 - tagIn) * 10 * k, alignItems: "center", opacity: tagIn }}>
-          <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 25 * k, lineHeight: 32 * k, color: C.mute }}>find your kindred spirits</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 13 * k, letterSpacing: 3.6 * k, color: C.indigo, marginTop: 14 * k }}>SLOWLY, BY WRITING</Text>
+          <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 25 * k, lineHeight: 32 * k, color: C.mute }}>{t("launch.tag")}</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 13 * k, letterSpacing: 3.6 * k, color: C.indigo, marginTop: 14 * k }}>{t("launch.sub")}</Text>
         </View>
       </Pressable>
     </Animated.View>

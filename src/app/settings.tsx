@@ -144,7 +144,7 @@ export default function Settings() {
     setDeleting(false);
     setAskDelete(false);
     if ("error" in r) {
-      Alert.alert("Still here", r.error);
+      Alert.alert(t("set.stillHere"), r.error);
       return;
     }
     router.replace("/onboarding");

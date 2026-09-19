@@ -1,3 +1,4 @@
+import { Redirect } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,6 +10,7 @@ import { endAllActivities, previewLetterOut, startDayClosed, startLetterOut, syn
    activity token a real letter would also register. /activity-preview */
 
 export default function ActivityPreview() {
+  if (!__DEV__) return <Redirect href="/" />;
   const [log, setLog] = useState<string[]>([]);
   const say = (s: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${s}`, ...l].slice(0, 12));
   const run = (label: string, f: () => Promise<void>) => async () => {

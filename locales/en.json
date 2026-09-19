@@ -1,0 +1,5 @@
+{
+  "NSMicrophoneUsageDescription": "Kindredly uses the microphone so you can record a voice letter or a voice journal page.",
+  "NSPhotoLibraryUsageDescription": "Kindredly opens your photo library so you can add a photo or video to a private journal page.",
+  "NSPhotoLibraryAddUsageDescription": "Kindredly saves your aura card to your photos when you ask it to."
+}

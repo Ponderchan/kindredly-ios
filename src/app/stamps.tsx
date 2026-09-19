@@ -2,7 +2,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
 import { useCallback, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, Redirect } from "expo-router";
 import { C, F, cardStyle, navyBtn } from "../theme/tokens";
 import { GrowthStampTile } from "../components/GrowthStamp";
 import { GROWTH_STAMPS, type GrowthStamp, type GrowthStats } from "../data/growth";
@@ -12,6 +12,7 @@ import { useAuth } from "../lib/auth";
 /* The stamp album — Kindredly's growth stamps. Earned in colour, the rest
    waiting in grey. Tap one for its story. */
 export default function StampsScreen() {
+  if (!__DEV__) return <Redirect href="/" />;
   const router = useRouter();
   const wren = useWrenName();
   const { user } = useAuth();

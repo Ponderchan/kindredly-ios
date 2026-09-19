@@ -31,7 +31,7 @@ import { bump, getCounters, repliedToday, seenToday } from "../../lib/usage-coun
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { screenNow, translate } from "../../lib/wren";
-import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, getFlags, setFlag, unsetFlag } from "../../lib/flags";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, getFlags, setFlag, unsetFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
@@ -115,11 +115,13 @@ export default function LettersTab() {
      you or you answer one of them — a delivery is not a toast, so a tab
      switch does not end it — and it expires with the day she came back. */
   const [fresh, setFresh] = useState(false);
+  const [sent, setSent] = useState(true); // did the opener leave, or stay on the phone
   useEffect(() => {
     Promise.all([getFlags(), AsyncStorage.getItem(ARRIVAL_AT_KEY)])
       .then(([f, at]) => {
         if (!f[ARRIVAL_FRESH]) return;
         const t0 = at ? Number(at) : 0;
+        setSent(!!f[ARRIVAL_SENT]);
         if (t0 && Date.now() - t0 < ARRIVAL_TTL) setFresh(true);
         else void unsetFlag(ARRIVAL_FRESH); // the day she came back has passed
       })
@@ -244,6 +246,7 @@ export default function LettersTab() {
       router={router}
       demo={demo}
       fresh={fresh}
+      sent={sent}
       onSettled={settle}
       onAnswered={(id) => setPool((cur) => take(cur.filter((l) => l.id !== id)))}
       onBlockedAuthor={(a) => setPool((cur) => take(cur.filter((l) => l.author !== a)))}
@@ -261,6 +264,7 @@ function Feed({
   router,
   demo,
   fresh,
+  sent,
   onSettled,
   onAnswered,
   onBlockedAuthor,
@@ -268,6 +272,7 @@ function Feed({
   feed: PoolLetter[];
   /** her first crossing just landed — the arrival chrome shows once */
   fresh: boolean;
+  sent: boolean;
   onSettled: () => void;
   loaded: boolean;
   onReloaded: () => void;
@@ -526,7 +531,7 @@ function Feed({
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       <Header count={feed.length} idx={Math.min(idx, feed.length - 1)} atEnd={loaded && atEnd} />
-      <Arrival open={fresh} idx={idx} onGoto={goto} />
+      <Arrival open={fresh} sent={sent} idx={idx} onGoto={goto} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flex: 1 }} onLayout={(e) => setVh(e.nativeEvent.layout.height)}>
           <ScrollView
@@ -695,7 +700,7 @@ const LAND = new Keyframe({
   100: { opacity: 1, transform: [{ translateY: 0 }] },
 }).duration(560).delay(80);
 
-function Arrival({ open, idx, onGoto }: { open: boolean; idx: number; onGoto: (i: number) => void }) {
+function Arrival({ open, sent, idx, onGoto }: { open: boolean; sent: boolean; idx: number; onGoto: (i: number) => void }) {
   const p = useSharedValue(open ? 1 : 0);
   const [gone, setGone] = useState(!open);
   useEffect(() => {
@@ -724,7 +729,7 @@ function Arrival({ open, idx, onGoto }: { open: boolean; idx: number; onGoto: (i
         </Animated.View>
         <View style={{ flex: 1 }}>
           <Animated.Text entering={FadeIn.duration(360).delay(320)} style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
-            {t("ld.arrived")}
+            {t(sent ? "ld.arrived" : "ld.arrivedKept")}
           </Animated.Text>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 9, marginTop: 9 }}>
             {[0, 1, 2].map((i) => (

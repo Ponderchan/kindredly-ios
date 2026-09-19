@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kindredly",
     "slug": "kindredly",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "scheme": "kindredly",
@@ -86,6 +86,17 @@
         "projectId": "29aafd7c-6f2c-4965-99f1-cb6d2e0ee638"
       }
     },
-    "owner": "blockchan"
+    "owner": "blockchan",
+    "locales": {
+      "en": "./locales/en.json",
+      "es": "./locales/es.json",
+      "pt-BR": "./locales/pt-BR.json",
+      "id": "./locales/id.json",
+      "fr": "./locales/fr.json",
+      "de": "./locales/de.json",
+      "it": "./locales/it.json",
+      "ja": "./locales/ja.json",
+      "ko": "./locales/ko.json"
+    }
   }
 }

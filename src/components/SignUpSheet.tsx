@@ -71,7 +71,7 @@ export function SignUpSheet({
         setBusy("email");
         const r = await auth.signInWithEmail(email.trim());
         setBusy(null);
-        if ("error" in r) Alert.alert("Email", r.error);
+        if ("error" in r) Alert.alert(t("su.emailFail"), r.error);
         else Alert.alert(t("su.linkSent"), t("su.linkSentBody"));
       },
       "plain-text",

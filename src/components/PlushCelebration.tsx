@@ -49,7 +49,7 @@ export function PlushCelebration({ kindreds }: { kindreds: number }) {
             <WrenBird size={128} skin="plush" mood="happy" />
           </View>
           <Text style={{ fontFamily: F.serif, fontSize: 24, color: C.ink, marginTop: 8, textAlign: "center" }}>
-            {t("pl.meetPre")}<Text style={{ color: C.purple }}>Plush</Text>{t("pl.meetPost")}
+            {t("pl.meetPre")}<Text style={{ color: C.purple }}>{t("skin.plush.name")}</Text>{t("pl.meetPost")}
           </Text>
           <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.muted, marginTop: 8, textAlign: "center", lineHeight: 21, maxWidth: 300 }}>
             {t("pl.body")}

@@ -1,3 +1,4 @@
+import { Redirect } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { C, F } from "../theme/tokens";
@@ -32,6 +33,7 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
 }
 
 export default function WrenPreview() {
+  if (!__DEV__) return <Redirect href="/" />;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>

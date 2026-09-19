@@ -15,6 +15,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, supabaseReady } from "./supabase";
+import { t } from "./i18n";
 
 /* Auth facade for the native client. Apple (SIWA, mandatory on iOS), Google
    (OAuth via WebBrowser + PKCE code exchange), and email magic-link. Mirrors
@@ -220,7 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ],
       });
       if (!cred.identityToken)
-        return { error: "No identity token returned by Apple." };
+        return { error: t("auth.err.apple") };
       /* UPGRADING A GHOST KEEPS THE GHOST'S ROW. For an anonymous session
          this LINKS the Apple identity onto the same user id — the letters,
          threads and fingerprint written while just looking stay theirs.
@@ -272,7 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { ok: true };
         }
       }
-      return { error: "Google sign-in did not complete." };
+      return { error: t("auth.err.google") };
     } catch (e: any) {
       return { error: e?.message || "Google sign-in failed." };
     }
@@ -386,11 +387,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      The scrub runs BEFORE sign-out so the adopt-on-sign-in effect can never
      resurrect the old pen name into some future session. */
   const deleteAccount = useCallback(async (): Promise<AuthResult> => {
-    if (!supabase) return { error: "Not connected." };
+    if (!supabase) return { error: t("auth.err.offline") };
     await forgetThisDevice();
     const { error } = await supabase.rpc("delete_account");
     if (error) {
-      return { error: "The account couldn't be deleted just now. Nothing was changed — try again in a moment." };
+      return { error: t("auth.err.delete") };
     }
     try {
       const uid = session?.user?.id;

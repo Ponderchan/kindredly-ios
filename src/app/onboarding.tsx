@@ -27,7 +27,7 @@ import { useAuth } from "../lib/auth";
 import { fetchPool, POOL_CACHE_KEY, publishLetter, upsertFingerprint, type PoolLetter } from "../lib/db";
 import { FirstFlight } from "../components/FirstFlight";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, setFlag, TODAY_RITUAL } from "../lib/flags";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, setFlag, unsetFlag, TODAY_RITUAL } from "../lib/flags";
 import { rationPool } from "../lib/ration";
 import { signatureVector, voiceSignature } from "../lib/signature";
 import { WardrobeRack } from "../components/WardrobeRack";
@@ -102,7 +102,7 @@ type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "wri
    egg is naming a stranger. So: shell → words → hatch → name → first
    flight. Everything after the hatch is post-birth: no meter, no back. */
 const ORDER: Step[] = ["welcome", "username", "you", "cakeday", "avatar", "egg", "write", "hatch", "naming", "dress", "fare", "flight"];
-const BARS = ORDER.indexOf("hatch"); // the form ends where the bird begins
+const GUEST_ORDER: Step[] = ORDER.filter((s) => !["username", "you", "cakeday", "avatar"].includes(s));
 
 /* EVERY STEP'S CONTENT IS OPTICALLY CENTRED between the progress meter and
    the key. It used to be top-aligned, so a short step — the welcome worst of
@@ -398,6 +398,7 @@ export default function Onboarding() {
   const finish = async () => {
     if (finishing.current) return;
     finishing.current = true;
+    await unsetFlag(ARRIVAL_SENT);
     if (corpus.length >= 2) {
       try {
         await upsertFingerprint(signatureVector(corpus), voiceSignature(corpus).words);
@@ -417,6 +418,7 @@ export default function Onboarding() {
          and the pool was filling with them (owner, 2026-09-19). She still
          flies; what's too short stays on the phone. */
       if (opener && weightedCount(opener) >= OPENING_MIN) {
+        await setFlag(ARRIVAL_SENT);
         try {
           /* the language was HARDCODED "en". Every opening letter this
              product has ever seeded was stamped English regardless of what
@@ -500,7 +502,13 @@ export default function Onboarding() {
     setKick((k) => k + 1);
     setStep(next);
   };
-  const stepIdx = ORDER.indexOf(step);
+  /* THE METER COUNTS THE STEPS THIS PERSON WALKS. A guest goes from the
+     door to the shell, past the four form screens, and the meter used to
+     credit them anyway: six of seven bars lit on their first screen. The
+     guest's run is its own, shorter sequence. */
+  const walk = auth.isGuest || !session ? GUEST_ORDER : ORDER;
+  const stepIdx = walk.indexOf(step);
+  const bars = walk.indexOf("hatch");
   const back = () => setStep(step === "egg" && !dobSet ? "welcome" : ORDER[Math.max(0, stepIdx - 1)]);
   const eggStatus = EGG_STATUS_STEPS.includes(step) ? t(`ob.eggstat.${step}`) : undefined;
 
@@ -683,7 +691,7 @@ export default function Onboarding() {
   /* ── 2 · pen name ───────────────────────────────────────────────────── */
   if (step === "username") {
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console step={stepIdx} bars={bars} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={{ flex: 1 }} />
           <Head plain={t("ob.username.plain")} em={t("ob.username.em")} sub={t("ob.username.sub")} />
@@ -718,7 +726,7 @@ export default function Onboarding() {
   /* ── 3 · what to call you ───────────────────────────────────────────── */
   if (step === "you") {
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console step={stepIdx} bars={bars} onBack={back}>
         <View style={{ flex: 1 }} />
         <Head plain={t("ob.you.plain", { name: handle || t("ob.hey") })} em={t("ob.you.em")} sub={t("ob.you.sub")} />
         <View style={{ paddingHorizontal: 18, marginTop: 20 }}>
@@ -775,7 +783,7 @@ export default function Onboarding() {
   /* ── 4 · cakeday ────────────────────────────────────────────────────── */
   if (step === "cakeday") {
     return (
-      <Console step={cakeLate ? undefined : stepIdx} onBack={cakeLate ? () => setStep("naming") : back}>
+      <Console step={cakeLate ? undefined : stepIdx} bars={bars} onBack={cakeLate ? () => setStep("naming") : back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={t("ob.cakeday.plain", { name: handle || t("ob.hey") })} em={t("ob.cakeday.em")} sub={t("ob.cakeday.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
@@ -818,7 +826,7 @@ export default function Onboarding() {
   if (step === "avatar") {
     const list = youPro === "she" ? FACES.filter((a) => a.pool === "f") : youPro === "he" ? FACES.filter((a) => a.pool === "m") : FACES;
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console step={stepIdx} bars={bars} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={t("ob.avatar.plain")} em={t("ob.avatar.em")} sub={t("ob.avatar.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
@@ -872,7 +880,7 @@ export default function Onboarding() {
      carry the names, and the chosen one is pressed in (W39). */
   if (step === "egg") {
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console step={stepIdx} bars={bars} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={t("ob.egg.plain")} em={t("ob.egg.em")} sub={t("ob.egg.sub")} />
 
@@ -1087,7 +1095,7 @@ export default function Onboarding() {
     const left = FEED_COUNT - n;
     const sub = n === 0 ? t("ob.write.sub") : n < FEED_COUNT ? (left === 1 ? t("ob.write.sMore1") : t("ob.write.sMore", { n: String(left) })) : t("ob.write.s5");
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console step={stepIdx} bars={bars} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
             {/* the egg, and what it has eaten, in orbit */}
@@ -1232,6 +1240,10 @@ export default function Onboarding() {
      next — she goes because you let her. */
   if (step === "flight") {
     const opener = [...fed].sort((a, b) => weightedCount(b) - weightedCount(a))[0] || "";
+    /* the page says what will actually happen: a thought under the floor
+       hatches her but does not leave the phone (owner, 2026-09-19), and
+       "folded into a letter" was a promise the pool never received */
+    const travels = weightedCount(opener) >= OPENING_MIN;
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 }}>
@@ -1242,7 +1254,7 @@ export default function Onboarding() {
                     courier's name elsewhere — grammar decides, per language */}
                 {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.flight.em", { name: her })}</Text>
               </Animated.Text>
-              <Text style={[mono(10, "b"), { color: Y.dim, marginTop: 10, letterSpacing: 0.6 }]}>{t("ob.flight.sub")}</Text>
+              <Text style={[mono(10, "b"), { color: Y.dim, marginTop: 10, letterSpacing: 0.6, textAlign: "center" }]}>{t(travels ? "ob.flight.sub" : "ob.flight.subKept")}</Text>
 
               <Animated.View entering={FadeInDown.delay(220).duration(480)} style={{ alignItems: "center", marginTop: 22 }}>
                 <Animated.View style={breathe}>
@@ -1346,7 +1358,7 @@ export default function Onboarding() {
    segmented progress readout, one way back. The bar is the console's own
    display, and it's why nine screens don't read as nine screens — you can
    see the whole run from the second one. */
-function Console({ children, step, onBack }: { children: React.ReactNode; step?: number; onBack?: () => void }) {
+function Console({ children, step, bars = ORDER.indexOf("hatch"), onBack }: { children: React.ReactNode; step?: number; bars?: number; onBack?: () => void }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
       {step != null && (
@@ -1359,8 +1371,8 @@ function Console({ children, step, onBack }: { children: React.ReactNode; step?:
             </Pressable>
           ) : null}
           <View style={{ flex: 1, flexDirection: "row" }}>
-            {ORDER.slice(0, BARS).map((s, i) => (
-              <Seg key={s} on={i <= step} i={i} last={i === BARS - 1} />
+            {Array.from({ length: bars }, (_, i) => (
+              <Seg key={i} on={i <= step} i={i} last={i === bars - 1} />
             ))}
           </View>
         </View>
