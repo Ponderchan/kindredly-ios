@@ -1,5 +1,6 @@
 import { scoped as AsyncStorage } from "./scoped-store";
-import { t as tr, getLang } from "./i18n";
+import { t as tr } from "./i18n";
+import { localeTag } from "./format";
 import type { ThreadSummary } from "./db";
 import type { JournalEntry } from "./journal";
 
@@ -42,7 +43,7 @@ export interface KeepsakeCtx {
 
 const DAY = 864e5;
 const hourOf = (iso: string | number) => new Date(iso).getHours();
-const LOCALE = () => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US");
+const LOCALE = localeTag; // one map, in format.ts, for all nine languages
 const dayName = (t: number) => new Date(t).toLocaleDateString(LOCALE(), { weekday: "long" });
 const stamp = (t: number) =>
   new Date(t).toLocaleDateString(LOCALE(), { month: "short", day: "numeric" }).toUpperCase() +

@@ -23,7 +23,7 @@ import { Toast, useSlow } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
-import { dShort, postNo, sinceShort } from "../../lib/format";
+import { postNo, postmark, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
 import { bump } from "../../lib/usage-counters";
@@ -741,7 +741,7 @@ function LetterReader({
           <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 22 }}>
             <MosaicId seed={letter.author} />
             <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.ink, marginLeft: 12, marginTop: 3 }}>
-              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
+              {postmark(letter.created_at)} ·{" "}
               {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
             {st && (
@@ -941,7 +941,7 @@ function LetterPage({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingTop: 4 }}>
             <MosaicId seed={letter.author} />
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.ink }}>
-              {dShort(letter.created_at).toUpperCase().replace(" ", ".")} ·{" "}
+              {postmark(letter.created_at)} ·{" "}
               {letter.author ? `NO.${postNo(letter.author)}` : t("ld.unsigned")}
             </Text>
           </View>

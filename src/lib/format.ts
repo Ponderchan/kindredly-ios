@@ -1,7 +1,7 @@
 import { t, getLang } from "./i18n";
 
 /* dates format in the reader's locale, so JUL 29 becomes 29 de jul. / 29 jul */
-export const localeTag = (): string => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US");
+export const localeTag = (): string => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID", fr: "fr-FR", de: "de-DE", it: "it-IT", ja: "ja-JP", ko: "ko-KR" }[getLang()] || "en-US");
 const LOCALE = localeTag;
 /* Small pure formatters + deterministic identity helpers.
    shade/dLong/dShort/today ported from kindredly-v20.jsx; hashStr/postNo/
@@ -25,6 +25,16 @@ export const dLong = (d: string | number | Date) =>
 
 export const dShort = (d: string | number | Date) =>
   new Date(d).toLocaleDateString(LOCALE(), { month: "short", day: "numeric" });
+/* the postmark on a letter: the short date squeezed the way a rubber stamp
+   would — SEP.19, 19.SEPT, 19.SET. Latin locales pad with spaces and dots
+   in their own ways ("19. Sept.", "19 de set."), so collapse all of it to
+   one dot and drop the Portuguese "de"; CJK dates ("9月19日", "9월 19일")
+   are already a stamp and are left alone. */
+export const postmark = (d: string | number | Date): string => {
+  const s = dShort(d).toUpperCase();
+  if (/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(s)) return s;
+  return s.replace(/\.?\s+/g, ".").replace(/\.DE\./, ".").replace(/\.$/, "");
+};
 
 export const today = () => new Date().toISOString().slice(0, 10);
 

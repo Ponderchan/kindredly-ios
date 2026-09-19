@@ -1,5 +1,6 @@
 import { scoped as AsyncStorage } from "./scoped-store";
-import { t, t as tr, getLang } from "./i18n";
+import { t, t as tr } from "./i18n";
+import { localeTag } from "./format";
 import type { ThreadSummary } from "./db";
 import { threadState } from "./thread-state";
 import { supabase, supabaseReady } from "./supabase";
@@ -98,7 +99,7 @@ export async function fetchCarried(): Promise<{ at: string }[]> {
 }
 
 const day = (iso: string) =>
-  new Date(iso).toLocaleDateString(({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID" }[getLang()] || "en-US"), { month: "short", day: "numeric" }).toUpperCase();
+  new Date(iso).toLocaleDateString(localeTag(), { month: "short", day: "numeric" }).toUpperCase();
 const clock = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 

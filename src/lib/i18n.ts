@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setEngineLanguage } from "./writing-engine/app-language";
 
-/* THREE LANGUAGES, NO NATIVE MODULE.
+/* NINE LANGUAGES, NO NATIVE MODULE.
    ────────────────────────────────────────────────────────────────────────
    Locale comes from Intl, which Hermes already carries — expo-localization
    is a native module and would not exist in any client built before it was
@@ -27,7 +27,7 @@ import { setEngineLanguage } from "./writing-engine/app-language";
    Missing keys fall back to English rather than showing a key — a reader
    should never see machinery. */
 
-export type Lang = "en" | "es" | "pt" | "id";
+export type Lang = "en" | "es" | "pt" | "id" | "fr" | "de" | "it" | "ja" | "ko";
 /* endonyms, never translated; the flag is the one the copy is written in —
    the Portuguese here is Brazilian (você, pra), so it flies Brazil's */
 export const LANGS: { id: Lang; label: string; flag: string }[] = [
@@ -35,6 +35,11 @@ export const LANGS: { id: Lang; label: string; flag: string }[] = [
   { id: "es", label: "Español", flag: "🇪🇸" },
   { id: "pt", label: "Português", flag: "🇧🇷" },
   { id: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
+  { id: "fr", label: "Français", flag: "🇫🇷" },
+  { id: "de", label: "Deutsch", flag: "🇩🇪" },
+  { id: "it", label: "Italiano", flag: "🇮🇹" },
+  { id: "ja", label: "日本語", flag: "🇯🇵" },
+  { id: "ko", label: "한국어", flag: "🇰🇷" },
 ];
 
 const KEY = "kindredly_lang";
@@ -45,6 +50,11 @@ function deviceLang(): Lang {
     if (tag.startsWith("es")) return "es";
     if (tag.startsWith("pt")) return "pt";
     if (tag.startsWith("id") || tag.startsWith("in")) return "id"; // "in" is the legacy Indonesian tag
+    if (tag.startsWith("fr")) return "fr";
+    if (tag.startsWith("de")) return "de";
+    if (tag.startsWith("it")) return "it";
+    if (tag.startsWith("ja")) return "ja";
+    if (tag.startsWith("ko")) return "ko";
   } catch {
     /* an app that can't read a locale is still an app in English */
   }
@@ -52,7 +62,14 @@ function deviceLang(): Lang {
 }
 
 let current: Lang = deviceLang();
-setEngineLanguage(current); // keep the writing engine's language in sync
+/* The writing engine reads four languages (en/es/pt/id) — its dictionaries
+   of hedges and function words are per-language, and the other five have
+   none yet. Its resolver coerces an unknown tag to null and falls through
+   to detection, then English, so passing it the app language as a plain
+   string is correct: a French reader's UI is French, their aura is read in
+   the English frame until a French dictionary exists. */
+const engineTag = (l: Lang) => l as Parameters<typeof setEngineLanguage>[0];
+setEngineLanguage(engineTag(current)); // keep the writing engine's language in sync
 const subs = new Set<(l: Lang) => void>();
 
 /** restore the reader's own choice, if they made one */
@@ -68,7 +85,7 @@ export async function loadLang(): Promise<void> {
 export function setLang(l: Lang, persist = true): void {
   if (l === current) return;
   current = l;
-  setEngineLanguage(l);
+  setEngineLanguage(engineTag(l));
   for (const f of subs) f(l);
   /* the morning knock lives in the OS schedule, not in a React tree, so no
      subscriber can repaint it — it has to be re-stamped. Lazy require:
@@ -107,15 +124,26 @@ const EN: Dict = {};
 const ES: Dict = {};
 const PT: Dict = {};
 const ID: Dict = {};
+const FR: Dict = {};
+const DE: Dict = {};
+const IT: Dict = {};
+const JA: Dict = {};
+const KO: Dict = {};
 
-const DICTS: Record<Lang, Dict> = { en: EN, es: ES, pt: PT, id: ID };
+const DICTS: Record<Lang, Dict> = { en: EN, es: ES, pt: PT, id: ID, fr: FR, de: DE, it: IT, ja: JA, ko: KO };
 
-/** register a screen's strings — one call per surface, kept beside it */
-export function strings(en: Dict, es: Dict, pt: Dict, id: Dict): void {
+/** register a screen's strings — one call per surface, kept beside it.
+    Positional, in LANGS order; a language left off falls back to English. */
+export function strings(en: Dict, es: Dict, pt: Dict, id: Dict, fr?: Dict, de?: Dict, it?: Dict, ja?: Dict, ko?: Dict): void {
   Object.assign(EN, en);
   Object.assign(ES, es);
   Object.assign(PT, pt);
   Object.assign(ID, id);
+  if (fr) Object.assign(FR, fr);
+  if (de) Object.assign(DE, de);
+  if (it) Object.assign(IT, it);
+  if (ja) Object.assign(JA, ja);
+  if (ko) Object.assign(KO, ko);
 }
 
 /** t("kindreds.waiting", { n: 2 }) — {vars} are replaced in place */
@@ -134,11 +162,14 @@ export function t(key: string, vars?: Record<string, string | number>): string {
    someone whose app happened to be set differently, was. Same language on
    the page, two different offers.
 
-   All four languages Kindredly speaks are Latin-script, so a body that is
-   substantially NOT Latin cannot be in any of them. That is enough to catch
-   what the tag gets wrong — deterministically, on device, no model. Telling
-   Spanish from Portuguese still rests on the tag, which is what the tag is
-   actually good for. */
+   Seven of the languages Kindredly speaks are Latin-script, so a body that
+   is substantially NOT Latin cannot be in any of them — unless it is
+   Japanese or Korean, which the app now also speaks. So: a non-Latin body
+   is named by its script, and it needs translating only when that script
+   is not the reader's own. That is enough to catch what the tag gets wrong
+   — deterministically, on device, no model. Telling Spanish from
+   Portuguese still rests on the tag, which is what the tag is actually
+   good for. */
 const OTHER_SCRIPT =
   /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0e00-\u0e7f\u0900-\u097f]/g;
 
@@ -170,7 +201,12 @@ export function needsTranslating(body: string | null | undefined, lang: string |
   if (body) {
     const other = (body.match(OTHER_SCRIPT) || []).length;
     const dense = body.replace(/\s/g, "").length;
-    if (other >= 4 && dense > 0 && other / dense > 0.2) return true;
+    if (other >= 4 && dense > 0 && other / dense > 0.2) {
+      /* a Japanese letter is Japanese whatever its tag says; a Japanese
+         reader does not need it translated */
+      for (const [re, tag] of SCRIPT_TAG) if (re.test(body)) return tag.toLowerCase() !== getLang();
+      return true;
+    }
   }
   return (lang || "en") !== getLang();
 }
