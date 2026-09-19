@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, {
   Easing,
@@ -380,7 +380,7 @@ export default function Onboarding() {
      fed, so nobody loses words to a button they didn't press. */
   const fed = [...thoughts, ...(line.length >= 2 ? [line] : [])];
   const corpus = fed.join("\n\n");
-  const hatched = hatch(fed);
+  const hatched = useMemo(() => hatch(fed), [corpus]); // eslint-disable-line react-hooks/exhaustive-deps
   const hatchMood: WrenMood = mood ? moodToWren(mood) : readMood(corpus); // picked mood wins
   const canFeed = line.length >= 2 && thoughts.length < 5;
   const canHatch = fed.length >= 1;
@@ -1119,16 +1119,14 @@ export default function Onboarding() {
               {thoughts.map((th, i) => {
                 const o = ORBIT[i] ?? ORBIT[ORBIT.length - 1];
                 return (
-                  <Animated.View
-                    key={`${i}-${th.slice(0, 8)}`}
-                    entering={ZoomIn.duration(360).easing(Easing.out(Easing.back(1.6)))}
-                    style={{ position: "absolute", top: o.top, left: o.left, right: o.right, maxWidth: 124, transform: [{ rotate: o.rot }] }}
-                  >
-                    <Pressable onPress={() => setThoughts((arr) => arr.filter((_, j) => j !== i))} style={[card, bevel(2, 2), { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }]}>
-                      <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontSize: 12, color: Y.ink }}>
-                        {th}
-                      </Text>
-                    </Pressable>
+                  <Animated.View key={`${i}-${th.slice(0, 8)}`} entering={ZoomIn.duration(360).easing(Easing.out(Easing.back(1.6)))} style={{ position: "absolute", top: o.top, left: o.left, right: o.right, maxWidth: 124 }}>
+                    <View style={{ transform: [{ rotate: o.rot }] }}>
+                      <Pressable onPress={() => setThoughts((arr) => arr.filter((_, j) => j !== i))} style={[card, bevel(2, 2), { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }]}>
+                        <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontSize: 12, color: Y.ink }}>
+                          {th}
+                        </Text>
+                      </Pressable>
+                    </View>
                   </Animated.View>
                 );
               })}
@@ -1741,13 +1739,15 @@ function Hatchling({ mood, shell, form, dims, skin, accessory, tag: nameTag, nud
       {/* the name, on a tag round her neck, as it's typed — in front of the
           shell, since that's where her chest is */}
       {!!nameTag && (
-        <Animated.View entering={ZoomIn.duration(260)} style={[tagStyle, { position: "absolute", left: 0, right: 0, bottom: 20, alignItems: "center", transformOrigin: "top center" }]}>
+        <Animated.View entering={ZoomIn.duration(260)} style={{ position: "absolute", left: 0, right: 0, bottom: 20, alignItems: "center" }}>
+        <Animated.View style={[tagStyle, { alignItems: "center", transformOrigin: "top center" }]}>
           <Svg width={44} height={9} viewBox="0 0 44 9" style={{ marginBottom: -3 }}>
             <Path d="M2 1 q20 11 40 0" fill="none" stroke={Y.ink} strokeWidth={1.6} />
           </Svg>
           <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 }}>
             <Text style={[mono(9, "b"), { letterSpacing: 0.8 }]}>{nameTag}</Text>
           </View>
+        </Animated.View>
         </Animated.View>
       )}
     </Pressable>

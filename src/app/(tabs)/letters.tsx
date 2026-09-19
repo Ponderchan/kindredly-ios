@@ -151,7 +151,8 @@ export default function LettersTab() {
     const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
     setFlightsUp(inFlight((th || []) as FlightThread[]));
     const fresh = rationPool(p || []);
-    setPool((cur) => (rebuild || !cur.length ? fresh : keepDesk(cur, p || [], fresh)));
+    // no answer (offline, signed out) leaves the desk as it is rather than clearing it
+    setPool((cur) => (!p && cur.length ? cur : rebuild || !cur.length ? fresh : keepDesk(cur, p || [], fresh)));
     setLoaded(true);
     loadedRef.current = true;
     if (p && p.length) void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify(p.slice(0, 40))).catch(() => {});
