@@ -1132,7 +1132,10 @@ export default function Onboarding() {
               })}
             </View>
 
-            <Text style={{ fontFamily: F2.serif, fontSize: 24, lineHeight: 28, color: Y.ink, textAlign: "center", paddingHorizontal: 22 }}>
+            {/* ONE LINE OF HEADLINE, whatever the language — it shrinks to fit
+                rather than dropping a word onto a line of its own. The grey
+                line under it is a chip, not loose type (owner, 2026-09-19). */}
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} style={{ fontFamily: F2.serif, fontSize: 23, lineHeight: 30, color: Y.ink, textAlign: "center", paddingHorizontal: 22 }}>
               {n === 0 ? (
                 <>
                   {t("ob.write.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.write.em")}</Text>
@@ -1141,7 +1144,11 @@ export default function Onboarding() {
                 t(`ob.write.t${Math.min(n, FEED_COUNT)}`)
               )}
             </Text>
-            <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 6, paddingHorizontal: 22, lineHeight: 17 }]}>{sub}</Text>
+            <View style={{ alignItems: "center", marginTop: 8, paddingHorizontal: 22 }}>
+              <View style={[tag, { backgroundColor: Y.groundDeep, borderColor: "transparent", paddingHorizontal: 14, paddingVertical: 6, maxWidth: 340 }]}>
+                <Text style={[mono(9.5, "b"), { color: Y.dim, textAlign: "center", lineHeight: 15, letterSpacing: 0.4 }]}>{sub}</Text>
+              </View>
+            </View>
 
             {n < FEED_COUNT && (
               <View style={{ paddingHorizontal: 18 }}>
