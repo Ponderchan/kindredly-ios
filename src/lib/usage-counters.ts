@@ -22,15 +22,22 @@ export async function getCounters(): Promise<LocalCounters> {
 
 /** letters shown today — zero once the day has turned */
 export const seenToday = (c: LocalCounters): number => (c.seenDay === new Date().toISOString().slice(0, 10) ? c.seenToday ?? 0 : 0);
+/** replies sent today — zero once the day has turned */
+export const repliedToday = (c: LocalCounters): number => (c.repliedDay === new Date().toISOString().slice(0, 10) ? c.repliedToday ?? 0 : 0);
 
 export async function bump(key: "seen" | "replied" | "translated" | "courierVisits", by = 1): Promise<void> {
   const c = await getCounters();
   c[key] += by;
+  const day = new Date().toISOString().slice(0, 10);
   if (key === "seen") {
     // the day's own count, for the courier's "3 letters went past your desk today"
-    const day = new Date().toISOString().slice(0, 10);
     c.seenToday = (c.seenDay === day ? c.seenToday ?? 0 : 0) + by;
     c.seenDay = day;
+  }
+  if (key === "replied") {
+    // and the day's replies, for her slip on the closed counter
+    c.repliedToday = (c.repliedDay === day ? c.repliedToday ?? 0 : 0) + by;
+    c.repliedDay = day;
   }
   try {
     await scoped.setItem(KEY, JSON.stringify(c));

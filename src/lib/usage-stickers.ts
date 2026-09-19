@@ -42,6 +42,9 @@ export interface LocalCounters {
   /** letters shown today — the day key and the count, reset when the day turns */
   seenDay?: string;
   seenToday?: number;
+  /** replies sent today — for her slip at the close of day */
+  repliedDay?: string;
+  repliedToday?: number;
 }
 
 export const EMPTY_COUNTERS: LocalCounters = { seen: 0, replied: 0, translated: 0, courierVisits: 0 };

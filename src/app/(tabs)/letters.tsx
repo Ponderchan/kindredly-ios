@@ -19,6 +19,7 @@ import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
 import { CloseOfDay } from "../../components/CloseOfDay";
+import { threadState } from "../../lib/thread-state";
 import { Toast, useSlow } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
@@ -26,7 +27,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { postNo, postmark, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
-import { bump } from "../../lib/usage-counters";
+import { bump, getCounters, repliedToday, seenToday } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { screenNow, translate } from "../../lib/wren";
@@ -69,6 +70,7 @@ export default function LettersTab() {
   useLang(); // repaint when the reader changes language
   const router = useRouter();
   const [flightsUp, setFlightsUp] = useState(0);
+  const [waiting, setWaiting] = useState(0); // correspondences waiting on a reply from you — her slip counts them
   const [pool, setPool] = useState<PoolLetter[]>([]);
   /* LAST TIME'S LETTERS PAINT FIRST. A cold open used to show an empty desk
      until two queries came back; now yesterday's pool is on screen at once
@@ -150,6 +152,7 @@ export default function LettersTab() {
        scores fold in a moment later. */
     const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
     setFlightsUp(inFlight((th || []) as FlightThread[]));
+    setWaiting((th || []).filter((x) => threadState(x)?.needsYou).length);
     const fresh = rationPool(p || []);
     // no answer (offline, signed out) leaves the desk as it is rather than clearing it
     setPool((cur) => (!p && cur.length ? cur : rebuild || !cur.length ? fresh : keepDesk(cur, p || [], fresh)));
@@ -194,6 +197,7 @@ export default function LettersTab() {
       loaded={loaded}
       onReloaded={() => load(true)}
       flights={flightsUp}
+      waiting={waiting}
       router={router}
       demo={demo}
       fresh={fresh}
@@ -210,6 +214,7 @@ function Feed({
   loaded,
   onReloaded,
   flights: flightsIn,
+  waiting,
   router,
   demo,
   fresh,
@@ -223,6 +228,8 @@ function Feed({
   onSettled: () => void;
   loaded: boolean;
   onReloaded: () => void;
+  /** correspondences waiting on a reply from you — her slip at the close of day */
+  waiting: number;
   /** correspondences opened and not yet answered — the pouch, see lib/ration */
   flights: number;
   router: ReturnType<typeof useRouter>;
@@ -246,7 +253,22 @@ function Feed({
     setSealed(true);
     void setFlag(sealKey);
   };
+  /* the cord is held: the pager must not scroll under the pull */
+  const [held, setHeld] = useState(false);
   const [idx, setIdx] = useState(0);
+  /* what her slip says — read off the phone's own counters when the day
+     closes, never guessed. `read` is the desk itself while it's on screen;
+     on a quiet day it's the counter, so a desk read and cleared still counts. */
+  const [repliedN, setRepliedN] = useState(0);
+  const [seenN, setSeenN] = useState(0);
+  useEffect(() => {
+    if (!sealed && !(loaded && idx >= feed.length)) return;
+    getCounters().then((c) => {
+      setRepliedN(repliedToday(c));
+      setSeenN(seenToday(c));
+    });
+  }, [sealed, loaded, idx, feed.length]);
+  const facts = { read: feed.length || seenN, replied: repliedN, waiting };
   const [vh, setVh] = useState(WINDOW_H - 250);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [toast, setToast] = useState(false);
@@ -423,6 +445,7 @@ function Feed({
         <View style={{ flex: 1, paddingBottom: tabH }}>
           <CloseOfDay
             sealed={sealed}
+            facts={facts}
             onSeal={seal}
             onWrite={() => router.push("/compose")}
             onSelf={() => router.push("/journal-entry")}
@@ -445,6 +468,7 @@ function Feed({
             ref={scrollRef}
             style={{ flex: 1 }}
             pagingEnabled
+            scrollEnabled={!held}
             showsVerticalScrollIndicator={false}
             decelerationRate="fast"
             onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.y / vh))}
@@ -487,7 +511,9 @@ function Feed({
             <View style={{ height: vh, backgroundColor: P.penWash }}>
               <CloseOfDay
                 sealed={sealed}
+                facts={facts}
                 onSeal={seal}
+                onGrab={setHeld}
                 onWrite={() => router.push("/compose")}
                 onSelf={() => router.push("/journal-entry")}
               />
