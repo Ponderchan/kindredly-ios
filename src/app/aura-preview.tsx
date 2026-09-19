@@ -15,15 +15,20 @@ import { P, PF } from "../theme/post";
 const sticker = (stickerId: string, dimension: string, state: ResolvedSticker["state"], supporting = 4, eligible = 5): ResolvedSticker =>
   ({ stickerId, traitId: "concrete_detail", dimension, state, supporting, eligible, evidence: [], since: "2026-09-10" }) as unknown as ResolvedSticker;
 
-function fake(o: { phase: Aura["phase"]; letters: number; home?: ResolvedSticker[]; usage?: string[]; named?: boolean }): Aura {
+function fake(o: { phase: Aura["phase"]; letters: number; home?: ResolvedSticker[]; usage?: string[]; named?: boolean; noun?: string }): Aura {
   const home = o.home ?? [];
   const byDimension = Object.fromEntries(home.map((h) => [h.dimension, h]));
+  const title = o.named
+    ? { state: "formed", noun: "observer", adjective: "quiet", basis: [] }
+    : o.noun
+      ? { state: "partial", noun: o.noun, adjective: null, basis: [] }
+      : { state: "none", noun: null, adjective: null, basis: [] };
   return {
     phase: o.phase,
     pieces: o.letters + 1,
     sources: { letters: o.letters, sealed: 0, conversations: 0 },
     usage: (o.usage ?? []).map((id) => ({ id, group: "time", private: false, n: 3 })),
-    stickers: { home, byDimension, board: home, title: o.named ? { state: "formed", noun: "observer", adjective: "quiet", basis: [] } : { state: "none", noun: null, adjective: null, basis: [] } },
+    stickers: { home, byDimension, board: home, title },
   } as unknown as Aura;
 }
 
@@ -32,7 +37,8 @@ const RUNGS: { label: string; aura: Aura }[] = [
   { label: "1 · one letter", aura: fake({ phase: "forming", letters: 1, home: [sticker("straight_shooter", "sentence", "emerging")], usage: ["name_trader"] }) },
   { label: "2 · three letters", aura: fake({ phase: "forming", letters: 3, home: [sticker("detail_collector", "vocabulary", "emerging"), sticker("straight_shooter", "sentence", "emerging")], usage: ["marathoner"] }) },
   { label: "3 · first stuck", aura: fake({ phase: "shaping", letters: 5, home: [sticker("detail_collector", "vocabulary", "established"), sticker("straight_shooter", "sentence", "emerging")], usage: ["night_writer"] }) },
-  { label: "4 · almost named", aura: fake({ phase: "clearing", letters: 7, home: [sticker("detail_collector", "vocabulary", "established"), sticker("straight_shooter", "sentence", "established"), sticker("quiet_type", "emotion", "established")] }) },
+  { label: "3 · first stuck, noun in view", aura: fake({ phase: "shaping", letters: 6, noun: "observer", home: [sticker("detail_collector", "vocabulary", "established"), sticker("straight_shooter", "sentence", "emerging")], usage: ["night_writer"] }) },
+  { label: "4 · almost named", aura: fake({ phase: "clearing", letters: 7, noun: "dreamer", home: [sticker("detail_collector", "vocabulary", "established"), sticker("straight_shooter", "sentence", "established"), sticker("quiet_type", "emotion", "established")] }) },
   { label: "5 · named", aura: fake({ phase: "formed", letters: 14, named: true, home: [sticker("detail_collector", "vocabulary", "established", 5, 5), sticker("straight_shooter", "sentence", "established"), sticker("quiet_type", "emotion", "established")] }) },
   { label: "6 · still you", aura: fake({ phase: "formed", letters: 20, named: true, home: [sticker("detail_collector", "vocabulary", "established", 5, 5), sticker("sentence_weaver", "sentence", "emerging"), sticker("quiet_type", "emotion", "established")] }) },
 ];

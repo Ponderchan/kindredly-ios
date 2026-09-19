@@ -29,6 +29,10 @@ export interface LeaveAction {
   /** primary = the filled pen button · destructive = ruled in postal red ·
       quiet = ruled in ink, for a serious act that is not the red one */
   kind: "primary" | "destructive" | "quiet";
+  /** a mark before the label (a flag, a glyph). With one, the actions
+      become a list — mark in a fixed column, label ranged left — so a set
+      of them lines up instead of each centring on its own length */
+  lead?: string;
   onPress: () => void;
 }
 
@@ -92,22 +96,24 @@ export function LeaveSheet({
             <Pressable
               key={a.label}
               onPress={a.onPress}
-              style={({ pressed }) =>
+              style={({ pressed }) => [
                 a.kind === "primary"
                   ? { ...solidBtn, opacity: pressed ? 0.85 : 1 }
                   : {
                       borderWidth: 1,
                       borderColor: a.kind === "quiet" ? P.ink : P.post,
                       paddingVertical: 15,
-                      alignItems: "center",
+                      alignItems: "center" as const,
                       backgroundColor: pressed
                         ? a.kind === "quiet"
                           ? P.paperDeep
                           : "rgba(224,72,60,0.08)"
                         : "transparent",
-                    }
-              }
+                    },
+                a.lead ? { flexDirection: "row" as const, alignItems: "center" as const, paddingHorizontal: 18 } : null,
+              ]}
             >
+              {!!a.lead && <Text style={{ width: 34, fontSize: 17, lineHeight: 20 }}>{a.lead}</Text>}
               <Text
                 style={{
                   fontFamily: PF.monoSemi,

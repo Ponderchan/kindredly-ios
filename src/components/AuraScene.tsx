@@ -1,3 +1,4 @@
+import { Image, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { PALETTE, type Daylight } from "./CourierCard";
 import type { Fidelity } from "../lib/aura-ladder";
@@ -13,9 +14,27 @@ import type { Fidelity } from "../lib/aura-ladder";
    sketch ink two steps of the same violet. */
 
 export const SCENE_RATIO = 114 / 357;
+/** the band when it holds one of the fifty scenes: 16:9, the whole scene
+    fitted by height — windows, head and feet all in — with the hour's sky
+    and ground running on past its edges */
+export const ART_RATIO = 9 / 16;
+
+/* ONE OF THE FIFTY. Once a noun is in view the band is that title's own
+   scene, drawn edge to edge: the pictures are 16:9 now, so nothing is cut
+   and nothing is repainted. While the name is still forming it is the
+   same scene in one lavender ink on paper; once earned, in colour. The
+   aura is the reader's thing, not the courier's — it keeps its own light. */
+export function AuraArtBand({ width, src }: { width: number; src: number }) {
+  const h = Math.round(width * ART_RATIO);
+  return (
+    <View style={{ width, height: h, overflow: "hidden" }}>
+      <Image source={src} style={{ width, height: h }} resizeMode="cover" />
+    </View>
+  );
+}
 
 const D = {
-  paper: "#DEDAF6", // the scene's ground before colour — a step deeper than the page, so the band reads as paper, not a hole
+  paper: "#FFFFFF", // before colour there is no colour: the drawing sits on the card's own paper
   pencil: "rgba(111,104,184,0.62)", // faint, but a drawing — not nothing
   ink: "#4A4390", // the sketch's one ink
   fill: "#F8F7FF",

@@ -6,7 +6,7 @@ import { AURA_SCENES, AURA_SKETCHES } from "../data/aura-scenes";
 import { MosaicId } from "./MosaicId";
 import type { Aura } from "../lib/aura";
 import { rungOf } from "../lib/aura-ladder";
-import { AuraScene } from "./AuraScene";
+import { AuraArtBand, AuraScene } from "./AuraScene";
 import { ShareIcon } from "./Icons";
 import { daylight } from "./CourierCard";
 import { chipsFor, phaseHeadline, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
@@ -118,7 +118,7 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
   const stage = aura.phase;
   const title = aura.stickers?.title ?? null;
   const frame = { width, height, borderRadius: radius, overflow: "hidden" as const, alignItems: "center" as const, justifyContent: "center" as const };
-  const img = { width, height: Math.round((width * 3) / 4) } as const;
+  const img = { width, height: Math.round((width * 9) / 16) } as const;
 
   if (stage === "formed" && title?.noun && title.adjective) {
     const src = AURA_SCENES[sceneId(title.adjective, title.noun)];
@@ -238,9 +238,21 @@ export function AuraCard({
   const cta = rung.level === 0 ? t("ap.cta.empty") : rung.level <= 2 ? t("ap.cta.another") : rung.level <= 4 ? t("ap.cta.labels") : t("ap.cta.full");
   const onCta = rung.level <= 2 ? onWrite ?? onOpen : onOpen;
   const tag = rung.fidelity === "pencil" ? t("ap.tag.pencil") : rung.fidelity === "sketch" ? t("ap.tag.sketch") : null;
-  /* on the night sky the chrome flips to cream, as the courier's does */
+  /* the title's own scene, once a noun is in view: its sketch while the
+     name is forming (rungs 3–4), in colour once it is earned (5–6) */
+  const title = st?.title ?? null;
+  const artId = title?.noun ? sceneId(title.adjective ?? null, title.noun) : null;
+  const art =
+    artId && rung.fidelity === "colour" && AURA_SCENES[artId]
+      ? AURA_SCENES[artId]
+      : artId && rung.fidelity === "sketch" && AURA_SKETCHES[artId]
+        ? AURA_SKETCHES[artId]
+        : null;
+
+  /* over a late-night scene the chrome flips to white; the generic
+     figure's colour rung follows the courier's hour */
   const day = daylight();
-  const onNight = rung.fidelity === "colour" && day === "night";
+  const onNight = art ? rung.fidelity === "colour" && !!artId && artId.startsWith("late-night") : rung.fidelity === "colour" && day === "night";
   const chrome = onNight ? "#FFFFFF" : CREAM.ink;
   const chromeText = onNight ? CREAM.ink : "#FFFFFF";
   const tickOff = onNight ? "rgba(255,255,255,0.35)" : CREAM.tickOff;
@@ -251,7 +263,7 @@ export function AuraCard({
           The pill sits where the courier card's does, same size, same
           corner — the two cards are one family. */}
       <View>
-        <AuraScene width={width} fidelity={rung.fidelity} day={day} />
+        {art ? <AuraArtBand width={width} src={art} /> : <AuraScene width={width} fidelity={rung.fidelity} day={day} />}
         <View style={{ position: "absolute", left: 14, top: 12, backgroundColor: chrome, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 }}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.5, color: chromeText }}>{t("me.sec.aura").toUpperCase()}</Text>
         </View>

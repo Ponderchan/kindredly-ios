@@ -1,10 +1,12 @@
 import { useWrenName } from "../lib/wren-name";
 import { openPrivacy, openTerms } from "../lib/legal";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { P, PF, panel } from "../theme/post";
+import { P, PF } from "../theme/post";
+import { W14, cardShadow } from "../components/AuraCard";
+import { SettingsIcon, type SettingsGlyph } from "../components/SettingsIcons";
 import { useAuth } from "../lib/auth";
 import { LeaveSheet } from "../components/LeaveSheet";
 import { disableMorningKnock, enableMorningKnock, morningKnockEnabled } from "../lib/notify";
@@ -148,107 +150,106 @@ export default function Settings() {
     router.replace("/onboarding");
   };
 
-  const Row = ({ label, value, onPress, last }: { label: string; value?: string; onPress?: () => void; last?: boolean }) => (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingVertical: 15,
-        // no divider on the last row — the panel's own border is already there
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: P.ink12,
-      }}
-    >
-      <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>{label}</Text>
-      <Text style={{ fontFamily: PF.mono, fontSize: 14, color: P.ink40 }}>{value ?? "›"}</Text>
+  /* a row: its mark on a tile, the label, then the value or a chevron. The
+     boxes are gone — each section is a white card like the rest of the app,
+     and the hairline between rows starts past the tile */
+  const Row = ({ glyph, label, value, onPress, last, danger }: { glyph: SettingsGlyph; label: string; value?: string; onPress?: () => void; last?: boolean; danger?: boolean }) => (
+    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16, opacity: pressed ? 0.6 : 1 })}>
+      <SettingsIcon glyph={glyph} color={danger ? "#B23838" : "#3A34D6"} tile={danger ? "#FBEAEA" : "#EEEDFB"} />
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: W14.hair }}>
+        <Text style={{ fontFamily: PF.letter, fontSize: 15, color: danger ? "#B23838" : W14.ink }}>{label}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 13, color: "rgba(30,27,53,0.5)", marginLeft: 12 }}>{value ?? "›"}</Text>
+      </View>
     </Pressable>
   );
+  const Card = ({ children, style }: { children: React.ReactNode; style?: object }) => (
+    <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, marginBottom: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.06 }, style]}>{children}</View>
+  );
+  const Head = ({ children }: { children: string }) => <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: "rgba(30,27,53,0.5)", marginBottom: 8, marginLeft: 4 }}>{children}</Text>;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: W14.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("settings.title")}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: W14.ink }}>{t("settings.title")}</Text>
         <View style={{ width: 42 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* account */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("settings.account")}</Text>
-        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label={t("set.penName")} value={handle || t("set.you")} onPress={editName} />
-          {age && <Row label={t("set.age")} value={age} />}
+        <Head>{t("settings.account")}</Head>
+        <Card>
+          <Row glyph="pen" label={t("set.penName")} value={handle || t("set.you")} onPress={editName} />
+          {age && <Row glyph="cake" label={t("set.age")} value={age} />}
           {/* the Language row sat here showing "English" and doing nothing —
               a dead row on a settings page reads as a broken app */}
           <Row
+            glyph="globe"
             label={t("settings.language")}
-            value={LANGS.find((l) => l.id === lang)?.label ?? "English"} /* language names are endonyms — never translated */
+            value={`${LANGS.find((l) => l.id === lang)?.flag ?? ""} ${LANGS.find((l) => l.id === lang)?.label ?? "English"}`} /* endonym + its flag, never translated */
             onPress={() => setPicking(true)}
           />
-          <Row label={t("set.wrenName", { wren })} value={wren} onPress={renameWren} last />
-        </View>
+          <Row glyph="bird" label={t("set.wrenName", { wren })} value={wren} onPress={renameWren} last />
+        </Card>
 
         {/* quiet */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.quiet")}</Text>
-        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 15, color: P.ink }}>{t("set.knock.title")}</Text>
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 2 }}>
-                {t("set.knock.sub")}
-              </Text>
+        <Head>{t("set.sec.quiet")}</Head>
+        <Card>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16 }}>
+            <SettingsIcon glyph="bell" />
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: W14.hair }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontFamily: PF.letter, fontSize: 15, color: W14.ink }}>{t("set.knock.title")}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 2 }}>{t("set.knock.sub")}</Text>
+              </View>
+              <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
             </View>
-            <Switch value={knock} onValueChange={onToggleKnock} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
           </View>
-          <Row label={t("lore.head")} onPress={() => router.push("/lore")} />
+          <Row glyph="heart" label={t("lore.head")} onPress={() => router.push("/lore")} />
           {/* the way back to a saved draft. Without this the composer's
               "save as draft" wrote somewhere nobody could reach. */}
-          <Row label={t("set.drafts")} onPress={() => router.push("/drafts")} />
-        </View>
+          <Row glyph="draft" label={t("set.drafts")} onPress={() => router.push("/drafts")} last />
+        </Card>
 
         {/* First Class — Apple wants restore and a way to manage a running
             subscription reachable outside the paywall */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.firstClass")}</Text>
-        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label={t("set.membership")} value={cofounderNo != null ? t("set.member.cofounder", { n: String(cofounderNo).padStart(3, "0") }) : premium ? t("set.member.first") : t("set.member.not")} onPress={() => router.push("/paywall?src=settings_row")} />
-          <Row label={t("set.restore")} value={restoring ? "…" : "›"} onPress={onRestore} />
-          <Row label={t("set.manage")} onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")} last />
-        </View>
+        <Head>{t("set.sec.firstClass")}</Head>
+        <Card>
+          <Row glyph="ticket" label={t("set.membership")} value={cofounderNo != null ? t("set.member.cofounder", { n: String(cofounderNo).padStart(3, "0") }) : premium ? t("set.member.first") : t("set.member.not")} onPress={() => router.push("/paywall?src=settings_row")} />
+          <Row glyph="restore" label={t("set.restore")} value={restoring ? "…" : "›"} onPress={onRestore} />
+          <Row glyph="card" label={t("set.manage")} onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")} last />
+        </Card>
 
         {/* help — the questions a new reader actually has, and a person */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("settings.help")}</Text>
-        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label={t("settings.howItWorks")} onPress={() => router.push("/help")} />
-          <Row label={t("settings.writeToUs")} onPress={() => router.push("/write-to-us")} />
-          <Row label={t("settings.rate")} onPress={rate} last />
-        </View>
+        <Head>{t("settings.help")}</Head>
+        <Card>
+          <Row glyph="help" label={t("settings.howItWorks")} onPress={() => router.push("/help")} />
+          <Row glyph="mail" label={t("settings.writeToUs")} onPress={() => router.push("/write-to-us")} />
+          <Row glyph="star" label={t("settings.rate")} onPress={rate} last />
+        </Card>
 
         {/* safety — every row here must actually go somewhere; a dead row on
             THIS panel is the one a reviewer is most likely to press */}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40, marginBottom: 10 }}>{t("set.sec.safety")}</Text>
-        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2, marginBottom: 22 }]}>
-          <Row label={t("set.blocked")} onPress={() => router.push("/blocked")} />
-          <Row label={t("set.terms")} onPress={() => openTerms()} />
-          <Row label={t("set.privacy")} onPress={() => openPrivacy()} last />
-        </View>
+        <Head>{t("set.sec.safety")}</Head>
+        <Card>
+          <Row glyph="shield" label={t("set.blocked")} onPress={() => router.push("/blocked")} />
+          <Row glyph="doc" label={t("set.terms")} onPress={() => openTerms()} />
+          <Row glyph="lock" label={t("set.privacy")} onPress={() => openPrivacy()} last />
+        </Card>
 
-        <View style={[panel, { paddingHorizontal: 18, paddingVertical: 2 }]}>
-          <Pressable onPress={onSignOut} style={{ paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>{t("set.signOut")}</Text>
+        <Card style={{ marginBottom: 0 }}>
+          <Row glyph="door" label={t("set.signOut")} onPress={onSignOut} danger />
+          <Pressable onPress={() => setAskDelete(true)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16, opacity: pressed ? 0.6 : 1 })}>
+            <SettingsIcon glyph="trash" color="#B23838" tile="#FBEAEA" />
+            <View style={{ flex: 1, paddingVertical: 12 }}>
+              <Text style={{ fontFamily: PF.letter, fontSize: 15, color: "#B23838" }}>{t("set.deleteAcct")}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 2 }}>{t("set.deleteSub")}</Text>
+            </View>
           </Pressable>
-          <Pressable onPress={() => setAskDelete(true)} style={{ paddingVertical: 13 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 15, color: "#B23838" }}>{t("set.deleteAcct")}</Text>
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40, marginTop: 2 }}>
-              {t("set.deleteSub")}
-            </Text>
-          </Pressable>
-        </View>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40, textAlign: "center", marginTop: 22 }}>
+        </Card>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.45)", textAlign: "center", marginTop: 22 }}>
           {t("set.version", { v: APP_VERSION })}
         </Text>
       </ScrollView>
@@ -259,6 +260,7 @@ export default function Settings() {
         body={t("set.langBody", { n: LANGS.length })}
         actions={LANGS.map((l) => ({
           label: l.label.toUpperCase(),
+          lead: l.flag,
           kind: l.id === lang ? ("primary" as const) : ("quiet" as const),
           onPress: () => {
             setLang(l.id);

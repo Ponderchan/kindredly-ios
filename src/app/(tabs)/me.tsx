@@ -233,7 +233,7 @@ export default function MeTab() {
               own silhouette, so the page does not grow under the thumb */}
           {!aura && (
             <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 22, overflow: "hidden", height: 372 }, cardShadow, { shadowOpacity: 0.12 }]}>
-              <View style={{ height: Math.round((Dimensions.get("window").width - 32) * 0.32), backgroundColor: "#DEDAF6" }} />
+              <View style={{ height: Math.round((Dimensions.get("window").width - 32) * 0.32), backgroundColor: "#F6F5FD" }} />
             </View>
           )}
           {aura && (

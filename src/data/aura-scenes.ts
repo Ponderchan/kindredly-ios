@@ -1,8 +1,9 @@
-/* Generated from ~/Desktop/aura-illustrations (the owner's fifty scenes,
-   800×600, 160×120 pixel grid). One scene per aura title, keyed by the
-   title id from design/aura-names.md. Sketches are the build-time
-   monochrome of the same file, for the phases before the name is earned.
-   Regenerate with the script in the aura-scenes slice; do not edit by hand. */
+/* The owner's fifty scenes (2026-09-19, brief v2): flat vector, 16:9,
+   shipped at 1200×675 from 2400×1350 masters in ~/Desktop/aura/png. One
+   scene per aura title, keyed by the title id from design/aura-names.md.
+   The sketches are the same pictures in one lavender ink on paper, made
+   at build time for the rungs before the name is earned. Regenerate with
+   the script in the aura-scenes slice; do not edit by hand. */
 
 export const AURA_SCENES: Record<string, number> = {
   "quiet-observer": require("../../assets/aura-scenes/01-quiet-observer.png"),

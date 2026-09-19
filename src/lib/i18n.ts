@@ -28,11 +28,13 @@ import { setEngineLanguage } from "./writing-engine/app-language";
    should never see machinery. */
 
 export type Lang = "en" | "es" | "pt" | "id";
-export const LANGS: { id: Lang; label: string }[] = [
-  { id: "en", label: "English" },
-  { id: "es", label: "Español" },
-  { id: "pt", label: "Português" },
-  { id: "id", label: "Bahasa Indonesia" },
+/* endonyms, never translated; the flag is the one the copy is written in —
+   the Portuguese here is Brazilian (você, pra), so it flies Brazil's */
+export const LANGS: { id: Lang; label: string; flag: string }[] = [
+  { id: "en", label: "English", flag: "🇺🇸" },
+  { id: "es", label: "Español", flag: "🇪🇸" },
+  { id: "pt", label: "Português", flag: "🇧🇷" },
+  { id: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
 ];
 
 const KEY = "kindredly_lang";
