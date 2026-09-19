@@ -20,15 +20,15 @@ import { MORNING_HOUR } from "../lib/notify";
 import { t as tr, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
 
-/* CLOSE OF DAY — the counter shuts, and you're the one who pulls the blind.
+/* CLOSE OF DAY — her window shuts, and you're the one who pulls the blind.
    ────────────────────────────────────────────────────────────────────────
-   The page already spoke in this world ("THE POST IS CLOSED", "off the
-   clock", "NEXT POST IN"), so it gets the object those words come from: a
-   post-office counter with a roller blind. She's behind the window packing
-   up; you pull the cord and the blind comes down with CLOSED, the date and
-   the next post printed on it. A counter closes at five in the afternoon
-   as readily as at midnight, which is the point — the day's ration can be
-   read by two o'clock, and a candle or a blanket would be lying then.
+   She's behind her window packing up; you pull the cord and the blind
+   comes down with CLOSED, the date and when she's back printed on it. A
+   window closes at five in the afternoon as readily as at midnight, which
+   is the point — the day's ration can be read by two o'clock, and a
+   candle or a blanket would be lying then. NOT a post office (owner,
+   2026-09-19: "we aren't the post"): letters are letters, she is the bird
+   who carries them, and nothing on this page says "post".
 
    It replaces the press-and-hold postmark (owner's call, 2026-09-19, from
    his Day's End sheet). The postmark left nothing behind; the blind carries
@@ -260,7 +260,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
 function Print() {
   const d = new Date();
   const day = String(d.getDate());
-  // the date is printed in the language of the post office you're standing in
+  // the date is printed in the reader's own language
   const mon = d.toLocaleString(localeTag(), { month: "short" }).replace(/\.$/, "").toUpperCase();
   return (
     <View style={{ alignItems: "center", marginTop: 26 }}>
@@ -273,22 +273,23 @@ function Print() {
   );
 }
 
-/* printed at the blind's foot, in the same ink as the rest: when the
-   counter opens again and how long that is — the countdown is part of the
-   sign, not a board hung under it */
+/* printed at the blind's foot, in the same ink as the rest: when she's
+   back and how long that is — the countdown is part of the sign, not a
+   board hung under it */
 function NextPost() {
   const [h, m] = useUntilMorning();
+  const wren = useWrenName();
   const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
   return (
     <View style={{ alignItems: "center", borderWidth: 1, borderColor: P.groundInk40, paddingHorizontal: 22, paddingTop: 8, paddingBottom: 9 }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost")}</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost", { name: wren.toUpperCase() })}</Text>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 2 }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 28, letterSpacing: 1, color: P.groundInk }}>{h}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.groundInk60 }}>H</Text>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 28, letterSpacing: 1, color: P.groundInk, marginLeft: 8 }}>{m}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.groundInk60 }}>M</Text>
       </View>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next")} {next}</Text>
+      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next", { t: next })}</Text>
     </View>
   );
 }
@@ -323,7 +324,7 @@ function Note({ facts }: { facts: DayFacts }) {
   );
 }
 
-/* hours + minutes until the morning post (the same hour the knock fires) */
+/* hours + minutes until she's back in the morning (the same hour the knock fires) */
 function useUntilMorning(): [string, string] {
   const calc = (): [string, string] => {
     const now = new Date();
