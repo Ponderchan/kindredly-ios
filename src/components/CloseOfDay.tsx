@@ -87,9 +87,13 @@ export function CloseOfDay({
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 2, color: P.groundInk, textAlign: "center" }}>
-          {tr("cod.wholePost")}
-        </Text>
+        {/* the heading is a capsule: ink on white, a dot of the pen colour for
+            the day that just turned, the same pill the rest of the app tags
+            things with */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: P.paper, borderRadius: 999, borderWidth: 1.5, borderColor: P.ink, paddingLeft: 13, paddingRight: 16, paddingVertical: 8 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: P.pen }} />
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2, color: P.ink }}>{tr("cod.wholePost")}</Text>
+        </View>
         <Counter sealed={sealed} facts={facts} onSeal={onSeal} onGrab={onGrab} />
         {/* the cue keeps its line after the pull so the counter doesn't shift */}
         <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.groundInk60, marginTop: 20, opacity: sealed ? 0 : 1 }}>{tr("cod.pull")}</Text>
