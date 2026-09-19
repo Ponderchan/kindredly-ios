@@ -1,4 +1,4 @@
-import type { SupportedLanguage } from "./types";
+import type { ReaderLanguage } from "./types";
 
 /* THE ENGINE'S VIEW OF THE APP LANGUAGE.
    ────────────────────────────────────────────────────────────────────────
@@ -9,12 +9,12 @@ import type { SupportedLanguage } from "./types";
    changes; the engine only ever reads this tiny holder. Defaults to "en" so
    the engine is correct even before i18n has loaded (and in tests). */
 
-let current: SupportedLanguage = "en";
+let current: ReaderLanguage = "en";
 
-export function setEngineLanguage(lang: SupportedLanguage): void {
+export function setEngineLanguage(lang: ReaderLanguage): void {
   current = lang;
 }
 
-export function engineLanguage(): SupportedLanguage {
+export function engineLanguage(): ReaderLanguage {
   return current;
 }

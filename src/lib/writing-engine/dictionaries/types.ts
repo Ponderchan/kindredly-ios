@@ -16,7 +16,16 @@ import type { JournalTheme } from "../types";
    membership rather than leaning on ASCII \b word boundaries, which mis-fire
    on accented words. */
 
+export type MatchMode = "token" | "prefix" | "substring";
+
 export interface LangResources {
+  /** how an entry meets the text. `token` (default): whole-word membership,
+      right for the Latin languages. `prefix`: a token counts when it BEGINS
+      with the entry — Korean 어절 carry their particles and endings
+      (피곤해요 / 피곤하고 / 피곤했어), and the stem is the front. `substring`:
+      the entry anywhere — Japanese has no spaces, so the tokenizer's runs
+      are clauses, and 疲れ / 嬉し / たぶん sit inside them. */
+  match?: MatchMode;
   /** qualifiers, hedges, discourse markers, particles — the "little words".
       Higher count → more hedged/qualifying. */
   hedges: string[];
@@ -56,8 +65,9 @@ export function tokenize(text: string): string[] {
   return (text.toLowerCase().match(/[\p{L}]+/gu) || []) as string[];
 }
 
-export function countAny(tokens: string[], list: string[]): number {
+export function countAny(tokens: string[], list: string[], mode: MatchMode = "token"): number {
   if (!list.length) return 0;
+  if (mode !== "token") return countMatches(tokens.join(" "), tokens, list, mode);
   const set = new Set(list);
   let n = 0;
   for (const tk of tokens) if (set.has(tk)) n++;
@@ -72,18 +82,27 @@ export function hasAny(tokens: string[], list: string[]): boolean {
 /* phrase-aware occurrence count: single-word entries counted by token
    membership (fast, exact), multi-word entries ("kind of", "por fin", "sei
    lá") counted by substring on the lowercased text. Used where the shipped
-   English behaviour counted phrases via regex. */
-export function countMatches(lowerText: string, tokens: string[], list: string[]): number {
+   English behaviour counted phrases via regex. An entry the tokenizer would
+   split — a hyphen or an apostrophe inside it ("peut-être", "j'imagine",
+   "orang-orang") — can never be a token, so it is counted as a phrase. */
+export function countMatches(lowerText: string, tokens: string[], list: string[], mode: MatchMode = "token"): number {
   const singles = new Set<string>();
   const phrases: string[] = [];
-  for (const w of list) (w.includes(" ") ? phrases.push(w) : singles.add(w));
+  for (const w of list) (mode === "substring" || /[ '’-]/.test(w) ? phrases.push(w) : singles.add(w));
   let n = 0;
-  for (const tk of tokens) if (singles.has(tk)) n++;
+  if (mode === "prefix") {
+    /* a one-syllable stem is only itself (나 is not 나무); from two on, the
+       front of the word is the word */
+    const stems = [...singles].filter((w) => w.length >= 2);
+    for (const tk of tokens) if (singles.has(tk) || stems.some((w) => tk.startsWith(w))) n++;
+  } else for (const tk of tokens) if (singles.has(tk)) n++;
+  // phones type the curly apostrophe; the lists are written with the straight one
+  const text = phrases.length && lowerText.includes("\u2019") ? lowerText.replace(/\u2019/g, "'") : lowerText;
   for (const p of phrases) {
-    let i = lowerText.indexOf(p);
+    let i = text.indexOf(p);
     while (i !== -1) {
       n++;
-      i = lowerText.indexOf(p, i + p.length);
+      i = text.indexOf(p, i + p.length);
     }
   }
   return n;

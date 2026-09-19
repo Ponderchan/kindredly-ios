@@ -1,6 +1,6 @@
 import { resources, tokenize } from "../dictionaries";
 import { detectLanguage } from "../resolve-language";
-import type { SupportedLanguage } from "../types";
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../types";
 import { lexicon } from "./lexicons";
 import type { Piece, PieceFeatures, PieceVerdict, Sentence, Span, TraitId } from "./types";
 
@@ -27,9 +27,15 @@ export function contentHash(text: string): string {
 /* ── language: the piece's own stamp, then its own words, never the UI ── */
 export function pieceLanguage(p: Piece): SupportedLanguage | null {
   const explicit = (p.lang || "").toLowerCase().split(/[-_]/)[0];
-  if (explicit === "en" || explicit === "es" || explicit === "pt" || explicit === "id") return explicit;
+  /* Japanese and Korean: neutral traits only. The rules here meet words by
+     whole token, which neither script offers, and reading them through
+     English lists would turn every missed word into a claim — "no
+     hedging", "clean stops". Their aura is read by the hatch engine, which
+     has their dictionaries; the stickers wait for a lexicon of their own. */
+  if (explicit === "ja" || explicit === "ko") return null;
+  if ((SUPPORTED_LANGUAGES as string[]).includes(explicit)) return explicit as SupportedLanguage;
   const detected = detectLanguage(p.text);
-  if (detected) return detected;
+  if (detected) return detected === "ja" || detected === "ko" ? null : detected;
   // English is never "detected" by the marker sets; a Latin-script piece with
   // no es/pt/id markers is read as English. Any other script → neutral only.
   const letters = p.text.match(/\p{L}/gu) || [];

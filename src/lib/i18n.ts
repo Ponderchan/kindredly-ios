@@ -62,12 +62,10 @@ function deviceLang(): Lang {
 }
 
 let current: Lang = deviceLang();
-/* The writing engine reads four languages (en/es/pt/id) — its dictionaries
-   of hedges and function words are per-language, and the other five have
-   none yet. Its resolver coerces an unknown tag to null and falls through
-   to detection, then English, so passing it the app language as a plain
-   string is correct: a French reader's UI is French, their aura is read in
-   the English frame until a French dictionary exists. */
+/* The writing engine reads all nine (dictionaries per language, and for
+   Japanese and Korean their own way of meeting the text). It is told the
+   app language as-is and takes it as a signal, not a verdict: the words
+   outvote it when they plainly belong to another language. */
 const engineTag = (l: Lang) => l as Parameters<typeof setEngineLanguage>[0];
 setEngineLanguage(engineTag(current)); // keep the writing engine's language in sync
 const subs = new Set<(l: Lang) => void>();

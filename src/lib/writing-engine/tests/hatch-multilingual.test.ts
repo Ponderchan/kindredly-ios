@@ -29,12 +29,17 @@ for (const [name, thoughts, want] of EN_EXPECT) {
 }
 
 // ── cross-language comparability ──
-// parallel short (direct) and long (layered) samples in all four languages.
+// parallel short (direct) and long (layered) samples in all nine languages.
 const SHORT: Record<SupportedLanguage, string[]> = {
   en: ["went to work.", "came home.", "slept."],
   es: ["fui al trabajo.", "volví a casa.", "dormí."],
   pt: ["fui trabalhar.", "voltei pra casa.", "dormi."],
   id: ["pergi kerja.", "pulang ke rumah.", "terus tidur."],
+  fr: ["allé au travail.", "rentré à la maison.", "dormi."],
+  de: ["zur arbeit gegangen.", "nach hause gekommen.", "geschlafen."],
+  it: ["andato al lavoro.", "tornato a casa.", "dormito."],
+  ja: ["仕事に行った。", "家に帰った。", "寝た。"],
+  ko: ["출근했다.", "집에 왔다.", "잤다."],
 };
 const LONG: Record<SupportedLanguage, string[]> = {
   en: [
@@ -53,10 +58,30 @@ const LONG: Record<SupportedLanguage, string[]> = {
     "aku terus memikirkan cara cahaya masuk lewat jendela dapur pagi ini, bagaimana ia membuat debu terlihat seolah melayang dengan sengaja.",
     "ada semacam keheningan yang hanya terjadi sebelum orang lain terbangun, dan aku mulai bangun pagi hanya untuk duduk di dalamnya.",
   ],
+  fr: [
+    "je repense sans arrêt à la façon dont la lumière entrait par la fenêtre de la cuisine ce matin, à comment elle faisait flotter la poussière comme exprès.",
+    "il y a une sorte de silence qui n'existe qu'avant que quelqu'un d'autre se réveille, et je me suis mis à me lever tôt juste pour m'asseoir dedans.",
+  ],
+  de: [
+    "ich denke immer noch daran, wie das licht heute morgen durchs küchenfenster kam, wie es den staub aussehen ließ, als würde er absichtlich schweben.",
+    "es gibt eine art von stille, die es nur gibt, bevor irgendjemand sonst wach ist, und ich habe angefangen, früh aufzustehen, nur um darin zu sitzen.",
+  ],
+  it: [
+    "continuo a pensare a come entrava la luce dalla finestra della cucina stamattina, a come faceva sembrare la polvere sospesa apposta.",
+    "c'è un tipo di silenzio che esiste solo prima che qualcun altro si svegli, e ho cominciato ad alzarmi presto solo per sedermi dentro.",
+  ],
+  ja: [
+    "今朝、台所の窓から差し込んでいた光のことをずっと考えている。埃がわざと浮かんでいるように見えた、あの感じを。",
+    "誰も起きていない時間にしかない静けさがあって、その中に座るためだけに早起きするようになった。",
+  ],
+  ko: [
+    "오늘 아침 부엌 창으로 들어오던 빛을 계속 생각하고 있다. 먼지가 일부러 떠 있는 것처럼 보이게 하던 그 느낌을.",
+    "아무도 깨어 있지 않을 때만 있는 고요함이 있어서, 그 안에 앉아 있으려고 일찍 일어나기 시작했다.",
+  ],
 };
 
 console.log("\n── comparability: short sentences read shorter than long, in every language ──");
-const langs: SupportedLanguage[] = ["en", "es", "pt", "id"];
+const langs: SupportedLanguage[] = ["en", "es", "pt", "id", "fr", "de", "it", "ja", "ko"];
 for (const l of langs) {
   setEngineLanguage(l);
   const s = dimOf(SHORT[l], "sentence");

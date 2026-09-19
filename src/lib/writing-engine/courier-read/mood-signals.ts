@@ -1,4 +1,4 @@
-import type { CourierReadResult, SupportedLanguage } from "../types";
+import type { CourierReadResult, ReaderLanguage } from "../types";
 import { resolveLanguage, type LanguageHints } from "../resolve-language";
 import { resources, tokenize, countAny } from "../dictionaries";
 
@@ -36,7 +36,7 @@ const ELLIPSIS = /(\.{3,}|。{2,}|…+|⋯)/;
 /** the full read — mood + confidence + which signals fired + language. */
 export function courierRead(text: string, enough: boolean, hints?: LanguageHints): CourierReadResult {
   const t = (text || "").trim();
-  const lang: SupportedLanguage = resolveLanguage(t, hints);
+  const lang: ReaderLanguage = resolveLanguage(t, hints);
   const res = resources(lang);
   const toks = tokenize(t);
   const signals: string[] = [];
@@ -44,7 +44,7 @@ export function courierRead(text: string, enough: boolean, hints?: LanguageHints
   if (!t) return { mood: "listen", confidence: 1, signals: ["empty"], language: lang };
 
   // ── heavy / negative — checked first; when unsure, be tender ──
-  const negHits = countAny(toks, res.affectNeg) + (ZH_HEAVY.test(t) ? 1 : 0);
+  const negHits = countAny(toks, res.affectNeg, res.match) + (ZH_HEAVY.test(t) ? 1 : 0);
   const heavyEmoji = has(t, HEAVY_EMOJI);
   if (negHits >= 1 || heavyEmoji) {
     if (negHits >= 1) signals.push(`affect-neg:${negHits}`);
@@ -55,7 +55,7 @@ export function courierRead(text: string, enough: boolean, hints?: LanguageHints
   }
 
   // ── light / bright ──
-  const posHits = countAny(toks, res.affectPos) + (ZH_LIGHT.test(t) ? 1 : 0);
+  const posHits = countAny(toks, res.affectPos, res.match) + (ZH_LIGHT.test(t) ? 1 : 0);
   const lightEmoji = has(t, LIGHT_EMOJI);
   const laugh = res.laughter.test(t) || ZH_LAUGH.test(t);
   const excited = EXCITED_PUNC.test(t);

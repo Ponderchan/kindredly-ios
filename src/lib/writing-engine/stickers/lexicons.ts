@@ -97,7 +97,57 @@ const ID: StickerLexicon = {
   timeOpen: /^(sekarang|jam|pukul)?\s*(\d{1,2}\s?(am|pm)|\d{1,2}[:.]\d{2}|tengah malam|siang bolong|pagi ini|sore ini|malam ini|tadi malam|subuh|dini hari|pagi-pagi|larut)\b/i,
 };
 
-const ALL: Record<SupportedLanguage, StickerLexicon> = { en: EN, es: ES, pt: PT, id: ID };
+const FR: StickerLexicon = {
+  concrete: "fenêtre rebord porte cuisine table chaise lit oreiller couverture lampe lumière tasse mug café thé pain riz soupe assiette bol cuillère couteau fourchette bouteille verre eau pluie neige vent soleil lune ciel nuage rue route bus métro train gare quai voiture vélo escalier balcon toit jardin arbre feuille feuilles fleur herbe rivière mer plage sable pierre mur sol plafond coin étagère livre page stylo crayon papier carnet téléphone écran clavier écouteurs chanson radio horloge montre clé manteau veste chaussures chaussettes écharpe sac poche cheveux mains main doigts visage yeux bouche peau poussière fumée vapeur odeur bruit son silence matin nuit soir après-midi minuit aube boutique marché café parc banc chien chat oiseau plante bougie savon serviette douche miroir photo boîte tiroir bureau".split(" "),
+  turns: ["mais", "pourtant", "quand même", "même si", "cependant", "sauf", "bref", "malgré"],
+  second: ["tu", "toi", "te", "ton", "ta", "tes", "vous", "votre", "vos"],
+  askers: ["quoi", "comment", "où", "quand", "pourquoi", "qui", "quel", "quelle", "quelqu'un", "est-ce", "tu as", "t'as", "tu sais", "tu crois", "vous avez"],
+  stance: /\b(je pense que|je crois que|je sais que|je veux|j'ai besoin|j'ai décidé|je me suis rendu compte|je suppose|franchement|la vérité c'est|en vrai|j'ai l'impression que)\b/i,
+  emotionalContext: "manque manques seul seule solitude fatigué fatiguée amour cœur coeur pleurer pleuré peur angoisse triste heureux heureuse colère énervé énervée douleur honte fier fière espoir perdu perdue brisé brisée jaloux jalouse culpabilité deuil débordé débordée".split(" "),
+  we: ["nous", "on", "notre", "nos", "nôtre"],
+  honestly: ["honnêtement", "franchement", "sincèrement", "en vrai", "pour être honnête", "je vais être honnête", "sérieux", "sérieusement"],
+  because: ["parce que", "parce qu", "puisque", "car", "c'est pour ça", "vu que", "du coup"],
+  andThen: ["et puis", "puis", "ensuite", "après", "et après", "et là", "finalement", "au final"],
+  greeting: /^(salut|coucou|bonjour|bonsoir|hey|cher|chère|hello|yo)\b/i,
+  timeOpen: /^(il est|il était)?\s*(\d{1,2}\s?h(\d{2})?|\d{1,2}:\d{2}|minuit|midi|ce matin|cet après-midi|ce soir|cette nuit|hier soir|tôt|tard|à l'aube)\b/i,
+};
+
+const DE: StickerLexicon = {
+  concrete: "fenster fensterbank tür küche tisch stuhl bett kissen decke lampe licht tasse becher kaffee tee brot reis suppe teller schüssel löffel messer gabel flasche glas wasser regen schnee wind sonne mond himmel wolke straße strasse weg bus bahn zug bahnhof gleis auto fahrrad rad treppe balkon dach garten baum blatt blätter blume gras fluss meer strand sand stein mauer wand boden decke ecke regal buch seite stift bleistift papier heft handy bildschirm tastatur kopfhörer lied radio uhr schlüssel mantel jacke schuhe socken schal tasche hosentasche haare hände hand finger gesicht augen mund haut staub rauch dampf geruch lärm geräusch stille morgen nacht abend nachmittag mitternacht dämmerung laden markt café park bank hund katze vogel pflanze kerze seife handtuch dusche spiegel foto kiste schublade schreibtisch".split(" "),
+  turns: ["aber", "doch", "trotzdem", "obwohl", "allerdings", "dennoch", "außer", "ausser", "immerhin", "jedoch"],
+  second: ["du", "dich", "dir", "dein", "deine", "deinen", "deinem", "deiner", "ihr", "euch", "sie"],
+  askers: ["was", "wie", "wo", "wann", "warum", "wieso", "weshalb", "wer", "welche", "welcher", "welches", "jemand", "hast", "habt", "kennst", "weißt", "weisst", "glaubst", "meinst"],
+  stance: /\b(ich denke|ich glaube|ich weiß|ich weiss|ich will|ich brauche|ich habe beschlossen|ich hab beschlossen|mir ist klar geworden|ich schätze|ehrlich gesagt|die wahrheit ist|ich habe das gefühl|ich hab das gefühl)\b/i,
+  emotionalContext: "vermisse vermisst allein alleine einsam müde erschöpft liebe herz weinen geweint angst sorge traurig glücklich froh wütend sauer schmerz scham stolz hoffnung verloren gebrochen eifersüchtig schuld trauer überfordert heimweh".split(" "),
+  we: ["wir", "uns", "unser", "unsere", "unseren", "unserem"],
+  honestly: ["ehrlich", "ehrlich gesagt", "um ehrlich zu sein", "ganz ehrlich", "im ernst", "ernsthaft", "wirklich"],
+  because: ["weil", "da", "denn", "deshalb", "deswegen", "darum", "wegen"],
+  andThen: ["und dann", "dann", "danach", "später", "und danach", "schließlich", "am ende", "irgendwann"],
+  greeting: /^(hi|hey|hallo|moin|servus|guten (morgen|abend|tag)|liebe|lieber|hallöchen|na)\b/i,
+  timeOpen: /^(es ist|es war)?\s*(\d{1,2}\s?uhr|\d{1,2}:\d{2}|mitternacht|mittag|heute morgen|heute nachmittag|heute abend|heute nacht|gestern abend|gestern nacht|früh|spät|im morgengrauen)\b/i,
+};
+
+const IT: StickerLexicon = {
+  concrete: "finestra davanzale porta cucina tavolo sedia letto cuscino coperta lampada luce tazza tazzina caffè tè pane riso zuppa piatto ciotola cucchiaio coltello forchetta bottiglia bicchiere acqua pioggia neve vento sole luna cielo nuvola strada via autobus metro treno stazione binario macchina bici scale balcone tetto giardino albero foglia foglie fiore erba fiume mare spiaggia sabbia pietra sasso muro pavimento soffitto angolo mensola libro pagina penna matita carta quaderno telefono cellulare schermo tastiera cuffie canzone radio orologio chiave cappotto giacca scarpe calzini sciarpa borsa tasca capelli mani mano dita viso occhi bocca pelle polvere fumo vapore odore rumore suono silenzio mattina notte sera pomeriggio mezzanotte alba negozio mercato bar parco panchina cane gatto uccello pianta candela sapone asciugamano doccia specchio foto scatola cassetto scrivania".split(" "),
+  turns: ["ma", "però", "eppure", "anche se", "comunque", "tuttavia", "tranne", "nonostante", "lo stesso"],
+  second: ["tu", "te", "ti", "tuo", "tua", "tuoi", "tue", "voi", "vostro", "vostra", "lei"],
+  askers: ["cosa", "che", "come", "dove", "quando", "perché", "chi", "quale", "qualcuno", "hai", "avete", "sai", "credi", "pensi", "ti è mai"],
+  stance: /\b(penso che|credo che|so che|voglio|ho bisogno|ho deciso|mi sono reso conto|mi sono resa conto|mi sa che|onestamente|la verità è|in realtà|ho la sensazione che)\b/i,
+  emotionalContext: "manca manchi mancanza solo sola solitudine stanco stanca amore cuore piangere pianto paura ansia triste felice arrabbiato arrabbiata dolore vergogna orgoglio speranza perso persa rotto rotta geloso gelosa colpa lutto sopraffatto nostalgia".split(" "),
+  we: ["noi", "ci", "nostro", "nostra", "nostri", "nostre"],
+  honestly: ["onestamente", "sinceramente", "la verità", "a dire il vero", "per essere onesto", "per essere onesta", "sul serio", "davvero", "seriamente"],
+  because: ["perché", "siccome", "dato che", "visto che", "per questo", "è che", "quindi"],
+  andThen: ["e poi", "poi", "dopo", "e dopo", "allora", "e allora", "alla fine", "infine"],
+  greeting: /^(ciao|ehi|hey|buongiorno|buonasera|buonanotte|caro|cara|salve)\b/i,
+  timeOpen: /^(sono le|è l'|è la|alle)?\s*(\d{1,2}\s?(am|pm)|\d{1,2}[:.]\d{2}|mezzanotte|mezzogiorno|stamattina|stanotte|stasera|oggi pomeriggio|ieri sera|ieri notte|presto|tardi|all'alba)\b/i,
+};
+
+/* Japanese and Korean have no sticker lexicon yet: the observation rules
+   meet words by whole token, which neither script offers (see
+   dictionaries/types MatchMode). Their pieces are read for the neutral
+   traits only (stickers/extract pieceLanguage), so this table is never
+   asked for them. */
+const ALL: Partial<Record<SupportedLanguage, StickerLexicon>> = { en: EN, es: ES, pt: PT, id: ID, fr: FR, de: DE, it: IT };
 
 export function lexicon(lang: SupportedLanguage): StickerLexicon {
   return ALL[lang] ?? EN;

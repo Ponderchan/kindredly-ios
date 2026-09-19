@@ -3,7 +3,7 @@ import { resolveLanguage } from "./writing-engine/resolve-language";
 import { resources, tokenize, countMatches } from "./writing-engine/dictionaries";
 import { baseline } from "./writing-engine/baselines";
 import { bornRead } from "./writing-engine/aura/born-types";
-import type { HatchRead } from "./writing-engine/types";
+import { hasDictionary, type HatchRead } from "./writing-engine/types";
 
 /* AsyncStorage is lazy-required only inside the two persistence functions so
    the pure scoring path (scoreNine/hatch) imports cleanly under plain node for
@@ -71,32 +71,83 @@ export interface HatchResult {
 
 const clamp = (n: number) => Math.max(4, Math.min(98, Math.round(n)));
 
+/* the two scripts' stand-ins for word length and type-token ratio — see
+   the vocabulary block in scoreNine */
+function scriptVocabulary(all: string, lang: "ja" | "ko"): { richness: number; shape: number; observed: boolean; enough: number; locked: boolean } {
+  if (lang === "ja") {
+    const chars = (all.match(/[぀-ヿ㐀-鿿]/g) || []).join("");
+    const kanji = (chars.match(/[㐀-鿿]/g) || []).length;
+    const density = chars.length ? kanji / chars.length : 0;
+    const grams = new Set<string>();
+    for (let i = 0; i + 1 < chars.length; i++) grams.add(chars.slice(i, i + 2));
+    const richness = chars.length > 1 ? grams.size / (chars.length - 1) : 0;
+    // a third kanji is ordinary written Japanese; more is a drawn word
+    return { richness, shape: density - 0.32, observed: density >= 0.36, enough: Math.min(1, chars.length / 120), locked: chars.length >= 80 };
+  }
+  const eojeol = all.match(/[가-힣]+/g) || [];
+  const meanSyl = eojeol.length ? eojeol.reduce((a, w) => a + w.length, 0) / eojeol.length : 0;
+  const richness = eojeol.length ? new Set(eojeol).size / eojeol.length : 0;
+  // two and a half syllables an 어절 is plain speech; past three, the words are shaped
+  return { richness, shape: (meanSyl - 2.6) * 0.4, observed: meanSyl >= 3.1, enough: Math.min(1, eojeol.length / 50), locked: eojeol.length >= 40 };
+}
+
 /** Score the nine from a set of short thoughts. Pure and deterministic. */
 export function scoreNine(thoughts: string[]): DimScore[] {
   const texts = thoughts.map((t) => t.trim()).filter(Boolean);
   const all = texts.join("\n");
   const sig = voiceSignature(all);
-  const words = Math.max(1, sig.words);
   const latin = all.match(/[A-Za-zÀ-ɏ']+/g) || [];
   const sents = all.split(/[.!?。！？\n]+/).filter((s) => s.trim().length);
-  const lens = sents.map((s) => voiceSignature(s).words);
-  const mean = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
-  const varc = lens.length ? lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length : 0;
 
   // ANALYZE LOCALLY: resolve the language and read it with its own resources;
   // the two length dimensions normalize against that language's baseline.
   const lang = resolveLanguage(all);
   const res = resources(lang);
   const B = baseline(lang);
+  /* sentence lengths in the baseline's own scale: 1 for every Latin
+     language (the frozen counter is a word count there); Japanese and
+     Korean come out of it compressed, and the factor undoes that before
+     anything is measured — see baselines for the numbers */
+  const scale = B.sentenceLenScale ?? 1;
+  const words = Math.max(1, sig.words * scale); // every per-word ratio and lock below is in the same scale
+  const lens = sents.map((s) => voiceSignature(s).words * scale);
+  const mean = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
+  const varc = lens.length ? lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length : 0;
+  /* A LANGUAGE WE CAN NAME BUT NOT READ (a tenth, some day — the nine all
+     have dictionaries since 2026-09-19): the
+     dimensions that live on a dictionary — the feeling words, the pronouns,
+     the hedges, the quirks, the openers and endings, and vocabulary's word
+     centre and abstract morphology — are still computed (the scores feed
+     the shape), but they never LOCK: an unlocked dimension shows as still
+     being read, a locked one is a claim, and "no hedging, commits to the
+     sentence" read off a French letter through an English word list was a
+     wrong one. Sentence length, rhythm and punctuation read the same in
+     every language and lock as before. Tier 1 of three; the next two are
+     the dictionaries themselves. */
+  const read = hasDictionary(lang);
   const lower = all.toLowerCase();
   const toks = tokenize(all);
   const affectAll = res.emotionWords ?? [...res.affectPos, ...res.affectNeg];
+  const count = (list: string[]) => countMatches(lower, toks, list, res.match);
 
   // vocabulary: uniqueness, concreteness, emotional reach
   const uniq = latin.length ? new Set(latin.map((w) => w.toLowerCase())).size / latin.length : 0;
   const avgLen = latin.length ? latin.reduce((a, w) => a + w.length, 0) / latin.length : 4;
   const abstractR = (all.match(res.abstract) || []).length / words;
-  const emoHits = countMatches(lower, toks, affectAll);
+  const emoHits = count(affectAll);
+  /* VOCABULARY WITHOUT LATIN WORDS. Type-token ratio and word length are
+     Latin measures; a Japanese or Korean letter has neither. What stands
+     in for them is what those scripts do have: for Japanese, how much of
+     the writing is kanji (the plain word is kana; the observed one is
+     drawn) and how often its character pairs recur; for Korean, how long
+     the 어절 run (a bare stem is short, a shaped one is not) and how many
+     of them repeat. Both provisional, both isolated here. */
+  const cjk = lang === "ja" || lang === "ko" ? scriptVocabulary(all, lang) : null;
+  const vocabScore = cjk
+    ? clamp(30 + cjk.richness * 40 * cjk.enough + cjk.shape * 60 + Math.min(14, emoHits * 4) + abstractR * 60)
+    : clamp(30 + uniq * 40 * Math.min(1, latin.length / 50) + (avgLen - B.wordLenCenter) * 11 + Math.min(14, emoHits * 4) + abstractR * 60);
+  const observed = cjk ? cjk.observed || abstractR > 0.02 : avgLen >= B.wordLenCopyThreshold || abstractR > 0.02;
+  const vocabLocked = cjk ? cjk.locked : latin.length >= 40;
 
   // sentence shape: length, fragments, pauses inside a line
   const frags = lens.filter((l) => l <= 3).length;
@@ -107,19 +158,25 @@ export function scoreNine(thoughts: string[]): DimScore[] {
   for (let i = 1; i < lens.length; i++) if (Math.abs(lens[i] - lens[i - 1]) >= 5) swings++;
 
   // emotion: depth, contrast, ownership
-  const contrast = countMatches(lower, toks, res.affectPos) > 0 && countMatches(lower, toks, res.affectNeg) > 0;
+  const contrast = count(res.affectPos) > 0 && count(res.affectNeg) > 0;
   const owned = res.ownedFrame.test(all);
 
   // perspective: introspection vs observation, and self-distance
-  const inward = countMatches(lower, toks, res.firstPerson) / words;
-  const outward = countMatches(lower, toks, res.outward) / words;
+  const outward = count(res.outward) / words;
+  /* Japanese and Korean drop the subject: a letter about oneself names
+     no "I" at all, and counting pronouns would read every such writer as
+     watching the world the moment a window is mentioned. The unmarked
+     subject in those languages IS the speaker — one per sentence at least
+     — and a written 私 / 나 on top of that is a writer who names it. */
+  const named = count(res.firstPerson);
+  const inward = (cjk ? Math.max(named, sents.length) : named) / words;
   const distance = res.distanceFrame.test(all);
 
   // function words: the small unconscious tells
-  const hedges = countMatches(lower, toks, res.hedges);
+  const hedges = count(res.hedges);
 
   // punctuation fingerprint
-  const commas = (all.match(/[,，]/g) || []).length;
+  const commas = (all.match(/[,，、]/g) || []).length;
   const dashes = (all.match(/[—–-]{1,2}/g) || []).length;
   const dots = (all.match(/(\.\.\.|…)/g) || []).length;
   const punctTotal = commas + dashes + dots + (all.match(/[.!?。！？]/g) || []).length;
@@ -133,7 +190,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
   // samples vs the old snapshot. Documented, not silent.
   const feelingEnd = texts.filter((t) => {
     const tail = t.split(/[.!?]/).slice(-2).join(" ");
-    return countMatches(tail.toLowerCase(), tokenize(tail), affectAll) > 0;
+    return countMatches(tail.toLowerCase(), tokenize(tail), affectAll, res.match) > 0;
   }).length;
 
   // quirks: personal signatures — shared, language-neutral tells plus the
@@ -152,13 +209,13 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       label: "Vocabulary",
       // type-token ratio is ~1.0 on any short text, so it only counts once
       // there are enough words for repetition to be possible at all
-      score: clamp(30 + uniq * 40 * Math.min(1, latin.length / 50) + (avgLen - B.wordLenCenter) * 11 + Math.min(14, emoHits * 4) + abstractR * 60),
-      locked: latin.length >= 40,
-      line: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
-      chip: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "Observed, not performed" : "Plain words, well aimed",
+      score: vocabScore,
+      locked: read && vocabLocked,
+      line: observed ? "You choose words that feel observed, not performed." : "You reach for the plain word, and it lands.",
+      chip: observed ? "Observed, not performed" : "Plain words, well aimed",
       sealed: "the words only you choose",
-      lineId: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "dim.line.vocabulary.observed" : "dim.line.vocabulary.plain",
-      chipId: avgLen >= B.wordLenCopyThreshold || abstractR > 0.02 ? "dim.chip.vocabulary.observed" : "dim.chip.vocabulary.plain",
+      lineId: observed ? "dim.line.vocabulary.observed" : "dim.line.vocabulary.plain",
+      chipId: observed ? "dim.chip.vocabulary.observed" : "dim.chip.vocabulary.plain",
     },
     {
       key: "sentence",
@@ -189,7 +246,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       icon: "♥",
       label: "Emotional Range",
       score: clamp(22 + emoHits * 9 + (contrast ? 22 : 0) + (owned ? 14 : 0)),
-      locked: words >= 30,
+      locked: read && words >= 30,
       line: contrast ? "You hold two feelings at once without dropping either." : owned ? "You notice feelings before naming them." : "You keep the feeling under the words, where it hums.",
       chip: contrast ? "Two feelings at once" : owned ? "Names its feelings" : "Feeling kept low",
       sealed: "the feelings under your words",
@@ -201,7 +258,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       icon: "◉",
       label: "Perspective",
       score: clamp(30 + inward * 200 + (distance ? 24 : 0) + outward * 90),
-      locked: words >= 40,
+      locked: read && words >= 40,
       line: distance ? "You often look at yourself from the outside." : inward > outward ? "You write from the inside out." : "You watch the world first, then let it in.",
       chip: distance ? "Sees itself from outside" : inward > outward ? "Writes inside out" : "Watches the world first",
       sealed: "how you see the world",
@@ -213,7 +270,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       icon: "∴",
       label: "Function Words",
       score: clamp(26 + hedges * 16),
-      locked: words >= 50,
+      locked: read && words >= 50,
       line: hedges >= 2 ? "Your small words reveal hesitation and curiosity." : "No hedging — you commit to the sentence.",
       chip: hedges >= 2 ? "Maybes and almosts" : "Commits to the sentence",
       sealed: "the small words you lean on",
@@ -237,7 +294,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       icon: "¶",
       label: "Structure",
       score: clamp(28 + detailOpen * 16 + feelingEnd * 16 + Math.min(20, texts.length * 5)),
-      locked: texts.length >= 3,
+      locked: read && texts.length >= 3,
       line: detailOpen >= 1 && feelingEnd >= 1 ? "You often start with a detail and arrive at a feeling." : "You open where the thought opens, no throat-clearing.",
       chip: detailOpen >= 1 && feelingEnd >= 1 ? "Detail, then feeling" : "No throat-clearing",
       sealed: "how your thoughts land",
@@ -249,7 +306,7 @@ export function scoreNine(thoughts: string[]): DimScore[] {
       icon: "✦",
       label: "Quirks",
       score: clamp(20 + q.length * 19),
-      locked: q.length >= 2 || words >= 80,
+      locked: read && (q.length >= 2 || words >= 80),
       line: q.length ? "You have small ways of saying things that feel unmistakably yours." : "No tics yet — they show up as you relax.",
       chip: q.length ? q.slice(0, 2).join(", ") : "No tics yet",
       sealed: "the patterns nobody else has",

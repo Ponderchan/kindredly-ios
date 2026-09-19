@@ -1,4 +1,4 @@
-import type { JournalTheme, JournalThemeAnalysis, SupportedLanguage } from "../types";
+import type { JournalTheme, JournalThemeAnalysis, ReaderLanguage } from "../types";
 import { resolveLanguage, type LanguageHints } from "../resolve-language";
 import { resources, tokenize } from "../dictionaries";
 
@@ -15,7 +15,7 @@ import { resources, tokenize } from "../dictionaries";
    the strongest one it has copy for. */
 
 export function detectThemes(text: string, hints?: LanguageHints): JournalThemeAnalysis {
-  const lang: SupportedLanguage = resolveLanguage(text, hints);
+  const lang: ReaderLanguage = resolveLanguage(text, hints);
   const res = resources(lang);
   const toks = tokenize(text);
   const counts = new Map<string, number>();
@@ -26,8 +26,16 @@ export function detectThemes(text: string, hints?: LanguageHints): JournalThemeA
     let hits = 0;
     const evidence: string[] = [];
     for (const w of words) {
-      // single-token words via the count map (fast); multi-word via substring
-      if (w.includes(" ")) {
+      // single-token words via the count map (fast); multi-word via substring.
+      // A prefix / substring language (ko / ja) meets its words the way its
+      // dictionary says, never by whole token.
+      if (res.match && res.match !== "token") {
+        const c = res.match === "prefix" ? toks.filter((tk) => tk === w || (w.length >= 2 && tk.startsWith(w))).length : (text.toLowerCase().split(w).length - 1);
+        if (c > 0) {
+          hits += c;
+          evidence.push(w);
+        }
+      } else if (w.includes(" ")) {
         if (text.toLowerCase().includes(w)) {
           hits += 1;
           evidence.push(w);

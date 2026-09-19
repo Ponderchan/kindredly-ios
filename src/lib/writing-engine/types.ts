@@ -14,8 +14,21 @@
    read. And signature.ts (the cross-user match vector) is byte-frozen; this
    module layers on top and never feeds it. */
 
-export type SupportedLanguage = "en" | "es" | "pt" | "id";
-export const SUPPORTED_LANGUAGES: SupportedLanguage[] = ["en", "es", "pt", "id"];
+export type SupportedLanguage = "en" | "es" | "pt" | "id" | "fr" | "de" | "it" | "ja" | "ko";
+export const SUPPORTED_LANGUAGES: SupportedLanguage[] = ["en", "es", "pt", "id", "fr", "de", "it", "ja", "ko"];
+
+/* THE NINE THE APP SPEAKS ARE THE NINE IT READS. The UI went to nine
+   languages (2026-09-19) while the dictionaries were at four; the other
+   five got theirs the same day — French, German and Italian as word lists
+   like the first four, Japanese and Korean with their own way of meeting
+   the text (dictionaries/types MatchMode) and their own vocabulary proxies
+   (hatch-engine). The distinction below is kept for the day a tenth
+   language arrives: a language we can name but not read resolves as
+   itself, and the dimensions that live on a dictionary decline to lock
+   instead of misreading. */
+export type ReaderLanguage = SupportedLanguage;
+export const READER_LANGUAGES: ReaderLanguage[] = ["en", "es", "pt", "id", "fr", "de", "it", "ja", "ko"];
+export const hasDictionary = (l: ReaderLanguage): l is SupportedLanguage => (SUPPORTED_LANGUAGES as string[]).includes(l);
 
 /* ── the nine, as a normalized vector ─────────────────────────────────────
    These keys are the product-facing style space. They map 1:1 onto the
@@ -84,7 +97,7 @@ export interface AuraDimensionResult {
 }
 
 export interface AuraAnalysisResult {
-  language: SupportedLanguage;
+  language: ReaderLanguage;
   dimensions: Record<AuraAxis, AuraDimensionResult>;
 }
 
@@ -162,7 +175,7 @@ export interface CourierReadResult {
   mood: CourierMood;
   confidence: number; // 0..1
   signals: string[]; // stable signal ids that fired, for debugging
-  language: SupportedLanguage;
+  language: ReaderLanguage;
 }
 
 /* ── journal themes: stable, language-independent IDs ──────────────────────
@@ -192,7 +205,7 @@ export interface JournalThemeResult {
 }
 
 export interface JournalThemeAnalysis {
-  language: SupportedLanguage;
+  language: ReaderLanguage;
   themes: JournalThemeResult[];
 }
 
