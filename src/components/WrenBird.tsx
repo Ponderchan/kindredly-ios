@@ -1,7 +1,7 @@
 import type { HatchlingForm } from "../lib/hatchling-form";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { WREN_FAMILY, type WShape } from "./wren-family-data";
-import { useWrenSkin } from "../lib/wren-skin";
+import { useWrenAccessory, useWrenSkin } from "../lib/wren-skin";
 import { useWrenStage } from "../lib/wren-stage";
 
 /* Wren — the mascot. As of the wren-family delivery she comes in THREE skins
@@ -36,7 +36,7 @@ const STAGE_KEY: Record<Exclude<WrenStage, "wren">, string> = {
 
 // chick body fill per skin — used to patch over the baked-in eyes when a
 // hatch-stage mood needs a different eye shape
-const CHICK_FILL: Record<WrenSkin, string> = {
+export const CHICK_FILL: Record<WrenSkin, string> = {
   sticker: "#5757EC",
   plush: "#A9C6F2",
   ink: "#2B2A4A",
@@ -50,9 +50,10 @@ export function WrenBird({
   size = 96,
   mood = "content",
   stage: stageProp,
-  accessory = "none",
+  accessory: accessoryProp,
   pose = "perch",
   skin: skinProp,
+  mark: markProp,
   outlined = false,
   form: formProp,
 }: {
@@ -62,6 +63,8 @@ export function WrenBird({
   accessory?: WrenAccessory;
   pose?: WrenPose;
   skin?: WrenSkin;
+  /** the shell's birthmark, on the hatchling's forehead; falls back to the saved egg */
+  mark?: string | null;
   /* THE WHITE DIE-CUT OUTLINE, AND WHY IT IS NOW OPT-IN.
      It shipped as opt-OUT, the theory being that a keyline lifts her off a
      busy page. In practice twenty-five of forty-two call sites had already
@@ -78,12 +81,15 @@ export function WrenBird({
   form?: HatchlingForm;
 }) {
   const ctxSkin = useWrenSkin();
+  const ctxAccessory = useWrenAccessory();
+  const accessory = accessoryProp ?? ctxAccessory; // explicit wins (the rack's tiles); else what she's wearing
   const skin = skinProp ?? ctxSkin; // explicit prop wins (gallery); else the app-wide pick
   /* the stage the same way: a screen that means a specific stage says so; every
      other surface draws her where she actually is (see lib/wren-stage) */
   const ctxStage = useWrenStage();
   const stage: WrenStage = stageProp ?? ctxStage.stage ?? "wren";
   const form = formProp ?? (stage === "hatch" ? ctxStage.form ?? undefined : undefined);
+  const mark = markProp === undefined ? ctxStage.mark : markProp;
   const keys: string[] = [];
   let hatchMood: WrenMood | null = null;
 
@@ -110,7 +116,8 @@ export function WrenBird({
         />
       ))}
       {stage === "hatch" && form?.tail && <TailFeather />}
-      {hatchMood && <HatchEyes mood={hatchMood} skin={skin} />}
+      {stage === "hatch" && pose !== "fly" && !!mark && size > 20 && <Birthmark color={mark} />}
+      {hatchMood && <HatchEyes mood={hatchMood} skin={skin} form={form} />}
       {stage === "hatch" && pose !== "fly" && accessory !== "none" && size > 20 && <HatchAcc a={accessory} />}
     </Svg>
   );
@@ -121,7 +128,7 @@ export function WrenBird({
    all three skins ship the same eleven shapes, but relying on index would
    make a reordered export silently deform the wrong thing. Each rule below
    states what it is looking at. */
-function shapeHatchling(list: WShape[], f: HatchlingForm): WShape[] {
+export function shapeHatchling(list: WShape[], f: HatchlingForm): WShape[] {
   const num = (v: unknown) => (typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN);
   const CX = 100; // her axis of symmetry in the 200x200 viewBox
 
@@ -162,7 +169,7 @@ function shapeHatchling(list: WShape[], f: HatchlingForm): WShape[] {
     // BEAK — the small amber path, scaled about its own centre.
     if (sh.t === "p" && /^#(EFB050|F2A0B5|F2887E|E8B04A|5B55FF)$/i.test(String(sh.f)) && f.beakScale !== 1) {
       const k = f.beakScale;
-      return { ...sh, tf: `translate(${CX * (1 - k)} ${132 * (1 - k)}) scale(${k})` } as WShape;
+      return { ...sh, tf: `translate(${128 * (1 - k)} ${117 * (1 - k)}) scale(${k})` } as WShape;
     }
 
     return sh;
@@ -170,14 +177,23 @@ function shapeHatchling(list: WShape[], f: HatchlingForm): WShape[] {
 }
 
 /* the extra feather a distinctive hand earns — drawn, not selected */
-function TailFeather() {
-  return <Path d="M36 118 q-20 -8 -24 6 q13 9 26 3 Z" fill="#4646DB" stroke="#FFFFFF" strokeWidth={5} strokeLinejoin="round" />;
+/* THE BIRTHMARK. The shell you picked before you wrote is the one thing
+   about her you chose, and it used to vanish the moment she was named. It
+   stays, as a small mark on her forehead in the shell's own colour — the
+   sheet's line is "the shell only leaves a birthmark; the bird inside is
+   written, not chosen". */
+export function Birthmark({ color }: { color: string }) {
+  return <Path d="M98 79 q8 -7 16 0 q-3 9 -8 9 q-5 0 -8 -9z" fill={color} opacity={0.8} />;
+}
+
+export function TailFeather() {
+  return <Path d="M50 117 q-22 -12 -27 2 q14 10 28 4 Z" fill="#4646DB" stroke="#FFFFFF" strokeWidth={5} strokeLinejoin="round" />;
 }
 
 const isWhite = (c?: string) => !!c && /^#(fff|ffffff)$/i.test(c.trim());
 
 /* render one symbol's shape list */
-function Shapes({ list, bare }: { list: WShape[]; bare?: boolean }) {
+export function Shapes({ list, bare }: { list: WShape[]; bare?: boolean }) {
   return (
     <G>
       {list.map((s, i) => {
@@ -201,15 +217,31 @@ function Shapes({ list, bare }: { list: WShape[]; bare?: boolean }) {
   );
 }
 
-/* hatchling mood overlay — the chick's baked-in eyes sit at (80,122)/(120,122)
-   r8 on the shared skeleton; moods that need other eye shapes patch them with
-   the skin's body fill first. Same semantics as the adult set. */
-function HatchEyes({ mood, skin }: { mood: WrenMood; skin: WrenSkin }) {
+/* hatchling mood overlay — the chick's baked-in eyes sit at EL (far) and
+   ER (near) on the three-quarter head; moods that need other eye shapes
+   patch them with the skin's body fill first. Same semantics as the adult
+   set. Every mark is drawn relative to the eye it belongs to, so the eyes
+   can move in the generator without this file following by hand. */
+const EL0 = { x: 89.5, y: 103 };
+const ER0 = { x: 117.5, y: 99.5 };
+export function HatchEyes({ mood, skin, form }: { mood: WrenMood; skin: WrenSkin; form?: HatchlingForm }) {
   const patch = CHICK_FILL[skin];
+  /* the read moves her eyes apart and scales them (shapeHatchling); the
+     mood's marks follow, or a wide-set chick would smile beside her eyes */
+  const spread = form?.eyeSpread ?? 0;
+  const k = form?.eyeScale ?? 1;
+  const EL = { x: EL0.x - spread, y: EL0.y };
+  const ER = { x: ER0.x + spread, y: ER0.y };
   const Patch = () => (
     <G>
-      <Circle cx={80} cy={122} r={10} fill={patch} />
-      <Circle cx={120} cy={122} r={10} fill={patch} />
+      <Circle cx={EL.x} cy={EL.y} r={11 * k} fill={patch} />
+      <Circle cx={ER.x} cy={ER.y} r={11 * k} fill={patch} />
+    </G>
+  );
+  const both = (d: (e: { x: number; y: number }) => string, sw: number) => (
+    <G>
+      <Path d={d(EL)} stroke={EYE} strokeWidth={sw} fill="none" strokeLinecap="round" />
+      <Path d={d(ER)} stroke={EYE} strokeWidth={sw} fill="none" strokeLinecap="round" />
     </G>
   );
   switch (mood) {
@@ -217,64 +249,56 @@ function HatchEyes({ mood, skin }: { mood: WrenMood; skin: WrenSkin }) {
       return (
         <G>
           <Patch />
-          <Path d="M71 124 Q80 114 89 124" stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
-          <Path d="M111 124 Q120 114 129 124" stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
+          {both((e) => `M${e.x - 9} ${e.y + 2} Q${e.x} ${e.y - 8} ${e.x + 9} ${e.y + 2}`, 6)}
         </G>
       );
     case "sleepy":
       return (
         <G>
           <Patch />
-          <Path d="M71 120 Q80 128 89 120" stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
-          <Path d="M111 120 Q120 128 129 120" stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
+          {both((e) => `M${e.x - 9} ${e.y - 2} Q${e.x} ${e.y + 6} ${e.x + 9} ${e.y - 2}`, 6)}
         </G>
       );
     case "delight":
       return (
         <G>
           <Patch />
-          <Path d="M80 111 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z" fill="#E8A63C" />
-          <Path d="M120 111 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z" fill="#E8A63C" />
+          <Path d={`M${EL.x} ${EL.y - 11} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z`} fill="#E8A63C" />
+          <Path d={`M${ER.x} ${ER.y - 11} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z`} fill="#E8A63C" />
         </G>
       );
     case "worry":
       return (
         <G>
-          <Path d="M70 109 Q80 113 90 109" stroke={EYE} strokeWidth={4.5} fill="none" strokeLinecap="round" />
-          <Path d="M110 109 Q120 113 130 109" stroke={EYE} strokeWidth={4.5} fill="none" strokeLinecap="round" />
-          <Path d="M138 118 q5 8 0 14 q-5 -6 0 -14 z" fill="#8ECBE8" />
+          {both((e) => `M${e.x - 10} ${e.y - 13} Q${e.x} ${e.y - 9} ${e.x + 10} ${e.y - 13}`, 4.5)}
+          <Path d={`M${ER.x + 18} ${ER.y - 4} q5 8 0 14 q-5 -6 0 -14 z`} fill="#8ECBE8" />
         </G>
       );
     case "listen":
-      return (
-        <G>
-          <Path d="M70 111 Q80 106 90 111" stroke={EYE} strokeWidth={4.5} fill="none" strokeLinecap="round" />
-          <Path d="M110 111 Q120 106 130 111" stroke={EYE} strokeWidth={4.5} fill="none" strokeLinecap="round" />
-        </G>
-      );
+      return both((e) => `M${e.x - 10} ${e.y - 11} Q${e.x} ${e.y - 16} ${e.x + 10} ${e.y - 11}`, 4.5);
     case "curious":
       return (
         <G>
           <Patch />
-          <Circle cx={80} cy={122} r={9} fill={EYE} />
-          <Circle cx={77} cy={119} r={3} fill={HI} />
-          <Circle cx={120} cy={122} r={6} fill={EYE} />
-          <Circle cx={118} cy={120} r={2} fill={HI} />
+          <Circle cx={EL.x} cy={EL.y} r={9} fill={EYE} />
+          <Circle cx={EL.x - 3} cy={EL.y - 3} r={3} fill={HI} />
+          <Circle cx={ER.x} cy={ER.y} r={6} fill={EYE} />
+          <Circle cx={ER.x - 2} cy={ER.y - 2} r={2} fill={HI} />
         </G>
       );
     case "think":
       return (
         <G>
-          <Circle cx={142} cy={104} r={2.6} fill="#A6A1B6" />
-          <Circle cx={150} cy={98} r={2.2} fill="#A6A1B6" />
-          <Circle cx={156} cy={91} r={1.8} fill="#A6A1B6" />
+          <Circle cx={ER.x + 24} cy={ER.y - 18} r={2.6} fill="#A6A1B6" />
+          <Circle cx={ER.x + 32} cy={ER.y - 24} r={2.2} fill="#A6A1B6" />
+          <Circle cx={ER.x + 38} cy={ER.y - 31} r={1.8} fill="#A6A1B6" />
         </G>
       );
     case "wink":
       return (
         <G>
-          <Circle cx={80} cy={122} r={10} fill={CHICK_FILL[skin]} />
-          <Path d="M71 122 Q80 116 89 122" stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
+          <Circle cx={EL.x} cy={EL.y} r={11 * k} fill={patch} />
+          <Path d={`M${EL.x - 9} ${EL.y} Q${EL.x} ${EL.y - 6} ${EL.x + 9} ${EL.y}`} stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
         </G>
       );
     default:
@@ -285,11 +309,11 @@ function HatchEyes({ mood, skin }: { mood: WrenMood; skin: WrenSkin }) {
 /* chick-sized wearables — carried over from the previous set so the born
    trait still shows at the hatch. Round-2 of the design delivery replaces
    these with skin-matched versions (and adds party/shades + fledgling). */
-function HatchAcc({ a }: { a: WrenAccessory }) {
+export function HatchAcc({ a }: { a: WrenAccessory }) {
   switch (a) {
     case "beanie":
       return (
-        <G>
+        <G transform="translate(6 -13)">
           <Path d="M60 92 Q100 48 140 92 Q140 99 131 99 L69 99 Q60 99 60 92 Z" fill="#EF6D8C" />
           <Rect x={58} y={94} width={84} height={12} rx={6} fill="#F2EFFF" />
           <Circle cx={100} cy={50} r={8} fill="#F2EFFF" />
@@ -297,14 +321,14 @@ function HatchAcc({ a }: { a: WrenAccessory }) {
       );
     case "scarf":
       return (
-        <G>
+        <G transform="translate(2 -14)">
           <Path d="M62 162 Q100 180 138 162 L138 175 Q100 194 62 175 Z" fill="#6FBF9B" />
           <Path d="M126 170 l12 24 l10 -6 l-10 -22 z" fill="#6FBF9B" />
         </G>
       );
     case "phones":
       return (
-        <G>
+        <G transform="translate(5 -18)">
           <Path d="M52 128 Q52 70 100 70 Q148 70 148 128" fill="none" stroke="#2A2740" strokeWidth={6} strokeLinecap="round" />
           <Rect x={42} y={120} width={17} height={28} rx={7} fill="#2A2740" />
           <Rect x={141} y={120} width={17} height={28} rx={7} fill="#2A2740" />
@@ -312,7 +336,7 @@ function HatchAcc({ a }: { a: WrenAccessory }) {
       );
     case "flower":
       return (
-        <G>
+        <G transform="translate(6 -13)">
           <Circle cx={76} cy={82} r={7} fill="#EF9CB4" />
           <Circle cx={100} cy={72} r={7} fill="#EF9CB4" />
           <Circle cx={124} cy={82} r={7} fill="#EF9CB4" />

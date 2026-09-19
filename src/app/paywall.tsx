@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../theme/post";
 import { W14 } from "../components/AuraCard";
@@ -55,14 +56,38 @@ function money(priceString: string): { amount: number; symbol: string; short: st
   return { amount, symbol: m[1] || "", short: `${m[1] || ""}${m[2]}` };
 }
 
+/* the route: the pass as a modal sheet, closed with × */
 export default function Paywall() {
-  useLang();
   const router = useRouter();
-  const wren = useWrenName();
-  const { handle } = useAuth();
-  const { premium, refresh } = useEntitlement();
   const { src } = useLocalSearchParams<{ src?: string }>();
   const source = (src || "unknown") as PaywallSource;
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
+  return <PaywallBody source={source} onClose={close} onDone={() => router.back()} />;
+}
+
+/* THE PASS ITSELF, wherever it's shown. The route above presents it as a
+   sheet; onboarding shows it as a page in the flow, with its own opening
+   line and its own name for the courier (she isn't saved yet there). */
+export function PaywallBody({
+  source,
+  onClose,
+  onDone,
+  head,
+  lead,
+  courier,
+}: {
+  source: PaywallSource;
+  onClose: () => void; // × — dismissed without buying
+  onDone: () => void; // after the welcome, bought
+  head?: string; // the headline, when the page has a reason of its own
+  lead?: string; // the line under it
+  courier?: string; // her name, when it isn't saved yet
+}) {
+  useLang();
+  const savedName = useWrenName();
+  const wren = courier || savedName;
+  const { handle } = useAuth();
+  const { premium, refresh } = useEntitlement();
 
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -94,7 +119,7 @@ export default function Paywall() {
 
   const back = () => {
     track("paywall_dismissed", { source, fare: chosen?.period ?? "none" });
-    router.canGoBack() ? router.back() : router.replace("/(tabs)/me");
+    onClose();
   };
   const subscribe = async () => {
     if (!chosen || busy) return;
@@ -127,7 +152,7 @@ export default function Paywall() {
   if (welcome) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <FirstClassWelcome lifetime={welcome === "lifetime"} onDone={() => router.back()} />
+        <FirstClassWelcome lifetime={welcome === "lifetime"} onDone={onDone} />
       </SafeAreaView>
     );
   }
@@ -162,17 +187,20 @@ export default function Paywall() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: NIGHT }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
+        {/* a modal closes; it doesn't go back. An × on the sheet, not a ‹ */}
         <Pressable onPress={back} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: "#FFFFFF" }}>‹</Text>
+          <Svg width={18} height={18} viewBox="0 0 24 24">
+            <Path d="M5 5 L19 19 M19 5 L5 19" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" />
+          </Svg>
         </Pressable>
         <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.6, color: GOLD }}>{t("me.firstClass")}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 24, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: PF.serif, fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : t("fc.introHead")}</Text>
+        <Text style={{ fontFamily: PF.serif, fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : head || t("fc.introHead")}</Text>
         <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: "rgba(255,255,255,0.62)", marginTop: 10 }}>
-          {premium ? t("fc.paidIntroSub", { wren }) : t("fc.introSub")}
+          {premium ? t("fc.paidIntroSub", { wren }) : lead || t("fc.introSub")}
         </Text>
 
         {/* ── the boarding pass ── */}

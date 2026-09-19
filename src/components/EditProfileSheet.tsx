@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { t, useLang } from "../lib/i18n";
 import { C, F, cardStyle, navyBtn } from "../theme/tokens";
 import { FACES } from "../data/aura-avatar-lib";
+import { getYourPronoun, type PronounId } from "../lib/pronouns";
 import { AvatarImage } from "./AvatarImage";
 
 /* Edit profile — bottom sheet: big preview, choose a photo OR pick a face
@@ -57,7 +58,15 @@ export function EditProfileSheet({
     setPhotoUri(null);
   };
 
-  const roll = () => pickFace(FACES[Math.floor(Math.random() * FACES.length)].id);
+  /* THE POOL FOLLOWS WHAT YOU TOLD US. she → the f faces, he → the m faces,
+     they / never said → all of them — the same rule as onboarding, so the
+     dice and the row never offer a face from the other pool. */
+  const [pro, setPro] = useState<PronounId>("they");
+  useEffect(() => {
+    if (visible) void getYourPronoun().then(setPro);
+  }, [visible]);
+  const faces = pro === "she" ? FACES.filter((a) => a.pool === "f") : pro === "he" ? FACES.filter((a) => a.pool === "m") : FACES;
+  const roll = () => pickFace(faces[Math.floor(Math.random() * faces.length)].id);
 
   const canSave = name.trim().length > 0;
 
@@ -100,7 +109,7 @@ export function EditProfileSheet({
               </Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4, paddingRight: 12 }}>
-              {FACES.map((a) => {
+              {faces.map((a) => {
                 const on = avatarId === a.id && !photoUri;
                 return (
                   <Pressable key={a.id} onPress={() => pickFace(a.id)}>

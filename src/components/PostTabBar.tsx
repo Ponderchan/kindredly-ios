@@ -1,104 +1,80 @@
-import { Pressable, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Pressable, View } from "react-native";
+import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { P, PF } from "../theme/post";
+import Svg, { Circle, Path } from "react-native-svg";
+import { P } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
 
-/* THE TAB BAR — five plain windows (owner's sheet, 2026-09-16).
+/* THE TAB BAR — four plain windows and a plus (owner, 2026-09-19).
    ────────────────────────────────────────────────────────────────────────
-   The ruled counter of postal glyphs and a mosaic was the system talking
-   to itself; twenty readers could not say which was which. So this is the
-   plain thing — a white bar with rounded shoulders, the icons everyone
-   already knows (envelope, notebook, plane, two rings, a person), and the
-   one action, Write, raised on a pen-blue square in the middle. No words
-   under them — the owner's call — so the icons have to be the ordinary
-   ones. Active is pen blue; the rest are quiet ink. */
+   Readers called the last one complicated, and they were right: a house
+   with a flag, an envelope with wax, two envelopes, a card with handwriting
+   — three of the four were envelopes, and the write key was a raised
+   square with a plane on it. Nobody could say which was which.
 
-const BAR = 58;
-const ICON = 28;
+   So: the ordinary icons, one stroke weight, one family — an envelope for
+   Today, a book for Sealed, two speech bubbles for Kindreds (two people
+   read as Me twice), one person for Me — no words under them, and in the
+   middle a plain round + in the app's one action colour. Pressing it doesn't leave the page: the + turns into
+   an × and two choices rise out of it (PostFan). Active is pen blue with a
+   wash behind the stroke; the rest are quiet ink. */
 
-/* the owner's Nav D2 sheet, path for path (viewBox 28). Four marks from
-   the post — the house the letters come to, the sealed envelope, two
-   envelopes changing hands, the writing itself — drawn 1.8 at rest and
-   2.2 when chosen, with the chosen one filled white and given its one
-   colour: the flag on the roof, the red wax, the green dot, the blue hand. */
-const INK = "#55506E";
-const PEN = "#3A34D6";
+export const BAR = 54;
+const ICON = 27;
+export const PLUS = 52;
+/** the bar's full height, safe area included — the fan sits on top of it */
+export const tabBarHeight = (insetBottom: number) => BAR + Math.max(insetBottom, 8);
 
-/** TODAY — the house; a flag goes up on the roof when it is the page */
-export function Envelope({ color, active }: { color: string; active?: boolean }) {
-  const sw = active ? 2.2 : 1.8;
+const INK = "#5B5776";
+const PEN = P.pen;
+const WASH = "rgba(58,58,245,0.12)";
+
+type IconProps = { color: string; active?: boolean; size?: number };
+const strokeFor = (active?: boolean) => (active ? 2.2 : 1.8);
+
+/** TODAY — an envelope */
+export function Envelope({ color, active, size = ICON }: IconProps) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round">
-      <Path d="M4 12h20v11H4z" fill={active ? "#FFFFFF" : "none"} />
-      <Path d="M4 12l10-7 10 7" />
-      {active ? (
-        <>
-          <Path d="M14 5V0" />
-          <Path d="M11 2.4l3-2.4 3 2.4" />
-        </>
-      ) : (
-        <Path d="M9 17h10" strokeWidth={1.6} />
-      )}
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeFor(active)} strokeLinejoin="round" strokeLinecap="round">
+      <Path d="M3 7.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill={active ? WASH : "none"} />
+      <Path d="M3.5 8l8.5 5.5L20.5 8" />
     </Svg>
   );
 }
 
-/** SEALED — the envelope; the wax turns red when it is the page */
-function Sealed({ color, active }: { color: string; active?: boolean }) {
-  const sw = active ? 2.2 : 1.8;
+/** SEALED — a closed book, a small seal on the cover */
+export function Book({ color, active, size = ICON }: IconProps) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round">
-      <Path d="M4 8h20v15H4z" fill={active ? "#FFFFFF" : "none"} />
-      <Path d="M4 8l10 7 10-7" />
-      {active ? (
-        <>
-          <Circle cx={14} cy={15} r={4.4} fill="#C8412E" stroke="none" />
-          <Circle cx={14} cy={15} r={2} fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth={1.4} />
-        </>
-      ) : (
-        <Circle cx={14} cy={15} r={3.4} />
-      )}
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeFor(active)} strokeLinejoin="round" strokeLinecap="round">
+      <Path d="M6.5 3.5h11a2 2 0 0 1 2 2v15h-13a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z" fill={active ? WASH : "none"} />
+      <Path d="M8.5 3.5v17" />
+      <Circle cx={14} cy={11} r={2.2} />
     </Svg>
   );
 }
 
-function Plane({ color }: { color: string }) {
+/** KINDREDS — two speech bubbles, one answering the other */
+export function Kindreds({ color, active, size = ICON }: IconProps) {
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.7} strokeLinejoin="round" strokeLinecap="round">
-      <Path d="M20.5 3.5L3.5 10.5l7.5 3 3 7.5 6.5-17.5z" />
-      <Path d="M11 13.5l9.5-10" />
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeFor(active)} strokeLinejoin="round" strokeLinecap="round">
+      <Path d="M3 6.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8l-3.5 3v-3H5a2 2 0 0 1-2-2z" fill={active ? WASH : "none"} />
+      <Path d="M18.5 9.5h.5a2 2 0 0 1 2 2v4.5a2 2 0 0 1-2 2h-.5v3l-3.4-3H12" />
     </Svg>
   );
 }
 
-/** KINDREDS — two envelopes, one behind the other; a green dot when it is the page */
-export function Kindreds({ color, active }: { color: string; active?: boolean }) {
-  const sw = active ? 2.2 : 1.8;
+/** ME — one person */
+export function Me({ color, active, size = ICON }: IconProps) {
   return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round">
-      <Path d="M3 13h14v10H3z" fill={active ? "#EAE8FC" : "none"} />
-      <Path d="M3 13l7 5 7-5" />
-      <Path d="M11 5h14v10H11z" fill={active ? "#FFFFFF" : "#FBFAFE"} />
-      <Path d="M11 15l7-5 7 5" />
-      {active && <Circle cx={18} cy={10} r={2.6} fill="#6DAE78" stroke="none" />}
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeFor(active)} strokeLinejoin="round" strokeLinecap="round">
+      <Circle cx={12} cy={8.5} r={3.8} fill={active ? WASH : "none"} />
+      <Path d="M4.5 20.5c0-4.3 3.3-6.7 7.5-6.7s7.5 2.4 7.5 6.7" fill={active ? WASH : "none"} />
     </Svg>
   );
 }
 
-/** ME — the writing itself: a card with two lines of hand */
-function Me({ color, active }: { color: string; active?: boolean }) {
-  const sw = active ? 2.2 : 1.8;
-  return (
-    <Svg width={ICON} height={ICON} viewBox="0 0 28 28" fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round">
-      <Path d="M5 6h18v17H5z" fill={active ? "#FFFFFF" : "none"} />
-      <Path d="M9 12q3-3 5 0t5 0" strokeWidth={active ? 2.4 : 1.6} />
-      <Path d="M9 17q3-3 5 0t5 0" strokeWidth={active ? 2.4 : 1.6} />
-    </Svg>
-  );
-}
-
-export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
+export function PostTabBar({ state, navigation, onPost, open = false, waiting = 0 }: any) {
   useLang(); // the navigator renders this bar, not a screen — subscribe here or the labels go stale
   const insets = useSafeAreaInsets();
   const current: string = state.routes[state.index]?.name ?? "letters";
@@ -110,17 +86,28 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
     if (!focused && !event.defaultPrevented) navigation.navigate(name);
   };
 
-  const Window = ({ name, label, Icon, dot }: { name: string; label: string; Icon: (p: { color: string; active?: boolean }) => React.ReactNode; dot?: boolean }) => {
+  /* the + becomes an ×: an eighth of a turn and the action colour going to
+     the postmark red, both on one value. A plain ease, no spring — a spring
+     overshoots the 45° and the whole disc wobbles (owner, 2026-09-19). */
+  const turn = useSharedValue(open ? 1 : 0);
+  useEffect(() => {
+    turn.value = withTiming(open ? 1 : 0, { duration: 220, easing: Easing.out(Easing.cubic) });
+  }, [open, turn]);
+  const disc = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(turn.value, [0, 1], [PEN, P.post]),
+    transform: [{ rotate: `${turn.value * 45}deg` }],
+  }));
+
+  const Window = ({ name, label, Icon, dot }: { name: string; label: string; Icon: (p: IconProps) => React.ReactNode; dot?: boolean }) => {
     const active = current === name;
     const color = active ? PEN : INK;
     return (
-      <Pressable onPress={() => go(name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR, gap: 4 }}>
+      <Pressable onPress={() => go(name)} accessibilityLabel={label} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>
         <View>
           <Icon color={color} active={active} />
           {/* one dot of pen ink — someone answered and it is your turn */}
           {dot && !active && <View style={{ position: "absolute", top: -2, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: PEN, borderWidth: 1.6, borderColor: "#FFFFFF" }} />}
         </View>
-        <Text style={{ fontFamily: PF.letter, fontWeight: active ? "700" : "500", fontSize: 9.5, color }}>{label}</Text>
       </Pressable>
     );
   };
@@ -136,35 +123,19 @@ export function PostTabBar({ state, navigation, onPost, waiting = 0 }: any) {
         borderTopWidth: 1,
         borderTopColor: "rgba(30,27,53,0.08)",
         paddingBottom: Math.max(insets.bottom, 8),
-        shadowColor: "#1E1B35",
-        shadowOpacity: 0.06,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: -3 },
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 6 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 6 }}>
         <Window name="letters" label={t("tab.today")} Icon={Envelope} />
-        <Window name="journal" label={t("tab.sealed")} Icon={Sealed} />
+        <Window name="journal" label={t("tab.sealed")} Icon={Book} />
 
-        {/* WRITE — the one action, raised above the rest on its own square */}
-        <Pressable onPress={onPost} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>
-          <View
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              backgroundColor: P.pen,
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: -18,
-              shadowColor: P.pen,
-              shadowOpacity: 0.35,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: 8 },
-            }}
-          >
-            <Plane color="#FFFFFF" />
-          </View>
+        {/* the plus — the one action, in the one action colour */}
+        <Pressable onPress={onPost} hitSlop={6} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>
+          <Animated.View style={[disc, { width: PLUS, height: PLUS, borderRadius: PLUS / 2, alignItems: "center", justifyContent: "center" }]}>
+            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={2.6} strokeLinecap="round">
+              <Path d="M12 5v14M5 12h14" />
+            </Svg>
+          </Animated.View>
         </Pressable>
 
         <Window name="kindreds" label={t("tab.kindreds")} Icon={Kindreds} dot={waiting > 0} />

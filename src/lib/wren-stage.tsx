@@ -13,13 +13,16 @@ import { useAuth } from "./auth";
 import { collectGrowthStats } from "./stats";
 import { getStageFloor, stageIndex, wrenStage } from "./wren-style";
 import { getHatchlingForm, type HatchlingForm } from "./hatchling-form";
+import { getWrenEgg } from "./wren-name";
+import { EGG_SHELLS } from "../components/EggShell";
 
 interface StageValue {
   stage: WrenStage | null; // null until the first read lands — WrenBird then draws her grown, as before
   form: HatchlingForm | null;
+  mark: string | null; // the shell's birthmark colour, while she's a hatchling
   refresh: () => void;
 }
-const Ctx = createContext<StageValue>({ stage: null, form: null, refresh: () => {} });
+const Ctx = createContext<StageValue>({ stage: null, form: null, mark: null, refresh: () => {} });
 
 /* anything that changes her stage (a letter sent, onboarding done) pokes this */
 const listeners = new Set<() => void>();
@@ -31,18 +34,20 @@ export function WrenStageProvider({ children }: { children: ReactNode }) {
   const { user, ready, isGuest } = useAuth();
   const [stage, setStage] = useState<WrenStage | null>(null);
   const [form, setForm] = useState<HatchlingForm | null>(null);
+  const [mark, setMark] = useState<string | null>(null);
   const busy = useRef(false);
 
   const refresh = useCallback(() => {
     if (!ready || busy.current) return;
     busy.current = true;
-    Promise.all([collectGrowthStats(user?.created_at), getStageFloor(), getHatchlingForm()])
-      .then(([s, floor, f]) => {
+    Promise.all([collectGrowthStats(user?.created_at), getStageFloor(), getHatchlingForm(), getWrenEgg()])
+      .then(([s, floor, f, egg]) => {
         const live = wrenStage(s);
         // a guest has no threads yet; the floor (hatch, set by onboarding) carries her
         const st = stageIndex(live) >= stageIndex(floor) ? live : floor;
         setStage(isGuest && st === "egg" ? "hatch" : st);
         setForm(f);
+        setMark(EGG_SHELLS[egg]?.mark ?? null);
       })
       .catch(() => {})
       .finally(() => {
@@ -64,7 +69,7 @@ export function WrenStageProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
-  return <Ctx.Provider value={{ stage, form, refresh }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ stage, form, mark, refresh }}>{children}</Ctx.Provider>;
 }
 
 export const useWrenStage = (): StageValue => useContext(Ctx);

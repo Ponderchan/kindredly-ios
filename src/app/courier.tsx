@@ -15,8 +15,9 @@ import { EMPTY_STATS, collectGrowthStats } from "../lib/stats";
 import type { GrowthStats } from "../data/growth";
 import { fetchThreads, readThreadsCache, type ThreadSummary } from "../lib/db";
 import { useWrenStage } from "../lib/wren-stage";
+import { useWrenSkinControl } from "../lib/wren-skin";
 import { myAura, type Aura } from "../lib/aura";
-import { getStageFloor, getWrenAccessory, setWrenAccessory, stageIndex, wrenStage } from "../lib/wren-style";
+import { getStageFloor, stageIndex, wrenStage } from "../lib/wren-style";
 
 /* THE COURIER'S ROOM — her own page (owner's call, 2026-09-16).
    ────────────────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ export default function CourierRoom() {
   const [statsReady, setStatsReady] = useState(false);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [aura, setAura] = useState<Aura | null>(null);
-  const [accessory, setAccessory] = useState<WrenAccessory>("none");
+  const { accessory, dress } = useWrenSkinControl(); // app-wide: a piece put on here is on her everywhere
   /* HER STAGE IS ALREADY KNOWN. The app-wide stage context computed it at
      launch; starting from "egg" here painted "Still in the egg" over a
      grown bird for the second the stats took to arrive. Start from what
@@ -59,7 +60,6 @@ export default function CourierRoom() {
       });
       readThreadsCache().then((c) => alive && c && setThreads(c)); // the last list, at once
       fetchThreads().then((th) => alive && setThreads(th || []));
-      getWrenAccessory().then((a) => alive && setAccessory(a));
       myAura((profile?.firstLine as string) || null).then((a) => alive && setAura(a));
       return () => {
         alive = false;
@@ -67,10 +67,7 @@ export default function CourierRoom() {
     }, [user?.created_at, profile?.firstLine]),
   );
 
-  const equip = (a: WrenAccessory) => {
-    setAccessory(a);
-    void setWrenAccessory(a);
-  };
+  const equip = (a: WrenAccessory) => dress(a);
 
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>

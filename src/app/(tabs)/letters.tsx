@@ -37,7 +37,7 @@ import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weig
 import { fieldBox } from "../../lib/field";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { LetterInFlight } from "../../components/LetterInFlight";
-import { MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
+import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
 import { LeaveSheet } from "../../components/LeaveSheet";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
@@ -52,6 +52,18 @@ const PAPER = "#FBF7EC";
 const W = Dimensions.get("window").width;
 const WINDOW_H = Dimensions.get("window").height;
 const WINDOW_W = Dimensions.get("window").width;
+
+/* a reload lands on a desk already in use: every letter the server still
+   has stays where it is (one that's gone — its author deleted it, became a
+   kindred, was blocked — leaves), and the day's new ones join at the end,
+   up to the fifteen */
+function keepDesk(cur: PoolLetter[], all: PoolLetter[], fresh: PoolLetter[]): PoolLetter[] {
+  const alive = new Set(all.map((l) => l.id));
+  const kept = cur.filter((l) => alive.has(l.id));
+  const seen = new Set(kept.map((l) => l.id));
+  const add = fresh.filter((l) => !seen.has(l.id));
+  return [...kept, ...add].slice(0, Math.max(kept.length, DAY_LETTERS));
+}
 
 export default function LettersTab() {
   useLang(); // repaint when the reader changes language
@@ -116,16 +128,32 @@ export default function LettersTab() {
      already exists on every letter; what was missing was somebody saying
      so, which is now her job at both ends — see WrenSaysOnce on the
      composer and the line beside TRANSLATE. */
-  const load = useCallback(async () => {
+  /* THE DESK DOESN'T REARRANGE ITSELF UNDER YOU. A reload used to replace
+     the pool outright and then re-sort it once the matcher answered — two
+     shuffles a second apart, and the letter under the reader's thumb was
+     swapped twice. Coming back to the tab read as the desk "flipping
+     through a few letters" on its own (owner, 2026-09-19). The ration's
+     own rule is the same fifteen all day, so a reload with letters already
+     on the desk only ADDS at the end and attaches scores in place; the
+     order is only rebuilt when there's nothing on the desk yet, or when the
+     reader asks (pull / retry → reset). */
+  const loadedRef = useRef(false);
+  const load = useCallback(async (reset = false) => {
+    /* the first answer after opening rebuilds the desk (the cache on screen
+       was only a placeholder, and matched writers belong at the top); every
+       later one keeps it */
+    const rebuild = reset || !loadedRef.current;
     /* THE LETTERS DON'T WAIT ON THE MATCHER. Awaiting both together meant the
        feed appeared only once the nightly-matches lookup also came back — a
        query that adds nothing to the first paint and, for most readers, comes
        back empty anyway. The pool paints as soon as it lands; the closeness
-       scores fold in a moment later and re-sort in place. */
+       scores fold in a moment later. */
     const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
     setFlightsUp(inFlight((th || []) as FlightThread[]));
-    setPool(rationPool(p || []));
+    const fresh = rationPool(p || []);
+    setPool((cur) => (rebuild || !cur.length ? fresh : keepDesk(cur, p || [], fresh)));
     setLoaded(true);
+    loadedRef.current = true;
     if (p && p.length) void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify(p.slice(0, 40))).catch(() => {});
     const m = await fetchMatches();
     if (!m?.closest?.length) return;
@@ -141,12 +169,9 @@ export default function LettersTab() {
     const theirs = (await fetchPool(40, m.closest.map((c) => c.uid))) || [];
     setPool((cur) => {
       const seen = new Set(cur.map((l) => l.id));
-      return rationPool(
-        [...cur, ...theirs.filter((l) => !seen.has(l.id))]
-          .map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }))
-          // matched first; everything else keeps the server's newest-first order
-          .sort((a, b) => (b.close ?? -1) - (a.close ?? -1)),
-      );
+      const scored = [...cur, ...theirs.filter((l) => !seen.has(l.id))].map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }));
+      // a desk being built: matched first, then the server's newest-first. A desk in use: as it was, the matched newcomers at the end
+      return rebuild || !seen.size ? rationPool(scored.sort((a, b) => (b.close ?? -1) - (a.close ?? -1))) : scored.slice(0, Math.max(cur.length, DAY_LETTERS));
     });
   }, []);
   useFocusEffect(
@@ -166,7 +191,7 @@ export default function LettersTab() {
     <Feed
       feed={feed}
       loaded={loaded}
-      onReloaded={load}
+      onReloaded={() => load(true)}
       flights={flightsUp}
       router={router}
       demo={demo}

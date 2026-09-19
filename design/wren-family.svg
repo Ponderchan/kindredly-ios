@@ -28,19 +28,21 @@
 </symbol>
 
 <symbol id="base-hatchling" viewBox="0 0 200 200">
-<path d="M148,116 q22,-6 26,10 q-14,10 -28,4 Z" fill="#4646DB" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"></path>
-<path d="M100,66 Q98,46 108,42" fill="none" stroke="#8E8EFF" stroke-width="10" stroke-linecap="round"></path>
-<circle cx="100" cy="130" r="56" fill="#5757EC" stroke="#FFFFFF" stroke-width="10"></circle>
-<ellipse cx="100" cy="154" rx="30" ry="22" fill="#F6E7C9"></ellipse>
-<circle cx="80" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="120" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="77" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="117" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="66" cy="140" r="7" fill="#EF9CB4"></circle>
-<circle cx="134" cy="140" r="7" fill="#EF9CB4"></circle>
-<path d="M100,132 l9,6 l-9,7 l-9,-7 Z" fill="#F2A0B5"></path>
-<path d="M86,184 L86,196 M114,184 L114,196" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5" stroke-linecap="round"></path>
-<path d="M76,196 L96,196 M104,196 L124,196" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="M54.5,127.5L33.5,117L40.5,138Z" fill="#4646DB"></path>
+<ellipse cx="58" cy="131" rx="9.63" ry="17.5" fill="#4646DB" transform="rotate(24 58 131)"></ellipse>
+<path d="M103.5,62.8Q100,50.5 110.5,45.3" fill="none" stroke="#8E8EFF" stroke-width="8.75" stroke-linecap="round"></path>
+<circle cx="100" cy="113.5" r="52.5" fill="#5757EC" stroke="#FFFFFF" stroke-width="10.5"></circle>
+<ellipse cx="100" cy="141.5" rx="29.75" ry="21" fill="#F6E7C9"></ellipse>
+<ellipse cx="145.5" cy="134.5" rx="11.38" ry="19.25" fill="#4646DB" transform="rotate(-22 145.5 134.5)"></ellipse>
+<circle cx="89.5" cy="103" r="8.05" fill="#1E1B33"></circle>
+<circle cx="92.3" cy="100.2" r="2.42" fill="#FFFFFF"></circle>
+<circle cx="117.5" cy="99.5" r="8.75" fill="#1E1B33"></circle>
+<circle cx="120.6" cy="96.4" r="2.63" fill="#FFFFFF"></circle>
+<circle cx="80.8" cy="113.5" r="5.95" fill="#EF9CB4"></circle>
+<circle cx="129.8" cy="127.5" r="5.25" fill="#EF9CB4"></circle>
+<path d="M121,110L145.5,117L121,124Z" fill="#F2A0B5"></path>
+<path d="M86,164.3L86,174.8M110.5,164.3L110.5,174.8" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M75.5,174.8L96.5,174.8M100,174.8L121,174.8" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.6" stroke-linecap="round"></path>
 </symbol>
 
 <symbol id="base-fledgling" viewBox="0 0 200 200">
@@ -95,19 +97,21 @@
 </symbol>
 
 <symbol id="wren-sticker-hatchling" viewBox="0 0 200 200">
-<path d="M148,116 q22,-6 26,10 q-14,10 -28,4 Z" fill="#4646DB" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"></path>
-<path d="M100,66 Q98,46 108,42" fill="none" stroke="#8E8EFF" stroke-width="10" stroke-linecap="round"></path>
-<circle cx="100" cy="130" r="56" fill="#5757EC" stroke="#FFFFFF" stroke-width="10"></circle>
-<ellipse cx="100" cy="154" rx="30" ry="22" fill="#F6E7C9"></ellipse>
-<circle cx="80" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="120" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="77" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="117" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="66" cy="140" r="7" fill="#EF9CB4"></circle>
-<circle cx="134" cy="140" r="7" fill="#EF9CB4"></circle>
-<path d="M100,132 l9,6 l-9,7 l-9,-7 Z" fill="#F2A0B5"></path>
-<path d="M86,184 L86,196 M114,184 L114,196" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5" stroke-linecap="round"></path>
-<path d="M76,196 L96,196 M104,196 L124,196" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="M54.5,127.5L33.5,117L40.5,138Z" fill="#4646DB"></path>
+<ellipse cx="58" cy="131" rx="9.63" ry="17.5" fill="#4646DB" transform="rotate(24 58 131)"></ellipse>
+<path d="M103.5,62.8Q100,50.5 110.5,45.3" fill="none" stroke="#8E8EFF" stroke-width="8.75" stroke-linecap="round"></path>
+<circle cx="100" cy="113.5" r="52.5" fill="#5757EC" stroke="#FFFFFF" stroke-width="10.5"></circle>
+<ellipse cx="100" cy="141.5" rx="29.75" ry="21" fill="#F6E7C9"></ellipse>
+<ellipse cx="145.5" cy="134.5" rx="11.38" ry="19.25" fill="#4646DB" transform="rotate(-22 145.5 134.5)"></ellipse>
+<circle cx="89.5" cy="103" r="8.05" fill="#1E1B33"></circle>
+<circle cx="92.3" cy="100.2" r="2.42" fill="#FFFFFF"></circle>
+<circle cx="117.5" cy="99.5" r="8.75" fill="#1E1B33"></circle>
+<circle cx="120.6" cy="96.4" r="2.63" fill="#FFFFFF"></circle>
+<circle cx="80.8" cy="113.5" r="5.95" fill="#EF9CB4"></circle>
+<circle cx="129.8" cy="127.5" r="5.25" fill="#EF9CB4"></circle>
+<path d="M121,110L145.5,117L121,124Z" fill="#F2A0B5"></path>
+<path d="M86,164.3L86,174.8M110.5,164.3L110.5,174.8" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M75.5,174.8L96.5,174.8M100,174.8L121,174.8" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.6" stroke-linecap="round"></path>
 </symbol>
 
 <symbol id="wren-sticker-fledgling" viewBox="0 0 200 200">
@@ -305,19 +309,21 @@
 </symbol>
 
 <symbol id="wren-plush-hatchling" viewBox="0 0 200 200">
-<path d="M148,116 q22,-6 26,10 q-14,10 -28,4 Z" fill="#7FA5E0" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"></path>
-<path d="M100,66 Q98,46 108,42" fill="none" stroke="#C8DBF7" stroke-width="10" stroke-linecap="round"></path>
-<circle cx="100" cy="130" r="56" fill="#A9C6F2" stroke="#FFFFFF" stroke-width="10"></circle>
-<ellipse cx="100" cy="154" rx="30" ry="22" fill="#FBF3E2"></ellipse>
-<circle cx="80" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="120" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="77" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="117" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="66" cy="140" r="7" fill="#EF9CB4"></circle>
-<circle cx="134" cy="140" r="7" fill="#EF9CB4"></circle>
-<path d="M100,132 l9,6 l-9,7 l-9,-7 Z" fill="#F2887E"></path>
-<path d="M86,184 L86,196 M114,184 L114,196" fill="#F2887E" stroke="#F2887E" stroke-width="5" stroke-linecap="round"></path>
-<path d="M76,196 L96,196 M104,196 L124,196" fill="#F2887E" stroke="#F2887E" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="M54.5,127.5L33.5,117L40.5,138Z" fill="#7FA5E0"></path>
+<ellipse cx="58" cy="131" rx="9.63" ry="17.5" fill="#7FA5E0" transform="rotate(24 58 131)"></ellipse>
+<path d="M103.5,62.8Q100,50.5 110.5,45.3" fill="none" stroke="#C8DBF7" stroke-width="8.75" stroke-linecap="round"></path>
+<circle cx="100" cy="113.5" r="52.5" fill="#A9C6F2" stroke="#FFFFFF" stroke-width="10.5"></circle>
+<ellipse cx="100" cy="141.5" rx="29.75" ry="21" fill="#FBF3E2"></ellipse>
+<ellipse cx="145.5" cy="134.5" rx="11.38" ry="19.25" fill="#7FA5E0" transform="rotate(-22 145.5 134.5)"></ellipse>
+<circle cx="89.5" cy="103" r="8.05" fill="#1E1B33"></circle>
+<circle cx="92.3" cy="100.2" r="2.42" fill="#FFFFFF"></circle>
+<circle cx="117.5" cy="99.5" r="8.75" fill="#1E1B33"></circle>
+<circle cx="120.6" cy="96.4" r="2.63" fill="#FFFFFF"></circle>
+<circle cx="80.8" cy="113.5" r="5.95" fill="#EF9CB4"></circle>
+<circle cx="129.8" cy="127.5" r="5.25" fill="#EF9CB4"></circle>
+<path d="M121,110L145.5,117L121,124Z" fill="#F2887E"></path>
+<path d="M86,164.3L86,174.8M110.5,164.3L110.5,174.8" fill="#F2887E" stroke="#F2887E" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M75.5,174.8L96.5,174.8M100,174.8L121,174.8" fill="#F2887E" stroke="#F2887E" stroke-width="5.6" stroke-linecap="round"></path>
 </symbol>
 
 <symbol id="wren-plush-fledgling" viewBox="0 0 200 200">
@@ -515,19 +521,23 @@
 </symbol>
 
 <symbol id="wren-ink-hatchling" viewBox="0 0 200 200">
-<path d="M148,116 q22,-6 26,10 q-14,10 -28,4 Z" fill="#1B1A33" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"></path>
-<path d="M100,66 Q98,46 108,42" fill="none" stroke="#4A4870" stroke-width="10" stroke-linecap="round"></path>
-<circle cx="100" cy="130" r="56" fill="#2B2A4A" stroke="#FFFFFF" stroke-width="10"></circle>
-<ellipse cx="100" cy="154" rx="30" ry="22" fill="#F6E7C9"></ellipse>
-<circle cx="80" cy="122" r="8" fill="#1E1B33" stroke="#F6E7C9" stroke-width="3"></circle>
-<circle cx="120" cy="122" r="8" fill="#1E1B33" stroke="#F6E7C9" stroke-width="3"></circle>
-<circle cx="77" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="117" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="66" cy="140" r="7" fill="#EF9CB4"></circle>
-<circle cx="134" cy="140" r="7" fill="#EF9CB4"></circle>
-<path d="M100,132 l9,6 l-9,7 l-9,-7 Z" fill="#F2A0B5"></path>
-<path d="M86,184 L86,196 M114,184 L114,196" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5" stroke-linecap="round"></path>
-<path d="M76,196 L96,196 M104,196 L124,196" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="M54.5,127.5L33.5,117L40.5,138Z" fill="#1B1A33"></path>
+<ellipse cx="58" cy="131" rx="9.63" ry="17.5" fill="#1B1A33" transform="rotate(24 58 131)"></ellipse>
+<path d="M103.5,62.8Q100,50.5 110.5,45.3" fill="none" stroke="#4A4870" stroke-width="8.75" stroke-linecap="round"></path>
+<circle cx="100" cy="113.5" r="52.5" fill="#2B2A4A" stroke="#FFFFFF" stroke-width="10.5"></circle>
+<ellipse cx="100" cy="141.5" rx="29.75" ry="21" fill="#F6E7C9"></ellipse>
+<ellipse cx="145.5" cy="134.5" rx="11.38" ry="19.25" fill="#1B1A33" transform="rotate(-22 145.5 134.5)"></ellipse>
+<circle cx="89.5" cy="103" r="10.15" fill="#F6E7C9"></circle>
+<circle cx="89.5" cy="103" r="8.05" fill="#1E1B33"></circle>
+<circle cx="92.3" cy="100.2" r="2.42" fill="#FFFFFF"></circle>
+<circle cx="117.5" cy="99.5" r="10.85" fill="#F6E7C9"></circle>
+<circle cx="117.5" cy="99.5" r="8.75" fill="#1E1B33"></circle>
+<circle cx="120.6" cy="96.4" r="2.63" fill="#FFFFFF"></circle>
+<circle cx="80.8" cy="113.5" r="5.95" fill="#EF9CB4"></circle>
+<circle cx="129.8" cy="127.5" r="5.25" fill="#EF9CB4"></circle>
+<path d="M121,110L145.5,117L121,124Z" fill="#F2A0B5"></path>
+<path d="M86,164.3L86,174.8M110.5,164.3L110.5,174.8" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M75.5,174.8L96.5,174.8M100,174.8L121,174.8" fill="#F2A0B5" stroke="#F2A0B5" stroke-width="5.6" stroke-linecap="round"></path>
 </symbol>
 
 <symbol id="wren-ink-fledgling" viewBox="0 0 200 200">
@@ -745,19 +755,21 @@
 </symbol>
 
 <symbol id="wren-moss-hatchling" viewBox="0 0 200 200">
-<path d="M148,116 q22,-6 26,10 q-14,10 -28,4 Z" fill="#4F8F5C" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"></path>
-<path d="M100,66 Q98,46 108,42" fill="none" stroke="#9CCFA5" stroke-width="10" stroke-linecap="round"></path>
-<circle cx="100" cy="130" r="56" fill="#6DAE78" stroke="#FFFFFF" stroke-width="10"></circle>
-<ellipse cx="100" cy="154" rx="30" ry="22" fill="#F1E8CE"></ellipse>
-<circle cx="80" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="120" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="77" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="117" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="66" cy="140" r="7" fill="#EF9CB4"></circle>
-<circle cx="134" cy="140" r="7" fill="#EF9CB4"></circle>
-<path d="M100,132 l9,6 l-9,7 l-9,-7 Z" fill="#E8B04A"></path>
-<path d="M86,184 L86,196 M114,184 L114,196" fill="#E8B04A" stroke="#E8B04A" stroke-width="5" stroke-linecap="round"></path>
-<path d="M76,196 L96,196 M104,196 L124,196" fill="#E8B04A" stroke="#E8B04A" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="M54.5,127.5L33.5,117L40.5,138Z" fill="#4F8F5C"></path>
+<ellipse cx="58" cy="131" rx="9.63" ry="17.5" fill="#4F8F5C" transform="rotate(24 58 131)"></ellipse>
+<path d="M103.5,62.8Q100,50.5 110.5,45.3" fill="none" stroke="#9CCFA5" stroke-width="8.75" stroke-linecap="round"></path>
+<circle cx="100" cy="113.5" r="52.5" fill="#6DAE78" stroke="#FFFFFF" stroke-width="10.5"></circle>
+<ellipse cx="100" cy="141.5" rx="29.75" ry="21" fill="#F1E8CE"></ellipse>
+<ellipse cx="145.5" cy="134.5" rx="11.38" ry="19.25" fill="#4F8F5C" transform="rotate(-22 145.5 134.5)"></ellipse>
+<circle cx="89.5" cy="103" r="8.05" fill="#1E1B33"></circle>
+<circle cx="92.3" cy="100.2" r="2.42" fill="#FFFFFF"></circle>
+<circle cx="117.5" cy="99.5" r="8.75" fill="#1E1B33"></circle>
+<circle cx="120.6" cy="96.4" r="2.63" fill="#FFFFFF"></circle>
+<circle cx="80.8" cy="113.5" r="5.95" fill="#EF9CB4"></circle>
+<circle cx="129.8" cy="127.5" r="5.25" fill="#EF9CB4"></circle>
+<path d="M121,110L145.5,117L121,124Z" fill="#E8B04A"></path>
+<path d="M86,164.3L86,174.8M110.5,164.3L110.5,174.8" fill="#E8B04A" stroke="#E8B04A" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M75.5,174.8L96.5,174.8M100,174.8L121,174.8" fill="#E8B04A" stroke="#E8B04A" stroke-width="5.6" stroke-linecap="round"></path>
 </symbol>
 
 <symbol id="wren-moss-fledgling" viewBox="0 0 200 200">
@@ -955,19 +967,21 @@
 </symbol>
 
 <symbol id="wren-peach-hatchling" viewBox="0 0 200 200">
-<path d="M148,116 q22,-6 26,10 q-14,10 -28,4 Z" fill="#E27E6A" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"></path>
-<path d="M100,66 Q98,46 108,42" fill="none" stroke="#F7C0B2" stroke-width="10" stroke-linecap="round"></path>
-<circle cx="100" cy="130" r="56" fill="#F2A08C" stroke="#FFFFFF" stroke-width="10"></circle>
-<ellipse cx="100" cy="154" rx="30" ry="22" fill="#F6E7C9"></ellipse>
-<circle cx="80" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="120" cy="122" r="8" fill="#1E1B33"></circle>
-<circle cx="77" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="117" cy="119" r="2.6" fill="#FFFFFF"></circle>
-<circle cx="66" cy="140" r="7" fill="#EF9CB4"></circle>
-<circle cx="134" cy="140" r="7" fill="#EF9CB4"></circle>
-<path d="M100,132 l9,6 l-9,7 l-9,-7 Z" fill="#5B55FF"></path>
-<path d="M86,184 L86,196 M114,184 L114,196" fill="#5B55FF" stroke="#5B55FF" stroke-width="5" stroke-linecap="round"></path>
-<path d="M76,196 L96,196 M104,196 L124,196" fill="#5B55FF" stroke="#5B55FF" stroke-width="5.5" stroke-linecap="round"></path>
+<path d="M54.5,127.5L33.5,117L40.5,138Z" fill="#E27E6A"></path>
+<ellipse cx="58" cy="131" rx="9.63" ry="17.5" fill="#E27E6A" transform="rotate(24 58 131)"></ellipse>
+<path d="M103.5,62.8Q100,50.5 110.5,45.3" fill="none" stroke="#F7C0B2" stroke-width="8.75" stroke-linecap="round"></path>
+<circle cx="100" cy="113.5" r="52.5" fill="#F2A08C" stroke="#FFFFFF" stroke-width="10.5"></circle>
+<ellipse cx="100" cy="141.5" rx="29.75" ry="21" fill="#F6E7C9"></ellipse>
+<ellipse cx="145.5" cy="134.5" rx="11.38" ry="19.25" fill="#E27E6A" transform="rotate(-22 145.5 134.5)"></ellipse>
+<circle cx="89.5" cy="103" r="8.05" fill="#1E1B33"></circle>
+<circle cx="92.3" cy="100.2" r="2.42" fill="#FFFFFF"></circle>
+<circle cx="117.5" cy="99.5" r="8.75" fill="#1E1B33"></circle>
+<circle cx="120.6" cy="96.4" r="2.63" fill="#FFFFFF"></circle>
+<circle cx="80.8" cy="113.5" r="5.95" fill="#EF9CB4"></circle>
+<circle cx="129.8" cy="127.5" r="5.25" fill="#EF9CB4"></circle>
+<path d="M121,110L145.5,117L121,124Z" fill="#5B55FF"></path>
+<path d="M86,164.3L86,174.8M110.5,164.3L110.5,174.8" fill="#5B55FF" stroke="#5B55FF" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M75.5,174.8L96.5,174.8M100,174.8L121,174.8" fill="#5B55FF" stroke="#5B55FF" stroke-width="5.6" stroke-linecap="round"></path>
 </symbol>
 
 <symbol id="wren-peach-fledgling" viewBox="0 0 200 200">

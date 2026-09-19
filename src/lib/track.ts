@@ -42,6 +42,7 @@ export type PaywallSource =
   | "daily_cap"
   | "report_lock"
   | "wardrobe_lock"
+  | "onboarding_dress"
   | "journey_archive"
   | "me_row"
   | "settings_row"

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
   ZoomIn,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -14,12 +16,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../lib/i18n";
 import { openPrivacy, openTerms } from "../lib/legal";
 import { monthsShort } from "../lib/format";
-import Svg, { Circle, ClipPath, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import * as AppleAuthentication from "expo-apple-authentication";
+import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
 import { Wheel } from "../components/Wheel";
 import { useAuth } from "../lib/auth";
@@ -29,13 +30,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, setFlag, TODAY_RITUAL } from "../lib/flags";
 import { rationPool } from "../lib/ration";
 import { signatureVector, voiceSignature } from "../lib/signature";
-import { WrenBird, type WrenMood } from "../components/WrenBird";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
 import { EGG_SHELLS, EggShell } from "../components/EggShell";
+import { HATCH_READ_S, HatchStage } from "../components/HatchStage";
+import { HatchlingRig, useChickIdle } from "../components/HatchlingRig";
+import { FeedEgg } from "../components/FeedEgg";
 import { AvatarImage } from "../components/AvatarImage";
 import { FACES } from "../data/aura-avatar-lib";
 import { readMood } from "../lib/wren-read";
-import { bumpStageFloor } from "../lib/wren-style";
+import { ACCESSORY_META, SKINS, bumpStageFloor, skinName, skinUnlocked } from "../lib/wren-style";
+import { useWrenSkinControl } from "../lib/wren-skin";
+import { useEntitlement } from "../lib/entitlement";
+import { PaywallBody } from "./paywall";
+import { EMPTY_STATS } from "../lib/stats";
 import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../lib/hatchling-form";
 import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-engine";
 import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
@@ -87,12 +95,12 @@ import { MoodIcon } from "../components/MoodIcon";
    the handoff. The Y2K-ness is all form — 2px borders, hard shadows, meters —
    and none of it hue. */
 
-type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "write" | "hatch" | "naming" | "flight";
+type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "write" | "hatch" | "naming" | "dress" | "fare" | "flight";
 /* THE DOCTRINE ORDER (owner, 2026-08-25): you feed the egg BEFORE anything
    has a name — the bird must exist before it can be named, and naming an
    egg is naming a stranger. So: shell → words → hatch → name → first
    flight. Everything after the hatch is post-birth: no meter, no back. */
-const ORDER: Step[] = ["welcome", "username", "you", "cakeday", "avatar", "egg", "write", "hatch", "naming", "flight"];
+const ORDER: Step[] = ["welcome", "username", "you", "cakeday", "avatar", "egg", "write", "hatch", "naming", "dress", "fare", "flight"];
 const BARS = ORDER.indexOf("hatch"); // the form ends where the bird begins
 
 /* EVERY STEP'S CONTENT IS OPTICALLY CENTRED between the progress meter and
@@ -109,12 +117,8 @@ const BARS = ORDER.indexOf("hatch"); // the form ends where the bird begins
    it — one spacer centres nothing. */
 const CENTRED = { flexGrow: 1, justifyContent: "center" } as const;
 
-const WIN_W = Dimensions.get("window").width;
-const PAGE_W = WIN_W - 40;
-
-// the recap cards inside the KINDREDLY.EXE window — a letter's whole life.
-// Copy lives in the catalog (ob.c1..c3); these are just the card indices.
-const CARDS = [1, 2, 3] as const;
+// the three cards on the door — a letter's whole life (ob.door.1..3)
+const CARDS = [0, 1, 2] as const;
 
 /* the welcome headline + sub, shared by the visible copy and the off-screen
    measuring pass so the two can never drift apart */
@@ -129,6 +133,15 @@ const SEALED_KEYS = new Set(["rhythm","vocabulary","perspective","emotion","func
    register, because three samples of the same register teach the engine less
    than one each of observation, memory and confession */
 const FEED_COUNT = 5;
+const CUE_COUNT = 18; // prompts in the cue deck (ob.cue.1..18)
+/* where each fed thought sits around the egg — flanking it, never over it */
+const ORBIT: { top: number; left?: number; right?: number; rot: string }[] = [
+  { top: 40, left: 0, rot: "-6deg" },
+  { top: 52, right: 0, rot: "5deg" },
+  { top: 124, left: 0, rot: "4deg" },
+  { top: 120, right: 0, rot: "-5deg" },
+  { top: 150, left: 118, rot: "-2deg" },
+];
 
 // what the readout says about the egg at each stage (ob.eggstat.<step>)
 const EGG_STATUS_STEPS: Step[] = ["username", "you", "cakeday", "avatar"];
@@ -140,6 +153,12 @@ export default function Onboarding() {
   const { session, onboarded, appleAvailable } = auth;
 
   const [step, setStep] = useState<Step>("welcome");
+  /* DEV ONLY: kindredly:///onboarding?step=avatar opens the console at a
+     step, so a screen can be looked at without walking in from the door */
+  const params = useLocalSearchParams<{ step?: string }>();
+  useEffect(() => {
+    if (__DEV__ && params.step && (ORDER as string[]).includes(params.step)) setStep(params.step as Step);
+  }, [params.step]);
 
   /* EVERY STEP, NOT JUST THE LAST ONE. onboard_done alone tells you how
      many finished and nothing about the ones who didn't — and this is the
@@ -152,15 +171,6 @@ export default function Onboarding() {
   }, [step]);
   const [cardI, setCardI] = useState(0);
 
-  /* The welcome headline is one line on some cards and two on others, and the
-     sub wraps differently again in every language — so the sign-in buttons
-     underneath used to walk up and down as the carousel cycled, which reads
-     as the page being unsure of itself. Reserve the tallest of the three,
-     measured off-screen, and they hold still. Re-measured when the language
-     changes, because the tallest card is not the same one in every language. */
-  const [headMin, setHeadMin] = useState(0);
-  useEffect(() => setHeadMin(0), [lang]);
-  const cardRef = useRef<ScrollView>(null);
   const authScrollRef = useRef<ScrollView>(null);
   const [username, setUsername] = useState("");
   const [youPro, setYouPro] = useState<PronounId | null>(null);
@@ -177,7 +187,40 @@ export default function Onboarding() {
   const [flying, setFlying] = useState(false);
   const [stops, setStops] = useState<PoolLetter[]>([]); // what she brings back from the first crossing
   const finishP = useRef<Promise<void> | null>(null);
-  const [readStep, setReadStep] = useState(0); // the reading ceremony's cursor
+  const [readProg, setReadProg] = useState(0); // the read-out above the egg, 0→1
+  const [celebrate, setCelebrate] = useState(0); // bumped when the hatch key is pressed
+  const [saidFirst, setSaidFirst] = useState<string | null>(null); // her first word, for the copy under the headline
+  const [cue, setCue] = useState(() => Math.floor(Math.random() * 18)); // which prompt the cue deck shows — a random start
+  /* A GUEST SKIPS THE FORM and goes straight to the shell — but the 18+ gate
+     is not a form field, it's the condition for a letter leaving the phone.
+     So it is asked late, once, before the first flight (cakeLate). */
+  const [dobSet, setDobSet] = useState(false);
+  /* HER LOOK AND DRESS. She hatches in Sky, bare — the default bird, the
+     one every screen draws until someone chooses otherwise. The dress step
+     tries anything on her, First Class or not, so the effect can be seen;
+     the fare page comes only when NEXT is pressed with something First
+     Class still on her — a page in the flow, not a sheet. Its × puts her
+     back the way she hatched and goes on to the flight (owner, 2026-09-19). */
+  const [look, setLook] = useState<WrenSkin>("sticker");
+  const [dress, setDress] = useState<WrenAccessory>("none");
+  const { premium } = useEntitlement();
+  const skinCtl = useWrenSkinControl();
+  const [kick, setKick] = useState(0); // bumped when a step is completed — the incubator egg jumps
+  const [nudge, setNudge] = useState<{ n: number; re: "chirp" | "tilt" | "happy" }>({ n: 0, re: "chirp" }); // the hatchling, poked from outside
+  const [cakeLate, setCakeLate] = useState(false);
+  /* the shell picker: the egg ROLLS toward the tile you chose, then settles */
+  const roll = useSharedValue(0);
+  const rollStyle = useAnimatedStyle(() => ({ transform: [{ translateX: roll.value * 0.5 }, { rotate: `${roll.value}deg` }] }));
+  const [pageFocus, setPageFocus] = useState(false);
+  const [fedPulse, setFedPulse] = useState(0); // bumped per FEED — the egg swallows
+  /* FEED: the page shrinks away toward the egg, then snaps back empty */
+  const fly = useSharedValue(0);
+  const flyStyle = useAnimatedStyle(() => ({
+    opacity: 1 - fly.value,
+    transform: [{ translateX: fly.value * 120 }, { translateY: -fly.value * 150 }, { scale: 1 - fly.value * 0.7 }],
+  }));
+  const spin = useSharedValue(0);
+  const spinStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value}deg` }] }));
   const [busy, setBusy] = useState<null | "apple" | "google" | "email">(null);
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailVal, setEmailVal] = useState("");
@@ -233,41 +276,27 @@ export default function Onboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, onboarded]);
 
-  // the recap window cycles; a swipe overrides it. The scroll is the single
-  // source of truth — state only moves on momentum end, so art, tag, dots and
-  // headline can never drift apart.
+  // the three cards on the door light up in turn
   useEffect(() => {
     if (step !== "welcome") return;
-    const t = setTimeout(() => {
-      cardRef.current?.scrollTo({ x: ((cardI + 1) % CARDS.length) * PAGE_W, animated: true });
-    }, 3400);
-    return () => clearTimeout(t);
-  }, [step, cardI]);
+    const id = setInterval(() => setCardI((i) => (i + 1) % CARDS.length), 1600);
+    return () => clearInterval(id);
+  }, [step]);
 
-  /* THE READING CEREMONY. Pressing hatch used to buy a 1.5s shudder — the
-     engine did all its reading in a blink and the moment felt weightless.
-     Now the read is WATCHABLE: one tick per fed thought, then three named
-     passes, an egg filling with ink, and the fed thoughts sitting in a card
-     so you can see exactly what she's reading. The engine is instant; the
-     ceremony is honest about what it computed, just not about how long it
-     took — a hatch that costs nothing feels like it read nothing. */
+  /* THE READ-OUT. The engine does all its reading in a blink; the list above
+     the egg ticks through it over the seconds the shell takes to crack, so
+     the read and the birth are one moment (components/HatchStage). */
   useEffect(() => {
     if (step !== "hatch") return;
     setHatchPhase("crack");
-    setReadStep(0);
-    const total = fed.length + 3;
-    const t = setInterval(() => {
-      setReadStep((n) => {
-        if (n >= total) {
-          clearInterval(t);
-          setHatchPhase("born");
-          return n;
-        }
-        return n + 1;
-      });
-    }, 1350);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setReadProg(0);
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / (HATCH_READ_S * 1000));
+      setReadProg(p);
+      if (p >= 1) clearInterval(id);
+    }, 90);
+    return () => clearInterval(id);
   }, [step]);
 
   const doApple = async () => {
@@ -360,6 +389,9 @@ export default function Onboarding() {
     if (!canFeed) return;
     setThoughts((t) => [...t, line]);
     setNote("");
+    setFedPulse((n) => n + 1);
+    setCue((c) => c + 1);
+    fly.value = withSequence(withTiming(1, { duration: 380, easing: Easing.in(Easing.quad) }), withTiming(0, { duration: 0 }));
   };
 
   const finish = async () => {
@@ -405,6 +437,8 @@ export default function Onboarding() {
          is the same chick tomorrow. */
       await saveHatchlingForm(hatchlingForm(hatched.dims));
       await saveWrenEgg(eggVar);
+      skinCtl.pick(skinUnlocked(look, EMPTY_STATS, premium) ? look : "sticker");
+      skinCtl.dress(ACCESSORY_META.find((a) => a.id === dress)?.free || premium ? dress : "none");
       await saveWrenName(her);
       await saveWrenPronoun(birdPro);
       await saveArchetype(hatched.archetype.id);
@@ -412,7 +446,8 @@ export default function Onboarding() {
     } catch {
       /* best-effort */
     }
-    await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: fed[0] || undefined });
+    /* the pronoun goes up with the rest: the matcher reads it (0021), quietly */
+    await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: fed[0] || undefined, pronoun: youPro });
     wrenStageDirty();
   };
 
@@ -438,108 +473,70 @@ export default function Onboarding() {
     router.replace("/(tabs)/letters");
   };
 
+  /* on from the name: a guest who never gave a birthday gives it here,
+     then the rack; everyone else goes straight to the rack */
+  const toDress = () => {
+    if (!dobSet) {
+      setCakeLate(true);
+      setStep("cakeday");
+    } else setStep("dress");
+  };
+
+  /* is anything on her that she'd need First Class to keep? */
+  const lookOpen = skinUnlocked(look, EMPTY_STATS, premium);
+  const dressOpen = !!ACCESSORY_META.find((a) => a.id === dress)?.free || premium;
+  const wearingFirstClass = !lookOpen || !dressOpen;
+  /* she goes on to the flight as she hatched, minus nothing that's hers */
+  const shedAndFly = () => {
+    if (!lookOpen) setLook("sticker");
+    if (!dressOpen) setDress("none");
+    setStep("flight");
+  };
+
+  /* every step forward kicks the incubator — the egg answers each thing you
+     tell it, so the dock is a reaction, not a decoration */
+  const go = (next: Step) => {
+    setKick((k) => k + 1);
+    setStep(next);
+  };
   const stepIdx = ORDER.indexOf(step);
-  const back = () => setStep(ORDER[Math.max(0, stepIdx - 1)]);
+  const back = () => setStep(step === "egg" && !dobSet ? "welcome" : ORDER[Math.max(0, stepIdx - 1)]);
   const eggStatus = EGG_STATUS_STEPS.includes(step) ? t(`ob.eggstat.${step}`) : undefined;
 
-  /* ── 1 · KINDREDLY.EXE ──────────────────────────────────────────────── */
+  /* ── 1 · THE DOOR ──────────────────────────────────────────────────
+     A letter's whole life in three cards — write, carry, reply — that
+     light up in turn, under one headline that holds still (W39). The old
+     window carousel cycled the headline with the card, and the sign-in keys
+     underneath walked up and down with each language's line count. */
   if (step === "welcome") {
-    const c = CARDS[cardI]; // 1..3
     return (
       <Console>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView ref={authScrollRef} contentContainerStyle={{ ...CENTRED, paddingVertical: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={{ paddingHorizontal: 18, paddingTop: 6 }}>
-            <View style={[card, bevel(5, 5), { overflow: "hidden" }]}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 7,
-                  borderBottomWidth: 2,
-                  borderBottomColor: Y.ink,
-                }}
-              >
-                <View style={{ width: 9, height: 9, borderRadius: 5, borderWidth: 1.6, borderColor: Y.ink, marginRight: 8 }} />
-                <Text style={[mono(10.5, "b"), { flex: 1 }]}>{t("ob.exe")}</Text>
-                <Text style={mono(11, "r")}>✕</Text>
-              </View>
-
-              <ScrollView
-                ref={cardRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => setCardI(Math.round(e.nativeEvent.contentOffset.x / PAGE_W))}
-                style={{ height: 172 }}
-              >
-                {CARDS.map((k, i) => (
-                  <View key={k} style={{ width: PAGE_W, height: 172, alignItems: "center", justifyContent: "center" }}>
-                    <RecapArt i={i} />
-                  </View>
-                ))}
-              </ScrollView>
-
-              <View style={{ position: "absolute", left: 12, bottom: 12 }}>
-                <View style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass }]}>
-                  <Text style={mono(9.5, "b")}>✎ {t(`ob.c${c}.tag`)}</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 14 }}>
+            <View style={{ flexDirection: "row" }}>
               {CARDS.map((k, i) => (
-                <View
-                  key={k}
-                  style={{ width: 13, height: 8, marginHorizontal: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: i === cardI ? Y.blue : "transparent" }}
-                />
+                <DoorCard key={k} i={i} on={cardI === i} />
               ))}
             </View>
 
-            <View style={{ minHeight: headMin || undefined }}>
-              <Text style={HEAD}>
-                {t(`ob.c${c}.h`)} <Text style={{ fontFamily: F2.serifItalic }}>{t(`ob.c${c}.hi`)}</Text>
-              </Text>
-              <Text style={SUB}>{t(`ob.c${c}.s`)}</Text>
-            </View>
-
-            {/* the measuring pass — all three cards' copy, laid out at the real
-                width but never drawn and never touchable, so the reserve above
-                is the true tallest rather than a guessed constant */}
-            <View style={{ position: "absolute", left: 18, right: 18, opacity: 0 }} pointerEvents="none">
-              {CARDS.map((k) => (
-                <View
-                  key={k}
-                  onLayout={(e) => {
-                    const h = e.nativeEvent.layout.height;
-                    setHeadMin((m) => (h > m ? h : m));
-                  }}
-                >
-                  <Text style={HEAD}>
-                    {t(`ob.c${k}.h`)} <Text style={{ fontFamily: F2.serifItalic }}>{t(`ob.c${k}.hi`)}</Text>
-                  </Text>
-                  <Text style={SUB}>{t(`ob.c${k}.s`)}</Text>
-                </View>
-              ))}
-            </View>
+            <Text style={HEAD}>
+              {t("ob.door.h")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.door.hi")}</Text>
+            </Text>
+            <Text style={SUB}>{t("ob.door.s")}</Text>
           </View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
               <>
-                {/* THE OFFICIAL COMPONENT, ALWAYS. A hand-drawn Apple key is
-                    a 4.8 rejection — the mark, the wording and the sizing
-                    belong to Apple, and the system button also localises
-                    itself. It sets the row's geometry; AuthKey below matches
-                    IT, not the other way round. */}
+                {/* THE APPLE KEY IS DRAWN, TO APPLE'S OWN GUIDELINES — black,
+                    the logo, "Continue with Apple", 52pt — so its logo sits
+                    in the same left column as the other two. The system
+                    component centres its logo with the text and can't be
+                    told otherwise; three keys with two alignments read as a
+                    mistake (owner, 2026-09-19). Custom buttons are allowed
+                    by the HIG when they keep the logo, wording and sizing. */}
                 {appleAvailable ? (
-                  <AppleAuthentication.AppleAuthenticationButton
-                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                    cornerRadius={10}
-                    style={{ height: 52, width: "100%", opacity: busy && busy !== "apple" ? 0.5 : 1 }}
-                    onPress={doApple}
-                  />
+                  <AuthKey dark first icon={<AppleLogo />} label={busy === "apple" ? "…" : t("ob.continueApple")} onPress={doApple} disabled={!!busy} dim={!!busy && busy !== "apple"} />
                 ) : null}
                 <AuthKey
                   icon={<GoogleG />}
@@ -647,7 +644,7 @@ export default function Onboarding() {
                        finish typing a pen name, and nothing on the next few
                        screens needs it yet */
                     void auth.signInAnonymously();
-                    setStep("username");
+                    setStep("egg");
                   }}
                   style={{ alignItems: "center", paddingTop: 18 }}
                 >
@@ -694,7 +691,10 @@ export default function Onboarding() {
               <Text style={[mono(15, "b"), { color: Y.blue, marginRight: 8 }]}>›</Text>
               <TextInput
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={(v) => {
+                  if (!username && v) setKick((k) => k + 1);
+                  setUsername(v);
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={20}
@@ -706,9 +706,9 @@ export default function Onboarding() {
             </View>
           </Animated.View>
           <View style={{ flex: 1, justifyContent: "flex-end" }}>
-            <EggDock variant={eggVar} status={eggStatus} style={breathe} />
+            <EggDock status={eggStatus} style={breathe} kick={kick} />
           </View>
-          <Foot label={`${t("ob.next")} ›`} on={handle.length > 0} onPress={() => setStep("you")} />
+          <Foot label={`${t("ob.next")} ›`} on={handle.length > 0} onPress={() => go("you")} />
         </KeyboardAvoidingView>
       </Console>
     );
@@ -726,7 +726,10 @@ export default function Onboarding() {
             return (
               <Animated.View key={p.id} entering={FadeInDown.delay(90 + i * 70).duration(420)}>
                 <Pressable
-                  onPress={() => setYouPro(on ? null : p.id)}
+                  onPress={() => {
+                    setYouPro(on ? null : p.id);
+                    setKick((k) => k + 1);
+                  }}
                   style={[
                     card,
                     bevel(on ? 4 : 2.5, on ? 4 : 2.5),
@@ -761,9 +764,9 @@ export default function Onboarding() {
           })}
         </View>
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
-          <EggDock variant={eggVar} status={eggStatus} style={breathe} />
+          <EggDock status={eggStatus} style={breathe} kick={kick} />
         </View>
-        <Foot label={`${t("ob.next")} ›`} on onPress={() => setStep("cakeday")} skip={youPro ? undefined : t("ob.preferNot")} onSkip={() => setStep("cakeday")} />
+        <Foot label={`${t("ob.next")} ›`} on onPress={() => go("cakeday")} skip={youPro ? undefined : t("ob.preferNot")} onSkip={() => go("cakeday")} />
       </Console>
     );
   }
@@ -771,7 +774,7 @@ export default function Onboarding() {
   /* ── 4 · cakeday ────────────────────────────────────────────────────── */
   if (step === "cakeday") {
     return (
-      <Console step={stepIdx} onBack={back}>
+      <Console step={cakeLate ? undefined : stepIdx} onBack={cakeLate ? () => setStep("naming") : back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={t("ob.cakeday.plain", { name: handle || t("ob.hey") })} em={t("ob.cakeday.em")} sub={t("ob.cakeday.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
@@ -783,39 +786,53 @@ export default function Onboarding() {
               <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 132, height: 2, backgroundColor: "rgba(17,17,19,0.14)" }} />
             </View>
 
-            <View style={{ alignItems: "center", marginTop: 14 }}>
-              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? "#BFE8C9" : Y.panel }]}>
-                <Text style={mono(10, "b")}>{t("ob.ageIs", { n: String(age) }) + (ageOk ? " ✓" : "")}</Text>
-              </View>
-            </View>
-
-            {!ageOk && (
-              <View style={{ borderWidth: 2, borderColor: Y.warn, borderStyle: "dashed", borderRadius: 10, padding: 12, marginTop: 14 }}>
-                <Text style={[mono(10.5, "r"), { color: Y.warn, lineHeight: 17, letterSpacing: 0.2 }]}>
-                  {t("ob.age.warn")}
+            {/* the age, live — one pill that turns when the answer does */}
+            <View style={{ alignItems: "center", marginTop: 16 }}>
+              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? Y.panel : "#FBE7E1", borderColor: ageOk ? Y.ink : Y.warn, shadowColor: ageOk ? Y.ink : Y.warn, paddingHorizontal: 16, paddingVertical: 8 }]}>
+                <Text style={[mono(10.5, "b"), { color: ageOk ? Y.ink : "#8E3B2A", letterSpacing: 1 }]}>
+                  {ageOk ? t("ob.ageIs", { n: String(age) }) + " ✓" : t("ob.age.under", { n: String(age) })}
                 </Text>
               </View>
-            )}
+            </View>
           </Animated.View>
         </ScrollView>
-        <EggDock variant={eggVar} status={eggStatus} style={breathe} />
-        <Foot label={`${t("ob.next")} ›`} on={ageOk} onPress={() => setStep("avatar")} />
+        {!cakeLate && <EggDock status={eggStatus} style={breathe} kick={kick} />}
+        <Foot
+          label={ageOk ? `${t("ob.next")} ›` : t("ob.age.only")}
+          on={ageOk}
+          onPress={() => {
+            setDobSet(true);
+            go(cakeLate ? "dress" : "avatar");
+          }}
+        />
       </Console>
     );
   }
 
-  /* ── 5 · a face ─────────────────────────────────────────────────────── */
+  /* ── 5 · a face ─────────────────────────────────────────────────────
+     THE POOL FOLLOWS THE PRONOUN. she → the f pool, he → the m pool,
+     they / skipped → both, interleaved. No tabs: what you said two screens
+     ago already answered it. The chosen face lands on the incubator's
+     corner: you, and your egg (W39). */
   if (step === "avatar") {
+    const list = youPro === "she" ? FACES.filter((a) => a.pool === "f") : youPro === "he" ? FACES.filter((a) => a.pool === "m") : FACES;
     return (
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
           <Head plain={t("ob.avatar.plain")} em={t("ob.avatar.em")} sub={t("ob.avatar.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { padding: 10, flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }]}>
-              {FACES.map((a) => {
+              {list.map((a) => {
                 const on = avatarId === a.id;
                 return (
-                  <Pressable key={a.id} onPress={() => setAvatarId(on ? null : a.id)} style={{ margin: 4 }}>
+                  <Pressable
+                    key={a.id}
+                    onPress={() => {
+                      setAvatarId(on ? null : a.id);
+                      if (!on) setKick((k) => k + 1);
+                    }}
+                    style={{ margin: 4 }}
+                  >
                     <View
                       style={[
                         on ? bevel(2.5, 2.5) : null,
@@ -828,6 +845,7 @@ export default function Onboarding() {
                           overflow: "hidden",
                           alignItems: "center",
                           justifyContent: "center",
+                          transform: [{ scale: on ? 1.08 : 1 }],
                         },
                       ]}
                     >
@@ -839,108 +857,65 @@ export default function Onboarding() {
             </View>
           </Animated.View>
         </ScrollView>
-        <EggDock variant={eggVar} status={eggStatus} style={breathe} />
-        <Foot label={`${t("ob.next")} ›`} on onPress={() => setStep("egg")} skip={t("ob.skipNow")} onSkip={() => setStep("egg")} />
+        <EggDock status={eggStatus} style={breathe} kick={kick} face={avatarId} />
+        <Foot label={`${t("ob.next")} ›`} on onPress={() => go("egg")} skip={t("ob.skipNow")} onSkip={() => go("egg")} />
       </Console>
     );
   }
 
-  /* ── 6 · choose your courier ────────────────────────────────────────── */
+  /* ── 6 · choose your courier ────────────────────────────────────────
+     The egg used to sit inside a drawn handheld with A/B/C keys under it —
+     a device inside the device, and three keys that did what the four
+     tiles already did. Now it stands on the ground and ROLLS toward the
+     tile you tap; the birthmark on its crown changes with it. The tiles
+     carry the names, and the chosen one is pressed in (W39). */
   if (step === "egg") {
     return (
       <Console step={stepIdx} onBack={back}>
         <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
-          <Head
-            plain={t("ob.egg.plain")}
-            em={t("ob.egg.em")}
-            sub={t("ob.egg.sub")}
-          />
+          <Head plain={t("ob.egg.plain")} em={t("ob.egg.em")} sub={t("ob.egg.sub")} />
 
-          {/* the handheld: a device inside the device */}
-          <Animated.View entering={ZoomIn.delay(80).duration(380)} style={{ alignItems: "center", marginTop: 14 }}>
-            <View style={[card, bevel(5, 5), { width: 224, borderRadius: 22, padding: 12 }]}>
-              {/* the LCD. Markedly darker than every shell, or the pale ones
-                  (Moonstone especially) vanish into their own screen — which
-                  is precisely what a picker must never do. */}
-              <View
-                style={{
-                  height: 156,
-                  borderWidth: 2,
-                  borderColor: Y.ink,
-                  borderRadius: 12,
-                  backgroundColor: Y.lcd,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {[0, 1, 2, 3, 4, 5].map((r) => (
-                  <View key={r} style={{ position: "absolute", left: 0, right: 0, top: 8 + r * 26, height: 1, backgroundColor: "#fff", opacity: 0.07 }} />
-                ))}
-                <Animated.View key={`egg${eggVar}`} entering={ZoomIn.duration(240)} style={breathe}>
-                  <EggShell variant={eggVar} size={116} />
-                </Animated.View>
-                <Text style={[mono(8.5, "b"), { position: "absolute", right: 8, bottom: 6, color: "rgba(255,255,255,0.55)" }]}>{t("ob.eggLv")}</Text>
-              </View>
-
-              {/* A, B, C — and they work. A console button that does nothing is
-                  set dressing, and set dressing is what makes a toy read as a
-                  picture of a toy. */}
-              <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
-                {(
-                  [
-                    { t: "◀", go: () => setEggVar((v) => (v + EGG_SHELLS.length - 1) % EGG_SHELLS.length) },
-                    { t: "⚄", go: () => setEggVar(Math.floor(Math.random() * EGG_SHELLS.length)) },
-                    { t: "▶", go: () => setEggVar((v) => (v + 1) % EGG_SHELLS.length) },
-                  ] as const
-                ).map((b, i) => (
-                  <Pressable
-                    key={b.t}
-                    onPress={b.go}
-                    hitSlop={8}
-                    style={{
-                      width: 27,
-                      height: 27,
-                      borderRadius: 14,
-                      borderWidth: 2,
-                      borderColor: Y.ink,
-                      marginHorizontal: 7,
-                      backgroundColor: i === 1 ? Y.brass : Y.groundDeep,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: 9, color: Y.ink }}>{b.t}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
+          <Animated.View entering={ZoomIn.delay(80).duration(380)} style={{ alignItems: "center", marginTop: 8 }}>
+            <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 2 }]}>{t("ob.eggLv")}</Text>
+            <Animated.View style={[rollStyle, { marginTop: 4 }]}>
+              <Animated.View style={breathe}>
+                <EggShell variant={eggVar} size={232} />
+              </Animated.View>
+            </Animated.View>
           </Animated.View>
 
-          {/* the four shells */}
-          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 18 }}>
+          {/* the four shells, named */}
+          <View style={{ flexDirection: "row", paddingHorizontal: 18, marginTop: 6 }}>
             {EGG_SHELLS.map((s, i) => {
               const on = eggVar === i;
               return (
-                <Pressable key={s.id} onPress={() => setEggVar(i)} style={{ marginHorizontal: 7 }}>
-                  <View
-                    style={[
-                      on ? bevel(3, 3) : null,
-                      {
-                        width: 50,
-                        height: 60,
-                        borderRadius: 25,
-                        borderWidth: on ? 3 : 2,
-                        borderColor: on ? Y.blue : Y.ink,
-                        backgroundColor: s.base,
-                      },
-                    ]}
-                  />
+                <Pressable
+                  key={s.id}
+                  onPress={() => {
+                    roll.value = (i - eggVar) * 40;
+                    roll.value = withTiming(0, { duration: 650, easing: Easing.out(Easing.cubic) });
+                    setEggVar(i);
+                  }}
+                  style={[
+                    card,
+                    on ? null : bevel(3, 3),
+                    {
+                      flex: 1,
+                      marginHorizontal: 4,
+                      alignItems: "center",
+                      paddingVertical: 10,
+                      borderRadius: 14,
+                      backgroundColor: on ? Y.ink : Y.panel,
+                      transform: [{ translateX: on ? 3 : 0 }, { translateY: on ? 3 : 0 }],
+                    },
+                  ]}
+                >
+                  <View style={{ width: 22, height: 28, borderRadius: 11, borderTopLeftRadius: 13, borderTopRightRadius: 13, borderWidth: 2, borderColor: Y.ink, backgroundColor: s.mid }} />
+                  <Text style={[mono(8.5, "b"), { color: on ? Y.panel : Y.ink, marginTop: 8, letterSpacing: 0.8 }]}>{s.name.toUpperCase()}</Text>
                 </Pressable>
               );
             })}
           </View>
-          <Text style={[mono(10, "b"), { textAlign: "center", marginTop: 12, color: Y.dim }]}>{EGG_SHELLS[eggVar].name.toUpperCase()}</Text>
         </ScrollView>
         <Foot label={t("ob.egg.cta")} on onPress={() => setStep("write")} />
       </Console>
@@ -958,7 +933,7 @@ export default function Onboarding() {
             <Head plain={t("ob.naming.plain")} em={t("ob.naming.em")} sub={t("ob.naming.sub")} />
 
             <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
-              <Hatchling mood={hatchMood} shell={eggVar} form={hatchlingForm(hatched.dims)} />
+              <Hatchling mood={hatchMood} shell={eggVar} form={hatchlingForm(hatched.dims)} dims={hatched.dims} skin={look} accessory={dress} tag={her ? her.toUpperCase().slice(0, 8) : null} nudge={nudge} />
             </Animated.View>
 
             <View style={{ paddingHorizontal: 18, marginTop: 16 }}>
@@ -966,27 +941,42 @@ export default function Onboarding() {
                 <Text style={[mono(15, "b"), { color: Y.blue, marginRight: 8 }]}>›</Text>
                 <TextInput
                   value={birdName}
-                  onChangeText={setBirdName}
+                  onChangeText={(v) => {
+                    if (v.length > birdName.length) setNudge((n) => ({ n: n.n + 1, re: "chirp" }));
+                    setBirdName(v);
+                  }}
                   autoCorrect={false}
                   maxLength={16}
                   placeholder={t("ob.naming.placeholder")}
                   placeholderTextColor={Y.faint}
                   style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 21, color: Y.ink }}
                 />
+                {/* the dice, in the box: roll a name */}
+                <Pressable
+                  onPress={() => {
+                    setBirdName(NAME_IDEAS[Math.floor(Math.random() * NAME_IDEAS.length)]);
+                    setNudge((x) => ({ n: x.n + 1, re: "happy" }));
+                  }}
+                  hitSlop={8}
+                  style={{ width: 34, height: 34, borderRadius: 9, borderWidth: 2, borderColor: Y.ink, backgroundColor: Y.brass, alignItems: "center", justifyContent: "center", marginLeft: 8 }}
+                >
+                  <DiceGlyph />
+                </Pressable>
               </View>
 
               <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginTop: 12 }}>
                 {NAME_IDEAS.slice(0, 6).map((n) => (
-                  <Pressable key={n} onPress={() => setBirdName(n)} style={[tag, bevel(2, 2), { margin: 4, paddingHorizontal: 11 }]}>
-                    <Text style={mono(9.5, "b")}>{n.toUpperCase()}</Text>
+                  <Pressable
+                    key={n}
+                    onPress={() => {
+                      setBirdName(n);
+                      setNudge((x) => ({ n: x.n + 1, re: "chirp" }));
+                    }}
+                    style={[tag, birdName === n ? null : bevel(2, 2), { margin: 4, paddingHorizontal: 11, backgroundColor: birdName === n ? Y.blue : Y.panel }]}
+                  >
+                    <Text style={[mono(9.5, "b"), { color: birdName === n ? "#fff" : Y.ink }]}>{n.toUpperCase()}</Text>
                   </Pressable>
                 ))}
-                <Pressable
-                  onPress={() => setBirdName(NAME_IDEAS[Math.floor(Math.random() * NAME_IDEAS.length)])}
-                  style={[tag, bevel(2, 2), { margin: 4, paddingHorizontal: 12, backgroundColor: Y.brass }]}
-                >
-                  <Text style={mono(9.5, "b")}>⚄</Text>
-                </Pressable>
               </View>
 
               {/* and what to call them — this is what makes the hatch key read
@@ -1000,7 +990,10 @@ export default function Onboarding() {
                   return (
                     <Pressable
                       key={p.id}
-                      onPress={() => setBirdPro(p.id)}
+                      onPress={() => {
+                        setBirdPro(p.id);
+                        setNudge((x) => ({ n: x.n + 1, re: "tilt" }));
+                      }}
                       style={[tag, bevel(on ? 3 : 2, on ? 3 : 2), { marginHorizontal: 4, paddingHorizontal: 12, backgroundColor: on ? Y.blue : Y.panel }]}
                     >
                       <Text style={[mono(9.5, "b"), { color: on ? Y.panel : Y.ink }]}>{t(`pr.${p.id}`).toUpperCase()}</Text>
@@ -1010,120 +1003,237 @@ export default function Onboarding() {
               </View>
             </View>
           </ScrollView>
-          <Foot label={t("ob.naming.cta")} on={her.length > 0} tone="brass" onPress={() => setStep("flight")} />
+          <Foot label={t("ob.naming.next")} on={her.length > 0} onPress={toDress} />
         </KeyboardAvoidingView>
       </Console>
     );
   }
 
-  /* ── 8 · feed them thoughts ─────────────────────── */
+  /* ── 9 · dress her ── POST-BIRTH ─────────────────────────────────────
+     Looks (the skins) and dress (the pieces), tried on live. Sky and two
+     pieces are free; a First Class one opens the fare page. Moss waits for
+     the first kindred and says so. LET HER GO is what keeps the choice. */
+  if (step === "dress") {
+    /* EVERYTHING TRIES ON. A tap puts the look or the piece on her, free or
+       not, so the effect can be seen on her — the fare comes up on NEXT,
+       and only if something First Class is still on her then. */
+    const tryLook = (id: WrenSkin) => {
+      setLook(id);
+      setNudge((x) => ({ n: x.n + 1, re: "happy" }));
+    };
+    const tryDress = (id: WrenAccessory) => {
+      setDress(id);
+      setNudge((x) => ({ n: x.n + 1, re: "chirp" }));
+    };
+    return (
+      <Console>
+        <ScrollView contentContainerStyle={CENTRED} showsVerticalScrollIndicator={false}>
+          <Head plain={t("ob.dress.plain", { name: her || t("ob.naming.placeholder") })} em={t("ob.dress.em")} sub={t("ob.dress.sub")} />
+          <Animated.View entering={ZoomIn.delay(60).duration(340)} style={{ alignItems: "center", marginTop: 12 }}>
+            <Hatchling mood={hatchMood} shell={eggVar} form={hatchlingForm(hatched.dims)} dims={hatched.dims} skin={look} accessory={dress} tag={(her || t("ob.naming.placeholder")).toUpperCase().slice(0, 8)} nudge={nudge} />
+          </Animated.View>
+
+          <View style={{ paddingHorizontal: 18, marginTop: 16 }}>
+            <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 1.8 }]}>{t("ob.dress.looks")}</Text>
+            <View style={{ flexDirection: "row", marginTop: 8 }}>
+              {SKINS.map((sk) => {
+                const on = look === sk.id;
+                const open = skinUnlocked(sk.id, EMPTY_STATS, premium);
+                return (
+                  <Pressable key={sk.id} onPress={() => tryLook(sk.id)} style={[card, on ? null : bevel(2.5, 2.5), { flex: 1, marginHorizontal: 3, alignItems: "center", paddingVertical: 8, borderRadius: 12, borderColor: on ? Y.blue : Y.ink, backgroundColor: on ? "#EEEDFF" : Y.panel, transform: [{ translateX: on ? 2.5 : 0 }, { translateY: on ? 2.5 : 0 }] }]}>
+                    <View style={{ opacity: open ? 1 : 0.45 }}>
+                      <WrenBird size={40} mood="happy" stage="hatch" skin={sk.id} form={hatchlingForm(hatched.dims)} mark={EGG_SHELLS[eggVar].mark} />
+                    </View>
+                    <Text style={[mono(8, "b"), { color: on ? Y.blue : Y.ink, marginTop: 4, letterSpacing: 0.6 }]}>{skinName(sk.id).toUpperCase()}</Text>
+                    {!open && <Text style={[mono(7, "b"), { color: "#B08037", marginTop: 2, letterSpacing: 0.4 }]}>{sk.lock === "plus" ? t("wren.lock.plus") : t("wren.lock.kindred")}</Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 1.8, marginTop: 16 }]}>{t("ob.dress.dress")}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingTop: 8, paddingRight: 24, paddingBottom: 6 }}>
+              {ACCESSORY_META.map((a) => {
+                const on = dress === a.id;
+                const open = a.free || premium;
+                return (
+                  <Pressable key={a.id} onPress={() => tryDress(a.id)} style={[card, on ? null : bevel(2.5, 2.5), { width: 72, marginRight: 8, alignItems: "center", paddingVertical: 8, borderRadius: 12, borderColor: on ? Y.blue : Y.ink, backgroundColor: on ? "#EEEDFF" : Y.panel, transform: [{ translateX: on ? 2.5 : 0 }, { translateY: on ? 2.5 : 0 }] }]}>
+                    <View style={{ opacity: open ? 1 : 0.45 }}>
+                      <WrenBird size={40} mood="happy" stage="hatch" skin={look} accessory={a.id} form={hatchlingForm(hatched.dims)} mark={EGG_SHELLS[eggVar].mark} />
+                    </View>
+                    <Text style={[mono(8, "b"), { color: on ? Y.blue : Y.ink, marginTop: 4, letterSpacing: 0.6 }]} numberOfLines={1}>{t(`ws.acc.${a.id}`).toUpperCase()}</Text>
+                    {!open && <Text style={[mono(7, "b"), { color: "#B08037", marginTop: 2, letterSpacing: 0.4 }]}>{t("wren.lock.plus")}</Text>}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </ScrollView>
+        <Foot label={wearingFirstClass ? `${t("ob.next")} ›` : t("ob.naming.cta")} on tone={wearingFirstClass ? undefined : "brass"} onPress={() => (wearingFirstClass ? setStep("fare") : setStep("flight"))} />
+      </Console>
+    );
+  }
+
+  /* ── 10 · THE FARE ── a page, not a sheet. Only reached with something
+     First Class on her. × takes those off and goes on to the flight;
+     bought, she keeps them and goes on the same way. */
+  if (step === "fare") {
+    const what = !lookOpen && !dressOpen ? t("ob.fare.both") : !lookOpen ? t("ob.fare.look") : t("ob.fare.dress");
+    return (
+      <PaywallBody
+        source="onboarding_dress"
+        courier={her || t("ob.naming.placeholder")}
+        head={t("ob.fare.head", { what })}
+        lead={t("ob.fare.lead", { name: her || t("ob.naming.placeholder") })}
+        onClose={shedAndFly}
+        onDone={() => setStep("flight")}
+      />
+    );
+  }
+
+  /* ── 7 · feed it thoughts (W39) ─────────────────────────────────────
+     THE EGG LISTENS. It sits over the page and reacts to the typing — the
+     glow, the twitch, the swell — and everything fed orbits it as a chip
+     (tap one to take it back). The page hears you in four steps and says
+     so in its corner; FEED sends the page into the egg. A cue deck sits
+     between them for anyone who opens the box and finds nothing to say.
+     There is no counter card: the egg's pips are the meter. */
   if (step === "write") {
+    const n = thoughts.length;
+    const dl = line.length;
+    const hear = n >= FEED_COUNT ? t("ob.hear.full") : dl === 0 ? t("ob.hear.listen") : dl < 24 ? t("ob.hear.goOn") : dl < 70 ? t("ob.hear.warmer") : t("ob.hear.you");
+    const hearDot = dl === 0 ? Y.faint : dl < 24 ? Y.brass : dl < 70 ? "#E9A6B4" : Y.blue;
+    const left = FEED_COUNT - n;
+    const sub = n === 0 ? t("ob.write.sub") : n < FEED_COUNT ? (left === 1 ? t("ob.write.sMore1") : t("ob.write.sMore", { n: String(left) })) : t("ob.write.s5");
     return (
       <Console step={stepIdx} onBack={back}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* the meter counts THOUGHTS now, not characters. Three hatch the
-                egg; five is the most it will eat. Each one is a separate
-                sample, which is what the engine actually wants — structure
-                and perspective read across pieces, not within one. */}
-            <View style={{ paddingHorizontal: 18, paddingTop: 4 }}>
-              <View style={[card, bevel(4, 4), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9 }]}>
-                <Text style={[mono(9.5, "b"), { flex: 1 }]}>{t("ob.feed.label")}</Text>
-                <View style={{ flexDirection: "row", marginRight: 8 }}>
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <View
-                      key={i}
-                      style={{ width: 13, height: 9, marginLeft: 3, borderWidth: 1.6, borderColor: Y.ink, backgroundColor: fed.length > i ? Y.blue : "transparent" }}
-                    />
-                  ))}
-                </View>
-                <Text style={mono(9.5, "b")}>{fed.length ? t("ob.feed.fed", { n: String(fed.length) }) : t("ob.feed.hungry")}</Text>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+            {/* the egg, and what it has eaten, in orbit */}
+            <View style={{ height: 172, marginHorizontal: 18, alignItems: "center", justifyContent: "center" }}>
+              <View style={{ position: "absolute", left: 0, right: 0, top: 6, flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 2 }]}>{t("ob.feed.label")}</Text>
+                <Text style={[mono(9.5, "b"), { color: n ? Y.blue : Y.dim, letterSpacing: 2 }]}>{n ? t("ob.feed.fed", { n: String(n) }) : t("ob.feed.hungry")}</Text>
               </View>
+              <FeedEgg shell={eggVar} fed={n} draftLen={dl} pulse={fedPulse} breathe={breathe} />
+              {thoughts.map((th, i) => {
+                const o = ORBIT[i] ?? ORBIT[ORBIT.length - 1];
+                return (
+                  <Animated.View
+                    key={`${i}-${th.slice(0, 8)}`}
+                    entering={ZoomIn.duration(360).easing(Easing.out(Easing.back(1.6)))}
+                    style={{ position: "absolute", top: o.top, left: o.left, right: o.right, maxWidth: 124, transform: [{ rotate: o.rot }] }}
+                  >
+                    <Pressable onPress={() => setThoughts((arr) => arr.filter((_, j) => j !== i))} style={[card, bevel(2, 2), { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }]}>
+                      <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontSize: 12, color: Y.ink }}>
+                        {th}
+                      </Text>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
             </View>
 
-            <Head plain={t("ob.write.plain")} em={t("ob.write.em")} sub={t("ob.write.sub")} />
+            <Text style={{ fontFamily: F2.serif, fontSize: 24, lineHeight: 28, color: Y.ink, textAlign: "center", paddingHorizontal: 22 }}>
+              {n === 0 ? (
+                <>
+                  {t("ob.write.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.write.em")}</Text>
+                </>
+              ) : (
+                t(`ob.write.t${Math.min(n, FEED_COUNT)}`)
+              )}
+            </Text>
+            <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 6, paddingHorizontal: 22, lineHeight: 17 }]}>{sub}</Text>
 
-            {/* what's been fed, swallowed into little rows */}
-            {thoughts.length > 0 && (
-              <View style={{ paddingHorizontal: 18, marginTop: 10 }}>
-                {thoughts.map((t, i) => (
-                  <Animated.View key={`${i}-${t.slice(0, 8)}`} entering={FadeInDown.duration(320)}>
-                    <View style={[card, bevel(2, 2), { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, marginBottom: 7 }]}>
-                      <Text style={[mono(9, "b"), { color: Y.blue, marginRight: 9 }]}>{String(i + 1).padStart(2, "0")}</Text>
-                      <Text numberOfLines={1} style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 14, color: Y.ink }}>
-                        {t}
-                      </Text>
-                      <Pressable hitSlop={10} onPress={() => setThoughts((arr) => arr.filter((_, j) => j !== i))}>
-                        <Text style={[mono(11, "r"), { color: Y.faint }]}>✕</Text>
-                      </Pressable>
-                    </View>
+            {n < FEED_COUNT && (
+              <View style={{ paddingHorizontal: 18 }}>
+                {/* the cue deck — tap to shuffle */}
+                <Pressable
+                  onPress={() => {
+                    setCue((c) => c + 1);
+                    spin.value = withTiming(spin.value + 180, { duration: 400, easing: Easing.out(Easing.cubic) });
+                  }}
+                  style={{ marginTop: 14, height: 36, borderRadius: 999, backgroundColor: "#FFF3D6", borderWidth: 2, borderColor: Y.ink, flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 4 }}
+                >
+                  <Text style={[mono(9, "b"), { color: "#8A6A1F", letterSpacing: 1.6 }]}>{t("ob.cue.label")}</Text>
+                  <Text numberOfLines={1} style={{ flex: 1, marginLeft: 8, marginRight: 6, fontFamily: F2.serifItalic, fontSize: 13.5, color: Y.ink }}>
+                    {t(`ob.cue.${(cue % CUE_COUNT) + 1}`)}
+                  </Text>
+                  <Animated.View style={[spinStyle, { width: 26, height: 26, borderRadius: 13, backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, alignItems: "center", justifyContent: "center" }]}>
+                    <Text style={{ fontSize: 13, color: Y.ink, marginTop: -1 }}>↻</Text>
                   </Animated.View>
-                ))}
+                </Pressable>
+
+                {/* the page */}
+                <Animated.View
+                  style={[
+                    flyStyle,
+                    card,
+                    bevel(pageFocus ? 6 : 4, pageFocus ? 6 : 4),
+                    { marginTop: 10, borderColor: pageFocus ? Y.blue : Y.ink, shadowColor: pageFocus ? Y.blue : Y.ink, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 48, overflow: "hidden" },
+                  ]}
+                >
+                  {/* ruled, like the page it is */}
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <View key={i} pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 12 + 27 + i * 28, height: 1, backgroundColor: Y.groundDeep }} />
+                  ))}
+                  <TextInput
+                    value={note}
+                    onChangeText={setNote}
+                    onFocus={() => setPageFocus(true)}
+                    onBlur={() => setPageFocus(false)}
+                    multiline
+                    autoFocus
+                    placeholder={t("ob.write.ph")}
+                    placeholderTextColor={Y.faint}
+                    style={{ fontFamily: F2.serifItalic, fontSize: 17, lineHeight: 28, color: Y.ink, minHeight: 84, paddingTop: 0, marginTop: 0 }}
+                  />
+                  <View style={{ position: "absolute", left: 14, bottom: 15, flexDirection: "row", alignItems: "center" }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hearDot, marginRight: 6 }} />
+                    <Text style={[mono(9.5, "b"), { color: dl ? Y.ink : Y.faint, letterSpacing: 1.4 }]}>{hear}</Text>
+                  </View>
+                  <Pressable
+                    onPress={feed}
+                    disabled={!canFeed}
+                    style={[tag, canFeed ? bevel(2, 2) : null, { position: "absolute", right: 12, bottom: 10, backgroundColor: canFeed ? Y.blue : Y.panel, borderColor: canFeed ? Y.ink : Y.faint }]}
+                  >
+                    <Text style={[mono(9.5, "b"), { color: canFeed ? "#fff" : Y.faint }]}>{t("ob.feed.btn")}</Text>
+                  </Pressable>
+                </Animated.View>
+
+                {/* how it feels — the product's own mood faces */}
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
+                  <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 1.8, marginRight: 8 }]}>{t("ob.feel")}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingVertical: 4, paddingRight: 24 }}>
+                    {MOOD_IDS.slice(0, 9).map((id) => {
+                      const on = mood === id;
+                      return (
+                        <Pressable key={id} onPress={() => setMood(on ? null : id)} style={{ marginRight: 8 }}>
+                          <View
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 18,
+                              borderWidth: 2,
+                              borderColor: on ? Y.blue : Y.ink,
+                              backgroundColor: MOODS[id].bg,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              overflow: "hidden",
+                              transform: [{ scale: on ? 1.14 : 1 }],
+                            }}
+                          >
+                            <MoodIcon id={id} size={27} />
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
               </View>
             )}
-
-            <View style={{ paddingHorizontal: 18, marginTop: thoughts.length ? 4 : 2 }}>
-              <View style={[card, bevel(4, 4), { minHeight: 92, padding: 14 }]}>
-                <TextInput
-                  value={note}
-                  onChangeText={setNote}
-                  multiline
-                  autoFocus
-                  placeholder={t(`ob.feed.${Math.min(thoughts.length, FEED_COUNT - 1) + 1}`)}
-                  placeholderTextColor={Y.faint}
-                  style={{ fontFamily: F2.serifItalic, fontSize: 17, lineHeight: 26, color: Y.ink, minHeight: 64 }}
-                />
-                <Pressable
-                  onPress={feed}
-                  disabled={!canFeed}
-                  style={[tag, bevel(2.5, 2.5), { alignSelf: "flex-end", backgroundColor: canFeed ? Y.blue : Y.panel, opacity: canFeed ? 1 : 0.4 }]}
-                >
-                  <Text style={[mono(9.5, "b"), { color: canFeed ? "#fff" : Y.ink }]}>{t("ob.feed.btn")}</Text>
-                </Pressable>
-              </View>
-
-              <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 14 }]}>
-                {t("ob.feel")}
-                {mood ? ` · ${moodName(mood).toUpperCase()}` : ""}
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
-                {MOOD_IDS.slice(0, 9).map((id) => {
-                  const on = mood === id;
-                  return (
-                    <Pressable key={id} onPress={() => setMood(on ? null : id)} style={{ marginRight: 8, marginBottom: 9 }}>
-                      {/* the product's own drawn mood faces — the same art the
-                          journal's calendar is built from, not paint chips */}
-                      <View
-                        style={[
-                          on ? bevel(2.5, 2.5) : null,
-                          {
-                            width: 40,
-                            height: 40,
-                            borderRadius: 20,
-                            borderWidth: on ? 2.5 : 2,
-                            borderColor: on ? Y.ink : "rgba(17,17,19,0.28)",
-                            backgroundColor: MOODS[id].bg,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            overflow: "hidden",
-                          },
-                        ]}
-                      >
-                        <MoodIcon id={id} size={30} />
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <View style={{ height: 8 }} />
-            </View>
           </ScrollView>
-          <Foot
-            label={canHatch ? t("ob.write.hatch") : t("ob.write.feedFirst")}
-            on={canHatch}
-            tone="brass"
-            onPress={() => setStep("hatch")}
-          />
+          <Foot label={canHatch ? t("ob.write.hatch") : t("ob.write.feedFirst")} on={canHatch} tone="brass" onPress={() => setStep("hatch")} />
         </KeyboardAvoidingView>
       </Console>
     );
@@ -1150,7 +1260,7 @@ export default function Onboarding() {
 
               <Animated.View entering={FadeInDown.delay(220).duration(480)} style={{ alignItems: "center", marginTop: 22 }}>
                 <Animated.View style={breathe}>
-                  <WrenBird size={110} mood="delight" stage="hatch" form={hatchlingForm(hatched.dims)} />
+                  <WrenBird size={110} mood="delight" stage="hatch" form={hatchlingForm(hatched.dims)} mark={EGG_SHELLS[eggVar].mark} skin={look} accessory={dress} />
                 </Animated.View>
                 {/* the letter is the words they just fed — real, not an icon */}
                 <View style={[card, bevel(4, 4), { maxWidth: 300, marginTop: -8, paddingHorizontal: 16, paddingVertical: 13, transform: [{ rotate: "-2deg" }] }]}>
@@ -1168,134 +1278,79 @@ export default function Onboarding() {
               </Animated.View>
             </>
           ) : (
-            <FirstFlight her={her} opener={opener} stops={stops} form={hatchlingForm(hatched.dims)} onDone={() => void onFlightDone()} />
+            <FirstFlight her={her} opener={opener} stops={stops} form={hatchlingForm(hatched.dims)} mark={EGG_SHELLS[eggVar].mark} skin={look} accessory={dress} onDone={() => void onFlightDone()} />
           )}
         </View>
       </SafeAreaView>
     );
   }
 
-  /* ── 9 · NEW HATCH UNLOCKED — in daylight ───────────────────────────
-     The reveal used to be a gold-on-black trading card. It read as a
-     different app at the exact moment the console hands over — so it now
-     stays on the console's own pale ground, with a warm glow behind her
-     doing the work the dark card used to do. The DNA rows drop the glyphs
-     (half-dead at 14px on a light ground) for progress bars: brass = locked,
-     the app's blue = still growing. Colour carries the confidence, so the
-     GROWING tags and the OF-9 counter could go. */
+  /* ── 9 · THE HATCH — one screen ──────────────────────────────────────
+     The read and the birth happen together (components/HatchStage): up top
+     the list ticks through what it read while the egg below knocks, cracks
+     and goes. THE DOCTRINE HOLDS: no verdict at birth — no archetype, no
+     nine bars. "Something hatched", one thing it caught in your words, her.
+     No meter and no back: the form ended where the bird began. */
+  const readItems = [...fed.map((_, i) => t("ob.read.thought", { n: String(i + 1).padStart(2, "0") })), t("ob.read.rhythm"), t("ob.read.voice"), t("ob.read.waking")];
+  const dim0 = hatched.dims[0];
+  const dimPhrase = SEALED_KEYS.has(dim0.key) ? t(`ob.sealed.${dim0.key}`) : dim0.label.toLowerCase();
+  const born = hatchPhase === "born";
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: hatchPhase === "born" ? "#211C36" : Y.ground }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: hatchPhase === "crack" ? "flex-start" : "center", paddingHorizontal: 22, paddingVertical: 18 }}>
-        {hatchPhase === "crack" && (
-          <View style={{ width: "100%", maxWidth: 360, alignSelf: "center" }}>
-            {/* the console meter, full — every step behind you */}
-            <View style={{ flexDirection: "row", marginTop: 2 }}>
-              {ORDER.slice(0, BARS).map((k) => (
-                <View key={k} style={{ flex: 1, height: 11, marginRight: 3, borderWidth: 1.8, borderColor: Y.ink, backgroundColor: Y.blue }} />
-              ))}
-            </View>
-
-            <Text style={{ fontFamily: F2.serif, fontSize: 30, color: Y.ink, marginTop: 22, lineHeight: 37 }}>
-              {t("ob.reading.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.reading.em")}</Text>
-            </Text>
-            <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 8, lineHeight: 18 }]}>{t("ob.reading.sub")}</Text>
-
-            {/* the egg filling with ink, and the passes it's making */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
-              <ReadingEgg progress={readStep / (fed.length + 3)} />
-              <View style={{ flex: 1, marginLeft: 18 }}>
-                {[...fed.map((_, i) => t("ob.read.thought", { n: String(i + 1).padStart(2, "0") })), t("ob.read.rhythm"), t("ob.read.voice"), t("ob.read.waking")].map(
-                  (label, i) => {
-                    const done = readStep > i;
-                    const now = readStep === i;
+    <Console>
+      <HatchStage
+        shell={eggVar}
+        fed={fed}
+        mood={hatchMood}
+        form={hatchlingForm(hatched.dims)}
+        dims={hatched.dims}
+        skin={look}
+        celebrate={celebrate}
+        onBorn={() => setHatchPhase("born")}
+        onWord={setSaidFirst}
+        header={
+          <View style={{ paddingHorizontal: 26, paddingTop: 22, minHeight: 128 }}>
+            {!born ? (
+              <>
+                <Text style={[mono(10, "b"), { color: Y.dim, letterSpacing: 2 }]}>{t("ob.hatch.eyebrow")}</Text>
+                <Text style={{ fontFamily: F2.serif, fontSize: 30, lineHeight: 35, color: Y.ink, marginTop: 8 }}>{t("ob.hatch.title")}</Text>
+                <View style={{ marginTop: 12 }}>
+                  {readItems.map((label, i) => {
+                    const done = readProg * readItems.length > i + 0.5;
                     return (
-                      <View key={label} style={{ flexDirection: "row", alignItems: "center", marginBottom: 11 }}>
-                        <View
-                          style={{
-                            width: 15,
-                            height: 15,
-                            marginRight: 10,
-                            borderWidth: 2,
-                            borderColor: done ? Y.blue : now ? Y.brass : "rgba(17,17,19,0.25)",
-                            backgroundColor: done ? Y.blue : now ? Y.brass : "transparent",
-                          }}
-                        />
-                        <Text style={[mono(10.5, done || now ? "b" : "m"), { color: done || now ? Y.ink : Y.faint }]}>{label}</Text>
+                      <View key={label} style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+                        <Text style={[mono(10, "b"), { width: 16, color: done ? Y.ink : Y.faint }]}>{done ? "✓" : "·"}</Text>
+                        <Text style={[mono(10, "b"), { letterSpacing: 1.2, color: done ? Y.ink : Y.faint }]}>{label}</Text>
                       </View>
                     );
-                  },
-                )}
-              </View>
-            </View>
-
-            {/* what she's reading, in evidence */}
-            <View style={[card, bevel(4, 4), { marginTop: 16, paddingHorizontal: 16, paddingVertical: 13 }]}>
-              <Text style={[mono(9.5, "b"), { color: Y.faint, marginBottom: 4 }]}>{t("ob.fed.label")}</Text>
-              {fed.map((t, i) => (
-                <View key={i} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: "rgba(17,17,19,0.1)", paddingVertical: 9, flexDirection: "row" }}>
-                  <Text style={[mono(10, "b"), { color: Y.blue, marginRight: 10, marginTop: 2 }]}>{String(i + 1).padStart(2, "0")}</Text>
-                  <Text numberOfLines={1} style={{ flex: 1, fontFamily: F2.serifItalic, fontSize: 15.5, color: Y.ink }}>
-                    {t}
-                  </Text>
+                  })}
                 </View>
-              ))}
-            </View>
-
-            {/* the meter, in percent */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 14 }}>
-              <View style={{ flex: 1, height: 16, borderWidth: 2, borderColor: Y.ink, backgroundColor: Y.panel }}>
-                <View style={{ width: `${Math.round((readStep / (fed.length + 3)) * 100)}%`, height: "100%", backgroundColor: Y.blue }} />
-              </View>
-              <Text style={[mono(11.5, "b"), { marginLeft: 10, fontVariant: ["tabular-nums"] }]}>
-                {Math.round((readStep / (fed.length + 3)) * 100)}%
-              </Text>
-            </View>
-
-            <View style={{ borderWidth: 2, borderColor: "rgba(17,17,19,0.2)", borderRadius: 16, paddingVertical: 16, alignItems: "center", marginTop: 26 }}>
-              <Text style={[mono(12, "b"), { color: Y.faint }]}>{t("ob.hatching")}</Text>
-            </View>
-          </View>
-        )}
-
-        {hatchPhase === "born" && (
-          <View style={{ flex: 1, width: "100%", maxWidth: 360, alignItems: "center", justifyContent: "center" }}>
-            {/* THE DOCTRINE: no verdict at birth. No archetype, no nine bars,
-                no percent — "Something hatched.", the thing itself (eyes
-                first, out of the dark), ONE thing it caught in your words,
-                and the honest close: still learning. The read all happened —
-                it just doesn't get to define a newborn. */}
-            <Animated.Text entering={FadeIn.duration(600)} style={{ fontFamily: F2.serif, fontSize: 31, color: "#F2EFFF" }}>
-              {t("ob.hatched.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.hatched.em")}</Text>
-            </Animated.Text>
-
-            <View style={{ height: 190, alignItems: "center", justifyContent: "center", marginTop: 8 }}>
-              {/* the eyes arrive before the body does */}
-              <Animated.View entering={FadeIn.delay(600).duration(420)} style={{ position: "absolute", flexDirection: "row", gap: 20 }}>
-                <View style={{ width: 9, height: 13, borderRadius: 5, backgroundColor: "#F2EFFF" }} />
-                <View style={{ width: 9, height: 13, borderRadius: 5, backgroundColor: "#F2EFFF" }} />
+              </>
+            ) : (
+              <Animated.View entering={FadeInDown.duration(480)}>
+                {/* THE HEADLINE IS THE EVENT. Then one plain line that says
+                    where the bubble came from and what it caught — the
+                    dimension as a phrase in a sentence, never a tag. */}
+                <Text style={{ fontFamily: F2.serif, fontSize: 34, lineHeight: 39, color: Y.ink }}>
+                  {t("ob.hatched.plain")} <Text style={{ fontFamily: F2.serifItalic }}>{t("ob.hatched.em")}</Text>
+                </Text>
+                <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 10, lineHeight: 17, letterSpacing: 0.2 }]}>
+                  {saidFirst ? t("ob.born.word", { dim: dimPhrase }) : t("ob.born.noWord", { dim: dimPhrase })}
+                </Text>
               </Animated.View>
-              <Animated.View entering={ZoomIn.delay(1500).duration(460).easing(Easing.out(Easing.back(1.6)))}>
-                <Hatchling mood={hatchMood} shell={eggVar} form={hatchlingForm(hatched.dims)} />
-              </Animated.View>
-            </View>
-
-            <Animated.View entering={FadeIn.delay(2400).duration(500)} style={{ alignItems: "center" }}>
-              <Text style={{ fontFamily: F2.serifItalic, fontSize: 16.5, color: "#9C94D6" }}>{t("ob.born.line")}</Text>
-              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: Y.brass, marginTop: 12 }]}>
-                <Text style={mono(10.5, "b")}>{(SEALED_KEYS.has(hatched.dims[0].key) ? t(`ob.sealed.${hatched.dims[0].key}`) : hatched.dims[0].label.toLowerCase()).toUpperCase()}</Text>
-              </View>
-              <Text style={[mono(9.5, "b"), { color: "#6F68A8", marginTop: 14, letterSpacing: 1 }]}>{t("ob.born.still")}</Text>
-            </Animated.View>
-
-            <Animated.View entering={FadeInDown.delay(3200).duration(500)} style={{ width: "100%", maxWidth: 340, marginTop: 30 }}>
-              <Pressable onPress={() => setStep("naming")} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass }]}>
-                <Text style={mono(12.5, "b")}>{t("ob.born.name")}</Text>
-              </Pressable>
-            </Animated.View>
+            )}
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        }
+      />
+      <Foot
+        label={born ? t("ob.born.name") : t("ob.hatching")}
+        on={born}
+        tone="brass"
+        onPress={() => {
+          setCelebrate((c) => c + 1);
+          setTimeout(() => setStep("naming"), 420);
+        }}
+      />
+    </Console>
   );
 }
 
@@ -1348,7 +1403,14 @@ function Seg({ on, i, last }: { on: boolean; i: number; last: boolean }) {
    dead air on a toy reads as a broken toy. Rather than filling it with
    decoration, it gets filled with the thing the flow is actually about:
    your egg, breathing, saying a little less nothing each screen. */
-function EggDock({ variant, status, style }: { variant: number; status?: string; style: any }) {
+function EggDock({ status, style, kick = 0, face }: { status?: string; style: any; kick?: number; face?: string | null }) {
+  const jump = useSharedValue(0);
+  const first = useRef(kick);
+  useEffect(() => {
+    if (kick === first.current) return;
+    jump.value = withSequence(withTiming(1, { duration: 110, easing: Easing.out(Easing.quad) }), withSpring(0, { damping: 7, stiffness: 240 }));
+  }, [kick, jump]);
+  const kicked = useAnimatedStyle(() => ({ transform: [{ translateY: -jump.value * 6 }, { scaleX: 1 + jump.value * 0.1 }, { scaleY: 1 - jump.value * 0.08 }] }));
   if (!status) return null;
   return (
     <Animated.View entering={FadeInDown.delay(260).duration(460)} style={{ paddingHorizontal: 18, paddingBottom: 6 }}>
@@ -1359,16 +1421,26 @@ function EggDock({ variant, status, style }: { variant: number; status?: string;
             height: 54,
             borderWidth: 2,
             borderColor: Y.ink,
-            borderRadius: 9,
-            backgroundColor: Y.lcd,
+            borderRadius: 12,
+            backgroundColor: Y.ground,
             alignItems: "center",
             justifyContent: "center",
-            overflow: "hidden",
           }}
         >
-          <Animated.View style={style}>
-            <EggShell variant={variant} size={46} />
+          <Animated.View style={kicked}>
+            <Animated.View style={style}>
+              <UnknownEgg />
+            </Animated.View>
           </Animated.View>
+          {/* the face you picked, pinned to the corner: you and your egg */}
+          {!!face && (
+            <Animated.View
+              entering={ZoomIn.duration(360).easing(Easing.out(Easing.back(1.8)))}
+              style={{ position: "absolute", right: -9, top: -9, width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: Y.ink, backgroundColor: Y.panel, overflow: "hidden" }}
+            >
+              <AvatarImage id={face} seed={face} size={22} />
+            </Animated.View>
+          )}
         </View>
         <View style={{ marginLeft: 12, flex: 1 }}>
           <Text style={[mono(9, "b"), { color: Y.faint }]}>{t("ob.incubator")}</Text>
@@ -1376,6 +1448,26 @@ function EggDock({ variant, status, style }: { variant: number; status?: string;
         </View>
         <Dots />
       </View>
+    </Animated.View>
+  );
+}
+
+/* THE EGG BEFORE IT'S CHOSEN. The dock runs from the pen name to the face
+   — every one of those screens comes before the shell is picked, so what's
+   in the incubator can't be a shell yet. A dashed outline and a question
+   mark, breathing: something's in here, and it isn't decided. */
+function UnknownEgg() {
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(withSequence(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }), withTiming(0, { duration: 1100, easing: Easing.inOut(Easing.quad) })), -1, true);
+  }, [pulse]);
+  const fade = useAnimatedStyle(() => ({ opacity: 0.55 + pulse.value * 0.4 }));
+  return (
+    <Animated.View style={[fade, { width: 34, height: 40, alignItems: "center", justifyContent: "center" }]}>
+      <Svg width={34} height={40} viewBox="-100 -110 200 220" style={{ position: "absolute" }}>
+        <Path d="M0 -100 C58 -100 82 -30 82 20 C82 78 46 108 0 108 C-46 108 -82 78 -82 20 C-82 -30 -58 -100 0 -100Z" fill="#FFF6E8" stroke={Y.ink} strokeWidth={8} strokeDasharray="18 14" strokeLinecap="round" />
+      </Svg>
+      <Text style={[mono(15, "b"), { color: "#B9B3E0", marginTop: 3 }]}>?</Text>
     </Animated.View>
   );
 }
@@ -1504,16 +1596,25 @@ function AuthKey({
         opacity: dim ? 0.5 : 1,
       })}
     >
-      {/* the icon is PINNED, the label is centred. Centring icon+label as one
-          group let each label's length drag its icon sideways — three keys,
-          three icon positions. A fixed 18pt inset puts the marks in one
-          column, the way every real sign-in stack does it. */}
+      {/* the icon is PINNED at 18pt, the label is centred: one column of
+          marks down the three keys, the way every real sign-in stack does it */}
       <View style={{ position: "absolute", left: 18, top: 0, bottom: 0, width: 24, alignItems: "center", justifyContent: "center" }}>{icon}</View>
       <Text style={{ fontSize: 17, fontWeight: "600", color: dark ? "#FFFFFF" : "#1F1F1F" }}>{label}</Text>
     </Pressable>
   );
 }
 
+/* the Apple logo, white on the black key (Apple's mark, at their proportions) */
+function AppleLogo({ size = 20 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        fill="#FFFFFF"
+        d="M16.37 12.68c-.02-2.42 1.98-3.58 2.07-3.64-1.13-1.65-2.88-1.88-3.5-1.9-1.49-.15-2.91.88-3.67.88-.76 0-1.92-.86-3.16-.84-1.62.02-3.12.95-3.96 2.4-1.69 2.93-.43 7.27 1.21 9.65.8 1.16 1.76 2.47 3.01 2.42 1.21-.05 1.67-.78 3.13-.78 1.46 0 1.87.78 3.15.76 1.3-.02 2.13-1.18 2.92-2.35.92-1.35 1.3-2.65 1.32-2.72-.03-.01-2.53-.97-2.55-3.88zM13.97 5.57c.67-.81 1.12-1.94 1-3.07-.96.04-2.13.64-2.82 1.45-.62.72-1.16 1.87-1.02 2.97 1.07.08 2.17-.55 2.84-1.35z"
+      />
+    </Svg>
+  );
+}
 function GoogleG({ size = 20 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -1521,6 +1622,18 @@ function GoogleG({ size = 20 }: { size?: number }) {
       <Path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.88-3.01c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.28v3.11C3.25 21.3 7.31 24 12 24z" />
       <Path fill="#FBBC05" d="M5.29 14.28A7.2 7.2 0 0 1 4.91 12c0-.79.14-1.56.38-2.28V6.61H1.28A11.97 11.97 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l4.01-3.11z" />
       <Path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.28 6.61l4.01 3.11C6.23 6.88 8.88 4.77 12 4.77z" />
+    </Svg>
+  );
+}
+function DiceGlyph({ size = 16 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x={3} y={3} width={18} height={18} rx={4} fill="none" stroke={Y.ink} strokeWidth={2.2} />
+      <Circle cx={8.5} cy={8.5} r={1.9} fill={Y.ink} />
+      <Circle cx={15.5} cy={8.5} r={1.9} fill={Y.ink} />
+      <Circle cx={8.5} cy={15.5} r={1.9} fill={Y.ink} />
+      <Circle cx={15.5} cy={15.5} r={1.9} fill={Y.ink} />
+      <Circle cx={12} cy={12} r={1.9} fill={Y.ink} />
     </Svg>
   );
 }
@@ -1535,10 +1648,14 @@ function MailGlyph({ size = 20, color = Y.ink }: { size?: number; color?: string
 
 const POKES: WrenMood[] = ["delight", "curious", "wink", "happy"];
 
-function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?: HatchlingForm }) {
+function Hatchling({ mood, shell, form, dims, skin, accessory, tag: nameTag, nudge }: { mood: WrenMood; shell: number; form?: HatchlingForm; dims?: DimScore[]; skin?: WrenSkin; accessory?: WrenAccessory; tag?: string | null; nudge?: { n: number; re: "chirp" | "tilt" | "happy" } }) {
   const [pokes, setPokes] = useState(0);
+  const [said, setSaid] = useState<"chirp" | "tilt" | "happy" | null>(null);
+  const idle = useChickIdle(dims, !said); // her own habits, between the things you make her do
   const squish = useSharedValue(0); // 0 rest, drives the whole hop
   const spark = useSharedValue(0);
+  const tilt = useSharedValue(0);
+  const swing = useSharedValue(0);
 
   // idle breath — slow, and never fully still
   const air = useSharedValue(0);
@@ -1555,9 +1672,31 @@ function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?
       { translateY: -air.value * 2.5 - squish.value * 14 },
       { scaleX: 1 + squish.value * -0.12 + air.value * 0.01 },
       { scaleY: 1 + squish.value * 0.16 + air.value * 0.015 },
+      { rotate: `${tilt.value}deg` },
     ],
   }));
   const sparkStyle = useAnimatedStyle(() => ({ opacity: spark.value, transform: [{ translateY: -spark.value * 16 }, { scale: 0.6 + spark.value * 0.5 }] }));
+  const tagStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${swing.value}deg` }] }));
+
+  /* NAMED FROM OUTSIDE: a letter typed makes her chirp, a pronoun makes her
+     tilt her head, the dice makes her happy. The tag swings on each. */
+  const firstNudge = useRef(nudge?.n ?? 0);
+  useEffect(() => {
+    if (!nudge || nudge.n === firstNudge.current) return;
+    setSaid(nudge.re);
+    swing.value = withSequence(withTiming(-7, { duration: 90 }), withSpring(0, { damping: 6, stiffness: 200 }));
+    if (nudge.re === "chirp") {
+      squish.value = withSequence(withTiming(0.5, { duration: 80 }), withSpring(0, { damping: 9, stiffness: 240 }));
+      spark.value = withSequence(withTiming(1, { duration: 120 }), withDelay(200, withTiming(0, { duration: 280 })));
+    } else if (nudge.re === "tilt") {
+      tilt.value = withSequence(withSpring(-12, { damping: 10, stiffness: 180 }), withDelay(700, withSpring(0, { damping: 10, stiffness: 180 })));
+    } else {
+      squish.value = withSequence(withTiming(-1, { duration: 90 }), withTiming(1, { duration: 220, easing: Easing.out(Easing.back(2.6)) }), withSpring(0, { damping: 9, stiffness: 220 }));
+    }
+    const id = setTimeout(() => setSaid(null), nudge.re === "tilt" ? 1000 : 700);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nudge?.n]);
 
   const poke = () => {
     setPokes((n) => n + 1);
@@ -1570,13 +1709,13 @@ function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?
     spark.value = withSequence(withTiming(1, { duration: 160 }), withDelay(280, withTiming(0, { duration: 320 })));
   };
 
-  const face = pokes > 0 ? POKES[(pokes - 1) % POKES.length] : mood;
+  const face: WrenMood = said === "chirp" ? "listen" : said === "tilt" ? "curious" : said === "happy" ? "happy" : pokes > 0 ? POKES[(pokes - 1) % POKES.length] : mood;
   const sh = EGG_SHELLS[shell] ?? EGG_SHELLS[0];
 
   return (
     <Pressable onPress={poke} hitSlop={16} style={{ width: 150, height: 132, alignItems: "center", justifyContent: "flex-end" }}>
       {/* the mark over her head when she answers */}
-      <Animated.Text style={[sparkStyle, { position: "absolute", top: 4, fontSize: 17 }]}>♪</Animated.Text>
+      <Animated.Text style={[sparkStyle, { position: "absolute", top: 4, left: 30, fontSize: 17, color: Y.blue }]}>♪</Animated.Text>
 
       {/* SHE SITS IN THE SHELL, and the shell is drawn OVER her lower half so
           she's inside it rather than standing in front of it. The first
@@ -1584,7 +1723,7 @@ function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?
           range. The colour is the one you picked two screens ago — the only
           part of her you got to choose, kept and shown. */}
       <Animated.View style={[body, { marginBottom: 30 }]}>
-        <WrenBird size={104} mood={face} stage="hatch" form={form} />
+        <HatchlingRig size={104} mood={face} form={form} mark={sh.mark} skin={skin} accessory={accessory} idle={idle} />
       </Animated.View>
 
       <Svg width={150} height={62} viewBox="0 0 150 62" style={{ position: "absolute", bottom: 0 }}>
@@ -1598,6 +1737,19 @@ function Hatchling({ mood, shell, form }: { mood: WrenMood; shell: number; form?
         <Circle cx={92} cy={38} r={1.8} fill={sh.speck} />
         <Circle cx={74} cy={50} r={1.6} fill={sh.speck} />
       </Svg>
+
+      {/* the name, on a tag round her neck, as it's typed — in front of the
+          shell, since that's where her chest is */}
+      {!!nameTag && (
+        <Animated.View entering={ZoomIn.duration(260)} style={[tagStyle, { position: "absolute", left: 0, right: 0, bottom: 20, alignItems: "center", transformOrigin: "top center" }]}>
+          <Svg width={44} height={9} viewBox="0 0 44 9" style={{ marginBottom: -3 }}>
+            <Path d="M2 1 q20 11 40 0" fill="none" stroke={Y.ink} strokeWidth={1.6} />
+          </Svg>
+          <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 }}>
+            <Text style={[mono(9, "b"), { letterSpacing: 0.8 }]}>{nameTag}</Text>
+          </View>
+        </Animated.View>
+      )}
     </Pressable>
   );
 }
@@ -1620,31 +1772,6 @@ function BarRow({ d }: { d: DimScore }) {
   );
 }
 
-/* the reading egg — white shell, hard shadow, and ink rising inside it as
-   the passes complete. The liquid is the progress bar; the percent strip
-   below just says the same thing in numbers. */
-function ReadingEgg({ progress }: { progress: number }) {
-  const H = 172;
-  const fill = Math.max(0, Math.min(1, progress));
-  return (
-    <View style={[bevel(5, 5)]}>
-      <Svg width={140} height={H} viewBox="0 0 140 172">
-        <Defs>
-          <ClipPath id="eggClip">
-            <Path d="M70 6 C104 6 132 52 132 102 C132 144 106 166 70 166 C34 166 8 144 8 102 C8 52 36 6 70 6 Z" />
-          </ClipPath>
-        </Defs>
-        <Path d="M70 6 C104 6 132 52 132 102 C132 144 106 166 70 166 C34 166 8 144 8 102 C8 52 36 6 70 6 Z" fill={Y.panel} stroke={Y.ink} strokeWidth={3.5} />
-        <Rect x={0} y={166 - fill * 152} width={140} height={fill * 152 + 6} fill={Y.blue} clipPath="url(#eggClip)" />
-        {fill > 0.12 && <Circle cx={44} cy={166 - fill * 152 + 26} r={5} fill="#C9C4F7" clipPath="url(#eggClip)" />}
-        {fill > 0.3 && <Circle cx={92} cy={166 - fill * 152 + 14} r={4} fill="#C9C4F7" clipPath="url(#eggClip)" />}
-        <Path d="M70 6 C104 6 132 52 132 102 C132 144 106 166 70 166 C34 166 8 144 8 102 C8 52 36 6 70 6 Z" fill="none" stroke={Y.ink} strokeWidth={3.5} />
-        <Circle cx={48} cy={44} r={11} fill="#E4E1F6" opacity={0.9} />
-      </Svg>
-    </View>
-  );
-}
-
 /* the letter she leaves with — big enough to actually read as a letter */
 function CarriedLetter() {
   return (
@@ -1658,24 +1785,73 @@ function CarriedLetter() {
   );
 }
 
-/* the artwork in the KINDREDLY.EXE window — a letter written, sent, answered */
-function RecapArt({ i }: { i: number }) {
+/* one of the three cards on the door: number, art, word. The lit one lifts
+   off its shadow; the others sit flat and grey. */
+function DoorCard({ i, on }: { i: number; on: boolean }) {
+  const lift = useSharedValue(on ? 1 : 0);
+  useEffect(() => {
+    lift.value = withSpring(on ? 1 : 0, { damping: 14, stiffness: 160 });
+  }, [on, lift]);
+  const st = useAnimatedStyle(() => ({ transform: [{ translateX: -lift.value * 2 }, { translateY: -lift.value * 2 }] }));
   return (
-    <Svg width={168} height={140} viewBox="0 0 168 140">
-      {i === 1 && <Path d="M14 128 Q52 112 88 74" fill="none" stroke={Y.ink} strokeWidth={2} strokeDasharray="3 7" strokeLinecap="round" opacity={0.5} />}
-      <Rect x={i === 1 ? 62 : 44} y={i === 1 ? 34 : 44} width={82} height={58} rx={4} fill={Y.panel} stroke={Y.ink} strokeWidth={2.4} />
-      <Path d={i === 1 ? "M62 38 L103 68 L144 38" : "M44 48 L85 78 L126 48"} fill="none" stroke={Y.ink} strokeWidth={2.2} strokeLinejoin="round" />
-      {i === 0 && <Rect x={104} y={30} width={26} height={30} fill={Y.blue} stroke={Y.ink} strokeWidth={2.2} transform="rotate(-8 117 45)" />}
-      {i === 2 && (
-        <Path
-          d="M85 22 c-8 -13 -29 -10 -29 6 c0 13 18 23 29 31 c11 -8 29 -18 29 -31 c0 -16 -21 -19 -29 -6 z"
-          fill={Y.brass}
-          stroke={Y.ink}
-          strokeWidth={2.2}
-        />
-      )}
-      <Circle cx={22} cy={22} r={3} fill={Y.ink} opacity={0.35} />
-      <Circle cx={148} cy={122} r={3} fill={Y.ink} opacity={0.35} />
+    <Animated.View
+      style={[
+        st,
+        card,
+        on ? bevel(4, 4) : null,
+        { flex: 1, marginHorizontal: 5, height: 118, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: on ? Y.panel : "#F3F1FC" },
+      ]}
+    >
+      <Text style={[mono(9, "b"), { position: "absolute", top: 8, left: 10, color: on ? Y.blue : Y.faint, letterSpacing: 1.6 }]}>{`0${i + 1}`}</Text>
+      <DoorArt i={i} on={on} />
+      <Text style={[mono(9.5, "b"), { marginTop: 6, letterSpacing: 1.6, color: on ? Y.ink : Y.faint }]}>{t(`ob.door.${i + 1}`)}</Text>
+    </Animated.View>
+  );
+}
+
+/* the art on each card, drawn once and moving only while its card is lit:
+   a page being written, a courier on her arc, a sealed reply */
+function DoorArt({ i, on }: { i: number; on: boolean }) {
+  const ph = useSharedValue(0);
+  useEffect(() => {
+    ph.value = 0;
+    if (on) ph.value = withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) });
+  }, [on, ph]);
+  const [p, setP] = useState(0);
+  useAnimatedReaction(
+    () => ph.value,
+    (v) => {
+      runOnJS(setP)(Math.round(v * 24) / 24);
+    },
+  );
+  const ink = on ? Y.ink : Y.faint;
+  if (i === 0)
+    return (
+      <Svg width={44} height={44} viewBox="0 0 44 44">
+        <Rect x={8} y={6} width={28} height={34} rx={3} fill={Y.panel} stroke={ink} strokeWidth={2} />
+        {[16, 12, 17, 9].map((w, k) => (
+          <Rect key={k} x={14} y={14 + k * 6} width={k < Math.floor(p * 5) ? w : 0} height={2.4} rx={1.2} fill={Y.blue} />
+        ))}
+        <Path d={`M${14 + Math.min(1, p * 1.25) * 16} ${13 + Math.min(3, Math.floor(p * 5)) * 6} l6 -7`} stroke={ink} strokeWidth={2.4} strokeLinecap="round" />
+      </Svg>
+    );
+  if (i === 1)
+    return (
+      <Svg width={44} height={44} viewBox="0 0 44 44">
+        <Path d="M4 30 Q22 8 40 30" fill="none" stroke={Y.faint} strokeWidth={2} strokeDasharray="3 4" />
+        <G transform={`translate(${4 + p * 36} ${30 - Math.sin(p * Math.PI) * 22})`}>
+          <Ellipse cx={0} cy={0} rx={7} ry={5.5} fill="#E9A6B4" stroke={ink} strokeWidth={2} />
+          <Path d={`M-5 -2 q5 ${-6 - Math.sin(p * 40) * 4} 10 0`} fill="none" stroke={ink} strokeWidth={2} strokeLinecap="round" />
+          <Rect x={-4} y={3} width={8} height={5.5} rx={1} fill={Y.panel} stroke={ink} strokeWidth={1.6} />
+        </G>
+      </Svg>
+    );
+  return (
+    <Svg width={44} height={44} viewBox="0 0 44 44">
+      <Rect x={6} y={12} width={32} height={22} rx={3} fill={Y.panel} stroke={ink} strokeWidth={2} />
+      <Path d="M6 14 L22 26 L38 14" fill="none" stroke={ink} strokeWidth={2} strokeLinejoin="round" />
+      <Circle cx={22} cy={24} r={4.5 * Math.min(1, p * 2)} fill={Y.brass} stroke={ink} strokeWidth={1.6} />
+      <Circle cx={35} cy={11} r={5 + Math.sin(p * Math.PI) * 1.5} fill={Y.blue} stroke={ink} strokeWidth={2} />
     </Svg>
   );
 }

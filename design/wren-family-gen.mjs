@@ -5,7 +5,7 @@
    both data files. Run: node design/wren-family-gen.mjs
 
    Colour rules the app relies on (WrenBird.tsx shapeHatchling / HatchEyes):
-   hatchling eyes are #1E1B33 circles r8 at (80,122)/(120,122), cheeks are
+   hatchling eyes are #1E1B33 circles r~8 at (89.5,103)/(117.5,99.5), cheeks are
    #EF9CB4, the beak is the skin's accent colour, the body is one circle r56. */
 import fs from "node:fs";
 import path from "node:path";
@@ -100,21 +100,34 @@ function fledglingShapes(s) {
   sh.push(P("M50 97 L50 106 M68 97 L68 106", "none", { s: s.acc, sw: 3, lc: "round" })); sh.push(P("M44 106 L57 106 M62 106 L75 106", "none", { s: s.acc, sw: 3.2, lc: "round" }));
   return sh;
 }
-/* the chick keeps the skeleton WrenBird knows (200 units, front-facing) */
+/* THE CHICK IS THE SAME BIRD, SMALL. She used to be a front-facing round
+   chick from the previous set — a different drawing from the fledgling
+   and the adult she grows into. Now she's the three-quarter bird at baby
+   proportions: one round body (a circle, so the read can stretch it),
+   bigger eyes set higher, a stub of a tail, a down-feather on the crown
+   that she loses when she fledges, short legs. Same grid, same colours.
+
+   WrenBird.tsx (shapeHatchling / HatchEyes) finds the parts by geometry
+   and colour, not by index — keep: body = the one circle r>=40; eyes =
+   #1E1B33 circles 4<r<14 at (89.5,103) far / (117.5,99.5) near; cheeks =
+   #EF9CB4; the crown feather = the only stroke-only path; the beak = the
+   skin's accent, centred on (128,117). */
 function hatchlingShapes(s) {
-  const eye = (x, y) => (s.ring ? [{ cx: S(x), cy: S(y), r: "8", f: EYE, s: s.ring, sw: "3", t: "c" }] : [{ cx: S(x), cy: S(y), r: "8", f: EYE, t: "c" }]);
-  return [
-    { d: "M148,116 q22,-6 26,10 q-14,10 -28,4 Z", f: s.wing, s: WHITE, sw: "6", lj: "round", t: "p" },
-    { d: "M100,66 Q98,46 108,42", f: "none", s: s.crest, sw: "10", lc: "round", t: "p" },
-    { cx: "100", cy: "130", r: "56", f: s.body, s: WHITE, sw: "10", t: "c" },
-    { cx: "100", cy: "154", rx: "30", ry: "22", f: s.belly, t: "e" },
-    ...eye(80, 122), ...eye(120, 122),
-    { cx: "77", cy: "119", r: "2.6", f: HI, t: "c" }, { cx: "117", cy: "119", r: "2.6", f: HI, t: "c" },
-    { cx: "66", cy: "140", r: "7", f: "#EF9CB4", t: "c" }, { cx: "134", cy: "140", r: "7", f: "#EF9CB4", t: "c" },
-    { d: "M100,132 l9,6 l-9,7 l-9,-7 Z", f: s.acc, t: "p" },
-    { d: "M86,184 L86,196 M114,184 L114,196", f: s.acc, s: s.acc, sw: "5", lc: "round", t: "p" },
-    { d: "M76,196 L96,196 M104,196 L124,196", f: s.acc, s: s.acc, sw: "5.5", lc: "round", t: "p" },
-  ];
+  const sh = [];
+  const eye = (x, y, r) => { if (s.ring) sh.push(C(x, y, r + 1.2, s.ring)); sh.push(C(x, y, r, EYE)); sh.push(C(x + r * .35, y - r * .35, r * .3, HI)); };
+  // back to front
+  sh.push(poly("34,80 22,74 26,86", s.wing)); // the tail, a stub
+  sh.push(E(36, 82, 5.5, 10, s.wing, 24)); // far wing
+  sh.push(P("M62 43 Q60 36 66 33", "none", { s: s.crest, sw: 5, lc: "round" })); // the down-feather
+  sh.push(C(60, 72, 30, s.body, { s: WHITE, sw: S(ts(6)) })); // the body: one circle
+  sh.push(E(60, 88, 17, 12, s.belly));
+  sh.push(E(86, 84, 6.5, 11, s.wing, -22)); // near wing
+  eye(54, 66, 4.6); eye(70, 64, 5);
+  sh.push(C(49, 72, 3.4, "#EF9CB4")); sh.push(C(77, 80, 3, "#EF9CB4")); // cheeks
+  sh.push(P("M72 70 L86 74 L72 78 Z", s.acc)); // beak
+  sh.push(P("M52 101 L52 107 M66 101 L66 107", s.acc, { s: s.acc, sw: 3, lc: "round" }));
+  sh.push(P("M46 107 L58 107 M60 107 L72 107", s.acc, { s: s.acc, sw: 3.2, lc: "round" }));
+  return sh;
 }
 function eggShapes(s) {
   const eye = (x, y) => (s.ring ? [{ cx: S(x), cy: S(y), r: "7", f: EYE, s: s.ring, sw: "3", t: "c" }] : [{ cx: S(x), cy: S(y), r: "7", f: EYE, t: "c" }]);

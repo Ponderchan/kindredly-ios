@@ -5,14 +5,15 @@ import { PostTabBar } from "../../components/PostTabBar";
 import { refreshWaiting, useWaiting } from "../../lib/waiting";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
-import { PostChooser } from "../../components/PostChooser";
+import { PostFan } from "../../components/PostFan";
 
-/* The chooser lives HERE rather than inside the tab bar, and as a plain
+/* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
    pushed from a Modal makes the app flash back into view before the next
    screen arrives, so the move reads as two animations with a gap. Rendered as
-   a sibling of <Tabs>, it just sits there and the composer slides in from the
-   right on top of it — one continuous move forward. */
+   a sibling of <Tabs>, it sits above the pages and below nothing, and the
+   composer slides in from the right on top of it — one continuous move
+   forward. The + in the bar is the ×: the same press toggles it. */
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
   const waiting = useWaiting();
@@ -29,7 +30,7 @@ export default function TabsLayout() {
   return (
     <View style={{ flex: 1 }}>
       <Tabs
-        tabBar={(props) => <PostTabBar {...props} onPost={() => setChoosing(true)} waiting={waiting} />}
+        tabBar={(props) => <PostTabBar {...props} onPost={() => setChoosing((c) => !c)} open={choosing} waiting={waiting} />}
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#FFFFFF" } }}
       >
         <Tabs.Screen name="letters" />
@@ -38,7 +39,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="me" />
       </Tabs>
 
-      {choosing && <PostChooser onClose={() => setChoosing(false)} />}
+      {choosing && <PostFan onClose={() => setChoosing(false)} />}
     </View>
   );
 }

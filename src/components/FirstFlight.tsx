@@ -10,7 +10,7 @@ import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import { P, PF } from "../theme/post";
-import { WrenBird, type WrenMood, type WrenPose } from "./WrenBird";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin } from "./WrenBird";
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { PoolLetter } from "../lib/db";
 import { t } from "../lib/i18n";
@@ -35,7 +35,7 @@ const pathD = SEGS.map((s, i) => (i === 0 ? `M${s[0][0]} ${s[0][1]} ` : "") + `C
 /* the flight window on the clock, in seconds */
 const FLY0 = 0.8, FLY1 = 2.6;
 
-export function FirstFlight({ her, opener, stops, form, onDone }: { her: string; opener: string; stops: PoolLetter[]; form?: HatchlingForm; onDone: () => void }) {
+export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, onDone }: { her: string; opener: string; stops: PoolLetter[]; form?: HatchlingForm; mark?: string | null; skin?: WrenSkin; accessory?: WrenAccessory; onDone: () => void }) {
   const { width, height } = useWindowDimensions();
   const k = Math.min(width / W, height / H);
   const clock = useSharedValue(0);
@@ -185,7 +185,7 @@ export function FirstFlight({ her, opener, stops, form, onDone }: { her: string;
 
         {/* her */}
         <Animated.View style={[{ position: "absolute", left: 0, top: 0 }, birdStyle]} pointerEvents="none">
-          <WrenBird size={90} mood={mood} pose={pose} stage="hatch" form={form} />
+          <WrenBird size={90} mood={mood} pose={pose} stage="hatch" form={form} mark={mark} skin={skin} accessory={accessory} />
         </Animated.View>
 
         <Text style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{t("ff.skip")}</Text>
