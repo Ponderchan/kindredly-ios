@@ -1,6 +1,6 @@
 import { useWrenName } from "../../lib/wren-name";
-import { useCallback, useEffect, useState } from "react";
-import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Dimensions, InteractionManager, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -16,7 +16,7 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, readAuraCache, recordAuraSnapshot, type Aura } from "../../lib/aura";
-import { fetchThreads, readThreadsCache, type ThreadSummary } from "../../lib/db";
+import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard, W14, cardShadow } from "../../components/AuraCard";
 import { Envelope, Kindreds } from "../../components/PostTabBar";
@@ -89,42 +89,60 @@ export default function MeTab() {
     if (!skinUnlocked(skin, stats, premium)) pick("sticker");
   }, [statsIn, settled, skin, stats, premium, pick]);
 
+  /* THE PAGE PAINTS BEFORE IT READS. Everything below used to start the
+     instant the tab was chosen — two network reads and the whole aura (every
+     sticker over every piece of writing, then the hatch) on the JS thread,
+     which is the thread that also has to draw the page. On a phone with a
+     year of letters that was a visible pause on a blank wash, and a second
+     visit did it all again. Now the work waits for the tab's own transition
+     to finish, and a visit within half a minute of the last one changes
+     nothing — the page is what it was. */
+  const lastRead = useRef(0);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      Promise.all([collectGrowthStats(user?.created_at), getStageFloor()]).then(([s, floor]) => {
-        if (!alive) return;
-        setStats(s);
-        setStatsIn(true);
-        const live = wrenStage(s);
-        // stage only ever moves forward; remember the highest ever reached,
-        // and the DAY it turned — the journey strip prints it
-        setStageFloor(stageIndex(live) >= stageIndex(floor) ? live : floor);
-        if (stageIndex(live) > stageIndex(floor)) {
-          void bumpStageFloor(live);
-          void recordStageDate(live);
-        }
-      });
-      readThreadsCache().then((c) => alive && c && setThreads(c)); // the last list, at once
-      fetchThreads().then((t) => alive && setThreads(t || []));
-      getCounters().then((c) => alive && setSeenTodayN(seenToday(c)));
-      getAvatarPhoto().then((p) => alive && setPhoto(p));
+      if (Date.now() - lastRead.current < 30_000) return;
+      const read = () => {
+        Promise.all([collectGrowthStats(user?.created_at), getStageFloor()]).then(([s, floor]) => {
+          if (!alive) return;
+          setStats(s);
+          setStatsIn(true);
+          const live = wrenStage(s);
+          // stage only ever moves forward; remember the highest ever reached,
+          // and the DAY it turned — the journey strip prints it
+          setStageFloor(stageIndex(live) >= stageIndex(floor) ? live : floor);
+          if (stageIndex(live) > stageIndex(floor)) {
+            void bumpStageFloor(live);
+            void recordStageDate(live);
+          }
+        });
+        readThreadsCache().then((c) => alive && c && setThreads(c)); // the last list, at once
+        if (threadsAge() > 15) fetchThreads().then((t) => alive && t && setThreads(t));
+        getCounters().then((c) => alive && setSeenTodayN(seenToday(c)));
+        getAvatarPhoto().then((p) => alive && setPhoto(p));
 
-      // Your aura — one engine (hatch), every piece of your real writing:
-      // the hatch line, the sealed pages, and now your letters too
-      (async () => {
-        // the last read first, so the card is there when the tab is; the
-        // fresh read replaces it when the letters come back
-        const cached = await readAuraCache();
-        if (alive && cached) setAura((cur) => cur ?? cached);
-        const a = await myAura((profile?.firstLine as string) || null);
+        // Your aura — one engine (hatch), every piece of your real writing:
+        // the hatch line, the sealed pages, and now your letters too
+        (async () => {
+          // the last read first, so the card is there when the tab is; the
+          // fresh read replaces it when the letters come back
+          const cached = await readAuraCache();
+          if (alive && cached) setAura((cur) => cur ?? cached);
+          const a = await myAura((profile?.firstLine as string) || null);
+          if (!alive) return;
+          setAura(a);
+          void recordAuraSnapshot(a);
+        })();
+      };
+      const task = InteractionManager.runAfterInteractions(() => {
         if (!alive) return;
-        setAura(a);
-        void recordAuraSnapshot(a);
-      })();
+        lastRead.current = Date.now();
+        read();
+      });
 
       return () => {
         alive = false;
+        task.cancel();
       };
     }, [user?.created_at, profile?.firstLine]),
   );

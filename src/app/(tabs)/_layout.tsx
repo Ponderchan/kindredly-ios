@@ -6,6 +6,7 @@ import { refreshWaiting, useWaiting } from "../../lib/waiting";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { PostFan } from "../../components/PostFan";
+import { P } from "../../theme/post";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
@@ -31,7 +32,7 @@ export default function TabsLayout() {
     <View style={{ flex: 1 }}>
       <Tabs
         tabBar={(props) => <PostTabBar {...props} onPost={() => setChoosing((c) => !c)} open={choosing} waiting={waiting} />}
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#FFFFFF" } }}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: P.penWash } }}
       >
         <Tabs.Screen name="letters" />
         <Tabs.Screen name="journal" />

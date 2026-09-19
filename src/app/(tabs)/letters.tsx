@@ -60,11 +60,41 @@ const WINDOW_W = Dimensions.get("window").width;
    kindred, was blocked — leaves), and the day's new ones join at the end,
    up to the fifteen */
 function keepDesk(cur: PoolLetter[], all: PoolLetter[], fresh: PoolLetter[]): PoolLetter[] {
+  /* `all` is one page of the newest letters. When that page is full, a
+     letter missing from it may simply have aged past it — on a busy day the
+     desk used to lose letters mid-read for that. Only a short page (the
+     server's whole pool) can say a letter is gone. */
   const alive = new Set(all.map((l) => l.id));
-  const kept = cur.filter((l) => alive.has(l.id));
+  const kept = all.length < POOL_PAGE ? cur.filter((l) => alive.has(l.id)) : cur;
   const seen = new Set(kept.map((l) => l.id));
   const add = fresh.filter((l) => !seen.has(l.id));
   return [...kept, ...add].slice(0, Math.max(kept.length, DAY_LETTERS));
+}
+const POOL_PAGE = 40;
+
+/* THE DESK IS PUT AWAY AS IT WAS LEFT — the fifteen, in the matcher's
+   order, with the day they belong to. Opening on the same day paints
+   exactly that, and the network only adds to it; the old cache was the
+   raw pool, so the first paint was a placeholder the first answer replaced
+   and the matcher then re-sorted — the letter under the thumb swapped
+   twice within two seconds of opening (owner, 2026-09-19). Onboarding
+   still writes the raw list (no desk exists yet); that shape is read as a
+   placeholder. */
+type DeskCache = { day: string; desk: PoolLetter[] };
+const putAway = (desk: PoolLetter[]) => {
+  void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify({ day: deskDay(), desk } satisfies DeskCache)).catch(() => {});
+};
+async function readDeskCache(): Promise<{ desk: PoolLetter[]; today: boolean } | null> {
+  try {
+    const raw = await AsyncStorage.getItem(POOL_CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw) as PoolLetter[] | DeskCache;
+    if (Array.isArray(c)) return c.length ? { desk: rationPool(c), today: false } : null;
+    if (!Array.isArray(c.desk) || !c.desk.length) return null;
+    return { desk: c.desk, today: c.day === deskDay() };
+  } catch {
+    return null;
+  }
 }
 
 export default function LettersTab() {
@@ -78,15 +108,6 @@ export default function LettersTab() {
      and the fresh one replaces it when it lands. Never used for the first-run
      ceremony (that waits for the real pool) — there is nothing cached yet. */
   const lastLoad = useRef(0);
-  useEffect(() => {
-    AsyncStorage.getItem(POOL_CACHE_KEY)
-      .then((raw) => {
-        if (!raw) return;
-        const c = JSON.parse(raw) as PoolLetter[];
-        if (Array.isArray(c) && c.length) setPool((cur) => (cur.length ? cur : rationPool(c)));
-      })
-      .catch(() => {});
-  }, []);
   const [loaded, setLoaded] = useState(false);
   /* THE FIRST ARRIVAL. Onboarding ends with her first crossing; when Today
      opens after it she lands on the header rule with the three envelopes,
@@ -142,9 +163,17 @@ export default function LettersTab() {
      reader asks (pull / retry → reset). */
   const loadedRef = useRef(false);
   const load = useCallback(async (reset = false) => {
-    /* the first answer after opening rebuilds the desk (the cache on screen
-       was only a placeholder, and matched writers belong at the top); every
-       later one keeps it */
+    /* the first answer after opening rebuilds the desk only when what's on
+       it is a placeholder — another day's desk, or the raw pool; today's
+       desk, put away last time, is already the real thing and is only added
+       to. Matched writers belong at the top of a desk being built. */
+    if (!loadedRef.current && !reset) {
+      const c = await readDeskCache();
+      if (c) {
+        setPool((cur) => (cur.length ? cur : c.desk));
+        if (c.today) loadedRef.current = true;
+      }
+    }
     const rebuild = reset || !loadedRef.current;
     /* THE LETTERS DON'T WAIT ON THE MATCHER. Awaiting both together meant the
        feed appeared only once the nightly-matches lookup also came back — a
@@ -159,9 +188,14 @@ export default function LettersTab() {
     setPool((cur) => (!p && cur.length ? cur : rebuild || !cur.length ? fresh : keepDesk(cur, p || [], fresh)));
     setLoaded(true);
     loadedRef.current = true;
-    if (p && p.length) void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify(p.slice(0, 40))).catch(() => {});
     const m = await fetchMatches();
-    if (!m?.closest?.length) return;
+    if (!m?.closest?.length) {
+      setPool((cur) => {
+        putAway(cur);
+        return cur;
+      });
+      return;
+    }
     const score = new Map(m.closest.map((c) => [c.uid, c.score]));
     /* THE MATCHER CHOOSES PEOPLE NOW, NOT JUST THE ORDER. It used to run
        downstream of recency: fetchPool picked the newest forty, and the
@@ -176,7 +210,9 @@ export default function LettersTab() {
       const seen = new Set(cur.map((l) => l.id));
       const scored = [...cur, ...theirs.filter((l) => !seen.has(l.id))].map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }));
       // a desk being built: matched first, then the server's newest-first. A desk in use: as it was, the matched newcomers at the end
-      return rebuild || !seen.size ? rationPool(scored.sort((a, b) => (b.close ?? -1) - (a.close ?? -1))) : scored.slice(0, Math.max(cur.length, DAY_LETTERS));
+      const next = rebuild || !seen.size ? rationPool(scored.sort((a, b) => (b.close ?? -1) - (a.close ?? -1))) : scored.slice(0, Math.max(cur.length, DAY_LETTERS));
+      putAway(next);
+      return next;
     });
   }, []);
   useFocusEffect(
@@ -188,6 +224,12 @@ export default function LettersTab() {
       }
     }, [load]),
   );
+
+  // a letter leaving the desk leaves the put-away desk too, or it would be back next open
+  const take = (next: PoolLetter[]) => {
+    putAway(next);
+    return next;
+  };
 
   const demo = __DEV__ && loaded && pool.length === 0;
   const feed = demo ? DEMO_POOL : pool;
@@ -203,8 +245,8 @@ export default function LettersTab() {
       demo={demo}
       fresh={fresh}
       onSettled={settle}
-      onAnswered={(id) => setPool((cur) => cur.filter((l) => l.id !== id))}
-      onBlockedAuthor={(a) => setPool((cur) => cur.filter((l) => l.author !== a))}
+      onAnswered={(id) => setPool((cur) => take(cur.filter((l) => l.id !== id)))}
+      onBlockedAuthor={(a) => setPool((cur) => take(cur.filter((l) => l.author !== a)))}
     />
   );
 }

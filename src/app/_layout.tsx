@@ -88,6 +88,8 @@ function FingerprintOnLaunch() {
 // over the bottom controls and eats taps — silence it in dev.
 LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
+const WASH = { contentStyle: { backgroundColor: P.penWash } };
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useAppFonts();
   /* the launch piece lives on the entry route (app/index.tsx): the egg,
@@ -123,7 +125,24 @@ export default function RootLayout() {
               >
                 <Stack.Screen name="index" />
                 <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(tabs)" />
+                {/* A SCREEN ARRIVES ON ITS OWN COLOUR. The stack paints every
+                    incoming page on paper until the page's first render — so
+                    a lavender page pushed from a lavender tab slid in as a
+                    white slab for as long as its first frame took, which on a
+                    phone with a big aura to read was long enough to see as
+                    "tap → white" (owner, 2026-09-19). Each wash-coloured
+                    route says so here; paper stays the default. */}
+                <Stack.Screen name="(tabs)" options={WASH} />
+                <Stack.Screen name="aura" options={WASH} />
+                <Stack.Screen name="aura-card" options={WASH} />
+                <Stack.Screen name="courier" options={WASH} />
+                <Stack.Screen name="settings" options={WASH} />
+                <Stack.Screen name="kindred/[id]" options={WASH} />
+                <Stack.Screen name="my-letters" options={WASH} />
+                <Stack.Screen name="my-kindreds" options={WASH} />
+                <Stack.Screen name="keepsakes" options={WASH} />
+                <Stack.Screen name="drafts" options={WASH} />
+                <Stack.Screen name="blocked" options={WASH} />
                 {/* Writing is a PAGE, not a popup — and it arrives from the
                     RIGHT, continuing forward from wherever you chose it. Sliding
                     up from the bottom read as a second, separate event. */}
