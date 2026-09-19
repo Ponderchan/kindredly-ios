@@ -103,8 +103,19 @@ export function WrenBird({
     if (stage === "hatch" && mood !== "content") hatchMood = mood;
   } else {
     keys.push(`wren-${skin}-adult-${mood}`);
-    if (accessory !== "none") keys.push(`acc-shared-adult-${accessory}`);
   }
+  /* WHAT SHE WEARS is drawn last, from the generator's per-stage overlays
+     (beanie on the brow of the chick, the fledgling and the grown bird
+     alike; the flying set is the perched set lifted with her). It used to be
+     a hand-made chick set with no party hat and no shades, and the grown
+     set was placed at the wrong height. The egg and the micro mark wear
+     nothing. */
+  const accKey =
+    accessory === "none" || size <= 20 || stage === "egg"
+      ? null
+      : pose === "fly"
+        ? `acc-shared-fly-${accessory}`
+        : `acc-shared-${stage === "wren" ? "adult" : STAGE_KEY[stage]}-${accessory}`;
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
@@ -118,7 +129,7 @@ export function WrenBird({
       {stage === "hatch" && form?.tail && <TailFeather />}
       {stage === "hatch" && pose !== "fly" && !!mark && size > 20 && <Birthmark color={mark} />}
       {hatchMood && <HatchEyes mood={hatchMood} skin={skin} form={form} />}
-      {stage === "hatch" && pose !== "fly" && accessory !== "none" && size > 20 && <HatchAcc a={accessory} />}
+      {accKey && <Shapes list={WREN_FAMILY[accKey] || []} bare={!outlined} />}
     </Svg>
   );
 }
@@ -303,49 +314,5 @@ export function HatchEyes({ mood, skin, form }: { mood: WrenMood; skin: WrenSkin
       );
     default:
       return null;
-  }
-}
-
-/* chick-sized wearables — carried over from the previous set so the born
-   trait still shows at the hatch. Round-2 of the design delivery replaces
-   these with skin-matched versions (and adds party/shades + fledgling). */
-export function HatchAcc({ a }: { a: WrenAccessory }) {
-  switch (a) {
-    case "beanie":
-      return (
-        <G transform="translate(6 -13)">
-          <Path d="M60 92 Q100 48 140 92 Q140 99 131 99 L69 99 Q60 99 60 92 Z" fill="#EF6D8C" />
-          <Rect x={58} y={94} width={84} height={12} rx={6} fill="#F2EFFF" />
-          <Circle cx={100} cy={50} r={8} fill="#F2EFFF" />
-        </G>
-      );
-    case "scarf":
-      return (
-        <G transform="translate(2 -14)">
-          <Path d="M62 162 Q100 180 138 162 L138 175 Q100 194 62 175 Z" fill="#6FBF9B" />
-          <Path d="M126 170 l12 24 l10 -6 l-10 -22 z" fill="#6FBF9B" />
-        </G>
-      );
-    case "phones":
-      return (
-        <G transform="translate(5 -18)">
-          <Path d="M52 128 Q52 70 100 70 Q148 70 148 128" fill="none" stroke="#2A2740" strokeWidth={6} strokeLinecap="round" />
-          <Rect x={42} y={120} width={17} height={28} rx={7} fill="#2A2740" />
-          <Rect x={141} y={120} width={17} height={28} rx={7} fill="#2A2740" />
-        </G>
-      );
-    case "flower":
-      return (
-        <G transform="translate(6 -13)">
-          <Circle cx={76} cy={82} r={7} fill="#EF9CB4" />
-          <Circle cx={100} cy={72} r={7} fill="#EF9CB4" />
-          <Circle cx={124} cy={82} r={7} fill="#EF9CB4" />
-          <Circle cx={76} cy={82} r={3} fill="#F6D77A" />
-          <Circle cx={100} cy={72} r={3} fill="#F6D77A" />
-          <Circle cx={124} cy={82} r={3} fill="#F6D77A" />
-        </G>
-      );
-    default:
-      return null; // party / shades arrive with the round-2 delivery
   }
 }

@@ -30,6 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, setFlag, TODAY_RITUAL } from "../lib/flags";
 import { rationPool } from "../lib/ration";
 import { signatureVector, voiceSignature } from "../lib/signature";
+import { WardrobeRack } from "../components/WardrobeRack";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
 import { EGG_SHELLS, EggShell } from "../components/EggShell";
@@ -39,7 +40,7 @@ import { FeedEgg } from "../components/FeedEgg";
 import { AvatarImage } from "../components/AvatarImage";
 import { FACES } from "../data/aura-avatar-lib";
 import { readMood } from "../lib/wren-read";
-import { ACCESSORY_META, SKINS, bumpStageFloor, skinName, skinUnlocked } from "../lib/wren-style";
+import { ACCESSORY_META, bumpStageFloor, skinUnlocked } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { useEntitlement } from "../lib/entitlement";
 import { PaywallBody } from "./paywall";
@@ -1034,39 +1035,19 @@ export default function Onboarding() {
           </Animated.View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 16 }}>
-            <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 1.8 }]}>{t("ob.dress.looks")}</Text>
-            <View style={{ flexDirection: "row", marginTop: 8 }}>
-              {SKINS.map((sk) => {
-                const on = look === sk.id;
-                const open = skinUnlocked(sk.id, EMPTY_STATS, premium);
-                return (
-                  <Pressable key={sk.id} onPress={() => tryLook(sk.id)} style={[card, on ? null : bevel(2.5, 2.5), { flex: 1, marginHorizontal: 3, alignItems: "center", paddingVertical: 8, borderRadius: 12, borderColor: on ? Y.blue : Y.ink, backgroundColor: on ? "#EEEDFF" : Y.panel, transform: [{ translateX: on ? 2.5 : 0 }, { translateY: on ? 2.5 : 0 }] }]}>
-                    <View style={{ opacity: open ? 1 : 0.45 }}>
-                      <WrenBird size={40} mood="happy" stage="hatch" skin={sk.id} form={hatchlingForm(hatched.dims)} mark={EGG_SHELLS[eggVar].mark} />
-                    </View>
-                    <Text style={[mono(8, "b"), { color: on ? Y.blue : Y.ink, marginTop: 4, letterSpacing: 0.6 }]}>{skinName(sk.id).toUpperCase()}</Text>
-                    {!open && <Text style={[mono(7, "b"), { color: "#B08037", marginTop: 2, letterSpacing: 0.4 }]}>{sk.lock === "plus" ? t("wren.lock.plus") : t("wren.lock.kindred")}</Text>}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Text style={[mono(9.5, "b"), { color: Y.dim, letterSpacing: 1.8, marginTop: 16 }]}>{t("ob.dress.dress")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingTop: 8, paddingRight: 24, paddingBottom: 6 }}>
-              {ACCESSORY_META.map((a) => {
-                const on = dress === a.id;
-                const open = a.free || premium;
-                return (
-                  <Pressable key={a.id} onPress={() => tryDress(a.id)} style={[card, on ? null : bevel(2.5, 2.5), { width: 72, marginRight: 8, alignItems: "center", paddingVertical: 8, borderRadius: 12, borderColor: on ? Y.blue : Y.ink, backgroundColor: on ? "#EEEDFF" : Y.panel, transform: [{ translateX: on ? 2.5 : 0 }, { translateY: on ? 2.5 : 0 }] }]}>
-                    <View style={{ opacity: open ? 1 : 0.45 }}>
-                      <WrenBird size={40} mood="happy" stage="hatch" skin={look} accessory={a.id} form={hatchlingForm(hatched.dims)} mark={EGG_SHELLS[eggVar].mark} />
-                    </View>
-                    <Text style={[mono(8, "b"), { color: on ? Y.blue : Y.ink, marginTop: 4, letterSpacing: 0.6 }]} numberOfLines={1}>{t(`ws.acc.${a.id}`).toUpperCase()}</Text>
-                    {!open && <Text style={[mono(7, "b"), { color: "#B08037", marginTop: 2, letterSpacing: 0.4 }]}>{t("wren.lock.plus")}</Text>}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            {/* the same rack as her room — everything tries on here */}
+            <WardrobeRack
+              tone="console"
+              skin={look}
+              accessory={dress}
+              stats={EMPTY_STATS}
+              premium={premium}
+              stage="hatch"
+              form={hatchlingForm(hatched.dims)}
+              mark={EGG_SHELLS[eggVar].mark}
+              onLook={(id) => tryLook(id)}
+              onDress={(id) => tryDress(id)}
+            />
           </View>
         </ScrollView>
         <Foot label={wearingFirstClass ? `${t("ob.next")} ›` : t("ob.naming.cta")} on tone={wearingFirstClass ? undefined : "brass"} onPress={() => (wearingFirstClass ? setStep("fare") : setStep("flight"))} />

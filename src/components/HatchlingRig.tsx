@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import Svg, { Ellipse, G } from "react-native-svg";
 import { WREN_FAMILY, type WShape } from "./wren-family-data";
-import { Birthmark, HatchAcc, HatchEyes, Shapes, TailFeather, shapeHatchling, type WrenAccessory, type WrenMood, type WrenSkin } from "./WrenBird";
+import { Birthmark, HatchEyes, Shapes, TailFeather, shapeHatchling, type WrenAccessory, type WrenMood, type WrenSkin } from "./WrenBird";
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { DimScore } from "../lib/hatch-engine";
 import { FACE_OF_MOTION, MOTION_S, layerOf, pickMotion, poseAt, restBetween, splitSides, type Layer, type Motion } from "../lib/chick-motions";
@@ -125,7 +125,7 @@ export function HatchlingRig({
           <Shapes list={by.face} bare />
           {mark ? <Birthmark color={mark} /> : null}
           {hatchMood ? <HatchEyes mood={hatchMood} skin={skin} form={form} /> : null}
-          {accessory !== "none" ? <HatchAcc a={accessory} /> : null}
+          {accessory !== "none" ? <Shapes list={WREN_FAMILY[`acc-shared-hatchling-${accessory}`] || []} bare /> : null}
         </G>
       </G>
     </Svg>

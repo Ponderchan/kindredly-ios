@@ -146,39 +146,154 @@ const miniShapes = (s) => [
   { d: "M162,104 l30,12 l-30,14 Z", f: s.acc, t: "p" },
   { cx: "86", cy: "104", r: "13", f: WHITE, t: "c" }, { cx: "88", cy: "105", r: "6", f: EYE, t: "c" },
 ];
-/* accessories sit on the three-quarter head: eyes at (93,75) and (121,70), crown near (110,40) */
-const ACC = {
-  beanie: [
-    { cx: "112", cy: "22", r: "9", f: "#FBF3F4", t: "c" },
-    { d: "M68,72 Q110,14 154,66 Z", f: "#F2A0B5", t: "p" },
-    { x: "64", y: "64", w: "92", h: "15", rx: "7.5", f: "#E787A3", t: "r" },
-  ],
-  phones: [
-    { d: "M62,112 Q66,30 118,30 Q162,32 162,92", f: "none", s: EYE, sw: "9", lc: "round", t: "p" },
-    { x: "50", y: "100", w: "20", h: "30", rx: "8", f: EYE, t: "r" }, { x: "152", y: "84", w: "20", h: "30", rx: "8", f: EYE, t: "r" },
-    { cx: "60", cy: "115", r: "4.5", f: "#7C7CF7", t: "c" }, { cx: "162", cy: "99", r: "4.5", f: "#7C7CF7", t: "c" },
-  ],
-  flower: [
-    { cx: "76", cy: "50", r: "6", f: "#F2A0B5", t: "c" }, { cx: "88", cy: "44", r: "6", f: "#F2A0B5", t: "c" }, { cx: "82", cy: "58", r: "6", f: "#F2A0B5", t: "c" }, { cx: "82", cy: "51", r: "5", f: "#F5C64F", t: "c" },
-    { cx: "104", cy: "36", r: "7", f: "#FBF3F4", t: "c" }, { cx: "118", cy: "34", r: "7", f: "#FBF3F4", t: "c" }, { cx: "111", cy: "46", r: "7", f: "#FBF3F4", t: "c" }, { cx: "111", cy: "38", r: "6", f: "#E8A63C", t: "c" },
-  ],
-  scarf: [
-    { d: "M50,128 Q100,152 152,120 L152,138 Q100,172 50,148 Z", f: "#9FD0BB", s: "#7BB79A", sw: "3", lj: "round", t: "p" },
-    { x: "130", y: "136", w: "18", h: "34", rx: "7", f: "#9FD0BB", s: "#7BB79A", sw: "3", t: "r" },
-    { d: "M134,166 v6 M140,166 v6", s: "#7BB79A", sw: "3", lc: "round", t: "p" },
-  ],
-  party: [
-    { d: "M112,4 L140,62 L84,62 Z", f: "#F5C64F", s: "#E8A63C", sw: "3", lj: "round", t: "p" },
-    { d: "M96,40 Q112,32 126,44", f: "none", s: "#EF9CB4", sw: "6", lc: "round", t: "p" },
-    { cx: "112", cy: "6", r: "7", f: "#EF9CB4", t: "c" },
-  ],
-  shades: [
-    { x: "76", y: "64", w: "34", h: "22", rx: "9", f: EYE, t: "r" }, { x: "106", y: "58", w: "34", h: "22", rx: "9", f: EYE, t: "r" },
-    { d: "M108,72 L110,70", s: EYE, sw: "5", lc: "round", t: "p" },
-    { d: "M76,74 l-12,4 M140,68 l12,-3", s: EYE, sw: "5", lc: "round", t: "p" },
-    { d: "M82,69 q6,-3 10,0", s: "#7C7CF7", sw: "3", f: "none", lc: "round", t: "p" },
-  ],
+/* ── ACCESSORIES ────────────────────────────────────────────────────────
+   Six pieces, drawn ONCE each in a head frame and placed on every stage by
+   anchors, so a beanie sits on the brow of the chick, the fledgling and the
+   grown bird alike (it used to be drawn for the adult only, at the wrong
+   height — the band lay across her eyes and the pom floated free).
+
+   Anchors per stage (viewBox units): the two eyes (EL far, ER near), the
+   head's centre line `hx`, the collar line and the body's half-width there.
+   The brow line is 18 above the eye midpoint; hats and crowns hang from it,
+   shades sit on the eyes, the scarf wraps the collar. The palette is shared
+   across skins and chosen to read on all five bodies: cream, ink, brass,
+   berry, rose, olive — flat fills, no gradients, no white keyline (the bird
+   is drawn bare in the app). */
+const CREAM = "#F6E7C9", CREAM_D = "#E0CBA0", INK = "#1E1B33", BRASS = "#E8A63C", BRASS_D = "#C98B25";
+const BERRY = "#E05A6A", BERRY_D = "#BF4557", ROSE = "#F2A0B5", OLIVE = "#2F6B3B", LEAF = "#4F8F5C", PETAL = "#FBF3F4";
+/* the night bird is ink herself, so nothing she wears may be ink: the
+   headphones are cream with ink cushions, the lenses are amber-dark */
+const LENS = "#4E3325";
+const HEADS = {
+  adult:     { EL: [93, 75, 6.3],   ER: [121, 69.75, 7],     hx: 103, crown: 40, collar: 112, cw: 60 },
+  fledgling: { EL: [93, 85.5, 6.3], ER: [121, 82, 7],        hx: 104, crown: 54, collar: 112, cw: 53 },
+  hatchling: { EL: [89.5, 103, 8],  ER: [117.5, 99.5, 8.75], hx: 100, crown: 56, collar: 128, cw: 50 },
 };
+const f1 = (n) => +n.toFixed(1);
+function pieces(h, roomOverride) {
+  const brim = f1((h.EL[1] + h.ER[1]) / 2 - 18);
+  /* HEADROOM. The grown bird's crown sits 40 units under the top of the
+     viewBox and the flying one's nearer 24, so a hat drawn to the chick's
+     height loses its pom to the edge. Each piece that rises is drawn to
+     the room it actually has: tall on the chick, squatter on the adult,
+     squatter still in flight — never clipped. */
+  const room = Math.max(24, (roomOverride ?? brim) - 1);
+  /* a small path builder in a local frame: X/Y map frame coords to the viewBox */
+  const frame = (ox, oy) => {
+    const X = (x) => f1(ox + x), Y = (y) => f1(oy + y);
+    const pt = (x, y) => `${X(x)},${Y(y)}`;
+    return { X, Y, pt,
+      path: (d, f, extra = {}) => ({ d, f, ...extra, t: "p" }),
+      circ: (x, y, r, f, extra = {}) => ({ cx: S(X(x)), cy: S(Y(y)), r: S(f1(r)), f, ...extra, t: "c" }),
+      ell: (x, y, rx, ry, f, rot, extra = {}) => ({ cx: S(X(x)), cy: S(Y(y)), rx: S(f1(rx)), ry: S(f1(ry)), f, ...(rot ? { tf: `rotate(${rot} ${X(x)} ${Y(y)})` } : {}), ...extra, t: "e" }),
+      rect: (x, y, w, h, rx, f, extra = {}) => ({ x: S(X(x)), y: S(Y(y)), w: S(w), h: S(h), rx: S(rx), f, ...extra, t: "r" }),
+    };
+  };
+  const H = frame(h.hx, brim); // head frame: origin on the brow, centre line
+  const Cx = frame(h.hx, h.collar); // collar frame
+  const cw = h.cw;
+  const out = {};
+
+  /* BEANIE — a slouchy knit: berry dome with four ribs, a cream folded cuff
+     with rib marks, a cream pom that overlaps the dome so it never floats */
+  {
+    const p = H.pt, top = -Math.min(48, room - 10), mid = top * 0.62;
+    out.beanie = [
+      H.path(`M${p(-45, -2)} C${p(-46, mid)} ${p(-22, top)} ${p(8, top)} C${p(34, top)} ${p(50, mid)} ${p(47, -2)} Z`, BERRY),
+      ...[-24, -8, 8, 24].map((x0) => H.path(`M${p(x0, -6)} Q${p(x0 * 0.9, mid)} ${p(x0 * 0.55 + 3, top + 4)}`, "none", { s: BERRY_D, sw: "2.6", lc: "round" })),
+      H.rect(-49, -8, 98, 14, 7, CREAM),
+      ...[-36, -24, -12, 0, 12, 24, 36].map((x0) => H.path(`M${p(x0, -5)} L${p(x0, 3)}`, "none", { s: CREAM_D, sw: "2", lc: "round" })),
+      H.circ(9, top - 2, 8, CREAM),
+      H.circ(6.5, top - 5, 2.6, WHITE, { o: ".9" }),
+    ];
+  }
+
+  /* SCARF — brass knit wrapped twice round the collar, a crease between the
+     wraps, two cream stripes, a knot at the near side and a fringed tail */
+  {
+    const p = Cx.pt, kx = cw * 0.55, tl = cw * 0.7;
+    out.scarf = [
+      Cx.path(`M${p(-cw, -10)} Q${p(0, 8)} ${p(cw, -14)} L${p(cw, 6)} Q${p(0, 28)} ${p(-cw, 10)} Z`, BRASS),
+      Cx.path(`M${p(-cw + 6, -5)} Q${p(0, 13)} ${p(cw - 6, -9)}`, "none", { s: CREAM, sw: "3", lc: "round" }),
+      Cx.path(`M${p(-cw + 6, 3)} Q${p(0, 21)} ${p(cw - 6, -1)}`, "none", { s: CREAM, sw: "3", lc: "round" }),
+      Cx.path(`M${p(-cw, -1)} Q${p(0, 17)} ${p(cw, -5)}`, "none", { s: BRASS_D, sw: "2.2", lc: "round", o: ".8" }),
+      Cx.path(`M${p(kx - 12, 8)} L${p(kx - 4, 10 + tl)} L${p(kx + 16, 6 + tl)} L${p(kx + 12, 4)} Z`, BRASS),
+      Cx.path(`M${p(kx - 9, 16)} L${p(kx + 11, 13)}`, "none", { s: CREAM, sw: "3", lc: "round" }),
+      Cx.path(`M${p(kx - 6, 26)} L${p(kx + 13, 23)}`, "none", { s: CREAM, sw: "3", lc: "round" }),
+      ...[0, 5, 10, 15].map((dx) => Cx.path(`M${p(kx - 3 + dx, 9 + tl - dx * 0.2)} L${p(kx - 3 + dx, 18 + tl - dx * 0.2)}`, "none", { s: BRASS_D, sw: "2.4", lc: "round" })),
+      Cx.ell(kx + 1, 5, 12.5, 8, BRASS_D, -18),
+      Cx.ell(kx + 1, 5, 7, 4, BRASS, -18),
+    ];
+  }
+
+  /* HEADPHONES — an ink band over the crown, two ink cups at the sides at eye
+     level, a cream cushion face with a brass dot */
+  {
+    const p = H.pt, T = h.crown - brim - 9; // the band rides just over the crown
+    out.phones = [
+      H.path(`M${p(-51, 22)} C${p(-52, T + 12)} ${p(-26, T)} ${p(2, T)} C${p(30, T)} ${p(52, T + 12)} ${p(51, 18)}`, "none", { s: CREAM, sw: "6", lc: "round" }),
+      H.path(`M${p(-51, 22)} C${p(-52, T + 12)} ${p(-26, T)} ${p(2, T)} C${p(30, T)} ${p(52, T + 12)} ${p(51, 18)}`, "none", { s: CREAM_D, sw: "1.6", lc: "round", o: ".7" }),
+      H.rect(-60, 10, 18, 26, 8, CREAM),
+      H.rect(42, 6, 18, 26, 8, CREAM),
+      H.ell(-51, 23, 5.4, 8.4, INK, 0),
+      H.ell(51, 19, 5.4, 8.4, INK, 0),
+      H.circ(-51, 23, 2.2, BRASS),
+      H.circ(51, 19, 2.2, BRASS),
+    ];
+  }
+
+  /* FLOWER CROWN — an olive vine along the brow with leaves, three
+     five-petal flowers (rose, cream, rose) with brass hearts, two buds */
+  {
+    const p = H.pt;
+    const flower = (x, y, petal) => [
+      ...[0, 1, 2, 3, 4].map((k) => { const a = -Math.PI / 2 + (k * 2 * Math.PI) / 5; return H.circ(x + 6.2 * Math.cos(a), y + 6.2 * Math.sin(a), 5.2, petal); }),
+      H.circ(x, y, 4, BRASS),
+    ];
+    out.flower = [
+      H.path(`M${p(-47, 3)} Q${p(0, -15)} ${p(47, -4)}`, "none", { s: OLIVE, sw: "4", lc: "round" }),
+      H.ell(-40, -1, 8, 4, LEAF, -30), H.ell(-14, -10, 8, 4, LEAF, -10), H.ell(14, -12, 8, 4, LEAF, 6), H.ell(41, -6, 8, 4, LEAF, 26),
+      H.ell(-30, 4, 7, 3.4, LEAF, 20), H.ell(0, -2, 7, 3.4, LEAF, -4), H.ell(30, 2, 7, 3.4, LEAF, -22),
+      H.circ(-46, 2, 3, ROSE), H.circ(46, -4, 3, ROSE),
+      ...flower(-27, -10, ROSE), ...flower(2, -17, PETAL), ...flower(30, -11, ROSE),
+    ];
+  }
+
+  /* PARTY HAT — a cream cone tipped to the near side, two berry stripes cut
+     parallel to its left edge, a brass band at the base and a brass pom */
+  {
+    const A = [18, -Math.min(74, room - 8.5)], B = [-22, -10], C = [34, -16]; // apex, base-left, base-right (frame)
+    const lerp = (P, Q, t) => [P[0] + (Q[0] - P[0]) * t, P[1] + (Q[1] - P[1]) * t];
+    const pp = (v) => H.pt(v[0], v[1]);
+    const stripe = (s1, s2) => H.path(`M${pp(lerp(B, C, s1))} L${pp(lerp(B, C, s2))} L${pp(lerp(A, C, s2))} L${pp(lerp(A, C, s1))} Z`, BERRY);
+    out.party = [
+      H.path(`M${pp(A)} L${pp(B)} L${pp(C)} Z`, CREAM),
+      stripe(0.12, 0.32), stripe(0.54, 0.74),
+      H.path(`M${pp(B)} Q${pp([6, -6])} ${pp(C)}`, "none", { s: BRASS, sw: "3.6", lc: "round" }),
+      H.circ(A[0], A[1], 7.5, BRASS),
+      H.circ(A[0] - 2.2, A[1] - 2.2, 2.2, WHITE, { o: ".9" }),
+    ];
+  }
+
+  /* SHADES — ink lenses on the eyes with a cream frame so they read on the
+     night bird too, a bridge, short arms to the temples, a glint each */
+  {
+    const [lx, ly] = h.EL, [rx, ry] = h.ER;
+    const V = frame(0, 0);
+    const lens = (x, y) => V.rect(x - 12.5, y - 7.5, 25, 16, 6.5, LENS, { s: CREAM, sw: "2.8" });
+    out.shades = [
+      V.path(`M${V.pt(lx - 12, ly - 2)} L${V.pt(lx - 25, ly + 1)}`, "none", { s: CREAM, sw: "2.8", lc: "round" }),
+      V.path(`M${V.pt(rx + 12, ry - 2)} L${V.pt(rx + 26, ry - 6)}`, "none", { s: CREAM, sw: "2.8", lc: "round" }),
+      lens(lx, ly + 0.5), lens(rx, ry + 0.5),
+      V.path(`M${V.pt(lx + 12.5, ly - 2)} L${V.pt(rx - 12.5, ry - 2)}`, "none", { s: CREAM, sw: "2.8", lc: "round" }),
+      V.path(`M${V.pt(lx - 8, ly - 3)} L${V.pt(lx - 4.5, ly - 5.5)}`, "none", { s: WHITE, sw: "2.2", lc: "round", o: ".85" }),
+      V.path(`M${V.pt(rx - 8, ry - 3)} L${V.pt(rx - 4.5, ry - 5.5)}`, "none", { s: WHITE, sw: "2.2", lc: "round", o: ".85" }),
+    ];
+  }
+  return out;
+}
+/* the flying adult is the perched one lifted and tilted; her clothes follow */
+const LIFT = `rotate(-12 ${tx(60)} ${ty(66)}) translate(3.5 -14)`;
 
 /* ── assemble the family in the order the old file used ── */
 const fam = {};
@@ -197,7 +312,9 @@ for (const [id, s] of Object.entries(SKINS)) {
   fam[`wren-${id}-mini`] = miniShapes(s);
   for (const m of MOODS) fam[`wren-${id}-adult-${m}`] = adultShapes(s, { mood: m });
 }
-for (const [a, shapes] of Object.entries(ACC)) fam[`acc-shared-adult-${a}`] = shapes;
+for (const [stage, h] of Object.entries(HEADS)) for (const [a, shapes] of Object.entries(pieces(h))) fam[`acc-shared-${stage}-${a}`] = shapes;
+/* in flight she is lifted 14 and tilted; her hats get the 38 units that leaves */
+for (const [a, shapes] of Object.entries(pieces(HEADS.adult, 38))) fam[`acc-shared-fly-${a}`] = shapes.map((sh) => ({ ...sh, tf: LIFT + (sh.tf ? " " + sh.tf : "") }));
 const count = Object.values(fam).reduce((n, l) => n + l.length, 0);
 
 /* ── emit ── */

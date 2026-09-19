@@ -13,6 +13,7 @@ import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { useHatchlingForm } from "../lib/hatchling-form";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
+import { WardrobeRack } from "./WardrobeRack";
 import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, flightLog, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
@@ -321,38 +322,20 @@ export function WrenHome({
           <Cell label={tr("wren.looks")} value={skinName(skin)} count={statsReady ? `${looksOwned}/${SKINS.length}` : ""} swatch="#A9D0F2" on={open === "looks"} onPress={() => setOpen(open === "looks" ? null : "looks")} />
           <Cell label={tr("wren.dress")} value={dressName} count={`${items.filter((a) => a.free || premium).length}/${items.length}`} swatch="#F2887E" on={open === "dress"} onPress={() => setOpen(open === "dress" ? null : "dress")} />
         </View>
-        {open === "looks" && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-            {SKINS.map((sk) => {
-              const on = skin === sk.id;
-              const unlocked = skinUnlocked(sk.id, stats, premium);
-              return (
-                <Pressable key={sk.id} onPress={() => tapSkin(sk.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 10, backgroundColor: "#FFFFFF", borderRadius: 12, borderWidth: 2, borderColor: on ? P.pen : "transparent" }}>
-                  <View style={{ opacity: unlocked ? 1 : 0.4 }}>
-                    <WrenBird size={40} mood="happy" skin={sk.id} />
-                  </View>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 0.8, color: on ? P.pen : P.ink60, marginTop: 4 }}>{skinName(sk.id).toUpperCase()}</Text>
-                  {!unlocked && <Text style={{ fontFamily: PF.mono, fontSize: 7.5, color: P.brassSeal, marginTop: 2 }}>{sk.lock === "plus" ? tr("wren.lock.plus") : tr("wren.lock.kindred")}</Text>}
-                </Pressable>
-              );
-            })}
+        {open && (
+          <View style={{ marginTop: 10 }}>
+            <WardrobeRack
+              tone="post"
+              show={open}
+              headers={false}
+              skin={skin}
+              accessory={accessory}
+              stats={stats}
+              premium={premium}
+              onLook={(id) => tapSkin(id)}
+              onDress={(id, unlocked) => (unlocked ? onEquip(id) : onLocked())}
+            />
           </View>
-        )}
-        {open === "dress" && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 10 }}>
-            {ACCESSORY_META.map((a) => {
-              const locked = !a.free && !premium;
-              const on = accessory === a.id;
-              return (
-                <Pressable key={a.id} onPress={() => (locked ? onLocked() : onEquip(a.id))} style={{ width: 74, alignItems: "center", paddingVertical: 10, backgroundColor: "#FFFFFF", borderRadius: 12, borderWidth: 2, borderColor: on ? P.pen : "transparent" }}>
-                  <View style={{ opacity: locked ? 0.4 : 1 }}>
-                    <WrenBird size={40} mood="happy" accessory={a.id === "none" ? "none" : a.id} />
-                  </View>
-                  <Text style={{ fontFamily: PF.mono, fontSize: 8, color: on ? P.pen : P.ink60, marginTop: 3 }}>{locked ? `🔒 ${tr(`ws.acc.${a.id}`)}` : tr(`ws.acc.${a.id}`)}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
         )}
 
         {/* ── the door to First Class: her archive, not your words ── */}
