@@ -1,4 +1,5 @@
 import { scoped } from "./scoped-store";
+import { deskDay } from "./day";
 import { EMPTY_COUNTERS, type LocalCounters } from "./usage-stickers";
 
 /* LOCAL COUNTERS — the handful of taps the usage stickers count.
@@ -21,14 +22,14 @@ export async function getCounters(): Promise<LocalCounters> {
 }
 
 /** letters shown today — zero once the day has turned */
-export const seenToday = (c: LocalCounters): number => (c.seenDay === new Date().toISOString().slice(0, 10) ? c.seenToday ?? 0 : 0);
+export const seenToday = (c: LocalCounters): number => (c.seenDay === deskDay() ? c.seenToday ?? 0 : 0);
 /** replies sent today — zero once the day has turned */
-export const repliedToday = (c: LocalCounters): number => (c.repliedDay === new Date().toISOString().slice(0, 10) ? c.repliedToday ?? 0 : 0);
+export const repliedToday = (c: LocalCounters): number => (c.repliedDay === deskDay() ? c.repliedToday ?? 0 : 0);
 
 export async function bump(key: "seen" | "replied" | "translated" | "courierVisits", by = 1): Promise<void> {
   const c = await getCounters();
   c[key] += by;
-  const day = new Date().toISOString().slice(0, 10);
+  const day = deskDay(); // the desk's day, not the calendar's — see lib/day
   if (key === "seen") {
     // the day's own count, for the courier's "3 letters went past your desk today"
     c.seenToday = (c.seenDay === day ? c.seenToday ?? 0 : 0) + by;

@@ -1,3 +1,4 @@
+import { deskDay } from "./day";
 /* THE DAY'S RATION.
  * ────────────────────────────────────────────────────────────────────────
  * The founding spec said "matched, not a feed" and "no counter" — and both
@@ -26,11 +27,8 @@
 
 export const DAY_LETTERS = 15;
 
-/** local calendar day — the ration resets when the reader's day does */
-export const dayKey = (): string => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+/** the desk's day — turns at the hour she's back, see lib/day */
+export const dayKey = (): string => deskDay();
 
 /* FNV-1a — a stable per-day shuffle, not randomness. The same reader sees
    the same fifteen all day (no re-roll by re-opening), and different ones

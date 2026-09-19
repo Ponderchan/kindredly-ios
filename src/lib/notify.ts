@@ -12,7 +12,8 @@ const KNOCK_ID = "morning-knock";
    server-side batch to release), so this is the daily ritual anchor, not a
    promise about when the next letter shows up. Single source of truth for
    both the notification and the quiet-state countdown. */
-export const MORNING_HOUR = 8;
+import { MORNING_HOUR } from "./day";
+export { MORNING_HOUR };
 
 export async function enableMorningKnock(): Promise<boolean> {
   try {

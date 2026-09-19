@@ -39,6 +39,7 @@ import { fieldBox } from "../../lib/field";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
+import { deskDay } from "../../lib/day";
 import { LeaveSheet } from "../../components/LeaveSheet";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
@@ -242,8 +243,31 @@ function Feed({
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const tabH = 54 + Math.max(insets.bottom, 8); // matches the custom TabBar height
-  // "did I close the post today" — one flag per date
-  const sealKey = `sealed:${new Date().toISOString().slice(0, 10)}`;
+  /* "did I pull the blind today" — one flag per desk day. The day turns at
+     eight, when she's back (lib/day); an app left open across eight sees the
+     flag lift, the blind roll up and the desk rebuilt with the next fifteen,
+     which is exactly what the countdown on the blind promised. */
+  const [day, setDay] = useState(deskDay());
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const d = deskDay();
+      if (d !== day) setDay(d);
+    }, 30000);
+    return () => clearInterval(tick);
+  }, [day]);
+  const firstDay = useRef(true);
+  const reloadRef = useRef(onReloaded);
+  reloadRef.current = onReloaded; // the parent hands a fresh closure each render; only the day may fire this
+  useEffect(() => {
+    if (firstDay.current) {
+      firstDay.current = false;
+      return;
+    }
+    reloadRef.current();
+    setIdx(0);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [day]);
+  const sealKey = `sealed:${day}`;
   const [sealed, setSealed] = useState(false);
   useEffect(() => {
     getFlags().then((f) => setSealed(!!f[sealKey]));
