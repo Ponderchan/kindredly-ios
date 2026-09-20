@@ -27,6 +27,9 @@ import { leavePicked, takeKept } from "../lib/journal-handoff";
    a page that already has pictures: the keys are hidden, and NEXT merges
    and goes back instead of opening a new page. */
 
+/* the pick is a confirmation, so it wears the app's confirm green — the
+   kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
+const TICK = "#2E7D4F";
 const MAX = 9;
 const PAGE = 60;
 type Frame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
@@ -215,11 +218,11 @@ export default function JournalPick() {
           </View>
         ) : (
           /* the number is the order it will sit in on the page */
-          <View style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#FFFFFF", backgroundColor: n >= 0 ? P.pen : "rgba(17,17,19,0.28)", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#FFFFFF", backgroundColor: n >= 0 ? TICK : "rgba(17,17,19,0.28)", alignItems: "center", justifyContent: "center" }}>
             {n >= 0 && <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, color: "#FFFFFF" }}>{n + 1}</Text>}
           </View>
         )}
-        {n >= 0 && <View pointerEvents="none" style={{ position: "absolute", inset: 0, backgroundColor: "rgba(59,53,224,0.12)" }} />}
+        {n >= 0 && <View pointerEvents="none" style={{ position: "absolute", inset: 0, backgroundColor: "rgba(46,125,79,0.14)" }} />}
       </Pressable>
     );
   };
@@ -261,7 +264,7 @@ export default function JournalPick() {
         <Pressable
           onPress={() => void next()}
           disabled={!picked.length || busy}
-          style={{ minWidth: 34, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: picked.length && !busy ? P.pen : "transparent", borderWidth: 1.5, borderColor: picked.length && !busy ? P.pen : P.ink12 }}
+          style={{ minWidth: 34, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: picked.length && !busy ? TICK : "transparent", borderWidth: 1.5, borderColor: picked.length && !busy ? TICK : P.ink12 }}
         >
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: picked.length && !busy ? "#FFFFFF" : P.ink40 }}>
             {busy ? "…" : picked.length ? `${t(adding ? "jp.add" : "jp.next")} · ${picked.length}` : t(adding ? "jp.add" : "jp.next")}
