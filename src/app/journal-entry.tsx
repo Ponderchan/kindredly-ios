@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
-import { t, useLang } from "../lib/i18n";
+import { getLang, t, useLang } from "../lib/i18n";
+import { DEMO_TEXT, storeMode } from "../lib/dev-store";
 import { P, PF } from "../theme/post";
 import { SelfCompose } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
@@ -25,7 +26,8 @@ import { localeTag } from "../lib/format";
 export default function JournalEntryRoute() {
   useLang();
   const router = useRouter();
-  const [text, setText] = useState("");
+  const { demo } = useLocalSearchParams<{ demo?: string }>();
+  const [text, setText] = useState(__DEV__ && storeMode && demo ? DEMO_TEXT[getLang()].line : "");
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
 
   /* Same guard as the letter desk, minus the draft. A sealed page has no

@@ -22,6 +22,7 @@ import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
 import { takePicked } from "../lib/journal-handoff";
+import { storeMode, storePhotos } from "../lib/dev-store";
 import { CourierSendOff } from "./CourierSendOff";
 import { Nudge } from "./ComposeTray";
 
@@ -168,10 +169,20 @@ export function SelfCompose({
   /* arrive straight in a mode (voice/video from Sealed's empty state) — or,
      the usual way in since 2026-09-20, with the pictures already chosen on
      the roll (journal-pick): they land on the page, no picker opens */
-  const { start } = useLocalSearchParams<{ start?: string }>();
+  const { start, demo } = useLocalSearchParams<{ start?: string; demo?: string }>();
   const armed = useRef(false);
   useFocusEffect(
     useCallback(() => {
+      // store mode (dev): two pictures off the roll and the mood tray open
+      if (__DEV__ && storeMode && demo && !armed.current) {
+        armed.current = true;
+        if (storePhotos.length) {
+          setAtt("photo");
+          setPhotos(storePhotos.slice(0, 9));
+        }
+        setTimeout(() => setMoodOpen(true), 500);
+        return;
+      }
       /* whatever the roll left: pictures (first time, or more of them
          after + ADD), or one film */
       const p = takePicked();
@@ -193,7 +204,7 @@ export function SelfCompose({
       armed.current = true;
       if (start === "voice" || start === "video") toggleMode(start);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [start]),
+    }, [start, demo]),
   );
 
 

@@ -3,7 +3,7 @@ import { Image, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, Sc
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { t, useLang } from "../../lib/i18n";
+import { getLang, t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { ChatField } from "../../components/ChatField";
 import { OfficialBird } from "../../components/WrenDesk";
@@ -36,6 +36,7 @@ import {
   type WrenPost,
 } from "../../lib/wren-desk";
 import { DEMO_WREN_POSTS } from "../../data/demo";
+import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 
 /* WREN'S DESK — the one room everybody has.
    ────────────────────────────────────────────────────────────────────────
@@ -89,6 +90,9 @@ export default function WrenDeskScreen() {
     readPostsCache().then((c) => alive && c.length && setPosts(c));
     readLocal().then((l) => alive && setLocal(l));
     if (!isGuest) readMailCache().then((c) => alive && c.length && setMail(c));
+    if (__DEV__ && storeMode) {
+      setPosts([{ ...DEMO_WREN_POSTS[0], body: DEMO_TEXT[getLang()].welcome, at: new Date(Date.now() - 2 * 3600_000).toISOString() }]);
+    } else
     fetchWrenPosts().then((p) => {
       if (!alive) return;
       if (p) setPosts(p);
@@ -114,7 +118,7 @@ export default function WrenDeskScreen() {
     const g = params.guide;
     if (!isGuideId(g) || linked.current === g) return;
     linked.current = g;
-    void show({ kind: "guide", guide: g }, null);
+    void show({ kind: "guide", guide: g }, __DEV__ && storeMode ? DEMO_TEXT[getLang()].ask : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.guide]);
 

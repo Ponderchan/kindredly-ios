@@ -5,11 +5,12 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { WrenBird } from "./WrenBird";
 import { cardShadow } from "./AuraCard";
 import { P, PF } from "../theme/post";
-import { t, useLang } from "../lib/i18n";
+import { getLang, t, useLang } from "../lib/i18n";
 import { sinceShort } from "../lib/format";
 import { readRoomSeen } from "../lib/room-seen";
 import { setDeskWaiting } from "../lib/waiting";
 import { DEMO_WREN_POSTS } from "../data/demo";
+import { DEMO_TEXT, storeMode } from "../lib/dev-store";
 import { OFFICIAL_NAME, WREN_ROOM, fetchWrenPosts, postText, readPostsCache, wrenUnread, type WrenPost } from "../lib/wren-desk";
 
 /* THE OFFICIAL BIRD — the courier as everyone has her, in a ring, with the
@@ -64,6 +65,12 @@ export function WrenDeskRow() {
         setDeskWaiting(n); // the tab's number counts her desk too
       });
     };
+    if (__DEV__ && storeMode) {
+      settle([{ ...DEMO_WREN_POSTS[0], body: DEMO_TEXT[getLang()].welcome, at: new Date(Date.now() - 2 * 3600_000).toISOString() }]);
+      return () => {
+        alive = false;
+      };
+    }
     readPostsCache().then((c) => c.length && settle(c));
     fetchWrenPosts().then((p) => {
       if (p) settle(p);

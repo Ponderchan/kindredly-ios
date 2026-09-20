@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { DEMO_TEXT, storeMode } from "../lib/dev-store";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { KeyDot, MoreTray, Nudge, PlusGlyph, RoundKey, StampKeyGlyph, StampTray } from "../components/ComposeTray";
@@ -49,7 +50,7 @@ type Mode = "write" | "speak";
 export default function Compose() {
   const router = useRouter();
   const wren = useWrenName();
-  const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string; seed?: string }>();
+  const params = useLocalSearchParams<{ morning?: string; stamp?: string; draft?: string; seed?: string; demo?: string }>();
   const isMorning = params.morning === "1";
   const { premium } = useEntitlement();
 
@@ -92,7 +93,12 @@ export default function Compose() {
   const [sel, setSel] = useState<string | null>(params.stamp ?? null);
   const chosen = getStamp(sel); // the stamp on the envelope, for the corner
   // arriving from a sealed page that decided to leave — the words come with it
-  const [text, setText] = useState(params.seed ?? "");
+  const [text, setText] = useState(params.seed ?? (__DEV__ && storeMode && params.demo ? DEMO_TEXT[getLang()].compose : ""));
+  // store mode: the stamps tray open, the way the screenshot wants it
+  useEffect(() => {
+    if (__DEV__ && storeMode && params.demo) setTimeout(() => setTray("stamps"), 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [ask, setAsk] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false); // the publish truly landed — the courier waits for this
