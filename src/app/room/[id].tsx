@@ -17,6 +17,8 @@ import { markMomentUsed, momentUsedToday, shotToday } from "../../lib/daily-mome
 import { saveToLore } from "../../lib/lore";
 import { markRoomSeen } from "../../lib/room-seen";
 import { markNoticeSeen, readNoticesSeen } from "../../lib/notice-seen";
+import { useEntitlement } from "../../lib/entitlement";
+import { isExpired, quietDays } from "../../lib/kindred-expiry";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
@@ -59,7 +61,7 @@ import { alertFail } from "../../lib/fail";
    presence. Nothing here reports on the other person's attention. */
 export default function RoomScreen() {
   useLang(); // repaint on language change
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, expired: expiredParam } = useLocalSearchParams<{ id: string; expired?: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
@@ -211,6 +213,20 @@ export default function RoomScreen() {
   const weight = weightedCount(text);
   const over = weight > LETTER_MAX;
   const canSend = weight >= REPLY_MIN && !over && !sending;
+
+  /* EXPIRED (owner, 2026-09-20; lib/kindred-expiry): thirty days without
+     a word here and the bar gives way to REKINDLE. Reading stays. The
+     last word is the newest message either way, or the day the room
+     opened; the demo rooms are exempt so the simulator keeps its bar. */
+  const { premium } = useEntitlement();
+  const lastAt = useMemo(() => {
+    if (!detail) return Date.now();
+    const dates = detail.messages.map((m) => Date.parse(m.date)).filter((n) => Number.isFinite(n));
+    if (dates.length) return Math.max(...dates);
+    return detail.since ? Date.parse(detail.since) : Date.now();
+  }, [detail]);
+  // dev: ?expired=1 on a demo room shows the closed door without waiting a month
+  const expired = !!detail && ((!isDemo && isExpired(lastAt, premium)) || (__DEV__ && expiredParam === "1"));
 
   /* OPTIMISTIC for plain lines; folds and media go through load() because
      their truth (sealed/open, upload) lives server-side. */
@@ -652,6 +668,17 @@ export default function RoomScreen() {
               {t("ch.gone")}
             </Text>
           </View>
+        ) : expired ? (
+          <View style={{ marginHorizontal: 22, marginBottom: 16, borderWidth: 1, borderColor: P.ink12, padding: 14 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <WrenBird size={20} mood="think" />
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink40 }}>{t("kd.expiredRow", { n: quietDays(lastAt) })}</Text>
+            </View>
+            <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink, marginTop: 8 }}>{t("rm.expired.body")}</Text>
+            <Pressable onPress={() => router.push("/paywall?src=rekindle")} style={({ pressed }) => ({ marginTop: 12, backgroundColor: P.ink, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{t("rm.rekindle")}</Text>
+            </Pressable>
+          </View>
         ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
           {/* THE BAR IS A MESSAGING BAR NOW (owner, 2026-09-20): the courier
@@ -709,7 +736,7 @@ export default function RoomScreen() {
           </Pressable>
         </View>
         )}
-        {tracing && !detail?.gone && <TraceTray actions={TRACES} onPick={onTrace} />}
+        {tracing && !detail?.gone && !expired && <TraceTray actions={TRACES} onPick={onTrace} />}
       </KeyboardAvoidingView>
 
 

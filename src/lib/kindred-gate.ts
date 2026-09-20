@@ -1,4 +1,5 @@
 import { fetchThreads } from "./db";
+import { isExpired } from "./kindred-expiry";
 
 /* THE ONE GATE IN THE PRODUCT.
    ────────────────────────────────────────────────────────────────────────
@@ -32,10 +33,11 @@ export async function kindredGate(
   if (premium) return { allowed: true, have: 0 };
   const t = await fetchThreads();
   /* this thread doesn't count itself — it isn't revealed yet. A kindred
-     who closed their account doesn't count either: the free one is a
+     who closed their account doesn't count either, and nor does one
+     whose room has expired (lib/kindred-expiry) — the seat is free again: the free one is a
      person you can still write to, and the Kindreds page already stops
      listing them. Found by the owner on 2026-09-19 — his one kindred had
      deleted their account, and the next name exchange hit the fare. */
-  const have = (t || []).filter((x) => x.revealed && !x.gone && x.id !== threadId).length;
+  const have = (t || []).filter((x) => x.revealed && !x.gone && x.id !== threadId && !isExpired(x.lastAt, false)).length;
   return { allowed: have < FREE_KINDREDS, have };
 }

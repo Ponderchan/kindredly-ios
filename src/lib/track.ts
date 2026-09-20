@@ -38,6 +38,7 @@ export type EventName =
 /** where a paywall was opened FROM — every entry point, named once */
 export type PaywallSource =
   | "kindred_gate"
+  | "rekindle"
   | "voice_lock"
   | "daily_cap"
   | "report_lock"

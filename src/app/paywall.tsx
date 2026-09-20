@@ -64,7 +64,7 @@ export default function Paywall() {
   const close = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
   /* sent here by the kindred gate: say so, or the page's "your first
      three are free" reads as a contradiction to someone on their fourth */
-  const lead = source === "kindred_gate" ? t("pw.road.oneKindred") : undefined;
+  const lead = source === "kindred_gate" ? t("pw.road.oneKindred") : source === "rekindle" ? t("pw.road.rekindle") : undefined;
   return <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} />;
 }
 

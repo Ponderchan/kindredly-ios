@@ -23,6 +23,9 @@ import { useAuth } from "../../lib/auth";
 import { setWaiting } from "../../lib/waiting";
 import { threadState } from "../../lib/thread-state";
 import { DEMO_THREADS } from "../../data/demo";
+import { useEntitlement } from "../../lib/entitlement";
+import { FREE_KINDREDS } from "../../lib/kindred-gate";
+import { isExpired, quietDays } from "../../lib/kindred-expiry";
 
 /* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
    in. COMING INTO VIEW: both the orbit radius and the mosaic's resolution are
@@ -107,7 +110,13 @@ export default function KindredsTab() {
      exactly backwards. */
   const bySort = (a: ThreadSummary, b: ThreadSummary) =>
     Number(!!threadState(b)?.needsYou) - Number(!!threadState(a)?.needsYou) || b.lastAt - a.lastAt;
-  const kindreds = useMemo(() => orbit.filter((t) => t.revealed).sort(bySort), [orbit]);
+  /* EXPIRED ROOMS (owner, 2026-09-20; lib/kindred-expiry): thirty days
+     without a word and a kindred leaves the seats for a group of their
+     own at the foot — still there, still readable, one REKINDLE away.
+     On First Class nothing expires. */
+  const { premium } = useEntitlement();
+  const kindreds = useMemo(() => orbit.filter((t) => t.revealed && !isExpired(t.lastAt, premium)).sort(bySort), [orbit, premium]);
+  const expired = useMemo(() => orbit.filter((t) => t.revealed && isExpired(t.lastAt, premium)).sort((a, b) => b.lastAt - a.lastAt), [orbit, premium]);
   const coming = useMemo(() => orbit.filter((t) => !t.revealed).sort(bySort), [orbit]);
   const yourTurn = useMemo(() => coming.filter((t) => threadState(t)?.needsYou), [coming]);
   const waitingThem = useMemo(() => coming.filter((t) => !threadState(t)?.needsYou), [coming]);
@@ -162,14 +171,20 @@ export default function KindredsTab() {
             <WrenDeskRow />
           </View>
 
-          {/* the ones who landed — off the rings, beside you, by name */}
-          {kindreds.length > 0 && (
+          {/* THE SEATS (owner, 2026-09-20): the card is always here, three
+              seats on the fare everyone has — the ones who landed, by name,
+              and dotted seats for the ones still on their way. On First
+              Class, one dotted seat after the last name. An empty seat
+              opens the guide on how a kindred forms. */}
+          {(
             <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, paddingTop: 12, paddingBottom: 14 }, cardShadow, { shadowOpacity: 0.05 }]}>
               <View style={{ flexDirection: "row", alignItems: "baseline", paddingHorizontal: 16 }}>
-                <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: "#2E7D4F" }}>{t("kd.kindredsN", { n: kindreds.length })}</Text>
-                <Pressable onPress={() => router.push("/my-kindreds")} hitSlop={8}>
-                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: P.pen }}>{t("kd.all")}</Text>
-                </Pressable>
+                <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: kindreds.length ? "#2E7D4F" : P.ink60 }}>{t("kd.kindredsN", { n: kindreds.length })}</Text>
+                {kindreds.length > 0 && (
+                  <Pressable onPress={() => router.push("/my-kindreds")} hitSlop={8}>
+                    <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: P.pen }}>{t("kd.all")}</Text>
+                  </Pressable>
+                )}
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, gap: 6 }}>
                 {kindreds.map((th) => {
@@ -198,8 +213,42 @@ export default function KindredsTab() {
                     </Pressable>
                   );
                 })}
+                {Array.from({ length: premium ? 1 : Math.max(0, FREE_KINDREDS - kindreds.length) }, (_, i) => (
+                  <Pressable key={`seat-${i}`} onPress={() => router.push("/room/wren?guide=kindreds")} style={({ pressed }) => ({ width: 78, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
+                    <View style={{ width: 56, height: 56, alignItems: "center", justifyContent: "center" }}>
+                      <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderStyle: "dashed", borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
+                        <View style={{ opacity: 0.35 }}>
+                          <MosaicId seed={`seat-${kindreds.length + i}`} cell={3.2} gap={0.9} develop={0.12} />
+                        </View>
+                      </View>
+                    </View>
+                    <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink40, marginTop: 9 }}>{t("kd.seat")}</Text>
+                  </Pressable>
+                ))}
               </ScrollView>
             </View>
+          )}
+
+          {/* the rooms that went quiet — read them any time; write, and
+              they are back */}
+          {expired.length > 0 && (
+            <>
+              <Text style={groupLabel}>{t("kd.groupExpired", { n: expired.length })}</Text>
+              {expired.map((th) => (
+                <Pressable key={th.id} onPress={() => router.push(`/room/${th.id}`)} style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={{ opacity: 0.45 }}>
+                      <AvatarImage id={th.otherFace ?? null} seed={th.other} size={40} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: P.ink60 }}>{th.otherName || t("kd.aKindred")}</Text>
+                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink40, marginTop: 3 }}>{t("kd.expiredRow", { n: quietDays(th.lastAt) })}</Text>
+                    </View>
+                    <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.ink }}>{t("rm.rekindle")} ›</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </>
           )}
 
           {/* still strangers: your turn first, then the ones you are waiting on */}
