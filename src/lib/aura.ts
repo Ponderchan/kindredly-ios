@@ -229,10 +229,11 @@ export async function readAuraCache(): Promise<Aura | null> {
     return null;
   }
 }
-function saveAuraCache(a: Aura): void {
+function saveAuraCache(a: Aura, key?: string): void {
   // the words themselves stay out of it: the card needs the read, not the corpus
   const light: Aura = { ...a, texts: [], pieceText: {} };
   void AsyncStorage.setItem(AURA_CACHE_KEY, JSON.stringify(light)).catch(() => {});
+  if (key) void AsyncStorage.setItem(AURA_CACHE_KEY + ":key", key).catch(() => {});
 }
 
 /** what a pool letter has in common with the reader — see lib/today-signal */
@@ -321,6 +322,23 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   const pieceText: Aura["pieceText"] = {};
   for (const p of pieces) pieceText[p.id] = { text: p.text, source: p.source, createdAt: p.createdAt };
 
+  /* SAME WORDS, SAME READ (stall probe, 2026-09-20). The hatch and the
+     sticker pass over every piece are the heaviest thing the Me tab does,
+     and they ran on every visit even when not a word had changed. The
+     corpus is fingerprinted by its piece ids; when the fingerprint
+     matches the last read, that read is returned with the words put
+     back, and the engine stays cold. */
+  const key = `${pieces.map((p) => p.id).sort().join("|")}#${scope.sealed ? 1 : 0}`;
+  try {
+    const lastKey = await AsyncStorage.getItem(AURA_CACHE_KEY + ":key");
+    if (lastKey === key) {
+      const cached = await readAuraCache();
+      if (cached && cached.phase !== "empty") return { ...cached, texts, pieceText, usage, lastWrittenAt };
+    }
+  } catch {
+    /* no cache, the long way */
+  }
+
   // the observation layer — deterministic over pieces + saved state. This is
   // what the reader is told: phase, stickers, title, all quotable.
   const prevState = await loadStickerState();
@@ -369,7 +387,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
       mine.hours.length >= 3 &&
       mine.hours.filter((h) => h >= 22 || h < 6).length / mine.hours.length > 0.5,
   };
-  saveAuraCache(aura);
+  saveAuraCache(aura, key);
   return aura;
 }
 

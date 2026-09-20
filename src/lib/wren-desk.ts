@@ -55,9 +55,15 @@ export async function readPostsCache(): Promise<WrenPost[]> {
 }
 
 /** newest last, the way a transcript reads. null = could not ask (offline,
-    table not there yet) so the caller keeps what it has. */
+    table not there yet) so the caller keeps what it has. Asked at most
+    once a minute: the row on Kindreds, the strip on Today and the tab's
+    number all call this on every focus, and her desk does not change
+    that often. */
+let postsMem: WrenPost[] | null = null;
+let postsAt = 0;
 export async function fetchWrenPosts(): Promise<WrenPost[] | null> {
   if (!supabaseReady) return null;
+  if (postsMem && Date.now() - postsAt < 60_000) return postsMem;
   try {
     const { data, error } = await supabase!
       .from("wren_posts")
@@ -66,6 +72,8 @@ export async function fetchWrenPosts(): Promise<WrenPost[] | null> {
       .limit(200);
     if (error || !data) return null;
     const posts = data.map(toPost);
+    postsMem = posts;
+    postsAt = Date.now();
     void AsyncStorage.setItem(POSTS_KEY, JSON.stringify(posts)).catch(() => {});
     return posts;
   } catch {

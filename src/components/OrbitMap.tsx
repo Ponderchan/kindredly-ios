@@ -9,7 +9,9 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
+import { useIsFocused } from "expo-router";
 import { P, PF } from "../theme/post";
 import { hashStr } from "../lib/format";
 import { MosaicId } from "./MosaicId";
@@ -181,13 +183,20 @@ function OrbitingFace({
   const duration = 150000 + (h % 120000); // ms per full circuit
 
   const turn = useSharedValue(0);
+  /* the sky turns only while it is on show: fourteen orbits ticking on a
+     tab nobody is looking at is work for nothing (stall probe, 2026-09-20) */
+  const focused = useIsFocused();
   useEffect(() => {
+    if (!focused) {
+      cancelAnimation(turn);
+      return;
+    }
     turn.value = withRepeat(
-      withTiming(1, { duration, easing: Easing.linear, reduceMotion: ReduceMotion.System }),
+      withTiming(turn.value + 1, { duration, easing: Easing.linear, reduceMotion: ReduceMotion.System }),
       -1,
       false,
     );
-  }, [turn, duration]);
+  }, [turn, duration, focused]);
 
   const orbit = useAnimatedStyle(() => {
     const ang = a0 + turn.value * Math.PI * 2 * dir;

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
+import Reanimated, { Easing as REasing, cancelAnimation, useAnimatedProps, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import { useIsFocused } from "expo-router";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, Polygon, Rect, Stop } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { PF } from "../theme/post";
@@ -10,8 +12,17 @@ import { W14, cardShadow } from "./AuraCard";
 import { agoLabel, flightLog, type LogEntry } from "../lib/flight-log";
 import type { ThreadSummary } from "../lib/db";
 
-const APath = Animated.createAnimatedComponent(Path);
-const AG = Animated.createAnimatedComponent(G);
+/* THE SVG LOOPS RUN ON THE UI THREAD (stall probe, 2026-09-20). They were
+   plain Animated with useNativeDriver:false — SVG props can't take the
+   native driver — which meant four timers ticking the JS thread sixty
+   times a second for as long as the card was mounted, on every tab. That
+   is the tax every tap paid. Reanimated's animated props go to the
+   native view directly, and the loops stop when the screen is not the
+   one on show. */
+const RPath = Reanimated.createAnimatedComponent(Path);
+const RG = Reanimated.createAnimatedComponent(G);
+const RCircle = Reanimated.createAnimatedComponent(Circle);
+const REllipse = Reanimated.createAnimatedComponent(Ellipse);
 
 /* THE COURIER'S CARD — the owner's V9 sheet (Me Region Variants, Round 2).
    ────────────────────────────────────────────────────────────────────────
@@ -152,45 +163,54 @@ export function CourierCard({
      night: the stars blink; day: the cloud drifts; a lit window pulses
      when something is waiting on you. All loops, all cheap. */
   const bob = useRef(new Animated.Value(0)).current;
-  const dash = useRef(new Animated.Value(0)).current;
   const breathe = useRef(new Animated.Value(0)).current;
   const hop = useRef(new Animated.Value(0)).current;
   const tilt = useRef(new Animated.Value(0)).current;
-  const twinkle = useRef(new Animated.Value(0)).current;
-  const drift = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
+  const dash = useSharedValue(0);
+  const twinkle = useSharedValue(0);
+  const drift = useSharedValue(0);
+  const pulse = useSharedValue(0);
   const flyingNow = where.state === "exploring" || where.state === "delivery" || where.state === "bringing";
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (!focused) {
+      // nothing moves on a screen nobody is looking at
+      cancelAnimation(dash);
+      cancelAnimation(pulse);
+      cancelAnimation(twinkle);
+      cancelAnimation(drift);
+      return;
+    }
+    const sine = REasing.inOut(REasing.sin);
+    if (flyingNow) dash.value = withRepeat(withTiming(1, { duration: 1400, easing: REasing.linear }), -1, false);
+    else dash.value = 0;
+    if (where.state === "bringing") pulse.value = withRepeat(withSequence(withTiming(1, { duration: 900, easing: sine }), withTiming(0, { duration: 900, easing: sine })), -1, false);
+    else pulse.value = 0;
+    // the weather runs from wherever it was — no snap back on a refocus
+    if (P.stars) twinkle.value = withRepeat(withSequence(withTiming(1, { duration: 1100, easing: sine }), withTiming(0, { duration: 1100, easing: sine })), -1, false);
+    if (P.cloud) drift.value = withRepeat(withSequence(withTiming(1, { duration: 9000, easing: sine }), withTiming(0, { duration: 9000, easing: sine })), -1, false);
+  }, [focused, flyingNow, where.state, P.stars, P.cloud, dash, pulse, twinkle, drift]);
+  const bringing = where.state === "bringing";
+  const dashProps = useAnimatedProps(() => ({ strokeDashoffset: bringing ? dash.value * 9 : 9 - dash.value * 9 }));
+  const starsA = useAnimatedProps(() => ({ opacity: 0.35 + 0.65 * twinkle.value }));
+  const starsB = useAnimatedProps(() => ({ opacity: 1 - 0.65 * twinkle.value }));
+  const cloudA = useAnimatedProps(() => ({ cx: w * 0.6 - 10 + 24 * drift.value }));
+  const cloudB = useAnimatedProps(() => ({ cx: w * 0.6 + 12 - 10 + 24 * drift.value }));
+  const pulseProps = useAnimatedProps(() => ({ opacity: 0.55 * pulse.value }));
   useEffect(() => {
     const loops: Animated.CompositeAnimation[] = [];
     const sine = Easing.inOut(Easing.sin);
     if (flyingNow) {
       loops.push(Animated.loop(Animated.sequence([Animated.timing(bob, { toValue: 1, duration: 1300, easing: sine, useNativeDriver: true, isInteraction: false }), Animated.timing(bob, { toValue: 0, duration: 1300, easing: sine, useNativeDriver: true, isInteraction: false })])));
-      loops.push(Animated.loop(Animated.timing(dash, { toValue: 1, duration: 1400, easing: Easing.linear, useNativeDriver: false, isInteraction: false })));
     } else if (where.state === "unsent") {
       loops.push(Animated.loop(Animated.sequence([Animated.delay(1800), Animated.timing(tilt, { toValue: 1, duration: 420, easing: sine, useNativeDriver: true, isInteraction: false }), Animated.delay(900), Animated.timing(tilt, { toValue: 0, duration: 420, easing: sine, useNativeDriver: true, isInteraction: false })])));
     } else {
       loops.push(Animated.loop(Animated.sequence([Animated.timing(breathe, { toValue: 1, duration: 1600, easing: sine, useNativeDriver: true, isInteraction: false }), Animated.timing(breathe, { toValue: 0, duration: 1600, easing: sine, useNativeDriver: true, isInteraction: false })])));
       loops.push(Animated.loop(Animated.sequence([Animated.delay(4200), Animated.timing(hop, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true, isInteraction: false }), Animated.timing(hop, { toValue: 0, duration: 220, easing: Easing.bounce, useNativeDriver: true, isInteraction: false })])));
     }
-    if (where.state === "bringing") loops.push(Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 900, easing: sine, useNativeDriver: false, isInteraction: false }), Animated.timing(pulse, { toValue: 0, duration: 900, easing: sine, useNativeDriver: false, isInteraction: false })])));
     loops.forEach((l) => l.start());
     return () => loops.forEach((l) => l.stop());
-  }, [flyingNow, where.state, bob, dash, breathe, hop, tilt, pulse]);
-  /* THE WEATHER IS ITS OWN LOOP. The cloud and the stars used to restart
-     with every state change (a reply landing, the card reloading), and
-     Animated.loop resets its value before the first pass — so the cloud
-     snapped back to its start and the reader saw it jump. Now they run
-     from mount to unmount, in a loop that never resets, and they are not
-     "interactions" (see above). */
-  useEffect(() => {
-    const loops: Animated.CompositeAnimation[] = [];
-    const sine = Easing.inOut(Easing.sin);
-    if (P.stars) loops.push(Animated.loop(Animated.sequence([Animated.timing(twinkle, { toValue: 1, duration: 1100, easing: sine, useNativeDriver: false, isInteraction: false }), Animated.timing(twinkle, { toValue: 0, duration: 1100, easing: sine, useNativeDriver: false, isInteraction: false })]), { resetBeforeIteration: false }));
-    if (P.cloud) loops.push(Animated.loop(Animated.sequence([Animated.timing(drift, { toValue: 1, duration: 9000, easing: sine, useNativeDriver: false, isInteraction: false }), Animated.timing(drift, { toValue: 0, duration: 9000, easing: sine, useNativeDriver: false, isInteraction: false })]), { resetBeforeIteration: false }));
-    loops.forEach((l) => l.start());
-    return () => loops.forEach((l) => l.stop());
-  }, [P.stars, P.cloud, twinkle, drift]);
-
+  }, [flyingNow, where.state, bob, breathe, hop, tilt]);
   const flying = where.state === "exploring" || where.state === "delivery" || where.state === "bringing";
   // the house and the window sit on the globe's shoulders; the route goes over the top
   const R = w * GLOBE.r;
@@ -218,12 +238,12 @@ export function CourierCard({
             <Rect x={0} y={0} width={w} height={SCENE_H} fill="url(#sky)" />
             {P.stars && (
               <>
-                <AG opacity={twinkle.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] })}>
+                <RG animatedProps={starsA}>
                   {[[0.12, 22], [0.47, 30], [0.75, 34], [0.55, 48]].map(([fx, y], i) => <Circle key={i} cx={w * fx} cy={y} r={i % 2 === 0 ? 1.6 : 1} fill="#FFFFFF" />)}
-                </AG>
-                <AG opacity={twinkle.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] })}>
+                </RG>
+                <RG animatedProps={starsB}>
                   {[[0.3, 12], [0.62, 16], [0.93, 26], [0.2, 46]].map(([fx, y], i) => <Circle key={i} cx={w * fx} cy={y} r={i % 2 === 0 ? 1.2 : 1} fill="#FFFFFF" />)}
-                </AG>
+                </RG>
               </>
             )}
             {P.sun && <Circle cx={w * P.sunAt[0]} cy={SCENE_H * P.sunAt[1]} r={daylight(hour) === "day" ? 13 : 11} fill={P.sun} />}
@@ -234,30 +254,28 @@ export function CourierCard({
               </>
             )}
             {P.cloud && (
-              <AG translateX={drift.interpolate({ inputRange: [0, 1], outputRange: [-10, 14] })}>
-                <Ellipse cx={w * 0.6} cy={30} rx={22} ry={8} fill={P.cloud} opacity={0.9} />
-                <Ellipse cx={w * 0.6 + 12} cy={26} rx={13} ry={9} fill={P.cloud} opacity={0.9} />
-              </AG>
+              <>
+                <REllipse animatedProps={cloudA} cy={30} rx={22} ry={8} fill={P.cloud} opacity={0.9} />
+                <REllipse animatedProps={cloudB} cy={26} rx={13} ry={9} fill={P.cloud} opacity={0.9} />
+              </>
             )}
             <Planet w={w} P={P} />
             {/* the route — only once a letter has left */}
             {where.state !== "unsent" && (
-              <APath
+              <RPath
                 d={`M${x0} ${ARC_Y} Q ${(x0 + x1) / 2} ${ARC_CY} ${x1} ${ARC_Y}`}
                 fill="none"
                 stroke={GREEN.ink}
                 strokeWidth={1.6}
                 strokeDasharray="4 5"
                 opacity={0.7}
-                strokeDashoffset={dash.interpolate({ inputRange: [0, 1], outputRange: where.state === "bringing" ? [0, 9] : [9, 0] })}
+                animatedProps={dashProps}
               />
             )}
             {/* your window, their window */}
             <Rect x={x0 - 7} y={ARC_Y - 2} width={14} height={12} rx={2} fill={P.lit || where.state === "bringing" ? "#FFD98A" : "#FFFFFF"} stroke={GREEN.ink} strokeWidth={1.6} />
             {where.state === "bringing" && (
-              <AG opacity={pulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] })}>
-                <Circle cx={x0} cy={ARC_Y + 4} r={13} fill="#FFD98A" />
-              </AG>
+              <RCircle animatedProps={pulseProps} cx={x0} cy={ARC_Y + 4} r={13} fill="#FFD98A" />
             )}
             <Path d={`M${x0 - 9} ${ARC_Y - 2} L${x0} ${ARC_Y - 9} L${x0 + 9} ${ARC_Y - 2}`} fill="none" stroke={GREEN.ink} strokeWidth={1.6} strokeLinejoin="round" />
             <Rect x={x1 - 7} y={ARC_Y - 4} width={14} height={14} rx={2} fill={P.lit ? "#FFD98A" : "#FFFFFF"} stroke={GREEN.ink} strokeWidth={1.6} opacity={where.state === "unsent" ? 0.35 : 1} />
