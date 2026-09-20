@@ -483,9 +483,15 @@ export default function Compose() {
             <Pressable
               onPress={() => openTray("stamps")}
               hitSlop={4}
-              style={({ pressed }) => ({ height: 46, maxWidth: 150, borderRadius: 23, borderWidth: 1.5, borderColor: chosen.color, backgroundColor: channelWash(chosen.color), paddingHorizontal: 14, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
+              /* the name can run to 23 characters (de "Hat meinen Tag
+                 gerettet", it "Mi ha fatto la giornata"): the pill stops at
+                 a third of the bar and the type shrinks to fit rather than
+                 cutting the word — LET IT TRAVEL keeps its room */
+              style={({ pressed }) => ({ height: 46, maxWidth: 148, borderRadius: 23, borderWidth: 1.5, borderColor: chosen.color, backgroundColor: channelWash(chosen.color), paddingHorizontal: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
             >
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 0.3, color: channelInk(chosen.color) }}>#{sname(chosen.name).toLowerCase()}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 0.2, color: channelInk(chosen.color) }}>
+                #{sname(chosen.name).toLowerCase()}
+              </Text>
             </Pressable>
           ) : (
             <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
@@ -520,20 +526,21 @@ export default function Compose() {
               <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round((weight / OPENING_MIN) * 100)}%`, backgroundColor: P.penWash }} />
             )}
             {wordsReady && !sel && !busy && tray !== "stamps" && <Nudge color="#FFFFFF" />}
-            <View style={{ paddingVertical: 17, alignItems: "center" }}>
+            <View style={{ paddingVertical: 17, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
               {/* two doors, and the key names only the one still shut: the
-                  words first, then the stamp; both open → the letter goes */}
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: (canSend || (wordsReady && !sel)) && !busy ? "#fff" : P.ink40 }}>
+                  words first, then the stamp; both open → the letter goes.
+                  The label shrinks before it wraps — German and Italian
+                  run long, and the stamp pill beside the key takes room. */}
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: (canSend || (wordsReady && !sel)) && !busy ? "#fff" : P.ink40 }}>
                 {busy ? t("cp.sending") : wordsReady && !sel ? t("cp.needStamp") : t("cp.travel")}
               </Text>
-            </View>
-            {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
-              <View style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center" }}>
+              {/* the count rides in the row, not over the label */}
+              {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
                 <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40 }}>
                   {weight}/{OPENING_MIN}
                 </Text>
-              </View>
-            )}
+              )}
+            </View>
           </Pressable>
         </View>
         {tray === "stamps" && <StampTray selected={sel} suggested={suggestStamps(text)} recent={recent} onPick={pickStamp} />}
