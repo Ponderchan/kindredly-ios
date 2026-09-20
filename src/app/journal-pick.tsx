@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Linking, Modal, Pressable, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Linking, Pressable, Text, View, useWindowDimensions } from "react-native";
+import Animated, { SlideInUp, SlideOutUp } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -80,10 +81,12 @@ export default function JournalPick() {
     }
   }, []);
 
-  const openAlbum = (a: Album) => {
+  const openAlbum = (a: Album, first: boolean) => {
     setAlbumsOpen(false);
-    setAlbum(a);
-    albumRef.current = a.id;
+    // the first row is the phone's Recents — the same set as "all", read without an album filter
+    const id = first ? null : a.id;
+    setAlbum({ ...a, id });
+    albumRef.current = id;
     cursor.current = undefined;
     more_.current = true;
     loading.current = false;
@@ -109,29 +112,33 @@ export default function JournalPick() {
     };
   }, [page]);
 
-  /* the phone's albums, with a cover each — read once, when the menu is
-     first opened */
+  /* THE PHONE'S ALBUMS (owner, 2026-09-20, after the reference video): a
+     full-width list slides down from the title over the roll — every
+     album, name and count on one line, a small square cover, the current
+     one on grey. The list is shown the moment the names are known; the
+     covers fill in as they come, so a roll of forty albums is not forty
+     round trips before anything appears. */
   const loadAlbums = async () => {
     setAlbumsOpen(true);
     if (albums) return;
     try {
       const all = await MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true });
       const live = all.filter((a) => a.assetCount > 0);
-      // smart albums first (Favourites, Videos, Screenshots…), then yours
+      // smart albums first (Recents, Favourites, Videos, Screenshots…), then yours
       live.sort((a, b) => Number(b.type === "smartAlbum") - Number(a.type === "smartAlbum") || b.assetCount - a.assetCount);
-      const withCovers: Album[] = await Promise.all(
-        live.slice(0, 30).map(async (a) => {
-          let cover: string | null = null;
-          try {
-            const r = await MediaLibrary.getAssetsAsync({ album: a.id, first: 1, sortBy: [[MediaLibrary.SortBy.creationTime, false]], mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] });
-            cover = r.assets[0]?.uri ?? null;
-          } catch {
-            /* an album with no cover is still an album */
-          }
-          return { id: a.id, title: a.title, count: a.assetCount, cover };
-        }),
-      );
-      setAlbums(withCovers);
+      const list: Album[] = live.map((a) => ({ id: a.id, title: a.title, count: a.assetCount, cover: null }));
+      setAlbums(list);
+      // "all photos" is the phone's own Recents: name it that way in the title
+      if (albumRef.current === null && list[0]) setAlbum((cur) => (cur.id === null ? { ...list[0], id: null } : cur));
+      for (const a of list) {
+        try {
+          const r = await MediaLibrary.getAssetsAsync({ album: a.id ?? undefined, first: 1, sortBy: [[MediaLibrary.SortBy.creationTime, false]], mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] });
+          const cover = r.assets[0]?.uri ?? null;
+          if (cover) setAlbums((cur) => cur && cur.map((x) => (x.id === a.id ? { ...x, cover } : x)));
+        } catch {
+          /* an album with no cover is still an album */
+        }
+      }
     } catch {
       setAlbums([]);
     }
@@ -255,7 +262,7 @@ export default function JournalPick() {
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         {/* the title is the album menu */}
-        <Pressable onPress={() => void loadAlbums()} hitSlop={8} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <Pressable onPress={() => (albumsOpen ? setAlbumsOpen(false) : void loadAlbums())} hitSlop={8} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink, maxWidth: 200 }}>{album.title.toUpperCase()}</Text>
           <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ rotate: albumsOpen ? "180deg" : "0deg" }] }}>
             <Path d="M6 9l6 6 6-6" />
@@ -307,27 +314,35 @@ export default function JournalPick() {
         }
       />
 
-      {/* the albums, dropped from the title */}
-      <Modal visible={albumsOpen} transparent animationType="fade" onRequestClose={() => setAlbumsOpen(false)}>
-        <Pressable onPress={() => setAlbumsOpen(false)} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.28)" }}>
-          <View style={{ marginTop: insets.top + 54, backgroundColor: "#FFFFFF", maxHeight: "72%", borderBottomLeftRadius: 18, borderBottomRightRadius: 18, overflow: "hidden" }}>
+      {/* the albums, dropped from the title: a full sheet of them over the roll */}
+      {albumsOpen && (
+        <Animated.View entering={SlideInUp.duration(260)} exiting={SlideOutUp.duration(220)} style={{ position: "absolute", left: 0, right: 0, top: insets.top + 54, bottom: 0, backgroundColor: "#FFFFFF" }}>
+          {albums === null ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator color={P.ink40} />
+            </View>
+          ) : (
             <FlatList
-              data={albums || []}
+              data={albums}
               keyExtractor={(a) => a.id ?? "all"}
-              renderItem={({ item }) => (
-                <Pressable onPress={() => openAlbum(item)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: pressed ? "#F3F2FA" : "transparent" })}>
-                  <View style={{ width: 52, height: 52, backgroundColor: "#EFEDE6", overflow: "hidden" }}>
-                    {!!item.cover && <Image source={{ uri: item.cover }} style={{ width: 52, height: 52 }} contentFit="cover" transition={0} />}
-                  </View>
-                  <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.letter, fontSize: 15.5, color: album.id === item.id ? P.pen : P.ink }}>{item.title}</Text>
-                  {item.count > 0 && <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>{item.count}</Text>}
-                </Pressable>
-              )}
-              ListEmptyComponent={<Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40, padding: 20 }}>…</Text>}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              renderItem={({ item, index }) => {
+                const current = index === 0 ? album.id === null : album.id === item.id;
+                return (
+                  <Pressable onPress={() => openAlbum(item, index === 0)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, height: 62, backgroundColor: current || pressed ? "#F3F2FA" : "transparent" })}>
+                    <View style={{ width: 44, height: 44, borderRadius: 4, backgroundColor: "#EFEDE6", overflow: "hidden" }}>
+                      {!!item.cover && <Image source={{ uri: item.cover }} style={{ width: 44, height: 44 }} contentFit="cover" transition={0} />}
+                    </View>
+                    <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letter, fontSize: 16, color: P.ink }}>{item.title}</Text>
+                    <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>{item.count}</Text>
+                  </Pressable>
+                );
+              }}
+              ListEmptyComponent={<Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40, padding: 20 }}>{t("jp.none")}</Text>}
             />
-          </View>
-        </Pressable>
-      </Modal>
+          )}
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
