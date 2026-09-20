@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
-import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg";
-import { useFocusEffect, useRouter } from "expo-router";
+import Svg, { Line, Path, Rect } from "react-native-svg";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { t, useLang } from "../../lib/i18n";
 import { P, PF, rule } from "../../theme/post";
@@ -12,6 +12,12 @@ import { SealedTile } from "../../components/SealedTile";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../lib/journal";
 import { DEMO_JOURNAL } from "../../data/demo";
+import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
+import { getLang } from "../../lib/i18n";
+
+/* store mode (dev): the demo pages speak the language on screen */
+const STORE_BODY: Record<string, keyof (typeof DEMO_TEXT)["en"]> = { "demo-j-photo": "line", "demo-j-text1": "j2", "demo-j-voice": "j3", "demo-j-text2": "j4", "demo-j-long": "j5", "demo-j-video": "j6" };
+const storeBody = (d: JournalEntry): JournalEntry => (__DEV__ && storeMode && STORE_BODY[d.id] ? { ...d, body: DEMO_TEXT[getLang()][STORE_BODY[d.id]] } : d);
 import { hiddenDemoIds } from "../../lib/journal";
 import { localeTag } from "../../lib/format";
 
@@ -48,12 +54,14 @@ export default function JournalTab() {
   // newest first, across real + sample pages (dev preview)
   const all = useMemo(
     () =>
-      (__DEV__ ? [...entries, ...DEMO_JOURNAL.filter((d) => !hiddenDemo.includes(d.id))] : [...entries]).sort(
+      (__DEV__ ? [...(storeMode ? [] : entries), ...DEMO_JOURNAL.filter((d) => storeMode || !hiddenDemo.includes(d.id)).map(storeBody)] : [...entries]).sort(
         (a, b) => +new Date(b.date) - +new Date(a.date),
       ),
     [entries, hiddenDemo],
   );
-  const empty = loaded && all.length === 0;
+  // dev: /journal?empty=1 shows the empty state over a full journal
+  const { empty: forceEmpty } = useLocalSearchParams<{ empty?: string }>();
+  const empty = (__DEV__ && forceEmpty === "1") || (loaded && all.length === 0);
 
   const openDay = (key: string) => {
     const day = all.filter((e) => dayKey(e.date) === key);
@@ -86,7 +94,7 @@ export default function JournalTab() {
 
 
       {empty ? (
-        <Empty onWrite={(start) => router.push(start === "photo" || !start ? "/journal-pick" : `/journal-entry?start=${start}`)} />
+        <Empty onWrite={(start) => router.push(start ? `/journal-entry?start=${start}` : "/journal-entry")} />
       ) : view === "calendar" ? (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>
@@ -141,7 +149,6 @@ function Wall({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: strin
 function Empty({ onWrite }: { onWrite: (start?: string) => void }) {
   return (
     <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>
-      <Dots />
       <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 26, paddingBottom: 60 }}>
         {/* the taped note */}
         <View style={{ marginBottom: 34 }}>
@@ -160,43 +167,34 @@ function Empty({ onWrite }: { onWrite: (start?: string) => void }) {
           </View>
         </View>
 
-        {/* four ways in */}
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-          <ActionBtn label={t("jt.typeIt")} glyph="↵" wash="#E4E2EA" fg={P.ink} onPress={() => onWrite()} />
-          <ActionBtn label={t("jt.snapIt")} glyph="▢" wash="#DFE9F3" fg="#294055" onPress={() => onWrite("photo")} />
-        </View>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <ActionBtn label={t("jt.sayIt")} glyph="●" wash="#F5E1E7" fg="#7A2E44" onPress={() => onWrite("voice")} />
-          <ActionBtn label={t("jt.filmIt")} glyph="▶" wash="#F3E7D6" fg="#6B4A22" onPress={() => onWrite("video")} />
+        {/* the same two keys the roll offers above the pictures (owner,
+            2026-09-20): words, or a voice. Pictures are the roll itself —
+            the tab's + and "to yourself" both open on it. */}
+        <View style={{ flexDirection: "row", gap: 2 }}>
+          <Key label={t("jp.write")} onPress={() => onWrite()}>
+            <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M4 20l4-1 11-11-3-3L5 16z" />
+              <Line x1={13} y1={8} x2={16} y2={11} />
+            </Svg>
+          </Key>
+          <Key label={t("jp.say")} onPress={() => onWrite("voice")}>
+            <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <Rect x={9} y={3} width={6} height={11} rx={3} />
+              <Path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
+            </Svg>
+          </Key>
         </View>
       </View>
     </Animated.View>
   );
 }
 
-function ActionBtn({ label, glyph, wash, fg, onPress }: { label: string; glyph: string; wash: string; fg: string; onPress: () => void }) {
+function Key({ label, onPress, children }: { label: string; onPress: () => void; children: React.ReactNode }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, height: 72, backgroundColor: wash, borderWidth: 1, borderColor: fg, paddingHorizontal: 15, paddingVertical: 12, justifyContent: "space-between", opacity: pressed ? 0.6 : 1 })}
-    >
-      <Text style={{ fontFamily: PF.mono, fontSize: 12, color: fg, alignSelf: "flex-end" }}>{glyph}</Text>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 15, color: fg }}>{label}</Text>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, height: 120, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, opacity: pressed ? 0.6 : 1 })}>
+      {children}
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: P.ink }}>{label.toUpperCase()}</Text>
     </Pressable>
-  );
-}
-
-/* faint scrapbook dot grid */
-function Dots() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Defs>
-        <Pattern id="dots" width={22} height={22} patternUnits="userSpaceOnUse">
-          <Circle cx={2} cy={2} r={1.2} fill="#DFDACB" />
-        </Pattern>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#dots)" />
-    </Svg>
   );
 }
 
