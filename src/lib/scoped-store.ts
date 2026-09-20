@@ -73,6 +73,7 @@ const OWNED_KEYS = [
   "kindredly_seen_replies",
   "kindredly_room_seen",
   "kindredly_wren_mail",
+  "kindredly_wren_local",
   "kindredly_recent_stamps",
   "kindredly_introductions",
   "kindredly_voice_report",

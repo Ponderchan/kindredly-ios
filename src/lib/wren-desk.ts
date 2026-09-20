@@ -3,6 +3,7 @@ import { scoped } from "./scoped-store";
 import { supabase, supabaseReady } from "./supabase";
 import { getLang } from "./i18n";
 import { DEFAULT_WREN } from "./wren-name";
+import type { Answer } from "./wren-answers";
 
 /* WREN'S DESK — the courier's own account, at the top of everyone's
    Kindreds from the first launch, guest or signed in.
@@ -24,7 +25,10 @@ export const OFFICIAL_NAME = DEFAULT_WREN;
 export type WrenPostKind = "update" | "event" | "note";
 export type WrenPost = { id: number; kind: WrenPostKind; body: string; i18n: Record<string, string> | null; link: string | null; at: string };
 export type WrenMailKind = "note" | "bug" | "idea" | "photo";
-export type WrenMail = { id: number; kind: WrenMailKind; body: string; mediaPath: string | null; at: string };
+export type WrenMail = { id: number; kind: WrenMailKind; body: string; mediaPath: string | null; at: string; reply: string | null; repliedAt: string | null };
+/** a question she answered herself, kept on this phone so the room
+    reads as one transcript; `q` is null when a guide was opened from a chip */
+export type WrenLocal = { id: number; q: string | null; answer: Answer; at: string };
 
 const POSTS_KEY = "kindredly_wren_posts"; // one desk for everyone — unscoped
 const MAIL_KEY = "kindredly_wren_mail"; // yours — scoped to the account
@@ -81,7 +85,7 @@ export async function readMailCache(): Promise<WrenMail[]> {
 export async function fetchWrenMail(): Promise<WrenMail[] | null> {
   if (!supabaseReady) return null;
   try {
-    const { data, error } = await supabase!.from("wren_mail").select("id,kind,body,media_path,created_at").order("created_at", { ascending: true }).limit(200);
+    const { data, error } = await supabase!.from("wren_mail").select("id,kind,body,media_path,created_at,reply,replied_at").order("created_at", { ascending: true }).limit(200);
     if (error || !data) return null;
     const mail = data.map(
       (r: any): WrenMail => ({
@@ -90,6 +94,8 @@ export async function fetchWrenMail(): Promise<WrenMail[] | null> {
         body: String(r.body),
         mediaPath: typeof r.media_path === "string" ? r.media_path : null,
         at: String(r.created_at),
+        reply: typeof r.reply === "string" && r.reply ? r.reply : null,
+        repliedAt: typeof r.replied_at === "string" ? r.replied_at : null,
       }),
     );
     void scoped.setItem(MAIL_KEY, JSON.stringify(mail)).catch(() => {});
@@ -123,3 +129,24 @@ export async function sendWrenMail(body: string, kind: WrenMailKind = "note", me
    reason to open it. */
 export const wrenUnread = (ledger: Record<string, number>, posts: number): number =>
   WREN_ROOM in ledger ? Math.max(0, posts - ledger[WREN_ROOM]) : posts;
+
+/* ── what she answered on this phone ─────────────────────────────── */
+const LOCAL_KEY = "kindredly_wren_local";
+
+export async function readLocal(): Promise<WrenLocal[]> {
+  try {
+    const raw = await scoped.getItem(LOCAL_KEY);
+    return raw ? (JSON.parse(raw) as WrenLocal[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function keepLocal(item: WrenLocal): Promise<void> {
+  try {
+    const cur = await readLocal();
+    await scoped.setItem(LOCAL_KEY, JSON.stringify([...cur, item].slice(-60)));
+  } catch {
+    /* the answer was shown; losing its trace is the smaller loss */
+  }
+}

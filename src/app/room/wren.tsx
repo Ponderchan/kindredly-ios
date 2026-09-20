@@ -2,28 +2,34 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { ChatField } from "../../components/ChatField";
 import { OfficialBird } from "../../components/WrenDesk";
+import { GuideCard, GuideChips } from "../../components/GuideCard";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
+import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
+import { PlusGlyph } from "../../components/ComposeTray";
 import { dShort } from "../../lib/format";
 import { alertFail } from "../../lib/fail";
 import { useAuth } from "../../lib/auth";
 import { markRoomSeen } from "../../lib/room-seen";
 import { momentUrl, uploadMoment } from "../../lib/db";
-import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
-import { PlusGlyph } from "../../components/ComposeTray";
+import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
+import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
 import {
   OFFICIAL_NAME,
   WREN_ROOM,
   fetchWrenMail,
   fetchWrenPosts,
+  keepLocal,
   postText,
+  readLocal,
   readMailCache,
   readPostsCache,
   sendWrenMail,
+  type WrenLocal,
   type WrenMail,
   type WrenMailKind,
   type WrenPost,
@@ -35,22 +41,39 @@ import { DEMO_WREN_POSTS } from "../../data/demo";
    Same grammar as a kindred's room (no bubbles, no minute stamps, a day
    rule and a speaker label), because it is the same kind of place: a
    transcript, not an inbox. What is different is who is on the other
-   side. It is the courier herself, speaking to everyone at once — product
-   news, events, the odd note — and what you write back goes to the people
-   who make Kindredly. Nothing here is a correspondence: no reveal, no
-   count to five, no aura read of her. */
+   side. It is the courier herself — half of her is a lookup, half of her
+   is people:
 
-type Item = { type: "post"; post: WrenPost; at: string } | { type: "mail"; mail: WrenMail; at: string };
+   · her POSTS go to everyone (0023 wren_posts)
+   · a question typed here is matched ON THE PHONE against six bundled
+     guides and the makers' own answers (lib/wren-answers); a hit is
+     answered at once, with a guide that moves
+   · a miss, a bug, an idea, a picture go to the makers (wren_mail), and
+     what they write back appears here under her name and knocks once
+
+   Nothing here is a correspondence: no reveal, no count to five, no aura
+   read of her. */
+
+type Item =
+  | { type: "post"; post: WrenPost; at: string }
+  | { type: "mail"; mail: WrenMail; at: string }
+  | { type: "reply"; mail: WrenMail; at: string }
+  | { type: "local"; local: WrenLocal; at: string };
+
+const FIRST_CHIPS: GuideId[] = ["letters", "kindreds", "aura"];
 
 export default function WrenDeskScreen() {
   useLang();
   const router = useRouter();
+  const params = useLocalSearchParams<{ guide?: string }>();
   const { isGuest } = useAuth();
   const [posts, setPosts] = useState<WrenPost[]>([]);
   const [mail, setMail] = useState<WrenMail[]>([]);
+  const [local, setLocal] = useState<WrenLocal[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [needsAccount, setNeedsAccount] = useState(false);
+  const [allChips, setAllChips] = useState(false);
   /* the ⊕ opens what you can hand the makers: a picture (a screenshot,
      usually), a bug, an idea. Bug and idea are a MODE on the field — the
      mail goes out tagged so it can be sorted before it is read. */
@@ -58,10 +81,12 @@ export default function WrenDeskScreen() {
   const [mode, setMode] = useState<Exclude<WrenMailKind, "note" | "photo"> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
+  const pendingSend = useRef<string | null>(null);
 
   const load = useCallback(() => {
     let alive = true;
     readPostsCache().then((c) => alive && c.length && setPosts(c));
+    readLocal().then((l) => alive && setLocal(l));
     if (!isGuest) readMailCache().then((c) => alive && c.length && setMail(c));
     fetchWrenPosts().then((p) => {
       if (!alive) return;
@@ -69,6 +94,7 @@ export default function WrenDeskScreen() {
       else if (__DEV__) setPosts((cur) => (cur.length ? cur : DEMO_WREN_POSTS));
     });
     if (!isGuest) fetchWrenMail().then((m) => alive && m && setMail(m));
+    void fetchAnswers();
     return () => {
       alive = false;
     };
@@ -80,36 +106,75 @@ export default function WrenDeskScreen() {
     if (posts.length) void markRoomSeen(WREN_ROOM, posts.length);
   }, [posts.length]);
 
+  /* a guide asked for by link — a post's "see how", or a push — opens
+     itself at the foot of the room, once */
+  const linked = useRef<string | null>(null);
+  useEffect(() => {
+    const g = params.guide;
+    if (!isGuideId(g) || linked.current === g) return;
+    linked.current = g;
+    void show({ kind: "guide", guide: g }, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.guide]);
+
   const stream = useMemo<Item[]>(() => {
     const all: Item[] = [
       ...posts.map((post) => ({ type: "post" as const, post, at: post.at })),
       ...mail.map((m) => ({ type: "mail" as const, mail: m, at: m.at })),
+      ...mail.filter((m) => m.reply).map((m) => ({ type: "reply" as const, mail: m, at: m.repliedAt || m.at })),
+      ...local.map((l) => ({ type: "local" as const, local: l, at: l.at })),
     ];
     return all.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  }, [posts, mail]);
+  }, [posts, mail, local]);
 
   const canSend = text.trim().length > 0 && !sending;
 
-  const send = async () => {
-    const body = text.trim();
-    if (!body || sending) return;
+  /* her own answer, kept on this phone */
+  const show = async (answer: Answer, q: string | null) => {
+    const item: WrenLocal = { id: Date.now(), q, answer, at: new Date().toISOString() };
+    setLocal((l) => [...l, item]);
+    await keepLocal(item);
+  };
+
+  const post = async (body: string, kind: WrenMailKind, mediaPath: string | null = null): Promise<boolean> => {
     if (isGuest) {
+      pendingSend.current = body;
       openSignUpSheet(() => setNeedsAccount(true));
-      return;
+      return false;
     }
     setSending(true);
-    const kind: WrenMailKind = mode ?? "note";
-    const r = await sendWrenMail(body, kind);
+    const r = await sendWrenMail(body, kind, mediaPath);
     setSending(false);
     if (r === true) {
-      setText("");
-      setMode(null);
-      setMail((m) => [...m, { id: -Date.now(), kind, body, mediaPath: null, at: new Date().toISOString() }]);
+      setMail((m) => [...m, { id: -Date.now(), kind, body, mediaPath, at: new Date().toISOString(), reply: null, repliedAt: null }]);
       void fetchWrenMail().then((m) => m && setMail(m));
-    } else if (r === "unauthorized") {
+      return true;
+    }
+    if (r === "unauthorized") {
+      pendingSend.current = body;
       openSignUpSheet(() => setNeedsAccount(true));
     } else {
       alertFail(t("wo.fail.title"), t("wo.fail.body"));
+    }
+    return false;
+  };
+
+  const send = async (opts: { makers?: boolean; body?: string } = {}) => {
+    const body = (opts.body ?? text).trim();
+    if (!body || sending) return;
+    /* a plain line is looked up first; a bug or an idea is for people */
+    if (!mode && !opts.makers) {
+      const hit = answerFor(body, await readAnswersCache());
+      if (hit) {
+        setText("");
+        await show(hit, body);
+        return;
+      }
+    }
+    const ok = await post(body, mode ?? "note");
+    if (ok) {
+      setText("");
+      setMode(null);
     }
   };
 
@@ -125,16 +190,12 @@ export default function WrenDeskScreen() {
     if (res.canceled || !res.assets?.[0]?.uri) return;
     setSending(true);
     const path = await uploadMoment(res.assets[0].uri);
-    const r = path ? await sendWrenMail(t("wo.photo.fallback"), "photo", path) : "failed";
     setSending(false);
-    if (r === true) {
-      setMail((m) => [...m, { id: -Date.now(), kind: "photo", body: t("wo.photo.fallback"), mediaPath: path, at: new Date().toISOString() }]);
-      void fetchWrenMail().then((m) => m && setMail(m));
-    } else if (r === "unauthorized") {
-      openSignUpSheet(() => setNeedsAccount(true));
-    } else {
+    if (!path) {
       alertFail(t("wo.fail.title"), t("wo.fail.body"));
+      return;
     }
+    await post(t("wo.photo.fallback"), "photo", path);
   };
 
   const HANDS: TraceAction[] = [
@@ -142,19 +203,6 @@ export default function WrenDeskScreen() {
     { id: "bug", title: t("wo.bug.t"), sub: "" },
     { id: "idea", title: t("wo.idea.t"), sub: "" },
   ];
-  const labelOf = (x: Item): string =>
-    x.type === "mail"
-      ? x.mail.kind === "bug"
-        ? `${t("ui.you")} · ${t("wo.bug.t").toUpperCase()}`
-        : x.mail.kind === "idea"
-          ? `${t("ui.you")} · ${t("wo.idea.t").toUpperCase()}`
-          : t("ui.you")
-      : x.post.kind === "event"
-        ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.event")}`
-        : x.post.kind === "note"
-          ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.note")}`
-          : OFFICIAL_NAME.toUpperCase();
-
   const onHand = (kind: string) => {
     setTray(false);
     if (kind === "photo") {
@@ -164,6 +212,31 @@ export default function WrenDeskScreen() {
     if (kind === "bug" || kind === "idea") setMode(kind);
     setTimeout(() => inputRef.current?.focus(), 160);
   };
+
+  const labelOf = (x: Item): string => {
+    if (x.type === "mail")
+      return x.mail.kind === "bug" ? `${t("ui.you")} · ${t("wo.bug.t").toUpperCase()}` : x.mail.kind === "idea" ? `${t("ui.you")} · ${t("wo.idea.t").toUpperCase()}` : t("ui.you");
+    if (x.type === "local") return x.local.q ? t("ui.you") : OFFICIAL_NAME.toUpperCase();
+    if (x.type === "reply") return OFFICIAL_NAME.toUpperCase();
+    return x.post.kind === "event"
+      ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.event")}`
+      : x.post.kind === "note"
+        ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.note")}`
+        : OFFICIAL_NAME.toUpperCase();
+  };
+
+  const openLink = (url: string) => {
+    // a post may point back into the app — at a guide, most often
+    const m = url.match(/^kindredly:\/\/\/?guide\/([a-z]+)$/);
+    if (m && isGuideId(m[1])) {
+      void show({ kind: "guide", guide: m[1] }, null);
+      return;
+    }
+    void Linking.openURL(url);
+  };
+
+  // the guess was wrong: the same words go on to people
+  const notIt = (q: string) => () => void post(q, "note");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
@@ -194,7 +267,7 @@ export default function WrenDeskScreen() {
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
         >
           {stream.length === 0 && (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: 40 }}>
+            <View style={{ alignItems: "center", paddingTop: 28, paddingBottom: 8 }}>
               <OfficialBird size={64} mood="curious" />
               <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, lineHeight: 22, color: P.ink60, textAlign: "center", marginTop: 16, maxWidth: 260 }}>
                 {t("wo.empty")}
@@ -210,34 +283,65 @@ export default function WrenDeskScreen() {
                 {day}
               </Text>
             );
-            const mine = it.type === "mail";
             const label = labelOf(it);
+            const mine = label.startsWith(t("ui.you"));
             // one label per run of the same voice — WREN, WREN · EVENT, YOU · BUG
             const sameSpeaker = !!prev && labelOf(prev) === label;
+            const Label = (l: string, own: boolean, first: boolean) => (
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: own ? P.ink40 : P.pen, marginTop: first ? 0 : 16, marginBottom: 5 }}>{l}</Text>
+            );
+            const key = it.type === "post" ? `p-${it.post.id}` : it.type === "local" ? `l-${it.local.id}` : it.type === "reply" ? `r-${it.mail.id}` : `m-${it.mail.id}`;
+
+            if (it.type === "local") {
+              const a = it.local.answer;
+              return (
+                <View key={key}>
+                  {dayRule}
+                  {it.local.q ? (
+                    <>
+                      {(newDay || !sameSpeaker) && Label(t("ui.you"), true, newDay)}
+                      <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink60, marginBottom: 3 }}>{it.local.q}</Text>
+                      {Label(OFFICIAL_NAME.toUpperCase(), false, false)}
+                    </>
+                  ) : (
+                    (newDay || !sameSpeaker) && Label(OFFICIAL_NAME.toUpperCase(), false, newDay)
+                  )}
+                  {a.kind === "text" && (
+                    <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink, marginBottom: 3 }}>{a.text}</Text>
+                  )}
+                  {a.guide && <GuideCard guide={a.guide} onNotIt={it.local.q ? notIt(it.local.q) : undefined} />}
+                </View>
+              );
+            }
+
             const photo = it.type === "mail" && it.mail.mediaPath ? momentUrl(it.mail.mediaPath) : null;
+            const body = it.type === "post" ? postText(it.post) : it.type === "reply" ? it.mail.reply || "" : it.mail.body;
             return (
-              <View key={it.type === "post" ? `p-${it.post.id}` : `m-${it.mail.id}`}>
+              <View key={key}>
                 {dayRule}
-                {(newDay || !sameSpeaker) && (
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: mine ? P.ink40 : P.pen, marginTop: newDay ? 0 : 16, marginBottom: 5 }}>
-                    {label}
-                  </Text>
-                )}
+                {(newDay || !sameSpeaker) && Label(label, mine, newDay)}
                 {photo ? (
                   <Image source={{ uri: photo }} style={{ width: "62%", aspectRatio: 0.75, marginBottom: 6, backgroundColor: "#EFEDE6" }} resizeMode="cover" />
                 ) : (
-                  <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>
-                    {mine ? it.mail.body : postText(it.post)}
-                  </Text>
+                  <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
                 )}
                 {it.type === "post" && !!it.post.link && (
-                  <Pressable onPress={() => Linking.openURL(it.post.link!)} hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4, marginBottom: 6 }}>
+                  <Pressable onPress={() => openLink(it.post.link!)} hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4, marginBottom: 6 }}>
                     <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: P.pen }}>{t("wo.open")} ›</Text>
                   </Pressable>
                 )}
               </View>
             );
           })}
+
+          {/* the guides, findable without typing */}
+          <GuideChips
+            ids={allChips ? GUIDES.map((g) => g.id) : FIRST_CHIPS}
+            onPick={(g) => void show({ kind: "guide", guide: g }, null)}
+            more={!allChips}
+            onMore={() => setAllChips(true)}
+          />
+
           {/* the one honest line about where your words go */}
           {mail.length > 0 && (
             <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, lineHeight: 15, color: P.ink40, marginTop: 18 }}>{t("wo.mailNote")}</Text>
@@ -285,7 +389,9 @@ export default function WrenDeskScreen() {
         onClose={() => setNeedsAccount(false)}
         onSignedIn={() => {
           setNeedsAccount(false);
-          void send();
+          const body = pendingSend.current;
+          pendingSend.current = null;
+          if (body) void send({ makers: true, body });
         }}
       />
     </SafeAreaView>
