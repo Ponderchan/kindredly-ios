@@ -308,8 +308,12 @@ export function SelfCompose({
                 </View>
 
                 {/* one line, no count and no + ADD (owner, 2026-09-20): the
-                    roll already stops at nine, and it is the place to add */}
-                <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>{t("sc.coverHint")}</Text>
+                    roll already stops at nine, and it is the place to add.
+                    With a single picture there is no cover to choose, so
+                    the line waits for a second one. */}
+                {photos.length >= 2 && (
+                  <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>{t("sc.coverHint")}</Text>
+                )}
               </View>
             )}
             {att === "video" && mediaUri && <VideoPreview uri={mediaUri} onClear={() => toggleMode("video")} />}
