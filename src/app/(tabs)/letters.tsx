@@ -6,7 +6,7 @@ import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, Pre
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, Keyframe, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Path, Rect } from "react-native-svg";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { P, PF, rule } from "../../theme/post";
@@ -351,7 +351,9 @@ function Feed({
   const [sending, setSending] = useState(false);
   const [extraFlights, setExtraFlights] = useState(0);
   const [flightSheet, setFlightSheet] = useState(false);
-  const flights = flightsIn + extraFlights; // sends this session count immediately
+  // dev: /letters?full=1 pretends the pouch is full, to see the sheet without five real letters out
+  const { full: forceFull } = useLocalSearchParams<{ full?: string }>();
+  const flights = __DEV__ && forceFull === "1" ? MAX_IN_FLIGHT : flightsIn + extraFlights; // sends this session count immediately
   const slow = useSlow(sending);
   const [kbOpen, setKbOpen] = useState(false);
   /* REPLY ↓ WAS NEVER A BUTTON. It was a bare <Text> — no Pressable, no
@@ -442,7 +444,7 @@ function Feed({
        through. Not a daily meter — an answer frees the slot, so the way
        to more correspondence is being worth answering. Demo letters are
        rehearsal and never count. */
-    if (!demo && !to.author?.startsWith("demo-") && flights >= MAX_IN_FLIGHT) {
+    if ((__DEV__ && forceFull === "1") || (!demo && !to.author?.startsWith("demo-") && flights >= MAX_IN_FLIGHT)) {
       /* the product's own sheet, not the OS dialog — the pouch being full
          is a state of the post, and the post speaks in its own voice.
          Keyboard first: the sheet opened UNDER it and all anyone saw was
@@ -632,7 +634,7 @@ function Feed({
                 {(drafts[current.id] || "").length > 0 ? (
                   <Pressable onPress={() => send(current)} disabled={!replyOk || sending} hitSlop={6} style={{ marginBottom: 6 }}>
                     {/* a full pouch dims the plane before the tap, not after */}
-                    <SendPlane on={replyOk && !sending && (demo || flights < MAX_IN_FLIGHT)} ink={PUNCH.ink} />
+                    <SendPlane on={replyOk && !sending && ((demo && !forceFull) || flights < MAX_IN_FLIGHT)} ink={PUNCH.ink} />
                   </Pressable>
                 ) : (
                   <View style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: "#E4E1F6" }}>
