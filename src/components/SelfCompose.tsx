@@ -377,9 +377,9 @@ export function SelfCompose({
                 style={{
                   minHeight: att ? 80 : 328,
                   color: Z.ink,
-                  fontFamily: PF.letter,
+                  fontFamily: PF.writing,
                   fontSize: 19,
-                  lineHeight: 31,
+                  lineHeight: 30,
                   textAlignVertical: "top",
                   paddingTop: 8,
                 }}

@@ -620,7 +620,7 @@ function Feed({
                   placeholder={t("ld.writeBackPh")}
                   placeholderTextColor={PUNCH.placeholder}
                   multiline
-                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
+                  style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.writing, fontSize: 16.5, lineHeight: 25 }}
                 />
                 <Pressable
                   onPress={() => send(current)}
@@ -875,7 +875,7 @@ function LetterReader({
                   placeholderTextColor={PUNCH.placeholder}
                   multiline
                   autoFocus
-                  style={{ flex: 1, ...fieldBox(reply.value, 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 25 }}
+                  style={{ flex: 1, ...fieldBox(reply.value, 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.writing, fontSize: 16.5, lineHeight: 25 }}
                 />
                 <Pressable
                   onPress={reply.onSend}

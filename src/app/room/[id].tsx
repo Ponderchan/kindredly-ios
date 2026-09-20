@@ -644,7 +644,7 @@ export default function RoomScreen() {
               placeholderTextColor={P.ink40}
               multiline
               autoCapitalize={mode?.kind === "song" ? "none" : "sentences"}
-              style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink }}
+              style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.writing, fontSize: 16, lineHeight: 24, color: P.ink }}
             />
           </View>
           <Pressable

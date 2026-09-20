@@ -451,7 +451,7 @@ export default function Compose() {
                 placeholder={spark}
                 placeholderTextColor="#B9B3D8"
                 multiline
-                style={{ minHeight: 340, color: P.ink, fontFamily: PF.letterSerif, fontSize: 20, lineHeight: 33, textAlignVertical: "top", paddingTop: 10 }}
+                style={{ minHeight: 340, color: P.ink, fontFamily: PF.writing, fontSize: 19, lineHeight: 30, textAlignVertical: "top", paddingTop: 10 }}
               />
             ) : (
               <View style={{ paddingTop: 12, minHeight: 250 }}>

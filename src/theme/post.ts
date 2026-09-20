@@ -37,6 +37,11 @@ export const PF = {
   monoSemi: "IBMPlexMono_600SemiBold",
   // the letter itself — system font, so CJK renders properly (see F.letter)
   letter: undefined as unknown as string,
+  // WHERE YOU WRITE. A plain, quiet sans — the type a person types in, not
+  // the type a letter is set in. Writing is done in this; the letter is
+  // read in letterSerif once it arrives (owner, 2026-09-20: "the font in
+  // your input box"). Inter falls through to the system face for CJK.
+  writing: "Inter_400Regular",
   // a letter between two people — read and written in a text serif
   // (Newsreader; see theme/fonts for why not Fraunces); CJK glyphs fall
   // through to the system face, which is what we want

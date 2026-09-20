@@ -446,7 +446,7 @@ export default function ChatScreen() {
               placeholder={detail?.revealed ? t("th.sayTo", { name }) : t("ch.ph")}
               placeholderTextColor={P.ink40}
               multiline
-              style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: P.ink }}
+              style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.writing, fontSize: 16, lineHeight: 23, color: P.ink }}
             />
           </View>
           <Pressable
