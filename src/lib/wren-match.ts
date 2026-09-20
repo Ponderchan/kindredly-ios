@@ -57,6 +57,13 @@ const BROKEN: Partial<Record<Lang, string[]>> = {
   ja: ["落ち", "クラッシュ", "バグ", "エラー", "動かな", "できない", "固まる", "フリーズ", "消えた", "返金", "課金", "サブスク", "解約"],
   ko: ["튕겨", "튕김", "크래시", "버그", "오류", "안 돼", "안돼", "안 됨", "안됨", "멈춰", "멈춤", "사라졌", "환불", "결제", "구독", "취소"],
 };
+/** true when the line reads as something broken — the desk tags it a bug
+    and sends the phone's evidence along without being asked */
+export function looksBroken(question: string, lang: Lang): boolean {
+  const langs: Lang[] = lang === "en" ? ["en"] : [lang, "en"];
+  return broken(norm(question), langs);
+}
+
 function broken(q: string, langs: Lang[]): boolean {
   for (const l of langs) for (const w of BROKEN[l] || []) if (q.includes(SPACED.includes(l) ? ` ${norm(w).trim()}` : norm(w).trim())) return true;
   return false;

@@ -19,6 +19,7 @@ import { momentUrl, uploadMoment } from "../../lib/db";
 import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
 import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
 import { stallReport } from "../../lib/stall-probe";
+import { looksBroken } from "../../lib/wren-match";
 import {
   OFFICIAL_NAME,
   WREN_ROOM,
@@ -88,7 +89,8 @@ export default function WrenDeskScreen() {
   const load = useCallback(() => {
     let alive = true;
     readPostsCache().then((c) => alive && c.length && setPosts(c));
-    readLocal().then((l) => alive && setLocal(l));
+    // merge, don't replace: a guide opened by link can land before this read returns
+    readLocal().then((l) => alive && setLocal((cur) => [...l, ...cur.filter((c) => !l.some((x) => x.id === c.id))]));
     if (!isGuest) readMailCache().then((c) => alive && c.length && setMail(c));
     if (__DEV__ && storeMode) {
       setPosts([{ ...DEMO_WREN_POSTS[0], body: DEMO_TEXT[getLang()].welcome, at: new Date(Date.now() - 2 * 3600_000).toISOString() }]);
@@ -177,8 +179,10 @@ export default function WrenDeskScreen() {
       }
     }
     /* a bug brings the phone's own evidence with it: the last stalls,
-       the build and the device (lib/stall-probe) */
-    const kind: WrenMailKind = mode ?? "note";
+       the build and the device (lib/stall-probe). A note that reads as
+       something broken counts as a bug too — nobody should have to find
+       the A BUG key first (owner sent "Hh" as a note, 2026-09-20). */
+    const kind: WrenMailKind = mode ?? (looksBroken(body, getLang()) ? "bug" : "note");
     const full = kind === "bug" ? `${body}\n\n— diagnostics —\n${stallReport()}`.slice(0, 2000) : body;
     const ok = await post(full, kind);
     if (ok) {
