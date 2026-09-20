@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
-import { MoreTray, Nudge, PlusGlyph, RoundKey, StampGlyph, StampTray } from "../components/ComposeTray";
+import { MoreTray, Nudge, PlusGlyph, RoundKey, StampKeyGlyph, StampTray } from "../components/ComposeTray";
 import { noteStampUsed, readRecentStamps } from "../lib/recent-stamps";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
@@ -494,8 +494,8 @@ export default function Compose() {
               </Text>
             </Pressable>
           ) : (
-            <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
-              <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} face={tray === "stamps" ? "#F2A33A" : undefined} />
+            <RoundKey onPress={() => openTray("stamps")}>
+              <StampKeyGlyph open={tray === "stamps"} size={23} />
             </RoundKey>
           )}
 

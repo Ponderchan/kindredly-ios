@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
+import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
 import { P, PF, channelInk } from "../theme/post";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
@@ -205,5 +205,60 @@ export function Nudge({ color = P.pen }: { color?: string }) {
         <Path d="M15 5 L8 12 L15 19" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
     </Animated.View>
+  );
+}
+
+/* THE FACE COMES APART, AND A PENCIL ARRIVES (owner, 2026-09-20).
+   ────────────────────────────────────────────────────────────────────────
+   Closed, the stamp key is the face in the perforated square. Tapped, the
+   face breaks — the two eyes fly up and out, the smile drops — and in
+   their place a short amber pencil lies across the square's corner, the
+   sheet's "Pencil Across": a stamp being made, not a picture of one. The
+   ring stays a ring; the fill never goes black. Closing runs it backwards
+   and the face reassembles. Every piece is native-driven and none is an
+   "interaction". */
+export function StampKeyGlyph({ open, size = 23, color = P.ink }: { open: boolean; size?: number; color?: string }) {
+  const v = useRef(new Animated.Value(open ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(v, { toValue: open ? 1 : 0, duration: 360, easing: open ? Easing.out(Easing.cubic) : Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false }).start();
+  }, [open, v]);
+  const u = size / 24; // one viewBox unit in points
+  const gone = v.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0, 0] });
+  const here = v.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 1] });
+  const eyeL = { opacity: gone, transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [0, -5 * u] }) }, { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -6 * u] }) }, { scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }) }] };
+  const eyeR = { opacity: gone, transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [0, 5 * u] }) }, { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -6 * u] }) }, { scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }) }] };
+  const smile = { opacity: gone, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, 6 * u] }) }, { scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.6] }) }] };
+  const pencil = { opacity: here, transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [6 * u, 0] }) }, { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [6 * u, 0] }) }, { rotate: v.interpolate({ inputRange: [0, 1], outputRange: ["20deg", "0deg"] }) }] };
+  const dot = { opacity: here, transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }] };
+  const abs = { position: "absolute" as const, left: 0, top: 0, width: size, height: size };
+  return (
+    <View style={{ width: size, height: size }}>
+      {/* the square, always */}
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Perf color={color} />
+      </Svg>
+      {/* the face, in three pieces */}
+      <Animated.View pointerEvents="none" style={[abs, eyeL]}>
+        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={9.4} cy={10.4} r={1.1} fill={color} /></Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[abs, eyeR]}>
+        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={14.6} cy={10.4} r={1.1} fill={color} /></Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[abs, smile]}>
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none"><Path d="M8.9 14.1c1.1 1.6 5.1 1.6 6.2 0" stroke={color} strokeWidth={1.6} strokeLinecap="round" /></Svg>
+      </Animated.View>
+      {/* what takes its place: the ink dot of a stamp being drawn, and the pencil */}
+      <Animated.View pointerEvents="none" style={[abs, dot]}>
+        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={10.5} cy={10.5} r={2.4} fill={color} /></Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[abs, pencil]}>
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <G transform="rotate(45 16.5 16.5)">
+            <Rect x={14.6} y={9} width={3.8} height={11} rx={0.6} fill="#F2A33A" stroke={color} strokeWidth={1.3} />
+            <Path d="M14.6 20l1.9 3 1.9-3z" fill={color} />
+          </G>
+        </Svg>
+      </Animated.View>
+    </View>
   );
 }
