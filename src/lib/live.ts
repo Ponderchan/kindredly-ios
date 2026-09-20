@@ -90,7 +90,9 @@ export function useMyThreadsLive(me: string | null | undefined, onChange: () => 
     const poke = (ev: { eventType?: string; table?: string }) => {
       if (__DEV__) console.log(`[live] poke my-threads ${ev.table}:${ev.eventType}`);
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => cb.current(), 600);
+      /* a burst of rows (a reply lands: messages + threads + counts) is
+         one refetch, after the burst — 1.5s, not 0.6 (stall probe, 2026-09-20) */
+      timer = setTimeout(() => cb.current(), 1500);
     };
 
     const ch = supabase!.channel(`my-threads:${me}#${++seq}`);

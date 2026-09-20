@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager } from "react-native";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,6 +25,7 @@ import { useEntitlement } from "../../lib/entitlement";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
+import { markWork } from "../../lib/stall-probe";
 import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
@@ -156,11 +157,19 @@ export default function ChatScreen() {
         : t("ld.unsigned")
       : "…";
   /* the read, from their letters in this very thread */
-  const read = useMemo(() => {
-    if (!detail) return null;
-    const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
-    if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
-    return readCorrespondent(theirs, detail.revealed);
+  /* the read is a hatch over everything they wrote — the heaviest thing
+     this screen does. It used to run inside render, on the way in; now it
+     runs after the transition has landed (stall probe, 2026-09-20). */
+  const [read, setRead] = useState<ReturnType<typeof readCorrespondent> | null>(null);
+  useEffect(() => {
+    if (!detail) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      markWork("read:correspondent");
+      const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
+      if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
+      setRead(readCorrespondent(theirs, detail.revealed));
+    });
+    return () => task.cancel();
   }, [detail]);
   /* the same sentence the list row shows — same words, not a second
      vocabulary for the same state */

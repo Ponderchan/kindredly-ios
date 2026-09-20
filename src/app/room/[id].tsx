@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { t, useLang, t as tr } from "../../lib/i18n";
@@ -19,6 +19,7 @@ import { markRoomSeen } from "../../lib/room-seen";
 import { markNoticeSeen, readNoticesSeen } from "../../lib/notice-seen";
 import { useEntitlement } from "../../lib/entitlement";
 import { isExpired, quietDays } from "../../lib/kindred-expiry";
+import { markWork } from "../../lib/stall-probe";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
@@ -99,6 +100,7 @@ export default function RoomScreen() {
 
   const load = useCallback(async () => {
     if (!id) return;
+    markWork("room:load");
     if (__DEV__ && id.startsWith("demo-")) {
       const { DEMO_DETAILS } = await import("../../data/demo");
       setDetail(DEMO_DETAILS[id] ?? null);
@@ -140,11 +142,19 @@ export default function RoomScreen() {
   useThreadLive(id, load);
 
   const name = detail?.otherName || t("cm.kindred");
-  const read = useMemo(() => {
-    if (!detail) return null;
-    const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
-    if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
-    return readCorrespondent(theirs, true);
+  /* the read is a hatch over everything they wrote — the heaviest thing
+     this screen does. It used to run inside render, on the way in; now it
+     runs after the transition has landed (stall probe, 2026-09-20). */
+  const [read, setRead] = useState<ReturnType<typeof readCorrespondent> | null>(null);
+  useEffect(() => {
+    if (!detail) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      markWork("read:correspondent");
+      const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
+      if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
+      setRead(readCorrespondent(theirs, true));
+    });
+    return () => task.cancel();
   }, [detail]);
 
   /* WREN'S NOTICES. Counted, never guessed — every line is a measurement

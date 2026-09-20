@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { AppState, LogBox, View } from "react-native";
+import { AppState, InteractionManager, LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { refreshFingerprint } from "../lib/aura";
+import { markWork, noteRoute, startStallProbe } from "../lib/stall-probe";
 import { registerForReplies } from "../lib/notify";
 import { syncActivities } from "../lib/activities";
 import { BirdSnapshots } from "../components/BirdSnapshots";
 import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
 import { WrenStageProvider } from "../lib/wren-stage";
@@ -67,13 +68,32 @@ function KnockRouting() {
   return null;
 }
 
+/* the probe learns the route from the router, nothing else */
+function StallProbe() {
+  const path = usePathname();
+  useEffect(() => {
+    startStallProbe();
+  }, []);
+  useEffect(() => {
+    noteRoute(path);
+  }, [path]);
+  return null;
+}
+
 function FingerprintOnLaunch() {
   const { user, isGuest } = useAuth();
   const ran = useRef(false);
   useEffect(() => {
     if (ran.current || !user || isGuest) return;
     ran.current = true;
-    void refreshFingerprint();
+    /* not during launch: the first taps used to compete with a hatch over
+       every letter. After the transitions, and a few seconds later. */
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        markWork("fingerprint");
+        void refreshFingerprint();
+      }, 4000);
+    });
     void registerForReplies();
   }, [user, isGuest]);
   /* her lock-screen activities are reconciled on every foreground: the
@@ -120,6 +140,7 @@ export default function RootLayout() {
             <WrenSkinProvider>
             <WrenStageProvider>
             <FingerprintOnLaunch />
+            <StallProbe />
               <BirdSnapshots />
             <KnockRouting />
             <View style={{ flex: 1, backgroundColor: P.paper }}>

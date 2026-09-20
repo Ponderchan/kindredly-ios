@@ -18,6 +18,7 @@ import { markRoomSeen } from "../../lib/room-seen";
 import { momentUrl, uploadMoment } from "../../lib/db";
 import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
 import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
+import { stallReport } from "../../lib/stall-probe";
 import {
   OFFICIAL_NAME,
   WREN_ROOM,
@@ -171,7 +172,11 @@ export default function WrenDeskScreen() {
         return;
       }
     }
-    const ok = await post(body, mode ?? "note");
+    /* a bug brings the phone's own evidence with it: the last stalls,
+       the build and the device (lib/stall-probe) */
+    const kind: WrenMailKind = mode ?? "note";
+    const full = kind === "bug" ? `${body}\n\n— diagnostics —\n${stallReport()}`.slice(0, 2000) : body;
+    const ok = await post(full, kind);
     if (ok) {
       setText("");
       setMode(null);

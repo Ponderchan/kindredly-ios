@@ -1,6 +1,7 @@
 import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
+import { Dimensions, InteractionManager, Pressable, ScrollView, Text, View } from "react-native";
+import { markWork } from "../../lib/stall-probe";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -103,6 +104,7 @@ export default function MeTab() {
       let alive = true;
       if (Date.now() - lastRead.current < 30_000) return;
       const read = () => {
+        markWork("me:stats");
         Promise.all([collectGrowthStats(user?.created_at), getStageFloor()]).then(([s, floor]) => {
           if (!alive) return;
           setStats(s);
@@ -128,6 +130,12 @@ export default function MeTab() {
           // fresh read replaces it when the letters come back
           const cached = await readAuraCache();
           if (alive && cached) setAura((cur) => cur ?? cached);
+          /* the fresh read is the heaviest thing this tab does (the hatch
+             over every page and letter): let the page paint and the
+             transition end first, then run it */
+          await new Promise<void>((r) => InteractionManager.runAfterInteractions(() => setTimeout(r, 250)));
+          if (!alive) return;
+          markWork("me:aura");
           const a = await myAura((profile?.firstLine as string) || null);
           if (!alive) return;
           setAura(a);

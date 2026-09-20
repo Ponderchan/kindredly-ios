@@ -26,6 +26,7 @@ import { DEMO_THREADS } from "../../data/demo";
 import { useEntitlement } from "../../lib/entitlement";
 import { SEATS } from "../../lib/kindred-gate";
 import { isExpired, quietDays } from "../../lib/kindred-expiry";
+import { markWork } from "../../lib/stall-probe";
 
 /* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
    in. COMING INTO VIEW: both the orbit radius and the mosaic's resolution are
@@ -69,6 +70,7 @@ export default function KindredsTab() {
       }
     });
     if (threadsAge() > 15) {
+      markWork("kindreds:fetch");
       fetchThreads().then((t) => {
         if (!alive) return;
         if (t) setThreads(t);
