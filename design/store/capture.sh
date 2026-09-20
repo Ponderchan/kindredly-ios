@@ -1,6 +1,8 @@
 #!/bin/zsh
 # Real screenshots for the store, one language at a time: cold start, store
-# mode in that language, six screens. Output: design/store/shots/<lang>/0N.png
+# mode in that language, ten screens. The island and the lock screen are
+# shot by hand (Simulator HOME / LOCK) — keystrokes from a script do not land.
+# Output: design/store/shots/<lang>/NN.png
 set -e
 D=CEF88040-7823-4B58-8349-AEC30649EF03
 APP=io.kindredly.app
@@ -8,8 +10,8 @@ OUT="$(dirname "$0")/shots"
 for L in "$@"; do
   mkdir -p "$OUT/$L"
   xcrun simctl terminate $D $APP 2>/dev/null || true; sleep 1
-  xcrun simctl launch $D $APP >/dev/null; sleep 10
-  xcrun simctl openurl $D "kindredly:///dev-store?l=$L"; sleep 6
+  xcrun simctl launch $D $APP >/dev/null; sleep 13
+  xcrun simctl openurl $D "kindredly:///dev-store?l=$L"; sleep 8
   xcrun simctl io $D screenshot "$OUT/$L/01.png" >/dev/null 2>&1
   xcrun simctl openurl $D "kindredly:///kindreds"; sleep 4
   xcrun simctl io $D screenshot "$OUT/$L/05.png" >/dev/null 2>&1

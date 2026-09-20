@@ -63,7 +63,9 @@ def frame(lang):
     cjk = lang in ("ja", "ko")
     out = f"{S}/v121-real/{lang}"; os.makedirs(out, exist_ok=True)
     for i, (shot, eyebrow, h1, sub) in enumerate(STORY[lang], 1):
-        src = f"{S}/shots/{lang}/{shot}.png"
+        # one set of screenshots (English) for every storefront; only the
+        # words above the phone change (owner, 2026-09-20)
+        src = f"{S}/shots/en/{shot}.png"
         if not os.path.exists(src):
             print("missing", lang, shot); continue
         n = len(h1)
@@ -75,10 +77,11 @@ def frame(lang):
         inset = ""
         if shot == "12":
             # the island rides along on the lock-screen frame: the top of the home-screen shot
-            isl = f"{S}/shots/{lang}/11.png"
+            isl = f"{S}/shots/en/11.png"
             if os.path.exists(isl):
                 # the island only: the first 250px of the home screen, cropped to the notch's width
-                inset = f'<div class="inset"><div style="height:200px;overflow:hidden"><img src="file://{isl}" style="width:1400px;margin-left:-400px;margin-top:-12px"></div></div><div class="tag" style="left:70px;top:1445px">ON THE ISLAND</div>'
+                tag = {"en": "ON THE ISLAND", "es": "EN LA ISLA", "pt": "NA ILHA", "id": "DI ISLAND", "fr": "SUR L'ÎLE", "de": "AUF DER INSEL", "it": "SULL'ISOLA", "ja": "アイランドにも", "ko": "아일랜드에도"}.get(lang, "ON THE ISLAND")
+                inset = f'<div class="inset"><div style="height:200px;overflow:hidden"><img src="file://{isl}" style="width:1400px;margin-left:-400px;margin-top:-12px"></div></div><div class="tag" style="left:70px;top:1445px">{tag}</div>'
         floats = STICKERS.get(shot, lambda T: [])(lang)
         html = HEAD + "".join(floats) + f'<div class="head"><div class="eyebrow">{eyebrow}</div><div class="h1" style="font-size:{h1px}px">{h1}</div><div class="sub" style="font-size:{subpx}px">{sub}</div></div>' \
              + f'<div class="phone" style="transform:rotate({rot}deg)"><div class="screen"><img src="file://{src}"></div></div>{inset}</body></html>'
