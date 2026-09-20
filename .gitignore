@@ -27,3 +27,6 @@ android/.gradle/
 
 # macOS
 .DS_Store
+
+# rendered store screenshots — regenerate with design/store/build2.py
+design/store/v121/**/*.png
