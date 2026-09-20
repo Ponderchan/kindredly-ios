@@ -4,7 +4,7 @@ import { useWrenName } from "../lib/wren-name";
 import { Alert, Image, Keyboard, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {C} from "../theme/tokens";
@@ -21,7 +21,7 @@ import type { Lang } from "../data/stamps";
 import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
-import { leaveKept, takePicked } from "../lib/journal-handoff";
+import { takePicked } from "../lib/journal-handoff";
 import { CourierSendOff } from "./CourierSendOff";
 import { Nudge } from "./ComposeTray";
 
@@ -56,7 +56,6 @@ export function SelfCompose({
 }) {
   useLang();
   const wren = useWrenName();
-  const router = useRouter();
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false); // the tray under the bar
 
@@ -197,11 +196,7 @@ export function SelfCompose({
     }, [start]),
   );
 
-  /* + ADD: back to the roll with what is already here, so it can merge */
-  const addMore = () => {
-    leaveKept(photos);
-    router.push("/journal-pick?more=1");
-  };
+
 
   const pickMood = async (mood: MoodId) => {
     setMoodOpen(false);
@@ -312,16 +307,9 @@ export function SelfCompose({
                   ))}
                 </View>
 
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
-                  <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
-                    {t("sc.coverHint", { n: String(photos.length) })}
-                  </Text>
-                  {photos.length < 9 && (
-                    <Pressable onPress={addMore} hitSlop={8}>
-                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.pen }}>+ {t("jp.add")}</Text>
-                    </Pressable>
-                  )}
-                </View>
+                {/* one line, no count and no + ADD (owner, 2026-09-20): the
+                    roll already stops at nine, and it is the place to add */}
+                <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>{t("sc.coverHint")}</Text>
               </View>
             )}
             {att === "video" && mediaUri && <VideoPreview uri={mediaUri} onClear={() => toggleMode("video")} />}
