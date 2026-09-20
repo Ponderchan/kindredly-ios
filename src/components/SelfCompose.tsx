@@ -23,6 +23,7 @@ import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
 import { CourierSendOff } from "./CourierSendOff";
+import { Nudge } from "./ComposeTray";
 
 const LANG = "en";
 
@@ -275,6 +276,22 @@ export function SelfCompose({
               Full bleed the same way the letter desk is. */}
           <View style={{ minHeight: 430 }}>
 
+            {/* THE LINE COMES FIRST (owner, 2026-09-20). With photos on the
+                page the caption used to sit under the album, invisible on
+                white until you tapped it. It is a box now, above the
+                pictures, the way the Today card's write-back box is. */}
+            {att && (
+              <View style={[{ marginBottom: 14, borderWidth: 1.5, borderColor: P.ink, borderRadius: 16, paddingHorizontal: 14 }]}>
+                <GlyphInput
+                  value={text}
+                  onChangeText={setText}
+                  placeholder={t("sc.ph")}
+                  placeholderTextColor="#C4B48D"
+                  multiline
+                  style={{ minHeight: 52, maxHeight: 160, color: Z.ink, fontFamily: PF.writing, fontSize: 16.5, lineHeight: 25, paddingTop: 12, paddingBottom: 12 }}
+                />
+              </View>
+            )}
 
             {/* photo album — up to 9, tap a frame to make it the cover */}
             {att === "photo" && photos.length > 0 && (
@@ -361,21 +378,22 @@ export function SelfCompose({
                 over the page with nothing holding her, and it isn't clear
                 whether she's part of what you're writing. One rule gives her
                 somewhere to stand and marks where your own words begin. */}
-            <View style={{ borderBottomWidth: 1, borderColor: P.ink12, marginTop: 6, marginBottom: 10 }} />
+            {!att && <View style={{ borderBottomWidth: 1, borderColor: P.ink12, marginTop: 6, marginBottom: 10 }} />}
 
             {/* No ruled lines. They were doing the work of saying "notebook",
                 but a page with rules printed on it is a page that expects a
                 certain kind of writing on a certain size of line — and the
                 writing here is whatever comes. */}
+            {!att && (
             <View>
               <GlyphInput
                 value={text}
                 onChangeText={setText}
-                placeholder={att ? t("sc.ph") : spark}
+                placeholder={spark}
                 placeholderTextColor="#C4B48D"
                 multiline
                 style={{
-                  minHeight: att ? 80 : 328,
+                  minHeight: 328,
                   color: Z.ink,
                   fontFamily: PF.writing,
                   fontSize: 19,
@@ -385,31 +403,27 @@ export function SelfCompose({
                 }}
               />
             </View>
+            )}
 
           </View>
 
         </ScrollView>
 
-        {/* A mood is REQUIRED, and this is where you're asked for it — a pill
-          above the bar, the way a tag sits above a composer's toolbar. The
-          reason given is the true one: Sealed's calendar is built out of
-          these faces, so the mood is literally how you find a day again. */}
-      <Pressable
-        onPress={() => askMood(false)}
-        style={{ flexDirection: "row", alignItems: "center", gap: 9, alignSelf: "flex-start", marginHorizontal: 20, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: mood ? MOODS[mood].bg : P.paperDeep }}
-      >
-        {mood ? (
-          <>
-            <MoodIcon id={mood} size={22} />
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.4, color: MOODS[mood].col }}>{moodName(mood).toLowerCase()}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40 }}>{t("cp.change")}</Text>
-          </>
-        ) : (
-          <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: P.ink60 }}>
-            {t("sc.moodHint")}
-          </Text>
+        {/* THE MOOD RIDES THE SEAL KEY (owner, 2026-09-20), the way a stamp
+            rides the letter's send key: nothing asked while the page is
+            empty; once there is something to seal the key turns pen blue
+            and asks HOW DID THIS FEEL?; the pick shows as a chip here,
+            and the key goes black to seal. The reason is unchanged —
+            Sealed's calendar is made of these faces. */}
+        {mood && (
+          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 10 }}>
+            <Pressable onPress={() => askMood(false)} style={{ flexDirection: "row", alignItems: "center", gap: 7, borderWidth: 1.5, borderColor: MOODS[mood].col, borderRadius: 999, paddingLeft: 8, paddingRight: 12, paddingVertical: 4, backgroundColor: MOODS[mood].bg }}>
+              <MoodIcon id={mood} size={20} />
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.6, color: MOODS[mood].col }}>#{moodName(mood).toLowerCase()}</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.ink40 }}>{t("cp.change")}</Text>
+            </Pressable>
+          </View>
         )}
-      </Pressable>
 
         {/* the tools, then the seal */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
@@ -459,22 +473,28 @@ export function SelfCompose({
           <Pressable
             onPress={() => {
               if (busy || !hasSomething) return;
-              if (!mood) return askMood(true);
+              /* the pick does not seal — the same two beats as the letter
+                 desk: choose, see it on the key, then send */
+              if (!mood) return askMood(false);
               void pickMood(mood);
             }}
             disabled={!hasSomething || busy}
             style={{
               flex: 1,
-              backgroundColor: hasSomething && !busy ? P.ink : "transparent",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 10,
+              backgroundColor: !hasSomething || busy ? "transparent" : mood ? P.ink : P.pen,
               borderWidth: 1,
-              borderColor: hasSomething && !busy ? P.ink : P.ink12,
+              borderColor: !hasSomething || busy ? P.ink12 : mood ? P.ink : P.pen,
               paddingVertical: 17,
               alignItems: "center",
             }}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: hasSomething && !busy ? "#fff" : P.ink40 }}>
-              {busy ? t("sc.sealing") : t("sc.seal")}
+              {busy ? t("sc.sealing") : !mood && hasSomething ? t("sc.askMood") : t("sc.seal")}
             </Text>
+            {hasSomething && !mood && !busy && <Nudge color="#FFFFFF" />}
           </Pressable>
         </View>
       </Animated.View>

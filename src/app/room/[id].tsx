@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -16,6 +16,7 @@ import { sharedSongs, songNotice } from "../../lib/shared-songs";
 import { markMomentUsed, momentUsedToday, shotToday } from "../../lib/daily-moment";
 import { saveToLore } from "../../lib/lore";
 import { markRoomSeen } from "../../lib/room-seen";
+import { markNoticeSeen, readNoticesSeen } from "../../lib/notice-seen";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
@@ -49,8 +50,8 @@ import { alertFail } from "../../lib/fail";
    · no minute timestamps. 18:12 is instant-messaging grammar and would
      quietly promise a speed this product does not offer; the day is as
      precise as a letter has ever been
-   · no bubbles. This reads as a conversation transcribed, not two people
-     texting — which is the honest description of what it is
+   · bubbles, since 2026-09-20 (owner): yours right in pen blue, theirs
+     left on grey. Two voices in one ink were too hard to tell apart
 
    What is always present: their mark at the top. You are in THEIR room.
 
@@ -157,6 +158,32 @@ export default function RoomScreen() {
       detail.messages.filter((m) => !m.mine),
     );
   }, [detail]);
+
+  /* ONE VISIT, THEN GONE (owner, 2026-09-20). The notice she leaves is
+     for this visit: it is marked seen when you leave the room (or at the
+     ×), and it does not come back unless there is a new one. */
+  const [seenNotices, setSeenNotices] = useState<string[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (id) readNoticesSeen(id).then((l) => alive && setSeenNotices(l));
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+  const notice = seenNotices ? notices.find((n) => !seenNotices.includes(n.id)) ?? null : null;
+  const noticeRef = useRef<string | null>(null);
+  noticeRef.current = notice?.id ?? null;
+  useEffect(
+    () => () => {
+      if (id && noticeRef.current) void markNoticeSeen(id, noticeRef.current);
+    },
+    [id],
+  );
+  const dismissNotice = () => {
+    if (!id || !notice) return;
+    void markNoticeSeen(id, notice.id);
+    setSeenNotices((s) => [...(s || []), notice.id]);
+  };
 
   const conv = detail
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" } as ThreadMessage, ...detail.messages].filter((m) => m.body)
@@ -483,58 +510,72 @@ export default function RoomScreen() {
             }
 
             const m = it.msg;
-            const prevMsg = prev?.type === "msg" ? prev.msg : null;
-            const newSpeaker = !prevMsg || prevMsg.mine !== m.mine;
             const url = m.kind === "photo" ? (m.mediaPath ? momentUrl(m.mediaPath) : (m.meta?.url ?? null)) : null;
+            const song = m.kind === "song" && !!m.meta?.url;
+            const card = !!url || song;
+            /* BUBBLES, ONE SIDE EACH (owner, 2026-09-20). The room used to
+               read as a transcript — a label, then the words, both sides
+               flush left — and two voices in the same ink were hard to tell
+               apart at a glance. Yours sit right in pen blue, theirs sit
+               left on grey; no labels, the sides say it. */
+            const prevMsg = prev?.type === "msg";
             return (
               <View key={`m-${i}`}>
                 {dayRule}
-                {newSpeaker && (
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: m.mine ? P.ink40 : P.pen, marginTop: newDay ? 0 : 16, marginBottom: 5 }}>
-                    {m.mine ? tr("ui.you") : name.toUpperCase()}
-                  </Text>
-                )}
-                {m.kind === "photo" && url ? (
-                  <Image source={{ uri: url }} style={{ width: "78%", aspectRatio: 1, marginBottom: 6, backgroundColor: "#EFEDE6" }} resizeMode="cover" />
-                ) : m.kind === "song" && m.meta?.url ? (
-                  <Pressable
-                    onPress={() => Linking.openURL(m.meta!.url!)}
-                    onLongPress={() => setShelf(true)}
-                    delayLongPress={350}
-                    style={{ borderWidth: 1, borderColor: P.ink12, padding: 12, marginBottom: 6, flexDirection: "row", alignItems: "center", gap: 10 }}
-                  >
-                    <Text style={{ fontSize: 17 }}>🎵</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 12.5, color: P.ink }}>
-                        {m.meta.title || t("rm.song.card")}
+                <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2 }}>
+                  {url ? (
+                    <Image source={{ uri: url }} style={{ width: "70%", aspectRatio: 1, borderRadius: 16, marginBottom: 4, backgroundColor: "#EFEDE6" }} resizeMode="cover" />
+                  ) : song ? (
+                    <Pressable
+                      onPress={() => Linking.openURL(m.meta!.url!)}
+                      onLongPress={() => setShelf(true)}
+                      delayLongPress={350}
+                      style={{ maxWidth: "86%", borderWidth: 1, borderColor: m.mine ? P.pen : P.ink12, borderRadius: 16, padding: 12, marginBottom: 4, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: m.mine ? P.penWash : "#FFFFFF" }}
+                    >
+                      <Text style={{ fontSize: 17 }}>🎵</Text>
+                      <View style={{ flexShrink: 1 }}>
+                        <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 12.5, color: P.ink }}>
+                          {m.meta!.title || t("rm.song.card")}
+                        </Text>
+                        <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, color: P.ink40, marginTop: 2 }}>
+                          {m.meta!.url!.replace(/^https?:\/\//, "").split("/")[0]}
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>›</Text>
+                    </Pressable>
+                  ) : null}
+                  {!card && (
+                    <Pressable
+                      onLongPress={() => !m.mine && keep(m.body, null, m.date)}
+                      delayLongPress={350}
+                      style={{
+                        maxWidth: "84%",
+                        backgroundColor: m.mine ? P.pen : "#F3F2FA",
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        borderRadius: 18,
+                        borderBottomRightRadius: m.mine ? 5 : 18,
+                        borderBottomLeftRadius: m.mine ? 18 : 5,
+                      }}
+                    >
+                      <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: m.mine ? "#FFFFFF" : P.ink }}>{m.body}</Text>
+                    </Pressable>
+                  )}
+                  {song && songs.length >= 2 && conv[conv.length - 1] === m && (
+                    <Pressable onPress={() => setShelf(true)} hitSlop={6} style={{ marginTop: 4, marginBottom: 6 }}>
+                      <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1, color: P.pen }}>
+                        {t("rm.shelf.open", { n: String(songs.length) })} ›
                       </Text>
-                      <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, color: P.ink40, marginTop: 2 }}>
-                        {m.meta.url.replace(/^https?:\/\//, "").split("/")[0]}
-                      </Text>
-                    </View>
-                    <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>›</Text>
-                  </Pressable>
-                ) : null}
-                {m.kind === "song" && m.meta?.url && songs.length >= 2 && conv[conv.length - 1] === m ? (
-                  <Pressable onPress={() => setShelf(true)} hitSlop={6} style={{ marginBottom: 8 }}>
-                    <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1, color: P.pen }}>
-                      {t("rm.shelf.open", { n: String(songs.length) })} ›
-                    </Text>
-                  </Pressable>
-                ) : (
-                  <Pressable onLongPress={() => !m.mine && keep(m.body, null, m.date)} delayLongPress={350}>
-                    <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: m.mine ? P.ink60 : P.ink, marginBottom: 3 }}>
-                      {m.body}
-                    </Text>
-                  </Pressable>
-                )}
+                    </Pressable>
+                  )}
+                </View>
               </View>
             );
           })}
         </ScrollView>
 
         {/* she leaves one thing on the table, at the foot of the room */}
-        {!!notices.length && (
+        {!!notice && (
           <View style={{ marginHorizontal: 22, marginBottom: 10, borderWidth: 1, borderColor: P.ink12, padding: 13 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <WrenBird size={20} mood="curious" />
@@ -543,14 +584,17 @@ export default function RoomScreen() {
               </Text>
               <View style={{ flex: 1 }} />
               <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1, color: P.ink40, flexShrink: 1, textAlign: "right" }}>
-                {notices[0].evidence}
+                {notice.evidence}
               </Text>
+              <Pressable onPress={dismissNotice} hitSlop={10} style={{ marginLeft: 4 }}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>×</Text>
+              </Pressable>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 7 }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink }}>{notices[0].line}</Text>
-              {!!notices[0].word && (
+              <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink }}>{notice.line}</Text>
+              {!!notice.word && (
                 <View style={{ borderWidth: 1.5, borderColor: P.pen, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: P.penWash }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, color: P.pen }}>#{notices[0].word}</Text>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, color: P.pen }}>#{notice.word}</Text>
                 </View>
               )}
             </View>

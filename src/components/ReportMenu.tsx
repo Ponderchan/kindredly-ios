@@ -1,28 +1,27 @@
 import { useState } from "react";
-import { Modal, Pressable, Text } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Line, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { PUNCH } from "../theme/punch";
 import { useWrenName } from "../lib/wren-name";
 import { blockUser, reportContent } from "../lib/db";
-import { LeaveSheet, openLeaveSheet } from "./LeaveSheet";
+import { LeaveSheet } from "./LeaveSheet";
 
 /* Report / block (App Store requirement for anonymous UGC). Wired to the
    backend reports + blocks tables — three distinct reporters auto-suspend
    a writer server-side.
    ────────────────────────────────────────────────────────────────────────
-   THE LAST SYSTEM FURNITURE IN THE APP. This was ActionSheetIOS plus two
-   Alert.alerts: rounded grey stacks and system type, in a product made of
-   paper and hairlines. LeaveSheet already settled the argument for the
-   composer — correct behaviour wearing the wrong face — and safety is the
-   worst place to break character: the moment someone reaches for this menu
-   is the moment they most need the room to feel like it is being run by
-   someone. So the same sheet carries all three steps.
+   A MENU, NOT A LECTURE (owner, 2026-09-20). This used to open a sheet
+   with a title, a paragraph about how nobody knows who anyone is, and
+   then the two buttons. The person tapping ⋯ has already decided
+   something is wrong; what they need is the three choices, the way the
+   phone's own ⋯ gives them: report, block, never mind. The card drops
+   from the ⋯ itself, so it reads as belonging to the thing it is about.
 
-   The order is deliberate. Report is the quiet ruled button, block is the
-   red one, and the easiest thing to hit is still NEVER MIND — most people
-   who open this menu are looking, not acting. Nothing is reported or
-   blocked until the second sheet; the first one only asks. */
+   Report is one tap and a small confirmation line. Block still asks once,
+   in one sentence, because it closes a road both ways. */
 
 type Stage = null | "menu" | "block" | "sent";
 
@@ -44,6 +43,7 @@ export function ReportMenu({
 }) {
   useLang();
   const wren = useWrenName();
+  const insets = useSafeAreaInsets();
   const [stage, setStage] = useState<Stage>(null);
   const [busy, setBusy] = useState(false);
 
@@ -64,10 +64,30 @@ export function ReportMenu({
     onBlocked?.();
   };
 
+  const Row = ({ label, icon, tone = "ink", onPress }: { label: string; icon: "flag" | "ban" | "none"; tone?: "ink" | "red"; onPress: () => void }) => (
+    <Pressable onPress={onPress} disabled={busy} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, height: 48, backgroundColor: pressed ? "#F3F2FA" : "transparent" })}>
+      <View style={{ width: 20, alignItems: "center" }}>
+        {icon === "flag" && (
+          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M4 22V4" />
+            <Path d="M4 4h12l-2 4 2 4H4" />
+          </Svg>
+        )}
+        {icon === "ban" && (
+          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#C8412E" strokeWidth={1.8} strokeLinecap="round">
+            <Circle cx={12} cy={12} r={9} />
+            <Line x1={5.6} y1={5.6} x2={18.4} y2={18.4} />
+          </Svg>
+        )}
+      </View>
+      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? "#C8412E" : P.ink }}>{label}</Text>
+    </Pressable>
+  );
+
   return (
     <>
       <Pressable
-        onPress={() => openLeaveSheet(() => setStage("menu"))}
+        onPress={() => setStage("menu")}
         hitSlop={10}
         style={
           ring
@@ -78,47 +98,54 @@ export function ReportMenu({
         <Text style={ring ? { fontSize: 12, lineHeight: 14, color: PUNCH.ink, fontFamily: PF.monoSemi } : { fontSize: 20, color: P.ink, fontFamily: PF.mono }}>⋯</Text>
       </Pressable>
 
-      {/* The ⋯ lives inside a header ROW, and LeaveSheet positions itself
-          against its nearest parent — rendered inline it would open across
-          the top of the page. The old ActionSheetIOS was window-level, so
-          this never came up. A transparent Modal puts the sheet back at
-          window level wherever the ⋯ is mounted. */}
-      <Modal
-        visible={stage !== null}
-        transparent
-        animationType="none"
-        onRequestClose={() => !busy && setStage(null)}
-      >
-      <LeaveSheet
-        open={stage === "menu"}
-        title={t("rp.title")}
-        body={t("rp.body", { wren })}
-        actions={[
-          { label: busy ? "…" : t("rp.report"), kind: "quiet", onPress: report },
-          { label: t("rp.block"), kind: "destructive", onPress: () => setStage("block") },
-        ]}
-        cancelLabel={t("set.neverMind")}
-        onCancel={() => !busy && setStage(null)}
-      />
+      {/* window-level, so it sits over whatever row the ⋯ is in */}
+      <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={() => !busy && setStage(null)}>
+        <Pressable onPress={() => !busy && setStage(null)} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.14)" }}>
+          {(stage === "menu" || stage === "sent") && (
+            <View
+              style={{
+                position: "absolute",
+                top: insets.top + 50,
+                right: 16,
+                width: 236,
+                backgroundColor: "#FFFFFF",
+                borderRadius: 14,
+                paddingVertical: 4,
+                shadowColor: "#000",
+                shadowOpacity: 0.16,
+                shadowRadius: 18,
+                shadowOffset: { width: 0, height: 8 },
+              }}
+            >
+              {stage === "sent" ? (
+                <>
+                  {/* the confirmation lives in the same card — no second sheet */}
+                  <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>{t("rp.reported", { wren })}</Text>
+                  <View style={{ height: 1, backgroundColor: P.ink12, marginVertical: 2 }} />
+                  <Row label={t("wu.done")} icon="none" onPress={() => setStage(null)} />
+                </>
+              ) : (
+                <>
+                  <Row label={busy ? "…" : t("rp.menu.report")} icon="flag" onPress={report} />
+                  <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => setStage("block")} />
+                  <View style={{ height: 1, backgroundColor: P.ink12, marginVertical: 4 }} />
+                  <Row label={t("rp.menu.never")} icon="none" onPress={() => setStage(null)} />
+                </>
+              )}
+            </View>
+          )}
+        </Pressable>
 
-      <LeaveSheet
-        open={stage === "block"}
-        title={t("rp.blockTitle")}
-        body={t("rp.blockBody")}
-        actions={[{ label: busy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: block }]}
-        cancelLabel={t("set.neverMind")}
-        onCancel={() => !busy && setStage(null)}
-      />
-
-      <LeaveSheet
-        open={stage === "sent"}
-        title={t("rp.reportedTitle")}
-        body={t("rp.reportedBody", { wren })}
-        actions={[]}
-        cancelLabel={t("wu.done")}
-        onCancel={() => setStage(null)}
-      />
+        <LeaveSheet
+          open={stage === "block"}
+          title={t("rp.blockTitle")}
+          body={t("rp.blockBody")}
+          actions={[{ label: busy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: block }]}
+          cancelLabel={t("set.neverMind")}
+          onCancel={() => !busy && setStage(null)}
+        />
       </Modal>
+
     </>
   );
 }

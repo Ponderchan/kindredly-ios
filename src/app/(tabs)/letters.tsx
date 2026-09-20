@@ -25,6 +25,7 @@ import { Toast, useSlow } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
+import { SendPlane } from "../../components/ChatField";
 import { postNo, postmark, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
@@ -623,15 +624,15 @@ function Feed({
                   multiline
                   style={{ flex: 1, ...fieldBox(drafts[current.id] || "", 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.writing, fontSize: 16.5, lineHeight: 25 }}
                 />
-                <Pressable
-                  onPress={() => send(current)}
-                  disabled={!replyOk || sending}
-                  style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: replyOk && !sending ? PUNCH.ink : "#E4E1F6" }}
-                >
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: replyOk && !sending ? "#fff" : PUNCH.placeholder }}>
-                    {t("ld.send")}
-                  </Text>
-                </Pressable>
+                {(drafts[current.id] || "").length > 0 ? (
+                  <Pressable onPress={() => send(current)} disabled={!replyOk || sending} hitSlop={6} style={{ marginBottom: 6 }}>
+                    <SendPlane on={replyOk && !sending} ink={PUNCH.ink} />
+                  </Pressable>
+                ) : (
+                  <View style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: "#E4E1F6" }}>
+                    <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: PUNCH.placeholder }}>{t("ld.send")}</Text>
+                  </View>
+                )}
               </View>
               )}
               {!sending && (
@@ -878,15 +879,15 @@ function LetterReader({
                   autoFocus
                   style={{ flex: 1, ...fieldBox(reply.value, 25, 104), paddingTop: 10, paddingBottom: 10, color: PUNCH.ink, fontFamily: PF.writing, fontSize: 16.5, lineHeight: 25 }}
                 />
-                <Pressable
-                  onPress={reply.onSend}
-                  disabled={!reply.canSend}
-                  style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: reply.canSend ? PUNCH.ink : "#E4E1F6" }}
-                >
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: reply.canSend ? "#fff" : PUNCH.placeholder }}>
-                    {t("ld.send")}
-                  </Text>
-                </Pressable>
+                {reply.value.length > 0 ? (
+                  <Pressable onPress={reply.onSend} disabled={!reply.canSend} hitSlop={6} style={{ marginBottom: 6 }}>
+                    <SendPlane on={reply.canSend} ink={PUNCH.ink} />
+                  </Pressable>
+                ) : (
+                  <View style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: "#E4E1F6" }}>
+                    <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: PUNCH.placeholder }}>{t("ld.send")}</Text>
+                  </View>
+                )}
               </View>
             ) : (
               <Pressable

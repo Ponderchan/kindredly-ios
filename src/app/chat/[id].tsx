@@ -328,8 +328,10 @@ export default function ChatScreen() {
                   style={{
                     maxWidth: "86%",
                     borderWidth: 1,
-                    borderColor: m.mine ? P.ink12 : P.ink,
-                    backgroundColor: m.mine ? P.paperDeep : P.paper,
+                    /* yours wash blue, theirs stay paper — the two hands were
+                       one shade of grey apart (owner, 2026-09-20) */
+                    borderColor: m.mine ? "#CFCBF5" : P.ink,
+                    backgroundColor: m.mine ? P.penWash : P.paper,
                     paddingHorizontal: 13,
                     paddingVertical: 11,
                   }}
