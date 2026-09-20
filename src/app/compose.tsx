@@ -6,14 +6,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Path, Rect } from "react-native-svg";
 import { C } from "../theme/tokens";
-import { P, PF, channelInk, channelWash } from "../theme/post";
+import { P, PF, channelInk } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
 import { LetterTravel } from "../components/LetterTravel";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
-import { STAMP_CATEGORIES, STAMPS, STARTER_STAMPS, getStamp, stampsByCat, sname } from "../data/stamps";
+import { STAMP_CATEGORIES, STAMPS, getStamp, stampsByCat, sname } from "../data/stamps";
+import { suggestStamps } from "../lib/stamp-suggest";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
@@ -63,7 +64,6 @@ export default function Compose() {
   const [mode, setMode] = useState<Mode>("write");
   const [showAll, setShowAll] = useState(false);
   const [feelings, setFeelings] = useState(false);
-  const [stampStrip, setStampStrip] = useState(false); // the in-place stamp row
   /* THE STAMP IS CHOSEN, NOT DEFAULTED. It used to arrive pre-set to the
      first starter, so the pool filled with #off my chest nobody had picked
      and the door never mentioned it. Now it is empty until you choose, the
@@ -154,7 +154,6 @@ export default function Compose() {
     [],
   );
 
-  const stamp = getStamp(sel);
   // a cold opening earns its way to a stranger: at least a real line (weighted),
   // and never longer than a genuine short letter. Voice is exempt — the audio
   // is the content, the caption's optional.
@@ -343,8 +342,10 @@ export default function Compose() {
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {!showAll ? (
             <>
+              {/* six for THIS letter — read off its themes and mood (lib/stamp-suggest) */}
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink40, marginBottom: 12 }}>{t("cp.forThisLetter")}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-                {STARTER_STAMPS.map((id) => (
+                {suggestStamps(text).map((id) => (
                   <StampCell key={id} id={id} />
                 ))}
               </View>
@@ -353,9 +354,6 @@ export default function Compose() {
                   {t("cp.seeAll", { n: STAMPS.length })}
                 </Text>
               </Pressable>
-              <Text style={{ textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
-                {t("cp.pickMore")}
-              </Text>
             </>
           ) : (
             STAMP_CATEGORIES.map((cat) => (
@@ -509,60 +507,12 @@ export default function Compose() {
           </View>
         )}
 
-    {/* The stamp is pinned above the bar, not left floating in the middle
-        of the page. It's a property of the letter, so it belongs with the
-        controls that act on the letter — and it stays visible while you
-        write instead of drifting wherever the text happens to end. */}
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 22, paddingVertical: 12, borderTopWidth: 1, borderTopColor: P.ink12 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>{t("cp.moodStamp")}</Text>
-          {stamp && (
-            <View style={{ backgroundColor: channelWash(stamp.color), borderWidth: 1, borderColor: stamp.color, paddingHorizontal: 10, paddingVertical: 5 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 12, color: channelInk(stamp.color) }}>#{sname(stamp.name).toLowerCase()}</Text>
-            </View>
-          )}
-          <Pressable onPress={() => setStampStrip((v) => !v)} hitSlop={6} style={{ paddingHorizontal: 6, paddingVertical: 7 }}>
-            <Text style={{ fontFamily: stamp ? PF.mono : PF.monoSemi, fontSize: 11.5, letterSpacing: 0.8, color: P.pen }}>{stamp ? t("cp.change") : t("cp.pickOne")}</Text>
-          </Pressable>
-        </View>
-
-        {/* CHANGING A STICKER IS NOT A JOURNEY. CHANGE used to flip to a
-            full-screen picker — a page turn to swap a 46px square. The six
-            starters now slide out right here; a tap swaps the stamp and the
-            row folds away. The full page survives one level deeper, behind
-            ALL, for the other thirty. */}
-        {stampStrip && (
-          <View style={{ flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: P.ink12 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 18, paddingRight: 8, paddingVertical: 10, gap: 12, alignItems: "center" }} style={{ flex: 1 }}>
-              {STARTER_STAMPS.map((id) => (
-                <Pressable
-                  key={id}
-                  onPress={() => {
-                    setSel(id);
-                    setStampStrip(false);
-                  }}
-                  style={{ padding: 3, borderWidth: 2, borderColor: sel === id ? P.pen : "transparent" }}
-                >
-                  <StampTile id={id} w={40} r={5} />
-                </Pressable>
-              ))}
-            </ScrollView>
-            {/* pinned OUTSIDE the scroller — on a 430pt screen it sat past the
-                sixth stamp, scroll-reachable and therefore invisible */}
-            <Pressable
-              onPress={() => {
-                setStampStrip(false);
-                // the strip already showed the six starters — landing on the
-                // same six again is a wasted page. Open on the full album.
-                setShowAll(true);
-                setStep("pick");
-              }}
-              hitSlop={8}
-              style={{ paddingHorizontal: 14, paddingVertical: 16, borderLeftWidth: 1, borderLeftColor: P.ink12 }}
-            >
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.pen }}>{t("cp.seeAll", { n: STAMPS.length })}</Text>
-            </Pressable>
-          </View>
-        )}
+    {/* NO STAMP ROW. There used to be a strip of words above the bar (MOOD
+        STAMP · PICK ONE ›) and a slide-out of six stamps; the key below
+        already says PICK A MOOD STAMP the moment the letter is long enough,
+        and pressing it opens the album — which leads with stamps read from
+        the letter itself. The chosen stamp sits on the envelope, top right,
+        where a stamp goes (owner, 2026-09-20). */}
 
         {/* THE QUESTION RIDES UNDER THE LETTER. This tray held six preset
             emoji — a six-key keyboard sitting one key away from the system
@@ -631,7 +581,14 @@ export default function Compose() {
               it clears. Only on the way up; past the floor the count goes
               back to minding the ceiling. */}
           <Pressable
-            onPress={wordsReady && !sel ? () => setStampStrip(true) : send}
+            onPress={
+              wordsReady && !sel
+                ? () => {
+                    setShowAll(false);
+                    setStep("pick");
+                  }
+                : send
+            }
             disabled={(!canSend && !(wordsReady && !sel)) || busy}
             style={{
               flex: 1,

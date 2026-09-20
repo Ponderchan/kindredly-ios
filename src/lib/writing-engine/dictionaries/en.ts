@@ -27,12 +27,13 @@ export const EN: LangResources = {
   themes: [
     { theme: "missing_someone", words: ["miss", "missed", "missing", "gone", "left", "away"] },
     { theme: "tired", words: ["tired", "exhausted", "drained", "burnt", "burned", "worn"] },
-    { theme: "family", words: ["mum", "mom", "mother", "dad", "father", "family", "parents", "brother", "sister", "grandma", "grandpa"] },
+    { theme: "family", words: ["mum", "mom", "mother", "dad", "father", "family", "parents", "brother", "sister", "grandma", "grandpa", "grandmother", "grandfather", "nan", "nana", "granddad", "grandad", "aunt", "uncle", "cousin"] },
     { theme: "work", words: ["work", "job", "boss", "deadline", "meeting", "office", "shift", "colleague"] },
     { theme: "sleep", words: ["sleep", "asleep", "awake", "insomnia", "tonight", "midnight", "bed", "dreams"] },
     { theme: "loneliness", words: ["lonely", "alone", "isolated", "nobody"] },
     { theme: "friendship", words: ["friend", "friends", "mate", "mates"] },
-    { theme: "love", words: ["love", "crush", "him", "her", "date", "kiss", "heart"] },
+    // no bare pronouns: "her" made every letter about a grandmother a love letter
+    { theme: "love", words: ["love", "crush", "date", "kiss", "heart", "boyfriend", "girlfriend", "ex", "in love", "my ex", "situationship"] },
     { theme: "home", words: ["home", "house", "apartment", "flat", "room", "kitchen", "door"] },
     { theme: "memory", words: ["remember", "remembered", "used", "childhood", "back then", "old"] },
     { theme: "future", words: ["future", "someday", "plan", "hope", "will", "tomorrow", "next"] },
