@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { P, PF, rule } from "../../theme/post";
 import { PUNCH, drop, outline } from "../../theme/punch";
+import { LinearGradient } from "expo-linear-gradient";
 import { StampTile } from "../../components/StampTile";
 import { LangPair } from "../../components/LangPair";
 import { SignalChip } from "../../components/SignalChip";
@@ -1136,15 +1137,17 @@ function LetterPage({
             {shown}
           </Text>
         )}
+        {/* A LONG LETTER FADES, IT ISN'T CUT. The page used to stop the
+            text dead mid-sentence at a rule and then say, in caps, that
+            there was more — a row of words for what the paper can show
+            (owner, 2026-09-20). The last lines dissolve into the page, and
+            one small word opens the reader. */}
+        {folded && <LinearGradient pointerEvents="none" colors={["rgba(255,255,255,0)", "#FFFFFF"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 64 }} />}
         </View>
 
-        {/* the fold — only when there is genuinely more letter than screen */}
         {folded && (
-          <Pressable onPress={() => setOpen(true)} hitSlop={8} style={{ paddingTop: 10 }}>
-            <View style={{ borderTopWidth: 1.5, borderTopColor: "#E4E1F6", paddingTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.6, color: PUNCH.dim }}>{t("ld.more")}</Text>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: PUNCH.reply }}>{t("ld.unfold")}</Text>
-            </View>
+          <Pressable onPress={() => setOpen(true)} hitSlop={10} style={({ pressed }) => ({ alignSelf: "center", paddingVertical: 6, paddingHorizontal: 12, marginTop: 2, marginBottom: 6, opacity: pressed ? 0.6 : 1 })}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: PUNCH.reply }}>{t("ld.unfold")}</Text>
           </Pressable>
         )}
 
@@ -1198,9 +1201,9 @@ function LetterPage({
             reading as a feed post — so it now says only what is true: when
             it was written, and, when the matcher actually named this author,
             why it reached you. */}
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.6, color: PUNCH.dim }}>
-          {t("ld.written")} {sinceShort(letter.created_at)}
-        </Text>
+        {/* WRITTEN 11 DAYS AGO used to sit here — the postmark in the
+            header (9.SEPT · NO.4994) already says when; one row fewer on
+            a page that had five rows of chrome under a folded letter. */}
 
         {/* THE TRANSLATE INVITATION — its own centered line, not a sentence
             crammed above the actions. It IS the button: one short phrase in
