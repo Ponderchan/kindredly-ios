@@ -7,6 +7,7 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import Svg, { Line, Path, Rect } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
+import { leavePickedPhotos } from "../lib/journal-handoff";
 
 /* TO YOURSELF STARTS AT THE PICTURES (owner, 2026-09-20).
    ────────────────────────────────────────────────────────────────────────
@@ -102,7 +103,8 @@ export default function JournalPick() {
       }
     }
     setBusy(false);
-    router.replace(`/journal-entry?photos=${encodeURIComponent(JSON.stringify(out))}`);
+    leavePickedPhotos(out);
+    router.replace("/journal-entry?from=roll");
   };
 
   const cell = (width - 4) / 3;

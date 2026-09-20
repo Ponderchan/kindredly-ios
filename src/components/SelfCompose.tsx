@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GlyphInput } from "./GlyphInput";
 import { useWrenName } from "../lib/wren-name";
-import { Alert, Image, Keyboard, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Keyboard, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
@@ -21,6 +21,7 @@ import type { Lang } from "../data/stamps";
 import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
+import { takePickedPhotos } from "../lib/journal-handoff";
 import { CourierSendOff } from "./CourierSendOff";
 import { Nudge } from "./ComposeTray";
 
@@ -81,7 +82,10 @@ export function SelfCompose({
   const [att, setAtt] = useState<Exclude<JournalType, "text"> | null>(null);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [coverIdx, setCoverIdx] = useState(0);
+  /* THE COVER IS THE FIRST FRAME (owner, 2026-09-20). No tag on it, no ×
+     in its corner: a tap opens the frame full-screen, where it can be
+     made the cover (it moves to the front) or taken off the page. */
+  const [viewer, setViewer] = useState<number | null>(null);
   const [dur, setDur] = useState(0);
   const [busy, setBusy] = useState(false);
   const [sealed, setSealed] = useState(false);
@@ -124,11 +128,10 @@ export function SelfCompose({
 
   const removePhoto = (i: number) => {
     setPhotos((prev) => prev.filter((_, idx) => idx !== i));
-    setCoverIdx((c) => (i === c ? 0 : i < c ? c - 1 : c));
   };
 
   const setCover = (i: number) => {
-    setCoverIdx(i);
+    setPhotos((prev) => (i <= 0 || i >= prev.length ? prev : [prev[i], ...prev.filter((_, idx) => idx !== i)]));
   };
 
   const pickVideo = async () => {
@@ -147,7 +150,6 @@ export function SelfCompose({
   const clearMedia = () => {
     setMediaUri(null);
     setPhotos([]);
-    setCoverIdx(0);
     setDur(0);
   };
 
@@ -166,26 +168,22 @@ export function SelfCompose({
   /* arrive straight in a mode (voice/video from Sealed's empty state) — or,
      the usual way in since 2026-09-20, with the pictures already chosen on
      the roll (journal-pick): they land on the page, no picker opens */
-  const { start, photos: photosParam } = useLocalSearchParams<{ start?: string; photos?: string }>();
+  const { start, from } = useLocalSearchParams<{ start?: string; from?: string }>();
   const armed = useRef(false);
   useEffect(() => {
     if (armed.current) return;
     armed.current = true;
-    if (photosParam) {
-      try {
-        const list = JSON.parse(photosParam) as { uri: string; ratio: number }[];
-        if (Array.isArray(list) && list.length) {
-          setAtt("photo");
-          setPhotos(list.filter((x) => typeof x?.uri === "string").slice(0, 9).map((x) => ({ uri: x.uri, ratio: Number(x.ratio) || 0.8 })));
-          return;
-        }
-      } catch {
-        /* a bad param is an empty page, not a crash */
+    if (from === "roll") {
+      const list = takePickedPhotos();
+      if (list?.length) {
+        setAtt("photo");
+        setPhotos(list);
       }
+      return;
     }
     if (start === "photo" || start === "voice" || start === "video") toggleMode(start);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, photosParam]);
+  }, [start, from]);
 
   const pickMood = async (mood: MoodId) => {
     setMoodOpen(false);
@@ -204,8 +202,7 @@ export function SelfCompose({
         Alert.alert(t("sc.journalTitle"), t("sc.failPhotos"));
         return;
       }
-      const ci = Math.min(coverIdx, uris.length - 1);
-      await addEntry({ type: "photo", body, mood, media: uris, coverIndex: ci, mediaUri: uris[ci] });
+      await addEntry({ type: "photo", body, mood, media: uris, coverIndex: 0, mediaUri: uris[0] });
       setBusy(false);
       onDone();
       return;
@@ -284,40 +281,24 @@ export function SelfCompose({
               </View>
             )}
 
-            {/* photo album — up to 9, tap a frame to make it the cover */}
+            {/* photo album — up to 9, two to a row so they read as pictures
+                rather than thumbnails; the first is the cover; a tap opens
+                the frame */}
             {att === "photo" && photos.length > 0 && (
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                  {photos.map((p, i) => {
-                    const isCover = i === coverIdx;
-                    return (
-                      <Pressable
-                        key={p.uri + i}
-                        onPress={() => setCover(i)}
-                        style={{ width: "31.2%", aspectRatio: 1, overflow: "hidden", position: "relative" }}
-                      >
-                        <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                        {isCover && (
-                          <View style={{ position: "absolute", left: 5, bottom: 5, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: P.pen, paddingHorizontal: 7, paddingVertical: 3 }}>
-                            <Text style={{ color: "#fff", fontSize: 8.5, fontFamily: PF.mono }}>{t("sc.cover")}</Text>
-                          </View>
-                        )}
-                        <Pressable onPress={() => removePhoto(i)} hitSlop={6} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ color: "#fff", fontSize: 10 }}>✕</Text>
-                        </Pressable>
-                      </Pressable>
-                    );
-                  })}
+                  {photos.map((p, i) => (
+                    <Pressable key={p.uri + i} onPress={() => setViewer(i)} style={({ pressed }) => ({ width: "48.6%", aspectRatio: 1, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}>
+                      <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    </Pressable>
+                  ))}
                   {photos.length < 9 && (
-                    <Pressable onPress={addPhotos} style={{ width: "31.2%", aspectRatio: 1, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
+                    <Pressable onPress={addPhotos} style={{ width: "48.6%", aspectRatio: 1, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
                       <Text style={{ fontSize: 22, color: C.faint }}>＋</Text>
                     </Pressable>
                   )}
                 </View>
 
-                {/* the COVER tag on the frame is the only mark; no frame around
-                    the chosen one, and no courier picking it for you
-                    (owner, 2026-09-20) */}
                 <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>
                   {t("sc.coverHint", { n: String(photos.length) })}
                 </Text>
@@ -456,7 +437,76 @@ export function SelfCompose({
         )}
       </Animated.View>
 
+      <FrameViewer
+        photos={photos}
+        index={viewer}
+        onClose={() => setViewer(null)}
+        onCover={(i) => {
+          setCover(i);
+          setViewer(null);
+        }}
+        onRemove={(i) => {
+          removePhoto(i);
+          setViewer((v) => (photos.length <= 1 ? null : Math.min(v ?? 0, photos.length - 2)));
+        }}
+      />
     </View>
+  );
+}
+
+/* ONE FRAME, FULL SCREEN — back, a count, a bin, and the one thing you
+   can do to it from here: make it the cover. Touching the picture goes
+   back to the page. */
+function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
+  const insets = useSafeAreaInsets();
+  const [page, setPage] = useState(index ?? 0);
+  useEffect(() => {
+    if (index !== null) setPage(index);
+  }, [index]);
+  const { width } = useWindowDimensions();
+  if (index === null) return null;
+  const i = Math.min(page, photos.length - 1);
+  return (
+    <Modal visible transparent={false} animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "#0A0A0C" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingTop: insets.top + 4, paddingHorizontal: 8, height: insets.top + 52 }}>
+          <Pressable onPress={onClose} hitSlop={10} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 24, color: "#FFFFFF" }}>‹</Text>
+          </Pressable>
+          <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: "#FFFFFF" }}>
+            {i + 1}/{photos.length}
+          </Text>
+          <Pressable onPress={() => onRemove(i)} hitSlop={10} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+            </Svg>
+          </Pressable>
+        </View>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          contentOffset={{ x: i * width, y: 0 }}
+          onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
+          style={{ flex: 1 }}
+        >
+          {photos.map((p, k) => (
+            <Pressable key={p.uri + k} onPress={onClose} style={{ width, justifyContent: "center" }}>
+              <Image source={{ uri: p.uri }} style={{ width, height: "100%" }} resizeMode="contain" />
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={{ alignItems: "center", paddingBottom: insets.bottom + 18, paddingTop: 12 }}>
+          {i === 0 ? (
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(255,255,255,0.55)" }}>{t("sc.isCover")}</Text>
+          ) : (
+            <Pressable onPress={() => onCover(i)} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#FFFFFF" }}>{t("sc.makeCover")}</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
