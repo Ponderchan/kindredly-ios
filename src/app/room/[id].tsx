@@ -546,9 +546,14 @@ export default function RoomScreen() {
                 {notices[0].evidence}
               </Text>
             </View>
-            <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink, marginTop: 7 }}>
-              {notices[0].line}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 7 }}>
+              <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 23, color: P.ink }}>{notices[0].line}</Text>
+              {!!notices[0].word && (
+                <View style={{ borderWidth: 1.5, borderColor: P.pen, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: P.penWash }}>
+                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, color: P.pen }}>#{notices[0].word}</Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
 

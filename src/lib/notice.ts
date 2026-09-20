@@ -28,6 +28,9 @@ export interface Notice {
   line: string;
   /** the count that makes it true, shown so it can be checked */
   evidence: string;
+  /** the word itself, when the notice is about one — drawn as a #chip, the
+      way the writing aura shows the words a hand reaches for */
+  word?: string;
 }
 
 /* Common enough that sharing them means nothing. Deliberately short: the
@@ -69,8 +72,12 @@ export function noticeThings(mine: Msg[], theirs: Msg[]): Notice[] {
   if (best) {
     out.push({
       id: "word:" + best.w,
-      line: `You've both reached for "${best.w}".`,
+      /* "reach for" is the aura's own verb for word choice ("You reach for
+         the long word…"); here the two of you reached for the same one.
+         The line used to be an English template outside the catalog. */
+      line: t("nc.word.line"),
       evidence: t("nc.word.ev", { a: String(best.mine), b: String(best.theirs) }),
+      word: best.w,
     });
   }
 
