@@ -542,7 +542,7 @@ export default function RoomScreen() {
                 {tr("rm.noticed", { wren: wren.toUpperCase() })}
               </Text>
               <View style={{ flex: 1 }} />
-              <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1, color: P.ink40 }}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1, color: P.ink40, flexShrink: 1, textAlign: "right" }}>
                 {notices[0].evidence}
               </Text>
             </View>
