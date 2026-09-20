@@ -23,7 +23,8 @@ export const OFFICIAL_NAME = DEFAULT_WREN;
 
 export type WrenPostKind = "update" | "event" | "note";
 export type WrenPost = { id: number; kind: WrenPostKind; body: string; i18n: Record<string, string> | null; link: string | null; at: string };
-export type WrenMail = { id: number; body: string; at: string };
+export type WrenMailKind = "note" | "bug" | "idea" | "photo";
+export type WrenMail = { id: number; kind: WrenMailKind; body: string; mediaPath: string | null; at: string };
 
 const POSTS_KEY = "kindredly_wren_posts"; // one desk for everyone — unscoped
 const MAIL_KEY = "kindredly_wren_mail"; // yours — scoped to the account
@@ -80,9 +81,17 @@ export async function readMailCache(): Promise<WrenMail[]> {
 export async function fetchWrenMail(): Promise<WrenMail[] | null> {
   if (!supabaseReady) return null;
   try {
-    const { data, error } = await supabase!.from("wren_mail").select("id,body,created_at").order("created_at", { ascending: true }).limit(200);
+    const { data, error } = await supabase!.from("wren_mail").select("id,kind,body,media_path,created_at").order("created_at", { ascending: true }).limit(200);
     if (error || !data) return null;
-    const mail = data.map((r: any) => ({ id: Number(r.id), body: String(r.body), at: String(r.created_at) }));
+    const mail = data.map(
+      (r: any): WrenMail => ({
+        id: Number(r.id),
+        kind: (["note", "bug", "idea", "photo"].includes(r.kind) ? r.kind : "note") as WrenMailKind,
+        body: String(r.body),
+        mediaPath: typeof r.media_path === "string" ? r.media_path : null,
+        at: String(r.created_at),
+      }),
+    );
     void scoped.setItem(MAIL_KEY, JSON.stringify(mail)).catch(() => {});
     return mail;
   } catch {
@@ -90,14 +99,16 @@ export async function fetchWrenMail(): Promise<WrenMail[] | null> {
   }
 }
 
-/** true when it landed; "unauthorized" when there is no account to write from */
-export async function sendWrenMail(body: string): Promise<true | "unauthorized" | "failed"> {
+/** true when it landed; "unauthorized" when there is no account to write from.
+    A picture rides in the moments bucket (uploadMoment) and its path comes
+    along here. */
+export async function sendWrenMail(body: string, kind: WrenMailKind = "note", mediaPath: string | null = null): Promise<true | "unauthorized" | "failed"> {
   if (!supabaseReady) return "failed";
   try {
     const { data } = await supabase!.auth.getUser();
     const me = data.user?.id;
     if (!me) return "unauthorized";
-    const { error } = await supabase!.from("wren_mail").insert({ user_id: me, body: body.trim().slice(0, 2000), lang: getLang() });
+    const { error } = await supabase!.from("wren_mail").insert({ user_id: me, kind, body: body.trim().slice(0, 2000), media_path: mediaPath, lang: getLang() });
     if (error) return /42501|401|403|JWT/.test(String(error.code || error.message)) ? "unauthorized" : "failed";
     return true;
   } catch {

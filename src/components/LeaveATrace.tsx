@@ -19,7 +19,7 @@ import { t, useLang } from "../lib/i18n";
    lesson: a row that looks like a feature and does nothing is worse than
    no row, but a row that plainly says "not yet" is an honest promise. */
 
-export type TraceKind = "note" | "ask" | "moment" | "song";
+export type TraceKind = "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea";
 
 export interface TraceAction {
   id: TraceKind;
@@ -64,6 +64,33 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
           <Path d="M7 13.5V4.5l7-1.5v9" {...c} />
           <Circle cx={5} cy={13.5} r={2} {...c} />
           <Circle cx={12} cy={12} r={2} {...c} />
+        </Svg>
+      );
+    /* Wren's desk: what you hand the makers — a picture (a screenshot,
+       usually), a bug, an idea */
+    case "photo":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Rect x={2.5} y={3} width={13} height={12} {...c} />
+          <Path d="M2.5 12l3.5-3.5 3 3 2-2 4.5 4.5" {...c} />
+          <Circle cx={11.5} cy={6.5} r={1.3} {...c} />
+        </Svg>
+      );
+    case "bug":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Path d="M6 8a3 3 0 0 1 6 0v3.5a3 3 0 0 1-6 0z" {...c} />
+          <Path d="M7 5.5l-1.5-2M11 5.5l1.5-2" {...c} />
+          <Line x1={9} y1={8} x2={9} y2={14.5} {...c} />
+          <Path d="M6 9H3.5M12 9h2.5M6 12l-2 1.5M12 12l2 1.5" {...c} />
+        </Svg>
+      );
+    case "idea":
+      return (
+        <Svg width={18} height={18} viewBox="0 0 18 18">
+          <Path d="M5.5 7.5a3.5 3.5 0 1 1 5.6 2.8c-.6.5-.9 1-.9 1.7H7.8c0-.7-.3-1.2-.9-1.7A3.5 3.5 0 0 1 5.5 7.5z" {...c} />
+          <Line x1={7.8} y1={14} x2={10.2} y2={14} {...c} />
+          <Line x1={8.3} y1={15.5} x2={9.7} y2={15.5} {...c} />
         </Svg>
       );
   }

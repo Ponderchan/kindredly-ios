@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Image, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { t, useLang } from "../../lib/i18n";
@@ -12,6 +13,9 @@ import { fieldBox } from "../../lib/field";
 import { alertFail } from "../../lib/fail";
 import { useAuth } from "../../lib/auth";
 import { markRoomSeen } from "../../lib/room-seen";
+import { momentUrl, uploadMoment } from "../../lib/db";
+import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
+import { PlusGlyph } from "../../components/ComposeTray";
 import {
   OFFICIAL_NAME,
   WREN_ROOM,
@@ -22,6 +26,7 @@ import {
   readPostsCache,
   sendWrenMail,
   type WrenMail,
+  type WrenMailKind,
   type WrenPost,
 } from "../../lib/wren-desk";
 import { DEMO_WREN_POSTS } from "../../data/demo";
@@ -47,6 +52,11 @@ export default function WrenDeskScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [needsAccount, setNeedsAccount] = useState(false);
+  /* the ⊕ opens what you can hand the makers: a picture (a screenshot,
+     usually), a bug, an idea. Bug and idea are a MODE on the field — the
+     mail goes out tagged so it can be sorted before it is read. */
+  const [tray, setTray] = useState(false);
+  const [mode, setMode] = useState<Exclude<WrenMailKind, "note" | "photo"> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
 
@@ -89,17 +99,71 @@ export default function WrenDeskScreen() {
       return;
     }
     setSending(true);
-    const r = await sendWrenMail(body);
+    const kind: WrenMailKind = mode ?? "note";
+    const r = await sendWrenMail(body, kind);
     setSending(false);
     if (r === true) {
       setText("");
-      setMail((m) => [...m, { id: -Date.now(), body, at: new Date().toISOString() }]);
+      setMode(null);
+      setMail((m) => [...m, { id: -Date.now(), kind, body, mediaPath: null, at: new Date().toISOString() }]);
       void fetchWrenMail().then((m) => m && setMail(m));
     } else if (r === "unauthorized") {
       openSignUpSheet(() => setNeedsAccount(true));
     } else {
       alertFail(t("wo.fail.title"), t("wo.fail.body"));
     }
+  };
+
+  /* any picture, no ration: this is not a moment for a friend, it is a
+     screenshot for the people who can fix what is in it */
+  const sendPhoto = async () => {
+    if (sending) return;
+    if (isGuest) {
+      openSignUpSheet(() => setNeedsAccount(true));
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
+    if (res.canceled || !res.assets?.[0]?.uri) return;
+    setSending(true);
+    const path = await uploadMoment(res.assets[0].uri);
+    const r = path ? await sendWrenMail(t("wo.photo.fallback"), "photo", path) : "failed";
+    setSending(false);
+    if (r === true) {
+      setMail((m) => [...m, { id: -Date.now(), kind: "photo", body: t("wo.photo.fallback"), mediaPath: path, at: new Date().toISOString() }]);
+      void fetchWrenMail().then((m) => m && setMail(m));
+    } else if (r === "unauthorized") {
+      openSignUpSheet(() => setNeedsAccount(true));
+    } else {
+      alertFail(t("wo.fail.title"), t("wo.fail.body"));
+    }
+  };
+
+  const HANDS: TraceAction[] = [
+    { id: "photo", title: t("wo.photo.t"), sub: "" },
+    { id: "bug", title: t("wo.bug.t"), sub: "" },
+    { id: "idea", title: t("wo.idea.t"), sub: "" },
+  ];
+  const labelOf = (x: Item): string =>
+    x.type === "mail"
+      ? x.mail.kind === "bug"
+        ? `${t("ui.you")} · ${t("wo.bug.t").toUpperCase()}`
+        : x.mail.kind === "idea"
+          ? `${t("ui.you")} · ${t("wo.idea.t").toUpperCase()}`
+          : t("ui.you")
+      : x.post.kind === "event"
+        ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.event")}`
+        : x.post.kind === "note"
+          ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.note")}`
+          : OFFICIAL_NAME.toUpperCase();
+
+  const onHand = (kind: string) => {
+    setTray(false);
+    if (kind === "photo") {
+      void sendPhoto();
+      return;
+    }
+    if (kind === "bug" || kind === "idea") setMode(kind);
+    setTimeout(() => inputRef.current?.focus(), 160);
   };
 
   return (
@@ -148,14 +212,10 @@ export default function WrenDeskScreen() {
               </Text>
             );
             const mine = it.type === "mail";
-            const sameSpeaker = !!prev && (prev.type === "mail") === mine && (mine || (prev.type === "post" && it.type === "post" && prev.post.kind === it.post.kind));
-            const label = mine
-              ? t("ui.you")
-              : it.post.kind === "event"
-                ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.event")}`
-                : it.post.kind === "note"
-                  ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.note")}`
-                  : OFFICIAL_NAME.toUpperCase();
+            const label = labelOf(it);
+            // one label per run of the same voice — WREN, WREN · EVENT, YOU · BUG
+            const sameSpeaker = !!prev && labelOf(prev) === label;
+            const photo = it.type === "mail" && it.mail.mediaPath ? momentUrl(it.mail.mediaPath) : null;
             return (
               <View key={it.type === "post" ? `p-${it.post.id}` : `m-${it.mail.id}`}>
                 {dayRule}
@@ -164,9 +224,13 @@ export default function WrenDeskScreen() {
                     {label}
                   </Text>
                 )}
-                <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>
-                  {mine ? it.mail.body : postText(it.post)}
-                </Text>
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: "62%", aspectRatio: 0.75, marginBottom: 6, backgroundColor: "#EFEDE6" }} resizeMode="cover" />
+                ) : (
+                  <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>
+                    {mine ? it.mail.body : postText(it.post)}
+                  </Text>
+                )}
                 {it.type === "post" && !!it.post.link && (
                   <Pressable onPress={() => Linking.openURL(it.post.link!)} hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4, marginBottom: 6 }}>
                     <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: P.pen }}>{t("wo.open")} ›</Text>
@@ -181,13 +245,24 @@ export default function WrenDeskScreen() {
           )}
         </ScrollView>
 
+        {mode && (
+          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingBottom: 8, gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1.5, borderColor: P.pen, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: P.penWash }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: P.pen }}>{(mode === "bug" ? t("wo.bug.t") : t("wo.idea.t")).toUpperCase()}</Text>
+              <Pressable onPress={() => setMode(null)} hitSlop={8}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>×</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
           <View style={{ flex: 1, borderRadius: 20, backgroundColor: "#F3F2FA", paddingHorizontal: 14 }}>
             <GlyphInput
               ref={inputRef}
               value={text}
               onChangeText={setText}
-              placeholder={t("wo.ph")}
+              onFocus={() => setTray(false)}
+              placeholder={mode === "bug" ? t("wo.bug.ph") : mode === "idea" ? t("wo.idea.ph") : t("wo.ph")}
               placeholderTextColor={P.ink40}
               multiline
               returnKeyType="send"
@@ -196,7 +271,18 @@ export default function WrenDeskScreen() {
               style={{ ...fieldBox(text, 24, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight: 24, color: P.ink }}
             />
           </View>
+          <Pressable
+            onPress={() => {
+              Keyboard.dismiss();
+              setTray((v) => !v);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
+          >
+            <PlusGlyph size={24} open={tray} color={tray ? P.pen : P.ink} />
+          </Pressable>
         </View>
+        {tray && <TraceTray actions={HANDS} onPick={onHand} />}
       </KeyboardAvoidingView>
 
       <SignUpSheet

@@ -140,8 +140,6 @@ export default function KindredsTab() {
         <Empty onWrite={() => router.push("/compose")} />
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          {/* the courier's own desk, first, for everyone (owner, 2026-09-20) */}
-          <WrenDeskRow />
           {/* the sky: only the ones still on their way, with what the marks mean in the footer */}
           <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.05 }]}>
             <View style={{ alignItems: "center", paddingTop: 6 }}>
@@ -158,9 +156,15 @@ export default function KindredsTab() {
 
           <WrenSaysOnce id="kindreds" line={t("kindreds.said")} />
 
+          {/* the courier's own desk sits with the kindreds, first among
+              them, under the sky — she is not on a ring (owner, 2026-09-20) */}
+          <View style={{ marginTop: 12 }}>
+            <WrenDeskRow />
+          </View>
+
           {/* the ones who landed — off the rings, beside you, by name */}
           {kindreds.length > 0 && (
-            <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, marginTop: 12, paddingTop: 12, paddingBottom: 14 }, cardShadow, { shadowOpacity: 0.05 }]}>
+            <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, paddingTop: 12, paddingBottom: 14 }, cardShadow, { shadowOpacity: 0.05 }]}>
               <View style={{ flexDirection: "row", alignItems: "baseline", paddingHorizontal: 16 }}>
                 <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: "#2E7D4F" }}>{t("kd.kindredsN", { n: kindreds.length })}</Text>
                 <Pressable onPress={() => router.push("/my-kindreds")} hitSlop={8}>
@@ -275,8 +279,6 @@ function Empty({ onWrite }: { onWrite: () => void }) {
   useLang(); // re-render when the reader changes language
   return (
     <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }}>
-      {/* she is here before anyone else is */}
-      <WrenDeskRow />
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, paddingBottom: 50 }}>
       <View>
         <OrbitMap items={[]} empty />
@@ -284,6 +286,11 @@ function Empty({ onWrite }: { onWrite: () => void }) {
         <View style={{ position: "absolute", right: 26, bottom: 28 }}>
           <WrenBird size={40} mood="curious" />
         </View>
+      </View>
+      {/* and her desk is here before anyone else is — under the sky, where
+          the kindreds will go */}
+      <View style={{ alignSelf: "stretch", marginTop: 4 }}>
+        <WrenDeskRow />
       </View>
       <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 14, lineHeight: 33 }}>
         {t("kindreds.empty.title")}
