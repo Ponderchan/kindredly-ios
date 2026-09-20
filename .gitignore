@@ -30,3 +30,5 @@ android/.gradle/
 
 # rendered store screenshots — regenerate with design/store/build2.py
 design/store/v121/**/*.png
+design/store/v121-real/**/*.png
+design/store/shots/**/*.png
