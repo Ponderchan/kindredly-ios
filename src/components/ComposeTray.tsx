@@ -42,14 +42,29 @@ export function StampGlyph({ size = 22, color = P.ink, face }: { size?: number; 
   );
 }
 
+/* THE PLUS TURNS, THE RING STAYS. Tapped, the plus rotates 45° into a
+   cross and takes the pen colour — the key does not go black (owner,
+   2026-09-20). It turns back on close. Something attached to the letter
+   (a question, the voice) shows as a pen dot on the ring, not a fill. */
 export function PlusGlyph({ size = 22, color = P.ink, open = false }: { size?: number; color?: string; open?: boolean }) {
+  const v = useRef(new Animated.Value(open ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(v, { toValue: open ? 1 : 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }).start();
+  }, [open, v]);
+  const rotate = v.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] });
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 6v12M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" transform={open ? "rotate(45 12 12)" : "rotate(0 12 12)"} /* always a value: an undefined prop leaves the last transform on the native view */ />
-    </Svg>
+    <Animated.View style={{ width: size, height: size, transform: [{ rotate }] }}>
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path d="M12 6v12M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+      </Svg>
+    </Animated.View>
   );
 }
 
+/** the pen dot on a ring: something is attached */
+export function KeyDot() {
+  return <View pointerEvents="none" style={{ position: "absolute", top: 2, right: 2, width: 9, height: 9, borderRadius: 4.5, backgroundColor: P.pen, borderWidth: 1.5, borderColor: "#FFFFFF" }} />;
+}
 /* the two doors still to build (owner's picks from the sheet, 2026-09-20):
    CUSTOM is 2f — your photo mounted inside the perforated square, a stamp
    already; STAMP CAM is 2d — a viewfinder's four corners in the square and
