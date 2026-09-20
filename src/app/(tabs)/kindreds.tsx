@@ -16,6 +16,7 @@ import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { OrbitMap } from "../../components/OrbitMap";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
+import { WrenDeskRow } from "../../components/WrenDesk";
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
@@ -139,6 +140,8 @@ export default function KindredsTab() {
         <Empty onWrite={() => router.push("/compose")} />
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+          {/* the courier's own desk, first, for everyone (owner, 2026-09-20) */}
+          <WrenDeskRow />
           {/* the sky: only the ones still on their way, with what the marks mean in the footer */}
           <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.05 }]}>
             <View style={{ alignItems: "center", paddingTop: 6 }}>
@@ -271,7 +274,10 @@ function Empty({ onWrite }: { onWrite: () => void }) {
   const wren = useWrenName();
   useLang(); // re-render when the reader changes language
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingBottom: 50 }}>
+    <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }}>
+      {/* she is here before anyone else is */}
+      <WrenDeskRow />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, paddingBottom: 50 }}>
       <View>
         <OrbitMap items={[]} empty />
         {/* Wren waits at the edge of the empty sky */}
@@ -295,6 +301,7 @@ function Empty({ onWrite }: { onWrite: () => void }) {
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 13.5, color: "#fff", letterSpacing: 1 }}>{t("kindreds.empty.cta")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1, color: "rgba(255,255,255,0.72)" }}>{t("kindreds.empty.picks", { wren: wren.toUpperCase() })}</Text>
       </Pressable>
+      </View>
     </View>
   );
 }

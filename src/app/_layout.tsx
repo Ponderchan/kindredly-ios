@@ -43,7 +43,13 @@ function KnockRouting() {
        thread itself; if that read fails we still open something rather than
        nothing. */
     const open = async (res: Notifications.NotificationResponse) => {
-      const id = (res.notification.request.content.data as { thread?: string } | undefined)?.thread;
+      const data = res.notification.request.content.data as { thread?: string; wren?: number } | undefined;
+      // a post from Wren's desk (0023) opens her room, not a thread
+      if (data?.wren) {
+        router.push("/room/wren");
+        return;
+      }
+      const id = data?.thread;
       if (typeof id !== "string" || !id) return;
       let revealed = false;
       try {

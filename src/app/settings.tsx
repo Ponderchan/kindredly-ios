@@ -13,7 +13,7 @@ import { disableMorningKnock, enableMorningKnock, morningKnockEnabled } from "..
 import Constants from "expo-constants";
 import { useEntitlement } from "../lib/entitlement";
 import { iapRestore } from "../lib/iap";
-import { saveWrenName } from "../lib/wren-name";
+import { isReservedName, saveWrenName } from "../lib/wren-name";
 import { LANGS, getLang, setLang, t, useLang } from "../lib/i18n";
 
 /* WHERE A READER CAN REACH A PERSON. App Review 1.2 wants public contact
@@ -83,6 +83,10 @@ export default function Settings() {
       async (next?: string) => {
         const n = (next || "").trim().slice(0, 18);
         if (!n || n === wren) return;
+        if (isReservedName(n)) {
+          Alert.alert(t("ob.naming.reserved"));
+          return;
+        }
         await saveWrenName(n);
       },
       "plain-text",

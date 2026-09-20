@@ -47,7 +47,7 @@ import { PaywallBody } from "./paywall";
 import { EMPTY_STATS } from "../lib/stats";
 import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../lib/hatchling-form";
 import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-engine";
-import { NAME_IDEAS, saveWrenEgg, saveWrenName } from "../lib/wren-name";
+import { NAME_IDEAS, isReservedName, saveWrenEgg, saveWrenName } from "../lib/wren-name";
 import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
@@ -990,6 +990,11 @@ export default function Onboarding() {
 
               {/* and what to call them — this is what makes the hatch key read
                   HATCH HIM / HATCH HER / HATCH THEM */}
+              {/* Wren is the courier's own name — the official desk at the top
+                  of Kindreds — so yours needs another */}
+              {isReservedName(her) && (
+                <Text style={[mono(9.5, "b"), { color: Y.blue, marginTop: 12, textAlign: "center" }]}>{t("ob.naming.reserved")}</Text>
+              )}
               <Text style={[mono(9.5, "b"), { color: Y.dim, marginTop: 20, textAlign: "center" }]}>
                 {her ? t("ob.naming.goesBy", { name: her.toUpperCase() }) : t("ob.naming.goesByThey")}
               </Text>
@@ -1012,7 +1017,7 @@ export default function Onboarding() {
               </View>
             </View>
           </ScrollView>
-          <Foot label={t("ob.naming.next")} on={her.length > 0} onPress={toDress} />
+          <Foot label={t("ob.naming.next")} on={her.length > 0 && !isReservedName(her)} onPress={toDress} />
         </KeyboardAvoidingView>
       </Console>
     );

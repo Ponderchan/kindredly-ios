@@ -1,0 +1,100 @@
+import { useCallback, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
+import { useFocusEffect, useRouter } from "expo-router";
+import { WrenBird } from "./WrenBird";
+import { cardShadow } from "./AuraCard";
+import { P, PF } from "../theme/post";
+import { t, useLang } from "../lib/i18n";
+import { sinceShort } from "../lib/format";
+import { readRoomSeen } from "../lib/room-seen";
+import { DEMO_WREN_POSTS } from "../data/demo";
+import { OFFICIAL_NAME, WREN_ROOM, fetchWrenPosts, postText, readPostsCache, wrenUnread, type WrenPost } from "../lib/wren-desk";
+
+/* THE OFFICIAL BIRD — the courier as everyone has her, in a ring, with the
+   mark that says this account is the product's own. Skin is pinned to the
+   default look on purpose: your Wren wears the coat you gave her, this one
+   is the one on the box. The mark is the kindreds' green tick in pen blue
+   — same shape, so it reads as "verified" the way the phone already taught
+   it, in the colour this app uses for the system speaking. */
+export function OfficialBird({ size = 52, mood = "content" as const }: { size?: number; mood?: "content" | "curious" | "delight" }) {
+  const badge = Math.max(16, Math.round(size * 0.34));
+  return (
+    <View style={{ width: size, height: size }}>
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#F3F2FA", borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        <WrenBird size={Math.round(size * 0.62)} mood={mood} skin="sticker" accessory="none" />
+      </View>
+      <View style={{ position: "absolute", right: -1, bottom: -1 }}>
+        <OfficialMark size={badge} />
+      </View>
+    </View>
+  );
+}
+
+export function OfficialMark({ size = 16 }: { size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M5 12l5 5 9-10" />
+      </Svg>
+    </View>
+  );
+}
+
+/* HER ROW — pinned above everything on Kindreds, for everyone, always.
+   The one account nobody has to earn: no ring, no count to five, and it
+   is there for a guest on the first launch. It reads like the rows under
+   it (name, last line, when) so it sits with them, and the mark says why
+   it is first. */
+export function WrenDeskRow() {
+  const router = useRouter();
+  useLang();
+  const [posts, setPosts] = useState<WrenPost[]>([]);
+  const [unread, setUnread] = useState(0);
+  const load = useCallback(() => {
+    let alive = true;
+    const settle = (p: WrenPost[]) => {
+      if (!alive) return;
+      setPosts(p);
+      readRoomSeen().then((l) => alive && setUnread(wrenUnread(l, p.length)));
+    };
+    readPostsCache().then((c) => c.length && settle(c));
+    fetchWrenPosts().then((p) => {
+      if (p) settle(p);
+      else if (__DEV__) settle(DEMO_WREN_POSTS);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useFocusEffect(load);
+
+  const last = posts[posts.length - 1];
+  const ago = last ? sinceShort(last.at) : "";
+  return (
+    <Pressable
+      onPress={() => router.push(`/room/${WREN_ROOM}`)}
+      style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <OfficialBird size={44} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+            <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink }}>{OFFICIAL_NAME}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.pen }}>{t("wo.tag").toUpperCase()}</Text>
+            <View style={{ flex: 1 }} />
+            {!!ago && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>}
+          </View>
+          <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 13.5, color: unread ? P.ink : P.ink60, marginTop: 3 }}>
+            {last ? postText(last).split("\n")[0] : t("wo.row.sub")}
+          </Text>
+        </View>
+        {unread > 0 && (
+          <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}

@@ -1,4 +1,5 @@
 import type { PoolLetter, ThreadDetail, ThreadSummary } from "../lib/db";
+import type { WrenPost } from "../lib/wren-desk";
 import type { JournalEntry } from "../lib/journal";
 
 /* Sample post — a full desk for previewing the Letters tab before sign-in.
@@ -349,5 +350,27 @@ export const DEMO_POOL: PoolLetter[] = [
     kind: "text",
     media_path: null,
     duration_s: null,
+  },
+];
+
+/* WREN'S DESK, in the simulator, before 0023 has anything in it: two posts
+   so the room and its row have something to be. Dev only — the screen
+   falls back to these only when the fetch itself fails. */
+export const DEMO_WREN_POSTS: WrenPost[] = [
+  {
+    id: 1,
+    kind: "note",
+    body: "Welcome. I'm Wren, the courier — I carry every letter here. This is where I'll tell you when something in Kindredly changes, and where you can write to the people who make it.",
+    i18n: null,
+    link: null,
+    at: iso(3 * 24 * H),
+  },
+  {
+    id: 2,
+    kind: "update",
+    body: "Long letters now fold on the Today card. One word unfolds them.",
+    i18n: null,
+    link: null,
+    at: iso(5 * H),
   },
 ];

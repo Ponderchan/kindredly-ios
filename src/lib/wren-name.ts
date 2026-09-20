@@ -87,8 +87,11 @@ export function useWrenName(): string {
 /* Names offered by the dice on the naming screen. Short, sayable, and none
    of them cute-for-cute's-sake — she carries what you couldn't say out loud,
    so "Bubbles" would undercut her the first time she used it. */
+/** the one name the naming screen refuses: it is the courier's own —
+    the official account at the top of Kindreds is Wren (owner, 2026-09-20) */
+export const isReservedName = (name: string): boolean => name.trim().toLowerCase() === DEFAULT_WREN.toLowerCase();
+
 export const NAME_IDEAS = [
-  "Wren",
   "Pip",
   "Juno",
   "Moth",
