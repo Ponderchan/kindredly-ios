@@ -65,6 +65,12 @@ export default function Compose() {
   /* which tray is open under the bar — the stamps or the ⊕ — or none.
      Opening one puts the keyboard away; focusing the letter closes it. */
   const [tray, setTray] = useState<null | "stamps" | "more">(null);
+  /* the key's width: a long stamp pill beside it (de "hat meinen tag
+     gerettet") squeezes it, and LET IT TRAVEL shrinking to fit read
+     badly — under ~170pt the key says SEND, the same word the desk's
+     write-back key uses (owner, 2026-09-20) */
+  const [keyW, setKeyW] = useState(0);
+  const narrow = keyW > 0 && keyW < 170;
   const openTray = (which: "stamps" | "more") => {
     Keyboard.dismiss();
     setTray((cur) => (cur === which ? null : which));
@@ -508,6 +514,7 @@ export default function Compose() {
               back to minding the ceiling. */}
           <Pressable
             onPress={wordsReady && !sel ? () => openTray("stamps") : send}
+            onLayout={(e) => setKeyW(e.nativeEvent.layout.width)}
             disabled={(!canSend && !(wordsReady && !sel)) || busy}
             style={{
               flex: 1,
@@ -532,7 +539,7 @@ export default function Compose() {
                   The label shrinks before it wraps — German and Italian
                   run long, and the stamp pill beside the key takes room. */}
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: (canSend || (wordsReady && !sel)) && !busy ? "#fff" : P.ink40 }}>
-                {busy ? t("cp.sending") : wordsReady && !sel ? t("cp.needStamp") : t("cp.travel")}
+                {busy ? t("cp.sending") : wordsReady && !sel ? t("cp.needStamp") : narrow ? t("ld.send") : t("cp.travel")}
               </Text>
               {/* the count rides in the row, not over the label */}
               {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
