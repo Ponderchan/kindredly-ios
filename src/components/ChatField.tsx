@@ -1,0 +1,50 @@
+import { forwardRef } from "react";
+import { Pressable, TextInput, View, type TextInputProps } from "react-native";
+import Svg, { Path } from "react-native-svg";
+import { GlyphInput } from "./GlyphInput";
+import { P, PF } from "../theme/post";
+import { fieldBox } from "../lib/field";
+
+/* THE CHAT FIELD (owner, 2026-09-20): a pill, and the moment there is a
+   character in it, a blue arrow at its right end that sends. The keyboard's
+   own SEND sends too. Nothing shows while the field is empty — an arrow
+   with nothing to carry is a button that does nothing, and the pill is
+   quieter without it. `canSend` can lag `text` (a reply that is not yet
+   long enough, a send in flight): the arrow is there but dimmed, so the
+   hand learns the rule without a dialog. */
+export const ChatField = forwardRef<
+  TextInput,
+  TextInputProps & { text: string; canSend: boolean; onSend: () => void; lineHeight?: number }
+>(function ChatField({ text, canSend, onSend, lineHeight = 24, style, ...rest }, ref) {
+  return (
+    <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-end", borderRadius: 20, backgroundColor: "#F3F2FA", paddingLeft: 14, paddingRight: 5 }}>
+      <GlyphInput
+        ref={ref}
+        value={text}
+        multiline
+        returnKeyType="send"
+        submitBehavior="submit"
+        onSubmitEditing={() => canSend && onSend()}
+        placeholderTextColor={P.ink40}
+        {...rest}
+        style={[{ flex: 1, ...fieldBox(text, lineHeight, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight, color: P.ink }, style]}
+      />
+      {text.length > 0 && (
+        <Pressable onPress={onSend} disabled={!canSend} hitSlop={6} style={({ pressed }) => ({ marginBottom: 6, opacity: !canSend ? 0.35 : pressed ? 0.7 : 1 })}>
+          <SendArrow />
+        </Pressable>
+      )}
+    </View>
+  );
+});
+
+export function SendArrow({ size = 30 }: { size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size * 0.52} height={size * 0.52} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M12 19V5" />
+        <Path d="M5 12l7-7 7 7" />
+      </Svg>
+    </View>
+  );
+}

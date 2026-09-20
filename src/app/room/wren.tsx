@@ -5,11 +5,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
-import { GlyphInput } from "../../components/GlyphInput";
+import { ChatField } from "../../components/ChatField";
 import { OfficialBird } from "../../components/WrenDesk";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { dShort } from "../../lib/format";
-import { fieldBox } from "../../lib/field";
 import { alertFail } from "../../lib/fail";
 import { useAuth } from "../../lib/auth";
 import { markRoomSeen } from "../../lib/room-seen";
@@ -256,21 +255,7 @@ export default function WrenDeskScreen() {
           </View>
         )}
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
-          <View style={{ flex: 1, borderRadius: 20, backgroundColor: "#F3F2FA", paddingHorizontal: 14 }}>
-            <GlyphInput
-              ref={inputRef}
-              value={text}
-              onChangeText={setText}
-              onFocus={() => setTray(false)}
-              placeholder={mode === "bug" ? t("wo.bug.ph") : mode === "idea" ? t("wo.idea.ph") : t("wo.ph")}
-              placeholderTextColor={P.ink40}
-              multiline
-              returnKeyType="send"
-              submitBehavior="submit"
-              onSubmitEditing={() => canSend && void send()}
-              style={{ ...fieldBox(text, 24, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight: 24, color: P.ink }}
-            />
-          </View>
+          {/* ⊕ on the left, the arrow inside the pill (owner, 2026-09-20) */}
           <Pressable
             onPress={() => {
               Keyboard.dismiss();
@@ -281,6 +266,15 @@ export default function WrenDeskScreen() {
           >
             <PlusGlyph size={24} open={tray} color={tray ? P.pen : P.ink} />
           </Pressable>
+          <ChatField
+            ref={inputRef}
+            text={text}
+            canSend={canSend}
+            onSend={() => void send()}
+            onChangeText={setText}
+            onFocus={() => setTray(false)}
+            placeholder={mode === "bug" ? t("wo.bug.ph") : mode === "idea" ? t("wo.idea.ph") : t("wo.ph")}
+          />
         </View>
         {tray && <TraceTray actions={HANDS} onPick={onHand} />}
       </KeyboardAvoidingView>

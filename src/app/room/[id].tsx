@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { GlyphInput } from "../../components/GlyphInput";
+import { ChatField } from "../../components/ChatField";
 import { archNameThird } from "../../lib/aura-copy";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,7 +28,6 @@ import { STAMPS, sname } from "../../data/stamps";
 import { WrenBird } from "../../components/WrenBird";
 import { useWrenName } from "../../lib/wren-name";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
-import { fieldBox } from "../../lib/field";
 import { alertFail } from "../../lib/fail";
 
 /* THE ROOM — where you are once you know each other.
@@ -339,9 +338,15 @@ export default function RoomScreen() {
     { id: "ask", title: t("rm.ask.t"), sub: t("rm.ask.s") },
     { id: "moment", title: t("rm.moment.t"), sub: t("rm.moment.s") },
     { id: "song", title: t("rm.song.t"), sub: t("rm.song.s") },
+    // the courier, off the bar and in with the other things to leave
+    { id: "courier", title: t("rm.courier.t", { wren }), sub: "" },
   ];
   const onTrace = (kind: string) => {
     setTracing(false);
+    if (kind === "courier") {
+      seedQuestion();
+      return;
+    }
     if (kind === "moment") {
       void sendMoment();
       return;
@@ -610,51 +615,14 @@ export default function RoomScreen() {
           </View>
         ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
-          {/* THE BAR IS A MESSAGING BAR NOW (owner, 2026-09-20): the courier
-              on the left — she brings a question when asked — the field as
-              a pill, the ⊕ on the right where a send key used to sit. There
-              is no send key: the keyboard's own blue SEND sends, the way
-              every chat on the phone does. The ⊕ still opens the things to
-              LEAVE (a note, a question, a moment, a song), not to attach. */}
-          <Pressable
-            onPress={seedQuestion}
-            hitSlop={6}
-            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
-          >
-            <WrenBird size={24} mood="curious" />
-          </Pressable>
-          <View style={{ flex: 1, borderRadius: 20, backgroundColor: "#F3F2FA", paddingHorizontal: 14 }}>
-            <GlyphInput
-              ref={inputRef}
-              value={text}
-              onChangeText={setText}
-              onFocus={() => setTracing(false)}
-              placeholder={
-                mode?.kind === "song"
-                  ? t("rm.song.ph")
-                  : mode?.kind === "question"
-                    ? t("rm.mode.answerPh")
-                    : mode
-                      ? t("rm.mode.notePh")
-                      : t("rm.ph")
-              }
-              placeholderTextColor={P.ink40}
-              multiline
-              returnKeyType="send"
-              submitBehavior="submit"
-              onSubmitEditing={() => {
-                if (sending) return;
-                if (mode ? !text.trim() || (mode.kind === "question" && !mode.prompt.trim()) : !canSend) return;
-                void onSend();
-              }}
-              autoCapitalize={mode?.kind === "song" ? "none" : "sentences"}
-              style={{ ...fieldBox(text, 24, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight: 24, color: P.ink }}
-            />
-          </View>
+          {/* THE BAR (owner, 2026-09-20, twice): the ⊕ on the left, the field
+              as a pill, and — the moment there is a character in it — a blue
+              arrow at the pill's end that sends. The keyboard's SEND sends
+              too. The ⊕ still opens the things to LEAVE, not to attach; the
+              courier moved in there with them (she brings a question when
+              asked), so the bar is one key and one field. */}
           <Pressable
             onPress={() => {
-              /* the tray takes the keyboard's place: choosing something to
-                 leave is not something you do mid-sentence */
               Keyboard.dismiss();
               setTracing((v) => !v);
             }}
@@ -663,6 +631,24 @@ export default function RoomScreen() {
           >
             <PlusGlyph size={24} open={tracing} color={tracing ? P.pen : P.ink} />
           </Pressable>
+          <ChatField
+            ref={inputRef}
+            text={text}
+            canSend={!sending && (mode ? !!text.trim() && !(mode.kind === "question" && !mode.prompt.trim()) : canSend)}
+            onSend={() => void onSend()}
+            onChangeText={setText}
+            onFocus={() => setTracing(false)}
+            placeholder={
+              mode?.kind === "song"
+                ? t("rm.song.ph")
+                : mode?.kind === "question"
+                  ? t("rm.mode.answerPh")
+                  : mode
+                    ? t("rm.mode.notePh")
+                    : t("rm.ph")
+            }
+            autoCapitalize={mode?.kind === "song" ? "none" : "sentences"}
+          />
         </View>
         )}
         {tracing && !detail?.gone && <TraceTray actions={TRACES} onPick={onTrace} />}

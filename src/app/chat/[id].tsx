@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GlyphInput } from "../../components/GlyphInput";
+import { ChatField } from "../../components/ChatField";
 import { archNameThird } from "../../lib/aura-copy";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
@@ -28,7 +28,6 @@ import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
 import { useWrenName } from "../../lib/wren-name";
-import { fieldBox } from "../../lib/field";
 import { alertFail } from "../../lib/fail";
 import { Toast, useSlow } from "../../components/ui";
 
@@ -432,28 +431,23 @@ export default function ChatScreen() {
           </View>
         ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
-          {/* the same bar as the room's (owner, 2026-09-20): a pill field,
-              and the keyboard's own SEND sends — no send key of ours */}
-          <View style={{ flex: 1, borderRadius: 20, backgroundColor: "#F3F2FA", paddingHorizontal: 14 }}>
-            <GlyphInput
-              value={text}
-              onChangeText={setText}
-              /* the register loosens once you know each other. Not a
-                 different mechanic — REPLY_MIN has always been 2, so "ok."
-                 was always a whole answer — but the product never admitted
-                 it. Before names it is a letter you are composing; after,
-                 it is a person you are talking to. */
-              placeholder={detail?.revealed ? t("th.sayTo", { name }) : t("ch.ph")}
-              placeholderTextColor={P.ink40}
-              multiline
-              returnKeyType="send"
-              submitBehavior="submit"
-              onSubmitEditing={() => {
-                if (canSend) void onSend();
-              }}
-              style={{ ...fieldBox(text, 23, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight: 23, color: P.ink }}
-            />
-          </View>
+          {/* the same field as the rooms' (owner, 2026-09-20): a pill, and a
+              blue arrow at its end once there is something in it; the
+              keyboard's SEND sends too. No ⊕ before names — there is
+              nothing to leave yet. */}
+          <ChatField
+            text={text}
+            canSend={canSend}
+            onSend={() => void onSend()}
+            onChangeText={setText}
+            /* the register loosens once you know each other. Not a
+               different mechanic — REPLY_MIN has always been 2, so "ok."
+               was always a whole answer — but the product never admitted
+               it. Before names it is a letter you are composing; after,
+               it is a person you are talking to. */
+            placeholder={detail?.revealed ? t("th.sayTo", { name }) : t("ch.ph")}
+            lineHeight={23}
+          />
         </View>
         )}
       </KeyboardAvoidingView>
