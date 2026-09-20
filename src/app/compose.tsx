@@ -1,19 +1,18 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { GlyphInput } from "../components/GlyphInput";
 import { useEffect, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Svg, { Path, Rect } from "react-native-svg";
-import { C } from "../theme/tokens";
-import { P, PF, channelInk } from "../theme/post";
+import { P, PF } from "../theme/post";
 import { StampTile } from "../components/StampTile";
+import { MoreTray, PlusGlyph, RoundKey, StampGlyph, StampTray } from "../components/ComposeTray";
+import { noteStampUsed, readRecentStamps } from "../lib/recent-stamps";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
 import { LetterTravel } from "../components/LetterTravel";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
-import { STAMP_CATEGORIES, STAMPS, getStamp, stampsByCat, sname } from "../data/stamps";
 import { suggestStamps } from "../lib/stamp-suggest";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
@@ -43,7 +42,7 @@ import { alertFail } from "../lib/fail";
    the one they chose deliberately. */
 const letterLang = () => getLang();
 const LAV = P.paper; // the same surface every room uses
-type Step = "pick" | "write" | "sending";
+type Step = "write" | "sending";
 type Mode = "write" | "speak";
 
 export default function Compose() {
@@ -62,7 +61,22 @@ export default function Compose() {
   // you send is the thing being decided while you write.
   const [draftId, setDraftId] = useState<string | null>(params.draft ?? null);
   const [mode, setMode] = useState<Mode>("write");
-  const [showAll, setShowAll] = useState(false);
+  /* which tray is open under the bar — the stamps or the ⊕ — or none.
+     Opening one puts the keyboard away; focusing the letter closes it. */
+  const [tray, setTray] = useState<null | "stamps" | "more">(null);
+  const openTray = (which: "stamps" | "more") => {
+    Keyboard.dismiss();
+    setTray((cur) => (cur === which ? null : which));
+  };
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => {
+    readRecentStamps().then(setRecent);
+  }, []);
+  const pickStamp = (id: string) => {
+    setSel(id);
+    setTray(null);
+    void noteStampUsed(id).then(setRecent);
+  };
   const [feelings, setFeelings] = useState(false);
   /* THE STAMP IS CHOSEN, NOT DEFAULTED. It used to arrive pre-set to the
      first starter, so the pool filled with #off my chest nobody had picked
@@ -288,93 +302,6 @@ export default function Compose() {
   }
 
   /* ── pick ── */
-  if (step === "pick") {
-    const StampCell = ({ id }: { id: string }) => {
-      const st = getStamp(id);
-      const on = sel === id;
-      return (
-        <Pressable
-          onPress={() => {
-            /* ONE TAP. Choosing then confirming was two decisions about a
-               sticker — tap it, it's on the envelope, you're back writing. */
-            setSel(id);
-            setStep("write");
-          }}
-          style={{
-            width: "31%",
-            backgroundColor: "transparent",
-            borderWidth: 2,
-            borderColor: on ? P.pen : "transparent",
-            paddingTop: 16,
-            paddingBottom: 10,
-            paddingHorizontal: 8,
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 12,
-          }}
-        >
-          <StampTile id={id} w={46} r={7} />
-          <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.3, color: channelInk(st?.color), textAlign: "center" }}>
-            {sname(st?.name).toUpperCase()}
-          </Text>
-        </Pressable>
-      );
-    };
-
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Pressable onPress={() => setStep("write")} hitSlop={10} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
-          </Pressable>
-          <View style={{ paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: P.ink }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>{t("cp.stampsHeader")}</Text>
-          </View>
-        </View>
-
-        <View style={{ paddingHorizontal: 22, paddingTop: 24, paddingBottom: 16 }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 30, fontWeight: "600", color: P.ink }}>{t("cp.pickTitle")}</Text>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
-            {t("cp.pickSub")}
-          </Text>
-        </View>
-
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          {!showAll ? (
-            <>
-              {/* six for THIS letter — read off its themes and mood (lib/stamp-suggest) */}
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink40, marginBottom: 12 }}>{t("cp.forThisLetter")}</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-                {suggestStamps(text).map((id) => (
-                  <StampCell key={id} id={id} />
-                ))}
-              </View>
-              <Pressable onPress={() => setShowAll(true)} style={{ paddingVertical: 18 }}>
-                <Text style={{ textAlign: "center", fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: P.pen }}>
-                  {t("cp.seeAll", { n: STAMPS.length })}
-                </Text>
-              </Pressable>
-            </>
-          ) : (
-            STAMP_CATEGORIES.map((cat) => (
-              <View key={cat.id} style={{ marginBottom: 22 }}>
-                <View style={{ paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: C.line }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink }}>{sname(cat.name).toUpperCase()}</Text>
-                </View>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 16 }}>
-                  {stampsByCat(cat.id).map((s) => (
-                    <StampCell key={s.id} id={s.id} />
-                  ))}
-                </View>
-              </View>
-            ))
-          )}
-        </ScrollView>
-
-      </SafeAreaView>
-    );
-  }
-
   /* ── write — the sticker zine: lavender desk, everything slightly pasted-on ── */
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: LAV }}>
@@ -391,7 +318,7 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>{t("cp.header")}</Text>
         </View>
         {true ? (
-          <Pressable onPress={() => setStep("pick")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
+          <Pressable onPress={() => openTray("stamps")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
             <View style={{ padding: 3 }}>
               {sel ? (
                 <StampTile id={sel} w={44} r={5} />
@@ -443,6 +370,7 @@ export default function Compose() {
 
             {mode === "write" ? (
               <GlyphInput
+                onFocus={() => setTray(null)}
                 autoFocus
                 value={text}
                 onChangeText={setText}
@@ -537,41 +465,16 @@ export default function Compose() {
           </View>
         )}
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 24 }}>
-          <Pressable
-            onPress={() => setFeelings((v) => !v)}
-            style={{
-              width: 50,
-              height: 50,
-              backgroundColor: feelings || ask.trim() ? P.ink : "transparent",
-              borderWidth: 1,
-              borderColor: P.ink,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 21, color: feelings || ask.trim() ? "#fff" : P.ink }}>?</Text>
-          </Pressable>
-
-          {/* A voice letter is a First Class thing. It has to be VISIBLE — you
-              can't want what you can't see — and unmistakably shut. So the key
-              is always here, wearing a lock, and pressing it explains rather
-              than refuses. */}
-          <Pressable
-            onPress={() => (premium ? setMode(mode === "speak" ? "write" : "speak") : router.push("/paywall?src=voice_lock"))}
-            style={{
-              width: 50,
-              height: 50,
-              backgroundColor: mode === "speak" ? P.ink : "transparent",
-              borderWidth: 1,
-              borderColor: P.ink,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ fontSize: 19, opacity: premium ? 1 : 0.4 }}>🎙</Text>
-            {!premium && <LockBadge />}
-          </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 10, paddingBottom: tray ? 10 : 24 }}>
+          {/* TWO ROUND KEYS, A KEYBOARD'S SHAPE (owner, 2026-09-20): the
+              stamp, and ⊕ — the question and the voice letter live behind
+              it. Each opens a tray where the keyboard was. */}
+          <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
+            {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} />}
+          </RoundKey>
+          <RoundKey on={tray === "more" || feelings || !!ask.trim() || mode === "speak"} onPress={() => openTray("more")}>
+            <PlusGlyph size={23} color={tray === "more" || feelings || !!ask.trim() || mode === "speak" ? "#FFFFFF" : P.ink} />
+          </RoundKey>
 
           {/* THE DOOR SHOWS HOW FAR IT IS. The courier's four lines said
               "a little more" without ever saying how much, and the owner
@@ -581,14 +484,7 @@ export default function Compose() {
               it clears. Only on the way up; past the floor the count goes
               back to minding the ceiling. */}
           <Pressable
-            onPress={
-              wordsReady && !sel
-                ? () => {
-                    setShowAll(false);
-                    setStep("pick");
-                  }
-                : send
-            }
+            onPress={wordsReady && !sel ? () => openTray("stamps") : send}
             disabled={(!canSend && !(wordsReady && !sel)) || busy}
             style={{
               flex: 1,
@@ -617,6 +513,23 @@ export default function Compose() {
             )}
           </Pressable>
         </View>
+        {tray === "stamps" && <StampTray selected={sel} suggested={suggestStamps(text)} recent={recent} onPick={pickStamp} />}
+        {tray === "more" && (
+          <MoreTray
+            askOn={feelings || !!ask.trim()}
+            voiceOn={mode === "speak"}
+            premium={premium}
+            onAsk={() => {
+              setFeelings((v) => !v);
+              setTray(null);
+            }}
+            onVoice={() => {
+              setTray(null);
+              if (premium) setMode(mode === "speak" ? "write" : "speak");
+              else router.push("/paywall?src=voice_lock");
+            }}
+          />
+        )}
       </KeyboardAvoidingView>
       )}
 
@@ -647,13 +560,3 @@ export default function Compose() {
 /* A drawn padlock. A 7pt "+" reads as "add something", which is the opposite of
    what it means here — the key has to say SHUT at a glance, and only then say
    why. */
-function LockBadge() {
-  return (
-    <View style={{ position: "absolute", right: -6, bottom: -6, width: 18, height: 18, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
-      <Svg width={10} height={10} viewBox="0 0 12 12">
-        <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke="#fff" strokeWidth={1.5} strokeLinecap="round" />
-        <Rect x={2.5} y={5.6} width={7} height={5} fill="#fff" />
-      </Svg>
-    </View>
-  );
-}
