@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
-import { P, PF } from "../theme/post";
+import { P, PF, channelInk } from "../theme/post";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
 import { StampTile } from "./StampTile";
 
@@ -28,13 +28,16 @@ export const TRAY_H = 296;
    second key. 1.6px strokes, short-dash perforation, nothing else. */
 const Perf = ({ color }: { color: string }) => <Rect x={3.5} y={3.5} width={17} height={17} rx={1} stroke={color} strokeWidth={1.6} strokeDasharray="1.4 1.6" fill="none" />;
 
-export function StampGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
+export function StampGlyph({ size = 22, color = P.ink, face }: { size?: number; color?: string; face?: string }) {
+  /* `face`: the face in its own colour while the tray is open — an
+     emotional stamp lights up when asked (owner, 2026-09-20) */
+  const f = face ?? color;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Perf color={color} />
-      <Circle cx={9.4} cy={10.4} r={1.1} fill={color} />
-      <Circle cx={14.6} cy={10.4} r={1.1} fill={color} />
-      <Path d="M8.9 14.1c1.1 1.6 5.1 1.6 6.2 0" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
+      <Circle cx={9.4} cy={10.4} r={1.1} fill={f} />
+      <Circle cx={14.6} cy={10.4} r={1.1} fill={f} />
+      <Path d="M8.9 14.1c1.1 1.6 5.1 1.6 6.2 0" stroke={f} strokeWidth={1.6} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -42,7 +45,7 @@ export function StampGlyph({ size = 22, color = P.ink }: { size?: number; color?
 export function PlusGlyph({ size = 22, color = P.ink, open = false }: { size?: number; color?: string; open?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 6v12M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" transform={open ? "rotate(45 12 12)" : undefined} />
+      <Path d="M12 6v12M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" transform={open ? "rotate(45 12 12)" : "rotate(0 12 12)"} /* always a value: an undefined prop leaves the last transform on the native view */ />
     </Svg>
   );
 }
@@ -100,11 +103,16 @@ const COLS = 6;
 export function StampTray({ selected, suggested, recent, onPick }: { selected: string | null; suggested: string[]; recent: string[]; onPick: (id: string) => void }) {
   const tile = (id: string) => {
     const on = selected === id;
+    const st = getStamp(id);
     return (
-      <Pressable key={id} onPress={() => onPick(id)} hitSlop={2} style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingVertical: 7, opacity: pressed ? 0.6 : 1 })}>
+      <Pressable key={id} onPress={() => onPick(id)} hitSlop={2} style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingTop: 6, paddingBottom: 4, opacity: pressed ? 0.6 : 1 })}>
         <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
           <StampTile id={id} w={40} r={5} />
         </View>
+        {/* its name, in its own ink — a stamp is a word as much as a picture */}
+        <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 7.5, letterSpacing: 0.2, color: channelInk(st?.color), marginTop: 2, maxWidth: 58, textAlign: "center" }}>
+          {sname(st?.name).toUpperCase()}
+        </Text>
       </Pressable>
     );
   };

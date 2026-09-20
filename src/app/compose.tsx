@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
+import { P, PF, channelInk, channelWash } from "../theme/post";
 import { StampTile } from "../components/StampTile";
 import { MoreTray, Nudge, PlusGlyph, RoundKey, StampGlyph, StampTray } from "../components/ComposeTray";
 import { noteStampUsed, readRecentStamps } from "../lib/recent-stamps";
@@ -14,6 +14,7 @@ import { LetterTravel } from "../components/LetterTravel";
 import { useBreathe } from "../components/anim";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { suggestStamps } from "../lib/stamp-suggest";
+import { getStamp, sname } from "../data/stamps";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
@@ -83,6 +84,7 @@ export default function Compose() {
      and the door never mentioned it. Now it is empty until you choose, the
      row and the key both say so, and the letter cannot leave without one. */
   const [sel, setSel] = useState<string | null>(params.stamp ?? null);
+  const chosen = getStamp(sel); // the stamp on the envelope, for the corner
   // arriving from a sealed page that decided to leave — the words come with it
   const [text, setText] = useState(params.seed ?? "");
   const [ask, setAsk] = useState("");
@@ -318,8 +320,8 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>{t("cp.header")}</Text>
         </View>
         {true ? (
-          <Pressable onPress={() => openTray("stamps")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
-            <View style={{ padding: 3 }}>
+          <Pressable onPress={() => openTray("stamps")} hitSlop={8} style={{ alignItems: "center" }}>
+            <View style={{ padding: 3, transform: [{ rotate: "8deg" }] }}>
               {sel ? (
                 <StampTile id={sel} w={44} r={5} />
               ) : (
@@ -327,6 +329,12 @@ export default function Compose() {
                 <View style={{ width: 44, height: 44, borderWidth: 1.5, borderStyle: "dashed", borderColor: P.pen, borderRadius: 5, backgroundColor: P.penWash }} />
               )}
             </View>
+            {/* the stamp's name rides under it, in its own colour, once chosen */}
+            {chosen && (
+              <View style={{ marginTop: 2, backgroundColor: channelWash(chosen.color), borderWidth: 1, borderColor: chosen.color, paddingHorizontal: 6, paddingVertical: 2 }}>
+                <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 9, color: channelInk(chosen.color) }}>#{sname(chosen.name).toLowerCase()}</Text>
+              </View>
+            )}
           </Pressable>
         ) : (
           <View style={{ width: 50 }} />
@@ -473,7 +481,7 @@ export default function Compose() {
             <PlusGlyph size={23} open={tray === "more"} color={tray === "more" || feelings || !!ask.trim() || mode === "speak" ? "#FFFFFF" : P.ink} />
           </RoundKey>
           <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
-            {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} />}
+            {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} face={tray === "stamps" ? "#F2A33A" : undefined} />}
           </RoundKey>
 
           {/* THE DOOR SHOWS HOW FAR IT IS. The courier's four lines said
