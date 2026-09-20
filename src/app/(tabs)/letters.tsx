@@ -631,7 +631,8 @@ function Feed({
                 />
                 {(drafts[current.id] || "").length > 0 ? (
                   <Pressable onPress={() => send(current)} disabled={!replyOk || sending} hitSlop={6} style={{ marginBottom: 6 }}>
-                    <SendPlane on={replyOk && !sending} ink={PUNCH.ink} />
+                    {/* a full pouch dims the plane before the tap, not after */}
+                    <SendPlane on={replyOk && !sending && (demo || flights < MAX_IN_FLIGHT)} ink={PUNCH.ink} />
                   </Pressable>
                 ) : (
                   <View style={{ paddingHorizontal: 13, paddingVertical: 7, marginBottom: 8, borderRadius: 999, backgroundColor: "#E4E1F6" }}>
