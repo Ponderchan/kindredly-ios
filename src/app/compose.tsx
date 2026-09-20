@@ -469,11 +469,11 @@ export default function Compose() {
           {/* TWO ROUND KEYS, A KEYBOARD'S SHAPE (owner, 2026-09-20): the
               stamp, and ⊕ — the question and the voice letter live behind
               it. Each opens a tray where the keyboard was. */}
-          <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
-            {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} />}
-          </RoundKey>
           <RoundKey on={tray === "more" || feelings || !!ask.trim() || mode === "speak"} onPress={() => openTray("more")}>
             <PlusGlyph size={23} color={tray === "more" || feelings || !!ask.trim() || mode === "speak" ? "#FFFFFF" : P.ink} />
+          </RoundKey>
+          <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
+            {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} />}
           </RoundKey>
 
           {/* THE DOOR SHOWS HOW FAR IT IS. The courier's four lines said
