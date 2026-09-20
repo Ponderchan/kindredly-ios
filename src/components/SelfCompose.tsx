@@ -277,18 +277,19 @@ export function SelfCompose({
           <View style={{ minHeight: 430 }}>
 
             {/* THE LINE COMES FIRST (owner, 2026-09-20). With photos on the
-                page the caption used to sit under the album, invisible on
-                white until you tapped it. It is a box now, above the
-                pictures, the way the Today card's write-back box is. */}
+                page the caption used to sit under the album; it sits above
+                the pictures now, on the page itself — no frame around it
+                (a box was tried and rejected the same day). Being at the
+                top, it stays in view when the keyboard comes up. */}
             {att && (
-              <View style={[{ marginBottom: 14, borderWidth: 1.5, borderColor: P.ink, borderRadius: 16, paddingHorizontal: 14 }]}>
+              <View style={{ marginBottom: 12 }}>
                 <GlyphInput
                   value={text}
                   onChangeText={setText}
                   placeholder={t("sc.ph")}
                   placeholderTextColor="#C4B48D"
                   multiline
-                  style={{ minHeight: 52, maxHeight: 160, color: Z.ink, fontFamily: PF.writing, fontSize: 16.5, lineHeight: 25, paddingTop: 12, paddingBottom: 12 }}
+                  style={{ minHeight: 60, maxHeight: 180, color: Z.ink, fontFamily: PF.writing, fontSize: 19, lineHeight: 30, paddingTop: 6, paddingBottom: 8, textAlignVertical: "top" }}
                 />
               </View>
             )}
