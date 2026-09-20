@@ -8,6 +8,7 @@ import { P, PF } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
 import { sinceShort } from "../lib/format";
 import { readRoomSeen } from "../lib/room-seen";
+import { setDeskWaiting } from "../lib/waiting";
 import { DEMO_WREN_POSTS } from "../data/demo";
 import { OFFICIAL_NAME, WREN_ROOM, fetchWrenPosts, postText, readPostsCache, wrenUnread, type WrenPost } from "../lib/wren-desk";
 
@@ -56,7 +57,12 @@ export function WrenDeskRow() {
     const settle = (p: WrenPost[]) => {
       if (!alive) return;
       setPosts(p);
-      readRoomSeen().then((l) => alive && setUnread(wrenUnread(l, p.length)));
+      readRoomSeen().then((l) => {
+        if (!alive) return;
+        const n = wrenUnread(l, p.length);
+        setUnread(n);
+        setDeskWaiting(n); // the tab's number counts her desk too
+      });
     };
     readPostsCache().then((c) => c.length && settle(c));
     fetchWrenPosts().then((p) => {
@@ -83,18 +89,58 @@ export function WrenDeskRow() {
             <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink }}>{OFFICIAL_NAME}</Text>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.pen }}>{t("wo.tag").toUpperCase()}</Text>
             <View style={{ flex: 1 }} />
-            {!!ago && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>}
+            {/* the time since her last post — or, while one is unopened, NEW */}
+            {unread > 0 ? (
+              <View style={{ backgroundColor: P.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: "#FFFFFF" }}>{t("wo.new")}</Text>
+              </View>
+            ) : (
+              !!ago && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>
+            )}
           </View>
           <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 13.5, color: unread ? P.ink : P.ink60, marginTop: 3 }}>
             {last ? postText(last).split("\n")[0] : t("wo.row.sub")}
           </Text>
         </View>
         {unread > 0 && (
-          <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
           </View>
         )}
       </View>
+    </Pressable>
+  );
+}
+
+/* THE STRIP ON TODAY (owner, 2026-09-20): while a post of hers is
+   unopened, one line under the plate, hers in voice, that goes to her
+   desk. Not a once-line: it stays until the post is read, and it is the
+   strongest in-app reminder the product allows itself — no modal, no
+   banner over the letter. */
+export function DeskStrip() {
+  const router = useRouter();
+  useLang();
+  const [unread, setUnread] = useState(0);
+  const load = useCallback(() => {
+    let alive = true;
+    const settle = (n: number) => {
+      readRoomSeen().then((l) => alive && setUnread(wrenUnread(l, n)));
+    };
+    readPostsCache().then((c) => c.length && settle(c.length));
+    fetchWrenPosts().then((p) => p && settle(p.length));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useFocusEffect(load);
+  if (!unread) return null;
+  return (
+    <Pressable onPress={() => router.push(`/room/${WREN_ROOM}`)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 18, marginTop: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: P.ink, opacity: pressed ? 0.7 : 1 })}>
+      <WrenBird size={22} mood="delight" skin="sticker" accessory="none" />
+      <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.letter, fontSize: 13.5, color: P.ink }}>
+        {unread === 1 ? t("wo.strip.one") : t("wo.strip.many", { n: unread })}
+      </Text>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: P.ink }}>›</Text>
     </Pressable>
   );
 }

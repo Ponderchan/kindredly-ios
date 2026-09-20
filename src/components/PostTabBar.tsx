@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import { P } from "../theme/post";
+import { P, PF } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
 
 /* THE TAB BAR — four plain windows and a plus (owner, 2026-09-19).
@@ -98,15 +98,20 @@ export function PostTabBar({ state, navigation, onPost, open = false, waiting = 
     transform: [{ rotate: `${turn.value * 45}deg` }],
   }));
 
-  const Window = ({ name, label, Icon, dot }: { name: string; label: string; Icon: (p: IconProps) => React.ReactNode; dot?: boolean }) => {
+  const Window = ({ name, label, Icon, count = 0 }: { name: string; label: string; Icon: (p: IconProps) => React.ReactNode; count?: number }) => {
     const active = current === name;
     const color = active ? PEN : INK;
     return (
       <Pressable onPress={() => go(name)} accessibilityLabel={label} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>
         <View>
           <Icon color={color} active={active} />
-          {/* one dot of pen ink — someone answered and it is your turn */}
-          {dot && !active && <View style={{ position: "absolute", top: -2, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: PEN, borderWidth: 1.6, borderColor: "#FFFFFF" }} />}
+          {/* a number in ink — letters on you, and posts on Wren's desk —
+              never a dot (owner, 2026-09-20) */}
+          {count > 0 && !active && (
+            <View style={{ position: "absolute", top: -7, right: -11, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: INK, borderWidth: 1.6, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, color: "#FFFFFF" }}>{count > 9 ? "9+" : String(count)}</Text>
+            </View>
+          )}
         </View>
       </Pressable>
     );
@@ -138,7 +143,7 @@ export function PostTabBar({ state, navigation, onPost, open = false, waiting = 
           </Animated.View>
         </Pressable>
 
-        <Window name="kindreds" label={t("tab.kindreds")} Icon={Kindreds} dot={waiting > 0} />
+        <Window name="kindreds" label={t("tab.kindreds")} Icon={Kindreds} count={waiting} />
         <Window name="me" label={t("tab.me")} Icon={Me} />
       </View>
     </View>

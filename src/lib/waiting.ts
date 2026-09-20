@@ -3,6 +3,8 @@ import { fetchThreads } from "./db";
 import { threadState } from "./thread-state";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { track } from "./track";
+import { readRoomSeen } from "./room-seen";
+import { fetchWrenPosts, readPostsCache, wrenUnread } from "./wren-desk";
 
 /* How many correspondences are waiting on YOU — someone answered your letter
    and you have not written back.
@@ -17,13 +19,30 @@ import { track } from "./track";
    changes rarely, so a set of subscribers is smaller and cheaper than a
    provider wrapping the whole app. */
 
+/* two numbers, one signal: correspondences on you, and posts on Wren's
+   desk you have not opened (owner, 2026-09-20: a new post is worth the
+   same knock on the tab as a letter). Each screen sets its own; the tab
+   shows the sum, as a number. */
+let turn = 0;
+let desk = 0;
 let count = 0;
 const subs = new Set<(n: number) => void>();
 
-export function setWaiting(n: number) {
+const publish = () => {
+  const n = turn + desk;
   if (n === count) return;
   count = n;
   for (const f of subs) f(n);
+};
+
+export function setWaiting(n: number) {
+  turn = n;
+  publish();
+}
+
+export function setDeskWaiting(n: number) {
+  desk = n;
+  publish();
 }
 
 export function useWaiting(): number {
@@ -42,10 +61,20 @@ export function useWaiting(): number {
     true before Kindreds is ever opened. Same rule as the tab itself
     (threadState.needsYou), not a second, narrower vocabulary. */
 export async function refreshWaiting(): Promise<void> {
+  void refreshDeskWaiting();
   const t = await fetchThreads();
   if (!t) return;
   setWaiting(t.filter((x) => threadState(x)?.needsYou).length);
   void countNewReplies(t);
+}
+
+/** her desk: posts not yet opened, from the cache first and the network after */
+export async function refreshDeskWaiting(): Promise<void> {
+  const ledger = await readRoomSeen();
+  const cached = await readPostsCache();
+  if (cached.length) setDeskWaiting(wrenUnread(ledger, cached.length));
+  const live = await fetchWrenPosts();
+  if (live) setDeskWaiting(wrenUnread(await readRoomSeen(), live.length));
 }
 
 /* REPLY_RECEIVED, COUNTED ONCE PER CORRESPONDENCE. This is the event the
