@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
 import { P, PF } from "../theme/post";
@@ -156,3 +157,31 @@ export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: b
 
 /** the stamp a tray pick refers to — for the envelope corner */
 export const stampOf = (id: string | null) => (id ? getStamp(id) : null);
+
+/* THE NUDGE. When the key reads PICK A MOOD STAMP, the stamp key is the
+   one just to its left — and a small chevron at the key's left edge
+   leans toward it, again and again, until a stamp is on the envelope
+   (owner, 2026-09-20). Native-driven, not an interaction. */
+export function Nudge({ color = P.pen }: { color?: string }) {
+  const x = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const sine = Easing.inOut(Easing.sin);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(x, { toValue: -4, duration: 520, easing: sine, useNativeDriver: true, isInteraction: false }),
+        Animated.timing(x, { toValue: 0, duration: 520, easing: sine, useNativeDriver: true, isInteraction: false }),
+        Animated.delay(260),
+      ]),
+      { resetBeforeIteration: false },
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [x]);
+  return (
+    <Animated.View pointerEvents="none" style={{ position: "absolute", left: 10, top: 0, bottom: 0, justifyContent: "center", transform: [{ translateX: x }] }}>
+      <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+        <Path d="M15 5 L8 12 L15 19" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    </Animated.View>
+  );
+}

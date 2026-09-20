@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../theme/post";
 import { StampTile } from "../components/StampTile";
-import { MoreTray, PlusGlyph, RoundKey, StampGlyph, StampTray } from "../components/ComposeTray";
+import { MoreTray, Nudge, PlusGlyph, RoundKey, StampGlyph, StampTray } from "../components/ComposeTray";
 import { noteStampUsed, readRecentStamps } from "../lib/recent-stamps";
 import { WrenBird, type WrenMood } from "../components/WrenBird";
 import { wrenStageDirty } from "../lib/wren-stage";
@@ -497,6 +497,7 @@ export default function Compose() {
             {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
               <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round((weight / OPENING_MIN) * 100)}%`, backgroundColor: P.penWash }} />
             )}
+            {wordsReady && !sel && !busy && tray !== "stamps" && <Nudge />}
             <View style={{ paddingVertical: 17, alignItems: "center" }}>
               {/* two doors, and the key names only the one still shut: the
                   words first, then the stamp; both open → the letter goes */}
