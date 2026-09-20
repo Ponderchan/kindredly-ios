@@ -320,8 +320,8 @@ export default function Compose() {
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>{t("cp.header")}</Text>
         </View>
         {true ? (
-          <Pressable onPress={() => openTray("stamps")} hitSlop={8} style={{ alignItems: "center" }}>
-            <View style={{ padding: 3, transform: [{ rotate: "8deg" }] }}>
+          <Pressable onPress={() => openTray("stamps")} hitSlop={8} style={{ transform: [{ rotate: "8deg" }] }}>
+            <View style={{ padding: 3 }}>
               {sel ? (
                 <StampTile id={sel} w={44} r={5} />
               ) : (
@@ -329,12 +329,6 @@ export default function Compose() {
                 <View style={{ width: 44, height: 44, borderWidth: 1.5, borderStyle: "dashed", borderColor: P.pen, borderRadius: 5, backgroundColor: P.penWash }} />
               )}
             </View>
-            {/* the stamp's name rides under it, in its own colour, once chosen */}
-            {chosen && (
-              <View style={{ marginTop: 2, backgroundColor: channelWash(chosen.color), borderWidth: 1, borderColor: chosen.color, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 9, color: channelInk(chosen.color) }}>#{sname(chosen.name).toLowerCase()}</Text>
-              </View>
-            )}
           </Pressable>
         ) : (
           <View style={{ width: 50 }} />
@@ -480,9 +474,24 @@ export default function Compose() {
           <RoundKey on={tray === "more" || feelings || !!ask.trim() || mode === "speak"} onPress={() => openTray("more")}>
             <PlusGlyph size={23} open={tray === "more"} color={tray === "more" || feelings || !!ask.trim() || mode === "speak" ? "#FFFFFF" : P.ink} />
           </RoundKey>
-          <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
-            {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} face={tray === "stamps" ? "#F2A33A" : undefined} />}
-          </RoundKey>
+          {chosen ? (
+            /* CHOSEN: the round key becomes the stamp's own pill — its wash,
+               its ink, its #name — the picture is on the envelope corner and
+               the word is here; a tap opens the tray to change it. A stamp
+               squeezed into a ring, with the name hung under the corner,
+               was two ugly things (owner, 2026-09-20). */
+            <Pressable
+              onPress={() => openTray("stamps")}
+              hitSlop={4}
+              style={({ pressed }) => ({ height: 46, maxWidth: 150, borderRadius: 23, borderWidth: 1.5, borderColor: chosen.color, backgroundColor: channelWash(chosen.color), paddingHorizontal: 14, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
+            >
+              <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 0.3, color: channelInk(chosen.color) }}>#{sname(chosen.name).toLowerCase()}</Text>
+            </Pressable>
+          ) : (
+            <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
+              <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} face={tray === "stamps" ? "#F2A33A" : undefined} />
+            </RoundKey>
+          )}
 
           {/* THE DOOR SHOWS HOW FAR IT IS. The courier's four lines said
               "a little more" without ever saying how much, and the owner
