@@ -472,7 +472,7 @@ export default function Compose() {
               stamp, and ⊕ — the question and the voice letter live behind
               it. Each opens a tray where the keyboard was. */}
           <RoundKey onPress={() => openTray("more")} badge={tray !== "more" && (feelings || !!ask.trim() || mode === "speak") ? <KeyDot /> : undefined}>
-            <PlusGlyph size={23} open={tray === "more"} color={tray === "more" ? P.pen : P.ink} />
+            <PlusGlyph size={27} open={tray === "more"} color={tray === "more" ? P.pen : P.ink} />
           </RoundKey>
           {chosen ? (
             /* CHOSEN: the round key becomes the stamp's own pill — its wash,
@@ -495,7 +495,7 @@ export default function Compose() {
             </Pressable>
           ) : (
             <RoundKey onPress={() => openTray("stamps")}>
-              <StampKeyGlyph open={tray === "stamps"} size={23} />
+              <StampKeyGlyph open={tray === "stamps"} size={27} />
             </RoundKey>
           )}
 
