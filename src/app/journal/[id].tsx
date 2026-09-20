@@ -8,14 +8,10 @@ import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../../lib/i18n";
 import { P, PF, rule } from "../../theme/post";
 import { AudioCard } from "../../components/AudioCard";
-import { LinePicker } from "../../components/LinePicker";
 import { MoodIcon } from "../../components/MoodIcon";
 import { getMood } from "../../data/moods";
 import { DEMO_JOURNAL } from "../../data/demo";
-import { insertMorningFragment } from "../../lib/db";
-import { deleteEntry, hideDemoEntry, loadJournal, setCover, setDrift, type JournalEntry } from "../../lib/journal";
-import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
-import { useAuth } from "../../lib/auth";
+import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
 
 /* A single journal page — the sealed room, one page at a time. Read it, let a
    line drift, or tear it out. Sample pages are read-only.
@@ -28,7 +24,6 @@ export default function JournalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [e, setE] = useState<JournalEntry | null>(null);
-  const [drifting, setDrifting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isDemo = !!id?.startsWith("demo-");
 
@@ -57,9 +52,6 @@ export default function JournalDetail() {
     setE({ ...e, coverIndex: i, mediaUri: e.media?.[i] || e.mediaUri });
   };
 
-  const { isGuest } = useAuth();
-  const [needsAccount, setNeedsAccount] = useState(false);
-  const [pendingLine, setPendingLine] = useState<string | null>(null);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
 
@@ -93,24 +85,6 @@ export default function JournalDetail() {
     ]);
   };
 
-  /* Drifting is the one thing in the sealed room that LEAVES it, so it is
-     the one thing here that needs an account. Everything else on this page —
-     writing, keeping, tearing out — stays on the phone and stays open to a
-     ghost, which is the promise the room is built on. */
-  const onPickLine = async (line: string) => {
-    setDrifting(false);
-    if (!e) return;
-    const sent = await insertMorningFragment(line, e.mood, "en");
-    if (!sent) {
-      setPendingLine(line);
-      if (isGuest) openSignUpSheet(() => setNeedsAccount(true));
-      else Alert.alert(t("jd.fail"), t("jd.failBody"));
-      return;
-    }
-    await setDrift(e.id, line);
-    setE({ ...e, driftedLine: line });
-  };
-
   if (!e) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
@@ -125,7 +99,6 @@ export default function JournalDetail() {
 
   const m = getMood(e.mood);
   const pure = e.type === "text";
-  const canDrift = !isDemo && e.body.trim().length >= 3 && !e.driftedLine;
 
   // the page stays neutral — the mood lives in its face, not the background
   return (
@@ -217,23 +190,17 @@ export default function JournalDetail() {
                 time to sit — which is more this product than a switch flipped
                 mid-sentence. It doesn't teleport: it carries your words to the
                 letter desk, where you give it a stamp and send it yourself. */}
-            {!isDemo && e.body.trim().length >= 3 && (
+            {/* ONLY WORDS DRIFT (owner, 2026-09-20): a page with pictures,
+                a voice or a film stays in the room; a line on its own never
+                leaves either — the whole page goes, to the letter desk, or
+                nothing does. */}
+            {!isDemo && pure && e.body.trim().length >= 3 && (
               <MenuRow
                 label={t("jd.driftThis")}
                 icon={<DriftIcon />}
                 onPress={() => {
                   setMenuOpen(false);
                   router.push({ pathname: "/compose", params: { seed: e.body } });
-                }}
-              />
-            )}
-            {canDrift && (
-              <MenuRow
-                label={t("jd.driftOne")}
-                icon={<DriftIcon />}
-                onPress={() => {
-                  setMenuOpen(false);
-                  setDrifting(true);
                 }}
               />
             )}
@@ -250,17 +217,6 @@ export default function JournalDetail() {
         </>
       )}
 
-      <LinePicker visible={drifting} body={e.body} onPick={onPickLine} onClose={() => setDrifting(false)} />
-
-      <SignUpSheet
-        open={needsAccount}
-        reason={t("jd.signup.reason")}
-        onClose={() => setNeedsAccount(false)}
-        onSignedIn={() => {
-          setNeedsAccount(false);
-          if (pendingLine) void onPickLine(pendingLine);
-        }}
-      />
     </SafeAreaView>
   );
 }
