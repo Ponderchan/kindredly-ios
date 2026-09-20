@@ -32,3 +32,4 @@ android/.gradle/
 design/store/v121/**/*.png
 design/store/v121-real/**/*.png
 design/store/shots/**/*.png
+__pycache__/
