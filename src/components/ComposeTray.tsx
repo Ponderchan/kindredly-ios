@@ -47,25 +47,26 @@ export function PlusGlyph({ size = 22, color = P.ink, open = false }: { size?: n
   );
 }
 
-/* the two doors still to build: your photo as a stamp, the stamp camera */
-function CustomGlyph({ size = 22, color = P.ink, badge = P.pen }: { size?: number; color?: string; badge?: string }) {
+/* the two doors still to build (owner's picks from the sheet, 2026-09-20):
+   CUSTOM is 2f — your photo mounted inside the perforated square, a stamp
+   already; STAMP CAM is 2d — a viewfinder's four corners in the square and
+   the red shutter dot, the one red in the row. Both keep the mother shape. */
+function CustomGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Perf color={color} />
-      <Circle cx={12} cy={10.5} r={3.2} fill="#F2A33A" />
-      <Path d="M6.5 17.5l3.5-4 2.5 2.5 2-2 3 3.5z" fill={color} />
-      <Circle cx={18.5} cy={5.5} r={3.6} fill={badge} />
-      <Path d="M18.5 3.8v3.4M16.8 5.5h3.4" stroke="#fff" strokeWidth={1.2} />
+      <Rect x={6.5} y={6.5} width={11} height={11} stroke={color} strokeWidth={1.3} fill="none" />
+      <Circle cx={10} cy={10} r={1.4} fill="#F2A33A" />
+      <Path d="M6.5 17.5l3.4-3.8 2.2 2.2 1.8-1.8 3.6 3.4z" fill={color} />
     </Svg>
   );
 }
-function CamGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
+function CamGlyph({ size = 22, color = P.ink, shutter = "#C8412E" }: { size?: number; color?: string; shutter?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Perf color={color} />
-      <Circle cx={12} cy={12.5} r={4.2} stroke={color} strokeWidth={1.6} fill="none" />
-      <Circle cx={12} cy={12.5} r={1.4} fill={color} />
-      <Rect x={8} y={6.5} width={3} height={1.8} rx={0.5} fill={color} />
+      <Path d="M7 9.5V7h2.5M14.5 7H17v2.5M17 14.5V17h-2.5M9.5 17H7v-2.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" fill="none" />
+      <Circle cx={12} cy={12} r={2} fill={shutter} />
     </Svg>
   );
 }
@@ -123,7 +124,7 @@ export function StampTray({ selected, suggested, recent, onPick }: { selected: s
           <StampGlyph size={22} />
         </View>
         <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
-          <CustomGlyph size={22} badge={P.ink} />
+          <CustomGlyph size={22} />
         </View>
         <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
           <CamGlyph size={22} />
