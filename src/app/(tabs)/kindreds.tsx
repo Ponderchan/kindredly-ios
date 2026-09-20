@@ -184,15 +184,14 @@ export default function KindredsTab() {
             <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, paddingTop: 12, paddingBottom: 14 }, cardShadow, { shadowOpacity: 0.05 }]}>
               <View style={{ flexDirection: "row", alignItems: "baseline", paddingHorizontal: 16 }}>
                 <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: kindreds.length ? "#2E7D4F" : P.ink60 }}>{t("kd.kindredsN", { n: kindreds.length })}</Text>
-                {kindreds.length > 0 && (
+                {kindreds.length > SEATS && (
                   <Pressable onPress={() => router.push("/my-kindreds")} hitSlop={8}>
                     <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: P.pen }}>{t("kd.all")}</Text>
                   </Pressable>
                 )}
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, gap: 6 }}>
-                {kindreds.map((th) => {
-                  const st = threadState(th);
+                {kindreds.slice(0, SEATS).map((th) => {
                   const unread = unreadOf(seenLedger, th.id, th.theirs);
                   return (
                     <Pressable key={th.id} onPress={() => router.push(`/room/${th.id}`)} style={({ pressed }) => ({ width: 78, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
@@ -203,23 +202,21 @@ export default function KindredsTab() {
                             <Path d="M5 12l5 5 9-10" />
                           </Svg>
                         </View>
-                        {/* letters of theirs you haven't opened: the count, in pen.
-                            Your turn with nothing new to read: the dot, as before. */}
-                        {unread > 0 ? (
-                          <View style={{ position: "absolute", top: -5, right: -7, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+                        {/* letters of theirs you haven't opened: a number, never
+                            a dot (owner, 2026-09-20), in ink rather than pen */}
+                        {unread > 0 && (
+                          <View style={{ position: "absolute", top: -5, right: -7, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: P.ink, borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
                             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
                           </View>
-                        ) : st?.needsYou ? (
-                          <View style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: 5, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF" }} />
-                        ) : null}
+                        )}
                       </View>
                       <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: P.ink, marginTop: 7 }}>{th.otherName || t("kd.aKindred")}</Text>
                     </Pressable>
                   );
                 })}
-                {/* three seats to start with; once they are taken, one dotted
-                    seat for the next — kindreds are unlimited */}
-                {Array.from({ length: Math.max(1, SEATS - kindreds.length) }, (_, i) => (
+                {/* four seats in the row; the empty ones dotted. From the
+                    fifth name on, the row stays four and All → lists them */}
+                {Array.from({ length: Math.max(0, SEATS - kindreds.length) }, (_, i) => (
                   <Pressable key={`seat-${i}`} onPress={() => router.push("/room/wren?guide=kindreds")} style={({ pressed }) => ({ width: 78, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
                     <View style={{ width: 56, height: 56, alignItems: "center", justifyContent: "center" }}>
                       <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderStyle: "dashed", borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>

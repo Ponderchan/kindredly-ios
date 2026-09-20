@@ -2,4 +2,4 @@
    The fare now stands at the expired door instead — lib/kindred-expiry.
    This file keeps only the number of seats the Kindreds card draws while
    there are fewer than that many names. */
-export const SEATS = 3;
+export const SEATS = 4;

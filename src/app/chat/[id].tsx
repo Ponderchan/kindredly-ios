@@ -15,6 +15,7 @@ import type { ThreadMessage } from "../../lib/db";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
+import { markRoomSeen } from "../../lib/room-seen";
 import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
 import { clearThreadReaction, fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
@@ -121,7 +122,12 @@ export default function ChatScreen() {
     setDetail(d);
     // The introduction is held for whoever arrives after the second
     // signature — including the one who signed FIRST and finds out later.
-    if (d?.revealed) void introduceOnce(id, () => setCeremony(true));
+    if (d?.revealed) {
+      void introduceOnce(id, () => setCeremony(true));
+      /* everything they wrote up to here was read on this screen; the
+         Kindreds count starts from the next letter (lib/room-seen) */
+      void markRoomSeen(id, d.messages.filter((m) => !m.mine).length);
+    }
   }, [id]);
 
   useFocusEffect(
