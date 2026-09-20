@@ -18,7 +18,7 @@ import { saveToLore } from "../../lib/lore";
 import { markRoomSeen } from "../../lib/room-seen";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
-import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
+import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
 import { useThreadLive } from "../../lib/live";
 import { refreshFingerprint } from "../../lib/aura";
@@ -623,6 +623,7 @@ export default function RoomScreen() {
               ref={inputRef}
               value={text}
               onChangeText={setText}
+              onFocus={() => setTracing(false)}
               placeholder={
                 mode?.kind === "song"
                   ? t("rm.song.ph")
@@ -647,23 +648,21 @@ export default function RoomScreen() {
           </View>
           <Pressable
             onPress={() => {
-              /* THE TRAY LIVES IN THIS SCREEN, NOT IN A MODAL, so with the
-                 keyboard up it opened underneath it. Choosing something to
-                 leave is not something you do mid-sentence, so the keyboard
-                 goes first and the tray gets the whole screen. */
+              /* the tray takes the keyboard's place: choosing something to
+                 leave is not something you do mid-sentence */
               Keyboard.dismiss();
-              setTracing(true);
+              setTracing((v) => !v);
             }}
             hitSlop={6}
             style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
-            <PlusGlyph size={24} />
+            <PlusGlyph size={24} open={tracing} color={tracing ? P.pen : P.ink} />
           </Pressable>
         </View>
         )}
+        {tracing && !detail?.gone && <TraceTray actions={TRACES} onPick={onTrace} />}
       </KeyboardAvoidingView>
 
-      <LeaveATrace open={tracing} actions={TRACES} onPick={onTrace} onClose={() => setTracing(false)} />
 
       {/* THE SHELF — every song either of you left, in order. A song in a
           scroll is gone by tomorrow; gathered, the same messages become

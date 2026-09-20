@@ -30,7 +30,7 @@ export interface TraceAction {
 
 /* line icons in the post's own hand — the sheet is a list of things to
    leave, so each row is drawn, not pasted in from the emoji keyboard */
-function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
+export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
   const c = { stroke: color, strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
   switch (kind) {
     case "note":
@@ -139,6 +139,35 @@ export function LeaveATrace({
           ))}
         </View>
       </Animated.View>
+    </View>
+  );
+}
+
+/* THE SAME FOUR, AS A TRAY (owner, 2026-09-20): under the bar where the
+   keyboard was, round white cells with a word beneath — a chat app's
+   drawer — instead of a sheet with a title. Locked rows are still shown,
+   dimmed, with the lock. */
+export function TraceTray({ actions, onPick }: { actions: TraceAction[]; onPick: (kind: TraceKind) => void }) {
+  useLang();
+  return (
+    <View style={{ height: 296, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 10, paddingTop: 22 }}>
+      {actions.map((a) => (
+        <Pressable key={a.id} disabled={a.locked} onPress={() => onPick(a.id)} style={({ pressed }) => ({ width: "25%", alignItems: "center", opacity: a.locked ? 0.4 : pressed ? 0.6 : 1 })}>
+          <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ transform: [{ scale: 1.35 }] }}>
+              <TraceIcon kind={a.id} color={P.ink} />
+            </View>
+            {a.locked && (
+              <View style={{ position: "absolute", right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
+                <LockIcon color="#FFFFFF" />
+              </View>
+            )}
+          </View>
+          <Text numberOfLines={2} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: P.ink60, marginTop: 8, textAlign: "center", paddingHorizontal: 4 }}>
+            {a.title.toUpperCase()}
+          </Text>
+        </Pressable>
+      ))}
     </View>
   );
 }
