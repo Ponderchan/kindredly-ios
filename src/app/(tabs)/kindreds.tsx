@@ -1,5 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
-import { t, useLang } from "../../lib/i18n";
+import { t, useLang, getLang } from "../../lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { readRoomSeen, unreadOf } from "../../lib/room-seen";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -23,7 +23,7 @@ import { useAuth } from "../../lib/auth";
 import { setWaiting } from "../../lib/waiting";
 import { threadState } from "../../lib/thread-state";
 import { DEMO_THREADS } from "../../data/demo";
-import { storeMode } from "../../lib/dev-store";
+import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { useEntitlement } from "../../lib/entitlement";
 import { SEATS } from "../../lib/kindred-gate";
 import { isExpired, quietDays } from "../../lib/kindred-expiry";
@@ -91,7 +91,9 @@ export default function KindredsTab() {
   }, []);
   useMyThreadsLive(user?.id, reload);
 
-  const source = __DEV__ && loaded && (threads.length === 0 || storeMode) ? DEMO_THREADS : threads;
+  const source = __DEV__ && loaded && (threads.length === 0 || storeMode)
+    ? (storeMode ? DEMO_THREADS.map((t) => ({ ...t, preview: t.preview ? DEMO_TEXT[getLang()].b1 : t.preview })) : DEMO_THREADS)
+    : threads;
   /* THE FILTER THAT HID HALF THE PRODUCT.
      This read `t.mine > 0` — my own letter count — so a thread where a
      stranger had answered YOUR pool letter and you had not yet written back
