@@ -74,6 +74,26 @@ function CamGlyph({ size = 22, color = P.ink, shutter = "#C8412E" }: { size?: nu
   );
 }
 
+/* the ⊕ tray's two: a drawn question mark and a drawn microphone — same
+   1.6px line as the family, round caps; the typed "?" and the 🎙 emoji sat
+   in a row of line icons like two guests in the wrong clothes */
+function QuestionGlyph({ size = 26, color = P.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M8.6 9.2a3.4 3.4 0 1 1 5.2 2.9c-1.2.8-1.8 1.5-1.8 2.9" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={12} cy={18.6} r={1.25} fill={color} />
+    </Svg>
+  );
+}
+function MicGlyph({ size = 26, color = P.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={9} y={3.5} width={6} height={10.5} rx={3} stroke={color} strokeWidth={1.7} />
+      <Path d="M6 11.5a6 6 0 0 0 12 0M12 17.5v3M9 20.5h6" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 /** a round key in the bar */
 export function RoundKey({ on, onPress, children, badge }: { on?: boolean; onPress: () => void; children: React.ReactNode; badge?: React.ReactNode }) {
   return (
@@ -171,8 +191,8 @@ export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: b
   );
   return (
     <View style={{ height: TRAY_H, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingTop: 22 }}>
-      {cell(t("cp.tray.ask"), askOn, onAsk, <Text style={{ fontFamily: PF.monoSemi, fontSize: 24, color: askOn ? "#FFFFFF" : P.ink }}>?</Text>)}
-      {cell(t("cp.tray.voice"), voiceOn, onVoice, <Text style={{ fontSize: 24, opacity: premium ? 1 : 0.45 }}>🎙</Text>, !premium)}
+      {cell(t("cp.tray.ask"), askOn, onAsk, <QuestionGlyph color={askOn ? "#FFFFFF" : P.ink} />)}
+      {cell(t("cp.tray.voice"), voiceOn, onVoice, <View style={{ opacity: premium ? 1 : 0.45 }}><MicGlyph color={voiceOn ? "#FFFFFF" : P.ink} /></View>, !premium)}
     </View>
   );
 }
