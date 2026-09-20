@@ -19,40 +19,53 @@ import { StampTile } from "./StampTile";
 
 export const TRAY_H = 296;
 
-/* ── the glyphs: a perforated stamp with a face; a circle with a plus ── */
+/* ── THE GLYPH FAMILY (design sheet 2026-09-20, set 1a "Perf Line") ──
+   One perforated square is the mother shape; only what sits inside it
+   changes. STAMP: a face — it is a MOOD stamp, and a moon would read as
+   one particular stamp. CUSTOM: a photo with a pen-blue plus in the
+   corner — your picture becomes a stamp. CAM: a lens in the square.
+   PLUS turns 45° into × while its tray is open, so closing needs no
+   second key. 1.6px strokes, short-dash perforation, nothing else. */
+const Perf = ({ color }: { color: string }) => <Rect x={3.5} y={3.5} width={17} height={17} rx={1} stroke={color} strokeWidth={1.6} strokeDasharray="1.4 1.6" fill="none" />;
+
 export function StampGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={3.5} y={3.5} width={17} height={17} rx={2} stroke={color} strokeWidth={1.7} strokeDasharray="2.2 1.6" />
-      <Circle cx={9.3} cy={10.6} r={1.05} fill={color} />
-      <Circle cx={14.7} cy={10.6} r={1.05} fill={color} />
-      <Path d="M8.8 14.3c1 1.5 5.4 1.5 6.4 0" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
+      <Perf color={color} />
+      <Circle cx={9.4} cy={10.4} r={1.1} fill={color} />
+      <Circle cx={14.6} cy={10.4} r={1.1} fill={color} />
+      <Path d="M8.9 14.1c1.1 1.6 5.1 1.6 6.2 0" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
     </Svg>
   );
 }
 
-export function PlusGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
+export function PlusGlyph({ size = 22, color = P.ink, open = false }: { size?: number; color?: string; open?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 6.5v11M6.5 12h11" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+      <Path d="M12 6v12M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" transform={open ? "rotate(45 12 12)" : undefined} />
     </Svg>
   );
 }
 
-/* a faint heart and a faint camera: the custom stamp and the stamp tool,
-   both still to come. They sit in the tab row so the row reads as a set. */
-function HeartGlyph({ size = 20, color = P.ink }: { size?: number; color?: string }) {
+/* the two doors still to build: your photo as a stamp, the stamp camera */
+function CustomGlyph({ size = 22, color = P.ink, badge = P.pen }: { size?: number; color?: string; badge?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
+      <Perf color={color} />
+      <Circle cx={12} cy={10.5} r={3.2} fill="#F2A33A" />
+      <Path d="M6.5 17.5l3.5-4 2.5 2.5 2-2 3 3.5z" fill={color} />
+      <Circle cx={18.5} cy={5.5} r={3.6} fill={badge} />
+      <Path d="M18.5 3.8v3.4M16.8 5.5h3.4" stroke="#fff" strokeWidth={1.2} />
     </Svg>
   );
 }
-function CameraGlyph({ size = 20, color = P.ink }: { size?: number; color?: string }) {
+function CamGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M4 8.5h3.2l1.4-2h6.8l1.4 2H20v10H4z" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
-      <Circle cx={12} cy={13.2} r={3} stroke={color} strokeWidth={1.7} />
+      <Perf color={color} />
+      <Circle cx={12} cy={12.5} r={4.2} stroke={color} strokeWidth={1.6} fill="none" />
+      <Circle cx={12} cy={12.5} r={1.4} fill={color} />
+      <Rect x={8} y={6.5} width={3} height={1.8} rx={0.5} fill={color} />
     </Svg>
   );
 }
@@ -109,11 +122,11 @@ export function StampTray({ selected, suggested, recent, onPick }: { selected: s
         <View style={{ width: 44, height: 36, borderRadius: 9, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
           <StampGlyph size={22} />
         </View>
-        <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.28 }}>
-          <HeartGlyph />
+        <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
+          <CustomGlyph size={22} badge={P.ink} />
         </View>
-        <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.28 }}>
-          <CameraGlyph />
+        <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
+          <CamGlyph size={22} />
         </View>
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">

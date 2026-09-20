@@ -470,7 +470,7 @@ export default function Compose() {
               stamp, and ⊕ — the question and the voice letter live behind
               it. Each opens a tray where the keyboard was. */}
           <RoundKey on={tray === "more" || feelings || !!ask.trim() || mode === "speak"} onPress={() => openTray("more")}>
-            <PlusGlyph size={23} color={tray === "more" || feelings || !!ask.trim() || mode === "speak" ? "#FFFFFF" : P.ink} />
+            <PlusGlyph size={23} open={tray === "more"} color={tray === "more" || feelings || !!ask.trim() || mode === "speak" ? "#FFFFFF" : P.ink} />
           </RoundKey>
           <RoundKey on={tray === "stamps"} onPress={() => openTray("stamps")}>
             {sel ? <StampTile id={sel} w={30} r={4} /> : <StampGlyph size={23} color={tray === "stamps" ? "#FFFFFF" : P.ink} />}
