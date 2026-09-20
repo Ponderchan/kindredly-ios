@@ -3,7 +3,6 @@ import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { P, PF, rule } from "../theme/post";
-import { WrenBird } from "./WrenBird";
 import { t, useLang } from "../lib/i18n";
 
 /* THE "+" IS NOT AN ATTACHMENT BUTTON.
@@ -20,7 +19,7 @@ import { t, useLang } from "../lib/i18n";
    lesson: a row that looks like a feature and does nothing is worse than
    no row, but a row that plainly says "not yet" is an honest promise. */
 
-export type TraceKind = "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea" | "courier";
+export type TraceKind = "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea";
 
 export interface TraceAction {
   id: TraceKind;
@@ -86,8 +85,6 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
           <Path d="M6 9H3.5M12 9h2.5M6 12l-2 1.5M12 12l2 1.5" {...c} />
         </Svg>
       );
-    case "courier":
-      return null; // drawn as the bird herself, in the tray
     case "idea":
       return (
         <Svg width={18} height={18} viewBox="0 0 18 18">
@@ -184,13 +181,9 @@ export function TraceTray({ actions, onPick }: { actions: TraceAction[]; onPick:
       {actions.map((a) => (
         <Pressable key={a.id} disabled={a.locked} onPress={() => onPick(a.id)} style={({ pressed }) => ({ width: "25%", alignItems: "center", marginBottom: 18, opacity: a.locked ? 0.4 : pressed ? 0.6 : 1 })}>
           <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-            {a.id === "courier" ? (
-              <WrenBird size={30} mood="curious" />
-            ) : (
-              <View style={{ transform: [{ scale: 1.35 }] }}>
-                <TraceIcon kind={a.id} color={P.ink} />
-              </View>
-            )}
+            <View style={{ transform: [{ scale: 1.35 }] }}>
+              <TraceIcon kind={a.id} color={P.ink} />
+            </View>
             {a.locked && (
               <View style={{ position: "absolute", right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
                 <LockIcon color="#FFFFFF" />
