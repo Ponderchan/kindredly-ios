@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GlyphInput } from "./GlyphInput";
 import { useWrenName } from "../lib/wren-name";
 import { Alert, Image, Keyboard, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {C} from "../theme/tokens";
@@ -21,7 +21,7 @@ import type { Lang } from "../data/stamps";
 import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
-import { takePickedPhotos } from "../lib/journal-handoff";
+import { leaveKept, takePicked } from "../lib/journal-handoff";
 import { CourierSendOff } from "./CourierSendOff";
 import { Nudge } from "./ComposeTray";
 
@@ -56,6 +56,7 @@ export function SelfCompose({
 }) {
   useLang();
   const wren = useWrenName();
+  const router = useRouter();
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false); // the tray under the bar
 
@@ -168,22 +169,39 @@ export function SelfCompose({
   /* arrive straight in a mode (voice/video from Sealed's empty state) — or,
      the usual way in since 2026-09-20, with the pictures already chosen on
      the roll (journal-pick): they land on the page, no picker opens */
-  const { start, from } = useLocalSearchParams<{ start?: string; from?: string }>();
+  const { start } = useLocalSearchParams<{ start?: string }>();
   const armed = useRef(false);
-  useEffect(() => {
-    if (armed.current) return;
-    armed.current = true;
-    if (from === "roll") {
-      const list = takePickedPhotos();
-      if (list?.length) {
-        setAtt("photo");
-        setPhotos(list);
+  useFocusEffect(
+    useCallback(() => {
+      /* whatever the roll left: pictures (first time, or more of them
+         after + ADD), or one film */
+      const p = takePicked();
+      if (p) {
+        if ("photos" in p) {
+          setAtt("photo");
+          setMediaUri(null);
+          setPhotos(p.photos.slice(0, 9));
+        } else {
+          setAtt("video");
+          setPhotos([]);
+          setMediaUri(p.video.uri);
+          setDur(p.video.duration);
+        }
+        armed.current = true;
+        return;
       }
-      return;
-    }
-    if (start === "photo" || start === "voice" || start === "video") toggleMode(start);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, from]);
+      if (armed.current) return;
+      armed.current = true;
+      if (start === "voice" || start === "video") toggleMode(start);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [start]),
+  );
+
+  /* + ADD: back to the roll with what is already here, so it can merge */
+  const addMore = () => {
+    leaveKept(photos);
+    router.push("/journal-pick?more=1");
+  };
 
   const pickMood = async (mood: MoodId) => {
     setMoodOpen(false);
@@ -292,16 +310,18 @@ export function SelfCompose({
                       <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                     </Pressable>
                   ))}
+                </View>
+
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
+                  <Text style={{ flex: 1, fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
+                    {t("sc.coverHint", { n: String(photos.length) })}
+                  </Text>
                   {photos.length < 9 && (
-                    <Pressable onPress={addPhotos} style={{ width: "48.6%", aspectRatio: 1, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontSize: 22, color: C.faint }}>＋</Text>
+                    <Pressable onPress={addMore} hitSlop={8}>
+                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.pen }}>+ {t("jp.add")}</Text>
                     </Pressable>
                   )}
                 </View>
-
-                <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>
-                  {t("sc.coverHint", { n: String(photos.length) })}
-                </Text>
               </View>
             )}
             {att === "video" && mediaUri && <VideoPreview uri={mediaUri} onClear={() => toggleMode("video")} />}
