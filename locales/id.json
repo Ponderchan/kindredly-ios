@@ -1,6 +1,5 @@
 {
   "NSMicrophoneUsageDescription": "Kindredly memakai mikrofon agar kamu bisa merekam surat suara atau halaman jurnal suara.",
   "NSPhotoLibraryUsageDescription": "Kindredly membuka galeri fotomu agar kamu bisa menambahkan foto atau video ke halaman jurnal pribadi.",
-  "NSPhotoLibraryAddUsageDescription": "Kindredly menyimpan kartu auramu ke foto saat kamu memintanya.",
-  "NSCameraUsageDescription": "Kindredly memakai kamera hanya saat kamu mengambil foto untuk halaman jurnal pribadi."
+  "NSPhotoLibraryAddUsageDescription": "Kindredly menyimpan kartu auramu ke foto saat kamu memintanya."
 }

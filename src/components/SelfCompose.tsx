@@ -12,7 +12,7 @@ import { getLang, t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { MoodModal } from "./MoodModal";
+import { MoodKeyGlyph, MoodTray } from "./MoodTray";
 import { MoodIcon } from "./MoodIcon";
 import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
@@ -56,8 +56,7 @@ export function SelfCompose({
   useLang();
   const wren = useWrenName();
   const [pIdx, setPIdx] = useState(0);
-  const [moodOpen, setMoodOpen] = useState(false);
-  const sealOnPick = useRef(false); // the mood sheet was opened BY the seal
+  const [moodOpen, setMoodOpen] = useState(false); // the tray under the bar
 
   /* THE BOTTOM CLUSTER RIDES THE KEYBOARD. KeyboardAvoidingView was doing
      this and getting it wrong here: it lifted the page by ~200pt against a
@@ -74,7 +73,6 @@ export function SelfCompose({
   const lift = useAnimatedStyle(() => ({
     paddingBottom: Math.max(0, keyboard.height.value - insets.bottom),
   }));
-  const [tools, setTools] = useState(false);
   // the empty page's line, chosen from what's already on this device
   const [spark, setSpark] = useState("today felt like…");
   useEffect(() => {
@@ -102,10 +100,9 @@ export function SelfCompose({
      explanation did — from a disabled state nobody can read into the next
      step of the ritual. Dismiss the keyboard first, or the sheet opens
      underneath it. */
-  const askMood = (thenSeal: boolean) => {
+  const askMood = () => {
     Keyboard.dismiss();
-    sealOnPick.current = thenSeal;
-    setMoodOpen(true);
+    setMoodOpen((v) => !v);
   };
 
   const addPhotos = async () => {
@@ -395,73 +392,38 @@ export function SelfCompose({
 
         </ScrollView>
 
-        {/* THE MOOD RIDES THE SEAL KEY (owner, 2026-09-20), the way a stamp
-            rides the letter's send key: nothing asked while the page is
-            empty; once there is something to seal the key turns pen blue
-            and asks HOW DID THIS FEEL?; the pick shows as a chip here,
-            and the key goes black to seal. The reason is unchanged —
-            Sealed's calendar is made of these faces. */}
-        {mood && (
-          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 10 }}>
-            <Pressable onPress={() => askMood(false)} style={{ flexDirection: "row", alignItems: "center", gap: 7, borderWidth: 1.5, borderColor: MOODS[mood].col, borderRadius: 999, paddingLeft: 8, paddingRight: 12, paddingVertical: 4, backgroundColor: MOODS[mood].bg }}>
-              <MoodIcon id={mood} size={20} />
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.6, color: MOODS[mood].col }}>#{moodName(mood).toLowerCase()}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.ink40 }}>{t("cp.change")}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* the tools, then the seal */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 24 }}>
-          {(
-            [
-              ["photo", "photo"],
-              ["voice", "voice"],
-              ["video", "video"],
-            ] as [Exclude<JournalType, "text"> | null, string][]
-          )
-            .slice(0, tools ? 3 : 1)
-            .map(([k, icon]) => {
-              const on = att === k;
-              return (
-                <Pressable
-                  key={icon}
-                  /* the tool key called the PICKER but never set `att` — so a
-                     picked photo landed in state with nothing rendering it:
-                     no strip, SEAL stayed grey, and the pick read as failed.
-                     toggleMode is the one path that sets the mode first. */
-                  onPress={() => k && toggleMode(k)}
-                  style={{
-                    width: 50,
-                    height: 50,
-                    backgroundColor: on ? P.ink : "transparent",
-                    borderWidth: 1,
-                    borderColor: P.ink,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ToolIcon kind={icon as "photo" | "voice" | "video"} on={on} />
-                </Pressable>
-              );
-            })}
-
-        {/* Three keys standing open is a toolbar; a page for one person
-              doesn't need one. Photo stays out because it's what most days
-              actually want, and the rest live behind the arrow. */}
+        {/* THE BAR (owner, 2026-09-20): a round mood key and the seal key —
+            the same two keys as the letter desk, in the same places. The
+            photo / voice / video keys are gone: the way in (journal-pick)
+            already decided what kind of page this is, and the album has
+            its own + cell. The mood key shows a blank face until a mood is
+            picked, then that face; the seal key turns pen blue and asks
+            HOW DID THIS FEEL? until it is. Sealed's calendar is made of
+            these faces, which is why one is required. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: moodOpen ? 12 : 24 }}>
           <Pressable
-            onPress={() => setTools((v) => !v)}
-            style={{ width: 34, height: 50, alignItems: "center", justifyContent: "center" }}
+            onPress={askMood}
+            style={({ pressed }) => ({
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              borderWidth: 1.5,
+              borderColor: mood ? MOODS[mood].col : moodOpen ? P.pen : P.ink,
+              backgroundColor: mood ? MOODS[mood].bg : "transparent",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
-            <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink60 }}>{tools ? "‹" : "›"}</Text>
+            {mood ? <MoodIcon id={mood} size={36} /> : <MoodKeyGlyph size={27} color={moodOpen ? P.pen : P.ink} />}
           </Pressable>
 
           <Pressable
             onPress={() => {
               if (busy || !hasSomething) return;
-              /* the pick does not seal — the same two beats as the letter
-                 desk: choose, see it on the key, then send */
-              if (!mood) return askMood(false);
+              // no mood yet: the key opens the tray, the way the letter's
+              // send key opens the stamps
+              if (!mood) return askMood();
               void pickMood(mood);
             }}
             disabled={!hasSomething || busy}
@@ -477,30 +439,23 @@ export function SelfCompose({
               alignItems: "center",
             }}
           >
+            {hasSomething && !mood && !busy && !moodOpen && <Nudge color="#FFFFFF" />}
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: hasSomething && !busy ? "#fff" : P.ink40 }}>
               {busy ? t("sc.sealing") : !mood && hasSomething ? t("sc.askMood") : t("sc.seal")}
             </Text>
-            {hasSomething && !mood && !busy && <Nudge color="#FFFFFF" />}
           </Pressable>
         </View>
+        {moodOpen && (
+          <MoodTray
+            selected={mood}
+            onPick={(m) => {
+              setMood(m);
+              setMoodOpen(false);
+            }}
+          />
+        )}
       </Animated.View>
 
-      <MoodModal
-        visible={moodOpen}
-        onPick={(m) => {
-          setMood(m);
-          setMoodOpen(false);
-          // asked for on the way to sealing — don't make them press it twice
-          if (sealOnPick.current) {
-            sealOnPick.current = false;
-            void pickMood(m);
-          }
-        }}
-        onCancel={() => {
-          sealOnPick.current = false;
-          setMoodOpen(false);
-        }}
-      />
     </View>
   );
 }
@@ -517,36 +472,5 @@ function VideoPreview({ uri, onClear }: { uri: string; onClear: () => void }) {
         <Text style={{ color: "#fff", fontSize: 11 }}>✕</Text>
       </Pressable>
     </View>
-  );
-}
-
-/* Drawn tools, not emoji. An emoji is somebody else's illustration in somebody
-   else's style — 🖼 is a framed picture in a gallery, which is not what "add a
-   photo" means — and it changes shape on every OS. These are the same weight
-   and the same grid as the rest of the app's glyphs. */
-function ToolIcon({ kind, on }: { kind: "photo" | "voice" | "video"; on: boolean }) {
-  const c = on ? P.paper : P.ink;
-  const st = { stroke: c, strokeWidth: 1.7, fill: "none" as const };
-  if (kind === "photo")
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24">
-        <Rect x={3} y={5} width={18} height={14} {...st} />
-        <Path d="M3 16l5-5 4 4 3-3 6 6" {...st} strokeLinejoin="round" />
-        <Circle cx={8.6} cy={9.4} r={1.5} fill={c} />
-      </Svg>
-    );
-  if (kind === "voice")
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24">
-        <Rect x={9} y={3} width={6} height={11} rx={3} {...st} />
-        <Path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" {...st} strokeLinecap="round" />
-        <Path d="M12 18v3" {...st} strokeLinecap="round" />
-      </Svg>
-    );
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Rect x={3} y={6} width={12} height={12} {...st} />
-      <Path d="M15 11l6-3.4v8.8L15 13z" {...st} strokeLinejoin="round" />
-    </Svg>
   );
 }

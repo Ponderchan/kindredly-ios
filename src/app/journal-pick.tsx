@@ -4,8 +4,7 @@ import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as MediaLibrary from "expo-media-library/legacy";
-import * as ImagePicker from "expo-image-picker";
-import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+import Svg, { Line, Path, Rect } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 
@@ -16,8 +15,8 @@ import { P, PF } from "../theme/post";
    page now opens on the camera roll itself: the phone asks for the
    library once, the recent frames are right there, up to nine get a
    number, and NEXT carries them to the page where the line and the mood
-   go. The three tiles at the top are the other ways in — a shot taken
-   now, words only, a voice.
+   go. The three tiles at the top are the other ways in — words only, a
+   voice, a film.
 
    The grid is the phone's own library, read in place (expo-media-library),
    so nothing is copied until NEXT; a `ph://` frame is resolved to a file
@@ -106,27 +105,6 @@ export default function JournalPick() {
     router.replace(`/journal-entry?photos=${encodeURIComponent(JSON.stringify(out))}`);
   };
 
-  /* a shot taken now goes straight to the page as its one picture */
-  const shoot = async () => {
-    let granted = false;
-    try {
-      granted = (await ImagePicker.requestCameraPermissionsAsync()).granted;
-    } catch {
-      granted = false; // a build without the camera string (before 1.2.0 b18) lands here
-    }
-    if (!granted) {
-      Alert.alert(t("jp.camera.title"), t("jp.camera.body"), [
-        { text: t("set.neverMind"), style: "cancel" },
-        { text: t("jp.settings"), onPress: () => void Linking.openSettings() },
-      ]);
-      return;
-    }
-    const res = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.85 });
-    if (res.canceled || !res.assets?.[0]?.uri) return;
-    const a = res.assets[0];
-    router.replace(`/journal-entry?photos=${encodeURIComponent(JSON.stringify([{ uri: a.uri, ratio: a.width && a.height ? a.width / a.height : 0.8 }]))}`);
-  };
-
   const cell = (width - 4) / 3;
   const Tile = ({ label, onPress, children }: { label: string; onPress: () => void; children: React.ReactNode }) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, opacity: pressed ? 0.6 : 1 })}>
@@ -137,12 +115,6 @@ export default function JournalPick() {
 
   const header = (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
-      <Tile label={t("jp.shoot")} onPress={() => void shoot()}>
-        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-          <Path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-          <Circle cx={12} cy={13} r={3.2} />
-        </Svg>
-      </Tile>
       <Tile label={t("jp.write")} onPress={() => router.replace("/journal-entry")}>
         <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M4 20l4-1 11-11-3-3L5 16z" />
@@ -153,6 +125,12 @@ export default function JournalPick() {
         <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
           <Rect x={9} y={3} width={6} height={11} rx={3} />
           <Path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
+        </Svg>
+      </Tile>
+      <Tile label={t("jp.film")} onPress={() => router.replace("/journal-entry?start=video")}>
+        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+          <Rect x={3} y={6} width={13} height={12} rx={2} />
+          <Path d="M16 10l5-3v10l-5-3z" />
         </Svg>
       </Tile>
     </View>
