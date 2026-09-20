@@ -1213,18 +1213,17 @@ function LetterPage({
         {/* one rule above the whole action cluster — letter, then the moves */}
         <View style={{ height: 2.4, backgroundColor: PUNCH.ink, marginTop: 12 }} />
 
-        {/* THE LANGUAGE PAIR (B1) — their language, an arrow, yours; the
-            filled side is the one you are reading. A tap turns it round.
-            Only when the letter came in another language. */}
-        {!isVoice && !!letter.body && needsTranslating(letter.body, letter.lang) && (
-          <View style={{ alignItems: "center", paddingTop: 11 }}>
-            <LangPair from={sourceTag(letter.body, letter.lang)} to={getLang().toUpperCase()} on={xlOn} busy={xlBusy} onPress={doTranslate} />
-          </View>
-        )}
-
-        {/* pass · reply — two moves. No third label to crowd it. */}
+        {/* pass · [their language → yours] · reply — one row. The language
+            pair (B1: the filled side is the one you are reading; a tap
+            turns it round) used to have a row of its own above this one;
+            between the two moves it costs the letter nothing, and a long
+            letter gets the row back (owner, 2026-09-20). Only when the
+            letter came in another language. */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 11, paddingBottom: 15 }}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.dim }}>{t("ld.pass")}</Text>
+          {!isVoice && !!letter.body && needsTranslating(letter.body, letter.lang) && (
+            <LangPair from={sourceTag(letter.body, letter.lang)} to={getLang().toUpperCase()} on={xlOn} busy={xlBusy} onPress={doTranslate} />
+          )}
           <Pressable onPress={onReply} hitSlop={14}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.7, color: PUNCH.reply }}>{t("ld.replyArrow")}</Text>
           </Pressable>
