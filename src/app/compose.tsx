@@ -488,7 +488,12 @@ export default function Compose() {
             disabled={(!canSend && !(wordsReady && !sel)) || busy}
             style={{
               flex: 1,
-              backgroundColor: canSend && !busy ? P.ink : "transparent",
+              /* three keys in one: filling (a wash rising, the count), PICK
+                 A MOOD STAMP (solid pen blue — the app's one actionable
+                 colour, the same pill Kindreds uses, not a hollow outline
+                 that read as disabled — owner, 2026-09-20), LET IT TRAVEL
+                 (solid ink) */
+              backgroundColor: canSend && !busy ? P.ink : wordsReady && !sel && !busy ? P.pen : "transparent",
               borderWidth: 1,
               borderColor: canSend && !busy ? P.ink : wordsReady && !sel ? P.pen : P.ink12,
               overflow: "hidden",
@@ -497,11 +502,11 @@ export default function Compose() {
             {mode === "write" && !wordsReady && !busy && weight < OPENING_MIN && (
               <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round((weight / OPENING_MIN) * 100)}%`, backgroundColor: P.penWash }} />
             )}
-            {wordsReady && !sel && !busy && tray !== "stamps" && <Nudge />}
+            {wordsReady && !sel && !busy && tray !== "stamps" && <Nudge color="#FFFFFF" />}
             <View style={{ paddingVertical: 17, alignItems: "center" }}>
               {/* two doors, and the key names only the one still shut: the
                   words first, then the stamp; both open → the letter goes */}
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: canSend && !busy ? "#fff" : wordsReady && !sel ? P.pen : P.ink40 }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: (canSend || (wordsReady && !sel)) && !busy ? "#fff" : P.ink40 }}>
                 {busy ? t("cp.sending") : wordsReady && !sel ? t("cp.needStamp") : t("cp.travel")}
               </Text>
             </View>
