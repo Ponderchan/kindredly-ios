@@ -238,7 +238,7 @@ export default function LettersTab() {
   };
 
   const demo = __DEV__ && loaded && (pool.length === 0 || storeMode);
-  const feed = demo ? (storeMode ? [{ ...DEMO_POOL[0], body: DEMO_TEXT[getLang()].letter }, ...DEMO_POOL.slice(1)] : DEMO_POOL) : pool;
+  const feed = demo ? (storeMode ? [{ ...DEMO_POOL[0], body: DEMO_TEXT[getLang()].letter, lang: getLang() }, ...DEMO_POOL.slice(1)] : DEMO_POOL) : pool;
 
   return (
     <Feed

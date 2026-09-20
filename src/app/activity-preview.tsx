@@ -1,5 +1,5 @@
-import { Redirect } from "expo-router";
-import { useState } from "react";
+import { Redirect, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { P, PF } from "../theme/post";
@@ -10,8 +10,18 @@ import { endAllActivities, previewLetterOut, startDayClosed, startLetterOut, syn
    activity token a real letter would also register. /activity-preview */
 
 export default function ActivityPreview() {
-  if (!__DEV__) return <Redirect href="/" />;
+  const { run: auto } = useLocalSearchParams<{ run?: string }>();
   const [log, setLog] = useState<string[]>([]);
+  // ?run=1 — fire the letter-out activity on arrival, for the lock-screen shots
+  useEffect(() => {
+    if (!__DEV__ || !auto) return;
+    (async () => {
+      await endAllActivities();
+      await startLetterOut("preview-letter", "cant-sleep");
+      setTimeout(() => void previewLetterOut({ reads: 7, replied: false }), 1500);
+    })();
+  }, [auto]);
+  if (!__DEV__) return <Redirect href="/" />;
   const say = (s: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${s}`, ...l].slice(0, 12));
   const run = (label: string, f: () => Promise<void>) => async () => {
     say(`${label}…`);

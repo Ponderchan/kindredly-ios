@@ -88,7 +88,7 @@ export default function WrenDeskScreen() {
 
   const load = useCallback(() => {
     let alive = true;
-    readPostsCache().then((c) => alive && c.length && setPosts(c));
+    if (!(__DEV__ && storeMode)) readPostsCache().then((c) => alive && c.length && setPosts(c));
     // merge, don't replace: a guide opened by link can land before this read returns
     readLocal().then((l) => alive && setLocal((cur) => [...l, ...cur.filter((c) => !l.some((x) => x.id === c.id))]));
     if (!isGuest) readMailCache().then((c) => alive && c.length && setMail(c));

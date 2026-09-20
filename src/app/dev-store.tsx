@@ -20,9 +20,11 @@ export default function DevStore() {
       if (l && (LANGS as string[]).includes(l)) setLang(l as Lang, true);
       for (const k of ["kindredly_wren_local", "kindredly_notice_seen", "kindredly_room_seen"]) await scoped.removeItem(k).catch(() => {});
       try {
-        const r = await MediaLibrary.getAssetsAsync({ first: 4, mediaType: MediaLibrary.MediaType.photo, sortBy: [[MediaLibrary.SortBy.creationTime, false]] });
+        const r = await MediaLibrary.getAssetsAsync({ first: 8, mediaType: MediaLibrary.MediaType.photo, sortBy: [[MediaLibrary.SortBy.creationTime, false]] });
         const out: { uri: string; ratio: number }[] = [];
-        for (const a of r.assets.slice(0, 2)) {
+        // the two newest pictures on the roll (the store shots add their own first)
+        const pick = r.assets.slice(0, 2);
+        for (const a of pick) {
           const info = await MediaLibrary.getAssetInfoAsync(a.id);
           out.push({ uri: info.localUri || a.uri, ratio: a.width && a.height ? a.width / a.height : 0.8 });
         }

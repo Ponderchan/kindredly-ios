@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Dimensions, Modal, Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
+import { storeAura, storeMode } from "../lib/dev-store";
 import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { AuraCard, StickerChip, W14, cardShadow } from "../components/AuraCard";
@@ -49,7 +50,7 @@ export default function AuraScreen() {
   const pager = useRef<ScrollView>(null);
 
   const load = useCallback(async () => {
-    const [a, sc] = await Promise.all([myAura((profile?.firstLine as string) || null), getAuraScope()]);
+    const [a, sc] = await Promise.all([__DEV__ && storeMode ? Promise.resolve(storeAura()) : myAura((profile?.firstLine as string) || null), getAuraScope()]);
     setAura(a);
     setSealedOn(sc.sealed);
   }, [profile?.firstLine]);

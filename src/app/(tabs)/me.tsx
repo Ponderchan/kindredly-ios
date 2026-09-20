@@ -2,6 +2,7 @@ import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, InteractionManager, Pressable, ScrollView, Text, View } from "react-native";
 import { markWork } from "../../lib/stall-probe";
+import { storeAura, storeMode } from "../../lib/dev-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -126,6 +127,10 @@ export default function MeTab() {
         // Your aura — one engine (hatch), every piece of your real writing:
         // the hatch line, the sealed pages, and now your letters too
         (async () => {
+          if (__DEV__ && storeMode) {
+            setAura(storeAura());
+            return;
+          }
           // the last read first, so the card is there when the tab is; the
           // fresh read replaces it when the letters come back
           const cached = await readAuraCache();
