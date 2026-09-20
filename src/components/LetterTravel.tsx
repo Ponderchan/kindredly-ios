@@ -97,6 +97,13 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
   readyRef.current = ready;
   const leaving = useRef(false);
   const tapped = useRef(false);
+  /* onDone through a ref: the clock effect used to depend on it, and the
+     caller passes a fresh function on every render — so the moment the
+     send finished (`ready` flipped, the parent re-rendered) the clock was
+     torn down and started again from the flat sheet. The owner's recording
+     (2026-09-20): fold, pickup, hold… then paper again. */
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   /* the clock: authored seconds; it rests at HOLD_AT until `ready`, and the
      time spent resting is subtracted so the piece resumes without a jump */
@@ -129,23 +136,23 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
       }
       if (!leaving.current && tt >= TOTAL) {
         leaving.current = true;
-        onDone();
+        onDoneRef.current();
         return;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [reduce, onDone]);
+  }, [reduce]);
 
   /* motion-sensitive: the last tableau, held, then out once the letter has gone */
   useEffect(() => {
     if (!reduce || !ready) return;
     const id = setTimeout(() => {
-      Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => onDone());
+      Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => onDoneRef.current());
     }, 900);
     return () => clearTimeout(id);
-  }, [reduce, ready, fade, onDone]);
+  }, [reduce, ready, fade]);
 
   /* ── the sheet's numbers ── */
   const fold = draw(0, 1, 0.24, CUES.Pickup - 0.1)(T);
