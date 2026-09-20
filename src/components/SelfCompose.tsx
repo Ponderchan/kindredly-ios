@@ -10,7 +10,6 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import {C} from "../theme/tokens";
 import { getLang, t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
-import { Wren } from "./Wren";
 import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { MoodModal } from "./MoodModal";
@@ -85,7 +84,6 @@ export function SelfCompose({
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [coverIdx, setCoverIdx] = useState(0);
-  const [wrenNote, setWrenNote] = useState<string | null>(null);
   const [dur, setDur] = useState(0);
   const [busy, setBusy] = useState(false);
   const [sealed, setSealed] = useState(false);
@@ -130,28 +128,10 @@ export function SelfCompose({
   const removePhoto = (i: number) => {
     setPhotos((prev) => prev.filter((_, idx) => idx !== i));
     setCoverIdx((c) => (i === c ? 0 : i < c ? c - 1 : c));
-    setWrenNote(null);
   };
 
   const setCover = (i: number) => {
     setCoverIdx(i);
-    setWrenNote(null);
-  };
-
-  // Wren picks the frame that reads best as a 4:5 cover (closest ratio).
-  const wrenPickCover = () => {
-    if (photos.length < 2) return;
-    let best = 0;
-    let bestD = Infinity;
-    photos.forEach((p, i) => {
-      const d = Math.abs(p.ratio - 0.8);
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
-    });
-    setCoverIdx(best);
-    setWrenNote(t("sc.leadPhoto"));
   };
 
   const pickVideo = async () => {
@@ -171,7 +151,6 @@ export function SelfCompose({
     setMediaUri(null);
     setPhotos([]);
     setCoverIdx(0);
-    setWrenNote(null);
     setDur(0);
   };
 
@@ -304,7 +283,7 @@ export function SelfCompose({
                       <Pressable
                         key={p.uri + i}
                         onPress={() => setCover(i)}
-                        style={{ width: "31.2%", aspectRatio: 1, overflow: "hidden", position: "relative", borderWidth: isCover ? 2 : 0, borderColor: P.pen }}
+                        style={{ width: "31.2%", aspectRatio: 1, overflow: "hidden", position: "relative" }}
                       >
                         <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                         {isCover && (
@@ -325,20 +304,12 @@ export function SelfCompose({
                   )}
                 </View>
 
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
-                  <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
-                    {t("sc.coverHint", { n: String(photos.length) })}
-                  </Text>
-                  {photos.length >= 2 && (
-                    <Pressable onPress={wrenPickCover} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: P.pen }}>
-                      <Wren size={13} mode="line" />
-                      <Text style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 0.8, color: P.pen }}>{t("sc.wrenPick", { wren: wren.toUpperCase() })}</Text>
-                    </Pressable>
-                  )}
-                </View>
-                {wrenNote && (
-                  <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink60, marginTop: 8 }}>“{wrenNote}”</Text>
-                )}
+                {/* the COVER tag on the frame is the only mark; no frame around
+                    the chosen one, and no courier picking it for you
+                    (owner, 2026-09-20) */}
+                <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>
+                  {t("sc.coverHint", { n: String(photos.length) })}
+                </Text>
               </View>
             )}
             {att === "video" && mediaUri && <VideoPreview uri={mediaUri} onClear={() => toggleMode("video")} />}
