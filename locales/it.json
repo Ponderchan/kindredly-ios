@@ -1,5 +1,6 @@
 {
   "NSMicrophoneUsageDescription": "Kindredly usa il microfono così puoi registrare una lettera vocale o una pagina di diario a voce.",
   "NSPhotoLibraryUsageDescription": "Kindredly apre la tua libreria foto così puoi aggiungere una foto o un video a una pagina privata del diario.",
-  "NSPhotoLibraryAddUsageDescription": "Kindredly salva la tua carta dell'aura nelle tue foto quando glielo chiedi."
+  "NSPhotoLibraryAddUsageDescription": "Kindredly salva la tua carta dell'aura nelle tue foto quando glielo chiedi.",
+  "NSCameraUsageDescription": "Kindredly usa la fotocamera solo quando scatti una foto per una pagina privata del diario."
 }

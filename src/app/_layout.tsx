@@ -154,6 +154,7 @@ export default function RootLayout() {
                     up from the bottom read as a second, separate event. */}
                 <Stack.Screen name="compose" options={{ animation: "slide_from_right" }} />
                 <Stack.Screen name="journal-entry" options={{ animation: "slide_from_right" }} />
+                <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
                 <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
                 {/* the reader fills the screen — the letter opens where you are,
                     it doesn't slide in from the side or pop up as a card */}

@@ -166,15 +166,29 @@ export function SelfCompose({
     else if (kind === "video") pickVideo();
   };
 
-  // arrive straight in a mode when Sealed's empty state routes here (snap/say/film)
-  const { start } = useLocalSearchParams<{ start?: string }>();
+  /* arrive straight in a mode (voice/video from Sealed's empty state) — or,
+     the usual way in since 2026-09-20, with the pictures already chosen on
+     the roll (journal-pick): they land on the page, no picker opens */
+  const { start, photos: photosParam } = useLocalSearchParams<{ start?: string; photos?: string }>();
   const armed = useRef(false);
   useEffect(() => {
     if (armed.current) return;
     armed.current = true;
+    if (photosParam) {
+      try {
+        const list = JSON.parse(photosParam) as { uri: string; ratio: number }[];
+        if (Array.isArray(list) && list.length) {
+          setAtt("photo");
+          setPhotos(list.filter((x) => typeof x?.uri === "string").slice(0, 9).map((x) => ({ uri: x.uri, ratio: Number(x.ratio) || 0.8 })));
+          return;
+        }
+      } catch {
+        /* a bad param is an empty page, not a crash */
+      }
+    }
     if (start === "photo" || start === "voice" || start === "video") toggleMode(start);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start]);
+  }, [start, photosParam]);
 
   const pickMood = async (mood: MoodId) => {
     setMoodOpen(false);

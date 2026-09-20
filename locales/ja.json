@@ -1,5 +1,6 @@
 {
   "NSMicrophoneUsageDescription": "Kindredlyは、音声の手紙や音声の日記ページを録音するためにマイクを使います。",
   "NSPhotoLibraryUsageDescription": "Kindredlyは、非公開の日記ページに写真や動画を添えるためにフォトライブラリを開きます。",
-  "NSPhotoLibraryAddUsageDescription": "Kindredlyは、あなたが求めたときにオーラカードを写真に保存します。"
+  "NSPhotoLibraryAddUsageDescription": "Kindredlyは、あなたが求めたときにオーラカードを写真に保存します。",
+  "NSCameraUsageDescription": "Kindredly がカメラを使うのは、非公開の日記ページ用に写真を撮るときだけです。"
 }

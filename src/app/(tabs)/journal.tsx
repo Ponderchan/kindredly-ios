@@ -86,7 +86,7 @@ export default function JournalTab() {
 
 
       {empty ? (
-        <Empty onWrite={(start) => router.push(start ? `/journal-entry?start=${start}` : "/journal-entry")} />
+        <Empty onWrite={(start) => router.push(start === "photo" || !start ? "/journal-pick" : `/journal-entry?start=${start}`)} />
       ) : view === "calendar" ? (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>

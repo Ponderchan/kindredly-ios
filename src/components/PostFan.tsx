@@ -54,7 +54,7 @@ export function PostFan({ onClose }: { onClose: () => void }) {
       <Choice x={width / 2 - SPREAD} delay={0} label={t("pc.stranger")} onPress={() => go("/compose")}>
         <PlaneGlyph />
       </Choice>
-      <Choice x={width / 2 + SPREAD} delay={70} label={t("pc.yourself")} onPress={() => go("/journal-entry")}>
+      <Choice x={width / 2 + SPREAD} delay={70} label={t("pc.yourself")} onPress={() => go("/journal-pick")}>
         <BookGlyph />
       </Choice>
     </View>

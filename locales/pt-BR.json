@@ -1,5 +1,6 @@
 {
   "NSMicrophoneUsageDescription": "O Kindredly usa o microfone para você gravar uma carta de voz ou uma página de diário em voz.",
   "NSPhotoLibraryUsageDescription": "O Kindredly abre sua biblioteca de fotos para você adicionar uma foto ou um vídeo a uma página privada do diário.",
-  "NSPhotoLibraryAddUsageDescription": "O Kindredly salva seu cartão de aura nas suas fotos quando você pede."
+  "NSPhotoLibraryAddUsageDescription": "O Kindredly salva seu cartão de aura nas suas fotos quando você pede.",
+  "NSCameraUsageDescription": "O Kindredly usa a câmera apenas quando você tira uma foto para uma página privada do diário."
 }

@@ -42,7 +42,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Kindredly opens your photo library so you can add a photo or video to a private journal page.",
-          "cameraPermission": false
+          "cameraPermission": "Kindredly uses the camera only when you take a picture for a private journal page."
         }
       ],
       [
