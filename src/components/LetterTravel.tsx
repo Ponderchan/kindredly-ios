@@ -21,16 +21,22 @@ import { t, useLang } from "../lib/i18n";
 
    Same construction as the launch piece: the sheet's numbers, driven by
    one clock; the bird is the product's own WrenBird laid over the SVG,
-   the envelope in her beak drawn beneath her. The clock HOLDS just before
-   the pull-back until the letter has actually gone through — she can
-   hover with it, she cannot leave with it. */
+   the envelope in her beak drawn beneath her.
+
+   She flies the whole way without waiting for the network. The clock used
+   to rest just after the pickup until the send had gone through, and with
+   the moderation call in front of the publish that was three seconds of
+   her frozen in mid-air with the letter — the owner, 2026-09-20: 太恶心了.
+   Now it rests on the arrival card ("Off to the other side"), a still
+   picture that is meant to be looked at, and only the fade-out waits. A
+   send that fails brings the desk back with her word on it. */
 
 const W = 393;
 const H = 852;
 const CUES = { Fold: 0, Pickup: 0.9, World: 1.6, Cross: 2.5 };
 const TOTAL = 3.7;
-/** she has the letter in her beak here; the world only opens once it has gone */
-const HOLD_AT = CUES.World - 0.05;
+/** the arrival card, before the fade: the clock rests here until the send has landed */
+const HOLD_AT = TOTAL - 0.18;
 
 const C = {
   page: "#ECEAFA",
@@ -106,7 +112,7 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
   onDoneRef.current = onDone;
 
   /* the clock: authored seconds; it rests at HOLD_AT until `ready`, and the
-     time spent resting is subtracted so the piece resumes without a jump */
+     time spent resting is subtracted so the fade resumes without a jump */
   useEffect(() => {
     if (reduce) {
       setT(TOTAL - 0.3);
@@ -114,7 +120,7 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
     }
     let raf = 0;
     const t0 = Date.now();
-    let paused = 0;
+    let paused = 0; // seconds spent resting at the hold — the same unit as `wall`
     let pauseAt: number | null = null;
     const tick = () => {
       const now = Date.now();
@@ -125,7 +131,12 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
         if (pauseAt === null) pauseAt = now;
         tt = HOLD_AT;
       } else if (pauseAt !== null) {
-        paused += now - pauseAt;
+        /* in seconds. This was added in milliseconds against a clock in
+           seconds, so the first frame after the hold landed thousands of
+           seconds before the start — the flat sheet, and it stayed there.
+           The old restart-on-send bug had hidden it: the clock was rebuilt
+           from zero at that moment anyway, so the sum was never read. */
+        paused += (now - pauseAt) / 1000;
         pauseAt = null;
         tt = wall - paused;
       }
@@ -363,7 +374,11 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
         <Rect x={0} y={0} width={W} height={H} fill={C.page} opacity={outro} />
       </Svg>
 
-      {/* the courier: the product's own bird — her fly pose already faces right, the way she travels */}
+      {/* the courier: the product's own bird — her fly pose already faces right,
+          the way she travels. Empty-handed: the pose ships with a letter under
+          her feet, and the one she carries here is the envelope drawn at her
+          beak — with both she was seen leaving with two (the owner's recording,
+          2026-09-20). */}
       {birdOn && (
         <View
           pointerEvents="none"
@@ -377,7 +392,7 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
             transform: [{ rotate: `${heading}deg` }],
           }}
         >
-          <WrenBird size={birdPx} pose="fly" mood="delight" />
+          <WrenBird size={birdPx} pose="fly" mood="delight" letter={false} />
         </View>
       )}
 

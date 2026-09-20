@@ -85,7 +85,7 @@ export default function JournalPick() {
     setAlbumsOpen(false);
     // the first row is the phone's Recents — the same set as "all", read without an album filter
     const id = first ? null : a.id;
-    setAlbum({ ...a, id });
+    setAlbum({ ...a, id, title: first ? t("jp.recent") : a.title });
     albumRef.current = id;
     cursor.current = undefined;
     more_.current = true;
@@ -126,10 +126,14 @@ export default function JournalPick() {
       const live = all.filter((a) => a.assetCount > 0);
       // smart albums first (Recents, Favourites, Videos, Screenshots…), then yours
       live.sort((a, b) => Number(b.type === "smartAlbum") - Number(a.type === "smartAlbum") || b.assetCount - a.assetCount);
-      const list: Album[] = live.map((a) => ({ id: a.id, title: a.title, count: a.assetCount, cover: null }));
+      /* the whole roll keeps OUR name (RECENT, in the app's language) in the
+         title and at the top of the list; the title used to take the phone's
+         own word for it, which on a Chinese phone put 最近项目 over an English
+         screen. Every other album is the phone's, under the name Photos gives
+         it — that is the name its owner knows it by. */
+      const list: Album[] = live.map((a, i) => ({ id: a.id, title: i === 0 ? t("jp.recentRow") : a.title, count: a.assetCount, cover: null }));
       setAlbums(list);
-      // "all photos" is the phone's own Recents: name it that way in the title
-      if (albumRef.current === null && list[0]) setAlbum((cur) => (cur.id === null ? { ...list[0], id: null } : cur));
+      if (albumRef.current === null && list[0]) setAlbum((cur) => (cur.id === null ? { ...cur, count: list[0].count } : cur));
       for (const a of list) {
         try {
           const r = await MediaLibrary.getAssetsAsync({ album: a.id ?? undefined, first: 1, sortBy: [[MediaLibrary.SortBy.creationTime, false]], mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] });
@@ -201,8 +205,8 @@ export default function JournalPick() {
   const cell = (width - 4) / 3;
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const Tile = ({ label, onPress, children }: { label: string; onPress: () => void; children: React.ReactNode }) => (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, opacity: pressed ? 0.6 : 1 })}>
+  const Tile = ({ label, tint, onPress, children }: { label: string; tint: string; onPress: () => void; children: React.ReactNode }) => (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: tint, opacity: pressed ? 0.6 : 1 })}>
       {children}
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: P.ink }}>{label.toUpperCase()}</Text>
     </Pressable>
@@ -234,17 +238,17 @@ export default function JournalPick() {
     );
   };
 
-  /* WRITE · SAY IT · the newest picture, in one row; the roll continues
-     from the second picture underneath */
+  /* TEXT NOTE · VOICE NOTE · the newest picture, in one row; the roll
+     continues from the second picture underneath */
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
-      <Tile label={t("jp.write")} onPress={() => router.replace("/journal-entry")}>
+      <Tile label={t("jp.write")} tint={P.keyText} onPress={() => router.replace("/journal-entry")}>
         <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M4 20l4-1 11-11-3-3L5 16z" />
           <Line x1={13} y1={8} x2={16} y2={11} />
         </Svg>
       </Tile>
-      <Tile label={t("jp.say")} onPress={() => router.replace("/journal-entry?start=voice")}>
+      <Tile label={t("jp.say")} tint={P.keyVoice} onPress={() => router.replace("/journal-entry?start=voice")}>
         <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
           <Rect x={9} y={3} width={6} height={11} rx={3} />
           <Path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
@@ -261,13 +265,18 @@ export default function JournalPick() {
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"))} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
-        {/* the title is the album menu */}
-        <Pressable onPress={() => (albumsOpen ? setAlbumsOpen(false) : void loadAlbums())} hitSlop={8} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink, maxWidth: 200 }}>{album.title.toUpperCase()}</Text>
-          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ rotate: albumsOpen ? "180deg" : "0deg" }] }}>
-            <Path d="M6 9l6 6 6-6" />
-          </Svg>
-        </Pressable>
+        {/* the title is the album menu — the words and the chevron only. It
+            used to fill the whole bar between ✕ and NEXT, so a thumb aimed
+            at ✕ that landed a little to the right opened the albums instead
+            (the owner's recording, 2026-09-20). */}
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Pressable onPress={() => (albumsOpen ? setAlbumsOpen(false) : void loadAlbums())} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 6, paddingVertical: 8 }}>
+            <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink, maxWidth: 200 }}>{album.title.toUpperCase()}</Text>
+            <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ rotate: albumsOpen ? "180deg" : "0deg" }] }}>
+              <Path d="M6 9l6 6 6-6" />
+            </Svg>
+          </Pressable>
+        </View>
         <Pressable
           onPress={() => void next()}
           disabled={!picked.length || busy}

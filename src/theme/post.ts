@@ -29,6 +29,11 @@ export const P = {
   post: "#E0483C", // the postmark's ink — that object only
   air: "#3A4F9E", // airmail blue, for the striped rule only
   brassSeal: "#9A7433", // the wax disc on the sealed page — that object only
+  /* the two note keys on the roll and the empty Sealed page (owner,
+     2026-09-20: "加个背景色块"): a text note on lavender, a voice note on
+     a pale sky blue (the cream was "太丑了") */
+  keyText: "#DCD8F6", // a shade under the Sealed page itself, so the block shows on it too
+  keyVoice: "#D6EBFA",
 } as const;
 
 export const PF = {

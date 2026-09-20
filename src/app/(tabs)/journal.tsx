@@ -171,13 +171,13 @@ function Empty({ onWrite }: { onWrite: (start?: string) => void }) {
             2026-09-20): words, or a voice. Pictures are the roll itself —
             the tab's + and "to yourself" both open on it. */}
         <View style={{ flexDirection: "row", gap: 2 }}>
-          <Key label={t("jp.write")} onPress={() => onWrite()}>
+          <Key label={t("jp.write")} tint={P.keyText} onPress={() => onWrite()}>
             <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               <Path d="M4 20l4-1 11-11-3-3L5 16z" />
               <Line x1={13} y1={8} x2={16} y2={11} />
             </Svg>
           </Key>
-          <Key label={t("jp.say")} onPress={() => onWrite("voice")}>
+          <Key label={t("jp.say")} tint={P.keyVoice} onPress={() => onWrite("voice")}>
             <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               <Rect x={9} y={3} width={6} height={11} rx={3} />
               <Path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
@@ -189,9 +189,9 @@ function Empty({ onWrite }: { onWrite: (start?: string) => void }) {
   );
 }
 
-function Key({ label, onPress, children }: { label: string; onPress: () => void; children: React.ReactNode }) {
+function Key({ label, tint, onPress, children }: { label: string; tint: string; onPress: () => void; children: React.ReactNode }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, height: 120, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, opacity: pressed ? 0.6 : 1 })}>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, height: 120, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: tint, opacity: pressed ? 0.6 : 1 })}>
       {children}
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: P.ink }}>{label.toUpperCase()}</Text>
     </Pressable>

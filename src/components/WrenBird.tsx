@@ -45,6 +45,13 @@ export const CHICK_FILL: Record<WrenSkin, string> = {
 };
 const EYE = "#1E1B33";
 const HI = "#FFFFFF";
+/* the letter under the flying bird, by its own two colours — the envelope's
+   paper edge and its wax — which nothing on her body uses (flyShapes in
+   design/wren-family-gen.mjs; the flying body is drawn content, so the
+   delight stars in that same amber never share the key) */
+const LETTER_EDGE = "#D8D2C2";
+const LETTER_WAX = "#E8A63C";
+const withoutLetter = (list: WShape[]) => list.filter((sh) => sh.s !== LETTER_EDGE && sh.f !== LETTER_WAX);
 
 export function WrenBird({
   size = 96,
@@ -56,6 +63,7 @@ export function WrenBird({
   mark: markProp,
   outlined = false,
   form: formProp,
+  letter = true,
 }: {
   size?: number;
   mood?: WrenMood;
@@ -79,6 +87,12 @@ export function WrenBird({
   /* the hatchling's own proportions, read from the writing that hatched her.
      Only meaningful at the hatch stage; every other stage ignores it. */
   form?: HatchlingForm;
+  /* the flying pose comes from the generator with a letter riding under
+     her feet — the courier in flight, as the guides and the pouch draw
+     her. A scene that hands her a specific letter (the send-off, where the
+     page you just sealed goes into her beak) asks for her empty-handed,
+     or she is seen carrying two. Ignored for every other pose. */
+  letter?: boolean;
 }) {
   const ctxSkin = useWrenSkin();
   const ctxAccessory = useWrenAccessory();
@@ -122,7 +136,13 @@ export function WrenBird({
       {keys.map((k) => (
         <Shapes
           key={k}
-          list={stage === "hatch" && form ? shapeHatchling(WREN_FAMILY[k] || [], form) : WREN_FAMILY[k] || []}
+          list={
+            stage === "hatch" && form
+              ? shapeHatchling(WREN_FAMILY[k] || [], form)
+              : pose === "fly" && !letter
+                ? withoutLetter(WREN_FAMILY[k] || [])
+                : WREN_FAMILY[k] || []
+          }
           bare={!outlined}
         />
       ))}
