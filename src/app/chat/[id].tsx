@@ -431,10 +431,10 @@ export default function ChatScreen() {
             </Text>
           </View>
         ) : (
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 12, paddingBottom: 14 }}>
-          {/* an underlined field, like Today's — writing looks the same
-              wherever you do it */}
-          <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
+          {/* the same bar as the room's (owner, 2026-09-20): a pill field,
+              and the keyboard's own SEND sends — no send key of ours */}
+          <View style={{ flex: 1, borderRadius: 20, backgroundColor: "#F3F2FA", paddingHorizontal: 14 }}>
             <GlyphInput
               value={text}
               onChangeText={setText}
@@ -446,16 +446,14 @@ export default function ChatScreen() {
               placeholder={detail?.revealed ? t("th.sayTo", { name }) : t("ch.ph")}
               placeholderTextColor={P.ink40}
               multiline
-              style={{ ...fieldBox(text, 23, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.writing, fontSize: 16, lineHeight: 23, color: P.ink }}
+              returnKeyType="send"
+              submitBehavior="submit"
+              onSubmitEditing={() => {
+                if (canSend) void onSend();
+              }}
+              style={{ ...fieldBox(text, 23, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight: 23, color: P.ink }}
             />
           </View>
-          <Pressable
-            onPress={onSend}
-            disabled={!canSend}
-            style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: canSend ? P.pen : "transparent" }}
-          >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: canSend ? "#fff" : P.ink40 }}>{t("ld.send")}</Text>
-          </Pressable>
         </View>
         )}
       </KeyboardAvoidingView>

@@ -19,6 +19,7 @@ import { markRoomSeen } from "../../lib/room-seen";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
 import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
+import { PlusGlyph } from "../../components/ComposeTray";
 import { useThreadLive } from "../../lib/live";
 import { refreshFingerprint } from "../../lib/aura";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
@@ -603,31 +604,21 @@ export default function RoomScreen() {
             </Text>
           </View>
         ) : (
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 22, paddingBottom: 14 }}>
-          <Pressable
-            onPress={() => {
-              /* THE TRAY LIVES IN THIS SCREEN, NOT IN A MODAL, so with the
-                 keyboard up it opened underneath it — the sheet and its own
-                 backdrop were both pinned to the bottom of the shrunken
-                 area, and tapping + appeared to do nothing at all. Choosing
-                 something to leave is not something you do mid-sentence, so
-                 the keyboard goes first and the tray gets the whole screen. */
-              Keyboard.dismiss();
-              setTracing(true);
-            }}
-            hitSlop={6}
-            style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink, alignItems: "center", justifyContent: "center" }}
-          >
-            <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink }}>+</Text>
-          </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
+          {/* THE BAR IS A MESSAGING BAR NOW (owner, 2026-09-20): the courier
+              on the left — she brings a question when asked — the field as
+              a pill, the ⊕ on the right where a send key used to sit. There
+              is no send key: the keyboard's own blue SEND sends, the way
+              every chat on the phone does. The ⊕ still opens the things to
+              LEAVE (a note, a question, a moment, a song), not to attach. */}
           <Pressable
             onPress={seedQuestion}
             hitSlop={6}
-            style={{ width: 38, height: 38, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
-            <WrenBird size={20} mood="curious" />
+            <WrenBird size={24} mood="curious" />
           </Pressable>
-          <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
+          <View style={{ flex: 1, borderRadius: 20, backgroundColor: "#F3F2FA", paddingHorizontal: 14 }}>
             <GlyphInput
               ref={inputRef}
               value={text}
@@ -643,18 +634,30 @@ export default function RoomScreen() {
               }
               placeholderTextColor={P.ink40}
               multiline
+              returnKeyType="send"
+              submitBehavior="submit"
+              onSubmitEditing={() => {
+                if (sending) return;
+                if (mode ? !text.trim() || (mode.kind === "question" && !mode.prompt.trim()) : !canSend) return;
+                void onSend();
+              }}
               autoCapitalize={mode?.kind === "song" ? "none" : "sentences"}
-              style={{ ...fieldBox(text, 24, 110), paddingTop: 10, paddingBottom: 10, fontFamily: PF.writing, fontSize: 16, lineHeight: 24, color: P.ink }}
+              style={{ ...fieldBox(text, 24, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight: 24, color: P.ink }}
             />
           </View>
           <Pressable
-            onPress={onSend}
-            disabled={mode ? sending || !text.trim() || (mode.kind === "question" && !mode.prompt.trim()) : !canSend}
-            style={{ paddingHorizontal: 10, paddingVertical: 9, backgroundColor: (mode ? !!text.trim() && !(mode.kind === "question" && !mode.prompt.trim()) : canSend) ? P.pen : "transparent" }}
+            onPress={() => {
+              /* THE TRAY LIVES IN THIS SCREEN, NOT IN A MODAL, so with the
+                 keyboard up it opened underneath it. Choosing something to
+                 leave is not something you do mid-sentence, so the keyboard
+                 goes first and the tray gets the whole screen. */
+              Keyboard.dismiss();
+              setTracing(true);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1, color: (mode ? !!text.trim() : canSend) ? "#fff" : P.ink40 }}>
-              {sending ? "···" : mode && mode.kind !== "song" ? t("rm.fold.send") : t("ld.send")}
-            </Text>
+            <PlusGlyph size={24} />
           </Pressable>
         </View>
         )}
