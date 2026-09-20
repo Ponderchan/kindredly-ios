@@ -19,7 +19,6 @@ import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
 import { clearThreadReaction, fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
-import { kindredGate } from "../../lib/kindred-gate";
 import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
@@ -357,16 +356,10 @@ export default function ChatScreen() {
               </Text>
             ) : (
               <Pressable
-                onPress={async () => {
-                  /* the gate stands here, before the name is enclosed —
-                     see lib/kindred-gate */
-                  const gate = await kindredGate(premium, String(id));
-                  if (gate.allowed) setAskSign(true);
-                  else {
-                    track("gate_hit", { gate: "kindred", have: gate.have });
-                    router.push("/paywall?src=kindred_gate");
-                  }
-                }}
+                /* no gate here any more: kindreds are unlimited (owner,
+                   2026-09-20). The fare stands at the expired door instead —
+                   lib/kindred-expiry. */
+                onPress={() => setAskSign(true)}
                 hitSlop={8}
                 style={{ borderWidth: 1, borderColor: detail.theirSigned ? P.brassSeal : P.ink, paddingHorizontal: 14, paddingVertical: 8 }}
               >

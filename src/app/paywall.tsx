@@ -62,9 +62,9 @@ export default function Paywall() {
   const { src } = useLocalSearchParams<{ src?: string }>();
   const source = (src || "unknown") as PaywallSource;
   const close = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
-  /* sent here by the kindred gate: say so, or the page's "your first
-     three are free" reads as a contradiction to someone on their fourth */
-  const lead = source === "kindred_gate" ? t("pw.road.oneKindred") : source === "rekindle" ? t("pw.road.rekindle") : undefined;
+  /* sent here by an expired room: say so, or the fare page reads as a
+     non sequitur to someone who only wanted to answer a friend */
+  const lead = source === "rekindle" ? t("pw.road.rekindle") : undefined;
   return <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} />;
 }
 

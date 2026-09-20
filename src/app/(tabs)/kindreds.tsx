@@ -24,7 +24,7 @@ import { setWaiting } from "../../lib/waiting";
 import { threadState } from "../../lib/thread-state";
 import { DEMO_THREADS } from "../../data/demo";
 import { useEntitlement } from "../../lib/entitlement";
-import { FREE_KINDREDS } from "../../lib/kindred-gate";
+import { SEATS } from "../../lib/kindred-gate";
 import { isExpired, quietDays } from "../../lib/kindred-expiry";
 
 /* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
@@ -57,6 +57,8 @@ export default function KindredsTab() {
      (lib/room-seen) and refreshed with the list, since a room just left
      changes it */
   const [seenLedger, setSeenLedger] = useState<Record<string, number>>({});
+  const scrollRef = useRef<ScrollView>(null);
+  const yourTurnY = useRef(0);
   const load = useCallback(() => {
     let alive = true;
     readRoomSeen().then((l) => alive && setSeenLedger(l));
@@ -119,7 +121,6 @@ export default function KindredsTab() {
   const expired = useMemo(() => orbit.filter((t) => t.revealed && isExpired(t.lastAt, premium)).sort((a, b) => b.lastAt - a.lastAt), [orbit, premium]);
   const coming = useMemo(() => orbit.filter((t) => !t.revealed).sort(bySort), [orbit]);
   const yourTurn = useMemo(() => coming.filter((t) => threadState(t)?.needsYou), [coming]);
-  const waitingThem = useMemo(() => coming.filter((t) => !threadState(t)?.needsYou), [coming]);
   const named = kindreds.length;
   // anything at all that is on you — one number, one sentence
   const waiting = orbit.filter((t) => threadState(t)?.needsYou).length;
@@ -133,22 +134,25 @@ export default function KindredsTab() {
       {/* the same plate Today and Sealed carry */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("kindreds.title")}</Text>
-        {/* the plate answers one question — is anything on me? */}
-        <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
-          {empty ? (
-            t("kindreds.none")
-          ) : waiting ? (
-            <Text style={{ color: P.pen }}>{waiting === 1 ? t("kindreds.toAnswerOne") : t("kindreds.toAnswer", { n: waiting })}</Text>
-          ) : (
-            t("kindreds.allAnswered")
-          )}
-        </Text>
+        {/* the plate answers one question — is anything on me? — and when
+            the answer is yes, tapping it goes there (owner, 2026-09-20) */}
+        <Pressable disabled={!waiting} onPress={() => scrollRef.current?.scrollTo({ y: Math.max(0, yourTurnY.current - 12), animated: true })} hitSlop={8}>
+          <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
+            {empty ? (
+              t("kindreds.none")
+            ) : waiting ? (
+              <Text style={{ color: P.pen }}>{waiting === 1 ? t("kindreds.toAnswerOne") : t("kindreds.toAnswer", { n: waiting })} ↓</Text>
+            ) : (
+              t("kindreds.allAnswered")
+            )}
+          </Text>
+        </Pressable>
       </View>
 
       {empty ? (
         <Empty onWrite={() => router.push("/compose")} />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           {/* the sky: only the ones still on their way, with what the marks mean in the footer */}
           <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.05 }]}>
             <View style={{ alignItems: "center", paddingTop: 6 }}>
@@ -213,7 +217,9 @@ export default function KindredsTab() {
                     </Pressable>
                   );
                 })}
-                {Array.from({ length: premium ? 1 : Math.max(0, FREE_KINDREDS - kindreds.length) }, (_, i) => (
+                {/* three seats to start with; once they are taken, one dotted
+                    seat for the next — kindreds are unlimited */}
+                {Array.from({ length: Math.max(1, SEATS - kindreds.length) }, (_, i) => (
                   <Pressable key={`seat-${i}`} onPress={() => router.push("/room/wren?guide=kindreds")} style={({ pressed }) => ({ width: 78, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
                     <View style={{ width: 56, height: 56, alignItems: "center", justifyContent: "center" }}>
                       <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderStyle: "dashed", borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
@@ -251,22 +257,17 @@ export default function KindredsTab() {
             </>
           )}
 
-          {/* still strangers: your turn first, then the ones you are waiting on */}
+          {/* still strangers: only the ones on you. The ones you are waiting
+              on live on the rings above and nowhere else — a list of people
+              who owe you a letter is not something to look at (owner,
+              2026-09-20). */}
           {yourTurn.length > 0 && (
-            <>
+            <View onLayout={(e) => (yourTurnY.current = e.nativeEvent.layout.y)}>
               <Text style={groupLabel}>{t("kd.groupYourTurn", { n: yourTurn.length })}</Text>
               {yourTurn.map((th) => (
                 <StrangerRow key={th.id} t={th} onOpen={() => router.push(`/chat/${th.id}`)} />
               ))}
-            </>
-          )}
-          {waitingThem.length > 0 && (
-            <>
-              <Text style={groupLabel}>{t("kd.groupWaiting", { n: waitingThem.length })}</Text>
-              {waitingThem.map((th) => (
-                <StrangerRow key={th.id} t={th} onOpen={() => router.push(`/chat/${th.id}`)} />
-              ))}
-            </>
+            </View>
           )}
         </ScrollView>
       )}
