@@ -4,12 +4,12 @@ import { archNameThird } from "../../lib/aura-copy";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { t, useLang, t as tr } from "../../lib/i18n";
+import { getLang, t, useLang, t as tr } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
-import { fetchThreadMessages, momentUrl, sendThreadMessage, uploadMoment, type ThreadDetail, type ThreadMessage } from "../../lib/db";
+import { fetchThreadMessages, momentUrl, readThreadDetailCache, sendThreadMessage, uploadMoment, type ThreadDetail, type ThreadMessage } from "../../lib/db";
 import { answerFold, fetchFolds, leaveFold, type Fold } from "../../lib/folds";
 import { fetchSongTitle, parseSongUrl } from "../../lib/song";
 import { sharedSongs, songNotice } from "../../lib/shared-songs";
@@ -20,6 +20,7 @@ import { markNoticeSeen, readNoticesSeen } from "../../lib/notice-seen";
 import { useEntitlement } from "../../lib/entitlement";
 import { isExpired, quietDays } from "../../lib/kindred-expiry";
 import { markWork } from "../../lib/stall-probe";
+import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
@@ -103,7 +104,25 @@ export default function RoomScreen() {
     markWork("room:load");
     if (__DEV__ && id.startsWith("demo-")) {
       const { DEMO_DETAILS } = await import("../../data/demo");
-      setDetail(DEMO_DETAILS[id] ?? null);
+      const base = DEMO_DETAILS[id] ?? null;
+      if (storeMode && base && id === "demo-mira") {
+        const d = DEMO_TEXT[getLang()];
+        const h = 3600_000;
+        const at = (ago: number) => new Date(Date.now() - ago * h).toISOString();
+        setDetail({
+          ...base,
+          opening: d.letter,
+          messages: [
+            { body: d.b1, mine: false, date: at(80) },
+            { body: d.b2, mine: true, date: at(64) },
+            { body: d.b3, mine: false, date: at(40) },
+            { body: d.b4, mine: true, date: at(30) },
+            { body: d.b5, mine: false, date: at(2) },
+          ],
+        });
+        return;
+      }
+      setDetail(base);
       // every fold state the room can render, for eyes-on verification
       setDetail((d) =>
         d
@@ -126,6 +145,9 @@ export default function RoomScreen() {
       ]);
       return;
     }
+    // the last read first, so the room is there when you are; the fetch replaces it
+    const cached = await readThreadDetailCache(id);
+    if (cached) setDetail((cur) => cur ?? cached);
     const [d, f, spent] = await Promise.all([fetchThreadMessages(id), fetchFolds(id), momentUsedToday(id)]);
     setDetail(d);
     if (d) void markRoomSeen(id, d.otherCount); // what's on screen now is read

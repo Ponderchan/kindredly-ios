@@ -675,6 +675,19 @@ export interface ThreadMessage {
   mediaPath?: string | null;
   meta?: { url?: string; title?: string } | null;
 }
+/* THE LAST READ OF A ROOM, ON THE PHONE (owner, build 18: "a room takes
+   three seconds to open"). The room paints this at once and the fetch
+   replaces it; a room opened once never opens blank again. */
+const DETAIL_CACHE = "kindredly_thread_detail";
+export async function readThreadDetailCache(threadId: string): Promise<ThreadDetail | null> {
+  try {
+    const raw = await scoped.getItem(`${DETAIL_CACHE}:${threadId}`);
+    return raw ? (JSON.parse(raw) as ThreadDetail) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchThreadMessages(
   threadId: string,
 ): Promise<ThreadDetail | null> {
@@ -682,11 +695,21 @@ export async function fetchThreadMessages(
   const me = await uid();
   if (!me) return null;
   try {
-    let { data: t } = await supabase!
-      .from("threads")
-      .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at")
-      .eq("id", threadId)
-      .maybeSingle();
+    /* the row and the messages in ONE round trip, not one after the other
+       — the serial pair was the whole of the wait on a slow link */
+    const [tRes, mRes] = await Promise.all([
+      supabase!
+        .from("threads")
+        .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at")
+        .eq("id", threadId)
+        .maybeSingle(),
+      supabase!
+        .from("messages")
+        .select("sender,body,created_at,kind,media_path,meta")
+        .eq("thread_id", threadId)
+        .order("created_at"),
+    ]);
+    let t = tRes.data;
     if (!t) {
       // pre-0007 fallback: media columns absent
       const retry = await supabase!
@@ -696,11 +719,7 @@ export async function fetchThreadMessages(
         .maybeSingle();
       t = retry.data as any;
     }
-    let { data: msgs, error: msgErr } = await supabase!
-      .from("messages")
-      .select("sender,body,created_at,kind,media_path,meta")
-      .eq("thread_id", threadId)
-      .order("created_at");
+    let { data: msgs, error: msgErr } = mRes;
     if (msgErr) {
       // pre-0015 fallback: kind/media columns absent
       const retry = await supabase!
@@ -712,7 +731,7 @@ export async function fetchThreadMessages(
     }
     if (!t) return null;
     const iamA = t.a === me;
-    return {
+    const detail: ThreadDetail = {
       stamp: t.stamp,
       revealed: !!t.revealed,
       otherName: iamA ? t.b_name : t.a_name,
@@ -737,6 +756,8 @@ export async function fetchThreadMessages(
         meta: m.meta ?? null,
       })),
     };
+    void scoped.setItem(`${DETAIL_CACHE}:${threadId}`, JSON.stringify(detail)).catch(() => {});
+    return detail;
   } catch {
     return null;
   }

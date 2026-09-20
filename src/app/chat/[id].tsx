@@ -18,7 +18,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { markRoomSeen } from "../../lib/room-seen";
 import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
-import { clearThreadReaction, fetchThreadMessages, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
+import { clearThreadReaction, fetchThreadMessages, readThreadDetailCache, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
@@ -119,6 +119,9 @@ export default function ChatScreen() {
       if (demo?.revealed) void introduceOnce(id, () => setCeremony(true));
       return;
     }
+    // the last read first, so the page is there when you are; the fetch replaces it
+    const cached = await readThreadDetailCache(id);
+    if (cached) setDetail((cur) => cur ?? cached);
     const d = await fetchThreadMessages(id);
     setDetail(d);
     // The introduction is held for whoever arrives after the second

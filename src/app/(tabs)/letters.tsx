@@ -23,6 +23,7 @@ import { CloseOfDay } from "../../components/CloseOfDay";
 import { threadState } from "../../lib/thread-state";
 import { Toast, useSlow } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
+import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { SendPlane } from "../../components/ChatField";
@@ -44,7 +45,7 @@ import { LetterInFlight } from "../../components/LetterInFlight";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
 import { deskDay } from "../../lib/day";
 import { startDayClosed } from "../../lib/activities";
-import { LeaveSheet } from "../../components/LeaveSheet";
+import { LeaveSheet, openLeaveSheet } from "../../components/LeaveSheet";
 
 /* Today — the post, as a stack of strangers you swipe through. Each letter fills
    the screen; if it moves you, write back and a thread opens (it moves to
@@ -236,8 +237,8 @@ export default function LettersTab() {
     return next;
   };
 
-  const demo = __DEV__ && loaded && pool.length === 0;
-  const feed = demo ? DEMO_POOL : pool;
+  const demo = __DEV__ && loaded && (pool.length === 0 || storeMode);
+  const feed = demo ? (storeMode ? [{ ...DEMO_POOL[0], body: DEMO_TEXT[getLang()].letter }, ...DEMO_POOL.slice(1)] : DEMO_POOL) : pool;
 
   return (
     <Feed
@@ -443,8 +444,10 @@ function Feed({
        rehearsal and never count. */
     if (!demo && !to.author?.startsWith("demo-") && flights >= MAX_IN_FLIGHT) {
       /* the product's own sheet, not the OS dialog — the pouch being full
-         is a state of the post, and the post speaks in its own voice */
-      setFlightSheet(true);
+         is a state of the post, and the post speaks in its own voice.
+         Keyboard first: the sheet opened UNDER it and all anyone saw was
+         a dimmed page (owner, build 18). */
+      openLeaveSheet(() => setFlightSheet(true));
       return;
     }
     setSending(true);
