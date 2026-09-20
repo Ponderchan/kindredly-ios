@@ -18,6 +18,7 @@ import {
   IBMPlexMono_600SemiBold,
 } from "@expo-google-fonts/ibm-plex-mono";
 import { Caveat_400Regular, Caveat_600SemiBold } from "@expo-google-fonts/caveat";
+import { Newsreader_400Regular, Newsreader_400Regular_Italic } from "@expo-google-fonts/newsreader";
 
 /* v20 typography — Fraunces (serif) + Inter (sans), on the blue-white palette.
    IBM Plex Mono carries the postal system's own voice: counters, dockets,
@@ -40,5 +41,12 @@ export function useAppFonts() {
     // spoken voice stays serif italic; this face exists for ink she leaves.
     Caveat_400Regular,
     Caveat_600SemiBold,
+    // the letter itself is READ in Newsreader: a text face, made for long
+    // reading on a screen. Fraunces stays the display voice — headlines and
+    // her italic — but its f (a ball terminal, and ligatures that hook over
+    // the next letter) is a mannerism at 40px in the middle of someone's
+    // sentence (owner, 2026-09-20).
+    Newsreader_400Regular,
+    Newsreader_400Regular_Italic,
   });
 }

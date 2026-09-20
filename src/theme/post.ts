@@ -37,9 +37,10 @@ export const PF = {
   monoSemi: "IBMPlexMono_600SemiBold",
   // the letter itself — system font, so CJK renders properly (see F.letter)
   letter: undefined as unknown as string,
-  // a letter between two people — read and written in serif; CJK glyphs
-  // fall through to the system face, which is what we want
-  letterSerif: "Fraunces_400Regular",
+  // a letter between two people — read and written in a text serif
+  // (Newsreader; see theme/fonts for why not Fraunces); CJK glyphs fall
+  // through to the system face, which is what we want
+  letterSerif: "Newsreader_400Regular",
   serif: "Fraunces_400Regular",
   serifItalic: "Fraunces_400Regular_Italic",
   // Wren's handwriting — reserved for words she physically puts on paper

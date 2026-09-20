@@ -15,6 +15,7 @@ import { fetchSongTitle, parseSongUrl } from "../../lib/song";
 import { sharedSongs, songNotice } from "../../lib/shared-songs";
 import { markMomentUsed, momentUsedToday, shotToday } from "../../lib/daily-moment";
 import { saveToLore } from "../../lib/lore";
+import { markRoomSeen } from "../../lib/room-seen";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Linking, Modal } from "react-native";
 import { LeaveATrace, type TraceAction } from "../../components/LeaveATrace";
@@ -121,6 +122,7 @@ export default function RoomScreen() {
     }
     const [d, f, spent] = await Promise.all([fetchThreadMessages(id), fetchFolds(id), momentUsedToday(id)]);
     setDetail(d);
+    if (d) void markRoomSeen(id, d.otherCount); // what's on screen now is read
     if (f) setFolds(f);
     setMomentSpent(spent);
   }, [id]);

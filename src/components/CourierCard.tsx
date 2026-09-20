@@ -164,20 +164,33 @@ export function CourierCard({
     const loops: Animated.CompositeAnimation[] = [];
     const sine = Easing.inOut(Easing.sin);
     if (flyingNow) {
-      loops.push(Animated.loop(Animated.sequence([Animated.timing(bob, { toValue: 1, duration: 1300, easing: sine, useNativeDriver: true }), Animated.timing(bob, { toValue: 0, duration: 1300, easing: sine, useNativeDriver: true })])));
-      loops.push(Animated.loop(Animated.timing(dash, { toValue: 1, duration: 1400, easing: Easing.linear, useNativeDriver: false })));
+      loops.push(Animated.loop(Animated.sequence([Animated.timing(bob, { toValue: 1, duration: 1300, easing: sine, useNativeDriver: true, isInteraction: false }), Animated.timing(bob, { toValue: 0, duration: 1300, easing: sine, useNativeDriver: true, isInteraction: false })])));
+      loops.push(Animated.loop(Animated.timing(dash, { toValue: 1, duration: 1400, easing: Easing.linear, useNativeDriver: false, isInteraction: false })));
     } else if (where.state === "unsent") {
-      loops.push(Animated.loop(Animated.sequence([Animated.delay(1800), Animated.timing(tilt, { toValue: 1, duration: 420, easing: sine, useNativeDriver: true }), Animated.delay(900), Animated.timing(tilt, { toValue: 0, duration: 420, easing: sine, useNativeDriver: true })])));
+      loops.push(Animated.loop(Animated.sequence([Animated.delay(1800), Animated.timing(tilt, { toValue: 1, duration: 420, easing: sine, useNativeDriver: true, isInteraction: false }), Animated.delay(900), Animated.timing(tilt, { toValue: 0, duration: 420, easing: sine, useNativeDriver: true, isInteraction: false })])));
     } else {
-      loops.push(Animated.loop(Animated.sequence([Animated.timing(breathe, { toValue: 1, duration: 1600, easing: sine, useNativeDriver: true }), Animated.timing(breathe, { toValue: 0, duration: 1600, easing: sine, useNativeDriver: true })])));
-      loops.push(Animated.loop(Animated.sequence([Animated.delay(4200), Animated.timing(hop, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true }), Animated.timing(hop, { toValue: 0, duration: 220, easing: Easing.bounce, useNativeDriver: true })])));
+      loops.push(Animated.loop(Animated.sequence([Animated.timing(breathe, { toValue: 1, duration: 1600, easing: sine, useNativeDriver: true, isInteraction: false }), Animated.timing(breathe, { toValue: 0, duration: 1600, easing: sine, useNativeDriver: true, isInteraction: false })])));
+      loops.push(Animated.loop(Animated.sequence([Animated.delay(4200), Animated.timing(hop, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true, isInteraction: false }), Animated.timing(hop, { toValue: 0, duration: 220, easing: Easing.bounce, useNativeDriver: true, isInteraction: false })])));
     }
-    if (P.stars) loops.push(Animated.loop(Animated.sequence([Animated.timing(twinkle, { toValue: 1, duration: 1100, easing: sine, useNativeDriver: false }), Animated.timing(twinkle, { toValue: 0, duration: 1100, easing: sine, useNativeDriver: false })])));
-    if (P.cloud) loops.push(Animated.loop(Animated.sequence([Animated.timing(drift, { toValue: 1, duration: 9000, easing: sine, useNativeDriver: false }), Animated.timing(drift, { toValue: 0, duration: 9000, easing: sine, useNativeDriver: false })])));
-    if (where.state === "bringing") loops.push(Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 900, easing: sine, useNativeDriver: false }), Animated.timing(pulse, { toValue: 0, duration: 900, easing: sine, useNativeDriver: false })])));
+    if (where.state === "bringing") loops.push(Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 900, easing: sine, useNativeDriver: false, isInteraction: false }), Animated.timing(pulse, { toValue: 0, duration: 900, easing: sine, useNativeDriver: false, isInteraction: false })])));
     loops.forEach((l) => l.start());
     return () => loops.forEach((l) => l.stop());
-  }, [flyingNow, where.state, P.stars, P.cloud, bob, dash, breathe, hop, tilt, twinkle, drift, pulse]);
+  }, [flyingNow, where.state, bob, dash, breathe, hop, tilt, pulse]);
+  /* THE WEATHER IS ITS OWN LOOP. The cloud and the stars used to restart
+     with every state change (a reply landing, the card reloading), and
+     Animated.loop resets its value before the first pass — so the cloud
+     snapped back to its start and the reader saw it jump. Now they run
+     from mount to unmount, in a loop that never resets, and they are not
+     "interactions" (see above). */
+  useEffect(() => {
+    const loops: Animated.CompositeAnimation[] = [];
+    const sine = Easing.inOut(Easing.sin);
+    if (P.stars) loops.push(Animated.loop(Animated.sequence([Animated.timing(twinkle, { toValue: 1, duration: 1100, easing: sine, useNativeDriver: false, isInteraction: false }), Animated.timing(twinkle, { toValue: 0, duration: 1100, easing: sine, useNativeDriver: false, isInteraction: false })]), { resetBeforeIteration: false }));
+    if (P.cloud) loops.push(Animated.loop(Animated.sequence([Animated.timing(drift, { toValue: 1, duration: 9000, easing: sine, useNativeDriver: false, isInteraction: false }), Animated.timing(drift, { toValue: 0, duration: 9000, easing: sine, useNativeDriver: false, isInteraction: false })]), { resetBeforeIteration: false }));
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [P.stars, P.cloud, twinkle, drift]);
+
   const flying = where.state === "exploring" || where.state === "delivery" || where.state === "bringing";
   // the house and the window sit on the globe's shoulders; the route goes over the top
   const R = w * GLOBE.r;

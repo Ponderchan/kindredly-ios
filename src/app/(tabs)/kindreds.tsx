@@ -1,6 +1,7 @@
 import { useWrenName } from "../../lib/wren-name";
 import { t, useLang } from "../../lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { readRoomSeen, unreadOf } from "../../lib/room-seen";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -48,8 +49,13 @@ export default function KindredsTab() {
   /* paint the last good list at once, then ask the network — and only ask
      if the list is more than a few seconds old, since the live channel
      below already moves a landing reply onto its ring */
+  /* their letters you haven't opened, per kindred — the ledger is local
+     (lib/room-seen) and refreshed with the list, since a room just left
+     changes it */
+  const [seenLedger, setSeenLedger] = useState<Record<string, number>>({});
   const load = useCallback(() => {
     let alive = true;
+    readRoomSeen().then((l) => alive && setSeenLedger(l));
     readThreadsCache().then((c) => {
       if (alive && c && !loadedRef.current) {
         setThreads(c);
@@ -161,6 +167,7 @@ export default function KindredsTab() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, gap: 6 }}>
                 {kindreds.map((th) => {
                   const st = threadState(th);
+                  const unread = unreadOf(seenLedger, th.id, th.theirs);
                   return (
                     <Pressable key={th.id} onPress={() => router.push(`/room/${th.id}`)} style={({ pressed }) => ({ width: 78, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
                       <View style={{ width: 56, height: 56 }}>
@@ -170,7 +177,15 @@ export default function KindredsTab() {
                             <Path d="M5 12l5 5 9-10" />
                           </Svg>
                         </View>
-                        {st?.needsYou && <View style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: 5, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF" }} />}
+                        {/* letters of theirs you haven't opened: the count, in pen.
+                            Your turn with nothing new to read: the dot, as before. */}
+                        {unread > 0 ? (
+                          <View style={{ position: "absolute", top: -5, right: -7, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
+                          </View>
+                        ) : st?.needsYou ? (
+                          <View style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: 5, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF" }} />
+                        ) : null}
                       </View>
                       <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: P.ink, marginTop: 7 }}>{th.otherName || t("kd.aKindred")}</Text>
                     </Pressable>

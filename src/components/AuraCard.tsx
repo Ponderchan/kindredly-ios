@@ -230,14 +230,15 @@ export function AuraCard({
         ? t("ap.prog.notYet", { n: rung.letters }) // past the five and nothing holds — say so
         : t("ap.prog.letters", { n: rung.letters, m: rung.level === 2 ? 5 : 3 })
       : rung.level <= 4
-        ? t("ap.prog.stuck", { n: Math.min(rung.stuck, 3) })
+        ? rung.stuck > 0
+          ? t("ap.prog.stuck", { n: Math.min(rung.stuck, 3) })
+          : t("ap.prog.forming", { n: rung.letters }) // a stage reached, nothing held yet: say what was read, not "0 of 3"
         : rung.level === 5
           ? t("ap.prog.addUp")
           : t(rung.changing === 1 ? "ap.prog.changing" : "ap.prog.changingMany", { n: rung.changing });
 
   const cta = rung.level === 0 ? t("ap.cta.empty") : rung.level <= 2 ? t("ap.cta.another") : rung.level <= 4 ? t("ap.cta.labels") : t("ap.cta.full");
   const onCta = rung.level <= 2 ? onWrite ?? onOpen : onOpen;
-  const tag = rung.fidelity === "pencil" ? t("ap.tag.pencil") : rung.fidelity === "sketch" ? t("ap.tag.sketch") : null;
   /* the title's own scene, once a noun is in view: its sketch while the
      name is forming (rungs 3–4), in colour once it is earned (5–6) */
   const title = st?.title ?? null;
@@ -255,7 +256,7 @@ export function AuraCard({
   const onNight = art ? rung.fidelity === "colour" && !!artId && artId.startsWith("late-night") : rung.fidelity === "colour" && day === "night";
   const chrome = onNight ? "#FFFFFF" : CREAM.ink;
   const chromeText = onNight ? CREAM.ink : "#FFFFFF";
-  const tickOff = onNight ? "rgba(255,255,255,0.35)" : CREAM.tickOff;
+
 
   return (
     <Pressable onPress={onOpen} style={[{ backgroundColor: named ? CREAM.cardNamed : CREAM.card, borderRadius: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.12 }]}>
@@ -267,14 +268,9 @@ export function AuraCard({
         <View style={{ position: "absolute", left: 14, top: 12, backgroundColor: chrome, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 }}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.5, color: chromeText }}>{t("me.sec.aura").toUpperCase()}</Text>
         </View>
-        <View style={{ position: "absolute", left: 16, bottom: 11, flexDirection: "row", gap: 3, alignItems: "center" }}>
-          {Array.from({ length: 5 }, (_, i) => (
-            <View key={i} style={{ width: i < rung.ticks ? 13 : 7, height: 4, borderRadius: 2, backgroundColor: i < rung.ticks ? chrome : tickOff }} />
-          ))}
-        </View>
-        {tag && (
-          <Text style={{ position: "absolute", right: 13, bottom: 10, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: "rgba(30,27,53,0.6)" }}>{tag}</Text>
-        )}
+        {/* the picture IS the progress — pencil, sketch, colour. The tick
+            meter and the PENCIL / SKETCH tag that used to sit on it named
+            the stage a second time in words nobody uses (owner, 2026-09-20). */}
       </View>
 
       <View style={{ paddingHorizontal: 15, paddingTop: 13, paddingBottom: 15 }}>

@@ -1,6 +1,6 @@
 import { useWrenName } from "../../lib/wren-name";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, InteractionManager, Pressable, ScrollView, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -134,15 +134,18 @@ export default function MeTab() {
           void recordAuraSnapshot(a);
         })();
       };
-      const task = InteractionManager.runAfterInteractions(() => {
+      /* a plain timer, not InteractionManager: the courier card's ambient
+         loops kept the interaction queue busy and the read waited on a gap
+         that rarely came. The tab's own transition is ~300ms. */
+      const timer = setTimeout(() => {
         if (!alive) return;
         lastRead.current = Date.now();
         read();
-      });
+      }, 320);
 
       return () => {
         alive = false;
-        task.cancel();
+        clearTimeout(timer);
       };
     }, [user?.created_at, profile?.firstLine]),
   );
