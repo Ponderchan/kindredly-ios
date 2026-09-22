@@ -1,4 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
+import { hungerRead } from "../../lib/hunger";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, InteractionManager, Pressable, ScrollView, Text, View } from "react-native";
 import { markWork } from "../../lib/stall-probe";
@@ -256,6 +257,7 @@ export default function MeTab() {
             where={where}
             threads={threads}
             lastWrittenAt={aura?.lastWrittenAt ?? null}
+            hunger={hungerRead({ threads, lastWrittenAt: aura?.lastWrittenAt ?? null })}
             seenToday={seenTodayN}
             stage={stageFloor}
             onPress={() => router.push("/courier")}

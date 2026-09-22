@@ -88,6 +88,7 @@ export default function CourierRoom() {
           statsReady={statsReady}
           threads={threads}
           pieces={aura?.pieces ?? 0}
+          lastWrittenAt={aura?.lastWrittenAt ?? null}
           accessory={accessory}
           premium={premium}
           stageFloor={stageFloor}

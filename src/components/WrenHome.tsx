@@ -1,4 +1,5 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
+import { hungerRead } from "../lib/hunger";
 import { dShort, postNo } from "../lib/format";
 import { Image } from "react-native";
 import { keepsake } from "../data/keepsakes";
@@ -52,11 +53,14 @@ export function WrenHome({
   cofounderNo = null,
   onPlus,
   statsReady = true,
+  lastWrittenAt = null,
 }: {
   stats: GrowthStats;
   /** false while the counts are still on their way — nothing counted is shown as a number until then */
   statsReady?: boolean;
   threads: ThreadSummary[];
+  /** when you last wrote anything (the aura's read) — her hunger clock */
+  lastWrittenAt?: string | null;
   accessory: WrenAccessory;
   premium: boolean;
   stageFloor?: WrenStage;
@@ -82,6 +86,7 @@ export function WrenHome({
   const [carried, setCarried] = useState<{ at: string }[]>([]);
   const [carriedIn, setCarriedIn] = useState(false); // null vs zero — see whereabouts()
   const where = whereabouts(threads, carriedIn ? carried.length : null);
+  const hungry = hungerRead({ threads, lastWrittenAt });   // someone waiting, or days with nothing to carry (lib/hunger)
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
@@ -200,7 +205,7 @@ export function WrenHome({
             onPress={() => setLog((v) => !v)}
             stage={info.stage}
             state={state}
-            mood={dozy && where.state === "home" ? "sleepy" : WB[where.state].mood}
+            mood={hungry ? hungry.mood : dozy && where.state === "home" ? "sleepy" : WB[where.state].mood}
             accessory={wearsHere ? accessory : "none"}
           />
         </View>
@@ -211,7 +216,7 @@ export function WrenHome({
         )}
         {/* what she'd yell over her shoulder */}
         <View style={{ position: "absolute", left: 16, bottom: 12, backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 4 }}>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink }}>{!flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink }}>{hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
         </View>
       </View>
 

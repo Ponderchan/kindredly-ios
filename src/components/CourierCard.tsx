@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { HungerRead } from "../lib/hunger";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import Reanimated, { Easing as REasing, cancelAnimation, useAnimatedProps, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
@@ -134,6 +135,7 @@ export function CourierCard({
   onPress,
   hour,
   entry: entryProp,
+  hunger = null,
 }: {
   wren: string;
   where: WhereaboutsRead;
@@ -147,6 +149,8 @@ export function CourierCard({
   hour?: number;
   /** a fixed log entry — previews only */
   entry?: LogEntry;
+  /** when she is hungry or someone is waiting on you, that is what she says (lib/hunger) */
+  hunger?: HungerRead | null;
 }) {
   const [w, setW] = useState(0);
   const lang = useLang(); // the diary is written in the reader's language — re-write it when that changes
@@ -297,7 +301,7 @@ export function CourierCard({
               ],
             }}
           >
-            <WrenBird size={birdSize} mood={WHEREABOUTS_META[where.state].mood} stage={stage} accessory={accessory} pose={flying ? "fly" : "perch"} />
+            <WrenBird size={birdSize} mood={hunger ? hunger.mood : WHEREABOUTS_META[where.state].mood} stage={stage} accessory={accessory} pose={flying ? "fly" : "perch"} />
           </Animated.View>
         )}
         {/* the fly pose already carries a letter — the family art draws it */}
@@ -320,8 +324,8 @@ export function CourierCard({
               <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 16, letterSpacing: -0.3, color: P.text }}>{wren}</Text>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{agoLabel(entry.at)}</Text>
             </View>
-            <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{entry.line}</Text>
-            {!!entry.sub && <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{entry.sub}</Text>}
+            <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
+            {!!(hunger ? hunger.sub : entry.sub) && <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
           </View>
           <View style={{ backgroundColor: P.button, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 }}>
             <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.buttonText }}>{t("me.open")}</Text>
