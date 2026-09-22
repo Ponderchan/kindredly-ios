@@ -9,13 +9,12 @@ import type { PoolLetter } from "./db";
    ────────────────────────────────────────────────────────────────────────
    "Your auras are close" was a number's shadow: true, unverifiable, and it
    named nothing. The chip on the Today card says the one thing that can be
-   pointed at. Five reads, in the owner's order — the more it is about a
+   pointed at. Four reads, in the owner's order — the more it is about a
    person, the earlier it comes; the more it is about the system, the later:
 
      subject — the letter is about something you keep writing about (the
                theme rule the counted layer uses, ∩ your subject stickers;
                the private ones never, even here)
-     stamp   — the stamp they chose is one you have posted under yourself
      label   — the letter fires a sticker rule you already wear (per-piece
                verdict, not the board: THIS letter has it, and so do you)
      hour    — the letter was written in your band and you are a night
@@ -23,11 +22,14 @@ import type { PoolLetter } from "./db";
      close   — the nightly matcher named this author. Still true, still the
                fallback, drawn as two rings instead of a sentence
 
+   "Your stamp too" was a fifth read, between subject and label, and is
+   gone (owner, 2026-09-22): with one starter stamp under most letters it
+   fired on nearly everything and named nothing a reader could point at.
+
    Nothing is generated. A letter that shares nothing gets no chip. */
 
 export type Signal =
   | { kind: "subject"; stickerId: string }
-  | { kind: "stamp" }
   | { kind: "label"; stickerId: string }
   | { kind: "hour"; stickerId: "night_writer" | "early_bird" }
   | { kind: "close" };
@@ -52,9 +54,6 @@ export function signalFrom(letter: PoolLetter, me: AuraFacts): Signal | null {
       if (st && !st.private && me.usage.has(st.id)) return { kind: "subject", stickerId: st.id };
     }
   }
-
-  /* the stamp */
-  if (letter.stamp && me.stamps.has(letter.stamp)) return { kind: "stamp" };
 
   /* one sticker the letter shows and the reader wears */
   if (readable && me.stickers.size) {

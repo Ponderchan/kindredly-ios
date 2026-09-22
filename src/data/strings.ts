@@ -289,7 +289,6 @@ strings(
     "ld.written": "WRITTEN",
     "ld.aurasClose": "YOUR AURAS ARE CLOSE",
     "ld.both.label": "{name}, like you",
-    "ld.both.stamp": "your stamp too",
     "ld.close": "auras close",
 
     /* ── composer pickers ── */
@@ -2286,7 +2285,6 @@ strings(
     "ld.written": "ESCRITO",
     "ld.aurasClose": "SUS AURAS SON CERCANAS",
     "ld.both.label": "{name}, como tú",
-    "ld.both.stamp": "tu sello también",
     "ld.close": "auras cercanas",
 
     /* ── composer pickers ── */
@@ -4283,7 +4281,6 @@ strings(
     "ld.written": "ESCRITO",
     "ld.aurasClose": "SUAS AURAS SÃO PRÓXIMAS",
     "ld.both.label": "{name}, como você",
-    "ld.both.stamp": "seu selo também",
     "ld.close": "auras próximas",
 
     /* ── composer pickers ── */
@@ -6280,7 +6277,6 @@ strings(
     "ld.written": "DITULIS",
     "ld.aurasClose": "AURA KALIAN BERDEKATAN",
     "ld.both.label": "{name}, sama sepertimu",
-    "ld.both.stamp": "prangkomu juga",
     "ld.close": "aura kalian dekat",
 
     /* ── composer pickers ── */
@@ -8255,7 +8251,6 @@ strings(
     "ld.written": "ÉCRITE",
     "ld.aurasClose": "VOS AURAS SONT PROCHES",
     "ld.both.label": "{name}, comme toi",
-    "ld.both.stamp": "ton timbre aussi",
     "ld.close": "auras proches",
     "cp.stampsHeader": "TIMBRES",
     "cp.pickTitle": "Choisis un timbre.",
@@ -10179,7 +10174,6 @@ strings(
     "ld.written": "GESCHRIEBEN",
     "ld.aurasClose": "EURE AUREN LIEGEN NAH BEIEINANDER",
     "ld.both.label": "{name}, wie du",
-    "ld.both.stamp": "deine Marke auch",
     "ld.close": "Auren nah",
     "cp.stampsHeader": "MARKEN",
     "cp.pickTitle": "Wähl eine Marke.",
@@ -12103,7 +12097,6 @@ strings(
     "ld.written": "SCRITTA",
     "ld.aurasClose": "LE VOSTRE AURE SONO VICINE",
     "ld.both.label": "{name}, come te",
-    "ld.both.stamp": "anche il tuo francobollo",
     "ld.close": "aure vicine",
     "cp.stampsHeader": "FRANCOBOLLI",
     "cp.pickTitle": "Scegli un francobollo.",
@@ -14027,7 +14020,6 @@ strings(
     "ld.written": "書いた",
     "ld.aurasClose": "オーラが近い",
     "ld.both.label": "{name}、あなたと同じ",
-    "ld.both.stamp": "あなたの切手でもある",
     "ld.close": "オーラが近い",
     "cp.stampsHeader": "切手",
     "cp.pickTitle": "切手を選ぶ。",
@@ -15951,7 +15943,6 @@ strings(
     "ld.written": "작성",
     "ld.aurasClose": "아우라가 가까워요",
     "ld.both.label": "{name}, 당신처럼",
-    "ld.both.stamp": "당신의 우표이기도",
     "ld.close": "아우라가 가까움",
     "cp.stampsHeader": "우표",
     "cp.pickTitle": "우표를 고르세요.",

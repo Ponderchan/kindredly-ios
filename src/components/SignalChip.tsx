@@ -12,14 +12,8 @@ import type { Signal } from "../lib/today-signal";
 
 export function SignalChip({ signal }: { signal: Signal }) {
   /* one grammar for every sticker you both wear — "{Name}, like you" —
-     whether it was read off the words, the clock or the subject; the
-     stamp says "your stamp too" (its name is already on the tag beside it) */
-  const line =
-    signal.kind === "stamp"
-      ? t("ld.both.stamp")
-      : signal.kind === "close"
-        ? t("ld.close")
-        : t("ld.both.label", { name: stickerName(signal.stickerId) });
+     whether it was read off the words, the clock or the subject */
+  const line = signal.kind === "close" ? t("ld.close") : t("ld.both.label", { name: stickerName(signal.stickerId) });
   return (
     <View
       style={{
@@ -45,13 +39,6 @@ export function SignalChip({ signal }: { signal: Signal }) {
 
 function Mark({ kind }: { kind: Signal["kind"] }) {
   const c = PUNCH.ink;
-  if (kind === "stamp")
-    return (
-      <Svg width={13} height={13} viewBox="0 0 16 16">
-        <Rect x={1.5} y={1.5} width={13} height={13} rx={1.5} fill="none" stroke={c} strokeWidth={1.8} strokeDasharray="2.2 1.6" />
-        <Rect x={5} y={5} width={6} height={6} rx={1} fill={c} />
-      </Svg>
-    );
   if (kind === "hour")
     return (
       <Svg width={13} height={13} viewBox="0 0 16 16">

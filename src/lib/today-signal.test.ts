@@ -52,8 +52,8 @@ ok("early bird + a 7am letter → early", signalFrom(letter(body, 7), me({ usage
 const s = signalFrom(letter(body, 23, close), me({ stickers: [fired[0]], usage: ["night_writer"] }));
 ok("a sticker you wear that the letter fires → label, above hour", s?.kind === "label" && s.stickerId === fired[0]);
 ok("a sticker you wear that the letter does not fire → falls through", signalFrom(letter(body, 12), me({ stickers: ["semicolon_enjoyer"] })) === null);
-ok("their stamp is one you posted → stamp, above label", signalFrom(letter(body, 23, close), me({ stickers: [fired[0]], usage: ["night_writer"], stamps: ["crush", "tiny-win"] }))?.kind === "stamp");
-ok("a stamp you never posted → falls through", signalFrom(letter(body, 12, { stamp: "lost" }), me({ stamps: ["crush"] })) === null);
+ok("their stamp is one you posted → no longer a read; the label still wins", signalFrom(letter(body, 23, close), me({ stickers: [fired[0]], usage: ["night_writer"], stamps: ["crush", "tiny-win"] }))?.kind === "label");
+ok("a stamp alone, posted or not → nothing", signalFrom(letter(body, 12, { stamp: "crush" }), me({ stamps: ["crush"] })) === null);
 ok("a home letter reads as the home theme", !!homeId && themes.length > 0);
 const sub = signalFrom(letter(homeBody, 23, close), me({ usage: [homeId, "night_writer"], stamps: ["crush"], stickers: fired }));
 ok("a subject you keep writing about → subject, above everything", sub?.kind === "subject" && sub.stickerId === homeId);
