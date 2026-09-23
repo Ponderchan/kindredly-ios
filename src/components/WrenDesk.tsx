@@ -131,7 +131,12 @@ export function DeskStrip() {
   const load = useCallback(() => {
     let alive = true;
     const settle = (n: number) => {
-      readRoomSeen().then((l) => alive && setUnread(wrenUnread(l, n)));
+      readRoomSeen().then((l) => {
+        if (!alive) return;
+        const u = wrenUnread(l, n);
+        setUnread(u);
+        setDeskWaiting(u); // Today is the first screen; the tab's number agrees with it
+      });
     };
     readPostsCache().then((c) => c.length && settle(c.length));
     fetchWrenPosts().then((p) => p && settle(p.length));

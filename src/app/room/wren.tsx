@@ -15,6 +15,7 @@ import { dShort } from "../../lib/format";
 import { alertFail } from "../../lib/fail";
 import { useAuth } from "../../lib/auth";
 import { markRoomSeen } from "../../lib/room-seen";
+import { setDeskWaiting } from "../../lib/waiting";
 import { momentUrl, uploadMoment } from "../../lib/db";
 import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
 import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
@@ -108,9 +109,13 @@ export default function WrenDeskScreen() {
   }, [isGuest]);
   useFocusEffect(load);
 
-  // what is in front of you is what you have seen
+  /* what is in front of you is what you have seen — and the tab's number
+     stops counting her desk now, not the next time Kindreds is opened
+     (reading her from Today's strip left a 1 on the Kindreds tab) */
   useEffect(() => {
-    if (posts.length) void markRoomSeen(WREN_ROOM, posts.length);
+    if (!posts.length) return;
+    void markRoomSeen(WREN_ROOM, posts.length);
+    setDeskWaiting(0);
   }, [posts.length]);
 
   /* a guide asked for by link — a post's "see how", or a push — opens

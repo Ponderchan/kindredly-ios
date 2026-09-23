@@ -13,11 +13,18 @@ import { StampTile } from "./StampTile";
    tray where the keyboard was.
 
    The stamp tray: a tab row — stamps, a custom stamp, a stamp tool (the
-   last two are doors not built yet, drawn faint and inert) — then the
-   stamps this letter suggests, the ones used lately, and all thirty-six
-   in their categories. The ⊕ tray: the question and the voice letter. */
+   last two are doors not built yet) — then the stamps this letter
+   suggests, the ones used lately, and all thirty-six in their categories.
+   The ⊕ tray: the question and the voice letter. */
 
 export const TRAY_H = 296;
+
+/* THE DOORS STAY SHUT THIS VERSION (owner, 2026-09-23). The custom stamp
+   and the stamp cam were drawn faint and inert in the tab row; a reviewer
+   who taps one and gets nothing is a rejection. Stamps alone need no row,
+   so the whole row waits with them. When the two are built, set this and
+   the row comes back as it was. */
+const DOORS_OPEN = false;
 
 /* ── THE GLYPH FAMILY (design sheet 2026-09-20, set 1a "Perf Line") ──
    One perforated square is the mother shape; only what sits inside it
@@ -161,19 +168,21 @@ export function StampTray({ selected, suggested, recent, onPick }: { selected: s
   const known = new Set(STAMPS.map((s) => s.id));
   return (
     <View style={{ height: TRAY_H, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12 }}>
-      {/* the tab row: stamps, then the two doors not built yet */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 }}>
-        <View style={{ width: 44, height: 36, borderRadius: 9, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-          <StampGlyph size={22} />
+      {/* the tab row: stamps, then the two doors not built yet (DOORS_OPEN) */}
+      {DOORS_OPEN && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 }}>
+          <View style={{ width: 44, height: 36, borderRadius: 9, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+            <StampGlyph size={22} />
+          </View>
+          <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
+            <CustomGlyph size={22} />
+          </View>
+          <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
+            <CamGlyph size={22} />
+          </View>
         </View>
-        <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
-          <CustomGlyph size={22} />
-        </View>
-        <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
-          <CamGlyph size={22} />
-        </View>
-      </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      )}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: DOORS_OPEN ? 0 : 4, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {section(t("cp.forThisLetter"), suggested.filter((id) => known.has(id)))}
         {section(t("cp.recent"), recent.filter((id) => known.has(id)))}
         {STAMP_CATEGORIES.map((cat) =>

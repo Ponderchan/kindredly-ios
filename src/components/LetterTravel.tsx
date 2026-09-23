@@ -199,16 +199,37 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
   const deskX = W / 2;
   const deskY = 452;
 
-  /* the bird: desk pickup → up → along the arc */
+  /* the bird: desk pickup → up → along the arc. As the world pulls into
+     view the desk becomes a point on it — home — and she is carried there
+     with it, so the arc starts under her. She used to be left above the
+     desk and then drawn at home the frame the arc began: a 250pt jump,
+     between the owner's 12th and 13th frames. */
   const [ax, ay] = onArc(cross);
   const flyUp = enter(0, 1, CUES.World - 0.2, CUES.Cross + 0.05)(T);
-  const birdX = cross > 0.001 ? ax : lerp(swoop, -120, deskX - 78) + flyUp * 34;
-  const birdY = cross > 0.001 ? ay : lerp(swoop, 700, deskY - 6) - lift * 44 - flyUp * 120;
+  const preX = lerp(swoop, -120, deskX - 78) + flyUp * 34;
+  const preY = lerp(swoop, 700, deskY - 6) - lift * 44 - flyUp * 120;
+  const birdX = cross > 0.001 ? ax : lerp(out, preX, home[0]);
+  const birdY = cross > 0.001 ? ay : lerp(out, preY, home[1]);
   const birdS = (0.6 + swoop * 0.14) * (1 - out * 0.62);
-  const nextA = onArc(Math.min(cross + 0.04, 1));
-  const heading = cross > 0.001 ? (Math.atan2(nextA[1] - ay, nextA[0] - ax) * 180) / Math.PI : -8 + swoop * 6 - flyUp * 14;
-  const wing = (beat - (CUES.Pickup - 0.05)) * (2 + cross * 5);
-  const bob = swoop > 0.01 ? Math.sin(wing * Math.PI * 2) * 3 : 0;
+  /* SHE LANDS, SHE DOESN'T SHAKE (the owner's recording, 2026-09-23).
+     The wing rate used to rise with `cross` (2 → 7 a second) and was
+     multiplied by the whole elapsed time, so as it rose the phase raced
+     ahead — a dozen beats a second along the arc — and once she had
+     arrived it sat at 7 a second for as long as the send took: the bird
+     trembling on the far side of the world. Now the wings keep one steady
+     beat, and over her last 0.4s of arc they ease into a slow breath.
+     Her heading came from the point just ahead of her, and at the end of
+     the arc there is none — atan2(0, 0) snapped her level in one frame;
+     it is taken across her position now, and eases level as she lands. */
+  const landing = enter(0, 1, TOTAL - 0.9, TOTAL - 0.5)(T);
+  const behind = onArc(Math.max(cross - 0.02, 0));
+  const ahead = onArc(Math.min(cross + 0.02, 1));
+  const arcHeading = (Math.atan2(ahead[1] - behind[1], ahead[0] - behind[0]) * 180) / Math.PI;
+  const heading = cross > 0.001 ? arcHeading * (1 - landing) : -8 + swoop * 6 - flyUp * 14;
+  const since = beat - (CUES.Pickup - 0.05);
+  const flap = Math.sin(since * 2.4 * Math.PI * 2) * 3;
+  const breath = Math.sin(since * 0.8 * Math.PI * 2) * 1.2;
+  const bob = swoop > 0.01 ? flap * (1 - landing) + breath * landing : 0;
 
   const envOnDesk = (1 - taken) * (1 - out);
   const foldW = ramp(fold, [0, 0.52, 1], [214, 210, 132]);
