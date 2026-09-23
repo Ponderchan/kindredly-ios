@@ -124,6 +124,31 @@ function Planet({ w, P }: { w: number; P: Palette }) {
   );
 }
 
+/* HER DAY OFF — the course instead of the planet: a strip of ground at the
+   band's edge, two pairs of pillars in the palette's own colours, and a
+   dotted trail where she's been flapping */
+function Course({ w, P }: { w: number; P: Palette }) {
+  const ground = SCENE_H - BAND_H - 8;
+  const ink = P.moon ? "#DAD6F2" : P.chip;
+  const pair = (x: number, gc: number, key: string) => (
+    <G key={key}>
+      <Rect x={x} y={-4} width={26} height={gc - 26 + 4} rx={3} fill={P.scrim} stroke={ink} strokeWidth={2} />
+      <Rect x={x - 4} y={gc - 34} width={34} height={9} rx={3} fill={P.scrim} stroke={ink} strokeWidth={2} />
+      <Rect x={x} y={gc + 26} width={26} height={ground - gc - 26 + 2} rx={3} fill={P.scrim} stroke={ink} strokeWidth={2} />
+      <Rect x={x - 4} y={gc + 26} width={34} height={9} rx={3} fill={P.scrim} stroke={ink} strokeWidth={2} />
+    </G>
+  );
+  return (
+    <>
+      <Path d={`M${w * 0.02} ${ground - 6} Q ${w * 0.14} ${58} ${w * 0.25} ${96}`} fill="none" stroke={ink} strokeWidth={1.6} strokeDasharray="3 5" opacity={0.6} />
+      {pair(w * 0.52, 94, "a")}
+      {pair(w * 0.82, 72, "b")}
+      <Rect x={0} y={ground} width={w} height={SCENE_H - ground} fill={P.land} />
+      <Rect x={0} y={ground} width={w} height={2} fill={P.moon ? "#DAD6F2" : P.forest} />
+    </>
+  );
+}
+
 export function CourierCard({
   wren,
   where,
@@ -136,6 +161,9 @@ export function CourierCard({
   hour,
   entry: entryProp,
   hunger = null,
+  dayOff = false,
+  best = 0,
+  onPlay,
 }: {
   wren: string;
   where: WhereaboutsRead;
@@ -151,6 +179,11 @@ export function CourierCard({
   entry?: LogEntry;
   /** when she is hungry or someone is waiting on you, that is what she says (lib/hunger) */
   hunger?: HungerRead | null;
+  /** her day off (lib/free-flight): she's doing laps, and the card opens the game */
+  dayOff?: boolean;
+  /** your best run, to invite a rematch */
+  best?: number;
+  onPlay?: () => void;
 }) {
   const [w, setW] = useState(0);
   const lang = useLang(); // the diary is written in the reader's language — re-write it when that changes
@@ -174,7 +207,8 @@ export function CourierCard({
   const twinkle = useSharedValue(0);
   const drift = useSharedValue(0);
   const pulse = useSharedValue(0);
-  const flyingNow = where.state === "exploring" || where.state === "delivery" || where.state === "bringing";
+  const playing = dayOff && !!onPlay;
+  const flyingNow = playing || where.state === "exploring" || where.state === "delivery" || where.state === "bringing";
   const focused = useIsFocused();
   useEffect(() => {
     if (!focused) {
@@ -228,7 +262,7 @@ export function CourierCard({
   const birdSize = 50;
 
   return (
-    <Pressable onPress={onPress} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={({ pressed }) => [{ backgroundColor: W14.card, borderRadius: 20, overflow: "hidden", opacity: pressed ? 0.94 : 1 }, cardShadow]}>
+    <Pressable onPress={playing ? onPlay : onPress} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={({ pressed }) => [{ backgroundColor: W14.card, borderRadius: 20, overflow: "hidden", opacity: pressed ? 0.94 : 1 }, cardShadow]}>
       {/* the scene */}
       <View style={{ height: SCENE_H, backgroundColor: P.sky[1] }}>
         {w > 0 && (
@@ -250,11 +284,12 @@ export function CourierCard({
                 </RG>
               </>
             )}
-            {P.sun && <Circle cx={w * P.sunAt[0]} cy={SCENE_H * P.sunAt[1]} r={daylight(hour) === "day" ? 13 : 11} fill={P.sun} />}
+            {/* the sun or moon — between the pillars on her day off */}
+            {P.sun && <Circle cx={playing ? w * 0.69 : w * P.sunAt[0]} cy={playing ? 26 : SCENE_H * P.sunAt[1]} r={daylight(hour) === "day" ? 13 : 11} fill={P.sun} />}
             {P.moon && (
               <>
-                <Circle cx={w * P.sunAt[0]} cy={SCENE_H * P.sunAt[1]} r={11} fill="#FFF3D6" />
-                <Circle cx={w * P.sunAt[0] + 6} cy={SCENE_H * P.sunAt[1] - 4} r={9.5} fill={P.sky[0]} />
+                <Circle cx={playing ? w * 0.69 : w * P.sunAt[0]} cy={playing ? 26 : SCENE_H * P.sunAt[1]} r={11} fill="#FFF3D6" />
+                <Circle cx={(playing ? w * 0.69 : w * P.sunAt[0]) + 6} cy={(playing ? 26 : SCENE_H * P.sunAt[1]) - 4} r={9.5} fill={P.sky[0]} />
               </>
             )}
             {P.cloud && (
@@ -263,9 +298,9 @@ export function CourierCard({
                 <REllipse animatedProps={cloudB} cy={26} rx={13} ry={9} fill={P.cloud} opacity={0.9} />
               </>
             )}
-            <Planet w={w} P={P} />
+            {playing ? <Course w={w} P={P} /> : <Planet w={w} P={P} />}
             {/* the route — only once a letter has left */}
-            {where.state !== "unsent" && (
+            {!playing && where.state !== "unsent" && (
               <RPath
                 d={`M${x0} ${ARC_Y} Q ${(x0 + x1) / 2} ${ARC_CY} ${x1} ${ARC_Y}`}
                 fill="none"
@@ -277,6 +312,7 @@ export function CourierCard({
               />
             )}
             {/* your window, their window */}
+            {!playing && (<>
             <Rect x={x0 - 7} y={ARC_Y - 2} width={14} height={12} rx={2} fill={P.lit || where.state === "bringing" ? "#FFD98A" : "#FFFFFF"} stroke={GREEN.ink} strokeWidth={1.6} />
             {where.state === "bringing" && (
               <RCircle animatedProps={pulseProps} cx={x0} cy={ARC_Y + 4} r={13} fill="#FFD98A" />
@@ -284,10 +320,30 @@ export function CourierCard({
             <Path d={`M${x0 - 9} ${ARC_Y - 2} L${x0} ${ARC_Y - 9} L${x0 + 9} ${ARC_Y - 2}`} fill="none" stroke={GREEN.ink} strokeWidth={1.6} strokeLinejoin="round" />
             <Rect x={x1 - 7} y={ARC_Y - 4} width={14} height={14} rx={2} fill={P.lit ? "#FFD98A" : "#FFFFFF"} stroke={GREEN.ink} strokeWidth={1.6} opacity={where.state === "unsent" ? 0.35 : 1} />
             <Path d={`M${x1} ${ARC_Y - 4} V${ARC_Y + 10} M${x1 - 7} ${ARC_Y + 3} H${x1 + 7}`} stroke={GREEN.ink} strokeWidth={1.2} opacity={where.state === "unsent" ? 0.35 : 1} />
+            </>)}
           </Svg>
         )}
+        {/* her day off: mid-flap before the first gap, the letter she needs on a key */}
+        {w > 0 && playing && (
+          <Animated.View
+            style={{
+              position: "absolute",
+              left: w * 0.3 - 22,
+              top: 98 - 22,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              transform: [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [5, -8] }) }, { rotate: bob.interpolate({ inputRange: [0, 1], outputRange: ["10deg", "-8deg"] }) }],
+            }}
+          >
+            <WrenBird size={44} mood="happy" stage={stage} accessory={accessory} pose={stage === "wren" ? "fly" : "perch"} letter={false} />
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: "#1E1B35", alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: "#1E1B35" }}>K</Text>
+            </View>
+          </Animated.View>
+        )}
         {/* the bird, on the arc — or at home on the sill */}
-        {w > 0 && (
+        {w > 0 && !playing && (
           <Animated.View
             style={{
               position: "absolute",
@@ -310,8 +366,14 @@ export function CourierCard({
         <View style={{ position: "absolute", left: 12, top: 12, backgroundColor: P.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.5, color: P.chipText }}>{t("me.sec.courier").toUpperCase()}</Text>
         </View>
-        <Text style={{ position: "absolute", left: 0, width: x0 * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink }}>{t("me.route.you")}</Text>
-        <Text style={{ position: "absolute", right: 0, width: (w - x1) * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink, opacity: where.state === "unsent" ? 0.4 : 1 }}>{t("me.route.somewhere")}</Text>
+        {/* on her day off: a sticker beside the chip */}
+        {playing && (
+          <View style={{ position: "absolute", left: 12, top: 46, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: "#1E1B35", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, transform: [{ rotate: "-4deg" }] }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "#1E1B35" }}>{t("ff.dayoff.tag")}</Text>
+          </View>
+        )}
+        {!playing && <Text style={{ position: "absolute", left: 0, width: x0 * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink }}>{t("me.route.you")}</Text>}
+        {!playing && <Text style={{ position: "absolute", right: 0, width: (w - x1) * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink, opacity: where.state === "unsent" ? 0.4 : 1 }}>{t("me.route.somewhere")}</Text>}
 
         {/* the second tier: a solid panel with a hard edge (the owner's V10) —
             two layers you see at a glance, not a fade */}
@@ -323,14 +385,30 @@ export function CourierCard({
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
             <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
               <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 16, letterSpacing: -0.3, color: P.text }}>{wren}</Text>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{agoLabel(entry.at)}</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{playing ? t("ff.dayoff.tag") : agoLabel(entry.at)}</Text>
             </View>
-            <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
-            {!!(hunger ? hunger.sub : entry.sub) && <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
+            {playing ? (
+              <>
+                <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{where.state === "delivery" ? t("ff.dayoff.lineCarrying") : t("ff.dayoff.line")}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{best > 0 ? t("ff.dayoff.subBest", { n: best }) : t("ff.dayoff.sub")}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
+                {!!(hunger ? hunger.sub : entry.sub) && <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
+              </>
+            )}
           </View>
-          <View style={{ backgroundColor: P.button, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 }}>
-            <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.buttonText }}>{t("me.open")}</Text>
-          </View>
+          {playing ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C3E84F", borderRadius: 999, borderWidth: 2, borderColor: "#1E1B35", paddingHorizontal: 14, paddingVertical: 7 }}>
+              <Text style={{ fontSize: 9, color: "#1E1B35" }}>▶</Text>
+              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: "#1E1B35" }}>{t("ff.play")}</Text>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: P.button, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 }}>
+              <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.buttonText }}>{t("me.open")}</Text>
+            </View>
+          )}
         </View>
       </View>
     </Pressable>

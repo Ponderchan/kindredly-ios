@@ -1,9 +1,12 @@
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+/* the gesture library's scroll view: a drag that starts on her (the perch,
+   components/CourierStage) blocks the page's scroll instead of racing it */
+import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { P, PF } from "../theme/post";
-import { PALETTE, daylight } from "../components/CourierCard";
+import { PALETTE, daylight, type Daylight } from "../components/CourierCard";
 import { WrenHome } from "../components/WrenHome";
 import type { WrenAccessory, WrenStage } from "../components/WrenBird";
 import { t, useLang } from "../lib/i18n";
@@ -30,6 +33,7 @@ import { getStageFloor, stageIndex, wrenStage } from "../lib/wren-style";
 export default function CourierRoom() {
   useLang();
   const router = useRouter();
+  const params = useLocalSearchParams<{ play?: string }>(); // ?play=1 — from her day off on Me
   const wren = useWrenName();
   const { user, profile } = useAuth();
   const { premium, cofounderNo } = useEntitlement();
@@ -67,20 +71,31 @@ export default function CourierRoom() {
     }, [user?.created_at, profile?.firstLine]),
   );
 
+  const scrollRef = useRef<ScrollView>(null);
+  /* her day off is played on the cover: while it is, the page holds still
+     at the top (the keyboard is up) and the strip above wears the hour flown */
+  const [playSky, setPlaySky] = useState<Daylight | null>(null);
+  const onPlayChange = (d: Daylight | null) => {
+    if (d && !playSky) scrollRef.current?.scrollTo({ y: 0, animated: true });
+    setPlaySky(d);
+  };
+  const coverSky = PALETTE[playSky ?? daylight()];
   const equip = (a: WrenAccessory) => dress(a);
 
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 0 }} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never">
+      <ScrollView ref={scrollRef} scrollEnabled={!playSky} keyboardShouldPersistTaps={playSky ? "always" : "handled"} contentContainerStyle={{ paddingBottom: 0 }} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never">
         {/* the cover runs under the status bar; the header sits on it */}
-        <View style={{ height: insets.top, backgroundColor: PALETTE[daylight()].sky[0] }} />
+        <View style={{ height: insets.top, backgroundColor: coverSky.sky[0] }} />
         {/* the header rides on the cover and scrolls away with it */}
-        <View style={{ height: 44, zIndex: 2, marginBottom: -44 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4, height: 44 }}>
+        {/* box-none: the header's empty stretch lets taps through to the cover
+            below it (the game's × sits there) */}
+        <View pointerEvents="box-none" style={{ height: 44, zIndex: 2, marginBottom: -44 }}>
+          <View pointerEvents="box-none" style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4, height: 44 }}>
             <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 24, color: PALETTE[daylight()].ink }}>‹</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 24, color: coverSky.ink }}>‹</Text>
             </Pressable>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 2.4, color: PALETTE[daylight()].ink }}>{t("cr.title", { wren: wren.toUpperCase() })}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 2.4, color: coverSky.ink }}>{t("cr.title", { wren: wren.toUpperCase() })}</Text>
           </View>
         </View>
         <WrenHome
@@ -101,6 +116,9 @@ export default function CourierRoom() {
           onAllKeepsakes={() => router.push("/keepsakes")}
           cofounderNo={cofounderNo}
           onPlus={() => router.push("/paywall?src=journey_archive")}
+          scrollRef={scrollRef}
+          onPlayChange={onPlayChange}
+          autoPlay={params.play === "1"}
         />
       </ScrollView>
     </View>

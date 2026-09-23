@@ -23,7 +23,9 @@ import { myAura, readAuraCache, recordAuraSnapshot, type Aura } from "../../lib/
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard, W14, cardShadow } from "../../components/AuraCard";
-import { Envelope, Kindreds } from "../../components/PostTabBar";
+import { Envelope } from "../../components/PostTabBar";
+import { StateGlyph } from "../../components/StateGlyph";
+import { isDayOff, useFlightBest } from "../../lib/free-flight";
 import { dShort } from "../../lib/format";
 import { CofounderMark } from "../../components/CofounderMark";
 import { useAuth } from "../../lib/auth";
@@ -168,6 +170,8 @@ export default function MeTab() {
   /* her status rides the switch itself — you see she moved before you
      even open her room */
   const where = whereabouts(threads, statsIn ? stats.lettersSent : null);
+  const hunger = hungerRead({ threads, lastWrittenAt: aura?.lastWrittenAt ?? null });
+  const flightBest = useFlightBest();
   /* the plate's LETTERS is what the My letters page lists: letters you sent
      into the pool. Replies live in Kindreds; the aura card says "letters &
      replies" for what it read. GrowthStats keeps counting replies alone (the
@@ -246,7 +250,8 @@ export default function MeTab() {
               <Text style={countLabel}>{t("me.lettersLabel")}</Text>
             </Pressable>
             <Pressable onPress={() => router.push("/my-kindreds")} style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, backgroundColor: pressed ? "#F6F5FD" : "transparent" })}>
-              <Kindreds color={KIN_GREEN} />
+              {/* the kindred face (round 3a) — the one the Kindreds tab wears */}
+              <StateGlyph kind="kindreds" size={24} />
               <Text style={countNum}>{stats.kindreds}</Text>
               <Text style={countLabel}>{stats.kindreds === 1 ? t("me.kindredLabelOne") : t("me.kindredLabel")}</Text>
             </Pressable>
@@ -260,10 +265,14 @@ export default function MeTab() {
             where={where}
             threads={threads}
             lastWrittenAt={aura?.lastWrittenAt ?? null}
-            hunger={hungerRead({ threads, lastWrittenAt: aura?.lastWrittenAt ?? null })}
+            hunger={hunger}
             seenToday={seenTodayN}
             stage={stageFloor}
             onPress={() => router.push("/courier")}
+            /* her day off (lib/free-flight): the card opens the game on her cover */
+            dayOff={isDayOff({ state: where.state, hunger, stage: stageFloor })}
+            best={flightBest?.gates ?? 0}
+            onPlay={() => router.push("/courier?play=1")}
           />
         </View>
 

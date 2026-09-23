@@ -50,6 +50,7 @@ export const scoped = {
 /* every account-owned key. Additions belong here AND in their module. */
 const OWNED_KEYS = [
   "kindredly_journal",
+  "kindredly_free_flight_best",
   "kindredly_profile_local",
   "kindredly_wren_name",
   "kindredly_wren_pronoun",

@@ -6,14 +6,19 @@ import { keepsake } from "../data/keepsakes";
 import { CofounderMark } from "./CofounderMark";
 import { mint, unseen, type Minted } from "../lib/keepsakes";
 import { loadJournal } from "../lib/journal";
-import { useEffect, useRef, useState } from "react";
-import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { Alert, Animated, Easing, Keyboard, LayoutAnimation, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { PALETTE, daylight } from "./CourierCard";
 import { t as tr, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { useHatchlingForm } from "../lib/hatchling-form";
-import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin, type WrenStage } from "./WrenBird";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin, type WrenStage } from "./WrenBird";
+import { CourierStage } from "./CourierStage";
+import { StateGlyph } from "./StateGlyph";
+import { FreeFlight, PillarsGlyph } from "./FreeFlightGame";
+import { isDayOff } from "../lib/free-flight";
+import type { Daylight } from "./CourierCard";
 import { WardrobeRack } from "./WardrobeRack";
 import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
@@ -54,6 +59,9 @@ export function WrenHome({
   onPlus,
   statsReady = true,
   lastWrittenAt = null,
+  scrollRef,
+  onPlayChange,
+  autoPlay = false,
 }: {
   stats: GrowthStats;
   /** false while the counts are still on their way — nothing counted is shown as a number until then */
@@ -75,6 +83,12 @@ export function WrenHome({
   /** her ring — the one cofounder mark another person ever sees */
   cofounderNo?: number | null;
   onPlus: () => void;
+  /** the page's scroll view — a drag that starts on her is hers, not the page's */
+  scrollRef?: RefObject<any>;
+  /** her day off (Free Flight, played on the cover): the hour being flown, or null when she's back on her perch */
+  onPlayChange?: (sky: Daylight | null) => void;
+  /** opened from her day off on Me: straight into the game */
+  autoPlay?: boolean;
 }) {
   useLang();
   const { skin, pick } = useWrenSkinControl();
@@ -168,12 +182,47 @@ export function WrenHome({
   const sky = PALETTE[light];
   const band = light === "night" ? "#2B2660" : sky.chip;
   const onSky = sky.ink;
+  const { width: coverW, height: winH } = useWindowDimensions();
+  /* the course: taller than the perch, but always clear of the keyboard
+     (≈290 pt of keyboard and header on the smallest phones) */
+  const playH = Math.max(280, Math.min(360, winH - 290));
+  /* HER DAY OFF (lib/free-flight): two windows a day she does laps — the
+     pillars stand in her sky and she says so, and the door is right there */
+  const dayOff = isDayOff({ state: where.state, hunger: hungry, stage: info.stage });
+  /* HER DAY OFF — the cover becomes the course (components/FreeFlightGame),
+     a little taller so the keyboard leaves it room, on the hour you pick */
+  const [play, setPlay] = useState(false);
+  const openPlay = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setPlay(true);
+    setLog(false);
+    setTracking(false);
+    onPlayChange?.(light);
+  };
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!autoPlay || autoOpened.current || !flies) return;
+    autoOpened.current = true;
+    openPlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, flies]);
+  const closePlay = () => {
+    Keyboard.dismiss();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setPlay(false);
+    onPlayChange?.(null);
+  };
+  /* the far layer is 16% larger than the cover and offset by 8% each way,
+     so it can drift without showing an edge; everything in it is placed
+     where it sat on the cover */
+  const fx = (f: number) => f * coverW + coverW * 0.08;
+  const fy = (v: number) => v + COVER_H * 0.08;
 
   return (
     <View>
       {/* ── the cover (the owner's D8): her sky, edge to edge, and her, big.
           The status band sits on the cover's bottom edge. ── */}
-      <View style={{ height: COVER_H, backgroundColor: sky.sky[1], overflow: "hidden" }}>
+      <View style={{ height: play ? playH : COVER_H, backgroundColor: sky.sky[1], overflow: "hidden" }}>
         <Svg width="100%" height={COVER_H} style={{ position: "absolute", left: 0, top: 0 }}>
           <Defs>
             <LinearGradient id="roomSky" x1="0" y1="0" x2="0" y2="1">
@@ -182,47 +231,102 @@ export function WrenHome({
             </LinearGradient>
           </Defs>
           <Rect x={0} y={0} width="100%" height={COVER_H} fill="url(#roomSky)" />
-          {/* two soft discs — the sheet's air behind her */}
-          <Circle cx="78%" cy="28%" r={120} fill="#FFFFFF" opacity={light === "night" ? 0.06 : 0.28} />
-          <Circle cx="18%" cy="82%" r={150} fill="#FFFFFF" opacity={light === "night" ? 0.05 : 0.22} />
-          {sky.stars && [[0.12, 40], [0.3, 24], [0.47, 58], [0.62, 30], [0.86, 48], [0.93, 90]].map(([fx, y], i) => <Circle key={i} cx={`${(fx as number) * 100}%`} cy={y as number} r={i % 2 ? 1 : 1.6} fill="#FFFFFF" opacity={0.8} />)}
-          {sky.sun && <Circle cx="86%" cy={54} r={16} fill={sky.sun} />}
-          {sky.moon && (
-            <>
-              <Circle cx="86%" cy={54} r={14} fill="#FFF3D6" />
-              <Circle cx="88.5%" cy={48} r={12} fill={sky.sky[0]} />
-            </>
-          )}
         </Svg>
-        {statsReady && (
+        {play && <FreeFlight width={coverW} height={playH} top={44} sky={light} stage={info.stage} accessory={wearsHere ? accessory : "none"} onClose={closePlay} />}
+        {/* the perch: a stage with depth — drag her, tap her (CourierStage, the web's) */}
+        {!play && <CourierStage
+          width={coverW}
+          height={COVER_H}
+          size={186}
+          bottom={10}
+          stage={info.stage}
+          mood={hungry ? hungry.mood : dozy && where.state === "home" ? "sleepy" : WB[where.state].mood}
+          label={wren}
+          blocks={scrollRef}
+          far={
+            <Svg width={coverW * 1.16} height={COVER_H * 1.16}>
+              {/* on her day off, two pairs of pillars stand in her sky */}
+              {dayOff &&
+                /* clear of the title on the left and the DAY chip: one pair behind
+                   her wing, one half off the right edge */
+                ([[0.62, 0.44], [0.99, 0.6]] as const).map(([f, g], i) => {
+                  const gc = COVER_H * g;
+                  const ink = light === "night" ? "#DAD6F2" : sky.chip;
+                  return (
+                    <G key={`p${i}`} opacity={0.9}>
+                      <Rect x={fx(f) - 15} y={-4} width={30} height={fy(gc - 52)} rx={3} fill={sky.scrim} stroke={ink} strokeWidth={2} />
+                      <Rect x={fx(f) - 19} y={fy(gc - 52) - 10} width={38} height={10} rx={3} fill={sky.scrim} stroke={ink} strokeWidth={2} />
+                      <Rect x={fx(f) - 15} y={fy(gc + 52)} width={30} height={COVER_H * 1.2} rx={3} fill={sky.scrim} stroke={ink} strokeWidth={2} />
+                      <Rect x={fx(f) - 19} y={fy(gc + 52)} width={38} height={10} rx={3} fill={sky.scrim} stroke={ink} strokeWidth={2} />
+                    </G>
+                  );
+                })}
+              {/* two soft discs — the sheet's air behind her */}
+              <Circle cx={fx(0.78)} cy={fy(COVER_H * 0.28)} r={120} fill="#FFFFFF" opacity={light === "night" ? 0.06 : 0.28} />
+              <Circle cx={fx(0.18)} cy={fy(COVER_H * 0.82)} r={150} fill="#FFFFFF" opacity={light === "night" ? 0.05 : 0.22} />
+              {sky.stars && [[0.12, 40], [0.3, 24], [0.47, 58], [0.62, 30], [0.86, 48], [0.93, 90]].map(([f, y], i) => <Circle key={i} cx={fx(f as number)} cy={fy(y as number)} r={i % 2 ? 1 : 1.6} fill="#FFFFFF" opacity={0.8} />)}
+              {sky.sun && <Circle cx={fx(0.86)} cy={fy(54)} r={16} fill={sky.sun} />}
+              {sky.moon && (
+                <>
+                  <Circle cx={fx(0.86)} cy={fy(54)} r={14} fill="#FFF3D6" />
+                  <Circle cx={fx(0.885)} cy={fy(48)} r={12} fill={sky.sky[0]} />
+                </>
+              )}
+            </Svg>
+          }
+          bird={(m, pose, held) => <HeroWren size={186} stage={info.stage} state={state} mood={m} pose={pose} paused={held} accessory={wearsHere ? accessory : "none"} />}
+        />}
+        {statsReady && !play && (
           <View style={{ position: "absolute", right: 14, top: 12, backgroundColor: band, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{tr("me.dayN", { n: stats.day })}</Text>
           </View>
         )}
-        <View style={{ position: "absolute", left: 0, right: 0, bottom: 10, alignItems: "center" }}>
-          <HeroWren
-            size={186}
-            onPress={() => setLog((v) => !v)}
-            stage={info.stage}
-            state={state}
-            mood={hungry ? hungry.mood : dozy && where.state === "home" ? "sleepy" : WB[where.state].mood}
-            accessory={wearsHere ? accessory : "none"}
-          />
-        </View>
-        {cofounderNo != null && (
+        {cofounderNo != null && !play && (
           <View style={{ position: "absolute", left: 14, top: 14 }}>
             <CofounderMark no={cofounderNo} />
           </View>
         )}
-        {/* what she'd yell over her shoulder */}
-        <View style={{ position: "absolute", left: 16, bottom: 12, backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 4 }}>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 13, color: P.ink }}>{hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
-        </View>
+        {/* what she'd yell over her shoulder — and, tapped, her flight log
+            (she used to open it herself; a tap on her is a face now) */}
+        {!play && (
+          <Pressable
+            onPress={() => setLog((v) => !v)}
+            disabled={!flies}
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            accessibilityRole="button"
+            accessibilityHint={tr("wren.log")}
+            accessibilityState={{ expanded: log, disabled: !flies }}
+            style={({ pressed }) => ({ position: "absolute", left: 16, bottom: 12, maxWidth: coverW - 32 - 152, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 4, opacity: pressed ? 0.8 : 1 })}
+          >
+            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontSize: 13, color: P.ink }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+            {flies && <Text style={{ fontFamily: PF.letter, fontSize: 11, color: P.ink40 }}>{log ? "▴" : "▾"}</Text>}
+          </Pressable>
+        )}
+
+        {/* bottom right: how to touch her, and the door to her day off */}
+        {!play && (
+          <View style={{ position: "absolute", right: 16, bottom: 12, alignItems: "flex-end", gap: 8 }}>
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={{ alignItems: "flex-end" }}>
+              {tr("cr.stageHint").split(" · ").map((h) => (
+                <Text key={h} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, lineHeight: 13, color: light === "night" ? "rgba(255,255,255,0.5)" : "rgba(30,27,53,0.5)" }}>{h}</Text>
+              ))}
+            </View>
+            {flies && (
+              /* the game's door: a sticker in the signal colour, the pillars and
+                 her on it, PLAY — it has to read as a game at a glance */
+              <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: P.ink, shadowColor: P.ink, shadowOffset: { width: pressed ? 1 : 3, height: pressed ? 1 : 3 }, shadowOpacity: 1, shadowRadius: 0, transform: [{ translateY: pressed ? 2 : 0 }] })}>
+                <PillarsGlyph size={24} />
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>{tr("ff.play").toUpperCase()}</Text>
+                <Text style={{ fontSize: 9, color: P.ink }}>▶</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
       </View>
 
       {/* ── the status band: where she is, in one line, and the door to the slip ── */}
       {flies && (
-        <View style={{ backgroundColor: band, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 12, gap: 12 }}>
+        <View pointerEvents={play ? "none" : "auto"} style={{ backgroundColor: band, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 12, gap: 12 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: where.state === "bringing" ? "#7CC58F" : "rgba(255,255,255,0.55)" }} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: "#FFFFFF" }} numberOfLines={1}>{where.line}</Text>
@@ -242,7 +346,8 @@ export function WrenHome({
         </View>
       )}
 
-      <View style={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 40 }}>
+      {/* while she's flying laps the page under the course holds still */}
+      <View pointerEvents={play ? "none" : "auto"} style={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 40 }}>
         {/* what she says when you actually tap her — counted, never sold */}
         {flies && log && <FlightLog state={state} carried={carried} threads={threads} driving={drivingT} wren={wren} />}
         {/* the tracking slip: her run, as the post would file it */}
@@ -260,6 +365,7 @@ export function WrenHome({
             ))}
           </View>
         )}
+
 
         {/* ── the journey: ONE line, three stops, the days they really turned ── */}
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 24 }}>{tr("wren.journeyShort")}</Text>
@@ -356,22 +462,19 @@ export function WrenHome({
 
 const COVER_H = 300;
 
+
 /* a counted fact as a sticker label: white, the band's ink as the edge and
    the mark, the number in bold */
 function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | "next"; text: string; tone: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", borderRadius: 999, borderWidth: 1.5, borderColor: tone, paddingLeft: 10, paddingRight: 13, paddingVertical: 6 }}>
+      {/* a kindred wears the kindred face (round 3a), as everywhere else */}
+      {icon === "kindred" ? <StateGlyph kind="kindreds" size={16} /> : (
       <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {icon === "letter" && (
           <>
             <Rect x={3} y={5.5} width={18} height={13} rx={2} />
             <Path d="M3.5 7l8.5 6 8.5-6" />
-          </>
-        )}
-        {icon === "kindred" && (
-          <>
-            <Circle cx={9} cy={12} r={5.5} />
-            <Circle cx={15} cy={12} r={5.5} />
           </>
         )}
         {icon === "date" && (
@@ -382,6 +485,7 @@ function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | 
         )}
         {icon === "next" && <Path d="M5 12h13M13 7l5 5-5 5" />}
       </Svg>
+      )}
       <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 12.5, color: P.ink }}>{text}</Text>
     </View>
   );
@@ -494,7 +598,8 @@ function HeroWren({
   state,
   mood,
   accessory,
-  onPress,
+  pose = "perch",
+  paused = false,
   size = 108,
 }: {
   size?: number;
@@ -502,12 +607,18 @@ function HeroWren({
   state: Whereabouts | "dozing";
   mood: WrenMood;
   accessory: WrenAccessory;
-  onPress: () => void;
+  pose?: WrenPose;
+  /** held in a hand: the idle stops, the hand is the motion */
+  paused?: boolean;
 }) {
   const t = useRef(new Animated.Value(0)).current;
   const g = GRACE[stage];
 
   useEffect(() => {
+    if (paused) {
+      Animated.timing(t, { toValue: 0, duration: 160, useNativeDriver: true }).start();
+      return;
+    }
     t.setValue(0);
     const ms = (base: number) => Math.round(base * g.speed);
     const ease = (to: number, base: number, e = Easing.inOut(Easing.sin)) =>
@@ -533,7 +644,7 @@ function HeroWren({
     const loop = Animated.loop(seq);
     loop.start();
     return () => loop.stop();
-  }, [state, stage, g.speed, t]);
+  }, [state, stage, g.speed, t, paused]);
 
   const to = (out: [number, number]) => t.interpolate({ inputRange: [0, 1], outputRange: out });
   const spin = (deg: number) => t.interpolate({ inputRange: [0, 1], outputRange: ["0deg", `${deg}deg`] });
@@ -549,33 +660,13 @@ function HeroWren({
             ? [{ translateY: to([0, -12 * A]) }, { rotate: spin(6 * A + g.wobble) }]
             : [{ translateX: to([-3 * A, 3 * A]) }, { rotate: spin(5 * A + g.wobble) }];
 
-  /* she reacts to being touched — a startle that plays over the idle */
-  const poke = useRef(new Animated.Value(0)).current;
-  const startle = () => {
-    poke.setValue(0);
-    Animated.sequence([
-      Animated.timing(poke, { toValue: 1, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      Animated.spring(poke, { toValue: 0, friction: 4, tension: 120, useNativeDriver: true }),
-    ]).start();
-    onPress();
-  };
-
   /* her proportions came out of the writing that hatched her — the same
      chick here as at the hatch, not a stock one */
   const form = useHatchlingForm();
 
   return (
-    <Pressable onPress={startle} hitSlop={8}>
-      <Animated.View
-        style={{
-          transform: [
-            ...transform,
-            { scale: poke.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) },
-          ],
-        }}
-      >
-        <WrenBird size={size} stage={stage} mood={mood} accessory={accessory} form={form} />
-      </Animated.View>
-    </Pressable>
+    <Animated.View style={{ transform }}>
+      <WrenBird size={size} stage={stage} mood={mood} pose={pose} accessory={accessory} form={form} />
+    </Animated.View>
   );
 }

@@ -150,7 +150,8 @@ export default function RootLayout() {
                   contentStyle: { backgroundColor: P.paper },
                 }}
               >
-                <Stack.Screen name="index" />
+                {/* the launch is drawn on the wash — so is the screen under it */}
+                <Stack.Screen name="index" options={WASH} />
                 <Stack.Screen name="onboarding" />
                 {/* A SCREEN ARRIVES ON ITS OWN COLOUR. The stack paints every
                     incoming page on paper until the page's first render — so

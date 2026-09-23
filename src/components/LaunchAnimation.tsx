@@ -1,258 +1,259 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, Text, useWindowDimensions, View } from "react-native";
-import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+import Animated, { Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Circle, Path } from "react-native-svg";
 import { PF } from "../theme/post";
 import { t } from "../lib/i18n";
-import { WrenBird } from "./WrenBird";
 
-/* THE LAUNCH — the owner's composition (export 2/launch-animation-src),
-   one continuous piece: a line of handwriting draws itself and gathers
-   into a speckled egg; the egg rocks and cracks with warm light inside;
-   the wren pops out, takes a sealed letter, and flies off; the wordmark
-   lands. Authored at 540×960 over ten seconds as a loop; here it plays
-   once, faster, on the same lavender the native splash shows, and holds
-   on the wordmark until the session is known. A tap skips.
+/* THE LAUNCH — the egg hatches into the mark (owner, 2026-09-24: logo C,
+   launch 2c, "按照你的最强能力").
+   ────────────────────────────────────────────────────────────────────────
+   The mark IS a hatched egg — two commas and the dot between them — so the
+   launch is the one moment that explains it: a whole egg with a gold dot
+   rocks twice, two cracks draw in where the mark's gaps will be, the two
+   pieces fly off carrying their cracks, the broken ends swell into the two
+   comma heads, and the dot settles from gold to ink. Then the wordmark.
+   The bird is not in it any more; she hatches in onboarding, as yours.
 
-   Every value is a function of T, the authored second — the same numbers
-   as the sheet, so the sheet stays the source of truth for the motion. */
+   Three ways to play, because most cold starts are someone coming back:
+     full   the hatch — first launch, and the first launch after an update
+     short  the finished mark fades in and the app follows (≈0.5 s)
+     still  Reduce Motion: the finished mark, no movement
+   The piece rests, completely still, on the finished mark until the
+   session is known, then fades — it never loops, since a mark that looks
+   the same turned half round would read as a spinner. A tap skips once
+   the heads have landed.
 
-const W = 540;
-const H = 960;
-/** authored seconds per real second — 10 s authored plays in ~4.5 s */
-const SPEED = 2.2;
+   What the design review changed from the sheet: no jitter on the dot (a
+   trembling bird was already called a bug), two swings instead of three
+   and smaller, the cracks draw in and leave with their pieces instead of
+   blinking, the pops are staggered, and the heads grow out of the stroke
+   ends rather than appearing from nothing.
 
-const C = {
-  bg: "#ECECFE",
-  ink: "#1E1B35",
-  indigo: "#3A34D6",
-  indigoD: "#2A2499",
-  shellA: "#FBF9FF",
-  shellB: "#E4E1F6",
-  shellEdge: "#CFCBEE",
-  warm: "#FFE7BE",
-  amber: "#D8A63F",
-  green: "#6DAE78",
-  greenD: "#4F8C5C",
-  cream: "#FFF3D6",
-  coral: "#F2887E",
-  mute: "#55506E",
+   Everything moves on the UI thread (one clock, derived per layer), so a
+   JS thread busy with the session and the first screen can't drop frames.
+   Drawn on #ECECFE, the native splash's colour, so nothing flashes.
+   (Pivots are given in points: React Native's transformOrigin string
+   parser misreads a decimal percentage such as "79.6%".) */
+
+const BG = "#ECECFE";
+const INK = "#3A34D6";
+const GOLD = "#D8A63F";
+const WORD = "#1E1B35";
+const MUTE = "#55506E";
+
+/* the mark, on its own 1024 grid (logos/c-mark.svg) */
+const ARC_L = "M394.6 767.2 C300 707 262 620 262 514 C262 360 346 244 451.5 209.5";
+const ARC_R = "M629.4 237.5 C714 298 762 400 762 525 C762 660 680 760 572.5 791.7";
+const FRAG_T = "M451.5 209.5 Q540 186 629.4 237.5";
+const FRAG_B = "M572.5 791.7 Q480 815 394.6 767.2";
+const CRACK_T = "M470 214 L500 250 L528 208 L560 246 L590 222";
+const CRACK_B = "M552 790 L522 752 L494 796 L462 758 L430 778";
+const CRACK_LEN = 200;
+const STROKE = 84;
+const HEAD = 96;
+const CAP = STROKE / 2; // a head starts as the stroke's own round end
+
+/* the full piece, in seconds */
+const END = 2.0;
+const SKIP_FROM = 1.35;
+const SHORT_MS = 450;
+const SEEN_KEY = "kindredly_launch_seen";
+type Mode = "full" | "short" | "still";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+const seg = (t: number, a: number, b: number) => {
+  "worklet";
+  return Math.min(1, Math.max(0, (t - a) / (b - a)));
+};
+const eo = (x: number) => {
+  "worklet";
+  return 1 - Math.pow(1 - x, 3);
+};
+/* a small overshoot, ~4% — enough to land, not enough to bounce */
+const backOut = (x: number) => {
+  "worklet";
+  const c = 1;
+  return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2);
 };
 
-/* the sheet's cues: each scene's authored start */
-const CUES = { Ink: 0, Egg: 1.5, Crack: 3.2, Hatch: 4.5, Flight: 6.2, Mark: 7.7 };
-const TOTAL = 10;
-/** where the piece rests while the app is still waking — before the loop's wash */
-const HOLD_AT = TOTAL - 0.75;
-/** the wordmark and tagline are in by here — the earliest we leave */
-const CAN_LEAVE = CUES.Mark + 2.1;
-
-const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
-const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-const easeOutBack = (t: number) => {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+let Haptics: typeof import("expo-haptics") | null = null;
+try {
+  Haptics = require("expo-haptics");
+} catch {}
+const crackTap = () => {
+  try {
+    void Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  } catch {}
 };
-type Ease = (t: number) => number;
-const animate = (from: number, to: number, start: number, end: number, ease: Ease) => (T: number) => from + (to - from) * ease(clamp((T - start) / (end - start), 0, 1));
-const enter = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutCubic);
-const draw = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeInOutQuad);
-const pop = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutBack);
 
-/* ── the egg, drawn once, reused at every stage ── */
-function Egg({ x, y, s, rot, crack, glow, open }: { x: number; y: number; s: number; rot: number; crack: number; glow: number; open: number }) {
-  const lit = clamp(glow, 0, 1);
-  return (
-    <G transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
-      <Ellipse cx={0} cy={104} rx={64 - lit * 6} ry={9} fill={C.ink} opacity={0.12 + lit * 0.05} />
-      {lit > 0.01 && (
-        <G opacity={lit}>
-          <Circle cx={0} cy={8} r={150} fill="url(#kdGlow)" />
-        </G>
-      )}
-      <G opacity={1 - open}>
-        <Path d="M0 -104C46 -104 76 -46 76 4C76 60 42 100 0 100C-42 100 -76 60 -76 4C-76 -46 -46 -104 0 -104Z" fill="url(#kdShell)" stroke={C.shellEdge} strokeWidth={2.4} />
-        <Circle cx={-30} cy={-44} r={4.6} fill={C.shellEdge} opacity={0.85} />
-        <Circle cx={26} cy={-20} r={3.4} fill={C.shellEdge} opacity={0.7} />
-        <Circle cx={-14} cy={30} r={3} fill={C.shellEdge} opacity={0.6} />
-        <Circle cx={38} cy={44} r={4} fill={C.shellEdge} opacity={0.55} />
-        <Circle cx={-44} cy={6} r={2.6} fill={C.shellEdge} opacity={0.5} />
-        <G opacity={clamp(crack * 3, 0, 1)}>
-          <Path d="M-58 -6 L-30 2 L-12 -18 L8 -4 L28 -26 L46 -12 L62 -22" fill="none" stroke={C.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={[200]} strokeDashoffset={200 - crack * 200} />
-          <Path d="M-12 -18 L-16 -52" fill="none" stroke={C.ink} strokeWidth={2.4} strokeLinecap="round" strokeDasharray={[40]} strokeDashoffset={40 - clamp(crack * 1.6 - 0.5, 0, 1) * 40} />
-          <Path d="M28 -26 L34 -58" fill="none" stroke={C.ink} strokeWidth={2.4} strokeLinecap="round" strokeDasharray={[40]} strokeDashoffset={40 - clamp(crack * 1.6 - 0.7, 0, 1) * 40} />
-        </G>
-      </G>
-      {open > 0.01 && (
-        <G>
-          <G transform={`translate(${-open * 40} ${open * 34}) rotate(${-open * 34})`} opacity={1 - open * 0.15}>
-            <Path d="M-76 4C-76 -46 -46 -104 0 -104C20 -104 36 -92 50 -70L20 -60L-6 -22L-40 -14L-58 -6L-76 4Z" fill="url(#kdShell)" stroke={C.shellEdge} strokeWidth={2.4} />
-          </G>
-          <G transform={`translate(${open * 34} ${open * 44}) rotate(${open * 26})`}>
-            <Path d="M-76 4C-76 34 -60 76 -22 94C20 112 76 72 76 4C76 -14 72 -34 64 -50L40 -24L8 -4L-24 -14L-58 -6Z" fill="url(#kdShellB)" stroke={C.shellEdge} strokeWidth={2.4} />
-          </G>
-        </G>
-      )}
-    </G>
-  );
+const version = () => Constants.expoConfig?.version ?? "0";
+
+export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDone: () => void; force?: Mode }) {
+  const reduce = useReducedMotion();
+  const [mode, setMode] = useState<Mode | null>(force ?? null);
+
+  /* first launch, or the first after an update, gets the hatch */
+  useEffect(() => {
+    if (force) return;
+    if (reduce) {
+      setMode("still");
+      return;
+    }
+    let alive = true;
+    AsyncStorage.getItem(SEEN_KEY)
+      .then((v) => {
+        if (!alive) return;
+        const fresh = v !== version();
+        setMode(fresh ? "full" : "short");
+        if (fresh) void AsyncStorage.setItem(SEEN_KEY, version()).catch(() => {});
+      })
+      .catch(() => alive && setMode("short"));
+    return () => {
+      alive = false;
+    };
+  }, [force, reduce]);
+
+  /* the piece mounts only once it knows how to play, so every animated
+     style's first frame is the right one (a style first computed with no
+     mode drew the wordmark at full opacity for a frame before the hatch) */
+  if (!mode) return <View style={{ flex: 1, backgroundColor: BG }} />;
+  return <Piece mode={mode} ready={ready} onDone={onDone} />;
 }
 
-/* the bird is the product's own — WrenBird, always in Sky, the classic
-   blue: the launch runs before anything about the reader has loaded, and a
-   bird that might change colour mid-hatch is worse than one that is
-   simply hers-to-be. Drawn as a view over the SVG so the family art
-   renders as it does everywhere else; the sheet's position, scale and
-   tilt still drive it. */
-
-export function LaunchAnimation({ ready, onDone }: { ready: boolean; onDone: () => void }) {
+function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: () => void }) {
   const { width: sw, height: sh } = useWindowDimensions();
-  const [T, setT] = useState(0);
-  const fade = useRef(new Animated.Value(1)).current;
-  const skip = useRef(false);
+  const [canLeave, setCanLeave] = useState(false);
   const leaving = useRef(false);
-  const readyRef = useRef(ready);
-  readyRef.current = ready;
 
-  /* the clock: authored seconds, at SPEED; rests at HOLD_AT until the app is ready */
+  const time = useSharedValue(0); // the piece's clock, seconds
+  const veil = useSharedValue(0); // short / still: the whole finished frame fades in
+  const out = useSharedValue(1); // leaving
+
+  const finished = useCallback(() => setCanLeave(true), []);
   useEffect(() => {
-    let raf = 0;
-    const t0 = Date.now();
-    const tick = () => {
-      const t = ((Date.now() - t0) / 1000) * SPEED;
-      const held = readyRef.current ? t : Math.min(t, HOLD_AT);
-      setT(held);
-      if (!leaving.current && readyRef.current && (t >= CAN_LEAVE || (skip.current && t >= CUES.Hatch))) {
-        leaving.current = true;
-        Animated.timing(fade, { toValue: 0, duration: 360, useNativeDriver: true }).start(() => onDone());
-        return;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [fade, onDone]);
-
-  /* ── the sheet's numbers ── */
-  const strokeLen = 520;
-  const inkDraw = draw(0, 1, 0.25, CUES.Egg - 0.15)(T);
-  const inkGather = draw(0, 1, CUES.Egg - 0.3, CUES.Egg + 0.55)(T);
-  const inkFade = 1 - clamp(inkGather * 1.4, 0, 1);
-
-  const eggRise = pop(0, 1, CUES.Egg + 0.1, CUES.Egg + 0.95)(T);
-  const breathe = Math.sin((T - CUES.Egg) * 2.6) * (T > CUES.Egg ? 1 : 0);
-  const wobble = draw(0, 1, CUES.Crack - 0.5, CUES.Crack + 0.5)(T);
-  const crack = draw(0, 1, CUES.Crack + 0.08, CUES.Hatch - 0.1)(T);
-  const glow = enter(0, 1, CUES.Crack + 0.2, CUES.Hatch + 0.3)(T) * (1 - clamp(draw(0, 1, CUES.Flight - 0.3, CUES.Flight + 0.5)(T), 0, 1));
-  const open = enter(0, 1, CUES.Hatch, CUES.Hatch + 0.7)(T);
-  const shellDrop = enter(0, 1, CUES.Flight + 0.1, CUES.Flight + 0.9)(T);
-
-  const eggS = 1.24 * eggRise * (1 + breathe * 0.012 * (1 - open));
-  const eggRot = Math.sin((T - CUES.Crack + 0.5) * 16) * 4 * wobble * (1 - open);
-  const eggY = 486 + (1 - eggRise) * 60 + shellDrop * 180;
-
-  const popV = pop(0, 1, CUES.Hatch + 0.12, CUES.Hatch + 0.85)(T);
-  const grab = enter(0, 1, CUES.Hatch + 0.8, CUES.Flight - 0.05)(T);
-  const fly = draw(0, 1, CUES.Flight, CUES.Mark + 0.35)(T);
-
-  const birdX = 270 + fly * 210 + Math.sin(fly * Math.PI * 2) * 26;
-  const birdY = 430 - popV * 52 - fly * 470;
-  const birdS = 0.3 + popV * 0.62 - fly * 0.4;
-  const birdRot = -6 - fly * 22 + Math.sin(fly * 9) * 4;
-  const wing = (T - CUES.Hatch) * (1.4 + fly * 5.2);
-
-  const markIn = enter(0, 1, CUES.Mark + 0.1, CUES.Mark + 0.95)(T);
-  const lineIn = enter(0, 1, CUES.Mark + 0.45, CUES.Mark + 1.25)(T);
-  const tagIn = enter(0, 1, CUES.Mark + 0.7, CUES.Mark + 1.5)(T);
-
-  const dust: React.ReactNode[] = [];
-  for (let i = 0; i < 9; i++) {
-    const at = 0.06 + i * 0.09;
-    const a = clamp((fly - at) * 4, 0, 1) * clamp(1 - (fly - at) * 1.7, 0, 1);
-    if (a > 0.01) {
-      dust.push(<Circle key={i} cx={270 + at * 210 + Math.sin(at * Math.PI * 2) * 26 + ((i % 3) - 1) * 16} cy={430 - 52 - at * 470 + (i % 2) * 14} r={2 + (i % 3)} fill={i % 3 === 0 ? C.amber : C.indigo} opacity={a * 0.55} />);
+    if (mode === "full") {
+      time.value = 0;
+      time.value = withTiming(END, { duration: END * 1000, easing: Easing.linear }, (fin) => {
+        if (fin) runOnJS(finished)();
+      });
+      const id = setTimeout(crackTap, 980);
+      return () => clearTimeout(id);
     }
-  }
+    time.value = END; // everything at rest, finished
+    veil.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) });
+    const id = setTimeout(finished, mode === "still" ? 600 : SHORT_MS);
+    return () => clearTimeout(id);
+  }, [mode, time, veil, finished]);
 
-  /* the authored frame covers the screen (slice); the wordmark overlays
-     use the same mapping so they sit where the sheet put them */
-  const k = Math.max(sw / W, sh / H);
-  const ox = (sw - W * k) / 2;
-  const oy = (sh - H * k) / 2;
-  const px = (x: number) => ox + x * k;
-  const py = (y: number) => oy + y * k;
-  // the sheet's bird spans ~170 authored units at full scale; the family art fills ~0.8 of its box
-  const birdPx = Math.max(1, 210 * Math.max(birdS, 0.001) * k);
+  /* leave once the piece has landed and the session is known */
+  useEffect(() => {
+    if (!canLeave || !ready || leaving.current) return;
+    leaving.current = true;
+    out.value = withTiming(0, { duration: mode === "full" ? 320 : 240, easing: Easing.out(Easing.quad) }, (fin) => {
+      if (fin) runOnJS(onDone)();
+    });
+  }, [canLeave, ready, mode, out, onDone]);
 
+  const skip = () => {
+    if (mode === "full" && time.value >= SKIP_FROM) setCanLeave(true);
+  };
+
+  /* ── the layers, each derived from the one clock ── */
+  const MARK = Math.min(sw * 0.38, 156);
+  const k = MARK / 1024;
+  const markTop = sh * 0.4 - MARK / 2;
+
+  const root = useAnimatedStyle(() => ({ opacity: out.value }));
+  const whole = useAnimatedStyle(() => {
+    const tt = time.value;
+    if (mode !== "full") {
+      return { opacity: veil.value, transform: [{ scale: mode === "short" ? 0.97 + veil.value * 0.03 : 1 }, { rotate: "0deg" }] };
+    }
+    const e = eo(seg(tt, 0, 0.3));
+    const u = seg(tt, 0.3, 0.95);
+    // two swings on the egg's base, gathering and settling — no jitter
+    const rock = tt > 0.3 && tt < 0.95 ? 6 * Math.sin(u * Math.PI * 4) * Math.sin(u * Math.PI) : 0;
+    return { opacity: e, transform: [{ scale: 0.82 + 0.18 * e }, { rotate: `${rock}deg` }] };
+  });
+  const fragTop = useAnimatedStyle(() => {
+    const f = eo(seg(time.value, 0.98, 1.4));
+    return { opacity: 1 - f, transform: [{ translateX: 140 * k * f }, { translateY: -190 * k * f }, { rotate: `${40 * f}deg` }] };
+  });
+  const fragBot = useAnimatedStyle(() => {
+    const f = eo(seg(time.value, 0.98, 1.4));
+    return { opacity: 1 - f, transform: [{ translateX: -140 * k * f }, { translateY: 190 * k * f }, { rotate: `${40 * f}deg` }] };
+  });
+  const crack = useAnimatedProps(() => ({
+    strokeDashoffset: CRACK_LEN * (1 - seg(time.value, 0.8, 0.98)),
+    strokeOpacity: time.value >= 0.8 ? 1 : 0,
+  }));
+  const head = useAnimatedProps(() => ({ r: CAP + (HEAD - CAP) * backOut(seg(time.value, 1.0, 1.32)) }));
+  const dotR = (tt: number) => {
+    "worklet";
+    return 44 * (1 + 0.1 * Math.sin(Math.PI * seg(tt, 0.3, 0.95)) + 0.18 * Math.sin(Math.PI * seg(tt, 1.22, 1.55)));
+  };
+  const dotGold = useAnimatedProps(() => ({ r: dotR(time.value), fillOpacity: 1 - seg(time.value, 1.3, 1.55) }));
+  const dotInk = useAnimatedProps(() => ({ r: dotR(time.value), fillOpacity: seg(time.value, 1.3, 1.55) }));
+  const word = useAnimatedStyle(() => {
+    const w = mode === "full" ? eo(seg(time.value, 1.35, 1.8)) : veil.value;
+    return { opacity: w, transform: [{ translateY: 8 * (1 - w) }] };
+  });
+  const tag = useAnimatedStyle(() => {
+    const g = mode === "full" ? eo(seg(time.value, 1.5, 1.95)) : veil.value;
+    return { opacity: g, transform: [{ translateY: 6 * (1 - g) }] };
+  });
+
+  const box = { position: "absolute" as const, left: 0, top: 0, width: MARK, height: MARK };
   return (
-    <Animated.View style={{ flex: 1, backgroundColor: C.bg, opacity: fade }}>
-      <Pressable onPress={() => (skip.current = true)} style={{ flex: 1 }}>
-        <Svg width={sw} height={sh} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
-          <Defs>
-            <RadialGradient id="kdGlow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0%" stopColor={C.warm} stopOpacity={0.95} />
-              <Stop offset="55%" stopColor={C.warm} stopOpacity={0.28} />
-              <Stop offset="100%" stopColor={C.warm} stopOpacity={0} />
-            </RadialGradient>
-            <LinearGradient id="kdShell" x1="0" y1="0" x2="0.6" y2="1">
-              <Stop offset="0%" stopColor={C.shellA} />
-              <Stop offset="100%" stopColor={C.shellB} />
-            </LinearGradient>
-            <LinearGradient id="kdShellB" x1="0" y1="0" x2="0.4" y2="1">
-              <Stop offset="0%" stopColor={C.shellB} />
-              <Stop offset="100%" stopColor={C.shellA} />
-            </LinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={W} height={H} fill={C.bg} />
-          {/* the ground that lifts through the piece */}
-          <Ellipse cx={W / 2} cy={880 + (1 - eggRise) * 40} rx={430} ry={190} fill="#E1DEF8" />
-          <Ellipse cx={W / 2} cy={932} rx={520} ry={150} fill="#D9D5F4" />
-          {/* the words you wrote */}
-          <G opacity={inkFade}>
-            <Path
-              d="M118 396C150 352 176 420 208 386C240 352 250 430 286 396C322 362 336 424 372 392C400 366 416 398 432 384"
-              fill="none"
-              stroke={C.indigo}
-              strokeWidth={5 - inkGather * 2}
-              strokeLinecap="round"
-              strokeDasharray={[strokeLen]}
-              strokeDashoffset={strokeLen - inkDraw * strokeLen}
-              transform={`translate(${inkGather * 46} ${inkGather * 52}) scale(${1 - inkGather * 0.32} ${1 - inkGather * 0.5})`}
-            />
-            <Circle cx={432 - inkGather * 150} cy={384 + inkGather * 70} r={5 + inkGather * 10} fill={C.indigo} opacity={clamp(inkDraw * 2 - 1, 0, 1) * (1 - inkGather * 0.4)} />
-          </G>
-          <Egg x={270} y={eggY} s={eggS * (1 - shellDrop * 0.12)} rot={eggRot + shellDrop * 6} crack={crack} glow={glow} open={open} />
-          {dust}
-          <Rect x={W / 2 - 92 * lineIn} y={466} width={Math.max(0.01, 184 * lineIn)} height={3} rx={2} fill={C.indigo} opacity={lineIn} />
-        </Svg>
+    /* the lavender stays; only what is on it fades — fading the ground too
+       passed through the white of the route underneath */
+    <View style={{ flex: 1, backgroundColor: BG }}>
+    <Animated.View style={[{ flex: 1 }, root]}>
+      <Pressable onPress={skip} accessible accessibilityRole="image" accessibilityLabel="Kindredly" style={{ flex: 1 }}>
+        <Animated.View style={[{ position: "absolute", left: (sw - MARK) / 2, top: markTop, width: MARK, height: MARK, transformOrigin: [MARK * 0.5, MARK * 0.796, 0] }, whole]}>
+          {/* the two commas and the dot — what the egg becomes */}
+          <Svg style={box} width={MARK} height={MARK} viewBox="0 0 1024 1024">
+            <Path d={ARC_L} fill="none" stroke={INK} strokeWidth={STROKE} strokeLinecap="round" />
+            <Path d={ARC_R} fill="none" stroke={INK} strokeWidth={STROKE} strokeLinecap="round" />
+            <AnimatedCircle cx={394.6} cy={767.2} fill={INK} animatedProps={head} />
+            <AnimatedCircle cx={629.4} cy={237.5} fill={INK} animatedProps={head} />
+            <AnimatedCircle cx={512} cy={520} fill={GOLD} animatedProps={dotGold} />
+            <AnimatedCircle cx={512} cy={520} fill={INK} animatedProps={dotInk} />
+          </Svg>
+          {/* the two pieces of shell that close it into an egg, each with its crack */}
+          {mode === "full" && (
+            <>
+              <Animated.View pointerEvents="none" style={[box, { transformOrigin: [MARK * 0.527, MARK * 0.205, 0] }, fragTop]}>
+                <Svg width={MARK} height={MARK} viewBox="0 0 1024 1024">
+                  <Path d={FRAG_T} fill="none" stroke={INK} strokeWidth={STROKE} strokeLinecap="round" />
+                  <AnimatedPath d={CRACK_T} fill="none" stroke={BG} strokeWidth={36} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={[CRACK_LEN, CRACK_LEN]} animatedProps={crack} />
+                </Svg>
+              </Animated.View>
+              <Animated.View pointerEvents="none" style={[box, { transformOrigin: [MARK * 0.469, MARK * 0.781, 0] }, fragBot]}>
+                <Svg width={MARK} height={MARK} viewBox="0 0 1024 1024">
+                  <Path d={FRAG_B} fill="none" stroke={INK} strokeWidth={STROKE} strokeLinecap="round" />
+                  <AnimatedPath d={CRACK_B} fill="none" stroke={BG} strokeWidth={36} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={[CRACK_LEN, CRACK_LEN]} animatedProps={crack} />
+                </Svg>
+              </Animated.View>
+            </>
+          )}
+        </Animated.View>
 
-        {/* the bird: perched as she pops out, in flight once she has the letter
-            (the family's fly pose carries it) — bobbing with the sheet's wing beat */}
-        {T >= CUES.Hatch + 0.06 && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: px(birdX) - birdPx / 2,
-              top: py(birdY) - birdPx / 2 + Math.sin(wing * Math.PI * 2) * 3 * k * fly,
-              width: birdPx,
-              height: birdPx,
-              transform: [{ rotate: `${birdRot}deg` }],
-            }}
-          >
-            <WrenBird size={birdPx} skin="sticker" stage="wren" mood={fly > 0 ? "delight" : "curious"} pose={grab > 0.5 ? "fly" : "perch"} />
-          </View>
-        )}
-
-        {/* the mark — real type, placed on the sheet's grid */}
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(430) - 62 * k, alignItems: "center", opacity: markIn, transform: [{ scale: 0.86 + markIn * 0.14 }] }}>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 62 * k, lineHeight: 74 * k, letterSpacing: -2.2 * k, color: C.ink }}>Kindredly</Text>
-        </View>
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(512) - 25 * k + (1 - tagIn) * 10 * k, alignItems: "center", opacity: tagIn }}>
-          <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 25 * k, lineHeight: 32 * k, color: C.mute }}>{t("launch.tag")}</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 13 * k, letterSpacing: 3.6 * k, color: C.indigo, marginTop: 14 * k }}>{t("launch.sub")}</Text>
-        </View>
+        {/* the wordmark, then the line under it — the app's nine languages */}
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: markTop + MARK + 30, alignItems: "center" }, word]}>
+          <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 40, lineHeight: 46, letterSpacing: -1.4, color: WORD }}>kindredly</Text>
+        </Animated.View>
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 24, right: 24, top: markTop + MARK + 88, alignItems: "center" }, tag]}>
+          <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 18, lineHeight: 24, color: MUTE, textAlign: "center" }}>{t("launch.tag")}</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color: INK, marginTop: 10, textAlign: "center" }}>{t("launch.sub")}</Text>
+        </Animated.View>
       </Pressable>
     </Animated.View>
+    </View>
   );
 }
