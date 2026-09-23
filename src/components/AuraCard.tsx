@@ -265,8 +265,8 @@ export function AuraCard({
           corner — the two cards are one family. */}
       <View>
         {art ? <AuraArtBand width={width} src={art} /> : <AuraScene width={width} fidelity={rung.fidelity} day={day} />}
-        <View style={{ position: "absolute", left: 14, top: 12, backgroundColor: chrome, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.5, color: chromeText }}>{t("me.sec.aura").toUpperCase()}</Text>
+        <View style={{ position: "absolute", left: 14, top: 12, backgroundColor: chrome, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.5, color: chromeText }}>{t("me.sec.aura").toUpperCase()}</Text>
         </View>
         {/* the picture IS the progress — pencil, sketch, colour. The tick
             meter and the PENCIL / SKETCH tag that used to sit on it named

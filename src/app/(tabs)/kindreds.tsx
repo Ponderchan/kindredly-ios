@@ -15,6 +15,7 @@ import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { OrbitMap } from "../../components/OrbitMap";
 import { KindredsSky } from "../../components/KindredsSky";
 import { StateGlyph, STATE_INK, type StateKind } from "../../components/StateGlyph";
+import { TabHeader } from "../../components/TabHeader";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { WrenDeskRow } from "../../components/WrenDesk";
@@ -73,6 +74,9 @@ export default function KindredsTab() {
      changes it */
   const [seenLedger, setSeenLedger] = useState<Record<string, number>>({});
   const scrollRef = useRef<ScrollView>(null);
+  /* where STRANGERS sits in the scroll, for the title's tap: its offset
+     inside the list plus the list's offset under the sky and the plate */
+  const listY = useRef(0);
   const yourTurnY = useRef(0);
   /* the sky starts folded on every visit — the list is what you came for */
   const [skyOpen, setSkyOpen] = useState(false);
@@ -171,10 +175,7 @@ export default function KindredsTab() {
     <SafeAreaView style={{ flex: 1, backgroundColor: GROUND }} edges={["top"]}>
       {empty ? (
         <>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: P.ink }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("kindreds.title")}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>{t("kindreds.none")}</Text>
-          </View>
+          <TabHeader title={t("kindreds.title")} right={<Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>{t("kindreds.none")}</Text>} />
           <Empty onWrite={() => router.push("/compose")} />
         </>
       ) : (
@@ -182,17 +183,22 @@ export default function KindredsTab() {
           {/* the sky: folded to a horizon, open on a tap or a pull */}
           <KindredsSky items={coming} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} />
 
-          <View style={{ paddingHorizontal: 16 }}>
-            {/* the title answers one question — is anything on me? — and
-                when it is, tapping it goes there (owner, 2026-09-20) */}
-            <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginTop: 20, marginBottom: 12, paddingHorizontal: 2 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 30, letterSpacing: -0.4, color: P.ink }}>{t("kd.title")}</Text>
-              <Pressable disabled={!waiting} onPress={() => scrollRef.current?.scrollTo({ y: Math.max(0, yourTurnY.current - 12), animated: true })} hitSlop={8}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: waiting ? P.pen : P.ink40 }}>
+          {/* the title answers one question — is anything on me? — and
+              when it is, tapping it goes there (owner, 2026-09-20). The
+              plate itself is every tab's (components/TabHeader). */}
+          <TabHeader
+            title={t("kindreds.title")}
+            style={{ marginTop: 18 }}
+            right={
+              <Pressable disabled={!waiting} onPress={() => scrollRef.current?.scrollTo({ y: Math.max(0, listY.current + yourTurnY.current - 12), animated: true })} hitSlop={8} style={{ flexShrink: 1 }}>
+                <Text numberOfLines={2} style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: waiting ? P.pen : P.ink40, textAlign: "right" }}>
                   {waiting ? (waiting === 1 ? t("kindreds.toAnswerOne") : t("kindreds.toAnswer", { n: waiting })) : t("kindreds.allAnswered")}
                 </Text>
               </Pressable>
-            </View>
+            }
+          />
+
+          <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ paddingHorizontal: 16, paddingTop: 12 }}>
 
             <WrenSaysOnce id="kindreds" line={t("kindreds.said")} />
 
@@ -283,12 +289,14 @@ const LABEL_INK: Record<StateKind, string> = { ...STATE_INK, inTransit: "#55506E
 const EACH_WAY = 5;
 
 /* a group's name, in its state's ink, with its glyph (round 3a) — at the
-   prototype's size: a 20pt glyph and 12pt letters (owner, 2026-09-23) */
+   prototype's size, a 20pt glyph (owner, 2026-09-23). The name is written
+   Kindreds, not KINDREDS: the capitals belong to the tab's own title
+   above it, so the page has one shout and the groups under it speak. */
 function GroupLabel({ kind, text, right, rightInk = P.ink40 }: { kind: StateKind; text: string; right?: string; rightInk?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 20, marginBottom: 10, marginHorizontal: 4 }}>
       <StateGlyph kind={kind} size={20} weight={2.2} />
-      <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.7, color: LABEL_INK[kind] }}>{text}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 13.5, letterSpacing: 0.4, color: LABEL_INK[kind] }}>{text}</Text>
       {!!right && <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1, color: rightInk }}>{right}</Text>}
     </View>
   );

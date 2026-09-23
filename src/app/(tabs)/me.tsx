@@ -8,7 +8,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../../lib/i18n";
-import { P, PF, rule } from "../../theme/post";
+import { P, PF } from "../../theme/post";
+import { TabHeader } from "../../components/TabHeader";
 import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
@@ -196,13 +197,15 @@ export default function MeTab() {
        fare. White cards on the lavender ground; tapping the courier opens
        her room in place. */
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
-      {/* the same plate Today, Sealed and Kindreds carry — one rule, one system */}
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("me.header")}</Text>
-        <Pressable onPress={() => router.push("/settings")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
-          <Gear />
-        </Pressable>
-      </View>
+      {/* the same plate Today, Notes and Kindreds carry — one rule, one system */}
+      <TabHeader
+        title={t("me.header")}
+        right={
+          <Pressable onPress={() => router.push("/settings")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
+            <Gear />
+          </Pressable>
+        }
+      />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
         {/* who you are here — the owner's plate: one white card, the pencil

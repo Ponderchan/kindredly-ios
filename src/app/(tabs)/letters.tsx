@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { P, PF, rule } from "../../theme/post";
 import { PUNCH, drop, outline } from "../../theme/punch";
+import { TabHeader } from "../../components/TabHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { StampTile } from "../../components/StampTile";
 import { LangPair } from "../../components/LangPair";
@@ -782,17 +783,20 @@ const UNFOLD = new Keyframe({
 
 function Header({ count, idx, atEnd, note }: { count: number; idx: number; atEnd?: boolean; note?: string }) {
   return (
-    /* the plate rule is 3px now — the one hairline on the page that thickened
-       with the card, so the header and the sticker are the same hand */
-    <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: 10, paddingTop: 6, paddingBottom: 10, marginHorizontal: 18, borderBottomWidth: 3, borderBottomColor: PUNCH.ink }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 3, color: PUNCH.ink }}>{t("ld.today")}</Text>
-      {/* the founding spec: "no counter". The 01/28 progress meter turned
-          a desk of letters into a to-do list — the day states remain, the
-          arithmetic is nobody's business. */}
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: PUNCH.dim }}>
-        {note ?? (count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : "")}
-      </Text>
-    </View>
+    /* every tab's plate (components/TabHeader) — the 3px rule this page
+       had to match its stickers is 1pt now, like every other tab's */
+    <TabHeader
+      title={t("ld.today")}
+      ink={PUNCH.ink}
+      right={
+        /* the founding spec: "no counter". The 01/28 progress meter turned
+           a desk of letters into a to-do list — the day states remain, the
+           arithmetic is nobody's business. */
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: PUNCH.dim }}>
+          {note ?? (count === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : "")}
+        </Text>
+      }
+    />
   );
 }
 

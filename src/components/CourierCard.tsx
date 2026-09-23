@@ -306,8 +306,9 @@ export function CourierCard({
         )}
         {/* the fly pose already carries a letter — the family art draws it */}
         {/* the chip, inside the scene */}
-        <View style={{ position: "absolute", left: 12, top: 12, backgroundColor: P.chip, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.chipText }}>{t("me.sec.courier").toUpperCase()}</Text>
+        {/* 12pt, not 9.5 — readers couldn't make it out (owner, 2026-09-23) */}
+        <View style={{ position: "absolute", left: 12, top: 12, backgroundColor: P.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.5, color: P.chipText }}>{t("me.sec.courier").toUpperCase()}</Text>
         </View>
         <Text style={{ position: "absolute", left: 0, width: x0 * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink }}>{t("me.route.you")}</Text>
         <Text style={{ position: "absolute", right: 0, width: (w - x1) * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink, opacity: where.state === "unsent" ? 0.4 : 1 }}>{t("me.route.somewhere")}</Text>

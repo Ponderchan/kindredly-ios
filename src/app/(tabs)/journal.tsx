@@ -6,7 +6,8 @@ import Svg, { Line, Path, Rect } from "react-native-svg";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { t, useLang } from "../../lib/i18n";
-import { P, PF, rule } from "../../theme/post";
+import { P, PF } from "../../theme/post";
+import { TabHeader } from "../../components/TabHeader";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { SealedTile } from "../../components/SealedTile";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
@@ -75,10 +76,10 @@ export default function JournalTab() {
        only difference — so the entries become sheets and the chrome around
        them stays on the desk. */
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
-      {/* header — the box's own plate, on the same rule Today uses */}
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("jt.notes")}</Text>
-        {empty ? (
+      {/* header — every tab's plate (components/TabHeader) */}
+      <TabHeader
+        title={t("jt.notes")}
+        right={empty ? (
           <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>{t("jt.justYou")}</Text>
         ) : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
@@ -90,7 +91,7 @@ export default function JournalTab() {
             </Pressable>
           </View>
         )}
-      </View>
+      />
 
 
       {empty ? (
