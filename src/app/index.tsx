@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { Redirect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { useAuth } from "../lib/auth";
 import { LaunchAnimation } from "../components/LaunchAnimation";
 
@@ -10,13 +10,19 @@ import { LaunchAnimation } from "../components/LaunchAnimation";
    known; only then, and only after the mark has landed, does it leave.
    Not signed in OR not onboarded → the story. Otherwise → the app. */
 export default function Index() {
+  const router = useRouter();
   const { ready, isGuest, onboarded } = useAuth();
   const [done, setDone] = useState(false);
   const onDone = useCallback(() => setDone(true), []);
-  if (!ready || !done) return <LaunchAnimation ready={ready} onDone={onDone} />;
-  /* isGuest, not !session: with anonymous auth a guest HAS a session, and
+  /* the launch stays on screen, on its last frame, while the next screen
+     fades in over it — a Redirect here unmounted it first and left a frame
+     of bare lavender before the page arrived.
+     isGuest, not !session: with anonymous auth a guest HAS a session, and
      `!session` here would have waved them straight past onboarding into an
      app they had never set up. */
-  if (isGuest || !onboarded) return <Redirect href="/onboarding" />;
-  return <Redirect href="/(tabs)/letters" />;
+  useEffect(() => {
+    if (!ready || !done) return;
+    router.replace(isGuest || !onboarded ? "/onboarding" : "/(tabs)/letters");
+  }, [ready, done, isGuest, onboarded, router]);
+  return <LaunchAnimation ready={ready} onDone={onDone} />;
 }

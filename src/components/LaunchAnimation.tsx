@@ -132,7 +132,6 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
 
   const time = useSharedValue(0); // the piece's clock, seconds
   const veil = useSharedValue(0); // short / still: the whole finished frame fades in
-  const out = useSharedValue(1); // leaving
 
   const finished = useCallback(() => setCanLeave(true), []);
   useEffect(() => {
@@ -150,14 +149,17 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
     return () => clearTimeout(id);
   }, [mode, time, veil, finished]);
 
-  /* leave once the piece has landed and the session is known */
+  /* leave once the piece has landed and the session is known. It doesn't
+     fade itself out any more: it holds its last frame and the next screen
+     fades in over it (app/index, the stack's "fade" on (tabs) and
+     onboarding) — one dissolve from the mark to the letters, instead of a
+     fade to empty lavender and a page sliding in from the right (owner,
+     2026-09-24: "我要一种正常的打开方式"). */
   useEffect(() => {
     if (!canLeave || !ready || leaving.current) return;
     leaving.current = true;
-    out.value = withTiming(0, { duration: mode === "full" ? 320 : 240, easing: Easing.out(Easing.quad) }, (fin) => {
-      if (fin) runOnJS(onDone)();
-    });
-  }, [canLeave, ready, mode, out, onDone]);
+    onDone();
+  }, [canLeave, ready, onDone]);
 
   const skip = () => {
     if (mode === "full" && time.value >= SKIP_FROM) setCanLeave(true);
@@ -168,7 +170,6 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
   const k = MARK / 1024;
   const markTop = sh * 0.4 - MARK / 2;
 
-  const root = useAnimatedStyle(() => ({ opacity: out.value }));
   const whole = useAnimatedStyle(() => {
     const tt = time.value;
     if (mode !== "full") {
@@ -213,7 +214,7 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
     /* the lavender stays; only what is on it fades — fading the ground too
        passed through the white of the route underneath */
     <View style={{ flex: 1, backgroundColor: BG }}>
-    <Animated.View style={[{ flex: 1 }, root]}>
+    <View style={{ flex: 1 }}>
       <Pressable onPress={skip} accessible accessibilityRole="image" accessibilityLabel="Kindredly" style={{ flex: 1 }}>
         <Animated.View style={[{ position: "absolute", left: (sw - MARK) / 2, top: markTop, width: MARK, height: MARK, transformOrigin: [MARK * 0.5, MARK * 0.796, 0] }, whole]}>
           {/* the two commas and the dot — what the egg becomes */}
@@ -253,7 +254,7 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color: INK, marginTop: 10, textAlign: "center" }}>{t("launch.sub")}</Text>
         </Animated.View>
       </Pressable>
-    </Animated.View>
+    </View>
     </View>
   );
 }

@@ -16,7 +16,12 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
       },
-      "appleTeamId": "SSSB423982"
+      "appleTeamId": "SSSB423982",
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      }
     },
     "plugins": [
       "expo-router",

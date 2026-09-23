@@ -34,29 +34,31 @@ const SENTENCES: Record<Daylight, string> = {
 };
 const ORDER: Daylight[] = ["morning", "day", "evening", "night"];
 
-/* how hard, by gates passed: easy for the first five, hardest by 25 */
-const RAMP = 25;
+/* how hard, by gates passed. Gentle on purpose (owner, 2026-09-24: "好难 …
+   完全反映不过来"): a beat a second to start — time to find the key — a
+   step harder every five gates, the top reached at 40 */
+const RAMP = 40;
 const lvlOf = (g: number) => {
   "worklet";
   return Math.min(1, Math.floor(g / 5) / (RAMP / 5));
 };
 const speedOf = (l: number) => {
   "worklet";
-  return 108 + 64 * l;
+  return 78 + 62 * l;
 };
 const gapOf = (l: number) => {
   "worklet";
-  return 0.46 - 0.13 * l; // of the course's height
+  return 0.56 - 0.18 * l; // of the course's height
 };
 const spacingOf = (l: number) => {
   "worklet";
-  return 240 - 34 * l;
+  return 280 - 60 * l;
 };
 /* pace scales gravity, and the wingbeat by its square root so a beat lifts
-   her the same height: ~0.6 s between beats at first, ~0.45 s at the top */
+   her the same height: ~1 s between beats at first, ~0.65 s at the top */
 const paceOf = (l: number) => {
   "worklet";
-  return 0.68 + 0.47 * l;
+  return 0.26 + 0.36 * l;
 };
 
 /* tuned for a 420-pt course; scaled to the cover's */
@@ -150,6 +152,7 @@ export function FreeFlight({
   const bob = useSharedValue(0);
   const shake = useSharedValue(0);
   const passed = useSharedValue(0); // gates, for the ramp
+  const airborne = useSharedValue(0); // seconds since take-off, for the warm-up
   const px0 = useSharedValue(-999), px1 = useSharedValue(-999), px2 = useSharedValue(-999), px3 = useSharedValue(-999);
   const gy0 = useSharedValue(0), gy1 = useSharedValue(0), gy2 = useSharedValue(0), gy3 = useSharedValue(0);
   const gp0 = useSharedValue(0), gp1 = useSharedValue(0), gp2 = useSharedValue(0), gp3 = useSharedValue(0);
@@ -211,7 +214,11 @@ export function FreeFlight({
     }
     if (run.value === 3) return; // paused: the app went to the background mid-flight
     const lvl = lvlOf(passed.value);
-    const g = GRAV * s * paceOf(lvl);
+    /* a warm-up: half gravity at take-off, full after three seconds — the
+       first letters are for finding the keys, not for surviving */
+    if (run.value === 1) airborne.value += dt;
+    const warm = 0.5 + 0.5 * Math.min(1, airborne.value / 3);
+    const g = GRAV * s * paceOf(lvl) * warm;
     const maxv = MAXV * s;
     vy.value = Math.min(vy.value + g * dt, maxv);
     if (run.value === 2) {
@@ -280,13 +287,14 @@ export function FreeFlight({
     const gap = gapOf(0) * course;
     let prev = height * 0.5;
     for (let i = 0; i < 4; i++) {
-      PX[i].value = width + 60 + i * spacingOf(0);
+      PX[i].value = width + 150 + i * spacingOf(0);
       GP[i].value = gap;
       prev = pickGap(prev, Math.random(), gap);
       GY[i].value = prev;
       PP[i].value = 0;
     }
     passed.value = 0;
+    airborne.value = 0;
     gatesRef.current = 0;
     setGates(0);
     startedAt.current = Date.now();
@@ -376,7 +384,9 @@ export function FreeFlight({
   }));
 
   const text = SENTENCES[ORDER[sent]];
-  const want = text.replace(/[^a-z]/g, "")[pos];
+  const lettersNow = text.replace(/[^a-z]/g, "");
+  const want = lettersNow[pos];
+  const upcoming = (lettersNow + SENTENCES[ORDER[(sent + 1) % ORDER.length]].replace(/[^a-z]/g, "")).slice(pos + 1, pos + 3).toUpperCase();
   const mood: WrenMood = phase === "over" ? "worry" : phase === "flying" ? "happy" : "curious";
   const secs = Math.max(1, (endedAt.current - startedAt.current) / 1000);
   const pace = phase === "over" ? Math.round((typed / secs) * 60) : 0;
@@ -421,7 +431,11 @@ export function FreeFlight({
       </Animated.View>
       {phase !== "over" && !!want && (
         <Animated.View pointerEvents="none" style={[{ position: "absolute", left: width * BIRD_X + BIRD / 2 + 8, top: 0, height: 32, minWidth: 32, paddingHorizontal: 8, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 2.4, borderColor: P.ink, alignItems: "center", justifyContent: "center" }, tagStyle]}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 17, color: P.ink }}>{want.toUpperCase()}</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 17, color: P.ink }}>
+            {want.toUpperCase()}
+            {/* the next two, fainter — read ahead, keep the rhythm */}
+            <Text style={{ fontSize: 12, color: P.ink40 }}> {upcoming}</Text>
+          </Text>
         </Animated.View>
       )}
 

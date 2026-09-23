@@ -152,7 +152,8 @@ export default function RootLayout() {
               >
                 {/* the launch is drawn on the wash — so is the screen under it */}
                 <Stack.Screen name="index" options={WASH} />
-                <Stack.Screen name="onboarding" />
+                {/* the two doors out of the launch fade in over its last frame */}
+                <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
                 {/* A SCREEN ARRIVES ON ITS OWN COLOUR. The stack paints every
                     incoming page on paper until the page's first render — so
                     a lavender page pushed from a lavender tab slid in as a
@@ -160,7 +161,7 @@ export default function RootLayout() {
                     phone with a big aura to read was long enough to see as
                     "tap → white" (owner, 2026-09-19). Each wash-coloured
                     route says so here; paper stays the default. */}
-                <Stack.Screen name="(tabs)" options={WASH} />
+                <Stack.Screen name="(tabs)" options={{ ...WASH, animation: "fade", animationDuration: 450 }} />
                 <Stack.Screen name="aura" options={WASH} />
                 <Stack.Screen name="aura-card" options={WASH} />
                 <Stack.Screen name="courier" options={WASH} />
