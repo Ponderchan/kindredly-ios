@@ -3,13 +3,16 @@ import { Dimensions, Text, View } from "react-native";
 import Svg, { Ellipse } from "react-native-svg";
 import Animated, {
   Easing,
+  Extrapolation,
   FadeIn,
   ReduceMotion,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
   cancelAnimation,
+  type SharedValue,
 } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
 import { P, PF } from "../theme/post";
@@ -54,7 +57,13 @@ import { t, useLang } from "../lib/i18n";
    third projection of the same mechanic, after radius and resolution.
    Drift animates the ANGLE and places the face (an ellipse can't be
    travelled by rotating a wrapper, and this needs no counter-rotation to
-   keep faces upright). Honors Reduce Motion. */
+   keep faces upright). Honors Reduce Motion.
+
+   FOLDED TO A HORIZON (design 2b × 4c, owner 2026-09-23). `flat` runs 0 → 1:
+   the rings fade into one line through the centre, and every stranger drops
+   straight onto it from wherever the drift has carried them, shrinking to
+   a tick — blue for the ones waiting on you. One motion, no swap, so a tick
+   is always exactly where its face was (components/KindredsSky). */
 
 const REVEAL = 5;
 const WINDOW_W = Dimensions.get("window").width;
@@ -71,13 +80,23 @@ const CY = H / 2;
 const RX_VOID = RX_MAX + 14; // hasn't written back yet — out past every ring
 
 const FACE = 17.6; // 5 cells × 2.8 + 4 gaps × 0.9 — narrower than a lane
+const TICK = 6; // a face, folded onto the horizon
+
+/* the sky's box, for anything that folds it */
+export const ORBIT = { W, H, CX, CY };
+const CLAMP = Extrapolation.CLAMP;
 
 function ringRx(p: number): number {
   return RX_MIN + (RX_MAX - RX_MIN) * ((REVEAL - p) / (REVEAL - 1));
 }
 const RINGS = Array.from({ length: REVEAL }, (_, i) => ringRx(i + 1));
 
-export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boolean }) {
+export function OrbitMap({ items, empty, flat }: { items: ThreadSummary[]; empty?: boolean; flat?: SharedValue<number> }) {
+  const still = useSharedValue(0);
+  const f = flat ?? still;
+  const rings = useAnimatedStyle(() => ({ opacity: interpolate(f.value, [0, 0.8], [1, 0], CLAMP) }));
+  const horizon = useAnimatedStyle(() => ({ opacity: interpolate(f.value, [0.45, 1], [0, 0.28], CLAMP) }));
+  const you = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(f.value, [0, 1], [1, 0.62], CLAMP) }] }));
   /* NOBODY WHO IS NO LONGER THERE. 0009 nulls a deleted account's side of
      the thread — the letters survive, the person does not — so `other` can
      be null and there is no one to place on a ring. The correspondence is
@@ -114,6 +133,7 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
 
   return (
     <View style={{ width: W, height: H }}>
+      <Animated.View style={rings}>
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {/* five hairline rings, one per letter, fading outward: the ring
             someone is about to step onto is the one you feel, and depth
@@ -133,9 +153,13 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
           />
         ))}
       </Svg>
+      </Animated.View>
+
+      {/* the horizon the rings fold into */}
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 10, right: 10, top: CY - 0.5, height: 1, backgroundColor: P.ink }, horizon]} />
 
       {/* you — the fixed point, one solid cell */}
-      <View pointerEvents="none" style={{ position: "absolute", left: CX - 6.5, top: CY - 6.5, width: 13, height: 13, backgroundColor: P.ink }} />
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: CX - 6.5, top: CY - 6.5, width: 13, height: 13, backgroundColor: P.ink }, you]} />
 
       {/* the ones circling in — no label, no number; the sky says it */}
       {faces.map(({ t, develop, rx, ry, a0 }, i) => (
@@ -148,6 +172,7 @@ export function OrbitMap({ items, empty }: { items: ThreadSummary[]; empty?: boo
           a0={a0}
           order={i}
           mark={threadState(t)?.needsYou ? "answered" : t.theirSigned ? "signed" : null}
+          flat={f}
         />
       ))}
 
@@ -167,6 +192,7 @@ function OrbitingFace({
   a0,
   order,
   mark,
+  flat,
 }: {
   seed: string;
   develop: number;
@@ -177,6 +203,7 @@ function OrbitingFace({
   /** the two states that ask something of you: they answered and you never
       wrote back (pen), or their name is enclosed waiting on yours (brass) */
   mark?: "answered" | "signed" | null;
+  flat: SharedValue<number>;
 }) {
   const h = hashStr(seed + "@drift");
   const dir = (h & 1) === 0 ? 1 : -1;
@@ -200,12 +227,20 @@ function OrbitingFace({
 
   const orbit = useAnimatedStyle(() => {
     const ang = a0 + turn.value * Math.PI * 2 * dir;
-    return { transform: [{ translateX: rx * Math.cos(ang) }, { translateY: ry * Math.sin(ang) }] };
+    return { transform: [{ translateX: rx * Math.cos(ang) }, { translateY: ry * Math.sin(ang) * (1 - flat.value) }] };
   });
+  /* folding: the face shrinks to a tick, its mosaic giving way to one
+     solid cell in the colour of what it asks of you */
+  const body = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(flat.value, [0, 1], [1, TICK / FACE], CLAMP) }] }));
+  const face = useAnimatedStyle(() => ({ opacity: interpolate(flat.value, [0, 0.7], [1, 0], CLAMP) }));
+  const tick = useAnimatedStyle(() => ({ opacity: interpolate(flat.value, [0.3, 1], [0, 1], CLAMP) }));
+  const tickInk = mark === "answered" ? P.pen : mark === "signed" ? P.brassSeal : P.ink;
 
   return (
     <Animated.View pointerEvents="none" style={[{ position: "absolute", left: CX - FACE / 2, top: CY - FACE / 2 }, orbit]}>
       <Animated.View entering={FadeIn.duration(320).delay(60 + order * 30)}>
+      <Animated.View style={body}>
+        <Animated.View style={face}>
         <MosaicId seed={seed} cell={2.8} gap={0.9} develop={develop} />
         {mark && (
           <View
@@ -219,6 +254,9 @@ function OrbitingFace({
             }}
           />
         )}
+        </Animated.View>
+        <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: FACE, height: FACE, backgroundColor: tickInk }, tick]} />
+      </Animated.View>
       </Animated.View>
     </Animated.View>
   );
