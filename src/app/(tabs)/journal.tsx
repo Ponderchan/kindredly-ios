@@ -102,9 +102,6 @@ export default function JournalTab() {
             {t("jt.moments")}
           </Text>
           <SealedCalendar entries={all} onPickDay={openDay} />
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 26 }}>
-            {t("jt.onDevice")}
-          </Text>
         </Animated.ScrollView>
       ) : (
         <Animated.ScrollView entering={FadeIn.duration(220)} onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
@@ -114,9 +111,6 @@ export default function JournalTab() {
           </Animated.Text>
           <WrenSaysOnce id="sealed" line={t("jt.said")} />
           <Wall entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>
-            {t("jt.onDevice")}
-          </Text>
         </Animated.ScrollView>
       )}
     </SafeAreaView>

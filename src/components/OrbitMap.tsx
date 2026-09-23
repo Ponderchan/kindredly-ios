@@ -91,7 +91,7 @@ function ringRx(p: number): number {
 }
 const RINGS = Array.from({ length: REVEAL }, (_, i) => ringRx(i + 1));
 
-export function OrbitMap({ items, empty, flat }: { items: ThreadSummary[]; empty?: boolean; flat?: SharedValue<number> }) {
+export function OrbitMap({ items, empty, flat, line = true }: { items: ThreadSummary[]; empty?: boolean; flat?: SharedValue<number>; line?: boolean }) {
   const still = useSharedValue(0);
   const f = flat ?? still;
   const rings = useAnimatedStyle(() => ({ opacity: interpolate(f.value, [0, 0.8], [1, 0], CLAMP) }));
@@ -155,8 +155,9 @@ export function OrbitMap({ items, empty, flat }: { items: ThreadSummary[]; empty
       </Svg>
       </Animated.View>
 
-      {/* the horizon the rings fold into */}
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 10, right: 10, top: CY - 0.5, height: 1, backgroundColor: P.ink }, horizon]} />
+      {/* the horizon the rings fold into — unless something else already
+          draws that line (Kindreds folds onto its title's rule) */}
+      {line && <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 10, right: 10, top: CY - 0.5, height: 1, backgroundColor: P.ink }, horizon]} />}
 
       {/* you — the fixed point, one solid cell */}
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: CX - 6.5, top: CY - 6.5, width: 13, height: 13, backgroundColor: P.ink }, you]} />

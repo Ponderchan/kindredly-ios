@@ -37,8 +37,8 @@ import { markWork } from "../../lib/stall-probe";
    and their face that develops. From five letters each way, either side may
    enclose their name; when both have, Wren trades them (0010).
 
-   THE LAYOUT (design 2b × 4c, owner 2026-09-23): the sky folds to a horizon
-   across the top — a line with a tick for every stranger, blue for the ones
+   THE LAYOUT (design 2b × 4c, owner 2026-09-23): the sky folds onto the
+   rule under the title — a tick on it for every stranger, blue for the ones
    on you — and opens to the whole orbit on a tap or a pull. Under it the
    list is where you act, in the order the prototype set: Wren, your
    kindreds, the strangers whose turn it is yours, the ones in transit as a
@@ -86,17 +86,30 @@ export default function KindredsTab() {
      the sky is open, it folds back to its line and the list settles under
      it. A push that starts further down is just scrolling. */
   const dragFrom = useRef(0);
+  /* a push that folds the sky usually lets go with speed, and iOS carries
+     that on after the finger lifts — past the scroll back to the top. So
+     the list is sent to the top again once the glide ends, unless a new
+     drag has begun by then. */
+  const settleTop = useRef(false);
+  const toTop = useCallback(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), []);
   const onDragStart = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     dragFrom.current = e.nativeEvent.contentOffset.y;
+    settleTop.current = false;
   }, []);
   const onDragEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
     if (y < -56) setSkyOpen(true);
     else if (skyOpen && dragFrom.current < 40 && y - dragFrom.current > 24) {
       setSkyOpen(false);
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      settleTop.current = true;
+      toTop();
     }
-  }, [skyOpen]);
+  }, [skyOpen, toTop]);
+  const onGlideEnd = useCallback(() => {
+    if (!settleTop.current) return;
+    settleTop.current = false;
+    toTop();
+  }, [toTop]);
   const load = useCallback(() => {
     let alive = true;
     readRoomSeen().then((l) => alive && setSeenLedger(l));
@@ -179,16 +192,12 @@ export default function KindredsTab() {
           <Empty onWrite={() => router.push("/compose")} />
         </>
       ) : (
-        <ScrollView ref={scrollRef} onScrollBeginDrag={onDragStart} onScrollEndDrag={onDragEnd} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
-          {/* the sky: folded to a horizon, open on a tap or a pull */}
-          <KindredsSky items={coming} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} />
-
+        <ScrollView ref={scrollRef} onScrollBeginDrag={onDragStart} onScrollEndDrag={onDragEnd} onMomentumScrollEnd={onGlideEnd} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           {/* the title answers one question — is anything on me? — and
               when it is, tapping it goes there (owner, 2026-09-20). The
               plate itself is every tab's (components/TabHeader). */}
           <TabHeader
             title={t("kindreds.title")}
-            style={{ marginTop: 18 }}
             right={
               <Pressable disabled={!waiting} onPress={() => scrollRef.current?.scrollTo({ y: Math.max(0, listY.current + yourTurnY.current - 12), animated: true })} hitSlop={8} style={{ flexShrink: 1 }}>
                 <Text numberOfLines={2} style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: waiting ? P.pen : P.ink40, textAlign: "right" }}>
@@ -198,7 +207,11 @@ export default function KindredsTab() {
             }
           />
 
-          <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          {/* the sky, folded onto that rule: a tick for every stranger, blue
+              for the ones on you; open on its tag, a tap or a pull */}
+          <KindredsSky items={coming} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} />
+
+          <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)} style={{ paddingHorizontal: 16, paddingTop: 4 }}>
 
             <WrenSaysOnce id="kindreds" line={t("kindreds.said")} />
 
