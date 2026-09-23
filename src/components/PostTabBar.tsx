@@ -14,14 +14,17 @@ import { t, useLang } from "../lib/i18n";
    square with a plane on it. Nobody could say which was which.
 
    So: the ordinary icons, one stroke weight, one family — an envelope for
-   Today, a book for Sealed, two speech bubbles for Kindreds (two people
+   Today, a note card for Notes (the tab once called Sealed; the web's
+   icon, owner 2026-09-23), two speech bubbles for Kindreds (two people
    read as Me twice), one person for Me — no words under them, and in the
    middle a plain round + in the app's one action colour. Pressing it doesn't leave the page: the + turns into
    an × and two choices rise out of it (PostFan). Active is pen blue with a
    wash behind the stroke; the rest are quiet ink. */
 
 export const BAR = 54;
-const ICON = 27;
+/* 30, not 27: the prototype's bar (owner, 2026-09-23) draws its glyphs about
+   an eighth larger than ours were — an envelope 25pt across */
+const ICON = 30;
 export const PLUS = 52;
 /** the bar's full height, safe area included — the fan sits on top of it */
 export const tabBarHeight = (insetBottom: number) => BAR + Math.max(insetBottom, 8);
@@ -43,13 +46,13 @@ export function Envelope({ color, active, size = ICON }: IconProps) {
   );
 }
 
-/** SEALED — a closed book, a small seal on the cover */
-export function Book({ color, active, size = ICON }: IconProps) {
+/** NOTES — a note card with a turned corner and two ruled lines (the web's) */
+export function Notes({ color, active, size = ICON }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeFor(active)} strokeLinejoin="round" strokeLinecap="round">
-      <Path d="M6.5 3.5h11a2 2 0 0 1 2 2v15h-13a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z" fill={active ? WASH : "none"} />
-      <Path d="M8.5 3.5v17" />
-      <Circle cx={14} cy={11} r={2.2} />
+      <Path d="M5.5 4.5h10L20 9v10.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5V6a1.5 1.5 0 0 1 1.5-1.5z" fill={active ? WASH : "none"} />
+      <Path d="M15.5 4.5V9H20" />
+      <Path d="M8 12.5h8M8 16h5" />
     </Svg>
   );
 }
@@ -132,7 +135,7 @@ export function PostTabBar({ state, navigation, onPost, open = false, waiting = 
     >
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 6 }}>
         <Window name="letters" label={t("tab.today")} Icon={Envelope} />
-        <Window name="journal" label={t("tab.sealed")} Icon={Book} />
+        <Window name="journal" label={t("tab.notes")} Icon={Notes} />
 
         {/* the plus — the one action, in the one action colour */}
         <Pressable onPress={onPost} hitSlop={6} style={{ flex: 1, alignItems: "center", justifyContent: "center", height: BAR }}>

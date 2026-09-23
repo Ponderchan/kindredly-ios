@@ -21,7 +21,7 @@ import { WrenDeskRow } from "../../components/WrenDesk";
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
-import { setWaiting } from "../../lib/waiting";
+import { onYou, setWaiting } from "../../lib/waiting";
 import { threadState } from "../../lib/thread-state";
 import { DEMO_THREADS } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
@@ -42,7 +42,15 @@ import { markWork } from "../../lib/stall-probe";
    list is where you act, in the order the prototype set: Wren, your
    kindreds, the strangers whose turn it is yours, the ones in transit as a
    grid of faces, and the rooms that went quiet. The sky starts folded on
-   every visit; the list comes first. */
+   every visit; the list comes first.
+
+   THE TWO GROUPS OF STRANGERS (owner, 2026-09-23) are one question — whose
+   letter is owed. A stranger who has written and is waiting on you sits in
+   STRANGERS, newest first, with the door on the row; the moment you write
+   back the row leaves and their face joins IN TRANSIT; when they answer,
+   it comes back to the top of STRANGERS. Kindreds work like friends: a
+   number for the letters of theirs you haven't opened, gone once you've
+   read them, answered or not (lib/waiting onYou). */
 
 /* Nothing on this tab was written by a person — the orbit, the counts, the
    progress to a name are all the system reporting. So it is desk all the way
@@ -69,11 +77,22 @@ export default function KindredsTab() {
   /* the sky starts folded on every visit — the list is what you came for */
   const [skyOpen, setSkyOpen] = useState(false);
   useFocusEffect(useCallback(() => () => setSkyOpen(false), []));
-  /* pulling the list down past its top opens the sky, the way a pull
-     reveals what sits above on iOS */
-  const onPull = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (e.nativeEvent.contentOffset.y < -56) setSkyOpen(true);
+  /* the list moves the sky: pulled down past its top, the sky opens, the
+     way a pull reveals what sits above on iOS; pushed up from the top while
+     the sky is open, it folds back to its line and the list settles under
+     it. A push that starts further down is just scrolling. */
+  const dragFrom = useRef(0);
+  const onDragStart = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    dragFrom.current = e.nativeEvent.contentOffset.y;
   }, []);
+  const onDragEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y;
+    if (y < -56) setSkyOpen(true);
+    else if (skyOpen && dragFrom.current < 40 && y - dragFrom.current > 24) {
+      setSkyOpen(false);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }
+  }, [skyOpen]);
   const load = useCallback(() => {
     let alive = true;
     readRoomSeen().then((l) => alive && setSeenLedger(l));
@@ -141,8 +160,8 @@ export default function KindredsTab() {
   const yourTurn = useMemo(() => coming.filter((t) => threadState(t)?.needsYou), [coming]);
   const inTransit = useMemo(() => coming.filter((t) => !threadState(t)?.needsYou), [coming]);
   const named = kindreds.length;
-  // anything at all that is on you — one number, one sentence
-  const waiting = orbit.filter((t) => threadState(t)?.needsYou).length;
+  // anything at all that is on you — one number, one sentence, the tab's rule
+  const waiting = useMemo(() => onYou(orbit, seenLedger), [orbit, seenLedger]);
   const empty = loaded && orbit.length === 0;
 
   // feed the tab-bar signal from the count this screen already computed
@@ -159,7 +178,7 @@ export default function KindredsTab() {
           <Empty onWrite={() => router.push("/compose")} />
         </>
       ) : (
-        <ScrollView ref={scrollRef} onScrollEndDrag={onPull} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} onScrollBeginDrag={onDragStart} onScrollEndDrag={onDragEnd} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           {/* the sky: folded to a horizon, open on a tap or a pull */}
           <KindredsSky items={coming} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} />
 
@@ -196,10 +215,10 @@ export default function KindredsTab() {
               )}
             </View>
 
-            {/* still strangers, and it is your turn */}
+            {/* still strangers, and it is your turn — newest first */}
             {yourTurn.length > 0 && (
               <View onLayout={(e) => (yourTurnY.current = e.nativeEvent.layout.y)}>
-                <GroupLabel kind="strangers" text={t("kd.groupYourTurn", { n: yourTurn.length })} />
+                <GroupLabel kind="strangers" text={t("kd.strangersN", { n: yourTurn.length })} right={t("state.yourTurn")} rightInk={STATE_INK.strangers} />
                 <View style={card}>
                   {yourTurn.map((th, i) => (
                     <StrangerRow key={th.id} t={th} first={i === 0} onOpen={() => router.push(`/chat/${th.id}`)} />
@@ -214,7 +233,7 @@ export default function KindredsTab() {
             {inTransit.length > 0 && (
               <>
                 <GroupLabel kind="inTransit" text={t("kd.inTransitN", { n: inTransit.length })} right={t("state.waitingThem")} />
-                <View style={[card, { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 12 }]}>
+                <View style={[card, { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 14 }]}>
                   {inTransit.map((th) => (
                     <TransitTile key={th.id} t={th} onOpen={() => router.push(`/chat/${th.id}`)} />
                   ))}
@@ -225,18 +244,19 @@ export default function KindredsTab() {
             {/* the rooms that went quiet — read them any time; write, and they are back */}
             {expired.length > 0 && (
               <>
-                <Text style={groupLabel}>{t("kd.groupExpired", { n: expired.length })}</Text>
-                <View style={card}>
+                <GroupLabel kind="expired" text={t("kd.groupExpired", { n: expired.length })} />
+                {/* half-there paper: the room is still yours, just quiet */}
+                <View style={quietCard}>
                   {expired.map((th, i) => (
                     <Pressable key={th.id} onPress={() => router.push(`/room/${th.id}`)} style={({ pressed }) => [rowBase, i > 0 && rowRule, { opacity: pressed ? 0.6 : 1 }]}>
                       <View style={{ opacity: 0.45 }}>
-                        <AvatarImage id={th.otherFace ?? null} seed={th.other} size={40} />
+                        <AvatarImage id={th.otherFace ?? null} seed={th.other} size={42} />
                       </View>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: P.ink60 }}>{th.otherName || t("kd.aKindred")}</Text>
-                        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink40, marginTop: 3 }}>{t("kd.expiredRow", { n: quietDays(th.lastAt) })}</Text>
+                        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink60 }}>{th.otherName || t("kd.aKindred")}</Text>
+                        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 3 }}>{t("kd.expiredRow", { n: quietDays(th.lastAt) })}</Text>
                       </View>
-                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.ink }}>{t("rm.rekindle")} ›</Text>
+                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.3, color: P.ink }}>{t("rm.rekindle")} ›</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -251,20 +271,25 @@ export default function KindredsTab() {
   );
 }
 
-const groupLabel = { fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.ink60, marginTop: 20, marginBottom: 8, marginLeft: 2 } as const;
-const card = [{ backgroundColor: "#FFFFFF", borderRadius: 16, overflow: "hidden" as const }, cardShadow, { shadowOpacity: 0.05 }];
-const rowBase = { flexDirection: "row" as const, alignItems: "center" as const, gap: 12, paddingHorizontal: 14, paddingVertical: 12 };
-const rowRule = { borderTopWidth: 1, borderTopColor: P.ink12 };
+/* the prototype's measures (2b, owner 2026-09-23): 22pt corners, rows 16 × 13
+   with a pale rule, faces at 42 */
+const card = [{ backgroundColor: "#FFFFFF", borderRadius: 22, overflow: "hidden" as const }, cardShadow, { shadowOpacity: 0.05 }];
+const quietCard = { backgroundColor: "rgba(255,255,255,0.55)", borderRadius: 22, overflow: "hidden" as const };
+const rowBase = { flexDirection: "row" as const, alignItems: "center" as const, gap: 12, paddingHorizontal: 16, paddingVertical: 13 };
+const rowRule = { borderTopWidth: 1, borderTopColor: "#EFEEF6" };
+/* a group's words are darker than its glyph where the glyph is pale */
+const LABEL_INK: Record<StateKind, string> = { ...STATE_INK, inTransit: "#55506E" };
 
 const EACH_WAY = 5;
 
-/* a group's name, in its state's ink, with its glyph (round 3a) */
-function GroupLabel({ kind, text, right }: { kind: StateKind; text: string; right?: string }) {
+/* a group's name, in its state's ink, with its glyph (round 3a) — at the
+   prototype's size: a 20pt glyph and 12pt letters (owner, 2026-09-23) */
+function GroupLabel({ kind, text, right, rightInk = P.ink40 }: { kind: StateKind; text: string; right?: string; rightInk?: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 22, marginBottom: 8, marginLeft: 2 }}>
-      <StateGlyph kind={kind} size={14} />
-      <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: STATE_INK[kind] }}>{text}</Text>
-      {!!right && <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40 }}>{right}</Text>}
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 20, marginBottom: 10, marginHorizontal: 4 }}>
+      <StateGlyph kind={kind} size={20} weight={2.2} />
+      <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.7, color: LABEL_INK[kind] }}>{text}</Text>
+      {!!right && <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 10.5, letterSpacing: 1, color: rightInk }}>{right}</Text>}
     </View>
   );
 }
@@ -275,16 +300,16 @@ function KindredRow({ t: th, first, unread, onOpen }: { t: ThreadSummary; first:
   const ago = sinceShort(th.lastAt);
   return (
     <Pressable onPress={onOpen} style={({ pressed }) => [rowBase, !first && rowRule, { opacity: pressed ? 0.6 : 1 }]}>
-      <AvatarImage id={th.otherFace ?? null} seed={th.other} size={40} />
+      <AvatarImage id={th.otherFace ?? null} seed={th.other} size={42} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink }}>{th.otherName || t("kd.aKindred")}</Text>
-        {!!th.preview && <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 13.5, color: P.ink60, marginTop: 2 }}>{th.preview}</Text>}
+        <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15.5, color: P.ink }}>{th.otherName || t("kd.aKindred")}</Text>
+        {!!th.preview && <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 14, color: unread ? P.ink : P.ink60, marginTop: 2 }}>{th.preview}</Text>}
       </View>
-      <View style={{ alignItems: "flex-end", gap: 5 }}>
-        {!!ago && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>}
+      <View style={{ alignItems: "flex-end", gap: 6 }}>
+        {!!ago && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>}
         {unread > 0 && (
-          <View style={{ minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
+          <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
           </View>
         )}
       </View>
@@ -300,19 +325,23 @@ function StrangerRow({ t: th, first, onOpen }: { t: ThreadSummary; first: boolea
   const plainTurn = state?.label === t("state.yourTurn");
   return (
     <Pressable onPress={onOpen} style={({ pressed }) => [rowBase, !first && rowRule, { opacity: pressed ? 0.6 : 1 }]}>
-      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#F6F5FD", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        <MosaicId seed={th.other} cell={3.2} gap={0.9} develop={0.15 + 0.85 * (Math.min(th.theirs, EACH_WAY) / EACH_WAY)} />
+      <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#F3F2FB", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        <MosaicId seed={th.other} cell={5} gap={1} develop={0.15 + 0.85 * (Math.min(th.theirs, EACH_WAY) / EACH_WAY)} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1, color: P.ink }}>NO. {postNo(th.other)}</Text>
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>· {each}/{EACH_WAY}</Text>
-          {state && !plainTurn && <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: state.tone }}>{state.label.toUpperCase()}</Text>}
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 0.8, color: P.ink }}>NO. {postNo(th.other)}</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>· {each}/{EACH_WAY}</Text>
           {th.theirReaction && <Text style={{ fontSize: 12 }}>{th.theirReaction}</Text>}
         </View>
-        {!!th.preview && <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 13.5, color: P.ink60, marginTop: 3 }}>{th.preview}</Text>}
+        {/* past five each way the row has more to say than whose turn it is
+            (they went first · swap names) — its own line, never cut short */}
+        {state && !plainTurn && <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: state.tone, marginTop: 3 }}>{state.label.toUpperCase()}</Text>}
+        {!!th.preview && <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 14, color: P.ink60, marginTop: 4 }}>{th.preview}</Text>}
       </View>
-      <View style={{ backgroundColor: P.pen, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}>
+      {/* the door says what you'll do there (owner's "Your turn" is the
+          group's right-hand word now, facing IN TRANSIT's "waiting on them") */}
+      <View style={{ backgroundColor: P.pen, borderRadius: 16, paddingHorizontal: 13, paddingVertical: 8 }}>
         <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: "#FFFFFF" }}>{t("kd.reply")}</Text>
       </View>
     </Pressable>
@@ -345,7 +374,7 @@ function Empty({ onWrite }: { onWrite: () => void }) {
       </View>
       {/* and her desk is here before anyone else is — under the sky, where
           the kindreds will go */}
-      <View style={{ alignSelf: "stretch", marginTop: 4 }}>
+      <View style={{ alignSelf: "stretch", marginTop: 4, marginBottom: 10 }}>
         <WrenDeskRow />
       </View>
       <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 14, lineHeight: 33 }}>

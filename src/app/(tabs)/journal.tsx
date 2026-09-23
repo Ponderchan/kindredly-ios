@@ -77,7 +77,7 @@ export default function JournalTab() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
       {/* header — the box's own plate, on the same rule Today uses */}
       <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 9, marginHorizontal: 16 }, rule]}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("jt.sealed")}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>{t("jt.notes")}</Text>
         {empty ? (
           <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>{t("jt.justYou")}</Text>
         ) : (

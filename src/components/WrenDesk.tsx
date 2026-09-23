@@ -87,7 +87,7 @@ export function WrenDeskRow() {
   return (
     <Pressable
       onPress={() => router.push(`/room/${WREN_ROOM}`)}
-      style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
+      style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <OfficialBird size={44} />
@@ -102,10 +102,10 @@ export function WrenDeskRow() {
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: "#FFFFFF" }}>{t("wo.new")}</Text>
               </View>
             ) : (
-              !!ago && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>
+              !!ago && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>
             )}
           </View>
-          <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 13.5, color: unread ? P.ink : P.ink60, marginTop: 3 }}>
+          <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 14, color: unread ? P.ink : P.ink60, marginTop: 3 }}>
             {last ? postText(last).split("\n")[0] : t("wo.row.sub")}
           </Text>
         </View>

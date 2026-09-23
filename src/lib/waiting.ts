@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { fetchThreads } from "./db";
+import { fetchThreads, type ThreadSummary } from "./db";
 import { threadState } from "./thread-state";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { track } from "./track";
-import { readRoomSeen } from "./room-seen";
+import { readRoomSeen, unreadOf } from "./room-seen";
 import { fetchWrenPosts, readPostsCache, wrenUnread } from "./wren-desk";
 
 /* How many correspondences are waiting on YOU — someone answered your letter
@@ -35,6 +35,23 @@ const publish = () => {
   for (const f of subs) f(n);
 };
 
+/* WHAT COUNTS AS ON YOU (owner, 2026-09-23). The two groups keep two
+   different promises. A stranger whose turn it is stays counted until you
+   write back — the letter is the only way forward, and the row only leaves
+   STRANGERS when you've sent one. A kindred's letters stop counting the
+   moment you have read them, answered or not: you already know each other,
+   and a friend's note read and left for later is not a debt. So the tab's
+   number, the title's "letters to answer" and the kindred's own badge all
+   clear together when a kindred's room is opened. */
+export function onYou(threads: ThreadSummary[], ledger: Record<string, number>): number {
+  let n = 0;
+  for (const t of threads) {
+    if (t.revealed) n += unreadOf(ledger, t.id, t.theirs);
+    else if (threadState(t)?.needsYou) n += 1;
+  }
+  return n;
+}
+
 export function setWaiting(n: number) {
   turn = n;
   publish();
@@ -59,12 +76,12 @@ export function useWaiting(): number {
 
 /** one query at launch — and on every realtime poke — so the signal is
     true before Kindreds is ever opened. Same rule as the tab itself
-    (threadState.needsYou), not a second, narrower vocabulary. */
+    (onYou), not a second, narrower vocabulary. */
 export async function refreshWaiting(): Promise<void> {
   void refreshDeskWaiting();
   const t = await fetchThreads();
   if (!t) return;
-  setWaiting(t.filter((x) => threadState(x)?.needsYou).length);
+  setWaiting(onYou(t, await readRoomSeen()));
   void countNewReplies(t);
 }
 

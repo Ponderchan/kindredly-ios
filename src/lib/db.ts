@@ -808,7 +808,12 @@ export async function sendThreadMessage(
         .insert({ thread_id: threadId, sender: me, body: String(body).slice(0, 2000) });
       error = retry.error;
     }
-    return error ? (noteFail(error) as null) : { ok: true };
+    if (error) return noteFail(error) as null;
+    /* the list is out of date the moment a letter leaves: the next visit
+       to Kindreds asks again, so the stranger you just answered has moved
+       to IN TRANSIT by the time you're back (owner, 2026-09-23) */
+    threadsFetchedAt = 0;
+    return { ok: true };
   } catch (e) {
     return noteFail(e);
   }
