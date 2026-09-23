@@ -29,7 +29,7 @@ import { track, type PaywallSource } from "../lib/track";
 const NIGHT = "#1E1B35";
 const GOLD = "#D8A63F";
 const GOLD_INK = "#8A6E20";
-const COFOUNDERS_TOTAL = 500;
+const COFOUNDERS_TOTAL = 100;   // "Founding 100 only, numbered" — the App Store product says the same, and so does the web
 
 /* the fare ladder is a design decision, not a dashboard setting: annual is
    the anchor the others are read against, then monthly, then the seat */
