@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { scoped as AsyncStorage } from "./scoped-store";
+import { supabase } from "./supabase";
 
 /* YOUR COURIER — her name, and the shell she came out of.
    (One word for her job, everywhere: courier, never messenger — it is
@@ -10,6 +11,12 @@ import { scoped as AsyncStorage } from "./scoped-store";
    in onboarding, and every line she speaks anywhere in the app uses that
    name. "Wren" survives only as the fallback for anyone who came in before
    naming existed, and for anyone who skips it.
+
+   HER NAME IS THE ACCOUNT'S (owner, 2026-09-23: named her here, and the web
+   shelf called her something else). The device keeps a copy so she has a
+   name before the network answers, but the truth is user_metadata.wren —
+   the same field the web reads — so she is called one thing on the phone,
+   in the browser, and on a phone you have not set up yet.
 
    The SHELL is stored too. It used to be picked on its own screen and then
    silently dropped on save, which made that screen a piece of theatre — you
@@ -23,19 +30,50 @@ export const DEFAULT_WREN = "Wren";
 
 export async function saveWrenName(name: string): Promise<void> {
   const n = name.trim().slice(0, 16);
+  if (!n) return;
   try {
-    if (n) await AsyncStorage.setItem(NAME_KEY, n);
+    await AsyncStorage.setItem(NAME_KEY, n);
   } catch {
     /* a name is not worth failing onboarding over */
+  }
+  try {
+    await supabase?.auth.updateUser({ data: { wren: n } });   // …and up, so the web calls her the same thing
+  } catch {
+    /* offline: the device has it, and the next save carries it up */
+  }
+}
+
+/** her name on the account, or null — user_metadata.wren, the web's field */
+async function profileWrenName(): Promise<string | null> {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getSession();   // the metadata rides on the local session
+    const m = (data.session?.user?.user_metadata || {}) as Record<string, unknown>;
+    const n = typeof m.wren === "string" ? m.wren.trim() : "";
+    return n || null;
+  } catch {
+    return null;
   }
 }
 
 export async function getWrenName(): Promise<string> {
+  /* the device first — she has a name before the network answers — and the
+     account when this device was never told one (a reinstall, a new phone,
+     or a name given in the browser) */
+  let local = "";
   try {
-    return (await AsyncStorage.getItem(NAME_KEY))?.trim() || DEFAULT_WREN;
+    local = (await AsyncStorage.getItem(NAME_KEY))?.trim() || "";
   } catch {
+    /* no store: the account may still know */
+  }
+  const theirs = await profileWrenName();
+  if (!local) {
+    if (theirs) { try { await AsyncStorage.setItem(NAME_KEY, theirs); } catch { /* read-only is fine */ } return theirs; }
     return DEFAULT_WREN;
   }
+  /* named here before the name synced — carry it up once */
+  if (!theirs) { try { await supabase?.auth.updateUser({ data: { wren: local } }); } catch { /* next time */ } }
+  return local;
 }
 
 /* Copy all over the app is AUTHORED with the literal name "Wren" — it's the
