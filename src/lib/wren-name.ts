@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { scoped as AsyncStorage } from "./scoped-store";
-import { supabase } from "./supabase";
+import { readWren, writeWren } from "./wren-profile";
 
 /* YOUR COURIER — her name, and the shell she came out of.
    (One word for her job, everywhere: courier, never messenger — it is
@@ -23,57 +22,16 @@ import { supabase } from "./supabase";
    chose a colour and the app forgot before you finished onboarding. If a
    step asks a person to choose, the choice has to survive. */
 
-const NAME_KEY = "kindredly_wren_name";
-const EGG_KEY = "kindredly_wren_egg";
 
 export const DEFAULT_WREN = "Wren";
 
 export async function saveWrenName(name: string): Promise<void> {
   const n = name.trim().slice(0, 16);
-  if (!n) return;
-  try {
-    await AsyncStorage.setItem(NAME_KEY, n);
-  } catch {
-    /* a name is not worth failing onboarding over */
-  }
-  try {
-    await supabase?.auth.updateUser({ data: { wren: n } });   // …and up, so the web calls her the same thing
-  } catch {
-    /* offline: the device has it, and the next save carries it up */
-  }
-}
-
-/** her name on the account, or null — user_metadata.wren, the web's field */
-async function profileWrenName(): Promise<string | null> {
-  if (!supabase) return null;
-  try {
-    const { data } = await supabase.auth.getSession();   // the metadata rides on the local session
-    const m = (data.session?.user?.user_metadata || {}) as Record<string, unknown>;
-    const n = typeof m.wren === "string" ? m.wren.trim() : "";
-    return n || null;
-  } catch {
-    return null;
-  }
+  if (n) await writeWren("name", n);
 }
 
 export async function getWrenName(): Promise<string> {
-  /* the device first — she has a name before the network answers — and the
-     account when this device was never told one (a reinstall, a new phone,
-     or a name given in the browser) */
-  let local = "";
-  try {
-    local = (await AsyncStorage.getItem(NAME_KEY))?.trim() || "";
-  } catch {
-    /* no store: the account may still know */
-  }
-  const theirs = await profileWrenName();
-  if (!local) {
-    if (theirs) { try { await AsyncStorage.setItem(NAME_KEY, theirs); } catch { /* read-only is fine */ } return theirs; }
-    return DEFAULT_WREN;
-  }
-  /* named here before the name synced — carry it up once */
-  if (!theirs) { try { await supabase?.auth.updateUser({ data: { wren: local } }); } catch { /* next time */ } }
-  return local;
+  return (await readWren("name", (v) => v.length > 0)) || DEFAULT_WREN;
 }
 
 /* Copy all over the app is AUTHORED with the literal name "Wren" — it's the
@@ -88,20 +46,12 @@ export function speakAs(text: string, name: string): string {
 }
 
 export async function saveWrenEgg(variant: number): Promise<void> {
-  try {
-    await AsyncStorage.setItem(EGG_KEY, String(variant));
-  } catch {
-    /* ignore */
-  }
+  await writeWren("egg", String(variant));
 }
 
 export async function getWrenEgg(): Promise<number> {
-  try {
-    const v = parseInt((await AsyncStorage.getItem(EGG_KEY)) || "0", 10);
-    return Number.isFinite(v) ? v : 0;
-  } catch {
-    return 0;
-  }
+  const v = parseInt((await readWren("egg", (x) => Number.isFinite(parseInt(x, 10)))) || "0", 10);
+  return Number.isFinite(v) ? v : 0;
 }
 
 /** her name, for any screen that speaks about her. Re-reads on focus so a

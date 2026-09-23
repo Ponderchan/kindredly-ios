@@ -1,4 +1,5 @@
 import { scoped as AsyncStorage } from "./scoped-store";
+import { readWren, writeWren } from "./wren-profile";   // her coat and dress live on the account (WREN_FIELDS)
 import { t } from "./i18n";
 import type { GrowthStats } from "../data/growth";
 import type { WrenAccessory, WrenSkin, WrenStage } from "../components/WrenBird";
@@ -7,7 +8,6 @@ import type { WrenAccessory, WrenSkin, WrenStage } from "../components/WrenBird"
    being heard is ever gated. Free birds get a couple of pieces; the rest are
    First Class / seasonal drops. */
 
-const KEY = "kindredly_wren_accessory";
 
 export const FREE_ACCESSORIES: WrenAccessory[] = ["none", "beanie", "scarf"];
 
@@ -24,7 +24,6 @@ export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; 
 /* Which skin Wren wears. sticker is the free default; plush unlocks at a
    milestone (first kindred); ink is First Class. The gate lives in the UI —
    this just remembers the pick. */
-const SKIN_KEY = "kindredly_wren_skin";
 
 export const SKINS: { id: WrenSkin; lock: "free" | "milestone" | "plus" }[] = [
   { id: "sticker", lock: "free" },     // Sky
@@ -40,20 +39,11 @@ export const SKINS: { id: WrenSkin; lock: "free" | "milestone" | "plus" }[] = [
 export const skinName = (id: WrenSkin): string => t(`skin.${id}.name`);
 
 export async function getWrenSkin(): Promise<WrenSkin> {
-  try {
-    const v = (await AsyncStorage.getItem(SKIN_KEY)) as WrenSkin | null;
-    return v && SKINS.some((s) => s.id === v) ? v : "sticker";
-  } catch {
-    return "sticker";
-  }
+  return ((await readWren("skin", (v) => SKINS.some((s) => s.id === v))) as WrenSkin | null) || "sticker";
 }
 
 export async function setWrenSkin(s: WrenSkin): Promise<void> {
-  try {
-    await AsyncStorage.setItem(SKIN_KEY, s);
-  } catch {
-    /* best-effort */
-  }
+  await writeWren("skin", s);
 }
 
 /** Is a skin available to this user? Sky always; Moss after the first
@@ -66,20 +56,11 @@ export function skinUnlocked(id: WrenSkin, stats: GrowthStats, premium: boolean)
 }
 
 export async function getWrenAccessory(): Promise<WrenAccessory> {
-  try {
-    const v = (await AsyncStorage.getItem(KEY)) as WrenAccessory | null;
-    return v && ACCESSORY_META.some((a) => a.id === v) ? v : "none";
-  } catch {
-    return "none";
-  }
+  return ((await readWren("accessory", (v) => ACCESSORY_META.some((a) => a.id === v))) as WrenAccessory | null) || "none";
 }
 
 export async function setWrenAccessory(a: WrenAccessory): Promise<void> {
-  try {
-    await AsyncStorage.setItem(KEY, a);
-  } catch {
-    /* best-effort */
-  }
+  await writeWren("accessory", a);
 }
 
 /* Growth stage from the same product stats the stamps use:
