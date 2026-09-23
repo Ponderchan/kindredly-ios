@@ -118,13 +118,14 @@ export default function JournalTab() {
             <View ref={viewKey} collapsable={false}>
               <PlateKey on={!!menu} onPress={openMenu} label={`${t("jt.viewMenu")}: ${mode === "card" ? t("jt.viewCard") : t("jt.viewCompact")}`} expanded={!!menu}>
                 <ViewGlyph mode={mode} color={menu ? "#FFFFFF" : P.ink} />
-                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: menu ? "#FFFFFF" : P.ink }}>{mode === "card" ? t("jt.viewCard") : t("jt.viewCompact")}</Text>
-                <Text style={{ fontSize: 8, color: menu ? "rgba(255,255,255,0.7)" : P.ink40 }}>▾</Text>
+                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: menu ? "#FFFFFF" : P.ink }}>{mode === "card" ? t("jt.viewCard") : t("jt.viewCompact")}</Text>
+                <Caret open={!!menu} />
               </PlateKey>
             </View>
-            <PlateKey on={cal} onPress={() => setCal((c) => !c)} label={String(thisMonth)}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1, color: cal ? "#FFFFFF" : P.ink }}>{String(thisMonth).padStart(2, "0")}</Text>
+            <PlateKey on={cal} onPress={() => setCal((c) => !c)} label={String(thisMonth)} expanded={cal}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.8, color: cal ? "#FFFFFF" : P.ink }}>{String(thisMonth).padStart(2, "0")}</Text>
               {cal ? <ListIcon color="#FFFFFF" /> : <CalendarIcon color={P.ink} />}
+              <Caret open={cal} />
             </PlateKey>
           </View>
         )}
@@ -134,7 +135,7 @@ export default function JournalTab() {
       <Modal transparent visible={!!menu} animationType="fade" onRequestClose={() => setMenu(null)}>
         <Pressable style={{ flex: 1 }} onPress={() => setMenu(null)}>
           {menu && (
-            <Pressable onPress={() => {}} style={{ position: "absolute", top: menu.y + menu.h + 8, right: WIN_W - (menu.x + menu.w), minWidth: 206, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1.5, borderColor: P.ink, padding: 8, shadowColor: P.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }}>
+            <Pressable onPress={() => {}} style={{ position: "absolute", top: menu.y + menu.h + 6, right: WIN_W - (menu.x + menu.w), minWidth: 206, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1.5, borderColor: P.ink, padding: 8, shadowColor: P.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }}>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: P.ink40, paddingHorizontal: 10, paddingTop: 6, paddingBottom: 6 }}>{t("jt.viewMenu")}</Text>
               {(["card", "compact"] as const).map((m) => (
                 <Pressable key={m} onPress={() => pick(m)} accessibilityRole="menuitem" accessibilityState={{ selected: mode === m }} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, height: 44, paddingHorizontal: 10, borderRadius: 12, backgroundColor: mode === m ? "#EEEDFA" : pressed ? "#F6F5FC" : "transparent" })}>
@@ -221,7 +222,9 @@ function Row({ e, first, onPress }: { e: JournalEntry; first: boolean; onPress: 
   );
 }
 
-/* a key on the plate — outlined, filled while what it opens is open */
+/* a key on the plate — outlined, filled while what it opens is open. Both
+   keys open something, so both end in the same caret (owner, 2026-09-23),
+   and both sit a size below the plate's 18pt name: 28 high, 13pt words */
 function PlateKey({ on, onPress, label, expanded, children }: { on: boolean; onPress: () => void; label: string; expanded?: boolean; children: React.ReactNode }) {
   return (
     <Pressable
@@ -229,17 +232,26 @@ function PlateKey({ on, onPress, label, expanded, children }: { on: boolean; onP
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={expanded === undefined ? { selected: on } : { expanded }}
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 7, height: 34, paddingHorizontal: 11, borderRadius: 11, borderWidth: 1.5, borderColor: P.ink, backgroundColor: on ? P.ink : "transparent", opacity: pressed ? 0.75 : 1 })}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 5, height: 28, paddingHorizontal: 9, borderRadius: 9, borderWidth: 1.3, borderColor: P.ink, backgroundColor: on ? P.ink : "transparent", opacity: pressed ? 0.75 : 1 })}
     >
       {children}
     </Pressable>
   );
 }
 
+/* what a key opens hangs below it: a caret down, turned up while open */
+function Caret({ open }: { open: boolean }) {
+  return (
+    <Svg width={9} height={9} viewBox="0 0 10 10" style={{ marginLeft: 1, transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+      <Path d="M2 3.5l3 3 3-3" fill="none" stroke={open ? "#FFFFFF" : P.ink60} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 /* the two ways, drawn: Card is two stacked sheets, Compact three lines */
 function ViewGlyph({ mode, color }: { mode: Mode; color: string }) {
   return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       {mode === "card" ? (
         <>
           <Rect x={4} y={4} width={16} height={7} rx={2.5} />
@@ -318,7 +330,7 @@ function Key({ label, tint, onPress, children }: { label: string; tint: string; 
    habit; a day is never "done". */
 function CalendarIcon({ color = P.ink60 }: { color?: string }) {
   return (
-    <Svg width={19} height={19} viewBox="0 0 24 24">
+    <Svg width={15} height={15} viewBox="0 0 24 24">
       <Rect x={3} y={4} width={18} height={17} fill="none" stroke={color} strokeWidth={1.7} />
       <Path d="M3 9.2h18" stroke={color} strokeWidth={1.7} />
       <Path d="M9 9.2v11.8 M15 9.2v11.8 M3 15.1h18" stroke={color} strokeWidth={1.1} />
@@ -330,7 +342,7 @@ function CalendarIcon({ color = P.ink60 }: { color?: string }) {
    each led by the same square of ink the rest of the app uses as a marker. */
 function ListIcon({ color = P.ink60 }: { color?: string }) {
   return (
-    <Svg width={19} height={19} viewBox="0 0 24 24">
+    <Svg width={15} height={15} viewBox="0 0 24 24">
       <Rect x={3} y={4.6} width={3} height={3} fill={color} />
       <Path d="M9 6.1h12" stroke={color} strokeWidth={1.7} />
       <Rect x={3} y={10.5} width={3} height={3} fill={color} />
