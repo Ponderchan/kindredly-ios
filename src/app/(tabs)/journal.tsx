@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dimensions, Modal, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Svg, { Line, Path, Rect } from "react-native-svg";
@@ -9,7 +9,11 @@ import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { TabHeader } from "../../components/TabHeader";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
-import { SealedTile } from "../../components/SealedTile";
+import { SealedTile, KindMark, day } from "../../components/SealedTile";
+import { MoodIcon } from "../../components/MoodIcon";
+import { cardShadow } from "../../components/AuraCard";
+import { getMood } from "../../data/moods";
+import { scoped } from "../../lib/scoped-store";
 import { SealedCalendar, dayKey } from "../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../lib/journal";
 import { DEMO_JOURNAL } from "../../data/demo";
@@ -22,11 +26,18 @@ const storeBody = (d: JournalEntry): JournalEntry => (__DEV__ && storeMode && ST
 import { hiddenDemoIds } from "../../lib/journal";
 import { localeTag } from "../../lib/format";
 
-/* Sealed — letters to yourself. Clean stacked cards (design 1a): mood shows as
-   its face alone, no label; a line can drift out from the card. Top-right flips
-   to a calendar where each day wears its mood face. */
+/* Notes (once Sealed) — letters to yourself. Clean stacked cards (design 1a):
+   mood shows as its face alone, no label; a line can drift out from the card.
 
-type View2 = "line" | "calendar";
+   TWO WAYS TO LAY THE PAGES, AND THE MONTH (the web's, owner 2026-09-23):
+   at the plate's right, a key that says how they lie — Card, the wall; or
+   Compact, one line each — opening a small menu, and a key with this
+   month's count that opens the calendar, where each day wears its mood
+   face. Card is the default; the choice is remembered on this phone. */
+
+type Mode = "card" | "compact";
+const VIEW_KEY = "kindredly_notes_view";
+const WIN_W = Dimensions.get("window").width;
 
 export default function JournalTab() {
   useLang();
@@ -34,7 +45,21 @@ export default function JournalTab() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [hiddenDemo, setHiddenDemo] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState<View2>("line");
+  const [mode, setMode] = useState<Mode>("card");
+  const [cal, setCal] = useState(false);
+  /* the menu hangs under its key, wherever the key is on this screen */
+  const [menu, setMenu] = useState<null | { x: number; y: number; w: number; h: number }>(null);
+  const viewKey = useRef<View>(null);
+  useEffect(() => {
+    scoped.getItem(VIEW_KEY).then((v) => v === "compact" && setMode("compact")).catch(() => {});
+  }, []);
+  const pick = (m: Mode) => {
+    setMode(m);
+    setCal(false); // picking how the pages lie is asking to see them
+    setMenu(null);
+    void scoped.setItem(VIEW_KEY, m).catch(() => {});
+  };
+  const openMenu = () => viewKey.current?.measureInWindow((x, y, w, h) => setMenu({ x, y, w, h }));
   /* the caption lives above the top edge; it is revealed by the overscroll
      and fades in as you pull */
   const y = useSharedValue(0);
@@ -64,6 +89,13 @@ export default function JournalTab() {
   const { empty: forceEmpty } = useLocalSearchParams<{ empty?: string }>();
   const empty = (__DEV__ && forceEmpty === "1") || (loaded && all.length === 0);
 
+  // the calendar key counts the month it opens
+  const now = new Date();
+  const thisMonth = all.filter((e) => {
+    const d = new Date(e.date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+
   const openDay = (key: string) => {
     const day = all.filter((e) => dayKey(e.date) === key);
     if (day.length === 1) router.push(`/journal/${day[0].id}`);
@@ -82,21 +114,44 @@ export default function JournalTab() {
         right={empty ? (
           <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>{t("jt.justYou")}</Text>
         ) : (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 12.5, letterSpacing: 1.2, color: P.ink60 }}>
-              {String(all.length).padStart(2, "0")}
-            </Text>
-            <Pressable onPress={() => setView(view === "line" ? "calendar" : "line")} hitSlop={10} style={{ width: 26, height: 26, alignItems: "center", justifyContent: "center" }}>
-              {view === "line" ? <CalendarIcon /> : <ListIcon />}
-            </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View ref={viewKey} collapsable={false}>
+              <PlateKey on={!!menu} onPress={openMenu} label={`${t("jt.viewMenu")}: ${mode === "card" ? t("jt.viewCard") : t("jt.viewCompact")}`} expanded={!!menu}>
+                <ViewGlyph mode={mode} color={menu ? "#FFFFFF" : P.ink} />
+                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: menu ? "#FFFFFF" : P.ink }}>{mode === "card" ? t("jt.viewCard") : t("jt.viewCompact")}</Text>
+                <Text style={{ fontSize: 8, color: menu ? "rgba(255,255,255,0.7)" : P.ink40 }}>▾</Text>
+              </PlateKey>
+            </View>
+            <PlateKey on={cal} onPress={() => setCal((c) => !c)} label={String(thisMonth)}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1, color: cal ? "#FFFFFF" : P.ink }}>{String(thisMonth).padStart(2, "0")}</Text>
+              {cal ? <ListIcon color="#FFFFFF" /> : <CalendarIcon color={P.ink} />}
+            </PlateKey>
           </View>
         )}
       />
 
+      {/* the view menu: VIEW, then the two ways, the one in use ticked */}
+      <Modal transparent visible={!!menu} animationType="fade" onRequestClose={() => setMenu(null)}>
+        <Pressable style={{ flex: 1 }} onPress={() => setMenu(null)}>
+          {menu && (
+            <Pressable onPress={() => {}} style={{ position: "absolute", top: menu.y + menu.h + 8, right: WIN_W - (menu.x + menu.w), minWidth: 206, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1.5, borderColor: P.ink, padding: 8, shadowColor: P.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: P.ink40, paddingHorizontal: 10, paddingTop: 6, paddingBottom: 6 }}>{t("jt.viewMenu")}</Text>
+              {(["card", "compact"] as const).map((m) => (
+                <Pressable key={m} onPress={() => pick(m)} accessibilityRole="menuitem" accessibilityState={{ selected: mode === m }} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, height: 44, paddingHorizontal: 10, borderRadius: 12, backgroundColor: mode === m ? "#EEEDFA" : pressed ? "#F6F5FC" : "transparent" })}>
+                  <ViewGlyph mode={m} color={P.ink} />
+                  <Text style={{ flex: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 16, color: P.ink }}>{m === "card" ? t("jt.viewCard") : t("jt.viewCompact")}</Text>
+                  {mode === m && <Text style={{ fontSize: 13, color: P.ink40 }}>✓</Text>}
+                </Pressable>
+              ))}
+            </Pressable>
+          )}
+        </Pressable>
+      </Modal>
+
 
       {empty ? (
         <Empty onWrite={(start) => router.push(start ? `/journal-entry?start=${start}` : "/journal-entry")} />
-      ) : view === "calendar" ? (
+      ) : cal ? (
         <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>
             {t("jt.moments")}
@@ -110,7 +165,7 @@ export default function JournalTab() {
             {t("jt.moments")}
           </Animated.Text>
           <WrenSaysOnce id="sealed" line={t("jt.said")} />
-          <Wall entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />
+          {mode === "card" ? <Wall entries={all} onOpen={(id) => router.push(`/journal/${id}`)} /> : <Rows entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />}
         </Animated.ScrollView>
       )}
     </SafeAreaView>
@@ -133,6 +188,67 @@ function Wall({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: strin
         </View>
       ))}
     </View>
+  );
+}
+
+/* compact — one line a page, in one white card: the mood, the day, the
+   first line (or what the page holds, when it has no words), the kind */
+function Rows({ entries, onOpen }: { entries: JournalEntry[]; onOpen: (id: string) => void }) {
+  return (
+    <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 16, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.05 }]}>
+      {entries.map((e, i) => (
+        <Row key={e.id} e={e} first={i === 0} onPress={() => onOpen(e.id)} />
+      ))}
+    </View>
+  );
+}
+
+function Row({ e, first, onPress }: { e: JournalEntry; first: boolean; onPress: () => void }) {
+  const m = getMood(e.mood);
+  const pics = e.type === "photo" ? (e.media?.length ? e.media.length : e.mediaUri ? 1 : 0) : 0;
+  const mmss = (s = 0) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const words = (e.body || "").split("\n")[0].trim();
+  const what = words || (e.type === "photo" ? (pics > 1 ? t("jt.pictures", { n: pics }) : t("jt.picture")) : e.type === "voice" ? `${t("jt.tape")} · ${mmss(e.dur)}` : e.type === "video" ? t("jt.aVideo") : "");
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12, opacity: pressed ? 0.6 : 1 }, !first && { borderTopWidth: 1, borderTopColor: "#EFEEF6" }]}>
+      <View style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: m.bg, alignItems: "center", justifyContent: "center" }}>
+        <MoodIcon id={m.id} size={20} />
+      </View>
+      <Text numberOfLines={1} style={{ minWidth: 54, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40 }}>{day(e.date)}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.letter, fontSize: 15, color: words ? P.ink : P.ink60 }}>{what}</Text>
+      <KindMark kind={e.type} />
+    </Pressable>
+  );
+}
+
+/* a key on the plate — outlined, filled while what it opens is open */
+function PlateKey({ on, onPress, label, expanded, children }: { on: boolean; onPress: () => void; label: string; expanded?: boolean; children: React.ReactNode }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={expanded === undefined ? { selected: on } : { expanded }}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 7, height: 34, paddingHorizontal: 11, borderRadius: 11, borderWidth: 1.5, borderColor: P.ink, backgroundColor: on ? P.ink : "transparent", opacity: pressed ? 0.75 : 1 })}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+/* the two ways, drawn: Card is two stacked sheets, Compact three lines */
+function ViewGlyph({ mode, color }: { mode: Mode; color: string }) {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      {mode === "card" ? (
+        <>
+          <Rect x={4} y={4} width={16} height={7} rx={2.5} />
+          <Rect x={4} y={13} width={16} height={7} rx={2.5} />
+        </>
+      ) : (
+        <Path d="M5 7h14M5 12h14M5 17h14" />
+      )}
+    </Svg>
   );
 }
 
@@ -200,27 +316,27 @@ function Key({ label, tint, onPress, children }: { label: string; tint: string; 
    binder-tab rounded rectangle with a checkmark, in two colours from a
    palette this app no longer owns — a habit tracker's glyph. Sealed is not a
    habit; a day is never "done". */
-function CalendarIcon() {
+function CalendarIcon({ color = P.ink60 }: { color?: string }) {
   return (
-    <Svg width={21} height={21} viewBox="0 0 24 24">
-      <Rect x={3} y={4} width={18} height={17} fill="none" stroke={P.ink60} strokeWidth={1.7} />
-      <Path d="M3 9.2h18" stroke={P.ink60} strokeWidth={1.7} />
-      <Path d="M9 9.2v11.8 M15 9.2v11.8 M3 15.1h18" stroke={P.ink60} strokeWidth={1.1} />
-      <Rect x={10.7} y={10.9} width={2.7} height={2.7} fill={P.ink60} />
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Rect x={3} y={4} width={18} height={17} fill="none" stroke={color} strokeWidth={1.7} />
+      <Path d="M3 9.2h18" stroke={color} strokeWidth={1.7} />
+      <Path d="M9 9.2v11.8 M15 9.2v11.8 M3 15.1h18" stroke={color} strokeWidth={1.1} />
+      <Rect x={10.7} y={10.9} width={2.7} height={2.7} fill={color} />
     </Svg>
   );
 }
 /* Its sibling, drawn as the timeline it toggles to: entry rows on rules,
    each led by the same square of ink the rest of the app uses as a marker. */
-function ListIcon() {
+function ListIcon({ color = P.ink60 }: { color?: string }) {
   return (
-    <Svg width={21} height={21} viewBox="0 0 24 24">
-      <Rect x={3} y={4.6} width={3} height={3} fill={P.ink60} />
-      <Path d="M9 6.1h12" stroke={P.ink60} strokeWidth={1.7} />
-      <Rect x={3} y={10.5} width={3} height={3} fill={P.ink60} />
-      <Path d="M9 12h12" stroke={P.ink60} strokeWidth={1.7} />
-      <Rect x={3} y={16.4} width={3} height={3} fill={P.ink60} />
-      <Path d="M9 17.9h12" stroke={P.ink60} strokeWidth={1.7} />
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Rect x={3} y={4.6} width={3} height={3} fill={color} />
+      <Path d="M9 6.1h12" stroke={color} strokeWidth={1.7} />
+      <Rect x={3} y={10.5} width={3} height={3} fill={color} />
+      <Path d="M9 12h12" stroke={color} strokeWidth={1.7} />
+      <Rect x={3} y={16.4} width={3} height={3} fill={color} />
+      <Path d="M9 17.9h12" stroke={color} strokeWidth={1.7} />
     </Svg>
   );
 }

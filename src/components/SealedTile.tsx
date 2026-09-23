@@ -15,14 +15,18 @@ import type { JournalEntry } from "../lib/journal";
    text page; a photo edge to edge with +N; a voice page is its waveform
    with the play button on the bar and, when there are words, one line
    of them beneath; a video is its first frame with a play mark and the
-   length. Along the bottom of every card: the mood's own face, the day,
-   and the kind. Two columns of these, dealt in turn, is the wall. */
+   length. Along the top of every card: the mood's own face, the day, and
+   the kind — the top since 2026-09-23, as on the web's card and the way a
+   letter wears its postmark: a page is found by its day, and in two
+   columns of uneven cards the tops are the one line the eye comes back
+   to. One picture, with +N for the rest. Two columns of these, dealt in
+   turn, is the wall. */
 
 /* each kind's own colour — the sheet's four: text indigo, photo green,
    voice amber, video coral. The voice bar wears it too, not the mood. */
 const KIND_INK: Record<JournalEntry["type"], string> = { text: "#3A34D6", photo: "#2E7D4F", voice: "#C98A1B", video: "#E5484D" };
 
-const day = (iso: string) => {
+export const day = (iso: string) => {
   const d = new Date(iso);
   return `${d.toLocaleDateString(localeTag(), { month: "short" }).toUpperCase()} ${d.getDate()}`;
 };
@@ -32,8 +36,18 @@ export function SealedTile({ e, onPress }: { e: JournalEntry; onPress: () => voi
   const photos = e.type === "photo" ? (e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []) : [];
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [{ backgroundColor: W14.card, borderRadius: 14, overflow: "hidden", opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}>
+      {/* the head: the mood's face on a tile of its own colour, the day in
+          solid ink, the kind in its type colour */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 8 }}>
+        <View style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: m.bg, alignItems: "center", justifyContent: "center" }}>
+          <MoodIcon id={m.id} size={20} />
+        </View>
+        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.ink }} numberOfLines={1}>{day(e.date)}</Text>
+        <KindMark kind={e.type} />
+      </View>
+
       {e.type === "photo" && photos.length > 0 && (
-        <View>
+        <View style={{ marginHorizontal: 8, borderRadius: 10, overflow: "hidden" }}>
           <Image source={{ uri: photos[0] }} style={{ width: "100%", aspectRatio: 1 }} resizeMode="cover" />
           {photos.length > 1 && (
             <View style={{ position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(30,27,53,0.72)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
@@ -42,12 +56,16 @@ export function SealedTile({ e, onPress }: { e: JournalEntry; onPress: () => voi
           )}
         </View>
       )}
-      {e.type === "video" && !!e.mediaUri && <VideoTile uri={e.mediaUri} dur={e.dur} />}
+      {e.type === "video" && !!e.mediaUri && (
+        <View style={{ marginHorizontal: 8, borderRadius: 10, overflow: "hidden" }}>
+          <VideoTile uri={e.mediaUri} dur={e.dur} />
+        </View>
+      )}
       {e.type === "voice" && !!e.mediaUri && <VoiceTile uri={e.mediaUri} dur={e.dur} tint={KIND_INK.voice} seed={e.id} />}
 
       {/* the words: a text page gets six lines; a caption under media gets two */}
-      {!!e.body && (
-        <View style={{ paddingHorizontal: 12, paddingTop: e.type === "text" ? 12 : 8 }}>
+      {!!e.body ? (
+        <View style={{ paddingHorizontal: 12, paddingTop: e.type === "text" ? 2 : 8, paddingBottom: 12 }}>
           {/* a page, not a letter: the system face (SF / PingFang), as the
               rest of the sealed room has always been — the serif is for
               letters between people. 15.5 / 25 for a page, 13 / 20 for a
@@ -56,22 +74,14 @@ export function SealedTile({ e, onPress }: { e: JournalEntry; onPress: () => voi
             {e.body}
           </Text>
         </View>
+      ) : (
+        <View style={{ height: 10 }} />
       )}
-
-      {/* the foot (the sheet's own detail): the mood's face on a tile of its
-          own colour, the day in solid ink, the kind in its type colour */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10 }}>
-        <View style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: m.bg, alignItems: "center", justifyContent: "center" }}>
-          <MoodIcon id={m.id} size={20} />
-        </View>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.ink }} numberOfLines={1}>{day(e.date)}</Text>
-        <KindMark kind={e.type} />
-      </View>
     </Pressable>
   );
 }
 
-function KindMark({ kind }: { kind: JournalEntry["type"] }) {
+export function KindMark({ kind }: { kind: JournalEntry["type"] }) {
   const c = KIND_INK[kind];
   return (
     <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
@@ -137,7 +147,7 @@ function VoiceTile({ uri, dur, tint, seed }: { uri: string; dur?: number; tint: 
     }
   };
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingTop: 12 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingTop: 2 }}>
       <Pressable onPress={toggle} hitSlop={8} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
         <Svg width={12} height={12} viewBox="0 0 24 24">
           {status.playing ? <Path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="#FFFFFF" /> : <Path d="M8 5l12 7-12 7z" fill="#FFFFFF" />}
