@@ -357,7 +357,7 @@ export function CourierCard({
               ],
             }}
           >
-            <WrenBird size={birdSize} mood={hunger ? hunger.mood : WHEREABOUTS_META[where.state].mood} stage={stage} accessory={accessory} pose={flying ? "fly" : "perch"} />
+            <WrenBird size={birdSize} mood={hunger ? hunger.mood : WHEREABOUTS_META[where.state].mood} stage={stage} accessory={accessory} pose={flying ? "fly" : "perch"} wilt={!!hunger?.wilt} />
           </Animated.View>
         )}
         {/* the fly pose already carries a letter — the family art draws it */}

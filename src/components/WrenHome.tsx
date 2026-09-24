@@ -274,7 +274,7 @@ export function WrenHome({
               )}
             </Svg>
           }
-          bird={(m, pose, held) => <HeroWren size={186} stage={info.stage} state={state} mood={m} pose={pose} paused={held} accessory={wearsHere ? accessory : "none"} />}
+          bird={(m, pose, held) => <HeroWren size={186} stage={info.stage} state={state} mood={m} pose={pose} paused={held} wilt={!!hungry?.wilt} accessory={wearsHere ? accessory : "none"} />}
         />}
         {statsReady && !play && (
           <View style={{ position: "absolute", right: 14, top: 12, backgroundColor: band, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
@@ -600,6 +600,7 @@ function HeroWren({
   accessory,
   pose = "perch",
   paused = false,
+  wilt = false,
   size = 108,
 }: {
   size?: number;
@@ -610,12 +611,14 @@ function HeroWren({
   pose?: WrenPose;
   /** held in a hand: the idle stops, the hand is the motion */
   paused?: boolean;
+  /** starving: greyed and drooping, and too tired for her idle (the web's .pet.wilt) */
+  wilt?: boolean;
 }) {
   const t = useRef(new Animated.Value(0)).current;
   const g = GRACE[stage];
 
   useEffect(() => {
-    if (paused) {
+    if (paused || wilt) {
       Animated.timing(t, { toValue: 0, duration: 160, useNativeDriver: true }).start();
       return;
     }
@@ -644,7 +647,7 @@ function HeroWren({
     const loop = Animated.loop(seq);
     loop.start();
     return () => loop.stop();
-  }, [state, stage, g.speed, t, paused]);
+  }, [state, stage, g.speed, t, paused, wilt]);
 
   const to = (out: [number, number]) => t.interpolate({ inputRange: [0, 1], outputRange: out });
   const spin = (deg: number) => t.interpolate({ inputRange: [0, 1], outputRange: ["0deg", `${deg}deg`] });
@@ -666,7 +669,7 @@ function HeroWren({
 
   return (
     <Animated.View style={{ transform }}>
-      <WrenBird size={size} stage={stage} mood={mood} pose={pose} accessory={accessory} form={form} />
+      <WrenBird size={size} stage={stage} mood={mood} pose={pose} accessory={accessory} form={form} wilt={wilt} />
     </Animated.View>
   );
 }

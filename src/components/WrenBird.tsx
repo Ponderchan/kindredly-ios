@@ -53,6 +53,33 @@ const LETTER_EDGE = "#D8D2C2";
 const LETTER_WAX = "#E8A63C";
 const withoutLetter = (list: WShape[]) => list.filter((sh) => sh.s !== LETTER_EDGE && sh.f !== LETTER_WAX);
 
+/* WILTING — starving, fourteen days with nothing to carry (lib/hunger). The
+   web's .pet.wilt, redrawn for SVG, which has no CSS filter: every colour
+   through saturate(.45) brightness(.96), and she droops seven degrees on her
+   feet and sinks a little. Her body still never deforms. */
+const W_SAT = 0.45;
+const W_BRIGHT = 0.96;
+const wiltMemo = new Map<string, string>();
+function wiltColour(c?: string): string | undefined {
+  if (!c || c[0] !== "#") return c;
+  const hit = wiltMemo.get(c);
+  if (hit) return hit;
+  let h = c.slice(1);
+  if (h.length === 3) h = h.split("").map((x) => x + x).join("");
+  if (h.length !== 6) return c;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const s = W_SAT;
+  const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v * W_BRIGHT))).toString(16).padStart(2, "0");
+  const out =
+    "#" +
+    ch((0.213 + 0.787 * s) * r + (0.715 - 0.715 * s) * g + (0.072 - 0.072 * s) * b) +
+    ch((0.213 - 0.213 * s) * r + (0.715 + 0.285 * s) * g + (0.072 - 0.072 * s) * b) +
+    ch((0.213 - 0.213 * s) * r + (0.715 - 0.715 * s) * g + (0.072 + 0.928 * s) * b);
+  wiltMemo.set(c, out);
+  return out;
+}
+const DROOP = "translate(0 9) rotate(-7 100 180)";
+
 export function WrenBird({
   size = 96,
   mood = "content",
@@ -64,6 +91,7 @@ export function WrenBird({
   outlined = false,
   form: formProp,
   letter = true,
+  wilt = false,
 }: {
   size?: number;
   mood?: WrenMood;
@@ -93,6 +121,8 @@ export function WrenBird({
      page you just sealed goes into her beak) asks for her empty-handed,
      or she is seen carrying two. Ignored for every other pose. */
   letter?: boolean;
+  /** starving: she loses colour and droops (lib/hunger → wilt) */
+  wilt?: boolean;
 }) {
   const ctxSkin = useWrenSkin();
   const ctxAccessory = useWrenAccessory();
@@ -133,6 +163,7 @@ export function WrenBird({
 
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
+      <G transform={wilt ? DROOP : undefined}>
       {keys.map((k) => (
         <Shapes
           key={k}
@@ -144,12 +175,14 @@ export function WrenBird({
                 : WREN_FAMILY[k] || []
           }
           bare={!outlined}
+          wilt={wilt}
         />
       ))}
-      {stage === "hatch" && form?.tail && <TailFeather />}
-      {stage === "hatch" && pose !== "fly" && !!mark && size > 20 && <Birthmark color={mark} />}
-      {hatchMood && <HatchEyes mood={hatchMood} skin={skin} form={form} />}
-      {accKey && <Shapes list={WREN_FAMILY[accKey] || []} bare={!outlined} />}
+      {stage === "hatch" && form?.tail && <TailFeather wilt={wilt} />}
+      {stage === "hatch" && pose !== "fly" && !!mark && size > 20 && <Birthmark color={wilt ? wiltColour(mark) ?? mark : mark} />}
+      {hatchMood && <HatchEyes mood={hatchMood} skin={skin} form={form} wilt={wilt} />}
+      {accKey && <Shapes list={WREN_FAMILY[accKey] || []} bare={!outlined} wilt={wilt} />}
+      </G>
     </Svg>
   );
 }
@@ -217,21 +250,21 @@ export function Birthmark({ color }: { color: string }) {
   return <Path d="M98 79 q8 -7 16 0 q-3 9 -8 9 q-5 0 -8 -9z" fill={color} opacity={0.8} />;
 }
 
-export function TailFeather() {
-  return <Path d="M50 117 q-22 -12 -27 2 q14 10 28 4 Z" fill="#4646DB" stroke="#FFFFFF" strokeWidth={5} strokeLinejoin="round" />;
+export function TailFeather({ wilt = false }: { wilt?: boolean }) {
+  return <Path d="M50 117 q-22 -12 -27 2 q14 10 28 4 Z" fill={wilt ? wiltColour("#4646DB") : "#4646DB"} stroke="#FFFFFF" strokeWidth={5} strokeLinejoin="round" />;
 }
 
 const isWhite = (c?: string) => !!c && /^#(fff|ffffff)$/i.test(c.trim());
 
 /* render one symbol's shape list */
-export function Shapes({ list, bare }: { list: WShape[]; bare?: boolean }) {
+export function Shapes({ list, bare, wilt }: { list: WShape[]; bare?: boolean; wilt?: boolean }) {
   return (
     <G>
       {list.map((s, i) => {
         const strip = bare && isWhite(s.s);
         const common = {
-          fill: s.f,
-          stroke: strip ? undefined : s.s,
+          fill: wilt ? wiltColour(s.f) : s.f,
+          stroke: strip ? undefined : wilt ? wiltColour(s.s) : s.s,
           strokeWidth: strip ? undefined : s.sw,
           strokeLinecap: s.lc as any,
           strokeLinejoin: s.lj as any,
@@ -255,8 +288,9 @@ export function Shapes({ list, bare }: { list: WShape[]; bare?: boolean }) {
    can move in the generator without this file following by hand. */
 const EL0 = { x: 89.5, y: 103 };
 const ER0 = { x: 117.5, y: 99.5 };
-export function HatchEyes({ mood, skin, form }: { mood: WrenMood; skin: WrenSkin; form?: HatchlingForm }) {
-  const patch = CHICK_FILL[skin];
+export function HatchEyes({ mood, skin, form, wilt = false }: { mood: WrenMood; skin: WrenSkin; form?: HatchlingForm; wilt?: boolean }) {
+  /* the patch must match the body it covers, greyed with her when she wilts */
+  const patch = wilt ? wiltColour(CHICK_FILL[skin]) : CHICK_FILL[skin];
   /* the read moves her eyes apart and scales them (shapeHatchling); the
      mood's marks follow, or a wide-set chick would smile beside her eyes */
   const spread = form?.eyeSpread ?? 0;

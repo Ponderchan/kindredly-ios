@@ -35,7 +35,14 @@ export interface HungerRead {
 const DAY = 864e5;
 const who = (th: ThreadSummary) => (th.revealed && th.otherName ? th.otherName : "No. " + postNo(th.other));
 
+let devStarving = false;
+/** dev only: read her as starving whatever the dates (app/wilt-preview) */
+export const setDevStarving = (on: boolean) => {
+  if (__DEV__) devStarving = on;
+};
+
 export function hungerRead({ threads, lastWrittenAt, now = Date.now() }: { threads: ThreadSummary[]; lastWrittenAt: string | number | null; now?: number }): HungerRead | null {
+  if (devStarving && __DEV__) return { tier: "wilting", mood: "sleepy", word: t("hg.starving"), line: t("hg.starvingLine", { n: 16 }), sub: t("hg.starvingSub"), wilt: true };
   const waiting = threads
     .filter((th) => !th.gone && !th.lastSenderMe && (th.theirs || 0) > 0 && th.lastAt)
     .map((th) => ({ th, days: Math.floor((now - th.lastAt) / DAY) }))
