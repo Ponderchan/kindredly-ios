@@ -14,7 +14,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { EditProfileSheet } from "../../components/EditProfileSheet";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { clearAvatarPhoto, getAvatarPhoto, setAvatarPhoto } from "../../lib/avatar-photo";
-import { bumpStageFloor, getStageFloor, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
+import { bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
 import { useWrenSkinControl } from "../../lib/wren-skin";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
@@ -92,7 +92,14 @@ export default function MeTab() {
      actually in, or a mid-load `false` undresses a paying reader. */
   useEffect(() => {
     if (!statsIn || !settled) return;
-    if (!skinUnlocked(skin, stats, premium)) pick("sticker");
+    /* the coat she hatched in is hers: read it before deciding, or a gift is undressed */
+    let alive = true;
+    void loadHatchSkin().then((h) => {
+      if (alive && !skinUnlocked(skin, stats, premium, h)) pick("sticker");
+    });
+    return () => {
+      alive = false;
+    };
   }, [statsIn, settled, skin, stats, premium, pick]);
 
   /* THE PAGE PAINTS BEFORE IT READS. Everything below used to start the

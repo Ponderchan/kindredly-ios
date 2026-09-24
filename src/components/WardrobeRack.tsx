@@ -4,7 +4,7 @@ import type { GrowthStats } from "../data/growth";
 import { t } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { Y, bevel, card } from "../theme/y2k";
-import { ACCESSORY_META, SKINS, skinName, skinUnlocked } from "../lib/wren-style";
+import { ACCESSORY_META, SKINS, skinName, skinUnlocked, useHatchSkin } from "../lib/wren-style";
 import { WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "./WrenBird";
 
 /* THE WARDROBE RACK — one rack, wherever she gets dressed.
@@ -63,7 +63,8 @@ export function WardrobeRack({
       </View>
     ) : null;
 
-  const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium)).length;
+  const hatch = useHatchSkin();   // the coat she hatched in on /aura: hers
+  const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium, hatch)).length;
   const pieces = ACCESSORY_META.filter((a) => a.id !== "none");
   const piecesOwned = pieces.filter((a) => a.free || premium).length;
 
@@ -74,7 +75,7 @@ export function WardrobeRack({
           {header(t("wren.looks"), `${looksOwned}/${SKINS.length}`)}
           <View style={{ flexDirection: "row", marginHorizontal: -3 }}>
             {SKINS.map((sk) => {
-              const unlocked = skinUnlocked(sk.id, stats, premium);
+              const unlocked = skinUnlocked(sk.id, stats, premium, hatch);
               return (
                 <Tile
                   key={sk.id}

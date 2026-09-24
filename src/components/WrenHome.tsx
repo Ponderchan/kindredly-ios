@@ -20,7 +20,7 @@ import { FreeFlight, PillarsGlyph } from "./FreeFlightGame";
 import { isDayOff } from "../lib/free-flight";
 import type { Daylight } from "./CourierCard";
 import { WardrobeRack } from "./WardrobeRack";
-import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo } from "../lib/wren-style";
+import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo, useHatchSkin } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, flightLog, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
@@ -101,6 +101,7 @@ export function WrenHome({
   const [carriedIn, setCarriedIn] = useState(false); // null vs zero — see whereabouts()
   const where = whereabouts(threads, carriedIn ? carried.length : null);
   const hungry = hungerRead({ threads, lastWrittenAt });   // someone waiting, or days with nothing to carry (lib/hunger)
+  const hatch = useHatchSkin();   // the coat she hatched in on /aura: hers
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [dates, setDates] = useState<Partial<Record<WrenStage, string>>>({});
@@ -132,7 +133,7 @@ export function WrenHome({
   }, [threads, topWord]);
 
   const tapSkin = (id: WrenSkin) => {
-    if (skinUnlocked(id, stats, premium)) return pick(id);
+    if (skinUnlocked(id, stats, premium, hatch)) return pick(id);
     const meta = SKINS.find((s) => s.id === id);
     if (meta?.lock === "plus") onLocked();
     else Alert.alert(tr("wren.plush.title"), tr("wren.plush.body"));
@@ -172,7 +173,7 @@ export function WrenHome({
   const flies = info.stage !== "egg";
 
   const items = ACCESSORY_META.filter((a) => a.id !== "none");
-  const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium)).length;
+  const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium, hatch)).length;
   const dressName = accessory === "none" ? tr("wren.bare") : (() => { const a = ACCESSORY_META.find((x) => x.id === accessory); return a ? tr(`ws.acc.${a.id}`) : ""; })();
   const drivingT = drivingThread(threads, where.state);
   const state = dozy && where.state === "home" ? "dozing" : where.state;

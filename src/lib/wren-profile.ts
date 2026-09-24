@@ -21,11 +21,13 @@ export const WREN_FIELDS = {
   egg: "kindredly_wren_egg",
   skin: "kindredly_wren_skin",
   accessory: "kindredly_wren_accessory",
+  /** the coat she hatched in on the web's /aura test — hers, paid or not */
+  hatchSkin: "kindredly_wren_hatch_skin",
 } as const;
 export type WrenField = keyof typeof WREN_FIELDS;
 
 /** the account's field names — the same strings the web reads */
-const META: Record<WrenField, string> = { name: "wren", egg: "wrenEgg", skin: "wrenSkin", accessory: "wrenAccessory" };
+const META: Record<WrenField, string> = { name: "wren", egg: "wrenEgg", skin: "wrenSkin", accessory: "wrenAccessory", hatchSkin: "wrenHatchSkin" };
 
 async function fromAccount(field: WrenField): Promise<string | null> {
   if (!supabase) return null;

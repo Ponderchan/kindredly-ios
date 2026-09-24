@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { readWren, writeWren } from "./wren-profile";   // her coat and dress live on the account (WREN_FIELDS)
 import { t } from "./i18n";
@@ -46,9 +47,33 @@ export async function setWrenSkin(s: WrenSkin): Promise<void> {
   await writeWren("skin", s);
 }
 
+/* THE COAT SHE HATCHED IN (owner, 2026-09-24). The web's public test (/aura)
+   hatches her in any of the five, and she keeps that one — it's hers without
+   First Class. The web's onboarding writes it to the account (wrenHatchSkin);
+   this reads it, and every gate below lets it through. */
+let hatchSkin: WrenSkin | null = null;
+export async function loadHatchSkin(): Promise<WrenSkin | null> {
+  hatchSkin = ((await readWren("hatchSkin", (v) => SKINS.some((s) => s.id === v))) as WrenSkin | null) || null;
+  return hatchSkin;
+}
+/** the hatched coat, for a screen that draws the wardrobe (re-renders once it's read) */
+export function useHatchSkin(): WrenSkin | null {
+  const [v, setV] = useState<WrenSkin | null>(hatchSkin);
+  useEffect(() => {
+    let alive = true;
+    void loadHatchSkin().then((h) => alive && setV(h));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return v;
+}
+
 /** Is a skin available to this user? Sky always; Moss after the first
- *  kindred; Mist, Peach and Night with First Class (owner's ladder, 2026-09-16). */
-export function skinUnlocked(id: WrenSkin, stats: GrowthStats, premium: boolean): boolean {
+ *  kindred; Mist, Peach and Night with First Class (owner's ladder, 2026-09-16);
+ *  and whatever coat she hatched in on /aura. */
+export function skinUnlocked(id: WrenSkin, stats: GrowthStats, premium: boolean, hatch: WrenSkin | null = hatchSkin): boolean {
+  if (hatch && id === hatch) return true;
   const meta = SKINS.find((s) => s.id === id);
   if (!meta || meta.lock === "free") return true;
   if (meta.lock === "plus") return premium;
