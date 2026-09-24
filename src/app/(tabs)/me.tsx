@@ -95,7 +95,7 @@ export default function MeTab() {
     /* the coat she hatched in is hers: read it before deciding, or a gift is undressed */
     let alive = true;
     void loadHatchSkin().then((h) => {
-      if (alive && !skinUnlocked(skin, stats, premium, h)) pick("sticker");
+      if (alive && !skinUnlocked(skin, stats, premium, h)) pick(h || "sticker");   // back to the coat she hatched in, if she has one
     });
     return () => {
       alive = false;
