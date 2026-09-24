@@ -192,6 +192,9 @@ export function WrenHome({
   /* HER DAY OFF — the cover becomes the course (components/FreeFlightGame),
      a little taller so the keyboard leaves it room, on the hour you pick */
   const [play, setPlay] = useState(false);
+  /* starving, she's too tired to play: no PLAY sticker, no game (owner,
+     2026-09-24) — the day off already never comes while she wilts */
+  const canPlay = flies && !hungry?.wilt;
   const openPlay = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setPlay(true);
@@ -201,11 +204,11 @@ export function WrenHome({
   };
   const autoOpened = useRef(false);
   useEffect(() => {
-    if (!autoPlay || autoOpened.current || !flies) return;
+    if (!autoPlay || autoOpened.current || !canPlay) return;
     autoOpened.current = true;
     openPlay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay, flies]);
+  }, [autoPlay, canPlay]);
   const closePlay = () => {
     Keyboard.dismiss();
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -311,7 +314,7 @@ export function WrenHome({
                 <Text key={h} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, lineHeight: 13, color: light === "night" ? "rgba(255,255,255,0.5)" : "rgba(30,27,53,0.5)" }}>{h}</Text>
               ))}
             </View>
-            {flies && (
+            {canPlay && (
               /* the game's door: a sticker in the signal colour, the pillars and
                  her on it, PLAY — it has to read as a game at a glance */
               <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: P.ink, shadowColor: P.ink, shadowOffset: { width: pressed ? 1 : 3, height: pressed ? 1 : 3 }, shadowOpacity: 1, shadowRadius: 0, transform: [{ translateY: pressed ? 2 : 0 }] })}>
