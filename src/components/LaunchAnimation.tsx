@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import * as Application from "expo-application";
 import Animated, { Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 import { PF } from "../theme/post";
@@ -59,7 +60,11 @@ const CAP = STROKE / 2; // a head starts as the stroke's own round end
 /* the full piece, in seconds */
 const END = 2.0;
 const SKIP_FROM = 1.35;
-const SHORT_MS = 450;
+/* every other open plays the hatch's second half: from the moment the shell
+   breaks (the pieces leave, the heads grow, the dot turns gold to ink, the
+   word comes in) — about a second, so an ordinary open is alive, not a still
+   fade (owner, 2026-09-26: "启动页那里没有动画效果") */
+const SHORT_FROM = 0.98;
 const SEEN_KEY = "kindredly_launch_seen";
 type Mode = "full" | "short" | "still";
 
@@ -91,7 +96,10 @@ const crackTap = () => {
   } catch {}
 };
 
-const version = () => Constants.expoConfig?.version ?? "0";
+/* the version AND the build: a new build of the same version is still an
+   update (1.2.1 went out as builds 23, 24, 25 — keyed on "1.2.1" alone, a
+   tester never saw the hatch again) */
+const version = () => `${Constants.expoConfig?.version ?? "0"}+${Application.nativeBuildVersion ?? "0"}`;
 
 export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDone: () => void; force?: Mode }) {
   const reduce = useReducedMotion();
@@ -143,9 +151,16 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
       const id = setTimeout(crackTap, 980);
       return () => clearTimeout(id);
     }
-    time.value = END; // everything at rest, finished
+    if (mode === "short") {
+      time.value = SHORT_FROM;
+      time.value = withTiming(END, { duration: (END - SHORT_FROM) * 1000, easing: Easing.linear }, (fin) => {
+        if (fin) runOnJS(finished)();
+      });
+      return;
+    }
+    time.value = END; // still: everything at rest, finished, faded in
     veil.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) });
-    const id = setTimeout(finished, mode === "still" ? 600 : SHORT_MS);
+    const id = setTimeout(finished, 600);
     return () => clearTimeout(id);
   }, [mode, time, veil, finished]);
 
@@ -172,8 +187,13 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
 
   const whole = useAnimatedStyle(() => {
     const tt = time.value;
-    if (mode !== "full") {
-      return { opacity: veil.value, transform: [{ scale: mode === "short" ? 0.97 + veil.value * 0.03 : 1 }, { rotate: "0deg" }] };
+    if (mode === "still") {
+      return { opacity: veil.value, transform: [{ scale: 1 }, { rotate: "0deg" }] };
+    }
+    if (mode === "short") {
+      // the cracked egg comes up out of the splash in a blink, then breaks
+      const e = eo(seg(tt, SHORT_FROM, SHORT_FROM + 0.14));
+      return { opacity: e, transform: [{ scale: 0.97 + 0.03 * e }, { rotate: "0deg" }] };
     }
     const e = eo(seg(tt, 0, 0.3));
     const u = seg(tt, 0.3, 0.95);
@@ -201,11 +221,11 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
   const dotGold = useAnimatedProps(() => ({ r: dotR(time.value), fillOpacity: 1 - seg(time.value, 1.3, 1.55) }));
   const dotInk = useAnimatedProps(() => ({ r: dotR(time.value), fillOpacity: seg(time.value, 1.3, 1.55) }));
   const word = useAnimatedStyle(() => {
-    const w = mode === "full" ? eo(seg(time.value, 1.35, 1.8)) : veil.value;
+    const w = mode !== "still" ? eo(seg(time.value, 1.35, 1.8)) : veil.value;
     return { opacity: w, transform: [{ translateY: 8 * (1 - w) }] };
   });
   const tag = useAnimatedStyle(() => {
-    const g = mode === "full" ? eo(seg(time.value, 1.5, 1.95)) : veil.value;
+    const g = mode !== "still" ? eo(seg(time.value, 1.5, 1.95)) : veil.value;
     return { opacity: g, transform: [{ translateY: 6 * (1 - g) }] };
   });
 
@@ -227,7 +247,7 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
             <AnimatedCircle cx={512} cy={520} fill={INK} animatedProps={dotInk} />
           </Svg>
           {/* the two pieces of shell that close it into an egg, each with its crack */}
-          {mode === "full" && (
+          {mode !== "still" && (
             <>
               <Animated.View pointerEvents="none" style={[box, { transformOrigin: [MARK * 0.527, MARK * 0.205, 0] }, fragTop]}>
                 <Svg width={MARK} height={MARK} viewBox="0 0 1024 1024">
