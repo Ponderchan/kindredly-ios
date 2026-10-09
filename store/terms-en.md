@@ -1,6 +1,6 @@
 # Terms of Service
 
-**Last updated · September 2026**
+**Last updated · October 2026**
 
 Kindredly is operated by **Beijing Lingxi Wuxian Technology Co., Ltd.**, registered at **Rm 429, Block D, Bldg 3, No. 8 Courtyard, Fenggu 4th Rd, Badaling Development Zone (Zhongguancun Yanqing Park), Yanqing District, Beijing, China** ("Kindredly", "we", "us"). These Terms govern your use of the Kindredly mobile app and the website at kindredly.io (together, the "Services").
 
@@ -25,10 +25,10 @@ If you stop meeting these conditions, your permission to use the Services ends a
 
 ## 2 · What Kindredly is
 
-Kindredly is a place to write letters to strangers. People are matched by **how they write** — sentence length, rhythm, punctuation, and similar measurable qualities of a text — rather than by photos, age, or a profile.
+Kindredly is a place to write letters to strangers. People are matched by **how they write** — sentence length, rhythm, punctuation, and similar measurable qualities of a text — rather than by photos or a profile.
 
 - There are no profiles and no photographs of faces.
-- You are not searchable. Nobody can look you up; you are found only through writing.
+- You are not searchable. Nobody can look you up; you are found only through the letters you write.
 - Names are exchanged only after five letters each way, and only if both people choose to.
 
 Kindredly is a correspondence service. It is **not** a dating service, an emergency service, or a source of professional, medical, or legal advice.
@@ -37,15 +37,15 @@ Kindredly is a correspondence service. It is **not** a dating service, an emerge
 
 You are responsible for your account and for keeping your sign-in secure. Tell us promptly if you believe someone else has access to it.
 
-You may delete your account at any time in **Settings → Delete account**. Deleting the account removes your account data as described in the Privacy Policy. If you have a paid membership, you must also cancel it in your App Store account — deleting a Kindredly account does not cancel an Apple subscription.
+You may delete your account at any time in **Settings → Delete account**. Deleting the account removes your account data as described in the Privacy Policy. Deleting does not cancel a paid membership: cancel it where you bought it — in your App Store account, or under Me → First Class → Manage billing on kindredly.io. Cancel a kindredly.io membership before you delete, because afterwards we can no longer open its billing page for you.
 
 ## 4 · What you write
 
-**Your letters and journal pages are yours.** You keep all rights in them. You grant us only the permission we need to run the service: to store your letters, deliver them to the people they are addressed to, translate them at a reader's request, and screen them for safety as described below.
+**Your letters and journal pages are yours.** You keep all rights in them. You grant us only the permission we need to run the service: to store your letters, show your open letters to readers (including visitors to kindredly.io who have not made an account), deliver replies and messages to the people they are for, translate them for a reader, and screen them for safety as described below.
 
 We do not use your writing to train AI models, and we do not sell it.
 
-**Your journal never leaves your phone.** Sealed pages, and any photos, audio, or video in them, are stored on your device and are never uploaded to us.
+**Your journal is not sent to us.** Sealed pages, and any photos, audio, or video in them, are kept on your device, not on our servers; nothing in them reaches us unless you choose to send it.
 
 ## 5 · Rules
 
@@ -62,9 +62,9 @@ Kindredly rests on good faith. You agree not to use the Services to:
 - probe, attack, or interfere with the service or its infrastructure;
 - create a new account after we have removed one.
 
-**Safety screening.** Letters and replies pass an automated safety check before they are delivered (see the Privacy Policy for how). We may remove content and suspend or close accounts that break these rules. Where we can, we will tell you why.
+**Safety screening.** An automated safety check can hold a letter back before it is delivered (the Privacy Policy says what is checked, and where). We may remove content and suspend or close accounts that break these rules.
 
-**Reporting.** Every letter and every correspondence has a report and block control. Reports are reviewed and acted on; three separate reports about the same account trigger an automatic suspension pending review.
+**Reporting.** Every letter and every correspondence has a report and block control. Reports are recorded, and when three different people report the same account, it is suspended automatically: it can no longer send letters or messages. If you think your account was suspended by mistake, write to us.
 
 ## 6 · Other people's letters
 
@@ -74,14 +74,20 @@ Letters come from strangers. We screen for safety, but we cannot verify who anyo
 
 ## 7 · First Class and Cofounder
 
-Kindredly is free to use. Your first kindred is always free.
+Kindredly is free to use, with as many kindreds as you find. On the free plan, a kindred's room closes after thirty days without a word; First Class keeps rooms open.
 
-**First Class** is an optional paid membership sold through the Apple App Store as an auto-renewing subscription. **Cofounder** is an optional one-time purchase. Current prices are shown in the app before you buy, in your local currency.
+**First Class** is an optional paid membership sold as an auto-renewing subscription. **Cofounder** is an optional one-time purchase. Current prices are shown before you buy. A subscription renews automatically at the price shown at purchase, until you cancel.
 
-- A subscription renews automatically at the price shown at purchase, until you cancel.
+**Bought in the app**, through the Apple App Store:
+- Prices are shown in your local currency.
 - Cancel any time in your Apple ID account settings, at least 24 hours before the renewal date. Cancelling stops the next renewal; you keep access until the end of the period you paid for.
 - **Refunds are handled by Apple, not by us.** We cannot issue, approve, or reverse a purchase made through the App Store. Request a refund at reportaproblem.apple.com. If the law where you live gives you a refund right, that right applies through Apple's process.
-- Deleting your Kindredly account does not cancel an Apple subscription.
+
+**Bought on kindredly.io**, through Creem, our payment processor and the merchant of record (your card statement reads CREEM.IO* STORE):
+- Cancel any time under Me → First Class → Manage billing, which opens Creem's billing page.
+- If you change your mind within 14 days, write to hello@kindredly.io and we refund the full amount.
+
+Deleting your Kindredly account does not cancel a subscription bought either way.
 
 We may change prices or what a membership includes. Changes never apply to a period you have already paid for.
 
