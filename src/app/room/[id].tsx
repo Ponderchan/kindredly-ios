@@ -9,7 +9,7 @@ import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
-import { fetchThreadMessages, momentUrl, readThreadDetailCache, sendThreadMessage, uploadMoment, type ThreadDetail, type ThreadMessage } from "../../lib/db";
+import { fetchThreadMessages, readThreadDetailCache, sendThreadMessage, uploadMoment, type ThreadDetail, type ThreadMessage } from "../../lib/db";
 import { answerFold, fetchFolds, leaveFold, type Fold } from "../../lib/folds";
 import { fetchSongTitle, parseSongUrl } from "../../lib/song";
 import { sharedSongs, songNotice } from "../../lib/shared-songs";
@@ -22,7 +22,8 @@ import { isExpired, quietDays } from "../../lib/kindred-expiry";
 import { markWork } from "../../lib/stall-probe";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import * as ImagePicker from "expo-image-picker";
-import { Image, Linking, Modal } from "react-native";
+import { MediaImage } from "../../lib/media";
+import { Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
 import { useThreadLive } from "../../lib/live";
@@ -558,7 +559,9 @@ export default function RoomScreen() {
             }
 
             const m = it.msg;
-            const url = m.kind === "photo" ? (m.mediaPath ? momentUrl(m.mediaPath) : (m.meta?.url ?? null)) : null;
+            const photoPath = m.kind === "photo" ? m.mediaPath ?? null : null;
+            const photoUri = m.kind === "photo" && !m.mediaPath ? m.meta?.url ?? null : null;
+            const url = photoPath || photoUri;
             const song = m.kind === "song" && !!m.meta?.url;
             const card = !!url || song;
             /* BUBBLES, ONE SIDE EACH (owner, 2026-09-20). The room used to
@@ -572,7 +575,7 @@ export default function RoomScreen() {
                 {dayRule}
                 <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2 }}>
                   {url ? (
-                    <Image source={{ uri: url }} style={{ width: "70%", aspectRatio: 1, borderRadius: 16, marginBottom: 4, backgroundColor: "#EFEDE6" }} resizeMode="cover" />
+                    <MediaImage path={photoPath} uri={photoUri} style={{ width: "70%", aspectRatio: 1, borderRadius: 16, marginBottom: 4, backgroundColor: "#EFEDE6" }} />
                   ) : song ? (
                     <Pressable
                       onPress={() => Linking.openURL(m.meta!.url!)}

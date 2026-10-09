@@ -1,4 +1,5 @@
 import { useWrenName } from "../../lib/wren-name";
+import { useMediaUrl } from "../../lib/media";
 import { GlyphInput } from "../../components/GlyphInput";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,7 +31,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { SendPlane } from "../../components/ChatField";
 import { DeskStrip } from "../../components/WrenDesk";
 import { postNo, postmark, sinceShort } from "../../lib/format";
-import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, voiceLetterUrl, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
+import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
 import { bump, getCounters, repliedToday, seenToday } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
@@ -954,7 +955,7 @@ function LetterPage({
   const wren = useWrenName();
   const st = getStamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
-  const audioUrl = isVoice ? voiceLetterUrl(letter.media_path) : null;
+  const audioUrl = useMediaUrl("voice-letters", isVoice ? letter.media_path : null);
 
   // Wren translating this letter. Kept per-letter — each page holds its own,
   // so translating one doesn't touch the others in the stack.

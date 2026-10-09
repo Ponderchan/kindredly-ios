@@ -299,6 +299,32 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
   }
 }
 
+/* SIGNED, NOT PUBLIC (security review, 2026-10-09). Uploaded photos and
+   voice letters are read through a link that lasts an hour, so the buckets
+   can turn private (web supabase/migrations/0028) without this build going
+   blank; on a public bucket a signed link works too. Each path's link is
+   reused for fifty minutes. If signing fails the public address is the
+   fallback — which stops working once the bucket is private. */
+const SIGNED = new Map<string, { url: string; until: number }>();
+export function cachedSignedUrl(bucket: "moments" | "voice-letters", path?: string | null): string | null {
+  if (!path) return null;
+  const c = SIGNED.get(bucket + ":" + path);
+  return c && c.until > Date.now() ? c.url : null;
+}
+export async function signedMediaUrl(bucket: "moments" | "voice-letters", path?: string | null): Promise<string | null> {
+  if (!supabase || !path) return null;
+  const hit = cachedSignedUrl(bucket, path);
+  if (hit) return hit;
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+    if (!error && data?.signedUrl) {
+      SIGNED.set(bucket + ":" + path, { url: data.signedUrl, until: Date.now() + 50 * 60e3 });
+      return data.signedUrl;
+    }
+  } catch {}
+  return bucket === "moments" ? momentUrl(path) : voiceLetterUrl(path);
+}
+
 /** public playback URL for a voice letter's media_path (public bucket). */
 export function voiceLetterUrl(mediaPath?: string | null): string | null {
   if (!supabase || !mediaPath) return null;

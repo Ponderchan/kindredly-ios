@@ -4,13 +4,27 @@
    Kimi is connected / offline. Endpoint is prefixed with the API base so it
    works from the native client. */
 
-import { API_BASE } from "./supabase";
+import { API_BASE, supabase } from "./supabase";
 import { voiceSignature } from "./signature";
 import { WREN_FALLBACK, oneOf, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
 import { TRANSLATE_MS, WREN_MS, fetchWithin } from "./net";
 
 const ENDPOINT = `${API_BASE}/api/wren`;
+
+/* the session on this phone (a guest's is anonymous): /api/wren asks who is
+   calling, so the model can't be used by anyone who isn't (security review,
+   2026-10-09) */
+async function bearer(): Promise<Record<string, string>> {
+  if (!supabase) return {};
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { authorization: "Bearer " + token } : {};
+  } catch {
+    return {};
+  }
+}
 
 async function callWren(
   job: string,
@@ -29,7 +43,7 @@ async function callWren(
       ENDPOINT,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(await bearer()) },
         body: JSON.stringify({ job, ...payload }),
         signal,
       },

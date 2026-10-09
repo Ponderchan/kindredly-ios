@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -16,7 +16,8 @@ import { alertFail } from "../../lib/fail";
 import { useAuth } from "../../lib/auth";
 import { markRoomSeen } from "../../lib/room-seen";
 import { setDeskWaiting } from "../../lib/waiting";
-import { momentUrl, uploadMoment } from "../../lib/db";
+import { uploadMoment } from "../../lib/db";
+import { MediaImage } from "../../lib/media";
 import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
 import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
 import { stallReport } from "../../lib/stall-probe";
@@ -332,14 +333,14 @@ export default function WrenDeskScreen() {
               );
             }
 
-            const photo = it.type === "mail" && it.mail.mediaPath ? momentUrl(it.mail.mediaPath) : null;
+            const photo = it.type === "mail" && it.mail.mediaPath ? it.mail.mediaPath : null;
             const body = it.type === "post" ? postText(it.post) : it.type === "reply" ? it.mail.reply || "" : it.mail.body;
             return (
               <View key={key}>
                 {dayRule}
                 {(newDay || !sameSpeaker) && Label(label, mine, newDay)}
                 {photo ? (
-                  <Image source={{ uri: photo }} style={{ width: "62%", aspectRatio: 0.75, marginBottom: 6, backgroundColor: "#EFEDE6" }} resizeMode="cover" />
+                  <MediaImage path={photo} style={{ width: "62%", aspectRatio: 0.75, marginBottom: 6, backgroundColor: "#EFEDE6" }} />
                 ) : (
                   <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
                 )}

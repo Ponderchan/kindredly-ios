@@ -9,6 +9,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
 import { MosaicId } from "../../components/MosaicId";
 import { AudioCard } from "../../components/AudioCard";
+import { useMediaUrl } from "../../lib/media";
 import { getStamp, sname } from "../../data/stamps";
 import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
@@ -20,7 +21,6 @@ import {
   fetchThreadMessages,
   sendThreadMessage,
   setThreadReaction,
-  voiceLetterUrl,
   type ThreadDetail,
 } from "../../lib/db";
 import { translate } from "../../lib/wren";
@@ -37,6 +37,7 @@ export default function ThreadScreen() {
   const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
+  const openingAudio = useMediaUrl("voice-letters", detail?.openingMedia ?? null);
   const [sending, setSending] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [reply, setReply] = useState("");
@@ -173,7 +174,7 @@ export default function ThreadScreen() {
 
               {detail?.openingMedia && conv.length === 1 ? (
                 <View style={{ marginTop: 18 }}>
-                  <AudioCard url={voiceLetterUrl(detail.openingMedia) || ""} durationS={detail.openingDurationS} compact />
+                  <AudioCard url={openingAudio || ""} durationS={detail.openingDurationS} compact />
                 </View>
               ) : (
                 <Text
