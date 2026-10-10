@@ -15,11 +15,18 @@ const ENDPOINT = `${API_BASE}/api/wren`;
 /* the session on this phone (a guest's is anonymous): /api/wren asks who is
    calling, so the model can't be used by anyone who isn't (security review,
    2026-10-09) */
+/* who is asking — but never at the cost of the call: a session still
+   refreshing on a bad network can take tens of seconds to answer, so after
+   1.5s the call goes without it (the server only insists once
+   WREN_REQUIRE_AUTH is set) */
 async function bearer(): Promise<Record<string, string>> {
   if (!supabase) return {};
   try {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    const session = await Promise.race([
+      supabase.auth.getSession().then(({ data }) => data.session),
+      new Promise<null>((done) => setTimeout(() => done(null), 1500)),
+    ]);
+    const token = session?.access_token;
     return token ? { authorization: "Bearer " + token } : {};
   } catch {
     return {};

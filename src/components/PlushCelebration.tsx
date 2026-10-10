@@ -56,10 +56,10 @@ export function PlushCelebration({ kindreds }: { kindreds: number }) {
           </Text>
 
           <Pressable onPress={wear} style={{ backgroundColor: C.purple, borderRadius: 24, paddingVertical: 15, alignItems: "center", alignSelf: "stretch", marginTop: 20 }}>
-            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 0.5 }}>{t("pl.wear", { name: "Plush" })}</Text>
+            <Text style={{ color: "#fff", fontFamily: F.sansExtra, fontSize: 14, letterSpacing: 0.5 }}>{t("pl.wear", { name: t("skin.plush.name") })}</Text>
           </Pressable>
           <Pressable onPress={() => setShow(false)} style={{ alignItems: "center", paddingTop: 12, paddingBottom: 2 }} hitSlop={8}>
-            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.faint }}>{t("pl.keep", { name: "Sticker" })}</Text>
+            <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.faint }}>{t("pl.keep", { name: t("skin.sticker.name") })}</Text>
           </Pressable>
         </Animated.View>
       </View>
