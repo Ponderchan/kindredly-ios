@@ -3,7 +3,7 @@ import { hatch, type Archetype, type DimScore } from "./hatch-engine";
 import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";
 import { supabase, supabaseReady } from "./supabase";
-import { fetchThreads, upsertFingerprint, type PoolLetter } from "./db";
+import { fetchThreads, upsertFingerprint, TAKEN_BACK, type PoolLetter } from "./db";
 import { signalFrom, type AuraFacts, type Signal } from "./today-signal";
 import { loadLore } from "./lore";
 import { getCounters } from "./usage-counters";
@@ -99,7 +99,7 @@ export async function fetchMyLetters(): Promise<{ letters: Row[]; messages: Row[
       supabase!.from("messages").select("id,body,created_at,thread_id").eq("sender", me).order("created_at", { ascending: false }).limit(400),
     ]);
     const letters = ((l.data || []) as Row[]).filter((r) => r.body);
-    const messages = ((m.data || []) as Row[]).filter((r) => r.body);
+    const messages = ((m.data || []) as Row[]).filter((r) => r.body && r.body !== TAKEN_BACK); // a line taken back (web 0031) is nobody's writing
     return {
       letters,
       messages,

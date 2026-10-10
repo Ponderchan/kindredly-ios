@@ -9,7 +9,7 @@ import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
-import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, takeBack, uploadMoment, type MessageQuote, type ThreadDetail, type ThreadMessage } from "../../lib/db";
+import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, takeBack, TAKEN_BACK, uploadMoment, type MessageQuote, type ThreadDetail, type ThreadMessage } from "../../lib/db";
 import { translate } from "../../lib/wren";
 import { copyText } from "../../lib/clipboard";
 import { offerTranslate } from "../../lib/lang-guess";
@@ -99,6 +99,8 @@ export default function RoomScreen() {
   const msgY = useRef<Record<string, number>>({});
   const [lit, setLit] = useState<string | null>(null);
   const shownCount = useRef(0);
+  const atBottom = useRef(true);     // the room follows new lines and openings only while you're at the end
+  const skew = useRef(0);            // server clock minus this phone's, learnt from the last send
   const [momentSpent, setMomentSpent] = useState(false);
 
   /* Every row adds something to the relationship rather than to the
@@ -190,7 +192,7 @@ export default function RoomScreen() {
     if (!detail) return;
     const task = InteractionManager.runAfterInteractions(() => {
       markWork("read:correspondent");
-      const theirs = detail.messages.filter((m) => !m.mine).map((m) => m.body);
+      const theirs = detail.messages.filter((m) => !m.mine && !m.recalledAt && m.body !== TAKEN_BACK).map((m) => m.body);
       if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
       setRead(readCorrespondent(theirs, true));
     });
@@ -205,9 +207,10 @@ export default function RoomScreen() {
      something on the table, not a feed. */
   const notices = useMemo(() => {
     if (!detail) return [];
+    const said = detail.messages.filter((m) => !m.recalledAt && m.body !== TAKEN_BACK); // a line taken back is nobody's writing
     return noticeThings(
-      detail.messages.filter((m) => m.mine),
-      detail.messages.filter((m) => !m.mine),
+      said.filter((m) => m.mine),
+      said.filter((m) => !m.mine),
     );
   }, [detail]);
 
@@ -237,9 +240,10 @@ export default function RoomScreen() {
     setSeenNotices((s) => [...(s || []), notice.id]);
   };
 
-  const conv = detail
-    ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" } as ThreadMessage, ...detail.messages].filter((m) => m.body)
-    : [];
+  const conv = useMemo(
+    () => (detail ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" } as ThreadMessage, ...detail.messages].filter((m) => m.body) : []),
+    [detail],
+  );
 
   /* one stream: lines and folds interleave by time. An answered fold
      collapses onto its opener and renders once, unfolded, as a pair. */
@@ -375,13 +379,14 @@ export default function RoomScreen() {
     setText("");
     const reply = replyTo;
     setReplyTo(null);
+    const sentAt = new Date().toISOString();
     setDetail((d) =>
       d
         ? {
             ...d,
             messages: [
               ...d.messages,
-              { id: isDemo ? `demo-${Date.now()}` : undefined, body, mine: true, date: new Date().toISOString(), meta: reply ? { reply: reply.quote } : null, replyMine: reply?.mine },
+              { id: isDemo ? `demo-${Date.now()}` : undefined, body, mine: true, date: sentAt, meta: reply ? { reply: reply.quote } : null, replyMine: reply?.mine },
             ],
           }
         : d,
@@ -399,6 +404,10 @@ export default function RoomScreen() {
       void load();
       alertFail(t("rm.fail.title"), t("rm.fail.body"));
       return;
+    }
+    if (res.id) {
+      if (res.createdAt) skew.current = Date.parse(res.createdAt) - Date.parse(sentAt);
+      setDetail((d) => (d ? { ...d, messages: d.messages.map((x) => (!x.id && x.mine && x.date === sentAt ? { ...x, id: res.id, date: res.createdAt || x.date } : x)) } : d));
     }
     void refreshFingerprint();
     // the realtime echo of our own INSERT re-runs load() and reconciles
@@ -471,22 +480,23 @@ export default function RoomScreen() {
     if (m.id) acts.push({ key: "reply", label: t("mm.reply"), icon: "arrowshape.turn.up.left", onPress: () => startReply(m) });
     acts.push({ key: "copy", label: t("mm.copy"), icon: "doc.on.doc", onPress: () => void copyText(m.body) });
     if (!m.mine) {
-      if (trans[k]?.shown || offerTranslate(m.body)) acts.push(
+      if (trans[k]?.shown || canTranslate.get(k)) acts.push(
         trans[k]?.shown
           ? { key: "original", label: t("mm.original"), icon: "character.bubble", onPress: () => setTrans((s) => ({ ...s, [k]: { ...s[k], shown: false } })) }
           : { key: "translate", label: t("mm.translate"), icon: "character.bubble", onPress: () => void translateLine(k, m.body) },
       );
       acts.push({ key: "keep", label: t("mm.keep"), icon: "bookmark", onPress: () => keep(m.body, null, m.date) });
       if (m.id && !isDemo) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLine(m) });
-    } else if (m.id && Date.now() - Date.parse(m.date) < TAKE_BACK_MS) {
+    } else if (m.id && Date.now() + skew.current - Date.parse(m.date) < TAKE_BACK_MS) {
       acts.push({ key: "takeBack", label: t("mm.takeBack"), icon: "arrow.uturn.backward", destructive: true, onPress: () => void takeBackLine(m) });
     }
     return acts;
   };
+  const canTranslate = useMemo(() => new Map(conv.filter((m) => !m.mine && m.body).map((m) => [lineKey(m), offerTranslate(m.body)])), [conv]);
   const startReply = (m: ThreadMessage) => {
     if (!m.id) return;
     setMode(null);
-    setReplyTo({ quote: { id: m.id, excerpt: m.body.slice(0, 140), sender: m.mine ? "me" : (detail?.other ?? undefined) }, mine: m.mine });
+    setReplyTo({ quote: { id: m.id, excerpt: Array.from(m.body).slice(0, 140).join(""), sender: m.mine ? "me" : (detail?.other ?? undefined) }, mine: m.mine });
     setTimeout(() => inputRef.current?.focus(), 120);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 260);
   };
@@ -502,8 +512,10 @@ export default function RoomScreen() {
     if (ok) Alert.alert(t("rp.reportedTitle"), t("rp.reportedBody", { wren }));
     else alertFail(t("rm.fail.title"), t("rm.fail.body"));
   };
-  const markTaken = (msgId: string) =>
-    setDetail((d) => (d ? { ...d, messages: d.messages.map((x) => (x.id === msgId ? { ...x, body: "(taken back)", recalledAt: new Date().toISOString() } : x)) } : d));
+  const markTaken = (msgId: string) => {
+    setDetail((d) => (d ? { ...d, messages: d.messages.map((x) => (x.id === msgId ? { ...x, body: TAKEN_BACK, recalledAt: new Date().toISOString() } : x)) } : d));
+    setReplyTo((r) => (r && r.quote.id === msgId ? null : r)); // a reply to a line taken back has nothing left to quote
+  };
   const takeBackLine = async (m: ThreadMessage) => {
     if (!m.id) return;
     if (isDemo) { markTaken(m.id); return; }
@@ -512,6 +524,9 @@ export default function RoomScreen() {
     else if (res === "too_late") Alert.alert(t("mm.tooLate.title"), t("mm.tooLate.body"));
     else alertFail(t("ml.rm.failTitle"), t("ml.rm.failBody"));
   };
+  useEffect(() => {
+    if (replyTo && detail?.messages.find((x) => x.id === replyTo.quote.id)?.recalledAt) setReplyTo(null);
+  }, [detail, replyTo]);
   /* a quote, tapped: back to the line it quotes, lit for a moment */
   const jumpTo = (msgId: string) => {
     const y = msgY.current[msgId];
@@ -588,11 +603,19 @@ export default function RoomScreen() {
           ref={scrollRef}
           contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 12 }}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={32}
+          onScroll={(e) => {
+            const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+            atBottom.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 60;
+          }}
           onContentSizeChange={() => {
-            // to the end when the room grows, not when a translation opens mid-room
-            if (stream.length === shownCount.current) return;
+            /* to the end when the room grows; when something opens under a line
+               (a translation) only if you were already at the end — never a
+               jump away from the line you were reading */
+            const grew = stream.length !== shownCount.current;
             shownCount.current = stream.length;
-            scrollRef.current?.scrollToEnd({ animated: false });
+            if (grew) scrollRef.current?.scrollToEnd({ animated: false });
+            else if (atBottom.current) scrollRef.current?.scrollToEnd({ animated: true });
           }}
         >
           {stream.map((it, i) => {
@@ -672,7 +695,7 @@ export default function RoomScreen() {
                stays where they were, on the side they were said */
             if (m.recalledAt) {
               return (
-                <View key={`m-${i}`}>
+                <View key={m.id ?? `m-${i}`}>
                   {dayRule}
                   <Text style={{ alignSelf: m.mine ? "flex-end" : "flex-start", fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: P.ink40, marginTop: prevMsg && !newDay ? 8 : 0, marginBottom: 4, paddingHorizontal: 6 }}>
                     {m.mine ? t("rm.recall.mine") : t("rm.recall.theirs", { name })}
@@ -685,7 +708,7 @@ export default function RoomScreen() {
             const q = m.meta?.reply;
             const qGone = !!q && (!q.excerpt || !!detail?.messages.find((x) => x.id === q.id)?.recalledAt);
             return (
-              <View key={`m-${i}`} onLayout={(e) => { if (m.id) msgY.current[m.id] = e.nativeEvent.layout.y; }}>
+              <View key={m.id ?? `m-${i}`} onLayout={(e) => { if (m.id) msgY.current[m.id] = e.nativeEvent.layout.y; }}>
                 {dayRule}
                 <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2, opacity: lit && lit === m.id ? 0.5 : 1 }}>
                   {url ? (
@@ -728,6 +751,8 @@ export default function RoomScreen() {
                           /* the line this one answers: whose, and a few of its words; tap to go back to it */
                           <Pressable
                             onPress={() => jumpTo(q.id)}
+                            onLongPress={() => {}}
+                            delayLongPress={350}
                             accessibilityRole="button"
                             style={{ borderLeftWidth: 2, borderLeftColor: m.mine ? "rgba(255,255,255,0.7)" : P.pen, paddingLeft: 8, marginBottom: 6 }}
                           >

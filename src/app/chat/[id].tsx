@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { MessageMenu, type MessageAction } from "../../components/MessageMenu";
+import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { copyText } from "../../lib/clipboard";
 import { offerTranslate } from "../../lib/lang-guess";
 import { translate } from "../../lib/wren";
@@ -156,6 +156,8 @@ export default function ChatScreen() {
   const { width: winW } = useWindowDimensions();
   const letterMax = Math.round((winW - 32) * 0.86); // the list pads 16 a side
   const [trans, setTrans] = useState<Record<string, { text?: string; shown: boolean; busy?: boolean }>>({});
+  const shownCount = useRef(0);
+  const atBottom = useRef(true);
   const letterKey = (m: ThreadMessage) => m.id || `${m.date}|${m.body.slice(0, 24)}`;
   const translateLetter = async (k: string, body: string) => {
     if (trans[k]?.text) { setTrans((s) => ({ ...s, [k]: { ...s[k], shown: true } })); return; }
@@ -344,7 +346,18 @@ export default function ChatScreen() {
           ref={scrollRef}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          scrollEventThrottle={32}
+          onScroll={(e) => {
+            const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+            atBottom.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 60;
+          }}
+          onContentSizeChange={() => {
+            // to the end when a letter arrives; a translation opening mid-thread stays where it is
+            const grew = conv.length !== shownCount.current;
+            shownCount.current = conv.length;
+            if (grew) scrollRef.current?.scrollToEnd({ animated: false });
+            else if (atBottom.current) scrollRef.current?.scrollToEnd({ animated: true });
+          }}
         >
           {conv.map((m, i) => {
             const prev = conv[i - 1];
@@ -358,6 +371,10 @@ export default function ChatScreen() {
               <Pressable
                 key={i}
                 onPress={() => router.push(`/thread/${id}?i=${i}`)}
+                /* a long-press is the letter's menu, so lifting the finger must not also open it */
+                onLongPress={() => {}}
+                delayLongPress={350}
+                {...a11yActions(menuFor(m))}
                 style={({ pressed }) => ({ marginBottom: 10, alignItems: m.mine ? "flex-end" : "flex-start", opacity: pressed ? 0.55 : 1 })}
               >
                 {showLabel && (
@@ -366,7 +383,7 @@ export default function ChatScreen() {
                     {day ? ` · ${day}` : ""}
                   </Text>
                 )}
-                <MessageMenu actions={menuFor(m)}>
+                <MessageMenu actions={menuFor(m)} radius={0}>
                 <View
                   style={{
                     maxWidth: letterMax,

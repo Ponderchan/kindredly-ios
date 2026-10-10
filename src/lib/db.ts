@@ -6,6 +6,11 @@
 import { supabase, supabaseReady } from "./supabase";
 import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
+import { t } from "./i18n";
+
+/* what a line taken back reads as in the database (web 0031): the body, and the
+   thread's list preview when it was the latest. Never anyone's writing. */
+export const TAKEN_BACK = "(taken back)";
 /* WHY IT DIDN'T GO. Every write in here returns a bare null on failure, so
    the screens could only ever say "try again" — advice that is wrong when
    there is no network to try on, and wrong again when the row was refused
@@ -594,7 +599,7 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
        thousands; without it the list could only count letters */
     const theirs = new Map<string, string[]>();
     for (const m of (msgRes.data as any[] | null) || []) {
-      if (m.sender === me || !m.body) continue;
+      if (m.sender === me || !m.body || m.body === TAKEN_BACK) continue;
       const list = theirs.get(m.thread_id) || [];
       list.push(m.body);
       theirs.set(m.thread_id, list);
@@ -616,7 +621,10 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
         otherFace: (iamA ? r.b_face : r.a_face) ?? null,
         other: iamA ? r.b : r.a,
         gone: !(iamA ? r.b : r.a),
-        preview: r.last_body || r.opening || "",
+        preview:
+          r.last_body === TAKEN_BACK
+            ? r.last_sender === me ? t("rm.recall.mine") : t("rm.recall.theirs", { name: (iamA ? r.b_name : r.a_name) || t("cm.kindred") })
+            : r.last_body || r.opening || "",
         opening: r.opening || "",
         letterId: r.letter ?? null,
         fromMyLetter: !iamA,
@@ -778,7 +786,7 @@ export async function sendThreadMessage(
   threadId: string,
   body: string,
   extra?: { kind: "photo" | "song" | "text"; mediaPath?: string; meta?: { url?: string; title?: string; reply?: MessageQuote } },
-): Promise<{ ok: true } | null> {
+): Promise<{ ok: true; id?: string; createdAt?: string } | null> {
   if (!supabaseReady) return null;
   const me = await uid();
   if (!me) return null;
@@ -809,7 +817,12 @@ export async function sendThreadMessage(
         row.meta = reply && reply.sender === "me" ? { ...extra.meta, reply: { ...reply, sender: me } } : extra.meta;
       }
     }
-    let { error } = await supabase!.from("messages").insert(row);
+    /* the row comes back with its id and the server's time, so the line just
+       sent can be replied to or taken back at once — not only after the
+       realtime echo reloads the room */
+    let saved: { id?: string; created_at?: string } | null = null;
+    let { data: ins, error } = await supabase!.from("messages").insert(row).select("id,created_at").maybeSingle();
+    if (!error) saved = (ins as any) ?? null;
     if (error && extra) {
       // pre-0015 columns — the moment/song still arrives as its text fallback
       const retry = await supabase!
@@ -822,7 +835,7 @@ export async function sendThreadMessage(
        to Kindreds asks again, so the stranger you just answered has moved
        to IN TRANSIT by the time you're back (owner, 2026-09-23) */
     threadsFetchedAt = 0;
-    return { ok: true };
+    return { ok: true, id: saved?.id, createdAt: saved?.created_at };
   } catch (e) {
     return noteFail(e);
   }
