@@ -304,7 +304,8 @@ export default function KindredsTab() {
             title={t("kindreds.title")}
             right={
               <Pressable disabled={!waiting} onPress={openOnMe} hitSlop={8} style={{ flexShrink: 1 }}>
-                <Text numberOfLines={2} style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: waiting ? P.pen : P.ink40, textAlign: "right" }}>
+                {/* one line, shrinking for a long language (de: two lines ran into the sky's OPEN pill on the rule below) */}
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: waiting ? P.pen : P.ink40, textAlign: "right" }}>
                   {waiting ? (waiting === 1 ? t("kindreds.toAnswerOne") : t("kindreds.toAnswer", { n: waiting })) : t("kindreds.allAnswered")}
                 </Text>
               </Pressable>

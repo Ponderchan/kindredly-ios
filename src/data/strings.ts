@@ -6203,7 +6203,7 @@ strings(
     "wren.trackClose": "Fechar",
     "ph.open": "Abrir foto",
     "kd.tab.all": "TODOS",
-    "kd.tab.kindreds": "ALMAS AFINS",
+    "kd.tab.kindreds": "AFINS",
     "kd.tab.penPals": "PENPALS",
     "kd.filter.a11y": "Filtrar e ordenar",
     "kd.filter.showOnly": "Mostrar apenas",
