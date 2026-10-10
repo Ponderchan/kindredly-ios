@@ -336,7 +336,8 @@ export default function KindredsTab() {
                     >
                       {/* the groups' own marks: a kindred's face, a pen pal's square */}
                       {k !== "all" && <StateGlyph kind={k === "kindreds" ? "kindreds" : "strangers"} size={13} weight={2} color={sel ? "#FFFFFF" : undefined} cut={sel ? P.ink : undefined} />}
-                      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.4, color: sel ? "#FFFFFF" : P.ink60 }}>
+                      {/* shrinks rather than truncates: de says SEELENVERWANDTE in full, as its title does */}
+                      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.4, color: sel ? "#FFFFFF" : P.ink60 }}>
                         {t(TAB_LABEL[k])}
                       </Text>
                       {n != null && <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: sel ? "rgba(255,255,255,0.6)" : P.ink40 }}>{n}</Text>}

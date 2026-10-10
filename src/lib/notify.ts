@@ -83,6 +83,20 @@ export async function registerForReplies(): Promise<void> {
     const uid = u.user?.id;
     if (!uid || u.user?.is_anonymous) return; // a guest has no correspondence
 
+    /* AND WHAT TIME IT IS THERE (2026-10-10, push step two). Reminders keep
+       to the reader's own day — nothing after ten at night, the hungry
+       courier at seven — and that day is set server-side, so the time zone
+       rides on the account the way the courier's name does. Written only
+       when it changed (a trip, a move), whatever the push permission. */
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && (u.user?.user_metadata as Record<string, unknown> | undefined)?.tz !== tz) {
+        void supabase!.auth.updateUser({ data: { tz } }).catch(() => {});
+      }
+    } catch {
+      /* no zone, no reminders by the clock — the knocks themselves still come */
+    }
+
     const perm = await Notifications.getPermissionsAsync();
     let status = perm.status;
     /* asked only once, and only after a session exists — a permission
