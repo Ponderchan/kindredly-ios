@@ -18,6 +18,7 @@ import { markRoomSeen } from "../../lib/room-seen";
 import { setDeskWaiting } from "../../lib/waiting";
 import { uploadMoment } from "../../lib/db";
 import { MediaImage } from "../../lib/media";
+import { PhotoLightbox, type LightboxPhoto } from "../../components/PhotoLightbox";
 import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
 import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
 import { stallReport } from "../../lib/stall-probe";
@@ -76,6 +77,7 @@ export default function WrenDeskScreen() {
   const [mail, setMail] = useState<WrenMail[]>([]);
   const [local, setLocal] = useState<WrenLocal[]>([]);
   const [text, setText] = useState("");
+  const [photoFull, setPhotoFull] = useState<LightboxPhoto>(null);
   const [sending, setSending] = useState(false);
   const [needsAccount, setNeedsAccount] = useState(false);
   const [allChips, setAllChips] = useState(false);
@@ -340,7 +342,9 @@ export default function WrenDeskScreen() {
                 {dayRule}
                 {(newDay || !sameSpeaker) && Label(label, mine, newDay)}
                 {photo ? (
-                  <MediaImage path={photo} style={{ width: "62%", aspectRatio: 0.75, marginBottom: 6, backgroundColor: "#EFEDE6" }} />
+                  <Pressable onPress={() => setPhotoFull({ path: photo })} accessibilityRole="imagebutton" accessibilityLabel={t("ph.open")} style={{ width: "62%", marginBottom: 6 }}>
+                    <MediaImage path={photo} style={{ width: "100%", aspectRatio: 0.75, backgroundColor: "#EFEDE6" }} />
+                  </Pressable>
                 ) : (
                   <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
                 )}
@@ -401,6 +405,7 @@ export default function WrenDeskScreen() {
         </View>
         {tray && <TraceTray actions={HANDS} onPick={onHand} />}
       </KeyboardAvoidingView>
+      <PhotoLightbox photo={photoFull} onClose={() => setPhotoFull(null)} />
 
       <SignUpSheet
         open={needsAccount}

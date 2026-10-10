@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { localeTag } from "../../lib/format";
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -12,6 +12,7 @@ import { MoodIcon } from "../../components/MoodIcon";
 import { getMood } from "../../data/moods";
 import { DEMO_JOURNAL } from "../../data/demo";
 import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
+import { PhotoLightbox } from "../../components/PhotoLightbox";
 
 /* A single journal page — the sealed room, one page at a time. Read it, let a
    line drift, or tear it out. Sample pages are read-only.
@@ -373,12 +374,8 @@ function PhotoGallery({
         </Text>
       )}
 
-      {/* the lightbox — the photo alone on ink, tap anywhere to put it back */}
-      <Modal visible={!!full} transparent animationType="fade" onRequestClose={() => setFull(null)}>
-        <Pressable onPress={() => setFull(null)} style={{ flex: 1, backgroundColor: "rgba(10,10,12,0.96)", justifyContent: "center" }}>
-          {full && <Image source={{ uri: full }} style={{ width: "100%", height: "80%" }} resizeMode="contain" />}
-        </Pressable>
-      </Modal>
+      {/* the lightbox — the photo alone on ink, pinch to look closer, tap to put it back */}
+      <PhotoLightbox photo={full ? { uri: full } : null} onClose={() => setFull(null)} />
     </View>
   );
 }

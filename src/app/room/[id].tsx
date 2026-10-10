@@ -23,7 +23,8 @@ import { markWork } from "../../lib/stall-probe";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import * as ImagePicker from "expo-image-picker";
 import { MediaImage } from "../../lib/media";
-import { Linking, Modal } from "react-native";
+import { PhotoLightbox, type LightboxPhoto } from "../../components/PhotoLightbox";
+import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
 import { useThreadLive } from "../../lib/live";
@@ -85,6 +86,7 @@ export default function RoomScreen() {
      local state, which is the only honest thing a fixture can do. */
   const isDemo = !!id?.startsWith("demo-");
   const [shelf, setShelf] = useState(false);
+  const [photoFull, setPhotoFull] = useState<LightboxPhoto>(null);
   const [momentSpent, setMomentSpent] = useState(false);
 
   /* Every row adds something to the relationship rather than to the
@@ -134,6 +136,8 @@ export default function RoomScreen() {
                 { body: "Nightcall — https://open.spotify.com/track/demo1", mine: false, date: "2026-08-29T23:40:00Z", kind: "song", meta: { url: "https://open.spotify.com/track/demo1", title: "Nightcall" } },
                 { body: "Motion Picture Soundtrack — https://youtu.be/demo2", mine: true, date: "2026-08-30T01:10:00Z", kind: "song", meta: { url: "https://youtu.be/demo2", title: "Motion Picture Soundtrack" } },
                 { body: "Alaska — https://open.spotify.com/track/demo3", mine: false, date: "2026-08-31T02:05:00Z", kind: "song", meta: { url: "https://open.spotify.com/track/demo3", title: "Alaska" } },
+                // a tiny moment, so the photo and its lightbox can be checked by eye
+                { body: t("rm.moment.fallback"), mine: false, date: "2026-08-31T03:00:00Z", kind: "photo", meta: { url: Image.resolveAssetSource(require("../../../assets/icon.png")).uri } },
               ],
             }
           : d,
@@ -575,7 +579,9 @@ export default function RoomScreen() {
                 {dayRule}
                 <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2 }}>
                   {url ? (
-                    <MediaImage path={photoPath} uri={photoUri} style={{ width: "70%", aspectRatio: 1, borderRadius: 16, marginBottom: 4, backgroundColor: "#EFEDE6" }} />
+                    <Pressable onPress={() => setPhotoFull({ path: photoPath, uri: photoUri })} accessibilityRole="imagebutton" accessibilityLabel={t("ph.open")} style={{ width: "70%", marginBottom: 4 }}>
+                      <MediaImage path={photoPath} uri={photoUri} style={{ width: "100%", aspectRatio: 1, borderRadius: 16, backgroundColor: "#EFEDE6" }} />
+                    </Pressable>
                   ) : song ? (
                     <Pressable
                       onPress={() => Linking.openURL(m.meta!.url!)}
@@ -779,6 +785,7 @@ export default function RoomScreen() {
           scroll is gone by tomorrow; gathered, the same messages become
           what this product is for: accumulated evidence that you are
           alike, curated by nobody. */}
+      <PhotoLightbox photo={photoFull} onClose={() => setPhotoFull(null)} />
       <Modal visible={shelf} transparent animationType="slide" onRequestClose={() => setShelf(false)}>
         <View style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.32)", justifyContent: "flex-end" }}>
           <Pressable style={{ flex: 1 }} onPress={() => setShelf(false)} />
