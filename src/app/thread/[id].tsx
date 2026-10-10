@@ -15,11 +15,7 @@ import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { TranslateMark } from "../../components/TranslateMark";
-import {
-  fetchThreadMessages,
-  sendThreadMessage,
-  type ThreadDetail,
-} from "../../lib/db";
+import { fetchThreadMessages, sendThreadMessage, theirLatest, type ThreadDetail } from "../../lib/db";
 import { translate } from "../../lib/wren";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { fieldBox } from "../../lib/field";
@@ -131,7 +127,7 @@ export default function ThreadScreen() {
         <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.2, color: P.ink60 }}>
           {conv.length === 1 ? t("th.inThreadOne", { n: conv.length }) : t("th.inThreadMany", { n: conv.length })}
         </Text>
-        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
+        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening)} onBlocked={() => router.back()} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>

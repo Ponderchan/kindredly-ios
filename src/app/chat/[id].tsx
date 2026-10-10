@@ -21,7 +21,7 @@ import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { markRoomSeen } from "../../lib/room-seen";
 import { dShort, postNo, localeTag } from "../../lib/format";
-import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, signThread, type ThreadDetail } from "../../lib/db";
+import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, signThread, theirLatest, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
@@ -169,7 +169,7 @@ export default function ChatScreen() {
   const reportLetter = async (m: ThreadMessage) => {
     const ok = await reportContent({ targetUser: detail?.other ?? null, context: "message", refId: m.id ?? null, reason: "other", snapshot: m.body });
     if (ok) Alert.alert(t("rp.reportedTitle"), t("rp.reportedBody", { wren }));
-    else alertFail(t("rm.fail.title"), t("rm.fail.body"));
+    else Alert.alert(t("rp.failed"), t("rp.failedBody"));
   };
   const menuFor = (m: ThreadMessage): MessageAction[] => {
     if (!m.body || m.recalledAt) return [];
@@ -314,7 +314,7 @@ export default function ChatScreen() {
             )}
           </View>
         </Pressable>
-        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={goBack} />
+        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening)} onBlocked={goBack} />
       </View>
 
       {/* the rule the milestone strip used to carry */}

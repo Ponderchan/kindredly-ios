@@ -7,6 +7,7 @@ import { P, PF, ruleSoft } from "../../theme/post";
 import { keepsake } from "../../data/keepsakes";
 import { loadShelf, markSeen, type Minted } from "../../lib/keepsakes";
 import { WrenBird } from "../../components/WrenBird";
+import { readThreadsCache } from "../../lib/db";
 import { speakAs, useWrenName } from "../../lib/wren-name";
 
 /* ONE KEEPSAKE, AND THE PROOF UNDER IT.
@@ -94,7 +95,11 @@ export default function KeepsakeDetail() {
 
             {!!mine.threadId && (
               <Pressable
-                onPress={() => router.push(`/chat/${mine.threadId}`)}
+                /* a correspondence that has traded names lives in a room now */
+                onPress={async () => {
+                  const th = (await readThreadsCache())?.find((x) => x.id === mine.threadId);
+                  router.push(th?.revealed ? `/room/${mine.threadId}` : `/chat/${mine.threadId}`);
+                }}
                 style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 26, opacity: pressed ? 0.6 : 1 })}
               >
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.pen }}>{t("ks.goCorrespondence")}</Text>

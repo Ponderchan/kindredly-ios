@@ -11,7 +11,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
 import { getStamp, sname } from "../../data/stamps";
 import { dLong } from "../../lib/format";
-import { fetchThreadMessages, type ThreadDetail } from "../../lib/db";
+import { fetchThreadMessages, theirLatest, type ThreadDetail } from "../../lib/db";
 import { readCorrespondent, resonance, theyify, type CorrespondentRead, type ResonanceRow } from "../../lib/correspondent";
 import type { DimScore } from "../../lib/hatch-engine";
 
@@ -93,7 +93,7 @@ export default function KindredScreen() {
         <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink }}>
           {detail?.revealed ? t("kd.kindred") : t("kd.voiceKnown")}
         </Text>
-        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={detail?.opening} onBlocked={() => router.back()} />
+        <ReportMenu targetUser={detail?.other} context="thread" refId={id} snapshot={theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening)} onBlocked={() => router.back()} />
       </View>
       <View style={{ ...rule }} />
 

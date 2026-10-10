@@ -563,6 +563,16 @@ export async function fetchThreads(): Promise<ThreadSummary[] | null> {
   return list;
 }
 
+/** a correspondence that has just left the list (you blocked them): gone from
+    the kept copy too, so the tab can't paint it again before the next fetch */
+export async function forgetThread(threadId: string): Promise<void> {
+  const list = (await readThreadsCache())?.filter((x) => x.id !== threadId);
+  if (!list) return;
+  threadsMem = list;
+  threadsFetchedAt = 0;
+  await scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(list)).catch(() => {});
+}
+
 async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
   if (!supabaseReady) return null;
   const me = await uid();
@@ -676,6 +686,17 @@ export interface MessageQuote {
   excerpt: string;
   sender?: string;
 }
+/* WHAT A REPORT CARRIES (2026-10-10, iOS safety gap 4): their newest words
+   in the correspondence, the way the web's report does — not the opening
+   letter, which is usually the one thing in it that was fine. A photo goes
+   by its path, a line taken back is skipped (its words are kept server-side
+   for reports already). */
+export function theirLatest(messages: ThreadMessage[] | undefined | null, fallback?: string | null): string | undefined {
+  const m = [...(messages ?? [])].reverse().find((x) => !x.mine && !x.recalledAt && (x.body || x.mediaPath));
+  if (!m) return fallback ?? undefined;
+  return m.kind === "photo" ? `[photo] ${m.mediaPath ?? m.meta?.url ?? ""}`.trim() : m.body;
+}
+
 /* THE LAST READ OF A ROOM, ON THE PHONE (owner, build 18: "a room takes
    three seconds to open"). The room paints this at once and the fetch
    replaces it; a room opened once never opens blank again. */

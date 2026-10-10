@@ -9,7 +9,7 @@ import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
-import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, takeBack, TAKEN_BACK, uploadMoment, type MessageQuote, type ThreadDetail, type ThreadMessage } from "../../lib/db";
+import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, takeBack, TAKEN_BACK, theirLatest, uploadMoment, type MessageQuote, type ThreadDetail, type ThreadMessage } from "../../lib/db";
 import { translate } from "../../lib/wren";
 import { copyText } from "../../lib/clipboard";
 import { offerTranslate } from "../../lib/lang-guess";
@@ -21,13 +21,13 @@ import { saveToLore } from "../../lib/lore";
 import { markRoomSeen } from "../../lib/room-seen";
 import { markNoticeSeen, readNoticesSeen } from "../../lib/notice-seen";
 import { useEntitlement } from "../../lib/entitlement";
-import { isExpired, quietDays } from "../../lib/kindred-expiry";
+import { closingSoon, daysLeft, isExpired, quietDays } from "../../lib/kindred-expiry";
 import { markWork } from "../../lib/stall-probe";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import * as ImagePicker from "expo-image-picker";
 import { MediaImage } from "../../lib/media";
 import { PhotoLightbox, type LightboxPhoto } from "../../components/PhotoLightbox";
-import { MessageMenu, type MessageAction } from "../../components/MessageMenu";
+import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
@@ -69,7 +69,7 @@ import { alertFail } from "../../lib/fail";
    presence. Nothing here reports on the other person's attention. */
 export default function RoomScreen() {
   useLang(); // repaint on language change
-  const { id, expired: expiredParam } = useLocalSearchParams<{ id: string; expired?: string }>();
+  const { id, expired: expiredParam, closing: closingParam } = useLocalSearchParams<{ id: string; expired?: string; closing?: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
@@ -272,7 +272,7 @@ export default function RoomScreen() {
      a word here and the bar gives way to REKINDLE. Reading stays. The
      last word is the newest message either way, or the day the room
      opened; the demo rooms are exempt so the simulator keeps its bar. */
-  const { premium } = useEntitlement();
+  const { premium, settled } = useEntitlement();
   const lastAt = useMemo(() => {
     if (!detail) return Date.now();
     const dates = detail.messages.map((m) => Date.parse(m.date)).filter((n) => Number.isFinite(n));
@@ -281,6 +281,10 @@ export default function RoomScreen() {
   }, [detail]);
   // dev: ?expired=1 on a demo room shows the closed door without waiting a month
   const expired = !!detail && ((!isDemo && isExpired(lastAt, premium)) || (__DEV__ && expiredParam === "1"));
+  /* CLOSING SOON (owner, 2026-10-10): inside its last week a room says so
+     above the bar, once, with the one thing that changes it */
+  // dev: ?closing=1 on a demo room shows the line without waiting three weeks
+  const closing = !!detail && !detail.gone && !expired && ((!isDemo && settled && closingSoon(lastAt, premium)) || (__DEV__ && closingParam === "1"));
 
   /* OPTIMISTIC for plain lines; folds and media go through load() because
      their truth (sealed/open, upload) lives server-side. */
@@ -467,10 +471,19 @@ export default function RoomScreen() {
 
   const { width: winW } = useWindowDimensions();
   const bubbleMax = Math.round((winW - 44) * 0.84); // the list pads 22 a side
+  /* what a long-press lifts is hosted natively and sized by its own
+     content, so the photo, the song card and a fold's half get their widths
+     in points rather than as a share of the row */
+  const photoW = Math.round((winW - 44) * 0.7);
+  const songMax = Math.round((winW - 44) * 0.86);
+  const foldW = winW - 44 - 28; // a fold pads 13 and rules 1 a side
   /* LONG-PRESS A LINE (owner, 2026-10-10). Theirs: reply, copy, translate,
      keep in lore, report. Yours: reply, copy, and for two minutes take it
      back (the server keeps the clock; web 0031). The opening letter has no
-     id, so it offers only what needs none. */
+     id, so it offers only what needs none. A photo, a song and an opened
+     fold have their own menus below, from the same few things. Report needs
+     someone on the other side — not offered once their account is gone. */
+  const canReport = (id?: string | null) => !!id && !isDemo && !!detail?.other;
   const TAKE_BACK_MS = 2 * 60_000;
   const lineKey = (m: ThreadMessage) => m.id || `${m.date}|${m.body.slice(0, 24)}`;
   const menuFor = (m: ThreadMessage): MessageAction[] => {
@@ -486,9 +499,43 @@ export default function RoomScreen() {
           : { key: "translate", label: t("mm.translate"), icon: "character.bubble", onPress: () => void translateLine(k, m.body) },
       );
       acts.push({ key: "keep", label: t("mm.keep"), icon: "bookmark", onPress: () => keep(m.body, null, m.date) });
-      if (m.id && !isDemo) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLine(m) });
+      if (canReport(m.id)) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLine(m) });
     } else if (m.id && Date.now() + skew.current - Date.parse(m.date) < TAKE_BACK_MS) {
       acts.push({ key: "takeBack", label: t("mm.takeBack"), icon: "arrow.uturn.backward", destructive: true, onPress: () => void takeBackLine(m) });
+    }
+    return acts;
+  };
+  const photoMenu = (m: ThreadMessage): MessageAction[] => {
+    const acts: MessageAction[] = [];
+    if (m.id) acts.push({ key: "reply", label: t("mm.reply"), icon: "arrowshape.turn.up.left", onPress: () => startReply(m) });
+    if (!m.mine && canReport(m.id)) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLine(m) });
+    return acts;
+  };
+  const songMenu = (m: ThreadMessage): MessageAction[] => {
+    const url = m.meta?.url;
+    const acts: MessageAction[] = [];
+    if (m.id) acts.push({ key: "reply", label: t("mm.reply"), icon: "arrowshape.turn.up.left", onPress: () => startReply(m) });
+    if (url) acts.push({ key: "copyLink", label: t("mm.copyLink"), icon: "link", onPress: () => void copyText(url) });
+    acts.push({ key: "shelf", label: t("mm.songs"), icon: "music.note.list", onPress: () => setShelf(true) });
+    if (!m.mine && canReport(m.id)) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLine(m) });
+    return acts;
+  };
+  /* an opened fold: each half is a line like any other, minus reply and take back */
+  const foldMenu = (half: Fold, prompt: string | null): MessageAction[] => {
+    const body = half.body;
+    if (!body) return [];
+    const k = `fold:${half.id}`;
+    const acts: MessageAction[] = [{ key: "copy", label: t("mm.copy"), icon: "doc.on.doc", onPress: () => void copyText(body) }];
+    if (!half.mine) {
+      if (trans[k]?.shown) acts.push({ key: "original", label: t("mm.original"), icon: "character.bubble", onPress: () => setTrans((s) => ({ ...s, [k]: { ...s[k], shown: false } })) });
+      else if (offerTranslate(body)) acts.push({ key: "translate", label: t("mm.translate"), icon: "character.bubble", onPress: () => void translateLine(k, body) });
+      acts.push({ key: "keep", label: t("mm.keep"), icon: "bookmark", onPress: () => keep(body, prompt, half.date) });
+      if (canReport(half.id)) {
+        acts.push({
+          key: "report", label: t("mm.report"), icon: "flag", destructive: true,
+          onPress: () => void reportThing({ context: "fold", refId: half.id, snapshot: prompt ? `${prompt} — ${body}` : body }),
+        });
+      }
     }
     return acts;
   };
@@ -507,11 +554,13 @@ export default function RoomScreen() {
     setTrans((s) => ({ ...s, [k]: out ? { text: out, shown: true } : { shown: false } }));
     if (!out) Alert.alert(t("th.noTransTitle", { wren }), t("th.noTransBody"));
   };
-  const reportLine = async (m: ThreadMessage) => {
-    const ok = await reportContent({ targetUser: detail?.other ?? null, context: "message", refId: m.id ?? null, reason: "other", snapshot: m.body });
+  const reportThing = async (r: { context: string; refId: string | null; snapshot: string }) => {
+    const ok = await reportContent({ targetUser: detail?.other ?? null, context: r.context, refId: r.refId, reason: "other", snapshot: r.snapshot });
     if (ok) Alert.alert(t("rp.reportedTitle"), t("rp.reportedBody", { wren }));
-    else alertFail(t("rm.fail.title"), t("rm.fail.body"));
+    else Alert.alert(t("rp.failed"), t("rp.failedBody")); // a report's own failure, never a stale "offline" from another write
   };
+  // a photo is reported by its path, the way theirLatest carries one
+  const reportLine = (m: ThreadMessage) => reportThing({ context: "message", refId: m.id ?? null, snapshot: theirLatest([m]) ?? m.body });
   const markTaken = (msgId: string) => {
     setDetail((d) => (d ? { ...d, messages: d.messages.map((x) => (x.id === msgId ? { ...x, body: TAKEN_BACK, recalledAt: new Date().toISOString() } : x)) } : d));
     setReplyTo((r) => (r && r.quote.id === msgId ? null : r)); // a reply to a line taken back has nothing left to quote
@@ -592,7 +641,7 @@ export default function RoomScreen() {
           targetUser={detail?.other}
           context="thread"
           refId={id}
-          snapshot={detail?.opening}
+          snapshot={theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening)}
           onBlocked={() => router.replace("/(tabs)/kindreds")}
         />
       </View>
@@ -644,16 +693,27 @@ export default function RoomScreen() {
                     )}
                     {open ? (
                       <>
-                        {[f, a!].map((half) => (
-                          <Pressable key={half.id} onLongPress={() => !half.mine && half.body && keep(half.body, f.prompt, half.date)} delayLongPress={350}>
-                            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.1, color: half.mine ? P.ink40 : P.pen, marginTop: 10 }}>
-                              {half.mine ? tr("ui.you") : name.toUpperCase()}
-                            </Text>
-                            <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: half.mine ? P.ink60 : P.ink, marginTop: 3 }}>
-                              {half.body ?? ""}
-                            </Text>
-                          </Pressable>
-                        ))}
+                        {[f, a!].map((half) => {
+                          const acts = foldMenu(half, f.prompt);
+                          const ftx = trans[`fold:${half.id}`];
+                          return (
+                            /* 8pt of the fold's own padding go into the half, so the lifted copy has a margin and the text doesn't move */
+                            <View key={half.id} accessible {...a11yActions(acts)} style={{ marginHorizontal: -8 }}>
+                              <MessageMenu actions={acts} radius={0}>
+                                <View style={{ width: foldW + 16, paddingHorizontal: 8, paddingBottom: 4, backgroundColor: P.paper }}>
+                                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.1, color: half.mine ? P.ink40 : P.pen, marginTop: 10 }}>
+                                    {half.mine ? tr("ui.you") : name.toUpperCase()}
+                                  </Text>
+                                  <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: half.mine ? P.ink60 : P.ink, marginTop: 3 }}>
+                                    {half.body ?? ""}
+                                  </Text>
+                                </View>
+                              </MessageMenu>
+                              {ftx?.busy && <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 2, paddingHorizontal: 8 }}>{t("mm.translating")}</Text>}
+                              {ftx?.shown && !!ftx.text && <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 3, paddingHorizontal: 8 }}>{ftx.text}</Text>}
+                            </View>
+                          );
+                        })}
                       </>
                     ) : f.mine ? (
                       <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink40, marginTop: 8 }}>{t("rm.fold.waiting", { name })}</Text>
@@ -705,6 +765,7 @@ export default function RoomScreen() {
             }
             const k = lineKey(m);
             const tx = trans[k];
+            const photoActs = url ? photoMenu(m) : [];
             const q = m.meta?.reply;
             const qGone = !!q && (!q.excerpt || !!detail?.messages.find((x) => x.id === q.id)?.recalledAt);
             return (
@@ -712,26 +773,45 @@ export default function RoomScreen() {
                 {dayRule}
                 <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2, opacity: lit && lit === m.id ? 0.5 : 1 }}>
                   {url ? (
-                    <Pressable onPress={() => setPhotoFull({ path: photoPath, uri: photoUri })} accessibilityRole="imagebutton" accessibilityLabel={t("ph.open")} style={{ width: "70%", marginBottom: 4 }}>
-                      <MediaImage path={photoPath} uri={photoUri} style={{ width: "100%", aspectRatio: 1, borderRadius: 16, backgroundColor: "#EFEDE6" }} />
+                    <Pressable
+                      onPress={() => setPhotoFull({ path: photoPath, uri: photoUri })}
+                      /* a long-press is the photo's menu, so lifting the finger must not also open it —
+                         unless it has no menu (still sending), when a slow tap should still open it */
+                      onLongPress={photoActs.length ? NOOP : undefined}
+                      delayLongPress={350}
+                      accessibilityRole="imagebutton"
+                      accessibilityLabel={t("ph.open")}
+                      {...a11yActions(photoActs)}
+                      style={{ marginBottom: 4 }}
+                    >
+                      <MessageMenu actions={photoActs} radius={16}>
+                        <MediaImage path={photoPath} uri={photoUri} style={{ width: photoW, height: photoW, borderRadius: 16, backgroundColor: "#EFEDE6" }} />
+                      </MessageMenu>
                     </Pressable>
                   ) : song ? (
                     <Pressable
                       onPress={() => Linking.openURL(m.meta!.url!)}
-                      onLongPress={() => setShelf(true)}
+                      onLongPress={NOOP} // the song menu always has the shelf
                       delayLongPress={350}
-                      style={{ maxWidth: "86%", borderWidth: 1, borderColor: m.mine ? P.pen : P.ink12, borderRadius: 16, padding: 12, marginBottom: 4, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: m.mine ? P.penWash : "#FFFFFF" }}
+                      accessibilityRole="link"
+                      accessibilityLabel={m.meta!.title || t("rm.song.card")}
+                      {...a11yActions(songMenu(m))}
+                      style={{ marginBottom: 4 }}
                     >
-                      <Text style={{ fontSize: 17 }}>🎵</Text>
-                      <View style={{ flexShrink: 1 }}>
-                        <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 12.5, color: P.ink }}>
-                          {m.meta!.title || t("rm.song.card")}
-                        </Text>
-                        <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, color: P.ink40, marginTop: 2 }}>
-                          {m.meta!.url!.replace(/^https?:\/\//, "").split("/")[0]}
-                        </Text>
-                      </View>
-                      <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>›</Text>
+                      <MessageMenu actions={songMenu(m)} radius={16}>
+                        <View style={{ maxWidth: songMax, borderWidth: 1, borderColor: m.mine ? P.pen : P.ink12, borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: m.mine ? P.penWash : "#FFFFFF" }}>
+                          <Text style={{ fontSize: 17 }}>🎵</Text>
+                          <View style={{ flexShrink: 1 }}>
+                            <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 12.5, color: P.ink }}>
+                              {m.meta!.title || t("rm.song.card")}
+                            </Text>
+                            <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 9.5, color: P.ink40, marginTop: 2 }}>
+                              {m.meta!.url!.replace(/^https?:\/\//, "").split("/")[0]}
+                            </Text>
+                          </View>
+                          <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>›</Text>
+                        </View>
+                      </MessageMenu>
                     </Pressable>
                   ) : null}
                   {!card && (
@@ -787,6 +867,18 @@ export default function RoomScreen() {
             );
           })}
         </ScrollView>
+
+        {/* a room in its last week says so once, as the room's own state —
+            above whatever is being written, the link run into the sentence.
+            Not while a fold is being written: a fold doesn't move the clock */}
+        {closing && !(mode && mode.kind !== "song") && (
+          <Text style={{ marginHorizontal: 22, marginBottom: 8, fontFamily: PF.mono, fontSize: 11, lineHeight: 16, letterSpacing: 0.2, color: P.ink60 }}>
+            {daysLeft(lastAt) <= 1 ? t("rm.closing.day") : t("rm.closing.days", { n: daysLeft(lastAt) })}{" "}
+            <Text onPress={() => router.push("/paywall?src=closing")} accessibilityRole="link" style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.pen }}>
+              {t("rm.closing.fc")} ›
+            </Text>
+          </Text>
+        )}
 
         {/* she leaves one thing on the table, at the foot of the room */}
         {!!notice && (
@@ -1003,3 +1095,5 @@ export default function RoomScreen() {
     </SafeAreaView>
   );
 }
+
+const NOOP = () => {};

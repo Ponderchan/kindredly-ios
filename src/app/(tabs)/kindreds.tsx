@@ -1,8 +1,8 @@
 import { useWrenName } from "../../lib/wren-name";
 import { t, useLang, getLang } from "../../lib/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { readRoomSeen, unreadOf } from "../../lib/room-seen";
-import { Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { markRoomSeen, markRoomUnread, readRoomSeen, unreadOf } from "../../lib/room-seen";
+import { Alert, Modal, Pressable, ScrollView, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -19,7 +19,9 @@ import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { WrenDeskRow } from "../../components/WrenDesk";
 import { Button as SButton, Host, Image as SImage, Menu, Section, Toggle } from "@expo/ui/swift-ui";
-import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
+import { blockUser, fetchThreadMessages, fetchThreads, forgetThread, readThreadDetailCache, readThreadsCache, reportContent, theirLatest, threadsAge, type ThreadSummary } from "../../lib/db";
+import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
+import { LeaveSheet } from "../../components/LeaveSheet";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { onYou, setWaiting } from "../../lib/waiting";
@@ -27,7 +29,7 @@ import { threadState } from "../../lib/thread-state";
 import { DEMO_THREADS } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { useEntitlement } from "../../lib/entitlement";
-import { isExpired, quietDays } from "../../lib/kindred-expiry";
+import { closingSoon, daysLeft, isExpired, quietDays } from "../../lib/kindred-expiry";
 import { markWork } from "../../lib/stall-probe";
 
 /* Kindreds as an orbit (design K1f): you at the centre, correspondents circling
@@ -170,7 +172,7 @@ export default function KindredsTab() {
      without a word and a kindred leaves the seats for a group of their
      own at the foot — still there, still readable, one REKINDLE away.
      On First Class nothing expires. */
-  const { premium } = useEntitlement();
+  const { premium, settled } = useEntitlement();
   const kindreds = useMemo(() => orbit.filter((t) => t.revealed && !isExpired(t.lastAt, premium)).sort(bySort), [orbit, premium]);
   const expired = useMemo(() => orbit.filter((t) => t.revealed && isExpired(t.lastAt, premium)).sort((a, b) => b.lastAt - a.lastAt), [orbit, premium]);
   const coming = useMemo(() => orbit.filter((t) => !t.revealed).sort(bySort), [orbit]);
@@ -230,6 +232,62 @@ export default function KindredsTab() {
     scrollRef.current?.scrollTo({ y: Math.max(0, listY.current - 12), animated: true });
   };
   const open = (th: ThreadSummary) => router.push(th.revealed ? `/room/${th.id}` : `/chat/${th.id}`);
+
+  /* LONG-PRESS A ROW (owner, 2026-10-10): iOS's own context menu, the same
+     one a line in a room has, so holding something means one thing across
+     the app. No swipe — the list is a React Native scroll (its pull opens
+     the sky) and a swipe here could only be an imitation; and what a swipe
+     is for, sorting an inbox fast, is exactly what this list leaves out:
+     no delete (it would take their half too), no hide or archive (a quiet
+     way to ghost someone), no pin (Wren is the pin; the order answers who
+     is waiting on you), no mute. What's left: read or unread on this phone,
+     their page, rekindle for a quiet room, and report and block for anyone.
+     A closed account and Wren have nothing to offer. Tapping still opens. */
+  const wren = useWrenName();
+  const { width: winW } = useWindowDimensions();
+  const rowW = winW - 32 - 2; // the paper's margins and rules
+  const [blocking, setBlocking] = useState<ThreadSummary | null>(null);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const refreshSeen = () => readRoomSeen().then(setSeenLedger);
+  const reportRow = async (th: ThreadSummary) => {
+    /* their newest words: fetched now (the room's cache can be days behind
+       the row's preview), then the cache, then the list's own copy */
+    const d = (await fetchThreadMessages(th.id)) ?? (await readThreadDetailCache(th.id));
+    const snapshot = theirLatest(d?.messages, d?.openingFromMe ? null : d?.opening) ?? th.theirTexts?.[th.theirTexts.length - 1];
+    const ok = await reportContent({ targetUser: th.other, context: "thread", refId: th.id, reason: "other", snapshot });
+    if (ok) Alert.alert(t("rp.reportedTitle"), t("rp.reportedBody", { wren }));
+    else Alert.alert(t("rp.failed"), t("rp.failedBody"));
+  };
+  const doBlock = async () => {
+    const th = blocking;
+    if (!th || blockBusy) return;
+    setBlockBusy(true);
+    const ok = await blockUser(th.other);
+    setBlockBusy(false);
+    setBlocking(null);
+    if (!ok) {
+      Alert.alert(t("rp.blockFailed"), t("rp.failedBody"));
+      return;
+    }
+    // gone from both lists at once (0024); the fetch confirms it
+    setThreads((list) => list.filter((x) => x.id !== th.id));
+    await forgetThread(th.id);
+    reload();
+  };
+  const rowMenu = (th: ThreadSummary, quietRow: boolean): MessageAction[] => {
+    if (th.gone || th.id.startsWith("demo-")) return [];
+    const acts: MessageAction[] = [];
+    if (th.revealed) {
+      if (quietRow) acts.push({ key: "rekindle", label: t("kd.menu.rekindle"), icon: "flame", onPress: () => router.push("/paywall?src=rekindle") });
+      // a quiet room's unread letters still count in the title, so they can be marked read too
+      if (unread(th) > 0) acts.push({ key: "read", label: t("kd.menu.markRead"), icon: "envelope.open", onPress: () => void markRoomSeen(th.id, th.theirs).then(refreshSeen) });
+      else if (!quietRow && th.theirs > 0) acts.push({ key: "unread", label: t("kd.menu.markUnread"), icon: "envelope.badge", onPress: () => void markRoomUnread(th.id, th.theirs).then(refreshSeen) });
+      acts.push({ key: "page", label: t("kd.menu.theirPage"), icon: "person.crop.circle", onPress: () => router.push(`/kindred/${th.id}`) });
+    }
+    acts.push({ key: "report", label: t("rp.menu.report"), icon: "flag", destructive: true, onPress: () => void reportRow(th) });
+    acts.push({ key: "block", label: t("rp.menu.block"), icon: "hand.raised", destructive: true, onPress: () => setBlocking(th) });
+    return acts;
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: GROUND }} edges={["top"]}>
@@ -305,9 +363,11 @@ export default function KindredsTab() {
             <View style={{ marginHorizontal: 16, marginTop: 10, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12 }}>
               {tab === "all" && !show && <WrenDeskRow inList onUnread={setWrenNew} />}
               {main.map((th, i) => (
-                <ListRow key={th.id} t={th} unread={unread(th)} rule={i > 0} onOpen={() => open(th)} />
+                <ListRow key={th.id} t={th} unread={unread(th)} closing={th.revealed && settled && closingSoon(th.lastAt, premium)} rule={i > 0} width={rowW} actions={rowMenu(th, false)} onOpen={() => open(th)} />
               ))}
-              {main.length === 0 && (
+              {/* the empty line only when the paper really is empty — not over
+                  the rooms that went quiet or the accounts that closed */}
+              {main.length === 0 && (show || tab === "penpals" || (quiet.length === 0 && shut.length === 0)) && (
                 show ? (
                   <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 16 }}>
                     <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.ink40 }}>{show === "your" ? t("kindreds.allAnswered") : t("kd.nothingHere")}</Text>
@@ -330,21 +390,32 @@ export default function KindredsTab() {
                   <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: P.ink40, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6, borderTopWidth: 1, borderTopColor: P.ink12 }}>
                     {t("kd.groupExpired", { n: quiet.length }).toUpperCase()}
                   </Text>
-                  {quiet.map((th, i) => <ListRow key={th.id} t={th} unread={0} quiet rule={i > 0} onOpen={() => open(th)} />)}
+                  {quiet.map((th, i) => <ListRow key={th.id} t={th} unread={0} quiet rule={i > 0} width={rowW} actions={rowMenu(th, true)} onOpen={() => open(th)} />)}
                 </>
               )}
-              {shut.map((th, i) => <ListRow key={th.id} t={th} unread={0} rule={i > 0 || quiet.length > 0 || main.length > 0} onOpen={() => open(th)} />)}
+              {shut.map((th, i) => <ListRow key={th.id} t={th} unread={0} rule={i > 0 || quiet.length > 0 || main.length > 0} width={rowW} actions={[]} onOpen={() => open(th)} />)}
             </View>
 
-            {/* each tab says its own rule */}
-            {!show && (tab !== "kindreds" ? counts.kindreds === 0 || tab === "penpals" : !premium) && (
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, lineHeight: 16, letterSpacing: 0.2, color: P.ink40, marginHorizontal: 16, marginTop: 10 }}>
-                {tab === "kindreds" ? t("kd.kindredsFoot") : t("kd.noKindredsYet")}
-              </Text>
-            )}
+            {/* NO FOOTNOTE (owner, 2026-10-10: "always sitting there, it hurts
+                the page"). Its two rules are said where they are true: five
+                letters each way by the cells on every pen pal row and the
+                band in their chat; thirty quiet days by a room inside its
+                last week, on its row and in the room (lib/kindred-expiry). */}
           </View>
         </ScrollView>
       )}
+
+      {/* block, asked once — the same sheet the ⋯ in a room raises */}
+      <Modal visible={!!blocking} transparent animationType="none" onRequestClose={() => !blockBusy && setBlocking(null)}>
+        <LeaveSheet
+          open={!!blocking}
+          title={t("rp.blockTitle")}
+          body={t("rp.blockBody")}
+          actions={[{ label: blockBusy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: () => void doBlock() }]}
+          cancelLabel={t("set.neverMind")}
+          onCancel={() => !blockBusy && setBlocking(null)}
+        />
+      </Modal>
 
       <PlushCelebration kindreds={named} />
     </SafeAreaView>
@@ -383,6 +454,7 @@ function ListMenu({ show, sort, filtered, onShow, onSort, onClear }: { show: Sho
 }
 
 const EACH_WAY = 5;
+const NOOP = () => {};
 const JUST_SENT = 24 * 3600 * 1000;
 
 /* ONE ROW for everyone (owner, 2026-10-10). The face says who: a round face is
@@ -390,8 +462,13 @@ const JUST_SENT = 24 * 3600 * 1000;
    two is the state, in the one vocabulary (lib/thread-state), then their last
    line. The right column holds one thing: the five cells for a pen pal (one
    per letter each way, pen blue at five each), the unread count for a
-   kindred, REKINDLE for a quiet room. */
-function ListRow({ t: th, unread, quiet = false, rule, onOpen }: { t: ThreadSummary; unread: number; quiet?: boolean; rule: boolean; onOpen: () => void }) {
+   kindred, REKINDLE for a quiet room. A room inside its last week says how
+   long it has left, ahead of the line (lib/kindred-expiry).
+
+   Long-pressed, the row is lifted whole into iOS's menu, so it is hosted
+   natively and sized by its own content: it gets the paper's width in
+   points, and a white ground so the lifted copy isn't see-through. */
+function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, actions, onOpen }: { t: ThreadSummary; unread: number; quiet?: boolean; closing?: boolean; rule: boolean; width: number; actions: MessageAction[]; onOpen: () => void }) {
   const state = threadState(th);
   const kindred = th.revealed;
   const each = Math.min(th.mine, th.theirs, EACH_WAY);
@@ -400,15 +477,22 @@ function ListRow({ t: th, unread, quiet = false, rule, onOpen }: { t: ThreadSumm
   const dim = quiet || th.gone;
   const preview = th.preview;
   const name = kindred ? th.otherName || t("kd.aKindred") : `NO. ${postNo(th.other)}`;
-  const a11y = [name, kindred ? null : state?.label, kindred && unread ? String(unread) : null, when(th.lastAt)].filter(Boolean).join(", ");
+  const left = closing ? daysLeft(th.lastAt) : 0;
+  const closes = closing ? (left <= 1 ? t("kd.closesDay") : t("kd.closesIn", { n: left })) : null;
+  const a11y = [name, kindred ? closes : state?.label, kindred && unread ? String(unread) : null, when(th.lastAt)].filter(Boolean).join(", ");
   return (
     <Pressable
       onPress={onOpen}
+      /* a long-press is the row's menu, so lifting the finger must not also open it */
+      onLongPress={actions.length ? NOOP : undefined}
+      delayLongPress={350}
       accessibilityRole="button"
       accessibilityLabel={a11y}
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: fresh ? P.penWash : "transparent", opacity: pressed ? 0.6 : 1 })}
+      {...a11yActions(actions)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
-      {rule && <View style={{ position: "absolute", top: 0, left: 68, right: 0, height: 1, backgroundColor: P.ink12 }} />}
+      <MessageMenu actions={actions} radius={0}>
+      <View style={{ width, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: fresh ? P.penWash : "#FFFFFF" }}>
       <View style={{ opacity: dim ? 0.45 : 1 }}>
         {kindred ? (
           <AvatarImage id={th.otherFace ?? null} seed={th.other} size={42} />
@@ -431,6 +515,7 @@ function ListRow({ t: th, unread, quiet = false, rule, onOpen }: { t: ThreadSumm
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.ink40 }}>{t("kd.accountClosed")}</Text>
           ) : kindred ? (
             <>
+              {!!closes && <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.post }}>{closes}</Text>}
               {th.lastSenderMe && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>{t("ui.you")} ·</Text>}
               {!!preview && <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letterSerif, fontSize: 14, color: unread ? P.ink : P.ink60 }}>{preview}</Text>}
             </>
@@ -463,6 +548,9 @@ function ListRow({ t: th, unread, quiet = false, rule, onOpen }: { t: ThreadSumm
           </>
         )}
       </View>
+      </View>
+      </MessageMenu>
+      {rule && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 68, right: 0, height: 1, backgroundColor: P.ink12 }} />}
     </Pressable>
   );
 }

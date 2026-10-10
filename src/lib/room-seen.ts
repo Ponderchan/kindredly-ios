@@ -31,5 +31,20 @@ export async function markRoomSeen(threadId: string, theirs: number): Promise<vo
   }
 }
 
+/* MARK AS UNREAD (owner, 2026-10-10): the person's own choice, from the
+   row's long-press. Their newest letter counts as unopened again; nothing
+   leaves this phone and nobody is told. Opening the room clears it, as
+   ever. */
+export async function markRoomUnread(threadId: string, theirs: number): Promise<void> {
+  if (theirs < 1) return;
+  try {
+    const l = await readRoomSeen();
+    l[threadId] = theirs - 1;
+    await AsyncStorage.setItem(KEY, JSON.stringify(l));
+  } catch {
+    /* the row simply stays read */
+  }
+}
+
 /** their letters you have not had in front of you — 0 for a room never opened */
 export const unreadOf = (l: Ledger, threadId: string, theirs: number): number => (threadId in l ? Math.max(0, theirs - l[threadId]) : 0);

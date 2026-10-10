@@ -39,6 +39,7 @@ export type EventName =
 export type PaywallSource =
   | "kindred_gate"
   | "rekindle"
+  | "closing"
   | "voice_lock"
   | "daily_cap"
   | "report_lock"

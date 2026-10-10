@@ -16,7 +16,7 @@ import { speakAs, useWrenName } from "../lib/wren-name";
    does — if a line here stops being true, the line is the bug. */
 
 const QA = (wren: string): { q: string; a: string }[] =>
-  [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ q: t(`hp.q${i}`), a: t(`hp.a${i}`, { wren }) }));
+  [1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => ({ q: t(`hp.q${i}`), a: t(`hp.a${i}`, { wren }) }));
 
 export default function Help() {
   useLang();

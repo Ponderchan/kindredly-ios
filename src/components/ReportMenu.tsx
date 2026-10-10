@@ -6,7 +6,7 @@ import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { PUNCH } from "../theme/punch";
 import { useWrenName } from "../lib/wren-name";
-import { blockUser, reportContent } from "../lib/db";
+import { blockUser, forgetThread, reportContent } from "../lib/db";
 import { LeaveSheet } from "./LeaveSheet";
 
 /* Report / block (App Store requirement for anonymous UGC). Wired to the
@@ -21,9 +21,14 @@ import { LeaveSheet } from "./LeaveSheet";
    from the ⋯ itself, so it reads as belonging to the thing it is about.
 
    Report is one tap and a small confirmation line. Block still asks once,
-   in one sentence, because it closes a road both ways. */
+   in one sentence, because it closes a road both ways.
 
-type Stage = null | "menu" | "block" | "sent";
+   A FAILURE SAYS SO (2026-10-10, iOS safety gap 3): a report that didn't
+   reach the server used to answer "Reported" all the same, and a block that
+   failed walked you out of the room as if it had held. Now the card says it
+   couldn't, and you stay where you were to try again. */
+
+type Stage = null | "menu" | "block" | "sent" | "failed" | "blockFailed";
 
 export function ReportMenu({
   targetUser,
@@ -46,20 +51,29 @@ export function ReportMenu({
   const insets = useSafeAreaInsets();
   const [stage, setStage] = useState<Stage>(null);
   const [busy, setBusy] = useState(false);
+  /* a correspondence whose other side is gone (account closed) or not yet
+     loaded has no one to report or block — no ⋯ at all, rather than a menu
+     whose every choice fails. A desk letter always carries its author. */
+  const nobody = context === "thread" && !targetUser;
 
   const report = async () => {
     if (busy) return;
     setBusy(true);
-    await reportContent({ targetUser, context, refId, reason: "other", snapshot });
+    const ok = await reportContent({ targetUser, context, refId, reason: "other", snapshot });
     setBusy(false);
-    setStage("sent");
+    setStage(ok ? "sent" : "failed");
   };
 
   const block = async () => {
     if (busy) return;
     setBusy(true);
-    if (targetUser) await blockUser(targetUser);
+    const ok = targetUser ? await blockUser(targetUser) : null;
     setBusy(false);
+    if (!ok) {
+      setStage("blockFailed");
+      return;
+    }
+    if (context === "thread" && refId) await forgetThread(refId);
     setStage(null);
     onBlocked?.();
   };
@@ -84,6 +98,7 @@ export function ReportMenu({
     </Pressable>
   );
 
+  if (nobody) return null;
   return (
     <>
       <Pressable
@@ -101,7 +116,7 @@ export function ReportMenu({
       {/* window-level, so it sits over whatever row the ⋯ is in */}
       <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={() => !busy && setStage(null)}>
         <Pressable onPress={() => !busy && setStage(null)} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.14)" }}>
-          {(stage === "menu" || stage === "sent") && (
+          {stage !== null && stage !== "block" && (
             <View
               style={{
                 position: "absolute",
@@ -117,10 +132,10 @@ export function ReportMenu({
                 shadowOffset: { width: 0, height: 8 },
               }}
             >
-              {stage === "sent" ? (
+              {stage !== "menu" ? (
                 <>
                   {/* the confirmation lives in the same card — no second sheet */}
-                  <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>{t("rp.reported", { wren })}</Text>
+                  <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>{stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : t("rp.blockFailed")}</Text>
                   <View style={{ height: 1, backgroundColor: P.ink12, marginVertical: 2 }} />
                   <Row label={t("wu.done")} icon="none" onPress={() => setStage(null)} />
                 </>
