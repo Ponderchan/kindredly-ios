@@ -11,16 +11,13 @@ import { MosaicId } from "../../components/MosaicId";
 import { AudioCard } from "../../components/AudioCard";
 import { useMediaUrl } from "../../lib/media";
 import { getStamp, sname } from "../../data/stamps";
-import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo } from "../../lib/format";
 import { threadState } from "../../lib/thread-state";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { TranslateMark } from "../../components/TranslateMark";
 import {
-  clearThreadReaction,
   fetchThreadMessages,
   sendThreadMessage,
-  setThreadReaction,
   type ThreadDetail,
 } from "../../lib/db";
 import { translate } from "../../lib/wren";
@@ -41,7 +38,6 @@ export default function ThreadScreen() {
   const [sending, setSending] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [reply, setReply] = useState("");
-  const [myR, setMyR] = useState<string | null>(null);
   const [xl, setXl] = useState<string | null>(null);
   const [xlOn, setXlOn] = useState(false);
   const [xlBusy, setXlBusy] = useState(false);
@@ -73,20 +69,9 @@ export default function ThreadScreen() {
       return;
     }
     setReply("");
-    // the reply IS the promise, kept — withdraw the standing "on its way"
-    if (myR === ON_WAY.emoji) {
-      setMyR(null);
-      void clearThreadReaction(id);
-    }
     await load();
     // reveal no longer rides a send — names move only by signing, and the
     // chat screen holds the introduction
-  };
-
-  const promise = () => {
-    if (!id || myR === ON_WAY.emoji) return;
-    setMyR(ON_WAY.emoji);
-    void setThreadReaction(id, ON_WAY.emoji);
   };
 
   const conv = detail
@@ -262,30 +247,6 @@ export default function ThreadScreen() {
               </View>
             ))}
         </ScrollView>
-
-        {/* THE PROMISE, ONLY WHEN A PROMISE MAKES SENSE — their letter is
-            waiting and yours hasn't started. Sending the reply withdraws it:
-            a promise the courier has already kept is noise. */}
-        {state?.needsYou && !reply.trim() && (
-          <View style={{ alignItems: "center", paddingBottom: 4 }}>
-            <Pressable
-              onPress={promise}
-              hitSlop={6}
-              disabled={myR === ON_WAY.emoji}
-              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: myR === ON_WAY.emoji ? P.pen : P.ink12, backgroundColor: myR === ON_WAY.emoji ? P.penWash : "transparent" }}
-            >
-              <Text style={{ fontSize: 15 }}>{ON_WAY.emoji}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.5, color: myR === ON_WAY.emoji ? P.pen : P.ink60 }}>
-                {myR === ON_WAY.emoji ? t("th.reactSeen") : t("rx.onWay")}
-              </Text>
-            </Pressable>
-            {myR !== ON_WAY.emoji && (
-              <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, marginTop: 10 }}>
-                {t("th.answerOneTap")}
-              </Text>
-            )}
-          </View>
-        )}
 
         {/* reply — input + navy airplane */}
         <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 20 }}>

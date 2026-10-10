@@ -527,8 +527,6 @@ export interface ThreadSummary {
   fromMyLetter?: boolean;
   /** when both names were sealed (0020) — the date on a Kindred's card */
   revealedAt?: number | null;
-  myReaction?: string | null; // my one-tap reaction on this thread
-  theirReaction?: string | null; // theirs — how they caught your last letter
 }
 /* THE LAST GOOD LIST, KEPT. Kindreds is a tab; it should open like one.
    Every fetch writes its result here (memory + the account's own storage),
@@ -586,24 +584,12 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
     }
     if (error || !data) return null;
 
-    /* the two side tables — reactions and their letters — in ONE round trip
-       beside each other, not one after the other: this list is the tab, and
-       every serial await here was a beat the reader watched empty rings */
+    /* their letters, beside the rows (the one-tap "a reply is on its way" and
+       its side table went 2026-10-10: one person had ever used it) */
     const ids = data.map((r: any) => r.id);
-    const [rxRes, msgRes] = ids.length
-      ? await Promise.all([
-          supabase!.from("reactions").select("thread_id,sender,emoji").in("thread_id", ids).then((r) => r, () => ({ data: null })),
-          supabase!.from("messages").select("thread_id,sender,body").in("thread_id", ids).order("created_at").then((r) => r, () => ({ data: null })),
-        ])
-      : [{ data: null }, { data: null }];
-    // one-tap reactions, both directions (null-safe until migration 0008 lands)
-    const rx = new Map<string, { mine?: string; theirs?: string }>();
-    for (const row of (rxRes.data as any[] | null) || []) {
-      const slot = rx.get(row.thread_id) || {};
-      if (row.sender === me) slot.mine = row.emoji;
-      else slot.theirs = row.emoji;
-      rx.set(row.thread_id, slot);
-    }
+    const msgRes = ids.length
+      ? await supabase!.from("messages").select("thread_id,sender,body").in("thread_id", ids).order("created_at").then((r) => r, () => ({ data: null }))
+      : { data: null };
     /* THEIR WRITING, for the read (lib/correspondent) — tens of rows, not
        thousands; without it the list could only count letters */
     const theirs = new Map<string, string[]>();
@@ -637,38 +623,8 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
         revealedAt: r.revealed_at ? Date.parse(r.revealed_at) : null,
         lastSenderMe: r.last_sender === me,
         lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
-        myReaction: rx.get(r.id)?.mine ?? null,
-        theirReaction: rx.get(r.id)?.theirs ?? null,
       } as ThreadSummary;
     });
-  } catch {
-    return null;
-  }
-}
-
-/** One-tap reaction on a thread — upsert (a new pick replaces the old). */
-export async function setThreadReaction(threadId: string, emoji: string): Promise<true | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
-  if (!me) return null;
-  try {
-    const { error } = await supabase!
-      .from("reactions")
-      .upsert({ thread_id: threadId, sender: me, emoji }, { onConflict: "thread_id,sender" });
-    return error ? null : true;
-  } catch {
-    return null;
-  }
-}
-
-/** Take a reaction back (tapping the same one again). */
-export async function clearThreadReaction(threadId: string): Promise<true | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
-  if (!me) return null;
-  try {
-    const { error } = await supabase!.from("reactions").delete().eq("thread_id", threadId).eq("sender", me);
-    return error ? null : true;
   } catch {
     return null;
   }

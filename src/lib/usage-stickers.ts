@@ -189,8 +189,7 @@ export function usageStickers(f: UsageFacts): UsageSticker[] {
   const live = th.filter((t) => t.mine > 0 && t.theirs > 0 && !t.gone).length;
   if (live >= 2) add("two_timer", "habit", live);
   if (th.length === 1 && th[0].mine >= 5) add("loyalist", "habit", th[0].mine);
-  const reacted = th.filter((t) => !!t.myReaction).length;
-  if (reacted >= 3) add("reactor", "habit", reacted);
+  // "reactor" (three "a reply is on its way" promises) is no longer earned: the promise went 2026-10-10
   const c = f.counters;
   if (c.seen >= 20 && c.replied / c.seen <= 0.1) add("picky", "habit", c.replied, { of: c.seen, private: true });
   if (c.replied >= 5 && c.seen >= 10 && c.replied / c.seen >= 0.3) add("generous", "habit", c.replied, { of: c.seen });

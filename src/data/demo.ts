@@ -54,7 +54,6 @@ export const DEMO_THREADS: ThreadSummary[] = [
     preview: "I've enclosed my name with this one. No hurry — it keeps.",
     lastSenderMe: false,
     lastAt: now - 16 * H,
-    theirReaction: "🫂", // they caught your last letter
   },
   {
     /* the state the old `t.mine > 0` filter erased: a stranger answered your

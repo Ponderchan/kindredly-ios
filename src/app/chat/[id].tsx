@@ -20,9 +20,8 @@ import { LeaveSheet } from "../../components/LeaveSheet";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { markRoomSeen } from "../../lib/room-seen";
-import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
-import { clearThreadReaction, fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
+import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
@@ -81,7 +80,6 @@ export default function ChatScreen() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const slow = useSlow(sending);
-  const [promised, setPromised] = useState(false); // ✍️ sent this visit
   const [askSign, setAskSign] = useState(false);
   const [signing, setSigning] = useState(false);
   const [ceremony, setCeremony] = useState(false);
@@ -257,9 +255,6 @@ export default function ChatScreen() {
       return;
     }
     void refreshFingerprint();
-    // the reply IS the promise, kept — withdraw the standing "on its way"
-    setPromised(false);
-    void clearThreadReaction(id);
     // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 
@@ -281,12 +276,6 @@ export default function ChatScreen() {
       track("kindred_made");
       await introduceOnce(id, () => setCeremony(true));
     }
-  };
-
-  const promise = () => {
-    if (!id || promised) return;
-    setPromised(true);
-    void setThreadReaction(id, ON_WAY.emoji);
   };
 
   return (
@@ -446,29 +435,6 @@ export default function ChatScreen() {
             <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.post }}>
               {t("ui.overLimit", { n: String(weight - LETTER_MAX) })}
             </Text>
-          </View>
-        )}
-
-        {/* THE PROMISE, ONLY WHEN A PROMISE MAKES SENSE. This lived behind a
-            "+" — the attach-something glyph, opening onto a sentence — and it
-            was offered even when the turn wasn't yours. It appears by itself
-            now, exactly when their letter is waiting and you haven't started
-            yours: one tap tells them a reply is coming, and actually sending
-            the reply withdraws it, because a promise a courier has already
-            kept is noise. */}
-        {state?.needsYou && !text.trim() && !detail?.gone && (
-          <View style={{ alignItems: "center", paddingBottom: 8 }}>
-            <Pressable
-              onPress={promise}
-              hitSlop={6}
-              disabled={promised}
-              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1, borderColor: promised ? P.pen : P.ink12, backgroundColor: promised ? P.penWash : "transparent" }}
-            >
-              <Text style={{ fontSize: 15 }}>{ON_WAY.emoji}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.5, color: promised ? P.pen : P.ink60 }}>
-                {promised ? t("th.reactSeen") : t("rx.onWay")}
-              </Text>
-            </Pressable>
           </View>
         )}
 

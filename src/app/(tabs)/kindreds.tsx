@@ -353,7 +353,6 @@ function StrangerRow({ t: th, first, onOpen }: { t: ThreadSummary; first: boolea
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 0.8, color: P.ink }}>NO. {postNo(th.other)}</Text>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>· {each}/{EACH_WAY}</Text>
-          {th.theirReaction && <Text style={{ fontSize: 12 }}>{th.theirReaction}</Text>}
         </View>
         {/* past five each way the row has more to say than whose turn it is
             (they went first · swap names) — its own line, never cut short */}
