@@ -244,7 +244,7 @@ export async function syncActivities(): Promise<void> {
     const uidNow = me.user?.id;
     if (!uidNow) return;
     const [{ data: letters }, { data: threads }] = await Promise.all([
-      supabase!.from("letters").select("id,stamp,reads").in("id", ids),
+      supabase!.from("letters").select("id,stamp,reads,active").in("id", ids),
       supabase!.from("threads").select("letter").in("letter", ids),
     ]);
     const answered = new Set((threads || []).map((r: any) => r.letter as string));
@@ -255,8 +255,10 @@ export async function syncActivities(): Promise<void> {
     for (const inst of out) {
       const letterId = map[inst.getId()];
       if (__DEV__ && letterId?.startsWith("preview")) continue; // /activity-preview's stand-in letter has no row
-      const row = (letters || []).find((l: any) => l.id === letterId) as { stamp: string | null; reads: number } | undefined;
-      if (!row) {
+      const row = (letters || []).find((l: any) => l.id === letterId) as { stamp: string | null; reads: number; active?: boolean } | undefined;
+      /* withdrawn: since web 0024 the author can still read their own
+         withdrawn letter, so a missing row no longer means it — active does */
+      if (!row || row.active === false) {
         await inst.end("immediate"); // withdrawn, or not ours any more
         continue;
       }
