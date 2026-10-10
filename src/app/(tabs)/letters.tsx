@@ -22,7 +22,8 @@ import { MosaicId } from "../../components/MosaicId";
 import { WrenBird } from "../../components/WrenBird";
 import { AudioCard } from "../../components/AudioCard";
 import { CloseOfDay } from "../../components/CloseOfDay";
-import { threadState } from "../../lib/thread-state";
+import { onYou } from "../../lib/waiting";
+import { readRoomSeen } from "../../lib/room-seen";
 import { Toast, useSlow } from "../../components/ui";
 import { DEMO_POOL, seedDemoThread } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
@@ -190,7 +191,10 @@ export default function LettersTab() {
        scores fold in a moment later. */
     const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
     setFlightsUp(inFlight((th || []) as FlightThread[]));
-    setWaiting((th || []).filter((x) => threadState(x)?.needsYou).length);
+    /* her slip counts what's on you by the Kindreds tab's rule (lib/waiting
+       onYou): a kindred's letter you've read is not owed, and a correspondent
+       whose account is gone owes nothing either way */
+    setWaiting(onYou(th || [], await readRoomSeen()));
     const fresh = rationPool(p || []);
     // no answer (offline, signed out) leaves the desk as it is rather than clearing it
     setPool((cur) => (!p && cur.length ? cur : rebuild || !cur.length ? fresh : keepDesk(cur, p || [], fresh)));

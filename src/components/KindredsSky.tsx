@@ -4,7 +4,6 @@ import Animated, { Easing, Extrapolation, ReduceMotion, interpolate, useAnimated
 import Svg, { Ellipse, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { OrbitMap, ORBIT } from "./OrbitMap";
-import { cardShadow } from "./AuraCard";
 import type { ThreadSummary } from "../lib/db";
 import { t, useLang } from "../lib/i18n";
 
@@ -59,7 +58,7 @@ export function KindredsSky({ items, open, onToggle }: { items: ThreadSummary[];
       style={{ marginHorizontal: 16, marginTop: -(LINE_Y + 0.5) }}
     >
       {/* the card the orbit opens into — outside the clip, so its shadow shows */}
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: LINE_Y + GAP, backgroundColor: "#FFFFFF", borderRadius: 22 }, cardShadow, { shadowOpacity: 0.05 }, card]} />
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: LINE_Y + GAP, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12 }, card]} />
 
       <Animated.View style={[{ overflow: "hidden" }, box]}>
         <Animated.View pointerEvents="none" style={[{ alignItems: "center" }, map]}>

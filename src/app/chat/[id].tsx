@@ -43,11 +43,11 @@ import { Toast, useSlow } from "../../components/ui";
    one correspondence: this is the relationship, that is the letter.
 
    There used to be a milestone strip here (VOICE → RHYTHM → RESONANCE →
-   NAME) and a 3/5 progress bar over the composer. Both cut: a counter makes
-   intimacy transactional — insert two more letters, receive human — and it
-   invites exactly the throwaway writing that would make the reveal worthless.
-   The developing face carries the same information without ever naming a
-   number.
+   NAME) and a 3/5 progress bar over the composer, cut because a counter can
+   make intimacy transactional. The one threshold came back as the band under
+   the header (both sides' five cells, 2026-10-10): it says who still owes
+   what, and says plainly when more from you won't move it, so it never asks
+   for filler. The developing face still carries the rest.
 
    Same surface as everywhere: white, rules doing the separation, mono for what
    the system says, the system font for what either of you wrote. The bubbles
@@ -320,22 +320,39 @@ export default function ChatScreen() {
       {/* the rule the milestone strip used to carry */}
       <View style={{ borderBottomWidth: 1, borderBottomColor: P.ink }} />
 
-      {/* THE ONE THRESHOLD, SAID ON THE PAGE. Five letters each way and
-          names can be traded — the only gate in the product, and until now
-          nothing on this screen said how far along the two of you were. */}
+      {/* THE ONE THRESHOLD, SAID ON THE PAGE — both sides of it (owner,
+          2026-10-10). It used to count min(yours, theirs): four from you and
+          two from them read "3 MORE", as if you owed three. Now each side has
+          its five cells and one line says who still owes what; once your five
+          are in it says so, because more from you won't move it (the one
+          thing a counter must never invite is filler). Ink until a side is
+          full, pen blue when it is — no green. Not dismissable: it's the
+          product's only gate, in two lines. */}
       {detail && !detail.revealed && (() => {
-        const each = Math.min(detail.myCount, detail.otherCount);
-        const left = Math.max(0, 5 - each);
+        const me = Math.min(detail.myCount, REVEAL);
+        const them = Math.min(detail.otherCount, REVEAL);
+        const a = REVEAL - me, b = REVEAL - them;
+        const line = !a && !b ? t("ch.band.names") : !a ? t("ch.band.youDone", { n: b }) : !b ? t("ch.band.theyDone", { n: a }) : t("ch.band.both", { a, b });
+        const cells = (n: number) => (
+          <View style={{ flexDirection: "row", gap: 2 }}>
+            {Array.from({ length: REVEAL }, (_, i) => (
+              <View key={i} style={{ width: 8, height: 8, backgroundColor: n >= REVEAL ? P.pen : i < n ? P.ink : P.ink12 }} />
+            ))}
+          </View>
+        );
         return (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 9, backgroundColor: "#E9F4EC", borderBottomWidth: 1, borderBottomColor: "#D2E6D7" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: "#1F5C33" }}>{t("ch.band.ofFive", { n: each })}</Text>
-            <View style={{ flexDirection: "row", gap: 3 }}>
-              {Array.from({ length: 5 }, (_, i) => (
-                <View key={i} style={{ width: 14, height: 4, borderRadius: 2, backgroundColor: i < each ? "#2E7D4F" : "#C5DBCB" }} />
-              ))}
+          <View accessible accessibilityLabel={t("ch.band.a11y", { me, them })} style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: P.paper, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: P.ink60 }}>{t("ch.band.you")}</Text>
+                {cells(me)}
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: P.ink60 }}>NO. {postNo(detail.other)}</Text>
+                {cells(them)}
+              </View>
             </View>
-            <View style={{ flex: 1 }} />
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: "#1F5C33" }}>{left > 0 ? t("ch.band.more", { n: left }) : t("ch.band.names")}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: !a && !b ? P.pen : P.ink, marginTop: 7 }}>{line}</Text>
           </View>
         );
       })()}

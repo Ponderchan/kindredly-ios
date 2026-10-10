@@ -7,19 +7,20 @@ import Svg, { Rect } from "react-native-svg";
    is a kindred gone quiet: the frame again, solid, with the eyes shut and
    the mouth a flat line, in the faded rose of the prototype's quiet rooms.
    One grid (24); the icon sheet draws at 1.8, a group's label at 2.2, as
-   the prototype does. */
+   the prototype does. On a dark ground (a selected tab) `color` redraws it
+   in one light ink, and `cut` is what the filled face's features are cut in. */
 export type StateKind = "kindreds" | "strangers" | "inTransit" | "expired";
 export const STATE_INK: Record<StateKind, string> = { kindreds: "#2E7D4F", strangers: "#3A34D6", inTransit: "#8A86A3", expired: "#A56A78" };
 
-export function StateGlyph({ kind, size = 14, weight = 1.8 }: { kind: StateKind; size?: number; weight?: number }) {
-  const ink = STATE_INK[kind];
+export function StateGlyph({ kind, size = 14, weight = 1.8, color, cut = "#FFFFFF" }: { kind: StateKind; size?: number; weight?: number; color?: string; cut?: string }) {
+  const ink = color ?? STATE_INK[kind];
   if (kind === "kindreds") {
     return (
       <Svg width={size} height={size} viewBox="0 0 24 24">
         <Rect x={3} y={3} width={18} height={18} rx={5} fill={ink} />
-        <Rect x={7.5} y={8.5} width={2.6} height={2.6} fill="#FFFFFF" />
-        <Rect x={13.9} y={8.5} width={2.6} height={2.6} fill="#FFFFFF" />
-        <Rect x={8.5} y={14} width={7} height={2} fill="#FFFFFF" />
+        <Rect x={7.5} y={8.5} width={2.6} height={2.6} fill={cut} />
+        <Rect x={13.9} y={8.5} width={2.6} height={2.6} fill={cut} />
+        <Rect x={8.5} y={14} width={7} height={2} fill={cut} />
       </Svg>
     );
   }

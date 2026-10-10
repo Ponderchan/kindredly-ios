@@ -46,6 +46,7 @@ const publish = () => {
 export function onYou(threads: ThreadSummary[], ledger: Record<string, number>): number {
   let n = 0;
   for (const t of threads) {
+    if (t.gone) continue; // nobody at the other end: nothing is owed
     if (t.revealed) n += unreadOf(ledger, t.id, t.theirs);
     else if (threadState(t)?.needsYou) n += 1;
   }

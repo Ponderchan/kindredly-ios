@@ -6,7 +6,7 @@ import { WrenBird } from "./WrenBird";
 import { cardShadow } from "./AuraCard";
 import { P, PF } from "../theme/post";
 import { getLang, t, useLang } from "../lib/i18n";
-import { sinceShort } from "../lib/format";
+import { sinceShort, listWhen } from "../lib/format";
 import { readRoomSeen } from "../lib/room-seen";
 import { setDeskWaiting } from "../lib/waiting";
 import { DEMO_WREN_POSTS } from "../data/demo";
@@ -48,7 +48,10 @@ export function OfficialMark({ size = 16 }: { size?: number }) {
    is there for a guest on the first launch. It reads like the rows under
    it (name, last line, when) so it sits with them, and the mark says why
    it is first. */
-export function WrenDeskRow() {
+/* inList (the Kindreds list, owner 2026-10-10): the first row of the paper,
+   pinned — no card of her own, square marks like every other row; onUnread
+   lets the list mark the ALL tab while a post of hers is unopened. */
+export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; onUnread?: (n: number) => void } = {}) {
   const router = useRouter();
   useLang();
   const [posts, setPosts] = useState<WrenPost[]>([]);
@@ -62,6 +65,7 @@ export function WrenDeskRow() {
         if (!alive) return;
         const n = wrenUnread(l, p.length);
         setUnread(n);
+        onUnread?.(n);
         setDeskWaiting(n); // the tab's number counts her desk too
       });
     };
@@ -83,14 +87,19 @@ export function WrenDeskRow() {
   useFocusEffect(load);
 
   const last = posts[posts.length - 1];
-  const ago = last ? sinceShort(last.at) : "";
+  const ago = last ? (inList ? listWhen(last.at) : sinceShort(last.at)) : "";
   return (
     <Pressable
       onPress={() => router.push(`/room/${WREN_ROOM}`)}
-      style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
+      accessibilityRole="button"
+      style={({ pressed }) =>
+        inList
+          ? { paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: P.ink, opacity: pressed ? 0.6 : 1 }
+          : [{ backgroundColor: "#FFFFFF", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]
+      }
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <OfficialBird size={44} />
+        <OfficialBird size={inList ? 42 : 44} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink }}>{OFFICIAL_NAME}</Text>
@@ -98,7 +107,7 @@ export function WrenDeskRow() {
             <View style={{ flex: 1 }} />
             {/* the time since her last post — or, while one is unopened, NEW */}
             {unread > 0 ? (
-              <View style={{ backgroundColor: P.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 }}>
+              <View style={{ backgroundColor: P.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: inList ? 0 : 999 }}>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: "#FFFFFF" }}>{t("wo.new")}</Text>
               </View>
             ) : (
@@ -110,7 +119,7 @@ export function WrenDeskRow() {
           </Text>
         </View>
         {unread > 0 && (
-          <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ minWidth: 20, height: 20, borderRadius: inList ? 0 : 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
           </View>
         )}

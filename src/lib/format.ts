@@ -51,6 +51,14 @@ export function fmt(seconds: number): string {
 /* How long ago a letter was written. The product's texture is slowness, so
    this is deliberately coarse — nobody needs "3h 41m", and a letter written
    at 2am reads differently from one written at noon whatever the gap. */
+/* a list's time (Kindreds, 2026-10-10): today the clock, before that the day —
+   short in every language, so the line beside it keeps its words */
+export function listWhen(at: string | number | Date): string {
+  const d = new Date(at);
+  if (d.toDateString() === new Date().toDateString()) return d.toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
+  return dShort(d).toUpperCase();
+}
+
 export function sinceShort(iso: string | number | Date): string {
   const ms = Date.now() - new Date(iso).getTime();
   const min = Math.floor(ms / 60000);

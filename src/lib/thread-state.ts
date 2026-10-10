@@ -30,7 +30,11 @@ export function threadState(t: {
   lastSenderMe: boolean;
   iSigned?: boolean;
   theirSigned?: boolean;
+  gone?: boolean;
 }): ThreadState | null {
+  /* they closed their account (0009 nulls their side): readable, never owed —
+     the composer is closed, so a turn that can't be taken is not a turn */
+  if (t.gone) return { label: say("kd.accountClosed"), tone: P.ink40, needsYou: false };
   /* step 5 — five letters each way, so names may be traded. Only while
      they still can be: once you know each other this question is answered
      and asking it again would be noise. */
