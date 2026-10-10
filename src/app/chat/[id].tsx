@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager, useWindowDimensions } from "react-native";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { t, useLang } from "../../lib/i18n";
+import { getLang, t, useLang } from "../../lib/i18n";
+import { MessageMenu, type MessageAction } from "../../components/MessageMenu";
+import { copyText } from "../../lib/clipboard";
+import { offerTranslate } from "../../lib/lang-guess";
+import { translate } from "../../lib/wren";
 import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { Introduction } from "../../components/Introduction";
@@ -18,7 +22,7 @@ import { ReportMenu } from "../../components/ReportMenu";
 import { markRoomSeen } from "../../lib/room-seen";
 import { ON_WAY } from "../../data/reactions";
 import { dShort, postNo, localeTag } from "../../lib/format";
-import { clearThreadReaction, fetchThreadMessages, readThreadDetailCache, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
+import { clearThreadReaction, fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, setThreadReaction, signThread, type ThreadDetail } from "../../lib/db";
 import { useThreadLive } from "../../lib/live";
 import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
@@ -146,6 +150,38 @@ export default function ChatScreen() {
   useThreadLive(id, load);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"));
+
+  /* LONG-PRESS A LETTER (owner, 2026-10-10). Before names these are letters,
+     not chat: copy it, translate it, report it — no taking back (a posted
+     letter is posted) and no quoting (a letter is answered whole). Tapping
+     still opens the letter. */
+  const { width: winW } = useWindowDimensions();
+  const letterMax = Math.round((winW - 32) * 0.86); // the list pads 16 a side
+  const [trans, setTrans] = useState<Record<string, { text?: string; shown: boolean; busy?: boolean }>>({});
+  const letterKey = (m: ThreadMessage) => m.id || `${m.date}|${m.body.slice(0, 24)}`;
+  const translateLetter = async (k: string, body: string) => {
+    if (trans[k]?.text) { setTrans((s) => ({ ...s, [k]: { ...s[k], shown: true } })); return; }
+    setTrans((s) => ({ ...s, [k]: { shown: false, busy: true } }));
+    const out = await translate(body, getLang());
+    setTrans((s) => ({ ...s, [k]: out ? { text: out, shown: true } : { shown: false } }));
+    if (!out) Alert.alert(t("th.noTransTitle", { wren }), t("th.noTransBody"));
+  };
+  const reportLetter = async (m: ThreadMessage) => {
+    const ok = await reportContent({ targetUser: detail?.other ?? null, context: "message", refId: m.id ?? null, reason: "other", snapshot: m.body });
+    if (ok) Alert.alert(t("rp.reportedTitle"), t("rp.reportedBody", { wren }));
+    else alertFail(t("rm.fail.title"), t("rm.fail.body"));
+  };
+  const menuFor = (m: ThreadMessage): MessageAction[] => {
+    if (!m.body || m.recalledAt) return [];
+    const k = letterKey(m);
+    const acts: MessageAction[] = [{ key: "copy", label: t("mm.copy"), icon: "doc.on.doc", onPress: () => void copyText(m.body) }];
+    if (!m.mine) {
+      if (trans[k]?.shown) acts.push({ key: "original", label: t("mm.original"), icon: "character.bubble", onPress: () => setTrans((s) => ({ ...s, [k]: { ...s[k], shown: false } })) });
+      else if (offerTranslate(m.body)) acts.push({ key: "translate", label: t("mm.translate"), icon: "character.bubble", onPress: () => void translateLetter(k, m.body) });
+      if (m.id && detail?.other) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLetter(m) });
+    }
+    return acts;
+  };
 
   const conv = detail
     ? [{ body: detail.opening, mine: detail.openingFromMe, date: "" }, ...detail.messages].filter((m) => m.body)
@@ -341,9 +377,10 @@ export default function ChatScreen() {
                     {day ? ` · ${day}` : ""}
                   </Text>
                 )}
+                <MessageMenu actions={menuFor(m)}>
                 <View
                   style={{
-                    maxWidth: "86%",
+                    maxWidth: letterMax,
                     borderWidth: 1,
                     /* yours wash blue, theirs stay paper — the two hands were
                        one shade of grey apart (owner, 2026-09-20) */
@@ -358,6 +395,13 @@ export default function ChatScreen() {
                     <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40, alignSelf: "flex-end", marginTop: 6 }}>{time}</Text>
                   )}
                 </View>
+                </MessageMenu>
+                {trans[letterKey(m)]?.busy && (
+                  <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 4, marginHorizontal: 2 }}>{t("mm.translating")}</Text>
+                )}
+                {trans[letterKey(m)]?.shown && !!trans[letterKey(m)]?.text && (
+                  <Text style={{ maxWidth: letterMax, fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 5, marginHorizontal: 2 }}>{trans[letterKey(m)]!.text}</Text>
+                )}
               </Pressable>
             );
           })}

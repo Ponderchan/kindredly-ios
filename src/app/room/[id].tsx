@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlyphInput } from "../../components/GlyphInput";
 import { archNameThird } from "../../lib/aura-copy";
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, InteractionManager, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang, t as tr } from "../../lib/i18n";
@@ -9,7 +9,10 @@ import { P, PF } from "../../theme/post";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
 import { ReportMenu } from "../../components/ReportMenu";
 import { dLong, dShort } from "../../lib/format";
-import { fetchThreadMessages, readThreadDetailCache, sendThreadMessage, uploadMoment, type ThreadDetail, type ThreadMessage } from "../../lib/db";
+import { fetchThreadMessages, readThreadDetailCache, reportContent, sendThreadMessage, takeBack, uploadMoment, type MessageQuote, type ThreadDetail, type ThreadMessage } from "../../lib/db";
+import { translate } from "../../lib/wren";
+import { copyText } from "../../lib/clipboard";
+import { offerTranslate } from "../../lib/lang-guess";
 import { answerFold, fetchFolds, leaveFold, type Fold } from "../../lib/folds";
 import { fetchSongTitle, parseSongUrl } from "../../lib/song";
 import { sharedSongs, songNotice } from "../../lib/shared-songs";
@@ -24,6 +27,7 @@ import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import * as ImagePicker from "expo-image-picker";
 import { MediaImage } from "../../lib/media";
 import { PhotoLightbox, type LightboxPhoto } from "../../components/PhotoLightbox";
+import { MessageMenu, type MessageAction } from "../../components/MessageMenu";
 import { Image, Linking, Modal } from "react-native";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
@@ -87,6 +91,14 @@ export default function RoomScreen() {
   const isDemo = !!id?.startsWith("demo-");
   const [shelf, setShelf] = useState(false);
   const [photoFull, setPhotoFull] = useState<LightboxPhoto>(null);
+  /* the long-press menu's state: the line being replied to, translations
+     shown under their bubbles, where each line sits (a quote scrolls to its
+     original), and the original a tapped quote lit up for a moment */
+  const [replyTo, setReplyTo] = useState<{ quote: MessageQuote; mine: boolean } | null>(null);
+  const [trans, setTrans] = useState<Record<string, { text?: string; shown: boolean; busy?: boolean }>>({});
+  const msgY = useRef<Record<string, number>>({});
+  const [lit, setLit] = useState<string | null>(null);
+  const shownCount = useRef(0);
   const [momentSpent, setMomentSpent] = useState(false);
 
   /* Every row adds something to the relationship rather than to the
@@ -142,6 +154,7 @@ export default function RoomScreen() {
             }
           : d,
       );
+      setDetail((d) => (d ? { ...d, messages: d.messages.map((m, i) => ({ ...m, id: m.id ?? `demo-${i}` })) } : d));
       setFolds([
         { id: "df-1", mine: false, kind: "note", prompt: null, parentId: null, body: null, date: "2026-08-30T09:00:00Z" },
         { id: "df-2", mine: true, kind: "question", prompt: "the song you replay and never post?", parentId: null, body: "the one i sent you, obviously", date: "2026-08-30T21:00:00Z" },
@@ -360,18 +373,29 @@ export default function RoomScreen() {
     if (!canSend) return;
     setSending(true);
     setText("");
+    const reply = replyTo;
+    setReplyTo(null);
     setDetail((d) =>
-      d ? { ...d, messages: [...d.messages, { body, mine: true, date: new Date().toISOString() }] } : d,
+      d
+        ? {
+            ...d,
+            messages: [
+              ...d.messages,
+              { id: isDemo ? `demo-${Date.now()}` : undefined, body, mine: true, date: new Date().toISOString(), meta: reply ? { reply: reply.quote } : null, replyMine: reply?.mine },
+            ],
+          }
+        : d,
     );
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 40);
     if (isDemo) {
       setSending(false);
       return;
     }
-    const res = await sendThreadMessage(id, body);
+    const res = await sendThreadMessage(id, body, reply ? { kind: "text", meta: { reply: reply.quote } } : undefined);
     setSending(false);
     if (!res) {
       setText(body);
+      setReplyTo(reply);
       void load();
       alertFail(t("rm.fail.title"), t("rm.fail.body"));
       return;
@@ -430,6 +454,71 @@ export default function RoomScreen() {
     else if (kind === "ask") setMode({ kind: "question", prompt: "" });
     else if (kind === "song") setMode({ kind: "song" });
     setTimeout(() => inputRef.current?.focus(), 160);
+  };
+
+  const { width: winW } = useWindowDimensions();
+  const bubbleMax = Math.round((winW - 44) * 0.84); // the list pads 22 a side
+  /* LONG-PRESS A LINE (owner, 2026-10-10). Theirs: reply, copy, translate,
+     keep in lore, report. Yours: reply, copy, and for two minutes take it
+     back (the server keeps the clock; web 0031). The opening letter has no
+     id, so it offers only what needs none. */
+  const TAKE_BACK_MS = 2 * 60_000;
+  const lineKey = (m: ThreadMessage) => m.id || `${m.date}|${m.body.slice(0, 24)}`;
+  const menuFor = (m: ThreadMessage): MessageAction[] => {
+    if (m.recalledAt || !m.body) return [];
+    const k = lineKey(m);
+    const acts: MessageAction[] = [];
+    if (m.id) acts.push({ key: "reply", label: t("mm.reply"), icon: "arrowshape.turn.up.left", onPress: () => startReply(m) });
+    acts.push({ key: "copy", label: t("mm.copy"), icon: "doc.on.doc", onPress: () => void copyText(m.body) });
+    if (!m.mine) {
+      if (trans[k]?.shown || offerTranslate(m.body)) acts.push(
+        trans[k]?.shown
+          ? { key: "original", label: t("mm.original"), icon: "character.bubble", onPress: () => setTrans((s) => ({ ...s, [k]: { ...s[k], shown: false } })) }
+          : { key: "translate", label: t("mm.translate"), icon: "character.bubble", onPress: () => void translateLine(k, m.body) },
+      );
+      acts.push({ key: "keep", label: t("mm.keep"), icon: "bookmark", onPress: () => keep(m.body, null, m.date) });
+      if (m.id && !isDemo) acts.push({ key: "report", label: t("mm.report"), icon: "flag", destructive: true, onPress: () => void reportLine(m) });
+    } else if (m.id && Date.now() - Date.parse(m.date) < TAKE_BACK_MS) {
+      acts.push({ key: "takeBack", label: t("mm.takeBack"), icon: "arrow.uturn.backward", destructive: true, onPress: () => void takeBackLine(m) });
+    }
+    return acts;
+  };
+  const startReply = (m: ThreadMessage) => {
+    if (!m.id) return;
+    setMode(null);
+    setReplyTo({ quote: { id: m.id, excerpt: m.body.slice(0, 140), sender: m.mine ? "me" : (detail?.other ?? undefined) }, mine: m.mine });
+    setTimeout(() => inputRef.current?.focus(), 120);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 260);
+  };
+  const translateLine = async (k: string, body: string) => {
+    if (trans[k]?.text) { setTrans((s) => ({ ...s, [k]: { ...s[k], shown: true } })); return; }
+    setTrans((s) => ({ ...s, [k]: { shown: false, busy: true } }));
+    const out = await translate(body, getLang());
+    setTrans((s) => ({ ...s, [k]: out ? { text: out, shown: true } : { shown: false } }));
+    if (!out) Alert.alert(t("th.noTransTitle", { wren }), t("th.noTransBody"));
+  };
+  const reportLine = async (m: ThreadMessage) => {
+    const ok = await reportContent({ targetUser: detail?.other ?? null, context: "message", refId: m.id ?? null, reason: "other", snapshot: m.body });
+    if (ok) Alert.alert(t("rp.reportedTitle"), t("rp.reportedBody", { wren }));
+    else alertFail(t("rm.fail.title"), t("rm.fail.body"));
+  };
+  const markTaken = (msgId: string) =>
+    setDetail((d) => (d ? { ...d, messages: d.messages.map((x) => (x.id === msgId ? { ...x, body: "(taken back)", recalledAt: new Date().toISOString() } : x)) } : d));
+  const takeBackLine = async (m: ThreadMessage) => {
+    if (!m.id) return;
+    if (isDemo) { markTaken(m.id); return; }
+    const res = await takeBack(m.id);
+    if (res === "ok") { markTaken(m.id); void load(); }
+    else if (res === "too_late") Alert.alert(t("mm.tooLate.title"), t("mm.tooLate.body"));
+    else alertFail(t("ml.rm.failTitle"), t("ml.rm.failBody"));
+  };
+  /* a quote, tapped: back to the line it quotes, lit for a moment */
+  const jumpTo = (msgId: string) => {
+    const y = msgY.current[msgId];
+    if (y == null) return;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 90), animated: true });
+    setLit(msgId);
+    setTimeout(() => setLit((cur) => (cur === msgId ? null : cur)), 1400);
   };
 
   /* long-press keeps a moment — theirs or an opened fold — in your lore */
@@ -499,7 +588,12 @@ export default function RoomScreen() {
           ref={scrollRef}
           contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 12 }}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          onContentSizeChange={() => {
+            // to the end when the room grows, not when a translation opens mid-room
+            if (stream.length === shownCount.current) return;
+            shownCount.current = stream.length;
+            scrollRef.current?.scrollToEnd({ animated: false });
+          }}
         >
           {stream.map((it, i) => {
             const prev = stream[i - 1];
@@ -574,10 +668,26 @@ export default function RoomScreen() {
                apart at a glance. Yours sit right in pen blue, theirs sit
                left on grey; no labels, the sides say it. */
             const prevMsg = prev?.type === "msg";
+            /* TAKEN BACK (web 0031): the words are gone for both; a small note
+               stays where they were, on the side they were said */
+            if (m.recalledAt) {
+              return (
+                <View key={`m-${i}`}>
+                  {dayRule}
+                  <Text style={{ alignSelf: m.mine ? "flex-end" : "flex-start", fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.4, color: P.ink40, marginTop: prevMsg && !newDay ? 8 : 0, marginBottom: 4, paddingHorizontal: 6 }}>
+                    {m.mine ? t("rm.recall.mine") : t("rm.recall.theirs", { name })}
+                  </Text>
+                </View>
+              );
+            }
+            const k = lineKey(m);
+            const tx = trans[k];
+            const q = m.meta?.reply;
+            const qGone = !!q && (!q.excerpt || !!detail?.messages.find((x) => x.id === q.id)?.recalledAt);
             return (
-              <View key={`m-${i}`}>
+              <View key={`m-${i}`} onLayout={(e) => { if (m.id) msgY.current[m.id] = e.nativeEvent.layout.y; }}>
                 {dayRule}
-                <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2 }}>
+                <View style={{ alignItems: m.mine ? "flex-end" : "flex-start", marginTop: prevMsg && !newDay ? 6 : 0, marginBottom: 2, opacity: lit && lit === m.id ? 0.5 : 1 }}>
                   {url ? (
                     <Pressable onPress={() => setPhotoFull({ path: photoPath, uri: photoUri })} accessibilityRole="imagebutton" accessibilityLabel={t("ph.open")} style={{ width: "70%", marginBottom: 4 }}>
                       <MediaImage path={photoPath} uri={photoUri} style={{ width: "100%", aspectRatio: 1, borderRadius: 16, backgroundColor: "#EFEDE6" }} />
@@ -602,21 +712,43 @@ export default function RoomScreen() {
                     </Pressable>
                   ) : null}
                   {!card && (
-                    <Pressable
-                      onLongPress={() => !m.mine && keep(m.body, null, m.date)}
-                      delayLongPress={350}
-                      style={{
-                        maxWidth: "84%",
-                        backgroundColor: m.mine ? P.pen : "#F3F2FA",
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        borderRadius: 18,
-                        borderBottomRightRadius: m.mine ? 5 : 18,
-                        borderBottomLeftRadius: m.mine ? 18 : 5,
-                      }}
-                    >
-                      <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: m.mine ? "#FFFFFF" : P.ink }}>{m.body}</Text>
-                    </Pressable>
+                    <MessageMenu actions={menuFor(m)}>
+                      <View
+                        style={{
+                          maxWidth: bubbleMax,
+                          backgroundColor: m.mine ? P.pen : "#F3F2FA",
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          borderRadius: 18,
+                          borderBottomRightRadius: m.mine ? 5 : 18,
+                          borderBottomLeftRadius: m.mine ? 18 : 5,
+                        }}
+                      >
+                        {q && (
+                          /* the line this one answers: whose, and a few of its words; tap to go back to it */
+                          <Pressable
+                            onPress={() => jumpTo(q.id)}
+                            accessibilityRole="button"
+                            style={{ borderLeftWidth: 2, borderLeftColor: m.mine ? "rgba(255,255,255,0.7)" : P.pen, paddingLeft: 8, marginBottom: 6 }}
+                          >
+                            <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1, color: m.mine ? "rgba(255,255,255,0.85)" : P.pen }}>
+                              {(m.replyMine ? t("mm.you") : name).toUpperCase()}
+                            </Text>
+                            <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, fontStyle: qGone ? "italic" : "normal", color: m.mine ? "rgba(255,255,255,0.85)" : P.ink60 }}>
+                              {qGone ? t("mm.quoteGone") : q.excerpt}
+                            </Text>
+                          </Pressable>
+                        )}
+                        <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: m.mine ? "#FFFFFF" : P.ink }}>{m.body}</Text>
+                      </View>
+                    </MessageMenu>
+                  )}
+                  {!card && tx?.busy && (
+                    <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 4, paddingHorizontal: 6 }}>{t("mm.translating")}</Text>
+                  )}
+                  {!card && tx?.shown && !!tx.text && (
+                    /* the translation, under the line it renders — "Show original" in the same menu folds it away */
+                    <Text style={{ maxWidth: bubbleMax, fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink60, marginTop: 5, paddingHorizontal: 6 }}>{tx.text}</Text>
                   )}
                   {song && songs.length >= 2 && conv[conv.length - 1] === m && (
                     <Pressable onPress={() => setShelf(true)} hitSlop={6} style={{ marginTop: 4, marginBottom: 6 }}>
@@ -664,6 +796,19 @@ export default function RoomScreen() {
           </Text>
         )}
 
+        {replyTo && !mode && (
+          <View style={{ marginHorizontal: 22, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 10, borderLeftWidth: 2, borderLeftColor: P.pen, paddingLeft: 10, paddingVertical: 3, backgroundColor: P.paper }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1.2, color: P.pen }}>
+                {(replyTo.mine ? t("mm.replyingSelf") : t("mm.replyingTo", { name })).toUpperCase()}
+              </Text>
+              <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 14, color: P.ink60, marginTop: 2 }}>{replyTo.quote.excerpt}</Text>
+            </View>
+            <Pressable onPress={() => setReplyTo(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
+              <Text style={{ fontFamily: PF.mono, fontSize: 14, color: P.ink40 }}>✕</Text>
+            </Pressable>
+          </View>
+        )}
         {mode && (
           <View style={{ marginHorizontal: 22, marginBottom: 8, borderWidth: 1, borderColor: P.pen, padding: 11, backgroundColor: P.penWash }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>

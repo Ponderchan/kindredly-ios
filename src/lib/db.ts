@@ -693,13 +693,24 @@ export interface ThreadDetail {
   messages: ThreadMessage[];
 }
 export interface ThreadMessage {
+  id?: string;
   body: string;
   mine: boolean;
   date: string;
   /** 'text' | 'photo' (a tiny moment) | 'song' — absent pre-0015 */
   kind?: string;
   mediaPath?: string | null;
-  meta?: { url?: string; title?: string } | null;
+  meta?: { url?: string; title?: string; reply?: MessageQuote } | null;
+  /** taken back by its writer (web 0031): the words are gone, a note stays */
+  recalledAt?: string | null;
+  /** the quoted line is the reader's own */
+  replyMine?: boolean;
+}
+/** a line quoted by a reply: which message, a few words of it, whose it was */
+export interface MessageQuote {
+  id: string;
+  excerpt: string;
+  sender?: string;
 }
 /* THE LAST READ OF A ROOM, ON THE PHONE (owner, build 18: "a room takes
    three seconds to open"). The room paints this at once and the fetch
@@ -731,7 +742,7 @@ export async function fetchThreadMessages(
         .maybeSingle(),
       supabase!
         .from("messages")
-        .select("sender,body,created_at,kind,media_path,meta")
+        .select("id,sender,body,created_at,kind,media_path,meta,recalled_at")
         .eq("thread_id", threadId)
         .order("created_at"),
     ]);
@@ -746,6 +757,15 @@ export async function fetchThreadMessages(
       t = retry.data as any;
     }
     let { data: msgs, error: msgErr } = mRes;
+    if (msgErr) {
+      // pre-0031: no recalled_at yet
+      const retry = await supabase!
+        .from("messages")
+        .select("id,sender,body,created_at,kind,media_path,meta")
+        .eq("thread_id", threadId)
+        .order("created_at");
+      if (!retry.error) { msgs = retry.data as any; msgErr = null; }
+    }
     if (msgErr) {
       // pre-0015 fallback: kind/media columns absent
       const retry = await supabase!
@@ -774,12 +794,15 @@ export async function fetchThreadMessages(
       openingMedia: (t as any).opening_media ?? null,
       openingDurationS: (t as any).opening_duration_s ?? null,
       messages: (msgs || []).map((m: any) => ({
+        id: m.id,
         body: m.body,
         mine: m.sender === me,
         date: m.created_at,
         kind: m.kind ?? "text",
         mediaPath: m.media_path ?? null,
         meta: m.meta ?? null,
+        recalledAt: m.recalled_at ?? null,
+        replyMine: m.meta?.reply ? m.meta.reply.sender === me : undefined,
       })),
     };
     void scoped.setItem(`${DETAIL_CACHE}:${threadId}`, JSON.stringify(detail)).catch(() => {});
@@ -798,7 +821,7 @@ export async function fetchThreadMessages(
 export async function sendThreadMessage(
   threadId: string,
   body: string,
-  extra?: { kind: "photo" | "song"; mediaPath?: string; meta?: { url?: string; title?: string } },
+  extra?: { kind: "photo" | "song" | "text"; mediaPath?: string; meta?: { url?: string; title?: string; reply?: MessageQuote } },
 ): Promise<{ ok: true } | null> {
   if (!supabaseReady) return null;
   const me = await uid();
@@ -824,7 +847,11 @@ export async function sendThreadMessage(
     if (extra) {
       row.kind = extra.kind;
       if (extra.mediaPath) row.media_path = extra.mediaPath;
-      if (extra.meta) row.meta = extra.meta;
+      if (extra.meta) {
+        // a quote of your own line names you by id, so the other phone can tell whose it was
+        const reply = extra.meta.reply;
+        row.meta = reply && reply.sender === "me" ? { ...extra.meta, reply: { ...reply, sender: me } } : extra.meta;
+      }
     }
     let { error } = await supabase!.from("messages").insert(row);
     if (error && extra) {
@@ -885,6 +912,22 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
 }
 
 /* ── Trust & Safety ── */
+/* TAKE IT BACK (web 0031): your own line, within two minutes of sending it.
+   The server is the clock — this only asks. "too_late" when the two minutes
+   are up; null when it couldn't ask (offline, or before 0031 ran). */
+export async function takeBack(messageId: string): Promise<"ok" | "too_late" | null> {
+  if (!supabaseReady) return null;
+  clearFail();
+  try {
+    const { error } = await supabase!.rpc("take_back", { p_id: messageId });
+    if (!error) return "ok";
+    if (error.hint === "too_late" || /too late/i.test(error.message || "")) return "too_late";
+    return noteFail(error) as null;
+  } catch (e) {
+    return noteFail(e) as null;
+  }
+}
+
 export async function reportContent(input: {
   targetUser?: string | null;
   context?: string | null;
