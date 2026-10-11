@@ -23,9 +23,9 @@ export type DemoText = { letter: string; writeBack: string; compose: string; b1:
 
 export const DEMO_TEXT: Record<Lang, DemoText> = {
   en: {
-    letter: "My mother sold the house last month. I found out from my sister, in a text, between two other texts about nothing at all. Everyone keeps saying it's just a house, as if a house were a small thing, as if I hadn't learned to read at that table.",
+    letter: "It's 2am and I just reorganised my whole bookshelf by colour instead of texting him back. Tell me something you've been avoiding. I won't tell anyone. I couldn't if I tried — I don't even know your name.",
     writeBack: "I read this twice on the bus and missed my stop.",
-    compose: "I keep a list of things I would say to you if you were still here. It's getting long. Today I added the thing about the kettle, which you would have found stupid, which is why I added it.",
+    compose: "I've never told anyone this, but I still sleep with the hallway light on. I'm 26. It's not fear exactly. It just feels like someone's still up. What's the small thing you'd never say out loud?",
     b1: "So it turns out we both kept the box marked KITCHEN. Solidarity.",
     b2: "Still not unpacked. Three years. I think it's load-bearing now.",
     b3: "Ours has a burn mark shaped like Portugal on the table inside it.",

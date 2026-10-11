@@ -33,3 +33,6 @@ design/store/v121/**/*.png
 design/store/v121-real/**/*.png
 design/store/shots/**/*.png
 __pycache__/
+# landing-style store set (1.0.3): renders and the raw captures they're built from
+design/store/landing/out/
+design/store/shots/v2/

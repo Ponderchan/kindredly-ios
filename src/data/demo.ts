@@ -108,7 +108,7 @@ export const DEMO_THREADS: ThreadSummary[] = [
     theirs: 0,
     otherName: null,
     other: "demo-sent",
-    preview: "You: It gets easier the third week. The bowl is the trick — wash it at night.",
+    preview: "It gets easier the third week. The bowl is the trick — wash it at night.",
     lastSenderMe: true,
     lastAt: now - 1 * H,
   },

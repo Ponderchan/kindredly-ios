@@ -157,7 +157,13 @@ export default function KindredsTab() {
   useMyThreadsLive(user?.id, reload);
 
   const source = __DEV__ && loaded && (threads.length === 0 || storeMode)
-    ? (storeMode ? DEMO_THREADS.map((t) => ({ ...t, preview: t.preview ? DEMO_TEXT[getLang()].b1 : t.preview })) : DEMO_THREADS)
+    ? (storeMode
+        ? DEMO_THREADS.map((t, i) => {
+            // English keeps each row's own line; other languages rotate their five
+            const d = DEMO_TEXT[getLang()];
+            return { ...t, preview: t.preview && getLang() !== "en" ? [d.b1, d.b2, d.b3, d.b4, d.b5][i % 5] : t.preview };
+          })
+        : DEMO_THREADS)
     : threads;
   /* THE FILTER THAT HID HALF THE PRODUCT.
      This read `t.mine > 0` — my own letter count — so a thread where a
@@ -352,13 +358,13 @@ export default function KindredsTab() {
                     accessibilityRole="tab"
                     accessibilityState={{ selected: sel }}
                     accessibilityLabel={[chipLabel(t(TAB_LABEL[k])), n != null ? String(n) : null].filter(Boolean).join(", ")}
-                    style={({ pressed }) => ({ height: 34, paddingHorizontal: 14, borderRadius: 17, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: sel ? CHIP.onBg : "#FFFFFF", borderWidth: 1, borderColor: sel ? CHIP.onBg : CHIP.offLine, opacity: pressed ? 0.7 : 1 })}
+                    style={({ pressed }) => ({ height: 38, paddingHorizontal: 16, borderRadius: 19, flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: sel ? CHIP.onBg : "#FFFFFF", borderWidth: 1, borderColor: sel ? CHIP.onBg : CHIP.offLine, opacity: pressed ? 0.7 : 1 })}
                   >
                     {/* the two groups' own marks, as the legend for the faces below:
                         a kindred's filled green face, a pen pal's outlined square */}
-                    {k !== "all" && <StateGlyph kind={k === "kindreds" ? "kindreds" : "strangers"} size={16} weight={2} />}
-                    <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk }}>{chipLabel(t(TAB_LABEL[k]))}</Text>
-                    {n != null && <Text style={{ fontFamily: PF.letter, fontSize: 13, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk, opacity: 0.6 }}>{n}</Text>}
+                    {k !== "all" && <StateGlyph kind={k === "kindreds" ? "kindreds" : "strangers"} size={17} weight={2} />}
+                    <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 16.5, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk }}>{chipLabel(t(TAB_LABEL[k]))}</Text>
+                    {n != null && <Text style={{ fontFamily: PF.letter, fontSize: 14.5, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk, opacity: 0.6 }}>{n}</Text>}
                     {/* someone in this group is waiting on you */}
                     {!sel && dots[k] && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: P.pen }} />}
                   </Pressable>
