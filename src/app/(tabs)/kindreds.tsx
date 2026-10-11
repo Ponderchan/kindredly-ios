@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { markRoomSeen, markRoomUnread, readRoomSeen, unreadOf } from "../../lib/room-seen";
 import { Alert, Modal, Pressable, ScrollView, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useGlobalSearchParams, useRouter } from "expo-router";
 
 import { P, PF } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
@@ -21,6 +21,7 @@ import { WrenDeskRow } from "../../components/WrenDesk";
 import { blockUser, fetchThreadMessages, fetchThreads, forgetThread, readThreadDetailCache, readThreadsCache, reportContent, theirLatest, threadsAge, type ThreadSummary } from "../../lib/db";
 import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { LeaveSheet } from "../../components/LeaveSheet";
+import { NotifyBanner } from "../../components/NotifyBanner";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { onYou, setWaiting } from "../../lib/waiting";
@@ -65,6 +66,7 @@ const REVEAL = 5;
 
 export default function KindredsTab() {
   const router = useRouter();
+  const { nb: nbPreview } = useGlobalSearchParams<{ nb?: string }>();
   useLang(); // repaint when the reader changes language
   const { user } = useAuth();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -325,6 +327,9 @@ export default function KindredsTab() {
           <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
             <WrenSaysOnce id="kindreds" line={t("kindreds.said")} />
           </View>
+
+          {/* notifications off: a thin bar to switch them on, or close */}
+          <NotifyBanner preview={nbPreview === "1"} />
 
           <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)}>
             {/* CHIPS, LIKE THE PROTOTYPE (owner, 2026-10-11). The three groups as

@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, Extrapolation, ReduceMotion, interpolate, useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
-import Svg, { Ellipse, Rect } from "react-native-svg";
+import Svg, { Ellipse, Path, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { OrbitMap, ORBIT } from "./OrbitMap";
 import { MosaicId } from "./MosaicId";
@@ -33,7 +33,7 @@ import { t, useLang } from "../lib/i18n";
 
 const LINE_Y = 11; // where the title's rule runs through this box
 const GAP = 10; // from the rule to the card, open
-const FOLDED_H = LINE_Y * 2; // the line, with room for the tag on it
+const FOLDED_H = LINE_Y * 2 + 6; // the line, with room for the round button on it
 const CLAMP = Extrapolation.CLAMP;
 
 export function KindredsSky({ items, open, onToggle, onOpenThread }: { items: ThreadSummary[]; open: boolean; onToggle: () => void; onOpenThread?: (th: ThreadSummary) => void }) {
@@ -56,8 +56,7 @@ export function KindredsSky({ items, open, onToggle, onOpenThread }: { items: Th
     opacity: interpolate(p.value, [0, 0.35], [0, 1], CLAMP),
   }));
   const map = useAnimatedStyle(() => ({ transform: [{ translateY: interpolate(p.value, [0, 1], [LINE_Y - ORBIT.CY, LINE_Y + GAP], CLAMP) }] }));
-  const openTag = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0, 0.3], [1, 0], CLAMP) }));
-  const foldTag = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0.7, 1], [0, 1], CLAMP) }));
+  const chevTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${interpolate(p.value, [0, 1], [0, 180], CLAMP)}deg` }] }));
   const foot = useAnimatedStyle(() => ({ opacity: interpolate(p.value, [0.7, 1], [0, 1], CLAMP) }));
 
   return (
@@ -117,13 +116,15 @@ export function KindredsSky({ items, open, onToggle, onOpenThread }: { items: Th
           <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: P.ink12, marginTop: 7 }} />
         </Animated.View>
 
-        {/* a small chevron at the rule's right end says the line opens */}
-        <View pointerEvents="none" style={{ position: "absolute", right: -2, top: LINE_Y - 10 }}>
-          <Animated.View style={openTag}>
-            <Text style={chev}>⌄</Text>
-          </Animated.View>
-          <Animated.View style={[{ position: "absolute", right: 0, top: 0 }, foldTag]}>
-            <Text style={chev}>⌃</Text>
+        {/* A ROUND BUTTON AT THE RULE'S RIGHT END (owner, 2026-10-11: the small
+            chevron "isn't obvious"): a white disc on the line with a real
+            chevron in it, turning over as the orbit opens — it reads as
+            something to tap or pull */}
+        <View pointerEvents="none" style={{ position: "absolute", right: 0, top: LINE_Y - 14, width: 28, height: 28, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }}>
+          <Animated.View style={chevTurn}>
+            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M6 9l6 6 6-6" />
+            </Svg>
           </Animated.View>
         </View>
       </Animated.View>
@@ -131,7 +132,6 @@ export function KindredsSky({ items, open, onToggle, onOpenThread }: { items: Th
   );
 }
 
-const chev = { fontSize: 15, lineHeight: 18, color: P.ink60, backgroundColor: "#FFFFFF", paddingLeft: 4, paddingRight: 2 };
 
 function Legend({ mark, text }: { mark: ReactNode; text: string }) {
   return (
