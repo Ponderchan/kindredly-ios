@@ -1,0 +1,29 @@
+Hi! Kindredly is a slow pen pal app: you write one letter and a few strangers who write kind of like you get it. Replies take hours or days, on purpose.
+
+No demo account needed: tap "Just looking →" on the first screen. Apple, Google and email code sign-in are there too.
+
+New in this build:
+- Kindreds tab redone: one list with All / Kindreds / Pen pals chips, Wren's desk pinned on top. Tap the thin line under the title (or pull the list down) to open the orbit.
+- Wren's desk (first row of Kindreds): ask how anything works, or tap a "How things work" chip, and an animated how-to card plays.
+- Long-press menus: long-press a Kindreds row (Report, Block) or a letter in a conversation (Copy, Translate, Report on their letters).
+- Photos open full screen when tapped (try one in Notes).
+- Take back: in a room you can take back a line for 2 minutes. Honestly, rooms only open after two people trade names (five letters each way), so you won't reach one in review, and no real replies will arrive.
+- If notifications are off, a small bar on Kindreds offers to turn them on (it opens iOS Settings); × hides it.
+
+Moderation:
+- 18+ at signup (date of birth; under 18 can't continue).
+- Report and Block in the ⋯ menu of every letter and conversation and on every Kindreds row; Report on every line.
+- Blocking is immediate and two-way.
+- When three different people report the same writer, that writer automatically can't send letters anymore.
+- Open letters written in Compose pass an automated safety check before delivery.
+- Contact: hello@kindredly.io · https://kindredly.io/support
+
+Delete account: Me tab → gear (top right) → Delete account.
+
+Purchases: First Class monthly and annual auto-renew; Cofounder is a one-time non-consumable (first 100, numbered).
+
+Notifications are transactional (someone wrote to you, names were traded, Wren's desk has news), plus an optional 8 a.m. reminder you switch on in Settings.
+
+Terms https://kindredly.io/terms · Privacy https://kindredly.io/privacy
+
+Thanks for reviewing, happy to answer anything!
