@@ -9,16 +9,15 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { P, PF } from "../../theme/post";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
-import { listWhen as when, postNo } from "../../lib/format";
+import { ROW, rowBadge, rowBadgeText, rowName, rowPreview, rowTime } from "../../components/ChatRowStyle";
+import { listWhen as when, localeTag, postNo } from "../../lib/format";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
 import { OrbitMap } from "../../components/OrbitMap";
 import { KindredsSky } from "../../components/KindredsSky";
-import { StateGlyph } from "../../components/StateGlyph";
 import { TabHeader } from "../../components/TabHeader";
 import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { WrenDeskRow } from "../../components/WrenDesk";
-import { Button as SButton, Host, Image as SImage, Menu, Section, Toggle } from "@expo/ui/swift-ui";
 import { blockUser, fetchThreadMessages, fetchThreads, forgetThread, readThreadDetailCache, readThreadsCache, reportContent, theirLatest, threadsAge, type ThreadSummary } from "../../lib/db";
 import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { LeaveSheet } from "../../components/LeaveSheet";
@@ -58,7 +57,10 @@ import { markWork } from "../../lib/stall-probe";
 /* Nothing on this tab was written by a person — the orbit, the counts, the
    progress to a name are all the system reporting. So it is desk all the way
    down, with no sheet anywhere. */
-const GROUND = P.penWash;
+/* WHITE, LIKE THE PROTOTYPE (owner, 2026-10-11: "纯白色的挺好 … 不要紫色").
+   The lavender ground and the ink-black selected tab were the two loudest
+   things on the page; the people on it should be. */
+const GROUND = "#FFFFFF";
 const REVEAL = 5;
 
 export default function KindredsTab() {
@@ -94,12 +96,21 @@ export default function KindredsTab() {
      drag has begun by then. */
   const settleTop = useRef(false);
   const toTop = useCallback(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), []);
+  /* the furthest the list was pulled past its top during this drag: the
+     offset reported at release can already be springing back (a slow pull
+     that pauses before letting go read as no pull at all) */
+  const pulled = useRef(0);
   const onDragStart = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     dragFrom.current = e.nativeEvent.contentOffset.y;
+    pulled.current = 0;
     settleTop.current = false;
   }, []);
-  const onDragEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onScrollMove = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
+    if (y < pulled.current) pulled.current = y;
+  }, []);
+  const onDragEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = Math.min(e.nativeEvent.contentOffset.y, pulled.current);
     if (y < -56) setSkyOpen(true);
     else if (skyOpen && dragFrom.current < 40 && y - dragFrom.current > 24) {
       setSkyOpen(false);
@@ -204,17 +215,15 @@ export default function KindredsTab() {
 
   const [tab, setTabState] = useState<ListTab>(session.tab);
   const [show, setShowState] = useState<Show>(session.show);
-  const [sort, setSortState] = useState<Sort>(session.sort);
   const setTab = (v: ListTab) => { session.tab = v; setTabState(v); };
   const setShow = (v: Show) => { session.show = v; setShowState(v); };
-  const setSort = (v: Sort) => { session.sort = v; setSortState(v); };
   const [wrenNew, setWrenNew] = useState(0);
 
   const rank = (th: ThreadSummary) => (onMe(th) ? 0 : th.revealed ? 1 : 2);
-  const order = (a: ThreadSummary, b: ThreadSummary) => (sort === "recent" ? 0 : rank(a) - rank(b)) || b.lastAt - a.lastAt;
+  const order = (a: ThreadSummary, b: ThreadSummary) => rank(a) - rank(b) || b.lastAt - a.lastAt;
   const inTab = (th: ThreadSummary) => (tab === "all" ? true : tab === "kindreds" ? th.revealed : !th.revealed);
   const passes = (th: ThreadSummary) => (show === "your" ? onMe(th) : show === "their" ? !onMe(th) && th.lastSenderMe : true);
-  const main = useMemo(() => live.filter((th) => !isQuiet(th) && inTab(th) && passes(th)).sort(order), [live, tab, show, sort, seenLedger, premium]); // eslint-disable-line react-hooks/exhaustive-deps
+  const main = useMemo(() => live.filter((th) => !isQuiet(th) && inTab(th) && passes(th)).sort(order), [live, tab, show, seenLedger, premium]); // eslint-disable-line react-hooks/exhaustive-deps
   const quiet = useMemo(() => (show ? [] : live.filter((th) => isQuiet(th) && inTab(th)).sort((a, b) => b.lastAt - a.lastAt)), [live, tab, show, premium]); // eslint-disable-line react-hooks/exhaustive-deps
   const shut = useMemo(() => (show ? [] : closed.filter(inTab).sort((a, b) => b.lastAt - a.lastAt)), [closed, tab, show]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -224,8 +233,6 @@ export default function KindredsTab() {
     kindreds: live.some((th) => th.revealed && onMe(th)),
     penpals: live.some((th) => !th.revealed && onMe(th)),
   };
-  const filtered = !!show || sort !== "turn";
-  const clearFilter = () => { setShow(null); setSort("turn"); };
   const openOnMe = () => {
     setTab("all");
     setShow("your");
@@ -245,7 +252,7 @@ export default function KindredsTab() {
      A closed account and Wren have nothing to offer. Tapping still opens. */
   const wren = useWrenName();
   const { width: winW } = useWindowDimensions();
-  const rowW = winW - 32 - 2; // the paper's margins and rules
+  const rowW = winW; // the list runs edge to edge now, like the prototype
   const [blocking, setBlocking] = useState<ThreadSummary | null>(null);
   const [blockBusy, setBlockBusy] = useState(false);
   const refreshSeen = () => readRoomSeen().then(setSeenLedger);
@@ -297,7 +304,7 @@ export default function KindredsTab() {
           <Empty onWrite={() => router.push("/compose")} />
         </>
       ) : (
-        <ScrollView ref={scrollRef} onScrollBeginDrag={onDragStart} onScrollEndDrag={onDragEnd} onMomentumScrollEnd={onGlideEnd} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} alwaysBounceVertical onScroll={onScrollMove} scrollEventThrottle={16} onScrollBeginDrag={onDragStart} onScrollEndDrag={onDragEnd} onMomentumScrollEnd={onGlideEnd} contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
           {/* the title answers one question — is anything on me? — and when it
               is, tapping it shows exactly those (owner, 2026-09-20 / 10-10) */}
           <TabHeader
@@ -313,65 +320,65 @@ export default function KindredsTab() {
           />
 
           {/* the sky, folded onto that rule: a tick for every pen pal, blue for the ones on you */}
-          <KindredsSky items={coming.filter((th) => !th.gone)} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} />
+          <KindredsSky items={coming.filter((th) => !th.gone)} open={skyOpen} onToggle={() => setSkyOpen((o) => !o)} onOpenThread={open} />
 
           <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
             <WrenSaysOnce id="kindreds" line={t("kindreds.said")} />
           </View>
 
           <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)}>
-            {/* three tabs in one ruled bar, and the menu beside it at the same height */}
-            <View style={{ flexDirection: "row", alignItems: "stretch", gap: 8, marginHorizontal: 16, marginTop: 14 }}>
-              <View accessibilityRole="tablist" style={{ flex: 1, minWidth: 0, flexDirection: "row", borderWidth: 1, borderColor: P.ink12, backgroundColor: "#FFFFFF" }}>
-                {LIST_TABS.map((k, i) => {
-                  const sel = tab === k;
-                  const n = k === "all" ? null : counts[k];
-                  return (
-                    <Pressable
-                      key={k}
-                      onPress={() => setTab(k)}
-                      accessibilityRole="tab"
-                      accessibilityState={{ selected: sel }}
-                      style={{ flex: 1, minWidth: 0, height: 34, borderLeftWidth: i ? 1 : 0, borderLeftColor: P.ink12, backgroundColor: sel ? P.ink : "transparent", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 4 }}
-                    >
-                      {/* the groups' own marks: a kindred's face, a pen pal's square */}
-                      {k !== "all" && <StateGlyph kind={k === "kindreds" ? "kindreds" : "strangers"} size={13} weight={2} color={sel ? "#FFFFFF" : undefined} cut={sel ? P.ink : undefined} />}
-                      {/* shrinks rather than truncates: de says SEELENVERWANDTE in full, as its title does */}
-                      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.4, color: sel ? "#FFFFFF" : P.ink60 }}>
-                        {t(TAB_LABEL[k])}
-                      </Text>
-                      {n != null && <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: sel ? "rgba(255,255,255,0.6)" : P.ink40 }}>{n}</Text>}
-                      {/* a pen square: someone in this tab is waiting on you */}
-                      {!sel && dots[k] && <View style={{ position: "absolute", top: 5, right: 5, width: 5, height: 5, backgroundColor: P.pen }} />}
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <ListMenu show={show} sort={sort} filtered={filtered} onShow={setShow} onSort={setSort} onClear={clearFilter} />
-            </View>
+            {/* CHIPS, LIKE THE PROTOTYPE (owner, 2026-10-11). The three groups as
+                round chips on white — the chosen one pale violet as in the
+                prototype, never the ink block that was the loudest thing on
+                the page — scrolling
+                sideways when a language runs long. The filter square is gone:
+                "only the ones on me" is the count beside the title, and the
+                order is always on-you first. */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 2 }} accessibilityRole="tablist">
+              {LIST_TABS.map((k) => {
+                const sel = tab === k;
+                const n = k === "all" ? null : counts[k];
+                return (
+                  <Pressable
+                    key={k}
+                    onPress={() => setTab(k)}
+                    hitSlop={{ top: 5, bottom: 5 }}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: sel }}
+                    accessibilityLabel={[chipLabel(t(TAB_LABEL[k])), n != null ? String(n) : null].filter(Boolean).join(", ")}
+                    style={({ pressed }) => ({ height: 34, paddingHorizontal: 14, borderRadius: 17, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: sel ? CHIP.onBg : "#FFFFFF", borderWidth: 1, borderColor: sel ? CHIP.onBg : CHIP.offLine, opacity: pressed ? 0.7 : 1 })}
+                  >
+                    <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk }}>{chipLabel(t(TAB_LABEL[k]))}</Text>
+                    {n != null && <Text style={{ fontFamily: PF.letter, fontSize: 13, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk, opacity: 0.6 }}>{n}</Text>}
+                    {/* someone in this group is waiting on you */}
+                    {!sel && dots[k] && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: P.pen }} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
 
             {!!show && (
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginHorizontal: 16, marginTop: 8 }}>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1, color: P.ink60 }}>
-                  {t("kd.showing", { what: show === "your" ? t("state.yourTurn") : t("state.waitingThem"), n: main.length })}
+              <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginHorizontal: ROW.pad, marginTop: 10 }}>
+                <Text style={{ fontSize: 13, color: ROW.time }}>
+                  {chipLabel(t("kd.showing", { what: show === "your" ? t("state.yourTurn") : t("state.waitingThem"), n: main.length }))}
                 </Text>
                 <Pressable onPress={() => setShow(null)} hitSlop={10} accessibilityRole="button">
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1, color: P.ink }}>{t("kd.clear")}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: ROW.blue }}>{chipLabel(t("kd.clear"))}</Text>
                 </Pressable>
               </View>
             )}
 
-            {/* one paper */}
-            <View style={{ marginHorizontal: 16, marginTop: 10, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12 }}>
+            {/* the list, edge to edge on the white page */}
+            <View style={{ marginTop: 8 }}>
               {tab === "all" && !show && <WrenDeskRow inList onUnread={setWrenNew} />}
               {main.map((th, i) => (
-                <ListRow key={th.id} t={th} unread={unread(th)} closing={th.revealed && settled && closingSoon(th.lastAt, premium)} rule={i > 0} width={rowW} actions={rowMenu(th, false)} onOpen={() => open(th)} />
+                <ListRow key={th.id} t={th} unread={unread(th)} closing={th.revealed && settled && closingSoon(th.lastAt, premium)} rule={i > 0 || (tab === "all" && !show)} width={rowW} actions={rowMenu(th, false)} onOpen={() => open(th)} />
               ))}
               {/* the empty line only when the paper really is empty — not over
                   the rooms that went quiet or the accounts that closed */}
               {main.length === 0 && (show || tab === "penpals" || (quiet.length === 0 && shut.length === 0)) && (
                 show ? (
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 16 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 16 }}>
                     <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.ink40 }}>{show === "your" ? t("kindreds.allAnswered") : t("kd.nothingHere")}</Text>
                   </View>
                 ) : tab === "kindreds" ? (
@@ -389,8 +396,8 @@ export default function KindredsTab() {
               {/* the rooms that went quiet, then the correspondences whose other side is gone */}
               {quiet.length > 0 && (
                 <>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: P.ink40, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6, borderTopWidth: 1, borderTopColor: P.ink12 }}>
-                    {t("kd.groupExpired", { n: quiet.length }).toUpperCase()}
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: ROW.time, paddingHorizontal: ROW.pad, paddingTop: 18, paddingBottom: 4, borderTopWidth: 1, borderTopColor: ROW.line }}>
+                    {chipLabel(t("kd.groupExpired", { n: quiet.length }))}
                   </Text>
                   {quiet.map((th, i) => <ListRow key={th.id} t={th} unread={0} quiet rule={i > 0} width={rowW} actions={rowMenu(th, true)} onOpen={() => open(th)} />)}
                 </>
@@ -426,62 +433,52 @@ export default function KindredsTab() {
 
 type ListTab = "all" | "kindreds" | "penpals";
 type Show = null | "your" | "their";
-type Sort = "turn" | "recent";
 const LIST_TABS: ListTab[] = ["all", "kindreds", "penpals"];
 const TAB_LABEL: Record<ListTab, string> = { all: "kd.tab.all", kindreds: "kd.tab.kindreds", penpals: "kd.tab.penPals" };
-/* the tab, the filter and the sort last while the app is open; a fresh
-   launch starts at ALL, unfiltered, your turn first */
-const session: { tab: ListTab; show: Show; sort: Sort } = { tab: "all", show: null, sort: "turn" };
-
-/* the menu: iOS's own (SwiftUI Menu via @expo/ui), in a ruled square the
-   height of the tabs; solid ink while anything isn't the default */
-function ListMenu({ show, sort, filtered, onShow, onSort, onClear }: { show: Show; sort: Sort; filtered: boolean; onShow: (v: Show) => void; onSort: (v: Sort) => void; onClear: () => void }) {
-  return (
-    <View accessible accessibilityRole="button" accessibilityLabel={t("kd.filter.a11y")} style={{ width: 36, borderWidth: 1, borderColor: filtered ? P.ink : P.ink12, backgroundColor: filtered ? P.ink : "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-      <Host matchContents>
-        <Menu label={<SImage systemName="line.3.horizontal.decrease" size={15} color={filtered ? "#FFFFFF" : P.ink} />}>
-          <Section title={t("kd.filter.showOnly")}>
-            <Toggle label={t("kd.filter.yourTurn")} isOn={show === "your"} onIsOnChange={(on) => onShow(on ? "your" : null)} />
-            <Toggle label={t("kd.filter.theirTurn")} isOn={show === "their"} onIsOnChange={(on) => onShow(on ? "their" : null)} />
-          </Section>
-          <Section title={t("kd.filter.sort")}>
-            <Toggle label={t("kd.filter.turnFirst")} isOn={sort === "turn"} onIsOnChange={() => onSort("turn")} />
-            <Toggle label={t("kd.filter.recent")} isOn={sort === "recent"} onIsOnChange={() => onSort("recent")} />
-          </Section>
-          {filtered && <SButton label={t("kd.filter.clear")} role="destructive" onPress={onClear} />}
-        </Menu>
-      </Host>
-    </View>
-  );
-}
+/* the tab and the filter last while the app is open; a fresh launch starts
+   at ALL, unfiltered */
+const session: { tab: ListTab; show: Show } = { tab: "all", show: null };
+/* the chips exactly as the prototype draws them (owner, 2026-10-11: "选中状态
+   也和原型里一样") — the chosen one a pale violet with violet type, the rest
+   white with a grey hairline */
+const CHIP = { onBg: "#E4E2FB", onInk: "#3A34D6", offInk: "#55506E", offLine: "#DAD8E6" };
+/* the group names are written in capitals for labels elsewhere; a chip says
+   them the way a sentence would ("Pen pals", "Seelenverwandte") */
+const chipLabel = (s: string) => {
+  const low = s.toLocaleLowerCase(localeTag());
+  return low.charAt(0).toLocaleUpperCase(localeTag()) + low.slice(1);
+};
 
 const EACH_WAY = 5;
 const NOOP = () => {};
-const JUST_SENT = 24 * 3600 * 1000;
 
-/* ONE ROW for everyone (owner, 2026-10-10). The face says who: a round face is
-   a kindred (names traded), a square mosaic a pen pal (still a number). Line
-   two is the state, in the one vocabulary (lib/thread-state), then their last
-   line. The right column holds one thing: the five cells for a pen pal (one
-   per letter each way, pen blue at five each), the unread count for a
-   kindred, REKINDLE for a quiet room. A room inside its last week says how
-   long it has left, ahead of the line (lib/kindred-expiry).
+/* ONE ROW for everyone, exactly the prototype's (design 2a; owner,
+   2026-10-11: "做成 2a 一样的"): a 52pt round face — a kindred's portrait,
+   or a pen pal's mosaic developing on a pale disc as their letters come —
+   the name and the time, two lines of their last words ("You: …" when the
+   last word was yours), a blue badge when it's on you (a kindred's letters
+   you haven't opened; a pen pal's one letter owed), and the hairline from
+   the words. The few moments that need a word keep one, small, ahead of the
+   line: the brass "trade names" at five each, the red CLOSES IN n DAYS of a
+   room's last week, a quiet room's days and REKINDLE, a closed account.
 
    Long-pressed, the row is lifted whole into iOS's menu, so it is hosted
-   natively and sized by its own content: it gets the paper's width in
+   natively and sized by its own content: it gets the screen's width in
    points, and a white ground so the lifted copy isn't see-through. */
 function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, actions, onOpen }: { t: ThreadSummary; unread: number; quiet?: boolean; closing?: boolean; rule: boolean; width: number; actions: MessageAction[]; onOpen: () => void }) {
   const state = threadState(th);
   const kindred = th.revealed;
-  const each = Math.min(th.mine, th.theirs, EACH_WAY);
-  const theirTurn = !kindred && !!state && !state.needsYou;
-  const fresh = !kindred && th.lastSenderMe && Date.now() - th.lastAt < JUST_SENT && !th.gone;
   const dim = quiet || th.gone;
   const preview = th.preview;
-  const name = kindred ? th.otherName || t("kd.aKindred") : `NO. ${postNo(th.other)}`;
+  const name = kindred ? th.otherName || t("kd.aKindred") : `No. ${postNo(th.other)}`;
   const left = closing ? daysLeft(th.lastAt) : 0;
   const closes = closing ? (left <= 1 ? t("kd.closesDay") : t("kd.closesIn", { n: left })) : null;
-  const a11y = [name, kindred ? closes : state?.label, kindred && unread ? String(unread) : null, when(th.lastAt)].filter(Boolean).join(", ");
+  /* the brass moment: five letters each way, names may be traded */
+  const milestone = !kindred && !th.gone && !!state && state.tone === P.brassSeal ? state.label : null;
+  /* on you: a kindred's unopened letters, or a pen pal whose turn is yours */
+  const owed = th.gone || quiet ? 0 : kindred ? unread : state?.needsYou ? 1 : 0;
+  const a11y = [name, closes, milestone, kindred ? null : state?.label, kindred && unread ? String(unread) : null, when(th.lastAt)].filter(Boolean).join(", ");
+  const tag = (text: string, color: string) => <Text style={{ fontSize: 12, fontWeight: "600", letterSpacing: 0.3, color }}>{text}  </Text>;
   return (
     <Pressable
       onPress={onOpen}
@@ -494,65 +491,49 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
       <MessageMenu actions={actions} radius={0}>
-      <View style={{ width, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: fresh ? P.penWash : "#FFFFFF" }}>
-      <View style={{ opacity: dim ? 0.45 : 1 }}>
-        {kindred ? (
-          <AvatarImage id={th.otherFace ?? null} seed={th.other} size={42} />
-        ) : (
-          <View style={{ width: 42, height: 42, borderWidth: 1, borderColor: P.ink12, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-            <MosaicId seed={th.other} cell={5} gap={1} develop={0.15 + 0.85 * (Math.min(th.theirs, EACH_WAY) / EACH_WAY)} />
-          </View>
-        )}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        {kindred ? (
-          <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15.5, color: dim ? P.ink60 : P.ink }}>{name}</Text>
-        ) : (
-          <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 0.8, color: theirTurn || dim ? P.ink60 : P.ink }}>{name}</Text>
-        )}
-        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 3, minWidth: 0 }}>
-          {quiet ? (
-            <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: P.ink40 }}>{t("kd.expiredRow", { n: quietDays(th.lastAt) })}</Text>
-          ) : th.gone ? (
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.ink40 }}>{t("kd.accountClosed")}</Text>
-          ) : kindred ? (
-            <>
-              {!!closes && <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.post }}>{closes}</Text>}
-              {th.lastSenderMe && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40 }}>{t("ui.you")} ·</Text>}
-              {!!preview && <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letterSerif, fontSize: 14, color: unread ? P.ink : P.ink60 }}>{preview}</Text>}
-            </>
+      <View style={{ width, flexDirection: "row", alignItems: "center", gap: ROW.gap, paddingHorizontal: ROW.pad, backgroundColor: "#FFFFFF" }}>
+        <View style={{ opacity: dim ? 0.45 : 1 }}>
+          {kindred ? (
+            <AvatarImage id={th.otherFace ?? null} seed={th.other} size={ROW.face} />
           ) : (
-            <>
-              {!!state && <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: state.tone }}>{state.label.toUpperCase()}</Text>}
-              {/* their turn says only that; the line is for a letter waiting on you */}
-              {!theirTurn && !!preview && <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letterSerif, fontSize: 14, color: P.ink60 }}>{preview}</Text>}
-            </>
+            <View style={{ width: ROW.face, height: ROW.face, borderRadius: ROW.face / 2, backgroundColor: ROW.palBg, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              <MosaicId seed={th.other} cell={4.5} gap={1.2} develop={0.15 + 0.85 * (Math.min(th.theirs, EACH_WAY) / EACH_WAY)} />
+            </View>
           )}
         </View>
-      </View>
-      <View style={{ alignItems: "flex-end", gap: 7 }}>
-        {quiet ? (
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: P.ink }}>{t("rm.rekindle")} ›</Text>
-        ) : (
-          <>
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}>{when(th.lastAt)}</Text>
-            {!kindred && !th.gone ? (
-              <View style={{ flexDirection: "row", gap: 2 }}>
-                {Array.from({ length: EACH_WAY }, (_, i) => (
-                  <View key={i} style={{ width: 6, height: 6, backgroundColor: each >= EACH_WAY ? P.pen : i < each ? P.ink : P.ink12 }} />
-                ))}
-              </View>
-            ) : kindred && unread > 0 ? (
-              <View style={{ minWidth: 20, height: 20, paddingHorizontal: 5, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
+        <View style={{ flex: 1, minWidth: 0, paddingVertical: 12, gap: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+            <Text numberOfLines={1} style={[rowName, { flex: 1 }, dim && { color: ROW.muted }]}>{name}</Text>
+            {!quiet && <Text style={rowTime(owed > 0)}>{when(th.lastAt)}</Text>}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+            <Text numberOfLines={2} style={[rowPreview, { flex: 1 }]}>
+              {quiet ? (
+                t("kd.expiredRow", { n: quietDays(th.lastAt) })
+              ) : th.gone ? (
+                t("kd.accountClosed")
+              ) : (
+                <>
+                  {!!closes && tag(closes, P.post)}
+                  {!!milestone && tag(milestone.toUpperCase(), P.brassSeal)}
+                  {th.lastSenderMe && <Text style={{ color: ROW.ink }}>{t("mm.you")}: </Text>}
+                  {preview || ""}
+                </>
+              )}
+            </Text>
+            {quiet ? (
+              <Text style={{ fontSize: 13, fontWeight: "600", color: ROW.blue, marginTop: 2 }}>{t("kd.menu.rekindle")} ›</Text>
+            ) : owed > 0 ? (
+              <View style={rowBadge}>
+                <Text style={rowBadgeText}>{owed > 9 ? "9+" : String(owed)}</Text>
               </View>
             ) : null}
-          </>
-        )}
-      </View>
+          </View>
+        </View>
       </View>
       </MessageMenu>
-      {rule && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 68, right: 0, height: 1, backgroundColor: P.ink12 }} />}
+      {/* the hairline starts where the words do, as iOS lists draw it */}
+      {rule && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: ROW.pad + ROW.face + ROW.gap, right: 0, height: 1, backgroundColor: ROW.line }} />}
     </Pressable>
   );
 }

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { ROW, rowBadge, rowBadgeText, rowName, rowPreview, rowTime } from "./ChatRowStyle";
 import Svg, { Path } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 import { WrenBird } from "./WrenBird";
@@ -23,7 +24,7 @@ export function OfficialBird({ size = 52, mood = "content" as const }: { size?: 
   const badge = Math.max(16, Math.round(size * 0.34));
   return (
     <View style={{ width: size, height: size }}>
-      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#F3F2FA", borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#EEEDFB", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <WrenBird size={Math.round(size * 0.62)} mood={mood} skin="sticker" accessory="none" />
       </View>
       <View style={{ position: "absolute", right: -1, bottom: -1 }}>
@@ -48,9 +49,10 @@ export function OfficialMark({ size = 16 }: { size?: number }) {
    is there for a guest on the first launch. It reads like the rows under
    it (name, last line, when) so it sits with them, and the mark says why
    it is first. */
-/* inList (the Kindreds list, owner 2026-10-10): the first row of the paper,
-   pinned — no card of her own, square marks like every other row; onUnread
-   lets the list mark the ALL tab while a post of hers is unopened. */
+/* inList (the Kindreds list, owner 2026-10-10; restyled 10-11 with the
+   prototype's rows): the first row of the list, pinned by a grey band under
+   it, no card of her own; onUnread lets the list mark the ALL chip while a
+   post of hers is unopened. */
 export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; onUnread?: (n: number) => void } = {}) {
   const router = useRouter();
   useLang();
@@ -88,18 +90,43 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
 
   const last = posts[posts.length - 1];
   const ago = last ? (inList ? listWhen(last.at) : sinceShort(last.at)) : "";
+  const line = last ? postText(last).split("\n")[0] : t("wo.row.sub");
+  if (inList) {
+    /* in the list she is a row like any other (owner, 2026-10-11): same face
+       size, same type, same hairline — only the blue check says it's her */
+    return (
+      <Pressable
+        onPress={() => router.push(`/room/${WREN_ROOM}`)}
+        accessibilityRole="button"
+        accessibilityLabel={[OFFICIAL_NAME, t("wo.tag"), unread ? String(unread) : null, ago].filter(Boolean).join(", ")}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: ROW.gap, paddingHorizontal: ROW.pad, opacity: pressed ? 0.6 : 1 })}
+      >
+        <OfficialBird size={ROW.face} />
+        <View style={{ flex: 1, minWidth: 0, paddingVertical: 12, gap: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+            <Text numberOfLines={1} style={[rowName, { flex: 1 }]}>{OFFICIAL_NAME}</Text>
+            {!!ago && <Text style={rowTime(unread > 0)}>{ago}</Text>}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+            <Text numberOfLines={2} style={[rowPreview, { flex: 1 }]}>{line}</Text>
+            {unread > 0 && (
+              <View style={rowBadge}>
+                <Text style={rowBadgeText}>{unread > 9 ? "9+" : String(unread)}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       onPress={() => router.push(`/room/${WREN_ROOM}`)}
       accessibilityRole="button"
-      style={({ pressed }) =>
-        inList
-          ? { paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: P.ink, opacity: pressed ? 0.6 : 1 }
-          : [{ backgroundColor: "#FFFFFF", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]
-      }
+      style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <OfficialBird size={inList ? 42 : 44} />
+        <OfficialBird size={44} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink }}>{OFFICIAL_NAME}</Text>
@@ -107,19 +134,17 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
             <View style={{ flex: 1 }} />
             {/* the time since her last post — or, while one is unopened, NEW */}
             {unread > 0 ? (
-              <View style={{ backgroundColor: P.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: inList ? 0 : 999 }}>
+              <View style={{ backgroundColor: P.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 }}>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: "#FFFFFF" }}>{t("wo.new")}</Text>
               </View>
             ) : (
               !!ago && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>
             )}
           </View>
-          <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 14, color: unread ? P.ink : P.ink60, marginTop: 3 }}>
-            {last ? postText(last).split("\n")[0] : t("wo.row.sub")}
-          </Text>
+          <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 14, color: unread ? P.ink : P.ink60, marginTop: 3 }}>{line}</Text>
         </View>
         {unread > 0 && (
-          <View style={{ minWidth: 20, height: 20, borderRadius: inList ? 0 : 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
           </View>
         )}

@@ -56,7 +56,7 @@ export function fmt(seconds: number): string {
 export function listWhen(at: string | number | Date): string {
   const d = new Date(at);
   if (d.toDateString() === new Date().toDateString()) return d.toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
-  return dShort(d).toUpperCase();
+  return dShort(d);
 }
 
 export function sinceShort(iso: string | number | Date): string {

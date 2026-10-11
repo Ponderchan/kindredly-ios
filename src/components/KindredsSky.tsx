@@ -4,6 +4,8 @@ import Animated, { Easing, Extrapolation, ReduceMotion, interpolate, useAnimated
 import Svg, { Ellipse, Rect } from "react-native-svg";
 import { P, PF } from "../theme/post";
 import { OrbitMap, ORBIT } from "./OrbitMap";
+import { MosaicId } from "./MosaicId";
+import { postNo } from "../lib/format";
 import type { ThreadSummary } from "../lib/db";
 import { t, useLang } from "../lib/i18n";
 
@@ -20,15 +22,26 @@ import { t, useLang } from "../lib/i18n";
    One motion (0.45s): the rings flatten and each stranger drops straight
    onto the line from wherever the drift has carried them (OrbitMap `flat`).
    The tag, a tap anywhere on the sky, a pull on the list and a push up all
-   work it (the tab owns the gestures). Reduce Motion skips the fold. */
+   work it (the tab owns the gestures). Reduce Motion skips the fold.
+
+   2026-10-11 (owner, design 2a): no OPEN/FOLD tag any more — the loudest
+   thing in the header and the least used; the line itself is the button,
+   and a pull on the list still opens it. Open, under the legend, the pen
+   pals CLOSEST TO YOU: the three nearest to trading names (by the side
+   that has written less, as the five-each rule counts), one tap from their
+   letters. */
 
 const LINE_Y = 11; // where the title's rule runs through this box
 const GAP = 10; // from the rule to the card, open
 const FOLDED_H = LINE_Y * 2; // the line, with room for the tag on it
 const CLAMP = Extrapolation.CLAMP;
 
-export function KindredsSky({ items, open, onToggle }: { items: ThreadSummary[]; open: boolean; onToggle: () => void }) {
+export function KindredsSky({ items, open, onToggle, onOpenThread }: { items: ThreadSummary[]; open: boolean; onToggle: () => void; onOpenThread?: (th: ThreadSummary) => void }) {
   useLang();
+  const closest = items
+    .filter((th) => !th.revealed && !th.gone && Math.min(th.mine, th.theirs) >= 1)
+    .sort((a, b) => Math.min(b.mine, b.theirs) - Math.min(a.mine, a.theirs) || b.lastAt - a.lastAt)
+    .slice(0, 3);
   const p = useSharedValue(open ? 1 : 0); // 1 = open
   // the legend wraps differently by language, so it is measured
   const footH = useSharedValue(78);
@@ -58,7 +71,8 @@ export function KindredsSky({ items, open, onToggle }: { items: ThreadSummary[];
       style={{ marginHorizontal: 16, marginTop: -(LINE_Y + 0.5) }}
     >
       {/* the card the orbit opens into — outside the clip, so its shadow shows */}
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: LINE_Y + GAP, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12 }, card]} />
+      {/* no card round it any more (2026-10-11, the prototype's white page): the rings sit on the page itself */}
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: LINE_Y + GAP, backgroundColor: "#FFFFFF" }, card]} />
 
       <Animated.View style={[{ overflow: "hidden" }, box]}>
         <Animated.View pointerEvents="none" style={[{ alignItems: "center" }, map]}>
@@ -67,22 +81,49 @@ export function KindredsSky({ items, open, onToggle }: { items: ThreadSummary[];
 
         {/* open: what the marks mean, as a legend, and the handle to push it back */}
         <Animated.View
-          pointerEvents="none"
+          pointerEvents={open ? "box-none" : "none"}
           onLayout={(e) => (footH.value = e.nativeEvent.layout.height)}
           style={[{ position: "absolute", left: 0, right: 0, top: LINE_Y + GAP + ORBIT.H, paddingHorizontal: 22, paddingBottom: 12, gap: 7 }, foot]}
         >
           <Legend mark={<RingsMark />} text={t("kd.legendCloser")} />
           <Legend mark={<View style={{ width: 7, height: 7, backgroundColor: P.pen }} />} text={t("kd.legendTurn")} />
+          {closest.length > 0 && (
+            <View style={{ marginTop: 8, gap: 6 }}>
+              <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40 }}>{t("kd.closest")}</Text>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {closest.map((th) => {
+                  const each = Math.min(th.mine, th.theirs, 5);
+                  return (
+                    <Pressable
+                      key={th.id}
+                      onPress={() => onOpenThread?.(th)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`NO. ${postNo(th.other)}, ${each}/5`}
+                      style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 7, borderWidth: 1, borderColor: P.ink12, paddingHorizontal: 7, paddingVertical: 6, opacity: pressed ? 0.6 : 1 })}
+                    >
+                      <View style={{ width: 22, height: 22, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                        <MosaicId seed={th.other} cell={2.6} gap={0.6} develop={0.15 + 0.85 * (Math.min(th.theirs, 5) / 5)} />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 0.4, color: P.ink }}>{postNo(th.other)}</Text>
+                        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, color: each >= 5 ? P.brassSeal : P.ink40 }}>{each}/5</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
           <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: P.ink12, marginTop: 7 }} />
         </Animated.View>
 
-        {/* the tag clipped to the rule's right end: OPEN ↓ folded, FOLD ↑ open */}
-        <View pointerEvents="none" style={{ position: "absolute", right: 0, top: LINE_Y - 11 }}>
-          <Animated.View style={[tag, openTag]}>
-            <Text style={tagText}>{t("kd.skyOpen")} ↓</Text>
+        {/* a small chevron at the rule's right end says the line opens */}
+        <View pointerEvents="none" style={{ position: "absolute", right: -2, top: LINE_Y - 10 }}>
+          <Animated.View style={openTag}>
+            <Text style={chev}>⌄</Text>
           </Animated.View>
-          <Animated.View style={[tag, { position: "absolute", right: 0, top: 0 }, foldTag]}>
-            <Text style={tagText}>{t("kd.skyFold")} ↑</Text>
+          <Animated.View style={[{ position: "absolute", right: 0, top: 0 }, foldTag]}>
+            <Text style={chev}>⌃</Text>
           </Animated.View>
         </View>
       </Animated.View>
@@ -90,8 +131,7 @@ export function KindredsSky({ items, open, onToggle }: { items: ThreadSummary[];
   );
 }
 
-const tag = { height: 22, paddingHorizontal: 9, borderRadius: 11, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink, justifyContent: "center" as const };
-const tagText = { fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen };
+const chev = { fontSize: 15, lineHeight: 18, color: P.ink60, backgroundColor: "#FFFFFF", paddingLeft: 4, paddingRight: 2 };
 
 function Legend({ mark, text }: { mark: ReactNode; text: string }) {
   return (
