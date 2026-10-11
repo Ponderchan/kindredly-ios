@@ -19,6 +19,7 @@ import { PlushCelebration } from "../../components/PlushCelebration";
 import { WrenBird } from "../../components/WrenBird";
 import { WrenDeskRow } from "../../components/WrenDesk";
 import { blockUser, fetchThreadMessages, fetchThreads, forgetThread, readThreadDetailCache, readThreadsCache, reportContent, theirLatest, threadsAge, type ThreadSummary } from "../../lib/db";
+import { StateGlyph } from "../../components/StateGlyph";
 import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { NotifyBanner } from "../../components/NotifyBanner";
@@ -353,6 +354,9 @@ export default function KindredsTab() {
                     accessibilityLabel={[chipLabel(t(TAB_LABEL[k])), n != null ? String(n) : null].filter(Boolean).join(", ")}
                     style={({ pressed }) => ({ height: 34, paddingHorizontal: 14, borderRadius: 17, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: sel ? CHIP.onBg : "#FFFFFF", borderWidth: 1, borderColor: sel ? CHIP.onBg : CHIP.offLine, opacity: pressed ? 0.7 : 1 })}
                   >
+                    {/* the two groups' own marks, as the legend for the faces below:
+                        a kindred's filled green face, a pen pal's outlined square */}
+                    {k !== "all" && <StateGlyph kind={k === "kindreds" ? "kindreds" : "strangers"} size={16} weight={2} />}
                     <Text numberOfLines={1} style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk }}>{chipLabel(t(TAB_LABEL[k]))}</Text>
                     {n != null && <Text style={{ fontFamily: PF.letter, fontSize: 13, fontWeight: "500", color: sel ? CHIP.onInk : CHIP.offInk, opacity: 0.6 }}>{n}</Text>}
                     {/* someone in this group is waiting on you */}
