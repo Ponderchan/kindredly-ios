@@ -1,0 +1,634 @@
+{
+ "es": {
+  "01": {
+   "h": "llegas buscando\namigo por carta.\nte quedas por\nun alma afín.",
+   "mark": "un alma afín.",
+   "sub": "Kindredly es una app anónima de amigos por correspondencia que conecta a desconocidos por su forma de escribir.",
+   "pop": {
+    "bubble": "¡carta para ti!"
+   }
+  },
+  "02": {
+   "h": "ni fotos ni bio\nni swipe.",
+   "mark": "ni swipe.",
+   "sub": "Tus palabras van primero. Tu cara, ni falta que hace.",
+   "pop": {
+    "ghostKick": "cualquier otra app",
+    "ghostName": "sofi, 24",
+    "ghostMeta": "a 2 km · le encanta viajar",
+    "letter": "se apagó la cafetera y no vino nadie. ¿a qué suenan tus mañanas?"
+   }
+  },
+  "03": {
+   "h": "¿cuál es tu\naura escritora?",
+   "mark": "aura escritora?",
+   "sub": "La lee tu propio teléfono, a partir de cómo escribes: el ritmo, la longitud de tus frases, cómo cierras una idea.",
+   "pop": {
+    "kick": "algunas de las 55 pegatinas"
+   }
+  },
+  "04": {
+   "h": "escribe algo\nsincero.",
+   "mark": "sincero",
+   "sub": "Ni foto ni bio: una línea sobre tu semana y, debajo, una pregunta."
+  },
+  "05": {
+   "h": "ella la lleva a\ndesconocidos que\nsuenan como tú.",
+   "mark": "suenan como tú.",
+   "sub": "Llega primero a los escritorios de desconocidos que escriben como tú."
+  },
+  "06": {
+   "h": "5 cartas cada uno\n→ intercambio\nde nombres.",
+   "mark": "intercambio",
+   "sub": "Carta a carta. Después de cinco cada uno, los dos pueden intercambiar nombres. O seguir siendo desconocidos que se conocen.",
+   "pop": {
+    "name": "mara"
+   }
+  },
+  "07": {
+   "h": "y luego,\nuna sala propia.",
+   "mark": "una sala propia.",
+   "sub": "Al intercambiar nombres, las cartas se convierten en una sala solo para los dos."
+  },
+  "08": {
+   "h": "haz nacer\na tu mensajero.",
+   "mark": "tu mensajero.",
+   "sub": "Nace de tus primeras palabras, lleva cada carta y se pone dramática si la dejas en visto.",
+   "pop": {
+    "paid": "Bruma, Durazno y Noche se desbloquean con Primera Clase, una suscripción de pago opcional."
+   }
+  },
+  "09": {
+   "h": "extraños,\npero nada raros.",
+   "mark": "nada raros.",
+   "sub": "Habla con toda la sinceridad que quieras. Aquí nadie sabe quién eres, a menos que se lo digas.",
+   "pop": {
+    "whoami": "aquí eres un número, no un nombre, hasta que los dos decidan lo contrario.",
+    "rows": [
+     "solo para mayores de 18",
+     "sin fotos hasta intercambiar nombres: primero, cinco cartas cada uno",
+     "reporta lo que sea con un solo toque",
+     "bloquea a quien quieras y no podrá volver a contactarte"
+    ]
+   }
+  },
+  "10": {
+   "h": "un diario que\nnunca sale de\neste teléfono.",
+   "mark": "nunca sale",
+   "sub": "Se queda sellado en tu iPhone y nunca se sube a nuestros servidores."
+  }
+ },
+ "pt": {
+  "01": {
+   "h": "vem pela carta.\nfica pela\nalma afim.",
+   "mark": "alma afim.",
+   "sub": "O Kindredly é um app anônimo de amizade por correspondência que junta desconhecidos pelo jeito como cada um escreve.",
+   "pop": {
+    "bubble": "chegou carta!"
+   }
+  },
+  "02": {
+   "h": "sem foto, sem bio,\nsem arrastar\npra direita.",
+   "mark": "sem arrastar",
+   "sub": "Suas palavras vão na frente. Seu rosto não precisa aparecer nunca.",
+   "pop": {
+    "ghostKick": "os outros apps",
+    "ghostName": "bia, 24",
+    "ghostMeta": "a 3 km · ama viajar",
+    "letter": "a chaleira desligou com um clique e ninguém apareceu. e a sua manhã, tem som de quê?"
+   }
+  },
+  "03": {
+   "h": "qual é a aura\nda sua escrita?",
+   "mark": "da sua escrita?",
+   "sub": "Lida no seu celular, a partir do jeito como você escreve: o ritmo, o tamanho das frases, como você fecha um pensamento.",
+   "pop": {
+    "kick": "alguns dos 55 adesivos"
+   }
+  },
+  "04": {
+   "h": "escreve uma\ncoisa sincera.",
+   "mark": "sincera",
+   "sub": "Sem foto, sem bio. Uma linha sobre a sua semana e uma pergunta logo embaixo."
+  },
+  "05": {
+   "h": "ela leva a carta\npra quem digita\ndo seu jeito.",
+   "mark": "do seu jeito.",
+   "sub": "A carta cai primeiro nas mesas de desconhecidos que escrevem parecido com você."
+  },
+  "06": {
+   "h": "5 cartas\nde cada lado\n→ troca de nomes.",
+   "mark": "troca de nomes.",
+   "sub": "Carta por carta. Depois de cinco de cada lado, dá pra trocar nomes, ou seguir como dois desconhecidos que se conhecem.",
+   "pop": {
+    "name": "mara"
+   }
+  },
+  "07": {
+   "h": "aí vocês ganham\numa sala própria.",
+   "mark": "uma sala própria.",
+   "sub": "Com os nomes trocados, as cartas viram uma sala só de vocês dois."
+  },
+  "08": {
+   "h": "faça nascer o\nseu mensageiro.",
+   "mark": "seu mensageiro.",
+   "sub": "Ela nasce das suas primeiras palavras, leva cada carta e faz drama se você sumir.",
+   "pop": {
+    "paid": "Névoa, Pêssego e Noite vêm com a Primeira Classe, uma assinatura opcional."
+   }
+  },
+  "09": {
+   "h": "estranhos, sim.\nesquisitos, não.",
+   "mark": "esquisitos, não.",
+   "sub": "Pode abrir o jogo à vontade. Aqui ninguém sabe quem você é, a não ser que você conte.",
+   "pop": {
+    "whoami": "você é um número, não um nome, até vocês dois decidirem o contrário.",
+    "rows": [
+     "só 18+",
+     "sem foto até vocês trocarem nomes, e isso só depois de cinco cartas de cada lado",
+     "denuncie qualquer coisa com um toque",
+     "bloqueie quem quiser, e essa pessoa não chega mais até você"
+    ]
+   }
+  },
+  "10": {
+   "h": "um diário que\nnunca sai\ndeste celular.",
+   "mark": "nunca sai",
+   "sub": "Selado no seu iPhone. Nunca é enviado pra gente."
+  }
+ },
+ "id": {
+  "01": {
+   "h": "niatnya cari\nsahabat pena.\neh, malah ketemu\nteman sejiwa.",
+   "mark": "teman sejiwa.",
+   "sub": "Kindredly adalah aplikasi sahabat pena anonim yang mempertemukan orang asing lewat cara mereka menulis.",
+   "pop": {
+    "bubble": "pakeeet!"
+   }
+  },
+  "02": {
+   "h": "nggak pakai foto.\nnggak pakai bio.\nnggak ada swipe.",
+   "mark": "nggak ada swipe.",
+   "sub": "Kata-katamu yang kenalan duluan. Wajahmu nggak perlu nyusul, sampai kapan pun.",
+   "pop": {
+    "ghostKick": "aplikasi sebelah",
+    "ghostName": "jess, 24",
+    "ghostMeta": "3 km dari sini · suka traveling",
+    "letter": "klik. air di ketel udah mendidih, dan nggak ada yang datang. kalau pagimu, bunyinya kayak apa?"
+   }
+  },
+  "03": {
+   "h": "aura tulisanmu\nkayak apa?",
+   "mark": "aura tulisanmu",
+   "sub": "Dibaca langsung di HP-mu, dari cara kamu menulis: irama, panjang kalimat, cara kamu menutup satu pikiran.",
+   "pop": {
+    "kick": "beberapa dari 55 stikernya"
+   }
+  },
+  "04": {
+   "h": "tulis satu hal\nyang jujur.",
+   "mark": "jujur",
+   "sub": "Tanpa foto, tanpa bio. Sebaris cerita minggu ini, lalu satu pertanyaan di bawahnya."
+  },
+  "05": {
+   "h": "dia antarkan ke\norang asing yang\nngetik mirip kamu.",
+   "mark": "ngetik mirip kamu.",
+   "sub": "Suratmu sampai duluan di meja orang asing yang cara nulisnya mirip kamu."
+  },
+  "06": {
+   "h": "masing-masing\n5 surat\n→ tukar nama.",
+   "mark": "tukar nama.",
+   "sub": "Satu per satu, gantian. Setelah masing-masing menulis lima surat, kalian bisa bertukar nama, atau tetap jadi orang asing yang saling kenal.",
+   "pop": {
+    "name": "mira"
+   }
+  },
+  "07": {
+   "h": "lalu kalian dapat\nruang sendiri.",
+   "mark": "ruang sendiri.",
+   "sub": "Begitu bertukar nama, surat-surat itu jadi ruang khusus kalian berdua."
+  },
+  "08": {
+   "h": "tetaskan\nkurirmu sendiri.",
+   "mark": "kurirmu sendiri.",
+   "sub": "Dia menetas dari kata-kata pertamamu, mengantar semua suratmu, dan bakal drama kalau kamu ghosting.",
+   "pop": {
+    "paid": "Kabut, Persik, dan Malam khusus Kelas Utama, langganan berbayar opsional."
+   }
+  },
+  "09": {
+   "h": "asing,\ntapi aman.",
+   "mark": "tapi aman.",
+   "sub": "Mau sejujur apa pun, boleh. Di sini nggak ada yang tahu kamu siapa, kecuali kamu sendiri yang bilang.",
+   "pop": {
+    "whoami": "di sini kamu nomor, bukan nama — sampai kalian berdua sepakat buat kenalan.",
+    "rows": [
+     "khusus 18+",
+     "tidak ada foto sebelum bertukar nama: lima surat dari masing-masing dulu",
+     "laporkan apa pun, cukup sekali ketuk",
+     "blokir siapa pun, dan dia tidak bisa menghubungimu lagi"
+    ]
+   }
+  },
+  "10": {
+   "h": "jurnal yang\nnggak bakal keluar\ndari HP ini.",
+   "mark": "nggak bakal keluar",
+   "sub": "Tersegel di iPhone-mu. Nggak pernah diunggah ke kami."
+  }
+ },
+ "fr": {
+  "01": {
+   "h": "on vient pour\nun correspondant.\non reste pour\nune âme sœur.",
+   "mark": "âme sœur.",
+   "sub": "Kindredly est une application de correspondance anonyme qui met en relation des inconnus selon leur façon d’écrire.",
+   "pop": {
+    "bubble": "t’as du courrier !"
+   }
+  },
+  "02": {
+   "h": "ni photo, ni bio,\nni swipe.",
+   "mark": "ni swipe.",
+   "sub": "Tes mots passent en premier. Ton visage, lui, n’est jamais obligé de suivre.",
+   "pop": {
+    "ghostKick": "toutes les autres applis",
+    "ghostName": "léa, 24",
+    "ghostMeta": "à 2 km · fan de voyages",
+    "letter": "la bouilloire a fait clic et personne n’est venu. tes matins, ils font quel bruit ?"
+   }
+  },
+  "03": {
+   "h": "quelle\nplume es-tu ?",
+   "mark": "plume es-tu ?",
+   "sub": "Ton téléphone la lit dans ton écriture : le rythme, la longueur des phrases, ta façon de finir une idée.",
+   "pop": {
+    "kick": "quelques-uns des 55 stickers"
+   }
+  },
+  "04": {
+   "h": "écris\nun truc vrai.",
+   "mark": "vrai",
+   "sub": "Ni photo, ni bio. Une ligne sur ta semaine, et une question juste en dessous."
+  },
+  "05": {
+   "h": "elle la porte\nà des inconnus qui\ntapent comme toi.",
+   "mark": "tapent comme toi.",
+   "sub": "Ta lettre se pose d’abord sur le bureau d’inconnus qui écrivent comme toi."
+  },
+  "06": {
+   "h": "5 lettres chacun\n→ échangez\nvos noms.",
+   "mark": "vos noms.",
+   "sub": "Lettre après lettre. Au bout de cinq chacun, vous pouvez échanger vos noms. Ou rester des inconnus qui se connaissent.",
+   "pop": {
+    "name": "mara"
+   }
+  },
+  "07": {
+   "h": "puis vous avez\nune pièce à vous.",
+   "mark": "une pièce à vous.",
+   "sub": "Une fois vos noms échangés, vos lettres s’installent dans une pièce rien qu’à vous deux."
+  },
+  "08": {
+   "h": "fais éclore\nta messagère.",
+   "mark": "ta messagère.",
+   "sub": "Elle éclot de tes premiers mots, porte chacune de tes lettres et fait tout un cinéma si tu la ghostes.",
+   "pop": {
+    "paid": "Brume, Pêche et Nuit sont réservées à la Première classe, un abonnement facultatif."
+   }
+  },
+  "09": {
+   "h": "des inconnus,\nrien de louche.",
+   "mark": "rien de louche.",
+   "sub": "Sois aussi sincère que tu veux. Ici, personne ne sait qui tu es, sauf si tu le dis.",
+   "pop": {
+    "whoami": "ici, tu es un numéro, pas un nom. jusqu’à ce que vous en décidiez autrement, tous les deux.",
+    "rows": [
+     "réservé aux 18 ans et plus",
+     "aucune photo tant que vous n’avez pas échangé vos noms (cinq lettres chacun d’abord)",
+     "signale ce que tu veux, d’un seul geste",
+     "bloque qui tu veux : la personne ne pourra plus te joindre"
+    ]
+   }
+  },
+  "10": {
+   "h": "un journal qui\nne quitte jamais\nce téléphone.",
+   "mark": "ne quitte jamais",
+   "sub": "Scellé sur ton iPhone. Jamais envoyé chez nous."
+  }
+ },
+ "de": {
+  "01": {
+   "h": "Erst Brieffreunde.\nDann\nSeelenverwandte.",
+   "mark": "Seelenverwandte.",
+   "sub": "Kindredly ist eine anonyme Brieffreunde-App, die Fremde nach ihrem Schreibstil zusammenbringt.",
+   "pop": {
+    "bubble": "post für dich!"
+   }
+  },
+  "02": {
+   "h": "Keine Fotos.\nKeine Bio.\nKein Swipen.",
+   "mark": "Kein Swipen.",
+   "sub": "Erst kommen deine Worte. Dein Gesicht muss nie nachkommen.",
+   "pop": {
+    "ghostKick": "Jede andere App",
+    "ghostName": "Lena, 24",
+    "ghostMeta": "2 km entfernt · reist gern",
+    "letter": "Der Wasserkocher machte klack, und niemand kam. Und wie klingt dein Morgen?"
+   }
+  },
+  "03": {
+   "h": "Was ist deine\nSchreib-Aura?",
+   "mark": "Schreib-Aura?",
+   "sub": "Dein Telefon liest sie aus deinem Schreiben heraus: Rhythmus, Satzlänge, wie du einen Gedanken enden lässt.",
+   "pop": {
+    "kick": "ein paar ihrer 55 Sticker"
+   }
+  },
+  "04": {
+   "h": "Schreib etwas\nEhrliches.",
+   "mark": "Ehrliches",
+   "sub": "Kein Foto, keine Bio. Eine Zeile über deine Woche und darunter eine Frage."
+  },
+  "05": {
+   "h": "Sie bringt ihn\nzu Fremden, die\nso tippen wie du.",
+   "mark": "so tippen wie du.",
+   "sub": "Dein Brief landet zuerst auf den Schreibtischen von Fremden, die so schreiben wie du."
+  },
+  "06": {
+   "h": "Je 5 Briefe\n→ Namen tauschen.",
+   "mark": "Namen tauschen.",
+   "sub": "Brief für Brief. Nach je fünf Briefen hin und her könnt ihr Namen tauschen – oder ihr bleibt vertraute Fremde.",
+   "pop": {
+    "name": "Mara"
+   }
+  },
+  "07": {
+   "h": "Dann gibt's einen\nRaum nur für euch.",
+   "mark": "Raum nur für euch.",
+   "sub": "Namen getauscht – und aus euren Briefen wird ein Raum für zwei."
+  },
+  "08": {
+   "h": "Lass deine\neigene Botin\nschlüpfen.",
+   "mark": "eigene Botin",
+   "sub": "Sie schlüpft aus deinen ersten Worten, trägt jeden Brief und macht ein Drama, wenn du sie ghostest.",
+   "pop": {
+    "paid": "Nebel, Pfirsich und Nacht gibt es mit der Ersten Klasse, einem optionalen In-App-Abo."
+   }
+  },
+  "09": {
+   "h": "Unbekannt,\nnicht unheimlich.",
+   "mark": "nicht unheimlich.",
+   "sub": "Sei so ehrlich, wie du magst. Wer du bist, weiß hier niemand – es sei denn, du verrätst es.",
+   "pop": {
+    "whoami": "Statt deines Namens steht hier eine Nummer – bis ihr euch beide anders entscheidet.",
+    "rows": [
+     "Nur ab 18",
+     "Keine Fotos, bevor ihr Namen tauscht – erst je fünf Briefe hin und her",
+     "Melden kannst du alles – mit einem Fingertipp",
+     "Wen du blockierst, der kann dich nicht mehr erreichen"
+    ]
+   }
+  },
+  "10": {
+   "h": "Ein Tagebuch, das\ndieses Telefon\nnie verlässt.",
+   "mark": "nie verlässt.",
+   "sub": "Versiegelt auf deinem iPhone. Nie bei uns hochgeladen."
+  }
+ },
+ "it": {
+  "01": {
+   "h": "cerchi un\namico di penna?\nrischi di trovare\nun'anima affine.",
+   "mark": "un'anima affine.",
+   "sub": "Kindredly è un'app per trovare amici di penna in anonimo: abbina gli sconosciuti in base a come scrivono.",
+   "pop": {
+    "bubble": "c'è posta per te!"
+   }
+  },
+  "02": {
+   "h": "niente foto,\nniente bio,\nniente swipe.",
+   "mark": "niente swipe.",
+   "sub": "A presentarti ci pensano le parole. La faccia non è mai d'obbligo.",
+   "pop": {
+    "ghostKick": "tutte le altre app",
+    "ghostName": "giulia, 24",
+    "ghostMeta": "a 3 km · ama viaggiare",
+    "letter": "la moka ha finito di borbottare e in cucina non è venuto nessuno. e le tue mattine, che rumore fanno?"
+   }
+  },
+  "03": {
+   "h": "che penna sei?\nscopri la tua\naura di penna.",
+   "mark": "aura di penna.",
+   "sub": "Si legge nella tua scrittura, direttamente sul tuo telefono: ritmo, lunghezza delle frasi, come chiudi un pensiero.",
+   "pop": {
+    "kick": "alcuni dei suoi 55 sticker"
+   }
+  },
+  "04": {
+   "h": "scrivi una\ncosa vera.",
+   "mark": "vera",
+   "sub": "Niente foto, niente bio. Una riga sulla tua settimana e, sotto, una domanda."
+  },
+  "05": {
+   "h": "lei la porta\na chi scrive\ncome te.",
+   "mark": "come te.",
+   "sub": "Prima di tutto finisce sulle scrivanie di sconosciuti che scrivono come te."
+  },
+  "06": {
+   "h": "5 lettere per parte\n→ vi scambiate\ni nomi.",
+   "mark": "i nomi.",
+   "sub": "Una lettera alla volta. Dopo cinque per parte potete scambiarvi i nomi, oppure restare due sconosciuti che si conoscono.",
+   "pop": {
+    "name": "mara"
+   }
+  },
+  "07": {
+   "h": "e poi, una stanza\ntutta per voi.",
+   "mark": "tutta per voi.",
+   "sub": "Quando vi scambiate i nomi, le lettere diventano una stanza per due."
+  },
+  "08": {
+   "h": "fai nascere la\ntua messaggera.",
+   "mark": "tua messaggera.",
+   "sub": "Nasce dalle tue prime parole, porta ogni lettera e fa la drammatica se la ghosti.",
+   "pop": {
+    "paid": "Nebbia, Pesca e Notte si sbloccano con la Prima classe, un abbonamento facoltativo."
+   }
+  },
+  "09": {
+   "h": "sconosciuti sì,\nloschi no.",
+   "mark": "loschi no.",
+   "sub": "Apriti quanto ti va. Qui nessuno sa chi sei, se non glielo dici tu.",
+   "pop": {
+    "whoami": "sei un numero, non un nome. almeno finché non decidete tutti e due il contrario.",
+    "rows": [
+     "solo maggiorenni (18+)",
+     "niente foto finché non vi scambiate i nomi: prima cinque lettere per parte",
+     "segnala qualsiasi cosa, con un tocco",
+     "blocca chiunque, e non potrà più contattarti"
+    ]
+   }
+  },
+  "10": {
+   "h": "un diario che\nnon lascia mai\nquesto telefono.",
+   "mark": "non lascia mai",
+   "sub": "Sigillato sul tuo iPhone. Mai caricato sui nostri server."
+  }
+ },
+ "ja": {
+  "01": {
+   "h": "はじめは\n文通相手。\n気づけば、\n心友に。",
+   "mark": "心友に。",
+   "sub": "Kindredlyは、書き方の似た見知らぬ人どうしを\n引き合わせる、匿名の文通アプリ。",
+   "pop": {
+    "bubble": "お届けものでーす！"
+   }
+  },
+  "02": {
+   "h": "顔出しなし。\nプロフなし。\nスワイプもなし。",
+   "mark": "スワイプもなし。",
+   "sub": "先に届くのは、言葉。顔は出さなくていい。",
+   "pop": {
+    "ghostKick": "ほかのアプリだと",
+    "ghostName": "ゆい、24歳",
+    "ghostMeta": "2km先・旅行好き",
+    "letter": "ケトルがカチッと鳴った。誰も来なかった。あなたの朝は、どんな音がする？"
+   }
+  },
+  "03": {
+   "h": "あなたの\nことばを、\n似顔絵にすると？",
+   "mark": "似顔絵にすると？",
+   "sub": "リズム、文の長さ、考えの終わらせ方。\nそんな書き方のクセを、スマホの中で読みとる。",
+   "pop": {
+    "kick": "55枚あるステッカーの、ほんの一部"
+   }
+  },
+  "04": {
+   "h": "本音をひとつ、\n書いてみる",
+   "mark": "本音",
+   "sub": "写真も自己紹介もいらない。\n今週のことを一行、その下に質問をひとつ。"
+  },
+  "05": {
+   "h": "書き方の似た\n誰かへ、\n伝書鳥が運ぶ",
+   "mark": "書き方の似た",
+   "sub": "最初に届くのは、\n書き方の似た見知らぬ人の机です。"
+  },
+  "06": {
+   "h": "お互いに5通ずつ\n→ 名前を交わす",
+   "mark": "名前を交わす",
+   "sub": "一通、また一通。5通ずつで、名前を交わせます。\nお互いを知っている他人のままでいるのもいい。",
+   "pop": {
+    "name": "みお"
+   }
+  },
+  "07": {
+   "h": "その先に、\nふたりの部屋。",
+   "mark": "ふたりの部屋。",
+   "sub": "名前を交わしたら、\n手紙は、ふたりだけの部屋へ。"
+  },
+  "08": {
+   "h": "自分だけの\n伝書鳥を孵そう。",
+   "mark": "伝書鳥を孵そう。",
+   "sub": "最初のひとことから孵って、手紙をぜんぶ運ぶ。\n放っておくと、すねます。",
+   "pop": {
+    "paid": "「きり」「もも」「よる」の羽色は、任意の有料サブスクリプション「ファーストクラス」で選べます。"
+   }
+  },
+  "09": {
+   "h": "知らない人。\nでも、\nあやしくない。",
+   "mark": "あやしくない。",
+   "sub": "本音は、好きなだけ書いていい。\n名乗るまで、あなたが誰なのかは誰も知らない。",
+   "pop": {
+    "whoami": "名前じゃなくて、番号。ふたりで決めるまでは。",
+    "rows": [
+     "18歳以上限定",
+     "名前を交わすまで写真はなし。まずはお互いに5通ずつ",
+     "どんなことも、ワンタップで通報",
+     "誰でもブロックできて、その相手からはもう二度と届かない"
+    ]
+   }
+  },
+  "10": {
+   "h": "このスマホから\n一歩も出ない\n日記。",
+   "mark": "一歩も出ない",
+   "sub": "あなたのiPhoneの中に封印。\nわたしたちへのアップロードは、一切なし。"
+  }
+ },
+ "ko": {
+  "01": {
+   "h": "시작은 펜팔.\n남는 건\n결이 맞는 사람.",
+   "mark": "결이 맞는 사람.",
+   "sub": "Kindredly는 글결이 닮은 낯선 사람끼리 이어 주는 익명 펜팔 앱이에요.",
+   "pop": {
+    "bubble": "띵동, 배달 왔어!"
+   }
+  },
+  "02": {
+   "h": "프사도, 자기소개도,\n스와이프도 없어요.",
+   "mark": "스와이프도 없어요.",
+   "sub": "글이 먼저 가요. 얼굴은 끝까지 안 보여 줘도 돼요.",
+   "pop": {
+    "ghostKick": "다른 앱들",
+    "ghostName": "지수, 24",
+    "ghostMeta": "3km 거리 · 여행 좋아함",
+    "letter": "전기포트가 딸깍 꺼졌는데, 아무도 오지 않았어요. 그쪽 아침엔 무슨 소리가 나요?"
+   }
+  },
+  "03": {
+   "h": "내 글결은\n어떤 결일까?",
+   "mark": "글결",
+   "sub": "글 쓰는 습관을 폰 안에서 읽어 내요. 리듬, 문장 길이, 생각을 맺는 방식까지.",
+   "pop": {
+    "kick": "스티커 55장 중 일부"
+   }
+  },
+  "04": {
+   "h": "솔직한 얘기\n하나 쓰기",
+   "mark": "솔직한",
+   "sub": "사진도 자기소개도 없이. 이번 주 얘기 한 줄, 그 밑에 질문 하나."
+  },
+  "05": {
+   "h": "전령새가\n나처럼 쓰는\n사람에게\n물어다 줘요",
+   "mark": "나처럼 쓰는",
+   "sub": "나처럼 쓰는 낯선 사람들 책상에 먼저 도착해요."
+  },
+  "06": {
+   "h": "서로 5통씩\n→ 이름 주고받기",
+   "mark": "이름 주고받기",
+   "sub": "편지 한 통, 또 한 통. 서로 다섯 통씩 오가면 이름을 주고받을 수 있어요. 아니면 이름은 몰라도 서로를 아는 사이로 남아도 좋고요.",
+   "pop": {
+    "name": "하린"
+   }
+  },
+  "07": {
+   "h": "그다음엔\n둘만의 방이 생겨요.",
+   "mark": "둘만의 방",
+   "sub": "이름을 주고받으면, 편지가 오가던 자리가 두 사람만의 방이 돼요."
+  },
+  "08": {
+   "h": "나만의 전령새를\n깨워 봐요.",
+   "mark": "나만의 전령새",
+   "sub": "첫 글에서 깨어나서 편지를 전부 날라요. 잠수 타면 서운한 티 팍팍 내고요.",
+   "pop": {
+    "paid": "안개·복숭아·밤 옷은 퍼스트 클래스(선택형 유료 구독)에 포함돼요."
+   }
+  },
+  "09": {
+   "h": "낯설지만,\n수상하진 않아요.",
+   "mark": "수상하진 않아요.",
+   "sub": "마음껏 솔직해져도 돼요. 직접 말하기 전엔 여기서 아무도 내가 누군지 몰라요.",
+   "pop": {
+    "whoami": "여기선 이름 말고 번호로 지내요. 두 사람이 다르게 정하기 전까지는요.",
+    "rows": [
+     "18세 이상만",
+     "이름을 주고받기 전까진 사진 없음 — 먼저 서로 다섯 통씩",
+     "뭐든 탭 한 번으로 신고",
+     "누구든 차단하면 상대는 다시 연락 못 해요"
+    ]
+   }
+  },
+  "10": {
+   "h": "이 폰을\n절대 떠나지 않는\n일기.",
+   "mark": "절대 떠나지 않는",
+   "sub": "내 iPhone 안에 봉인돼요. 저희 쪽으로 업로드되는 일도 없어요."
+  }
+ }
+}
