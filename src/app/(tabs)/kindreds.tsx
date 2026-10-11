@@ -493,7 +493,11 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
       accessibilityRole="button"
       accessibilityLabel={a11y}
       {...a11yActions(actions)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+      /* no fade while a finger rests on a row that has a menu (owner,
+         2026-10-11: "长按…震动了才出来"): the fade hid iOS's own press — the
+         row giving under the finger before it lifts — so a long-press looked
+         like nothing until the buzz. Rows without a menu still fade. */
+      style={({ pressed }) => ({ opacity: pressed && !actions.length ? 0.6 : 1 })}
     >
       <MessageMenu actions={actions} radius={0}>
       <View style={{ width, flexDirection: "row", alignItems: "center", gap: ROW.gap, paddingHorizontal: ROW.pad, backgroundColor: "#FFFFFF" }}>

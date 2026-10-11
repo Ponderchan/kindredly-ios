@@ -67,7 +67,9 @@ export function NotifyBanner({ preview = false }: { preview?: boolean } = {}) {
       void check();
       return;
     }
-    void Linking.openSettings();
+    /* straight to Kindredly's own Notifications page in Settings (iOS 16+'s
+       openNotificationSettingsURLString); the app's Settings page if not */
+    Linking.openURL("app-settings:notifications").catch(() => Linking.openSettings());
   };
   const close = () => {
     const now = Date.now();

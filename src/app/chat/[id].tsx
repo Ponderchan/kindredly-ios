@@ -392,7 +392,8 @@ export default function ChatScreen() {
                 onLongPress={() => {}}
                 delayLongPress={350}
                 {...a11yActions(menuFor(m))}
-                style={({ pressed }) => ({ marginBottom: 10, alignItems: m.mine ? "flex-end" : "flex-start", opacity: pressed ? 0.55 : 1 })}
+                /* no fade under the finger: it hid iOS's own press-and-lift of the menu */
+                style={{ marginBottom: 10, alignItems: m.mine ? "flex-end" : "flex-start" }}
               >
                 {showLabel && (
                   <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1, color: P.ink40, marginBottom: 6, marginHorizontal: 2 }}>
