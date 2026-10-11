@@ -50,14 +50,31 @@ export function NotifyBanner({ preview = false }: { preview?: boolean } = {}) {
   }, []);
 
   useEffect(() => {
-    scoped.getItem(KEY).then((v) => setClosedAt(v ? Number(v) : null)).catch(() => {}).finally(() => setReady(true));
+    let live = true;
+    // dev preview: each visit starts with the bar back, so × can be tried again
+    if (__DEV__ && preview) {
+      void scoped.removeItem(KEY).catch(() => {});
+      setClosedAt(null);
+      setReady(true);
+    } else {
+      scoped.getItem(KEY)
+        .then((v) => { if (live) setClosedAt(v ? Number(v) : null); })
+        .catch(() => {})
+        .finally(() => { if (live) setReady(true); });
+    }
     const sub = AppState.addEventListener("change", (s) => { if (s === "active") void check(); });
-    return () => sub.remove();
-  }, [check]);
+    return () => {
+      live = false;
+      sub.remove();
+    };
+  }, [check, preview]);
   useFocusEffect(useCallback(() => { void check(); }, [check]));
 
-  // dev: Kindreds?nb=1 shows the bar whatever the phone's setting
-  const show = (__DEV__ && preview) || (ready && !isGuest && !!perm && perm !== "granted" && !(closedAt && Date.now() - closedAt < QUIET_MS));
+  /* × always closes it — even in the dev preview (Kindreds?nb=1 only stands
+     in for "notifications are off") */
+  const closed = !!closedAt && Date.now() - closedAt < QUIET_MS;
+  const off = (__DEV__ && preview) || (!isGuest && !!perm && perm !== "granted");
+  const show = ready && !closed && off;
   if (!show) return null;
 
   const turnOn = async () => {
