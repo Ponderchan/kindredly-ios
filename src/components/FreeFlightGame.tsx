@@ -5,6 +5,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from "react-nativ
 import { PALETTE, type Daylight } from "./CourierCard";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenStage } from "./WrenBird";
 import { readBest, saveRun } from "../lib/free-flight";
+import { replanLocal } from "../lib/local-push";
 import { P, PF } from "../theme/post";
 import { t } from "../lib/i18n";
 
@@ -183,6 +184,7 @@ export function FreeFlight({
     void saveRun({ gates: gatesRef.current, pace }).then((isNew) => {
       setNewBest(isNew && gatesRef.current > 0);
       if (isNew) setBest(gatesRef.current);
+      void replanLocal({ force: true }); // a game played: no day-off race for a week, and the next one carries the new best
     });
   }, []);
   const onGate = useCallback(() => {

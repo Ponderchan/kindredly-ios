@@ -24,10 +24,23 @@ let gate: Promise<void> = new Promise((r) => {
   releaseGate = r;
 });
 
+/* module caches of account-owned keys (lib/free-flight's best run) drop
+   themselves when the account changes, so nothing reads the last account's
+   copy for the rest of the session */
+const nsChanges = new Set<() => void>();
+export function onStorageUserChange(f: () => void): () => void {
+  nsChanges.add(f);
+  return () => nsChanges.delete(f);
+}
+/** the namespace keys are scoped to right now (null before auth has resolved) */
+export const storageNs = (): string | null => ns;
+
 export function setStorageUser(uid: string | null): void {
+  const was = ns;
   ns = uid || "anon";
   releaseGate?.();
   releaseGate = null;
+  if (was !== null && was !== ns) nsChanges.forEach((f) => f());
 }
 
 const scopedKey = async (key: string): Promise<string> => {
@@ -90,6 +103,9 @@ const OWNED_KEYS = [
   "kindredly_aura_cache",
   "kindredly_threads_cache",
   "kindredly_moment_day",
+  "kindredly_wren_lines", // her lines: rotation, the aura lines told, the last written day (lib/local-push)
+  "kindredly_push_prefs", // this phone's copy of user_metadata.push
+  "kindredly_wren_work", // what the Me tab last saw of her work, for the day-off push (lib/free-flight)
 ];
 
 const MIGRATED = "kindredly_ns_claimed"; // bare, device-level marker

@@ -34,6 +34,7 @@ import { DeskStrip } from "../../components/WrenDesk";
 import { postNo, postmark, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
+import { noteWrote, replanLocal } from "../../lib/local-push";
 import { bump, getCounters, repliedToday, seenToday } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
 import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
@@ -88,8 +89,17 @@ const POOL_PAGE = 40;
    still writes the raw list (no desk exists yet); that shape is read as a
    placeholder. */
 type DeskCache = { day: string; desk: PoolLetter[] };
+/* lib/local-push reads this key: the 8 o'clock knock is skipped only for a
+   morning whose own desk is known to be empty, so a desk that fills or
+   empties re-plans it — once per change, not on every put-away */
+let deskWasFull: boolean | null = null;
 const putAway = (desk: PoolLetter[]) => {
-  void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify({ day: deskDay(), desk } satisfies DeskCache)).catch(() => {});
+  const full = desk.length > 0;
+  const changed = full !== deskWasFull;
+  deskWasFull = full;
+  void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify({ day: deskDay(), desk } satisfies DeskCache))
+    .then(() => (changed ? replanLocal({ force: true }) : undefined))
+    .catch((e) => console.warn("[today] desk put-away:", e));
 };
 async function readDeskCache(): Promise<{ desk: PoolLetter[]; today: boolean } | null> {
   try {
@@ -513,6 +523,7 @@ function Feed({
     setSending(false);
     setDrafts((d) => ({ ...d, [to.id]: "" }));
     void refreshFingerprint(); // the reply is part of your voice now
+    void noteWrote("letter");
     setToast(true);
     setTimeout(() => setToast(false), 2200);
     /* AND IT LEAVES THE POOL. This only scrolled, so the letter you had just

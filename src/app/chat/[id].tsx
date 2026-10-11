@@ -27,6 +27,7 @@ import { track } from "../../lib/track";
 import { useEntitlement } from "../../lib/entitlement";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { refreshFingerprint } from "../../lib/aura";
+import { noteWrote } from "../../lib/local-push";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { markWork } from "../../lib/stall-probe";
 import { threadState } from "../../lib/thread-state";
@@ -257,6 +258,7 @@ export default function ChatScreen() {
       return;
     }
     void refreshFingerprint();
+    void noteWrote("letter");
     // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 

@@ -1,76 +1,62 @@
 import * as Notifications from "expo-notifications";
-import { t } from "./i18n";
 
-/* The 8 o'clock knock — a fully local daily notification for the Morning
-   Page. No server push involved; nothing else ever notifies (the product
-   promise: "no rush, nothing nudges you"). */
+/* THE 8 O'CLOCK KNOCK — now one of her lines (push step two, iOS 1.2.3).
+   It used to be a repeating daily trigger with fixed words, which could
+   neither change its line nor know whether the desk had letters. It is a
+   device switch now, and the knock itself is planned with the rest of her
+   lines in lib/local-push: one-shot, a different line each morning, every
+   morning while it is on (owner, 2026-10-11: only a desk the app KNOWS is
+   empty would skip it, and the desk refills at eight, after the app last
+   looked — so in practice none is skipped), carrying the morning question
+   when that is on. These four keep their old names for their callers. */
 
-const KNOCK_ID = "morning-knock";
-
-/* The one hour the day has a beat: the Morning Page lands, and the knock
-   fires. Delivery of pool letters and replies is continuous (there's no
-   server-side batch to release), so this is the daily ritual anchor, not a
-   promise about when the next letter shows up. Single source of truth for
-   both the notification and the quiet-state countdown. */
 import { MORNING_HOUR } from "./day";
 export { MORNING_HOUR };
+import { askForNotifications, getKnockOn, replanLocal, setKnockOn } from "./local-push";
 
 export async function enableMorningKnock(): Promise<boolean> {
   try {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") return false;
-    await Notifications.cancelScheduledNotificationAsync(KNOCK_ID).catch(() => {});
-    await Notifications.scheduleNotificationAsync({
-      identifier: KNOCK_ID,
-      content: {
-        title: t("nt.knockTitle"),
-        body: t("nt.knockBody"),
-        sound: false,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: MORNING_HOUR,
-        minute: 0,
-      },
-    });
+    if (!(await askForNotifications())) return false;
+    await setKnockOn(true);
     return true;
-  } catch {
+  } catch (e) {
+    console.warn("[notify] knock on:", e);
     return false;
   }
 }
 
 export async function disableMorningKnock(): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(KNOCK_ID);
-  } catch {
-    /* nothing scheduled */
+    await setKnockOn(false);
+  } catch (e) {
+    console.warn("[notify] knock off:", e);
   }
 }
 
-/* The knock's words are copied into the OS schedule the moment it's set, so
-   they don't follow a later language change on their own — re-stamp them.
-   A no-op when nothing is scheduled, and permission is already granted by
-   definition if it is, so this never raises a prompt. */
+/* The words are copied into the OS schedule the moment they're set, so they
+   don't follow a later language change (or a new name for her) on their
+   own — re-stamp everything. Never raises a permission prompt. */
 export async function refreshMorningKnock(): Promise<void> {
-  if (await morningKnockEnabled()) await enableMorningKnock();
+  await replanLocal({ force: true });
 }
 
 export async function morningKnockEnabled(): Promise<boolean> {
   try {
-    const all = await Notifications.getAllScheduledNotificationsAsync();
-    return all.some((n) => n.identifier === KNOCK_ID);
-  } catch {
+    return await getKnockOn();
+  } catch (e) {
+    console.warn("[notify] knock read:", e);
     return false;
   }
 }
 
-/* ── THE ONE PUSH THIS PRODUCT SENDS ────────────────────────────────
+/* ── THE PUSHES THE SERVER SENDS ────────────────────────────────────
    "Nothing nudges you" was written for everything the app might want to
-   say, and it still holds for all of it: no digests, no streaks, no
-   "someone read your letter". But it also silenced the single event the
-   whole product turns on — a stranger answered — and a letter that takes
-   days to arrive needs a letterbox. Nine of eleven readers had gone quiet
-   with answers waiting for them; nothing existed to say so. */
+   say. It silenced the single event the whole product turns on — a
+   stranger answered — and a letter that takes days to arrive needs a
+   letterbox. Since push step two (owner, 2026-10-10) the server also sends
+   a few reminders (her hunger, a room about to close, a letter's first
+   opening), each with its own switch in Settings (user_metadata.push), and
+   none of them ever carries who, or a word of anyone's letter. */
 
 import { supabase, supabaseReady } from "./supabase";
 import { getLang } from "./i18n";
@@ -91,7 +77,7 @@ export async function registerForReplies(): Promise<void> {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (tz && (u.user?.user_metadata as Record<string, unknown> | undefined)?.tz !== tz) {
-        void supabase!.auth.updateUser({ data: { tz } }).catch(() => {});
+        void supabase!.auth.updateUser({ data: { tz } }).then(({ error }) => error && console.warn("[notify] tz write:", error.message), (e) => console.warn("[notify] tz write:", e));
       }
     } catch {
       /* no zone, no reminders by the clock — the knocks themselves still come */
@@ -105,6 +91,8 @@ export async function registerForReplies(): Promise<void> {
     if (status !== "granted") {
       if (!perm.canAskAgain) return;
       status = (await Notifications.requestPermissionsAsync()).status;
+      // just allowed: the launch re-plan found no permission and stood down — plan her lines now
+      if (status === "granted") void replanLocal({ force: true });
     }
     if (status !== "granted") return;
 

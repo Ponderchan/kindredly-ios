@@ -114,6 +114,13 @@ export async function addEntry(input: {
   };
   const next = [entry, ...entries];
   await save(next);
+  /* written today: her evening line stays quiet, and the aura may have
+     settled a line (lib/local-push). Lazy — local-push reads the journal. */
+  try {
+    void (require("./local-push") as typeof import("./local-push")).noteWrote("notes").catch((e: unknown) => console.warn("[journal] noteWrote:", e));
+  } catch (e) {
+    console.warn("[journal] local-push unavailable:", e);
+  }
   return next;
 }
 

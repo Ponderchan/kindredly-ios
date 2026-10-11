@@ -9,6 +9,7 @@ import { AuraCard, StickerChip, W14, cardShadow } from "../components/AuraCard";
 import { GridIcon, ShareIcon } from "../components/Icons";
 import { useAuth } from "../lib/auth";
 import { getAuraScope, myAura, pauseCounts, setAuraScope, wordCounts, type Aura } from "../lib/aura";
+import { observeAuraLocks } from "../lib/local-push";
 import { dimLabel } from "../lib/aura-copy";
 import { observationState, stickerCount, stickerLine, stickerName, usageGroupLabel, usageLine } from "../lib/sticker-copy";
 import type { UsageGroup } from "../lib/usage-stickers";
@@ -53,6 +54,9 @@ export default function AuraScreen() {
     const [a, sc] = await Promise.all([__DEV__ && storeMode ? Promise.resolve(storeAura()) : myAura((profile?.firstLine as string) || null), getAuraScope()]);
     setAura(a);
     setSealedOn(sc.sealed);
+    /* she said a line settled; you came to look — it's told, and a line
+       still waiting to go out is withdrawn (lib/local-push) */
+    if (!(__DEV__ && storeMode)) void observeAuraLocks(a.locked.map((d) => d.key), true);
   }, [profile?.firstLine]);
 
   useFocusEffect(

@@ -21,7 +21,8 @@ import type { Lang } from "../data/stamps";
 import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
-import { takePicked } from "../lib/journal-handoff";
+import { takePicked, takeSpark } from "../lib/journal-handoff";
+import { todaysMorningLine } from "../lib/local-push";
 import { storeMode, storePhotos } from "../lib/dev-store";
 import { CourierSendOff } from "./CourierSendOff";
 import { Nudge } from "./ComposeTray";
@@ -77,8 +78,20 @@ export function SelfCompose({
   }));
   // the empty page's line, chosen from what's already on this device
   const [spark, setSpark] = useState("today felt like…");
+  /* her question first, when she asked one: the line tapped on the lock
+     screen tonight, else this morning's question if it was tapped today.
+     A placeholder only — the page's body stays the writer's. */
   useEffect(() => {
-    loadJournal().then((all) => setSpark(journalSpark(all)));
+    const handed = takeSpark();
+    if (handed) {
+      setSpark(handed);
+      return;
+    }
+    let alive = true;
+    void Promise.all([loadJournal(), todaysMorningLine()]).then(([all, morning]) => alive && setSpark(morning ?? journalSpark(all)));
+    return () => {
+      alive = false;
+    };
   }, []);
   const [att, setAtt] = useState<Exclude<JournalType, "text"> | null>(null);
   const [mediaUri, setMediaUri] = useState<string | null>(null);

@@ -6,6 +6,7 @@ import { useFocusEffect } from "expo-router";
 import { t, useLang } from "../lib/i18n";
 import { scoped } from "../lib/scoped-store";
 import { registerForReplies } from "../lib/notify";
+import { replanLocal } from "../lib/local-push";
 import { useAuth } from "../lib/auth";
 import { ROW } from "./ChatRowStyle";
 
@@ -22,12 +23,31 @@ import { ROW } from "./ChatRowStyle";
 const KEY = "kindredly_notify_banner_closed";
 const QUIET_MS = 14 * 24 * 3600 * 1000;
 
-type Perm = "granted" | "ask" | "settings";
+export type Perm = "granted" | "ask" | "settings";
 
-async function readPerm(): Promise<Perm> {
+/** where the phone stands: allowed, never asked (iOS's own question still available), or refused (only Settings can change it) */
+export async function readPerm(): Promise<Perm> {
   const p = await Notifications.getPermissionsAsync();
   if (p.status === "granted" || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) return "granted";
   return p.canAskAgain ? "ask" : "settings";
+}
+
+/** the way to turn them on: iOS's own question if it can still be asked; otherwise
+    straight to Kindredly's Notifications page in Settings (iOS 16+'s
+    openNotificationSettingsURLString), the app's Settings page if not */
+export async function turnNotificationsOn(perm: Perm): Promise<void> {
+  if (perm === "ask") {
+    const r = await Notifications.requestPermissionsAsync().catch((e) => {
+      console.warn("[notify] permission ask:", e);
+      return null;
+    });
+    if (r?.status === "granted") {
+      void registerForReplies();
+      void replanLocal({ force: true }); // her lines (a guest's too) go in now, not at the next return
+    }
+    return;
+  }
+  await Linking.openURL("app-settings:notifications").catch(() => Linking.openSettings());
 }
 
 export function NotifyBanner({ preview = false }: { preview?: boolean } = {}) {
@@ -78,15 +98,8 @@ export function NotifyBanner({ preview = false }: { preview?: boolean } = {}) {
   if (!show) return null;
 
   const turnOn = async () => {
-    if (perm === "ask") {
-      const r = await Notifications.requestPermissionsAsync().catch(() => null);
-      if (r?.status === "granted") void registerForReplies();
-      void check();
-      return;
-    }
-    /* straight to Kindredly's own Notifications page in Settings (iOS 16+'s
-       openNotificationSettingsURLString); the app's Settings page if not */
-    Linking.openURL("app-settings:notifications").catch(() => Linking.openSettings());
+    await turnNotificationsOn(perm ?? "ask");
+    if (perm === "ask") void check();
   };
   const close = () => {
     const now = Date.now();

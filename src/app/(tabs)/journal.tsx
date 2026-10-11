@@ -9,6 +9,7 @@ import { t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
 import { TabHeader } from "../../components/TabHeader";
 import { WrenSaysOnce } from "../../components/WrenSaysOnce";
+import { EveningAsk } from "../../components/EveningAsk";
 import { SealedTile, KindMark, day } from "../../components/SealedTile";
 import { MoodIcon } from "../../components/MoodIcon";
 import { cardShadow } from "../../components/AuraCard";
@@ -166,6 +167,8 @@ export default function JournalTab() {
             {t("jt.moments")}
           </Animated.Text>
           <WrenSaysOnce id="sealed" line={t("jt.said")} />
+          {/* once, after the first real page: a line each evening? */}
+          <EveningAsk pages={entries.filter((e) => !e.id.startsWith("demo-")).length} />
           {mode === "card" ? <Wall entries={all} onOpen={(id) => router.push(`/journal/${id}`)} /> : <Rows entries={all} onOpen={(id) => router.push(`/journal/${id}`)} />}
         </Animated.ScrollView>
       )}

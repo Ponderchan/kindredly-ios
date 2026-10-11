@@ -19,6 +19,7 @@ import { getStamp, sname } from "../data/stamps";
 import { screen } from "../lib/wren";
 import { bumpLetters } from "../lib/api";
 import { refreshFingerprint } from "../lib/aura";
+import { noteWrote } from "../lib/local-push";
 import { track } from "../lib/track";
 import { getLang, t, useLang } from "../lib/i18n";
 import { useWrenOnce } from "../components/WrenSaysOnce";
@@ -293,6 +294,7 @@ export default function Compose() {
        letters only, never the journal. Fire-and-forget: a staler match is
        fine, a blocked send is not. */
     void refreshFingerprint();
+    void noteWrote("letter"); // written today: her evening line stays quiet
     if (draftId) {
       deleteDraft(draftId);
       setDraftId(null);

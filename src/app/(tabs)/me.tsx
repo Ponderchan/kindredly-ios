@@ -20,12 +20,13 @@ import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { myAura, readAuraCache, recordAuraSnapshot, type Aura } from "../../lib/aura";
+import { observeAuraLocks, replanLocal } from "../../lib/local-push";
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { recordStageDate, whereabouts } from "../../lib/whereabouts";
 import { AuraCard, W14, cardShadow } from "../../components/AuraCard";
 import { Envelope } from "../../components/PostTabBar";
 import { StateGlyph } from "../../components/StateGlyph";
-import { isDayOff, useFlightBest } from "../../lib/free-flight";
+import { isDayOff, noteWork, useFlightBest } from "../../lib/free-flight";
 import { dShort } from "../../lib/format";
 import { CofounderMark } from "../../components/CofounderMark";
 import { useAuth } from "../../lib/auth";
@@ -156,6 +157,7 @@ export default function MeTab() {
           if (!alive) return;
           setAura(a);
           void recordAuraSnapshot(a);
+          void observeAuraLocks(a.locked.map((d) => d.key), false); // a line that settled since the last look (lib/local-push)
         })();
       };
       /* a plain timer, not InteractionManager: the courier card's ambient
@@ -179,6 +181,17 @@ export default function MeTab() {
   const where = whereabouts(threads, statsIn ? stats.lettersSent : null);
   const hunger = hungerRead({ threads, lastWrittenAt: aura?.lastWrittenAt ?? null });
   const flightBest = useFlightBest();
+  /* her day-off push is planned days ahead (lib/local-push): put away what
+     isDayOff reads, once her stats and writing are in, and re-plan when it
+     moved (a reply to bring home, a letter waiting on you, a first letter) */
+  const lastWrittenAt = aura?.lastWrittenAt ?? null;
+  const haveAura = !!aura;
+  useEffect(() => {
+    if (!statsIn || !haveAura) return;
+    void noteWork({ threads, state: where.state, lastWrittenAt, stage: stageFloor })
+      .then((moved) => (moved ? replanLocal({ force: true }) : undefined))
+      .catch((e) => console.warn("[me] work note:", e));
+  }, [statsIn, haveAura, threads, where.state, lastWrittenAt, stageFloor]);
   /* the plate's LETTERS is what the My letters page lists: letters you sent
      into the pool. Replies live in Kindreds; the aura card says "letters &
      replies" for what it read. GrowthStats keeps counting replies alone (the

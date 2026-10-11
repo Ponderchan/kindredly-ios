@@ -8,6 +8,8 @@ import { AuthProvider, useAuth } from "../lib/auth";
 import { refreshFingerprint } from "../lib/aura";
 import { markWork, noteRoute, startStallProbe } from "../lib/stall-probe";
 import { registerForReplies } from "../lib/notify";
+import { ensurePushObject, lineKey, lineText, rememberMorningQuestion, replanLocal } from "../lib/local-push";
+import { leaveSpark } from "../lib/journal-handoff";
 import { syncActivities } from "../lib/activities";
 import { BirdSnapshots } from "../components/BirdSnapshots";
 import * as Notifications from "expo-notifications";
@@ -44,7 +46,30 @@ function KnockRouting() {
        thread itself; if that read fails we still open something rather than
        nothing. */
     const open = async (res: Notifications.NotificationResponse) => {
-      const data = res.notification.request.content.data as { thread?: string; wren?: number } | undefined;
+      const data = res.notification.request.content.data as { thread?: string; wren?: number; line?: string; pool?: unknown; index?: unknown } | undefined;
+      /* her own lines, scheduled on the phone (lib/local-push): a question
+         opens a fresh Notes page with that question as its placeholder (the
+         voice line opens the page recording, the photo line the roll), the
+         morning opens the desk and keeps her question for tonight's page,
+         the aura opens the aura, her day off opens Free Flight on her
+         cover. Nothing of the journal rode in the notification — only
+         which approved line it was. */
+      if (data?.line) {
+        if (data.line === "daily" || data.line === "week") {
+          const text = lineText(data.pool, data.index);
+          if (text) leaveSpark(text);
+          const key = lineKey(data.pool, data.index);
+          if (key === "daily_prompt.21") router.push("/journal-entry?start=voice");
+          else if (key === "daily_prompt.6") router.push("/journal-pick");
+          else router.push("/journal-entry");
+        } else if (data.line === "aura") router.push("/aura");
+        else if (data.line === "dayoff") router.push("/courier?play=1");
+        else {
+          if (data.line === "morning") void rememberMorningQuestion(data.index);
+          router.push("/(tabs)/letters");
+        }
+        return;
+      }
       // a post from Wren's desk (0023) opens her room, not a thread
       if (data?.wren) {
         router.push("/room/wren");
@@ -110,6 +135,24 @@ function FingerprintOnLaunch() {
   return null;
 }
 
+/* HER LINES ARE RE-PLANNED ON EVERY LAUNCH AND RETURN (lib/local-push):
+   the next fourteen days are one-shot, so the queue only stays full for
+   someone who keeps coming back — and a day that has turned, a desk that
+   filled, a switch flipped on the web all land here. Guests too: the
+   lines are the phone's own. */
+function LocalLinesOnLaunch() {
+  const { user } = useAuth();
+  useEffect(() => {
+    void ensurePushObject(); // an account without user_metadata.push gets push: {} (server contract, 2026-10-11)
+    void replanLocal({ force: true });
+    const sub = AppState.addEventListener("change", (st) => {
+      if (st === "active") void replanLocal();
+    });
+    return () => sub.remove();
+  }, [user?.id]);
+  return null;
+}
+
 // Simulator-only expo-notifications keychain noise. The toast it raises sits
 // over the bottom controls and eats taps — silence it in dev.
 LogBox.ignoreLogs(["Error reading persisted server registration info"]);
@@ -140,6 +183,7 @@ export default function RootLayout() {
             <WrenSkinProvider>
             <WrenStageProvider>
             <FingerprintOnLaunch />
+            <LocalLinesOnLaunch />
             <StallProbe />
               <BirdSnapshots />
             <KnockRouting />

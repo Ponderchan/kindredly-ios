@@ -31,3 +31,20 @@ export function takeKept(): PickedPhoto[] {
   kept = null;
   return k;
 }
+
+/* HER QUESTION, HANDED TO THE PAGE (push step two). Tapping her evening
+   line or the Sunday look-back opens a fresh Notes page with that line as
+   the empty page's placeholder — never as the body. Same one-shot handoff
+   as the pictures; stale after a few minutes, so a tap that ended on the
+   roll and was abandoned doesn't haunt a page written hours later. */
+const SPARK_TTL_MS = 10 * 60 * 1000;
+let spark: { text: string; at: number } | null = null;
+
+export function leaveSpark(text: string): void {
+  spark = { text, at: Date.now() };
+}
+export function takeSpark(): string | null {
+  const s = spark;
+  spark = null;
+  return s && Date.now() - s.at < SPARK_TTL_MS ? s.text : null;
+}

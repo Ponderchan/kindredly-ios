@@ -1,0 +1,111 @@
+// node scripts/make-local-push-copy.mjs [path/to/push-copy.source.json]
+//
+// Writes src/data/local-push-copy.ts — the lines the PHONE says on its own (push step two, iOS 1.2.3):
+// the daily line, the morning question, the Sunday look-back, the aura's settled line and the
+// morning knock. The source is the owner-approved push copy (2026-10-10) that lives in the web
+// repo (scripts/push-copy.source.json): English edited through three lenses and a chief editor,
+// every other language written natively and read blind by a second native editor. Nothing here
+// writes or edits a word — it only copies the five on-device pools out, in the English key
+// order, for the nine languages the app ships (zh is not shipped).
+//
+// Her day off (2026-10-11) is the phone's alone and was written after that file was approved, so
+// its two pools — the plain invite and the one with their best run — come from a small sibling in
+// this repo, scripts/day-off-push-copy.source.json, written and read the same way. Both land in the
+// one generated file, so lib/local-push reads every phone line from one place. That file says when
+// it was written and, separately, when (if ever) the owner approved it ("approved": null until
+// they say yes); the generated header repeats exactly that, never more.
+//
+// A language missing any line of a pool is an error, not a fallback: the phone must never
+// knock in English to someone reading in Korean, and must never invent a line.
+import { readFileSync, writeFileSync } from "node:fs";
+
+const DEFAULT_SRC = "/Users/redbeardlord/Desktop/claude 项目/kindredly/scripts/push-copy.source.json";
+const SRC = process.argv[2] || DEFAULT_SRC;
+const DAY_OFF_SRC = new URL("./day-off-push-copy.source.json", import.meta.url);
+const OUT = new URL("../src/data/local-push-copy.ts", import.meta.url);
+
+const POOLS = ["daily_prompt", "morning_question", "week_in_words", "aura_settled", "morning_knock"];
+const LANGS = ["en", "es", "pt", "id", "fr", "de", "it", "ja", "ko"];
+
+const src = JSON.parse(readFileSync(SRC, "utf8"));
+const order = Object.fromEntries(POOLS.map((p) => [p, []]));
+const groups = [];
+for (const l of src.english.lines) {
+  if (!POOLS.includes(l.type)) continue;
+  order[l.type].push(l.key);
+  if (l.type === "daily_prompt") groups.push(l.group);
+}
+for (const p of POOLS) if (!order[p].length) throw new Error(`no English lines for ${p}`);
+if (groups.some((g) => !g)) throw new Error("a daily_prompt line has no group");
+
+const byLang = { en: new Map(src.english.lines.map((l) => [l.key, l.body])) };
+for (const L of src.languages) if (LANGS.includes(L.lang)) byLang[L.lang] = new Map(L.lines.map((l) => [l.key, l.body]));
+
+const copy = {};
+const missing = [];
+for (const lang of LANGS) {
+  if (!byLang[lang]) { missing.push(lang); continue; }
+  copy[lang] = {};
+  for (const p of POOLS) {
+    const lines = order[p].map((k) => byLang[lang].get(k));
+    lines.forEach((x, i) => { if (!x || !String(x).trim()) missing.push(`${lang}:${order[p][i]}`); });
+    copy[lang][p] = lines;
+  }
+}
+/* her day off: invite (plain) and best (carries {n}, their best run in gates) */
+const DAY_OFF = { day_off_invite: "invite", day_off_best: "best" };
+const dayOffSrc = JSON.parse(readFileSync(DAY_OFF_SRC, "utf8"));
+const dayOff = dayOffSrc.languages;
+const dayOffStatus = dayOffSrc.approved ? `owner-approved ${dayOffSrc.approved}` : `written ${dayOffSrc.written || "?"}, awaiting the owner`;
+for (const [pool, field] of Object.entries(DAY_OFF)) {
+  const n = dayOff.en?.[field]?.length || 0;
+  if (!n) throw new Error(`no English lines for ${pool}`);
+  order[pool] = Array.from({ length: n }, (_, i) => `day_off.${field}.${i + 1}`);
+  for (const lang of LANGS) {
+    if (!copy[lang]) continue;
+    const lines = dayOff[lang]?.[field] || [];
+    for (let i = 0; i < n; i++) {
+      const x = lines[i];
+      if (!x || !String(x).trim()) missing.push(`${lang}:${order[pool][i]}`);
+      else if (field === "best" && !String(x).includes("{n}")) missing.push(`${lang}:${order[pool][i]} (no {n})`);
+    }
+    if (lines.length > n) missing.push(`${lang}:${pool} has ${lines.length} lines, English ${n}`);
+    copy[lang][pool] = lines.slice(0, n);
+  }
+}
+const ALL = [...POOLS, ...Object.keys(DAY_OFF)];
+
+if (missing.length) {
+  console.error("missing lines — nothing written:", missing.join(" "));
+  process.exit(1);
+}
+
+const ts = `/* WHAT SHE SAYS FROM THE PHONE ITSELF (push step two, iOS 1.2.3).
+   ────────────────────────────────────────────────────────────────────────
+   The pools the phone schedules on its own — the daily line, the morning
+   question, the Sunday look-back, the aura's settled line, the morning
+   knock (owner-approved 2026-10-10) and her day off, plain and with their
+   best run ({n} gates; ${dayOffStatus}). Every language written
+   natively; each pool keeps the English key order everywhere, so line n is
+   the same moment in every language. Lower case and no closing full stop
+   are the copy's own rule, not a bug.
+
+   GENERATED by scripts/make-local-push-copy.mjs from the web repo's
+   scripts/push-copy.source.json and this repo's
+   scripts/day-off-push-copy.source.json. Do not edit by hand — change the
+   source and run the script. */
+
+import type { Lang } from "../lib/i18n";
+
+export type LocalPool = ${ALL.map((p) => JSON.stringify(p)).join(" | ")};
+
+/** the source's keys, in order — line n of a pool is POOL_KEYS[pool][n] */
+export const POOL_KEYS: Record<LocalPool, string[]> = ${JSON.stringify(order, null, 2)};
+
+/** the daily line's groups, by index — two evenings in a row never share one */
+export const DAILY_GROUPS: string[] = ${JSON.stringify(groups)};
+
+export const LOCAL_PUSH: Record<Lang, Record<LocalPool, string[]>> = ${JSON.stringify(copy, null, 2)};
+`;
+writeFileSync(OUT, ts);
+console.log("local push copy:", LANGS.length, "languages ·", ALL.map((p) => `${p} ${order[p].length}`).join(", "));

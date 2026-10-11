@@ -41,10 +41,20 @@ export const setDevStarving = (on: boolean) => {
   if (__DEV__) devStarving = on;
 };
 
+/** a person wrote you and you have not written back (a closed account is not waiting) */
+export const waitingOnYou = (th: ThreadSummary): boolean => !th.gone && !th.lastSenderMe && (th.theirs || 0) > 0 && !!th.lastAt;
+
+/** the last time you wrote anything: the newest of the aura's read and any reply of yours (ms; 0 = never known) */
+export function lastWroteAt(threads: ThreadSummary[], lastWrittenAt: string | number | null): number {
+  let last = typeof lastWrittenAt === "number" ? lastWrittenAt : lastWrittenAt ? Date.parse(lastWrittenAt) || 0 : 0;
+  for (const th of threads) if (th.lastSenderMe && th.lastAt > last) last = th.lastAt;
+  return last;
+}
+
 export function hungerRead({ threads, lastWrittenAt, now = Date.now() }: { threads: ThreadSummary[]; lastWrittenAt: string | number | null; now?: number }): HungerRead | null {
   if (devStarving && __DEV__) return { tier: "wilting", mood: "sleepy", word: t("hg.starving"), line: t("hg.starvingLine", { n: 16 }), sub: t("hg.starvingSub"), wilt: true };
   const waiting = threads
-    .filter((th) => !th.gone && !th.lastSenderMe && (th.theirs || 0) > 0 && th.lastAt)
+    .filter(waitingOnYou)
     .map((th) => ({ th, days: Math.floor((now - th.lastAt) / DAY) }))
     .filter((w) => w.days >= 2)
     .sort((a, b) => b.days - a.days)[0];
@@ -54,8 +64,7 @@ export function hungerRead({ threads, lastWrittenAt, now = Date.now() }: { threa
     return { tier: "owed", mood: "listen", word: t("hg.waiting"), line: t("hg.owed", { who: w, n }), sub: t("hg.owedSub"), wilt: false, thread: waiting.th.id };
   }
   /* last written: the newest of the aura's read and any reply of mine */
-  let last = typeof lastWrittenAt === "number" ? lastWrittenAt : lastWrittenAt ? Date.parse(lastWrittenAt) || 0 : 0;
-  for (const th of threads) if (th.lastSenderMe && th.lastAt > last) last = th.lastAt;
+  const last = lastWroteAt(threads, lastWrittenAt);
   if (!last) return null;
   const d = Math.floor((now - last) / DAY);
   if (d >= 14) return { tier: "wilting", mood: "sleepy", word: t("hg.starving"), line: t("hg.starvingLine", { n: d }), sub: t("hg.starvingSub"), wilt: true };

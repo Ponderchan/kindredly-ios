@@ -33,6 +33,7 @@ import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
 import { useThreadLive } from "../../lib/live";
 import { refreshFingerprint } from "../../lib/aura";
+import { noteWrote } from "../../lib/local-push";
 import { readCorrespondent, theyify } from "../../lib/correspondent";
 import { noticeThings } from "../../lib/notice";
 import { STAMPS, sname } from "../../data/stamps";
@@ -414,6 +415,7 @@ export default function RoomScreen() {
       setDetail((d) => (d ? { ...d, messages: d.messages.map((x) => (!x.id && x.mine && x.date === sentAt ? { ...x, id: res.id, date: res.createdAt || x.date } : x)) } : d));
     }
     void refreshFingerprint();
+    void noteWrote("letter");
     // the realtime echo of our own INSERT re-runs load() and reconciles
   };
 
