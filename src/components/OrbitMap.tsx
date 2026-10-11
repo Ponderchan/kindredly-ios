@@ -67,8 +67,9 @@ import { t, useLang } from "../lib/i18n";
    a tick's place on the line is how far the two of you are from trading
    names — letters each way, counted by the side that has written less, as
    the five-each rule counts them — from the left edge (none yet) to just
-   short of you, the square at the right end. Open, the same tick slides
-   back to wherever its ring has carried it. One motion either way. */
+   short of you, the square at the right end — drifting gently to and fro
+   about that place, so the line is alive without lying about progress.
+   Open, the same tick slides back to wherever its ring has carried it. */
 
 const REVEAL = 5;
 const WINDOW_W = Dimensions.get("window").width;
@@ -102,6 +103,10 @@ const LINE_W = WINDOW_W - 32;
 const LINE_LEFT = CX - LINE_W / 2 + 8;
 const YOU_X = CX + LINE_W / 2 - 28 - 16; // the square that is you, folded
 const STAGE = (YOU_X - 14 - LINE_LEFT) / REVEAL; // the stretch of line one letter-each-way buys
+/* folded, a tick still drifts (owner, 2026-10-11: "收起时还是动比较好") — to
+   and fro about its place, never far enough to read as another stage */
+const WOBBLE = Math.min(9, STAGE * 0.3);
+const WOBBLE_TURNS = 22; // to-and-fros per full circuit of its ring: one every ~7–12s
 /* a crowd at one stage steps 7pt apart, closer if that would spill into the next stage */
 const lineX = (each: number, nth: number, of: number) => LINE_LEFT + each * STAGE + nth * Math.min(7, (STAGE * 0.8) / Math.max(1, of - 1));
 
@@ -258,7 +263,8 @@ function OrbitingFace({
   const orbit = useAnimatedStyle(() => {
     const ang = a0 + turn.value * Math.PI * 2 * dir;
     const k = flat.value;
-    return { transform: [{ translateX: rx * Math.cos(ang) * (1 - k) + lx * k }, { translateY: ry * Math.sin(ang) * (1 - k) }] };
+    const wob = Math.sin(ang * WOBBLE_TURNS) * WOBBLE;
+    return { transform: [{ translateX: rx * Math.cos(ang) * (1 - k) + (lx + wob) * k }, { translateY: ry * Math.sin(ang) * (1 - k) }] };
   });
   /* folding: the face shrinks to a tick, its mosaic giving way to one
      solid cell in the colour of what it asks of you */
