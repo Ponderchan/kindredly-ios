@@ -9,10 +9,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const OUT = path.join(HERE, "out");
+const argOf = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
+// --page <html> renders another video page the same way (frames land next to it)
+const PAGE = argOf("--page") ? path.resolve(argOf("--page")) : path.join(HERE, "out", "launch.html");
+const OUT = path.dirname(PAGE);
 const FRAMES = path.join(OUT, "frames");
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const PORT = 9335, FPS = 30, W = 1920, H = 1080;
+const PORT = 9335, FPS = 30;
+const [W, H] = (argOf("--size") || "1920x1080").split("x").map(Number);
 const only = (() => { const i = process.argv.indexOf("--frames"); return i > 0 ? process.argv[i + 1].split(",").map(Number) : null; })();
 fs.mkdirSync(FRAMES, { recursive: true });
 
@@ -32,7 +36,7 @@ const evaluate = async (expr) => { const r = await send("Runtime.evaluate", { ex
 await send("Page.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
 const loaded = once("Page.loadEventFired");
-await send("Page.navigate", { url: "file://" + path.join(OUT, "launch.html") });
+await send("Page.navigate", { url: "file://" + PAGE });
 await loaded;
 const total = await evaluate("window.ready");
 const N = Math.round(total * FPS);
@@ -46,7 +50,7 @@ for (const f of list) {
 ws.close(); chrome.kill();
 const wav = path.join(OUT, "sound.wav");
 if (!only && fs.existsSync(wav)) {
-  const mp4 = path.join(OUT, "kindredly-launch.mp4");
+  const mp4 = path.join(OUT, path.basename(PAGE, ".html") + ".mp4");
   execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-framerate", String(FPS), "-i", path.join(FRAMES, "%05d.jpg"), "-i", wav,
     "-vf", "format=yuv420p", "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-preset", "slow", "-crf", "17", "-r", String(FPS),
     "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", mp4], { stdio: "inherit" });

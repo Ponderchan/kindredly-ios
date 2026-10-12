@@ -6,11 +6,11 @@ knocks and crack, the typing in Free Flight, the sad dip when she greys and
 the bounce when she's back. The hit list comes from the film itself
 (out/film/events.json, logged by film-logic.js as it ran).
   python3 design/store/landing/film/sound.py   → out/film/sound.wav (48 kHz stereo)"""
-import json, os, math
+import json, os, math, sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "out")
+OUT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(HERE, "out")  # or another video's out dir
 SR = 48000
 EV = json.load(open(os.path.join(OUT, "events.json")))
 FPS_FRAMES = len([f for f in os.listdir(os.path.join(OUT, "frames")) if f.endswith(".jpg")])
@@ -159,6 +159,8 @@ for e in EV:
     t, k = e["t"], e["type"]
     if k == "pop": add(pop(1.0 + 0.08 * ((int(t * 10) % 5) - 2)), t, 0.5, 0.15)
     elif k == "say": add(pop(1.35), t + 0.02, 0.55, 0.25)
+    elif k == "tick": add(knock() * 0.5, t, 0.5)
+    elif k == "night": pass
     elif k == "slam": add(tok(), t + 0.05, 0.55, -0.1)
     elif k == "slamhl": add(tok(), t + 0.05, 0.6); add(pop(0.8), t + 0.09, 0.4)
     elif k == "thwack": add(thwack(), t, 0.8)
