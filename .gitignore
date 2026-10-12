@@ -36,3 +36,5 @@ __pycache__/
 # landing-style store set (1.0.3): renders and the raw captures they're built from
 design/store/landing/out/
 design/store/shots/v2/
+# the launch post's video renders
+design/social/launch/out/
