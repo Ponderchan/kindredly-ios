@@ -1752,7 +1752,7 @@ strings(
     "set.sec.firstClass": "FIRST CLASS",
     "set.sec.safety": "SAFETY",
     "set.knock.title": "The 8 o'clock knock",
-    "set.knock.sub": "At 8, on mornings there are letters on your desk. No sound.",
+    "set.knock.sub": "Every morning at 8, silently.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "KNOCKS",
     "set.sec.lines": "FROM {wren}",
@@ -3893,7 +3893,7 @@ strings(
     "set.sec.firstClass": "PRIMERA CLASE",
     "set.sec.safety": "SEGURIDAD",
     "set.knock.title": "El toque de las 8",
-    "set.knock.sub": "A las ocho, las mañanas que hay cartas en tu escritorio. Sin sonido.",
+    "set.knock.sub": "Todas las mañanas a las ocho, sin sonido.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "TOQUES",
     "set.sec.lines": "DE {wren}",
@@ -6034,7 +6034,7 @@ strings(
     "set.sec.firstClass": "PRIMEIRA CLASSE",
     "set.sec.safety": "SEGURANÇA",
     "set.knock.title": "A batida das 8",
-    "set.knock.sub": "Às oito, nas manhãs em que tem carta na sua mesa. Sem som.",
+    "set.knock.sub": "Toda manhã, às oito. Sem som.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "BATIDAS",
     "set.sec.lines": "DE {wren}",
@@ -6058,7 +6058,7 @@ strings(
     "set.push.week_in_words.sub": "Domingo às nove da noite, uma linha pra sua semana, no lugar da pergunta daquela noite.",
     "set.push.aura_settled.title": "Linha nova na sua aura de escrita",
     "set.push.aura_settled.sub": "Quando uma parte da sua aura se firma, ele te conta lá pelo meio-dia. Nunca qual.",
-    "set.push.day_off.title": "Uma corrida na folga dela",
+    "set.push.day_off.title": "Uma corrida na folga dele",
     "set.push.day_off.sub": "Ao meio-dia, no máximo uma vez por semana. Nunca numa semana em que você já jogou. Não enquanto “Uma linha toda noite” estiver ligada.",
     "set.push.deniedBody": "Permita as notificações do Kindredly nos Ajustes, e {wren} vai poder bater.",
     "set.push.saveFail": "Confira sua conexão e tente de novo.",
@@ -8175,7 +8175,7 @@ strings(
     "set.sec.firstClass": "KELAS UTAMA",
     "set.sec.safety": "KEAMANAN",
     "set.knock.title": "Ketukan pukul 8",
-    "set.knock.sub": "Jam delapan, di pagi saat ada surat di mejamu. Tanpa suara.",
+    "set.knock.sub": "Setiap pagi jam delapan. Tanpa suara.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "KETUKAN",
     "set.sec.lines": "DARI {wren}",
@@ -10250,7 +10250,7 @@ strings(
     "set.sec.firstClass": "PREMIÈRE CLASSE",
     "set.sec.safety": "SÉCURITÉ",
     "set.knock.title": "Le coup de huit heures",
-    "set.knock.sub": "À 8 h, les matins où il y a des lettres sur ton bureau. Sans son.",
+    "set.knock.sub": "Chaque matin à 8 h, en silence.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "NOTIFICATIONS",
     "set.sec.lines": "DE LA PART DE {wren}",
@@ -12318,7 +12318,7 @@ strings(
     "set.sec.firstClass": "ERSTE KLASSE",
     "set.sec.safety": "SICHERHEIT",
     "set.knock.title": "Das Klopfen um acht",
-    "set.knock.sub": "Um acht, an Morgen, an denen Briefe auf deinem Tisch liegen. Ohne Ton.",
+    "set.knock.sub": "Jeden Morgen um acht. Ganz leise.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "MITTEILUNGEN",
     "set.sec.lines": "VON {wren}",
@@ -14386,7 +14386,7 @@ strings(
     "set.sec.firstClass": "PRIMA CLASSE",
     "set.sec.safety": "SICUREZZA",
     "set.knock.title": "Il bussare delle otto",
-    "set.knock.sub": "Alle otto, le mattine in cui ci sono lettere sulla tua scrivania. Senza suono.",
+    "set.knock.sub": "Ogni mattina alle otto, in silenzio.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "NOTIFICHE",
     "set.sec.lines": "DA {wren}",
@@ -16454,7 +16454,7 @@ strings(
     "set.sec.firstClass": "ファーストクラス",
     "set.sec.safety": "安全",
     "set.knock.title": "8時のノック",
-    "set.knock.sub": "朝8時、机に手紙がある朝に。音なし。",
+    "set.knock.sub": "毎朝8時。音は鳴りません。",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "ノック",
     "set.sec.lines": "{wren}から",
@@ -18522,7 +18522,7 @@ strings(
     "set.sec.firstClass": "퍼스트 클래스",
     "set.sec.safety": "안전",
     "set.knock.title": "8시의 노크",
-    "set.knock.sub": "아침 8시, 책상에 편지가 있는 날에만. 소리 없이.",
+    "set.knock.sub": "매일 아침 8시, 소리 없이.",
     /* ── knocks and her lines (push step two, 1.2.3) ── */
     "set.sec.knocks": "노크",
     "set.sec.lines": "{wren}에게서",

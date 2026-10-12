@@ -1,124 +1,124 @@
 {
-  "written": "2026-10-11",
-  "approved": null,
-  "about": "Her day off, as a push (phone only; the server never sends it). invite = the plain pool; best = with their best run, {n} gates, used only when best >= 2. Every language written natively and read blind by a second native editor (notesZh). The switch's label and explanation live in src/data/strings.ts (set.push.day_off.title / .sub) with every other switch. Read by scripts/make-local-push-copy.mjs into src/data/local-push-copy.ts.",
-  "languages": {
-    "en": {
-      "invite": [
-        "day off. i chose cardio",
-        "lunch break. lend me your thumbs",
-        "you type, i flap. dream team",
-        "me vs the pillars. pick a side"
-      ],
-      "best": [
-        "your best: {n} gates, then bonk",
-        "beat {n} gates. i'll tell the pigeons"
-      ],
-      "notesZh": "【先查过的事实，决定了哪些句子能用】\n- 发送时刻是本地 12:00，正好落在 DAY_OFF_HOURS 的 12–14 午休窗口里，所以 \"day off\" 和 \"lunch break\" 都成立。\n- isDayOff 只排除 owed / owed-long / wilting 三档。peckish（3–6 天没写）和 hungry（7–13 天）不排除，所以这条推送可能在她饿着的时候发出。因此不写吃的（编辑三的 \"lunch: laps. dessert: more laps\" 不用），也不提包里有没有东西：她的饥饿推送说的是 \"bag's light\"、\"no cargo\"，在途时 Me 卡说的是 \"safe in my bag\"，提了就会和其中一边打架。\n- 没玩过的人也会收到邀请句，所以邀请句里不出现 rematch、again 这类词。发送条件是\"7 天没玩\"，所以两个池都不出现 still、miss you、好久这类话，不让人有负罪感。\n- 气泡已经是 \"day off! race me?\"，正文不再用 race me，免得重复（编辑一的第 3 句因此不用）。\n- 标题是她的名字，所以正文不再写名字。全部小写，句末不加句号，和 push-copy.source.json 里的现有规则一致。\n- 字数按 \"{n}\" 字面 3 个字符算，三位数以内的成绩不会超长。\n\n【邀请句（4 句，开头各不相同）】\n1. day off. i chose cardio（23）＝放假了，我选了有氧。笑点是休息日她偏要去运动（她的工作本来就是飞）。来自编辑二，是\"放假还在飞\"这个笑点最短的写法。给译者的提示：笑点是\"休息日→主动去锻炼\"，cardio 在 es/pt/fr/de/it 里都通用，ja/ko 用\"有氧运动\"即可。没选编辑一的 \"so naturally, i'm flying\"，因为同一个笑点它更长。\n2. lunch break. lend me your thumbs（32）＝午休，借我你的大拇指。由编辑一的 \"bring your thumbs\" 和编辑三的 \"need a pair of thumbs\" 合并改写。笑点是鸟没有拇指，而这个游戏要用手机键盘打字，所以她得借你的。\"借\"这个动作在九种语言里都有现成说法（ja 親指貸して / ko 엄지 좀 빌려줘），也比命令式的 bring 更像她在撒娇。\n3. you type, i flap. dream team（28）＝你打字，我扇翅膀，梦幻组合。来自编辑一，原样保留。这句直接讲清了玩法，和 ff.hint 那句\"每打对一个字母就是一次扇翅\"是同一件事，所以从没打开过游戏的人也能看懂。笑点落在 dream team。\n4. me vs the pillars. pick a side（30）＝我对柱子，你站哪边？来自编辑三，原样保留。柱子在 Me 卡（\"laps between the pillars\"）和游戏里都有。站她这边就等于点进来玩，所以邀请藏在笑点里。\n\n【记录句（2 句，用 {n} 门）】\n1. your best: {n} gates, then bonk（31）＝你的最好成绩：{n} 道门，然后\"咚\"。来自编辑一，原样保留。每一局都以撞柱结束（结算标题是 \"Bonk. She clipped a pillar.\"），所以这句永远是真的。开头和 Me 卡的 \"Your best: {n} gates. Beat it?\" 呼应，点进来时能接上。拟声词按各语言已有的 ff.crashTitle 走（es ¡Pum!、pt Pof!）。\n2. beat {n} gates. i'll tell the pigeons（37）＝破了 {n} 门，我去跟鸽子炫耀。来自编辑一，原样保留。鸽子是 daily_prompt 第 1 句的老梗。这里只是她嘴上说说，和 \"a win no one clapped for? i'll clap\" 是同一类玩笑，不承诺 app 里会有任何画面或功能。\n没选的：\n- \"beat {n} gates and i'll do a loop\"：破纪录时只显示 NEW BEST，没有翻跟头的动画，等于承诺 app 做不到的事。\n- \"{n} gates? cute. i've been practicing\"：游戏不记录她自己飞了什么；\"cute\" 对低分的人有点扎心。留作备用。\n- 编辑二 \"your best: … i've been practicing\"（42）、编辑三 \"the pillars remember\"（44）：超过 40 字。\n\n【开关】\n- 标题 \"A race on her day off\"（21）。没用 \"{wren}'s day off\"，因为关掉开关时，它读起来像\"取消她的休息日\"。而且名字长度不固定。aura_settled.sub 里已经单用 she，标题不写名字也说得通。句式和 \"A room closing soon\"、\"A question in the morning\" 一样是名词短语。用 race 是跟着气泡里已有的 \"race me?\"。\n- 说明 \"At noon, once a week at most. Not in a week you've already played.\"（66）。和 daily_line.sub 的 \"Not on a day you've already written.\" 同一个句式。\"当天有别的提醒就让位\"这一条不写，现有的说明也都不逐条列优先级。\n\n【给实现方的四点（不是文案）】\n1. 只在 best.gates ≥ 2 时用记录句，否则用邀请句，这样就不会出现 \"1 gates\"，de/fr/es/it/pt 也不用另写单数版。Me 卡现有的 ff.dayoff.subBest 也有 \"1 gates\" 的问题，不在这次范围内。\n2. \"7 天内玩过\"需要一个最后一次玩的时间。free-flight.ts 的 FlightBest 现在只存 gates 和 pace，saveRun 时要加一个 lastPlayed，只存在手机上。\n3. 推送是提前排进 iOS 的。如果排好之后、中午之前来了回信（她进入 bringing 状态），12:00 这条仍会说\"在休息\"。回到前台时重排能挡住大部分情况。剩下的情况里，没有一句提信或包，所以最多只是\"在休息\"这一点不准。\n4. 同一个池不要连着两次发同一句。\n\n【备用句】邀请：day off. the pillars didn't get one（35）。记录：{n} gates? cute. i've been practicing（37）。"
-    },
-    "es": {
-      "invite": [
-        "día libre. ¿mi plan? cardio, obvio",
-        "¿me prestas tus pulgares? yo no tengo",
-        "tú tecleas, yo aleteo. qué equipazo",
-        "yo contra los pilares. ¿de qué lado estás?"
-      ],
-      "best": [
-        "tu récord: {n} puertas y luego, pum",
-        "más de {n} puertas y se lo cuento a las palomas"
-      ],
-      "notesZh": "【第二位编辑盲读：改了 3 处，其余照留】\n\n1. 邀请句 2：descanso del mediodía. ¿me prestas los pulgares?（48）→ ¿me prestas tus pulgares? yo no tengo（37）\n- 「descanso del mediodía」是照着 midday break 直译的，拉美人平时不这么说。顺口的说法是 hora del almuerzo，可那个词等于「午饭」，第一稿已经说明要避开吃的。与其换一个半生不熟的说法，不如把时间状语删掉：推送本来就在中午到，用不着再交代。\n- los pulgares 改成 tus pulgares，后面补一句 yo no tengo（我没有）。原句的笑点要读者自己想到「鸟没有拇指」，现在一句话就抖出来，锁屏上扫一眼也能看懂。「¿me prestas…?」这个撒娇的口气保留了。\n\n2. 记录句 2：pasa de {n} puertas y se lo cuento a las palomas → más de {n} puertas y se lo cuento a las palomas（47）\n- 祈使句「pasa de X」在西班牙口语里是「别理 X、无所谓 X」的意思，拉美读者也常在网上看到这个用法，会读出「别管那 {n} 道门」的歧义。\n- 「más de {n} puertas y…」是西语很常见的省略条件句，跟「un paso más y…」一个结构，意思是「超过 {n} 道门，我就……」。只有破了纪录才成立，这一点没变，而且字数更少。鸽子这个梗保留。\n\n3. 开关说明：Nunca en una semana en que ya hayas jugado → Nunca una semana en que ya hayas jugado（83）\n- 原句连着两个 en，读起来拗口。删掉第一个 en 以后，跟 es 现有的 daily_line.sub「Nunca un día en que ya hayas escrito.」句式完全一样。\n- 「como mucho」保留，因为 first_read.sub 已经写了「dos al día como mucho」，和全 app 一致。\n\n【没改的】\n- 邀请 1、3、4 都很地道。cardio, obvio 和 qué equipazo 是拉美年轻人真会说的话。tecleas/aleteo 对得工整，aleteo 也接上了游戏里的 ff.hint。\n- 记录 1「tu récord: {n} puertas y luego, pum」：不能用 ¡! 和 …，那用逗号来停顿就是对的，读起来自然。\n- 开关标题「Una carrera en su día libre」：我核对过 strings.ts，这一行会出现在「DE {wren}」分组下面，旁边还有「Cuando {wren} tiene hambre」，所以 su 只会被读成「她的」，不会被当成敬语的「您的」。备选是写成「Una carrera en el día libre de {wren}」（加上占位符后 39 个字）。不过要先确认这个开关的标题会做 {wren} 插值才能用，所以这一版没写进去。\n\n【字数】{n} 按 3 个字符算：34 / 37 / 35 / 42 / 35 / 47，都在 52 以内。开关标题 27，说明 83。"
-    },
-    "pt": {
-      "invite": [
-        "folga. podia ficar no ninho. fui de cardio",
-        "meio-dia. me empresta os dedões? asa não digita",
-        "você digita, eu bato asa. dupla imbatível",
-        "eu x os pilares. vai torcer pra quem?"
-      ],
-      "best": [
-        "seu recorde: {n} portais e um pof",
-        "passa dos {n} portais que eu conto pros pombos"
-      ],
-      "notesZh": "第二位巴西葡语编辑盲读：改了 2 处，其余照原稿。\n\n【改动】\n1. 邀请句 2：\"empresta seus dedões?\" → \"me empresta os dedões?\"（47）。巴西人借东西开口一定带 me（\"me empresta\"），去掉 me、用物主词 seus，读起来像从英文 your thumbs 搬过来的。改成 \"me empresta os dedões?\" 就是日常口语。dedões 在打字的语境里会被读成大拇指，不会读成脚趾，保留。\n2. 邀请句 4：\"torce pra quem?\" → \"vai torcer pra quem?\"（37）。\"você torce pra quem?\" 在巴西基本固定指\"你是哪个球队的球迷\"，问的是平时支持谁；问\"这一场你帮谁\"要说 \"vai torcer pra quem?\"。改了以后才是\"这一局我对柱子，你站哪边\"，邀请的意思也更直接。\n\n【原样保留，理由】\n- 邀请 1 \"folga. podia ficar no ninho. fui de cardio\"：节奏短，反差清楚，\"fui de cardio\" 是健身房口语，读得懂，不需要动。\n- 邀请 3 \"você digita, eu bato asa. dupla imbatível\"：自然。\"bato asa\" 用单数偏口语，和 ff.hint 的 batida de asa 一致。备选 \"ninguém segura a gente\"（48）更有劲，但 \"dupla imbatível\" 短，还有 bato/imbatível 的谐音，留原句。\n- 记录 1、2 都地道。\"passa dos {n} portais que eu conto pros pombos\" 用的是\"你做到，我就…\"的口语句式，没问题；避开 bater 的理由也成立。\n- 开关标题和说明都不用改。说明 82 字，和 daily_line.sub 的长度、句式一致。\n\n【字数】{n} 按 3 个字符算，最长 47，都在 52 以内；{n} 原样保留，顺序没动。\n\n【沿用第一位编辑提的问题，需要 owner 定】pt 里信使有时写成 ele，有时写成 ela：同一个推送设置页上 hungry.sub 和 aura_settled.sub 用的是 ele，标题里的 dela 是阴性。要么把那几条 ele 都改成 ela，要么标题去掉代词，改成 \"Uma corrida na folga\"（20）。"
-    },
-    "id": {
-      "invite": [
-        "hari libur. aku malah olahraga",
-        "istirahat siang. pinjem jempolmu dong",
-        "kamu ngetik, aku kepakin sayap. duet maut",
-        "aku vs tiang. kamu tim mana?"
-      ],
-      "best": [
-        "rekormu: {n} gerbang, terus… duk",
-        "pecahin rekor {n} gerbang. kupamerin ke merpati"
-      ],
-      "notesZh": "我做的是盲读二审。为了核对语气，只看了 src/data/strings.ts 里 id 块的 ff.* 和 set.push.*，没有读或调用其他东西。一共改了 3 处，其余保持原样。\n\n【改动】\n1. 邀请第 3 句：aku kepak sayap → aku kepakin sayap（41 字）。kepak 是词根，口语里不加词缀直接当动词用，读着有点硬，像是翻译过来的。加上雅加达口语的 -in 后缀（kepakin）才是自然说法，和 pecahin、kupamerin 是同一个路子。这样也避开了 ngepak 会被理解成\"打包\"的问题。原稿要的玩法提示（ff.hint 说每打对一个字母就扇一次翅膀）没有丢。\n2. 记录第 1 句：terus duk → terus… duk（32 字，… 是单个字符）。terus 有两个意思：\"然后\"和\"一直\"。没有停顿的话，有人会读成\"一直咚\"。加一个省略号，变成\"然后……咚\"，意思清楚了，撞柱前那一下的喜剧停顿也出来了。\n3. 开关说明第二句：Tidak kalau seminggu terakhir kamu sudah main → Tidak kalau kamu sudah main dalam tujuh hari terakhir。原句前半句刚说过 seminggu sekali，后半句又是 seminggu terakhir，重复了。而且把时间状语提到\"kamu\"前面，语序有点别扭。改后仍然沿用 daily_line.sub「Tidak di hari kamu sudah menulis.」和 hungry.sub「Tidak selama …」那种以 Tidak 开头的句式，半正式语气不变。\"七天\"也比\"一周\"更准确地对应滚动 7 天的发送条件。\n\n【没改的】\n- hari libur. aku malah olahraga：malah 的反差撑得住笑点，自然。\n- istirahat siang. pinjem jempolmu dong：口语地道，jempol 双关\"点赞\"也成立。\n- aku vs tiang. kamu tim mana?：这是 Gen Z 的固定句式，很好。\n- pecahin rekor {n} gerbang. kupamerin ke merpati：自然，也有梗。想过中间加 nanti，但那样会到 54 字，超限，所以保持原样。\n- 开关标题 Adu cepat di hari liburnya：和气泡「libur! adu cepat?」一致，也和设置页现有标题（如 Saat {wren} lapar、Suratmu dibuka）的名词短语格式一致。严格说这个游戏不完全是比速度，但有 LEBIH CEPAT 和每分钟速度统计撑着，可以接受。\n\n【字数】{n} 按 3 个字符算，最长 47 / 52。顺序、{n} 原样保留。"
-    },
-    "fr": {
-      "invite": [
-        "jour de congé. j'ai choisi le cardio, si si",
-        "pause déj. prête-moi tes pouces, j'en ai pas",
-        "toi au clavier, moi aux ailes. duo de choc",
-        "moi contre les piliers. choisis ton camp"
-      ],
-      "best": [
-        "ton record : {n} portes, et puis bong",
-        "à battre : {n} portes. les pigeons sont prévenus"
-      ],
-      "notesZh": "【第二位法语母语编辑，盲读后改了 3 处，其余保留】\n\n四句邀请全部保留。读起来都是法国人自己会说的话：« si si » 那种装作很骄傲的口气是对的；« prête-moi tes pouces, j'en ai pas » 很顺，也好笑；« duo de choc » 和 « choisis ton camp » 都是现成说法，不像翻译。\n\n改动：\n1. 记录句 1：« puis bong » 改成 « et puis bong »（30 字）。法语口语讲\\\"然后就……咚\\\"时，自然的节奏是 « et puis paf / et puis bong »，光写 « puis » 有点像书面语、电报体。其余不变，开头仍然和 Me 卡的 « Ton record : {n} portes » 接得上。\n2. 记录句 2：« {n} portes à battre » 改成 « à battre : {n} portes »（48 字）。原来的写法法语读者会先读成\\\"要打 {n} 扇门\\\"（battre des portes 不是一个说法），要停一下才明白是\\\"要打破的纪录\\\"。改成 « à battre : {n} portes » 以后，一读就是\\\"待破纪录：{n} 道门\\\"，和第 1 句 « ton record : » 的冒号句式也对上了。battre / battre des ailes 的双关还在，« les pigeons sont prévenus » 原样保留，这句最好笑。\n3. 开关说明：« une fois par semaine au plus » 改成 « pas plus d'une fois par semaine »。« au plus » 语法没错，但在设置文案里显得生硬、像法律条文；« pas plus d'une fois » 是日常说法。后半句 « Jamais une semaine où tu as déjà joué. » 不变，和 daily_line.sub 的句式仍然对齐。\n\n保留没动的：开关标题 « Une course pendant son congé »：有 « DE LA PART DE {wren} » 这个栏目标题在上面，« son » 不会被误读成\\\"你的\\\"；course 也和气泡里的 « on fait la course ? » 对得上。格式全部照旧：全小写、句末不加句号、问号和冒号前留普通空格、直撇号、{n} 原样保留，顺序也没变。字数（{n} 按 3 个字符算）：43 / 44 / 42 / 40 / 30 / 48，都在 52 以内。"
-    },
-    "de": {
-      "invite": [
-        "freier tag. und was mach ich? cardio",
-        "mittagspause. drück mir die daumen. wörtlich",
-        "du tippst, ich flatter. traumduo",
-        "ich gegen die säulen. team vogel oder team säule?"
-      ],
-      "best": [
-        "dein bestwert: {n} tore, dann bonk",
-        "mehr als {n} tore? dann geb ich bei den tauben an"
-      ],
-      "notesZh": "【第二位 de 母语编辑盲读：只改了 1 处】\n先在 src/data/strings.ts 里核对了现有用词：Säulen、Tore、Bestwert、Bonk、wettrennen、“Eine Zeile am Abend”，以及 daily_line.sub 的“Nie an einem Tag, an dem du schon geschrieben hast.”。初稿和这些用词全部一致。\n\n【改动】记录句 2\n- 原句：knack die {n} tore. ich geb bei den tauben an\n- 改为：mehr als {n} tore? dann geb ich bei den tauben an（49 字符）＝超过 {n} 道门？那我就去跟鸽子炫耀。\n- 为什么改：“die 100 knacken”这种拿数字当宾语的说法，意思是“达到/冲过 100 这条线”。可 {n} 是她已经打出来的成绩，“knack die {n}”读起来像让她再打到 {n} 一次，算不上破纪录。换成 Tore 当宾语也不行，“die {n} Tore knacken”会让人想到“把 {n} 扇门撬开”（像撬保险柜），意思跑偏了。“mehr als {n} tore?”直接说出要超过多少，问句也照样是邀请。加个 dann，把“你破了我才去炫耀”的条件关系说清楚，鸽子梗和 bei jemandem angeben 都保留。\n\n【没改的，逐条确认】\n- 邀请 1 cardio：自问自答的节奏在德语里很自然，好笑。\n- 邀请 2 Daumen drücken + wörtlich：双关能看懂，因为读者正拿着手机，拇指就在屏幕上，wörtlich 一出来就明白是要真的用拇指按。保留，不换备用句。Mittagspause 在 12 点推送时读成“你的午休”，没提吃的，没问题。\n- 邀请 3 traumduo、邀请 4 Team vogel oder team säule：都地道，字数也够。\n- 记录句 1 “dein bestwert: {n} tore, dann bonk”：干脆好笑，开头和 Me 卡一致。\n- 开关标题和说明：和现有设置项的写法完全一致，保留。\n\n【给实现方的一个可选项】\n开关标题里的 ihrem 指信使。设置列表中 hungry.title 用的是“Wenn {wren} Hunger hat”，aura_settled.sub 只写 sie，所以单用 ihrem 也说得通，我没改。如果这一项在列表里离提到 {wren} 的那行比较远，又支持 {wren} 占位符，可以写成“Ein Wettrennen an {wren}s freiem Tag”。这只是可选，最终用的仍是 ihrem 版。\n\n【字数】按 {n} 字面 3 个字符算，最长的是邀请 4 和新记录句 2，都是 49 个字符，在 52 以内。顺序没动，{n} 原样保留。"
-    },
-    "it": {
-      "invite": [
-        "giorno libero. relax? macché, cardio",
-        "pausa pranzo. mi presti i pollici?",
-        "tu digiti, io batto le ali. coppia d'oro",
-        "io contro i pilastri. tu per chi tifi?"
-      ],
-      "best": [
-        "il tuo record: {n} porte, poi… bonk",
-        "fai più di {n} porte e mi vanto di te coi piccioni"
-      ],
-      "notesZh": "第二位意大利语编辑盲读后的结果：改了 2 处，其余原样保留。\n\n【改动】\n1. 记录句 1：il tuo record: {n} porte, poi bonk → il tuo record: {n} porte, poi… bonk（35，{n} 按 3 个字符算）。只加了一个省略号（单字符 …）。原句读起来太平，像在报数据；停一拍再出 bonk，笑点才落得下来。开头仍和 Me 卡 ff.dayoff.subBest 的 \\\"Il tuo record: {n} porte\\\" 一致，bonk 仍沿用 ff.crashTitle。\n2. 记录句 2：supera le tue {n} porte e mi vanto coi piccioni → fai più di {n} porte e mi vanto di te coi piccioni（50，≤52）。\\\"superare le porte\\\" 在意大利语里有歧义（也能理解成\\\"穿过 {n} 道门\\\"），而且有点书面；fai più di {n} porte（\\\"打出超过 {n} 道门\\\"，就像 fare 100 punti）是游戏里真正的说法，目标也说得明白。另外加了 di te：\\\"mi vanto di te\\\" 是\\\"拿你去炫耀\\\"，原句的 mi vanto 单独用会读成她在炫耀自己，加上以后是她为你骄傲，更暖也更好笑。去掉了 le tue，因为这个池只在有个人纪录时才用，{n} 不会被误读。\n\n【没改，理由】\n- 四句邀请都地道：macché, cardio 自问自答很口语；mi presti i pollici? 鸟没有大拇指，这个梗成立；coppia d'oro 和 tu per chi tifi? 都是意大利人日常会说的话。全小写、句末不加句号、tu 都没问题。\n- 开关标题 Una gara nel suo giorno libero：和 set.push 里 \\\"Una stanza che sta per chiudere\\\" / \\\"Una domanda al mattino\\\" 是同一种格式。有一个小风险（只作说明，不改）：意大利 UI 里 \\\"suo\\\" 理论上可能被读成敬语 Lei 的\\\"您的\\\"。但这个 app 从头到尾用 tu，上面一行又是 \\\"Quando {wren} ha fame\\\"，读者会自然理解成\\\"她的\\\"。如果 owner 不介意在开关里出现名字，也可以写 \\\"Una gara nel giorno libero di {wren}\\\"（和 hungry 那行一致），不过这和英文\\\"开关里不写名字\\\"的考虑相反，所以没换。\n- 说明 A mezzogiorno, al massimo una volta a settimana. Mai se hai giocato negli ultimi sette giorni.：和现有 daily_line.sub（\\\"Alle nove di sera, … Mai in un giorno in cui hai già scritto.\\\"）结构一模一样，读起来就是这个 app 本来的语气。negli ultimi sette giorni 准确对应\\\"过去 7 天\\\"的规则，保留。\n\n【长度】最长的锁屏句是 50（记录句 2），其余都在 40 以内；{n} 原样保留，顺序没变。"
-    },
-    "ja": {
-      "invite": [
-        "休みの日も飛ぶ。ただし趣味で",
-        "お昼休み？親指かして、鳥にはないの",
-        "あなたが打てば、わたしが羽ばたく。名コンビ",
-        "わたしVS柱。どっちの味方？"
-      ],
-      "best": [
-        "あなたのベスト、{n}ゲート。からのゴツン",
-        "{n}ゲート超えたら、ハトに言いふらす"
-      ],
-      "notesZh": "只改了一处，其余都没动。\n\n【改动】\n邀请句 2：「お昼休み。」改成「お昼休み？」（字数不变，还是 17）。原句是句号，读起来像她在宣布\\\"现在是午休\\\"。可那天是她的休息日，她本人没有午休，于是会让人愣一下：谁在午休？改成问句以后，变成她在问对方\\\"你午休了吗？\\\"，后面的「親指かして」就顺理成章，是在跟对方要东西。就算对方当时不在午休，这种随口一问也不显得突兀。\n\n【没改的，说一下理由】\n- 1「休みの日も飛ぶ。ただし趣味で」：「ただし」放在这里，正好像免责声明的那种一本正经，笑点就在这儿。改成「趣味でね」会变软，冷面感就没了。\n- 3「あなたが打てば、わたしが羽ばたく。名コンビ」：考虑过在结尾加「でしょ／じゃん」，但那样有 23 个字，超过上限。只写「名コンビ」，像她得意地给自己配了句字幕，口气也够俏皮。这里保留汉字「羽ばたく」，没跟游戏里 ff.hint 一样写成平假名：「わたしがはばたく」一长串平假名不好断句。\n- 4「わたしVS柱。どっちの味方？」：很自然。「柱」和 ff.dayoff.line、ff.crashTitle 用的是同一个词，我在 strings.ts 里查过了。\n- 两条记录句：「からのゴツン」是年轻人常用的说法，自然又好笑。「ハトに言いふらす」用词也选得准。都不改。\n- 开关标题和说明：说法和现有的设置项一致，不改。「おやすみの日のひと勝負」连着两个「の」，但作为名词短语标题是可以接受的。\n\n我核对过的东西：{n} 都按原样保留；所有句子都在 22 字以内（{n} 按 3 字算）；四句邀请的开头互不重复；没有出现「もう一度／また／まだ／久しぶり」，也没有出现「きょうそう」。"
-    },
-    "ko": {
-      "invite": [
-        "쉬는 날에도 날아. 직업병인가 봐",
-        "점심시간. 엄지 두 개만 빌려줘",
-        "넌 타닥타닥, 난 퍼덕퍼덕. 환상의 콤비",
-        "나 vs 기둥. 넌 누구 편이야?"
-      ],
-      "best": [
-        "최고 기록: 관문 {n}개, 그리고 쿵",
-        "관문 {n}개 넘으면 비둘기한테 소문낼게"
-      ],
-      "notesZh": "盲读结论：6 句正文全部保留，只改了开关的标题和说明。\n\n【正文 6 句：无改动】\n字数（len，{n} 按 3 算）：18 / 17 / 22 / 18 / 21 / 22，全部 ≤22。\n- 「쉬는 날에도 날아. 직업병인가 봐」：直接是母语的自嘲口吻，날/날아 的谐音也顺，不用改。\n- 「점심시간. 엄지 두 개만 빌려줘」：「두 개만」是借东西时的撒娇语气，很地道。游戏本来就是用拇指在手机上打字，笑点成立。\n- 「넌 타닥타닥, 난 퍼덕퍼덕. 환상의 콤비」：查了 strings.ts，ff.hint 是「맞는 글자 하나가 날갯짓 하나」，玩法确实是打字，所以 타닥타닥（敲键盘声）是对的，押韵也自然。\n- 「나 vs 기둥. 넌 누구 편이야?」：口语、网络用语里都常见，不用改。\n- 「최고 기록: 관문 {n}개, 그리고 쿵」：和 subBest 的开头接得上，쿵 是笑点，不用改。\n- 「관문 {n}개 넘으면 비둘기한테 소문낼게」：「数字 + 넘으면」在韩语里默认读成\\\"超过\\\"（比如「10만 원 넘으면 무료배송」），所以\\\"破纪录\\\"的意思读得出来。曾考虑改成「넘게 가면」，但会到 24 字超限，所以保留原句。\n\n【开关标题：쉬는 날의 시합 → 쉬는 날의 한 판】\n시합 偏正式，带一点体育比赛的味道，放在设置项里有点硬。「한 판」是韩国人说\\\"来一局\\\"最自然的词，更俏皮，一看就知道是小游戏。格式还是名词短语，和「아침의 질문」「곧 닫히는 방」一致。气泡里的「시합할래?」不用动，两边意思接得上。\n\n【开关说明：两处小改，50 字】\n1. 「최근 일주일 안에」→「최근 7일 안에」：前半句已经有「일주일에 최대 한 번」，一句里重复两次 일주일 读起来啰嗦。7일 同时也更准确地对应\\\"最近 7 天\\\"的判断逻辑。\n2. 游戏名加了单引号：'자유 비행'을。hungry.sub 里引用别的设置名用的是「'매일 밤 한 줄'이 켜져 있는 동안엔」，所以 ko 设置页里已有这种写法。不加引号的话，자유 비행 容易被读成普通名词（\\\"随便飞一飞\\\"）。\n其余照旧：「낮 12시에,」和 daily_line.sub 的「밤 9시에,」句式一致，「오지 않아요」也和现有的说明一致。"
-    }
+ "written": "2026-10-11",
+ "approved": "2026-10-12",
+ "about": "Her day off, as a push (phone only; the server never sends it). invite = the plain pool; best = with their best run, {n} gates, used only when best >= 2. Every language written natively and read blind by a second native editor (notesZh). The switch's label and explanation live in src/data/strings.ts (set.push.day_off.title / .sub) with every other switch. Read by scripts/make-local-push-copy.mjs into src/data/local-push-copy.ts.",
+ "languages": {
+  "en": {
+   "invite": [
+    "day off. i chose cardio",
+    "lunch break. lend me your thumbs",
+    "you type, i flap. dream team",
+    "me vs the pillars. pick a side"
+   ],
+   "best": [
+    "your best: {n} gates, then bonk",
+    "beat {n} gates. i'll tell the pigeons"
+   ],
+   "notesZh": "【先查过的事实，决定了哪些句子能用】\n- 发送时刻是本地 12:00，正好落在 DAY_OFF_HOURS 的 12–14 午休窗口里，所以 \"day off\" 和 \"lunch break\" 都成立。\n- isDayOff 只排除 owed / owed-long / wilting 三档。peckish（3–6 天没写）和 hungry（7–13 天）不排除，所以这条推送可能在她饿着的时候发出。因此不写吃的（编辑三的 \"lunch: laps. dessert: more laps\" 不用），也不提包里有没有东西：她的饥饿推送说的是 \"bag's light\"、\"no cargo\"，在途时 Me 卡说的是 \"safe in my bag\"，提了就会和其中一边打架。\n- 没玩过的人也会收到邀请句，所以邀请句里不出现 rematch、again 这类词。发送条件是\"7 天没玩\"，所以两个池都不出现 still、miss you、好久这类话，不让人有负罪感。\n- 气泡已经是 \"day off! race me?\"，正文不再用 race me，免得重复（编辑一的第 3 句因此不用）。\n- 标题是她的名字，所以正文不再写名字。全部小写，句末不加句号，和 push-copy.source.json 里的现有规则一致。\n- 字数按 \"{n}\" 字面 3 个字符算，三位数以内的成绩不会超长。\n\n【邀请句（4 句，开头各不相同）】\n1. day off. i chose cardio（23）＝放假了，我选了有氧。笑点是休息日她偏要去运动（她的工作本来就是飞）。来自编辑二，是\"放假还在飞\"这个笑点最短的写法。给译者的提示：笑点是\"休息日→主动去锻炼\"，cardio 在 es/pt/fr/de/it 里都通用，ja/ko 用\"有氧运动\"即可。没选编辑一的 \"so naturally, i'm flying\"，因为同一个笑点它更长。\n2. lunch break. lend me your thumbs（32）＝午休，借我你的大拇指。由编辑一的 \"bring your thumbs\" 和编辑三的 \"need a pair of thumbs\" 合并改写。笑点是鸟没有拇指，而这个游戏要用手机键盘打字，所以她得借你的。\"借\"这个动作在九种语言里都有现成说法（ja 親指貸して / ko 엄지 좀 빌려줘），也比命令式的 bring 更像她在撒娇。\n3. you type, i flap. dream team（28）＝你打字，我扇翅膀，梦幻组合。来自编辑一，原样保留。这句直接讲清了玩法，和 ff.hint 那句\"每打对一个字母就是一次扇翅\"是同一件事，所以从没打开过游戏的人也能看懂。笑点落在 dream team。\n4. me vs the pillars. pick a side（30）＝我对柱子，你站哪边？来自编辑三，原样保留。柱子在 Me 卡（\"laps between the pillars\"）和游戏里都有。站她这边就等于点进来玩，所以邀请藏在笑点里。\n\n【记录句（2 句，用 {n} 门）】\n1. your best: {n} gates, then bonk（31）＝你的最好成绩：{n} 道门，然后\"咚\"。来自编辑一，原样保留。每一局都以撞柱结束（结算标题是 \"Bonk. She clipped a pillar.\"），所以这句永远是真的。开头和 Me 卡的 \"Your best: {n} gates. Beat it?\" 呼应，点进来时能接上。拟声词按各语言已有的 ff.crashTitle 走（es ¡Pum!、pt Pof!）。\n2. beat {n} gates. i'll tell the pigeons（37）＝破了 {n} 门，我去跟鸽子炫耀。来自编辑一，原样保留。鸽子是 daily_prompt 第 1 句的老梗。这里只是她嘴上说说，和 \"a win no one clapped for? i'll clap\" 是同一类玩笑，不承诺 app 里会有任何画面或功能。\n没选的：\n- \"beat {n} gates and i'll do a loop\"：破纪录时只显示 NEW BEST，没有翻跟头的动画，等于承诺 app 做不到的事。\n- \"{n} gates? cute. i've been practicing\"：游戏不记录她自己飞了什么；\"cute\" 对低分的人有点扎心。留作备用。\n- 编辑二 \"your best: … i've been practicing\"（42）、编辑三 \"the pillars remember\"（44）：超过 40 字。\n\n【开关】\n- 标题 \"A race on her day off\"（21）。没用 \"{wren}'s day off\"，因为关掉开关时，它读起来像\"取消她的休息日\"。而且名字长度不固定。aura_settled.sub 里已经单用 she，标题不写名字也说得通。句式和 \"A room closing soon\"、\"A question in the morning\" 一样是名词短语。用 race 是跟着气泡里已有的 \"race me?\"。\n- 说明 \"At noon, once a week at most. Not in a week you've already played.\"（66）。和 daily_line.sub 的 \"Not on a day you've already written.\" 同一个句式。\"当天有别的提醒就让位\"这一条不写，现有的说明也都不逐条列优先级。\n\n【给实现方的四点（不是文案）】\n1. 只在 best.gates ≥ 2 时用记录句，否则用邀请句，这样就不会出现 \"1 gates\"，de/fr/es/it/pt 也不用另写单数版。Me 卡现有的 ff.dayoff.subBest 也有 \"1 gates\" 的问题，不在这次范围内。\n2. \"7 天内玩过\"需要一个最后一次玩的时间。free-flight.ts 的 FlightBest 现在只存 gates 和 pace，saveRun 时要加一个 lastPlayed，只存在手机上。\n3. 推送是提前排进 iOS 的。如果排好之后、中午之前来了回信（她进入 bringing 状态），12:00 这条仍会说\"在休息\"。回到前台时重排能挡住大部分情况。剩下的情况里，没有一句提信或包，所以最多只是\"在休息\"这一点不准。\n4. 同一个池不要连着两次发同一句。\n\n【备用句】邀请：day off. the pillars didn't get one（35）。记录：{n} gates? cute. i've been practicing（37）。"
+  },
+  "es": {
+   "invite": [
+    "día libre. ¿mi plan? cardio, obvio",
+    "¿me prestas tus pulgares? yo no tengo",
+    "tú tecleas, yo aleteo. qué equipazo",
+    "yo contra los pilares. ¿de qué lado estás?"
+   ],
+   "best": [
+    "tu récord: {n} puertas y luego, pum",
+    "más de {n} puertas y se lo cuento a las palomas"
+   ],
+   "notesZh": "【第二位编辑盲读：改了 3 处，其余照留】\n\n1. 邀请句 2：descanso del mediodía. ¿me prestas los pulgares?（48）→ ¿me prestas tus pulgares? yo no tengo（37）\n- 「descanso del mediodía」是照着 midday break 直译的，拉美人平时不这么说。顺口的说法是 hora del almuerzo，可那个词等于「午饭」，第一稿已经说明要避开吃的。与其换一个半生不熟的说法，不如把时间状语删掉：推送本来就在中午到，用不着再交代。\n- los pulgares 改成 tus pulgares，后面补一句 yo no tengo（我没有）。原句的笑点要读者自己想到「鸟没有拇指」，现在一句话就抖出来，锁屏上扫一眼也能看懂。「¿me prestas…?」这个撒娇的口气保留了。\n\n2. 记录句 2：pasa de {n} puertas y se lo cuento a las palomas → más de {n} puertas y se lo cuento a las palomas（47）\n- 祈使句「pasa de X」在西班牙口语里是「别理 X、无所谓 X」的意思，拉美读者也常在网上看到这个用法，会读出「别管那 {n} 道门」的歧义。\n- 「más de {n} puertas y…」是西语很常见的省略条件句，跟「un paso más y…」一个结构，意思是「超过 {n} 道门，我就……」。只有破了纪录才成立，这一点没变，而且字数更少。鸽子这个梗保留。\n\n3. 开关说明：Nunca en una semana en que ya hayas jugado → Nunca una semana en que ya hayas jugado（83）\n- 原句连着两个 en，读起来拗口。删掉第一个 en 以后，跟 es 现有的 daily_line.sub「Nunca un día en que ya hayas escrito.」句式完全一样。\n- 「como mucho」保留，因为 first_read.sub 已经写了「dos al día como mucho」，和全 app 一致。\n\n【没改的】\n- 邀请 1、3、4 都很地道。cardio, obvio 和 qué equipazo 是拉美年轻人真会说的话。tecleas/aleteo 对得工整，aleteo 也接上了游戏里的 ff.hint。\n- 记录 1「tu récord: {n} puertas y luego, pum」：不能用 ¡! 和 …，那用逗号来停顿就是对的，读起来自然。\n- 开关标题「Una carrera en su día libre」：我核对过 strings.ts，这一行会出现在「DE {wren}」分组下面，旁边还有「Cuando {wren} tiene hambre」，所以 su 只会被读成「她的」，不会被当成敬语的「您的」。备选是写成「Una carrera en el día libre de {wren}」（加上占位符后 39 个字）。不过要先确认这个开关的标题会做 {wren} 插值才能用，所以这一版没写进去。\n\n【字数】{n} 按 3 个字符算：34 / 37 / 35 / 42 / 35 / 47，都在 52 以内。开关标题 27，说明 83。"
+  },
+  "pt": {
+   "invite": [
+    "folga. podia ficar no ninho. fui de cardio",
+    "meio-dia. me empresta os dedões? asa não digita",
+    "você digita, eu bato asa. dupla imbatível",
+    "eu x os pilares. vai torcer pra quem?"
+   ],
+   "best": [
+    "seu recorde: {n} portais e um pof",
+    "passa dos {n} portais que eu conto pros pombos"
+   ],
+   "notesZh": "第二位巴西葡语编辑盲读：改了 2 处，其余照原稿。\n\n【改动】\n1. 邀请句 2：\"empresta seus dedões?\" → \"me empresta os dedões?\"（47）。巴西人借东西开口一定带 me（\"me empresta\"），去掉 me、用物主词 seus，读起来像从英文 your thumbs 搬过来的。改成 \"me empresta os dedões?\" 就是日常口语。dedões 在打字的语境里会被读成大拇指，不会读成脚趾，保留。\n2. 邀请句 4：\"torce pra quem?\" → \"vai torcer pra quem?\"（37）。\"você torce pra quem?\" 在巴西基本固定指\"你是哪个球队的球迷\"，问的是平时支持谁；问\"这一场你帮谁\"要说 \"vai torcer pra quem?\"。改了以后才是\"这一局我对柱子，你站哪边\"，邀请的意思也更直接。\n\n【原样保留，理由】\n- 邀请 1 \"folga. podia ficar no ninho. fui de cardio\"：节奏短，反差清楚，\"fui de cardio\" 是健身房口语，读得懂，不需要动。\n- 邀请 3 \"você digita, eu bato asa. dupla imbatível\"：自然。\"bato asa\" 用单数偏口语，和 ff.hint 的 batida de asa 一致。备选 \"ninguém segura a gente\"（48）更有劲，但 \"dupla imbatível\" 短，还有 bato/imbatível 的谐音，留原句。\n- 记录 1、2 都地道。\"passa dos {n} portais que eu conto pros pombos\" 用的是\"你做到，我就…\"的口语句式，没问题；避开 bater 的理由也成立。\n- 开关标题和说明都不用改。说明 82 字，和 daily_line.sub 的长度、句式一致。\n\n【字数】{n} 按 3 个字符算，最长 47，都在 52 以内；{n} 原样保留，顺序没动。\n\n【沿用第一位编辑提的问题，需要 owner 定】pt 里信使有时写成 ele，有时写成 ela：同一个推送设置页上 hungry.sub 和 aura_settled.sub 用的是 ele，标题里的 dela 是阴性。要么把那几条 ele 都改成 ela，要么标题去掉代词，改成 \"Uma corrida na folga\"（20）。"
+  },
+  "id": {
+   "invite": [
+    "hari libur. aku malah olahraga",
+    "istirahat siang. pinjem jempolmu dong",
+    "kamu ngetik, aku kepakin sayap. duet maut",
+    "aku vs tiang. kamu tim mana?"
+   ],
+   "best": [
+    "rekormu: {n} gerbang, terus… duk",
+    "pecahin rekor {n} gerbang. kupamerin ke merpati"
+   ],
+   "notesZh": "我做的是盲读二审。为了核对语气，只看了 src/data/strings.ts 里 id 块的 ff.* 和 set.push.*，没有读或调用其他东西。一共改了 3 处，其余保持原样。\n\n【改动】\n1. 邀请第 3 句：aku kepak sayap → aku kepakin sayap（41 字）。kepak 是词根，口语里不加词缀直接当动词用，读着有点硬，像是翻译过来的。加上雅加达口语的 -in 后缀（kepakin）才是自然说法，和 pecahin、kupamerin 是同一个路子。这样也避开了 ngepak 会被理解成\"打包\"的问题。原稿要的玩法提示（ff.hint 说每打对一个字母就扇一次翅膀）没有丢。\n2. 记录第 1 句：terus duk → terus… duk（32 字，… 是单个字符）。terus 有两个意思：\"然后\"和\"一直\"。没有停顿的话，有人会读成\"一直咚\"。加一个省略号，变成\"然后……咚\"，意思清楚了，撞柱前那一下的喜剧停顿也出来了。\n3. 开关说明第二句：Tidak kalau seminggu terakhir kamu sudah main → Tidak kalau kamu sudah main dalam tujuh hari terakhir。原句前半句刚说过 seminggu sekali，后半句又是 seminggu terakhir，重复了。而且把时间状语提到\"kamu\"前面，语序有点别扭。改后仍然沿用 daily_line.sub「Tidak di hari kamu sudah menulis.」和 hungry.sub「Tidak selama …」那种以 Tidak 开头的句式，半正式语气不变。\"七天\"也比\"一周\"更准确地对应滚动 7 天的发送条件。\n\n【没改的】\n- hari libur. aku malah olahraga：malah 的反差撑得住笑点，自然。\n- istirahat siang. pinjem jempolmu dong：口语地道，jempol 双关\"点赞\"也成立。\n- aku vs tiang. kamu tim mana?：这是 Gen Z 的固定句式，很好。\n- pecahin rekor {n} gerbang. kupamerin ke merpati：自然，也有梗。想过中间加 nanti，但那样会到 54 字，超限，所以保持原样。\n- 开关标题 Adu cepat di hari liburnya：和气泡「libur! adu cepat?」一致，也和设置页现有标题（如 Saat {wren} lapar、Suratmu dibuka）的名词短语格式一致。严格说这个游戏不完全是比速度，但有 LEBIH CEPAT 和每分钟速度统计撑着，可以接受。\n\n【字数】{n} 按 3 个字符算，最长 47 / 52。顺序、{n} 原样保留。"
+  },
+  "fr": {
+   "invite": [
+    "jour de congé. j'ai choisi le cardio, si si",
+    "pause déj. prête-moi tes pouces, j'en ai pas",
+    "toi au clavier, moi aux ailes. duo de choc",
+    "moi contre les piliers. choisis ton camp"
+   ],
+   "best": [
+    "ton record : {n} portes, et puis bong",
+    "à battre : {n} portes. les pigeons sont prévenus"
+   ],
+   "notesZh": "【第二位法语母语编辑，盲读后改了 3 处，其余保留】\n\n四句邀请全部保留。读起来都是法国人自己会说的话：« si si » 那种装作很骄傲的口气是对的；« prête-moi tes pouces, j'en ai pas » 很顺，也好笑；« duo de choc » 和 « choisis ton camp » 都是现成说法，不像翻译。\n\n改动：\n1. 记录句 1：« puis bong » 改成 « et puis bong »（30 字）。法语口语讲\\\"然后就……咚\\\"时，自然的节奏是 « et puis paf / et puis bong »，光写 « puis » 有点像书面语、电报体。其余不变，开头仍然和 Me 卡的 « Ton record : {n} portes » 接得上。\n2. 记录句 2：« {n} portes à battre » 改成 « à battre : {n} portes »（48 字）。原来的写法法语读者会先读成\\\"要打 {n} 扇门\\\"（battre des portes 不是一个说法），要停一下才明白是\\\"要打破的纪录\\\"。改成 « à battre : {n} portes » 以后，一读就是\\\"待破纪录：{n} 道门\\\"，和第 1 句 « ton record : » 的冒号句式也对上了。battre / battre des ailes 的双关还在，« les pigeons sont prévenus » 原样保留，这句最好笑。\n3. 开关说明：« une fois par semaine au plus » 改成 « pas plus d'une fois par semaine »。« au plus » 语法没错，但在设置文案里显得生硬、像法律条文；« pas plus d'une fois » 是日常说法。后半句 « Jamais une semaine où tu as déjà joué. » 不变，和 daily_line.sub 的句式仍然对齐。\n\n保留没动的：开关标题 « Une course pendant son congé »：有 « DE LA PART DE {wren} » 这个栏目标题在上面，« son » 不会被误读成\\\"你的\\\"；course 也和气泡里的 « on fait la course ? » 对得上。格式全部照旧：全小写、句末不加句号、问号和冒号前留普通空格、直撇号、{n} 原样保留，顺序也没变。字数（{n} 按 3 个字符算）：43 / 44 / 42 / 40 / 30 / 48，都在 52 以内。"
+  },
+  "de": {
+   "invite": [
+    "freier tag. und was mach ich? cardio",
+    "mittagspause. drück mir die daumen. wörtlich",
+    "du tippst, ich flatter. traumduo",
+    "ich gegen die säulen. team vogel oder team säule?"
+   ],
+   "best": [
+    "dein bestwert: {n} tore, dann bonk",
+    "mehr als {n} tore? dann geb ich bei den tauben an"
+   ],
+   "notesZh": "【第二位 de 母语编辑盲读：只改了 1 处】\n先在 src/data/strings.ts 里核对了现有用词：Säulen、Tore、Bestwert、Bonk、wettrennen、“Eine Zeile am Abend”，以及 daily_line.sub 的“Nie an einem Tag, an dem du schon geschrieben hast.”。初稿和这些用词全部一致。\n\n【改动】记录句 2\n- 原句：knack die {n} tore. ich geb bei den tauben an\n- 改为：mehr als {n} tore? dann geb ich bei den tauben an（49 字符）＝超过 {n} 道门？那我就去跟鸽子炫耀。\n- 为什么改：“die 100 knacken”这种拿数字当宾语的说法，意思是“达到/冲过 100 这条线”。可 {n} 是她已经打出来的成绩，“knack die {n}”读起来像让她再打到 {n} 一次，算不上破纪录。换成 Tore 当宾语也不行，“die {n} Tore knacken”会让人想到“把 {n} 扇门撬开”（像撬保险柜），意思跑偏了。“mehr als {n} tore?”直接说出要超过多少，问句也照样是邀请。加个 dann，把“你破了我才去炫耀”的条件关系说清楚，鸽子梗和 bei jemandem angeben 都保留。\n\n【没改的，逐条确认】\n- 邀请 1 cardio：自问自答的节奏在德语里很自然，好笑。\n- 邀请 2 Daumen drücken + wörtlich：双关能看懂，因为读者正拿着手机，拇指就在屏幕上，wörtlich 一出来就明白是要真的用拇指按。保留，不换备用句。Mittagspause 在 12 点推送时读成“你的午休”，没提吃的，没问题。\n- 邀请 3 traumduo、邀请 4 Team vogel oder team säule：都地道，字数也够。\n- 记录句 1 “dein bestwert: {n} tore, dann bonk”：干脆好笑，开头和 Me 卡一致。\n- 开关标题和说明：和现有设置项的写法完全一致，保留。\n\n【给实现方的一个可选项】\n开关标题里的 ihrem 指信使。设置列表中 hungry.title 用的是“Wenn {wren} Hunger hat”，aura_settled.sub 只写 sie，所以单用 ihrem 也说得通，我没改。如果这一项在列表里离提到 {wren} 的那行比较远，又支持 {wren} 占位符，可以写成“Ein Wettrennen an {wren}s freiem Tag”。这只是可选，最终用的仍是 ihrem 版。\n\n【字数】按 {n} 字面 3 个字符算，最长的是邀请 4 和新记录句 2，都是 49 个字符，在 52 以内。顺序没动，{n} 原样保留。"
+  },
+  "it": {
+   "invite": [
+    "giorno libero. relax? macché, cardio",
+    "pausa pranzo. mi presti i pollici?",
+    "tu digiti, io batto le ali. coppia d'oro",
+    "io contro i pilastri. tu per chi tifi?"
+   ],
+   "best": [
+    "il tuo record: {n} porte, poi… bonk",
+    "fai più di {n} porte e mi vanto di te coi piccioni"
+   ],
+   "notesZh": "第二位意大利语编辑盲读后的结果：改了 2 处，其余原样保留。\n\n【改动】\n1. 记录句 1：il tuo record: {n} porte, poi bonk → il tuo record: {n} porte, poi… bonk（35，{n} 按 3 个字符算）。只加了一个省略号（单字符 …）。原句读起来太平，像在报数据；停一拍再出 bonk，笑点才落得下来。开头仍和 Me 卡 ff.dayoff.subBest 的 \\\"Il tuo record: {n} porte\\\" 一致，bonk 仍沿用 ff.crashTitle。\n2. 记录句 2：supera le tue {n} porte e mi vanto coi piccioni → fai più di {n} porte e mi vanto di te coi piccioni（50，≤52）。\\\"superare le porte\\\" 在意大利语里有歧义（也能理解成\\\"穿过 {n} 道门\\\"），而且有点书面；fai più di {n} porte（\\\"打出超过 {n} 道门\\\"，就像 fare 100 punti）是游戏里真正的说法，目标也说得明白。另外加了 di te：\\\"mi vanto di te\\\" 是\\\"拿你去炫耀\\\"，原句的 mi vanto 单独用会读成她在炫耀自己，加上以后是她为你骄傲，更暖也更好笑。去掉了 le tue，因为这个池只在有个人纪录时才用，{n} 不会被误读。\n\n【没改，理由】\n- 四句邀请都地道：macché, cardio 自问自答很口语；mi presti i pollici? 鸟没有大拇指，这个梗成立；coppia d'oro 和 tu per chi tifi? 都是意大利人日常会说的话。全小写、句末不加句号、tu 都没问题。\n- 开关标题 Una gara nel suo giorno libero：和 set.push 里 \\\"Una stanza che sta per chiudere\\\" / \\\"Una domanda al mattino\\\" 是同一种格式。有一个小风险（只作说明，不改）：意大利 UI 里 \\\"suo\\\" 理论上可能被读成敬语 Lei 的\\\"您的\\\"。但这个 app 从头到尾用 tu，上面一行又是 \\\"Quando {wren} ha fame\\\"，读者会自然理解成\\\"她的\\\"。如果 owner 不介意在开关里出现名字，也可以写 \\\"Una gara nel giorno libero di {wren}\\\"（和 hungry 那行一致），不过这和英文\\\"开关里不写名字\\\"的考虑相反，所以没换。\n- 说明 A mezzogiorno, al massimo una volta a settimana. Mai se hai giocato negli ultimi sette giorni.：和现有 daily_line.sub（\\\"Alle nove di sera, … Mai in un giorno in cui hai già scritto.\\\"）结构一模一样，读起来就是这个 app 本来的语气。negli ultimi sette giorni 准确对应\\\"过去 7 天\\\"的规则，保留。\n\n【长度】最长的锁屏句是 50（记录句 2），其余都在 40 以内；{n} 原样保留，顺序没变。"
+  },
+  "ja": {
+   "invite": [
+    "休みの日も飛ぶ。ただし趣味で",
+    "お昼休み？親指かして、鳥にはないの",
+    "あなたが打てば、わたしが羽ばたく。名コンビ",
+    "わたしVS柱。どっちの味方？"
+   ],
+   "best": [
+    "あなたのベスト、{n}ゲート。からのゴツン",
+    "{n}ゲート超えたら、ハトに言いふらす"
+   ],
+   "notesZh": "只改了一处，其余都没动。\n\n【改动】\n邀请句 2：「お昼休み。」改成「お昼休み？」（字数不变，还是 17）。原句是句号，读起来像她在宣布\\\"现在是午休\\\"。可那天是她的休息日，她本人没有午休，于是会让人愣一下：谁在午休？改成问句以后，变成她在问对方\\\"你午休了吗？\\\"，后面的「親指かして」就顺理成章，是在跟对方要东西。就算对方当时不在午休，这种随口一问也不显得突兀。\n\n【没改的，说一下理由】\n- 1「休みの日も飛ぶ。ただし趣味で」：「ただし」放在这里，正好像免责声明的那种一本正经，笑点就在这儿。改成「趣味でね」会变软，冷面感就没了。\n- 3「あなたが打てば、わたしが羽ばたく。名コンビ」：考虑过在结尾加「でしょ／じゃん」，但那样有 23 个字，超过上限。只写「名コンビ」，像她得意地给自己配了句字幕，口气也够俏皮。这里保留汉字「羽ばたく」，没跟游戏里 ff.hint 一样写成平假名：「わたしがはばたく」一长串平假名不好断句。\n- 4「わたしVS柱。どっちの味方？」：很自然。「柱」和 ff.dayoff.line、ff.crashTitle 用的是同一个词，我在 strings.ts 里查过了。\n- 两条记录句：「からのゴツン」是年轻人常用的说法，自然又好笑。「ハトに言いふらす」用词也选得准。都不改。\n- 开关标题和说明：说法和现有的设置项一致，不改。「おやすみの日のひと勝負」连着两个「の」，但作为名词短语标题是可以接受的。\n\n我核对过的东西：{n} 都按原样保留；所有句子都在 22 字以内（{n} 按 3 字算）；四句邀请的开头互不重复；没有出现「もう一度／また／まだ／久しぶり」，也没有出现「きょうそう」。"
+  },
+  "ko": {
+   "invite": [
+    "쉬는 날에도 날아. 직업병인가 봐",
+    "점심시간. 엄지 두 개만 빌려줘",
+    "넌 타닥타닥, 난 퍼덕퍼덕. 환상의 콤비",
+    "나 vs 기둥. 넌 누구 편이야?"
+   ],
+   "best": [
+    "최고 기록: 관문 {n}개, 그리고 쿵",
+    "관문 {n}개 넘으면 비둘기한테 소문낼게"
+   ],
+   "notesZh": "盲读结论：6 句正文全部保留，只改了开关的标题和说明。\n\n【正文 6 句：无改动】\n字数（len，{n} 按 3 算）：18 / 17 / 22 / 18 / 21 / 22，全部 ≤22。\n- 「쉬는 날에도 날아. 직업병인가 봐」：直接是母语的自嘲口吻，날/날아 的谐音也顺，不用改。\n- 「점심시간. 엄지 두 개만 빌려줘」：「두 개만」是借东西时的撒娇语气，很地道。游戏本来就是用拇指在手机上打字，笑点成立。\n- 「넌 타닥타닥, 난 퍼덕퍼덕. 환상의 콤비」：查了 strings.ts，ff.hint 是「맞는 글자 하나가 날갯짓 하나」，玩法确实是打字，所以 타닥타닥（敲键盘声）是对的，押韵也自然。\n- 「나 vs 기둥. 넌 누구 편이야?」：口语、网络用语里都常见，不用改。\n- 「최고 기록: 관문 {n}개, 그리고 쿵」：和 subBest 的开头接得上，쿵 是笑点，不用改。\n- 「관문 {n}개 넘으면 비둘기한테 소문낼게」：「数字 + 넘으면」在韩语里默认读成\\\"超过\\\"（比如「10만 원 넘으면 무료배송」），所以\\\"破纪录\\\"的意思读得出来。曾考虑改成「넘게 가면」，但会到 24 字超限，所以保留原句。\n\n【开关标题：쉬는 날의 시합 → 쉬는 날의 한 판】\n시합 偏正式，带一点体育比赛的味道，放在设置项里有点硬。「한 판」是韩国人说\\\"来一局\\\"最自然的词，更俏皮，一看就知道是小游戏。格式还是名词短语，和「아침의 질문」「곧 닫히는 방」一致。气泡里的「시합할래?」不用动，两边意思接得上。\n\n【开关说明：两处小改，50 字】\n1. 「최근 일주일 안에」→「최근 7일 안에」：前半句已经有「일주일에 최대 한 번」，一句里重复两次 일주일 读起来啰嗦。7일 同时也更准确地对应\\\"最近 7 天\\\"的判断逻辑。\n2. 游戏名加了单引号：'자유 비행'을。hungry.sub 里引用别的设置名用的是「'매일 밤 한 줄'이 켜져 있는 동안엔」，所以 ko 设置页里已有这种写法。不加引号的话，자유 비행 容易被读成普通名词（\\\"随便飞一飞\\\"）。\n其余照旧：「낮 12시에,」和 daily_line.sub 的「밤 9시에,」句式一致，「오지 않아요」也和现有的说明一致。"
   }
+ }
 }

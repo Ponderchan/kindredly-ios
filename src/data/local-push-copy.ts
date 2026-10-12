@@ -3,7 +3,7 @@
    The pools the phone schedules on its own — the daily line, the morning
    question, the Sunday look-back, the aura's settled line, the morning
    knock (owner-approved 2026-10-10) and her day off, plain and with their
-   best run ({n} gates; written 2026-10-11, awaiting the owner). Every language written
+   best run ({n} gates; owner-approved 2026-10-12). Every language written
    natively; each pool keeps the English key order everywhere, so line n is
    the same moment in every language. Lower case and no closing full stop
    are the copy's own rule, not a bug.
