@@ -236,6 +236,19 @@ export default function KindredsTab() {
   const quiet = useMemo(() => (show ? [] : live.filter((th) => isQuiet(th) && inTab(th)).sort((a, b) => b.lastAt - a.lastAt)), [live, tab, show, premium]); // eslint-disable-line react-hooks/exhaustive-deps
   const shut = useMemo(() => (show ? [] : closed.filter(inTab).sort((a, b) => b.lastAt - a.lastAt)), [closed, tab, show]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* THEIR TURN, FOLDED (owner, 2026-10-12, on TestFlight: ALL was a pile of
+     chats that need nothing from you). 1.0.2 shrank a pen pal into a small
+     face the moment you wrote back and brought the row back when they
+     answered; 2a made every one a full row. In ALL they fold again: one
+     narrow row of their faces under the ones that are on you and the rooms.
+     A face opens that correspondence; the row opens PEN PALS, where everyone
+     is a full row, yours first. Rooms never fold — a kindred is never "in
+     transit". Slow letters are mostly waiting, and a list of waiting reads
+     like being left on read. */
+  const fold = tab === "all" && !show;
+  const theirTurn = useMemo(() => (fold ? main.filter((th) => !th.revealed && !onMe(th)) : []), [main, fold, onMe]);
+  const rows = useMemo(() => (fold ? main.filter((th) => th.revealed || onMe(th)) : main), [main, fold, onMe]);
+
   const counts = { kindreds: live.filter((th) => th.revealed).length, penpals: live.filter((th) => !th.revealed).length };
   const dots = {
     all: wrenNew > 0 || live.some(onMe),
@@ -386,9 +399,10 @@ export default function KindredsTab() {
             {/* the list, edge to edge on the white page */}
             <View style={{ marginTop: 8 }}>
               {tab === "all" && !show && <WrenDeskRow inList onUnread={setWrenNew} />}
-              {main.map((th, i) => (
+              {rows.map((th, i) => (
                 <ListRow key={th.id} t={th} unread={unread(th)} closing={th.revealed && settled && closingSoon(th.lastAt, premium)} rule={i > 0 || (tab === "all" && !show)} width={rowW} actions={rowMenu(th, false)} onOpen={() => open(th)} />
               ))}
+              {theirTurn.length > 0 && <TheirTurnRow items={theirTurn} onOpen={open} onAll={() => setTab("penpals")} />}
               {/* the empty line only when the paper really is empty — not over
                   the rooms that went quiet or the accounts that closed */}
               {main.length === 0 && (show || tab === "penpals" || (quiet.length === 0 && shut.length === 0)) && (
@@ -553,6 +567,36 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
       </MessageMenu>
       {/* the hairline starts where the words do, as iOS lists draw it */}
       {rule && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: ROW.pad + ROW.face + ROW.gap, right: 0, height: 1, backgroundColor: ROW.line }} />}
+    </Pressable>
+  );
+}
+
+/* the pen pals whose turn is theirs, as one row: their faces where the
+   faces are, how many, and the way to all of them. Six faces at most; the
+   count says the rest. */
+const FOLD_FACES = 6;
+const FOLD_FACE = 34;
+function TheirTurnRow({ items, onOpen, onAll }: { items: ThreadSummary[]; onOpen: (th: ThreadSummary) => void; onAll: () => void }) {
+  const label = `${chipLabel(t("state.waitingThem"))} · ${items.length}`;
+  const shown = items.slice(0, FOLD_FACES);
+  const more = items.length - shown.length;
+  return (
+    <Pressable onPress={onAll} accessibilityRole="button" accessibilityLabel={`${label}, ${chipLabel(t("kd.tab.penPals"))}`} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: ROW.pad, paddingVertical: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {shown.map((th, i) => (
+            <Pressable key={th.id} onPress={() => onOpen(th)} hitSlop={{ top: 6, bottom: 6 }} accessibilityRole="button" accessibilityLabel={`No. ${postNo(th.other)}`} style={{ marginLeft: i > 0 ? -8 : 0, zIndex: FOLD_FACES - i }}>
+              <View style={{ width: FOLD_FACE, height: FOLD_FACE, borderRadius: FOLD_FACE / 2, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: ROW.palBg, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <MosaicId seed={th.other} cell={2.9} gap={0.8} develop={0.15 + 0.85 * (Math.min(th.theirs, EACH_WAY) / EACH_WAY)} />
+              </View>
+            </Pressable>
+          ))}
+          {more > 0 && <Text style={{ marginLeft: 6, fontSize: 13, fontWeight: "600", color: ROW.time }}>+{more}</Text>}
+        </View>
+        <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, fontWeight: "600", color: ROW.time }}>{label}</Text>
+        <Text style={{ fontSize: 15, fontWeight: "600", color: ROW.time }}>›</Text>
+      </View>
+      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: ROW.pad, right: 0, height: 1, backgroundColor: ROW.line }} />
     </Pressable>
   );
 }
