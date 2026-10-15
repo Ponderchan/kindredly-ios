@@ -9,9 +9,11 @@ import SwiftUI
    name as "IBMPlexMono-Medium" and "IBMPlexMono-SemiBold" (assets/fonts, app.json ios.fonts);
  - a serif for letters and the emotional lines. The mock sets EB Garamond; the owner's default
    is Newsreader, embedded as "Newsreader-Regular" and "Newsreader-Italic". CJK falls through
-   to the system face, as it does on the React Native side. The reader can change it: the
-   Letter font (Settings: Newsreader, New York, EB Garamond) reaches every serif below through
-   one environment value, KLetterFace (see LETTER FACE at the end of the file).
+   to the system face, as it does on the React Native side. The reader can change the serif
+   that someone's letter is read in: the Letter font (Settings: Newsreader, New York, EB
+   Garamond) reaches the styles that follow it (followsLetterFont: letterBody and
+   .letterRead(…)) through one environment value, KLetterFace. Every other serif (Wren's lines,
+   hints, the First Class headline) stays Newsreader. See LETTER FACE at the end of the file.
 
  Everything scales with Dynamic Type, as the app's React Native text does (nothing in src
  turns allowFontScaling off). The serif and the mono come from Font.custom(_:size:relativeTo:).
@@ -47,9 +49,11 @@ public struct KTextStyle: Equatable, Sendable {
     case monoMedium
     /// IBM Plex Mono 600
     case monoSemiBold
-    /// the letter serif, upright: Newsreader, or the reader's Letter font (KLetterFace) under .kText
+    /// the serif, upright: Newsreader, or the reader's Letter font under .kText when the style
+    /// follows it (followsLetterFont)
     case serif
-    /// the letter serif, italic: Newsreader, or the reader's Letter font (KLetterFace) under .kText
+    /// the serif, italic: Newsreader, or the reader's Letter font under .kText when the style
+    /// follows it (followsLetterFont)
     case serifItalic
   }
 
@@ -62,13 +66,24 @@ public struct KTextStyle: Equatable, Sendable {
   public let tracking: CGFloat
   /// CSS line-height as a multiple of the size; nil is "normal"
   public let lineHeight: CGFloat?
+  /// A serif style that is someone's letter being read: .kText draws it in the reader's Letter
+  /// font (the environment's KLetterFace). False for every other style, serif or not, so the
+  /// Letter font set at a screen's root reaches only the letters (owner question 1).
+  public let followsLetterFont: Bool
 
-  public init(face: Face, size: CGFloat, weight: Font.Weight = .regular, tracking: CGFloat = 0, lineHeight: CGFloat? = nil) {
+  public init(face: Face, size: CGFloat, weight: Font.Weight = .regular, tracking: CGFloat = 0, lineHeight: CGFloat? = nil, followsLetterFont: Bool = false) {
     self.face = face
     self.size = size
     self.weight = weight
     self.tracking = tracking
     self.lineHeight = lineHeight
+    self.followsLetterFont = followsLetterFont && (face == .serif || face == .serifItalic)
+  }
+
+  /// the Letter face this style is drawn in when the environment carries `environment`:
+  /// that face if the style follows the Letter font, Newsreader otherwise
+  public func letterFace(in environment: KLetterFace) -> KLetterFace {
+    followsLetterFont ? environment : .newsreader
   }
 
   /// The system font. Weights in the mock: 400, 500, 600 (and 700 on one glyph).
@@ -82,10 +97,19 @@ public struct KTextStyle: Equatable, Sendable {
     KTextStyle(face: weight == .medium ? .monoMedium : .monoSemiBold, size: size, weight: weight, tracking: tracking)
   }
 
-  /// The letter serif, upright or italic, at its one weight, 400. Drawn in the reader's Letter
-  /// font under .kText (Newsreader unless .kLetterFace says otherwise).
+  /// The serif, upright or italic, at its one weight, 400, in Newsreader whatever the reader's
+  /// Letter font: Wren's lines, hints and sublines, the First Class headline and banner, empty
+  /// states. For someone's letter being read, use letterRead(…).
   public static func letter(_ size: CGFloat, italic: Bool = false, lineHeight: CGFloat? = nil) -> KTextStyle {
     KTextStyle(face: italic ? .serifItalic : .serif, size: size, tracking: 0, lineHeight: lineHeight)
+  }
+
+  /// The serif for someone's letter being read, at `place`: drawn under .kText in the reader's
+  /// Letter font (the environment's KLetterFace) when owner question 1's answer reaches that
+  /// place (KLetterFontScope), in Newsreader otherwise. Room chat bubbles, fold answers and
+  /// every input are not letters read: they stay in the system font and never use this.
+  public static func letterRead(_ size: CGFloat, italic: Bool = false, lineHeight: CGFloat? = nil, place: KLetterPlace) -> KTextStyle {
+    KTextStyle(face: italic ? .serifItalic : .serif, size: size, tracking: 0, lineHeight: lineHeight, followsLetterFont: KLetterFontScope.reaches(place))
   }
 
   /// the Dynamic Type style this size scales with
@@ -95,13 +119,14 @@ public struct KTextStyle: Equatable, Sendable {
   /// a serif style is Newsreader here (use font(letterFace:) for the reader's Letter font)
   public var font: Font { KType.font(face: face, size: size, weight: weight, relativeTo: textStyle) }
 
-  /// The font at this style's own size with the serif in the given Letter face. A bare Font, for
-  /// the places that take nothing else: no tracking, no line height, and New York doesn't scale
-  /// with Dynamic Type here (.kText scales everything).
+  /// The font at this style's own size, a serif that follows the Letter font in the given
+  /// Letter face (any other serif stays Newsreader). A bare Font, for the places that take
+  /// nothing else: no tracking, no line height, and New York doesn't scale with Dynamic Type
+  /// here (.kText scales everything).
   public func font(letterFace: KLetterFace) -> Font {
     switch face {
     case .serif, .serifItalic:
-      return KType.letterFont(letterFace, italic: face == .serifItalic, size: size, scaledSize: size, relativeTo: textStyle)
+      return KType.letterFont(self.letterFace(in: letterFace), italic: face == .serifItalic, size: size, scaledSize: size, relativeTo: textStyle)
     case .system, .monoMedium, .monoSemiBold:
       return font
     }
@@ -194,7 +219,8 @@ public enum KType {
 /*
  The roles the mock uses, named for where they appear. Each says where in the mock it comes from
  (H:line in .claude/mock/k10/Kindredly 10 Final.dc.html). A screen that needs a size this list
- lacks writes KTextStyle.system(…) / .mono(…) / .letter(…) inline, as the mock does.
+ lacks writes KTextStyle.system(…) / .mono(…) / .letter(…) inline, as the mock does, and
+ .letterRead(…, place:) for someone's letter being read.
  */
 public extension KTextStyle {
   // ── system ──
@@ -298,9 +324,11 @@ public extension KTextStyle {
   /// 600 12 .14em: YOUR COURIER, which keeps its 12 whatever KMonoSizes says (owner)
   static let monoCourier = mono(12, .semibold, tracking: 0.14)
 
-  // ── the letter serif: the reader's Letter font (Newsreader by default, where the mock sets EB Garamond) ──
-  /// 400 30/1.3: a letter's body on the Today card (H:34)
-  static let letterBody = letter(30, lineHeight: 1.3)
+  // ── the serif (Newsreader, where the mock sets EB Garamond) ──
+  /// 400 30/1.3: a letter's body on the Today card (H:34). Someone's letter being read, so it
+  /// follows the reader's Letter font (letterRead at .todayCard).
+  static let letterBody = letterRead(30, lineHeight: 1.3, place: .todayCard)
+  // The rest are not letters being read: they stay Newsreader whatever the Letter font.
   /// 400 24/1.15: the First Class headline (H:84)
   static let letterHeadline = letter(24, lineHeight: 1.15)
   /// 400 19/1.2: the Settings banner (H:98)
@@ -314,12 +342,13 @@ public extension KTextStyle {
 }
 
 /// Sets a KTextStyle: the font, its tracking and its line height, all scaled with Dynamic Type.
-/// A serif style is drawn in the Letter face the environment carries (.kLetterFace).
+/// A serif style that follows the Letter font (followsLetterFont) is drawn in the Letter face
+/// the environment carries (.kLetterFace); every other serif in Newsreader.
 struct KTextModifier: ViewModifier {
   let style: KTextStyle
   /// the style's size at the reader's Dynamic Type setting
   @ScaledMetric private var size: CGFloat
-  @Environment(\.kLetterFace) private var letterFace
+  @Environment(\.kLetterFace) private var environmentFace
 
   init(style: KTextStyle) {
     self.style = style
@@ -327,6 +356,7 @@ struct KTextModifier: ViewModifier {
   }
 
   func body(content: Content) -> some View {
+    let letterFace = style.letterFace(in: environmentFace)
     // what CSS line-height adds over the natural line, in points at the scaled size
     let natural = KType.naturalLineHeight(style.face, letterFace: letterFace)
     let leading = style.lineHeight.map { max(0, ($0 - natural) * size) } ?? 0
@@ -391,17 +421,20 @@ public enum KMonoSizes {
 
 /*
  LETTER FACE: the owner's Letter font (a device preference set in Settings: Newsreader, the
- default; New York; EB Garamond), as SwiftUI sees it. Every serif drawn with .kText (the .serif
- and .serifItalic faces: letter bodies, Wren's italic lines, hints, the First Class headline)
- follows the one value in the environment:
+ default; New York; EB Garamond), as SwiftUI sees it. It is one value in the environment:
 
      KTodayDesk(…).kLetterFace(KLetterFace(key: props.letterFont))
 
- Screen adapters set it once at their root (kScreenEnvironment in Adapters/KScreenProps.swift);
- a view that must stay in Newsreader whatever the reader picked sets .kLetterFace(.newsreader)
- on itself. Which places draw a letter in the serif at all is each screen's choice of style
- (owner question 1: wherever someone's letter is read; room chat bubbles, fold answers and
- every input stay in the system font), not this file's.
+ Screen adapters set it once at their root (kScreenEnvironment in Adapters/KScreenProps.swift).
+ That is safe because following it is the style's choice, not the environment's: only a style
+ with followsLetterFont is drawn in it, and only someone's letter being read has that flag
+ (letterBody and .letterRead(…, place:)). Every other serif, .letter(…) and the named roles
+ (Wren's italic lines, hints and sublines, the First Class headline and banner, the Courier
+ card's note, an empty state's title), stays Newsreader whatever the reader picked, with
+ nothing to remember at the call site. Room chat bubbles, fold answers and every input are
+ not serif at all: system font.
+
+ Which letter places follow it is owner question 1, answered in one line by KLetterFontScope.
 
  - Newsreader is embedded and scales through relativeTo, like the mono.
  - New York is the system serif, .system(size:weight:design: .serif), scaled by .kText's
@@ -456,7 +489,8 @@ private struct KLetterFaceKey: EnvironmentKey {
 }
 
 public extension EnvironmentValues {
-  /// The Letter face every serif below is drawn in (.kText). Newsreader by default.
+  /// The Letter face the letters below are drawn in (.kText, styles with followsLetterFont).
+  /// Newsreader by default.
   var kLetterFace: KLetterFace {
     get { self[KLetterFaceKey.self] }
     set { self[KLetterFaceKey.self] = newValue }
@@ -464,8 +498,55 @@ public extension EnvironmentValues {
 }
 
 public extension View {
-  /// Draws every serif inside in this Letter face (see LETTER FACE in KType.swift).
+  /// Draws the letters inside (styles with followsLetterFont) in this Letter face; every other
+  /// serif stays Newsreader (see LETTER FACE in KType.swift).
   func kLetterFace(_ face: KLetterFace) -> some View {
     environment(\.kLetterFace, face)
+  }
+}
+
+/// The places someone's letter is read, where the serif may follow the reader's Letter font
+/// (owner question 1). A screen names its place in .letterRead(…, place:).
+public enum KLetterPlace: CaseIterable, Sendable {
+  /// the letter on the Today card (letterBody)
+  case todayCard
+  /// the one-letter reader
+  case reader
+  /// a pen pal's letter blocks in the chat, before names are traded
+  case penPalLetter
+  /// a letter in My letters
+  case myLetters
+  /// the opening letter on a kindred's page
+  case kindredOpening
+  /// a quote in Keepsakes or Lore
+  case quote
+}
+
+/*
+ THE LETTER FONT'S REACH, the one table for owner question 1 (open since 2026-10-16, built with
+ its recommended answer). The question is which places draw someone's letter in the reader's
+ Letter font; everywhere else the serif stays Newsreader. Option (c), room chat bubbles
+ included, is not a rule here: the bubbles are set in the system font, so answering (c) changes
+ the room's bubble style, not this table.
+ */
+public enum KLetterFontScope {
+  /// The answers the owner was offered that this table can give.
+  public enum Rule: Sendable {
+    /// (a) only the Today card and the one-letter reader
+    case todayAndReader
+    /// (b) everywhere someone's letter is read: the Today card and reader, pen-pal letter blocks
+    /// before names are traded, My letters, a kindred's opening letter, Keepsake and Lore quotes
+    case everyLetterRead
+  }
+
+  /// THE ANSWER. (b) until the owner says otherwise.
+  public static let rule: Rule = .everyLetterRead
+
+  /// Whether a letter read at `place` follows the Letter font.
+  public static func reaches(_ place: KLetterPlace) -> Bool {
+    switch rule {
+    case .todayAndReader: return place == .todayCard || place == .reader
+    case .everyLetterRead: return true
+    }
   }
 }

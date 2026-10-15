@@ -11,7 +11,8 @@ import SwiftUI
 
  The samples mirror the mock's own (H:33-35, 42, 73, 78, 81, 101, 117-119, 124), in English:
  this is a dev page. The few things that respond (the +, the translate capsule, the chips, the
- switch, the step-5 field, voice card, tiles and menu) keep their state here and do nothing else.
+ switch, the step-5 voice card, tiles and menu) keep their state here and do nothing else. The
+ field in its reply strip is look-only for now (fieldIsLive, at its section).
 
  The step-5 kit follows the first eight sections: the line glyphs, the Letter faces and the
  mono sizes, the choice cards, the faces, the voice card, the field in its reply strip, the
@@ -305,13 +306,14 @@ public struct KGallery: View {
     }
   }
 
-  // ── KLetterFace: the same line in each face a picker offers, and the hidden one ──
+  // ── KLetterFace: a letter being read in each face a picker offers, and the hidden one; Wren's
+  // line under it doesn't follow the Letter font, so it stays Newsreader in every row ──
   private var letterFaces: some View {
     VStack(alignment: .leading, spacing: 10) {
       ForEach(KLetterFace.allCases, id: \.self) { face in
         VStack(alignment: .leading, spacing: 2) {
           Text("The rain came in sideways and I thought of you.")
-            .kText(.letter(22, lineHeight: 1.3))
+            .kText(.letterRead(22, lineHeight: 1.3, place: .reader))
             .foregroundStyle(theme.ink)
           Text("Wren is waiting by the window.")
             .kText(.letterAside)
@@ -403,6 +405,14 @@ public struct KGallery: View {
     }
   }
 
+  /// Whether the gallery's field can take the keyboard. False while Adapters/KGalleryView.swift
+  /// is not an ExpoSwiftUI.FocusableView: leaving ui-lab would then take a focused field off
+  /// screen, the expo focus/unmount crash KField's header warns about (40354, 47682). Until it
+  /// conforms (a forceResignFirstResponder() that resigns the first responder app-wide), the
+  /// strip here is for its look (Seed fills it and wakes the send key); return-to-send, focus
+  /// and blur are tried in the step-5 lab, whose adapter resigns. Flip it when the adapter can.
+  private static let fieldIsLive = false
+
   // ── KField in a KReplyStrip, with the round tools ──
   private var replyStrip: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -428,13 +438,26 @@ public struct KGallery: View {
         }
       )
       .padding(.trailing, KReplyStrip<EmptyView, EmptyView>.shadowOffset)
+      // a disabled field can't become first responder, by tap, VoiceOver or focus()
+      .disabled(!Self.fieldIsLive)
       HStack(spacing: 10) {
-        KTertiaryButton(theme: theme, title: "Seed", mono: true) { replyField.setText("A draft, restored.") }
-        KTertiaryButton(theme: theme, title: "Focus", mono: true) { replyField.focus() }
-        KTertiaryButton(theme: theme, title: "Blur", mono: true) { replyField.blur() }
+        KTertiaryButton(theme: theme, title: "Seed", mono: true) {
+          replyField.setText("A draft, restored.")
+          // setText isn't reported back, so the gallery's own copy follows it here
+          replyText = "A draft, restored."
+        }
+        if Self.fieldIsLive {
+          KTertiaryButton(theme: theme, title: "Focus", mono: true) { replyField.focus() }
+          KTertiaryButton(theme: theme, title: "Blur", mono: true) { replyField.blur() }
+        } else {
+          KTertiaryButton(theme: theme, title: "Clear", mono: true) {
+            replyField.clear()
+            replyText = ""
+          }
+        }
       }
       .kEqualHeightButtons()
-      caption("RETURN SENDS · SENT \(sent)")
+      caption(Self.fieldIsLive ? "RETURN SENDS · SENT \(sent)" : "LOOK ONLY · TRY IT IN THE STEP-5 LAB")
     }
   }
 

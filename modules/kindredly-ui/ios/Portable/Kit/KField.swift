@@ -24,21 +24,31 @@ import SwiftUI
  RULES
  - onChange reports what the reader typed (and pasted), after the rules below; never the text a
    setText put there, so a seed doesn't echo back to whoever sent it.
- - Return-to-send (returnSends: true, the reply strips): when the last edit inserted one
-   newline and nothing else, wherever the caret was, the newline is taken out again and
-   onSubmit gets the text. An IME's Return commits its composition without a newline, so it
-   never sends; a pasted block with newlines in it is kept as pasted. The keyboard's return key
-   says "send". The field doesn't decide whether the text may go: onSubmit does (and clears the
-   field with setText("") when it went). A one-line field (axis .horizontal) sends on the
-   return key the ordinary way.
+ - Return-to-send (returnSends: true, the reply strips): when the last edit put one newline in,
+   wherever the caret was, the newline is taken out again and onSubmit gets the text. The edit
+   is read as the range that changed (what went out of the old text, what came into the new),
+   not as "one character more", because Return with an autocorrection pending applies the
+   correction and the newline in the same edit ("I saw teh" becomes "I saw the\n"): a changed
+   range that ends in its only newline, with no newline taken out and a word's worth (under
+   correctionLimit characters) on either side of it, sends the corrected text. A correction
+   that only added to a word or only cut its end must touch a word, so a pasted "line\n" after
+   a space or into an empty field stays as pasted, newline and all. An IME's Return commits its
+   composition without a newline, so it never sends; a pasted block with newlines in it is
+   kept as pasted. The keyboard's return key says "send". The field doesn't decide whether the
+   text may go: onSubmit does (and clears the field with setText("") when it went). A one-line
+   field (axis .horizontal) sends on the return key the ordinary way.
  - Without returnSends (the compose and journal editors) Return is a newline.
  - maxLength cuts the text at that many characters (grapheme clusters, as people count them).
    It cuts as the text arrives, so a composition in progress at the limit can be cut too; it is
    for short fields (a name), not for letters.
  - The font goes through .kText, so the field grows with Dynamic Type; the writing style is
    system 17 (KTextStyle.input, H:124). The caret is the tint (ind in the 10a fields).
- - Focus and blur are by controller after mount. A focus asked for before the field is on
-   screen is kept and applied when it appears.
+ - Focus and blur are by controller after mount. A focus asked for before any field took it is
+   kept and applied when the field appears. The controller, which lives as long as the screen,
+   remembers which setText and focus it already applied, so a field rebuilt (a tray closed and
+   opened, a subtree remounted) never replays a spent one: no old seed lands on newer typing,
+   and no keyboard rises that nobody asked for. A rebuilt field starts from controller.text,
+   which is always the newer of the last setText and the reader's typing.
 
  THE FOCUS/UNMOUNT CRASH (expo issues 40354, 47682, 49348): never take a focused field off
  screen. Keep the composer mounted for the life of the screen and hide or disable it under the
@@ -71,6 +81,11 @@ public final class KFieldController: ObservableObject {
   @Published private(set) var textRequest: TextRequest?
   @Published private(set) var focusRequest: FocusRequest?
   private var serial = 0
+  /// The serial of the last setText a field applied (or found spent when it appeared). Kept
+  /// here, not in the field, so a field rebuilt with this controller doesn't apply it again.
+  var appliedTextSerial = 0
+  /// The serial of the last focus or blur a field applied, kept here for the same reason.
+  var appliedFocusSerial = 0
 
   /// - Parameter text: the words the field starts with
   public init(text: String = "") {
@@ -133,9 +148,6 @@ public struct KField: View {
   @State private var known: String
   /// the last value a setText wrote, so its onChange isn't reported as typing
   @State private var programmatic: String?
-  /// the last request applied, so a field rebuilt with a live controller doesn't apply it twice
-  @State private var appliedText: Int = -1
-  @State private var appliedFocus: Int = -1
 
   /// - Parameters:
   ///   - controller: the field's handle (setText, focus, blur, text)
@@ -267,20 +279,32 @@ public struct KField: View {
       apply(request)
     }
     .onAppear {
-      // a request made before the field was on screen
-      if let request = controller.textRequest, request.serial != appliedText, request.value != text {
-        apply(request)
+      // A setText no field has applied yet. The field started from controller.text, so it only
+      // matters while that is still the setText's value; once the reader has typed since, the
+      // request is spent and must not land on the newer words.
+      if let request = controller.textRequest, request.serial > controller.appliedTextSerial {
+        if request.value == controller.text {
+          apply(request)
+        } else {
+          controller.appliedTextSerial = request.serial
+        }
       }
-      if let request = controller.focusRequest, request.focused, request.serial != appliedFocus {
-        // the field must be in the window before it can take the keyboard
-        DispatchQueue.main.async { apply(request) }
+      // a focus asked for before any field took it
+      if let request = controller.focusRequest, request.focused, request.serial > controller.appliedFocusSerial {
+        // the field must be in the window before it can take the keyboard; a focus or blur
+        // asked for meanwhile wins
+        DispatchQueue.main.async {
+          if controller.focusRequest == request { apply(request) }
+        }
       }
     }
   }
 
   private func apply(_ request: KFieldController.TextRequest?) {
-    guard let request, request.serial != appliedText else { return }
-    appliedText = request.serial
+    guard let request, request.serial > controller.appliedTextSerial else { return }
+    controller.appliedTextSerial = request.serial
+    // an explicit setText wins over typing that landed after it was asked for
+    controller.fieldDidChange(request.value)
     if text != request.value {
       programmatic = request.value
       text = request.value
@@ -288,8 +312,8 @@ public struct KField: View {
   }
 
   private func apply(_ request: KFieldController.FocusRequest?) {
-    guard let request, request.serial != appliedFocus else { return }
-    appliedFocus = request.serial
+    guard let request, request.serial > controller.appliedFocusSerial else { return }
+    controller.appliedFocusSerial = request.serial
     focused = request.focused
   }
 
@@ -306,10 +330,14 @@ public struct KField: View {
     if returnSends, axis == .vertical, let without = Self.removingTypedNewline(old: old, new: new) {
       // Return pressed: take the newline back out and hand the text over. Setting the text
       // brings this back with `without`, which is known by then and so not reported; and if
-      // onSubmit clears the field (setText("")), that lands after, as a setText.
+      // onSubmit clears the field (setText("")), that lands after, as a setText. A correction
+      // that came with the Return is the reader's edit too: it is reported first, so a send
+      // that doesn't go (onSubmit leaving the field as it is) leaves the draft as shown.
+      let corrected = without != known
       known = without
       text = without
       controller.fieldDidChange(without)
+      if corrected { onChange(without) }
       onSubmit(without)
       return
     }
@@ -326,22 +354,56 @@ public struct KField: View {
     onChange(new)
   }
 
-  /// When `new` is `old` with one newline inserted (anywhere) and nothing else, `old`; nil
-  /// otherwise: a typed Return, not a paste or a composition.
+  /// The most characters an autocorrection applied with a Return may take out or put in: a
+  /// word's worth. A bigger change ending in a newline is a paste, and is kept as pasted.
+  static let correctionLimit = 32
+
+  /// `new` without the newline a Return just typed, or nil when the edit from `old` to `new`
+  /// was not a typed Return (a paste, a composition, typing).
+  ///
+  /// The edit is the range that changed: the common start and the common end of the two texts
+  /// are set aside, leaving what went out of `old` (removed) and what came into `new`
+  /// (inserted). It is a typed Return when inserted ends in its only newline and removed has
+  /// none, and either nothing else changed (Return alone, wherever the caret was) or the rest
+  /// is an autocorrection of the word before the caret, which iOS applies in the same edit as
+  /// the newline ("I saw teh" to "I saw the\n"): under correctionLimit characters each way and,
+  /// when it only added to a word or only cut its end, glued to the character before it, so a
+  /// pasted "line\n" after a space or into an empty field doesn't send. The correction is kept.
   static func removingTypedNewline(old: String, new: String) -> String? {
-    guard new.count == old.count + 1 else { return nil }
-    var oldIndex = old.startIndex
-    var newIndex = new.startIndex
-    // walk the common start
-    while oldIndex < old.endIndex, old[oldIndex] == new[newIndex] {
-      oldIndex = old.index(after: oldIndex)
-      newIndex = new.index(after: newIndex)
+    // the common start
+    var oldStart = old.startIndex
+    var newStart = new.startIndex
+    while oldStart < old.endIndex, newStart < new.endIndex, old[oldStart] == new[newStart] {
+      oldStart = old.index(after: oldStart)
+      newStart = new.index(after: newStart)
     }
-    // the one extra character must be a newline, and everything after it the same
-    guard new[newIndex].isNewline else { return nil }
-    let rest = new.index(after: newIndex)
-    guard new[rest...] == old[oldIndex...] else { return nil }
-    return old
+    // the common end, never reaching back into the common start
+    var oldEnd = old.endIndex
+    var newEnd = new.endIndex
+    while oldEnd > oldStart, newEnd > newStart {
+      let o = old.index(before: oldEnd)
+      let n = new.index(before: newEnd)
+      guard old[o] == new[n] else { break }
+      oldEnd = o
+      newEnd = n
+    }
+    let removed = old[oldStart..<oldEnd]
+    let inserted = new[newStart..<newEnd]
+
+    // one newline, the last thing that went in, and none taken out
+    guard let last = inserted.last, last.isNewline else { return nil }
+    let word = inserted.dropLast()
+    guard !word.contains(where: \.isNewline), !removed.contains(where: \.isNewline) else { return nil }
+
+    if !word.isEmpty || !removed.isEmpty {
+      // a correction applied with the Return: a word's worth each way
+      guard word.count < correctionLimit, removed.count < correctionLimit else { return nil }
+      if word.isEmpty || removed.isEmpty {
+        // only added to a word ("goin" to "going") or only cut its end: it must touch one
+        guard let before = new[..<newStart].last, !before.isWhitespace else { return nil }
+      }
+    }
+    return String(new[..<newStart]) + word + String(new[newEnd...])
   }
 }
 

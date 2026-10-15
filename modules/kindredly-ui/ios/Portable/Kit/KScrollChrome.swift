@@ -26,7 +26,11 @@ import SwiftUI
    several).
  - direction: .towardEnd or .towardTop, with a hysteresis (3pt by default): it only flips once
    the content has moved that far back from the furthest point it reached, so a trembling
-   finger doesn't flash a hiding header. .none until the first move.
+   finger doesn't flash a hiding header. .none until the first move. It reads the offset
+   clamped to the range the content can rest in (0 to endOffset), so the rubber band doesn't
+   count: the bounce back from a pull past the top (Kindreds' band) never reads as moving
+   toward the end and hides a header at the top, and the bounce at the end never brings a
+   hidden header back.
  - isAtBottom: the end of the content is within atBottomWithin (60) of the bottom of the view.
  - isNearTop: offset is within nearTopWithin (600), for paging older items in.
  - isInteracting: a finger is on the content (ScrollPhase .interacting).
@@ -85,27 +89,31 @@ public final class KScrollModel: ObservableObject {
   /// - Parameters:
   ///   - offset: contentOffset.y + contentInsets.top
   ///   - distanceToBottom: how far the end of the content is below the bottom of the view
-  func update(offset raw: CGFloat, distanceToBottom: CGFloat) {
+  ///   - endOffset: the largest offset the content rests at, in the same units (0 when the
+  ///     content is shorter than the view); direction ignores the overscroll past either end
+  func update(offset raw: CGFloat, distanceToBottom: CGFloat, endOffset: CGFloat) {
     let q = (min(raw, offsetCap) / quantum).rounded() * quantum
     if q != offset { offset = q }
 
-    // direction, measured from the furthest point reached
+    // direction, measured from the furthest point reached, on the offset without the rubber
+    // band (offset and pullDepth stay raw)
+    let d = min(max(raw, 0), max(0, endOffset))
     if let a = anchor {
-      let moved = raw - a
+      let moved = d - a
       switch direction {
-      case .towardEnd where raw > a, .towardTop where raw < a:
-        anchor = raw
+      case .towardEnd where d > a, .towardTop where d < a:
+        anchor = d
       default:
         if moved > hysteresis {
           if direction != .towardEnd { direction = .towardEnd }
-          anchor = raw
+          anchor = d
         } else if moved < -hysteresis {
           if direction != .towardTop { direction = .towardTop }
-          anchor = raw
+          anchor = d
         }
       }
     } else {
-      anchor = raw
+      anchor = d
     }
 
     let bottom = distanceToBottom <= atBottomWithin
@@ -140,8 +148,12 @@ public final class KScrollModel: ObservableObject {
 
 /// The facts read from a scroll view's geometry each frame.
 struct KScrollFacts: Equatable {
+  /// contentOffset.y + contentInsets.top: 0 at rest at the top, negative while pulled past it
   var offset: CGFloat
   var distanceToBottom: CGFloat
+  /// the largest offset the content rests at, in offset's units: 0 when it is shorter than
+  /// the view
+  var endOffset: CGFloat
 }
 
 public extension View {
@@ -159,15 +171,18 @@ struct KScrollChromeModifier: ViewModifier {
     content
       .onScrollGeometryChange(for: KScrollFacts.self) { geo in
         let offset = geo.contentOffset.y + geo.contentInsets.top
+        // the largest contentOffset.y, and the same end in offset's units
         let maxOffset = geo.contentSize.height + geo.contentInsets.bottom - geo.containerSize.height
+        let endOffset = max(0, maxOffset + geo.contentInsets.top)
         // rounded to half a point, so a still view doesn't call the models every frame
         return KScrollFacts(
           offset: (offset * 2).rounded() / 2,
-          distanceToBottom: (max(0, maxOffset - geo.contentOffset.y) * 2).rounded() / 2
+          distanceToBottom: (max(0, maxOffset - geo.contentOffset.y) * 2).rounded() / 2,
+          endOffset: (endOffset * 2).rounded() / 2
         )
       } action: { _, facts in
         for model in models {
-          model.update(offset: facts.offset, distanceToBottom: facts.distanceToBottom)
+          model.update(offset: facts.offset, distanceToBottom: facts.distanceToBottom, endOffset: facts.endOffset)
         }
       }
       .onScrollPhaseChange { _, phase in
