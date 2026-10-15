@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
-import { P as STATIC_P, PF, channelInk } from "../theme/post";
+import { MONO, P as STATIC_P, PF, channelColors } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
 import { StampTile } from "./StampTile";
@@ -141,13 +141,28 @@ function MicGlyph({ size = 26, color }: { size?: number; color?: string }) {
 }
 
 /** a round key in the bar */
-export function RoundKey({ on, onPress, children, badge }: { on?: boolean; onPress: () => void; children: React.ReactNode; badge?: React.ReactNode }) {
+export function RoundKey({
+  on,
+  onPress,
+  children,
+  badge,
+  accessibilityLabel,
+}: {
+  on?: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+  badge?: React.ReactNode;
+  /** what VoiceOver calls the key (its drawing says nothing) */
+  accessibilityLabel?: string;
+}) {
   const P = useP();
   const { t: tk } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       hitSlop={4}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => ({
         width: 46,
         height: 46,
@@ -168,32 +183,71 @@ export function RoundKey({ on, onPress, children, badge }: { on?: boolean; onPre
 
 const COLS = 6;
 
-export function StampTray({ selected, suggested, recent, onPick }: { selected: string | null; suggested: string[]; recent: string[]; onPick: (id: string) => void }) {
+/** One stamp as a tray section lists it (screens/compose compose-model StampItemVM). */
+export type TrayStamp = { id: string; name: string; inkHex: string; a11yLabel: string };
+export type TraySection = { title: string; items: TrayStamp[] };
+
+/* THE STAMP TRAY. Given `sections` (the compose page's, built by
+   compose-model stampSections: unknown ids already dropped, names in each
+   stamp's channel ink against this tray's soft), it lists those — the same
+   sections the SwiftUI page's tray shows. Without them it builds its own
+   from `suggested` and `recent`, as it always has. Names are mono 9 and
+   heads mono 10 (the 10a 9/10/11 rule), and a name's ink is worked out
+   against the tray it sits on (channelColors), so a deep stamp's name still
+   reads on Midnight's dark tray. */
+export function StampTray({
+  selected,
+  suggested = [],
+  recent = [],
+  sections,
+  onPick,
+}: {
+  selected: string | null;
+  suggested?: string[];
+  recent?: string[];
+  sections?: TraySection[];
+  onPick: (id: string) => void;
+}) {
   const P = useP();
   const { t: tk } = useTheme();
-  const tile = (id: string) => {
-    const on = selected === id;
-    const st = getStamp(id);
+  const tile = (it: TrayStamp, sectionKey: string) => {
+    const on = selected === it.id;
     return (
-      <Pressable key={id} onPress={() => onPick(id)} hitSlop={2} style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingTop: 6, paddingBottom: 4, opacity: pressed ? 0.6 : 1 })}>
+      <Pressable
+        key={`${sectionKey}:${it.id}`}
+        onPress={() => onPick(it.id)}
+        hitSlop={2}
+        accessibilityRole="button"
+        accessibilityLabel={it.a11yLabel}
+        accessibilityState={{ selected: on }}
+        style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingTop: 6, paddingBottom: 4, opacity: pressed ? 0.6 : 1 })}
+      >
         <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
-          <StampTile id={id} w={40} r={5} />
+          <StampTile id={it.id} w={40} r={5} />
         </View>
         {/* its name, in its own ink — a stamp is a word as much as a picture */}
-        <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 7.5, letterSpacing: 0.2, color: channelInk(st?.color), marginTop: 2, maxWidth: 58, textAlign: "center" }}>
-          {sname(st?.name).toUpperCase()}
+        <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: 58, textAlign: "center" }}>
+          {it.name}
         </Text>
       </Pressable>
     );
   };
-  const section = (label: string, ids: string[]) =>
-    ids.length ? (
-      <View key={label} style={{ marginBottom: 6 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.5, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{label}</Text>
-        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>{ids.map(tile)}</View>
+  const section = (key: string, label: string, items: TrayStamp[]) =>
+    items.length ? (
+      <View key={key} style={{ marginBottom: 6 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{label}</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>{items.map((it) => tile(it, key))}</View>
       </View>
     ) : null;
   const known = new Set(STAMPS.map((s) => s.id));
+  const own = (ids: string[]): TrayStamp[] =>
+    ids
+      .filter((id) => known.has(id))
+      .map((id) => {
+        const st = getStamp(id);
+        const name = sname(st?.name);
+        return { id, name: name.toUpperCase(), inkHex: channelColors(st?.color, tk.soft).ink, a11yLabel: name };
+      });
   return (
     <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>
       {/* the tab row: stamps, then the two doors not built yet (DOORS_OPEN) */}
@@ -211,14 +265,13 @@ export function StampTray({ selected, suggested, recent, onPick }: { selected: s
         </View>
       )}
       <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: DOORS_OPEN ? 0 : 4, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {section(t("cp.forThisLetter"), suggested.filter((id) => known.has(id)))}
-        {section(t("cp.recent"), recent.filter((id) => known.has(id)))}
-        {STAMP_CATEGORIES.map((cat) =>
-          section(
-            sname(cat.name).toUpperCase(),
-            stampsByCat(cat.id).map((s) => s.id),
-          ),
-        )}
+        {sections
+          ? sections.map((s, i) => section(`${i}:${s.title}`, s.title, s.items))
+          : [
+              section("suggested", t("cp.forThisLetter"), own(suggested)),
+              section("recent", t("cp.recent"), own(recent)),
+              ...STAMP_CATEGORIES.map((cat) => section(cat.id, sname(cat.name).toUpperCase(), own(stampsByCat(cat.id).map((s) => s.id)))),
+            ]}
       </ScrollView>
     </View>
   );
@@ -228,7 +281,14 @@ export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: b
   const P = useP();
   const { t: tk } = useTheme();
   const cell = (label: string, on: boolean, onPress: () => void, glyph: React.ReactNode, lock?: boolean) => (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ width: 82, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityValue={lock ? { text: t("cp.voiceLocked.a11y") } : undefined}
+      accessibilityState={{ selected: on }}
+      style={({ pressed }) => ({ width: 82, alignItems: "center", opacity: pressed ? 0.6 : 1 })}
+    >
       <View style={{ width: 62, height: 62, borderRadius: 16, backgroundColor: on ? P.ink : tk.sf, borderWidth: 1, borderColor: on ? P.ink : P.ink12, alignItems: "center", justifyContent: "center" }}>
         {glyph}
         {lock && (

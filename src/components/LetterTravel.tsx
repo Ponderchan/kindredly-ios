@@ -6,6 +6,7 @@ import { PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
 import { t, useLang } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
 
 /* LET IT TRAVEL — the owner's Travel Animation sheet (2026-09-19), ported
    beat for beat.
@@ -38,13 +39,17 @@ const TOTAL = 3.7;
 /** the arrival card, before the fade: the clock rests here until the send has landed */
 const HOLD_AT = TOTAL - 0.18;
 
-/* THE SHEET KEEPS ITS OWN COLOURS IN EVERY THEME (10a). The whole piece is
-   an illustration — the room and the desk, the paper, the daylit planet,
-   the sky — a picture of the letter leaving, not the page around it, so
-   nothing here reads the theme. The words land on that daylight sky, so
-   their ink is fixed dark too: a dark theme's light ink would vanish on it. */
+/* THE ILLUSTRATION KEEPS ITS OWN COLOURS IN EVERY THEME (10a): the desk,
+   the paper, the daylit planet, the sky — a picture of the letter leaving.
+   The words land on that daylight sky, so their ink is fixed dark too: a
+   dark theme's light ink would vanish on it.
+   THE GROUND IS THE PAGE'S (owner: every page follows the theme). The room
+   the page folds up in, the last frame it fades to, and the view under it
+   all paint the theme's page colour, so the piece opens on the page the
+   writer just left and closes on the one the courier returns them to —
+   Midnight no longer flashes a lavender room on the way in and out. */
 const C = {
-  page: "#ECEAFA",
+  page: "#ECEAFA", // the room before 10a; now only the fallback ground (see `ground`)
   ink: "#1E1B35",
   pen: "#5B55FF",
   sky: "#BFE0FF",
@@ -96,8 +101,23 @@ const enter = (from: number, to: number, start: number, end: number) => animate(
 const draw = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeInOutQuad);
 const pop = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutBack);
 
-export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; onDone: () => void; title?: string; note?: string }) {
+export function LetterTravel({
+  ready,
+  onDone,
+  title,
+  note,
+  ground: groundProp,
+}: {
+  ready: boolean;
+  onDone: () => void;
+  title?: string;
+  note?: string;
+  /** the room's colour; the theme's page colour (tk.bg) by default */
+  ground?: string;
+}) {
   useLang();
+  const { t: tk } = useTheme();
+  const ground = groundProp ?? tk.bg ?? C.page;
   const wren = useWrenName();
   const reduce = useReducedMotion();
   const { width: sw, height: sh } = useWindowDimensions();
@@ -265,7 +285,7 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
   const birdOn = swoop > 0.01;
 
   return (
-    <Animated.View style={{ flex: 1, backgroundColor: C.page, opacity: fade }}>
+    <Animated.View style={{ flex: 1, backgroundColor: ground, opacity: fade }}>
       <Svg width={sw} height={sh} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
         <Defs>
           <LinearGradient id="trvSky" x1="0" y1="0" x2="0" y2="1">
@@ -293,7 +313,7 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
         </Defs>
 
         {/* the room, then daylight sky */}
-        <Rect x={0} y={0} width={W} height={H} fill={C.page} />
+        <Rect x={0} y={0} width={W} height={H} fill={ground} />
         <Rect x={0} y={0} width={W} height={H} fill="url(#trvSky)" opacity={out} />
 
         {/* a few clouds only while we are still near the ground */}
@@ -397,7 +417,7 @@ export function LetterTravel({ ready, onDone, title, note }: { ready: boolean; o
           </G>
         )}
 
-        <Rect x={0} y={0} width={W} height={H} fill={C.page} opacity={outro} />
+        <Rect x={0} y={0} width={W} height={H} fill={ground} opacity={outro} />
       </Svg>
 
       {/* the courier: the product's own bird — her fly pose already faces right,
