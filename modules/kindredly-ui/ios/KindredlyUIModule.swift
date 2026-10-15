@@ -14,6 +14,8 @@ public class KindredlyUIModule: Module {
     Name("KindredlyUI")
 
     ExpoUIView(KInkCardView.self)
+    // the 10a tab bar and its composer sheet, one Host for both (src/components/NativeTabBar.tsx)
+    ExpoUIView(KTabBarView.self)
     // dev only on the JS side (ui-lab): every Portable piece in one theme
     ExpoUIView(KGalleryView.self)
   }
