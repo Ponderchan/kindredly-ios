@@ -4,7 +4,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter, Redirect } from "expo-router";
 import { t, useLang } from "../lib/i18n";
-import { C, F, cardStyle } from "../theme/tokens";
+import { F, cardStyle } from "../theme/tokens";
+import { useTheme } from "../lib/theme";
 import { WrenBird } from "../components/WrenBird";
 import { analyzeVoice, cachedVoiceAI, gatherWriting, storeVoiceAI, type VoiceRead } from "../lib/voice";
 import { reportGate, type ReportGate } from "../lib/report";
@@ -14,9 +15,22 @@ import { useEntitlement } from "../lib/entitlement";
 
 /* Your Voice, in detail — the nine signals Wren reads, each translated into
    plain warm language with an evidence strength. Never a grade; the page
-   should feel like "this sounds like me", not "AI has analyzed me". */
+   should feel like "this sounds like me", not "AI has analyzed me".
+
+   The page is the theme's (10a), the old C palette read by role: cream is
+   the page, cards are sf, ink is ink, muted lines are sub, the quiet
+   caption at the foot is mute, hairlines are line. Wren's summary sits on
+   the accent's palest wash (lav2) in ink with its byline mute; a signal's
+   glyph is ind on a lav2 tile, the same pair as Settings' tiles, and its
+   strength dots are ind on lav.
+
+   The Voice report's door keeps its night in every theme: it is the cover
+   of the night letter (report.tsx), which is dark on purpose, so it wears
+   the letter's colours, not the page's. Its card keeps the soft shadow
+   that every card here has, fixed in 10a. */
 
 export default function VoiceDetail() {
+  const { t: tk } = useTheme(); // above the dev gate, so it runs every render
   if (!__DEV__) return <Redirect href="/" />;
   useLang();
   const router = useRouter();
@@ -53,15 +67,15 @@ export default function VoiceDetail() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       {/* header */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 2 }}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 24, color: C.ink }}>‹</Text>
+          <Text style={{ fontSize: 24, color: tk.ink }}>‹</Text>
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: C.ink }}>{t("vc.title")}</Text>
-          <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.muted, marginTop: 2 }}>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: tk.ink }}>{t("vc.title")}</Text>
+          <Text style={{ fontFamily: F.sans, fontSize: 11, color: tk.sub, marginTop: 2 }}>
             {read ? (read.pieces === 1 ? t("vc.basedOnOne", { n: read.pieces, line: speakAs(read.stage.line, wren).toLowerCase() }) : t("vc.basedOnMany", { n: read.pieces, line: speakAs(read.stage.line, wren).toLowerCase() })) : "…"}
           </Text>
         </View>
@@ -70,33 +84,33 @@ export default function VoiceDetail() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Wren's summary, when the deeper engine has spoken */}
         {summary && (
-          <View style={[cardStyle, { padding: 16, marginBottom: 12, backgroundColor: C.purpleLt }]}>
-            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 22, color: "#2E2A50" }}>“{summary}”</Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 11, color: "#8B84B8", marginTop: 6 }}>— {wren}</Text>
+          <View style={[cardStyle, { padding: 16, marginBottom: 12, backgroundColor: tk.lav2 }]}>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 22, color: tk.ink }}>“{summary}”</Text>
+            <Text style={{ fontFamily: F.sans, fontSize: 11, color: tk.mute, marginTop: 6 }}>— {wren}</Text>
           </View>
         )}
 
-        <View style={[cardStyle, { paddingVertical: 6, paddingHorizontal: 0 }]}>
+        <View style={[cardStyle, { backgroundColor: tk.sf, paddingVertical: 6, paddingHorizontal: 0 }]}>
           {(read?.rows ?? []).map((r, i) => (
             <View
               key={r.key}
-              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, paddingVertical: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: C.lineSoft, opacity: r.read ? 1 : 0.45 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, paddingVertical: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: tk.line, opacity: r.read ? 1 : 0.45 }}
             >
-              <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: "#F1EFFA", alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontFamily: F.serifSemi, fontSize: 15, color: C.purpleMid }}>{r.glyph}</Text>
+              <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: tk.lav2, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontFamily: F.serifSemi, fontSize: 15, color: tk.ind }}>{r.glyph}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: C.ink }}>{r.title}</Text>
+                <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: tk.ink }}>{r.title}</Text>
                 {/* five of the nine need volume before they can say anything;
                     an unread row admits it rather than printing a reading it
                     hasn't earned */}
-                <Text style={{ fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 }}>
+                <Text style={{ fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: tk.sub, marginTop: 3 }}>
                   {r.read ? speakAs(r.line, wren) : t("vc.notEnough")}
                 </Text>
               </View>
               <View style={{ flexDirection: "row", gap: 3.5 }}>
                 {[1, 2, 3, 4, 5].map((d) => (
-                  <View key={d} style={{ width: 5.5, height: 5.5, borderRadius: 3, backgroundColor: r.read && d <= r.strength ? C.purpleMid : "#E3E1F2" }} />
+                  <View key={d} style={{ width: 5.5, height: 5.5, borderRadius: 3, backgroundColor: r.read && d <= r.strength ? tk.ind : tk.lav }} />
                 ))}
               </View>
             </View>
@@ -140,7 +154,7 @@ export default function VoiceDetail() {
         )}
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18 }}>
-          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: C.faint }}>{t("vc.learning")}</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: tk.mute }}>{t("vc.learning")}</Text>
           <WrenBird size={22} mood="content" />
         </View>
       </ScrollView>
