@@ -171,9 +171,13 @@ struct KScrollChromeModifier: ViewModifier {
     content
       .onScrollGeometryChange(for: KScrollFacts.self) { geo in
         let offset = geo.contentOffset.y + geo.contentInsets.top
-        // the largest contentOffset.y, and the same end in offset's units
-        let maxOffset = geo.contentSize.height + geo.contentInsets.bottom - geo.containerSize.height
-        let endOffset = max(0, maxOffset + geo.contentInsets.top)
+        // the largest contentOffset.y, and the same end in offset's units. containerSize is
+        // already the frame less the insets (measured on device: a 117pt safeAreaInset dock
+        // shows as contentInsets.bottom 117 AND a container 117 shorter, visibleRect spanning
+        // both), so the insets must not be added back: the old contentSize + insets.bottom -
+        // containerSize put the end 117pt below the real one and isAtBottom never came true.
+        let maxOffset = geo.contentSize.height - geo.containerSize.height - geo.contentInsets.top
+        let endOffset = max(0, geo.contentSize.height - geo.containerSize.height)
         // rounded to half a point, so a still view doesn't call the models every frame
         return KScrollFacts(
           offset: (offset * 2).rounded() / 2,

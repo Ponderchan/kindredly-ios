@@ -233,33 +233,38 @@ public struct KLab<Island: View>: View {
   }
 
   public var body: some View {
-    ScrollView {
-      VStack(spacing: 0) {
-        header
-        LazyVStack(spacing: 0) {
-          ForEach(rows) { row in
-            KLabRowView(theme: theme, row: row, actions: actions)
-              .equatable()
+    // The dock sits UNDER the list, not in a safeAreaInset: with the inset, iOS 18 reports it
+    // both as contentInsets.bottom and as a shorter containerSize, and scrollTo(edge: .bottom)
+    // lands one dock-height past the end (measured: 117pt of blank). Stacked, the list has no
+    // insets at all, its end is contentSize - containerSize, and the keyboard's safe area shrinks
+    // the stack so the dock rides it.
+    VStack(spacing: 0) {
+      ScrollView {
+        VStack(spacing: 0) {
+          header
+          LazyVStack(spacing: 0) {
+            ForEach(rows) { row in
+              KLabRowView(theme: theme, row: row, actions: actions)
+                .equatable()
+            }
           }
+          .scrollTargetLayout()
         }
-        .scrollTargetLayout()
       }
-    }
-    .scrollPosition($position)
-    .defaultScrollAnchor(.bottom, for: .initialOffset)
-    // follow the end only while at it: a row arriving while the reader is up in the history
-    // must not move what they are reading
-    .defaultScrollAnchor(chrome.isAtBottom ? UnitPoint.bottom : nil, for: .sizeChanges)
-    .scrollDismissesKeyboard(.interactively)
-    .kScrollChrome(chrome)
-    .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.2) { ids in
-      // kept, not published: read when the scroll settles
-      box.visible = Set(ids)
-    }
-    .onScrollPhaseChange { _, phase in
-      if phase == .idle { reportTopRow() }
-    }
-    .safeAreaInset(edge: .bottom, spacing: 0) {
+      .scrollPosition($position)
+      .defaultScrollAnchor(.bottom, for: .initialOffset)
+      // follow the end only while at it: a row arriving while the reader is up in the history
+      // must not move what they are reading
+      .defaultScrollAnchor(chrome.isAtBottom ? UnitPoint.bottom : nil, for: .sizeChanges)
+      .scrollDismissesKeyboard(.interactively)
+      .kScrollChrome(chrome)
+      .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.2) { ids in
+        // kept, not published: read when the scroll settles
+        box.visible = Set(ids)
+      }
+      .onScrollPhaseChange { _, phase in
+        if phase == .idle { reportTopRow() }
+      }
       KLabDock(
         theme: theme,
         driver: driver,
@@ -295,6 +300,21 @@ public struct KLab<Island: View>: View {
     }
     .onAppear {
       chrome.onPullRelease = { [actions] depth in actions.onPullRelease(depth) }
+      // .initialOffset lands short when the last rows' heights were only estimated at the first
+      // layout (measured: 62pt short of the end with variable-height rows); once those rows have
+      // been laid out, go to the real end, without animation, before anyone sees the difference
+      settleAtEnd()
+    }
+  }
+
+  /// Puts the list at its real end after the first layouts (see onAppear): twice, a runloop and
+  /// a frame later, because the second pass can still change the last rows' heights.
+  private func settleAtEnd() {
+    DispatchQueue.main.async {
+      position.scrollTo(edge: .bottom)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+        position.scrollTo(edge: .bottom)
+      }
     }
   }
 
