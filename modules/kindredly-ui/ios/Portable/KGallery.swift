@@ -19,6 +19,11 @@ import SwiftUI
  send keys and round tools, the back bar, the bottom fade, the scroll chrome, the First Class
  cards, the notices, the selectable tiles and the switch, and the long-press menu.
 
+ STAMPS comes last (step 5, batch 1): one stamp at every size, the art framed as the screens
+ frame it, then all 36 in each of the four themes whatever theme the gallery is in, so the
+ sheets can be compared with each other and, on the dev page kindredly:///dev/step5-stamp-art,
+ with StampTile's React Native drawing of the same sheets laid out the same way right below.
+
  It is as tall as its content and as wide as it is offered, so it sits in a Host that matches
  its contents vertically. It doesn't scroll by itself; the page around it does.
  */
@@ -74,6 +79,9 @@ public struct KGallery: View {
         section("NOTICE") { notices }
         section("SELECTABLE TILES · SWITCH") { tiles }
         section("LONG-PRESS MENU") { menu }
+      }
+      Group {
+        section("STAMPS · ALL \(KStampArt.ids.count) · FOUR THEMES") { stamps }
       }
     }
     .padding(.horizontal, 16)
@@ -625,6 +633,82 @@ public struct KGallery: View {
       ]) { lastMenu = $0 }
       caption("LAST CHOSEN · \(lastMenu)")
     }
+  }
+
+  // ══ step 5, batch 1 ══
+
+  /// the sizes the stamp is checked at: the tray's names aside, 16 is the smallest a screen
+  /// might use and 96 shows the curves and the perforation up close
+  private static let stampSizes: [CGFloat] = [16, 22, 28, 40, 64, 96]
+
+  // ── KStampArt: one stamp at every size; the art framed as the screens frame it (the specs'
+  // sizes: the Today card's box H:33, the compose slot H:136, a picked tray tile); the tinted
+  // tile an id without art gets; then every stamp in each theme. The page that wraps this,
+  // dev/step5-stamp-art, draws StampTile's React Native version of each row right below ──
+  private var stamps: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .bottom, spacing: 10) {
+        ForEach(Self.stampSizes, id: \.self) { side in
+          KStampArt(id: "never-told", size: side)
+        }
+      }
+      caption("NEVER-TOLD · 16 · 22 · 28 · 40 · 64 · 96")
+      HStack(alignment: .center, spacing: 14) {
+        // the Today card's box: 34, corners of 10, a 2pt ln border on sf, the art inset 2
+        KStampArt(id: "made-my-day", size: 30)
+          .frame(width: 34, height: 34)
+          .background(RoundedRectangle(cornerRadius: 10, style: .circular).fill(theme.sf))
+          .overlay(RoundedRectangle(cornerRadius: 10, style: .circular).strokeBorder(theme.ln, lineWidth: 2))
+        // the compose slot with a stamp chosen: the art at 28, no tilt
+        KStampArt(id: "crush", size: 28)
+        // a tray tile, picked: 40 inside a 2pt ind ring 2 away, corners of 7 (ComposeTray)
+        KStampArt(id: "cant-sleep", size: 40)
+          .padding(4)
+          .overlay(RoundedRectangle(cornerRadius: 7, style: .circular).strokeBorder(theme.ind, lineWidth: 2))
+        // ids with no art: the tinted tile in TS's colour, then in StampTile's own
+        KStampArt(id: "no-such-stamp", size: 40, fallbackHex: "#1E948A")
+        KStampArt(id: "no-such-stamp", size: 40)
+      }
+      caption("CARD BOX · SLOT 28 · TRAY PICKED · TILE (HEX) · TILE")
+      caption("ROWS · CONFESSIONS · ALMOSTS · LATE NIGHTS · SMALL THINGS · BECOMING · MISSING")
+      ForEach(KTheme.all, id: \.key) { sheet in
+        stampSheet(sheet)
+      }
+      caption(
+        KStampArt.unread.isEmpty
+          ? "ALL \(KStampArt.ids.count) DRAWN FROM THEIR ART"
+          : "TINTED TILE, ART UNREAD · " + KStampArt.unread.joined(separator: " · ").uppercased()
+      )
+    }
+  }
+
+  /// Every stamp in one theme: six to a row (a row is a category, in stamps.ts order), spread
+  /// edge to edge on the theme's tray colour (soft), in a panel of its page colour. The stamps
+  /// themselves don't change from sheet to sheet; only their ground does.
+  private func stampSheet(_ sheet: KTheme) -> some View {
+    let ids = KStampArt.ids
+    let rows = stride(from: 0, to: ids.count, by: 6).map { Array(ids[$0..<min($0 + 6, ids.count)]) }
+    return VStack(alignment: .leading, spacing: 8) {
+      Text(sheet.name.uppercased())
+        .kText(.monoSection)
+        .foregroundStyle(sheet.mute)
+      VStack(spacing: 12) {
+        ForEach(rows.indices, id: \.self) { r in
+          HStack(spacing: 0) {
+            ForEach(rows[r].indices, id: \.self) { c in
+              if c > 0 { Spacer(minLength: 0) }
+              KStampArt(id: rows[r][c], size: 40)
+            }
+          }
+        }
+      }
+      .padding(12)
+      .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(sheet.soft))
+    }
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(sheet.bg))
+    .overlay(RoundedRectangle(cornerRadius: 18, style: .circular).strokeBorder(sheet.line, lineWidth: 1))
   }
 }
 
