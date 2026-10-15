@@ -166,10 +166,14 @@ export default function Onboarding() {
   const auth = useAuth();
   const { session, onboarded, appleAvailable } = auth;
 
-  const [step, setStep] = useState<Step>("welcome");
   /* DEV ONLY: kindredly:///onboarding?step=avatar opens the console at a
-     step, so a screen can be looked at without walking in from the door */
+     step, so a screen can be looked at without walking in from the door.
+     The first render already starts there: starting on "welcome" and moving
+     in an effect let the signed-in redirect below see "welcome" first and
+     send an onboarded account to Today before the step landed. */
   const params = useLocalSearchParams<{ step?: string }>();
+  const devStep = __DEV__ && params.step && (ORDER as string[]).includes(params.step) ? (params.step as Step) : null;
+  const [step, setStep] = useState<Step>(devStep ?? "welcome");
   useEffect(() => {
     if (__DEV__ && params.step && (ORDER as string[]).includes(params.step)) setStep(params.step as Step);
   }, [params.step]);
