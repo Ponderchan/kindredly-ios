@@ -26,12 +26,16 @@ export {
 } from "./src/types";
 export {
   COMMAND_QUEUE_LIMIT,
+  createCommandChannel,
   createCommandQueue,
   nextRev,
   useKCommands,
   useRev,
+  type KCommandChannel,
+  type KCommandChannelConfig,
   type KCommandQueue,
   type KCommandSender,
+  type KHandleRef,
   type KQueuedCommand,
   type KRevState,
   type UseKCommandsOptions,

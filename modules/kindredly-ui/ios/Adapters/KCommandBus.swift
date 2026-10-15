@@ -12,8 +12,10 @@ import SwiftUI
  lands here as send(name, args), and the view reacts without a props round.
 
  The JS side is modules/kindredly-ui/src/commands.ts (useKCommands), which queues until the
- native view exists; this side buffers until a SwiftUI view listens. Between the two, a command
- sent in the same render that mounts the screen still arrives, in order.
+ native view exists and sends the queue from the view's ref callback the moment it attaches
+ (commands.ref); this side buffers until a SwiftUI view listens. Between the two, a command sent
+ before the view mounted (in the mounting render, from a mount effect, while a NativeSurface
+ was still arming) still arrives, in order.
 
  Rules:
  - Delivery is on the main thread, in the order sent. The AsyncFunction already runs on main
@@ -220,10 +222,11 @@ extension Dictionary where Key == String, Value == Any {
     (self[key] as? NSNumber)?.doubleValue
   }
 
-  /// A number arg rounded toward zero to Int; nil when absent or not finite.
+  /// A number arg rounded toward zero to Int; nil when absent, not finite, or past Int's range
+  /// (Int(_:) would trap on, say, 1e20 or a nanosecond timestamp sent by mistake).
   func kInt(_ key: String) -> Int? {
     guard let d = kDouble(key), d.isFinite else { return nil }
-    return Int(d)
+    return Int(exactly: d.rounded(.towardZero))
   }
 
   /// A boolean arg; JS booleans arrive as Bool (or NSNumber 0/1). nil when absent.

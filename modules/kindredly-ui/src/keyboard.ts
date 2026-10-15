@@ -10,7 +10,9 @@ import { requireOptionalNativeModule } from "expo";
    The app calls it through src/lib/keyboard.ts's dismissKeyboard(), which does both, and
    blurThen(), which every push, picker, Alert or React Native modal opened from a Swift screen
    goes through, so the keyboard is never stranded over the next screen. To blur one screen's
-   fields and keep its state right, send that screen the "blur" command as well. */
+   fields and keep its state right, send that screen the "blur" command as well: through
+   commands.send("blur", {}), or ref.current.command("blur", {}) called as a method, never
+   detached (expo finds the view from `this`; see KScreenHandle in types.ts). */
 
 type KindredlyUINative = {
   dismissKeyboard?: () => Promise<void>;

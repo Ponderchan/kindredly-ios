@@ -15,9 +15,10 @@ import type { KInsets, KScreenBaseProps, KScreenHandle } from "./types";
    matchContents on a scroll axis), and only after
    isKindredlyUIViewAvailable("KConversationView") and the screen's NativeSurface switch say so.
    Outside a Host it is a RedBox in dev and a CRASH in a release build. Its ref is a
-   KScreenHandle; talk to it through useKCommands (commands.ts). Islands go in as <KIsland>
-   children (Slot.tsx). It will hold a KField, so give useKCommands(ref, { blurOnUnmount: true })
-   the same ref. */
+   KScreenHandle: give it `commands.ref` from useKCommands (commands.ts), which sends queued
+   commands the moment the view attaches. Islands go in as <KIsland> children (Slot.tsx). It will
+   hold a KField, so call useKCommands(ref, { blurOnUnmount: true, onViewAttach }) and reseed the
+   reply draft in onViewAttach. */
 
 export type KConversationViewProps = CommonViewModifierProps &
   KScreenBaseProps & {

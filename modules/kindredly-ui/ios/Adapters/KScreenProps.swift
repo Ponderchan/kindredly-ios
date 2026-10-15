@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import ExpoModulesCore
 import ExpoUI
+import os
 
 /*
  THE SHARED BASE OF EVERY STEP-5 SCREEN VIEW (chat/room, Kindreds, Today, compose, Me, Settings,
@@ -22,7 +23,9 @@ import ExpoUI
    bottom margin from these. tabBarRoom is useTabBarSpace() on a tab screen, 0 on a pushed one.
  - rev: a counter TS bumps whenever any heavy array prop changes (useRev in src/commands.ts).
    `props.cached("rows") { … }` converts records once per rev instead of on every body run,
-   which every prop change triggers (see KCommandBus.swift for why).
+   which every prop change triggers (see KCommandBus.swift for why). useRev starts at 1, so 0
+   means the screen tracks no rev: cached() then converts on every body run (correct, only
+   slower) and says so once per slot in a debug build, rather than hand back stale rows.
  - commands: the KCommandBus that the screen's "command" AsyncFunction feeds. Listen with
    `.onKCommand(props.commands) { name, args in … }`.
  - testID and the @expo/ui modifiers, from UIBaseViewProps, because every screen view is
@@ -86,7 +89,8 @@ class KScreenProps: UIBaseViewProps {
   /// the owner's Letter font: newsreader, newyork or garamond (read letterFontKey)
   @Field var letterFont: String = "newsreader"
   @Field var insets: KInsetsRecord = KInsetsRecord()
-  /// bumped by TS whenever a heavy array prop changes; keys `cached(_:_:)`
+  /// bumped by TS whenever a heavy array prop changes; keys `cached(_:_:)`. 0 (what the TS
+  /// wrappers send when a screen passes none) means untracked: nothing is cached.
   @Field var rev: Int = 0
 
   /// The imperative channel the screen's "command" AsyncFunction feeds (KCommandBus.swift).
@@ -94,6 +98,12 @@ class KScreenProps: UIBaseViewProps {
 
   /// slot -> (the rev it was built at, the value); main thread only, like body
   private var revCache: [String: (rev: Int, value: Any)] = [:]
+
+  #if DEBUG
+  /// the slots already reported as asked for at rev 0, so the log says it once each
+  private var untrackedSlots: Set<String> = []
+  private static let log = Logger(subsystem: "kindredly-ui", category: "screens")
+  #endif
 
   /// The theme to draw with. Classic for a key this binary doesn't know (one added to
   /// themes.json without regenerating KTheme.swift), as KTabBarView does.
@@ -123,7 +133,19 @@ class KScreenProps: UIBaseViewProps {
   ///
   /// The conversion must depend only on rev-tracked props; a value that also depends on, say,
   /// the theme belongs in a slot named for it ("rows:\(props.theme)"). Main thread only.
+  ///
+  /// At rev 0 (the screen passes no rev) it converts every time and caches nothing: a cache
+  /// keyed on a rev that never moves would hand back the first rows forever, silently.
   func cached<T>(_ slot: String, _ make: () -> T) -> T {
+    guard rev != 0 else {
+      #if DEBUG
+      if untrackedSlots.insert(slot).inserted {
+        Self.log.warning("cached(\"\(slot, privacy: .public)\") at rev 0: this screen sends no rev, so it converts on every body run. Pass useRev(...) as rev.")
+      }
+      #endif
+      revCache[slot] = nil
+      return make()
+    }
     if let entry = revCache[slot], entry.rev == rev, let value = entry.value as? T {
       return value
     }

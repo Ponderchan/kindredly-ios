@@ -56,13 +56,20 @@ export type KScreenBaseProps = {
   /** zeros when absent */
   insets?: KInsets;
   /** Bump whenever any heavy array prop changes (useRev in commands.ts): Swift converts its rows
-      once per rev, not on every prop change. 0 when absent. */
+      once per rev, not on every prop change. 0 when absent, which Swift reads as "no rev": it
+      then caches nothing and converts on every body run (KScreenProps.cached). */
   rev?: number;
 };
 
 /** What a step-5 screen view's ref exposes: the one imperative entry, which lands on the
-    view's KCommandBus. Use it through useKCommands (commands.ts), which queues until the view
-    exists. */
+    view's KCommandBus. Use it through useKCommands (commands.ts) and give the view
+    `commands.ref`, which sends the queue the moment the view attaches.
+
+    Call it as ref.current.command(...), never detached (`const c = ref.current.command; c(...)`
+    or passing it as a callback): it is a view function expo puts on the component's prototype,
+    and expo finds the native view from `this` (expo-modules-core SyncFunctionDefinition.swift
+    toNativeClosureArguments skips the owner when `this` is undefined). A detached call casts the
+    command name to the view type and rejects, so nothing reaches Swift. */
 export type KScreenHandle = {
   command(name: string, args: Record<string, unknown>): Promise<void>;
 };
