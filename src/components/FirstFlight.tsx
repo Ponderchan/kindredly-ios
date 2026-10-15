@@ -147,7 +147,7 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
           {STOPS.map(([x, y], i) => (
             <View key={i} style={{ position: "absolute", left: x - 70, top: y + 22, width: 140, alignItems: "center" }} pointerEvents="none">
               <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink }}>{stampOf(stops[i]) || t("ff.stop", { n: i + 1 })}</Text>
-              {!!words(stops[i]) && <Text numberOfLines={1} style={{ fontFamily: PF.serifItalic, fontSize: 11, color: P.ink60, marginTop: 2 }}>{words(stops[i])}…</Text>}
+              {!!words(stops[i]) && <Text numberOfLines={1} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11, color: P.ink60, marginTop: 2 }}>{words(stops[i])}…</Text>}
             </View>
           ))}
           <Text style={{ position: "absolute", left: 20, top: 756, fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{t("ff.chart")}</Text>
@@ -158,14 +158,14 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
         {/* the title of the moment, stepping back once she's gone */}
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 96, alignItems: "center" }, titleStyle]} pointerEvents="none">
           <Text style={{ fontFamily: PF.serif, fontSize: 30, color: P.ink, textAlign: "center" }}>
-            {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: PF.serifItalic }}>{t("ob.flight.em", { name: her })}</Text>
+            {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
           </Text>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink60, marginTop: 10 }}>{t("ob.flight.sub")}</Text>
         </Animated.View>
 
         {/* 1 · the letter, folding */}
         <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, backgroundColor: P.paper, borderWidth: 1.5, borderColor: P.ink, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
-          <Text numberOfLines={3} style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
+          <Text numberOfLines={3} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
         </Animated.View>
         <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, backgroundColor: P.paper, borderWidth: 1.5, borderColor: P.ink }, envStyle]} pointerEvents="none">

@@ -79,7 +79,7 @@ export function Introduction({
         <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           <WrenBird size={44} mood="content" stage="wren" />
 
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
+          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
             {t("intro.body")}
           </Text>
 
@@ -111,7 +111,7 @@ export function Introduction({
             );
           })()}
 
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
+          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
             {t("in.knowYou", { name: myName })}
           </Text>
         </ScrollView>

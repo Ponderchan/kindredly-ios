@@ -37,7 +37,7 @@ export default function HatchPreview() {
             {!born && <Text style={[mono(10, "b"), { color: Y.dim, letterSpacing: 2 }]}>READING YOU</Text>}
             <Text style={{ fontFamily: F2.serif, fontSize: born ? 34 : 30, lineHeight: born ? 39 : 35, color: Y.ink, marginTop: born ? 0 : 8 }}>
               {born ? "Something " : "It heard enough."}
-              {born && <Text style={{ fontFamily: F2.serifItalic }}>hatched.</Text>}
+              {born && <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>hatched.</Text>}
             </Text>
             {born && <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 10, lineHeight: 17 }]}>Its first word was one of yours. It caught your hidden rhythm first — the rest, it's still learning.</Text>}
           </View>

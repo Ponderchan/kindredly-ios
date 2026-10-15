@@ -632,7 +632,7 @@ export default function RoomScreen() {
                 should say so once rather than her hovering in it */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 }}>
               <WrenBird size={13} mood="content" />
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: P.ink40 }}>{tr("rm.foundYouTwo", { wren })}</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11.5, color: P.ink40 }}>{tr("rm.foundYouTwo", { wren })}</Text>
             </View>
           </View>
         </Pressable>
@@ -718,7 +718,7 @@ export default function RoomScreen() {
                         })}
                       </>
                     ) : f.mine ? (
-                      <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink40, marginTop: 8 }}>{t("rm.fold.waiting", { name })}</Text>
+                      <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink40, marginTop: 8 }}>{t("rm.fold.waiting", { name })}</Text>
                     ) : (
                       <Pressable
                         onPress={() => {
@@ -728,7 +728,7 @@ export default function RoomScreen() {
                         hitSlop={6}
                         style={{ marginTop: 8 }}
                       >
-                        <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60 }}>
+                        <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink60 }}>
                           {f.kind === "question" ? t("rm.fold.answerToOpen") : t("rm.fold.foldToOpen")}
                         </Text>
                         <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: P.pen, marginTop: 6 }}>

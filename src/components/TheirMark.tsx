@@ -87,7 +87,7 @@ export function TheirMark({
         {!!archetype && (
           <>
             <View style={{ width: 54, height: 1, backgroundColor: P.ink, marginVertical: 7 }} />
-            <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60, textAlign: "center" }}>
+            <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink60, textAlign: "center" }}>
               {archetype}
             </Text>
           </>

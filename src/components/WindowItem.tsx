@@ -10,7 +10,7 @@ export function WindowItem({ item, empty }: { item: WindowPost | null; empty?: s
   if (!item) {
     return (
       <View style={[cardStyle, { padding: 20, alignItems: "center" }]}>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.faint, textAlign: "center", lineHeight: 22 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14, color: C.faint, textAlign: "center", lineHeight: 22 }}>
           {empty || t("wi.empty")}
         </Text>
       </View>

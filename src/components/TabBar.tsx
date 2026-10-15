@@ -119,7 +119,7 @@ export function TabBar({ state, navigation }: any) {
             <View style={{ alignItems: "center", marginBottom: 4 }}>
               <WrenBird size={54} mood="curious" />
               <Text style={{ fontFamily: F.serif, fontSize: 20, color: C.ink, marginTop: 4 }}>Write it down.</Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 3 }}>Who's this one for?</Text>
+              <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: C.faint, marginTop: 3 }}>Who's this one for?</Text>
             </View>
 
             <Pressable

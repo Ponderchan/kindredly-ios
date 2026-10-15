@@ -126,7 +126,7 @@ export default function KindredScreen() {
                     <Text style={{ fontFamily: PF.letter, fontSize: 26, fontWeight: "600", color: P.ink }}>
                       {read?.archetype ? archName(read.archetype.id) : t("kd.stillVoice")}
                     </Text>
-                    <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
+                    <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 20, color: P.ink60, marginTop: 5 }}>
                       {read?.archetype ? archDescThird(read.archetype.id) : t("kd.notEnough")}
                     </Text>
                   </>

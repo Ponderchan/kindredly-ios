@@ -291,7 +291,7 @@ export default function WrenDeskScreen() {
           {stream.length === 0 && (
             <View style={{ alignItems: "center", paddingTop: 28, paddingBottom: 8 }}>
               <OfficialBird size={64} mood="curious" />
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 14.5, lineHeight: 22, color: P.ink60, textAlign: "center", marginTop: 16, maxWidth: 260 }}>
+              <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 22, color: P.ink60, textAlign: "center", marginTop: 16, maxWidth: 260 }}>
                 {t("wo.empty")}
               </Text>
             </View>

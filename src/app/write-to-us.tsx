@@ -53,7 +53,7 @@ export default function WriteToUs() {
           <Text style={{ fontFamily: PF.letter, fontSize: 24, fontWeight: "600", color: P.ink, textAlign: "center", marginTop: 18 }}>
             {t("wu.taken")}
           </Text>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 23, color: P.ink60, textAlign: "center", marginTop: 12 }}>
+          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 23, color: P.ink60, textAlign: "center", marginTop: 12 }}>
             {speakAs(email.trim() ? t("wu.takenAddr") : t("wu.takenNoAddr"), wren)}
           </Text>
           <Pressable onPress={() => router.back()} style={({ pressed }) => ({ ...solidBtn, alignSelf: "stretch", marginTop: 30, opacity: pressed ? 0.85 : 1 })}>
@@ -77,7 +77,7 @@ export default function WriteToUs() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 16 }}>
             <WrenBird size={24} mood="listen" />
-            <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
+            <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
               {speakAs(t("wu.intro"), wren)}
             </Text>
           </View>
@@ -105,7 +105,7 @@ export default function WriteToUs() {
             placeholderTextColor={P.ink40}
             style={{ borderBottomWidth: 1, borderBottomColor: P.ink12, paddingVertical: 10, marginTop: 6, fontFamily: PF.letter, fontSize: 16, color: P.ink }}
           />
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, lineHeight: 18, color: P.ink40, marginTop: 8 }}>
+          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, lineHeight: 18, color: P.ink40, marginTop: 8 }}>
             {t("wu.addrHint")}
           </Text>
 

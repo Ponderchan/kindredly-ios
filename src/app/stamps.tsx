@@ -47,7 +47,7 @@ export default function StampsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, lineHeight: 21, color: C.muted, marginBottom: 20 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 21, color: C.muted, marginBottom: 20 }}>
           Earned by the quiet things — writing, answering, keeping, staying. Wren presses one for each.
         </Text>
 
@@ -91,7 +91,7 @@ export default function StampsScreen() {
                 </View>
               )}
 
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 23, color: C.muted, textAlign: "center", marginTop: 14 }}>
+              <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 23, color: C.muted, textAlign: "center", marginTop: 14 }}>
                 {speakAs(open.desc, wren)}
               </Text>
 

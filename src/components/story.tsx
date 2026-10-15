@@ -77,7 +77,7 @@ export function ActRead({ idx, onNext, onSkip }: { idx: number; onNext: () => vo
         </Animated.View>
         <Animated.Text
           entering={FadeIn.delay(400)}
-          style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 30, lineHeight: 22 }}
+          style={{ textAlign: "center", fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, color: C.muted, marginTop: 30, lineHeight: 22 }}
         >
           {captions[idx]}
         </Animated.Text>
@@ -140,8 +140,8 @@ export function ActPick({
       </View>
       <View style={{ paddingHorizontal: 24, paddingTop: 26 }}>
         <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink, letterSpacing: -0.4 }}>Which of these</Text>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 28, color: C.purple, letterSpacing: -0.4 }}>sounds most like you?</Text>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, marginTop: 12 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 28, color: C.purple, letterSpacing: -0.4 }}>sounds most like you?</Text>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13, color: C.muted, marginTop: 12 }}>
           Don't overthink it. Go on the sound, not the subject.
         </Text>
       </View>
@@ -198,8 +198,8 @@ export function ActWrite({
       </View>
       <View style={{ paddingHorizontal: 24, paddingTop: 26 }}>
         <Text style={{ fontFamily: F.serif, fontSize: 28, color: C.ink, letterSpacing: -0.4 }}>Now one line</Text>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 28, color: C.purple, letterSpacing: -0.4 }}>from you.</Text>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, color: C.muted, marginTop: 12, lineHeight: 21 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 28, color: C.purple, letterSpacing: -0.4 }}>from you.</Text>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, color: C.muted, marginTop: 12, lineHeight: 21 }}>
           Not a good one. A true one. That's all I need to hear how you write.
         </Text>
       </View>
@@ -226,7 +226,7 @@ export function ActWrite({
                 onPress={() => setText(o + " ")}
                 style={{ paddingHorizontal: 16, paddingVertical: 13, marginBottom: 8, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.6)", borderWidth: 1, borderColor: C.line }}
               >
-                <Text style={{ fontFamily: F.serifItalic, fontSize: 15.5, color: C.muted }}>{o}</Text>
+                <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 15.5, color: C.muted }}>{o}</Text>
               </Pressable>
             ))}
           </Animated.View>
@@ -351,7 +351,7 @@ export function ActFirstLetter({
           </View>
           <Text style={{ fontFamily: F.sans, fontSize: 14, color: C.muted, marginTop: 22 }}>{letter.alias}</Text>
         </Animated.View>
-        <Text style={{ textAlign: "center", fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 22, lineHeight: 20 }}>
+        <Text style={{ textAlign: "center", fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: C.faint, marginTop: 22, lineHeight: 20 }}>
           Two other doors got this one too. Nobody has answered it yet.
         </Text>
       </View>

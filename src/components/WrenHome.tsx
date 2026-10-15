@@ -302,7 +302,7 @@ export function WrenHome({
             accessibilityState={{ expanded: log, disabled: !flies }}
             style={({ pressed }) => ({ position: "absolute", left: 16, bottom: 12, maxWidth: coverW - 32 - 152, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 4, opacity: pressed ? 0.8 : 1 })}
           >
-            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontSize: 13, color: P.ink }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13, color: P.ink }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
             {flies && <Text style={{ fontFamily: PF.letter, fontSize: 11, color: P.ink40 }}>{log ? "▴" : "▾"}</Text>}
           </Pressable>
         )}
@@ -592,7 +592,7 @@ function FlightLog({ state, carried, threads, driving, wren }: { state: Whereabo
           <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink60 }}>{r}</Text>
         </View>
       ))}
-      <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, lineHeight: 19, color: P.ink60, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 11 }}>
+      <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12.5, lineHeight: 19, color: P.ink60, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 11 }}>
         {speakAs(line, wren)}
       </Text>
     </View>

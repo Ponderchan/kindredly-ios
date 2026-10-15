@@ -755,7 +755,7 @@ function Arrival({ open, sent, idx, onGoto }: { open: boolean; sent: boolean; id
           <WrenBird size={34} mood="content" />
         </Animated.View>
         <View style={{ flex: 1 }}>
-          <Animated.Text entering={FadeIn.duration(360).delay(320)} style={{ fontFamily: PF.serifItalic, fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
+          <Animated.Text entering={FadeIn.duration(360).delay(320)} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 20, color: P.ink60 }}>
             {t(sent ? "ld.arrived" : "ld.arrivedKept")}
           </Animated.Text>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 9, marginTop: 9 }}>
@@ -1128,7 +1128,7 @@ function LetterPage({
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.4, color: P.pen, marginBottom: 14 }}>{t("ld.voiceLetter")}</Text>
             <AudioCard url={audioUrl} durationS={letter.duration_s ?? null} system />
             {!!letter.body && letter.body !== "🎙 A voice letter" && (
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 24, color: P.ink60, marginTop: 16 }}>{letter.body}</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 24, color: P.ink60, marginTop: 16 }}>{letter.body}</Text>
             )}
           </View>
         ) : (

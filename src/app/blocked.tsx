@@ -98,7 +98,7 @@ export default function BlockedScreen() {
                 <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.8, color: P.ink40, marginTop: 3 }}>
                   {t("bl.blockedOn", { day: dLong(b.created_at).toUpperCase() })}
                 </Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 12, color: P.ink60, marginTop: 3 }}>
+                <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, color: P.ink60, marginTop: 3 }}>
                   {t("bl.noReach")}
                 </Text>
               </View>

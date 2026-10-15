@@ -80,7 +80,7 @@ export function VoiceCard({
             <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: "#8F87C9", marginTop: 2 }}>{tr("vk.auraName")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 25, color: "#fff", marginTop: 6, textAlign: "center" }}>{auraName}</Text>
             {words.length > 0 && (
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: "#A9A2CE", marginTop: 5, textAlign: "center" }}>
+              <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: "#A9A2CE", marginTop: 5, textAlign: "center" }}>
                 {words.slice(0, 3).join(" · ")}
               </Text>
             )}
@@ -101,7 +101,7 @@ export function VoiceCard({
           <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.14)", marginTop: 16, marginBottom: 12 }} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
             <WrenBird size={24} mood="content" />
-            <Text style={{ flex: 1, fontFamily: F.serifItalic, fontSize: 13.5, color: "#D9D4F0" }}>“I know the shape of your voice now.”</Text>
+            <Text style={{ flex: 1, fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, color: "#D9D4F0" }}>“I know the shape of your voice now.”</Text>
           </View>
         </Pressable>
 
@@ -138,7 +138,7 @@ export function VoiceCard({
           <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 8, lineHeight: 20 }}>
             Write a few letters, and I'll start discovering{"\n"}what makes your voice yours.
           </Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.faint, alignSelf: "flex-start", marginTop: 10 }}>— {wren}</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12, color: C.faint, alignSelf: "flex-start", marginTop: 10 }}>— {wren}</Text>
           <View style={{ alignSelf: "stretch", borderTopWidth: 1, borderTopColor: C.lineSoft, marginTop: 12, paddingTop: 10 }}>
             <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.2, color: C.faint }}>
               0 LETTERS · {speakAs(read.taking, wren).toUpperCase()}
@@ -155,7 +155,7 @@ export function VoiceCard({
           <Text style={{ fontFamily: F.sansBold, fontSize: 9, letterSpacing: 2, color: C.faint }}>AURA</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: C.ink, marginTop: 4 }}>{auraName}</Text>
           {words.length > 0 && (
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint, marginTop: 4 }}>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: C.faint, marginTop: 4 }}>
               {words.slice(0, 3).join(" · ")}
             </Text>
           )}
@@ -169,10 +169,10 @@ export function VoiceCard({
             ))}
           </View>
 
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 22, color: "#3A3644", marginTop: 14 }}>“{speakAs(quote, wren)}”</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 22, color: "#3A3644", marginTop: 14 }}>“{speakAs(quote, wren)}”</Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
             <WrenBird size={18} mood="content" />
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint }}>— {wren}</Text>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 11.5, color: C.faint }}>— {wren}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: C.lineSoft, marginTop: 14, paddingTop: 11 }}>

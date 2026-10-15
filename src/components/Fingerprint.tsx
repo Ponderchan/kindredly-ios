@@ -110,7 +110,7 @@ export function Fingerprint({
             </View>
           ))}
         </View>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, lineHeight: 21, color: C.muted, marginTop: 10 }}>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 21, color: C.muted, marginTop: 10 }}>
           {desc}
         </Text>
       </LinearGradient>

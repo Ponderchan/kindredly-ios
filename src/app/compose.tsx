@@ -369,7 +369,7 @@ export default function Compose() {
               <Animated.View key={wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>
                 <WrenBird size={38} mood={wrenMood} />
               </Animated.View>
-              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 14, color: P.ink60, lineHeight: 20 }}>
+              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 14, color: P.ink60, lineHeight: 20 }}>
                 “
                 {langHello
                   ? speakAs(t("lang.send"), wren)

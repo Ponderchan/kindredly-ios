@@ -38,7 +38,7 @@ export default function WrenPreview() {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.cream }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
         <Text style={{ fontFamily: F.serif, fontSize: 26, color: C.ink, marginTop: 12 }}>Wren</Text>
-        <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted }}>one bird · mood · growth · dress-up</Text>
+        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13, color: C.muted }}>one bird · mood · growth · dress-up</Text>
 
         <Section title="THREE SKINS — ONE SKELETON" />
         {(["sticker", "plush", "ink"] as WrenSkin[]).map((sk) => (

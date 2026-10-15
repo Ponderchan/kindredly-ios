@@ -41,7 +41,7 @@ export function FingerprintHeat({ cells, chips, read }: { cells: number[]; chips
         ))}
       </View>
 
-      <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.muted, marginTop: 14 }}>{read}</Text>
+      <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14, color: C.muted, marginTop: 14 }}>{read}</Text>
     </View>
   );
 }

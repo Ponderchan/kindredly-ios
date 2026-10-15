@@ -47,7 +47,7 @@ export default function Lore() {
         {items.map((e) => (
           <Pressable key={e.id} onLongPress={() => unpin(e)} delayLongPress={400} style={{ borderWidth: 1, borderColor: P.ink12, padding: 14, marginTop: 14, backgroundColor: "#FAF9F3" }}>
             {!!e.prompt && (
-              <Text style={{ fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60, marginBottom: 6 }}>{e.prompt}</Text>
+              <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink60, marginBottom: 6 }}>{e.prompt}</Text>
             )}
             <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink }}>{e.body}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 8.5, letterSpacing: 1.1, color: P.ink40, marginTop: 9 }}>

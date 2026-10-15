@@ -108,7 +108,7 @@ export default function VoiceReport() {
           <View style={{ flex: 1, justifyContent: "center" }}>
             <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.hour")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 34, color: "#fff", marginTop: 14 }}>{data.hourBand}</Text>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: DIM, marginTop: 12, lineHeight: 23 }}>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 15, color: DIM, marginTop: 12, lineHeight: 23 }}>
               That's when the true lines come out of you.
             </Text>
           </View>
@@ -122,7 +122,7 @@ export default function VoiceReport() {
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
             <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.words")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 40, color: "#fff", marginTop: 22 }}>{data.words[0]}</Text>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 16, color: STARLIGHT, marginTop: 14, textAlign: "center", lineHeight: 26 }}>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 16, color: STARLIGHT, marginTop: 14, textAlign: "center", lineHeight: 26 }}>
               {data.words.slice(1).join("   ·   ")}
             </Text>
             <Text style={{ fontFamily: F.sans, fontSize: 13, color: DIM, marginTop: 18, textAlign: "center" }}>
@@ -150,7 +150,7 @@ export default function VoiceReport() {
                 </View>
               ))}
             </View>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, color: DIM, marginTop: 18 }}>You let your sentences breathe.</Text>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, color: DIM, marginTop: 18 }}>You let your sentences breathe.</Text>
           </View>
         ),
       });
@@ -160,7 +160,7 @@ export default function VoiceReport() {
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.after")}</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 21, lineHeight: 33, color: "#fff", marginTop: 16 }}>“{data.quote}”</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 21, lineHeight: 33, color: "#fff", marginTop: 16 }}>“{data.quote}”</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 12, color: STARLIGHT, marginTop: 14 }}>— {wren}</Text>
           <View style={{ marginTop: 26, alignSelf: "flex-start" }}>
             <WrenBird size={44} mood="content" />
@@ -178,7 +178,7 @@ export default function VoiceReport() {
             <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>{t("rt.brand")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 20, color: "#fff", marginTop: 8 }}>{data.archetype}</Text>
             <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} size={110} />
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 13.5, lineHeight: 20, color: DIM }}>“{data.quote}”</Text>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 20, color: DIM }}>“{data.quote}”</Text>
           </View>
           <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
             <Pressable

@@ -118,7 +118,7 @@ export function EveningAsk({ pages }: { pages: number }) {
     <Animated.View entering={FadeIn.duration(420)} exiting={FadeOut.duration(200)} style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, padding: 16, marginTop: 4, marginBottom: 14 }, cardShadow, { shadowOpacity: 0.06 }]}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
         <WrenBird size={26} mood="content" />
-        <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 15, lineHeight: 22, color: P.ink }}>{t("ev.ask", { wren })}</Text>
+        <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: P.ink }}>{t("ev.ask", { wren })}</Text>
       </View>
       <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 14 }}>
         <Pressable accessibilityRole="button" onPress={no} hitSlop={6} style={({ pressed }) => ({ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, opacity: pressed ? 0.6 : 1 })}>

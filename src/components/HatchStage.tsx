@@ -499,7 +499,7 @@ export function HatchStage({
             if (op <= 0) return null;
             return (
               <View key={`w${i}`} pointerEvents="none" style={{ position: "absolute", left: sx(CX + w.x) - 70, top: sy(CY + w.y) - 10, width: 140, alignItems: "center", opacity: op, transform: [{ rotate: `${w.rot}deg` }] }}>
-                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontSize: w.sz * K + 2, color: a.burst < 1.6 ? (i % 3 === 0 ? "#FFD98A" : "#FFF6E3") : i % 3 === 0 ? Y.blue : Y.ink }}>
+                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: w.sz * K + 2, color: a.burst < 1.6 ? (i % 3 === 0 ? "#FFD98A" : "#FFF6E3") : i % 3 === 0 ? Y.blue : Y.ink }}>
                   {w.w}
                 </Text>
               </View>
@@ -511,7 +511,7 @@ export function HatchStage({
           {qs > 0 && !!a.quote && (
             <View pointerEvents="none" style={{ position: "absolute", left: sx(CX + 80) - 90, top: sy(CY - 92 - a.rise * 20) - 18, width: 180, alignItems: "center", opacity: qs, transform: [{ scale: qs * qb }] }}>
               <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
-                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontSize: 15, color: Y.ink }}>{`“${a.quote}…”`}</Text>
+                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 15, color: Y.ink }}>{`“${a.quote}…”`}</Text>
               </View>
               <View style={{ width: 10, height: 10, backgroundColor: Y.panel, borderRightWidth: 2, borderBottomWidth: 2, borderColor: Y.ink, marginTop: -6, marginLeft: -76, transform: [{ rotate: "45deg" }] }} />
             </View>

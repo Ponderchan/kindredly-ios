@@ -132,7 +132,7 @@ export function EditProfileSheet({
                 style={{ fontFamily: F.serif, fontSize: 18, color: C.ink, paddingVertical: 12 }}
               />
             </View>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 11.5, color: C.faint, marginTop: 8 }}>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 11.5, color: C.faint, marginTop: 8 }}>
               {t("ep.privateNote")}
             </Text>
 

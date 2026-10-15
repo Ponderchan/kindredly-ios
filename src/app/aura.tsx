@@ -392,7 +392,7 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
       {rep && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: rep.state === "established" ? "#2E7D4F" : "rgba(30,27,53,0.45)", marginTop: 8 }}>{observationState(rep.state)}</Text>}
       {quote && ev && (
         <View style={{ marginTop: 16, backgroundColor: "#EEEDFB", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
-          <Text style={{ fontFamily: PF.serifItalic, fontSize: 17, lineHeight: 25, color: W14.ink }} numberOfLines={4}>“{quote}”</Text>
+          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 17, lineHeight: 25, color: W14.ink }} numberOfLines={4}>“{quote}”</Text>
           <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 8 }}>{tr(`wa.quoteFrom.${ev.source}`, { d: when })}</Text>
         </View>
       )}

@@ -115,7 +115,7 @@ export function ReplyBar({
           </Svg>
         </Pressable>
       </View>
-      <Text style={{ textAlign: "center", fontSize: 10.5, color: over ? "#C0503A" : C.faint, marginTop: 10, fontFamily: F.serifItalic }}>
+      <Text style={{ textAlign: "center", fontSize: 10.5, color: over ? "#C0503A" : C.faint, marginTop: 10, fontFamily: F.serifItalic, fontStyle: "italic" }}>
         {over ? t("th.over", { n: weight - LETTER_MAX }).toLowerCase() : footnote ?? t("rb.note")}
       </Text>
     </View>

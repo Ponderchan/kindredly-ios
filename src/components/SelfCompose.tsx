@@ -387,7 +387,7 @@ export function SelfCompose({
                 <View style={{ width: 34, height: 34, alignItems: "center", justifyContent: "center" }}>
                   <WrenBird size={27} mood="content" />
                 </View>
-                <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontSize: 13.5, color: P.ink60, lineHeight: 19 }}>
+                <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink60, lineHeight: 19 }}>
                   “{openers[pIdx]}”
                 </Text>
               </Pressable>

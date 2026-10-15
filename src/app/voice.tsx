@@ -71,7 +71,7 @@ export default function VoiceDetail() {
         {/* Wren's summary, when the deeper engine has spoken */}
         {summary && (
           <View style={[cardStyle, { padding: 16, marginBottom: 12, backgroundColor: C.purpleLt }]}>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 14.5, lineHeight: 22, color: "#2E2A50" }}>“{summary}”</Text>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 22, color: "#2E2A50" }}>“{summary}”</Text>
             <Text style={{ fontFamily: F.sans, fontSize: 11, color: "#8B84B8", marginTop: 6 }}>— {wren}</Text>
           </View>
         )}
@@ -140,7 +140,7 @@ export default function VoiceDetail() {
         )}
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18 }}>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 12.5, color: C.faint }}>{t("vc.learning")}</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12.5, color: C.faint }}>{t("vc.learning")}</Text>
           <WrenBird size={22} mood="content" />
         </View>
       </ScrollView>

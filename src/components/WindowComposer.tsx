@@ -37,7 +37,7 @@ export function WindowComposer({
       <Pressable style={{ flex: 1, backgroundColor: "rgba(19,26,38,0.35)", justifyContent: "flex-end" }} onPress={onClose}>
         <Pressable style={{ backgroundColor: C.cream, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }} onPress={() => {}}>
           <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink }}>{t("wc.putLine")}</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, marginTop: 6 }}>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13, color: C.muted, marginTop: 6 }}>
             {t("wc.privateNote")}
           </Text>
 

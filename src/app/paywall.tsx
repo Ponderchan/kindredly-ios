@@ -234,7 +234,7 @@ export function PaywallBody({
                 <View style={{ alignItems: "flex-start", marginTop: 10 }}>
                   <CofounderMark no={47} size="lg" />
                 </View>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 7 }}>{t("pw.nameEverywhere")}</Text>
+                <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 7 }}>{t("pw.nameEverywhere")}</Text>
               </View>
             )}
             <View style={{ marginTop: 16, gap: 11 }}>

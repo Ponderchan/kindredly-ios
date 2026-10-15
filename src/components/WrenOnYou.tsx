@@ -88,7 +88,7 @@ export function WrenOnYou({
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 }}>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 12, color: "rgba(243,242,248,0.45)" }}>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 12, color: "rgba(243,242,248,0.45)" }}>
             — {wren}, who reads the post
           </Text>
           {hasText && (

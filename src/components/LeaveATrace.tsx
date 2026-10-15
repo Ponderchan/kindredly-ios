@@ -159,7 +159,7 @@ export function LeaveATrace({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: PF.letter, fontSize: 16.5, color: P.ink }}>{a.title}</Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontSize: 12.5, color: P.ink40, marginTop: 1 }}>{a.sub}</Text>
+                <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12.5, color: P.ink40, marginTop: 1 }}>{a.sub}</Text>
               </View>
               {a.locked ? <LockIcon color={P.ink40} /> : <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>›</Text>}
             </Pressable>

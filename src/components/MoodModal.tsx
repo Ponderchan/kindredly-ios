@@ -29,7 +29,7 @@ export function MoodModal({
           onPress={() => {}}
         >
           <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink, textAlign: "center" }}>{t("mm.title")}</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.muted, textAlign: "center", marginTop: 6 }}>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13, color: C.muted, textAlign: "center", marginTop: 6 }}>
             {t("mm.sub", { wren })}
           </Text>
           <ScrollView style={{ maxHeight: 380, marginTop: 20 }} showsVerticalScrollIndicator={false}>

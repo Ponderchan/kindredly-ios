@@ -322,7 +322,7 @@ function Note({ facts }: { facts: DayFacts }) {
   return (
     <View style={{ marginTop: 22, width: 266, transform: [{ rotate: "-1.6deg" }] }}>
       <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 17, paddingTop: 18, paddingBottom: 13 }}>
-        <Text style={{ fontFamily: PF.serifItalic, fontSize: 17.5, lineHeight: 25, color: P.ink }}>{lines.join(" ")}</Text>
+        <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 17.5, lineHeight: 25, color: P.ink }}>{lines.join(" ")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
       </View>
       {/* two strips of tape, one at each top corner */}
