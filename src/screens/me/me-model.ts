@@ -30,7 +30,10 @@ import type { Rung } from "../../lib/aura-ladder";
    - the First Class card: the owner's copy, never "More Kindreds" or "a
      monthly reading" (Apple 2.3.2); a member's and a cofounder's own words.
    - what VoiceOver says for the courier card, which on her day off opens
-     the game rather than her room. */
+     the game rather than her room (its time spelled out, never the card's
+     mono "3H AGO"), and for a keepsake tile ("{name}, new" while unopened).
+   - what the Aura art slot's rungs before colour are drawn with: the
+     paper's strokes on a light theme, the theme's light ones on a dark one. */
 
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -234,6 +237,32 @@ export function buildAuraCard(f: AuraFacts | null, fmt: MeFormat): AuraCardVM | 
   };
 }
 
+/* ── the art slot's strokes (AuraScene's rungs before colour) ──────────── */
+
+/** The theme tokens the slot is drawn from. */
+export type SlotTokens = { soft2: string; ink: string; sub: string; ind: string; sf: string };
+
+/** AuraScene's ScenePalette, in part: what is left out keeps the paper's own strokes (W33). */
+export type SlotPalette = { ground: string; lines?: string; pencil?: string; ink?: string; fill?: string };
+
+/** "#RRGGBB" at an opacity, as rgba(); anything else comes back as it was. */
+export function withAlpha(hex: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
+/** What the slot's rungs before colour are drawn with: always on the slot's soft2; on a light
+    theme in the paper's own strokes (unchanged), on a dark one in the theme's light ones — the
+    lines in ink (at their 30% to 15%), the pencil in sub at .62, the sketch in ind on sf. The
+    paper's near-black lines vanished on Midnight's soft2 (about 1.05:1) and its sketch drew
+    white blobs (critic). */
+export function auraSlotPalette(tk: SlotTokens, dark: boolean): SlotPalette {
+  if (!dark) return { ground: tk.soft2 };
+  return { ground: tk.soft2, lines: tk.ink, pencil: withAlpha(tk.sub, 0.62), ink: tk.ind, fill: tk.sf };
+}
+
 /* ── the Stamps card (owner's placeholder, H:81) ───────────────────────── */
 
 export type StampFacts = {
@@ -291,7 +320,13 @@ export type KeepsakeFacts = {
   known: boolean;
 };
 
-export type KeepsakeTileVM = { id: string; name: string; fresh: boolean };
+export type KeepsakeTileVM = {
+  id: string;
+  name: string;
+  fresh: boolean;
+  /** what VoiceOver reads for the tile: its name, and "new" while unopened (the dot is visual) */
+  a11y: string;
+};
 
 export type KeepsakesVM = {
   /** KEEPSAKES */
@@ -307,6 +342,12 @@ export type KeepsakesVM = {
 
 export const KEEPSAKE_TILES = 2;
 
+/** A keepsake tile's VoiceOver label, the same words on Me (both renderers) and the shelf
+    (/keepsakes): the name, and "{name}, new" while it hasn't been opened. */
+export function keepsakeA11y(name: string, fresh: boolean, fmt: Pick<MeFormat, "t">): string {
+  return fresh ? fmt.t("me.keepsakes.newA11y", { name }) : name;
+}
+
 /** `shelf` newest first, as loadShelf / mint hand it back. */
 export function buildKeepsakes(shelf: readonly KeepsakeFacts[], wren: string, fmt: MeFormat): KeepsakesVM {
   const { t, upper } = fmt;
@@ -315,7 +356,7 @@ export function buildKeepsakes(shelf: readonly KeepsakeFacts[], wren: string, fm
   const tiles: (KeepsakeTileVM | null)[] = [];
   for (let i = 0; i < KEEPSAKE_TILES; i++) {
     const k = known[i];
-    tiles.push(k ? { id: k.id, name: k.name, fresh: k.fresh } : null);
+    tiles.push(k ? { id: k.id, name: k.name, fresh: k.fresh, a11y: keepsakeA11y(k.name, k.fresh, fmt) } : null);
   }
   return {
     header: upper(t("ka.title")),
@@ -376,13 +417,29 @@ export type CourierFacts = {
   carrying: boolean;
   /** your best run, for the rematch line */
   best: number;
-  /** "3H AGO", the diary's time (flight-log agoLabel) */
-  ago: string;
+  /** the diary's time as VoiceOver should say it, "3 hours ago" (spokenAgo), not the card's
+      mono "3H AGO", which it reads as "three H ago"; "" for none */
+  agoA11y: string;
   /** what she says: the hunger line, or the flight log's entry */
   line: string;
   /** the aside under it; "" for none */
   sub: string;
 };
+
+/** The diary's time spelled out for VoiceOver, on flight-log agoLabel's steps (under 2 minutes
+    is just now, minutes under the hour, hours under the day, then whole days), so the sentence
+    and the card's mono label never disagree about how long ago. `at` null is just now, as there. */
+export function spokenAgo(at: number | null, now: number, fmt: Pick<MeFormat, "t">): string {
+  const { t } = fmt;
+  if (at == null) return t("me.a11y.agoNow");
+  const m = Math.max(0, Math.round((now - at) / 60000));
+  if (m < 2) return t("me.a11y.agoNow");
+  if (m < 60) return t("me.a11y.agoM", { n: m });
+  const h = Math.round(m / 60);
+  if (h < 24) return h === 1 ? t("me.a11y.agoHOne") : t("me.a11y.agoH", { n: h });
+  const d = Math.floor(h / 24);
+  return d === 1 ? t("me.a11y.agoDOne") : t("me.a11y.agoD", { n: d });
+}
 
 /** One sentence for the whole card (the React Native scene is hidden from VoiceOver),
     read from the same lines the card shows, ending in what the tap does. */
@@ -390,7 +447,7 @@ export function courierA11y(f: CourierFacts, fmt: MeFormat): string {
   const { t } = fmt;
   const parts = f.dayOff
     ? [`${f.wren}, ${t("ff.dayoff.tag")}`, f.carrying ? t("ff.dayoff.lineCarrying") : t("ff.dayoff.line"), f.best > 0 ? t("ff.dayoff.subBest", { n: f.best }) : t("ff.dayoff.sub"), t("ff.play")]
-    : [f.ago ? `${f.wren}, ${f.ago}` : f.wren, f.line, f.sub, t("me.open")];
+    : [f.agoA11y ? `${f.wren}, ${f.agoA11y}` : f.wren, f.line, f.sub, t("me.open")];
   return parts
     .map((p) => p.trim())
     .filter(Boolean)

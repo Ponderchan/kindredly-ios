@@ -9,14 +9,14 @@ import { PF } from "../../theme/post";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { storeAura } from "../../lib/dev-store";
 import { whereabouts } from "../../lib/whereabouts";
-import { agoLabel, flightLog } from "../../lib/flight-log";
+import { flightLog } from "../../lib/flight-log";
 import type { Aura } from "../../lib/aura";
 import type { UsedStamp } from "../../lib/aura";
 import type { Minted } from "../../lib/keepsakes";
 import { DEMO_THREADS } from "../../data/demo";
 import { daylight } from "../../components/CourierCard";
 import { auraCardFacts } from "../../components/AuraCard";
-import { buildMeView, segmentIndex } from "../../screens/me/me-model";
+import { buildMeView, segmentIndex, spokenAgo } from "../../screens/me/me-model";
 import { meFormat } from "../../screens/me/me-format";
 import { keepsakeFacts, stampFacts, type MeActions, type MeModel } from "../../screens/me/useMeModel";
 import { MeNative } from "../../screens/me/MeNative";
@@ -41,13 +41,21 @@ import "../../data/strings-step5-me";
      slice's KMeView, after pod install);
    - the segment it opens on (C A S F: the Swift view is rebuilt on it), and
      TOP (Me pressed again);
-   - AURA: NAMED · SKETCH · EARLY · NONE (the skeleton);
+   - AURA: NAMED · SKETCH (the title's sketch) · DESK (the desk drawn as a
+     sketch) · PENCIL · EARLY (the waiting lines) · NONE (the skeleton). Check
+     DESK, PENCIL, EARLY and NONE in MIDNIGHT too: the rungs before colour
+     are drawn in the theme's light strokes there (me-model
+     auraSlotPalette), and must read on the dark slot;
+   - (the Swift view's own chips: a switch never animates the card, only the
+     chip's highlight moves, and with Reduce Motion not even that; try one
+     while the chips are pinned over the short First Class card);
    - STAMPS, KEEPSAKES, FC (free / member / cofounder), DAY OFF, NO NAME
      (no pen name: "You"), HUNGRY.
    Everything that would leave the page says where it would go instead.
    The panel's words are English: a dev page. */
 
-type AuraMode = "named" | "sketch" | "early" | "none";
+type AuraMode = "named" | "sketch" | "desk" | "pencil" | "early" | "none";
+const AURA_MODES: readonly AuraMode[] = ["named", "sketch", "desk", "pencil", "early", "none"];
 type FcMode = "free" | "member" | "cofounder";
 
 const NOW = Date.now();
@@ -60,14 +68,23 @@ function demoAura(mode: AuraMode): Aura | null {
   const named = storeAura();
   if (mode === "named") return named;
   if (mode === "none") return null;
+  // early: two letters, the lines waiting to be written (AuraScene "lines")
   if (mode === "early") return { ...named, phase: "empty", stickers: null, sources: { letters: 2, sealed: 0, conversations: 0 } } as Aura;
-  // sketch: the noun known, one label held, two trying on
+  // pencil: four letters, nothing held yet — the desk in pencil (AuraScene "pencil")
+  if (mode === "pencil") return { ...named, phase: "empty", stickers: null, sources: { letters: 4, sealed: 0, conversations: 0 } } as Aura;
+  // sketch: the noun known, one label held, two trying on (the title's own sketch, a picture);
+  // desk: the same with no noun yet, so the desk itself is drawn as a sketch (AuraScene "sketch")
   const home = (named.stickers?.home ?? []).map((s, i) => ({ ...s, state: i === 0 ? "established" : "emerging" }));
   return {
     ...named,
     phase: "shaping",
     sources: { letters: 8, sealed: 0, conversations: 0 },
-    stickers: { ...named.stickers!, home, byDimension: { [home[0].dimension]: home[0] }, title: { state: "partial", noun: "observer", adjective: null, basis: [] } },
+    stickers: {
+      ...named.stickers!,
+      home,
+      byDimension: { [home[0].dimension]: home[0] },
+      title: mode === "desk" ? null : { state: "partial", noun: "observer", adjective: null, basis: [] },
+    },
   } as unknown as Aura;
 }
 
@@ -135,7 +152,7 @@ function MeLab() {
         stamps: stampFacts(stamps ? DEMO_STAMPS : []),
         keepsakes: keepsakeFacts(kept, new Set(kept.length ? [kept[0].id] : [])),
         firstClass: { premium, cofounderNo, wren },
-        courier: { wren, dayOff, carrying: where.state === "delivery", best: 12, ago: agoLabel(entry.at), line: hunger ? hunger.line : entry.line, sub: (hunger ? hunger.sub : entry.sub) ?? "" },
+        courier: { wren, dayOff, carrying: where.state === "delivery", best: 12, agoA11y: spokenAgo(entry.at, Date.now(), meFormat()), line: hunger ? hunger.line : entry.line, sub: (hunger ? hunger.sub : entry.sub) ?? "" },
       },
       meFormat(),
     );
@@ -201,7 +218,7 @@ function MeLab() {
             <Chip label="TOP" onPress={() => setSerial((s) => s + 1)} />
           </Row>
           <Row>
-            {(["named", "sketch", "early", "none"] as const).map((m) => (
+            {AURA_MODES.map((m) => (
               <Chip key={m} label={`AURA ${m.toUpperCase()}`} on={auraMode === m} onPress={() => setAuraMode(m)} />
             ))}
           </Row>

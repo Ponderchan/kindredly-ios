@@ -10,6 +10,8 @@ import { loadShelf, unseen, type Minted } from "../lib/keepsakes";
 import { useWrenName } from "../lib/wren-name";
 import { dShort } from "../lib/format";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
+import { keepsakeA11y } from "../screens/me/me-model";
+import "../data/strings-step5-me";
 
 /* EVERYTHING SHE KEPT — the whole shelf, newest first, three to a row.
    The room shows the latest three and Me the latest two; "All N →" and Me's
@@ -18,7 +20,8 @@ import { SecondaryHeader } from "../components/10a/SecondaryHeader";
    10a: on the theme (no fixed white tiles on a lavender wash), under the
    secondary page's header (KEEPSAKES, the count on the right); each tile
    the theme's soft block with the icon, its name and its proof in mono 9,
-   and the ind dot on one not opened yet. */
+   and the ind dot on one not opened yet — which VoiceOver hears too
+   ("{name}, new", the words Me's tiles use: me-model keepsakeA11y). */
 
 export default function Keepsakes() {
   useLang();
@@ -63,12 +66,13 @@ export default function Keepsakes() {
               const def = keepsake(k.id);
               if (!def) return null;
               const name = t(`ks.name.${def.id}`);
+              const isNew = fresh.has(k.id);
               return (
                 <Pressable
                   key={k.id}
                   onPress={() => router.push(`/keepsake/${k.id}`)}
                   accessibilityRole="button"
-                  accessibilityLabel={name}
+                  accessibilityLabel={keepsakeA11y(name, isNew, { t })}
                   style={({ pressed }) => ({ flex: 1, backgroundColor: tk.soft, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}
                 >
                   <Image source={def.icon} style={{ width: 40, height: 40 }} resizeMode="contain" />
@@ -78,7 +82,7 @@ export default function Keepsakes() {
                   <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.6, color: tk.mute, marginTop: 4 }}>
                     {k.evidence || dShort(k.at).toLocaleUpperCase()}
                   </Text>
-                  {fresh.has(k.id) && <View style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: tk.ind }} />}
+                  {isNew && <View style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: tk.ind }} />}
                 </Pressable>
               );
             })}

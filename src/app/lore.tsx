@@ -8,6 +8,7 @@ import { useLetterFamily, useTheme } from "../lib/theme";
 import { dShort } from "../lib/format";
 import { loadLore, removeLore, type LoreEntry } from "../lib/lore";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
+import "../data/strings-step5-me";
 
 /* LORE — the shelf of kept moments. Local, account-scoped, only yours.
    Each clipping is a line someone wrote you (or an opened fold), pinned by
@@ -18,7 +19,11 @@ import { SecondaryHeader } from "../components/10a/SecondaryHeader";
    10a: the secondary page's header (no rule under it: the owner took the
    rules away), and each kept line is someone's letter being read, so it is
    set in the reader's Letter font (owner question 1's recommended answer:
-   Keepsake and Lore quotes follow it). The small print is mono 9. */
+   Keepsake and Lore quotes follow it). The small print is mono 9.
+   Taking a line down is a VoiceOver action too (ml.rm.remove, with a hint),
+   not only a long-press nobody using VoiceOver could find; the confirm asks
+   "Take this line down?" and its button says Remove — it used to ask
+   "Keep this?" over a bare ✕, which VoiceOver read as a multiplication sign. */
 export default function Lore() {
   const { t: tk } = useTheme();
   useLang();
@@ -35,9 +40,17 @@ export default function Lore() {
   );
 
   const unpin = (e: LoreEntry) =>
-    Alert.alert(t("rm.keep.title"), "", [
+    Alert.alert(t("lore.unpin.title"), "", [
       { text: t("set.neverMind"), style: "cancel" },
-      { text: "✕", style: "destructive", onPress: () => removeLore(e.id).then(loadLore).then(setItems) },
+      {
+        text: t("ml.rm.remove"),
+        style: "destructive",
+        onPress: () =>
+          removeLore(e.id)
+            .then(loadLore)
+            .then(setItems)
+            .catch((err) => console.warn("[lore] the line wasn't taken down:", err)),
+      },
     ]);
 
   return (
@@ -49,7 +62,17 @@ export default function Lore() {
         </Text>
         {items.length === 0 && <Text style={{ fontSize: 14.5, lineHeight: 22, color: tk.sub, marginTop: 10 }}>{t("lore.empty")}</Text>}
         {items.map((e) => (
-          <Pressable key={e.id} onLongPress={() => unpin(e)} delayLongPress={400} style={{ borderRadius: 14, padding: 14, marginTop: 12, backgroundColor: tk.soft }}>
+          <Pressable
+            key={e.id}
+            onLongPress={() => unpin(e)}
+            delayLongPress={400}
+            accessibilityHint={t("lore.unpin.hint")}
+            accessibilityActions={[{ name: "unpin", label: t("ml.rm.remove") }]}
+            onAccessibilityAction={(ev) => {
+              if (ev.nativeEvent.actionName === "unpin") unpin(e);
+            }}
+            style={{ borderRadius: 14, padding: 14, marginTop: 12, backgroundColor: tk.soft }}
+          >
             {!!e.prompt && <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: tk.sub, marginBottom: 6 }}>{e.prompt}</Text>}
             <Text style={[{ fontSize: 16, lineHeight: 24, color: tk.ink }, letterFace]}>{e.body}</Text>
             <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 1.1, color: tk.mute, marginTop: 9 }}>

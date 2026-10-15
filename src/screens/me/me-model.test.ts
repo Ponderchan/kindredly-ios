@@ -2,7 +2,9 @@
    name, the figures (a dash until read, never a made-up 0), the segments,
    the Aura card's counts and art, the stamps by date, the keepsakes block,
    the First Class copy (the owner's, never "More Kindreds"), the courier
-   card's VoiceOver sentence and where each tap goes — the rules both
+   card's VoiceOver sentence (its time spelled out), a NEW keepsake's
+   VoiceOver label, the art slot's strokes in all four themes (read from
+   theme/themes.json) and where each tap goes — the rules both
    renderers draw, so a remote flip between SwiftUI and React Native never
    changes what the reader sees.
    Not wired to a runner; run by hand from the repo root with plain node (it
@@ -11,6 +13,7 @@
    The model imports nothing at runtime, so no stubs are needed. Every line
    prints ok/FAIL and the process exits non-zero if any fail. */
 
+import { readFileSync } from "node:fs";
 import {
   FIRST_CLASS_SEGMENT,
   KEEPSAKE_TILES,
@@ -20,6 +23,7 @@ import {
   auraCaption,
   auraCtaHref,
   auraMeter,
+  auraSlotPalette,
   buildAuraCard,
   buildFirstClass,
   buildKeepsakes,
@@ -28,12 +32,15 @@ import {
   buildStamps,
   courierA11y,
   courierHref,
+  keepsakeA11y,
   pad3,
   penName,
   sceneId,
   segmentIndex,
   segmentLabels,
+  spokenAgo,
   statHref,
+  withAlpha,
   type AuraFacts,
   type MeFacts,
   type MeFormat,
@@ -251,15 +258,85 @@ ok("no aura yet → no card (the skeleton)", buildAuraCard(null, fmt) === null);
 
 /* ── the courier card ── */
 {
-  const a = courierA11y({ wren: "Pip", dayOff: false, carrying: false, best: 0, ago: "3H AGO", line: "dropped your reply at maynaa's sill.", sub: "just got here." }, fmt);
-  ok("her name, the time, her line, the aside, then what the tap does", a === "Pip, 3H AGO. dropped your reply at maynaa's sill. just got here. me.open");
-  const noSub = courierA11y({ wren: "Pip", dayOff: false, carrying: false, best: 0, ago: "", line: "home.", sub: "" }, fmt);
+  const a = courierA11y({ wren: "Pip", dayOff: false, carrying: false, best: 0, agoA11y: "me.a11y.agoH{n:3}", line: "dropped your reply at maynaa's sill.", sub: "just got here." }, fmt);
+  ok("her name, the time, her line, the aside, then what the tap does", a === "Pip, me.a11y.agoH{n:3}. dropped your reply at maynaa's sill. just got here. me.open");
+  const noSub = courierA11y({ wren: "Pip", dayOff: false, carrying: false, best: 0, agoA11y: "", line: "home.", sub: "" }, fmt);
   ok("no time and no aside: nothing dangling", noSub === "Pip. home. me.open");
-  const off = courierA11y({ wren: "Pip", dayOff: true, carrying: false, best: 0, ago: "1H AGO", line: "ignored on a day off", sub: "" }, fmt);
+  const off = courierA11y({ wren: "Pip", dayOff: true, carrying: false, best: 0, agoA11y: "me.a11y.agoHOne", line: "ignored on a day off", sub: "" }, fmt);
   ok("day off: DAY OFF, her day-off line, PLAY (the tap opens the game)", off === "Pip, ff.dayoff.tag. ff.dayoff.line. ff.dayoff.sub. ff.play");
-  const offBest = courierA11y({ wren: "Pip", dayOff: true, carrying: true, best: 12, ago: "", line: "", sub: "" }, fmt);
+  const offBest = courierA11y({ wren: "Pip", dayOff: true, carrying: true, best: 12, agoA11y: "", line: "", sub: "" }, fmt);
   ok("day off, carrying, with a best", offBest === "Pip, ff.dayoff.tag. ff.dayoff.lineCarrying. ff.dayoff.subBest{n:12}. ff.play");
   ok("the tap: the game on her day off, else her room", courierHref(true) === "/courier?play=1" && courierHref(false) === "/courier");
+}
+{
+  // the time VoiceOver says, on agoLabel's steps, spelled out
+  const now = Date.parse("2026-10-16T12:00:00Z");
+  const min = 60_000;
+  ok("no time: just now", spokenAgo(null, now, fmt) === "me.a11y.agoNow");
+  ok("under 2 minutes (rounded): just now", spokenAgo(now - 60_000, now, fmt) === "me.a11y.agoNow" && spokenAgo(now - 89_000, now, fmt) === "me.a11y.agoNow");
+  ok("90s rounds to 2 minutes, as the label does", spokenAgo(now - 90_000, now, fmt) === "me.a11y.agoM{n:2}");
+  ok("a time in the future reads just now, not a negative", spokenAgo(now + 5 * min, now, fmt) === "me.a11y.agoNow");
+  ok("minutes", spokenAgo(now - 3 * min, now, fmt) === "me.a11y.agoM{n:3}" && spokenAgo(now - 59 * min, now, fmt) === "me.a11y.agoM{n:59}");
+  ok("one hour (rounded, as the label rounds)", spokenAgo(now - 60 * min, now, fmt) === "me.a11y.agoHOne" && spokenAgo(now - 89 * min, now, fmt) === "me.a11y.agoHOne");
+  ok("hours", spokenAgo(now - 3 * 60 * min, now, fmt) === "me.a11y.agoH{n:3}");
+  ok("one day, then whole days (floored, as the label floors)", spokenAgo(now - 30 * 60 * min, now, fmt) === "me.a11y.agoDOne" && spokenAgo(now - 71 * 60 * min, now, fmt) === "me.a11y.agoD{n:2}");
+  ok("never the mono label's words", !/AGO|fl\./.test(spokenAgo(now - 3 * min, now, fmt)));
+}
+
+/* ── the keepsake tiles' VoiceOver ── */
+{
+  ok("an opened keepsake is its name", keepsakeA11y("First Flight", false, fmt) === "First Flight");
+  ok("a NEW one says so", keepsakeA11y("First Reply", true, fmt) === "me.keepsakes.newA11y{name:First Reply}");
+  const k = buildKeepsakes(
+    [
+      { id: "first-reply", name: "First Reply", fresh: true, known: true },
+      { id: "first-flight", name: "First Flight", fresh: false, known: true },
+    ],
+    "Wren",
+    fmt,
+  );
+  ok("each tile carries its label, NEW included", k.tiles[0]?.a11y === "me.keepsakes.newA11y{name:First Reply}" && k.tiles[1]?.a11y === "First Flight");
+}
+
+/* ── the art slot's strokes ── */
+{
+  // the four themes' tokens, from the one source the app and Swift are generated from
+  type Tk = { dark: boolean; soft2: string; ink: string; sub: string; ind: string; sf: string };
+  const themes = (JSON.parse(readFileSync(new URL("../../theme/themes.json", import.meta.url), "utf8")) as { themes: Record<string, Tk> }).themes;
+  const lum = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v: number) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255);
+  };
+  const contrast = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  // a colour at an opacity over the ground, as it lands on screen
+  const over = (hex: string, alpha: number, ground: string) => {
+    const a = parseInt(hex.slice(1), 16);
+    const g = parseInt(ground.slice(1), 16);
+    const mix = (s: number) => Math.round((((a >> s) & 255) * alpha + ((g >> s) & 255) * (1 - alpha)));
+    return "#" + [16, 8, 0].map((s) => mix(s).toString(16).padStart(2, "0")).join("");
+  };
+  const PAPER_LINES = "#1E1B35"; // AuraScene's paper strokes (SCENE_ON_PAPER), which the light themes keep
+  const PAPER_INK = "#4A4390";
+  for (const [key, tk] of Object.entries(themes)) {
+    const p = auraSlotPalette(tk, tk.dark);
+    ok(`${key}: drawn on the slot's soft2`, p.ground === tk.soft2);
+    const lines = p.lines ?? PAPER_LINES;
+    const ink = p.ink ?? PAPER_INK;
+    // the faintest waiting line (15%) still shows, the 30% one about as well as on white paper
+    ok(`${key}: the waiting lines show on the slot (30% ≥ 1.8:1)`, contrast(over(lines, 0.3, tk.soft2), tk.soft2) >= 1.8);
+    ok(`${key}: the sketch's ink reads on the slot (≥ 3:1)`, contrast(ink, tk.soft2) >= 3);
+    if (!tk.dark) ok(`${key}: a light theme keeps the paper's strokes`, p.lines === undefined && p.ink === undefined && p.pencil === undefined && p.fill === undefined);
+  }
+  const mid = auraSlotPalette(themes.midnight, true);
+  ok("midnight: light strokes (ink, sub at .62, ind on sf)", mid.lines === themes.midnight.ink && mid.pencil === withAlpha(themes.midnight.sub, 0.62) && mid.ink === themes.midnight.ind && mid.fill === themes.midnight.sf);
+  ok("withAlpha", withAlpha("#B9B5D0", 0.62) === "rgba(185,181,208,0.62)" && withAlpha("tomato", 0.5) === "tomato");
 }
 
 /* ── the whole view ── */
@@ -270,7 +347,7 @@ ok("no aura yet → no card (the skeleton)", buildAuraCard(null, fmt) === null);
     stamps: [],
     keepsakes: [],
     firstClass: { premium: false, cofounderNo: null, wren: "Pip" },
-    courier: { wren: "Pip", dayOff: false, carrying: false, best: 0, ago: "", line: "home", sub: "" },
+    courier: { wren: "Pip", dayOff: false, carrying: false, best: 0, agoA11y: "", line: "home", sub: "" },
   };
   const v = buildMeView(f, fmt);
   ok("ME", v.title === "me.header");

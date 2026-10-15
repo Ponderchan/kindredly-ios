@@ -15,7 +15,7 @@ import { daylight } from "./CourierCard";
 import { InkPanel } from "./10a/InkPanel";
 import { chipsFor, phaseHeadline, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
 import type { ResolvedSticker } from "../lib/writing-engine/stickers";
-import { buildAuraCard, type AuraCardVM, type AuraFacts } from "../screens/me/me-model";
+import { auraSlotPalette, buildAuraCard, type AuraCardVM, type AuraFacts } from "../screens/me/me-model";
 import { meFormat } from "../screens/me/me-format";
 import "../data/strings-step5-me";
 
@@ -211,7 +211,9 @@ export const auraArtWidth = (cardWidth: number): number => Math.max(0, cardWidth
    rung's fidelity, on the slot's own colour. The slot's corners are the
    caller's (the card clips them; the Swift card clips the island). */
 export function AuraArtSlot({ art, width, height = AURA_ART_H }: { art: AuraCardVM["art"]; width: number; height?: number }) {
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
+  // the strokes come with the ground: light ones on a dark slot (me-model auraSlotPalette)
+  const pal = useMemo(() => auraSlotPalette(tk, dark), [tk, dark]);
   const src =
     art.sceneId && art.fidelity === "colour" && AURA_SCENES[art.sceneId]
       ? AURA_SCENES[art.sceneId]
@@ -221,7 +223,7 @@ export function AuraArtSlot({ art, width, height = AURA_ART_H }: { art: AuraCard
   if (src) return <AuraArtFit width={width} height={height} src={src} ground={tk.soft2} />;
   return (
     <View style={{ width, height, backgroundColor: tk.soft2, overflow: "hidden" }}>
-      <AuraScene width={width} height={height} fidelity={art.fidelity} day={daylight()} ground={tk.soft2} />
+      <AuraScene width={width} height={height} fidelity={art.fidelity} day={daylight()} pal={pal} />
     </View>
   );
 }

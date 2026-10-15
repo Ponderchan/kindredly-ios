@@ -17,7 +17,7 @@ import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "
 import { fetchCarried, recordStageDate, whereabouts, type WhereaboutsRead } from "../../lib/whereabouts";
 import { hungerRead, type HungerRead } from "../../lib/hunger";
 import { isDayOff, noteWork, useFlightBest } from "../../lib/free-flight";
-import { agoLabel, flightLog, type LogEntry } from "../../lib/flight-log";
+import { flightLog, type LogEntry } from "../../lib/flight-log";
 import { getCounters, seenToday } from "../../lib/usage-counters";
 import { loadJournal } from "../../lib/journal";
 import { loadShelf, mint, unseen, type Minted } from "../../lib/keepsakes";
@@ -35,6 +35,7 @@ import {
   buildMeView,
   courierHref,
   segmentIndex,
+  spokenAgo,
   statHref,
   type KeepsakeFacts,
   type MeFacts,
@@ -54,15 +55,17 @@ import {
      InteractionManager's queue busy), and a visit within 30s of the last
      changes nothing. The heavy part — the aura over every piece of writing
      — waits for interactions and 250ms more. The kept aura paints first.
-   - EXCEPT THE PHOTO: Edit profile is its own page now (the Me stack), so
-     the avatar photo is read on EVERY focus, outside the 30s rule, or a new
-     photo wouldn't show on the way back.
+   - EXCEPT THE PHOTO AND THE SHELF: Edit profile is its own page now (the
+     Me stack), so the avatar photo is read on EVERY focus, outside the 30s
+     rule, or a new photo wouldn't show on the way back; and so is the
+     keepsake shelf with its NEW set (a keepsake opened from Me is seen on
+     the way back; one her room minted shows at once).
    - the growth stats (KINDREDS, the courier's stage floor, which only moves
      forward, the day it turned), the threads (the kept copy at once, the
      network past 15s), today's seen count, the aura (cache, then fresh; an
      offline read comes back `stale` from lib/aura and is shown but never
      recorded or celebrated), the stamps you've used (the facts the last full
-     aura read kept), the keepsake shelf — and keepsakes are MINTED here too,
+     aura read kept) — and keepsakes are MINTED here too,
      with the context her room uses, or the block would lag behind a reader
      who never opens the room (critic: mint ran only in WrenHome).
    - THE WARDROBE GATE: once the stats and the entitlement have both
@@ -182,13 +185,25 @@ export function useMeModel(): MeModel {
     };
   }, [statsIn, settled, skin, stats, premium, pick]);
 
-  /* the photo, on every focus: Edit profile is a page of its own now */
+  /* on every focus, outside the 30s rule (two cheap local reads): the photo
+     (Edit profile is a page of its own now) and the keepsake shelf with its
+     NEW set — opening a NEW keepsake from Me marks it seen, and her room may
+     have minted one, and the block must say so on the way back, not 30s
+     later. The mint itself stays in the throttled read below. */
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       getAvatarPhoto()
         .then((p) => alive && setPhoto(p))
         .catch((e) => console.warn("[me] the avatar photo wasn't read:", e));
+      loadShelf()
+        .then(async (s) => {
+          const f = await unseen(s);
+          if (!alive) return;
+          setShelf(s);
+          setFresh(f);
+        })
+        .catch((e) => console.warn("[me] the keepsake shelf wasn't read:", e));
       return () => {
         alive = false;
       };
@@ -222,12 +237,6 @@ export function useMeModel(): MeModel {
         if (threadsAge() > 15) fetchThreads().then((th) => alive && th && setThreads(th));
         getCounters().then((c) => alive && setSeenTodayN(seenToday(c)));
         readUsedStamps().then((u) => alive && setUsed(u));
-        loadShelf().then(async (s) => {
-          if (!alive) return;
-          setShelf(s);
-          const f = await unseen(s);
-          if (alive) setFresh(f);
-        });
 
         (async () => {
           if (__DEV__ && storeMode) {
@@ -255,10 +264,10 @@ export function useMeModel(): MeModel {
           const [carried, journal] = await Promise.all([fetchCarried(), loadJournal().catch(() => [])]);
           if (!alive) return;
           const minted = await mint({ carried, threads: threadsRef.current, journal, commonWords: a.commonWords[0] ? [a.commonWords[0]] : [], joinedAt: user?.created_at ?? null });
+          const f = await unseen(minted);
           if (!alive) return;
           setShelf(minted);
-          const f = await unseen(minted);
-          if (alive) setFresh(f);
+          setFresh(f);
         })().catch((e) => console.warn("[me] aura:", e));
       };
       const timer = setTimeout(() => {
@@ -330,7 +339,7 @@ export function useMeModel(): MeModel {
         dayOff,
         carrying: where.state === "delivery",
         best,
-        ago: agoLabel(entry.at),
+        agoA11y: spokenAgo(entry.at, Date.now(), meFormat()),
         line: hunger ? hunger.line : entry.line,
         sub: (hunger ? hunger.sub : entry.sub) ?? "",
       },

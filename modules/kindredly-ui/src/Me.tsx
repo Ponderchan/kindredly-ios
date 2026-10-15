@@ -76,8 +76,9 @@ export type KMeKeepsakes = {
   count: string;
   note: string;
   a11y: string;
-  /** two tiles; id "" for an empty (dashed) one */
-  tiles: { id: string; name: string; image: KImageRefProps | null; fresh: boolean }[];
+  /** two tiles; id "" for an empty (dashed) one. a11y: VoiceOver's label ("{name}, new" while
+      unopened, since the NEW dot is only drawn) */
+  tiles: { id: string; name: string; image: KImageRefProps | null; fresh: boolean; a11y: string }[];
 };
 
 export type KMeFirstClass = {
@@ -100,7 +101,7 @@ export type KMeStrings = {
 };
 
 /** The Me view's commands: scrollTo top (Me pressed again), and segment, which shows a card as
-    its chip would (no onSegment for it). */
+    its chip would and reports it through onSegment as a chip does (fill that card's island). */
 export type KMeCommands = Omit<KStandardCommands, "scrollTo"> & {
   scrollTo: { key: "top"; animated?: boolean };
   segment: { index: number };
@@ -158,7 +159,7 @@ type NativeKMeViewProps = Omit<
 > &
   Required<Pick<KMeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
-    keepsakes: Omit<KMeKeepsakes, "tiles"> & { tiles: { id: string; name: string; image: NativeImage; fresh: boolean }[] };
+    keepsakes: Omit<KMeKeepsakes, "tiles"> & { tiles: { id: string; name: string; image: NativeImage; fresh: boolean; a11y: string }[] };
     firstClass: Omit<KMeFirstClass, "bird"> & { bird: NativeImage };
     onMeSettings?: None;
     onMeEdit?: None;
@@ -181,8 +182,8 @@ const image = (r: KImageRefProps | null | undefined): NativeImage => (r ? { uri:
 /** The keepsakes as the Swift record wants them: every field present (a Swift @Field record
     can't take null), always two tiles. */
 export function nativeKeepsakes(k: KMeKeepsakes): NativeKMeViewProps["keepsakes"] {
-  const tiles = k.tiles.slice(0, 2).map((t) => ({ id: t.id, name: t.name, image: image(t.image), fresh: t.fresh }));
-  while (tiles.length < 2) tiles.push({ id: "", name: "", image: NO_IMAGE, fresh: false });
+  const tiles = k.tiles.slice(0, 2).map((t) => ({ id: t.id, name: t.name, image: image(t.image), fresh: t.fresh, a11y: t.a11y || t.name }));
+  while (tiles.length < 2) tiles.push({ id: "", name: "", image: NO_IMAGE, fresh: false, a11y: "" });
   return { header: k.header, count: k.count, note: k.note, a11y: k.a11y, tiles };
 }
 

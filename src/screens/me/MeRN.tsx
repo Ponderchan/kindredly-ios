@@ -151,6 +151,11 @@ function ProfileCardRN({
   onEdit: () => void;
   onStat: (key: StatKey) => void;
 }) {
+  /* at large text the figure and its unit stack in the half-width cell and
+     the unit may take two lines, so SEELENVERWANDTE with three figures isn't
+     cut to "SEELENVER…" (KProfileCard does the same with ViewThatFits) */
+  const { fontScale } = useWindowDimensions();
+  const stack = fontScale >= 1.3;
   return (
     <InkPanel variant="me" contentStyle={{ gap: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
@@ -182,13 +187,13 @@ function ProfileCardRN({
             onPress={() => onStat(s.key)}
             accessibilityRole="button"
             accessibilityLabel={s.a11y}
-            style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, backgroundColor: tk.soft2, opacity: pressed ? 0.6 : 1 })}
+            style={({ pressed }) => ({ flex: 1, flexDirection: stack ? "column" : "row", alignItems: "center", justifyContent: "center", gap: stack ? 4 : 8, padding: 12, backgroundColor: tk.soft2, opacity: pressed ? 0.6 : 1 })}
           >
             <Svg width={16} height={16} viewBox="0 0 28 28" fill="none" stroke={s.glyph === "envelope" ? tk.ind : tk.ink} strokeWidth={2.4} strokeLinejoin="round">
               <Path d={s.glyph === "envelope" ? "M3 8h22v13H3z M3 9l11 8 11-8" : "M4 6h13v9H9l-4 4z M12 19h8l4 4V12h-3"} />
             </Svg>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, color: tk.ink }}>{s.count}</Text>
-            <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>
+            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute, textAlign: "center" }}>
               {s.unit}
             </Text>
           </Pressable>
@@ -210,17 +215,18 @@ function KeepsakesBlockRN({ keepsakes, tk, onBlock, onTile }: { keepsakes: Keeps
         {keepsakes.tiles.map((k, i) => {
           const def = k ? keepsake(k.id) : null;
           if (!k || !def)
-            return <Pressable key={`empty${i}`} onPress={onBlock} accessibilityElementsHidden importantForAccessibility="no" style={{ flex: 1, height: 72, borderRadius: 12, borderWidth: 2, borderStyle: "dashed", borderColor: tk.faint }} />;
+            return <Pressable key={`empty${i}`} onPress={onBlock} accessibilityElementsHidden importantForAccessibility="no" style={{ flex: 1, minHeight: 72, borderRadius: 12, borderWidth: 2, borderStyle: "dashed", borderColor: tk.faint }} />;
           return (
             <Pressable
               key={k.id}
               onPress={() => onTile(k.id)}
               accessibilityRole="button"
-              accessibilityLabel={k.name}
-              style={({ pressed }) => ({ flex: 1, height: 72, borderRadius: 12, backgroundColor: tk.sf, alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 6, opacity: pressed ? 0.7 : 1 })}
+              accessibilityLabel={k.a11y}
+              style={({ pressed }) => ({ flex: 1, minHeight: 72, borderRadius: 12, backgroundColor: tk.sf, alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}
             >
               <Image source={def.icon} style={{ width: 32, height: 32 }} resizeMode="contain" />
-              <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: "600", color: tk.ink }}>
+              {/* the tile grows with its name (minHeight), which stops at 2x so two tiles still sit side by side */}
+              <Text numberOfLines={1} maxFontSizeMultiplier={2} style={{ fontSize: 11, fontWeight: "600", color: tk.ink }}>
                 {k.name}
               </Text>
               {k.fresh && <View style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, borderRadius: 4, backgroundColor: tk.ind }} />}

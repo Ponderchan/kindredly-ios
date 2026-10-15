@@ -22,7 +22,7 @@ import ExpoUI
    meterKind (ticks | slots), filled, total, slipsN, slipsOf (-1 for none), caption, cta, share,
    shareLabel }
  - stamps: { label, count, cells: [{ id, date, a11y, hex }], emptyText, emptyCta }
- - keepsakes: { header, count, note, a11y, tiles: [{ id ("" = empty), name, image, fresh }] }
+ - keepsakes: { header, count, note, a11y, tiles: [{ id ("" = empty), name, image, fresh, a11y }] }
  - firstClass: { eyebrow, headline, sub, cta, stampLabel, bird }
  - initialSegment: the segment to open on (read when the view first draws)
  Every record above is converted once per rev (useRev in TS); the strings with them.
@@ -32,13 +32,14 @@ import ExpoUI
  only while their card shows; TS fills them only then.
 
  Commands (KCommandBus): scrollTo { key: "top", animated } (Me pressed again while showing), and
- segment { index }, which shows a card as its chip would (the dev page), without an event.
+ segment { index }, which shows a card as its chip would and sends onMeSegment as a chip does, so
+ TS fills that card's island.
 
  Events, with what nativeEvent carries:
  - onMeSettings {}             the sliders
  - onMeEdit {}                 the pencil
  - onMeStat { key }            a figure: letters | kindreds
- - onMeSegment { index }       a chip (the card is already showing)
+ - onMeSegment { index }       a chip or a segment command (the card is already showing)
  - onMeCourier {}              the courier's scene
  - onMeKeepsakes {}            the keepsakes header or an empty tile
  - onMeKeepsake { id }         a keepsake tile
@@ -174,6 +175,8 @@ struct KMeKeepsakeTileRecord: Record {
   @Field var name: String = ""
   @Field var image: KImageRefRecord = KImageRefRecord()
   @Field var fresh: Bool = false
+  /// VoiceOver's label: "{name}, new" while unopened; "" falls back to the name
+  @Field var a11y: String = ""
 }
 
 struct KMeKeepsakesRecord: Record {
@@ -190,7 +193,7 @@ struct KMeKeepsakesRecord: Record {
     k.note = note
     k.a11yLabel = a11y
     var tiles: [KMeKeepsakeTile?] = self.tiles.prefix(2).map { t in
-      t.id.isEmpty ? nil : KMeKeepsakeTile(id: t.id, name: t.name, image: t.image.ref, fresh: t.fresh)
+      t.id.isEmpty ? nil : KMeKeepsakeTile(id: t.id, name: t.name, image: t.image.ref, fresh: t.fresh, a11yLabel: t.a11y.isEmpty ? t.name : t.a11y)
     }
     while tiles.count < 2 { tiles.append(nil) }
     k.tiles = tiles

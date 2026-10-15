@@ -35,14 +35,18 @@ import SwiftUI
  THE SEGMENTS. One card at a time (H:74-85). A chip shows its card at once, here, and tells TS
  (onSegment), which then fills that card's island — so a hidden CourierCard isn't running its
  loops while Aura is showing (critic): the courier and aura islands are only placed while
- their card is up, and TS renders nothing into them otherwise. Switching while the chips are
- pinned scrolls (without animation) so the new card starts right under them. The segment area
- is never shorter than the screen less the bar, the chips and the bottom margin, so even the
- short First Class card can pin the chips (the mock's 380pt tail, measured instead).
+ their card is up, and TS renders nothing into them otherwise. AT ONCE means no animation: the
+ chip's highlight moves on its own curve (KSegmentChips' KMotion.chip, and not at all under
+ Reduce Motion), but the card is swapped in a transaction with animations off, so the old card
+ never fades over the new one and the page's height never overshoots (which unpinned the chips
+ for a moment). Switching while the chips are pinned scrolls (without animation) so the new
+ card starts right under them. The segment area is never shorter than the screen less the bar,
+ the chips and the bottom margin, so even the short First Class card can pin the chips (the
+ mock's 380pt tail, measured instead).
 
  SCROLL REQUESTS (TS commands through the driver): top, when Me is pressed again while showing
  (the Me stack pops itself to this page first). And segment, which shows a card as a chip would
- (the dev page).
+ and reports it the same way (onSegment), so TS fills that card's island.
  */
 
 // MARK: - What the screen shows
@@ -176,12 +180,15 @@ public struct KMeKeepsakeTile: Identifiable, Equatable, Sendable {
   public let image: KImageRef?
   /// not opened yet: a small ind dot
   public let fresh: Bool
+  /// VoiceOver's label, from TS: "{name}, new" while unopened (the dot is only drawn)
+  public let a11yLabel: String
 
-  public init(id: String, name: String, image: KImageRef?, fresh: Bool) {
+  public init(id: String, name: String, image: KImageRef?, fresh: Bool, a11yLabel: String) {
     self.id = id
     self.name = name
     self.image = image
     self.fresh = fresh
+    self.a11yLabel = a11yLabel
   }
 }
 
@@ -240,7 +247,7 @@ public final class KMeActions {
   public var onEdit: () -> Void = {}
   /// a figure: "letters" or "kindreds"
   public var onStat: (String) -> Void = { _ in }
-  /// a chip: the segment now showing
+  /// the segment now showing, after a chip or a segment command
   public var onSegment: (Int) -> Void = { _ in }
   public var onCourier: () -> Void = {}
   public var onKeepsakes: () -> Void = {}
@@ -278,7 +285,8 @@ public final class KMeDriver: ObservableObject {
     scrollRequest = ScrollRequest(animated: animated, serial: serial)
   }
 
-  /// Shows a segment as its chip would (no event is reported for it).
+  /// Shows a segment as its chip would, and reports it as a chip does (onSegment), so the app
+  /// fills that card's island.
   public func showSegment(_ index: Int) {
     serial += 1
     segmentRequest = SegmentRequest(index: index, serial: serial)
@@ -319,7 +327,10 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   /// The chip row reads this, frame by frame while pinned; nothing else does.
   @State private var pinChrome = KScrollModel(quantum: 0.5)
   @State private var position = ScrollPosition(edge: .top)
+  /// the card showing; only ever changed with animations off
   @State private var segment: Int
+  /// the chips' highlight: follows `segment`, but on the chip's own curve
+  @State private var chipSelection: Int
   @State private var box = KMeBox()
   /// where the chip row's placeholder starts in the content, and its height
   @State private var chipsY: CGFloat = 0
@@ -357,6 +368,14 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     self.courier = courier()
     self.auraArt = auraArt()
     _segment = State(initialValue: Self.clampSegment(initialSegment))
+    _chipSelection = State(initialValue: Self.clampSegment(initialSegment))
+  }
+
+  /// A transaction that animates nothing, whatever transaction it is opened inside.
+  static var instant: Transaction {
+    var t = Transaction()
+    t.disablesAnimations = true
+    return t
   }
 
   static func clampSegment(_ i: Int) -> Int {
@@ -387,6 +406,11 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
           chipPlaceholder
           segmentCard
             .frame(minHeight: segmentMinHeight, alignment: .top)
+            // the swap is never animated (see THE SEGMENTS), even if a caller's transaction is
+            .transaction(value: segment) { t in
+              t.animation = nil
+              t.disablesAnimations = true
+            }
         }
         .padding(.horizontal, Self.gutter)
         .coordinateSpace(.named(Self.space))
@@ -429,13 +453,17 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     .onReceive(driver.$segmentRequest) { request in
       guard let request, request.serial > box.segmentSerial else { return }
       box.segmentSerial = request.serial
-      show(Self.clampSegment(request.index), report: false)
+      // reported like a chip, or TS would keep filling the old card's island and leave the new
+      // card's frame empty
+      show(Self.clampSegment(request.index), report: true)
     }
   }
 
   // ── the chips: a placeholder in the stack, the row drawn over it ─────
   private var chipPlaceholder: some View {
-    Color.clear
+    // read here, so this screen redraws the row when the highlight moves
+    let on = chipSelection
+    return Color.clear
       .frame(height: chipRowHeight)
       .frame(maxWidth: .infinity)
       .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named(Self.space)).minY } action: { y in
@@ -445,7 +473,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         KMeChipsRow(
           theme: theme,
           labels: content.segments,
-          selection: Binding(get: { segment }, set: { show($0, report: true) }),
+          selection: Binding(get: { on }, set: { pick($0) }),
           chrome: pinChrome,
           pinOffset: pinOffset,
           rowHeight: $chipRowHeight
@@ -456,18 +484,31 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       .zIndex(1)
   }
 
-  /// Shows a segment. Pinned, the page first goes (without animation) to where the chips pin,
-  /// so the new card starts right under them.
+  /// A chip, tapped (inside KSegmentChips' withAnimation(KMotion.chip)): the highlight moves on
+  /// that curve, or at once under Reduce Motion; the card is shown at once either way.
+  private func pick(_ index: Int) {
+    if reduceMotion {
+      withTransaction(Self.instant) { chipSelection = index }
+    } else {
+      chipSelection = index
+    }
+    show(index, report: true)
+  }
+
+  /// Shows a segment at once (no transition, no height animation). Pinned, the page then goes
+  /// (without animation) to where the chips pin, so the new card starts right under them.
   private func show(_ index: Int, report: Bool) {
+    if chipSelection != index {
+      // a command: the highlight jumps with the card
+      withTransaction(Self.instant) { chipSelection = index }
+    }
     guard index != segment else { return }
     let pinned = pinChrome.offset >= pinOffset - 0.5 && pinOffset > 0
-    segment = index
+    withTransaction(Self.instant) { segment = index }
     if report { actions.onSegment(index) }
     if pinned {
-      var instant = Transaction()
-      instant.disablesAnimations = true
       let y = pinOffset
-      withTransaction(instant) { position.scrollTo(y: y) }
+      withTransaction(Self.instant) { position.scrollTo(y: y) }
     }
   }
 

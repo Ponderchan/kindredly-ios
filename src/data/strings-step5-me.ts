@@ -14,7 +14,7 @@ import { strings } from "../lib/i18n";
    ac.yourAuraTitle, ap.what / ap.from.* / ap.prog.* / ap.cta.*, ac.shareSm,
    me.firstClass, fc.stubHead / stubSub1 / stubSub2 / stubCta, fc.paidHead /
    paidSub / paidCta, fc.member, me.fc.founding, me.sec.courier, me.open,
-   ff.dayoff.*, ff.play, ks.name.*. */
+   ff.dayoff.*, ff.play, ks.name.*, ml.rm.remove (Lore's take-down). */
 
 strings(
   /* ── en ── */
@@ -39,6 +39,19 @@ strings(
     "me.stamps.empty": "The stamps you put on your letters will gather here.",
     // the word on the First Class stamp (was a hardcoded literal)
     "fc.firstMark": "1ST",
+    // VoiceOver: a keepsake tile not opened yet (the NEW dot is only drawn), on Me and the shelf
+    "me.keepsakes.newA11y": "{name}, new",
+    // VoiceOver: the courier card's time, spelled out (the card's own label is mono "3H AGO")
+    "me.a11y.agoNow": "just now",
+    "me.a11y.agoM": "{n} minutes ago",
+    "me.a11y.agoH": "{n} hours ago",
+    "me.a11y.agoHOne": "1 hour ago",
+    "me.a11y.agoD": "{n} days ago",
+    "me.a11y.agoDOne": "1 day ago",
+    // Lore: taking a kept line down (the confirm's title; rm.keep.title asked "Keep this?")
+    "lore.unpin.title": "Take this line down?",
+    // Lore: VoiceOver's hint on a kept line (its action is ml.rm.remove)
+    "lore.unpin.hint": "Long-press to take this line down.",
   },
   /* es, pt, id: step 6 */
   {},

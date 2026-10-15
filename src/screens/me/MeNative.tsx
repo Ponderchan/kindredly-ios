@@ -129,7 +129,7 @@ export function nativeKeepsakes(k: KeepsakesVM, icons: Partial<Record<string, { 
     count: k.count,
     note: k.note,
     a11y: k.a11y,
-    tiles: k.tiles.map((t) => (t ? { id: t.id, name: t.name, image: icons[t.id] ?? null, fresh: t.fresh } : { id: "", name: "", image: null, fresh: false })),
+    tiles: k.tiles.map((t) => (t ? { id: t.id, name: t.name, image: icons[t.id] ?? null, fresh: t.fresh, a11y: t.a11y } : { id: "", name: "", image: null, fresh: false, a11y: "" })),
   };
 }
 

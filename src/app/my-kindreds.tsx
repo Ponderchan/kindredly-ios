@@ -32,9 +32,13 @@ const GREEN = BRAND.courierGreen;
 const GREEN_TEXT = BRAND.greenText;
 const GREEN_SOFT = "#7CC58F"; // a lit dot: the courier's green, light enough to read on any card
 
+/* the band's date, in ONE call, so each language orders and marks it its
+   own way (ja and ko with their year, month and day signs, de "05. OKT.
+   2026") — it used to glue a localised month into the American order,
+   which read "10月 05 2026" in Japanese */
 const bandDate = (ms: number) => {
-  const d = new Date(ms);
-  return `${d.toLocaleDateString(localeTag(), { month: "short" }).toLocaleUpperCase()} ${String(d.getDate()).padStart(2, "0")} ${d.getFullYear()}`;
+  const locale = localeTag();
+  return new Date(ms).toLocaleDateString(locale, { year: "numeric", month: "short", day: "2-digit" }).toLocaleUpperCase(locale);
 };
 
 function Dots({ n, tk }: { n: number; tk: ThemeTokens }) {

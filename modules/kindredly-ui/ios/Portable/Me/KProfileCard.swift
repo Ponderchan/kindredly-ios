@@ -15,8 +15,9 @@ import SwiftUI
  THE FIGURES: two cells 2 apart in a 14-cornered clip, each soft2 with 12 of padding: the glyph
  16 across (the envelope in ind, the bubbles in ink, the mock's 2.4 stroke on its 28 grid), the
  figure (mono 600 13: a figure, not a label, so owner question 2 keeps it at 13 — KMonoSizes)
- and the unit (mono 600 10 at .12em, mute). Each cell is a button that VoiceOver reads as the
- count ("12 letters").
+ and the unit (mono 600 10 at .12em, mute); when the unit doesn't fit beside the figure (a long
+ language, a narrow phone, large text) it goes under it, centred, on up to two lines, and the two
+ cells keep one height. Each cell is a button that VoiceOver reads as the count ("12 letters").
  */
 public struct KProfileCard<Avatar: View>: View {
   /// the avatar's side (H:72)
@@ -98,23 +99,12 @@ public struct KProfileCard<Avatar: View>: View {
         SwiftUI.Button {
           actions.onStat(stat.key)
         } label: {
-          HStack(alignment: .center, spacing: 8) {
-            KLineIcon(stat.glyph, size: 16, lineWidth: Self.statStroke, color: stat.glyph == .envelope ? theme.ind : theme.ink)
-            Text(stat.count)
-              .kText(.monoFigure)
-              .foregroundStyle(theme.ink)
-              .lineLimit(1)
-              .fixedSize()
-            Text(stat.unit)
-              .kText(Self.unitStyle)
-              .foregroundStyle(theme.mute)
-              .lineLimit(1)
-              .minimumScaleFactor(0.7)
-          }
-          .padding(12)
-          .frame(maxWidth: .infinity)
-          .background(theme.soft2)
-          .contentShape(Rectangle())
+          figure(stat)
+            .padding(12)
+            // both cells take the taller one's height (the row is fixed-size vertically)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(theme.soft2)
+            .contentShape(Rectangle())
         }
         .buttonStyle(KFadePressStyle())
         .accessibilityElement(children: .ignore)
@@ -122,8 +112,44 @@ public struct KProfileCard<Avatar: View>: View {
         .accessibilityAddTraits(.isButton)
       }
     }
+    .fixedSize(horizontal: false, vertical: true)
     .clipShape(RoundedRectangle(cornerRadius: 14, style: .circular))
     .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+  }
+
+  /// One cell's glyph, figure and unit: in a row while the unit fits beside the figure, else the
+  /// glyph and figure over the unit, which may then take two lines (SEELENVERWANDTE with three
+  /// figures on an SE, or any language at the AX3 cap, used to be cut to an ellipsis).
+  private func figure(_ stat: KMeStat) -> some View {
+    let glyph = KLineIcon(stat.glyph, size: 16, lineWidth: Self.statStroke, color: stat.glyph == .envelope ? theme.ind : theme.ink)
+    let count = Text(stat.count)
+      .kText(.monoFigure)
+      .foregroundStyle(theme.ink)
+      .lineLimit(1)
+      .fixedSize()
+    let unit = Text(stat.unit)
+      .kText(Self.unitStyle)
+      .foregroundStyle(theme.mute)
+    return ViewThatFits(in: .horizontal) {
+      HStack(alignment: .center, spacing: 8) {
+        glyph
+        count
+        unit
+          .lineLimit(1)
+          .fixedSize()
+      }
+      VStack(alignment: .center, spacing: 4) {
+        HStack(alignment: .center, spacing: 8) {
+          glyph
+          count
+        }
+        unit
+          .lineLimit(2)
+          .minimumScaleFactor(0.7)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
   }
 }
 
@@ -155,11 +181,15 @@ public struct KCofounderMark: View {
         .kText(Self.style)
         .foregroundStyle(theme.isDark ? KBrand.waxGold : KBrand.brassSeal)
         .lineLimit(1)
-        .fixedSize()
+        // shrinks rather than pushing the row past the card (it used to be fixed-size: at AX1,
+        // or MITGRÜNDER NR. 007 on an SE at xxxLarge, the avatar and pencil were pushed out)
+        .minimumScaleFactor(0.7)
     }
     .padding(.horizontal, 7)
     .padding(.vertical, 3)
     .overlay(Rectangle().strokeBorder(KBrand.waxGold, lineWidth: 1))
+    // a 9pt mark: it grows with the text up to AX1, no further
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     .accessibilityElement(children: .combine)
   }
 }
