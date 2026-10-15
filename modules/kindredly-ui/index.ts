@@ -52,3 +52,14 @@ export { KMeView, type KMeViewProps } from "./src/Me";
 export { KSettingsView, type KSettingsViewProps } from "./src/Settings";
 export { KEditProfileView, type KEditProfileViewProps } from "./src/EditProfile";
 export { KNotesView, type KNotesViewProps } from "./src/Notes";
+
+// step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
+export {
+  KLabView,
+  type KLabCommands,
+  type KLabFacts,
+  type KLabMeasure,
+  type KLabRow,
+  type KLabStrings,
+  type KLabViewProps,
+} from "./src/Lab";

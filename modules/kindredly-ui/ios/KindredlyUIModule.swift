@@ -75,6 +75,14 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // dev only on the JS side (src/app/dev/step5-lab.tsx): the batch 0b spike lab, a screen view
+    // like the eight above (KScreenProps, the command bus, a KField)
+    ExpoUIView(KLabView.self) {
+      AsyncFunction("command") { (view: KLabView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // Resigns whatever holds the keyboard, app-wide. React Native's Keyboard.dismiss() only
     // blurs inputs registered with TextInputState (dismissKeyboard.js:18-20), and our SwiftUI
     // fields never are; src/lib/keyboard.ts's dismissKeyboard() calls both.
