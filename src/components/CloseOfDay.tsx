@@ -1,18 +1,17 @@
 import { useWrenName } from "../lib/wren-name";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { PF } from "../theme/post";
+import { MONO, PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { WrenBird, type WrenMood } from "./WrenBird";
 import { MORNING_HOUR } from "../lib/notify";
@@ -20,6 +19,7 @@ import { MORNING_HOUR } from "../lib/notify";
 // in as `tr` — the same convention the other timer/loop files use.
 import { t as tr, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
+import "../data/strings-step5-today"; // cod.close.a11y
 
 /* CLOSE OF DAY — her window shuts, and you're the one who pulls the blind.
    ────────────────────────────────────────────────────────────────────────
@@ -43,7 +43,19 @@ import { localeTag } from "../lib/format";
    letter. The cord's pan reports its grab to the parent, which switches the
    pager's scrolling off for the length of the pull — the touch lands on the
    ring before any movement, so the pager is already still by the time a
-   scroll could begin. */
+   scroll could begin.
+
+   10a STEP 5. The page and the blind's room take the theme's page colour
+   (tk.bg): it is the last page of a stack on that ground, and the old
+   lavender (penWash, lav2) made it a block with a seam on Classic and
+   Paper. Only the room behind the glass keeps lav2. It fits the space it
+   is given: scaled to min(1, height / 520), so the 312 × 404 window fits
+   an iPhone SE's end page, and the pull is measured in the scaled window
+   (the 45% stays 45% of what you see). The sway and her hops run only
+   while `active` (the end page is near and the tab is in view): fifteen
+   pages away they were animating for no one. VoiceOver can close the day
+   too: the cord is a button whose action pulls it all the way. Small
+   mono labels are 9, 10 or 11 (MONO), in IBM Plex Mono Medium. */
 
 /* the blind is cut from the product's own neutrals: the inset grey-white
    for the cloth, ink for the slats' shadow lines. The cream it wore first
@@ -59,6 +71,9 @@ import { localeTag } from "../lib/format";
    the postmark red and the tape stays brass: they're objects, not chrome.
    (CANVAS and FRAME are set inside Counter, from the theme in effect.) */
 const PULL_DONE = 0.45; // past here, letting go finishes the pull
+/* the height the page needs before it scales: the window and its roller,
+   the capsule above, the cue below (today-cards BLIND_H) */
+const FIT_H = 520;
 
 let Haptics: typeof import("expo-haptics") | null = null;
 try {
@@ -84,29 +99,35 @@ export function CloseOfDay({
   facts,
   onSeal,
   onGrab,
+  active = true,
 }: {
   sealed: boolean;
   facts: DayFacts;
   onSeal: () => void;
   /** the cord is held / let go — the pager stops scrolling while it's held */
   onGrab?: (held: boolean) => void;
+  /** the page is near and in view: her hops and the cord's sway run (default true) */
+  active?: boolean;
 }) {
   useLang(); // repaint when the reader changes language
   const P = useP();
   const tk = useTheme().t;
+  const [h, setH] = useState(0);
+  const scale = h > 0 ? Math.min(1, h / FIT_H) : 1;
+  const onLayout = (e: LayoutChangeEvent) => setH(e.nativeEvent.layout.height);
   return (
-    <View style={{ flex: 1, backgroundColor: P.penWash }}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 }}>
+    <View style={{ flex: 1, backgroundColor: tk.bg }} onLayout={onLayout}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26, transform: [{ scale }] }}>
         {/* the heading is a capsule: ink on white, a dot of the pen colour for
             the day that just turned, the same pill the rest of the app tags
             things with (the card face and the outline colour, from the theme) */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: P.sheet, borderRadius: 999, borderWidth: 1.5, borderColor: tk.ln, paddingLeft: 13, paddingRight: 16, paddingVertical: 8 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: P.pen }} />
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2, color: P.ink }}>{tr("cod.wholePost")}</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 2, color: P.ink }}>{tr("cod.wholePost")}</Text>
         </View>
-        <Counter sealed={sealed} facts={facts} onSeal={onSeal} onGrab={onGrab} />
+        <Counter sealed={sealed} facts={facts} onSeal={onSeal} onGrab={onGrab} scale={scale} active={active} />
         {/* the cue keeps its line after the pull so the counter doesn't shift */}
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 1.4, color: P.groundInk60, marginTop: 20, opacity: sealed ? 0 : 1 }}>{tr("cod.pull")}</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.4, color: P.groundInk60, marginTop: 20, opacity: sealed ? 0 : 1 }}>{tr("cod.pull")}</Text>
       </View>
     </View>
   );
@@ -127,7 +148,7 @@ const CORD_L = 62;
 const RING = 30;
 const HIT = 26; // the ring's hit area reaches this far past it
 
-function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: DayFacts; onSeal: () => void; onGrab?: (held: boolean) => void }) {
+function Counter({ sealed, facts, onSeal, onGrab, scale = 1, active = true }: { sealed: boolean; facts: DayFacts; onSeal: () => void; onGrab?: (held: boolean) => void; scale?: number; active?: boolean }) {
   const P = useP();
   const tk = useTheme().t;
   const CANVAS = P.paperDeep; // the blind's cloth, a shade under the page
@@ -176,7 +197,8 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
       from.value = y.value;
     })
     .onUpdate((e) => {
-      y.value = Math.min(1, Math.max(0, from.value + e.translationY / WIN_H));
+      // in the window as drawn: scaled to fit, the finger still carries the blind
+      y.value = Math.min(1, Math.max(0, from.value + e.translationY / (WIN_H * scale)));
     })
     .onEnd(() => {
       if (y.value >= PULL_DONE) {
@@ -190,6 +212,14 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
     .onFinalize(() => {
       runOnJS(onGrabEnd)();
     });
+
+  /* VoiceOver: the cord's action pulls it all the way */
+  const pullAll = () => {
+    if (done) return;
+    y.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) }, (ok) => {
+      if (ok) runOnJS(finish)();
+    });
+  };
 
   const blind = useAnimatedStyle(() => ({ height: y.value * WIN_H + LIP_H }));
   const cord = useAnimatedStyle(() => ({ transform: [{ translateY: y.value * WIN_H }] }));
@@ -208,7 +238,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
   const [mood, setMood] = useState<WrenMood>("content");
   const [held, setHeld] = useState(false);
   useEffect(() => {
-    if (done) return;
+    if (done || !active) return;
     swing.value = withRepeat(withSequence(withTiming(3, { duration: 900, easing: Easing.inOut(Easing.sin) }), withTiming(-3, { duration: 900, easing: Easing.inOut(Easing.sin) })), -1, true);
     let alive = true;
     let settle: ReturnType<typeof setTimeout> | null = null;
@@ -227,7 +257,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
       clearInterval(loop);
       if (settle) clearTimeout(settle);
     };
-  }, [done, held, hop, swing]);
+  }, [done, held, hop, swing, active]);
 
   const bird = useAnimatedStyle(() => ({
     transform: [{ translateX: hop.value * 12 }, { translateY: -hop.value * 18 }, { rotate: `${-hop.value * 9}deg` }],
@@ -270,7 +300,18 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
         <Animated.View style={[{ alignItems: "center", transformOrigin: "top" }, ring]}>
           <View style={{ width: 2, height: CORD_L, backgroundColor: FRAME }} />
           <GestureDetector gesture={pan}>
-            <View hitSlop={HIT} style={{ width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: FRAME, backgroundColor: P.penWash }} />
+            <View
+              hitSlop={HIT}
+              accessible={!done}
+              accessibilityRole="button"
+              accessibilityLabel={tr("cod.close.a11y")}
+              accessibilityHint={tr("cod.pull")}
+              accessibilityActions={[{ name: "activate" }]}
+              onAccessibilityAction={(e) => {
+                if (e.nativeEvent.actionName === "activate") pullAll();
+              }}
+              style={{ width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3, borderColor: FRAME, backgroundColor: P.penWash }}
+            />
           </GestureDetector>
         </Animated.View>
       </Animated.View>
@@ -289,7 +330,7 @@ function Print() {
     <View style={{ alignItems: "center", marginTop: 26 }}>
       <Text style={{ fontFamily: PF.monoSemi, fontSize: 40, letterSpacing: 8, color: P.post }}>{tr("cod.stamp")}</Text>
       <View style={{ width: 178, height: 1.5, backgroundColor: P.post, marginTop: 6, opacity: 0.7 }} />
-      <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 2.2, color: P.groundInk, marginTop: 9 }}>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 2.2, color: P.groundInk, marginTop: 9 }}>
         {day} {mon}
       </Text>
     </View>
@@ -306,14 +347,14 @@ function NextPost() {
   const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
   return (
     <View style={{ alignItems: "center", borderWidth: 1, borderColor: P.groundInk40, paddingHorizontal: 22, paddingTop: 8, paddingBottom: 9 }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost", { name: wren.toUpperCase() })}</Text>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.8, color: P.groundInk60 }}>{tr("cod.nextPost", { name: wren.toUpperCase() })}</Text>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 2 }}>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 28, letterSpacing: 1, color: P.groundInk }}>{h}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.groundInk60 }}>H</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: P.groundInk60 }}>H</Text>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 28, letterSpacing: 1, color: P.groundInk, marginLeft: 8 }}>{m}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.groundInk60 }}>M</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: P.groundInk60 }}>M</Text>
       </View>
-      <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next", { t: next })}</Text>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.6, color: P.groundInk60, marginTop: 3 }}>{tr("cod.blind.next", { t: next })}</Text>
     </View>
   );
 }
@@ -341,7 +382,7 @@ function Note({ facts }: { facts: DayFacts }) {
     <View style={{ marginTop: 22, width: 266, transform: [{ rotate: "-1.6deg" }] }}>
       <View style={{ backgroundColor: P.sheet, borderWidth: 1, borderColor: tk.ln, paddingHorizontal: 17, paddingTop: 18, paddingBottom: 13 }}>
         <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 17.5, lineHeight: 25, color: P.ink }}>{lines.join(" ")}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
       </View>
       {/* two strips of tape, one at each top corner */}
       <View style={{ position: "absolute", top: -8, left: 16, width: 50, height: 15, backgroundColor: TAPE, transform: [{ rotate: "-6deg" }] }} />

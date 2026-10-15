@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
-import { PF } from "../theme/post";
-import { PUNCH } from "../theme/punch";
+import { MONO, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 
 /* THE LANGUAGE PAIR — the owner's B1.
    ────────────────────────────────────────────────────────────────────────
@@ -8,12 +8,19 @@ import { PUNCH } from "../theme/punch";
    EN is yours, the filled side is the one you are reading now. One tap
    turns it round. Smallest possible control, and the least like a machine
    translation button — it names the two people's languages, not a
-   service. */
+   service.
+
+   10a (step 5): the Today card now wears the mock's translate capsule
+   (components/10a TranslateCapsule, H:42), and nothing on Today draws this
+   any more. It stays for any reader that still wants the pair, painted
+   from the theme (an ink outline, the lit side ink with the page colour on
+   it), its mono at 11. */
 
 export function LangPair({ from, to, on, busy, onPress }: { from: string; to: string; on: boolean; busy: boolean; onPress: () => void }) {
+  const { t: tk } = useTheme();
   const Side = ({ tag, lit }: { tag: string; lit: boolean }) => (
-    <View style={{ paddingHorizontal: 11, paddingVertical: 6, backgroundColor: lit ? PUNCH.ink : "transparent" }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 0.9, color: lit ? "#FFFFFF" : PUNCH.ink }}>{tag}</Text>
+    <View style={{ paddingHorizontal: 11, paddingVertical: 6, backgroundColor: lit ? tk.ink : "transparent" }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.9, color: lit ? tk.bg : tk.ink }}>{tag}</Text>
     </View>
   );
   return (
@@ -21,18 +28,20 @@ export function LangPair({ from, to, on, busy, onPress }: { from: string; to: st
       onPress={onPress}
       disabled={busy}
       hitSlop={10}
+      accessibilityRole="button"
+      accessibilityState={{ busy, disabled: busy }}
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 2,
-        borderColor: PUNCH.ink,
+        borderColor: tk.ln,
         borderRadius: 999,
         overflow: "hidden",
         opacity: pressed || busy ? 0.6 : 1,
       })}
     >
       <Side tag={from} lit={!on} />
-      <Text style={{ paddingHorizontal: 7, fontSize: 13, fontWeight: "700", color: PUNCH.ink }}>{busy ? "…" : "→"}</Text>
+      <Text style={{ paddingHorizontal: 7, fontSize: 13, fontWeight: "700", color: tk.ink }}>{busy ? "…" : "→"}</Text>
       <Side tag={to} lit={on} />
     </Pressable>
   );
