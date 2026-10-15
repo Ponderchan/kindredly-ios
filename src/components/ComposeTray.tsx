@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
-import { P, PF, channelInk } from "../theme/post";
+import { P as STATIC_P, PF, channelInk } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
 import { StampTile } from "./StampTile";
 
@@ -15,7 +16,17 @@ import { StampTile } from "./StampTile";
    The stamp tray: a tab row — stamps, a custom stamp, a stamp tool (the
    last two are doors not built yet) — then the stamps this letter
    suggests, the ones used lately, and all thirty-six in their categories.
-   The ⊕ tray: the question and the voice letter. */
+   The ⊕ tray: the question and the voice letter.
+
+   COLOURS. The keys, trays and glyphs are chrome and take the theme: P
+   comes from useP() in each component, a glyph's default ink is read
+   inside it (not in its parameter list), the trays' lavender ground is
+   soft with its cells on sf, ring outlines are ln, and anything drawn on
+   an ink or ind fill is the page colour. Content keeps its own colours: the
+   stamps and their names, the amber pencil and photo sun, the red shutter.
+   One exception: StampGlyph's default ink stays the static one, because
+   the caller that leans on it is the stamps guide reel, a picture with its
+   own fixed colours; the tray passes the theme's ink explicitly. */
 
 export const TRAY_H = 296;
 
@@ -35,7 +46,7 @@ const DOORS_OPEN = false;
    second key. 1.6px strokes, short-dash perforation, nothing else. */
 const Perf = ({ color }: { color: string }) => <Rect x={3.5} y={3.5} width={17} height={17} rx={1} stroke={color} strokeWidth={1.6} strokeDasharray="1.4 1.6" fill="none" />;
 
-export function StampGlyph({ size = 22, color = P.ink, face }: { size?: number; color?: string; face?: string }) {
+export function StampGlyph({ size = 22, color = STATIC_P.ink, face }: { size?: number; color?: string; face?: string }) {
   /* `face`: the face in its own colour while the tray is open — an
      emotional stamp lights up when asked (owner, 2026-09-20) */
   const f = face ?? color;
@@ -53,7 +64,9 @@ export function StampGlyph({ size = 22, color = P.ink, face }: { size?: number; 
    cross and takes the pen colour — the key does not go black (owner,
    2026-09-20). It turns back on close. Something attached to the letter
    (a question, the voice) shows as a pen dot on the ring, not a fill. */
-export function PlusGlyph({ size = 22, color = P.ink, open = false }: { size?: number; color?: string; open?: boolean }) {
+export function PlusGlyph({ size = 22, color, open = false }: { size?: number; color?: string; open?: boolean }) {
+  const P = useP();
+  const ink = color ?? P.ink;
   const v = useRef(new Animated.Value(open ? 1 : 0)).current;
   useEffect(() => {
     Animated.timing(v, { toValue: open ? 1 : 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }).start();
@@ -62,35 +75,42 @@ export function PlusGlyph({ size = 22, color = P.ink, open = false }: { size?: n
   return (
     <Animated.View style={{ width: size, height: size, transform: [{ rotate }] }}>
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <Path d="M12 6v12M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+        <Path d="M12 6v12M6 12h12" stroke={ink} strokeWidth={1.8} strokeLinecap="round" />
       </Svg>
     </Animated.View>
   );
 }
 
-/** the pen dot on a ring: something is attached */
+/** the pen dot on a ring: something is attached. Its edge is the page
+    colour, so the dot reads as cut out of the ring. */
 export function KeyDot() {
-  return <View pointerEvents="none" style={{ position: "absolute", top: 2, right: 2, width: 9, height: 9, borderRadius: 4.5, backgroundColor: P.pen, borderWidth: 1.5, borderColor: "#FFFFFF" }} />;
+  const P = useP();
+  const { t: tk } = useTheme();
+  return <View pointerEvents="none" style={{ position: "absolute", top: 2, right: 2, width: 9, height: 9, borderRadius: 4.5, backgroundColor: P.pen, borderWidth: 1.5, borderColor: tk.bg }} />;
 }
 /* the two doors still to build (owner's picks from the sheet, 2026-09-20):
    CUSTOM is 2f — your photo mounted inside the perforated square, a stamp
    already; STAMP CAM is 2d — a viewfinder's four corners in the square and
    the red shutter dot, the one red in the row. Both keep the mother shape. */
-function CustomGlyph({ size = 22, color = P.ink }: { size?: number; color?: string }) {
+function CustomGlyph({ size = 22, color }: { size?: number; color?: string }) {
+  const P = useP();
+  const ink = color ?? P.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Perf color={color} />
-      <Rect x={6.5} y={6.5} width={11} height={11} stroke={color} strokeWidth={1.3} fill="none" />
+      <Perf color={ink} />
+      <Rect x={6.5} y={6.5} width={11} height={11} stroke={ink} strokeWidth={1.3} fill="none" />
       <Circle cx={10} cy={10} r={1.4} fill="#F2A33A" />
-      <Path d="M6.5 17.5l3.4-3.8 2.2 2.2 1.8-1.8 3.6 3.4z" fill={color} />
+      <Path d="M6.5 17.5l3.4-3.8 2.2 2.2 1.8-1.8 3.6 3.4z" fill={ink} />
     </Svg>
   );
 }
-function CamGlyph({ size = 22, color = P.ink, shutter = "#C8412E" }: { size?: number; color?: string; shutter?: string }) {
+function CamGlyph({ size = 22, color, shutter = "#C8412E" }: { size?: number; color?: string; shutter?: string }) {
+  const P = useP();
+  const ink = color ?? P.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Perf color={color} />
-      <Path d="M7 9.5V7h2.5M14.5 7H17v2.5M17 14.5V17h-2.5M9.5 17H7v-2.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" fill="none" />
+      <Perf color={ink} />
+      <Path d="M7 9.5V7h2.5M14.5 7H17v2.5M17 14.5V17h-2.5M9.5 17H7v-2.5" stroke={ink} strokeWidth={1.5} strokeLinecap="round" fill="none" />
       <Circle cx={12} cy={12} r={2} fill={shutter} />
     </Svg>
   );
@@ -99,25 +119,31 @@ function CamGlyph({ size = 22, color = P.ink, shutter = "#C8412E" }: { size?: nu
 /* the ⊕ tray's two: a drawn question mark and a drawn microphone — same
    1.6px line as the family, round caps; the typed "?" and the 🎙 emoji sat
    in a row of line icons like two guests in the wrong clothes */
-function QuestionGlyph({ size = 26, color = P.ink }: { size?: number; color?: string }) {
+function QuestionGlyph({ size = 26, color }: { size?: number; color?: string }) {
+  const P = useP();
+  const ink = color ?? P.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M8.6 9.2a3.4 3.4 0 1 1 5.2 2.9c-1.2.8-1.8 1.5-1.8 2.9" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={12} cy={18.6} r={1.25} fill={color} />
+      <Path d="M8.6 9.2a3.4 3.4 0 1 1 5.2 2.9c-1.2.8-1.8 1.5-1.8 2.9" stroke={ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={12} cy={18.6} r={1.25} fill={ink} />
     </Svg>
   );
 }
-function MicGlyph({ size = 26, color = P.ink }: { size?: number; color?: string }) {
+function MicGlyph({ size = 26, color }: { size?: number; color?: string }) {
+  const P = useP();
+  const ink = color ?? P.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={9} y={3.5} width={6} height={10.5} rx={3} stroke={color} strokeWidth={1.7} />
-      <Path d="M6 11.5a6 6 0 0 0 12 0M12 17.5v3M9 20.5h6" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
+      <Rect x={9} y={3.5} width={6} height={10.5} rx={3} stroke={ink} strokeWidth={1.7} />
+      <Path d="M6 11.5a6 6 0 0 0 12 0M12 17.5v3M9 20.5h6" stroke={ink} strokeWidth={1.7} strokeLinecap="round" />
     </Svg>
   );
 }
 
 /** a round key in the bar */
 export function RoundKey({ on, onPress, children, badge }: { on?: boolean; onPress: () => void; children: React.ReactNode; badge?: React.ReactNode }) {
+  const P = useP();
+  const { t: tk } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -127,7 +153,7 @@ export function RoundKey({ on, onPress, children, badge }: { on?: boolean; onPre
         height: 46,
         borderRadius: 23,
         borderWidth: 1.5,
-        borderColor: P.ink,
+        borderColor: tk.ln,
         backgroundColor: on ? P.ink : "transparent",
         alignItems: "center",
         justifyContent: "center",
@@ -143,6 +169,8 @@ export function RoundKey({ on, onPress, children, badge }: { on?: boolean; onPre
 const COLS = 6;
 
 export function StampTray({ selected, suggested, recent, onPick }: { selected: string | null; suggested: string[]; recent: string[]; onPick: (id: string) => void }) {
+  const P = useP();
+  const { t: tk } = useTheme();
   const tile = (id: string) => {
     const on = selected === id;
     const st = getStamp(id);
@@ -167,12 +195,12 @@ export function StampTray({ selected, suggested, recent, onPick }: { selected: s
     ) : null;
   const known = new Set(STAMPS.map((s) => s.id));
   return (
-    <View style={{ height: TRAY_H, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12 }}>
+    <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>
       {/* the tab row: stamps, then the two doors not built yet (DOORS_OPEN) */}
       {DOORS_OPEN && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 }}>
-          <View style={{ width: 44, height: 36, borderRadius: 9, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-            <StampGlyph size={22} />
+          <View style={{ width: 44, height: 36, borderRadius: 9, backgroundColor: tk.sf, alignItems: "center", justifyContent: "center" }}>
+            <StampGlyph size={22} color={P.ink} />
           </View>
           <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
             <CustomGlyph size={22} />
@@ -197,15 +225,17 @@ export function StampTray({ selected, suggested, recent, onPick }: { selected: s
 }
 
 export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: boolean; voiceOn: boolean; premium: boolean; onAsk: () => void; onVoice: () => void }) {
+  const P = useP();
+  const { t: tk } = useTheme();
   const cell = (label: string, on: boolean, onPress: () => void, glyph: React.ReactNode, lock?: boolean) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ width: 82, alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
-      <View style={{ width: 62, height: 62, borderRadius: 16, backgroundColor: on ? P.ink : "#FFFFFF", borderWidth: 1, borderColor: on ? P.ink : P.ink12, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 62, height: 62, borderRadius: 16, backgroundColor: on ? P.ink : tk.sf, borderWidth: 1, borderColor: on ? P.ink : P.ink12, alignItems: "center", justifyContent: "center" }}>
         {glyph}
         {lock && (
           <View style={{ position: "absolute", right: -5, bottom: -5, width: 18, height: 18, borderRadius: 9, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
             <Svg width={10} height={10} viewBox="0 0 12 12">
-              <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke="#fff" strokeWidth={1.5} strokeLinecap="round" />
-              <Rect x={2.5} y={5.6} width={7} height={5} fill="#fff" />
+              <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke={tk.bg} strokeWidth={1.5} strokeLinecap="round" />
+              <Rect x={2.5} y={5.6} width={7} height={5} fill={tk.bg} />
             </Svg>
           </View>
         )}
@@ -214,9 +244,9 @@ export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: b
     </Pressable>
   );
   return (
-    <View style={{ height: TRAY_H, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingTop: 22 }}>
-      {cell(t("cp.tray.ask"), askOn, onAsk, <QuestionGlyph color={askOn ? "#FFFFFF" : P.ink} />)}
-      {cell(t("cp.tray.voice"), voiceOn, onVoice, <View style={{ opacity: premium ? 1 : 0.45 }}><MicGlyph color={voiceOn ? "#FFFFFF" : P.ink} /></View>, !premium)}
+    <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingTop: 22 }}>
+      {cell(t("cp.tray.ask"), askOn, onAsk, <QuestionGlyph color={askOn ? tk.bg : P.ink} />)}
+      {cell(t("cp.tray.voice"), voiceOn, onVoice, <View style={{ opacity: premium ? 1 : 0.45 }}><MicGlyph color={voiceOn ? tk.bg : P.ink} /></View>, !premium)}
     </View>
   );
 }
@@ -228,7 +258,9 @@ export const stampOf = (id: string | null) => (id ? getStamp(id) : null);
    one just to its left — and a small chevron at the key's left edge
    leans toward it, again and again, until a stamp is on the envelope
    (owner, 2026-09-20). Native-driven, not an interaction. */
-export function Nudge({ color = P.pen }: { color?: string }) {
+export function Nudge({ color }: { color?: string }) {
+  const P = useP();
+  const ink = color ?? P.pen;
   const x = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const sine = Easing.inOut(Easing.sin);
@@ -246,7 +278,7 @@ export function Nudge({ color = P.pen }: { color?: string }) {
   return (
     <Animated.View pointerEvents="none" style={{ position: "absolute", left: 10, top: 0, bottom: 0, justifyContent: "center", transform: [{ translateX: x }] }}>
       <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-        <Path d="M15 5 L8 12 L15 19" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M15 5 L8 12 L15 19" stroke={ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
     </Animated.View>
   );
@@ -261,7 +293,9 @@ export function Nudge({ color = P.pen }: { color?: string }) {
    ring stays a ring; the fill never goes black. Closing runs it backwards
    and the face reassembles. Every piece is native-driven and none is an
    "interaction". */
-export function StampKeyGlyph({ open, size = 23, color = P.ink }: { open: boolean; size?: number; color?: string }) {
+export function StampKeyGlyph({ open, size = 23, color }: { open: boolean; size?: number; color?: string }) {
+  const P = useP();
+  const ink = color ?? P.ink;
   const v = useRef(new Animated.Value(open ? 1 : 0)).current;
   useEffect(() => {
     Animated.timing(v, { toValue: open ? 1 : 0, duration: 360, easing: open ? Easing.out(Easing.cubic) : Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false }).start();
@@ -279,27 +313,27 @@ export function StampKeyGlyph({ open, size = 23, color = P.ink }: { open: boolea
     <View style={{ width: size, height: size }}>
       {/* the square, always */}
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <Perf color={color} />
+        <Perf color={ink} />
       </Svg>
       {/* the face, in three pieces */}
       <Animated.View pointerEvents="none" style={[abs, eyeL]}>
-        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={9.4} cy={10.4} r={1.1} fill={color} /></Svg>
+        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={9.4} cy={10.4} r={1.1} fill={ink} /></Svg>
       </Animated.View>
       <Animated.View pointerEvents="none" style={[abs, eyeR]}>
-        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={14.6} cy={10.4} r={1.1} fill={color} /></Svg>
+        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={14.6} cy={10.4} r={1.1} fill={ink} /></Svg>
       </Animated.View>
       <Animated.View pointerEvents="none" style={[abs, smile]}>
-        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none"><Path d="M8.9 14.1c1.1 1.6 5.1 1.6 6.2 0" stroke={color} strokeWidth={1.6} strokeLinecap="round" /></Svg>
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none"><Path d="M8.9 14.1c1.1 1.6 5.1 1.6 6.2 0" stroke={ink} strokeWidth={1.6} strokeLinecap="round" /></Svg>
       </Animated.View>
       {/* what takes its place: the ink dot of a stamp being drawn, and the pencil */}
       <Animated.View pointerEvents="none" style={[abs, dot]}>
-        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={10.5} cy={10.5} r={2.4} fill={color} /></Svg>
+        <Svg width={size} height={size} viewBox="0 0 24 24"><Circle cx={10.5} cy={10.5} r={2.4} fill={ink} /></Svg>
       </Animated.View>
       <Animated.View pointerEvents="none" style={[abs, pencil]}>
         <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
           <G transform="rotate(45 16.5 16.5)">
-            <Rect x={14.6} y={9} width={3.8} height={11} rx={0.6} fill="#F2A33A" stroke={color} strokeWidth={1.3} />
-            <Path d="M14.6 20l1.9 3 1.9-3z" fill={color} />
+            <Rect x={14.6} y={9} width={3.8} height={11} rx={0.6} fill="#F2A33A" stroke={ink} strokeWidth={1.3} />
+            <Path d="M14.6 20l1.9 3 1.9-3z" fill={ink} />
           </G>
         </Svg>
       </Animated.View>

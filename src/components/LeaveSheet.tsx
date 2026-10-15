@@ -1,7 +1,8 @@
 import { Keyboard, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { P, PF, rule, solidBtn } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 
 /* LEAVING A COMPOSER WITH WORDS IN IT.
@@ -22,7 +23,14 @@ import { t, useLang } from "../lib/i18n";
    The cancel is a full-width row, not a small ✕. The most likely reason you
    are looking at this sheet is that you did not mean to leave at all, so
    going back to writing should be the easiest thing on it to hit. The ✕ is
-   there too, for people who reach for corners. */
+   there too, for people who reach for corners.
+
+   Its colours are the theme's. The sheet is a sheet, so it is sf (the same
+   white as the page in Classic); the rules and the quiet outline are ln;
+   the filled button is ind with its label in the page colour, as every
+   filled key in 10a is. Two things stay fixed: the postal red of the
+   destructive row (an object's colour, like the postmark, in every theme)
+   and the dim over the page behind. */
 
 export interface LeaveAction {
   label: string;
@@ -60,6 +68,8 @@ export function LeaveSheet({
   onCancel: () => void;
 }) {
   useLang(); // repaint when the reader changes language
+  const P = useP();
+  const { t: tk } = useTheme();
   const insets = useSafeAreaInsets();
   if (!open) return null;
 
@@ -74,13 +84,13 @@ export function LeaveSheet({
       <Animated.View
         entering={SlideInDown.duration(260)}
         style={{
-          backgroundColor: P.paper,
+          backgroundColor: tk.sf,
           borderTopWidth: 1,
-          borderTopColor: P.ink,
+          borderTopColor: tk.ln,
           paddingBottom: Math.max(insets.bottom, 12) + 6 + bottomExtra,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, ...rule }}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
           <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{title.toUpperCase()}</Text>
           <Pressable onPress={onCancel} hitSlop={12}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
@@ -98,10 +108,10 @@ export function LeaveSheet({
               onPress={a.onPress}
               style={({ pressed }) => [
                 a.kind === "primary"
-                  ? { ...solidBtn, opacity: pressed ? 0.85 : 1 }
+                  ? { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" as const, opacity: pressed ? 0.85 : 1 }
                   : {
                       borderWidth: 1,
-                      borderColor: a.kind === "quiet" ? P.ink : P.post,
+                      borderColor: a.kind === "quiet" ? tk.ln : P.post,
                       paddingVertical: 15,
                       alignItems: "center" as const,
                       backgroundColor: pressed
@@ -119,7 +129,7 @@ export function LeaveSheet({
                   fontFamily: PF.monoSemi,
                   fontSize: 12.5,
                   letterSpacing: 1.8,
-                  color: a.kind === "primary" ? "#fff" : a.kind === "quiet" ? P.ink : P.post,
+                  color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : P.post,
                 }}
               >
                 {a.label}

@@ -11,7 +11,9 @@ import { t } from "../lib/i18n";
    it back. A pinch is never a tap — two fingers anywhere in the gesture and
    it doesn't close — and once the photo is zoomed in, only the × closes it,
    so panning around a close-up can't throw it away. Takes a moments-bucket
-   path (signed, lib/media) or a plain uri. */
+   path (signed, lib/media) or a plain uri. The stage is near-black and the
+   × white on its dark disc in every theme: a photo is looked at on dark,
+   so none of this follows the page's colours. */
 
 export type LightboxPhoto = { path?: string | null; uri?: string | null } | null;
 

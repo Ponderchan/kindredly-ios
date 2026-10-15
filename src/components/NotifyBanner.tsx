@@ -18,7 +18,16 @@ import { ROW } from "./ChatRowStyle";
    two weeks on this phone, then asks once more; it never shows to a guest
    (a guest has no correspondence to be knocked about) or to anyone whose
    notifications already work. Coming back from Settings with them on, the
-   device is registered at once and the bar goes. */
+   device is registered at once and the bar goes.
+
+   THE BAR KEEPS ITS COLOURS IN EVERY THEME. A pale sky panel with indigo
+   type is a pair that holds its contrast whatever page it lies on, and 10a
+   has no token for a notice, so both are fixed here, as Settings keeps its
+   own notifications-off panel. The indigo is the one the chat rows used
+   (ROW.blue, Classic's ind), written out so the bar no longer reads ROW for
+   colour; ROW still gives the row inset. */
+const NOTICE_GROUND = "#EEF5FD";
+const NOTICE_INK = "#3A34D6";
 
 const KEY = "kindredly_notify_banner_closed";
 const QUIET_MS = 14 * 24 * 3600 * 1000;
@@ -108,16 +117,16 @@ export function NotifyBanner({ preview = false }: { preview?: boolean } = {}) {
   };
 
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#EEF5FD", marginTop: 12 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: NOTICE_GROUND, marginTop: 12 }}>
       <Pressable onPress={() => void turnOn()} accessibilityRole="button" style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: ROW.pad, paddingVertical: 11, opacity: pressed ? 0.6 : 1 })}>
-        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={ROW.blue} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={NOTICE_INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
           <Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </Svg>
-        <Text numberOfLines={2} style={{ flex: 1, fontSize: 14, lineHeight: 19, color: ROW.blue }}>{t("nb.turnOn")}</Text>
+        <Text numberOfLines={2} style={{ flex: 1, fontSize: 14, lineHeight: 19, color: NOTICE_INK }}>{t("nb.turnOn")}</Text>
       </Pressable>
       <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("nb.close")} style={{ paddingHorizontal: ROW.pad, paddingVertical: 11 }}>
-        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={ROW.blue} strokeWidth={2.2} strokeLinecap="round">
+        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={NOTICE_INK} strokeWidth={2.2} strokeLinecap="round">
           <Path d="M5 5l14 14M19 5L5 19" />
         </Svg>
       </Pressable>

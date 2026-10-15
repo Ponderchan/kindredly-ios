@@ -7,12 +7,22 @@ import {
   useAudioRecorder,
 } from "expo-audio";
 import { t, useLang } from "../lib/i18n";
-import { C, F } from "../theme/tokens";
+import { F } from "../theme/tokens";
+import { useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
 
 /* Voice recorder — v20's design (record button + live waveform + timer),
    shared by voice letters and voice journal pages. Caps at `maxS` (default
-   3:00, the v20 precedent). Calls onDone(uri, seconds) after stop. */
+   3:00, the v20 precedent). Calls onDone(uri, seconds) after stop.
+
+   Its colours are the theme's, the old C palette read by role: the panel
+   is a card face (sf) ruled in line, the take you can keep sits on the
+   accent's palest wash (lav2), the key, bars and timer are ind with the
+   page colour on the key, and the ✕ is faint. The red of a recording in
+   progress is a signal, not chrome, so it stays the same in every theme,
+   with white on it. */
+
+const RECORDING = "#D66C3E"; // the old C.ember
 
 const BARS = [10, 16, 22, 18, 14, 20, 24, 12, 18, 22, 26, 14, 10, 18, 22, 24, 20, 14, 18, 22];
 
@@ -30,6 +40,7 @@ export function Recorder({
   doneDur?: number;
 }) {
   useLang();
+  const { t: tk } = useTheme();
   const recorder = useAudioRecorder(RecordingPresets.LOW_QUALITY);
   const [rec, setRec] = useState(false);
   const [dur, setDur] = useState(0);
@@ -79,16 +90,16 @@ export function Recorder({
   // recorded state — review row
   if (doneUri && !rec) {
     return (
-      <View style={{ borderRadius: 14, padding: 16, backgroundColor: C.purpleLt, flexDirection: "row", alignItems: "center", gap: 13 }}>
-        <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.purple, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#fff", fontSize: 16 }}>✓</Text>
+      <View style={{ borderRadius: 14, padding: 16, backgroundColor: tk.lav2, flexDirection: "row", alignItems: "center", gap: 13 }}>
+        <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: tk.ind, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: tk.bg, fontSize: 16 }}>✓</Text>
         </View>
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 2, height: 26 }}>
           {BARS.map((h, i) => (
-            <View key={i} style={{ width: 3, height: h, borderRadius: 2, backgroundColor: C.purple, opacity: 0.65 }} />
+            <View key={i} style={{ width: 3, height: h, borderRadius: 2, backgroundColor: tk.ind, opacity: 0.65 }} />
           ))}
         </View>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: C.purple }}>{fmt(doneDur || 0)}</Text>
+        <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: tk.ind }}>{fmt(doneDur || 0)}</Text>
         <Pressable
           onPress={() => {
             setDur(0);
@@ -96,19 +107,19 @@ export function Recorder({
           }}
           hitSlop={8}
         >
-          <Text style={{ color: C.faint, fontSize: 13 }}>✕</Text>
+          <Text style={{ color: tk.faint, fontSize: 13 }}>✕</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={{ borderRadius: 14, padding: 16, backgroundColor: C.creamHi, flexDirection: "row", alignItems: "center", gap: 13, borderWidth: 1, borderColor: C.line }}>
+    <View style={{ borderRadius: 14, padding: 16, backgroundColor: tk.sf, flexDirection: "row", alignItems: "center", gap: 13, borderWidth: 1, borderColor: tk.line }}>
       <Pressable
         onPress={() => (rec ? stop() : start())}
-        style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: rec ? C.ember : C.purple, alignItems: "center", justifyContent: "center" }}
+        style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: rec ? RECORDING : tk.ind, alignItems: "center", justifyContent: "center" }}
       >
-        <Text style={{ color: "#fff", fontSize: 15 }}>{rec ? "■" : "🎙"}</Text>
+        <Text style={{ color: rec ? "#FFFFFF" : tk.bg, fontSize: 15 }}>{rec ? "■" : "🎙"}</Text>
       </Pressable>
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 2, height: 26 }}>
         {BARS.map((h, i) => (
@@ -118,13 +129,13 @@ export function Recorder({
               width: 3,
               height: rec ? h + Math.sin((dur + i) * 0.6) * 4 : h,
               borderRadius: 2,
-              backgroundColor: rec ? C.ember : C.purple,
+              backgroundColor: rec ? RECORDING : tk.ind,
               opacity: 0.65,
             }}
           />
         ))}
       </View>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: rec ? C.ember : C.purple }}>
+      <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: rec ? RECORDING : tk.ind }}>
         {fmt(dur)} / {fmt(maxS)}
       </Text>
     </View>

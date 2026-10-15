@@ -5,7 +5,8 @@ import Svg, { Path } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
 import { WrenBird } from "./WrenBird";
 import { cardShadow } from "./AuraCard";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { getLang, t, useLang } from "../lib/i18n";
 import { sinceShort, listWhen } from "../lib/format";
 import { readRoomSeen } from "../lib/room-seen";
@@ -19,25 +20,34 @@ import { OFFICIAL_NAME, WREN_ROOM, fetchWrenPosts, postText, readPostsCache, wre
    default look on purpose: your Wren wears the coat you gave her, this one
    is the one on the box. The mark is the kindreds' green tick in pen blue
    — same shape, so it reads as "verified" the way the phone already taught
-   it, in the colour this app uses for the system speaking. */
-export function OfficialBird({ size = 52, mood = "content" as const }: { size?: number; mood?: "content" | "curious" | "delight" }) {
+   it, in the colour this app uses for the system speaking.
+
+   The bird is art and keeps her coat. Around her is chrome: the ring is the
+   accent's palest wash (lav2, the same #EEEDFB in Classic), the mark is
+   ind with its tick in the page colour, and the mark's edge is cut in the
+   colour of whatever it sits on — `ground`, the page by default; a card
+   passes its sf. */
+export function OfficialBird({ size = 52, mood = "content" as const, ground }: { size?: number; mood?: "content" | "curious" | "delight"; ground?: string }) {
+  const { t: tk } = useTheme();
   const badge = Math.max(16, Math.round(size * 0.34));
   return (
     <View style={{ width: size, height: size }}>
-      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#EEEDFB", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tk.lav2, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <WrenBird size={Math.round(size * 0.62)} mood={mood} skin="sticker" accessory="none" />
       </View>
       <View style={{ position: "absolute", right: -1, bottom: -1 }}>
-        <OfficialMark size={badge} />
+        <OfficialMark size={badge} ground={ground} />
       </View>
     </View>
   );
 }
 
-export function OfficialMark({ size = 16 }: { size?: number }) {
+export function OfficialMark({ size = 16, ground }: { size?: number; ground?: string }) {
+  const P = useP();
+  const { t: tk } = useTheme();
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: P.pen, borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-      <Svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round">
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: P.pen, borderWidth: 2, borderColor: ground ?? tk.bg, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke={tk.bg} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M5 12l5 5 9-10" />
       </Svg>
     </View>
@@ -52,10 +62,19 @@ export function OfficialMark({ size = 16 }: { size?: number }) {
 /* inList (the Kindreds list, owner 2026-10-10; restyled 10-11 with the
    prototype's rows): the first row of the list, pinned by a grey band under
    it, no card of her own; onUnread lets the list mark the ALL chip while a
-   post of hers is unopened. */
+   post of hers is unopened.
+
+   Colours come from the theme. In the list her row borrows the shared
+   chat-row styles (ChatRowStyle) for size and weight, and lays the theme's
+   colours over theirs by role, so it reads like the rows under it in every
+   theme: name ink, time mute (ind while one is unread), preview sub, the
+   badge ind with the page colour on it. On its own (the empty Kindreds
+   page) it is a card: sf with the soft shadow, which stays fixed. */
 export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; onUnread?: (n: number) => void } = {}) {
   const router = useRouter();
   useLang();
+  const P = useP();
+  const { t: tk } = useTheme();
   const [posts, setPosts] = useState<WrenPost[]>([]);
   const [unread, setUnread] = useState(0);
   const load = useCallback(() => {
@@ -104,14 +123,14 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
         <OfficialBird size={ROW.face} />
         <View style={{ flex: 1, minWidth: 0, paddingVertical: 12, gap: 3 }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-            <Text numberOfLines={1} style={[rowName, { flex: 1 }]}>{OFFICIAL_NAME}</Text>
-            {!!ago && <Text style={rowTime(unread > 0)}>{ago}</Text>}
+            <Text numberOfLines={1} style={[rowName, { flex: 1, color: tk.ink }]}>{OFFICIAL_NAME}</Text>
+            {!!ago && <Text style={[rowTime(unread > 0), { color: unread > 0 ? tk.ind : tk.mute }]}>{ago}</Text>}
           </View>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-            <Text numberOfLines={2} style={[rowPreview, { flex: 1 }]}>{line}</Text>
+            <Text numberOfLines={2} style={[rowPreview, { flex: 1, color: tk.sub }]}>{line}</Text>
             {unread > 0 && (
-              <View style={rowBadge}>
-                <Text style={rowBadgeText}>{unread > 9 ? "9+" : String(unread)}</Text>
+              <View style={[rowBadge, { backgroundColor: tk.ind }]}>
+                <Text style={[rowBadgeText, { color: tk.bg }]}>{unread > 9 ? "9+" : String(unread)}</Text>
               </View>
             )}
           </View>
@@ -123,10 +142,10 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
     <Pressable
       onPress={() => router.push(`/room/${WREN_ROOM}`)}
       accessibilityRole="button"
-      style={({ pressed }) => [{ backgroundColor: "#FFFFFF", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
+      style={({ pressed }) => [{ backgroundColor: tk.sf, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <OfficialBird size={44} />
+        <OfficialBird size={44} ground={tk.sf} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: P.ink }}>{OFFICIAL_NAME}</Text>
@@ -135,7 +154,7 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
             {/* the time since her last post — or, while one is unopened, NEW */}
             {unread > 0 ? (
               <View style={{ backgroundColor: P.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: "#FFFFFF" }}>{t("wo.new")}</Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: tk.bg }}>{t("wo.new")}</Text>
               </View>
             ) : (
               !!ago && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>{ago}</Text>
@@ -145,7 +164,7 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
         </View>
         {unread > 0 && (
           <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>{unread > 9 ? "9+" : String(unread)}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: tk.bg }}>{unread > 9 ? "9+" : String(unread)}</Text>
           </View>
         )}
       </View>
@@ -157,10 +176,12 @@ export function WrenDeskRow({ inList = false, onUnread }: { inList?: boolean; on
    unopened, one line under the plate, hers in voice, that goes to her
    desk. Not a once-line: it stays until the post is read, and it is the
    strongest in-app reminder the product allows itself — no modal, no
-   banner over the letter. */
+   banner over the letter. A strip on the page: sf, outlined in ln. */
 export function DeskStrip() {
   const router = useRouter();
   useLang();
+  const P = useP();
+  const { t: tk } = useTheme();
   const [unread, setUnread] = useState(0);
   const load = useCallback(() => {
     let alive = true;
@@ -181,7 +202,7 @@ export function DeskStrip() {
   useFocusEffect(load);
   if (!unread) return null;
   return (
-    <Pressable onPress={() => router.push(`/room/${WREN_ROOM}`)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 18, marginTop: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: P.ink, opacity: pressed ? 0.7 : 1 })}>
+    <Pressable onPress={() => router.push(`/room/${WREN_ROOM}`)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 18, marginTop: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, opacity: pressed ? 0.7 : 1 })}>
       <WrenBird size={22} mood="delight" skin="sticker" accessory="none" />
       <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.letter, fontSize: 13.5, color: P.ink }}>
         {unread === 1 ? t("wo.strip.one") : t("wo.strip.many", { n: unread })}

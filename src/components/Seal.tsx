@@ -3,7 +3,10 @@ import { C } from "../theme/tokens";
 import { WREN_PATHS } from "./Wren";
 
 /* Wren's seal — a blind emboss, not wax. One object, three places: the
-   envelope, the press, the claim. Ported from kindredly-v20.jsx (1200-1218). */
+   envelope, the press, the claim. Ported from kindredly-v20.jsx (1200-1218).
+   An object with its own colours, like the wax disc and the postmark: it
+   reads the static C palette on purpose and looks the same in every theme,
+   on a themed page and in the guide reels' fixed pictures alike. */
 
 export function Seal({ size = 76 }: { size?: number }) {
   const r = size / 2;

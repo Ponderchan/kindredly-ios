@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Platform, View } from "react-native";
 import { Button, ContextMenu, Host, RNHostView } from "@expo/ui/swift-ui";
 import { contentShape, shapes } from "@expo/ui/swift-ui/modifiers";
+import { useTheme } from "../lib/theme";
 
 /* LONG-PRESS A MESSAGE (owner, 2026-10-10). The bubble is the trigger of
    iOS's own context menu — the page blurs, the bubble lifts, the menu sits
@@ -15,7 +16,10 @@ import { contentShape, shapes } from "@expo/ui/swift-ui/modifiers";
    lifted preview keeps the bubble's own shape (radius 0 for a letter's
    square block), and the same actions are offered to VoiceOver as
    accessibility actions on the bubble, since a long-press menu is not
-   something every reader can reach. */
+   something every reader can reach.
+
+   The menu is iOS's own and draws light or dark; the host is told which by
+   the theme, so a Midnight page gets the dark menu. */
 
 export type MessageAction = {
   key: string;
@@ -34,10 +38,11 @@ export function a11yActions(actions: MessageAction[]) {
 }
 
 export function MessageMenu({ actions, radius = 18, children }: { actions: MessageAction[]; radius?: number; children: ReactElement }) {
+  const { dark } = useTheme(); // above the early return, so it runs every render
   if (Platform.OS !== "ios" || !actions.length) return children;
   const shape = radius > 0 ? shapes.roundedRectangle({ cornerRadius: radius }) : shapes.rectangle();
   return (
-    <Host matchContents ignoreSafeArea="all">
+    <Host matchContents ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
       <ContextMenu modifiers={[contentShape(shape, "contextMenuPreview")]}>
         <ContextMenu.Items>
           {actions.map((a) => (
