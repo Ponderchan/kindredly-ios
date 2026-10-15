@@ -102,6 +102,15 @@
       "it": "./locales/it.json",
       "ja": "./locales/ja.json",
       "ko": "./locales/ko.json"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/29aafd7c-6f2c-4965-99f1-cb6d2e0ee638",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
