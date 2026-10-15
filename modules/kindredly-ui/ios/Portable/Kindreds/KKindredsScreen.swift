@@ -20,7 +20,10 @@ import SwiftUI
 
  LAYOUT. One ScrollView: a LazyVStack whose first child is the title row (46 tall, 4 above, 12
  below: H's gap) and whose one Section has the band as its pinned header and the items as its
- rows. The Host ignores every safe area, so the status-bar strip above the scroll view is drawn
+ rows. The title and its status share a line only while both fit at full size; with large text
+ or a long language the status goes under the title and may wrap, rather than shrinking to an
+ ellipsis (it is the only way into the your-turn filter). An empty status (nothing read yet) draws
+ nothing. The Host ignores every safe area, so the status-bar strip above the scroll view is drawn
  here from `topInset`, and the band pins right under it, as H's scroll container starts at 54.
  The last row clears the floating tab bar (`bottomInset`) and a 176pt KBottomFade lies over the
  bottom of the screen. No text field: the keyboard's safe area is ignored too.
@@ -34,7 +37,10 @@ import SwiftUI
  glide after one) carries the list more than 24pt down while open; the list then goes back to
  the top once the finger lifts, and again when it settles. Opening from the chip in the middle
  of the list scrolls to the top first, and a programmatic scroll never folds it. It starts
- folded on every visit (TS's reset command on blur, and here on disappear).
+ folded on every visit: the screen folds it on disappear, once it has left the window (after a
+ push's slide, or as the tab is detached), never at the start of a push, when the rows would
+ jump up while the screen is still sliding out. TS's reset command, if one comes while the
+ screen is showing, waits for that.
 
  WATERMARK. Folded, the orbit's middle strip shows behind the chips at 50%, fading out over the
  first 80pt of scroll; it keeps drifting (owner 10-11 wanted motion when folded) until it has
@@ -203,6 +209,8 @@ public final class KKindredsDriver: ObservableObject {
   private var phase: ScrollPhase = .idle
   /// the band folded under a drag: back to the top once the finger lifts, and again on settling
   private var settlePending = false
+  /// the screen is in the window (between its onAppear and onDisappear)
+  private var onScreen = false
 
   public init() {}
 
@@ -214,12 +222,34 @@ public final class KKindredsDriver: ObservableObject {
   }
 
   /// Folds the band at once, without moving or reporting anything: a new visit starts folded.
+  /// The screen calls it on disappear; from outside, use requestReset().
   public func reset() {
     settlePending = false
     guard bandOpen else { return }
     var instant = Transaction()
     instant.disablesAnimations = true
     withTransaction(instant) { bandOpen = false }
+  }
+
+  /// A reset asked for from outside (TS's reset command). While the screen is showing it waits:
+  /// the screen folds the band itself on disappear, and folding now (a blur arrives at the start
+  /// of a push) would jump every row up by the band's height while the screen slides out. Off
+  /// screen, it folds at once.
+  public func requestReset() {
+    guard !onScreen else { return }
+    reset()
+  }
+
+  /// The screen came into the window.
+  func screenAppeared() {
+    onScreen = true
+  }
+
+  /// The screen left the window (a push has finished sliding it out, or the tab was detached):
+  /// the next visit starts folded.
+  func screenDisappeared() {
+    onScreen = false
+    reset()
   }
 
   /// Scrolls to the top, or to where the band pins (folding it first).
@@ -366,13 +396,14 @@ public struct KKindredsScreen: View {
     }
     .onAppear {
       driver.reduceMotion = reduceMotion
+      driver.screenAppeared()
       chrome.onPullRelease = { [driver] depth in driver.pullReleased(depth) }
     }
     .onChange(of: reduceMotion) { _, reduce in
       driver.reduceMotion = reduce
     }
     .onDisappear {
-      driver.reset()
+      driver.screenDisappeared()
     }
   }
 
@@ -393,16 +424,24 @@ public struct KKindredsScreen: View {
 
   // ── the title row: KINDREDS and its one fact; it scrolls away ──────────
   private var titleRow: some View {
-    HStack(alignment: .center, spacing: 12) {
-      Text(content.title)
-        .kText(.pageTitle)
-        .foregroundStyle(theme.ink)
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        .accessibilityAddTraits(.isHeader)
-        .layoutPriority(1)
-      Spacer(minLength: 0)
-      status
+    ViewThatFits(in: .horizontal) {
+      // one line while the title and the status both fit at full size
+      HStack(alignment: .center, spacing: 0) {
+        titleText
+          .lineLimit(1)
+        Spacer(minLength: 12)
+        status(stacked: false)
+      }
+      // otherwise (AX sizes, a long language) the status under the title, wrapping if it must:
+      // nothing shrinks to an ellipsis
+      VStack(alignment: .leading, spacing: 4) {
+        titleText
+          .lineLimit(2)
+          .minimumScaleFactor(0.7)
+          .fixedSize(horizontal: false, vertical: true)
+        status(stacked: true)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
     .frame(minHeight: 46)
     .padding(.top, 4)
@@ -413,23 +452,43 @@ public struct KKindredsScreen: View {
     }
   }
 
+  private var titleText: some View {
+    Text(content.title)
+      .kText(.pageTitle)
+      .foregroundStyle(theme.ink)
+      .accessibilityAddTraits(.isHeader)
+  }
+
+  /// The status's tap target round its one mono line (≈15pt): 15 above and below, 8 at the
+  /// sides, all taken back outside the button so nothing moves (44pt, as TabHeader's hitSlop 8
+  /// and the row height gave the React Native one).
+  static let statusSlop = CGSize(width: 8, height: 15)
+
   @ViewBuilder
-  private var status: some View {
-    let label = Text(content.status)
-      .kText(Self.status)
-      .foregroundStyle(content.statusActive ? theme.ind : theme.mute)
-      .lineLimit(1)
-      .minimumScaleFactor(0.6)
-    if content.statusActive {
-      SwiftUI.Button {
-        actions.onTitle()
-      } label: {
-        label.contentShape(Rectangle())
+  private func status(stacked: Bool) -> some View {
+    if !content.status.isEmpty {
+      let label = Text(content.status)
+        .kText(Self.status)
+        .foregroundStyle(content.statusActive ? theme.ind : theme.mute)
+        .lineLimit(stacked ? 2 : 1)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+      if content.statusActive {
+        SwiftUI.Button {
+          actions.onTitle()
+        } label: {
+          label
+            .padding(.vertical, Self.statusSlop.height)
+            .padding(.horizontal, Self.statusSlop.width)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .padding(.vertical, -Self.statusSlop.height)
+        .padding(.horizontal, -Self.statusSlop.width)
+        .accessibilityLabel(content.statusA11y)
+      } else {
+        label.accessibilityLabel(content.statusA11y)
       }
-      .buttonStyle(KFadePressStyle())
-      .accessibilityLabel(content.statusA11y)
-    } else {
-      label.accessibilityLabel(content.statusA11y)
     }
   }
 
@@ -468,15 +527,20 @@ public struct KKindredsScreen: View {
         SwiftUI.Button {
           actions.onClear()
         } label: {
+          // a 44pt target round the 13pt word: 14 above and below, 8 at the sides; everything but
+          // the 6 the line always had is taken back outside, so the Showing line keeps its height
           Text(clear)
             .kText(Self.smallStrong)
             .foregroundStyle(theme.ind)
             .lineLimit(1)
             .fixedSize()
-            .padding(.vertical, 6)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(KFadePressStyle())
+        .padding(.vertical, -8)
+        .padding(.horizontal, -8)
       }
       .padding(.horizontal, KPersonRow.inset)
       .padding(.bottom, 2)

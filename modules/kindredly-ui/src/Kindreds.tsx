@@ -21,9 +21,11 @@ import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHan
    bottom fade). Pass chips, orbit and items memoised, with a rev from useRev: Swift converts
    them once per rev, and every prop change re-sends the whole props map (KCommandBus.swift). */
 
-/** A face as Swift's KFace takes it (lib/faces faceRecord, plus the mosaic's ink). */
+/** A face as Swift's KFace takes it (lib/faces faceRecord, plus the mosaic's ink). "bird" is
+    Wren's official bird: a transparent snapshot (uri/key, "" while it is on its way) set at 62% on
+    a soft2 disc, as OfficialBird draws it, rather than filling the circle like a portrait. */
 export type KKindredsFace = {
-  kind: "image" | "mosaic" | "veil" | "placeholder";
+  kind: "image" | "mosaic" | "veil" | "placeholder" | "bird";
   uri: string;
   key: string;
   overscan: number;
@@ -42,7 +44,7 @@ export type KKindredsRow = {
   /** the official mark (Wren) */
   faceBadge: boolean;
   name: string;
-  /** the name in sub (a closed account) */
+  /** the name in sub (a quiet room, a closed account) */
   nameDim: boolean;
   /** "2/5"; "" */
   progress: string;
@@ -117,8 +119,10 @@ export type KKindredsStrings = {
 /** What the band reports: opened or folded, and by what. */
 export type KKindredsBandVia = "chip" | "pull" | "scroll" | "title";
 
-/** The Kindreds view's commands: reset (the band folds at once, sent on blur) and scrollTo top
-    or list (where the band pins: the title's tap). */
+/** The Kindreds view's commands: scrollTo top or list (where the band pins: the title's tap), and
+    reset, which nothing needs to send: Swift folds the band itself once the screen has left the
+    window (after a push's slide, or as the tab is detached). Sent while the screen is showing,
+    reset waits for that; sent while it is off screen, it folds at once. */
 export type KKindredsCommands = Omit<KStandardCommands, "scrollTo"> & {
   scrollTo: { key: "top" | "list"; animated?: boolean };
 };

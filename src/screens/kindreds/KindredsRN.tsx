@@ -3,8 +3,9 @@ import { Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeS
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "expo-router";
 import Svg, { Path, Rect } from "react-native-svg";
-import { MONO, PF } from "../../theme/post";
-import { useLetterFamily, useTheme } from "../../lib/theme";
+import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
+import { MONO, PF, letterFamily } from "../../theme/post";
+import { useTheme } from "../../lib/theme";
 import { BRAND, type ThemeTokens } from "../../theme/themes";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { TabHeader } from "../../components/TabHeader";
@@ -270,14 +271,21 @@ const Item = memo(function Item({ item, act, tk }: { item: ItemVM; act: Kindreds
   }
 });
 
-/* her once-line: the reader's own Wren and the line in the serif's italic */
+/* her once-line: the reader's own Wren and the line in Newsreader's italic,
+   whatever the reader's Letter font (KType's rule and owner question 1's
+   default: only letters being read follow it), so it reads the same as
+   Swift's KWrenLine (KTextStyle.letter). It fades in over 420ms and out over
+   200ms as WrenSaysOnce does (none under Reduce Motion, reanimated's System
+   default said out loud). */
+const WREN_LINE_FACE = letterFamily("newsreader", true);
 function WrenLine({ text, onTap, tk }: { text: string; onTap: () => void; tk: Tk }) {
-  const italic = useLetterFamily(true);
   return (
-    <Pressable onPress={onTap} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 22 }}>
-      <WrenBird size={22} mood="content" />
-      <Text style={[{ flex: 1, fontSize: 13.5, lineHeight: 20, color: tk.sub }, italic]}>{text}</Text>
-    </Pressable>
+    <Animated.View entering={FadeIn.duration(420).reduceMotion(ReduceMotion.System)} exiting={FadeOut.duration(200).reduceMotion(ReduceMotion.System)}>
+      <Pressable onPress={onTap} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 22 }}>
+        <WrenBird size={22} mood="content" />
+        <Text style={[{ flex: 1, fontSize: 13.5, lineHeight: 20, color: tk.sub }, WREN_LINE_FACE]}>{text}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 

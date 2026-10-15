@@ -13,7 +13,7 @@ import SwiftUI
 
  - The row sits 22 in from the edges (H:63-65), on the page colour, so the copy iOS lifts into
    its long-press menu isn't see-through (.kMenu preview .rect).
- - name: dim rows (a closed account) draw it in sub.
+ - name: dim rows (a quiet room, a closed account) draw it in sub.
  - progress: a pen pal's "2/5", letters each way (the five-each rule); "" for none.
  - time: always mute (the owner keeps blue for the kindred number and YOUR TURN); "" hides it.
  - tags lead the preview, each in its own tone (ind YOUR TURN, mute THEIR TURN, brass SWAP
@@ -25,9 +25,15 @@ import SwiftUI
  - Press: a row with a menu doesn't fade (iOS's own press and lift show, owner 10-11); a row
    without one fades to .6. A long press never also opens the row.
  - VoiceOver: one button with the label TS built, and the menu's items as its actions.
+ - Accessibility text sizes: the name may take two lines and the progress and time go to their
+   own line under it, so neither squeezes the name to "N…" (spec sim check: rows readable at
+   AX3-AX5). The standard sizes keep the one line drawn above.
 
  Faces are drawn by KFace (52, round): a portrait or snapshot, a mosaic inked in the theme's ink
- (or ind), the veil, or the soft2 placeholder while a picture is on its way.
+ (or ind), the veil, or the soft2 placeholder while a picture is on its way. Wren's official bird
+ is the one face drawn here instead (.bird): her transparent snapshot at 62% on a soft2 disc, as
+ OfficialBird (WrenDesk.tsx) draws her in the React Native list and H:65 shows, never stretched
+ over the whole circle as a portrait would be.
  */
 
 /// A tag ahead of the preview.
@@ -71,14 +77,48 @@ public enum KPersonFace: Equatable, Sendable {
   /// a deleted account
   case veil
   case placeholder
+  /// Wren's official bird: a transparent snapshot set at 62% on a soft2 disc (nil: the disc alone
+  /// while it is on its way). KPersonRow draws it (KPersonBirdFace); KFace has no such source.
+  case bird(KImageRef?)
 
   func source(_ theme: KTheme) -> KFaceSource {
     switch self {
     case let .image(ref, overscan): return .image(ref, overscan: overscan)
     case let .mosaic(mask, turn): return .mosaic(mask: mask, tint: turn ? theme.ind : theme.ink)
     case .veil: return .veil
-    case .placeholder: return .placeholder
+    case .placeholder, .bird: return .placeholder
     }
+  }
+}
+
+/// Wren's face in a list (OfficialBird, WrenDesk.tsx): a soft2 disc with her bird at 62% across
+/// it, the official mark at the bottom right as KFace sets it, the whole face at .45 when dim.
+struct KPersonBirdFace: View {
+  /// OfficialBird: WrenBird size = round(size * 0.62)
+  static let birdRatio: CGFloat = 0.62
+
+  let theme: KTheme
+  let bird: KImageRef?
+  let size: CGFloat
+  let dim: Bool
+  let badge: Bool
+
+  var body: some View {
+    let side = (size * Self.birdRatio).rounded()
+    ZStack {
+      Circle().fill(theme.soft2)
+      KImage(bird, size: CGSize(width: side, height: side), contentMode: .fit, placeholder: .clear)
+    }
+    .frame(width: size, height: size)
+    .compositingGroup()
+    .opacity(dim ? 0.45 : 1)
+    .overlay(alignment: .bottomTrailing) {
+      if badge {
+        KOfficialBadge(theme: theme, size: KFace.badgeSize(for: size), ground: theme.bg)
+          .offset(x: 1, y: 1)
+      }
+    }
+    .accessibilityHidden(true)
   }
 }
 
@@ -163,6 +203,8 @@ public struct KPersonRow: View, Equatable {
   /// the tags' size (12 at the default text size), scaled like the preview around them
   @ScaledMetric(relativeTo: .caption) private var tagSize: CGFloat = 12
   @ScaledMetric(relativeTo: .caption) private var badgeText: CGFloat = 12
+  /// accessibility sizes stack the name over its progress and time
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   /// - Parameters:
   ///   - onTap: the row was tapped (never after a long press)
@@ -182,7 +224,7 @@ public struct KPersonRow: View, Equatable {
   public var body: some View {
     SwiftUI.Button(action: onTap) {
       HStack(alignment: .center, spacing: Self.gap) {
-        KFace(theme: theme, source: row.face.source(theme), size: Self.face, dim: row.dim, badge: row.faceBadge)
+        face
         words
       }
       .padding(.horizontal, Self.inset)
@@ -196,30 +238,76 @@ public struct KPersonRow: View, Equatable {
     .kMenu(row.actions, preview: .rect, onAction: onAction)
   }
 
-  private var words: some View {
-    VStack(alignment: .leading, spacing: 3) {
+  @ViewBuilder
+  private var face: some View {
+    if case let .bird(ref) = row.face {
+      KPersonBirdFace(theme: theme, bird: ref, size: Self.face, dim: row.dim, badge: row.faceBadge)
+    } else {
+      KFace(theme: theme, source: row.face.source(theme), size: Self.face, dim: row.dim, badge: row.faceBadge)
+    }
+  }
+
+  private var nameText: some View {
+    Text(row.name)
+      .kText(Self.name)
+      .foregroundStyle(row.nameDim ? theme.sub : theme.ink)
+  }
+
+  private var progressText: some View {
+    Text(row.progress)
+      .kText(Self.progress)
+      .foregroundStyle(theme.sub)
+  }
+
+  private var timeText: some View {
+    Text(row.time)
+      .kText(Self.time)
+      .foregroundStyle(theme.mute)
+  }
+
+  /// The name, a pen pal's n/5 and the time: one line at the standard sizes; at accessibility
+  /// sizes the name gets the whole width (two lines) and the other two a line of their own.
+  @ViewBuilder
+  private var header: some View {
+    if typeSize.isAccessibilitySize {
+      VStack(alignment: .leading, spacing: 2) {
+        nameText
+          .lineLimit(2)
+          .fixedSize(horizontal: false, vertical: true)
+        if !row.progress.isEmpty || !row.time.isEmpty {
+          HStack(alignment: .firstTextBaseline, spacing: 8) {
+            if !row.progress.isEmpty {
+              progressText.lineLimit(1).fixedSize()
+            }
+            if !row.time.isEmpty {
+              timeText.lineLimit(1)
+            }
+          }
+        }
+      }
+    } else {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Text(row.name)
-          .kText(Self.name)
-          .foregroundStyle(row.nameDim ? theme.sub : theme.ink)
+        nameText
           .lineLimit(1)
           .layoutPriority(1)
         if !row.progress.isEmpty {
-          Text(row.progress)
-            .kText(Self.progress)
-            .foregroundStyle(theme.sub)
+          progressText
             .lineLimit(1)
             .fixedSize()
         }
         Spacer(minLength: 0)
         if !row.time.isEmpty {
-          Text(row.time)
-            .kText(Self.time)
-            .foregroundStyle(theme.mute)
+          timeText
             .lineLimit(1)
             .fixedSize()
         }
       }
+    }
+  }
+
+  private var words: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      header
       HStack(alignment: .top, spacing: 8) {
         previewText
           .kText(Self.preview)

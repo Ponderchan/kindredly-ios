@@ -29,22 +29,29 @@ import type { KindredsModel } from "./useKindredsModel";
    React Native fallback draws) into the Swift records:
    - faces: portraits as expo-asset files, legacy faces and glyphs as
      snapshots (useFaceSources), pen pals as their FACE v1 mask, the veil;
-     Wren's row the official bird (useBirdImageRef "official"), her
-     once-line the reader's own Wren ("content");
+     Wren's row the official bird (useBirdImageRef "official") as a "bird"
+     face — Swift sets it at 62% on a soft2 disc, as OfficialBird does in
+     the fallback, never stretched over the whole circle — and her once-line
+     the reader's own Wren ("content");
    - the arrays kept by content, so a refocus that reads the same list
      again doesn't re-send it (every prop change re-sends the whole props
      map), with one rev for all three;
    - the insets: the status bar Swift draws its strip for, the floating
      bar's room the last row clears.
-   And it carries what isn't data: the band folds whenever the tab loses
-   focus (the reset command — Swift owns the band), the title's tap scrolls
-   to where the band pins, re-pressing the tab goes to the top, and the
-   orbit drifts only while the tab is focused (active). */
+   And it carries what isn't data: the title's tap scrolls to where the
+   band pins, re-pressing the tab goes to the top, and the orbit drifts
+   only while the tab is focused (active). Every visit starts with the band
+   folded, but that is Swift's own (onDisappear, once the screen is out of
+   the window: after a push's slide, or as the tab is detached). TS sends
+   no reset on blur — blur comes at the START of a push, and a band folded
+   then jumped every row up while the screen was still sliding out. */
 
 const PLACEHOLDER: KKindredsFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, tint: "ink" };
 
-function imageFace(ref: ImageRefRecord | null): KKindredsFace {
-  return ref ? { kind: "image", uri: ref.uri, key: ref.key, overscan: 0, mask: 0, tint: "ink" } : PLACEHOLDER;
+/** Wren's official bird: a transparent snapshot Swift draws at 62% on a soft2 disc (KPersonRow's
+    bird face). Until the snapshot lands, the disc alone. */
+function birdFace(ref: ImageRefRecord | null): KKindredsFace {
+  return { kind: "bird", uri: ref?.uri ?? "", key: ref?.key ?? "", overscan: 0, mask: 0, tint: "ink" };
 }
 
 function sourceFace(s: FaceSource | undefined): KKindredsFace {
@@ -71,7 +78,7 @@ export function nativeItems(items: readonly ItemVM[], faces: Readonly<Record<str
           type: it.type,
           row: {
             id: r.id,
-            face: r.kind === "wren" ? imageFace(official) : sourceFace(faces[r.id]),
+            face: r.kind === "wren" ? birdFace(official) : sourceFace(faces[r.id]),
             faceBadge: r.faceBadge,
             name: r.name,
             nameDim: r.nameDim,
@@ -126,13 +133,6 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
   const { view, act } = model;
 
   type Nav = { addListener?: (type: string, cb: () => void) => () => void; isFocused?: () => boolean };
-  // every visit starts folded: the band folds when the tab loses focus (on blur only — not as
-  // the view goes away, when the command would find no view)
-  useEffect(() => {
-    const nav = navigation as unknown as Nav;
-    if (!nav.addListener) return;
-    return nav.addListener("blur", () => commands.send("reset", {}));
-  }, [navigation, commands]);
 
   // the title's tap: to where the band pins (the model has already set ALL + your turn)
   const served = useRef(model.scroll.serial);

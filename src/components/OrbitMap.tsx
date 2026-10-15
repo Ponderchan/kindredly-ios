@@ -144,7 +144,7 @@ export function OrbitMap({ items, empty, flat, line = true }: { items: OrbitVM[]
 
       {empty && (
         <Label x={CX} y={CY + 13}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 2, color: tk.mute }}>{t("ui.you")}</Text>
+          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 2, color: tk.mute }}>{t("ui.you")}</Text>
         </Label>
       )}
     </View>

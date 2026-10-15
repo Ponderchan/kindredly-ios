@@ -14,7 +14,8 @@ import ExpoUI
  whole screen, never one per row. It has no text field.
 
  Props, beyond KScreenProps (insets: top = the status bar the screen draws its strip for,
- tabBarRoom = the floating bar the last row clears, with 72 more for the fade):
+ tabBarRoom = the floating bar the last row clears, with 72 more, and never less than the fade's
+ height - 6, KBottomFade.contentMargin(), since the fade is always drawn):
  - strings: { title, status, statusA11y, legendCloser, legendTurn, orbitChipLabel }
  - statusActive: letters are waiting, so the status is ind and a button
  - active: the tab is focused (the orbit drifts only then)
@@ -25,8 +26,11 @@ import ExpoUI
    `fold` are always sent (empty when unused, a record field can't be null).
  chips, orbit and items are converted once per rev (useRev in TS).
 
- Commands (KCommandBus): reset {} (the band folds, at once: sent on blur), scrollTo { key: "top" |
- "list", animated }.
+ Commands (KCommandBus): scrollTo { key: "top" | "list", animated }, and reset {}, which TS no
+ longer sends: the screen folds the band itself on disappear, once it has left the window (after
+ a push's slide, or as the tab is detached). A reset that does come while the screen is showing
+ waits for that disappear (folding then would jump every row up mid-slide); off screen, it folds
+ at once.
 
  Events, with what nativeEvent carries:
  - onKindredsRowPress { id }          a row
@@ -49,7 +53,7 @@ import ExpoUI
 
 /// A face as TS sends it (faces.ts faceRecord, plus the mosaic's ink).
 struct KKindredsFaceRecord: Record {
-  /// image | mosaic | veil | placeholder
+  /// image | mosaic | veil | placeholder | bird (Wren's official bird, set on a soft2 disc)
   @Field var kind: String = "placeholder"
   @Field var uri: String = ""
   @Field var key: String = ""
@@ -63,6 +67,7 @@ struct KKindredsFaceRecord: Record {
     case "image": return .image(KImageRef(uri: uri, key: key), overscan: CGFloat(overscan))
     case "mosaic": return .mosaic(mask: mask, turn: tint == "ind")
     case "veil": return .veil
+    case "bird": return .bird(KImageRef(uri: uri, key: key))
     default: return .placeholder
     }
   }
@@ -258,7 +263,8 @@ final class KKindredsViewProps: KScreenProps {
   func handle(_ name: String, _ args: [String: Any]) {
     switch name {
     case KCommandName.reset:
-      driver.reset()
+      // deferred while the screen is showing (applied on disappear), at once off screen
+      driver.requestReset()
     case KCommandName.scrollTo:
       let animated = args.kBool("animated") ?? true
       switch args.kString("key") {
@@ -293,9 +299,12 @@ struct KKindredsView: ExpoSwiftUI.View {
       theme: props.kTheme,
       content: content,
       topInset: insets.top,
-      // the floating bar's room and the fade's solid part (spec: useTabBarSpace() + 72, H:28's
-      // 170 on a Face ID phone); on a screen with no tab bar, the home indicator and some air
-      bottomInset: max(insets.tabBarRoom + 72, insets.bottom + 24),
+      // the floating bar's room plus 72 (spec: useTabBarSpace() + 72), never less than the fade
+      // that is always drawn over the bottom asks (KBottomFade.contentMargin(): 176 - 6, H:28's
+      // 170), so the last row (a closed account at the foot) always scrolls clear of its solid
+      // part: on a home-button phone in the tab, and on the dev page, which has no tab bar. The
+      // React Native fallback ends its list at the same place (max(tabRoom + 72, 176 - 6)).
+      bottomInset: max(insets.tabBarRoom + 72, KBottomFade.contentMargin()),
       driver: props.driver,
       actions: props.actions
     )

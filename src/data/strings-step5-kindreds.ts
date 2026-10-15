@@ -11,7 +11,8 @@ import { strings } from "../lib/i18n";
    kindreds.title / toAnswer / toAnswerOne / allAnswered / said, kd.tab.*,
    state.*, kd.closesIn / closesDay / expiredRow / accountClosed /
    groupExpired / aKindred, mm.you, kd.menu.*, rp.*, kd.showing / clear,
-   kd.noKindredsYet / penPalsEmpty / toDesk, kd.legendCloser, wo.tag,
+   kd.noKindredsYet / penPalsEmpty / toDesk, kd.legendCloser, state.yourTurn
+   (the orbit legend's second item, as a sentence: "Your turn"), wo.tag,
    wo.row.sub, nb.turnOn / close, mk.ofFive, pw.stub.no, ld.unsigned, and
    auth.err.offline ("Not connected.") for the line shown when the list
    couldn't be read and nothing was kept.
@@ -26,9 +27,6 @@ strings(
     // VoiceOver's name for the icon-only chip that opens and folds the orbit
     // (the system adds on / off); replaces the bare OPEN / FOLD as a label
     "kd.orbit": "Orbit",
-    // the orbit legend's second item, beside a small face inked in the
-    // your-turn colour (the faces whose turn is yours are drawn that way)
-    "kd.legendTurn10": "Your turn",
   },
   /* es, pt, id: step 6 */
   {},

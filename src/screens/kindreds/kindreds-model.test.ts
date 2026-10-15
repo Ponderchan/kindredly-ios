@@ -146,7 +146,7 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   const cl = th({ id: "cl", revealed: true, otherName: "C", lastAt: now - 25 * DAY });
   const unsettled = M.buildKindredsView(base([q, cl], { settled: false }), fmt);
   ok("unsettled: no Expired group", !ids(unsettled.items).includes("group-expired") && ids(unsettled.items).includes("q"));
-  ok("unsettled: the quiet room is an ordinary row", rowOf(unsettled, "q")!.trailingLink === "" && !rowOf(unsettled, "q")!.dim);
+  ok("unsettled: the quiet room is an ordinary row", rowOf(unsettled, "q")!.trailingLink === "" && !rowOf(unsettled, "q")!.dim && !rowOf(unsettled, "q")!.nameDim);
   ok("unsettled: no CLOSES IN tag", rowOf(unsettled, "cl")!.tags.length === 0);
   ok("unsettled: no Plush count", unsettled.named === 0);
   const settled = M.buildKindredsView(base([q, cl]), fmt);
@@ -165,7 +165,7 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   const ledger = { q: 2 };
   const plain = M.buildKindredsView(base([q], { ledger }), fmt);
   const r = rowOf(plain, "q")!;
-  ok("quiet row: Rekindle, no badge, expired words, no time, dim", r.trailingLink === "kd.menu.rekindle ›" && r.badge === "" && r.preview.startsWith("kd.expiredRow(n=") && r.time === "" && r.dim);
+  ok("quiet row: Rekindle, no badge, expired words, no time, dim, name muted", r.trailingLink === "kd.menu.rekindle ›" && r.badge === "" && r.preview.startsWith("kd.expiredRow(n=") && r.time === "" && r.dim && r.nameDim);
   ok("quiet row's menu: rekindle, read, page, report, block (demo rows aside)", r.actions.map((a) => a.key).join() === "rekindle,read,page,report,block");
   const filtered = M.buildKindredsView(base([q], { ledger, show: "your" }), fmt);
   const f = rowOf(filtered, "q")!;
@@ -270,13 +270,32 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("ready with nothing: the empty state", M.buildKindredsView(base([], { loadState: "ready" }), fmt).empty);
   ok("loading: not the empty state yet", !M.buildKindredsView(base([], { loadState: "loading" }), fmt).empty);
   ok("a closed account alone still isn't empty", !M.buildKindredsView(base([th({ id: "g", gone: true, other: null as unknown as string })]), fmt).empty);
+
+  // nothing read (failed, loading): claim nothing the screen can't back
+  for (const state of ["failed", "loading"] as const) {
+    for (const tab of ["all", "kindreds", "penpals"] as const) {
+      const v = M.buildKindredsView(base([], { loadState: state, tab }), fmt);
+      ok(`${state} on ${tab}: no title status (not ALL ANSWERED), not a button`, v.status === "" && v.statusA11y === "" && !v.statusActive);
+      ok(`${state} on ${tab}: no chip counts (not "Pen pals 0")`, v.chips.every((c) => c.count === "") && v.chips[2].a11yLabel === "Kd.tab.penpals");
+      ok(`${state} on ${tab}: no empty line or hint`, !v.items.some((i) => i.type === "emptyLine" || i.type === "hintKindreds" || i.type === "hintPenpals"));
+      ok(`${state} on ${tab}: classify agrees`, M.classify(base([], { loadState: state, tab })).emptyLine === null);
+    }
+    const filtered = M.buildKindredsView(base([], { loadState: state, show: "your" }), fmt);
+    ok(`${state} under the filter: no ALL ANSWERED line`, !filtered.items.some((i) => i.type === "emptyLine"));
+  }
+  const failedPen = M.buildKindredsView(base([], { loadState: "failed", tab: "penpals" }), fmt);
+  ok("failed on PEN PALS: the offline line is all it says", failedPen.items.filter((i) => i.type !== "wrenLine" && i.type !== "notice").map((i) => i.id).join() === "offline");
+  // a real answer still says everything
+  const readyEmpty = M.buildKindredsView(base([th({ id: "p", lastSenderMe: true })], { loadState: "ready", tab: "kindreds" }), fmt);
+  ok("ready: the status, the counts and the hint are back", readyEmpty.status === "kindreds.allAnswered" && readyEmpty.chips[1].count === "0" && readyEmpty.chips[2].count === "1" && readyEmpty.items.some((i) => i.type === "hintKindreds"));
+  ok("none (a guest): the counts and status are real answers too", M.buildKindredsView(base([], { loadState: "none", tab: "penpals" }), fmt).chips[2].count === "0" && M.classify(base([], { loadState: "none", tab: "penpals" })).emptyLine === "hintPenpals");
 }
 
 /* ── the band's words, her line, the notice ── */
 {
   const v = M.buildKindredsView(base([th({ id: "p" })], { notice: true, wrenLine: "Wren says hi" }), fmt);
   ok("her once-line comes first, then the notice", v.items[0].type === "wrenLine" && v.items[1].type === "notice");
-  ok("the legend: closer, and the new your-turn words; the chip's name", v.legendCloser === "kd.legendCloser" && v.legendTurn === "kd.legendTurn10" && v.orbitChipLabel === "kd.orbit");
+  ok("the legend: closer, and state.yourTurn as a sentence (in nine languages already); the chip's name", v.legendCloser === "kd.legendCloser" && v.legendTurn === "State.yourturn" && v.orbitChipLabel === "kd.orbit");
   ok("title", v.title === "kindreds.title");
 }
 

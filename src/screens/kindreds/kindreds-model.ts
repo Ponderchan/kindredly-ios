@@ -39,7 +39,10 @@ import { EACH_WAY, developFor, hashStr, mosaicMask } from "../../lib/mosaic";
    LOAD STATES. loading (nothing yet) · ready (a list, kept or fresh) ·
    none (a real answer with nothing in it: no session, a guest — the empty
    state) · failed (no answer and nothing kept — an offline line under
-   Wren, never "Nobody knows your name yet"). */
+   Wren, never "Nobody knows your name yet"). Until there is an answer
+   (loading, failed) the screen claims nothing it can't back: no title
+   status (not ALL ANSWERED), no chip counts (not "Pen pals 0"), no empty
+   line or hint under "Not connected.". */
 
 export type ListTab = "all" | "kindreds" | "penpals";
 /** the your-turn filter (the title's tap) or none; the old "their" filter could never be set */
@@ -199,6 +202,9 @@ export const isClosing = (th: ThreadSummary, premium: boolean, settled: boolean)
 
 const stateKind = (th: ThreadSummary): ThreadStateKind => threadStateKind(th);
 
+/** The list was read (fresh or kept) or is really empty: what it says can be claimed. */
+export const answered = (s: LoadState): boolean => s === "ready" || s === "none";
+
 /** Is this correspondence on you? (lib/waiting onYou's rule, per thread) */
 export function onMeOf(th: ThreadSummary, ledger: Readonly<Record<string, number>>): boolean {
   if (th.gone) return false;
@@ -301,9 +307,11 @@ export function classify(f: Pick<KindredsFacts, "threads" | "ledger" | "premium"
   const rows = fold ? main.filter((t) => !folds(t)) : main;
 
   // the empty line only when the paper really is empty (kindreds.tsx:412, exactly): under a
-  // filter or on PEN PALS whenever the list is; on ALL and KINDREDS not over quiet or closed rows
+  // filter or on PEN PALS whenever the list is; on ALL and KINDREDS not over quiet or closed rows.
+  // And only over a real answer: with nothing read yet (loading, failed) an empty list says
+  // nothing about the reader's pen pals.
   let emptyLine: Classified["emptyLine"] = null;
-  if (main.length === 0 && (f.show || f.tab === "penpals" || (quiet.length === 0 && shut.length === 0))) {
+  if (answered(f.loadState) && main.length === 0 && (f.show || f.tab === "penpals" || (quiet.length === 0 && shut.length === 0))) {
     emptyLine = f.show ? "allAnswered" : f.tab === "kindreds" ? "hintKindreds" : f.tab === "penpals" ? "hintPenpals" : null;
   }
 
@@ -403,7 +411,9 @@ export function rowFor(
     face: faceInputOf(th),
     faceBadge: false,
     name,
-    nameDim: gone,
+    // a quiet room's name is muted as well as a closed account's (inventory 38: "dim rows: face
+    // at .45, name muted, no time")
+    nameDim: quiet || gone,
     progress,
     time,
     tags,
@@ -491,10 +501,13 @@ export function buildKindredsView(f: KindredsFacts, fmt: KindredsFormat): Kindre
   }
   for (const th of c.shut) items.push(row(th, false));
 
-  const status = c.waiting === 1 ? t("kindreds.toAnswerOne") : c.waiting ? t("kindreds.toAnswer", { n: c.waiting }) : t("kindreds.allAnswered");
+  // nothing read yet (loading, failed): no status at all rather than ALL ANSWERED, and no counts
+  // rather than "Pen pals 0" (TabHeader and Swift's title row draw nothing for "")
+  const known = answered(f.loadState);
+  const status = !known ? "" : c.waiting === 1 ? t("kindreds.toAnswerOne") : c.waiting ? t("kindreds.toAnswer", { n: c.waiting }) : t("kindreds.allAnswered");
   const chips: ChipVM[] = LIST_TABS.map((k) => {
     const label = fmt.sentence(t(TAB_LABEL[k]));
-    const count = k === "all" ? "" : String(c.counts[k]);
+    const count = k === "all" || !known ? "" : String(c.counts[k]);
     return {
       key: k,
       label,
@@ -509,10 +522,11 @@ export function buildKindredsView(f: KindredsFacts, fmt: KindredsFormat): Kindre
   return {
     title: t("kindreds.title"),
     status,
-    statusActive: c.waiting > 0,
+    statusActive: known && c.waiting > 0,
     statusA11y: status,
     legendCloser: t("kd.legendCloser"),
-    legendTurn: t("kd.legendTurn10"),
+    // state.yourTurn is in all nine languages already ("TE TOCA", "あなたの番"), said as a sentence
+    legendTurn: fmt.sentence(t("state.yourTurn")),
     orbitChipLabel: t("kd.orbit"),
     chips,
     orbit: orbitItems(c.live, f.ledger),
