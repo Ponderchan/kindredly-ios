@@ -9,11 +9,14 @@ import { HatchStage } from "../components/HatchStage";
 import { hatch } from "../lib/hatch-engine";
 import { hatchlingForm } from "../lib/hatchling-form";
 import { readMood } from "../lib/wren-read";
-import { F2, Y, bevel, key as keyBtn, mono } from "../theme/y2k";
+import { F2 } from "../theme/y2k";
+import { useEggOS } from "../lib/egg-os";
 
 const FED = ["i keep rehearsing conversations i will never have", "the kettle clicks off and for a second the flat is completely silent", "i said fine. i was not fine."];
 
 export default function HatchPreview() {
+  // the console skin in the theme's colours, as onboarding has it; above the dev gate, so it runs every render
+  const { Y, bevel, key: keyBtn, mono } = useEggOS();
   if (!__DEV__) return <Redirect href="/" />;
   const [run, setRun] = useState(0);
   const [shell, setShell] = useState(1);
@@ -52,7 +55,7 @@ export default function HatchPreview() {
               setBorn(false);
               setRun((r) => r + 1);
             }}
-            style={{ width: 26, height: 32, borderRadius: 13, borderWidth: 2, borderColor: shell === i ? Y.blue : Y.ink, backgroundColor: s.base, marginHorizontal: 5 }}
+            style={{ width: 26, height: 32, borderRadius: 13, borderWidth: 2, borderColor: shell === i ? Y.blue : Y.ln, backgroundColor: s.base, marginHorizontal: 5 }}
           />
         ))}
       </View>
@@ -67,7 +70,8 @@ export default function HatchPreview() {
           }}
           style={[keyBtn, bevel(4, 4), { backgroundColor: Y.brass, opacity: born ? 1 : 0.4 }]}
         >
-          <Text style={mono(12.5, "b")}>{born ? "GIVE IT A NAME › (REPLAY)" : "HATCHING…"}</Text>
+          {/* type on the brass key is the fixed dark ink, as on onboarding's */}
+          <Text style={[mono(12.5, "b"), { color: Y.fixedInk }]}>{born ? "GIVE IT A NAME › (REPLAY)" : "HATCHING…"}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

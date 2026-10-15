@@ -2,8 +2,9 @@ import { Pressable, ScrollView, Text, View, type ViewStyle } from "react-native"
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { GrowthStats } from "../data/growth";
 import { t } from "../lib/i18n";
-import { P, PF } from "../theme/post";
-import { Y, bevel, card } from "../theme/y2k";
+import { PF } from "../theme/post";
+import { useP } from "../lib/theme";
+import { useEggOS } from "../lib/egg-os";
 import { ACCESSORY_META, SKINS, skinName, skinUnlocked, useHatchSkin } from "../lib/wren-style";
 import { WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "./WrenBird";
 
@@ -21,7 +22,10 @@ import { WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "./W
    the First Class pieces are the reason to board, and a greyed-out hat
    sells nothing. What a tap on a locked tile does is the caller's call
    (try it on at the hatch; open the fare in her room). Two tones: the
-   hatch's console chrome and her room's postal paper. */
+   hatch's console chrome and her room's postal paper. Both take their
+   colours from the theme in effect — the console skin from useEggOS, the
+   paper from useP — and the tiles' face is the theme's card face. The
+   birds and the brass lock tag keep their own colours. */
 
 export type RackTone = "console" | "post";
 
@@ -54,6 +58,8 @@ export function WardrobeRack({
   onLook: (id: WrenSkin, unlocked: boolean) => void;
   onDress: (id: WrenAccessory, unlocked: boolean) => void;
 }) {
+  const P = useP();
+  const { Y } = useEggOS();
   const dim = tone === "console" ? Y.dim : P.ink40;
   const header = (label: string, count: string) =>
     headers ? (
@@ -137,19 +143,23 @@ function Tile({
   onPress: () => void;
   children: React.ReactNode;
 }) {
+  const P = useP();
+  const { Y, bevel, card, t: tk } = useEggOS();
   const accent = tone === "console" ? Y.blue : P.pen;
+  /* a console tile pressed in takes the accent's palest wash — in Classic
+     the console's own ground, as the #EEEDFF it replaces nearly was */
   const chrome: ViewStyle =
     tone === "console"
       ? {
           ...card,
           ...(on ? {} : bevel(2.5, 2.5)),
-          borderColor: on ? Y.blue : Y.ink,
-          backgroundColor: on ? "#EEEDFF" : Y.panel,
+          borderColor: on ? Y.blue : Y.ln,
+          backgroundColor: on ? tk.lav2 : Y.panel,
           borderRadius: 12,
           transform: [{ translateX: on ? 2.5 : 0 }, { translateY: on ? 2.5 : 0 }],
         }
       : {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: tk.sf,
           borderRadius: 14,
           borderWidth: 2,
           borderColor: on ? P.pen : "transparent",

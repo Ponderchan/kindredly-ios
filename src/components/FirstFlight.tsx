@@ -3,13 +3,20 @@
    flies one loop of the route chart, past the stops she'll bring letters back
    from, leaving a trail; she lands with three envelopes. Three seconds, one
    tap skips it, reduced motion skips it. The route chart is the first record
-   of the map to come — every crossing after this one lands on the same chart. */
+   of the map to come — every crossing after this one lands on the same chart.
+
+   It plays over the console, so it is painted from the same theme: the
+   ground is the accent's palest wash (useP's penWash, the console's ground),
+   type is ink, sub and mute, every line on the chart and every outline is
+   ln, and the letter and envelopes are card faces. The stops' pale gold and
+   their postmark squares, and her, keep their own colours. */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import * as Haptics from "expo-haptics";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin } from "./WrenBird";
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { PoolLetter } from "../lib/db";
@@ -36,6 +43,8 @@ const pathD = SEGS.map((s, i) => (i === 0 ? `M${s[0][0]} ${s[0][1]} ` : "") + `C
 const FLY0 = 0.8, FLY1 = 2.6;
 
 export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, onDone }: { her: string; opener: string; stops: PoolLetter[]; form?: HatchlingForm; mark?: string | null; skin?: WrenSkin; accessory?: WrenAccessory; onDone: () => void }) {
+  const P = useP();
+  const { t: tk } = useTheme();
   const { width, height } = useWindowDimensions();
   const k = Math.min(width / W, height / H);
   const clock = useSharedValue(0);
@@ -131,14 +140,14 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
         {/* the chart */}
         <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: W, height: H }, chartStyle]} pointerEvents="none">
           <Svg width={W} height={H}>
-            {Array.from({ length: 16 }, (_, i) => <Line key={"v" + i} x1={i * 26} y1={0} x2={i * 26} y2={H} stroke={P.ink} strokeOpacity={0.06} />)}
-            {Array.from({ length: 33 }, (_, i) => <Line key={"h" + i} x1={0} y1={i * 26} x2={W} y2={i * 26} stroke={P.ink} strokeOpacity={0.06} />)}
-            {[180, 330, 480, 630].map((y) => <Path key={y} d={`M0 ${y} Q195 ${y - 26} 390 ${y}`} fill="none" stroke={P.ink} strokeOpacity={0.16} strokeDasharray="4 6" />)}
-            <Path d={pathD} fill="none" stroke={P.ink} strokeOpacity={0.14} />
+            {Array.from({ length: 16 }, (_, i) => <Line key={"v" + i} x1={i * 26} y1={0} x2={i * 26} y2={H} stroke={tk.ln} strokeOpacity={0.06} />)}
+            {Array.from({ length: 33 }, (_, i) => <Line key={"h" + i} x1={0} y1={i * 26} x2={W} y2={i * 26} stroke={tk.ln} strokeOpacity={0.06} />)}
+            {[180, 330, 480, 630].map((y) => <Path key={y} d={`M0 ${y} Q195 ${y - 26} 390 ${y}`} fill="none" stroke={tk.ln} strokeOpacity={0.16} strokeDasharray="4 6" />)}
+            <Path d={pathD} fill="none" stroke={tk.ln} strokeOpacity={0.14} />
             {[[78, 640], ...STOPS].map(([x, y], i) => (
               <React.Fragment key={i}>
-                <Circle cx={x} cy={y} r={16} fill={i === 0 ? P.paper : "#FFF3C4"} stroke={P.ink} strokeWidth={1.5} />
-                <Circle cx={x} cy={y} r={10} fill="none" stroke={P.ink} strokeWidth={0.8} strokeDasharray="1.5 2.5" opacity={0.7} />
+                <Circle cx={x} cy={y} r={16} fill={i === 0 ? tk.sf : "#FFF3C4"} stroke={tk.ln} strokeWidth={1.5} />
+                <Circle cx={x} cy={y} r={10} fill="none" stroke={tk.ln} strokeWidth={0.8} strokeDasharray="1.5 2.5" opacity={0.7} />
                 <Rect x={x - 3} y={y - 3} width={6} height={6} fill={i === 0 ? P.ink : P.post} />
               </React.Fragment>
             ))}
@@ -164,20 +173,20 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
         </Animated.View>
 
         {/* 1 · the letter, folding */}
-        <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, backgroundColor: P.paper, borderWidth: 1.5, borderColor: P.ink, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
+        <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
           <Text numberOfLines={3} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
         </Animated.View>
-        <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, backgroundColor: P.paper, borderWidth: 1.5, borderColor: P.ink }, envStyle]} pointerEvents="none">
-          <Svg width={117} height={77} viewBox="0 0 117 77"><Path d="M0 0 L58.5 42 L117 0" fill="none" stroke={P.ink} strokeWidth={1.5} /></Svg>
+        <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln }, envStyle]} pointerEvents="none">
+          <Svg width={117} height={77} viewBox="0 0 117 77"><Path d="M0 0 L58.5 42 L117 0" fill="none" stroke={tk.ln} strokeWidth={1.5} /></Svg>
           <View style={{ position: "absolute", right: 9, top: 7, width: 20, height: 18, backgroundColor: P.pen }} />
         </Animated.View>
 
         {/* 3 · what she brings back */}
         <Animated.View style={[{ position: "absolute", left: 70, top: 440, width: 250, height: 120 }, trayStyle]} pointerEvents="none">
           {[-14, -2, 10].map((r, i) => (
-            <View key={i} style={{ position: "absolute", left: i * 50, top: i === 1 ? 10 : 0, width: 150, height: 99, backgroundColor: P.paper, borderWidth: 1.5, borderColor: P.ink, transform: [{ rotate: `${r}deg` }] }}>
-              <Svg width={147} height={96} viewBox="0 0 147 96"><Path d="M0 0 L73.5 52 L147 0" fill="none" stroke={P.ink} strokeWidth={1.5} /></Svg>
+            <View key={i} style={{ position: "absolute", left: i * 50, top: i === 1 ? 10 : 0, width: 150, height: 99, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, transform: [{ rotate: `${r}deg` }] }}>
+              <Svg width={147} height={96} viewBox="0 0 147 96"><Path d="M0 0 L73.5 52 L147 0" fill="none" stroke={tk.ln} strokeWidth={1.5} /></Svg>
               <View style={{ position: "absolute", right: 11, top: 8, width: 22, height: 20, backgroundColor: P.pen }} />
             </View>
           ))}
@@ -195,6 +204,7 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
 }
 
 function TrailDot({ clock, at, x, y }: { clock: SharedValue<number>; at: number; x: number; y: number }) {
+  const P = useP();
   const style = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, [at - 0.02, at, 2.9, 3.05], [0, 0.7, 0.7, 0.3], Extrapolation.CLAMP) }));
   return <Animated.View style={[{ position: "absolute", left: x - 2.2, top: y - 2.2, width: 4.4, height: 4.4, borderRadius: 2.2, backgroundColor: P.pen }, style]} pointerEvents="none" />;
 }
