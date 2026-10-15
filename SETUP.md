@@ -186,3 +186,50 @@ the RevenueCat webhook does not use them.
 > **Cloudflare gotcha:** Super Bot Fight Mode will 403 legitimate webhook deliveries
 > (RevenueCat has no static IPs). Add a WAF bypass for `/api/webhook/revenuecat` — same
 > as the existing carve-out for `/api/webhook/creem`.
+
+---
+
+## 7. Over-the-air updates (expo-updates — from app 1.2.3 / App Store 1.0.4)
+
+Owner, 2026-10-13: small JavaScript-only changes (a what's-new reel, a copy fix,
+a small bug) should reach phones without waiting for App Review.
+
+- `runtimeVersion` is `{ "policy": "appVersion" }`: an update reaches only builds
+  whose `version` matches it exactly. **Anything native (a new package with native
+  code, a permission, an entitlement, a plugin, an icon) needs a new App Store build
+  and a version bump** — never an update.
+- Builds made from the `production` profile listen on the `production` channel
+  (`eas.json`); `preview` on `preview`. Development builds ignore updates.
+- `checkAutomatically: ON_LOAD`, `fallbackToCacheTimeout: 0`: the app opens on what
+  it already has and fetches an update in the background; the next launch runs it.
+  A broken update rolls back to the embedded bundle on its own (anti-bricking).
+- Only builds that contain expo-updates (1.0.4 on) can receive one.
+
+**The pitfall: what gets inlined.** `EXPO_PUBLIC_*` values are baked into the bundle
+at build/update time. Supabase and the API base come from the `production` profile's
+`env` in `eas.json` (builds) or `.env.local` (this Mac). The RevenueCat key lives only
+in EAS's `production` environment — and **a variable with "Secret" visibility is never
+handed to anything that runs on this Mac**: not `eas build --local`, not `eas update`,
+not `eas env:exec`. The b27 build log says so in its first lines ("No environment
+variables with visibility "Plain text" and "Sensitive" found"), and the 1.0.2 archive's
+bundle has Supabase in it but no `appl_` key — so a local build ships with IAP off:
+placeholder prices and "Can't reach the store". The RevenueCat iOS key is a public SDK
+key; its EAS visibility must be "Sensitive" (or Plain text).
+
+Check a bundle before anything ships (counts only — never print the key):
+
+```bash
+cd ~/Desktop/claude-projects/kindredly-ios
+eas env:exec production "npx expo export --platform ios --output-dir /tmp/kindredly-ota-check"
+F=$(ls /tmp/kindredly-ota-check/_expo/static/js/ios/*.hbc)
+LC_ALL=C grep -c -a "wndkpoiuoxufvplnlaww" "$F"      # must be ≥ 1 (Supabase)
+LC_ALL=C grep -c -a "appl_[A-Za-z0-9]" "$F"          # must be ≥ 1 (RevenueCat)
+# only then, with the owner's go-ahead (it reaches every phone on that version):
+eas update --channel production --environment production --message "<what changed>"
+```
+
+The same two counts on a built `.ipa` (`Payload/Kindredly.app/main.jsbundle`) belong in
+the package check before every upload.
+
+Roll back a bad update from the EAS dashboard (Updates → republish the previous one),
+or `eas update:republish`.

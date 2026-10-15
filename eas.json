@@ -19,7 +19,8 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://wndkpoiuoxufvplnlaww.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_bJM4pydUeVPY1CWuifk7Yw_CqclSzVj",
         "EXPO_PUBLIC_API_BASE": "https://kindredly.io"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -27,7 +28,8 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://wndkpoiuoxufvplnlaww.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_bJM4pydUeVPY1CWuifk7Yw_CqclSzVj",
         "EXPO_PUBLIC_API_BASE": "https://kindredly.io"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
