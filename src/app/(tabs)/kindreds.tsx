@@ -485,11 +485,12 @@ const NOOP = () => {};
    2026-10-11: "做成 2a 一样的"): a 52pt round face — a kindred's portrait,
    or a pen pal's mosaic developing on a pale disc as their letters come —
    the name and the time, two lines of their last words ("You: …" when the
-   last word was yours), a blue badge when it's on you (a kindred's letters
-   you haven't opened; a pen pal's one letter owed), and the hairline from
-   the words. The few moments that need a word keep one, small, ahead of the
-   line: the brass "trade names" at five each, the red CLOSES IN n DAYS of a
-   room's last week, a quiet room's days and REKINDLE, a closed account.
+   last word was yours), a blue badge counting a kindred's letters you
+   haven't opened, and the hairline from the words. The few moments that
+   need a word keep one, small, ahead of the line: a pen pal's YOUR TURN /
+   THEIR TURN, the brass "trade names" at five each, the red CLOSES IN n
+   DAYS of a room's last week, a quiet room's days and REKINDLE, a closed
+   account.
 
    Long-pressed, the row is lifted whole into iOS's menu, so it is hosted
    natively and sized by its own content: it gets the screen's width in
@@ -504,9 +505,15 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
   const closes = closing ? (left <= 1 ? t("kd.closesDay") : t("kd.closesIn", { n: left })) : null;
   /* the brass moment: five letters each way, names may be traded */
   const milestone = !kindred && !th.gone && !!state && state.tone === P.brassSeal ? state.label : null;
-  /* on you: a kindred's unopened letters, or a pen pal whose turn is yours */
-  const owed = th.gone || quiet ? 0 : kindred ? unread : state?.needsYou ? 1 : 0;
-  const a11y = [name, closes, milestone, kindred ? null : state?.label, kindred && unread ? String(unread) : null, when(th.lastAt)].filter(Boolean).join(", ");
+  /* on you, said two ways (owner, 2026-10-15: "kindreds 消息提示是数字 点开已读就消息数字没了，
+     penpal 应该 your turn"): a kindred is a chat, so it counts the letters
+     you haven't opened and the number goes when you read them; a pen pal is
+     one letter at a time, so a "1" said nothing — the row says whose turn it
+     is, in words, ahead of their last line. */
+  const count = th.gone || quiet || !kindred ? 0 : unread;
+  const turn = th.gone || quiet || kindred || milestone || !state ? null : state;
+  const owed = count > 0 || !!milestone || !!turn?.needsYou;
+  const a11y = [name, closes, milestone, kindred ? null : state?.label, count ? String(count) : null, when(th.lastAt)].filter(Boolean).join(", ");
   const tag = (text: string, color: string) => <Text style={{ fontSize: 12, fontWeight: "600", letterSpacing: 0.3, color }}>{text}  </Text>;
   return (
     <Pressable
@@ -537,7 +544,7 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
         <View style={{ flex: 1, minWidth: 0, paddingVertical: 12, gap: 3 }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             <Text numberOfLines={1} style={[rowName, { flex: 1 }, dim && { color: ROW.muted }]}>{name}</Text>
-            {!quiet && <Text style={rowTime(owed > 0)}>{when(th.lastAt)}</Text>}
+            {!quiet && <Text style={rowTime(owed)}>{when(th.lastAt)}</Text>}
           </View>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
             <Text numberOfLines={2} style={[rowPreview, { flex: 1 }]}>
@@ -549,6 +556,7 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
                 <>
                   {!!closes && tag(closes, P.post)}
                   {!!milestone && tag(milestone.toUpperCase(), P.brassSeal)}
+                  {!!turn && tag(turn.label.toUpperCase(), turn.needsYou ? ROW.blue : ROW.time)}
                   {th.lastSenderMe && <Text style={{ color: ROW.ink }}>{t("mm.you")}: </Text>}
                   {preview || ""}
                 </>
@@ -556,9 +564,9 @@ function ListRow({ t: th, unread, quiet = false, closing = false, rule, width, a
             </Text>
             {quiet ? (
               <Text style={{ fontSize: 13, fontWeight: "600", color: ROW.blue, marginTop: 2 }}>{t("kd.menu.rekindle")} ›</Text>
-            ) : owed > 0 ? (
+            ) : count > 0 ? (
               <View style={rowBadge}>
-                <Text style={rowBadgeText}>{owed > 9 ? "9+" : String(owed)}</Text>
+                <Text style={rowBadgeText}>{count > 9 ? "9+" : String(count)}</Text>
               </View>
             ) : null}
           </View>
