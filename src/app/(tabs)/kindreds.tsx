@@ -335,6 +335,8 @@ export default function KindredsTab() {
               is, tapping it shows exactly those (owner, 2026-09-20 / 10-10) */}
           <TabHeader
             title={t("kindreds.title")}
+            // KindredsSky folds onto this rule as its horizon; TabHeader draws none by default since 10a
+            rule
             right={
               <Pressable disabled={!waiting} onPress={openOnMe} hitSlop={8} style={{ flexShrink: 1 }}>
                 {/* one line, shrinking for a long language (de: two lines ran into the sky's OPEN pill on the rule below) */}

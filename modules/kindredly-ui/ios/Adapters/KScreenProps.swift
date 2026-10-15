@@ -160,15 +160,11 @@ extension View {
   /// KImage inside (KImageStore.shared) and the owner's Letter font for every letter serif.
   func kScreenEnvironment(_ props: KScreenProps) -> some View {
     environment(\.kImageLoader, KImageStore.shared)
-    // TODO(kit-portable): when KType's KLetterFace lands, also apply the Letter font here, mapped
-    // explicitly (TS sends "newyork", which is not the default raw value of a `newYork` case):
-    //   .kLetterFace({
-    //     switch props.letterFontKey {
-    //     case "newyork": return KLetterFace.newYork
-    //     case "garamond": return KLetterFace.garamond
-    //     default: return KLetterFace.newsreader
-    //     }
-    //   }())
+      // KLetterFace's newYork case has the raw value "newyork", the key TS sends, so init(key:)
+      // maps all three; letterFontKey has already turned an unembedded "garamond" into
+      // "newsreader". Only styles that follow the Letter font move (KTextStyle.followsLetterFont:
+      // letters being read), every other serif stays Newsreader.
+      .kLetterFace(KLetterFace(key: props.letterFontKey))
   }
 }
 
