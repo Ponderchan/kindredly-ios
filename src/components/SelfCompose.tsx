@@ -222,6 +222,22 @@ export function SelfCompose({
 
 
 
+  /* the page stays open, words and all, when the journal couldn't take it;
+     its id is made once, so sealing again replaces a save that half-landed */
+  const pageId = useRef<string | null>(null);
+  const sealPage = async (page: Parameters<typeof addEntry>[0]): Promise<boolean> => {
+    pageId.current ??= `j-${Date.now()}`;
+    try {
+      await addEntry({ ...page, id: pageId.current });
+      return true;
+    } catch (e) {
+      console.warn("[compose] the journal didn't save the page:", e);
+      setBusy(false);
+      Alert.alert(t("sc.journalTitle"), t("cp.fail.generic"));
+      return false;
+    }
+  };
+
   const pickMood = async (mood: MoodId) => {
     setMoodOpen(false);
     if (busy) return;
@@ -239,7 +255,7 @@ export function SelfCompose({
         Alert.alert(t("sc.journalTitle"), t("sc.failPhotos"));
         return;
       }
-      await addEntry({ type: "photo", body, mood, media: uris, coverIndex: 0, mediaUri: uris[0] });
+      if (!(await sealPage({ type: "photo", body, mood, media: uris, coverIndex: 0, mediaUri: uris[0] }))) return;
       setBusy(false);
       onDone();
       return;
@@ -256,13 +272,16 @@ export function SelfCompose({
         return;
       }
     }
-    await addEntry({
-      type: persisted && att ? att : "text",
-      body,
-      mood,
-      mediaUri: persisted,
-      dur: dur || undefined,
-    });
+    if (
+      !(await sealPage({
+        type: persisted && att ? att : "text",
+        body,
+        mood,
+        mediaUri: persisted,
+        dur: dur || undefined,
+      }))
+    )
+      return;
     /* A sealed page feeds NOTHING. It used to send signatureVector(body) — a
        vector of numbers derived from the text — to the fingerprint, and while
        that isn't the text and can't be read back as it, "no one sees this, not

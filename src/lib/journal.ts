@@ -1,4 +1,4 @@
-import { scoped as AsyncStorage } from "./scoped-store";
+import { scoped as AsyncStorage, storageNs } from "./scoped-store";
 import { Directory, File, Paths } from "expo-file-system";
 import type { MoodId } from "../data/moods";
 
@@ -59,39 +59,147 @@ function resolve(uri: string): string {
   return name ? new File(journalDir(), name).uri : uri;
 }
 
+/* A JOURNAL THAT CAN'T BE READ IS NOT AN EMPTY ONE.
+   Every change reads the stored pages, edits them and saves them back. The
+   read used to turn ANY failure — storage refusing, one malformed page, a
+   blob that wouldn't parse — into [], and the next sealed page then saved
+   [itself] over every page, on a journal that lives nowhere but this phone.
+   Now a change starts from the pages exactly as stored: a page that can't be
+   shown is hidden on screen but kept; a blob that can't be parsed is set
+   aside under RESCUE_KEY before anything replaces it; and a read or save
+   that fails throws, so the caller can say so instead of losing the page. */
+const RESCUE_KEY = "kindredly_journal_rescue";
+/* AND A JOURNAL STORAGE LOST TRACK OF IS NOT AN EMPTY ONE EITHER. After one
+   failed read of a large value, iOS's AsyncStorage drops the key from its
+   manifest (RNCAsyncStorage.mm, _getValueForKey) — the file is still on
+   disk, but every later read answers null, without an error, and null is
+   what "no journal yet" looks like. So: a read that fails stops every change
+   until the app starts again, and COUNT_KEY keeps how many pages the last
+   good read or save saw — null over a journal that had pages is never
+   written over. */
+const COUNT_KEY = "kindredly_journal_n";
+let readFailed = false;
+let noted: string | null = null; // `${account}:${count}` last written
+
+type Stored = { pages: unknown[]; unreadable?: string; vanished?: boolean };
+
+/** a storage read of ours; one that fails marks the session. */
+async function read(key: string): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(key);
+  } catch (err) {
+    readFailed = true;
+    throw err;
+  }
+}
+
+/** remember how many pages there are — best-effort, and only on a change. */
+async function noteCount(n: number): Promise<void> {
+  const mark = `${storageNs()}:${n}`;
+  if (mark === noted) return;
+  try {
+    await AsyncStorage.setItem(COUNT_KEY, String(n));
+    noted = mark;
+  } catch (err) {
+    console.warn("[journal] couldn't note the page count:", err);
+  }
+}
+
+/** the pages exactly as saved. Rejects when storage can't be read; a blob
+    that isn't a list comes back as `unreadable` for a writer to set aside,
+    and nothing where pages were comes back as `vanished`. */
+async function readStored(): Promise<Stored> {
+  const raw = await read(KEY);
+  if (!raw) return Number(await read(COUNT_KEY)) > 0 ? { pages: [], vanished: true } : { pages: [] };
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return { pages: parsed };
+  } catch {
+    /* not JSON — handed back as unreadable below */
+  }
+  return { pages: [], unreadable: raw };
+}
+
+/** keep every unreadable journal, oldest first, before a write replaces it. */
+async function setAside(raw: string): Promise<void> {
+  const kept = await AsyncStorage.getItem(RESCUE_KEY);
+  let all: unknown[] = [];
+  if (kept) {
+    try {
+      const parsed: unknown = JSON.parse(kept);
+      all = Array.isArray(parsed) ? parsed : [kept];
+    } catch {
+      all = [kept];
+    }
+  }
+  await AsyncStorage.setItem(RESCUE_KEY, JSON.stringify([...all, { at: new Date().toISOString(), raw }]));
+  console.warn(`[journal] the stored journal didn't parse (${raw.length} chars); set aside under ${RESCUE_KEY}`);
+}
+
+/** one stored page as the screens want it, or null when it can't be shown. */
+function shown(e: unknown): JournalEntry | null {
+  try {
+    if (!e || typeof e !== "object") return null;
+    const s = e as Partial<JournalEntry>;
+    if (typeof s.id !== "string") return null;
+    // migrate v1 entries (no `type`) → text
+    const entry = { ...s, type: s.type || "text", body: typeof s.body === "string" ? s.body : "" } as JournalEntry;
+    // the app container path changes across installs/updates — stored
+    // absolute URIs go stale, so re-resolve media by filename each load
+    if (Array.isArray(entry.media)) entry.media = entry.media.filter((u): u is string => typeof u === "string" && u.length > 0);
+    if (entry.media && entry.media.length) {
+      entry.media = entry.media.map(resolve);
+      const ci = entry.coverIndex ?? 0;
+      entry.mediaUri = entry.media[ci] || entry.media[0];
+    } else if (typeof entry.mediaUri === "string" && entry.mediaUri) {
+      entry.mediaUri = resolve(entry.mediaUri);
+    }
+    return entry;
+  } catch (err) {
+    console.warn("[journal] a page couldn't be shown; it stays stored:", err);
+    return null;
+  }
+}
+
+const showAll = (pages: unknown[]): JournalEntry[] =>
+  pages.map(shown).filter((e): e is JournalEntry => e !== null);
+
+const isPage = (e: unknown, id: string): e is Partial<JournalEntry> =>
+  !!e && typeof e === "object" && (e as { id?: unknown }).id === id;
+
+/** for screens: never throws — a journal that can't be read shows as none,
+    and stays stored exactly as it was. */
 export async function loadJournal(): Promise<JournalEntry[]> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    const arr = raw ? (JSON.parse(raw) as JournalEntry[]) : [];
-    if (!Array.isArray(arr)) return [];
-    return arr.map((e) => {
-      // migrate v1 entries (no `type`) → text
-      const entry: JournalEntry = { ...e, type: e.type || "text" };
-      // the app container path changes across installs/updates — stored
-      // absolute URIs go stale, so re-resolve media by filename each load
-      if (entry.media && entry.media.length) {
-        entry.media = entry.media.map(resolve);
-        const ci = entry.coverIndex ?? 0;
-        entry.mediaUri = entry.media[ci] || entry.media[0];
-      } else if (entry.mediaUri) {
-        entry.mediaUri = resolve(entry.mediaUri);
-      }
-      return entry;
-    });
-  } catch {
+    const { pages, unreadable, vanished } = await readStored();
+    if (unreadable !== undefined) console.warn("[journal] the stored journal didn't parse; showing none, keeping it");
+    else if (vanished) console.warn("[journal] storage answered nothing where the journal had pages; showing none, writing nothing");
+    else void noteCount(pages.length); // journals saved before the count existed get one here
+    return showAll(pages);
+  } catch (err) {
+    console.warn("[journal] couldn't read the journal:", err);
     return [];
   }
 }
 
-async function save(entries: JournalEntry[]): Promise<void> {
-  try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(entries));
-  } catch {
-    /* best-effort */
-  }
+/** every change goes through here: read as stored, change, save. Throws
+    when the journal can't be read, was lost track of, or can't be saved. A
+    save that throws may still have landed (iOS caches the value before it
+    checks the write), so callers retry with the same page id. */
+async function rewrite(change: (pages: unknown[]) => unknown[]): Promise<JournalEntry[]> {
+  if (readFailed) throw new Error("journal: a read failed this session; nothing is written until the app restarts");
+  const { pages, unreadable, vanished } = await readStored();
+  if (vanished) throw new Error("journal: storage lost track of a journal that had pages; not writing over it");
+  if (unreadable !== undefined) await setAside(unreadable);
+  const next = change(pages);
+  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+  await noteCount(next.length);
+  return showAll(next);
 }
 
 export async function addEntry(input: {
+  /** the composer's own id for this page, so a retry replaces rather than repeats */
+  id?: string;
   type: JournalType;
   body: string;
   mood: MoodId;
@@ -100,9 +208,8 @@ export async function addEntry(input: {
   coverIndex?: number;
   dur?: number;
 }): Promise<JournalEntry[]> {
-  const entries = await loadJournal();
   const entry: JournalEntry = {
-    id: `j-${Date.now()}`,
+    id: input.id || `j-${Date.now()}`,
     date: new Date().toISOString(),
     type: input.type,
     body: (input.body || "").trim(),
@@ -112,8 +219,7 @@ export async function addEntry(input: {
     coverIndex: input.coverIndex,
     dur: input.dur,
   };
-  const next = [entry, ...entries];
-  await save(next);
+  const next = await rewrite((pages) => [entry, ...pages.filter((e) => !isPage(e, entry.id))]);
   /* written today: her evening line stays quiet, and the aura may have
      settled a line (lib/local-push). Lazy — local-push reads the journal. */
   try {
@@ -126,12 +232,11 @@ export async function addEntry(input: {
 
 /** change which photo is the album cover. */
 export async function setCover(id: string, coverIndex: number): Promise<JournalEntry[]> {
-  const entries = await loadJournal();
-  const next = entries.map((e) =>
-    e.id === id ? { ...e, coverIndex, mediaUri: e.media?.[coverIndex] || e.mediaUri } : e,
+  return rewrite((pages) =>
+    pages.map((e) =>
+      isPage(e, id) ? { ...e, coverIndex, mediaUri: (Array.isArray(e.media) && e.media[coverIndex]) || e.mediaUri } : e,
+    ),
   );
-  await save(next);
-  return next;
 }
 
 /* SAMPLE PAGES CAN BE TORN OUT TOO. Demo entries only exist in dev builds,
@@ -158,12 +263,15 @@ export async function hideDemoEntry(id: string): Promise<void> {
 }
 
 export async function deleteEntry(id: string): Promise<JournalEntry[]> {
-  const entries = await loadJournal();
-  const gone = entries.find((e) => e.id === id);
-  const next = entries.filter((e) => e.id !== id);
-  await save(next);
+  let gone: Partial<JournalEntry> | undefined;
+  const next = await rewrite((pages) => {
+    gone = pages.find((e): e is Partial<JournalEntry> => isPage(e, id));
+    return pages.filter((e) => !isPage(e, id));
+  });
   // best-effort: remove every media file this page owned
-  const files = [gone?.mediaUri, ...(gone?.media || [])].filter(Boolean) as string[];
+  const files = [gone?.mediaUri, ...(Array.isArray(gone?.media) ? gone.media : [])].filter(
+    (f): f is string => typeof f === "string" && f.length > 0,
+  );
   for (const f of files) {
     try {
       const name = f.split("/").pop();
@@ -176,21 +284,17 @@ export async function deleteEntry(id: string): Promise<JournalEntry[]> {
 }
 
 export async function setDrift(id: string, line: string): Promise<JournalEntry[]> {
-  const entries = await loadJournal();
-  const next = entries.map((e) => (e.id === id ? { ...e, driftedLine: line } : e));
-  await save(next);
-  return next;
+  return rewrite((pages) => pages.map((e) => (isPage(e, id) ? { ...e, driftedLine: line } : e)));
 }
 
 export async function clearDrift(id: string): Promise<JournalEntry[]> {
-  const entries = await loadJournal();
-  const next = entries.map((e) => {
-    if (e.id !== id) return e;
-    const { driftedLine, ...rest } = e;
-    return rest;
-  });
-  await save(next);
-  return next;
+  return rewrite((pages) =>
+    pages.map((e) => {
+      if (!isPage(e, id)) return e;
+      const { driftedLine, ...rest } = e;
+      return rest;
+    }),
+  );
 }
 
 /** split an entry into candidate sentences to drift. */
