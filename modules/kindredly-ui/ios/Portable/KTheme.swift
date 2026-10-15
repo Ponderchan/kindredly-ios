@@ -126,6 +126,45 @@ public struct KTheme: Equatable, Sendable {
   }
 }
 
+/// The colours that stay the same in every theme (themes.json "brand"): objects with a colour
+/// of their own, like the courier's green, the wax gold and the lime of "auras close".
+public enum KBrand {
+  /// The courier's green: the Courier card, the YOUR COURIER label.
+  public static let courierGreen = Color(hex: "#1F5B3C")
+  /// Pale green, the courier's light companion.
+  public static let paleGreen    = Color(hex: "#DDEFD6")
+  /// Green text, and the fill of the green topic tag (#made my day).
+  public static let greenText    = Color(hex: "#2E7D4F")
+  /// Wax-seal gold: the First Class chip, frame and dashes.
+  public static let waxGold      = Color(hex: "#D8A63F")
+  /// Dark gold text on cream.
+  public static let goldText     = Color(hex: "#B8842A")
+  /// Cream paper: the First Class chip and cells when off.
+  public static let cream        = Color(hex: "#FFF8E8")
+  /// The cream's border.
+  public static let creamBorder  = Color(hex: "#EAD9A8")
+  /// The lime of the "auras close" capsule, and nothing else. Text on it is always #1E1B35.
+  public static let lime         = Color(hex: "#D8F04A")
+  /// The older acid green (PUNCH); kept so the two tables agree.
+  public static let acid         = Color(hex: "#C3E84F")
+}
+
+/// A 10a mood pair (themes.json "mood"): a pale fill and the ink drawn on it, the same in every
+/// theme. Named apart from the app's older mood data so the two can't be confused.
+public struct KMood: Equatable, Sendable {
+  public let key: String
+  public let fill: Color
+  public let ink: Color
+
+  public static let calm  = KMood(key: "calm", fill: Color(hex: "#DDEFD6"), ink: Color(hex: "#2E7D4F"))
+  public static let happy = KMood(key: "happy", fill: Color(hex: "#F6E7C6"), ink: Color(hex: "#B8842A"))
+  public static let tired = KMood(key: "tired", fill: Color(hex: "#E4E2F4"), ink: Color(hex: "#3A34D6"))
+  public static let low   = KMood(key: "low", fill: Color(hex: "#CFE3F5"), ink: Color(hex: "#3B6E9B"))
+
+  /// Every mood, in the order themes.json lists them.
+  public static let all: [KMood] = [calm, happy, tired, low]
+}
+
 extension Color {
   /// An sRGB colour from "#RRGGBB" (the # is optional). The generator only ever passes
   /// checked hex, so the magenta below is unreachable from this file; it is there so a bad

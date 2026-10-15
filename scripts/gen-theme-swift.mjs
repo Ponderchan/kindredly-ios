@@ -6,6 +6,7 @@
 // TypeScript theme reads it directly, and the SwiftUI views read this generated copy, so a
 // colour is changed once, in the JSON, and this script is run again. The generated file
 // imports SwiftUI only, so the pure-Swift app planned for 1.1.0 can take it as it is.
+// Besides the themes it carries the JSON's fixed colours (KBrand) and mood pairs (KMood).
 //
 // Nothing is guessed. A theme missing a token, a token that is not a #RRGGBB hex, a key in a
 // theme that the token list does not name, or a name that is not a usable Swift identifier is
@@ -33,6 +34,20 @@ const ROLE = {
   lav: "Pale selected fill: the tab lens, chips that are on.",
   lav2: "The WRITE A LETTER composer card (used once in the mock).",
   ind: "Indigo: the selected state and the main action.",
+};
+
+// what each fixed colour is for (CLAUDE-CODE-PROMPTS.md:33-37, mock H:19 and H:35). These stay
+// the same in every theme: objects with their own colour, not roles a theme recolours.
+const BRAND_ROLE = {
+  courierGreen: "The courier's green: the Courier card, the YOUR COURIER label.",
+  paleGreen: "Pale green, the courier's light companion.",
+  greenText: "Green text, and the fill of the green topic tag (#made my day).",
+  waxGold: "Wax-seal gold: the First Class chip, frame and dashes.",
+  goldText: "Dark gold text on cream.",
+  cream: "Cream paper: the First Class chip and cells when off.",
+  creamBorder: "The cream's border.",
+  lime: "The lime of the \"auras close\" capsule, and nothing else. Text on it is always #1E1B35.",
+  acid: "The older acid green (PUNCH); kept so the two tables agree.",
 };
 
 // Swift keywords a token or theme key must not be named (the ones a colour name could plausibly hit)
@@ -76,6 +91,26 @@ for (const [key, t] of themes) {
     if (k !== "name" && k !== "dark" && !tokens.includes(k)) fail(`theme ${key} has "${k}", which the tokens list does not name`);
   }
 }
+
+// the fixed colours and the mood pairs, checked the same way: a lowerCamel name and #RRGGBB hex
+const hex = (v, what) => {
+  if (typeof v !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(v)) fail(`${what} is "${v}", not #RRGGBB`);
+  return v.toUpperCase();
+};
+const brand = Object.entries(src.brand ?? {});
+if (!brand.length) fail("themes.json has no brand colours");
+brand.forEach(([k, v]) => {
+  ident(k, "brand colour");
+  hex(v, `brand ${k}`);
+});
+const moods = Object.entries(src.mood ?? {});
+if (!moods.length) fail("themes.json has no mood pairs");
+moods.forEach(([k, pair]) => {
+  ident(k, "mood");
+  if (!Array.isArray(pair) || pair.length !== 2) fail(`mood ${k} is not a [fill, ink] pair`);
+  hex(pair[0], `mood ${k} fill`);
+  hex(pair[1], `mood ${k} ink`);
+});
 
 const pad = Math.max(...tokens.map((t) => t.length));
 const lines = [];
@@ -121,6 +156,32 @@ out("  /// The theme with this key, or nil for a key no theme has.");
 out("  public static func named(_ key: String) -> KTheme? {");
 out("    all.first { $0.key == key }");
 out("  }");
+out("}");
+out();
+out("/// The colours that stay the same in every theme (themes.json \"brand\"): objects with a colour");
+out("/// of their own, like the courier's green, the wax gold and the lime of \"auras close\".");
+out("public enum KBrand {");
+const bpad = Math.max(...brand.map(([k]) => k.length));
+for (const [k, v] of brand) {
+  if (BRAND_ROLE[k]) out(`  /// ${BRAND_ROLE[k]}`);
+  out(`  public static let ${k.padEnd(bpad)} = Color(hex: "${hex(v, k)}")`);
+}
+out("}");
+out();
+out("/// A 10a mood pair (themes.json \"mood\"): a pale fill and the ink drawn on it, the same in every");
+out("/// theme. Named apart from the app's older mood data so the two can't be confused.");
+out("public struct KMood: Equatable, Sendable {");
+out("  public let key: String");
+out("  public let fill: Color");
+out("  public let ink: Color");
+const mpad = Math.max(...moods.map(([k]) => k.length));
+out();
+for (const [k, [fill, ink]] of moods) {
+  out(`  public static let ${k.padEnd(mpad)} = KMood(key: ${swiftString(k)}, fill: Color(hex: "${hex(fill, k)}"), ink: Color(hex: "${hex(ink, k)}"))`);
+}
+out();
+out("  /// Every mood, in the order themes.json lists them.");
+out(`  public static let all: [KMood] = [${moods.map(([k]) => k).join(", ")}]`);
 out("}");
 out();
 out("extension Color {");

@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Appearance, useColorScheme } from "react-native";
 import { P } from "../theme/post";
 import {
@@ -82,6 +82,40 @@ const ThemeCtx = createContext<Theme>({
    app.json pins the app light and this changes nothing. */
 if (!DARK_READY) Appearance.setColorScheme("light");
 
+/* ── the dev theme switch ───────────────────────────────────────────────────
+   DEV ONLY. Forces one theme on the whole app, Midnight included and
+   DARK_READY or not, so a screen that has moved onto the theme can be seen
+   in each of the four before release (ui-lab has the buttons). It is not the
+   reader's choice: it lives in memory only, is never saved, leaves the
+   reader's pick and Match system alone, and is gone at the next launch.
+
+   In a release build it can't be set: the setter returns without doing
+   anything when __DEV__ is false, and the hook the provider reads it through
+   answers null, so the theme resolves exactly as it would without this code. */
+let devOverride: ThemeKey | null = null;
+const devListeners = new Set<() => void>();
+
+/** dev only: force this theme everywhere, or null to go back to the normal one */
+export function setDevThemeOverride(k: ThemeKey | null): void {
+  if (!__DEV__) return;
+  devOverride = k;
+  devListeners.forEach((l) => l());
+}
+
+const subscribeDev = (l: () => void) => {
+  devListeners.add(l);
+  return () => {
+    devListeners.delete(l);
+  };
+};
+const readDev = () => devOverride;
+
+/** dev only: the forced theme, or null when nothing is forced (always null in a release build) */
+export function useDevThemeOverride(): ThemeKey | null {
+  const k = useSyncExternalStore(subscribeDev, readDev);
+  return __DEV__ ? k : null;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<ThemePrefs>(DEFAULT_PREFS);
   // set once the reader has changed something, so the saved copy can't
@@ -116,10 +150,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setPrefs((p) => ({ ...p, matchSystem: on }));
   }, []);
 
-  const key = resolveTheme({ ...prefs, systemScheme: system, darkReady: DARK_READY });
+  const devKey = useDevThemeOverride();
+  const key = devKey ?? resolveTheme({ ...prefs, systemScheme: system, darkReady: DARK_READY });
   const t = THEMES[key];
 
-  const scheme: "light" | "dark" | "unspecified" = !DARK_READY ? "light" : prefs.matchSystem ? "unspecified" : t.dark ? "dark" : "light";
+  // a forced theme also sets the window's light or dark, so the keyboard and
+  // the native menus match the screens while it is on
+  const scheme: "light" | "dark" | "unspecified" = devKey
+    ? (t.dark ? "dark" : "light")
+    : !DARK_READY ? "light" : prefs.matchSystem ? "unspecified" : t.dark ? "dark" : "light";
   useEffect(() => {
     Appearance.setColorScheme(scheme);
   }, [scheme]);

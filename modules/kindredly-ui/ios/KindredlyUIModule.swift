@@ -14,5 +14,7 @@ public class KindredlyUIModule: Module {
     Name("KindredlyUI")
 
     ExpoUIView(KInkCardView.self)
+    // dev only on the JS side (ui-lab): every Portable piece in one theme
+    ExpoUIView(KGalleryView.self)
   }
 }

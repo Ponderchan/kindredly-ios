@@ -9,3 +9,4 @@ export {
   type KInkCardProps,
   type KThemeKey,
 } from "./src/InkCard";
+export { KGalleryHost, type KGalleryHostProps } from "./src/Gallery";
