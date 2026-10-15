@@ -18,7 +18,15 @@ import { useAuth } from "../lib/auth";
 /* The Voice report — Wren's night letter about how you write. One fact per
    screen, tap to move; the last card is yours to share. Deliberately dark:
    the app lives in daylight, this is what Wren wrote after reading you at
-   night. */
+   night.
+
+   THE SAME NIGHT IN EVERY THEME (10a). Every colour here belongs to the
+   letter's night sky (the ground, the moon and stars, the starlight type,
+   the white on it and the cards and buttons drawn on it), not to the
+   reader's theme, so none of them follow it: it is a scene, like the
+   courier's sky. It stays its own night in Midnight too, a shade lighter
+   than Midnight's ground, which is fine, because it is a different place.
+   The constellation (VoiceCard's Constellation) is part of the picture. */
 
 const NIGHT = "#1E1B2E";
 const NIGHT2 = "#2A2450";

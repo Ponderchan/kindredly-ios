@@ -2,6 +2,8 @@ import { Dimensions, Image, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
+import { THEMES, type ThemeTokens } from "../theme/themes";
 import { AURA_SCENES, AURA_SKETCHES } from "../data/aura-scenes";
 import { MosaicId } from "./MosaicId";
 import type { Aura } from "../lib/aura";
@@ -55,7 +57,9 @@ export function basedOn(aura: Aura): string {
 
 
 /* ── the sticker: its dimension's ink, a white cut edge, a little tilt, and
-   nothing on it but its name (the owner's sheet) ── */
+   nothing on it but its name (the owner's sheet). A sticker is an object,
+   so it keeps all of its colours in every theme: the white edge, the ink
+   ring when it's picked, and the dashed outline of one still trying on. ── */
 export function StickerChip({
   id,
   i = 0,
@@ -165,11 +169,23 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
    scene's own ground is the pale lavender the sticker slots use, so the
    picture still sits IN the card rather than floating on it. Light by
    design — the courier card is light three hours of four, and at night
-   the two make a facing pair, one deep, one pale. ── */
-const CREAM = { card: "#FFFFFF", cardNamed: "#FFFFFF", ink: "#1E1B35", dim: "rgba(30,27,53,0.66)", well: "rgba(30,27,53,0.06)", tickOff: "rgba(30,27,53,0.3)" } as const;
+   the two make a facing pair, one deep, one pale.
+
+   10a: the paper is now the theme's card, read by role, so it is a
+   function of the theme in effect and built in each component. The face
+   is the card face (sf: white in Classic, the night card in Midnight),
+   the type ink, the small lines under the title mute (the mock sets "FROM
+   YOUR N LETTERS" and the progress line in mute, H:78), the well an inset
+   (soft2), an empty tick faint, and the solid button ink with its label
+   in the page colour. The picture at the top is not the card's: its
+   scenes keep their own colours in every theme, and so does the AURA
+   pill laid on it (ART_INK, the 10a ink, fixed). ── */
+const cream = (tk: ThemeTokens) => ({ card: tk.sf, cardNamed: tk.sf, ink: tk.ink, dim: tk.mute, well: tk.soft2, tickOff: tk.faint, onInk: tk.bg, edge: tk.line });
+const ART_INK = THEMES.classic.ink;
 
 /* the five slips on the right of the progress well: "n of your last m" */
 function Slips({ n, of }: { n: number; of: number }) {
+  const CREAM = cream(useTheme().t);
   return (
     <View style={{ flexDirection: "row", gap: 3 }}>
       {Array.from({ length: 5 }, (_, i) => (
@@ -181,9 +197,10 @@ function Slips({ n, of }: { n: number; of: number }) {
 
 /* the three slots a name needs: a filled square with a check, or a dashed one */
 function Slot({ done }: { done: boolean }) {
+  const CREAM = cream(useTheme().t);
   return (
     <View style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: done ? CREAM.ink : "transparent", borderWidth: done ? 0 : 1.5, borderStyle: "dashed", borderColor: CREAM.tickOff, alignItems: "center", justifyContent: "center" }}>
-      {done && <Svg width={10} height={8} viewBox="0 0 10 8"><Path d="M1 4l3 3 5-6" fill="none" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>}
+      {done && <Svg width={10} height={8} viewBox="0 0 10 8"><Path d="M1 4l3 3 5-6" fill="none" stroke={CREAM.onInk} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>}
     </View>
   );
 }
@@ -204,6 +221,7 @@ export function AuraCard({
   onWrite?: () => void;
 }) {
   useLang();
+  const CREAM = cream(useTheme().t);
   void seed;
   void avatarId;
   const st = aura.stickers;
@@ -254,8 +272,8 @@ export function AuraCard({
      figure's colour rung follows the courier's hour */
   const day = daylight();
   const onNight = art ? rung.fidelity === "colour" && !!artId && artId.startsWith("late-night") : rung.fidelity === "colour" && day === "night";
-  const chrome = onNight ? "#FFFFFF" : CREAM.ink;
-  const chromeText = onNight ? CREAM.ink : "#FFFFFF";
+  const chrome = onNight ? "#FFFFFF" : ART_INK;
+  const chromeText = onNight ? ART_INK : "#FFFFFF";
 
 
   return (
@@ -309,10 +327,10 @@ export function AuraCard({
 
         <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
           <Pressable onPress={onCta} style={({ pressed }) => ({ flex: 1, backgroundColor: CREAM.ink, borderRadius: 12, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
-            <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: "#FFFFFF" }}>{cta}</Text>
+            <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: CREAM.onInk }}>{cta}</Text>
           </Pressable>
           {named && (
-            <Pressable onPress={onShare} hitSlop={6} style={({ pressed }) => ({ width: 48, borderWidth: 1.5, borderColor: "rgba(30,27,53,0.2)", borderRadius: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+            <Pressable onPress={onShare} hitSlop={6} style={({ pressed }) => ({ width: 48, borderWidth: 1.5, borderColor: CREAM.edge, borderRadius: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
               <ShareIcon size={20} color={CREAM.ink} />
             </Pressable>
           )}
