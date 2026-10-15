@@ -11,7 +11,8 @@ import { supabase, supabaseReady } from "./supabase";
    These hooks are deliberately dumb: they never carry data, they only
    POKE. The payload of a postgres_changes event is untrusted shape-wise
    and skips RLS-joined context anyway; the loaders the screens already
-   own (fetchThreadMessages, fetchThreads) are the single source of truth.
+   own (fetchThreadDetail via useThreadDetail, fetchThreads) are the
+   single source of truth.
    A poke is debounced — one send lands as messages INSERT + threads
    UPDATE back-to-back, and that should be one reload, not two.
 
@@ -25,8 +26,10 @@ import { supabase, supabaseReady } from "./supabase";
 let seq = 0;
 
 /** call onChange when anything about this one thread changes on the server:
-    a message arrives (theirs or our own echo), a signature lands, the
-    reveal flips, a reaction is set. */
+    a message arrives (theirs or our own echo), a line is taken back or a
+    quote of it is emptied (messages UPDATE, web 0031), a fold is left, a
+    signature lands, the reveal flips, a reaction is set. Debounced 350ms;
+    demo- ids and builds without keys never subscribe. */
 export function useThreadLive(threadId: string | undefined, onChange: () => void) {
   const cb = useRef(onChange);
   cb.current = onChange;
@@ -45,6 +48,15 @@ export function useThreadLive(threadId: string | undefined, onChange: () => void
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `thread_id=eq.${threadId}` },
+        poke,
+      )
+      /* TAKE-BACK (web 0031) is an UPDATE of the message — body to the
+         placeholder, recalled_at set — plus an UPDATE of any reply quoting
+         it. The threads row is touched too, but listening to the line
+         itself doesn't depend on that staying true. */
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `thread_id=eq.${threadId}` },
         poke,
       )
       .on(
