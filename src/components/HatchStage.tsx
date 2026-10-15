@@ -17,7 +17,15 @@
    re-render per frame — the same pattern as LetterTravel. Six shards,
    a handful of words and some dust is nothing; keeping it out of Reanimated
    keeps one file readable. Reduced motion lands straight on the born
-   tableau. */
+   tableau.
+
+   COLOUR. The type and chrome around the egg — the readout, your words once
+   the dark lifts, her first word's bubble, the chirp's note — take the
+   console skin in the theme's colours (lib/egg-os). The egg is art and keeps
+   its own in every theme: the shell, its crack and shard outlines and its
+   shadow on the ground read the static Y as Y_ART, and the burst (the dark,
+   the flash, the gold glow and dust, the words while they fly) is a picture
+   of light, so its colours are fixed too. */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
@@ -29,7 +37,8 @@ import type { HatchlingForm } from "../lib/hatchling-form";
 import type { DimScore } from "../lib/hatch-engine";
 import { t } from "../lib/i18n";
 import { firstWord } from "../lib/first-word";
-import { F2, Y, mono } from "../theme/y2k";
+import { F2, Y as Y_ART } from "../theme/y2k";
+import { useEggOS } from "../lib/egg-os";
 
 let Haptics: typeof import("expo-haptics") | null = null;
 try {
@@ -154,6 +163,7 @@ export function HatchStage({
   onBorn: () => void;
   celebrate?: number; // bump it and she hops (the key was pressed)
 }) {
+  const { Y, mono } = useEggOS();
   const reduce = useReducedMotion();
   const sh = EGG_SHELLS[shell] ?? EGG_SHELLS[0];
   const [, bump] = useState(0);
@@ -415,7 +425,7 @@ export function HatchStage({
   const cyV = headH + (box.h - headH - 30) / 2;
 
   const shard = (s: Shard, i: number) => (
-    <Polygon key={i} points={s.p} fill="url(#hshard)" stroke={Y.ink} strokeWidth={2} strokeLinejoin="round" opacity={s.op} transform={`translate(${CX + s.x} ${CY + s.y}) rotate(${s.rot}) scale(${s.sc})`} />
+    <Polygon key={i} points={s.p} fill="url(#hshard)" stroke={Y_ART.ink} strokeWidth={2} strokeLinejoin="round" opacity={s.op} transform={`translate(${CX + s.x} ${CY + s.y}) rotate(${s.rot}) scale(${s.sc})`} />
   );
   const stageT = `translate(160 150) scale(${K}) translate(-160 -130)`;
 
@@ -449,13 +459,13 @@ export function HatchStage({
             </Defs>
             <ShellGradient shell={sh} gid="hshard" />
             <G transform={stageT}>
-              <Ellipse cx={CX} cy={CY + 58} rx={66} ry={9} fill={Y.ink} opacity={0.1} />
+              <Ellipse cx={CX} cy={CY + 58} rx={66} ry={9} fill={Y_ART.ink} opacity={0.1} />
               <Circle cx={0} cy={0} r={150} fill="url(#hglow)" opacity={glowOp} transform={`translate(${CX} ${CY}) scale(${glowK})`} />
               {phase === "crack" && (
                 <G transform={`translate(${CX} ${CY}) rotate(${wob}) scale(${(1 + Math.sin(a.t * 2.3) * 0.014) * (1 + a.pop * 0.04)} ${(1 + Math.sin(a.t * 2.3) * 0.014) * (1 - a.pop * 0.05)})`}>
                   <EggBody shell={sh} gid="hegg">
-                    <Path d={CRACK} fill="none" stroke={Y.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="200" strokeDashoffset={200 - a.crack * 200} opacity={0.85} />
-                    {a.crack > 0.62 && <Path d="M-8 -12 L-12 -50 M36 -14 L42 -48" fill="none" stroke={Y.ink} strokeWidth={2.4} strokeLinecap="round" opacity={(a.crack - 0.62) * 2.4} />}
+                    <Path d={CRACK} fill="none" stroke={Y_ART.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="200" strokeDashoffset={200 - a.crack * 200} opacity={0.85} />
+                    {a.crack > 0.62 && <Path d="M-8 -12 L-12 -50 M36 -14 L42 -48" fill="none" stroke={Y_ART.ink} strokeWidth={2.4} strokeLinecap="round" opacity={(a.crack - 0.62) * 2.4} />}
                   </EggBody>
                 </G>
               )}
@@ -510,10 +520,10 @@ export function HatchStage({
           {/* the one word she says first */}
           {qs > 0 && !!a.quote && (
             <View pointerEvents="none" style={{ position: "absolute", left: sx(CX + 80) - 90, top: sy(CY - 92 - a.rise * 20) - 18, width: 180, alignItems: "center", opacity: qs, transform: [{ scale: qs * qb }] }}>
-              <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+              <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ln, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
                 <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 15, color: Y.ink }}>{`“${a.quote}…”`}</Text>
               </View>
-              <View style={{ width: 10, height: 10, backgroundColor: Y.panel, borderRightWidth: 2, borderBottomWidth: 2, borderColor: Y.ink, marginTop: -6, marginLeft: -76, transform: [{ rotate: "45deg" }] }} />
+              <View style={{ width: 10, height: 10, backgroundColor: Y.panel, borderRightWidth: 2, borderBottomWidth: 2, borderColor: Y.ln, marginTop: -6, marginLeft: -76, transform: [{ rotate: "45deg" }] }} />
             </View>
           )}
         </View>

@@ -21,7 +21,8 @@ import { getLang, t, useLang } from "../lib/i18n";
 import { openPrivacy, openTerms } from "../lib/legal";
 import { monthsShort } from "../lib/format";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
-import { F2, Y, bevel, card, key as keyBtn, mono, tag } from "../theme/y2k";
+import { F2, Y as Y_ART } from "../theme/y2k";
+import { FIXED_INK, useEggOS, type EggPalette, type EggSkin } from "../lib/egg-os";
 import { Wheel } from "../components/Wheel";
 import { useAuth } from "../lib/auth";
 import { fetchPool, POOL_CACHE_KEY, publishLetter, upsertFingerprint, type PoolLetter } from "../lib/db";
@@ -94,7 +95,16 @@ import { MoodIcon } from "../components/MoodIcon";
    COLOUR: every hue in theme/y2k.ts is an app token now. The first build of
    this used a saturated periwinkle of its own and you could feel the seam at
    the handoff. The Y2K-ness is all form — 2px borders, hard shadows, meters —
-   and none of it hue. */
+   and none of it hue.
+
+   And the tokens are the runtime theme's (10a): every component here takes
+   the console skin from useEggOS() (lib/egg-os has which Y key is which
+   token), so the console is Classic's pale wash, Lavender's, Paper's or
+   Midnight's. Three things keep their colours in every theme: the egg and
+   hatchling art (the unchosen egg in the dock still reads the static Y, as
+   Y_ART), the sign-in row, which is drawn to Apple's and Google's own
+   button rules, and the content fills — the brass key, the cream cue deck,
+   the age warning, the mood faces — whose type is a fixed dark ink. */
 
 type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "write" | "hatch" | "naming" | "dress" | "fare" | "flight";
 /* THE DOCTRINE ORDER (owner, 2026-08-25): you feed the egg BEFORE anything
@@ -122,9 +132,10 @@ const CENTRED = { flexGrow: 1, justifyContent: "center" } as const;
 const CARDS = [0, 1, 2] as const;
 
 /* the welcome headline + sub, shared by the visible copy and the off-screen
-   measuring pass so the two can never drift apart */
-const HEAD = { fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center" as const, marginTop: 18, lineHeight: 36 };
-const SUB = [mono(11, "r"), { color: Y.dim, textAlign: "center" as const, marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }];
+   measuring pass so the two can never drift apart. Functions of the console
+   palette, so they're coloured by the theme in effect. */
+const headStyle = (Y: EggPalette) => ({ fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center" as const, marginTop: 18, lineHeight: 36 });
+const subStyle = (Y: EggPalette, mono: EggSkin["mono"]) => [mono(11, "r"), { color: Y.dim, textAlign: "center" as const, marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }];
 
 /* the sealed list's inline short forms live in the catalog as ob.sealed.<key>;
    this set says which dimension keys actually have one */
@@ -148,6 +159,8 @@ const ORBIT: { top: number; left?: number; right?: number; rot: string }[] = [
 const EGG_STATUS_STEPS: Step[] = ["username", "you", "cakeday", "avatar"];
 
 export default function Onboarding() {
+  // the console skin in the theme's colours; tk is the 10a tokens (t is the catalog's)
+  const { Y, bevel, card, key: keyBtn, tag, mono, t: tk, dark } = useEggOS();
   const router = useRouter();
   const lang = useLang(); // repaint when the reader changes language
   const auth = useAuth();
@@ -529,10 +542,10 @@ export default function Onboarding() {
               ))}
             </View>
 
-            <Text style={HEAD}>
+            <Text style={headStyle(Y)}>
               {t("ob.door.h")} <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>{t("ob.door.hi")}</Text>
             </Text>
-            <Text style={SUB}>{t("ob.door.s")}</Text>
+            <Text style={subStyle(Y, mono)}>{t("ob.door.s")}</Text>
           </View>
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
@@ -565,6 +578,9 @@ export default function Onboarding() {
                   />
                 ) : codeStage ? (
                   <>
+                    {/* the fields the email key unfolds into are keys of the
+                        sign-in row, so like the row they keep their white, their
+                        type and their red in every theme (see AuthKey) */}
                     <View
                       style={{
                         height: 52,
@@ -710,6 +726,7 @@ export default function Onboarding() {
                 autoFocus
                 placeholder={t("ob.username.placeholder")}
                 placeholderTextColor={Y.faint}
+                keyboardAppearance={dark ? "dark" : "light"}
                 style={{ flex: 1, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 21, color: Y.ink }}
               />
             </View>
@@ -758,15 +775,15 @@ export default function Onboarding() {
                       height: 20,
                       borderRadius: 10,
                       borderWidth: 2,
-                      borderColor: on ? Y.panel : Y.ink,
+                      borderColor: on ? Y.onFill : Y.ln,
                       marginRight: 14,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Y.panel }} /> : null}
+                    {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Y.onFill }} /> : null}
                   </View>
-                  <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 20, color: on ? Y.panel : Y.ink }}>{t(`pr.${p.id}`)}</Text>
+                  <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 20, color: on ? Y.onFill : Y.ink }}>{t(`pr.${p.id}`)}</Text>
                 </Pressable>
               </Animated.View>
             );
@@ -791,13 +808,16 @@ export default function Onboarding() {
               <Wheel items={monthsShort()} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
               <Wheel items={days} value={dob.d - 1} onChange={(i) => setDob((d) => ({ ...d, d: i + 1 }))} />
               <Wheel items={years} value={yi} onChange={(i) => setDob((d) => ({ ...d, y: years[i] }))} />
-              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 88, height: 2, backgroundColor: "rgba(17,17,19,0.14)" }} />
-              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 132, height: 2, backgroundColor: "rgba(17,17,19,0.14)" }} />
+              {/* the selection band, ruled once across the three columns in the divider colour */}
+              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 88, height: 2, backgroundColor: tk.line }} />
+              <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 132, height: 2, backgroundColor: tk.line }} />
             </View>
 
-            {/* the age, live — one pill that turns when the answer does */}
+            {/* the age, live — one pill that turns when the answer does. The
+                under-18 state is a warning, which 10a has no token for: its
+                pink, its postmark red and its brown type are a fixed set */}
             <View style={{ alignItems: "center", marginTop: 16 }}>
-              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? Y.panel : "#FBE7E1", borderColor: ageOk ? Y.ink : Y.warn, shadowColor: ageOk ? Y.ink : Y.warn, paddingHorizontal: 16, paddingVertical: 8 }]}>
+              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? Y.panel : "#FBE7E1", borderColor: ageOk ? Y.ln : Y.warn, shadowColor: ageOk ? Y.ln : Y.warn, paddingHorizontal: 16, paddingVertical: 8 }]}>
                 <Text style={[mono(10.5, "b"), { color: ageOk ? Y.ink : "#8E3B2A", letterSpacing: 1 }]}>
                   {ageOk ? t("ob.ageIs", { n: String(age) }) + " ✓" : t("ob.age.under", { n: String(age) })}
                 </Text>
@@ -850,7 +870,7 @@ export default function Onboarding() {
                           height: 54,
                           borderRadius: 27,
                           borderWidth: on ? 3 : 2,
-                          borderColor: on ? Y.blue : Y.ink,
+                          borderColor: on ? Y.blue : Y.ln,
                           overflow: "hidden",
                           alignItems: "center",
                           justifyContent: "center",
@@ -919,8 +939,8 @@ export default function Onboarding() {
                     },
                   ]}
                 >
-                  <View style={{ width: 22, height: 28, borderRadius: 11, borderTopLeftRadius: 13, borderTopRightRadius: 13, borderWidth: 2, borderColor: Y.ink, backgroundColor: s.mid }} />
-                  <Text style={[mono(8.5, "b"), { color: on ? Y.panel : Y.ink, marginTop: 8, letterSpacing: 0.8 }]}>{s.name.toUpperCase()}</Text>
+                  <View style={{ width: 22, height: 28, borderRadius: 11, borderTopLeftRadius: 13, borderTopRightRadius: 13, borderWidth: 2, borderColor: Y.ln, backgroundColor: s.mid }} />
+                  <Text style={[mono(8.5, "b"), { color: on ? Y.onFill : Y.ink, marginTop: 8, letterSpacing: 0.8 }]}>{s.name.toUpperCase()}</Text>
                 </Pressable>
               );
             })}
@@ -958,6 +978,7 @@ export default function Onboarding() {
                   maxLength={16}
                   placeholder={t("ob.naming.placeholder")}
                   placeholderTextColor={Y.faint}
+                  keyboardAppearance={dark ? "dark" : "light"}
                   style={{ flex: 1, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 21, color: Y.ink }}
                 />
                 {/* the dice, in the box: roll a name */}
@@ -967,7 +988,7 @@ export default function Onboarding() {
                     setNudge((x) => ({ n: x.n + 1, re: "happy" }));
                   }}
                   hitSlop={8}
-                  style={{ width: 34, height: 34, borderRadius: 9, borderWidth: 2, borderColor: Y.ink, backgroundColor: Y.brass, alignItems: "center", justifyContent: "center", marginLeft: 8 }}
+                  style={{ width: 34, height: 34, borderRadius: 9, borderWidth: 2, borderColor: Y.ln, backgroundColor: Y.brass, alignItems: "center", justifyContent: "center", marginLeft: 8 }}
                 >
                   <DiceGlyph />
                 </Pressable>
@@ -983,7 +1004,7 @@ export default function Onboarding() {
                     }}
                     style={[tag, birdName === n ? null : bevel(2, 2), { margin: 4, paddingHorizontal: 11, backgroundColor: birdName === n ? Y.blue : Y.panel }]}
                   >
-                    <Text style={[mono(9.5, "b"), { color: birdName === n ? "#fff" : Y.ink }]}>{n.toUpperCase()}</Text>
+                    <Text style={[mono(9.5, "b"), { color: birdName === n ? Y.onFill : Y.ink }]}>{n.toUpperCase()}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -1010,7 +1031,7 @@ export default function Onboarding() {
                       }}
                       style={[tag, bevel(on ? 3 : 2, on ? 3 : 2), { marginHorizontal: 4, paddingHorizontal: 12, backgroundColor: on ? Y.blue : Y.panel }]}
                     >
-                      <Text style={[mono(9.5, "b"), { color: on ? Y.panel : Y.ink }]}>{t(`pr.${p.id}`).toUpperCase()}</Text>
+                      <Text style={[mono(9.5, "b"), { color: on ? Y.onFill : Y.ink }]}>{t(`pr.${p.id}`).toUpperCase()}</Text>
                     </Pressable>
                   );
                 })}
@@ -1096,6 +1117,7 @@ export default function Onboarding() {
     const n = thoughts.length;
     const dl = line.length;
     const hear = n >= FEED_COUNT ? t("ob.hear.full") : dl === 0 ? t("ob.hear.listen") : dl < 24 ? t("ob.hear.goOn") : dl < 70 ? t("ob.hear.warmer") : t("ob.hear.you");
+    // faint → brass → the courier's pink → the accent; the brass and pink are fixed in every theme
     const hearDot = dl === 0 ? Y.faint : dl < 24 ? Y.brass : dl < 70 ? "#E9A6B4" : Y.blue;
     const left = FEED_COUNT - n;
     const sub = n === 0 ? t("ob.write.sub") : n < FEED_COUNT ? (left === 1 ? t("ob.write.sMore1") : t("ob.write.sMore", { n: String(left) })) : t("ob.write.s5");
@@ -1146,19 +1168,22 @@ export default function Onboarding() {
 
             {n < FEED_COUNT && (
               <View style={{ paddingHorizontal: 18 }}>
-                {/* the cue deck — tap to shuffle */}
+                {/* the cue deck — tap to shuffle. Its cream and gold label are
+                    the deck's own and stay in every theme, so the cue on it is
+                    in the fixed dark ink; its outline and the shuffle key are
+                    the console's */}
                 <Pressable
                   onPress={() => {
                     setCue((c) => c + 1);
                     spin.value = withTiming(spin.value + 180, { duration: 400, easing: Easing.out(Easing.cubic) });
                   }}
-                  style={{ marginTop: 14, height: 36, borderRadius: 999, backgroundColor: "#FFF3D6", borderWidth: 2, borderColor: Y.ink, flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 4 }}
+                  style={{ marginTop: 14, height: 36, borderRadius: 999, backgroundColor: "#FFF3D6", borderWidth: 2, borderColor: Y.ln, flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 4 }}
                 >
                   <Text style={[mono(9, "b"), { color: "#8A6A1F", letterSpacing: 1.6 }]}>{t("ob.cue.label")}</Text>
-                  <Text numberOfLines={1} style={{ flex: 1, marginLeft: 8, marginRight: 6, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 13.5, color: Y.ink }}>
+                  <Text numberOfLines={1} style={{ flex: 1, marginLeft: 8, marginRight: 6, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 13.5, color: Y.fixedInk }}>
                     {t(`ob.cue.${(cue % CUE_COUNT) + 1}`)}
                   </Text>
-                  <Animated.View style={[spinStyle, { width: 26, height: 26, borderRadius: 13, backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, alignItems: "center", justifyContent: "center" }]}>
+                  <Animated.View style={[spinStyle, { width: 26, height: 26, borderRadius: 13, backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ln, alignItems: "center", justifyContent: "center" }]}>
                     <Text style={{ fontSize: 13, color: Y.ink, marginTop: -1 }}>↻</Text>
                   </Animated.View>
                 </Pressable>
@@ -1169,7 +1194,7 @@ export default function Onboarding() {
                     flyStyle,
                     card,
                     bevel(pageFocus ? 6 : 4, pageFocus ? 6 : 4),
-                    { marginTop: 10, borderColor: pageFocus ? Y.blue : Y.ink, shadowColor: pageFocus ? Y.blue : Y.ink, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 48, overflow: "hidden" },
+                    { marginTop: 10, borderColor: pageFocus ? Y.blue : Y.ln, shadowColor: pageFocus ? Y.blue : Y.ln, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 48, overflow: "hidden" },
                   ]}
                 >
                   {/* ruled, like the page it is */}
@@ -1185,6 +1210,7 @@ export default function Onboarding() {
                     autoFocus
                     placeholder={t("ob.write.ph")}
                     placeholderTextColor={Y.faint}
+                    keyboardAppearance={dark ? "dark" : "light"}
                     style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 17, lineHeight: 28, color: Y.ink, minHeight: 84, paddingTop: 0, marginTop: 0 }}
                   />
                   <View style={{ position: "absolute", left: 14, bottom: 15, flexDirection: "row", alignItems: "center" }}>
@@ -1194,9 +1220,9 @@ export default function Onboarding() {
                   <Pressable
                     onPress={feed}
                     disabled={!canFeed}
-                    style={[tag, canFeed ? bevel(2, 2) : null, { position: "absolute", right: 12, bottom: 10, backgroundColor: canFeed ? Y.blue : Y.panel, borderColor: canFeed ? Y.ink : Y.faint }]}
+                    style={[tag, canFeed ? bevel(2, 2) : null, { position: "absolute", right: 12, bottom: 10, backgroundColor: canFeed ? Y.blue : Y.panel, borderColor: canFeed ? Y.ln : Y.faint }]}
                   >
-                    <Text style={[mono(9.5, "b"), { color: canFeed ? "#fff" : Y.faint }]}>{t("ob.feed.btn")}</Text>
+                    <Text style={[mono(9.5, "b"), { color: canFeed ? Y.onFill : Y.faint }]}>{t("ob.feed.btn")}</Text>
                   </Pressable>
                 </Animated.View>
 
@@ -1214,7 +1240,7 @@ export default function Onboarding() {
                               height: 36,
                               borderRadius: 18,
                               borderWidth: 2,
-                              borderColor: on ? Y.blue : Y.ink,
+                              borderColor: on ? Y.blue : Y.ln,
                               backgroundColor: MOODS[id].bg,
                               alignItems: "center",
                               justifyContent: "center",
@@ -1276,7 +1302,7 @@ export default function Onboarding() {
 
               <Animated.View entering={FadeInDown.delay(500).duration(480)} style={{ width: "100%", maxWidth: 340, marginTop: 30 }}>
                 <Pressable onPress={letHerGo} style={[keyBtn, bevel(4, 4), { backgroundColor: Y.blue }]}>
-                  <Text style={[mono(12.5, "b"), { color: "#fff" }]}>{t("ob.letGo", { name: HER })}</Text>
+                  <Text style={[mono(12.5, "b"), { color: Y.onFill }]}>{t("ob.letGo", { name: HER })}</Text>
                 </Pressable>
               </Animated.View>
             </>
@@ -1364,6 +1390,7 @@ export default function Onboarding() {
    display, and it's why nine screens don't read as nine screens — you can
    see the whole run from the second one. */
 function Console({ children, step, bars = ORDER.indexOf("hatch"), onBack }: { children: React.ReactNode; step?: number; bars?: number; onBack?: () => void }) {
+  const { Y } = useEggOS();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Y.ground }}>
       {step != null && (
@@ -1395,8 +1422,9 @@ function Seg({ on, i, last }: { on: boolean; i: number; last: boolean }) {
     v.value = withDelay(i * 40, withSpring(on ? 1 : 0, { damping: 13, stiffness: 180 }));
   }, [on, i, v]);
   const s = useAnimatedStyle(() => ({ transform: [{ scaleX: v.value }] }));
+  const { Y } = useEggOS();
   return (
-    <View style={{ flex: 1, height: 11, marginRight: last ? 0 : 3, borderWidth: 1.8, borderColor: Y.ink, overflow: "hidden" }}>
+    <View style={{ flex: 1, height: 11, marginRight: last ? 0 : 3, borderWidth: 1.8, borderColor: Y.ln, overflow: "hidden" }}>
       <Animated.View style={[s, { flex: 1, backgroundColor: Y.blue, transformOrigin: "left center" }]} />
     </View>
   );
@@ -1407,6 +1435,7 @@ function Seg({ on, i, last }: { on: boolean; i: number; last: boolean }) {
    decoration, it gets filled with the thing the flow is actually about:
    your egg, breathing, saying a little less nothing each screen. */
 function EggDock({ status, style, kick = 0, face }: { status?: string; style: any; kick?: number; face?: string | null }) {
+  const { Y, bevel, card, mono } = useEggOS();
   const jump = useSharedValue(0);
   const first = useRef(kick);
   useEffect(() => {
@@ -1423,7 +1452,7 @@ function EggDock({ status, style, kick = 0, face }: { status?: string; style: an
             width: 54,
             height: 54,
             borderWidth: 2,
-            borderColor: Y.ink,
+            borderColor: Y.ln,
             borderRadius: 12,
             backgroundColor: Y.ground,
             alignItems: "center",
@@ -1439,7 +1468,7 @@ function EggDock({ status, style, kick = 0, face }: { status?: string; style: an
           {!!face && (
             <Animated.View
               entering={ZoomIn.duration(360).easing(Easing.out(Easing.back(1.8)))}
-              style={{ position: "absolute", right: -9, top: -9, width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: Y.ink, backgroundColor: Y.panel, overflow: "hidden" }}
+              style={{ position: "absolute", right: -9, top: -9, width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: Y.ln, backgroundColor: Y.panel, overflow: "hidden" }}
             >
               <AvatarImage id={face} seed={face} size={22} />
             </Animated.View>
@@ -1458,8 +1487,11 @@ function EggDock({ status, style, kick = 0, face }: { status?: string; style: an
 /* THE EGG BEFORE IT'S CHOSEN. The dock runs from the pen name to the face
    — every one of those screens comes before the shell is picked, so what's
    in the incubator can't be a shell yet. A dashed outline and a question
-   mark, breathing: something's in here, and it isn't decided. */
+   mark, breathing: something's in here, and it isn't decided.
+   It is egg art, so its cream, its dashed outline and its pale "?" keep
+   their colours in every theme (the outline is the static Y_ART.ink). */
 function UnknownEgg() {
+  const { mono } = useEggOS(); // the "?"'s face only; its colour is its own
   const pulse = useSharedValue(0);
   useEffect(() => {
     pulse.value = withRepeat(withSequence(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }), withTiming(0, { duration: 1100, easing: Easing.inOut(Easing.quad) })), -1, true);
@@ -1468,7 +1500,7 @@ function UnknownEgg() {
   return (
     <Animated.View style={[fade, { width: 34, height: 40, alignItems: "center", justifyContent: "center" }]}>
       <Svg width={34} height={40} viewBox="-100 -110 200 220" style={{ position: "absolute" }}>
-        <Path d="M0 -100 C58 -100 82 -30 82 20 C82 78 46 108 0 108 C-46 108 -82 78 -82 20 C-82 -30 -58 -100 0 -100Z" fill="#FFF6E8" stroke={Y.ink} strokeWidth={8} strokeDasharray="18 14" strokeLinecap="round" />
+        <Path d="M0 -100 C58 -100 82 -30 82 20 C82 78 46 108 0 108 C-46 108 -82 78 -82 20 C-82 -30 -58 -100 0 -100Z" fill="#FFF6E8" stroke={Y_ART.ink} strokeWidth={8} strokeDasharray="18 14" strokeLinecap="round" />
       </Svg>
       <Text style={[mono(15, "b"), { color: "#B9B3E0", marginTop: 3 }]}>?</Text>
     </Animated.View>
@@ -1486,6 +1518,7 @@ function Dots() {
   const a = useAnimatedStyle(() => ({ opacity: t.value >= 1 ? 1 : 0.22 }));
   const b = useAnimatedStyle(() => ({ opacity: t.value >= 2 ? 1 : 0.22 }));
   const c = useAnimatedStyle(() => ({ opacity: t.value >= 3 ? 1 : 0.22 }));
+  const { Y } = useEggOS();
   const dot = { width: 6, height: 6, borderRadius: 3, backgroundColor: Y.blue, marginLeft: 4 } as const;
   return (
     <View style={{ flexDirection: "row" }}>
@@ -1498,6 +1531,7 @@ function Dots() {
 
 /* the headline: plain words, then the one in italic serif that carries it */
 function Head({ plain, em, sub }: { plain: string; em: string; sub: string }) {
+  const { Y, mono } = useEggOS();
   return (
     <Animated.View entering={FadeInDown.duration(420)} style={{ paddingHorizontal: 18, paddingTop: 12 }}>
       <Text style={{ fontFamily: F2.serif, fontSize: 26, color: Y.ink, textAlign: "center", lineHeight: 33 }}>
@@ -1524,6 +1558,7 @@ function Foot({
   skip?: string;
   onSkip?: () => void;
 }) {
+  const { Y, bevel, key: keyBtn, mono } = useEggOS();
   return (
     <View style={{ paddingHorizontal: 18, paddingBottom: 10, paddingTop: 8 }}>
       <Pressable
@@ -1531,7 +1566,8 @@ function Foot({
         disabled={!on}
         style={[keyBtn, bevel(4, 4), { backgroundColor: tone === "brass" ? Y.brass : Y.blue, opacity: on ? 1 : 0.4 }]}
       >
-        <Text style={[mono(12.5, "b"), { color: tone === "brass" ? Y.ink : "#fff" }]}>{label}</Text>
+        {/* the gold stays gold in every theme, so the label on it is the fixed dark ink */}
+        <Text style={[mono(12.5, "b"), { color: tone === "brass" ? Y.fixedInk : Y.onFill }]}>{label}</Text>
       </Pressable>
       {skip ? (
         <Pressable onPress={onSkip} style={{ paddingTop: 12, alignItems: "center" }}>
@@ -1565,7 +1601,10 @@ function Foot({
    ask for a person's account are the one place familiarity IS the design:
    they match the native Apple button's geometry exactly (52pt, radius 10),
    carry the real four-colour G, and speak in the system face with sentence
-   case. A sign-in button that looks like every other app's is the point. */
+   case. A sign-in button that looks like every other app's is the point.
+   So the row keeps its colours in every theme: the black key, the white
+   keys, their type and the glyphs on them are the buttons Apple's and
+   Google's rules describe, not the console's chrome (SIGNIN_INK below). */
 function AuthKey({
   icon,
   label,
@@ -1628,19 +1667,24 @@ function GoogleG({ size = 20 }: { size?: number }) {
     </Svg>
   );
 }
+/* the dice sits on the brass key, which is gold in every theme, so it is
+   drawn in the fixed dark ink */
 function DiceGlyph({ size = 16 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Rect x={3} y={3} width={18} height={18} rx={4} fill="none" stroke={Y.ink} strokeWidth={2.2} />
-      <Circle cx={8.5} cy={8.5} r={1.9} fill={Y.ink} />
-      <Circle cx={15.5} cy={8.5} r={1.9} fill={Y.ink} />
-      <Circle cx={8.5} cy={15.5} r={1.9} fill={Y.ink} />
-      <Circle cx={15.5} cy={15.5} r={1.9} fill={Y.ink} />
-      <Circle cx={12} cy={12} r={1.9} fill={Y.ink} />
+      <Rect x={3} y={3} width={18} height={18} rx={4} fill="none" stroke={FIXED_INK} strokeWidth={2.2} />
+      <Circle cx={8.5} cy={8.5} r={1.9} fill={FIXED_INK} />
+      <Circle cx={15.5} cy={8.5} r={1.9} fill={FIXED_INK} />
+      <Circle cx={8.5} cy={15.5} r={1.9} fill={FIXED_INK} />
+      <Circle cx={15.5} cy={15.5} r={1.9} fill={FIXED_INK} />
+      <Circle cx={12} cy={12} r={1.9} fill={FIXED_INK} />
     </Svg>
   );
 }
-function MailGlyph({ size = 20, color = Y.ink }: { size?: number; color?: string }) {
+/* the mail glyph is drawn on the sign-in row's white keys (and in white on
+   the black one), so its dark is the row's own, the same in every theme */
+const SIGNIN_INK = "#111113";
+function MailGlyph({ size = 20, color = SIGNIN_INK }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Rect x={2.2} y={4.8} width={19.6} height={14.4} rx={2.6} fill="none" stroke={color} strokeWidth={1.8} />
@@ -1652,6 +1696,9 @@ function MailGlyph({ size = 20, color = Y.ink }: { size?: number; color?: string
 const POKES: WrenMood[] = ["delight", "curious", "wink", "happy"];
 
 function Hatchling({ mood, shell, form, dims, skin, accessory, tag: nameTag, nudge }: { mood: WrenMood; shell: number; form?: HatchlingForm; dims?: DimScore[]; skin?: WrenSkin; accessory?: WrenAccessory; tag?: string | null; nudge?: { n: number; re: "chirp" | "tilt" | "happy" } }) {
+  /* the console's colours for what's drawn around her — the mark over her
+     head and the name tag on its cord. She and her shell keep their own. */
+  const { Y, mono } = useEggOS();
   const [pokes, setPokes] = useState(0);
   const [said, setSaid] = useState<"chirp" | "tilt" | "happy" | null>(null);
   const idle = useChickIdle(dims, !said); // her own habits, between the things you make her do
@@ -1747,9 +1794,9 @@ function Hatchling({ mood, shell, form, dims, skin, accessory, tag: nameTag, nud
         <Animated.View entering={ZoomIn.duration(260)} style={{ position: "absolute", left: 0, right: 0, bottom: 20, alignItems: "center" }}>
         <Animated.View style={[tagStyle, { alignItems: "center", transformOrigin: "top center" }]}>
           <Svg width={44} height={9} viewBox="0 0 44 9" style={{ marginBottom: -3 }}>
-            <Path d="M2 1 q20 11 40 0" fill="none" stroke={Y.ink} strokeWidth={1.6} />
+            <Path d="M2 1 q20 11 40 0" fill="none" stroke={Y.ln} strokeWidth={1.6} />
           </Svg>
-          <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ink, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 }}>
+          <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ln, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 }}>
             <Text style={[mono(9, "b"), { letterSpacing: 0.8 }]}>{nameTag}</Text>
           </View>
         </Animated.View>
@@ -1765,11 +1812,13 @@ function Hatchling({ mood, shell, form, dims, skin, accessory, tag: nameTag, nud
 /* one dimension as a bar: label, fill, number. Brass = locked (trusted),
    the app's blue = still growing — colour carries the confidence, so no tag. */
 function BarRow({ d }: { d: DimScore }) {
+  const { Y, mono, t: tk } = useEggOS();
   const col = d.locked ? Y.brass : Y.blue;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
       <Text style={{ width: 118, fontFamily: F2.serif, fontSize: 15.5, color: Y.ink }}>{d.label}</Text>
-      <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: "#E4E1F6", marginHorizontal: 10, overflow: "hidden" }}>
+      {/* the track: the pale accent fill */}
+      <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: tk.lav, marginHorizontal: 10, overflow: "hidden" }}>
         <View style={{ width: `${d.score}%`, height: 7, borderRadius: 4, backgroundColor: col, opacity: d.locked ? 1 : 0.85 }} />
       </View>
       <Text style={[mono(13, "b"), { color: col, width: 30, textAlign: "right", fontVariant: ["tabular-nums"] }]}>{d.score}</Text>
@@ -1779,11 +1828,12 @@ function BarRow({ d }: { d: DimScore }) {
 
 /* the letter she leaves with — big enough to actually read as a letter */
 function CarriedLetter() {
+  const { Y } = useEggOS();
   return (
     <Svg width={92} height={68} viewBox="0 0 92 68">
-      <Rect x={2} y={2} width={88} height={64} rx={4} fill="#FFFFFF" stroke={Y.ink} strokeWidth={2.6} />
-      <Path d="M2 6 L46 40 L90 6" fill="none" stroke={Y.ink} strokeWidth={2.4} strokeLinejoin="round" />
-      <Rect x={62} y={44} width={20} height={16} fill={Y.blue} stroke={Y.ink} strokeWidth={2} />
+      <Rect x={2} y={2} width={88} height={64} rx={4} fill={Y.panel} stroke={Y.ln} strokeWidth={2.6} />
+      <Path d="M2 6 L46 40 L90 6" fill="none" stroke={Y.ln} strokeWidth={2.4} strokeLinejoin="round" />
+      <Rect x={62} y={44} width={20} height={16} fill={Y.blue} stroke={Y.ln} strokeWidth={2} />
       <Rect x={10} y={48} width={34} height={3} fill={Y.ink} opacity={0.5} />
       <Rect x={10} y={56} width={22} height={3} fill={Y.ink} opacity={0.3} />
     </Svg>
@@ -1791,8 +1841,10 @@ function CarriedLetter() {
 }
 
 /* one of the three cards on the door: number, art, word. The lit one lifts
-   off its shadow; the others sit flat and grey. */
+   off its shadow; the others sit flat and grey — on the theme's soft
+   ground, a shade set apart from the lit card's face. */
 function DoorCard({ i, on }: { i: number; on: boolean }) {
+  const { Y, bevel, card, mono, t: tk } = useEggOS();
   const lift = useSharedValue(on ? 1 : 0);
   useEffect(() => {
     lift.value = withSpring(on ? 1 : 0, { damping: 14, stiffness: 160 });
@@ -1804,7 +1856,7 @@ function DoorCard({ i, on }: { i: number; on: boolean }) {
         st,
         card,
         on ? bevel(4, 4) : null,
-        { flex: 1, marginHorizontal: 5, height: 118, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: on ? Y.panel : "#F3F1FC" },
+        { flex: 1, marginHorizontal: 5, height: 118, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: on ? Y.panel : tk.soft },
       ]}
     >
       <Text style={[mono(9, "b"), { position: "absolute", top: 8, left: 10, color: on ? Y.blue : Y.faint, letterSpacing: 1.6 }]}>{`0${i + 1}`}</Text>
@@ -1815,8 +1867,12 @@ function DoorCard({ i, on }: { i: number; on: boolean }) {
 }
 
 /* the art on each card, drawn once and moving only while its card is lit:
-   a page being written, a courier on her arc, a sealed reply */
+   a page being written, a courier on her arc, a sealed reply. They are
+   line icons in the console's colours, so they take the theme's (ink or
+   faint strokes, the card face, the accent); the courier's pink and the
+   seal's brass are hers and stay. */
 function DoorArt({ i, on }: { i: number; on: boolean }) {
+  const { Y } = useEggOS();
   const ph = useSharedValue(0);
   useEffect(() => {
     ph.value = 0;
