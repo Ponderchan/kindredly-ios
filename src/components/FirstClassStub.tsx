@@ -1,54 +1,104 @@
-import { View, Text, Pressable } from "react-native";
+import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { PF } from "../theme/post";
+import { BRAND } from "../theme/themes";
 import { WrenBird } from "./WrenBird";
-import { t } from "../lib/i18n";
-import { useWrenName } from "../lib/wren-name";
-import { W14, cardShadow } from "./AuraCard";
 
-/* FIRST CLASS — the cream card with the gold stamp (owner's Me sheet).
-   Under the aura: a gold dot, FIRST CLASS, the line about what it opens,
-   two short lines of what is inside, a dark pill to the boarding pass,
-   and the stamp itself on the right — dashed gold, tilted, the courier on
-   it. Paid, the same card says you are travelling. */
+/* FIRST CLASS — the cream card with the gold stamp (10a, H:84; the React
+   Native twin of KFirstClassCard's .card, for the Me fallback).
+   ────────────────────────────────────────────────────────────────────────
+   Cream paper with a 2pt cream border, corners of 24, padding 18 18 16, 14
+   between the words and the stamp. The words, 8 apart: a wax-gold dot and
+   FIRST CLASS (mono 600 10 at .16em, gold), the headline in Newsreader
+   24/1.15 (the owner's default serif, never the Letter font: it isn't a
+   letter), what it brings in system 13/1.5, and the call to action as an
+   ink pill. The stamp: 78 × 96, white, a 2pt dotted wax-gold edge, turned
+   4°, the courier grown (stage "wren", whatever hers is: the stamp is the
+   fare, not her) over 1ST or MEMBER.
 
+   Brand colours, the same in every theme (owner: 10a cream). Every word
+   comes in from the Me model (screens/me/me-model buildFirstClass): the
+   owner's copy, "Rooms that never close · voice letters / {wren}'s full
+   wardrobe", never "More Kindreds" or "a monthly reading" (Apple 2.3.2). */
 export function FirstClassStub({
-  premium,
-  cofounderNo,
+  eyebrow,
+  headline,
+  sub,
+  cta,
+  stampLabel,
+  member,
   onPress,
+  style,
 }: {
-  premium: boolean;
-  cofounderNo?: number | null;
+  eyebrow: string;
+  headline: string;
+  /** may hold a line break */
+  sub: string;
+  cta: string;
+  /** 1ST, or MEMBER */
+  stampLabel: string;
+  /** a member: the delighted bird (else the curious one) */
+  member: boolean;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 }) {
-  const wren = useWrenName();
   return (
     <Pressable
       onPress={onPress}
-      /* white, like every other light card on the page — the gold dot and the
-         dashed gold stamp say "first class"; a cream ground only fought the
-         card above it */
-      style={({ pressed }) => [{ marginTop: 12, backgroundColor: "#FFFFFF", borderRadius: 18, paddingVertical: 16, paddingLeft: 18, paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 14, overflow: "hidden", opacity: pressed ? 0.92 : 1 }, cardShadow]}
+      accessibilityRole="button"
+      accessibilityLabel={[eyebrow, headline, sub.replace(/\n/g, ". "), cta].join(". ")}
+      style={({ pressed }) => [
+        {
+          backgroundColor: BRAND.cream,
+          borderWidth: 2,
+          borderColor: BRAND.creamBorder,
+          borderRadius: 24,
+          paddingTop: 18,
+          paddingHorizontal: 18,
+          paddingBottom: 16,
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: 14,
+          opacity: pressed ? 0.85 : 1,
+        },
+        style,
+      ]}
     >
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: W14.gold }} />
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.2, color: W14.goldInk }}>{t("me.firstClass")}</Text>
+      <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: BRAND.waxGold }} />
+          <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: BRAND.goldText }}>
+            {eyebrow.toLocaleUpperCase()}
+          </Text>
         </View>
-        <Text style={{ fontFamily: PF.serif, fontSize: 18.5, lineHeight: 23, color: W14.ink, marginTop: 8 }} numberOfLines={2}>
-          {premium ? (cofounderNo ? t("me.fc.founding", { n: String(cofounderNo) }) : t("fc.paidHead")) : t("fc.stubHead")}
-        </Text>
-        <Text style={{ fontFamily: PF.letter, fontSize: 12.5, lineHeight: 18, color: "rgba(30,27,53,0.6)", marginTop: 6 }}>
-          {premium ? t("fc.paidSub") : `${t("fc.stubSub1")}\n${t("fc.stubSub2", { wren })}`}
-        </Text>
-        <View style={{ alignSelf: "flex-start", marginTop: 10, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: W14.ink }}>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12, color: "#FFFFFF" }}>{premium ? t("fc.paidCta") : t("fc.stubCta")} →</Text>
+        <Text style={{ fontFamily: PF.letterSerif, fontSize: 24, lineHeight: 27.6, color: BRAND.inkOnBrand }}>{headline}</Text>
+        <Text style={{ fontSize: 13, lineHeight: 19.5, color: BRAND.subOnCream }}>{sub}</Text>
+        <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: BRAND.inkOnBrand }}>
+          <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: BRAND.paperWhite }}>
+            {cta}
+          </Text>
         </View>
       </View>
 
       {/* the stamp */}
-      <View style={[{ width: 68, height: 78, backgroundColor: "#FBF9FF", borderWidth: 2, borderStyle: "dashed", borderColor: W14.gold, borderRadius: 4, alignItems: "center", justifyContent: "center", gap: 4, transform: [{ rotate: "6deg" }] }, cardShadow, { shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }]}>
-        <WrenBird size={36} mood={premium ? "delight" : "curious"} stage="wren" />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: W14.goldInk }}>{premium ? t("fc.member") : "1ST"}</Text>
+      <View
+        style={{
+          width: 78,
+          height: 96,
+          borderRadius: 8,
+          borderWidth: 2,
+          borderStyle: "dotted",
+          borderColor: BRAND.waxGold,
+          backgroundColor: BRAND.paperWhite,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 4,
+          transform: [{ rotate: "4deg" }],
+        }}
+      >
+        <WrenBird size={43} mood={member ? "delight" : "curious"} stage="wren" />
+        <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.9, color: BRAND.goldText }}>
+          {stampLabel}
+        </Text>
       </View>
     </Pressable>
   );

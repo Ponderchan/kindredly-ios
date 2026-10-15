@@ -18,6 +18,7 @@ import type { UsageGroup } from "../lib/usage-stickers";
 import type { DimKey } from "../lib/hatch-engine";
 import type { TraitObservation } from "../lib/writing-engine/stickers";
 import { dShort } from "../lib/format";
+import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 
 /* WRITING AURA — the room (owner's sheet, three tabs).
    ────────────────────────────────────────────────────────────────────────
@@ -55,7 +56,13 @@ type Tab = "portrait" | "dims" | "habits";
    dark over any ground), the cards' soft shadow, and the aura green
    (BRAND.greenText: an established reading, every other word you lean
    on), which is a brand colour in 10a. The stickers keep their own
-   colours. */
+   colours.
+
+   10a step 5: the room sits on the page colour (tk.bg) under the secondary
+   page's header (its title in mono, share on the right), and PORTRAIT is
+   the same 10a Aura card Me draws (components/AuraCard, from the Me
+   model's buildAuraCard), so the card you tapped on Me is the card that
+   heads the room — no differently drawn copy (critic). */
 const SCRIM = "rgba(30,27,53,0.35)";
 
 export default function AuraScreen() {
@@ -122,16 +129,16 @@ export default function AuraScreen() {
   const avatarId = (profile?.avatarId as string) || null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: tk.ink }}>‹</Text>
-        </Pressable>
-        <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.serif, fontSize: 20, color: tk.ink }}>{tr("wa.title")}</Text>
-        <Pressable onPress={() => router.push("/aura-card")} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <ShareIcon size={22} color={P.pen} />
-        </Pressable>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
+      <SecondaryHeader
+        title={tr("wa.title").toLocaleUpperCase()}
+        fallbackHref="/(tabs)/me"
+        right={
+          <Pressable onPress={() => router.push("/aura-card")} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr("ac.shareSm")} style={({ pressed }) => ({ width: 34, height: 34, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}>
+            <ShareIcon size={22} color={P.pen} />
+          </Pressable>
+        }
+      />
 
       {/* the three lenses */}
       <View style={{ marginHorizontal: 22, marginTop: 8, flexDirection: "row", backgroundColor: tk.lav, borderRadius: 12, padding: 3 }}>

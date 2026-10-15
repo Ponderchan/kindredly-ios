@@ -149,6 +149,25 @@ function Course({ w, P }: { w: number; P: Palette }) {
   );
 }
 
+/* THE 10a FRAME (Me, step 5). On Me the card sits inside the 10a courier
+   frame (2.5 ln, corners 24, a 5/5 hard shadow, clipped; H:75) — drawn by
+   SwiftUI around this card as a React Native island (KCourierFrame), or by
+   the fallback's own frame. `framed` gives the frame a card with no corners,
+   shadow or white ground of its own (the doubled corner and shadow the
+   critic saw), the 10a band type (her name system 600 14, the time mono 500
+   10 at .7, the line system 13/1.4, the aside the serif italic 12 at .75,
+   Open system 600 13 in the hour's own button colours, which read on their
+   own sky in every app theme — not the mock's sf on #1F5B3C, dark on dark in
+   Midnight), the ink label shape for YOUR COURIER (corners 6; its 12pt is
+   the owner's), and type that stops growing at 1.3× so the fixed band never
+   clips at the largest sizes. Without onPress it is a picture only: the
+   frame owns the tap (in SwiftUI, a Button over the scene, cancelled by a
+   scroll, which an RN Pressable inside a SwiftUI scroll view is not). */
+const FRAMED_TYPE_MAX = 1.3;
+/* the band's two lines in the 10a frame: her line system 13/1.4, the aside the serif italic 12 at .75 */
+const BAND_LINE_10A = (color: string) => ({ fontSize: 13, lineHeight: 18.2, color });
+const BAND_ASIDE_10A = (color: string) => ({ fontFamily: "Newsreader-Italic", fontStyle: "italic" as const, fontSize: 12, color, opacity: 0.75 });
+
 export function CourierCard({
   wren,
   where,
@@ -164,6 +183,8 @@ export function CourierCard({
   dayOff = false,
   best = 0,
   onPlay,
+  framed = false,
+  width,
 }: {
   wren: string;
   where: WhereaboutsRead;
@@ -172,10 +193,11 @@ export function CourierCard({
   seenToday: number;
   stage: WrenStage;
   accessory?: Parameters<typeof WrenBird>[0]["accessory"];
-  onPress: () => void;
+  /** the card's tap; absent in the 10a frame, which owns the tap */
+  onPress?: () => void;
   /** the hour to paint — defaults to the phone's clock; previews pass one */
   hour?: number;
-  /** a fixed log entry — previews only */
+  /** a fixed log entry — previews, and Me (whose model reads the same entry for VoiceOver) */
   entry?: LogEntry;
   /** when she is hungry or someone is waiting on you, that is what she says (lib/hunger) */
   hunger?: HungerRead | null;
@@ -184,8 +206,13 @@ export function CourierCard({
   /** your best run, to invite a rematch */
   best?: number;
   onPlay?: () => void;
+  /** inside the 10a frame (see above) */
+  framed?: boolean;
+  /** the card's width when the caller knows it (an island), so the first frame is drawn */
+  width?: number;
 }) {
-  const [w, setW] = useState(0);
+  const [w, setW] = useState(width ?? 0);
+  const fontMax = framed ? FRAMED_TYPE_MAX : undefined;
   const lang = useLang(); // the diary is written in the reader's language — re-write it when that changes
   const light = daylight(hour);
   const P = PALETTE[light];
@@ -262,7 +289,16 @@ export function CourierCard({
   const birdSize = 50;
 
   return (
-    <Pressable onPress={playing ? onPlay : onPress} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={({ pressed }) => [{ backgroundColor: W14.card, borderRadius: 20, overflow: "hidden", opacity: pressed ? 0.94 : 1 }, cardShadow]}>
+    <Pressable
+      onPress={playing ? onPlay : onPress}
+      disabled={framed && !onPress}
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={({ pressed }) =>
+        framed
+          ? [{ width, backgroundColor: P.sky[1], overflow: "hidden", opacity: pressed ? 0.94 : 1 }]
+          : [{ backgroundColor: W14.card, borderRadius: 20, overflow: "hidden", opacity: pressed ? 0.94 : 1 }, cardShadow]
+      }
+    >
       {/* the scene */}
       <View style={{ height: SCENE_H, backgroundColor: P.sky[1] }}>
         {w > 0 && (
@@ -363,8 +399,8 @@ export function CourierCard({
         {/* the fly pose already carries a letter — the family art draws it */}
         {/* the chip, inside the scene */}
         {/* 12pt, not 9.5 — readers couldn't make it out (owner, 2026-09-23) */}
-        <View style={{ position: "absolute", left: 12, top: 12, backgroundColor: P.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.5, color: P.chipText }}>{t("me.sec.courier").toUpperCase()}</Text>
+        <View style={{ position: "absolute", left: 12, top: 12, backgroundColor: P.chip, borderRadius: framed ? 6 : 999, paddingHorizontal: framed ? 9 : 12, paddingVertical: framed ? 5 : 6 }}>
+          <Text maxFontSizeMultiplier={fontMax} style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: framed ? 1.68 : 1.5, color: P.chipText }}>{t("me.sec.courier").toLocaleUpperCase()}</Text>
         </View>
         {/* on her day off: a sticker beside the chip */}
         {playing && (
@@ -382,31 +418,31 @@ export function CourierCard({
         {/* on the scene: who, what she is doing, one button */}
         <View style={{ position: "absolute", left: 16, right: 16, bottom: 0, height: BAND_H, flexDirection: "row", alignItems: "center", gap: 12 }}>
           {/* her diary: name · when, the entry, the aside */}
-          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 16, letterSpacing: -0.3, color: P.text }}>{wren}</Text>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{playing ? t("ff.dayoff.tag") : agoLabel(entry.at)}</Text>
+          <View style={{ flex: 1, minWidth: 0, gap: framed ? 4 : 3 }}>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: framed ? 6 : 8 }}>
+              <Text maxFontSizeMultiplier={fontMax} style={framed ? { fontSize: 14, fontWeight: "600", color: P.text } : { fontFamily: PF.letter, fontWeight: "700", fontSize: 16, letterSpacing: -0.3, color: P.text }}>{wren}</Text>
+              <Text maxFontSizeMultiplier={fontMax} style={framed ? { fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1, color: P.text, opacity: 0.7 } : { fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{playing ? t("ff.dayoff.tag") : agoLabel(entry.at)}</Text>
             </View>
             {playing ? (
               <>
-                <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{where.state === "delivery" ? t("ff.dayoff.lineCarrying") : t("ff.dayoff.line")}</Text>
-                <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{best > 0 ? t("ff.dayoff.subBest", { n: best }) : t("ff.dayoff.sub")}</Text>
+                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_LINE_10A(P.text) : { fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{where.state === "delivery" ? t("ff.dayoff.lineCarrying") : t("ff.dayoff.line")}</Text>
+                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_ASIDE_10A(P.text) : { fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{best > 0 ? t("ff.dayoff.subBest", { n: best }) : t("ff.dayoff.sub")}</Text>
               </>
             ) : (
               <>
-                <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
-                {!!(hunger ? hunger.sub : entry.sub) && <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
+                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_LINE_10A(P.text) : { fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
+                {!!(hunger ? hunger.sub : entry.sub) && <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_ASIDE_10A(P.text) : { fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
               </>
             )}
           </View>
           {playing ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C3E84F", borderRadius: 999, borderWidth: 2, borderColor: "#1E1B35", paddingHorizontal: 14, paddingVertical: 7 }}>
-              <Text style={{ fontSize: 9, color: "#1E1B35" }}>▶</Text>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: "#1E1B35" }}>{t("ff.play")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C3E84F", borderRadius: framed ? 16 : 999, borderWidth: 2, borderColor: "#1E1B35", paddingHorizontal: 14, paddingVertical: 7 }}>
+              <Text maxFontSizeMultiplier={fontMax} style={{ fontSize: 9, color: "#1E1B35" }}>▶</Text>
+              <Text maxFontSizeMultiplier={fontMax} style={framed ? { fontSize: 13, fontWeight: "600", color: "#1E1B35" } : { fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: "#1E1B35" }}>{t("ff.play")}</Text>
             </View>
           ) : (
-            <View style={{ backgroundColor: P.button, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.buttonText }}>{t("me.open")}</Text>
+            <View style={{ backgroundColor: P.button, borderRadius: framed ? 16 : 999, paddingHorizontal: 16, paddingVertical: framed ? 8 : 9 }}>
+              <Text maxFontSizeMultiplier={fontMax} style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.buttonText }}>{t("me.open")}</Text>
             </View>
           )}
         </View>

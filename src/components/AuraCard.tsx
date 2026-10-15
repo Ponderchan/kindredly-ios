@@ -1,18 +1,23 @@
+import { useMemo } from "react";
 import { Dimensions, Image, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P, PF } from "../theme/post";
 import { useTheme } from "../lib/theme";
-import { THEMES, type ThemeTokens } from "../theme/themes";
+import type { ThemeTokens } from "../theme/themes";
 import { AURA_SCENES, AURA_SKETCHES } from "../data/aura-scenes";
 import { MosaicId } from "./MosaicId";
 import type { Aura } from "../lib/aura";
 import { rungOf } from "../lib/aura-ladder";
-import { AuraArtBand, AuraScene } from "./AuraScene";
+import { AuraArtFit, AuraScene } from "./AuraScene";
 import { ShareIcon } from "./Icons";
 import { daylight } from "./CourierCard";
+import { InkPanel } from "./10a/InkPanel";
 import { chipsFor, phaseHeadline, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
 import type { ResolvedSticker } from "../lib/writing-engine/stickers";
+import { auraSlotPalette, buildAuraCard, type AuraCardVM, type AuraFacts } from "../screens/me/me-model";
+import { meFormat } from "../screens/me/me-format";
+import "../data/strings-step5-me";
 
 /* WRITING AURA — the card, built to the owner's W33 ladder sheet on the D
    palette (Aura × Courier pairing), 2026-09-19.
@@ -163,44 +168,106 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
   );
 }
 
-/* ── the paper: white, like every other card on the page (the sheet's D
-   was moon cream; on the lavender ground it read yellow, and warm paper
-   is the one thing this system already ruled out — see theme/post). The
-   scene's own ground is the pale lavender the sticker slots use, so the
-   picture still sits IN the card rather than floating on it. Light by
-   design — the courier card is light three hours of four, and at night
-   the two make a facing pair, one deep, one pale.
+/* ── THE CARD, 10a (H:78; owner: every number a count, no bar) ──────────────
+   The InkPanel "me" (sf, 2.5 ln, corners 24, a 5/5 ln shadow, padding 16),
+   12 between its pieces: the ink label YOUR WRITING AURA; the art slot, 110
+   tall on soft2 with corners of 14 — the title's own scene fitted by height
+   (never cover-cropped), or the desk drawn at the rung's fidelity on the
+   slot's colour; the title (system 600 20/1.2), FROM YOUR N LETTERS (mono
+   500 10 .14em, mute); the labels as ind outlines (1.5, corners 16, system
+   600 12; dashed while still trying on — the full-colour stickers stay on
+   the aura room's other tabs and the share card); the well's count glyphs
+   in ind and faint (five ticks, or three slots and the strongest label's
+   five slips) and the caption in mono 500 10; then the call to action
+   (ink, system 600 14, corners 14) and, once named, a 48-wide share key.
 
-   10a: the paper is now the theme's card, read by role, so it is a
-   function of the theme in effect and built in each component. The face
-   is the card face (sf: white in Classic, the night card in Midnight),
-   the type ink, the small lines under the title mute (the mock sets "FROM
-   YOUR N LETTERS" and the progress line in mute, H:78), the well an inset
-   (soft2), an empty tick faint, and the solid button ink with its label
-   in the page colour. The picture at the top is not the card's: its
-   scenes keep their own colours in every theme, and so does the AURA
-   pill laid on it (ART_INK, the 10a ink, fixed). ── */
-const cream = (tk: ThemeTokens) => ({ card: tk.sf, cardNamed: tk.sf, ink: tk.ink, dim: tk.mute, well: tk.soft2, tickOff: tk.faint, onInk: tk.bg, edge: tk.line });
-const ART_INK = THEMES.classic.ink;
+   Everything it says is the Me model's (screens/me/me-model buildAuraCard,
+   node-tested), which the SwiftUI card (KAuraCard) draws too, so the two
+   renderers and the /aura page can't tell a reader different things. The
+   top of the card opens the aura room (onOpen); the call to action writes a
+   letter on the first rungs (onWrite) and opens the room after. */
 
-/* the five slips on the right of the progress well: "n of your last m" */
-function Slips({ n, of }: { n: number; of: number }) {
-  const CREAM = cream(useTheme().t);
+/** The aura's facts for the card: the rung, the formed name, the scene's noun, the three labels. */
+export function auraCardFacts(aura: Aura | null): AuraFacts | null {
+  if (!aura) return null;
+  const st = aura.stickers;
+  const shown = chipsFor(st?.home ?? [], aura.usage, 3);
+  const stateOf = (id: string) => st?.home.find((h) => h.stickerId === id)?.state;
+  return {
+    rung: rungOf(aura),
+    titleName: titleName(st?.title) || null,
+    title: st?.title ? { noun: st.title.noun ?? null, adjective: st.title.adjective ?? null } : null,
+    chips: shown.map((c) => ({ id: c.id, name: stickerName(c.id), emerging: c.kind === "writing" && stateOf(c.id) === "emerging" })),
+  };
+}
+
+/** the art slot's height on the 10a card (H:78) */
+export const AURA_ART_H = 110;
+/** the art slot's width on a card `cardWidth` wide: inside its padding and outline */
+export const auraArtWidth = (cardWidth: number): number => Math.max(0, cardWidth - 2 * (16 + 2.5));
+
+/* The picture in the slot: the title's scene (in colour once named, its
+   sketch while the name forms), fitted by height; otherwise the desk at the
+   rung's fidelity, on the slot's own colour. The slot's corners are the
+   caller's (the card clips them; the Swift card clips the island). */
+export function AuraArtSlot({ art, width, height = AURA_ART_H }: { art: AuraCardVM["art"]; width: number; height?: number }) {
+  const { t: tk, dark } = useTheme();
+  // the strokes come with the ground: light ones on a dark slot (me-model auraSlotPalette)
+  const pal = useMemo(() => auraSlotPalette(tk, dark), [tk, dark]);
+  const src =
+    art.sceneId && art.fidelity === "colour" && AURA_SCENES[art.sceneId]
+      ? AURA_SCENES[art.sceneId]
+      : art.sceneId && art.fidelity === "sketch" && AURA_SKETCHES[art.sceneId]
+        ? AURA_SKETCHES[art.sceneId]
+        : null;
+  if (src) return <AuraArtFit width={width} height={height} src={src} ground={tk.soft2} />;
+  return (
+    <View style={{ width, height, backgroundColor: tk.soft2, overflow: "hidden" }}>
+      <AuraScene width={width} height={height} fidelity={art.fidelity} day={daylight()} pal={pal} />
+    </View>
+  );
+}
+
+/* the five slips: "n of your last m" */
+function Slips({ n, of, tk }: { n: number; of: number; tk: ThemeTokens }) {
   return (
     <View style={{ flexDirection: "row", gap: 3 }}>
       {Array.from({ length: 5 }, (_, i) => (
-        <View key={i} style={{ width: 9, height: 13, borderRadius: 2, backgroundColor: i < n ? CREAM.ink : "transparent", borderWidth: i < of ? 1.5 : 0, borderColor: i < n ? CREAM.ink : CREAM.tickOff, opacity: i < of ? 1 : 0.35 }} />
+        <View key={i} style={{ width: 9, height: 13, borderRadius: 2, backgroundColor: i < n ? tk.ind : "transparent", borderWidth: i < of ? 1.5 : 0, borderColor: i < n ? tk.ind : tk.faint, opacity: i < of ? 1 : 0.35 }} />
       ))}
     </View>
   );
 }
 
-/* the three slots a name needs: a filled square with a check, or a dashed one */
-function Slot({ done }: { done: boolean }) {
-  const CREAM = cream(useTheme().t);
+/* the three slots a name needs: filled with a check, or dashed */
+function Slot({ done, tk }: { done: boolean; tk: ThemeTokens }) {
   return (
-    <View style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: done ? CREAM.ink : "transparent", borderWidth: done ? 0 : 1.5, borderStyle: "dashed", borderColor: CREAM.tickOff, alignItems: "center", justifyContent: "center" }}>
-      {done && <Svg width={10} height={8} viewBox="0 0 10 8"><Path d="M1 4l3 3 5-6" fill="none" stroke={CREAM.onInk} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></Svg>}
+    <View style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: done ? tk.ind : "transparent", borderWidth: done ? 0 : 1.5, borderStyle: "dashed", borderColor: tk.faint, alignItems: "center", justifyContent: "center" }}>
+      {done && (
+        <Svg width={10} height={8} viewBox="0 0 10 8">
+          <Path d="M1 4l3 3 5-6" fill="none" stroke={tk.bg} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      )}
+    </View>
+  );
+}
+
+/** The well's glyphs (owner: counts, not a bar). */
+export function AuraMeterGlyphs({ meter }: { meter: AuraCardVM["meter"] }) {
+  const { t: tk } = useTheme();
+  if (meter.kind === "ticks")
+    return (
+      <View style={{ flexDirection: "row", gap: 3 }}>
+        {Array.from({ length: meter.total }, (_, i) => (
+          <View key={i} style={{ width: 10, height: 12, borderRadius: 2, backgroundColor: i < meter.filled ? tk.ind : tk.faint }} />
+        ))}
+      </View>
+    );
+  return (
+    <View style={{ flexDirection: "row", gap: 5 }}>
+      {Array.from({ length: meter.total }, (_, i) => (
+        <Slot key={i} done={i < meter.filled} tk={tk} />
+      ))}
     </View>
   );
 }
@@ -212,6 +279,7 @@ export function AuraCard({
   onOpen,
   onShare,
   onWrite,
+  width = Dimensions.get("window").width - 32,
 }: {
   aura: Aura;
   seed: string;
@@ -219,124 +287,59 @@ export function AuraCard({
   onOpen: () => void;
   onShare: () => void;
   onWrite?: () => void;
+  /** the card's width (the page's, less its 16 gutters, by default) */
+  width?: number;
 }) {
-  useLang();
-  const CREAM = cream(useTheme().t);
+  const lang = useLang();
+  const { t: tk } = useTheme();
   void seed;
   void avatarId;
-  const st = aura.stickers;
-  const rung = rungOf(aura);
-  const named = rung.level >= 5;
-  const width = Dimensions.get("window").width - 32;
-
-  /* the three on the card, and whether each is stuck or still trying */
-  const shown = chipsFor(st?.home ?? [], aura.usage, 3);
-  const stateOf = (id: string) => st?.home.find((h) => h.stickerId === id)?.state;
-
-  const from =
-    rung.level === 0
-      ? t("ap.from.first")
-      : named
-        ? t("ap.from.named", { n: rung.letters })
-        : rung.letters === 1
-          ? t("ap.from.one")
-          : t("ap.from.n", { n: rung.letters });
-
-  const progress =
-    rung.level <= 2
-      ? rung.letters > 5
-        ? t("ap.prog.notYet", { n: rung.letters }) // past the five and nothing holds — say so
-        : t("ap.prog.letters", { n: rung.letters, m: rung.level === 2 ? 5 : 3 })
-      : rung.level <= 4
-        ? rung.stuck > 0
-          ? t("ap.prog.stuck", { n: Math.min(rung.stuck, 3) })
-          : t("ap.prog.forming", { n: rung.letters }) // a stage reached, nothing held yet: say what was read, not "0 of 3"
-        : rung.level === 5
-          ? t("ap.prog.addUp")
-          : t(rung.changing === 1 ? "ap.prog.changing" : "ap.prog.changingMany", { n: rung.changing });
-
-  const cta = rung.level === 0 ? t("ap.cta.empty") : rung.level <= 2 ? t("ap.cta.another") : rung.level <= 4 ? t("ap.cta.labels") : t("ap.cta.full");
-  const onCta = rung.level <= 2 ? onWrite ?? onOpen : onOpen;
-  /* the title's own scene, once a noun is in view: its sketch while the
-     name is forming (rungs 3–4), in colour once it is earned (5–6) */
-  const title = st?.title ?? null;
-  const artId = title?.noun ? sceneId(title.adjective ?? null, title.noun) : null;
-  const art =
-    artId && rung.fidelity === "colour" && AURA_SCENES[artId]
-      ? AURA_SCENES[artId]
-      : artId && rung.fidelity === "sketch" && AURA_SKETCHES[artId]
-        ? AURA_SKETCHES[artId]
-        : null;
-
-  /* over a late-night scene the chrome flips to white; the generic
-     figure's colour rung follows the courier's hour */
-  const day = daylight();
-  const onNight = art ? rung.fidelity === "colour" && !!artId && artId.startsWith("late-night") : rung.fidelity === "colour" && day === "night";
-  const chrome = onNight ? "#FFFFFF" : ART_INK;
-  const chromeText = onNight ? ART_INK : "#FFFFFF";
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vm = useMemo(() => buildAuraCard(auraCardFacts(aura), meFormat()), [aura, lang]);
+  if (!vm) return null;
+  const onCta = vm.ctaTo === "compose" ? onWrite ?? onOpen : onOpen;
+  const artW = auraArtWidth(width);
 
   return (
-    <Pressable onPress={onOpen} style={[{ backgroundColor: named ? CREAM.cardNamed : CREAM.card, borderRadius: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.12 }]}>
-      {/* the picture is the progress (W33): the same scene, developing.
-          The pill sits where the courier card's does, same size, same
-          corner — the two cards are one family. */}
-      <View>
-        {art ? <AuraArtBand width={width} src={art} /> : <AuraScene width={width} fidelity={rung.fidelity} day={day} />}
-        <View style={{ position: "absolute", left: 14, top: 12, backgroundColor: chrome, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.5, color: chromeText }}>{t("me.sec.aura").toUpperCase()}</Text>
+    <InkPanel variant="me" style={{ width }} contentStyle={{ gap: 12 }}>
+      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={[vm.label, vm.title, vm.from, ...vm.chips.map((c) => c.name), vm.caption].join(". ")} style={({ pressed }) => ({ gap: 12, opacity: pressed ? 0.85 : 1 })}>
+        <View style={{ alignSelf: "flex-start", backgroundColor: tk.ink, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 5 }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.bg }}>{vm.label}</Text>
         </View>
-        {/* the picture IS the progress — pencil, sketch, colour. The tick
-            meter and the PENCIL / SKETCH tag that used to sit on it named
-            the stage a second time in words nobody uses (owner, 2026-09-20). */}
-      </View>
-
-      <View style={{ paddingHorizontal: 15, paddingTop: 13, paddingBottom: 15 }}>
-        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: named ? 25 : 23, lineHeight: named ? 28 : 26, letterSpacing: -0.6, color: CREAM.ink }}>
-          {named ? titleName(st?.title) : t("ap.what")}
-        </Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: CREAM.dim, marginTop: 6 }}>{from}</Text>
-
-        {shown.length > 0 && (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 9, rowGap: 11, marginTop: 12, paddingHorizontal: 2 }}>
-            {shown.map((s, i) => (
-              <StickerChip key={s.id} id={s.id} i={i} state={s.kind === "writing" ? stateOf(s.id) : undefined} />
+        <View style={{ height: AURA_ART_H, borderRadius: 14, overflow: "hidden", backgroundColor: tk.soft2 }}>
+          <AuraArtSlot art={vm.art} width={artW} />
+        </View>
+        <Text style={{ fontSize: 20, lineHeight: 24, fontWeight: "600", color: tk.ink }}>{vm.title}</Text>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: tk.mute }}>{vm.from}</Text>
+        {vm.chips.length > 0 && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {vm.chips.map((c) => (
+              <View key={c.id} style={{ borderWidth: 1.5, borderStyle: c.emerging ? "dashed" : "solid", borderColor: tk.ind, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5 }}>
+                <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: "600", color: tk.ind }}>
+                  {c.name}
+                </Text>
+              </View>
             ))}
           </View>
         )}
-
-        {/* the well: letters counted on the way to the first label, then
-            the three slots a name needs, then what the name is made of */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: CREAM.well }}>
-          {rung.level <= 2 ? (
-            <View style={{ flexDirection: "row", gap: 3 }}>
-              {Array.from({ length: 5 }, (_, i) => (
-                <View key={i} style={{ width: 10, height: 12, borderRadius: 2, backgroundColor: i < Math.min(rung.letters, 5) ? CREAM.ink : CREAM.tickOff }} />
-              ))}
-            </View>
-          ) : (
-            <View style={{ flexDirection: "row", gap: 5 }}>
-              {[0, 1, 2].map((i) => (
-                <Slot key={i} done={i < rung.stuck} />
-              ))}
-            </View>
-          )}
-          <Text style={{ flex: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 12, color: CREAM.dim }}>{progress}</Text>
-          {rung.level >= 3 && rung.slips && <Slips n={rung.slips.n} of={rung.slips.of} />}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <AuraMeterGlyphs meter={vm.meter} />
+          <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: tk.mute }}>{vm.caption}</Text>
+          {vm.meter.slips && <Slips n={vm.meter.slips.n} of={vm.meter.slips.of} tk={tk} />}
         </View>
+      </Pressable>
 
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-          <Pressable onPress={onCta} style={({ pressed }) => ({ flex: 1, backgroundColor: CREAM.ink, borderRadius: 12, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
-            <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: CREAM.onInk }}>{cta}</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Pressable onPress={onCta} accessibilityRole="button" style={({ pressed }) => ({ flex: 1, backgroundColor: tk.ink, borderRadius: 14, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: tk.bg }}>{vm.cta}</Text>
+        </Pressable>
+        {vm.share && (
+          <Pressable onPress={onShare} hitSlop={6} accessibilityRole="button" accessibilityLabel={vm.shareLabel} style={({ pressed }) => ({ width: 48, backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ln, borderRadius: 14, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+            <ShareIcon size={20} color={tk.ink} />
           </Pressable>
-          {named && (
-            <Pressable onPress={onShare} hitSlop={6} style={({ pressed }) => ({ width: 48, borderWidth: 1.5, borderColor: CREAM.edge, borderRadius: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
-              <ShareIcon size={20} color={CREAM.ink} />
-            </Pressable>
-          )}
-        </View>
+        )}
       </View>
-    </Pressable>
+    </InkPanel>
   );
 }
 

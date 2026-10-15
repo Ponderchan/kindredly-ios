@@ -11,7 +11,8 @@ import type { Fidelity } from "../lib/aura-ladder";
    whole thing in colour. The colour rung's sky is the courier card's sky
    at this hour — the two cards are always the same time of day. Before
    colour the ground is the app's own pale lavender, the pencil and the
-   sketch ink two steps of the same violet. */
+   sketch ink two steps of the same violet — on a light theme; a dark one
+   draws them in its own light strokes (ScenePalette). */
 
 export const SCENE_RATIO = 114 / 357;
 /** the band when it holds one of the fifty scenes: 16:9, the whole scene
@@ -33,6 +34,20 @@ export function AuraArtBand({ width, src }: { width: number; src: number }) {
   );
 }
 
+/* THE 10a SLOT (H:78): one of the fifty in a slot of a fixed height (110 on
+   the Aura card), FITTED BY HEIGHT — never cover-cropped, which at the
+   card's width cut about 40% of every picture's height (heads, feet,
+   windows; critic). The picture is 16:9, so it sits centred, as wide as
+   the height allows, on `ground` (the slot's soft2) at the sides. */
+export function AuraArtFit({ width, height, src, ground }: { width: number; height: number; src: number; ground: string }) {
+  const w = Math.min(width, Math.round(height / ART_RATIO));
+  return (
+    <View style={{ width, height, backgroundColor: ground, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <Image source={src} style={{ width: w, height: Math.round(w * ART_RATIO) }} resizeMode="contain" />
+    </View>
+  );
+}
+
 const D = {
   paper: "#FFFFFF", // before colour there is no colour: the drawing sits on the card's own paper
   pencil: "rgba(111,104,184,0.62)", // faint, but a drawing — not nothing
@@ -42,13 +57,45 @@ const D = {
   brass: "#D8A63F",
 } as const;
 
-export function AuraScene({ width, fidelity, day }: { width: number; fidelity: Fidelity; day: Daylight }) {
-  const h = Math.round(width * SCENE_RATIO);
-  const pal = PALETTE[day];
+/** What the rungs before colour are drawn with: the ground, the waiting lines (drawn at 30% down
+    to 15%), the pencil outline, the sketch's one ink and its fill. */
+export type ScenePalette = { ground: string; lines: string; pencil: string; ink: string; fill: string };
+
+/** The rungs on white paper (W33): the default, and every light theme's. */
+export const SCENE_ON_PAPER: ScenePalette = { ground: D.paper, lines: D.lines, pencil: D.pencil, ink: D.ink, fill: D.fill };
+
+/* `pal` is what the rungs before colour are drawn with; `ground` alone
+   overrides just the ground. They used to be the card's own white paper,
+   always, which in a 10a card's soft2 art slot is a white block — and in
+   Midnight a white slab (critic): the 10a card passes the slot's colour
+   (tk.soft2). And the strokes have to come with the ground: the paper's
+   near-black lines on Midnight's soft2 are invisible (about 1.05:1) and the
+   sketch turns into white blobs, so a dark slot passes light strokes too
+   (AuraCard's AuraArtSlot). The colour rung keeps the hour's sky.
+   `height` fills a slot of that height instead of the scene's own ratio
+   (the art is drawn "slice", so the desk stays whole and the edges give). */
+export function AuraScene({
+  width,
+  height,
+  fidelity,
+  day,
+  ground,
+  pal,
+}: {
+  width: number;
+  height?: number;
+  fidelity: Fidelity;
+  day: Daylight;
+  ground?: string;
+  pal?: Partial<ScenePalette>;
+}) {
+  const p: ScenePalette = { ...SCENE_ON_PAPER, ...pal, ...(ground ? { ground } : null) };
+  const h = height ?? Math.round(width * SCENE_RATIO);
+  const hour = PALETTE[day]; // the hour's light, for the colour rung
   const night = day === "night";
   /* colour: strokes go cream on the night sky, umber by day */
   const cInk = night ? "#F3ECDA" : "#3A2E1E";
-  const pane = night ? "#3A3F5C" : pal.sky[1];
+  const pane = night ? "#3A3F5C" : hour.sky[1];
   const skin = night ? "#E8CDB2" : "#E8CDB2";
   const body = night ? "#5B4E8A" : "#8A7454";
 
@@ -57,12 +104,12 @@ export function AuraScene({ width, fidelity, day }: { width: number; fidelity: F
       {fidelity === "colour" && (
         <Defs>
           <LinearGradient id="auraSky" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={pal.sky[0]} />
-            <Stop offset="1" stopColor={pal.sky[1]} />
+            <Stop offset="0" stopColor={hour.sky[0]} />
+            <Stop offset="1" stopColor={hour.sky[1]} />
           </LinearGradient>
         </Defs>
       )}
-      <Rect x={0} y={0} width={357} height={114} fill={fidelity === "colour" ? "url(#auraSky)" : D.paper} />
+      <Rect x={0} y={0} width={357} height={114} fill={fidelity === "colour" ? "url(#auraSky)" : p.ground} />
 
       {fidelity === "lines" && (
         <>
@@ -73,17 +120,17 @@ export function AuraScene({ width, fidelity, day }: { width: number; fidelity: F
             [52, 106],
             [66, 54],
           ].map(([y, w], i) => (
-            <Rect key={y} x={108} y={y} width={w} height={5} rx={2.5} fill={D.lines} opacity={0.3 - i * 0.05} />
+            <Rect key={y} x={108} y={y} width={w} height={5} rx={2.5} fill={p.lines} opacity={0.3 - i * 0.05} />
           ))}
           <Path d="M296 28l2.6 6.4 6.4 2.6-6.4 2.6-2.6 6.4-2.6-6.4-6.4-2.6 6.4-2.6z" fill={D.brass} />
         </>
       )}
 
-      {fidelity === "pencil" && <Figure stroke={D.pencil} fill="none" sunFill={null} />}
-      {fidelity === "sketch" && <Figure stroke={D.ink} fill={D.fill} sunFill="none" />}
+      {fidelity === "pencil" && <Figure stroke={p.pencil} fill="none" sunFill={null} />}
+      {fidelity === "sketch" && <Figure stroke={p.ink} fill={p.fill} sunFill="none" />}
       {fidelity === "colour" && (
         <>
-          <Figure stroke={cInk} fill={D.fill} pane={pane} skin={skin} body={body} hair={night ? "#2A2340" : undefined} paper="#FFFFFF" sunFill={night ? "#FFE7BE" : (pal.sun ?? D.brass)} />
+          <Figure stroke={cInk} fill={D.fill} pane={pane} skin={skin} body={body} hair={night ? "#2A2340" : undefined} paper="#FFFFFF" sunFill={night ? "#FFE7BE" : (hour.sun ?? D.brass)} />
           {/* two small lights in the corner — stars at night, sun-dust by day */}
           <Circle cx={40} cy={26} r={3} fill={night ? "#FFE7BE" : D.brass} opacity={night ? 0.9 : 1} />
           <Circle cx={60} cy={17} r={2} fill={night ? "#FFE7BE" : D.brass} opacity={night ? 0.9 : 1} />

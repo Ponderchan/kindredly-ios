@@ -2,20 +2,31 @@ import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
-import { W14 } from "../components/AuraCard";
+import { MONO, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { keepsake } from "../data/keepsakes";
 import { loadShelf, unseen, type Minted } from "../lib/keepsakes";
 import { useWrenName } from "../lib/wren-name";
 import { dShort } from "../lib/format";
+import { SecondaryHeader } from "../components/10a/SecondaryHeader";
+import { keepsakeA11y } from "../screens/me/me-model";
+import "../data/strings-step5-me";
 
 /* EVERYTHING SHE KEPT — the whole shelf, newest first, three to a row.
-   The room shows the latest three; "All N →" lands here. */
+   The room shows the latest three and Me the latest two; "All N →" and Me's
+   KEEPSAKES land here.
+
+   10a: on the theme (no fixed white tiles on a lavender wash), under the
+   secondary page's header (KEEPSAKES, the count on the right); each tile
+   the theme's soft block with the icon, its name and its proof in mono 9,
+   and the ind dot on one not opened yet — which VoiceOver hears too
+   ("{name}, new", the words Me's tiles use: me-model keepsakeA11y). */
 
 export default function Keepsakes() {
   useLang();
   const router = useRouter();
+  const { t: tk } = useTheme();
   const wren = useWrenName();
   const [shelf, setShelf] = useState<Minted[] | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
@@ -40,31 +51,38 @@ export default function Keepsakes() {
   for (let i = 0; i < known.length; i += 3) rows.push(known.slice(i, i + 3));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4, height: 48 }}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/courier"))} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: W14.ink }}>‹</Text>
-        </Pressable>
-        <View style={{ flex: 1, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.5, color: W14.ink }}>{t("ka.title")}</Text>
-          {shelf && <Text style={{ fontFamily: PF.letter, fontSize: 15, color: "rgba(30,27,53,0.5)" }}>{known.length}</Text>}
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: PF.letter, fontSize: 13.5, lineHeight: 19, color: "rgba(30,27,53,0.65)", marginBottom: 14 }}>{t("ka.lede", { wren })}</Text>
-        {shelf && shelf.length === 0 && <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: "rgba(30,27,53,0.55)", marginTop: 20 }}>{t("ka.none", { wren })}</Text>}
+    <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
+      <SecondaryHeader
+        title={t("ka.title").toLocaleUpperCase()}
+        fallbackHref="/courier"
+        right={shelf ? <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.1, color: tk.mute, paddingHorizontal: 4 }}>{known.length}</Text> : undefined}
+      />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+        <Text style={{ fontFamily: PF.letterSerif, fontSize: 14, lineHeight: 20, color: tk.sub, marginBottom: 14 }}>{t("ka.lede", { wren })}</Text>
+        {shelf && shelf.length === 0 && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 14, color: tk.mute, marginTop: 20 }}>{t("ka.none", { wren })}</Text>}
         {rows.map((row, ri) => (
           <View key={ri} style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
             {row.map((k) => {
               const def = keepsake(k.id);
               if (!def) return null;
+              const name = t(`ks.name.${def.id}`);
+              const isNew = fresh.has(k.id);
               return (
-                <Pressable key={k.id} onPress={() => router.push(`/keepsake/${k.id}`)} style={({ pressed }) => ({ flex: 1, backgroundColor: "#FFFFFF", borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
+                <Pressable
+                  key={k.id}
+                  onPress={() => router.push(`/keepsake/${k.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={keepsakeA11y(name, isNew, { t })}
+                  style={({ pressed }) => ({ flex: 1, backgroundColor: tk.soft, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}
+                >
                   <Image source={def.icon} style={{ width: 40, height: 40 }} resizeMode="contain" />
-                  <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 8, textAlign: "center" }}>{t(`ks.name.${def.id}`)}</Text>
-                  <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>{k.evidence || dShort(k.at).toUpperCase()}</Text>
-                  {fresh.has(k.id) && <View style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: P.pen }} />}
+                  <Text numberOfLines={2} style={{ fontSize: 12, fontWeight: "600", color: tk.ink, marginTop: 8, textAlign: "center" }}>
+                    {name}
+                  </Text>
+                  <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.6, color: tk.mute, marginTop: 4 }}>
+                    {k.evidence || dShort(k.at).toLocaleUpperCase()}
+                  </Text>
+                  {isNew && <View style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: tk.ind }} />}
                 </Pressable>
               );
             })}
