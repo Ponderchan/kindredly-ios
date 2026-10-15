@@ -1,0 +1,3 @@
+{
+  "ignore_dirs": [".claude", "ios/build", "ios/Pods"]
+}

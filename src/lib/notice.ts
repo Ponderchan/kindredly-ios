@@ -42,8 +42,13 @@ const COMMON = new Set(
   )),
 );
 
+/* a link is not something either of you wrote: a shared song posts its URL
+   as the message, so two people who both shared songs were told they both
+   reach for "https" (and "youtu", "spotify"…). Links go before counting. */
+const LINK = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9.-]+\.(?:com|be|fm|io|net|org|app|co|me|ly)(?:\/\S*)?/gi;
+
 const words = (t: string) =>
-  (t.toLowerCase().match(/[a-zà-ÿ']{5,}/g) || []).filter((w) => !COMMON.has(w));
+  (t.replace(LINK, " ").toLowerCase().match(/[a-zà-ÿ']{5,}/g) || []).filter((w) => !COMMON.has(w));
 
 function count(msgs: Msg[]): Map<string, number> {
   const m = new Map<string, number>();
