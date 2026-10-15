@@ -1,7 +1,16 @@
-import { t, getLang } from "./i18n";
+import { t, getLang, type Lang } from "./i18n";
+import { hashStr } from "./mosaic";
+
+/** A t()-shaped function. The date and name helpers below take one (and a
+    locale) as optional parameters, so a pure builder can hand them its own
+    and a node test never has to load i18n. */
+export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+
+/** BCP 47 tag per app language — what every date here is formatted in. */
+export const LOCALE_TAGS: Record<Lang, string> = { en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID", fr: "fr-FR", de: "de-DE", it: "it-IT", ja: "ja-JP", ko: "ko-KR" };
 
 /* dates format in the reader's locale, so JUL 29 becomes 29 de jul. / 29 jul */
-export const localeTag = (): string => ({ en: "en-US", es: "es-ES", pt: "pt-BR", id: "id-ID", fr: "fr-FR", de: "de-DE", it: "it-IT", ja: "ja-JP", ko: "ko-KR" }[getLang()] || "en-US");
+export const localeTag = (): string => LOCALE_TAGS[getLang()] || "en-US";
 const LOCALE = localeTag;
 /* Small pure formatters + deterministic identity helpers.
    shade/dLong/dShort/today ported from kindredly-v20.jsx; hashStr/postNo/
@@ -70,25 +79,92 @@ export function sinceShort(iso: string | number | Date): string {
   return d === 1 ? t("fmt.yesterday") : t("fmt.daysAgo", { n: d });
 }
 
-/* A HASH THAT CANNOT CRASH A SCREEN. Every caller feeds this an id, and
-   since 0009 an id can be null: a correspondent who deletes their account
-   leaves their side of the thread empty rather than taking the letters with
-   them. OrbitMap read `t.other` straight into here and the whole Kindreds
-   tab died on `null.length` — a red box in dev, an abort in Release. The
-   seed for a deterministic placement is not worth a crash. */
-export function hashStr(s: string | null | undefined): number {
-  if (!s) return 0;
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+/* The one 32-bit FNV-1a every identity derives from. It lives with FACE v1
+   in lib/mosaic (pure, so node can lock it); re-exported here for the
+   callers that have always imported it from format. Never fork it. */
+export { hashStr };
 
 /** stable anonymous "No. 1000–9999" from a user id (shown before reveal). */
 export function postNo(uid: string | null | undefined): number {
   return 1000 + (hashStr("post:" + (uid || "")) % 9000);
+}
+
+/* A PEN PAL'S NAME, BEFORE THEY HAVE ONE. "No. 4481" was typed out in
+   English in seven places (chat, the reader, Kindreds, Wren's home, the
+   flight log…) while a translated "No." already existed (pw.stub.no:
+   N.º, N°, Nr.). This is the one place it is built now. */
+/**
+ * A pen pal's anonymous name from their user id: "No. 4481" (en), "N.º 4481" (es/pt),
+ * "N° 4481" (fr), "Nr. 4481" (de). A null id is a deleted account, which has no
+ * number: it reads t("ld.unsigned") instead.
+ * @param opts.upper   upper-case for mono labels ("NO. 4481")
+ * @param opts.compact no space, the postmark style ("No.4481"; with upper, "NO.4481")
+ * @param opts.t       the caller's t (a pure builder's); defaults to i18n t
+ * @param opts.locale  the locale for upper-casing; defaults to the reader's
+ */
+export function penPalName(other: string | null | undefined, opts: { upper?: boolean; compact?: boolean; t?: TFn; locale?: string } = {}): string {
+  const tr = opts.t ?? t;
+  if (!other) return tr("ld.unsigned");
+  const s = tr("pw.stub.no") + (opts.compact ? "" : " ") + postNo(other);
+  return opts.upper ? s.toLocaleUpperCase(opts.locale ?? localeTag()) : s;
+}
+
+/* ── step 5 date labels ─────────────────────────────────────────────────
+   Every date a SwiftUI screen shows is formatted here, in TS, so Swift
+   never formats a date and no screen hardcodes "en-US". Each takes an
+   optional locale (default: the reader's language) so a pure builder can
+   pass the one it was given. */
+
+const CJK = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/; // kana, CJK ideographs, hangul — the same test postmark() uses
+
+/**
+ * A day as a label: the locale's own short date, upper-cased, in the locale's
+ * own order — "OCT 14" (en), "14 OCT" (es), "14 DE OUT." (pt), "14 OCT." (fr),
+ * "14. OKT." (de), "14 OTT" (it), "14 OKT" (id); ja/ko keep their dShort
+ * ("10月14日", "10월 14일"). With year: "OCT 14, 2026", "2026年10月14日".
+ * Used for note cards, chat day rules, joined/used-on dates.
+ */
+export function noteDay(d: string | number | Date, opts: { locale?: string; year?: boolean } = {}): string {
+  const locale = opts.locale ?? localeTag();
+  const s = new Date(d).toLocaleDateString(locale, opts.year ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
+  return CJK.test(s) ? s : s.toLocaleUpperCase(locale);
+}
+
+/** A clock time, 24-hour, in the locale's own separator: "14:05", id "14.05". Midnight is "00:05", never "24:05". */
+export function time24(d: string | number | Date, opts: { locale?: string } = {}): string {
+  const s = new Date(d).toLocaleTimeString(opts.locale ?? localeTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
+  return s.replace(/^24(?=\D)/, "00");
+}
+
+/**
+ * A calendar month's title in the locale's own order: "OCTOBER 2026", "OCTUBRE DE 2026",
+ * "2026年10月", "2026년 10월". Upper-cased unless opts.upper is false (CJK has no case).
+ */
+export function monthTitle(d: string | number | Date, opts: { locale?: string; upper?: boolean } = {}): string {
+  const locale = opts.locale ?? localeTag();
+  const s = new Date(d).toLocaleDateString(locale, { month: "long", year: "numeric" });
+  return opts.upper === false ? s : s.toLocaleUpperCase(locale);
+}
+
+/* WHICH DAY A WEEK STARTS ON (owner question 11, built with the default):
+   Monday where the reader's calendars start on Monday, Sunday elsewhere.
+   One table, so the owner's answer is a one-line change. */
+/** 0 = Sunday, 1 = Monday — the first column of a calendar, per app language. */
+export const FIRST_WEEKDAY: Record<Lang, 0 | 1> = { en: 0, pt: 0, ja: 0, ko: 0, id: 0, de: 1, fr: 1, es: 1, it: 1 };
+
+/** The first weekday for a language (default: the reader's). */
+export const firstWeekday = (lang: Lang = getLang()): 0 | 1 => FIRST_WEEKDAY[lang] ?? 0;
+
+/**
+ * The seven narrow weekday letters for a calendar header, starting at `firstDay`
+ * (0 = Sunday, 1 = Monday): en "S M T W T F S", de from Monday "M D M D F S S",
+ * ja "日 月 火 …". Upper-cased in the locale.
+ */
+export function weekdayLetters(firstDay: number = firstWeekday(), opts: { locale?: string } = {}): string[] {
+  const locale = opts.locale ?? localeTag();
+  const start = ((Math.trunc(firstDay) % 7) + 7) % 7;
+  // 2023-01-01 was a Sunday; local noon keeps every zone on the same date
+  return Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + ((start + i) % 7), 12).toLocaleDateString(locale, { weekday: "narrow" }).toLocaleUpperCase(locale));
 }
 
 /* 12 abstract glyph avatars × 8 palettes = 96 stable identities (system.js). */
