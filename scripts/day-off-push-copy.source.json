@@ -1,7 +1,7 @@
 {
  "written": "2026-10-11",
  "approved": "2026-10-12",
- "about": "Her day off, as a push (phone only; the server never sends it). invite = the plain pool; best = with their best run, {n} gates, used only when best >= 2. Every language written natively and read blind by a second native editor (notesZh). The switch's label and explanation live in src/data/strings.ts (set.push.day_off.title / .sub) with every other switch. Read by scripts/make-local-push-copy.mjs into src/data/local-push-copy.ts.",
+ "about": "Her day off, as a push (phone only; the server never sends it). invite = the plain pool; best = with their best run, {n} gates, used only when best >= 2. Every language written natively and read blind by a second native editor (notesZh). It has no switch of its own since 2026-10-13: Settings shows only the knock and Notifications, which covers it. Read by scripts/make-local-push-copy.mjs into src/data/local-push-copy.ts.",
  "languages": {
   "en": {
    "invite": [

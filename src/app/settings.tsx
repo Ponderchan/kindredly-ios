@@ -9,9 +9,8 @@ import { W14, cardShadow } from "../components/AuraCard";
 import { SettingsIcon, type SettingsGlyph } from "../components/SettingsIcons";
 import { useAuth } from "../lib/auth";
 import { LeaveSheet } from "../components/LeaveSheet";
-import { disableMorningKnock, enableMorningKnock, morningKnockEnabled, refreshMorningKnock } from "../lib/notify";
-import { LOCAL_KEYS, askForNotifications, readPushPrefs, setPushPref, type PushKey, type PushPrefs } from "../lib/local-push";
-import { EXCLUSIVE } from "../lib/wren-lines";
+import { disableMorningKnock, enableMorningKnock, morningKnockEnabled, refreshMorningKnock, setNotifyOn } from "../lib/notify";
+import { getNotifyOn } from "../lib/local-push";
 import { readPerm, turnNotificationsOn, type Perm } from "../components/NotifyBanner";
 import Constants from "expo-constants";
 import { useEntitlement } from "../lib/entitlement";
@@ -37,11 +36,8 @@ export default function Settings() {
   const [restoring, setRestoring] = useState(false);
   const lang = useLang();
   const [picking, setPicking] = useState(false);
-  /* the switches on the account (user_metadata.push) — null until read; a
-     read that failed with nothing on this phone to go by shows no switches
-     rather than defaults that might not be theirs */
-  const [prefs, setPrefs] = useState<PushPrefs | null>(null);
-  const [prefsErr, setPrefsErr] = useState(false);
+  /* Notifications, one switch for this phone (owner, 2026-10-13) — null until read */
+  const [notifyOn, setNotifyOnState] = useState<boolean | null>(null);
   const [perm, setPerm] = useState<Perm | null>(null);
 
   const checkPerm = useCallback(() => {
@@ -57,12 +53,12 @@ export default function Settings() {
     useCallback(() => {
       let alive = true;
       morningKnockEnabled().then((on) => alive && setKnock(on));
-      readPushPrefs().then((r) => {
-        if (!alive) return;
-        const failed = r.source === "default" && !!r.error;
-        setPrefsErr(failed);
-        setPrefs(failed ? null : r.prefs);
-      });
+      getNotifyOn()
+        .then((on) => alive && setNotifyOnState(on))
+        .catch((e) => {
+          console.warn("[settings] notifications switch read:", e);
+          if (alive) setNotifyOnState(true); // the default; the next change writes it down
+        });
       checkPerm();
       return () => {
         alive = false;
@@ -159,38 +155,16 @@ export default function Settings() {
     }
   };
 
-  /* one switch. The phone's own lines need permission first; the server's
-     three only need the account to take the change. The daily line and the
-     morning question are one or the other: turning one on turns its partner
-     off, and both move together here as they do in the write. A refusal
-     puts them back and says so. */
-  const onTogglePref = async (key: PushKey, want: boolean) => {
-    if (!prefs) return;
-    const before = prefs;
-    if (want && LOCAL_KEYS.includes(key)) {
-      let ok = false;
-      try {
-        ok = await askForNotifications();
-      } catch (e) {
-        console.warn("[settings] permission ask:", e);
-      }
-      checkPerm();
-      if (!ok) {
-        Alert.alert(t("set.knock.deniedTitle"), t("set.push.deniedBody", { wren }));
-        return;
-      }
-    }
-    // only this switch (and its partner) moves — another one flipped meanwhile keeps its own place
-    const partner = want ? EXCLUSIVE[key] : undefined;
-    setPrefs((p) => p && { ...p, [key]: want, ...(partner ? { [partner]: false } : {}) });
-    try {
-      const saved = await setPushPref(key, want);
-      setPrefs((p) => p && { ...p, [key]: saved[key], ...(partner ? { [partner]: saved[partner] } : {}) });
-    } catch (e) {
-      console.warn("[settings] push pref save:", e);
-      setPrefs((p) => p && { ...p, [key]: before[key], ...(partner ? { [partner]: before[partner] } : {}) });
-      Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
-    }
+  /* NOTIFICATIONS, ONE SWITCH (owner, 2026-10-13: "统一成两个 8 knock 和
+     notification 一个 … 别让用户看见做选择"). Nine kinds underneath, one
+     choice on the page. Turning it on asks iOS first if it still can; if iOS
+     says no, the switch stays on (it's still what they want) and the note at
+     the top of the card says how to let it through. */
+  const onToggleNotify = async (want: boolean) => {
+    setNotifyOnState(want);
+    const allowed = await setNotifyOn(want);
+    checkPerm();
+    if (want && !allowed) Alert.alert(t("set.knock.deniedTitle"), t("set.push.deniedBody", { wren }));
   };
 
   const onSignOut = async () => {
@@ -244,17 +218,6 @@ export default function Settings() {
       </View>
     </View>
   );
-  const prefRow = (key: PushKey, glyph: SettingsGlyph, last?: boolean) => (
-    <SwitchRow
-      glyph={glyph}
-      title={t(`set.push.${key}.title`, { wren })}
-      sub={t(`set.push.${key}.sub`, { wren })}
-      value={!!prefs?.[key]}
-      disabled={!prefs}
-      onChange={(v) => void onTogglePref(key, v)}
-      last={last}
-    />
-  );
   const Card = ({ children, style }: { children: React.ReactNode; style?: object }) => (
     <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, marginBottom: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.06 }, style]}>{children}</View>
   );
@@ -299,43 +262,9 @@ export default function Settings() {
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: "#1F5FA8", marginTop: 6 }}>{perm === "ask" ? t("set.push.offAsk") : t("set.push.offOpen")}</Text>
             </Pressable>
           )}
-          {prefsErr && <Text style={{ fontFamily: PF.letter, fontSize: 12.5, lineHeight: 18, color: "#B23838", paddingHorizontal: 16, paddingTop: 12 }}>{t("set.push.readFail")}</Text>}
-          {/* the server's knocks need an account with a push token — a guest
-              has neither (registerForReplies skips them), so a guest sees
-              only the knock, which is the phone's own */}
-          {!auth.isGuest && (
-            <>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16 }}>
-                <SettingsIcon glyph="heart" />
-                <View style={{ flex: 1, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: W14.hair }}>
-                  <Text style={{ fontFamily: PF.letter, fontSize: 15, color: W14.ink }}>{t("set.push.always.title")}</Text>
-                  <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 2 }}>{t("set.push.always.sub")}</Text>
-                </View>
-              </View>
-              {prefRow("hungry", "bird")}
-              {prefRow("room_closing", "door")}
-              {prefRow("first_read", "mail")}
-            </>
-          )}
+          {notifyOn !== null && <SwitchRow glyph="mail" title={t("set.notify.title")} sub={t("set.notify.sub", { wren })} value={notifyOn} onChange={(v) => void onToggleNotify(v)} />}
           <SwitchRow glyph="bell" title={t("set.knock.title")} sub={t("set.knock.sub")} value={knock} onChange={(v) => void onToggleKnock(v)} last />
         </Card>
-
-        {/* her lines — the recording ones, every one off until asked for
-            (owner decision 4). Planned on this phone (lib/local-push). */}
-        <Head>{t("set.sec.lines", { wren: wren.toUpperCase() })}</Head>
-        {/* her day off — the phone's own, so a guest has it too; on until
-            turned off (owner, 2026-10-11). Its own card right under FROM
-            {wren}, so "her" / "su" / "son" in its title has her name just
-            above it (for a guest too, who has no hunger row), and so the
-            foot under the next card ("all four stay off") stays true. */}
-        <Card style={{ marginBottom: 10 }}>{prefRow("day_off", "bird", true)}</Card>
-        <Card style={{ marginBottom: 8 }}>
-          {prefRow("daily_line", "pen")}
-          {prefRow("morning_question", "draft")}
-          {prefRow("week_in_words", "doc")}
-          {prefRow("aura_settled", "star", true)}
-        </Card>
-        <Text style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 17, color: "rgba(30,27,53,0.5)", marginHorizontal: 6, marginBottom: 22 }}>{t("set.lines.foot", { wren })}</Text>
 
         {/* quiet */}
         <Head>{t("set.sec.quiet")}</Head>

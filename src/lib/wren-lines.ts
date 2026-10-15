@@ -69,8 +69,10 @@ export { MORNING_HOUR };
 export type PushKey = "hungry" | "room_closing" | "first_read" | "daily_line" | "morning_question" | "week_in_words" | "aura_settled" | "day_off";
 export type PushPrefs = Record<PushKey, boolean>;
 export const PUSH_KEYS: PushKey[] = ["hungry", "room_closing", "first_read", "daily_line", "morning_question", "week_in_words", "aura_settled", "day_off"];
-/** missing key = this. Everything about recording is off until the person turns it on (owner decision 4);
-    her day off is a game, not recording, and is on until turned off (owner, 2026-10-11). */
+/** missing key = this. Everything about recording is off until the person turns it on (owner decision 4) —
+    the journal's own card is where they're asked; her day off is a game, not recording, and is on until
+    turned off (owner, 2026-10-11). Since Settings shows only two switches (owner, 2026-10-13: "8 knock 和
+    notification 一个 … 别让用户看见做选择"), a new line in the aura rides on Notifications, on like the rest. */
 export const PUSH_DEFAULTS: PushPrefs = {
   hungry: true,
   room_closing: true,
@@ -78,7 +80,7 @@ export const PUSH_DEFAULTS: PushPrefs = {
   daily_line: false,
   morning_question: false,
   week_in_words: false,
-  aura_settled: false,
+  aura_settled: true,
   day_off: true,
 };
 /** the ones the phone schedules itself — the rest are the server's (day_off is never sent by the server) */

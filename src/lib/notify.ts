@@ -12,7 +12,7 @@ import * as Notifications from "expo-notifications";
 
 import { MORNING_HOUR } from "./day";
 export { MORNING_HOUR };
-import { askForNotifications, getKnockOn, replanLocal, setKnockOn } from "./local-push";
+import { askForNotifications, getKnockOn, getNotifyOn, replanLocal, setKnockOn, writeNotifyOn } from "./local-push";
 
 export async function enableMorningKnock(): Promise<boolean> {
   try {
@@ -83,6 +83,14 @@ export async function registerForReplies(): Promise<void> {
       /* no zone, no reminders by the clock — the knocks themselves still come */
     }
 
+    /* Notifications switched off on this phone: no token, so nothing is sent
+       here (setNotifyOn). Taken away again on every launch, in case the first
+       try never reached the server. */
+    if (!(await getNotifyOn())) {
+      void forgetThisDevice();
+      return;
+    }
+
     const perm = await Notifications.getPermissionsAsync();
     let status = perm.status;
     /* asked only once, and only after a session exists — a permission
@@ -112,11 +120,40 @@ export async function registerForReplies(): Promise<void> {
   }
 }
 
-/** stop knocking this device — called on sign-out and account deletion. */
-export async function forgetThisDevice(): Promise<void> {
-  if (!supabaseReady) return;
+/** stop knocking this device — sign-out, account deletion, Notifications off.
+    false = the token may still be on the server (offline, say); said, not swallowed. */
+export async function forgetThisDevice(): Promise<boolean> {
+  if (!supabaseReady) return true;
   try {
     const token = (await Notifications.getExpoPushTokenAsync()).data;
-    if (token) await supabase!.from("push_tokens").delete().eq("token", token);
-  } catch {}
+    if (!token) return true;
+    const { error } = await supabase!.from("push_tokens").delete().eq("token", token);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.warn("[notify] forget this device:", e);
+    return false;
+  }
+}
+
+/** the Notifications switch (owner, 2026-10-13: two switches in Settings, the
+    knock and this). Off: this device's token leaves push_tokens, so nothing the
+    server sends — a letter, a room, her desk, her reminders — reaches it, and
+    the phone plans none of her lines. On: the token comes back (asking iOS
+    first if it still can) and her lines are planned again. Returns whether
+    iOS lets anything through. */
+export async function setNotifyOn(on: boolean): Promise<boolean> {
+  await writeNotifyOn(on);
+  if (!on) {
+    await forgetThisDevice();
+    await replanLocal({ force: true });
+    return true;
+  }
+  const allowed = await askForNotifications().catch((e) => {
+    console.warn("[notify] permission ask:", e);
+    return false;
+  });
+  await registerForReplies();
+  await replanLocal({ force: true });
+  return allowed;
 }

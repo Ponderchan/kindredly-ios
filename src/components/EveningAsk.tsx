@@ -5,7 +5,7 @@ import { P, PF } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
 import { getFlags, setFlag } from "../lib/flags";
-import { askForNotifications, readPushPrefs, setPushPref } from "../lib/local-push";
+import { askForNotifications, getNotifyOn, readPushPrefs, setPushPref } from "../lib/local-push";
 import { t } from "../lib/i18n";
 import { cardShadow } from "./AuraCard";
 
@@ -15,15 +15,18 @@ import { cardShadow } from "./AuraCard";
    Settings is a long way from the moment it would make sense. So after the
    first sealed page — the only moment the offer is about something they
    just did — a small card in Notes asks once whether she may leave a small
-   question each evening. Either answer is the last time it's asked; the
-   switch lives in Settings after that. Nothing about the page itself is
-   read or sent. */
+   question each evening. Either answer is the last time it's asked.
+   Settings has no switch for it any more (owner, 2026-10-13: two switches,
+   the knock and Notifications), so a yes leaves a slim row here, in Notes,
+   to turn it off again; a no leaves nothing. Nothing about the page itself
+   is read or sent. */
 
 const FLAG = "ev_ask_answered";
 
 export function EveningAsk({ pages }: { pages: number }) {
   const wren = useWrenName();
   const [show, setShow] = useState(false);
+  const [on, setOn] = useState(false); // answered yes, and it's still on: the slim row
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -31,13 +34,14 @@ export function EveningAsk({ pages }: { pages: number }) {
     let alive = true;
     void (async () => {
       const f = await getFlags();
-      if (f[FLAG]) return;
       const r = await readPushPrefs();
       if (r.source === "default" && r.error) return; // can't tell whether it's already on — ask another day
       if (r.prefs.daily_line) {
-        void setFlag(FLAG); // already on (Settings, or another phone): nothing to ask
+        void setFlag(FLAG); // already on (an earlier yes, or another phone): nothing to ask
+        if (alive && (await getNotifyOn())) setOn(true);
         return;
       }
+      if (f[FLAG]) return;
       /* the evening line and the morning question are one or the other (owner,
          2026-10-11): a yes here would quietly turn their morning question off,
          so someone who chose the morning is not asked — Settings has both */
@@ -52,6 +56,30 @@ export function EveningAsk({ pages }: { pages: number }) {
     };
   }, [pages]);
 
+  const turnOff = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await setPushPref("daily_line", false);
+      setOn(false);
+    } catch (e) {
+      console.warn("[evening-ask] turn off:", e);
+      Alert.alert(t("set.cantSave"), t("set.push.saveFail")); // the row stays: it is still on
+    }
+    setBusy(false);
+  };
+
+  if (on && !show) {
+    return (
+      <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4, paddingVertical: 8, marginBottom: 8 }}>
+        <WrenBird size={18} mood="content" />
+        <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 12.5, color: P.ink60 }}>{t("ev.onLine", { wren })}</Text>
+        <Pressable accessibilityRole="button" onPress={() => void turnOff()} disabled={busy} hitSlop={8} style={({ pressed }) => ({ opacity: pressed || busy ? 0.5 : 1 })}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.pen }}>{t("ev.turnOff")}</Text>
+        </Pressable>
+      </Animated.View>
+    );
+  }
   if (!show) return null;
 
   const no = () => {
@@ -70,13 +98,14 @@ export function EveningAsk({ pages }: { pages: number }) {
     if (!allowed) {
       setBusy(false);
       setShow(false);
-      void setFlag(FLAG); // they said yes; iOS said no — Settings has both switches now
+      void setFlag(FLAG); // they said yes; iOS said no — nothing is on, so no row either
       Alert.alert(t("set.knock.deniedTitle"), t("set.push.deniedBody", { wren }));
       return;
     }
     try {
       await setPushPref("daily_line", true);
       setShow(false);
+      setOn(true);
       void setFlag(FLAG);
     } catch (e) {
       console.warn("[evening-ask] save:", e);

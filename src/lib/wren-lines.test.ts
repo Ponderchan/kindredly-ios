@@ -39,9 +39,9 @@ const run = (now: Date, o: { prefs?: Partial<PushPrefs>; knockOn?: boolean; empt
 const on = (notes: Planned[], day: string, kind?: string) => notes.filter((n) => n.day === day && (!kind || n.kind === kind));
 
 /* ── the contract ── */
-ok("defaults: server reminders on, every recording one off, her day off on", prefsFrom(undefined).hungry && prefsFrom(null).room_closing && prefsFrom({}).first_read && !prefsFrom({}).daily_line && !prefsFrom({}).morning_question && !prefsFrom({}).week_in_words && !prefsFrom({}).aura_settled && prefsFrom({}).day_off);
+ok("defaults: server reminders on, every journal line off, the aura line and her day off on", prefsFrom(undefined).hungry && prefsFrom(null).room_closing && prefsFrom({}).first_read && !prefsFrom({}).daily_line && !prefsFrom({}).morning_question && !prefsFrom({}).week_in_words && prefsFrom({}).aura_settled && prefsFrom({}).day_off);
 ok("her day off can be turned off on the account", !prefsFrom({ day_off: false }).day_off);
-ok("a key set on the account wins; junk is ignored", prefsFrom({ daily_line: true, hungry: false, aura_settled: "yes" }).daily_line && !prefsFrom({ hungry: false }).hungry && !prefsFrom({ aura_settled: "yes" }).aura_settled);
+ok("a key set on the account wins; junk is ignored", prefsFrom({ daily_line: true, hungry: false, week_in_words: "yes" }).daily_line && !prefsFrom({ hungry: false }).hungry && !prefsFrom({ week_in_words: "yes" }).week_in_words && prefsFrom({ aura_settled: "no" }).aura_settled && !prefsFrom({ aura_settled: false }).aura_settled);
 ok("nothing on → nothing scheduled", run(at(12, 10)).notes.length === 0);
 
 /* ── the day turns at local midnight ── */
@@ -123,7 +123,7 @@ ok("Sunday: a Notes page is that week's page", on(run(at(11, 10), { prefs: { wee
   const day = on(r.notes, "2026-10-11");
   ok("aura outranks Sunday: one notification that day, the aura, at noon", day.length === 1 && day[0].kind === "aura" && day[0].at.hour === 12);
   ok("…and the look-back keeps its line for next Sunday", on(r.notes, "2026-10-18", "week")[0]?.index === 0);
-  ok("an aura with its switch off is not sent", run(at(11, 9), { prefs: { daily_line: true }, state: s }).notes.every((n) => n.kind !== "aura"));
+  ok("an aura with its switch off is not sent", run(at(11, 9), { prefs: { daily_line: true, aura_settled: false }, state: s }).notes.every((n) => n.kind !== "aura"));
 }
 
 /* ── the morning ── */

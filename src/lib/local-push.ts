@@ -58,6 +58,12 @@ const STATE_KEY = "kindredly_wren_lines";
 const PREFS_CACHE = "kindredly_push_prefs";
 /* the knock is the device's, as it always was (it lived in the OS schedule) */
 const KNOCK_KEY = "kindredly_knock_on";
+/* NOTIFICATIONS, ONE SWITCH (owner, 2026-10-13: "统一成两个 8 knock 和 notification
+   一个 我们知道有九个 但别让用户看见做选择"). The kinds stay apart underneath
+   (user_metadata.push, the server's push_pref_of); what a person sees is one
+   switch, the device's like the knock: off, this phone's push token is gone
+   (lib/notify setNotifyOn) and none of her lines are planned here. */
+const NOTIFY_OFF_KEY = "kindredly_notify_off";
 const LEGACY_KNOCK_ID = "morning-knock";
 /* the morning question she asked today, once it was tapped — the Notes page offers it that evening */
 const MORNING_ASKED_KEY = "kindredly_morning_asked";
@@ -266,6 +272,15 @@ export async function setKnockOn(on: boolean): Promise<void> {
 
 /* ── permission ───────────────────────────────────────────────────────── */
 
+/** the Notifications switch, this phone's. On unless it was turned off here. */
+export async function getNotifyOn(): Promise<boolean> {
+  return (await AsyncStorage.getItem(NOTIFY_OFF_KEY)) !== "1";
+}
+export async function writeNotifyOn(on: boolean): Promise<void> {
+  if (on) await AsyncStorage.removeItem(NOTIFY_OFF_KEY);
+  else await AsyncStorage.setItem(NOTIFY_OFF_KEY, "1");
+}
+
 export async function notificationsAllowed(): Promise<boolean> {
   const p = await Notifications.getPermissionsAsync();
   return p.status === "granted" || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
@@ -409,7 +424,14 @@ async function runPlan(): Promise<void> {
       report({ scheduled: 0, skipped: "no-prefs" });
       return;
     }
-    const prefs = read.prefs;
+    /* Notifications off: the knock keeps its own switch; every line of hers is quiet */
+    let notifyOn = true;
+    try {
+      notifyOn = await getNotifyOn();
+    } catch (e) {
+      errors.push(say("notifications switch read", e)); // can't tell: plan as the switches say
+    }
+    const prefs = notifyOn ? read.prefs : { ...read.prefs, ...Object.fromEntries(LOCAL_KEYS.map((k) => [k, false])) };
 
     const now = new Date();
     let state = await loadState(errors);
