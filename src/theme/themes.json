@@ -1,0 +1,117 @@
+{
+ "_source": "10a: .claude/mock/k10/Kindredly 10 Final.dc.html:356-359 and ~/Desktop/CLAUDE-CODE-PROMPTS.md:18-37. Edit here; scripts/gen-theme-swift.mjs writes the Swift copy.",
+ "tokens": [
+  "bg",
+  "sf",
+  "ink",
+  "ln",
+  "sub",
+  "mute",
+  "faint",
+  "soft",
+  "soft2",
+  "line",
+  "lav",
+  "lav2",
+  "ind"
+ ],
+ "themes": {
+  "classic": {
+   "name": "Classic",
+   "dark": false,
+   "bg": "#FFFFFF",
+   "sf": "#FFFFFF",
+   "ink": "#1E1B35",
+   "ln": "#1E1B35",
+   "sub": "#55506E",
+   "mute": "#8A86A3",
+   "faint": "#B6B2D0",
+   "soft": "#F6F5F9",
+   "soft2": "#F1F0EE",
+   "line": "#E6E4EC",
+   "lav": "#E4E2F4",
+   "lav2": "#EEEDFB",
+   "ind": "#3A34D6"
+  },
+  "midnight": {
+   "name": "Midnight",
+   "dark": true,
+   "bg": "#0F0E1C",
+   "sf": "#1A1830",
+   "ink": "#E8E5F6",
+   "ln": "#D4D0EA",
+   "sub": "#B9B5D0",
+   "mute": "#8F8BAA",
+   "faint": "#5E5A7C",
+   "soft": "#1A1830",
+   "soft2": "#272443",
+   "line": "#2F2C4B",
+   "lav": "#2E2A66",
+   "lav2": "#242150",
+   "ind": "#8E89FF"
+  },
+  "lavender": {
+   "name": "Lavender",
+   "dark": false,
+   "bg": "#ECEAF8",
+   "sf": "#FFFFFF",
+   "ink": "#1E1B35",
+   "ln": "#1E1B35",
+   "sub": "#55506E",
+   "mute": "#8A86A3",
+   "faint": "#B6B2D0",
+   "soft": "#F7F6FC",
+   "soft2": "#EEEDFB",
+   "line": "#E1DFF0",
+   "lav": "#DCD9F3",
+   "lav2": "#E6E3F7",
+   "ind": "#3A34D6"
+  },
+  "paper": {
+   "name": "Paper",
+   "dark": false,
+   "bg": "#F5F0E3",
+   "sf": "#FFFDF8",
+   "ink": "#1E1B35",
+   "ln": "#1E1B35",
+   "sub": "#5B5647",
+   "mute": "#8E8878",
+   "faint": "#C2BBA8",
+   "soft": "#FBF8F0",
+   "soft2": "#F0EADC",
+   "line": "#E6DFCF",
+   "lav": "#EFE4C8",
+   "lav2": "#F6EEDB",
+   "ind": "#3A34D6"
+  }
+ },
+ "brand": {
+  "courierGreen": "#1F5B3C",
+  "paleGreen": "#DDEFD6",
+  "greenText": "#2E7D4F",
+  "waxGold": "#D8A63F",
+  "goldText": "#B8842A",
+  "cream": "#FFF8E8",
+  "creamBorder": "#EAD9A8",
+  "lime": "#D8F04A",
+  "acid": "#C3E84F"
+ },
+ "mood": {
+  "calm": [
+   "#DDEFD6",
+   "#2E7D4F"
+  ],
+  "happy": [
+   "#F6E7C6",
+   "#B8842A"
+  ],
+  "tired": [
+   "#E4E2F4",
+   "#3A34D6"
+  ],
+  "low": [
+   "#CFE3F5",
+   "#3B6E9B"
+  ]
+ }
+}
