@@ -4,8 +4,9 @@ import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
-import { getMood } from "../data/moods";
-import { fmt, localeTag } from "../lib/format";
+import { getMood, moodGroup } from "../data/moods";
+import { moodColors } from "../screens/notes/notes-glyphs";
+import { fmt, noteDay, time24 } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
 /* One filed page in your box, closed by a rule in that day's mood colour — so
@@ -25,12 +26,11 @@ import type { JournalEntry } from "../lib/journal";
 /* the ink on the drift highlight in a dark theme: Classic's ink, fixed */
 const ON_HIGHLIGHT = "#1E1B35";
 
+/* the day and the clock in the reader's own locale, as the cards say them
+   ("OCT 14 · 21:37", "14 OCT · 21:37", "10月14日 · 21:37"); the clock used
+   to be forced to en-US */
 function meta(e: JournalEntry): string {
-  const d = new Date(e.date);
-  const mon = d.toLocaleDateString(localeTag(), { month: "short" }).toUpperCase();
-  const day = String(d.getDate()).padStart(2, "0");
-  const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-  return `${mon} ${day} · ${time}`;
+  return `${noteDay(e.date)} · ${time24(e.date)}`;
 }
 
 export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => void }) {
@@ -60,7 +60,7 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
       {/* head — a big mood face + the date filed in mono */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>
         <MoodIcon id={m.id} size={38} />
-        <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>{meta(e)}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: P.ink60 }}>{meta(e)}</Text>
       </View>
 
       {/* photo — one fills, several become a mosaic (edge to edge) */}
@@ -69,10 +69,10 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
       {/* video — plays in place, just a duration in the corner */}
       {e.type === "video" && !!e.mediaUri && <VideoInline uri={e.mediaUri} dur={e.dur} />}
 
-      {/* voice — still mood-tinted (the mood is content), square-cornered */}
+      {/* voice — on its group's 10a colour and ink (the mood is content), square-cornered */}
       {e.type === "voice" && !!e.mediaUri && (
-        <View style={{ backgroundColor: m.bg, padding: 10 }}>
-          <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={m.col} />
+        <View style={{ backgroundColor: moodColors(moodGroup(e.mood)).fill, padding: 10 }}>
+          <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={moodColors(moodGroup(e.mood)).ink} />
         </View>
       )}
 

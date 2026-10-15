@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { localeTag } from "../../lib/format";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,10 +10,13 @@ import { PF } from "../../theme/post";
 import { useP, useTheme } from "../../lib/theme";
 import { AudioCard } from "../../components/AudioCard";
 import { MoodIcon } from "../../components/MoodIcon";
-import { getMood } from "../../data/moods";
-import { DEMO_JOURNAL } from "../../data/demo";
+import { getMood, isNamedMood, moodGroup, moodName } from "../../data/moods";
+import { demoJournal } from "../../data/demo";
 import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
+import { moodColors } from "../../screens/notes/notes-glyphs";
+import "../../data/strings-step5-notes";
+import "../../data/strings-step5-kitrn"; // a11y.back
 
 /* the ink on the drift highlight: the highlight is pale in every theme, so
    the words on it keep Classic's ink rather than the page's (light in a
@@ -33,6 +36,8 @@ export default function JournalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [e, setE] = useState<JournalEntry | null>(null);
+  // the first read has answered: a page still loading and a page that isn't there look different now
+  const [read, setRead] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isDemo = !!id?.startsWith("demo-");
 
@@ -40,13 +45,16 @@ export default function JournalDetail() {
     useCallback(() => {
       let alive = true;
       if (isDemo) {
-        const d = DEMO_JOURNAL.find((x) => x.id === id) || null;
+        // every sample opens, store mode or not (data/demo demoJournal)
+        const d = demoJournal({ store: false }).find((x) => x.id === id) || null;
         setE(d);
+        setRead(true);
       } else {
         loadJournal().then((all) => {
           if (!alive) return;
           const found = all.find((x) => x.id === id) || null;
           setE(found);
+          setRead(true);
         });
       }
       return () => {
@@ -107,31 +115,46 @@ export default function JournalDetail() {
   };
 
   if (!e) {
+    /* still reading: just the way back. Read and not there (torn out on
+       another screen, or a journal that couldn't be read): say so, rather
+       than the blank page both used to share. */
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
         <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
-          <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+          <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("a11y.back")} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
           </Pressable>
         </View>
+        {read && (
+          <Text style={{ fontSize: 15, lineHeight: 22, color: P.ink60, textAlign: "center", paddingHorizontal: 40, marginTop: 120 }}>{t("jd.notFound")}</Text>
+        )}
       </SafeAreaView>
     );
   }
 
   const m = getMood(e.mood);
+  const tint = moodColors(moodGroup(e.mood)).ink;
   const pure = e.type === "text";
 
   // the page stays neutral — the mood lives in its face, not the background
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* header — back + a ··· menu; the date leads the entry from the centre */}
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, { borderBottomWidth: 1, borderBottomColor: tk.ln }]}>
-        <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+      {/* no rule under it: 10a's sub-page headers have none (H:90, H:97) */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }}>
+        <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("a11y.back")} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
         {/* samples get the menu too — hiding it read as "delete is missing",
             not "this is a sample". Drift stays real-pages-only inside. */}
-        <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+        <Pressable
+          onPress={() => setMenuOpen(true)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("jd.more")}
+          accessibilityState={{ expanded: menuOpen }}
+          style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
+        >
           <Text style={{ fontFamily: PF.mono, fontSize: 20, color: P.ink }}>···</Text>
         </Pressable>
       </View>
@@ -142,8 +165,11 @@ export default function JournalDetail() {
           <MoodIcon id={m.id} size={48} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
             <CalGlyph />
-            <Text style={{ fontFamily: PF.mono, fontSize: 11.5, letterSpacing: 0.8, color: P.ink60 }}>
-              {new Date(e.date).toLocaleDateString(localeTag(), { weekday: "short", month: "short", day: "numeric" }).toUpperCase()}
+            {/* the face's name after the date, as the cards say it — never
+                for a page that stored no mood */}
+            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
+              {new Date(e.date).toLocaleDateString(localeTag(), { weekday: "short", month: "short", day: "numeric" }).toLocaleUpperCase(localeTag())}
+              {isNamedMood(e.mood) ? ` · ${moodName(m.id)}` : ""}
               {isDemo ? " · SAMPLE" : ""}
             </Text>
           </View>
@@ -160,7 +186,7 @@ export default function JournalDetail() {
         )}
         {e.type === "voice" && !!e.mediaUri && (
           <View style={{ marginBottom: 18 }}>
-            <AudioCard url={e.mediaUri} durationS={e.dur} tint={m.col} />
+            <AudioCard url={e.mediaUri} durationS={e.dur} tint={tint} />
           </View>
         )}
         {e.type === "video" && !!e.mediaUri && <DetailVideo uri={e.mediaUri} />}
@@ -272,7 +298,7 @@ function MenuRow({ label, onPress, destructive, icon }: { label: string; onPress
       })}
     >
       {icon}
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 1, color: destructive ? P.post : P.ink }}>{label}</Text>
+      <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1, color: destructive ? P.post : P.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -316,7 +342,10 @@ function DriftIcon() {
 
    Tap a photo to see it full-screen on ink; long-press to make it the cover
    (the old MAKE THIS THE COVER button and the ✦ badges went with the strip —
-   one gesture on the thing itself instead of chrome beside it). */
+   one gesture on the thing itself instead of chrome beside it). The cover
+   is the one coverIndex names, as the Notes card shows it: it takes the big
+   cell, the others follow in their stored order, so a long-press moves the
+   picture into the anchor and the card agrees with the page. */
 function PhotoGallery({
   photos,
   coverIndex,
@@ -334,23 +363,30 @@ function PhotoGallery({
   if (!photos.length) return null;
   const G = 2;
   const H = 250;
+  // the drawing order: the cover first (an index past the album, or none, is the first picture),
+  // then the rest as stored; `k` is a place in it, `order[k]` the picture's index in the album
+  const cover = Number.isInteger(coverIndex) && coverIndex >= 0 && coverIndex < photos.length ? coverIndex : 0;
+  const order = [cover, ...photos.map((_, i) => i).filter((i) => i !== cover)];
 
-  const cell = (i: number, style: object) => (
-    <Pressable
-      key={photos[i] + i}
-      style={[style, { overflow: "hidden" }]}
-      onPress={() => setFull(photos[i])}
-      onLongPress={() => {
-        if (!canSetCover || i === coverIndex) return;
-        onSetCover(i);
-      }}
-      delayLongPress={350}
-    >
-      <Image source={{ uri: photos[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-    </Pressable>
-  );
+  const cell = (k: number, style: object) => {
+    const i = order[k];
+    return (
+      <Pressable
+        key={photos[i] + i}
+        style={[style, { overflow: "hidden" }]}
+        onPress={() => setFull(photos[i])}
+        onLongPress={() => {
+          if (!canSetCover || i === cover) return;
+          onSetCover(i);
+        }}
+        delayLongPress={350}
+      >
+        <Image source={{ uri: photos[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+      </Pressable>
+    );
+  };
 
-  const rest = photos.slice(5);
+  const rest = order.slice(5);
   return (
     <View style={{ marginBottom: 18 }}>
       {/* the anchor band — cover left, next four in a 2x2 */}
@@ -363,12 +399,12 @@ function PhotoGallery({
           {cell(0, { flex: 1 })}
           <View style={{ flex: 1, gap: G }}>
             <View style={{ flex: 1, flexDirection: "row", gap: G }}>
-              {photos[1] ? cell(1, { flex: 1 }) : <View style={{ flex: 1 }} />}
-              {photos[2] ? cell(2, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 1 ? cell(1, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 2 ? cell(2, { flex: 1 }) : <View style={{ flex: 1 }} />}
             </View>
             <View style={{ flex: 1, flexDirection: "row", gap: G }}>
-              {photos[3] ? cell(3, { flex: 1 }) : <View style={{ flex: 1 }} />}
-              {photos[4] ? cell(4, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 3 ? cell(3, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 4 ? cell(4, { flex: 1 }) : <View style={{ flex: 1 }} />}
             </View>
           </View>
         </View>
@@ -382,10 +418,10 @@ function PhotoGallery({
       {rest.length > 0 && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: G, marginTop: G }} onLayout={(ev) => setRowW(ev.nativeEvent.layout.width)}>
           {rowW > 0 &&
-            rest.map((p, k) => {
+            rest.map((i, k) => {
               const side = (rowW - G * 2) / 3;
               return (
-                <View key={p + k} style={{ width: side, height: side }}>
+                <View key={photos[i] + i} style={{ width: side, height: side }}>
                   {cell(k + 5, { flex: 1 })}
                 </View>
               );
@@ -394,7 +430,7 @@ function PhotoGallery({
       )}
 
       {canSetCover && photos.length > 1 && (
-        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
           {t("jd.coverHint")}
         </Text>
       )}
@@ -405,18 +441,42 @@ function PhotoGallery({
   );
 }
 
+/* A tap plays or pauses. The ▶ follows the player itself, not the last tap:
+   it used to stay hidden once the film had played to its end (nothing set it
+   back), and the next tap paused a film that had already stopped, so a
+   replay took two taps. Now the end puts ▶ back, and a tap there starts the
+   film again from the beginning. */
 function DetailVideo({ uri }: { uri: string }) {
   const [playing, setPlaying] = useState(false);
+  const ended = useRef(false);
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
   });
+  useEffect(() => {
+    const a = player.addListener("playingChange", (e) => setPlaying(e.isPlaying));
+    const b = player.addListener("playToEnd", () => {
+      ended.current = true;
+      setPlaying(false);
+    });
+    return () => {
+      a.remove();
+      b.remove();
+    };
+  }, [player]);
   const toggle = () => {
-    if (playing) player.pause();
-    else player.play();
-    setPlaying(!playing);
+    if (playing) {
+      player.pause();
+      return;
+    }
+    if (ended.current) {
+      ended.current = false;
+      player.replay();
+      return;
+    }
+    player.play();
   };
   return (
-    <Pressable onPress={toggle} style={{ overflow: "hidden", marginBottom: 18 }}>
+    <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={playing ? t("jt.pause") : t("jt.play")} style={{ overflow: "hidden", marginBottom: 18 }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 9 / 16, maxHeight: 420 }} contentFit="cover" nativeControls={false} />
       {!playing && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>

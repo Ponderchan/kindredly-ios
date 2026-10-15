@@ -12,13 +12,15 @@ import { PF } from "../theme/post";
 import { useP, useTheme, type PostPalette } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { MoodKeyGlyph, MoodTray } from "./MoodTray";
+import { MoodKeyGlyph, MoodTray, MoodTrayFlat } from "./MoodTray";
 import { MoodIcon } from "./MoodIcon";
 import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { MOODS, MOOD_IDS, type MoodId, moodName } from "../data/moods";
+import { moodGroup, moodName, type MoodId } from "../data/moods";
+import { moodColors } from "../screens/notes/notes-glyphs";
+import { useNativeSurface } from "../lib/surfaces";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
 import { takePicked, takeSpark } from "../lib/journal-handoff";
@@ -48,14 +50,27 @@ const zine = (P: PostPalette) => ({
 
 type Photo = { uri: string; ratio: number };
 
+/** What the page holds, for the route's leave guard (journal-entry). */
+export type SelfComposeState = {
+  /** words, pictures, a film or a finished recording: something ✕ or a swipe back would throw away */
+  hasSomething: boolean;
+  /** the page is being sealed (media copied, the journal written) */
+  busy: boolean;
+  /** sealed: the send-off is playing and the page will go by itself */
+  sealed: boolean;
+};
+
 export function SelfCompose({
   text,
   setText,
   onDone,
+  onState,
 }: {
   text: string;
   setText: (t: string) => void;
   onDone: () => void;
+  /** told whenever what the page holds changes (journal-entry's guard) */
+  onState?: (s: SelfComposeState) => void;
 }) {
   useLang();
   const P = useP();
@@ -80,8 +95,10 @@ export function SelfCompose({
   const lift = useAnimatedStyle(() => ({
     paddingBottom: Math.max(0, keyboard.height.value - insets.bottom),
   }));
-  // the empty page's line, chosen from what's already on this device
-  const [spark, setSpark] = useState("today felt like…");
+  // the empty page's line, chosen from what's already on this device (until
+  // it is, the first of the new-writer lines, in the reader's language — it
+  // was the English words themselves)
+  const [spark, setSpark] = useState(() => t("js.1"));
   /* her question first, when she asked one: the line tapped on the lock
      screen tonight, else this morning's question if it was tapped today.
      A placeholder only — the page's body stays the writer's. */
@@ -112,6 +129,19 @@ export function SelfCompose({
   const openers = byLang(WREN_OPENERS.journal, getLang() as Lang);
   const hasMedia = att === "photo" ? photos.length > 0 : !!mediaUri;
   const hasSomething = text.trim().length > 0 || (hasMedia && att !== null);
+  /* the route's leave guard asks before throwing a page away — pictures, a
+     film or a finished recording count as much as words (it used to look
+     at the words only, and ✕ dropped a recording without asking). It lets
+     the page go once it is sealing or sealed: the send-off leaves by itself */
+  const tellState = useRef(onState);
+  tellState.current = onState;
+  useEffect(() => {
+    tellState.current?.({ hasSomething, busy, sealed });
+  }, [hasSomething, busy, sealed]);
+  /* the new four-block picker, unless the "notes" surface is switched off
+     remotely: then the old tray of thirty, so a fault in the new picker can
+     never stop a page from being sealed (sealing needs a mood) */
+  const grouped = useNativeSurface("notes");
   // a sealed page without a mood can't be found again — the calendar is made
   // of these faces, so it isn't optional
   /* SEAL USED TO BE A DEAD BUTTON. It greyed out until a mood was picked and
@@ -443,15 +473,21 @@ export function SelfCompose({
             HOW DID THIS FEEL? until it is. Sealed's calendar is made of
             these faces, which is why one is required. */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: moodOpen ? 12 : 24 }}>
+          {/* icon-only, and the only way into the picker: VoiceOver hears the face
+              picked, or the question until one is */}
           <Pressable
             onPress={askMood}
+            accessibilityRole="button"
+            accessibilityLabel={mood ? moodName(mood) : t("sc.askMood")}
+            accessibilityState={{ expanded: moodOpen }}
             style={({ pressed }) => ({
               width: 52,
               height: 52,
               borderRadius: 26,
               borderWidth: 1.5,
-              borderColor: mood ? MOODS[mood].col : moodOpen ? P.pen : tk.ln,
-              backgroundColor: mood ? MOODS[mood].bg : "transparent",
+              // the chosen face sits on its group's 10a colour, ringed in the group's ink
+              borderColor: mood ? moodColors(moodGroup(mood)).ink : moodOpen ? P.pen : tk.ln,
+              backgroundColor: mood ? moodColors(moodGroup(mood)).fill : "transparent",
               alignItems: "center",
               justifyContent: "center",
               opacity: pressed ? 0.7 : 1,
@@ -487,15 +523,25 @@ export function SelfCompose({
             </Text>
           </Pressable>
         </View>
-        {moodOpen && (
-          <MoodTray
-            selected={mood}
-            onPick={(m) => {
-              setMood(m);
-              setMoodOpen(false);
-            }}
-          />
-        )}
+        {moodOpen &&
+          (grouped ? (
+            <MoodTray
+              selected={mood}
+              onPick={(m, close) => {
+                setMood(m);
+                if (close) setMoodOpen(false);
+              }}
+              onClose={() => setMoodOpen(false)}
+            />
+          ) : (
+            <MoodTrayFlat
+              selected={mood}
+              onPick={(m) => {
+                setMood(m);
+                setMoodOpen(false);
+              }}
+            />
+          ))}
       </Animated.View>
 
       <FrameViewer

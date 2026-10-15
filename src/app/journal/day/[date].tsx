@@ -3,19 +3,26 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { PF } from "../../../theme/post";
-import { useP, useTheme } from "../../../lib/theme";
+import { useP } from "../../../lib/theme";
 import { SealedEntry } from "../../../components/SealedEntry";
 import { dayKey } from "../../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../../lib/journal";
-import { DEMO_JOURNAL } from "../../../data/demo";
+import { demoJournal } from "../../../data/demo";
+import { localeTag } from "../../../lib/format";
 import { t, useLang } from "../../../lib/i18n";
+import "../../../data/strings-step5-kitrn"; // a11y.back
 
 /* One day of the sealed thread — every scrap you left on this date, oldest at
-   the top of the day. Tap one to open the full page. */
+   the top of the day. Tap one to open the full page. Reached from the Notes
+   fallback's calendar (the SwiftUI calendar scrolls to the day instead).
+
+   10a step 5: the title is the reader's own date (known bug 5b: it was
+   always en-US, "Wednesday, October 14" in every language), the header has
+   no rule (10a's sub-page headers), the mono at 11, and in a dev build every
+   sample page opens (demoJournal, store mode or not). */
 export default function SealedDay() {
   useLang(); // repaint when the reader changes language
   const P = useP();
-  const tk = useTheme().t;
   const { date } = useLocalSearchParams<{ date: string }>();
   const router = useRouter();
   const [day, setDay] = useState<JournalEntry[]>([]);
@@ -25,7 +32,7 @@ export default function SealedDay() {
       let alive = true;
       loadJournal().then((real) => {
         if (!alive) return;
-        const all = __DEV__ ? [...real, ...DEMO_JOURNAL] : real;
+        const all = __DEV__ ? [...real, ...demoJournal({ store: false })] : real;
         // oldest → newest within the day reads like a diary
         const d = all.filter((e) => dayKey(e.date) === date).sort((a, b) => +new Date(a.date) - +new Date(b.date));
         setDay(d);
@@ -37,15 +44,17 @@ export default function SealedDay() {
   );
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
-  const title = date ? new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : "";
+  const title = date ? new Date(`${date}T12:00:00`).toLocaleDateString(localeTag(), { weekday: "long", month: "long", day: "numeric" }) : "";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, { borderBottomWidth: 1, borderBottomColor: tk.ln }]}>
-        <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }}>
+        <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("a11y.back")} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: P.ink }}>{title.toUpperCase()}</Text>
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>
+          {title.toLocaleUpperCase(localeTag())}
+        </Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -53,7 +62,7 @@ export default function SealedDay() {
         {day.map((e) => (
           <SealedEntry key={e.id} e={e} onPress={() => router.push(`/journal/${e.id}`)} />
         ))}
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
+        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
           {t("jd.onThisDay", { n: String(day.length) })}
         </Text>
       </ScrollView>

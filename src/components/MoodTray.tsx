@@ -1,19 +1,133 @@
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
+import { MOODS, MOOD_GROUPS, MOOD_GROUP_DEFAULT, MOOD_GROUP_FACES, MOOD_GROUP_KEY, MOOD_IDS, moodGroup, moodName, type MoodGroup, type MoodId } from "../data/moods";
 import { MoodIcon } from "./MoodIcon";
 import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
+import { t, useLang } from "../lib/i18n";
+import { localeTag } from "../lib/format";
+import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
+import "../data/strings-step5-notes";
 
 /* THE MOOD TRAY (owner, 2026-09-20) — the sealed page's answer to the
    letter's stamp tray. The round key on the bar shows a blank face until
    a mood is picked, then that mood's face; tapping it opens this under
-   the bar, where the keyboard was, and a tap on a face closes it. Same
-   height and ground as the stamp tray so the two composers feel like one
-   hand made them. */
+   the bar, where the keyboard was. Same height and ground as the stamp
+   tray so the two composers feel like one hand made them.
+
+   10a step 5: FOUR COLOUR BLOCKS (owner, 2026-10-15: four groups, the
+   thirty faces as the choices inside them, storage unchanged). A row of
+   Calm, Happy, Tired and Low, each the group's 10a colour with its line
+   face over its name; below, the open group's faces.
+   - Tapping a block stores that group's default face at once (owner
+     question 8: Calm, Cheerful, Sleepy, Nervous) and opens its faces, so
+     a writer who only means "blue" is done in one tap;
+   - tapping the open block again closes the tray;
+   - tapping a face stores it and closes the tray;
+   - reopening shows the stored face's group open.
+   Before any group is chosen the hint (sc.moodHint) sits under the blocks.
+   The faces are the thirty art faces (MoodIcon), five to a row, each with
+   its name in the reader's language — the old tray printed the English
+   name in every language.
+
+   MoodTrayFlat is the old tray, all thirty at once (names now localized).
+   The composer keeps it for when the "notes" surface is switched off
+   remotely: sealing needs a mood, so a fault in the new picker must never
+   be able to stop every new page. */
 export const MOOD_TRAY_H = 296;
 
-export function MoodTray({ selected, onPick }: { selected: MoodId | null; onPick: (id: MoodId) => void }) {
+export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | null; onPick: (id: MoodId, close: boolean) => void; onClose: () => void }) {
+  useLang();
+  const P = useP();
+  const { t: tk } = useTheme();
+  const [open, setOpen] = useState<MoodGroup | null>(selected ? moodGroup(selected) : null);
+  // a face stored from elsewhere (the dev page, a reset) opens its group
+  useEffect(() => {
+    if (selected) setOpen(moodGroup(selected));
+  }, [selected]);
+
+  const pickGroup = (g: MoodGroup) => {
+    if (open === g) {
+      onClose();
+      return;
+    }
+    setOpen(g);
+    onPick(MOOD_GROUP_DEFAULT[g], false);
+  };
+
+  return (
+    <View style={{ height: MOOD_TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: tk.line }}>
+      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 }}>
+        {MOOD_GROUPS.map((g) => {
+          const c = moodColors(g);
+          const on = open === g;
+          const name = t(MOOD_GROUP_KEY[g]);
+          return (
+            <View key={g} style={{ flex: 1 }}>
+              {on && <View style={{ position: "absolute", left: 2, top: 2, right: -2, bottom: -2, borderRadius: 16, backgroundColor: tk.ln }} />}
+              <Pressable
+                onPress={() => pickGroup(g)}
+                accessibilityRole="button"
+                accessibilityLabel={name}
+                accessibilityState={{ selected: on, expanded: on }}
+                style={({ pressed }) => ({
+                  height: 72,
+                  borderRadius: 16,
+                  backgroundColor: c.fill,
+                  borderWidth: on ? 2 : 0,
+                  borderColor: tk.ln,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  transform: on ? [{ translateX: -1 }, { translateY: -1 }] : pressed ? [{ translateX: 1 }, { translateY: 1 }] : [],
+                })}
+              >
+                <MoodFace group={g} size={26} color={c.ink} />
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 13, fontWeight: "600", color: c.ink, paddingHorizontal: 4 }}>
+                  {name}
+                </Text>
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+
+      {open ? (
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 6, paddingBottom: 20, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
+          {MOOD_GROUP_FACES[open].map((id) => {
+            const on = selected === id;
+            const c = moodColors(open);
+            const name = moodName(id);
+            return (
+              <Pressable
+                key={id}
+                onPress={() => onPick(id, true)}
+                accessibilityRole="button"
+                accessibilityLabel={name}
+                accessibilityState={{ selected: on }}
+                style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 12, opacity: pressed ? 0.6 : 1 })}
+              >
+                <View style={{ width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: on ? c.fill : "transparent", borderWidth: on ? 1.5 : 0, borderColor: c.ink }}>
+                  <MoodIcon id={id} size={40} />
+                </View>
+                <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? c.ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
+                  {name.toLocaleUpperCase(localeTag())}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <Text style={{ fontSize: 13, lineHeight: 19, color: tk.sub, paddingHorizontal: 20, paddingTop: 8 }}>{t("sc.moodHint")}</Text>
+      )}
+    </View>
+  );
+}
+
+/** The old tray: all thirty faces, five to a row (the remote fallback; see above). */
+export function MoodTrayFlat({ selected, onPick }: { selected: MoodId | null; onPick: (id: MoodId) => void }) {
+  useLang();
   const P = useP();
   const tk = useTheme().t;
   return (
@@ -21,13 +135,14 @@ export function MoodTray({ selected, onPick }: { selected: MoodId | null; onPick
       <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 16, paddingBottom: 20, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
         {MOOD_IDS.map((id) => {
           const on = selected === id;
+          const name = moodName(id);
           return (
-            <Pressable key={id} onPress={() => onPick(id)} style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 14, opacity: pressed ? 0.6 : 1 })}>
+            <Pressable key={id} onPress={() => onPick(id)} accessibilityRole="button" accessibilityLabel={name} accessibilityState={{ selected: on }} style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 14, opacity: pressed ? 0.6 : 1 })}>
               <View style={{ width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: on ? MOODS[id].bg : "transparent", borderWidth: on ? 1.5 : 0, borderColor: MOODS[id].col }}>
                 <MoodIcon id={id} size={40} />
               </View>
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 0.6, color: on ? MOODS[id].col : P.ink60, marginTop: 5 }}>
-                {MOODS[id].n.toUpperCase()}
+              <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? MOODS[id].col : P.ink60, marginTop: 5 }}>
+                {name.toLocaleUpperCase(localeTag())}
               </Text>
             </Pressable>
           );
