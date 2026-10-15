@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ComponentProps } from "react";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,6 +6,7 @@ import { Host } from "@expo/ui/swift-ui";
 import { KTabBar, isKindredlyUIViewAvailable, type KTabBarCard, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
+import { tabBarHeight } from "./PostTabBar";
 
 /* THE 10a TAB BAR, IN SWIFTUI (1.3.0) — the floating bar with the sliding
    lens, the + that turns into an ×, and the composer sheet it opens, all
@@ -35,12 +36,16 @@ import { useTheme } from "../lib/theme";
    SwiftUIHostingView.swift) doesn't override hit-testing — so a
    full-screen Host could leave the screens under it untappable. Not
    relying on either answer, the Host is the bar's strip at the
-   bottom of the screen (the bar, its gap below, a little room above) while
+   bottom of the screen (the bar and its gap below, full width) while
    the sheet is closed, and the whole screen while it is open or closing —
    the dim covers everything and the sheet rises from just above the bar.
    SwiftUI lays all of it out from the bottom edge, so growing the Host
    upward moves nothing. Closing, the Host stays full-screen for
    PANEL_OUT_MS so the sheet and the dim can finish going, then shrinks.
+   The strip takes no more than PostTabBar did — it was a full-width slab
+   54 + inset tall — and both the wrapper and the Host are box-none, so if
+   the hosting view does let touches through where it draws nothing, the
+   gutters beside the bar pass them on.
 
    The Host ignores safe areas: the bar is placed from the bottom inset we
    pass (KTabBarMetrics.bottomGap), and the keyboard never lifts it — it
@@ -89,16 +94,34 @@ export function nativeTabBarSpace(insetBottom: number): number {
   return barBottomGap(insetBottom) + NATIVE_BAR_H;
 }
 
-/* room above the bar's top edge inside the strip. The bar's soft shadow
-   falls below it, not above, and nothing the Host draws is clipped to it
-   anyway; this is so the strip still holds the whole bar if the Swift rule
-   above ever drifts a point from this one. Kept small: the strip may take
-   touches even where it draws nothing (see ONE HOST above). */
-const STRIP_ROOM = 4;
+/** What a screen's own content keeps clear above a floating bar. With the
+    6 Today already adds under its write-back box, the box sits the mock's
+    12 above the bar (H:115: bottom 104 = 30 + 62 + 12). */
+const TAB_CLEAR = 6;
 
-/* how long the sheet takes to go: its .45s rise played backwards, and a
-   little over (KMotion.panelRise in KPlusPanel.swift) */
-const PANEL_OUT_MS = 480;
+/* How a tab screen knows how much room to leave at the bottom: the tabs
+   layout provides it for whichever bar it drew. Outside the tabs (or before
+   the layout decides) it is PostTabBar's height, as it always was. */
+export const TabBarSpace = createContext<number | null>(null);
+
+/** the room the floating bar takes, plus the air a screen leaves above it */
+export function nativeTabBarRoom(insetBottom: number): number {
+  return nativeTabBarSpace(insetBottom) + TAB_CLEAR;
+}
+
+/** The room at the bottom of a tab screen that the tab bar has: PostTabBar's
+    flush slab, or the floating bar with the air above it. */
+export function useTabBarSpace(): number {
+  const insets = useSafeAreaInsets();
+  return useContext(TabBarSpace) ?? tabBarHeight(insets.bottom);
+}
+
+/* how long the Host stays full-screen after the sheet closes: the dim's .3s
+   fade and a little over (KMotion.dimFade). The sheet is transparent after
+   .25s even though its scale runs on to .45s, so nothing visible is cut;
+   it is kept short because the screen under the Host can't take taps until
+   the Host shrinks. */
+const PANEL_OUT_MS = 320;
 
 /* PostFan's wait between pushing the composer and closing the sheet under it */
 const CLOSE_AFTER_PUSH_MS = 420;
@@ -177,10 +200,13 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
     [lang],
   );
 
-  const strip = nativeTabBarSpace(insets.bottom) + STRIP_ROOM;
+  const strip = nativeTabBarSpace(insets.bottom);
   return (
-    <View style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}>
-      <Host style={{ flex: 1 }} ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
+    <View
+      pointerEvents="box-none"
+      style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
+    >
+      <Host style={{ flex: 1 }} pointerEvents="box-none" ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
         <KTabBar
           theme={theme}
           tabs={tabs}

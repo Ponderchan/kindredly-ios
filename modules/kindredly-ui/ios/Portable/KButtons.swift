@@ -49,6 +49,7 @@ public struct KPrimaryRound: View {
   private let isOpen: Bool
   private let accessibilityLabel: String
   private let action: () -> Void
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// - Parameters:
   ///   - isOpen: true turns the + into an × (the composer is open)
@@ -66,7 +67,8 @@ public struct KPrimaryRound: View {
         .stroke(Color.white, style: StrokeStyle(lineWidth: 2.6 * 22 / 24, lineCap: .round))
         .frame(width: 22, height: 22)
         .rotationEffect(.degrees(isOpen ? 45 : 0))
-        .animation(KMotion.plusTurn, value: isOpen)
+        // the turn overshoots a little; with Reduce Motion it is a plain ease
+        .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurn, value: isOpen)
         .frame(width: 48, height: 48)
         .background(Circle().fill(theme.ind))
         .kSoftShadows(KSoftShadow.primaryGlow, in: Circle())

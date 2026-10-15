@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
-import { PostTabBar } from "../../components/PostTabBar";
-import { NativeTabBar, nativeTabBarReady } from "../../components/NativeTabBar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PostTabBar, tabBarHeight } from "../../components/PostTabBar";
+import { NativeTabBar, TabBarSpace, nativeTabBarReady, nativeTabBarRoom } from "../../components/NativeTabBar";
 import { refreshWaiting, useWaiting } from "../../lib/waiting";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
@@ -24,12 +25,15 @@ import { P } from "../../theme/post";
    sheet is part of the bar. Otherwise PostTabBar and PostFan, unchanged. The
    switch is followed live, so a row in app_surfaces turning the surface off
    reaches a running app on its next ask; `choosing` is shared, so an open
-   sheet becomes the open fan rather than vanishing. */
+   sheet becomes the open fan rather than vanishing. The two bars take
+   different room, so the layout tells its screens which (TabBarSpace,
+   read with useTabBarSpace). */
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
   const waiting = useWaiting();
   const { user } = useAuth();
   const native = useNativeSurface("tabbar") && nativeTabBarReady();
+  const insets = useSafeAreaInsets();
 
   // prime the signal at launch — it has to be true before Kindreds is opened
   useEffect(() => {
@@ -40,6 +44,7 @@ export default function TabsLayout() {
   useMyThreadsLive(user?.id, refreshWaiting);
 
   return (
+    <TabBarSpace.Provider value={native ? nativeTabBarRoom(insets.bottom) : tabBarHeight(insets.bottom)}>
     <View style={{ flex: 1 }}>
       <Tabs
         tabBar={(props) =>
@@ -59,5 +64,6 @@ export default function TabsLayout() {
 
       {!native && choosing && <PostFan onClose={() => setChoosing(false)} />}
     </View>
+    </TabBarSpace.Provider>
   );
 }

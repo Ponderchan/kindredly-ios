@@ -229,7 +229,8 @@ public extension KMotion {
  - the sheet (z 7), 12 in from each side, its bottom 12 above the bar's top. In the mock that
    is bottom 104 = the bar's 30 + 62 + 12, and here it follows the bar wherever the safe area
    puts it. It rises from 24 lower at .94 of its size, scaling from its bottom edge, over .45s
-   on a curve that overshoots, and fades in over .25s; closing plays the same backwards;
+   on a curve that overshoots, and fades in over .25s; closing plays the same backwards. With
+   Reduce Motion on it only fades;
  - the bar on top (z 8), so the × stays live and undimmed, KTabBarMetrics.bottomGap above the
    bottom edge.
 
@@ -261,6 +262,7 @@ public struct KTabStage: View {
   private let onPlus: () -> Void
   private let onPanelAction: (String) -> Void
   private let onDismiss: () -> Void
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// - Parameters:
   ///   - items, selectedIndex, plusLabel, closeLabel, onSelect, onPlus: the bar's (KTabBar)
@@ -304,6 +306,8 @@ public struct KTabStage: View {
   public var body: some View {
     let gap = KTabBarMetrics.bottomGap(safeAreaBottom: safeAreaBottom)
     let open = isPanelOpen
+    // with Reduce Motion the sheet only fades: no rise, no overshoot
+    let rises = !reduceMotion
     // ── the dim (H:128). It is also the stage's frame: a colour takes exactly the space it is
     // offered, and the sheet and the bar hang off its bottom edge as overlays, which add nothing
     // to its size. So the stage is never bigger than its Host, even while the Host is only the
@@ -327,8 +331,8 @@ public struct KTabStage: View {
           .fixedSize(horizontal: false, vertical: true)
           .animation(KMotion.panelRise) {
             $0
-              .scaleEffect(open ? 1 : 0.94, anchor: .bottom)
-              .offset(y: open ? 0 : 24)
+              .scaleEffect(open || !rises ? 1 : 0.94, anchor: .bottom)
+              .offset(y: open || !rises ? 0 : 24)
           }
           .animation(KMotion.panelFade) { $0.opacity(open ? 1 : 0) }
           .allowsHitTesting(open)

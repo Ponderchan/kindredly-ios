@@ -30,6 +30,7 @@ import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { getStamp, sname } from "../../data/stamps";
 import { ReportMenu } from "../../components/ReportMenu";
 import { SendPlane } from "../../components/ChatField";
+import { useTabBarSpace } from "../../components/NativeTabBar";
 import { DeskStrip } from "../../components/WrenDesk";
 import { postNo, postmark, sinceShort } from "../../lib/format";
 import { fetchMatches, fetchPool, POOL_CACHE_KEY, replyToLetter, type PoolLetter, lastWriteFail, fetchThreads, markLetterRead } from "../../lib/db";
@@ -310,7 +311,7 @@ function Feed({
   const wren = useWrenName();
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
-  const tabH = 54 + Math.max(insets.bottom, 8); // matches the custom TabBar height
+  const tabH = useTabBarSpace(); // the room whichever tab bar is drawn takes (NativeTabBar)
   /* "did I pull the blind today" — one flag per desk day. The day turns at
      eight, when she's back (lib/day); an app left open across eight sees the
      flag lift, the blind roll up and the desk rebuilt with the next fifteen,

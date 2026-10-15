@@ -17,8 +17,9 @@ import SwiftUI
  - it slides on .5s cubic-bezier(.3,1.45,.4,1), which runs well past the new column and comes
    back, and for the first half-second it is stretched sideways to 1.22 (scaleX on .25s
    ease-out, both ways), so it reads as something soft being pulled across;
- - the mock puts it 4 from the column's left and 6 from its right (left: i·20% + 4, width:
-   20% - 10). That 1pt lean is a slip in the arithmetic, not a look, so it is centred here.
+ - 4 from the column's left and 6 from its right, as the mock has it (left: i·20% + 4, width:
+   20% - 10). The 1pt lean is probably a slip in the mock's arithmetic, but it is kept: the bar
+   matches 10a to the point, and a change from the mock is the owner's to make.
 
  The newly selected icon also pops (the tabpop keyframes, H:13 and 445): 1, then 1.24 turned
  -7°, then .95 turned 3°, then 1, over .5s, each step on cubic-bezier(.3,1.4,.5,1). It is drawn
@@ -38,7 +39,8 @@ import SwiftUI
 
  Selection belongs to whoever holds the bar. Tapping a tab only reports it (onSelect); the lens
  moves when selectedIndex changes, so a tab that refuses the press or a route changed from
- elsewhere both come out right.
+ elsewhere both come out right. Pressing the tab that is already selected replays the pop and the
+ stretch in place, as every pick does in the mock (H:445, 486), so the press is felt.
 
  The bar is fixed at 62 tall, so its one piece of text, the count, is held at the default
  Dynamic Type size, and each tab and the + show the large content viewer instead, as UIKit's
@@ -151,6 +153,8 @@ public struct KTabBar: View {
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// bumped by a press on the tab that is already selected, to replay its pop and the stretch
+  @State private var repress = 0
 
   /// - Parameters:
   ///   - items: the tabs, left to right; the + goes in the middle (after the first half)
@@ -231,7 +235,7 @@ public struct KTabBar: View {
           .kSoftShadows(KSoftShadow.lensGlow, in: shape)
           .frame(width: max(0, colW - 10), height: max(0, geo.size.height - 10))
           // pulled sideways while it travels: 1.22 on .25s ease-out, held to .52s, back on .25s
-          .keyframeAnimator(initialValue: CGFloat(1), trigger: col) { content, stretch in
+          .keyframeAnimator(initialValue: CGFloat(1), trigger: [col, repress]) { content, stretch in
             content.scaleEffect(x: stretches ? stretch : 1, y: 1)
           } keyframes: { _ in
             KeyframeTrack {
@@ -240,7 +244,7 @@ public struct KTabBar: View {
               LinearKeyframe(1, duration: 0.25, timingCurve: .easeOut)
             }
           }
-          .offset(x: colW * CGFloat(col) + 5, y: 5)
+          .offset(x: colW * CGFloat(col) + 4, y: 5)
           .animation(stretches ? KMotion.lensSlide : KMotion.lensSlideReduced, value: col)
       }
     }
@@ -255,11 +259,13 @@ public struct KTabBar: View {
     let count = on ? 0 : max(0, item.badge)
     let pops = on && !reduceMotion
     return Button {
+      // only the selected tab counts a re-press; any other waits for selectedIndex to move
+      if on { repress &+= 1 }
       onSelect(i)
     } label: {
       KTabIcon(glyph: item.glyph, on: on, color: color)
-        // the pop runs on every change of tab; only the one just selected takes it
-        .keyframeAnimator(initialValue: KTabPop(), trigger: selectedIndex ?? -1) { content, pop in
+        // the pop runs on every change of tab and every re-press; only the selected one takes it
+        .keyframeAnimator(initialValue: KTabPop(), trigger: [selectedIndex ?? -1, repress]) { content, pop in
           content
             .scaleEffect(pops ? pop.scale : 1)
             .rotationEffect(pops ? pop.angle : .zero)
@@ -302,6 +308,10 @@ public struct KTabBar: View {
   private var plus: some View {
     KPrimaryRound(theme: theme, isOpen: isPanelOpen, accessibilityLabel: isPanelOpen ? closeLabel : plusLabel, action: onPlus)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      // the whole column takes the tap, as the mock's cell and PostTabBar's column do; the disc
+      // keeps its own press (a child's gesture wins inside the circle)
+      .contentShape(Rectangle())
+      .onTapGesture(perform: onPlus)
       .accessibilityShowsLargeContentViewer {
         Label(isPanelOpen ? closeLabel : plusLabel, systemImage: isPanelOpen ? "xmark" : "plus")
       }
