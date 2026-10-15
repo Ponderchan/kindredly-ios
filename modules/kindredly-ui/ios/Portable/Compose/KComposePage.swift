@@ -434,6 +434,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         .kText(.monoWide)
         .foregroundStyle(theme.ink)
         .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        // centred on the page, never under the × or the stamp slot (A UN EXTRAÑO, AN EINEN FREMDEN)
+        .padding(.horizontal, 48)
         .accessibilityAddTraits(.isHeader)
       HStack(spacing: 0) {
         SwiftUI.Button(action: actions.onClose) {

@@ -378,9 +378,12 @@ export function useComposeState(opts: {
     let alive = true;
     void ioRef.current.getDraft(params.draft).then((d) => {
       if (!alive || !d) return;
+      // a draft written by an older build may lack a field: read each as text
+      const body = typeof d.body === "string" ? d.body : "";
+      const question = typeof d.ask === "string" ? d.ask : "";
       setSel(d.stamp || null);
-      setAskOpen(!!d.ask.trim());
-      seedWords(d.body, d.ask);
+      setAskOpen(!!question.trim());
+      seedWords(body, question);
       setStep("write");
     });
     return () => {
