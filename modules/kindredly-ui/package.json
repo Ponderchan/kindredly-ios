@@ -1,0 +1,6 @@
+{
+  "name": "kindredly-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kindredly's SwiftUI views (10a), rendered from React Native through @expo/ui. A local Expo module: autolinking finds it in ./modules."
+}

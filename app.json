@@ -12,6 +12,7 @@
       "bundleIdentifier": "io.kindredly.app",
       "usesAppleSignIn": true,
       "supportsTablet": false,
+      "deploymentTarget": "18.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
