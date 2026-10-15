@@ -53,6 +53,8 @@ const waiting: (() => void)[] = [];
 
 /* the view has re-rendered with the new look; give it two frames to draw */
 const settle = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30))));
+/** after a failed capture, wait this long before the next round (as FaceShot does) */
+const RETRY_MS = 400;
 
 /** Capture a pose to a fresh temp PNG (Live Activities). Base poses are always mounted; any other pose only while a screen shows it. null if the strip isn't mounted after 4s or the capture fails. */
 export async function snapshotBird(pose: BirdPose): Promise<string | null> {
@@ -91,7 +93,13 @@ export function BirdSnapshots() {
     }
   }, [laid]);
 
-  // capture whatever a Swift screen is showing that is missing or out of date
+  /* capture whatever a Swift screen is showing that is missing or out of date.
+     The effect is keyed on `todo`, which doesn't change when a capture fails
+     (the variant still needs one) or when her look moves while the last
+     capture is in flight (it records the old look; the variant was already
+     in todo) — so the loop itself checks after each round and goes again.
+     Bounded by `rounds`, and birdNeedsCapture turns false after
+     MAX_FAILURES on one look, so a broken view can't spin it. */
   const capturing = useRef(false);
   const again = useRef(false);
   const todo = wantedBirdVariants().filter(birdNeedsCapture).join(",");
@@ -104,9 +112,12 @@ export function BirdSnapshots() {
       }
       capturing.current = true;
       let rounds = 0;
+      let failed = false;
       try {
         do {
-          again.current = false;
+          if (failed) await new Promise<void>((r) => setTimeout(r, RETRY_MS));
+          failed = false;
+          again.current = false; // after the wait: a request that came in during it is served by this round
           const stamp = birdLookStamp();
           await settle();
           for (const v of wantedBirdVariants()) {
@@ -129,7 +140,10 @@ export function BirdSnapshots() {
               uri = null;
             }
             settleBirdCapture(v, look, uri);
+            if (!uri) failed = true;
           }
+          // a failure (retried until MAX_FAILURES), or her look moved during the last capture: go again
+          if (birdLookStamp() !== stamp || wantedBirdVariants().some(birdNeedsCapture)) again.current = true;
           // bounded: a view that never mounts must not keep this loop spinning (the next look or request restarts it)
         } while (again.current && ++rounds < 8);
       } finally {

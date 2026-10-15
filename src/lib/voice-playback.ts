@@ -9,10 +9,21 @@
    - toggling another item replace()s the source and plays it;
    - toggling the playing item pauses it; toggling it again resumes, and a
      finished item starts again from 0 (AudioCard / SealedTile did this);
-   - it pauses when the screen loses focus, when it unmounts, and when the
-     caller's `pauseOn` value changes (Today's card index);
+   - it pauses when the screen loses focus and when the caller's `pauseOn`
+     value changes (Today's card index); unmounting releases the player,
+     which stops it;
    - a link re-signed while an item is loaded doesn't reset it: a paused
-     item resumes where it was on the source it already has.
+     item resumes where it was on the source it already has;
+   - an item that wouldn't load (an expired link, offline) is `failed`: the
+     card shows itself unavailable, and the next press loads it again
+     rather than playing the dead source over silence.
+
+   Leaving the screen releases the player before the focus cleanup runs
+   (hook cleanups run in declaration order, and useAudioPlayer's comes
+   first), and a released player throws on every call. So nothing here
+   touches the player once the screen is gone: `alive` is declared ahead
+   of useAudioPlayer, its cleanup runs first, and pause / stop / toggle /
+   publish return early after it. Releasing already silenced the sound.
 
    Swift's KVoiceCard is display-only. It gets `state` through the
    'playback' command — only on transitions (play, pause, seek, end, a
@@ -36,6 +47,8 @@ export type VoicePlayback = {
   durationS: number;
   /** ms since the epoch when positionS was sampled — while playing, now's position is positionS + (now − at) / 1000 */
   at: number;
+  /** the item wouldn't load (an expired link, offline): show the card unavailable; the next toggle loads it again */
+  failed: boolean;
 };
 
 export type VoicePlaybackApi = {
@@ -43,8 +56,9 @@ export type VoicePlaybackApi = {
   state: VoicePlayback | null;
   /**
    * Play/pause `key`. Another key replaces the source and plays from 0; the same key
-   * pauses, resumes, or restarts from 0 when it had finished. A null url (not signed
-   * yet, offline) does nothing — the card shows itself unavailable.
+   * pauses, resumes, or restarts from 0 when it had finished, and loads it again
+   * after it failed. A null url (not signed yet, offline) does nothing — the card
+   * shows itself unavailable.
    * @param durationS the stored length, used until the player knows the real one
    */
   toggle: (key: string, url: string | null | undefined, durationS?: number | null) => void;
@@ -59,6 +73,15 @@ const END_SLOP = 0.3;
 /** while playing, a status this far from the clock Swift is running is a transition (a stall, a seek) */
 const DRIFT_S = 0.75;
 
+/** A native call that may land on a released player (a cleanup racing the release): it throws, and there is nothing left to stop. */
+function quietly(f: () => void): void {
+  try {
+    f();
+  } catch (e) {
+    if (__DEV__) console.warn("[voice-playback] player already released", e);
+  }
+}
+
 /** Where a playback stands at `now` (ms), clamped to its length. */
 export function playbackPosition(s: VoicePlayback | null, now: number = Date.now()): number {
   if (!s) return 0;
@@ -71,15 +94,17 @@ export function playbackProgress(s: VoicePlayback | null, now: number = Date.now
   return s && s.durationS > 0 ? playbackPosition(s, now) / s.durationS : 0;
 }
 
-/** The 'playback' command's args for Swift: { key, playing, positionS, durationS, at }. Nothing loaded → key "". */
-export function playbackCommandArgs(s: VoicePlayback | null): { key: string; playing: boolean; positionS: number; durationS: number; at: number } {
-  return s ? { key: s.key, playing: s.playing, positionS: s.positionS, durationS: s.durationS, at: s.at } : { key: "", playing: false, positionS: 0, durationS: 0, at: 0 };
+/** The 'playback' command's args for Swift: { key, playing, positionS, durationS, at, failed }. Nothing loaded → key "". */
+export function playbackCommandArgs(s: VoicePlayback | null): { key: string; playing: boolean; positionS: number; durationS: number; at: number; failed: boolean } {
+  return s
+    ? { key: s.key, playing: s.playing, positionS: s.positionS, durationS: s.durationS, at: s.at, failed: s.failed }
+    : { key: "", playing: false, positionS: 0, durationS: 0, at: 0, failed: false };
 }
 
 /** Pure: is `next` a change worth telling Swift about, given what it was last told? */
 export function isPlaybackTransition(prev: VoicePlayback | null, next: VoicePlayback | null): boolean {
   if (!prev || !next) return prev !== next;
-  if (prev.key !== next.key || prev.playing !== next.playing) return true;
+  if (prev.key !== next.key || prev.playing !== next.playing || prev.failed !== next.failed) return true;
   if (Math.abs(prev.durationS - next.durationS) > 0.05) return true;
   if (!next.playing) return Math.abs(prev.positionS - next.positionS) > 0.05;
   return Math.abs(playbackPosition(prev, next.at) - next.positionS) > DRIFT_S;
@@ -97,10 +122,23 @@ export function isPlaybackTransition(prev: VoicePlayback | null, next: VoicePlay
  * @param opts.onChange called with every transition, as state changes (for a command sent without waiting for a render)
  */
 export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: VoicePlayback | null) => void } = {}): VoicePlaybackApi {
+  /* FIRST, before useAudioPlayer: on unmount this cleanup runs ahead of the
+     player's release and of the focus cleanup, so neither of those reaches
+     a released player through pause() (it would throw from a passive
+     unmount effect — a red box in dev, a crash in release) */
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const player = useAudioPlayer(null, { updateInterval: 250 });
   const [state, setState] = useState<VoicePlayback | null>(null);
   const told = useRef<VoicePlayback | null>(null);
-  const loaded = useRef<{ key: string | null; url: string | null; hint: number }>({ key: null, url: null, hint: 0 });
+  /* url null after a failure, so the next press takes the replace path;
+     failed is sticky until then (later statuses carry error: null) */
+  const loaded = useRef<{ key: string | null; url: string | null; hint: number; failed: boolean }>({ key: null, url: null, hint: 0, failed: false });
   /* when the source was last replaced: the old item's last time tick can
      still be queued behind the switch, and must not move the new item's clock */
   const replacedAt = useRef(0);
@@ -121,11 +159,11 @@ export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: Voice
 
   const publish = useCallback(
     (playing: boolean, positionS?: number, durationS?: number, force = false) => {
-      const key = loaded.current.key;
-      if (!key) return;
+      const { key, failed } = loaded.current;
+      if (!key || !alive.current) return;
       const d = duration(durationS);
       const p = Math.max(0, positionS ?? player.currentTime ?? 0);
-      tell({ key, playing, positionS: d > 0 ? Math.min(d, p) : p, durationS: d, at: Date.now() }, force);
+      tell({ key, playing: playing && !failed, positionS: d > 0 ? Math.min(d, p) : p, durationS: d, at: Date.now(), failed }, force);
     },
     [player, duration, tell],
   );
@@ -143,12 +181,17 @@ export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: Voice
         return;
       }
       if (s.error) {
-        // the file wouldn't load (an expired link, offline): stop rather than run a clock over silence
+        /* the file wouldn't load (an expired link, offline): stop rather than
+           run a clock over silence. AVQueuePlayer can't replay a failed item,
+           so forget the url — the next press replace()s, even on the same link */
         wasRunning = false;
         if (__DEV__) console.warn("[voice-playback]", loaded.current.key, s.error);
+        loaded.current.url = null;
+        loaded.current.failed = true;
         publish(false, 0);
         return;
       }
+      if (loaded.current.failed) return; // nothing to tell until the next press loads it again
       /* still loading or buffering after play() reads as playing (the key
          shows pause, as pressed); the clock is re-based the moment sound
          actually starts, so Swift's bar doesn't run ahead of a slow load */
@@ -165,21 +208,24 @@ export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: Voice
   /* always pause, never "if playing": an item still loading after play()
      isn't playing yet, and would start the moment it loaded */
   const pause = useCallback(() => {
-    if (!loaded.current.key) return;
+    if (!alive.current || !loaded.current.key) return;
     asked.current = { playing: false, at: Date.now() };
-    player.pause();
-    publish(false);
+    quietly(() => {
+      player.pause();
+      publish(false);
+    });
   }, [player, publish]);
 
   const stop = useCallback(() => {
-    if (loaded.current.key) player.pause();
-    loaded.current = { key: null, url: null, hint: 0 };
+    if (!alive.current) return;
+    if (loaded.current.key) quietly(() => player.pause());
+    loaded.current = { key: null, url: null, hint: 0, failed: false };
     tell(null, true);
   }, [player, tell]);
 
   const toggle = useCallback(
     (key: string, url: string | null | undefined, durationS?: number | null) => {
-      if (!url) return;
+      if (!url || !alive.current) return;
       const cur = loaded.current;
       const press = (playing: boolean) => (asked.current = { playing, at: Date.now() });
       if (cur.key === key) {
@@ -195,9 +241,10 @@ export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: Voice
         const pos = player.currentTime || 0;
         const atStart = pos <= END_SLOP;
         const atEnd = d > 0 && pos >= d - END_SLOP;
-        if (cur.url !== url && (atStart || atEnd)) {
-          // a fresh link and nothing to keep: load it
+        if (cur.failed || (cur.url !== url && (atStart || atEnd))) {
+          // it failed (load it again, from 0), or a fresh link and nothing to keep: load it
           cur.url = url;
+          cur.failed = false;
           replacedAt.current = Date.now();
           player.replace({ uri: url });
           player.play();
@@ -212,7 +259,7 @@ export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: Voice
       // another item: one player, so this one replaces whatever was loaded
       press(true);
       if (cur.key) player.pause();
-      loaded.current = { key, url, hint: durationS && durationS > 0 ? durationS : 0 };
+      loaded.current = { key, url, hint: durationS && durationS > 0 ? durationS : 0, failed: false };
       replacedAt.current = Date.now();
       player.replace({ uri: url });
       player.play();
@@ -221,7 +268,7 @@ export function useVoicePlayback(opts: { pauseOn?: unknown; onChange?: (s: Voice
     [player, publish, duration],
   );
 
-  // pause when the screen loses focus (a push, a tab switch); unmount releases the player itself
+  // pause when the screen loses focus (a push, a tab switch); on unmount `alive` makes this a no-op — the release stops the sound
   const pauseRef = useRef(pause);
   pauseRef.current = pause;
   useFocusEffect(
