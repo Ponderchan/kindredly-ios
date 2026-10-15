@@ -48,6 +48,12 @@ const BRAND_ROLE = {
   creamBorder: "The cream's border.",
   lime: "The lime of the \"auras close\" capsule, and nothing else. Text on it is always #1E1B35.",
   acid: "The older acid green (PUNCH); kept so the two tables agree.",
+  // step 5 (foundation.json theme_fonts): the object colours the new pieces paint from
+  brassSeal: "The brass of a seal: SWAP NAMES? and THEY WENT FIRST, the five-letter moment.",
+  postRed: "Postmark red: over-limit counts, the post tag. A warning that stays the same in every theme.",
+  inkOnBrand: "The dark ink drawn on fixed brand fills (cream, lime, wax gold), whatever the theme: never the theme's ink, which is pale in Midnight.",
+  subOnCream: "Secondary text on the First Class cream.",
+  paperWhite: "White paper on fixed-colour objects: the First Class stamp's face, the switch's knob, a mark on a brand fill.",
 };
 
 // Swift keywords a token or theme key must not be named (the ones a colour name could plausibly hit)

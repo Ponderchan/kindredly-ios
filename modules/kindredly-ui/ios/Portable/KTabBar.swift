@@ -27,9 +27,11 @@ import SwiftUI
  note, the two dots in the bubble, the dot under the head); the others are ink at 1.9, and the
  colour and stroke change on CSS's ease over .25s.
 
- The icons are the mock's own drawings (P:70-75), in its 28-unit box drawn 27 across, rather
- than SF Symbols: they are a handful of lines and arcs and the mock's accent fills belong to
- them.
+ The icons are the mock's own drawings (P:70-75), drawn 27 across, rather than SF Symbols: they
+ are a handful of lines and arcs and the mock's accent fills belong to them. They live with the
+ other line icons in Kit/KLineGlyph.swift (envelope, ruledCard, bubbles, person and their
+ accents), moved there from this file onto the shared 24 grid; the mock's strokes of 1.9 and 2.4
+ are in its 28 units, so they are scaled by 24/28 here and land on screen exactly as before.
 
  A tab can carry a count: an ind pill with the number in bg (mono 600 11, 18 tall, the mock's
  chip badge, H:62), set above and right of the icon with a 1.6 ring of the bar's own face so it
@@ -59,21 +61,23 @@ public enum KTabGlyph: String, CaseIterable, Sendable {
   /// Me: a head and shoulders; selected, a dot under the head
   case me
 
-  var outline: KGlyphDrawing {
+  /// the line drawing (KLineGlyph.swift)
+  public var outline: KLineGlyph {
     switch self {
-    case .today: return .today
-    case .notes: return .notes
-    case .kindreds: return .kindreds
-    case .me: return .me
+    case .today: return .envelope
+    case .notes: return .ruledCard
+    case .kindreds: return .bubbles
+    case .me: return .person
     }
   }
 
-  var accent: KGlyphDrawing {
+  /// the solid accent drawn over it while the tab is selected
+  public var accent: KLineGlyph {
     switch self {
-    case .today: return .todayAccent
-    case .notes: return .notesAccent
-    case .kindreds: return .kindredsAccent
-    case .me: return .meAccent
+    case .today: return .envelopeDot
+    case .notes: return .ruledCardBar
+    case .kindreds: return .bubblesDots
+    case .me: return .personDot
     }
   }
 
@@ -324,20 +328,24 @@ struct KTabPop {
   var angle: Angle = .zero
 }
 
-/// A tab's glyph, 27 across: the outline at 1.9 (2.4 selected) of its 28 units, plus the solid
-/// accent when selected. The accent appears at once, as in the mock; the colour and the stroke
-/// follow whatever animation the caller's transaction carries.
+/// A tab's glyph, 27 across: the outline at the mock's 1.9 (2.4 selected) of its 28 units, plus
+/// the solid accent when selected. The accent appears at once, as in the mock; the colour and the
+/// stroke follow whatever animation the caller's transaction carries.
 struct KTabIcon: View {
+  /// the mock's 28-unit strokes on the shared 24 grid (KLineGlyph)
+  static let restingStroke: CGFloat = 1.9 * 24 / 28
+  static let selectedStroke: CGFloat = 2.4 * 24 / 28
+
   let glyph: KTabGlyph
   let on: Bool
   let color: Color
 
   var body: some View {
     ZStack {
-      KGlyphShape(drawing: glyph.outline, lineWidth: on ? 2.4 : 1.9)
+      KLineGlyphShape(glyph.outline, lineWidth: on ? Self.selectedStroke : Self.restingStroke)
         .fill(color)
       if on {
-        KGlyphShape(drawing: glyph.accent, lineWidth: 0)
+        KLineGlyphShape(glyph.accent, lineWidth: 0)
           .fill(color)
           .transition(.identity)
       }
@@ -364,108 +372,5 @@ struct KTabBadge: View {
       .padding(1.6)
       .background(Capsule().fill(theme.sf))
       .accessibilityHidden(true)
-  }
-}
-
-/*
- THE DRAWINGS, in the mock's 28-unit box (viewBox 0 0 28 28), copied from its SVG paths: the
- four tab icons and their accents (P:70-75, H:158, 417-423) and the notebook on the composer's
- second card (H:133). The composer's envelope is the Today icon (H:132 draws the same path).
- */
-enum KGlyphDrawing: Sendable {
-  case today, todayAccent
-  case notes, notesAccent
-  case kindreds, kindredsAccent
-  case me, meAccent
-  case notebook
-
-  /// the drawing in box units, before it is placed and stroked
-  var path: Path {
-    var p = Path()
-    switch self {
-    case .today:
-      // M3 8h22v13H3z M3 9l11 8 11-8
-      p.addRect(CGRect(x: 3, y: 8, width: 22, height: 13))
-      p.move(to: CGPoint(x: 3, y: 9))
-      p.addLine(to: CGPoint(x: 14, y: 17))
-      p.addLine(to: CGPoint(x: 25, y: 9))
-    case .todayAccent:
-      // a circle of r2.4 at 14,15.5
-      p.addEllipse(in: CGRect(x: 11.6, y: 13.1, width: 4.8, height: 4.8))
-    case .notes:
-      // M6 4h16v20H6z M10 10h8 M10 14h8 M10 18h5
-      p.addRect(CGRect(x: 6, y: 4, width: 16, height: 20))
-      p.move(to: CGPoint(x: 10, y: 10))
-      p.addLine(to: CGPoint(x: 18, y: 10))
-      p.move(to: CGPoint(x: 10, y: 14))
-      p.addLine(to: CGPoint(x: 18, y: 14))
-      p.move(to: CGPoint(x: 10, y: 18))
-      p.addLine(to: CGPoint(x: 15, y: 18))
-    case .notesAccent:
-      // M9.5 14.2h9a1 1 0 0 1 0 2h-9a1 1 0 0 1 0-2z: a pill from 8.5 to 19.5, 2 tall
-      p.addRoundedRect(in: CGRect(x: 8.5, y: 14.2, width: 11, height: 2), cornerSize: CGSize(width: 1, height: 1), style: .circular)
-    case .kindreds:
-      // M4 6h13v9H9l-4 4z M12 19h8l4 4V12h-3
-      p.move(to: CGPoint(x: 4, y: 6))
-      p.addLine(to: CGPoint(x: 17, y: 6))
-      p.addLine(to: CGPoint(x: 17, y: 15))
-      p.addLine(to: CGPoint(x: 9, y: 15))
-      p.addLine(to: CGPoint(x: 5, y: 19))
-      p.closeSubpath()
-      p.move(to: CGPoint(x: 12, y: 19))
-      p.addLine(to: CGPoint(x: 20, y: 19))
-      p.addLine(to: CGPoint(x: 24, y: 23))
-      p.addLine(to: CGPoint(x: 24, y: 12))
-      p.addLine(to: CGPoint(x: 21, y: 12))
-    case .kindredsAccent:
-      // circles of r1.5 at 8.5,10.5 and 12.5,10.5
-      p.addEllipse(in: CGRect(x: 7, y: 9, width: 3, height: 3))
-      p.addEllipse(in: CGRect(x: 11, y: 9, width: 3, height: 3))
-    case .me:
-      // M18 10a4 4 0 1 1-8 0a4 4 0 1 1 8 0z M5 24c1-5 5-7 9-7s8 2 9 7
-      p.addEllipse(in: CGRect(x: 10, y: 6, width: 8, height: 8))
-      p.move(to: CGPoint(x: 5, y: 24))
-      p.addCurve(to: CGPoint(x: 14, y: 17), control1: CGPoint(x: 6, y: 19), control2: CGPoint(x: 10, y: 17))
-      p.addCurve(to: CGPoint(x: 23, y: 24), control1: CGPoint(x: 18, y: 17), control2: CGPoint(x: 22, y: 19))
-    case .meAccent:
-      // a circle of r2 at 14,19.5
-      p.addEllipse(in: CGRect(x: 12, y: 17.5, width: 4, height: 4))
-    case .notebook:
-      // M6 3h13a1 1 0 0 1 1 1v20a1 1 0 0 1-1 1H6z M10 3v22 M14 9h3 M14 13h3
-      p.move(to: CGPoint(x: 6, y: 3))
-      p.addLine(to: CGPoint(x: 19, y: 3))
-      p.addArc(tangent1End: CGPoint(x: 20, y: 3), tangent2End: CGPoint(x: 20, y: 4), radius: 1)
-      p.addLine(to: CGPoint(x: 20, y: 24))
-      p.addArc(tangent1End: CGPoint(x: 20, y: 25), tangent2End: CGPoint(x: 19, y: 25), radius: 1)
-      p.addLine(to: CGPoint(x: 6, y: 25))
-      p.closeSubpath()
-      p.move(to: CGPoint(x: 10, y: 3))
-      p.addLine(to: CGPoint(x: 10, y: 25))
-      p.move(to: CGPoint(x: 14, y: 9))
-      p.addLine(to: CGPoint(x: 17, y: 9))
-      p.move(to: CGPoint(x: 14, y: 13))
-      p.addLine(to: CGPoint(x: 17, y: 13))
-    }
-    return p
-  }
-}
-
-/// A drawing placed in its frame (square, centred) and stroked as the SVG strokes it: round caps
-/// and joins, the width in box units. A lineWidth of 0 fills the drawing instead (the accents).
-/// The width animates, so a tab's stroke thickens along with its colour.
-struct KGlyphShape: Shape {
-  let drawing: KGlyphDrawing
-  var lineWidth: CGFloat
-
-  var animatableData: CGFloat {
-    get { lineWidth }
-    set { lineWidth = newValue }
-  }
-
-  func path(in rect: CGRect) -> Path {
-    let s = min(rect.width, rect.height) / 28
-    let placed = drawing.path.applying(CGAffineTransform(a: s, b: 0, c: 0, d: s, tx: rect.midX - 14 * s, ty: rect.midY - 14 * s))
-    guard lineWidth > 0 else { return placed }
-    return placed.strokedPath(StrokeStyle(lineWidth: lineWidth * s, lineCap: .round, lineJoin: .round))
   }
 }

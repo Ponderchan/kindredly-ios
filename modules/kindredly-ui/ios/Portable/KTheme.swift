@@ -147,6 +147,16 @@ public enum KBrand {
   public static let lime         = Color(hex: "#D8F04A")
   /// The older acid green (PUNCH); kept so the two tables agree.
   public static let acid         = Color(hex: "#C3E84F")
+  /// The brass of a seal: SWAP NAMES? and THEY WENT FIRST, the five-letter moment.
+  public static let brassSeal    = Color(hex: "#9A7433")
+  /// Postmark red: over-limit counts, the post tag. A warning that stays the same in every theme.
+  public static let postRed      = Color(hex: "#E0483C")
+  /// The dark ink drawn on fixed brand fills (cream, lime, wax gold), whatever the theme: never the theme's ink, which is pale in Midnight.
+  public static let inkOnBrand   = Color(hex: "#1E1B35")
+  /// Secondary text on the First Class cream.
+  public static let subOnCream   = Color(hex: "#55506E")
+  /// White paper on fixed-colour objects: the First Class stamp's face, the switch's knob, a mark on a brand fill.
+  public static let paperWhite   = Color(hex: "#FFFFFF")
 }
 
 /// A 10a mood pair (themes.json "mood"): a pale fill and the ink drawn on it, the same in every

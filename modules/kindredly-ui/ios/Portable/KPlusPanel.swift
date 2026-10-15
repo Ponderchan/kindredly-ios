@@ -10,19 +10,16 @@ import SwiftUI
  The sheet is drawn like an InkCard, not like a float: sf, a 2.5 ln outline, corners of 28 and
  a hard 6/6 ln shadow, padding 16 inside the outline (border-box), its pieces 10 apart (H:129).
  The prompts call for a soft popover here (P:84); the mock wins (tokens-10a.md §11 item 4).
- - a header row: the title in mono 600 12 at .16em (NEW in the mock, H:130), and on the right,
-   if one is given, a link in ind, mono 600 12 at .12em (the mock's RECENT ›);
- - the choices as cards, two to a row, 10 apart (H:131-133). Each card: corners of 18, a 2pt
-   ln outline, a hard 3/3 ln shadow, its glyph 28 across in ink at stroke 2, the title in mono
-   600 11 at .1em in capitals 4 lower, and the subtitle in the letter serif's italic 13 in sub,
-   all centred. The mock's card is 116 tall inside its outline, 120 overall; here that is the
-   least it is, so a longer translation or a larger Dynamic Type size can make it taller, and
-   both cards in a row keep one height.
+ - a header row: the title in mono 600 .16em (NEW in the mock, H:130), and on the right, if one
+   is given, a link in ind, mono 600 .12em (the mock's RECENT ›). The mock sets both at 12;
+   KMonoSizes sizes them (owner question 2: 11);
+ - the choices as KChoiceCards, two to a row, 10 apart (H:131-133, Kit/KChoiceCard.swift):
+   corners of 18, a 2pt ln outline, a hard 3/3 ln shadow, the glyph 28 across, the title in mono
+   capitals and the subtitle in the letter serif's italic, both cards in a row one height.
 
  The two fills are the mock's: the letter card lav2 (the only place the mock uses lav2) and the
- note card #F6E7C6, the happy mood's fill, the same in every theme. The mock writes ink on that
- pale fill even in Midnight, where ink is pale too and the words vanish (a mock bug, like its
- "auras close"); in a dark theme that card's words are Classic's ink and sub instead.
+ note card #F6E7C6, the happy mood's fill, the same in every theme (KChoiceCard's lavender and
+ warm tones, which also keep the warm card's words dark in Midnight).
 
  Every word comes from the caller, already translated. Nothing here holds a word of its own.
  */
@@ -53,6 +50,22 @@ public struct KPlusPanelCard: Identifiable, Equatable, Sendable {
   public let tone: Tone
 
   public var id: String { key }
+
+  /// the drawing on the shared grid (Kit/KLineGlyph.swift)
+  public var lineGlyph: KLineGlyph {
+    switch glyph {
+    case .letter: return .envelope
+    case .note: return .notebook
+    }
+  }
+
+  /// the face of the KChoiceCard it is drawn as
+  public var choiceTone: KChoiceCard.Tone {
+    switch tone {
+    case .lavender: return .lavender
+    case .warm: return .warm
+    }
+  }
 
   public init(key: String, title: String, subtitle: String, glyph: Glyph, tone: Tone) {
     self.key = key
@@ -97,24 +110,14 @@ public struct KPlusPanel: View {
     self.onAction = onAction
   }
 
-  /// the cards in rows of two
-  private var rows: [[KPlusPanelCard]] {
-    stride(from: 0, to: cards.count, by: 2).map { Array(cards[$0..<min($0 + 2, cards.count)]) }
-  }
-
   public var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       header
-      ForEach(rows.indices, id: \.self) { r in
-        HStack(spacing: 10) {
-          ForEach(rows[r]) { card($0) }
-          // a row of one keeps its card at half the width, as the mock's grid would
-          if rows[r].count == 1 {
-            Color.clear.frame(maxWidth: .infinity).accessibilityHidden(true)
-          }
+      // two to a row, one height per row, a row of one at half the width (KChoiceGrid)
+      KChoiceGrid(cards) { c in
+        KChoiceCard(theme: theme, title: c.title, subtitle: c.subtitle, glyph: c.lineGlyph, tone: c.choiceTone) {
+          onAction(c.key)
         }
-        // both cards take the taller one's height (the grid's row), and no more
-        .fixedSize(horizontal: false, vertical: true)
       }
     }
     // padding 16 inside the 2.5 outline (border-box)
@@ -147,7 +150,7 @@ public struct KPlusPanel: View {
           onAction(link.key)
         } label: {
           Text(link.title)
-            .kText(.mono(12, .semibold, tracking: 0.12))
+            .kText(.monoLink)
             .foregroundStyle(theme.ind)
             .lineLimit(1)
             .fixedSize()
@@ -159,50 +162,6 @@ public struct KPlusPanel: View {
         .buttonStyle(KAsIsButtonStyle())
       }
     }
-  }
-
-  private func card(_ c: KPlusPanelCard) -> some View {
-    let fill: Color = c.tone == .lavender ? theme.lav2 : KMood.happy.fill
-    // the warm fill is pale in every theme, so its words stay dark in a dark one
-    let fixedInk = c.tone == .warm && theme.isDark
-    let ink = fixedInk ? KTheme.classic.ink : theme.ink
-    let sub = fixedInk ? KTheme.classic.sub : theme.sub
-    return Button {
-      onAction(c.key)
-    } label: {
-      VStack(spacing: 6) {
-        KGlyphShape(drawing: c.glyph == .letter ? .today : .notebook, lineWidth: 2)
-          .fill(ink)
-          .frame(width: 28, height: 28)
-          .accessibilityHidden(true)
-        Text(c.title)
-          .textCase(.uppercase)
-          .kText(.monoAction)
-          .foregroundStyle(ink)
-          .lineLimit(2)
-          .minimumScaleFactor(0.8)
-          .padding(.top, 4)
-        Text(c.subtitle)
-          .kText(.letterHint)
-          .foregroundStyle(sub)
-          .lineLimit(2)
-          .minimumScaleFactor(0.8)
-      }
-      .multilineTextAlignment(.center)
-      // the mock's card has no padding of its own; a little here keeps a long translation off
-      // the outline. 2 of each side is the outline itself, which sits outside the content.
-      .padding(.horizontal, 8 + 2)
-      .padding(.vertical, 12 + 2)
-      .frame(maxWidth: .infinity, minHeight: 116 + 2 * 2, maxHeight: .infinity)
-    }
-    .buttonStyle(KStickerButtonStyle(
-      shape: RoundedRectangle(cornerRadius: 18, style: .circular),
-      fill: fill,
-      stroke: theme.ln,
-      lineWidth: 2,
-      shadow: theme.ln,
-      shadowOffset: 3
-    ))
   }
 }
 

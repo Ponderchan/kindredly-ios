@@ -13,6 +13,9 @@ import SwiftUI
  - DISABLED: faint text on a soft2 pill, mono 600 11 at .12em (the SEND pill; H:124). The
    prompts' version, mute text with no fill (P:56), is the one the mock replaced.
 
+ Two keys every composer shares are at the end of the file: KSendKey, the one send key of the
+ app, and KRoundTool, the round + and Wren buttons beside a reply strip.
+
  Every title is passed in already translated; nothing here holds a word of its own.
  */
 
@@ -233,5 +236,185 @@ public struct KDisabledPill: View {
     }
     .buttonStyle(KAsIsButtonStyle())
     .disabled(true)
+  }
+}
+
+/*
+ THE SEND KEY, one for the whole app: the reply strips in rooms and chats, the Today reply dock,
+ the reader. Three states (KSendState):
+ - disabled: nothing to send yet (or not enough): KDisabledPill, the faint SEND on soft2 (H:124);
+ - enabled: the words can go;
+ - dimmed: the words are fine but they can't go right now (a full pouch: every letter you may
+   have in flight is flying). It looks off, at .35, and still takes the tap, so the screen can
+   say why (owner: "a full pouch dims the plane before the tap, not after").
+ And two looks for enabled (KSendStyle), owner question 3, asked 2026-10-16 and built with the
+ recommended answer, standard = .plane:
+ - plane: the owner's 2026-09-20 key, a 54 × 36 ink pill, corners of 18, with a solid paper
+   plane 19 across in bg (ChatField.tsx SendPlane, letters.tsx:655);
+ - word: the prompts' version, SEND in bg on an ind pill, KDisabledPill's own metrics.
+ VoiceOver reads the label (SEND) as a button, dimmed when disabled.
+ */
+
+/// What the send key can do right now.
+public enum KSendState: String, Sendable {
+  /// nothing to send: the faint pill, not pressable
+  case disabled
+  /// the words can go
+  case enabled
+  /// the words are fine but can't go now (a full pouch): drawn off, still pressable
+  case dimmed
+}
+
+/// How the send key looks when it can send.
+public enum KSendStyle: String, Sendable {
+  /// the ink pill with the paper plane (ChatField.tsx SendPlane)
+  case plane
+  /// SEND on an ind pill
+  case word
+
+  /// OWNER QUESTION 3: the look every send key takes. The plane until the owner says otherwise.
+  public static let standard: KSendStyle = .plane
+}
+
+public struct KSendKey: View {
+  /// the plane pill's size (ChatField.tsx SendPlane)
+  public static let planeSize = CGSize(width: 54, height: 36)
+
+  private let theme: KTheme
+  private let state: KSendState
+  private let style: KSendStyle
+  private let label: String
+  private let action: () -> Void
+
+  /// - Parameters:
+  ///   - state: disabled, enabled or dimmed (see the note above)
+  ///   - style: the enabled look; KSendStyle.standard unless a screen has a reason
+  ///   - label: SEND, already translated: the disabled pill's word, the word style's word, and
+  ///     what VoiceOver says
+  ///   - action: the key was pressed (enabled or dimmed)
+  public init(theme: KTheme, state: KSendState, style: KSendStyle = .standard, label: String, action: @escaping () -> Void) {
+    self.theme = theme
+    self.state = state
+    self.style = style
+    self.label = label
+    self.action = action
+  }
+
+  public var body: some View {
+    if state == .disabled {
+      KDisabledPill(theme: theme, title: label)
+        .accessibilityLabel(label)
+    } else {
+      SwiftUI.Button(action: action) {
+        face
+      }
+      .buttonStyle(KFloatPressStyle())
+      .compositingGroup()
+      .opacity(state == .dimmed ? 0.35 : 1)
+      .accessibilityLabel(label)
+    }
+  }
+
+  @ViewBuilder
+  private var face: some View {
+    switch style {
+    case .plane:
+      KLineIcon(.plane, size: 19, lineWidth: 0, color: theme.bg)
+        .frame(width: Self.planeSize.width, height: Self.planeSize.height)
+        .background(Capsule().fill(theme.ink))
+        .contentShape(Capsule())
+    case .word:
+      Text(label)
+        .textCase(.uppercase)
+        .kText(.monoSend)
+        .foregroundStyle(theme.bg)
+        .lineLimit(1)
+        .fixedSize()
+        .padding(.vertical, 9)
+        .padding(.horizontal, 14)
+        .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(theme.ind))
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .circular))
+    }
+  }
+}
+
+/*
+ A ROUND TOOL beside a reply strip or on a composer toolbar (H:136, chat spec): a 40 circle with
+ a 1.5 ln outline and nothing inside it but its mark, in a 44 target.
+ - plus(open:): the + 18 across at stroke 2 in ink; open (its tray is showing) it turns 45° into
+   an × in ind, on the + sheet's curve (KMotion.plusTurn; a plain ease with Reduce Motion);
+ - image: a picture 24 across, fitted (Wren's bird snapshot); nil keeps the circle empty while
+   it loads;
+ - line: any line glyph, 18 across at stroke 2 in ink.
+ dot adds a 9pt ind dot ringed 1.5 in bg at the top right: something is attached (compose).
+ */
+public struct KRoundTool: View {
+  /// what the circle holds
+  public enum Glyph: Equatable, Sendable {
+    /// the +, turned to an × in ind while its tray is open
+    case plus(open: Bool)
+    /// a picture, fitted 24 across (Wren's snapshot)
+    case image(KImageRef?)
+    /// a line glyph in ink
+    case line(KLineGlyph)
+  }
+
+  /// the circle and the target around it
+  public static let diameter: CGFloat = 40
+  public static let target: CGFloat = 44
+
+  private let theme: KTheme
+  private let glyph: Glyph
+  private let accessibilityLabel: String
+  private let dot: Bool
+  private let action: () -> Void
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  /// - Parameters:
+  ///   - glyph: the mark (see Glyph)
+  ///   - accessibilityLabel: what VoiceOver says, already translated (an open + says "close")
+  ///   - dot: the ind dot at the top right (something attached)
+  public init(theme: KTheme, glyph: Glyph, accessibilityLabel: String, dot: Bool = false, action: @escaping () -> Void) {
+    self.theme = theme
+    self.glyph = glyph
+    self.accessibilityLabel = accessibilityLabel
+    self.dot = dot
+    self.action = action
+  }
+
+  public var body: some View {
+    SwiftUI.Button(action: action) {
+      mark
+        .frame(width: Self.diameter, height: Self.diameter)
+        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+        .overlay(alignment: .topTrailing) {
+          if dot {
+            Circle()
+              .fill(theme.ind)
+              .frame(width: 9, height: 9)
+              .padding(1.5)
+              .background(Circle().fill(theme.bg))
+              .offset(x: 1, y: -1)
+          }
+        }
+        .frame(width: Self.target, height: Self.target)
+        .contentShape(Circle())
+    }
+    .buttonStyle(KFloatPressStyle())
+    .accessibilityLabel(accessibilityLabel)
+  }
+
+  @ViewBuilder
+  private var mark: some View {
+    switch glyph {
+    case let .plus(open):
+      KLineIcon(.plus, size: 18, lineWidth: 2, color: open ? theme.ind : theme.ink)
+        .rotationEffect(.degrees(open ? 45 : 0))
+        .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurn, value: open)
+    case let .image(ref):
+      KImage(ref, size: CGSize(width: 24, height: 24), contentMode: .fit, placeholder: .clear)
+    case let .line(g):
+      KLineIcon(g, size: 18, lineWidth: 2, color: theme.ink)
+    }
   }
 }

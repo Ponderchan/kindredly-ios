@@ -9,7 +9,9 @@ import SwiftUI
    name as "IBMPlexMono-Medium" and "IBMPlexMono-SemiBold" (assets/fonts, app.json ios.fonts);
  - a serif for letters and the emotional lines. The mock sets EB Garamond; the owner's default
    is Newsreader, embedded as "Newsreader-Regular" and "Newsreader-Italic". CJK falls through
-   to the system face, as it does on the React Native side.
+   to the system face, as it does on the React Native side. The reader can change it: the
+   Letter font (Settings: Newsreader, New York, EB Garamond) reaches every serif below through
+   one environment value, KLetterFace (see LETTER FACE at the end of the file).
 
  Everything scales with Dynamic Type, as the app's React Native text does (nothing in src
  turns allowFontScaling off). The serif and the mono come from Font.custom(_:size:relativeTo:).
@@ -25,10 +27,15 @@ import SwiftUI
    (half-leading). A one-line label then has the height of its CSS box too.
    The natural line heights, read from the fonts' hhea tables: Newsreader 1.0 (1470 + 530 of
    2000 units), IBM Plex Mono 1.3 (1025 + 275 of 1000), SF about 1.19 (UIFont reports 20.29
-   at 17). No lineHeight means CSS "normal", which is the natural one.
+   at 17), New York 1.19 (CoreText: ascent .952 + descent .241 of the size, the same at 13, 17
+   and 30, italic included). EB Garamond is not measured yet: its file isn't in the app (see
+   KLetterFace.garamondReady). No lineHeight means CSS "normal", which is the natural one.
 
  Use it as Text("YOU").kText(.monoSection). KType hands out bare Fonts for the places that take
  a Font and nothing else; those carry no tracking or line height.
+
+ Mono sizes: labels are 9, 10 or 11 (P:58). Where the mock still sets 12, 13 or 14, the role is
+ sized by KMonoSizes, the one table for owner question 2, so the answer is a one-line change.
  */
 
 /// One way of setting text: a face, a size, a weight, and the mock's tracking and line height.
@@ -40,9 +47,9 @@ public struct KTextStyle: Equatable, Sendable {
     case monoMedium
     /// IBM Plex Mono 600
     case monoSemiBold
-    /// Newsreader, upright
+    /// the letter serif, upright: Newsreader, or the reader's Letter font (KLetterFace) under .kText
     case serif
-    /// Newsreader, italic
+    /// the letter serif, italic: Newsreader, or the reader's Letter font (KLetterFace) under .kText
     case serifItalic
   }
 
@@ -69,12 +76,14 @@ public struct KTextStyle: Equatable, Sendable {
     KTextStyle(face: .system, size: size, weight: weight, tracking: tracking, lineHeight: lineHeight)
   }
 
-  /// IBM Plex Mono at 500 (.medium) or 600 (anything else), 8 to 14 in the mock.
+  /// IBM Plex Mono at 500 (.medium) or 600 (anything else). Labels are 9, 10 or 11 (P:58); a
+  /// size the mock sets above 11 goes through KMonoSizes.
   public static func mono(_ size: CGFloat, _ weight: Font.Weight = .semibold, tracking: CGFloat = 0) -> KTextStyle {
     KTextStyle(face: weight == .medium ? .monoMedium : .monoSemiBold, size: size, weight: weight, tracking: tracking)
   }
 
-  /// The letter serif, Newsreader, upright or italic. It has one weight, 400.
+  /// The letter serif, upright or italic, at its one weight, 400. Drawn in the reader's Letter
+  /// font under .kText (Newsreader unless .kLetterFace says otherwise).
   public static func letter(_ size: CGFloat, italic: Bool = false, lineHeight: CGFloat? = nil) -> KTextStyle {
     KTextStyle(face: italic ? .serifItalic : .serif, size: size, tracking: 0, lineHeight: lineHeight)
   }
@@ -82,8 +91,21 @@ public struct KTextStyle: Equatable, Sendable {
   /// the Dynamic Type style this size scales with
   public var textStyle: Font.TextStyle { KType.textStyle(near: size) }
 
-  /// the font at this style's own size, scaling with Dynamic Type for the embedded faces only
+  /// the font at this style's own size, scaling with Dynamic Type for the embedded faces only;
+  /// a serif style is Newsreader here (use font(letterFace:) for the reader's Letter font)
   public var font: Font { KType.font(face: face, size: size, weight: weight, relativeTo: textStyle) }
+
+  /// The font at this style's own size with the serif in the given Letter face. A bare Font, for
+  /// the places that take nothing else: no tracking, no line height, and New York doesn't scale
+  /// with Dynamic Type here (.kText scales everything).
+  public func font(letterFace: KLetterFace) -> Font {
+    switch face {
+    case .serif, .serifItalic:
+      return KType.letterFont(letterFace, italic: face == .serifItalic, size: size, scaledSize: size, relativeTo: textStyle)
+    case .system, .monoMedium, .monoSemiBold:
+      return font
+    }
+  }
 }
 
 /// Font helpers and the facts about the faces.
@@ -93,6 +115,9 @@ public enum KType {
   public static let monoSemiBold = "IBMPlexMono-SemiBold"
   public static let serifRegular = "Newsreader-Regular"
   public static let serifItalic = "Newsreader-Italic"
+  /// EB Garamond, once it is embedded (see KLetterFace.garamondReady). Only the Regular is
+  /// planned; its italic is SwiftUI's slant of it.
+  public static let garamondRegular = "EBGaramond-Regular"
 
   /// The system font. It does not scale by itself; .kText scales it.
   public static func system(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
@@ -104,9 +129,27 @@ public enum KType {
     .custom(weight == .medium ? monoMedium : monoSemiBold, size: size, relativeTo: textStyle(near: size))
   }
 
-  /// The letter serif, Newsreader, scaling with Dynamic Type.
-  public static func letter(_ size: CGFloat, italic: Bool = false) -> Font {
-    .custom(italic ? serifItalic : serifRegular, size: size, relativeTo: textStyle(near: size))
+  /// The letter serif, in Newsreader unless a face is given. Newsreader and Garamond scale with
+  /// Dynamic Type; New York is the system serif and scales only under .kText.
+  public static func letter(_ size: CGFloat, italic: Bool = false, face: KLetterFace = .newsreader) -> Font {
+    letterFont(face, italic: italic, size: size, scaledSize: size, relativeTo: textStyle(near: size))
+  }
+
+  /// The letter serif in a face. `size` is the size at the default Dynamic Type setting, which
+  /// the embedded faces scale themselves (relativeTo); `scaledSize` is that size already scaled,
+  /// which New York, a system face, needs instead. A face this binary can't draw yet
+  /// (KLetterFace.drawn) falls back to Newsreader, never to the system sans.
+  static func letterFont(_ face: KLetterFace, italic: Bool, size: CGFloat, scaledSize: CGFloat, relativeTo style: Font.TextStyle) -> Font {
+    switch face.drawn {
+    case .newsreader:
+      return .custom(italic ? serifItalic : serifRegular, size: size, relativeTo: style)
+    case .newYork:
+      let upright = Font.system(size: scaledSize, weight: .regular, design: .serif)
+      return italic ? upright.italic() : upright
+    case .garamond:
+      let upright = Font.custom(garamondRegular, size: size, relativeTo: style)
+      return italic ? upright.italic() : upright
+    }
   }
 
   static func font(face: KTextStyle.Face, size: CGFloat, weight: Font.Weight, relativeTo style: Font.TextStyle) -> Font {
@@ -119,12 +162,13 @@ public enum KType {
     }
   }
 
-  /// A face's natural line height as a multiple of its size (see the note at the top).
-  public static func naturalLineHeight(_ face: KTextStyle.Face) -> CGFloat {
+  /// A face's natural line height as a multiple of its size (see the note at the top), the serif
+  /// in the given Letter face (Newsreader by default).
+  public static func naturalLineHeight(_ face: KTextStyle.Face, letterFace: KLetterFace = .newsreader) -> CGFloat {
     switch face {
     case .system: return 1.19
     case .monoMedium, .monoSemiBold: return 1.3
-    case .serif, .serifItalic: return 1.0
+    case .serif, .serifItalic: return letterFace.drawn.naturalLineHeight
     }
   }
 
@@ -166,8 +210,12 @@ public extension KTextStyle {
   static let chip = system(13, .semibold)
   /// 400 13/1.45: small body copy, the Bio line (H:92)
   static let small = system(13, .regular, lineHeight: 1.45)
+  /// 400 13/1.5: the First Class card's list of what it brings (H:84)
+  static let smallBody = system(13, .regular, lineHeight: 1.5)
   /// 400 14: the Kindreds preview line (H:65)
   static let preview = system(14, .regular)
+  /// 400 14/19: a notice's words (NotifyBanner)
+  static let notice = system(14, .regular, lineHeight: 19.0 / 14.0)
   /// 500 14: Edit-profile row values (H:92)
   static let rowValue = system(14, .medium)
   /// 600 14: buttons, "See your labels" (H:78)
@@ -195,9 +243,9 @@ public extension KTextStyle {
   /// 400 24: the × close (H:136)
   static let close = system(24, .regular)
 
-  // ── IBM Plex Mono ──
-  /// 600 8 .1em: stamp dates in the stamp grid (H:81)
-  static let monoStamp = mono(8, .semibold, tracking: 0.1)
+  // ── IBM Plex Mono: 9, 10 and 11 (P:58) ──
+  /// 600 9 .1em: stamp dates in the stamp grid (H:81 sets 8; the 9/10/11 rule lifts it to 9)
+  static let monoStamp = mono(9, .semibold, tracking: 0.1)
   /// 600 9 .08em: tab labels (H:119)
   static let monoTab = mono(9, .semibold, tracking: 0.08)
   /// 600 9 .1em: 1ST on the First Class cards (H:84, 98)
@@ -206,6 +254,8 @@ public extension KTextStyle {
   static let monoTinyWide = mono(9, .semibold, tracking: 0.14)
   /// 600 10 .14em: section and group headers, ink labels (H:75, 78, 81, 92, 99, 101)
   static let monoSection = mono(10, .semibold, tracking: 0.14)
+  /// 600 10 .16em: the FIRST CLASS eyebrow on the cream cards (H:84, 98)
+  static let monoEyebrow = mono(10, .semibold, tracking: 0.16)
   /// 600 10 .1em: the language code in the translate capsule, ES→EN (H:42)
   static let monoCode = mono(10, .semibold, tracking: 0.1)
   /// 500 10 .12em: counts and units, "9 MADE", JOINED (H:72, 75, 81, 113)
@@ -218,28 +268,37 @@ public extension KTextStyle {
   static let monoTime = mono(11, .medium)
   /// 600 11 .12em: SEND, the Notes date chip (H:55, 111, 124)
   static let monoSend = mono(11, .semibold, tracking: 0.12)
-  /// 600 11 .1em: WRITE A LETTER and the composer labels (H:55, 132, 133)
+  /// 600 11 .1em: WRITE A LETTER and the composer labels (H:55, 132, 133); a voice card's time
   static let monoAction = mono(11, .semibold, tracking: 0.1)
   /// 600 11 .18em: TO A STRANGER (H:136)
   static let monoWide = mono(11, .semibold, tracking: 0.18)
-  /// 500 12: Settings row values (H:101)
-  static let monoValue = mono(12, .medium)
-  /// 600 12 .08em: the letter's postmark, SEP.23 · NO.7273 (H:33, 40)
-  static let monoPostmark = mono(12, .semibold, tracking: 0.08)
-  /// 600 12 .1em: mono buttons, UPLOAD and STAMP CAM (H:81)
-  static let monoButton = mono(12, .semibold, tracking: 0.1)
-  /// 600 12 .14em: ↑ PASS and REPLY ↓ (H:37, 44)
-  static let monoReply = mono(12, .semibold, tracking: 0.14)
-  /// 600 12 .16em: EDIT PROFILE, SETTINGS, NEW (H:90, 97, 130)
-  static let monoHeader = mono(12, .semibold, tracking: 0.16)
-  /// 600 13: the topic tag, stat numbers (H:35, 42, 72)
-  static let monoTag = mono(13, .semibold)
-  /// 600 13 .14em: the calendar's month, OCTOBER 2026 (H:113)
-  static let monoMonth = mono(13, .semibold, tracking: 0.14)
-  /// 600 14: 1ST in the gold cell (H:81)
-  static let monoNumber = mono(14, .semibold)
 
-  // ── the letter serif (Newsreader where the mock sets EB Garamond) ──
+  // ── IBM Plex Mono where the mock sets 12, 13 or 14: sized by KMonoSizes (owner question 2) ──
+  /// 500, mock 12: Settings row values (H:101)
+  static let monoValue = mono(KMonoSizes.label(12), .medium)
+  /// 600 .08em, mock 12: the letter's postmark, SEP.23 · NO.7273 (H:33, 40)
+  static let monoPostmark = mono(KMonoSizes.label(12), .semibold, tracking: 0.08)
+  /// 600 .1em, mock 12: mono buttons, UPLOAD and STAMP CAM (H:81)
+  static let monoButton = mono(KMonoSizes.label(12), .semibold, tracking: 0.1)
+  /// 600 .14em, mock 12: ↑ PASS and REPLY ↓ (H:37, 44)
+  static let monoReply = mono(KMonoSizes.label(12), .semibold, tracking: 0.14)
+  /// 600 .16em, mock 12: EDIT PROFILE, SETTINGS, NEW (H:90, 97, 130)
+  static let monoHeader = mono(KMonoSizes.label(12), .semibold, tracking: 0.16)
+  /// 600 .12em, mock 12: a header's link, RECENT › (H:130)
+  static let monoLink = mono(KMonoSizes.label(12), .semibold, tracking: 0.12)
+  /// 600, mock 13: the topic tag (H:35, 42)
+  static let monoTag = mono(KMonoSizes.label(13), .semibold)
+  /// 600 .14em, mock 13: the calendar's month, OCTOBER 2026 (H:113)
+  static let monoMonth = mono(KMonoSizes.label(13), .semibold, tracking: 0.14)
+  /// 600, mock 14: 1ST in the gold cell (H:81)
+  static let monoNumber = mono(KMonoSizes.label(14), .semibold)
+  /// 600, mock 13: the two numbers on the Me profile card, figures rather than labels (H:72)
+  static let monoFigure = mono(KMonoSizes.figure(13), .semibold)
+
+  /// 600 12 .14em: YOUR COURIER, which keeps its 12 whatever KMonoSizes says (owner)
+  static let monoCourier = mono(12, .semibold, tracking: 0.14)
+
+  // ── the letter serif: the reader's Letter font (Newsreader by default, where the mock sets EB Garamond) ──
   /// 400 30/1.3: a letter's body on the Today card (H:34)
   static let letterBody = letter(30, lineHeight: 1.3)
   /// 400 24/1.15: the First Class headline (H:84)
@@ -255,10 +314,12 @@ public extension KTextStyle {
 }
 
 /// Sets a KTextStyle: the font, its tracking and its line height, all scaled with Dynamic Type.
+/// A serif style is drawn in the Letter face the environment carries (.kLetterFace).
 struct KTextModifier: ViewModifier {
   let style: KTextStyle
   /// the style's size at the reader's Dynamic Type setting
   @ScaledMetric private var size: CGFloat
+  @Environment(\.kLetterFace) private var letterFace
 
   init(style: KTextStyle) {
     self.style = style
@@ -267,12 +328,20 @@ struct KTextModifier: ViewModifier {
 
   func body(content: Content) -> some View {
     // what CSS line-height adds over the natural line, in points at the scaled size
-    let leading = style.lineHeight.map { max(0, ($0 - KType.naturalLineHeight(style.face)) * size) } ?? 0
-    // the system font is sized here; the embedded faces scale themselves (relativeTo) by the same metric
-    let font = style.face == .system
-      ? Font.system(size: size, weight: style.weight)
-      : style.font
-    content
+    let natural = KType.naturalLineHeight(style.face, letterFace: letterFace)
+    let leading = style.lineHeight.map { max(0, ($0 - natural) * size) } ?? 0
+    // the system faces (SF, New York) are sized here; the embedded faces scale themselves
+    // (relativeTo) by the same metric
+    let font: Font
+    switch style.face {
+    case .system:
+      font = .system(size: size, weight: style.weight)
+    case .serif, .serifItalic:
+      font = KType.letterFont(letterFace, italic: style.face == .serifItalic, size: style.size, scaledSize: size, relativeTo: style.textStyle)
+    case .monoMedium, .monoSemiBold:
+      font = style.font
+    }
+    return content
       .font(font)
       .tracking(style.tracking * size)
       .lineSpacing(leading)
@@ -284,5 +353,119 @@ public extension View {
   /// Sets text in one of the 10a styles: Text("YOU").kText(.monoSection).
   func kText(_ style: KTextStyle) -> some View {
     modifier(KTextModifier(style: style))
+  }
+}
+
+/*
+ THE MONO SIZES ABOVE 11, the one table for owner question 2 (asked 2026-10-16, built with its
+ recommended answer). Mono labels are 9, 10 or 11 (P:58), yet the mock still sets some at 12, 13
+ and 14: page titles (EDIT PROFILE, SETTINGS, the + sheet's NEW), the postmark, PASS and REPLY,
+ Settings row values, the calendar month, 1ST in the gold cell, and the two numbers on the Me
+ profile card. Every role that the mock sets over 11 is sized through here, so the owner's answer
+ is one line: `rule`. YOUR COURIER (monoCourier) keeps its 12 whatever the rule.
+ */
+public enum KMonoSizes {
+  /// The three answers the owner was offered.
+  public enum Rule: Sendable {
+    /// (a) every label, title and number at 11
+    case everythingAtEleven
+    /// (b) every label and title at 11; the Me profile numbers keep 13, as figures
+    case labelsAtElevenFiguresKept
+    /// (c) the mock's own 12, 13 and 14
+    case mockSizes
+  }
+
+  /// THE ANSWER. (b) until the owner says otherwise.
+  public static let rule: Rule = .labelsAtElevenFiguresKept
+
+  /// The size of a label or title the mock sets at `mock` points.
+  public static func label(_ mock: CGFloat) -> CGFloat {
+    rule == .mockSizes ? mock : min(mock, 11)
+  }
+
+  /// The size of a figure (the Me profile card's two numbers) the mock sets at `mock` points.
+  public static func figure(_ mock: CGFloat) -> CGFloat {
+    rule == .everythingAtEleven ? min(mock, 11) : mock
+  }
+}
+
+/*
+ LETTER FACE: the owner's Letter font (a device preference set in Settings: Newsreader, the
+ default; New York; EB Garamond), as SwiftUI sees it. Every serif drawn with .kText (the .serif
+ and .serifItalic faces: letter bodies, Wren's italic lines, hints, the First Class headline)
+ follows the one value in the environment:
+
+     KTodayDesk(…).kLetterFace(KLetterFace(key: props.letterFont))
+
+ Screen adapters set it once at their root (kScreenEnvironment in Adapters/KScreenProps.swift);
+ a view that must stay in Newsreader whatever the reader picked sets .kLetterFace(.newsreader)
+ on itself. Which places draw a letter in the serif at all is each screen's choice of style
+ (owner question 1: wherever someone's letter is read; room chat bubbles, fold answers and
+ every input stay in the system font), not this file's.
+
+ - Newsreader is embedded and scales through relativeTo, like the mono.
+ - New York is the system serif, .system(size:weight:design: .serif), scaled by .kText's
+   @ScaledMetric as the system sans is. It needs no file.
+ - EB Garamond needs its file in the app (assets/fonts, app.json ios.fonts) and a native build,
+   and the file waits for the owner's approval. Until then garamondReady is false: the choice is
+   left out of pickers (choices) and a stored "garamond" is drawn as Newsreader (drawn), never
+   as the system sans a missing custom font would silently turn into.
+ */
+public enum KLetterFace: String, CaseIterable, Sendable {
+  /// Newsreader, the default
+  case newsreader
+  /// New York, the system serif; the JS side calls it "newyork"
+  case newYork = "newyork"
+  /// EB Garamond, the mock's own serif, once it is embedded
+  case garamond
+
+  /// GARAMOND_READY. False until EBGaramond-Regular.ttf is in assets/fonts and app.json ios.fonts
+  /// and a binary carrying it ships; the JS side keeps its own GARAMOND_READY in step.
+  public static let garamondReady = false
+
+  /// The face for a key the JS side sends ("newsreader", "newyork", "garamond"). Anything else
+  /// is Newsreader.
+  public init(key: String) {
+    self = KLetterFace(rawValue: key) ?? .newsreader
+  }
+
+  /// The faces a picker offers, in order: Garamond only once it is ready.
+  public static var choices: [KLetterFace] {
+    allCases.filter { $0 != .garamond || garamondReady }
+  }
+
+  /// The face actually drawn: Garamond falls back to Newsreader while it isn't ready.
+  public var drawn: KLetterFace {
+    self == .garamond && !Self.garamondReady ? .newsreader : self
+  }
+
+  /// The face's natural line height as a multiple of its size (see the note at the top).
+  public var naturalLineHeight: CGFloat {
+    switch self {
+    case .newsreader: return 1.0
+    case .newYork: return 1.19
+    // NOT MEASURED: the file isn't in the app. Read (hhea ascender + |descender| + lineGap) /
+    // unitsPerEm from EBGaramond-Regular.ttf when it lands, before garamondReady turns true.
+    case .garamond: return 1.3
+    }
+  }
+}
+
+private struct KLetterFaceKey: EnvironmentKey {
+  static let defaultValue: KLetterFace = .newsreader
+}
+
+public extension EnvironmentValues {
+  /// The Letter face every serif below is drawn in (.kText). Newsreader by default.
+  var kLetterFace: KLetterFace {
+    get { self[KLetterFaceKey.self] }
+    set { self[KLetterFaceKey.self] = newValue }
+  }
+}
+
+public extension View {
+  /// Draws every serif inside in this Letter face (see LETTER FACE in KType.swift).
+  func kLetterFace(_ face: KLetterFace) -> some View {
+    environment(\.kLetterFace, face)
   }
 }

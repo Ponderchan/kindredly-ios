@@ -11,7 +11,12 @@ import SwiftUI
 
  The samples mirror the mock's own (H:33-35, 42, 73, 78, 81, 101, 117-119, 124), in English:
  this is a dev page. The few things that respond (the +, the translate capsule, the chips, the
- switch) keep their state here and do nothing else.
+ switch, the step-5 field, voice card, tiles and menu) keep their state here and do nothing else.
+
+ The step-5 kit follows the first eight sections: the line glyphs, the Letter faces and the
+ mono sizes, the choice cards, the faces, the voice card, the field in its reply strip, the
+ send keys and round tools, the back bar, the bottom fade, the scroll chrome, the First Class
+ cards, the notices, the selectable tiles and the switch, and the long-press menu.
 
  It is as tall as its content and as wide as it is offered, so it sits in a Host that matches
  its contents vertically. It doesn't scroll by itself; the page around it does.
@@ -23,6 +28,16 @@ public struct KGallery: View {
   @State private var translated = false
   @State private var meChip = 0
   @State private var knock = true
+  // step 5
+  @State private var traceOpen = false
+  @State private var playback: KPlayback?
+  @State private var replyText = ""
+  @State private var sent = 0
+  @State private var tile = "classic"
+  @State private var noticeShown = true
+  @State private var lastMenu = "—"
+  @StateObject private var replyField = KFieldController()
+  @StateObject private var chrome = KScrollModel(offsetCap: 300)
 
   public init(theme: KTheme) {
     self.theme = theme
@@ -30,14 +45,35 @@ public struct KGallery: View {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: 28) {
-      section("TYPE") { typeSamples }
-      section("INKCARD · TODAY") { todayCard }
-      section("INKCARD · ME") { meCard }
-      section("SOFTGROUP") { softGroup }
-      section("FLOAT") { floats }
-      section("BUTTONS") { buttons }
-      section("CAPSULES") { capsules }
-      section("ME CHIPS") { chips }
+      Group {
+        section("TYPE") { typeSamples }
+        section("INKCARD · TODAY") { todayCard }
+        section("INKCARD · ME") { meCard }
+        section("SOFTGROUP") { softGroup }
+        section("FLOAT") { floats }
+        section("BUTTONS") { buttons }
+        section("CAPSULES") { capsules }
+        section("ME CHIPS") { chips }
+      }
+      Group {
+        section("LINE GLYPHS · 24 GRID") { glyphs }
+        section("LETTER FACES") { letterFaces }
+        section("MONO · 9 / 10 / 11") { monoSizes }
+        section("CHOICE CARDS") { choiceCards }
+        section("FACES · MOSAIC · BADGE") { faces }
+        section("VOICE CARD") { voiceCards }
+        section("FIELD · REPLY STRIP") { replyStrip }
+        section("SEND KEYS · ROUND TOOLS") { sendKeys }
+      }
+      Group {
+        section("BACK BAR") { backBar }
+        section("BOTTOM FADE") { bottomFade }
+        section("SCROLL CHROME") { scrollChrome }
+        section("FIRST CLASS") { firstClass }
+        section("NOTICE") { notices }
+        section("SELECTABLE TILES · SWITCH") { tiles }
+        section("LONG-PRESS MENU") { menu }
+      }
     }
     .padding(.horizontal, 16)
     .padding(.top, 16)
@@ -214,6 +250,17 @@ public struct KGallery: View {
           translated.toggle()
         }
       }
+      // step 5: a stamp's channel colours (a dark stamp's wash and ink), the busy capsule,
+      // and the signal capsule's other two marks
+      HStack {
+        KTopicTag(theme: theme, text: "#night walk", tone: .channel(wash: KBrand.paleGreen, ink: KBrand.courierGreen))
+        Spacer(minLength: 8)
+        KTranslateCapsule(theme: theme, code: "ES→EN", label: "translating…", enabled: false) {}
+      }
+      HStack(spacing: 10) {
+        KAurasClose(theme: theme, label: "Night owl, like you", glyph: .clock)
+        KAurasClose(theme: theme, label: "Rain, like you", glyph: .stickers)
+      }
     }
     .padding(.bottom, 3)
   }
@@ -232,5 +279,346 @@ public struct KGallery: View {
       // shadows their room inside the scroll view's clip.
       .padding(EdgeInsets(top: 4, leading: 2, bottom: 10, trailing: 18))
     }
+  }
+
+  // ══ step 5 ══
+
+  /// a small mono caption under a sample
+  private func caption(_ text: String) -> some View {
+    Text(text)
+      .kText(.monoCaption)
+      .foregroundStyle(theme.mute)
+      .lineLimit(1)
+      .minimumScaleFactor(0.6)
+  }
+
+  // ── KLineGlyph: every drawing, 24 across at the mock's 1.9 ──
+  private var glyphs: some View {
+    LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 8)], alignment: .leading, spacing: 12) {
+      ForEach(KLineGlyph.allCases, id: \.self) { g in
+        VStack(spacing: 4) {
+          KLineIcon(g, size: 24, lineWidth: 1.9, color: theme.ink)
+          caption(g.rawValue)
+        }
+        .frame(maxWidth: .infinity)
+      }
+    }
+  }
+
+  // ── KLetterFace: the same line in each face a picker offers, and the hidden one ──
+  private var letterFaces: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      ForEach(KLetterFace.allCases, id: \.self) { face in
+        VStack(alignment: .leading, spacing: 2) {
+          Text("The rain came in sideways and I thought of you.")
+            .kText(.letter(22, lineHeight: 1.3))
+            .foregroundStyle(theme.ink)
+          Text("Wren is waiting by the window.")
+            .kText(.letterAside)
+            .foregroundStyle(theme.sub)
+          caption(face.rawValue + (KLetterFace.choices.contains(face) ? "" : " · hidden, drawn as \(face.drawn.rawValue)"))
+        }
+        .kLetterFace(face)
+      }
+    }
+  }
+
+  // ── KMonoSizes: the roles the mock sets over 11, at the size the rule gives them ──
+  private var monoSizes: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text("EDIT PROFILE · monoHeader").kText(.monoHeader).foregroundStyle(theme.ink)
+      Text("SEP.23 · NO.7273 · monoPostmark").kText(.monoPostmark).foregroundStyle(theme.ink)
+      Text("↑ PASS · REPLY ↓ · monoReply").kText(.monoReply).foregroundStyle(theme.ink)
+      Text("OCTOBER 2026 · monoMonth").kText(.monoMonth).foregroundStyle(theme.ink)
+      Text("#made my day · monoTag").kText(.monoTag).foregroundStyle(theme.ink)
+      Text("121 · monoFigure").kText(.monoFigure).foregroundStyle(theme.ink)
+      Text("YOUR COURIER · monoCourier").kText(.monoCourier).foregroundStyle(KBrand.courierGreen)
+      Text("SEP 23 · monoStamp").kText(.monoStamp).foregroundStyle(theme.mute)
+    }
+  }
+
+  private struct GalleryChoice: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let glyph: KLineGlyph
+    let locked: Bool
+  }
+
+  // ── KChoiceCard in a KChoiceGrid: the room's trace tray ──
+  private var choiceCards: some View {
+    KChoiceGrid([
+      GalleryChoice(id: "note", title: "A note", subtitle: "for them to find", glyph: .note, locked: false),
+      GalleryChoice(id: "ask", title: "A question", subtitle: "they answer first", glyph: .ask, locked: false),
+      GalleryChoice(id: "moment", title: "A moment", subtitle: "today's photo", glyph: .moment, locked: false),
+      GalleryChoice(id: "song", title: "A song", subtitle: "not yet", glyph: .song, locked: true),
+    ]) { c in
+      KChoiceCard(theme: theme, title: c.title, subtitle: c.subtitle, glyph: c.glyph, locked: c.locked) {}
+    }
+    .padding(.bottom, 3)
+  }
+
+  // ── KFace, KMosaic, KOfficialBadge ──
+  private var faces: some View {
+    // a FACE v1 mask, as TS's mosaicMask would send it
+    let mask = 0b10101_01110_11011_01110_10001
+    return VStack(alignment: .leading, spacing: 12) {
+      HStack(spacing: 14) {
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ink), size: 52)
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ind), size: 52)
+        KFace(theme: theme, source: .veil, size: 52)
+        KFace(theme: theme, source: .placeholder, size: 52, badge: true)
+        KFace(theme: theme, source: .image(nil), size: 52, dim: true)
+      }
+      HStack(spacing: 14) {
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ink), size: 34)
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ink), size: 28, round: false)
+        KMosaic.veil(theme: theme, cell: 4, gap: 1)
+        KOfficialBadge(theme: theme, size: 18, ground: theme.bg)
+      }
+      caption("52 · 52 your turn · veil · badge · dim | 34 · docket 28 · veil · badge 18")
+    }
+  }
+
+  // ── KVoiceCard: tap to play; it runs on by itself from where it was told ──
+  private var voiceCards: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      KVoiceCard(
+        theme: theme,
+        playback: playback,
+        durationLabel: "0:35",
+        positionLabel: playback.map { KVoiceCard.clock($0.positionS) } ?? "",
+        playLabel: "Play",
+        pauseLabel: "Pause"
+      ) {
+        let now = Date()
+        if let p = playback, p.playing {
+          playback = KPlayback(playing: false, positionS: p.position(at: now), durationS: 35, at: now)
+        } else {
+          let from = playback.map { $0.positionS >= 35 ? 0 : $0.positionS } ?? 0
+          playback = KPlayback(playing: true, positionS: from, durationS: 35, at: now)
+        }
+      }
+      KVoiceCard(theme: theme, playback: nil, durationLabel: "1:12", playLabel: "Play", pauseLabel: "Pause", unavailable: true, compact: false) {}
+    }
+  }
+
+  // ── KField in a KReplyStrip, with the round tools ──
+  private var replyStrip: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      KReplyStrip(
+        theme: theme,
+        field: KField(theme: theme, controller: replyField, placeholder: "write back…", returnSends: true, onChange: { replyText = $0 }, onSubmit: { text in
+          guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+          sent += 1
+          replyField.clear()
+          replyText = ""
+        }),
+        sendState: replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .disabled : .enabled,
+        sendLabel: "Send",
+        onSend: {
+          sent += 1
+          replyField.clear()
+          replyText = ""
+        },
+        leading: {
+          KRoundTool(theme: theme, glyph: .plus(open: traceOpen), accessibilityLabel: traceOpen ? "Close" : "Leave a trace") {
+            traceOpen.toggle()
+          }
+        }
+      )
+      .padding(.trailing, KReplyStrip<EmptyView, EmptyView>.shadowOffset)
+      HStack(spacing: 10) {
+        KTertiaryButton(theme: theme, title: "Seed", mono: true) { replyField.setText("A draft, restored.") }
+        KTertiaryButton(theme: theme, title: "Focus", mono: true) { replyField.focus() }
+        KTertiaryButton(theme: theme, title: "Blur", mono: true) { replyField.blur() }
+      }
+      .kEqualHeightButtons()
+      caption("RETURN SENDS · SENT \(sent)")
+    }
+  }
+
+  // ── KSendKey in its three states and two looks, KRoundTool ──
+  private var sendKeys: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(spacing: 12) {
+        KSendKey(theme: theme, state: .disabled, label: "Send") {}
+        KSendKey(theme: theme, state: .enabled, label: "Send") {}
+        KSendKey(theme: theme, state: .dimmed, label: "Send") {}
+        KSendKey(theme: theme, state: .enabled, style: .word, label: "Send") {}
+      }
+      HStack(spacing: 8) {
+        KRoundTool(theme: theme, glyph: .plus(open: false), accessibilityLabel: "Add") {}
+        KRoundTool(theme: theme, glyph: .plus(open: true), accessibilityLabel: "Close") {}
+        KRoundTool(theme: theme, glyph: .line(.mic), accessibilityLabel: "Record", dot: true) {}
+        KRoundTool(theme: theme, glyph: .image(nil), accessibilityLabel: "Wren") {}
+      }
+      caption("DISABLED · ENABLED · DIMMED · WORD | + · OPEN · LINE + DOT · IMAGE")
+    }
+  }
+
+  // ── KBackBar: sticky 52 with a trailing word, scrolling 44 ──
+  private var backBar: some View {
+    VStack(spacing: 8) {
+      KBackBar(theme: theme, title: "Edit profile", backLabel: "Back", trailing: {
+        Text("DONE").kText(.monoSend).foregroundStyle(theme.ind)
+      }, onBack: {})
+      .background(theme.soft)
+      KBackBar(theme: theme, title: "Settings", backLabel: "Back", height: KBackBar<EmptyView>.scrollingHeight, sticky: false) {}
+        .overlay(Rectangle().strokeBorder(theme.line, lineWidth: 1))
+    }
+  }
+
+  // ── KBottomFade over stripes ──
+  private var bottomFade: some View {
+    VStack(spacing: 6) {
+      ForEach(0..<8, id: \.self) { i in
+        RoundedRectangle(cornerRadius: 6, style: .circular)
+          .fill(i % 2 == 0 ? theme.ink : theme.ind)
+          .frame(height: 16)
+      }
+    }
+    .overlay(alignment: .bottom) { KBottomFade(theme: theme, height: 120) }
+    .clipped()
+  }
+
+  // ── KScrollChrome: scroll the box, read the model ──
+  private var scrollChrome: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      ScrollView {
+        LazyVStack(alignment: .leading, spacing: 0) {
+          ForEach(0..<40, id: \.self) { i in
+            Text("Row \(i)")
+              .kText(.rowLabel)
+              .foregroundStyle(theme.ink)
+              .padding(.vertical, 10)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .overlay(alignment: .bottom) { Rectangle().fill(theme.line).frame(height: 1) }
+          }
+        }
+        .padding(.horizontal, 14)
+      }
+      .kScrollChrome(chrome)
+      .frame(height: 180)
+      .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.soft))
+      .clipShape(RoundedRectangle(cornerRadius: 16, style: .circular))
+      GalleryChromeReadout(theme: theme, chrome: chrome)
+    }
+  }
+
+  // ── KFirstClassCard: the Me card and the Settings banner ──
+  private var firstClass: some View {
+    VStack(spacing: 12) {
+      KFirstClassCard(
+        variant: .card,
+        eyebrow: "First Class",
+        headline: "More room for your people.",
+        sub: "More Kindreds · voice letters\nWren’s wardrobe · a monthly reading",
+        cta: "See First Class →",
+        stampLabel: "1ST",
+        bird: nil
+      ) {}
+      KFirstClassCard(
+        variant: .banner,
+        eyebrow: "First Class",
+        headline: "More room for your people.",
+        sub: "More Kindreds · voice letters · Wren’s wardrobe · a monthly reading",
+        cta: "Try First Class ›",
+        stampLabel: "1ST",
+        bird: nil
+      ) {}
+    }
+  }
+
+  // ── KNoticeBar: the Kindreds bar (× brings it back after a moment) and the Settings panel ──
+  private var notices: some View {
+    VStack(spacing: 12) {
+      if noticeShown {
+        KNoticeBar(theme: theme, text: "Turn on notifications so a reply can knock.", closeLabel: "Close") {} onClose: {
+          noticeShown = false
+          DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { noticeShown = true }
+        }
+      } else {
+        caption("CLOSED · BACK IN A MOMENT")
+          .frame(height: 41)
+      }
+      KNoticeBar(
+        theme: theme,
+        text: "Notifications are off, so nobody can knock.",
+        actionLabel: "Turn on in Settings ›",
+        glyph: nil,
+        style: .panel
+      ) {}
+    }
+  }
+
+  // ── KSelectableTile and KToggleStyle ──
+  private var tiles: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      HStack(spacing: 10) {
+        ForEach(KTheme.all, id: \.key) { t in
+          KSelectableTile(theme: theme, selected: tile == t.key, cornerRadius: 12, accessibilityLabel: t.name) {
+            tile = t.key
+          } content: {
+            VStack(spacing: 5) {
+              RoundedRectangle(cornerRadius: 2, style: .circular).fill(t.ln).frame(width: 20, height: 3)
+              RoundedRectangle(cornerRadius: 7, style: .circular).fill(t.sf)
+                .overlay(RoundedRectangle(cornerRadius: 7, style: .circular).strokeBorder(t.ln, lineWidth: 1.5))
+              Circle().fill(t.ind).frame(width: 5, height: 5)
+            }
+            .padding(EdgeInsets(top: 9, leading: 7, bottom: 7, trailing: 7))
+            .aspectRatio(3 / 4, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .background(t.bg)
+          }
+        }
+      }
+      Toggle("Match system", isOn: $knock)
+        .kText(.rowLabel)
+        .foregroundStyle(theme.ink)
+        .toggleStyle(KToggleStyle(theme: theme))
+    }
+    .padding(.top, 3)
+  }
+
+  // ── .kMenu: long-press the row ──
+  private var menu: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 12) {
+        KFace(theme: theme, source: .mosaic(mask: 0b01110_10101_11111_10101_01110, tint: theme.ink), size: 44)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("No. 4821").kText(.name).foregroundStyle(theme.ink)
+          Text("Long-press for the menu").kText(.preview).foregroundStyle(theme.sub)
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(.vertical, 10)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(theme.bg)
+      .kMenu([
+        KMenuItem(key: "read", title: "Mark as read", systemImage: "envelope.open"),
+        KMenuItem(key: "page", title: "Their page", systemImage: "person.crop.circle"),
+        KMenuItem(key: "report", title: "Report", systemImage: "flag", destructive: true),
+      ]) { lastMenu = $0 }
+      caption("LAST CHOSEN · \(lastMenu)")
+    }
+  }
+}
+
+/// The scroll chrome's numbers, read in a child view so only it redraws as the box scrolls.
+private struct GalleryChromeReadout: View {
+  let theme: KTheme
+  @ObservedObject var chrome: KScrollModel
+
+  var body: some View {
+    let direction: String
+    switch chrome.direction {
+    case .none: direction = "—"
+    case .towardEnd: direction = "↓"
+    case .towardTop: direction = "↑"
+    }
+    return Text("OFFSET \(Int(chrome.offset)) · \(direction) · BOTTOM \(chrome.isAtBottom ? "YES" : "NO") · PULL \(Int(chrome.pullDepth))")
+      .kText(.monoCaption)
+      .foregroundStyle(theme.mute)
   }
 }

@@ -94,7 +94,12 @@
   "cream": "#FFF8E8",
   "creamBorder": "#EAD9A8",
   "lime": "#D8F04A",
-  "acid": "#C3E84F"
+  "acid": "#C3E84F",
+  "brassSeal": "#9A7433",
+  "postRed": "#E0483C",
+  "inkOnBrand": "#1E1B35",
+  "subOnCream": "#55506E",
+  "paperWhite": "#FFFFFF"
  },
  "mood": {
   "calm": [
