@@ -16,7 +16,9 @@ import { scoped as AsyncStorage } from "./scoped-store";
    product deliberately knows nothing about you but your writing.
 
    Kept on the device. The `profiles` row has no column for this and adding
-   one would be a backend migration for something the client renders alone. */
+   one would be a backend migration for something the client renders alone.
+   (Yours also rides on the account, user_metadata.pronoun: see
+   readYourPronoun below.) */
 
 export type PronounId = "she" | "he" | "they";
 
@@ -68,6 +70,27 @@ async function get(k: string): Promise<PronounId> {
 
 export const saveYourPronoun = (p: PronounId) => put(YOU_KEY, p);
 export const getYourPronoun = () => get(YOU_KEY);
+
+/** Whether this is one of the three pronouns. */
+export const isPronounId = (v: unknown): v is PronounId => PRONOUNS.some((p) => p.id === v);
+
+/* YOUR PRONOUN LIVES IN TWO PLACES. This phone's copy (YOU_KEY) and the
+   account's, user_metadata.pronoun, which onboarding writes because the
+   matcher reads it (web migration 0021). After a new phone or a reinstall
+   only the account's survives, and the phone's reads they/them — so a
+   screen showing or using your pronoun asks the account first
+   (screens/edit-profile resolvePronoun), and a change writes both. */
+
+/** Your pronoun as this phone holds it, or null when it was never set here (unlike
+    getYourPronoun, which answers they/them for that too). */
+export async function readYourPronoun(): Promise<PronounId | null> {
+  try {
+    const v = await AsyncStorage.getItem(YOU_KEY);
+    return isPronounId(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
 export const saveWrenPronoun = (p: PronounId) => put(BIRD_KEY, p);
 export const getWrenPronoun = () => get(BIRD_KEY);
 

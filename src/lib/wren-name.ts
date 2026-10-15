@@ -25,8 +25,13 @@ import { readWren, writeWren } from "./wren-profile";
 
 export const DEFAULT_WREN = "Wren";
 
+/** The longest name she takes: 16 characters, everywhere she is named — the naming step
+    (onboarding maxLength 16), the one-field page (screens/edit-profile COURIER_NAME_MAX) and
+    here. The old rename prompt took 18 and this cut two of them without a word. */
+export const WREN_NAME_MAX = 16;
+
 export async function saveWrenName(name: string): Promise<void> {
-  const n = name.trim().slice(0, 16);
+  const n = name.trim().slice(0, WREN_NAME_MAX);
   if (n) await writeWren("name", n);
 }
 

@@ -101,6 +101,19 @@ function exchangeOnce(code: string): Promise<{ error: string | null }> {
 
 const LOCAL_PROFILE_KEY = "kindredly_profile_local";
 
+/* THE PHONE'S OWN SETTINGS OUTLIVE AN ACCOUNT. Deleting the account scrubs its keys and the
+   legacy bare ones — but these bare keys are the phone's, not anyone's account's: the theme, the
+   Letter font, the language, the remote switch's table and its crash breadcrumb. Scrubbed, the
+   phone came back in another language and theme at the next launch, for whoever starts again on
+   it. */
+const DEVICE_PREFS: ReadonlySet<string> = new Set([
+  "kindredly_theme", // lib/theme
+  "kindredly_letter_font", // lib/theme
+  "kindredly_lang", // lib/i18n
+  "kindredly_surfaces", // lib/surfaces: the remote switch's table
+  "kindredly_native_arming", // lib/surfaces: the crash breadcrumb (the binary's, not the account's)
+]);
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!supabaseReady);
   const [session, setSession] = useState<Session | null>(null);
@@ -111,6 +124,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   sessionRef.current = session;
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [localProfile, setLocalProfile] = useState<Record<string, any>>({});
+  /* the local picture as of NOW, for saveProfile: every save merges into this (never into the
+     localProfile some render's closure captured), so two saves in a row — a face, then a pen
+     name — can't put back what the other just changed. setLocalProfile only ever follows it. */
+  const localRef = useRef<Record<string, any>>({});
+  /* the account syncs, one after another: each sends the whole local picture as it is when its
+     turn comes, so the last one out always carries every change (10a: Edit profile saves each
+     field on its own) */
+  const syncChain = useRef<Promise<unknown>>(Promise.resolve());
   /* saveProfile is defined further down and the adopt effect above it needs to
      call it — a ref keeps the two independent of declaration order rather than
      shuffling the whole file around one call. */
@@ -140,9 +161,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     scoped
       .getItem(LOCAL_PROFILE_KEY)
       .then((raw) => {
-        if (raw) setLocalProfile(JSON.parse(raw));
+        if (!raw) return;
+        // an edit made before this read came back wins over the stored copy
+        localRef.current = { ...JSON.parse(raw), ...localRef.current };
+        setLocalProfile(localRef.current);
       })
-      .catch(() => {});
+      .catch((e) => console.warn("[auth] the local profile wasn't read:", e));
     if (!supabase) {
       setStorageUser(null);
       setReady(true);
@@ -373,30 +397,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  /* SAVING THE PROFILE. Local first — edits stick immediately, with or without a session —
+     then, when signed in, the account. Two things changed in 10a, when Edit profile began to
+     save each field on its own:
+     - the merge is into localRef (the picture as of now), not into the localProfile a render's
+       closure held, so a save made just after another can't revert it (a late face save used
+       to put back the pen name it was made before, on the phone and on the account);
+     - the account syncs run one after another (syncChain), and the answer is the sync's: a
+       failed updateUser is { error } now, where it used to be { ok: true } whatever happened,
+       which left a pen name off the account with nobody told. The local copy is kept either
+       way, and the next save carries it up.
+     The function itself never changes (no deps that move), so a caller holding an old copy
+     calls the same thing. */
   const saveProfile = useCallback(
     async (p: Record<string, any>): Promise<AuthResult> => {
-      // local first — edits stick immediately, with or without a session
-      const nextLocal = { ...localProfile, ...p };
+      const nextLocal = { ...localRef.current, ...p };
+      localRef.current = nextLocal;
       setLocalProfile(nextLocal);
-      scoped.setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch(() => {});
-      // then best-effort sync to the account when signed in
-      if (supabase && session) {
-        /* The whole local picture goes up, not just this call's delta. A
-           catch-up sync passes {} — with the old code that pushed nothing but
-           the onboarded flag and left the account without the handle, the
-           birthday or the first line that were already sitting on the phone. */
-        const data: Record<string, any> = { ...nextLocal, onboarded: true };
-        if (nextLocal.handle) data.full_name = nextLocal.handle;
+      scoped.setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch((e) => console.warn("[auth] the local profile wasn't saved:", e));
+      const client = supabase;
+      if (!client || !sessionRef.current) return { ok: true };
+      const run = syncChain.current.then(async (): Promise<AuthResult> => {
+        if (!sessionRef.current) return { ok: true }; // signed out while it waited its turn
+        /* The whole local picture goes up, as it is NOW, not just this call's delta. A
+           catch-up sync passes {} — with the old code that pushed nothing but the onboarded
+           flag and left the account without the handle, the birthday or the first line that
+           were already sitting on the phone. */
+        const data: Record<string, any> = { ...localRef.current, onboarded: true };
+        if (data.handle) data.full_name = data.handle;
         try {
-          const { error } = await supabase.auth.updateUser({ data });
-          if (!error) await refresh();
-        } catch {
-          /* local copy already saved; sync retries on next save */
+          const { error } = await client.auth.updateUser({ data });
+          if (error) {
+            console.warn("[auth] the profile didn't reach the account:", error.message);
+            return { error: error.message };
+          }
+          await refresh();
+          return { ok: true };
+        } catch (e: any) {
+          console.warn("[auth] the profile didn't reach the account:", e);
+          return { error: e?.message || "The account couldn't be reached." };
         }
-      }
-      return { ok: true };
+      });
+      syncChain.current = run;
+      return run;
     },
-    [refresh, session, localProfile],
+    [refresh],
   );
   saveProfileRef.current = saveProfile;
 
@@ -422,6 +467,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      Locally, everything resets EXCEPT the sealed journal. The journal never
      belonged to the account — "No one sees this. Not even me." — so it
      doesn't die with it; it belongs to the phone and stays on the phone.
+     So do the phone's own settings (DEVICE_PREFS: theme, Letter font,
+     language, the remote switch), which were never the account's either.
      The scrub runs BEFORE sign-out so the adopt-on-sign-in effect can never
      resurrect the old pen name into some future session. */
   const deleteAccount = useCallback(async (): Promise<AuthResult> => {
@@ -455,6 +502,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const gone = keys.filter(
         (k) =>
           k.startsWith("kindredly") &&
+          !DEVICE_PREFS.has(k) &&
           (uid ? k.endsWith(`::${uid}`) || !k.includes("::") : !k.includes("::")) &&
           !(isJournal(k) && (!k.includes("::") || !journalHandedOver)),
       );
@@ -462,6 +510,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* the account is already gone; a failed local scrub must not block that */
     }
+    localRef.current = {};
     setLocalProfile({});
     try {
       await supabase.auth.signOut({ scope: "local" });

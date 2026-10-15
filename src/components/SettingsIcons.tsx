@@ -2,23 +2,28 @@ import { View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { useTheme } from "../lib/theme";
 
-/* THE SETTINGS ROWS' MARKS — one small stroke glyph per row, on a tinted
-   tile, so a list of eighteen mono labels reads as places rather than a
-   ledger. Drawn on the 24-grid like the aura room's share and grid marks;
-   tinted by the caller (ink for most, red for the two exits). Left to
-   itself the mark is the theme's indigo on its palest wash. */
+/* THE SETTINGS ROWS' MARKS — one small stroke glyph per row, so a list of
+   labels reads as places rather than a ledger. Drawn on the 24-grid like
+   the aura room's share and grid marks.
+
+   10a (H:101): the mark sits in a 28pt box with corners of 8 on the
+   card face (sf), drawn in the secondary ink (sub) — the React Native
+   twin of the Swift row's SF Symbol in its box (SoftGroup.swift
+   SoftRowIcon). The two exits pass their red (settings-model dangerInk).
+   Settings' fallback page (screens/settings/SettingsRN) is its one user. */
 
 export type SettingsGlyph =
   | "pen" | "cake" | "globe" | "bird" | "bell" | "heart" | "draft" | "ticket" | "restore" | "card"
   | "help" | "mail" | "star" | "shield" | "doc" | "lock" | "door" | "trash";
 
-export function SettingsIcon({ glyph, color: colorIn, tile: tileIn }: { glyph: SettingsGlyph; color?: string; tile?: string }) {
+export function SettingsIcon({ glyph, color: colorIn, tile: tileIn, size = 28 }: { glyph: SettingsGlyph; color?: string; tile?: string; size?: number }) {
   const { t: tk } = useTheme();
-  const color = colorIn ?? tk.ind;
-  const tile = tileIn ?? tk.lav2;
+  const color = colorIn ?? tk.sub;
+  const tile = tileIn ?? tk.sf;
+  const mark = Math.round(size * 0.57);
   return (
-    <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: tile, alignItems: "center", justifyContent: "center" }}>
-      <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+    <View style={{ width: size, height: size, borderRadius: 8, backgroundColor: tile, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={mark} height={mark} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
         {glyph === "pen" && <Path d="M4 20l4-1 11-11-3-3L5 16l-1 4zM13 7l3 3" />}
         {glyph === "cake" && <><Path d="M4 20h16M5 20v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6M8 12V9M12 12V8M16 12V9" /><Path d="M12 5.5c0-1 1-2 1-2s1 1 1 2a1 1 0 0 1-2 0z" fill={color} /></>}
         {glyph === "globe" && <><Circle cx={12} cy={12} r={8.5} /><Path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17" /></>}
