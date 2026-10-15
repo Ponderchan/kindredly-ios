@@ -9,6 +9,7 @@ import {
   MAX_STRIKES,
   armSurface,
   clearSurface,
+  disarmSurface,
   emptyArming,
   resolveSurfaces,
   settleArming,
@@ -83,6 +84,16 @@ ok("settling spends the marks", Object.keys(launch(armSurface(emptyArming(B), "c
 }
 ok("two screens armed at once both strike", (() => { const r = launch(armSurface(armSurface(emptyArming(B), "today", 1), "kindreds", 2)); return r.strikes.today === 1 && r.strikes.kindreds === 1; })());
 ok("clearing one leaves the other armed", (() => { const r = clearSurface(armSurface(armSurface(emptyArming(B), "today", 1), "kindreds", 2), "today"); return !("today" in r.armed) && r.armed.kindreds === 2; })());
+{
+  // armed, then never opened where anyone could see it: no strike, and no forgiveness either
+  const once = launch(armSurface(emptyArming(B), "kindreds", 1)); // one strike carried in
+  const disarmed = disarmSurface(armSurface(once, "kindreds", 2), "kindreds");
+  ok("a disarmed mark is gone", !("kindreds" in disarmed.armed));
+  ok("disarming keeps the strikes", disarmed.strikes.kindreds === 1);
+  ok("a disarmed mark is no strike at the next launch", launch(disarmed).strikes.kindreds === 1);
+  ok("disarming leaves other surfaces armed", (() => { const r = disarmSurface(armSurface(armSurface(emptyArming(B), "me", 1), "notes", 2), "me"); return !("me" in r.armed) && r.armed.notes === 2; })());
+  ok("disarming doesn't touch the record it was given", (() => { const r = armSurface(emptyArming(B), "me", 1); disarmSurface(r, "me"); return r.armed.me === 1; })());
+}
 ok("arming doesn't touch the record it was given", (() => { const r = emptyArming(B); armSurface(r, "chat", 1); return !Object.keys(r.armed).length; })());
 ok("a torn write is a clean start, not a strike", (() => { const r = settleArming('{"binary":"1.3.0 (29)","armed":{"ch', B); return !Object.keys(r.strikes).length; })());
 ok("junk in the record is dropped", (() => { const r = settleArming(JSON.stringify({ binary: B, armed: { chat: "x", "": 1, room: -1 }, strikes: { me: "2", notes: Infinity, today: 1 } }), B); return Object.keys(r.strikes).join() === "today"; })());

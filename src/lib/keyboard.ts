@@ -36,7 +36,7 @@ export function dismissKeyboard(): void {
   Keyboard.dismiss();
   const ui = requireOptionalNativeModule<KindredlyUINative>("KindredlyUI");
   if (typeof ui?.dismissKeyboard !== "function") return;
-  ui.dismissKeyboard().catch((e: unknown) => console.log("[keyboard] KindredlyUI.dismissKeyboard failed:", e));
+  ui.dismissKeyboard().catch((e: unknown) => console.warn("[keyboard] KindredlyUI.dismissKeyboard failed:", e));
 }
 
 /** A Swift screen's view ref: the KindredlyUI wrappers expose
@@ -44,6 +44,27 @@ export function dismissKeyboard(): void {
 export type CommandTarget = {
   current: { command?: (name: string, args: Record<string, unknown>) => unknown } | null;
 } | null | undefined;
+
+/** Tell the Swift screen's field to let go ('blur'), when there is one.
+
+    Called AS A METHOD on the ref's current value, never pulled off it
+    first: Expo puts a view's functions on the native component's prototype
+    and each finds its view through `this` (expo-modules-core
+    NativeViewManagerAdapter.native.tsx, `this.nativeTag`). Detached, it
+    runs with no `this`, the native side tries to read "blur" as the view,
+    the call rejects and the field never lets go. A failure is a warning,
+    not a log line: the screen would look fine until its field took the
+    keyboard back over the sheet. */
+export function blurTarget(target?: CommandTarget): void {
+  const view = target?.current;
+  if (!view || typeof view.command !== "function") return;
+  try {
+    const r = view.command("blur", {});
+    if (r && typeof (r as Promise<unknown>).catch === "function") (r as Promise<unknown>).catch((e: unknown) => console.warn("[keyboard] blur command failed:", e));
+  } catch (e) {
+    console.warn("[keyboard] blur command failed:", e);
+  }
+}
 
 /** Let go of the keyboard, then run `fn` — before any push, Alert, picker
     or React Native modal opened from a Swift surface.
@@ -57,15 +78,7 @@ export type CommandTarget = {
     it was up, at once if it wasn't. Pass `delayMs` to choose (0 = now, for
     a push that can slide while the keyboard drops). */
 export function blurThen(fn: () => void, target?: CommandTarget, opts?: { delayMs?: number }): void {
-  const command = target?.current?.command;
-  if (command) {
-    try {
-      const r = command("blur", {});
-      if (r && typeof (r as Promise<unknown>).catch === "function") (r as Promise<unknown>).catch((e) => console.log("[keyboard] blur command failed:", e));
-    } catch (e) {
-      console.log("[keyboard] blur command failed:", e);
-    }
-  }
+  blurTarget(target);
   const wasUp = Keyboard.isVisible();
   dismissKeyboard();
   const delay = opts?.delayMs ?? (wasUp ? KEYBOARD_OUT_MS : 0);

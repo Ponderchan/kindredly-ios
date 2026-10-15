@@ -3,7 +3,7 @@ import { AppState, View, type StyleProp, type ViewStyle } from "react-native";
 import { useIsFocused } from "expo-router";
 import { Host } from "@expo/ui/swift-ui";
 import { isKindredlyUIViewAvailable } from "../../modules/kindredly-ui";
-import { armNative, clearNative, nativeOn, surfacesReady, surfacesSettled, useNativeSurface, type NativeSurfaceKey } from "../lib/surfaces";
+import { armNative, clearNative, disarmNative, nativeOn, surfacesReady, surfacesSettled, useNativeSurface, type NativeSurfaceKey } from "../lib/surfaces";
 import { useTheme } from "../lib/theme";
 
 /* ONE SWITCH IN FRONT OF EVERY SWIFT SCREEN (10a step 5).
@@ -31,7 +31,12 @@ import { useTheme } from "../lib/theme";
    a local read, never the network), so a cold start from a push can't pick
    Swift past a kill row the phone already has. Until then — a few
    milliseconds, and only for a screen that mounts in the app's first
-   moments — it draws `pending` (the theme's page colour by default).
+   moments — it draws `pending` (the theme's page colour by default). If
+   the phone hasn't answered in READY_CAP_MS, this mount draws React
+   Native: with the kill rows and the strikes unknown, the screen that
+   can't take the app down is the safe one, and a blank page that waits on
+   a stuck storage read is no screen at all. A live surface may still swap
+   in later, once the phone has answered.
 
    TWO MODES.
      "mount"  decides once and never changes under the reader. For anything
@@ -44,12 +49,27 @@ import { useTheme } from "../lib/theme";
 
    THE CRASH BREADCRUMB. Before the Swift path mounts, armNative(surface)
    writes a mark and waits for it to reach the disk (the screen draws
-   `pending` for that moment). The Host's first onLayoutContent starts a
-   3s clock, and the mark is cleared when it runs out — or 1s after the
-   screen goes away sooner, or when the app goes to the background after
-   it has laid out, or after 6s whatever happens, so a screen that never
-   reports a layout can't be blamed for a phone simply being closed. A mark
-   still set at the next launch is a strike (lib/surfaces-resolve).
+   `pending` for that moment, READY_CAP_MS at most; past that, React
+   Native for this mount and the late mark is taken back). The Host's
+   first onLayoutContent starts a 3s clock, and the mark is cleared when it
+   runs out — or 1s after the screen goes away sooner, or when the app goes
+   to the background after it has laid out, or after 6s whatever happens,
+   so a screen that never reports a layout can't be blamed for a phone
+   simply being closed. A mark still set at the next launch is a strike
+   (lib/surfaces-resolve).
+
+   The clocks run from when the screen is first SEEN. A live surface
+   swapped in behind another tab (or a push) mounts with no mark at all —
+   hidden, and with the tabs detaching what isn't shown, it may never lay
+   out, so a 6s clock would clear the mark before anyone opened the tab,
+   and a tab never visited could take a strike for a phone closed with it
+   still marked. It is armed, and its clocks start, the first time it is
+   focused. (That mark is written as the tab appears, not before, so a
+   crash in its very first frame can beat it; the next launch opens the
+   tab through the armed path above and counts it then.) A mark written
+   for a screen that then never opened where anyone could see it is taken
+   back with disarmNative, which keeps the strikes — only a screen that
+   stood forgives them.
 
    Hand the screen's one Host the clearing callback in either of two ways:
    draw it with <SurfaceHost> (which also sets the 10a Host defaults), or
@@ -60,9 +80,12 @@ import { useTheme } from "../lib/theme";
 const CLEAR_AFTER_LAYOUT_MS = 3000;
 const CLEAR_AFTER_UNMOUNT_MS = 1000;
 const CLEAR_ANYWAY_MS = 6000;
-/* the longest a screen waits for the phone's own answers before choosing
-   with what it has (they resolve in milliseconds; this is a guard) */
+/* the longest a screen waits on the phone's storage at either step (its
+   answers, then the mark): both take milliseconds, so past this something
+   is stuck, and the mount draws React Native rather than a blank page */
 const READY_CAP_MS = 1500;
+/* a promise already settled: the mark of a stretch armed before it mounted */
+const LANDED: Promise<void> = Promise.resolve();
 
 /* surfaces whose Swift path threw in this process: React Native until the
    next launch (a JS error in a renderer tends to repeat; the fallback is a
@@ -105,7 +128,8 @@ export type NativeSurfaceProps = {
   /** the React Native screen, complete and themed (called the same way) */
   fallback: () => ReactNode;
   /** drawn while the phone's answers are read and the mark is written
-      (a frame or two at most); default: the theme's page colour */
+      (a frame or two; READY_CAP_MS at most at each step, then React
+      Native); default: the theme's page colour */
   pending?: () => ReactNode;
 };
 
@@ -136,46 +160,95 @@ function SurfaceBody({
   const { t: tk } = useTheme();
   const choose = useCallback(() => nativeOn(surface) && !jsFailed.has(surface) && isKindredlyUIViewAvailable(view), [surface, view]);
   const [phase, setPhase] = useState<Phase>(() => (surfacesSettled() ? (choose() ? "arming" : "rn") : "wait"));
+  /* storage that was too slow (READY_CAP_MS): this mount went to React
+     Native without it, and a live surface doesn't swap in until it has
+     answered */
+  const [held, setHeld] = useState<Promise<unknown> | null>(null);
+  /* whether the stretch about to mount had its mark written first (the
+     arming phase) or was swapped in unseen with none (live mode) */
+  const armedFirst = useRef(false);
 
   // the phone's answers, then the choice
   useEffect(() => {
     if (phase !== "wait") return;
-    let alive = true;
-    let capTimer: ReturnType<typeof setTimeout> | undefined;
-    const cap = new Promise<void>((done) => {
-      capTimer = setTimeout(done, READY_CAP_MS);
-    });
-    void Promise.race([surfacesReady(), cap]).then(() => {
-      if (alive) setPhase(choose() ? "arming" : "rn");
+    let mine = true; // this effect still decides
+    const ready = surfacesReady();
+    const cap = setTimeout(() => {
+      if (!mine) return;
+      mine = false;
+      // the kill rows and strikes this phone holds are unknown: React
+      // Native, never a guess at Swift, and never a blank page that waits
+      console.log(`[surfaces] the phone's own answers took over ${READY_CAP_MS}ms; the ${surface} screen draws React Native this time`);
+      setHeld(ready);
+      setPhase("rn");
+    }, READY_CAP_MS);
+    void ready.then(() => {
+      if (!mine) return;
+      mine = false;
+      clearTimeout(cap);
+      setPhase(choose() ? "arming" : "rn");
     });
     return () => {
-      alive = false;
-      clearTimeout(capTimer);
+      mine = false;
+      clearTimeout(cap);
     };
-  }, [phase, choose]);
+  }, [phase, choose, surface]);
 
   // the mark on disk, then the Swift screen
   useEffect(() => {
     if (phase !== "arming") return;
-    let alive = true;
-    void armNative(surface).then(() => {
-      if (alive) setPhase("native");
-      else clearNative(surface); // gone before it mounted: nothing opened, nothing to blame
+    let mine = true;
+    const arm = armNative(surface);
+    const cap = setTimeout(() => {
+      if (!mine) return;
+      mine = false;
+      // a crash now would find no mark: React Native for this mount
+      console.log(`[surfaces] the crash breadcrumb took over ${READY_CAP_MS}ms to write; the ${surface} screen draws React Native this time`);
+      setHeld(arm);
+      setPhase("rn");
+    }, READY_CAP_MS);
+    void arm.then(() => {
+      clearTimeout(cap);
+      if (mine) {
+        mine = false;
+        armedFirst.current = true;
+        setPhase("native");
+      } else {
+        disarmNative(surface); // gone, or gave up waiting, before it mounted: it never opened
+      }
     });
     return () => {
-      alive = false;
+      mine = false;
+      clearTimeout(cap);
     };
   }, [phase, surface]);
 
-  // live mode: follow the table, but only while nobody is looking
+  // a hold lifts once the storage it gave up on has answered
   useEffect(() => {
-    if (!follow || focused || (phase !== "rn" && phase !== "native")) return;
-    const want = choose();
-    if (want && phase === "rn") setPhase("arming");
-    else if (!want && phase === "native") setPhase("rn");
-  }, [follow, focused, on, phase, choose]);
+    if (!held) return;
+    let alive = true;
+    const lift = () => {
+      if (alive) setHeld(null);
+    };
+    void held.then(lift, lift);
+    return () => {
+      alive = false;
+    };
+  }, [held]);
 
-  const onLayoutContent = useClearOnStand(surface, phase === "native");
+  // live mode: follow the table, but only while nobody is looking. A
+  // swap-in mounts unseen with no mark (useClearOnStand arms it when it is
+  // first focused), so there is nothing to write, and nothing to wait for.
+  useEffect(() => {
+    if (!follow || focused || held || (phase !== "rn" && phase !== "native")) return;
+    const want = choose();
+    if (want && phase === "rn") {
+      armedFirst.current = false;
+      setPhase("native");
+    } else if (!want && phase === "native") setPhase("rn");
+  }, [follow, focused, on, held, phase, choose]);
+
+  const onLayoutContent = useClearOnStand(surface, phase === "native", focused, armedFirst);
   const link = useMemo<SurfaceHostLink>(() => ({ surface, onLayoutContent }), [surface, onLayoutContent]);
 
   const onJsError = useCallback(() => {
@@ -204,49 +277,105 @@ function Render({ fn }: { fn: () => ReactNode }) {
   return <>{fn()}</>;
 }
 
+/* One stretch of the Swift path being mounted, and its mark. */
+type Stand = {
+  /** a mark is set, or being written, for this stretch */
+  armed: boolean;
+  /** the write that set it (clearing waits for it, so a clear can never
+      land before the mark it clears) */
+  arm: Promise<void>;
+  /** the screen has been seen (focused): its clocks are running */
+  watching: boolean;
+  laidOut: boolean;
+  /** the stretch is over, or none has begun */
+  cleared: boolean;
+  timers: ReturnType<typeof setTimeout>[];
+  sub: { remove: () => void } | null;
+};
+
+function stopClocks(s: Stand): void {
+  for (const id of s.timers) clearTimeout(id);
+  s.timers = [];
+  s.sub?.remove();
+  s.sub = null;
+}
+
 /* The arming mark's clearing, for one stretch of the Swift path being
-   mounted. Returns the Host's onLayoutContent. */
-function useClearOnStand(surface: string, active: boolean): (e: LayoutEvent) => void {
-  const st = useRef({ laidOut: false, cleared: true, standTimer: null as ReturnType<typeof setTimeout> | null });
+   mounted (`active`). Its clocks start when the screen is first seen
+   (`focused`; always true in mount mode): a stretch mounted out of sight
+   holds no mark until then — `armedFirst` says whether the arming phase
+   wrote one before it mounted — and is armed the first time it is focused.
+   Returns the Host's onLayoutContent. */
+function useClearOnStand(surface: string, active: boolean, focused: boolean, armedFirst: { current: boolean }): (e: LayoutEvent) => void {
+  const st = useRef<Stand>({ armed: false, arm: LANDED, watching: false, laidOut: false, cleared: true, timers: [], sub: null });
 
   const clearNow = useCallback(() => {
     const s = st.current;
     if (s.cleared) return;
     s.cleared = true;
-    if (s.standTimer) clearTimeout(s.standTimer);
-    s.standTimer = null;
-    clearNative(surface);
+    stopClocks(s);
+    if (s.armed) void s.arm.then(() => clearNative(surface));
   }, [surface]);
 
+  // the stretch begins and ends with the Swift path's mount
   useEffect(() => {
     if (!active) return;
     const s = st.current;
+    s.armed = armedFirst.current;
+    s.arm = LANDED; // the arming phase waited for its write
+    s.watching = false;
     s.laidOut = false;
     s.cleared = false;
-    const anyway = setTimeout(clearNow, CLEAR_ANYWAY_MS);
-    const sub = AppState.addEventListener("change", (a) => {
+    s.timers = [];
+    s.sub = null;
+    return () => {
+      stopClocks(s);
+      if (s.cleared) return;
+      s.cleared = true;
+      if (!s.armed) return; // never seen, never marked: nothing to take back
+      const arm = s.arm;
+      if (!s.watching) {
+        void arm.then(() => disarmNative(surface));
+        return;
+      }
+      // gone without taking the app down — but a crash while tearing the
+      // Host down (the focus/unmount family) still has a second to land
+      setTimeout(() => void arm.then(() => clearNative(surface)), CLEAR_AFTER_UNMOUNT_MS);
+    };
+  }, [active, surface, armedFirst]);
+
+  // first seen: armed if it wasn't, and the clocks start (they then run
+  // to the end of the stretch, whatever focus does)
+  useEffect(() => {
+    const s = st.current;
+    if (!active || s.cleared || s.watching) return;
+    if (!focused) {
+      // mounted out of sight: no mark until someone looks (see the top)
+      if (s.armed) {
+        s.armed = false;
+        void s.arm.then(() => disarmNative(surface));
+      }
+      return;
+    }
+    s.watching = true;
+    if (!s.armed) {
+      s.armed = true;
+      s.arm = armNative(surface);
+    }
+    s.timers.push(setTimeout(clearNow, CLEAR_ANYWAY_MS));
+    if (s.laidOut) s.timers.push(setTimeout(clearNow, CLEAR_AFTER_LAYOUT_MS));
+    s.sub = AppState.addEventListener("change", (a) => {
       if (a === "background" && s.laidOut) clearNow();
     });
-    return () => {
-      clearTimeout(anyway);
-      sub.remove();
-      if (s.standTimer) clearTimeout(s.standTimer);
-      s.standTimer = null;
-      if (!s.cleared) {
-        // gone without taking the app down — but a crash while tearing the
-        // Host down (the focus/unmount family) still has a second to land
-        s.cleared = true;
-        setTimeout(() => clearNative(surface), CLEAR_AFTER_UNMOUNT_MS);
-      }
-    };
-  }, [active, surface, clearNow]);
+  }, [active, focused, surface, clearNow]);
 
   return useCallback(
     (_e: LayoutEvent) => {
       const s = st.current;
       if (s.laidOut || s.cleared) return;
       s.laidOut = true;
-      s.standTimer = setTimeout(clearNow, CLEAR_AFTER_LAYOUT_MS);
+      // a layout while out of sight waits for the clocks to start
+      if (s.watching) s.timers.push(setTimeout(clearNow, CLEAR_AFTER_LAYOUT_MS));
     },
     [clearNow],
   );

@@ -8,6 +8,7 @@ import { supabase, supabaseReady } from "./supabase";
 import {
   armSurface,
   clearSurface,
+  disarmSurface,
   emptyArming,
   resolveSurfaces,
   settleArming,
@@ -214,6 +215,15 @@ export function clearNative(surface: string): void {
   const own = (o: object) => Object.prototype.hasOwnProperty.call(o, surface);
   if (!own(arming.armed) && !own(arming.strikes)) return;
   arming = clearSurface(arming, surface);
+  void persistArming();
+}
+
+/** `surface` was armed but never opened where anyone could see it (gone
+    before its Host mounted, or mounted behind another tab): its mark goes,
+    its strikes stay — it neither died opening nor stood. Fire and forget. */
+export function disarmNative(surface: string): void {
+  if (!Object.prototype.hasOwnProperty.call(arming.armed, surface)) return;
+  arming = disarmSurface(arming, surface);
   void persistArming();
 }
 

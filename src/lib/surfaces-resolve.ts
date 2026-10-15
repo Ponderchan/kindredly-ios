@@ -109,6 +109,15 @@ export function clearSurface(rec: ArmingRecord, surface: string): ArmingRecord {
   return { ...rec, armed, strikes };
 }
 
+/** the record with `surface`'s mark taken back but its strikes kept: it was
+    armed and then never opened (gone before it mounted, or mounted out of
+    sight), so it neither died opening nor stood */
+export function disarmSurface(rec: ArmingRecord, surface: string): ArmingRecord {
+  const armed = { ...rec.armed };
+  delete armed[surface];
+  return { ...rec, armed };
+}
+
 /** true = this surface has struck out on this binary: React Native only */
 export function struckOut(rec: ArmingRecord | null, surface: string): boolean {
   if (!rec || !Object.prototype.hasOwnProperty.call(rec.strikes, surface)) return false;

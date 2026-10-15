@@ -16,7 +16,7 @@ import * as Notifications from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
-import { ThemeProvider, useTheme } from "../lib/theme";
+import { ThemeProvider, useP, useTheme } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
 import { loadLang } from "../lib/i18n";
 import { startSurfaces } from "../lib/surfaces";
@@ -184,9 +184,21 @@ const LAUNCH_GROUND = { contentStyle: { backgroundColor: P.penWash } };
    once named the old wash here. With 10a every page sits on the theme's
    one ground (tk.bg: white in Classic, lavender in Lavender, cream in
    Paper, night in Midnight), so the stack paints that, for every route,
-   and follows the theme as it changes. */
+   and follows the theme as it changes.
+
+   EXCEPT a page that still paints a ground of its own: it names that
+   ground here, from the same source the page reads, until it moves to
+   tk.bg (then its line goes). courier keeps the accent's palest wash on
+   purpose (useP().penWash, the theme's lav2; see app/courier.tsx), and
+   aura-card is not themed yet (the fixed P.penWash). Neither belongs to a
+   step-5 slice, so without these lines both would slide in on a white
+   slab in Classic for good. A page a step-5 slice is still to retheme
+   (aura, kindred/[id], my-letters, my-kindreds, keepsakes, drafts,
+   blocked, settings) gets no line: it moves to tk.bg with its slice, and
+   any that keeps another ground adds its own line here, the same way. */
 function ThemedStack() {
   const { t: tk } = useTheme();
+  const pal = useP();
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <Stack
@@ -210,6 +222,9 @@ function ThemedStack() {
         {/* the reader fills the screen — the letter opens where you are,
             it doesn't slide in from the side or pop up as a card */}
         <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
+        {/* the two pages that still paint their own ground (see above) */}
+        <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash } }} />
+        <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: P.penWash } }} />
       </Stack>
     </View>
   );
