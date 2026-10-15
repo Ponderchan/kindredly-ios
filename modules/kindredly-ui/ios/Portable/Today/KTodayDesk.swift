@@ -68,9 +68,9 @@ public struct KTodayGeometry: Equatable, Sendable {
   public let bottomRoom: CGFloat
   /// the stack's scroll view: the Host less the status bar and the band
   public let viewHeight: CGFloat
-  public let cardHeight: CGFloat
+  public private(set) var cardHeight: CGFloat
   /// one card and the gap after it
-  public let stride: CGFloat
+  public private(set) var stride: CGFloat
   /// the blind's page; the pill is hidden there
   public let endHeight: CGFloat
 
@@ -82,6 +82,23 @@ public struct KTodayGeometry: Equatable, Sendable {
     cardHeight = max(Self.cardMin, (view - Self.contentTop - (room + Self.pillHeight + Self.pillAir)).rounded())
     stride = cardHeight + Self.cardGap
     endHeight = max(Self.endMin, (view - Self.contentTop - room).rounded())
+  }
+
+  /// The desk with Wren's strip and the arrival above card 0 (`leading`, measured) taking their
+  /// height from the cards when the cards can spare it and stay at least cardMin: on a tall phone
+  /// the first card then sits whole under them when Today opens, its tags and PASS / REPLY clear of
+  /// the pill (seen on the simulator: without this the foot of the first card opened under the
+  /// pill until the first swipe). Where the cards can't spare it (an SE, a tall arrival) they keep
+  /// their height and the strip scrolls away above the first card, as before. Swift only: TS's
+  /// deskGeometry mirrors the base formula, not this.
+  public func fitting(leading: CGFloat) -> KTodayGeometry {
+    guard leading > 0.5 else { return self }
+    let fitted = (cardHeight - leading).rounded()
+    guard fitted >= Self.cardMin else { return self }
+    var g = self
+    g.cardHeight = fitted
+    g.stride = fitted + Self.cardGap
+    return g
   }
 }
 

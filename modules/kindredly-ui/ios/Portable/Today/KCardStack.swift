@@ -148,8 +148,11 @@ struct KCardStack: View {
   private var cards: [KLetterCardModel] { content.cards }
   private var showsEnd: Bool { content.endPage && endPage != nil }
 
+  /// the geometry with the leading items fitted in when the cards can spare the room
+  private var desk: KTodayGeometry { geometry.fitting(leading: leading) }
+
   private var pages: [KTodayPage] {
-    KTodayPage.make(leading: leading, count: cards.count, endPage: showsEnd, stride: geometry.stride)
+    KTodayPage.make(leading: leading, count: cards.count, endPage: showsEnd, stride: desk.stride)
   }
 
   private var settledCardIndex: Int {
@@ -168,7 +171,7 @@ struct KCardStack: View {
   private var tail: CGFloat {
     let view = geometry.viewHeight - KTodayGeometry.contentTop
     if showsEnd { return max(0, view - geometry.endHeight) }
-    if !cards.isEmpty { return max(0, view - geometry.cardHeight - KTodayGeometry.cardGap) }
+    if !cards.isEmpty { return max(0, view - desk.cardHeight - KTodayGeometry.cardGap) }
     return 0
   }
 
@@ -190,7 +193,7 @@ struct KCardStack: View {
           KLetterCard(theme: theme, card: card, labels: content.labels, voice: voice, actions: cardActions)
             .equatable()
             .accessibilityFocused($voFocus, equals: card.id)
-            .frame(height: geometry.cardHeight)
+            .frame(height: desk.cardHeight)
             .modifier(KFreshUnfold(active: content.freshUnfold && i == 0))
             .padding(.bottom, KTodayGeometry.cardGap)
             .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
