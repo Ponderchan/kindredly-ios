@@ -34,11 +34,13 @@ import SwiftUI
  */
 /// The two InkCards the mock draws (tokens-10a.md §7): the Today letter card and the Me cards.
 public enum InkCardVariant: Equatable, Sendable {
-  /// The Today letter card and the composer sheet: corners of 28, a 6/6 shadow, padding
-  /// 18 20 14 (H:32, H:129). The default.
+  /// The Today letter card: corners of 28, a 6/6 shadow, padding 18 20 14 (H:32). The
+  /// default. (The composer sheet shares the corners and shadow but pads 16 with a gap of
+  /// 10, H:129, so it is not this variant.)
   case today
-  /// The Me cards (profile, Aura, Stamps, Courier): corners of 24, a 5/5 shadow, padding 16
-  /// (H:72, 75, 78, 81). The calendar popover has the same 5/5.
+  /// The Me cards (profile, Aura, Stamps): corners of 24, a 5/5 shadow, padding 16
+  /// (H:72, 78, 81). The calendar popover has the same 5/5. The Courier card (H:75) is not
+  /// one: it has no padding, a courier-green face and clips its sky to the corners.
   case me
 
   public var cornerRadius: CGFloat {

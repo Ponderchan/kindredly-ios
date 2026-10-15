@@ -107,7 +107,7 @@ public struct SoftRow<Icon: View, Accessory: View>: View {
 
   /// the chevron's CSS box is line-height:1, 18 tall, which is less than the glyph's natural
   /// line; framed to 18 so it doesn't make the row taller than the mock's
-  @ScaledMetric(relativeTo: .title3) private var chevronBox: CGFloat = 18
+  @ScaledMetric(relativeTo: .body) private var chevronBox: CGFloat = 18 // KTextStyle.chevron (system 18) scales with .body
 
   public init(
     theme: KTheme,

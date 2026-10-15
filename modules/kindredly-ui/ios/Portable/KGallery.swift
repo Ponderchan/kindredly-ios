@@ -63,7 +63,7 @@ public struct KGallery: View {
       Text("A row label, system 400 15").kText(.rowLabel).foregroundStyle(theme.ink)
       Text("The Kindreds preview line, 400 14 in sub").kText(.preview).foregroundStyle(theme.sub)
       Text("SEP.23 · NO.7273").kText(.monoPostmark).foregroundStyle(theme.ink)
-      Text("FROM YOUR 121 LETTERS").kText(.monoMeta).foregroundStyle(theme.mute)
+      Text("FROM YOUR 121 LETTERS").kText(.monoMetaWide).foregroundStyle(theme.mute)
       Text("The rain came in sideways and I thought of you.")
         .kText(.letterBody)
         .foregroundStyle(theme.ink)
@@ -102,12 +102,12 @@ public struct KGallery: View {
         .background(RoundedRectangle(cornerRadius: 6, style: .circular).fill(theme.ink))
       RoundedRectangle(cornerRadius: 14, style: .circular)
         .fill(theme.soft2)
-        .frame(height: 72)
+        .frame(height: 110)
       Text("What your writing says about you")
         .kText(.cardTitle)
         .foregroundStyle(theme.ink)
       Text("FROM YOUR 121 LETTERS")
-        .kText(.monoMeta)
+        .kText(.monoMetaWide)
         .foregroundStyle(theme.mute)
       KSecondaryButton(theme: theme, title: "See your labels") {}
     }

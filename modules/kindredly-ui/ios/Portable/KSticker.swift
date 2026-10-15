@@ -114,14 +114,15 @@ public struct KStickerButtonStyle<S: InsettableShape>: ButtonStyle {
         }
       }
       .contentShape(shape)
-      .offset(x: at, y: at)
+      // only the press offset takes the press spring; a colour or lift change made by the
+      // caller (a Me chip being chosen) keeps its own transaction
+      .animation(KMotion.press) { $0.offset(x: at, y: at) }
       // drawn after the offset, so it stays where it is while the face moves onto it
       .background {
         if let shadow, hasShadow {
           shape.fill(shadow).offset(x: shadowOffset - lift, y: shadowOffset - lift)
         }
       }
-      .animation(KMotion.press, value: configuration.isPressed)
   }
 }
 
