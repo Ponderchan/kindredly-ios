@@ -301,6 +301,62 @@ export async function clearDrift(id: string): Promise<JournalEntry[]> {
   );
 }
 
+/* THE JOURNAL OUTLIVES THE ACCOUNT (owner, 2026-10-15: "日记留吧" — and the
+   Delete Account sheet promises it). Deleting an account scrubs that
+   account's bucket and the phone falls back to the guest one, so the sealed
+   pages are handed to the guest bucket first: moved when it has none,
+   merged (newest first, one copy per page id) when it has. A side that
+   won't parse is never merged over — the deleted account's whole blob goes
+   into the guest bucket's rescue list instead. Media lives in
+   Documents/journal for the phone, not per account, and stays put.
+   Throws if storage refuses, so the caller can leave the pages unscrubbed. */
+export async function handOverJournal(fromUid: string): Promise<void> {
+  if (!fromUid || fromUid === "anon") return;
+  const from = scopedTo(fromUid);
+  const to = scopedTo("anon");
+  const mine = await from.getItem(KEY);
+  if (!mine) return;
+  const parse = (raw: string | null): unknown[] | null => {
+    if (!raw) return [];
+    try {
+      const v: unknown = JSON.parse(raw);
+      return Array.isArray(v) ? v : null;
+    } catch {
+      return null;
+    }
+  };
+  const keep = async (raw: string) => {
+    const prev = await to.getItem(RESCUE_KEY);
+    const kept = prev ? (parse(prev) ?? [prev]) : []; // an unreadable rescue list is kept whole too
+    await to.setItem(RESCUE_KEY, JSON.stringify([...kept, { at: new Date().toISOString(), raw }]));
+  };
+  const a = parse(mine);
+  const b = parse(await to.getItem(KEY));
+  if (a === null || b === null) {
+    await keep(mine);
+    console.warn("[journal] hand-over: a side didn't parse; the deleted account's journal is kept in the guest rescue list");
+    return;
+  }
+  const idOf = (e: unknown) => (e && typeof e === "object" && typeof (e as { id?: unknown }).id === "string" ? (e as { id: string }).id : null);
+  const when = (e: unknown) => {
+    const d = e && typeof e === "object" ? Date.parse(String((e as { date?: unknown }).date)) : NaN;
+    return isNaN(d) ? 0 : d;
+  };
+  const seen = new Set<string>();
+  const merged = [...a, ...b].filter((e) => {
+    const id = idOf(e);
+    if (!id) return true;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  merged.sort((x, y) => when(y) - when(x));
+  await to.setItem(KEY, JSON.stringify(merged));
+  await to.setItem(COUNT_KEY, String(merged.length));
+  const rescued = await from.getItem(RESCUE_KEY);
+  if (rescued) await keep(rescued);
+}
+
 /** split an entry into candidate sentences to drift. */
 export function sentencesOf(body: string): string[] {
   return (body || "")
