@@ -55,9 +55,13 @@ export function failCopy(kind: WriteFail | null | undefined, context: FailContex
 }
 
 export interface AlertFailOptions {
-  /** picks the gone/blocked words (see FailContext); default 'write' */
+  /** the write that just failed went through lib/db (or folds), so its
+      recorded reason is this write's own: opt in to the refusal and
+      session words, with `context` picking the gone/blocked ones (see
+      FailContext). Without it only `offline` replaces the screen's words,
+      as before step 5. */
   context?: FailContext;
-  /** when given, an expired session's alert carries a "Sign in" button that calls it */
+  /** when given (with `context`), an expired session's alert carries a "Sign in" button that calls it */
   onSignIn?: () => void;
 }
 
@@ -67,10 +71,17 @@ export interface AlertFailOptions {
  * replace `title`/`body`; otherwise the screen's own words show. Screens
  * that must also act on a refusal (Today removes the letter) check
  * isRefusal(lastWriteFail()) themselves.
+ *
+ * Refusal and session words need `opts.context`. The flag is module-wide:
+ * a caller whose failure never passed through lib/db (compose's daily-cap
+ * call, the Wren desk) would otherwise read a refusal another write
+ * recorded up to a minute earlier — "This one has closed" over a compose
+ * that merely timed out. A caller without a context gets the offline
+ * words or its own, exactly as before.
  */
 export function alertFail(title: string, body: string, opts: AlertFailOptions = {}): void {
   const kind = lastWriteFail();
-  const copy = failCopy(kind, opts.context);
+  const copy = opts.context ? failCopy(kind, opts.context) : kind === "offline" ? failCopy(kind) : null;
   if (!copy) {
     Alert.alert(title, body);
     return;

@@ -10,13 +10,17 @@ import { t } from "./i18n";
 import {
   TAKEN_BACK,
   buildThreadDetail,
+  confirmMissing,
   decideThreadFetch,
+  emptyReadFail,
   isNetworkish,
   isSchemaError,
   readReason,
+  unconfirmedEmpty,
   writeFailOf,
   type MessageRow,
   type OfflineReason,
+  type SessionCheck,
   type ThreadDetailResult,
   type ThreadRow,
   type WriteFail,
@@ -110,6 +114,23 @@ export async function whoAmI(): Promise<WhoAmI> {
 async function uid(): Promise<string | null> {
   const w = await whoAmI();
   return "id" in w ? w.id : null;
+}
+
+/* WHO A READ WAS ASKED AS. whoAmI() answers from uidCache, but every
+   PostgREST request fetches its own token: once the access token has
+   expired and auth's refresh fails, getSession() hands back no session
+   and supabase-js sends the anon key instead (supabase-js fetchWithAuth).
+   The threads policies are `to authenticated`, so that read answers 0 rows
+   and no error — a deleted thread, to anyone who believes it. Called only
+   after an empty answer (no cost on the common path); see
+   unconfirmedEmpty / confirmMissing / emptyReadFail. */
+async function sessionCheck(): Promise<SessionCheck> {
+  try {
+    const { data, error } = await supabase!.auth.getSession();
+    return { uid: data.session?.user?.id ?? null, error };
+  } catch (e) {
+    return { uid: null, error: e };
+  }
 }
 
 /* THE START OF EVERY WRITE: forget the last failure first (before any early
@@ -661,8 +682,9 @@ export type ThreadsResult = { status: "ok"; threads: ThreadSummary[] } | { statu
    debounce (critic: two full list fetches per poke); a call made while a
    read is in flight shares that read */
 let threadsInFlight: Promise<ThreadsResult> | null = null;
-/* bumped when a thread is forgotten: a read that began before can't write
-   the forgotten row back into the kept list */
+/* bumped when a thread is forgotten or a letter leaves: a read that began
+   before can't write the forgotten row (or the pre-send list) back into
+   the kept list, nor mark it fresh */
 let threadsGen = 0;
 export function fetchThreadsResult(): Promise<ThreadsResult> {
   if (threadsInFlight) return threadsInFlight;
@@ -729,6 +751,12 @@ async function fetchThreadsUncached(): Promise<ThreadsResult> {
     }
     if (error) return { status: "offline", reason: readReason(error, status) };
     if (!data) return { status: "offline", reason: "error" };
+    /* an empty list asked with the anon key (expired token, refresh failed)
+       must not overwrite the kept list with nothing — see sessionCheck */
+    if (!data.length) {
+      const why = unconfirmedEmpty(await sessionCheck(), me);
+      if (why) return { status: "offline", reason: why };
+    }
 
     /* their letters, beside the rows (the one-tap "a reply is on its way" and
        its side table went 2026-10-10: one person had ever used it) */
@@ -905,7 +933,7 @@ async function firstAnswer<T>(run: (cols: string) => PromiseLike<Answer<T>>, col
       cols.from = i;
       return last;
     }
-    if (!isSchemaError(last.error)) return last;
+    if (!isSchemaError(last.error, last.status)) return last;
   }
   return last;
 }
@@ -920,8 +948,10 @@ async function firstAnswer<T>(run: (cols: string) => PromiseLike<Answer<T>>, col
  *   or a query error (error) — INCLUDING a failed messages query after the
  *   row was read. Keep what is painted; the cache is not touched.
  * - `{status:'missing'}` — the server answered without error that this
- *   reader has no such thread (deleted, or hidden by a block). The kept
- *   detail and folds are deleted; the screen shows a closed state in place.
+ *   reader has no such thread (deleted, or hidden by a block), and a
+ *   session for this reader is there after it (an empty answer asked with
+ *   the anon key is offline instead — confirmMissing). The kept detail and
+ *   folds are deleted; the screen shows a closed state in place.
  * The detail carries revealedAt, openingAt (the opening letter's own date)
  * and openingMedia (a voice opening). Demo ids are not handled here — see
  * useThreadDetail.
@@ -945,13 +975,17 @@ export async function fetchThreadDetail(threadId: string): Promise<ThreadDetailR
         MESSAGE_COLS,
       ),
     ]);
-    const verdict = decideThreadFetch({
+    let verdict = decideThreadFetch({
       threadError: tRes.error,
       threadStatus: tRes.status,
       hasRow: !!tRes.data,
       messagesError: mRes.error,
       messagesStatus: mRes.status,
     });
+    /* an empty answer asked with the anon key (an expired token whose
+       refresh failed) is not a deleted thread: nothing is removed, and
+       the screen keeps what it painted */
+    if (verdict.status === "missing") verdict = confirmMissing(verdict, await sessionCheck(), me);
     if (verdict.status === "missing") {
       void scoped.removeItem(detailCacheKey(threadId)).catch(() => {});
       void scoped.removeItem(foldsCacheKey(threadId)).catch(() => {});
@@ -1021,13 +1055,16 @@ export async function sendThreadMessage(
        correspondent were accepted and stored and never read. The composer is
        closed upstream; this is the lock behind it. A thread the server no
        longer shows this reader (0024 hides a blocked pair's both ways) is
-       just as closed — both say 'gone', so the alert stops advising a retry. */
+       just as closed — both say 'gone', so the alert stops advising a retry.
+       An empty answer is 'gone' only when it was asked with this reader's
+       session (emptyReadFail): an expired token whose refresh failed sends
+       the anon key, which also reads no row. */
     const { data: sides, error: sidesErr } = await supabase!
       .from("threads")
       .select("a,b")
       .eq("id", threadId)
       .maybeSingle();
-    if (!sidesErr && !sides) return setFail("gone");
+    if (!sidesErr && !sides) return setFail(emptyReadFail(await sessionCheck(), me));
     if (sides && !(sides.a === me ? sides.b : sides.a)) return setFail("gone");
 
     /* body always carries a readable fallback, so the web app and any
@@ -1059,9 +1096,12 @@ export async function sendThreadMessage(
     /* the list is out of date the moment a letter leaves: the next visit
        to Kindreds asks again, so the stranger you just answered has moved
        to IN TRANSIT by the time you're back (owner, 2026-09-23) — and a
-       read already in flight began before it, so nobody joins that one */
+       read already in flight began before it, so nobody joins that one,
+       and its answer (bumped generation) can't write the pre-send list
+       back as fresh */
     threadsFetchedAt = 0;
     threadsInFlight = null;
+    threadsGen++;
     return { ok: true, id: saved?.id, createdAt: saved?.created_at };
   } catch (e) {
     return noteFail(e);
@@ -1085,7 +1125,8 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
       .eq("id", threadId)
       .maybeSingle();
     if (tErr) return noteFail(tErr);
-    if (!t) return setFail("gone");
+    // no row: 'gone' only if asked as this reader (see sendThreadMessage)
+    if (!t) return setFail(emptyReadFail(await sessionCheck(), me));
     if (!(t.a === me ? t.b : t.a)) return setFail("gone");
     const iamA = t.a === me;
     const theirs = iamA ? t.b_name : t.a_name;

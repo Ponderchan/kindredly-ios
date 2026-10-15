@@ -45,9 +45,10 @@ export type OfflineReason = "not-ready" | "no-session" | "network" | "error";
  * The answer of `fetchThreadDetail(id)`:
  * - `ok`      — the full detail, freshly read (and now cached).
  * - `offline` — no answer; keep whatever is painted. `reason` says why.
- * - `missing` — the server answered, without error, that there is no such
- *               thread for this reader: deleted, or hidden by a block
- *               (0024 hides a blocked pair's thread both ways).
+ * - `missing` — the server answered, without error and to this reader's
+ *               own session (confirmMissing), that there is no such
+ *               thread for them: deleted, or hidden by a block (0024
+ *               hides a blocked pair's thread both ways).
  */
 export type ThreadDetailResult =
   | { status: "ok"; detail: ThreadDetail }
@@ -99,25 +100,42 @@ export const readReason = (e: unknown, status?: number | null): OfflineReason =>
 /**
  * True when PostgREST refused a select because this server's schema lacks
  * something it names — an undefined column (42703), an unknown table
- * (42P01) or an unknown/ambiguous relationship for an embed (PGRST200/201)
- * — so an older column set is worth trying. Anything else is not.
+ * (42P01), an unknown/ambiguous relationship for an embed (PGRST200/201)
+ * or an unknown column (PGRST204) — so an older column set is worth
+ * trying. Anything else is not.
+ *
+ * NOT the schema cache being rebuilt: PGRST002 ("Could not query the
+ * database for the schema cache. Retrying.", HTTP 503) passes on its own
+ * after a DDL or a reload. Taking it for a missing column walked the read
+ * down to an older column set and kept it there for the rest of the
+ * launch, so every later room lost openingAt (and from set 2 on also
+ * revealedAt, faces and the voice opening), and each thinner read was
+ * kept over the good copy. So no bare "schema cache" match, and no 5xx
+ * answer (pass the response status when you have it) is ever a schema
+ * refusal: those are 400/404.
  */
-export function isSchemaError(e: unknown): boolean {
+export function isSchemaError(e: unknown, status?: number | null): boolean {
   if (e == null) return false;
+  if (typeof status === "number" && status >= 500) return false;
   const o = e as ErrLike;
   const code = typeof o.code === "string" ? o.code : "";
+  if (code === "PGRST002") return false;
   if (code === "42703" || code === "42P01" || code === "PGRST200" || code === "PGRST201" || code === "PGRST204") return true;
   const msg = typeof o.message === "string" ? o.message : "";
-  return /column .* does not exist|could not find .* (column|relationship)|relationship between|schema cache/i.test(msg);
+  return /column .* does not exist|could not find .* (column|relationship)|relationship between/i.test(msg);
 }
 
 /* ── what a thread fetch's two queries mean together ────────────────── */
+
+/** what a thread fetch's queries say, before the detail is built */
+export type FetchVerdict = { status: "ok" } | { status: "missing" } | { status: "offline"; reason: OfflineReason };
 
 /**
  * Decide a thread fetch from its two queries. The thread row decides
  * existence; the messages decide whether the read is whole.
  * - thread query errored → offline (that is not "no thread");
- * - no error and no row → missing;
+ * - no error and no row → missing (lib/db then holds it to
+ *   confirmMissing: an empty answer counts only if it was asked as you);
  * - row, but every messages query errored → offline: an empty list here
  *   would paint an empty room and overwrite the cache with it;
  * - otherwise ok.
@@ -128,11 +146,62 @@ export function decideThreadFetch(input: {
   hasRow: boolean;
   messagesError: unknown | null;
   messagesStatus?: number | null;
-}): { status: "ok" } | { status: "missing" } | { status: "offline"; reason: OfflineReason } {
+}): FetchVerdict {
   if (input.threadError) return { status: "offline", reason: readReason(input.threadError, input.threadStatus) };
   if (!input.hasRow) return { status: "missing" };
   if (input.messagesError) return { status: "offline", reason: readReason(input.messagesError, input.messagesStatus) };
   return { status: "ok" };
+}
+
+/* ── an empty answer counts only if it was asked as you ─────────────── */
+
+/**
+ * The session as auth reads it right after a read: whose it is (null when
+ * there is none) and the error auth gave, if any. lib/db fills it from
+ * supabase.auth.getSession().
+ */
+export interface SessionCheck {
+  uid: string | null | undefined;
+  error?: unknown;
+}
+
+/**
+ * Why an empty answer (no error, no row) can't be trusted, or null when it
+ * can. lib/db knows who you are from a cached id, but every PostgREST
+ * request fetches its own token: when the access token has expired and
+ * auth's refresh fails (a flaky network, an auth 5xx, a refresh token
+ * rejected), auth hands back no session and supabase-js sends the anon key
+ * as the bearer instead. The threads policies are `to authenticated`, so
+ * that read answers 0 rows and no error — exactly what a deleted thread
+ * looks like. An empty answer is believed only when a session for `me` is
+ * there after it; otherwise it is `network` (auth's refresh could not
+ * reach the server) or `no-session`.
+ */
+export function unconfirmedEmpty(session: SessionCheck, me: string): "network" | "no-session" | null {
+  if (session.uid && session.uid === me) return null;
+  return session.error != null && isNetworkish(session.error) ? "network" : "no-session";
+}
+
+/**
+ * A thread fetch's verdict, with 'missing' held to unconfirmedEmpty: a
+ * 'missing' read without a live session for `me` becomes offline (keep
+ * what is painted, delete nothing). Any other verdict passes unchanged.
+ */
+export function confirmMissing(verdict: FetchVerdict, session: SessionCheck, me: string): FetchVerdict {
+  if (verdict.status !== "missing") return verdict;
+  const why = unconfirmedEmpty(session, me);
+  return why ? { status: "offline", reason: why } : verdict;
+}
+
+/**
+ * The refusal a write reports when its own read of the thread came back
+ * empty: `gone` only when that read was asked with a live session for
+ * `me`; otherwise `offline` (auth couldn't reach the server) or `session`
+ * — never a false refusal that closes the composer on a live room.
+ */
+export function emptyReadFail(session: SessionCheck, me: string): "gone" | "offline" | "session" {
+  const why = unconfirmedEmpty(session, me);
+  return why === "network" ? "offline" : why === "no-session" ? "session" : "gone";
 }
 
 /* ── a row, made into a detail ──────────────────────────────────────── */
@@ -291,10 +360,19 @@ export function reduceDetail(s: DetailState, e: DetailEvent): DetailState {
 
 /**
  * How a screen counts "seen" for lib/room-seen: `true` uses
- * detail.otherCount (the room); a function picks its own count, or null to
- * skip (chat marks only once names are traded).
+ * detail.otherCount (the room); a function decides when to mark, or null
+ * to skip (chat marks only once names are traded — chatSeenRule).
+ *
+ * THE NUMBER IS ALWAYS otherCount. The Kindreds badge compares the ledger
+ * with the list's `theirs` — threads' counter column (0012), the same
+ * number as detail.otherCount — never with the length of the message list
+ * (critic-chat: three screens marked three different numbers). A rule
+ * chooses whether to mark, not what to count.
  */
 export type SeenRule = true | ((d: ThreadDetail) => number | null);
+
+/** the pen-pal chat's rule: mark only once names are traded, with otherCount */
+export const chatSeenRule = (d: ThreadDetail): number | null => (d.revealed ? d.otherCount : null);
 
 /**
  * The count to mark seen after `state` settled, or null to leave the

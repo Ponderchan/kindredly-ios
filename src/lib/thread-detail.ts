@@ -5,6 +5,7 @@ import { fetchFoldsFresh, readFoldsCache, type Fold } from "./folds";
 import { useThreadLive } from "./live";
 import { markRoomSeen } from "./room-seen";
 import {
+  chatSeenRule,
   initialDetailState,
   mergePending,
   reduceDetail,
@@ -32,13 +33,17 @@ import {
    draft must not leave on its own. */
 
 export type { OfflineReason, SeenRule, ThreadDetailStatus };
+export { chatSeenRule };
 
 export interface UseThreadDetailOptions {
   /** also read and keep the thread's folds (the room). Default true. */
   folds?: boolean;
   /** mark lib/room-seen after each settled read: `true` = detail.otherCount
-      (the room), or your own count / null to skip (chat marks only once
-      names are traded). Offline, the painted cached copy is what is marked.
+      (the room, the kindred page, the reader), or a rule that returns
+      otherCount or null to skip — the pen-pal chat passes chatSeenRule,
+      `d => (d.revealed ? d.otherCount : null)`. Always otherCount, never a
+      count of the message list: the Kindreds badge reads the same counter
+      (see SeenRule). Offline, the painted cached copy is what is marked.
       Default false. */
   markSeen?: SeenRule | false;
   /** the screen's optimistic lines (sends in flight or just confirmed),

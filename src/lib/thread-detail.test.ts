@@ -8,7 +8,10 @@ import {
   FOLD_MAX,
   TAKEN_BACK,
   buildThreadDetail,
+  chatSeenRule,
+  confirmMissing,
   decideThreadFetch,
+  emptyReadFail,
   foldOver,
   initialDetailState,
   isNetworkish,
@@ -18,6 +21,7 @@ import {
   readReason,
   reduceDetail,
   seenCountAfter,
+  unconfirmedEmpty,
   writeFailOf,
   type DetailState,
   type ThreadRow,
@@ -28,11 +32,13 @@ import {
   DEMO_JOURNAL,
   DEMO_POOL,
   DEMO_ROOM_SEEN,
+  DEMO_STATE_JOURNAL,
   DEMO_STATE_THREADS,
   DEMO_TAKEN_BACK,
   DEMO_THREADS,
   demoDetail,
   demoFolds,
+  demoJournal,
   demoListMode,
   demoMediaUrl,
   demoThreads,
@@ -59,6 +65,11 @@ ok("schema: undefined column", isSchemaError({ code: "42703", message: "column t
 ok("schema: unknown relationship for the embed", isSchemaError({ code: "PGRST200", message: "Could not find a relationship between 'threads' and 'letters' in the schema cache" }));
 ok("schema: a policy refusal is not one", !isSchemaError({ code: "42501", message: "permission denied for table threads" }));
 ok("schema: a dropped connection is not one", !isSchemaError(NET));
+const REBUILDING = { code: "PGRST002", message: "Could not query the database for the schema cache. Retrying.", details: null, hint: null };
+ok("schema: the schema cache being rebuilt (PGRST002) is not one", !isSchemaError(REBUILDING) && !isSchemaError(REBUILDING, 503));
+ok("schema: no 5xx answer is one, whatever it says", !isSchemaError({ code: "", message: "Could not find the 'revealed_at' column of 'threads' in the schema cache" }, 503));
+ok("schema: an unknown column (PGRST204) at 400 still is one", isSchemaError({ code: "PGRST204", message: "Could not find the 'revealed_at' column of 'threads' in the schema cache" }, 400));
+ok("schema: an unknown column by its words alone still is one", isSchemaError({ message: "Could not find the 'revealed_at' column of 'threads' in the schema cache" }));
 
 /* ── a thread fetch's verdict ── */
 ok("thread query dropped → offline/network", (() => { const v = decideThreadFetch({ threadError: NET, hasRow: false, messagesError: null }); return v.status === "offline" && v.reason === "network"; })());
@@ -67,6 +78,19 @@ ok("no error and no row → missing", decideThreadFetch({ threadError: null, has
 ok("no row wins over a failed messages query (hidden thread)", decideThreadFetch({ threadError: null, hasRow: false, messagesError: NET }).status === "missing");
 ok("row but messages failed → offline, never an empty ok room", (() => { const v = decideThreadFetch({ threadError: null, hasRow: true, messagesError: NET }); return v.status === "offline" && v.reason === "network"; })());
 ok("row and messages → ok", decideThreadFetch({ threadError: null, hasRow: true, messagesError: null }).status === "ok");
+
+/* ── an empty answer counts only if it was asked as you ── */
+const EMPTY_READ = decideThreadFetch({ threadError: null, hasRow: false, messagesError: null });
+const LIVE = { uid: "me", error: null };
+ok("missing with a live session for me stays missing", confirmMissing(EMPTY_READ, LIVE, "me").status === "missing");
+ok("missing with no session (refresh rejected → anon read) → offline/no-session, nothing deleted", (() => { const v = confirmMissing(EMPTY_READ, { uid: null, error: { name: "AuthApiError", message: "Invalid Refresh Token: Refresh Token Not Found", status: 400 } }, "me"); return v.status === "offline" && v.reason === "no-session"; })());
+ok("missing while auth's refresh couldn't reach the server → offline/network", (() => { const v = confirmMissing(EMPTY_READ, { uid: null, error: { name: "AuthRetryableFetchError", message: "Network request failed", status: 0 } }, "me"); return v.status === "offline" && v.reason === "network"; })());
+ok("missing with someone else's session → offline", confirmMissing(EMPTY_READ, { uid: "other", error: null }, "me").status === "offline");
+ok("confirmMissing passes ok and offline through", confirmMissing({ status: "ok" }, { uid: null }, "me").status === "ok" && (() => { const v = confirmMissing({ status: "offline", reason: "error" }, { uid: null }, "me"); return v.status === "offline" && v.reason === "error"; })());
+ok("unconfirmedEmpty: believed only with my session", unconfirmedEmpty(LIVE, "me") === null && unconfirmedEmpty({ uid: undefined }, "me") === "no-session");
+ok("a write's empty read: gone only with my session", emptyReadFail(LIVE, "me") === "gone");
+ok("a write's empty read without a session → session, never a refusal", emptyReadFail({ uid: null, error: null }, "me") === "session" && !isRefusal(emptyReadFail({ uid: null, error: null }, "me")));
+ok("a write's empty read while auth is unreachable → offline", emptyReadFail({ uid: null, error: { name: "AuthRetryableFetchError", message: "x", status: 0 } }, "me") === "offline");
 
 /* ── a row, made into a detail ── */
 const row = (o: Partial<ThreadRow> = {}): ThreadRow => ({
@@ -143,6 +167,8 @@ ok("loading (cache painted, no answer yet) marks nothing", seenCountAfter(st("lo
 ok("no detail marks nothing", seenCountAfter(st("offline", null), true) === null);
 ok("a rule may pick its own count", seenCountAfter(st("ok", D1), (d) => d.messages.filter((m) => !m.mine).length) === 2);
 ok("a rule may skip (chat before names)", seenCountAfter(st("ok", D1), () => null) === null);
+ok("chat's rule marks otherCount (the badge's counter) once names are traded, not the message list", seenCountAfter(st("ok", D1), chatSeenRule) === D1.otherCount && D1.otherCount !== D1.messages.filter((m) => !m.mine).length);
+ok("chat's rule skips before names", seenCountAfter(st("ok", { ...D1, revealed: false } as ThreadDetail), chatSeenRule) === null);
 ok("no rule marks nothing", seenCountAfter(st("ok", D1), false) === null && seenCountAfter(st("ok", D1), undefined) === null);
 
 /* ── optimistic lines ── */
@@ -229,11 +255,17 @@ ok("an unknown demo id → null (useThreadDetail reads missing)", demoDetail("de
 ok("demo folds: parents exist in the same room", Object.values(DEMO_FOLDS).every((fs) => fs.every((f) => !f.parentId || fs.some((p) => p.id === f.parentId))));
 ok("demo folds: theirs unanswered is sealed, mine always readable", demoFolds("demo-juno").some((f) => !f.mine && f.body === null) && demoFolds("demo-juno").every((f) => !f.mine || f.body !== null));
 ok("demo folds: none for a room without them", demoFolds("demo-quiet").length === 0);
-ok("journal: all four kinds", ["text", "photo", "voice", "video"].every((k) => DEMO_JOURNAL.some((e) => e.type === k)));
-ok("journal: a photo and a voice page with no words", DEMO_JOURNAL.some((e) => e.type === "photo" && !e.body) && DEMO_JOURNAL.some((e) => e.type === "voice" && !e.body));
-ok("journal: one photo and many photos", DEMO_JOURNAL.some((e) => e.media?.length === 1) && DEMO_JOURNAL.some((e) => (e.media?.length ?? 0) > 4));
-ok("journal: pages across two months", new Set(DEMO_JOURNAL.map((e) => e.date.slice(0, 7))).size >= 2);
-ok("journal: ids are unique and all demo-", new Set(DEMO_JOURNAL.map((e) => e.id)).size === DEMO_JOURNAL.length && DEMO_JOURNAL.every((e) => e.id.startsWith("demo-")));
+const devJournal = demoJournal({ store: false });
+ok("journal: all four kinds", ["text", "photo", "voice", "video"].every((k) => devJournal.some((e) => e.type === k)));
+ok("journal: a photo and a voice page with no words", devJournal.some((e) => e.type === "photo" && !e.body) && devJournal.some((e) => e.type === "voice" && !e.body));
+ok("journal: one photo and many photos", devJournal.some((e) => e.media?.length === 1) && devJournal.some((e) => (e.media?.length ?? 0) > 4));
+ok("journal: pages across two months", new Set(devJournal.map((e) => e.date.slice(0, 7))).size >= 2);
+ok("journal: ids are unique and all demo-", new Set(devJournal.map((e) => e.id)).size === devJournal.length && devJournal.every((e) => e.id.startsWith("demo-")));
+/* the App Store Notes shots: store mode shows every DEMO_JOURNAL page and
+   translates exactly these six ids ((tabs)/journal.tsx STORE_BODY) */
+const STORE_JOURNAL_IDS = ["demo-j-photo", "demo-j-text1", "demo-j-voice", "demo-j-text2", "demo-j-long", "demo-j-video"];
+ok("store mode keeps the original six journal pages", demoJournal({ store: true }) === DEMO_JOURNAL && DEMO_JOURNAL.length === 6 && DEMO_JOURNAL.every((e, i) => e.id === STORE_JOURNAL_IDS[i]));
+ok("dev mode adds every state page", devJournal.length === DEMO_JOURNAL.length + DEMO_STATE_JOURNAL.length && DEMO_STATE_JOURNAL.every((e) => !STORE_JOURNAL_IDS.includes(e.id)));
 const seeded = demoDetail(seedDemoThread(DEMO_POOL[1], "my reply"))!;
 ok("a seeded reply: counts match, the opening keeps its own date and voice", seeded.myCount === 1 && seeded.otherCount === 0 && seeded.openingAt === DEMO_POOL[1].created_at && seeded.openingMedia === DEMO_POOL[1].media_path);
 

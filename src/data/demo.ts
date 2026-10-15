@@ -825,10 +825,13 @@ export function demoDetail(id: string): ThreadDetail | null {
 export const demoFolds = (id: string): Fold[] => DEMO_FOLDS[id] ?? [];
 
 /* sample journal pages — shows every card form (dev only, listed after the
-   real entries; read-only, can't be deleted or drifted): text (short,
-   long, CJK, sent out), photo (one, many, no caption), voice (with and
-   without a caption) and video, across mood groups and across a month
-   boundary for the calendar. */
+   real entries; read-only, can't be deleted or drifted).
+   THE STORE-MODE SET, kept exactly as it was: store mode shows every entry
+   here, and its words come translated from dev-store's DEMO_TEXT by id
+   ((tabs)/journal.tsx STORE_BODY) — a page added here would put an English
+   (or a wordless) card and an extra calendar month into the App Store
+   Notes shots in every language. The state pages live in
+   DEMO_STATE_JOURNAL; a screen lists them through demoJournal(). */
 export const DEMO_JOURNAL: JournalEntry[] = [
   {
     id: "demo-j-photo",
@@ -889,6 +892,15 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     mediaUri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     dur: 15,
   },
+];
+
+/* the journal's state pages (dev only, never in store mode): the card
+   forms the store set lacks — a photo page with one photo, a photo page
+   and a voice page with no words, a one-word page — across more mood
+   groups, and pages weeks back (one over a month back, so the calendar
+   crosses a month boundary). Same rules as DEMO_JOURNAL (read-only,
+   can't be deleted or drifted). */
+export const DEMO_STATE_JOURNAL: JournalEntry[] = [
   {
     id: "demo-j-photo-one",
     date: iso(6 * DAY + 3 * H),
@@ -940,6 +952,12 @@ export const DEMO_JOURNAL: JournalEntry[] = [
     mood: "heartbroken",
   },
 ];
+
+/** the dev journal pages: the store-mode set alone in store mode, otherwise
+    it plus every state page (the same split as demoThreads). A lookup by id
+    (the page, a day) passes `store: false` so every demo page opens. */
+export const demoJournal = (opts: { store: boolean }): JournalEntry[] =>
+  opts.store ? DEMO_JOURNAL : [...DEMO_JOURNAL, ...DEMO_STATE_JOURNAL];
 
 export const DEMO_POOL: PoolLetter[] = [
   {

@@ -357,21 +357,30 @@ async function readUsage(mine: MyWriting, journal: Awaited<ReturnType<typeof loa
   }
 }
 
+/* the words the aura page counts and quotes (texts, pieceText), from pieces */
+function wordsOf(pieces: readonly Piece[]): Pick<Aura, "texts" | "pieceText"> {
+  const texts = pieces.map((p) => p.text);
+  const pieceText: Aura["pieceText"] = {};
+  for (const p of pieces) pieceText[p.id] = { text: p.text, source: p.source, createdAt: p.createdAt };
+  return { texts, pieceText };
+}
+
 /**
  * The aura, read from everything you wrote. When your letters can't be
  * read from the server (fetchMyWriting null) nothing kept is overwritten:
- * the last kept read comes back marked `stale`; with none kept, a read of
- * this phone's words alone comes back `stale` and is not saved (not the
- * card, not the stamp facts, not the sticker seats, not the history).
+ * the last kept read comes back marked `stale`, carrying the words this
+ * phone holds itself (the hatch line, and the journal pages when the aura
+ * scope lets it read them). The kept card is saved without its words, so
+ * without these the aura page would count no words and quote nothing.
+ * With none kept, a read of this phone's words alone comes back `stale`.
+ * Neither is saved (not the card, not the stamp facts, not the sticker
+ * seats, not the history).
  */
 export async function myAura(firstLine?: string | null): Promise<Aura> {
   const fetched = await fetchMyWriting();
-  if (!fetched) {
-    const kept = await readAuraCache();
-    if (kept) return { ...kept, stale: true };
-  }
   const persist = !!fetched;
   const mine: MyWriting = fetched ?? NOTHING_WRITTEN;
+  /* the phone's own pieces first: an offline read hands them back with the kept card */
   const pieces: Piece[] = [];
   if (firstLine && firstLine.trim().length >= 3) pieces.push(toPiece("hatch-line", "hatch", firstLine.trim(), "", null));
   let sealedCount = 0;
@@ -388,6 +397,10 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   } catch {
     /* the sealed room stays sealed — the aura just reads less */
   }
+  if (!fetched) {
+    const kept = await readAuraCache();
+    if (kept) return { ...kept, ...wordsOf(pieces), stale: true };
+  }
   for (const r of mine.letters) pieces.push(toPiece(r.id, "letter", r.body, r.created_at, r.lang));
   for (const r of mine.messages) pieces.push(toPiece(r.id, "reply", r.body, r.created_at, null));
 
@@ -400,9 +413,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     return empty;
   }
 
-  const texts = pieces.map((p) => p.text);
-  const pieceText: Aura["pieceText"] = {};
-  for (const p of pieces) pieceText[p.id] = { text: p.text, source: p.source, createdAt: p.createdAt };
+  const { texts, pieceText } = wordsOf(pieces);
 
   /* SAME WORDS, SAME READ (stall probe, 2026-09-20). The hatch and the
      sticker pass over every piece are the heaviest thing the Me tab does,
