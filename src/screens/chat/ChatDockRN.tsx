@@ -33,7 +33,10 @@ import { MONO, PF } from "../../theme/post";
    then the composer row (the screens draw it: the round tools beside the
    10a reply strip), or in its place the gone line or the expired card.
    1-6 scroll inside at most 40% of the screen (KChatCappedHeight), so at
-   the largest type the composer can't be pushed under the keyboard. */
+   the largest type the composer can't be pushed under the keyboard.
+   VoiceOver's escape (two-finger Z) closes only what is open, as in KDock:
+   the reply quote from inside it, the mode box from its field or ×, the
+   tray from the + (RoundTool onEscape) or a card; otherwise it goes back. */
 
 /** a × in mute with a 44pt target that doesn't push its row taller */
 export function DockClose({ label, onPress }: { label: string; onPress: () => void }) {
@@ -53,12 +56,15 @@ export function DockClose({ label, onPress }: { label: string; onPress: () => vo
   );
 }
 
-/** a 40 round tool beside the strip (KRoundTool): 1.5 ln outline, no fill */
-export function RoundTool({ label, onPress, children }: { label: string; onPress: () => void; children: ReactNode }) {
+/** a 40 round tool beside the strip (KRoundTool): 1.5 ln outline, no fill. `onEscape` is
+    VoiceOver's escape while the tool has something open to close (the + and its tray); without
+    it, escape goes on up to the stack's back (KChatEscape). */
+export function RoundTool({ label, onPress, onEscape, children }: { label: string; onPress: () => void; onEscape?: () => void; children: ReactNode }) {
   const { t: tk } = useTheme();
   return (
     <Pressable
       onPress={onPress}
+      onAccessibilityEscape={onEscape}
       hitSlop={4}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -131,7 +137,8 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt }: DockAbo
       )}
 
       {!!dock.replyLabel && !dock.mode && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, marginBottom: 8 }}>
+        // VoiceOver's escape from the quote or its × lets go of the reply (KDock), not the room
+        <View onAccessibilityEscape={() => onDock("replyClose")} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, marginBottom: 8 }}>
           <View style={{ width: 2, alignSelf: "stretch", backgroundColor: tk.ind }} />
           <View accessible style={{ flex: 1, gap: 2 }}>
             <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>
@@ -146,7 +153,11 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt }: DockAbo
       )}
 
       {!!dock.mode && (
-        <View style={{ marginBottom: 8, padding: 12, borderRadius: 16, backgroundColor: tk.lav2, borderWidth: 1.5, borderColor: tk.ind, gap: 7 }}>
+        // from the prompt field or the ×: escape closes the mode (KDock)
+        <View
+          onAccessibilityEscape={() => onDock("modeClose")}
+          style={{ marginBottom: 8, padding: 12, borderRadius: 16, backgroundColor: tk.lav2, borderWidth: 1.5, borderColor: tk.ind, gap: 7 }}
+        >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>{dock.mode.title}</Text>
             <DockClose label={dock.mode.closeLabel} onPress={() => onDock("modeClose")} />

@@ -1,6 +1,7 @@
-import type { ThreadDetail } from "../../lib/db";
+import type { ThreadDetail, ThreadMessage } from "../../lib/db";
 import type { TFn } from "../../lib/format";
-import { TAKEN_BACK } from "../../lib/thread-detail-core";
+import { TAKEN_BACK, type ThreadDetailStatus } from "../../lib/thread-detail-core";
+import { isOpening } from "./build-items";
 
 /* A KINDRED'S PAGE, ITS RULES (10a step 5, slice chat-rn).
    ────────────────────────────────────────────────────────────────────────
@@ -18,7 +19,10 @@ import { TAKEN_BACK } from "../../lib/thread-detail-core";
      bug 12) — and otherwise replaces this page with it;
    · a kindred is a round face, a pen pal a square mosaic, a deleted
      account the veil (owner 10-15; critic: a faceless kindred was drawn
-     as a pen-pal mosaic here while their Kindreds row is round). */
+     as a pen-pal mosaic here while their Kindreds row is round);
+   · TALK TO is gone too when the server calls the thread missing, and
+     "where it began" shows the opening or nothing — never the first reply
+     in its place. */
 
 /** Each side's writing: the bodies they wrote, the opening on its side, nothing taken back. */
 export function writingOf(d: ThreadDetail): { mine: string[]; theirs: string[] } {
@@ -64,6 +68,16 @@ export function whoBegan(d: Pick<ThreadDetail, "openingFromMe">, name: string, t
   return d.openingFromMe ? t("kd.youFirst") : t("kd.theyFirst", { name: name.toLocaleUpperCase(locale) });
 }
 
-/** TALK TO is a door only while someone is behind it: none for a deleted account (readable, not
-    actionable — owner). */
-export const canTalk = (d: Pick<ThreadDetail, "gone" | "other">): boolean => !d.gone && !!d.other;
+/** TALK TO is a door only while someone is behind it: none for a deleted account, and none for a
+    thread the server calls missing (gone, or hidden by a block) even while a kept copy is shown —
+    readable, not actionable (owner; the room, the chat and the reader close in place the same). */
+export const canTalk = (d: Pick<ThreadDetail, "gone" | "other">, status?: ThreadDetailStatus): boolean => !d.gone && !!d.other && status !== "missing";
+
+/** The letter that started it: the conversation's first letter only when it IS the opening. An
+    opening with no words and no voice media (a caption-less voice letter whose media wasn't
+    copied) is dropped from the conversation, and the first reply must not stand in for it under
+    YOU / THEY WROTE FIRST — then there is no card (review: parity-3). */
+export function openingLetter(letters: readonly ThreadMessage[]): ThreadMessage | null {
+  const first = letters[0];
+  return first && isOpening(first) ? first : null;
+}

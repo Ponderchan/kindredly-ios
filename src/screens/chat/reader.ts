@@ -155,3 +155,11 @@ export function replyPlaceholder(d: ThreadDetail | null, t: TFn): string {
   if (d?.revealed && !d.gone) return t("th.sayTo", { name: d.otherName || t("cm.kindred") });
   return t("th.writeBackThem");
 }
+
+/** Where Dynamic Type's accessibility sizes begin, as React Native's fontScale reads them (AX1 is
+    about 1.6 on iOS; xxxLarge 1.35 is the last size the one-line rows still hold). */
+export const AX_FONT_SCALE = 1.35;
+
+/** At accessibility sizes the head row's postmark and state wrap instead of truncating, and the
+    kindred page's facts stack label over value (review: design-7). */
+export const largeType = (fontScale: number): boolean => fontScale > AX_FONT_SCALE;

@@ -1,4 +1,4 @@
-import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { KChatFoldHalf, KChatItem, KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
 import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
@@ -8,6 +8,7 @@ import { MediaImage } from "../../lib/media";
 import { useLetterFamily, useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { VoiceOpeningCard, type OpeningVoiceRN } from "./VoiceOpeningRN";
+import type { A11yNode } from "./useChatListRN";
 
 /* THE CONVERSATION'S ROWS, IN REACT NATIVE (10a step 5, slice chat-rn).
    ────────────────────────────────────────────────────────────────────────
@@ -37,7 +38,11 @@ import { VoiceOpeningCard, type OpeningVoiceRN } from "./VoiceOpeningRN";
    KMenuAction lists and every item runs the model's onItemAction. Each row
    is one VoiceOver element named by its a11yLabel (whose, the words, the
    day) with the menu's items as its actions; a reply's quote jump is a
-   named action too (mm.goToQuote), as it is in SwiftUI. */
+   named action too (mm.goToQuote), as it is in SwiftUI, and each row hands
+   its element to env.a11yRef so the jump can move VoiceOver's focus to the
+   line it lands on. A voice opening with no caption still has an element
+   naming whose it is and which day (SwiftUI's labelled group), with the
+   letter's menu and, in letters, the tap that opens the reader. */
 
 export type RowEnv = {
   /** the list's width less its gutters */
@@ -50,6 +55,8 @@ export type RowEnv = {
   /** a moment's picture: its storage path, or a plain address (a demo, a send on its way) */
   photoOf: (key: string) => { path: string | null; uri: string | null };
   voice: OpeningVoiceRN;
+  /** each row's VoiceOver element, by key (useChatListRN), for the quote jump's focus */
+  a11yRef: (key: string) => (node: A11yNode | null) => void;
 };
 
 /** build-items' menu as MessageMenu actions, each running the model's action for its row */
@@ -103,7 +110,7 @@ export function RoomRowRN({ item, first, lit, env, onLayout }: { item: KChatItem
         ) : item.kind === "fold" ? (
           <FoldCard item={item} env={env} />
         ) : item.kind === "recalled" ? (
-          <RecallNote item={item} />
+          <RecallNote item={item} env={env} />
         ) : item.kind === "voice" ? (
           <RoomVoice item={item} env={env} />
         ) : null}
@@ -121,7 +128,7 @@ function Bubble({ item, env }: { item: KChatItem; env: RowEnv }) {
   const quoteJump: MessageAction[] = q && q.target ? [{ key: "goToQuote", label: env.strings.goToQuote, icon: "arrow.up", onPress: () => env.onItemPress(item.key, "quote") }] : [];
   return (
     <View style={{ alignItems: mine ? "flex-end" : "flex-start", paddingBottom: 2 }}>
-      <MessageMenu actions={acts} radius={18} accessibilityLabel={item.a11yLabel} a11yExtra={quoteJump}>
+      <MessageMenu actions={acts} radius={18} accessibilityLabel={item.a11yLabel} a11yExtra={quoteJump} a11yRef={env.a11yRef(item.key)}>
         <View
           style={{
             maxWidth: max,
@@ -172,6 +179,7 @@ function PhotoTile({ item, env }: { item: KChatItem; env: RowEnv }) {
   return (
     <View style={{ alignItems: item.mine ? "flex-end" : "flex-start", paddingBottom: 6 }}>
       <Pressable
+        ref={env.a11yRef(item.key)}
         onPress={() => env.onItemPress(item.key, "photo")}
         /* a long-press is the photo's menu, so lifting the finger must not also open it — unless it
            has no menu (still sending), when a slow tap should still open it */
@@ -204,6 +212,7 @@ function SongCard({ item, env }: { item: KChatItem; env: RowEnv }) {
   return (
     <View style={{ alignItems: item.mine ? "flex-end" : "flex-start", paddingBottom: 6 }}>
       <Pressable
+        ref={env.a11yRef(item.key)}
         onPress={() => env.onItemPress(item.key, "song")}
         onLongPress={NOOP} // the song menu always has the shelf
         delayLongPress={350}
@@ -263,7 +272,7 @@ function FoldCard({ item, env }: { item: KChatItem; env: RowEnv }) {
       style={{ marginRight: open ? 3 : 0, marginBottom: open ? 9 : 6 }}
       faceStyle={{ padding: 14 }}
     >
-      <Text accessibilityRole="header" style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
+      <Text ref={env.a11yRef(item.key)} accessibilityRole="header" style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
         {fold.kindLabel}
       </Text>
       {!!fold.prompt && <Text style={{ fontSize: 16, lineHeight: 24, color: tk.ink, marginTop: 6 }}>{fold.prompt}</Text>}
@@ -298,7 +307,7 @@ function FoldHalf({ half, env }: { half: KChatFoldHalf; env: RowEnv }) {
   const w = env.width - 3 - 2 * (14 + 2) + 16;
   return (
     <View style={{ marginHorizontal: -8 }}>
-      <MessageMenu actions={acts} radius={12} accessibilityLabel={`${half.speaker}, ${half.body}`}>
+      <MessageMenu actions={acts} radius={12} accessibilityLabel={`${half.speaker}, ${half.body}`} a11yRef={env.a11yRef(half.key)}>
         {/* 8 of the card's own padding go into the half, so the lifted copy has a margin and the words don't move */}
         <View style={{ width: w, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 4, backgroundColor: tk.sf, borderRadius: 12, gap: 3 }}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1, color: half.mine ? tk.mute : tk.ind }}>{half.speaker}</Text>
@@ -312,10 +321,11 @@ function FoldHalf({ half, env }: { half: KChatFoldHalf; env: RowEnv }) {
   );
 }
 
-function RecallNote({ item }: { item: KChatItem }) {
+function RecallNote({ item, env }: { item: KChatItem; env: RowEnv }) {
   const { t: tk } = useTheme();
   return (
     <Text
+      ref={env.a11yRef(item.key)}
       accessibilityLabel={item.a11yLabel || item.body}
       style={{ alignSelf: item.mine ? "flex-end" : "flex-start", fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.4, color: tk.mute, paddingHorizontal: 6, paddingBottom: 4 }}
     >
@@ -332,9 +342,15 @@ function RoomVoice({ item, env }: { item: KChatItem; env: RowEnv }) {
   const acts = menuActions(item.menu, item.key, env.onItemAction);
   return (
     <View style={{ alignItems: item.mine ? "flex-end" : "flex-start", paddingBottom: 2, gap: 6 }}>
+      {!item.body && (
+        /* no caption: VoiceOver still hears whose it is and which day, with the letter's menu
+           (SwiftUI's labelled group); first in the row and behind the card, which stays its own
+           control on top */
+        <View ref={env.a11yRef(item.key)} accessible accessibilityLabel={item.a11yLabel} {...a11yActions(acts)} style={StyleSheet.absoluteFill} />
+      )}
       <VoiceOpeningCard voice={env.voice} style={{ width: max }} />
       {!!item.body && (
-        <MessageMenu actions={acts} radius={8} accessibilityLabel={item.a11yLabel}>
+        <MessageMenu actions={acts} radius={8} accessibilityLabel={item.a11yLabel} a11yRef={env.a11yRef(item.key)}>
           <Text style={{ maxWidth: max, fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, lineHeight: 18, color: tk.sub, paddingHorizontal: 6, paddingVertical: 2, textAlign: item.mine ? "right" : "left" }}>
             {item.body}
           </Text>
@@ -365,6 +381,10 @@ export function LetterRowRN({ item, lit, env, onLayout }: { item: KChatItem; lit
   const time = !!item.timeLabel && (
     <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute, alignSelf: "flex-end", marginTop: 6 }}>{item.timeLabel}</Text>
   );
+  /* the voice block's inside: the frame's width less its padding and outline. The caption is
+     hosted by MessageMenu (RNHostView matchContents sizes from its children, laid out unbounded),
+     so it needs this width to wrap and to put the time at the right */
+  const inner = max - 2 * frame.paddingHorizontal - 2 * frame.borderWidth;
 
   return (
     <View onLayout={onLayout} style={{ alignItems: item.mine ? "flex-end" : "flex-start", marginBottom: 10, opacity: lit ? 0.5 : 1 }}>
@@ -377,11 +397,32 @@ export function LetterRowRN({ item, lit, env, onLayout }: { item: KChatItem; lit
         /* the opening, spoken: the card is its own control; the caption is the letter — a tap opens
            the reader, a long press its menu */
         <View style={[frame, { width: max, gap: 6 }]}>
+          {!item.body && !item.timeLabel && (
+            /* no caption: the letter is still there for VoiceOver — whose and which day, its menu,
+               the tap that opens the reader (SwiftUI's labelled group) — and a tap on the frame
+               around the card opens it too; behind the card, which stays its own control */
+            <Pressable
+              ref={env.a11yRef(item.key)}
+              onPress={open}
+              accessibilityRole={item.tappable ? "button" : undefined}
+              accessibilityLabel={item.a11yLabel}
+              {...a11yActions(acts)}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <VoiceOpeningCard voice={env.voice} />
           {(!!item.body || !!item.timeLabel) && (
-            <Pressable onPress={open} onLongPress={NOOP} delayLongPress={350} accessibilityRole={item.tappable ? "button" : undefined} accessibilityLabel={item.a11yLabel} {...a11yActions(acts)}>
+            <Pressable
+              ref={env.a11yRef(item.key)}
+              onPress={open}
+              onLongPress={NOOP}
+              delayLongPress={350}
+              accessibilityRole={item.tappable ? "button" : undefined}
+              accessibilityLabel={item.a11yLabel}
+              {...a11yActions(acts)}
+            >
               <MessageMenu actions={acts} radius={8}>
-                <View>
+                <View style={{ width: inner }}>
                   {!!item.body && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, lineHeight: 18, color: tk.sub }}>{item.body}</Text>}
                   {time}
                 </View>
@@ -390,9 +431,10 @@ export function LetterRowRN({ item, lit, env, onLayout }: { item: KChatItem; lit
           )}
         </View>
       ) : item.kind === "recalled" ? (
-        <RecallNote item={item} />
+        <RecallNote item={item} env={env} />
       ) : (
         <Pressable
+          ref={env.a11yRef(item.key)}
           onPress={open}
           /* a long-press is the letter's menu, so lifting the finger must not also open it */
           onLongPress={NOOP}

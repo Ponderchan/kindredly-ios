@@ -43,8 +43,8 @@ import {
 } from "../../lib/wren-desk";
 import { DEMO_WREN_POSTS } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
-import { atBottomOf, follow, spendsOwn, type FollowFacts } from "../../screens/chat/follow";
-import { useKeyboardRN } from "../../screens/chat/useKeyboardRN";
+import { atBottomOf, follow, settlesAtEnd, spendsOwn, type FollowFacts } from "../../screens/chat/follow";
+import { useKeyboardRN, useKeyboardSettle, useKeyboardTray } from "../../screens/chat/useKeyboardRN";
 
 /* WREN'S DESK — the one room everybody has.
    ────────────────────────────────────────────────────────────────────────
@@ -74,7 +74,12 @@ import { useKeyboardRN } from "../../screens/chat/useKeyboardRN";
      chip are brought into view from anywhere (critic: they always were);
    · the keyboard, the tray and a growing field keep the newest line in
      sight when you are at the end (spec bug 9) — the list follows its own
-     height, not only its content;
+     height, not only its content, and once more after the keyboard or the
+     tray has finished moving (the avoiding view animates its padding, so
+     the first scroll lands on the old height);
+   · the tray and the keyboard swap in one commit, the tray rising with
+     the keyboard's timing (or fading under Reduce Motion) instead of the
+     field jumping a keyboard's height and back (useKeyboardTray);
    · a drag down the list takes the keyboard with it, and the field keeps
      its 14 above the keyboard instead of carrying the home indicator's
      inset up with it (the inset is the field's own padding only while the
@@ -120,10 +125,31 @@ export default function WrenDeskScreen() {
   /* FOLLOW THE END ONLY WHILE AT IT (spec bugs 9 and 10; screens/chat/follow). `atBottom` is
      what the reader was at the last scroll; `ownPending` is set by anything of theirs that
      should be seen wherever they were (their mail, her answer, a linked guide, a chip). */
-  const scroll = useRef({ atBottom: true, painted: false, ownPending: false, viewport: 0 });
+  const scroll = useRef({ atBottom: true, painted: false, ownPending: false, dragging: false, viewport: 0 });
   const wantEnd = () => {
     scroll.current.ownPending = true;
   };
+  /* once the keyboard or the tray has finished moving: the end again, if it was where the reader
+     was as the move began (KeyboardAvoidingView animates its padding, so onListLayout's scroll
+     lands on the frame's old height) — never under a finger */
+  const settle = () => {
+    const s = scroll.current;
+    if (!s.painted || s.dragging || !s.atBottom) return;
+    scrollRef.current?.scrollToEnd({ animated: true });
+  };
+  useKeyboardSettle(() => ({ painted: scroll.current.painted, atEnd: scroll.current.atBottom, dragging: scroll.current.dragging }), settle);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+  }, []);
+  const settleAfter = (ms: number) => {
+    const s = scroll.current;
+    if (!settlesAtEnd({ painted: s.painted, atEndBefore: s.atBottom, dragging: s.dragging })) return;
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(settle, ms + 30);
+  };
+  /* the ⊕'s tray in the keyboard's place: drawn only while the keyboard is down */
+  const trayKit = useKeyboardTray(keyboard, tray, setTray, settleAfter);
   const decide = (facts: FollowFacts) => {
     const d = follow(facts);
     if (spendsOwn(facts, d)) scroll.current.ownPending = false;
@@ -288,6 +314,10 @@ export default function WrenDeskScreen() {
     { id: "idea", title: t("wo.idea.t"), sub: "" },
   ];
   const onHand = (kind: string) => {
+    // a bug, an idea or a note hands the keyboard to the field: the tray stays until it is up; a
+    // picture opens the picker, the tray going down as it does
+    if (kind === "photo") trayKit.close();
+    else trayKit.handOff();
     setTray(false);
     if (kind === "photo") {
       void sendPhoto();
@@ -351,6 +381,12 @@ export default function WrenDeskScreen() {
           keyboardDismissMode="interactive"
           scrollEventThrottle={32}
           onScroll={onListScroll}
+          onScrollBeginDrag={() => {
+            scroll.current.dragging = true;
+          }}
+          onScrollEndDrag={() => {
+            scroll.current.dragging = false;
+          }}
           onContentSizeChange={onListContent}
           onLayout={onListLayout}
         >
@@ -452,13 +488,11 @@ export default function WrenDeskScreen() {
             </View>
           </View>
         )}
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: keyboard.up || tray ? 14 : 14 + insets.bottom }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: keyboard.up || trayKit.shown ? 14 : 14 + insets.bottom }}>
           {/* ⊕ on the left, the arrow inside the pill (owner, 2026-09-20) */}
           <Pressable
-            onPress={() => {
-              Keyboard.dismiss();
-              setTray((v) => !v);
-            }}
+            // with the keyboard up the tray rises as it goes down, in the same commit
+            onPress={() => trayKit.toggle(Keyboard.dismiss)}
             hitSlop={6}
             style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: T.ln, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
@@ -470,11 +504,16 @@ export default function WrenDeskScreen() {
             canSend={canSend}
             onSend={() => void send()}
             onChangeText={setText}
-            onFocus={() => setTray(false)}
+            // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
+            onFocus={trayKit.onFieldFocus}
             placeholder={mode === "bug" ? t("wo.bug.ph") : mode === "idea" ? t("wo.idea.ph") : t("wo.ph")}
           />
         </View>
-        {tray && <TraceTray actions={HANDS} onPick={onHand} height={traceTrayHeight(keyboard.lastHeight, insets.bottom)} bottomInset={insets.bottom} />}
+        {trayKit.shown && (
+          <View onAccessibilityEscape={trayKit.close}>
+            <TraceTray actions={HANDS} onPick={onHand} height={traceTrayHeight(keyboard.lastHeight, insets.bottom)} bottomInset={insets.bottom} />
+          </View>
+        )}
       </KeyboardAvoidingView>
       <PhotoLightbox photo={photoFull} onClose={() => setPhotoFull(null)} />
 

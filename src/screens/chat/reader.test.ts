@@ -125,5 +125,10 @@ ok("the hint says where a kindred's words go", R.replyHint("hi", true, t).text =
 ok("the title counts letters", R.readerTitle(1, t) === "th.inThreadOne(n=1)" && R.readerTitle(4, t) === "th.inThreadMany(n=4)");
 ok("a telegram is centred, a long letter is not", R.heroTier("hello").center && !R.heroTier("word ".repeat(200)).center);
 
+/* ── large type (design-7) ── */
+ok("the default size keeps one-line rows", !R.largeType(1));
+ok("xxxLarge still does", !R.largeType(1.35));
+ok("accessibility sizes wrap", R.largeType(1.6) && R.largeType(3.1));
+
 console.log(fails ? `\n${fails} FAILED` : "\nall ok");
 if (fails) process.exit(1);

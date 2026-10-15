@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
@@ -18,8 +18,8 @@ import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { StampTile } from "../../components/StampTile";
 import { InkPanel, SecondaryHeader } from "../../components/10a";
-import { isVoiceLetter, readerLetters } from "./reader";
-import { canTalk, faceKind, lettersValue, pageTitle, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
+import { isVoiceLetter, largeType, readerLetters } from "./reader";
+import { canTalk, faceKind, lettersValue, openingLetter, pageTitle, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
 import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
 
 /* A KINDRED'S PAGE — the room behind the name (10a step 5, slice chat-rn).
@@ -76,7 +76,8 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
      the relationship; held back until you know each other (before, a verdict on a stranger). */
   const res = useMemo(() => (detail?.revealed && writing ? resonance(writing.mine, writing.theirs) : null), [detail, writing]);
   const st = detail ? getStamp(detail.stamp) : null;
-  const opening = useMemo(() => readerLetters(detail)[0] ?? null, [detail]);
+  // the opening or no card: never the first reply standing in for an opening that was dropped
+  const opening = useMemo(() => openingLetter(readerLetters(detail)), [detail]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const locale = useMemo(() => localeTag(), [lang]);
 
@@ -112,6 +113,14 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
         <View style={{ paddingTop: 48, paddingHorizontal: 32, alignItems: "center", gap: 8 }}>
           <Text style={{ fontSize: 16, fontWeight: "600", color: tk.ink }}>{t("net.offline.title")}</Text>
           <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, textAlign: "center" }}>{t("net.offline.body")}</Text>
+        </View>
+      )}
+
+      {/* the server calls it gone (or hidden by a block) and nothing is kept here: say so, as the
+          reader does, instead of a header over a blank page */}
+      {!detail && status === "missing" && (
+        <View style={{ paddingTop: 48, paddingHorizontal: 32, alignItems: "center" }}>
+          <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, textAlign: "center" }}>{t("fail.closed.body")}</Text>
         </View>
       )}
 
@@ -239,7 +248,8 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
             </InkPanel>
           )}
 
-          {canTalk(detail) && (
+          {/* readable, not actionable: no door into a thread the server calls missing */}
+          {canTalk(detail, status) && (
             <Pressable
               onPress={onTalk}
               accessibilityRole="button"
@@ -260,16 +270,29 @@ function SoftGroup({ children }: { children: ReactNode }) {
   return <View style={{ borderRadius: 16, backgroundColor: tk.soft, padding: 16 }}>{children}</View>;
 }
 
-/** a fact as a grouped row (H:101): the label in the system face, the value quiet on the right */
+/** a fact as a grouped row (H:101): the label in the system face, the value quiet on the right;
+    the value wraps rather than losing its numbers, and at accessibility sizes it stacks under the
+    label (the system's grouped rows do the same) */
 function FactRow({ label, value, last = false }: { label: string; value: ReactNode; last?: boolean }) {
   const { t: tk } = useTheme();
+  const stack = largeType(useWindowDimensions().fontScale);
   return (
-    <View accessible style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 48, paddingVertical: 10, borderBottomWidth: last ? 0 : 1, borderBottomColor: tk.line }}>
+    <View
+      accessible
+      style={{
+        flexDirection: stack ? "column" : "row",
+        alignItems: stack ? "flex-start" : "center",
+        justifyContent: "space-between",
+        gap: stack ? 4 : 12,
+        minHeight: 48,
+        paddingVertical: 10,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: tk.line,
+      }}
+    >
       <Text style={{ fontSize: 15, color: tk.ink }}>{label}</Text>
       {typeof value === "string" ? (
-        <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub, textAlign: "right" }}>
-          {value}
-        </Text>
+        <Text style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub, textAlign: stack ? "left" : "right" }}>{value}</Text>
       ) : (
         value
       )}

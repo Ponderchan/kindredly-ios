@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn } from "react-native-reanimated";
 import { useRouter } from "expo-router";
@@ -34,6 +34,7 @@ import {
   heroIndex,
   heroTier,
   isUnsigned,
+  largeType,
   isVoiceLetter,
   letterLinkKey,
   offersTranslate,
@@ -103,6 +104,9 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   const letterFace = useLetterFamily();
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardRN();
+  // at accessibility sizes the head row's words wrap instead of truncating beside the fixed face,
+  // stamp and ··· (a name or OCT.14 · NO.7273 cut to a few characters)
+  const big = largeType(useWindowDimensions().fontScale);
   const isDemo = __DEV__ && !!id?.startsWith("demo-");
 
   // the room marks seen when you enter it; a pen pal's letters are marked once names are traded
@@ -251,13 +255,13 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <View style={{ minWidth: 28, alignItems: "center" }}>{face}</View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text numberOfLines={1} style={[mono(MONO.title, 0.08), { color: tk.sub }]}>
+                    <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { color: tk.sub }]}>
                       {/* the number is what you call someone WITHOUT a name; once they have one it
                           replaces the number — printing both says the reveal only half happened */}
                       {postmarkLine(hero, detail, fmt)}
                     </Text>
                     {!!state && (
-                      <Text numberOfLines={1} style={[mono(MONO.label, 0.1), { color: tone }]}>
+                      <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.label, 0.1), { color: tone }]}>
                         {state.label}
                       </Text>
                     )}
@@ -276,7 +280,10 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                       accessibilityLabel={t("rp.menu.a11y")}
                       style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: tk.ln, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: "700", letterSpacing: 1, color: tk.ink }}>···</Text>
+                      {/* an icon, not words: it keeps its size inside the fixed 34pt ring */}
+                      <Text allowFontScaling={false} style={{ fontSize: 11, fontWeight: "700", letterSpacing: 1, color: tk.ink }}>
+                        ···
+                      </Text>
                     </Pressable>
                   )}
                 </View>

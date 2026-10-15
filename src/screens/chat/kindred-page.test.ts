@@ -77,6 +77,16 @@ ok("a kindred is round, face or not", K.faceKind(base) === "round" && K.faceKind
 ok("a pen pal is a mosaic", K.faceKind({ ...base, revealed: false }) === "mosaic");
 ok("a deleted account is the veil", K.faceKind(demoDetail("demo-gone-kindred") as Detail) === "veil");
 ok("no TALK TO to a deleted account", !K.canTalk(demoDetail("demo-gone-kindred") as Detail) && K.canTalk(base));
+ok("no TALK TO into a thread the server calls missing, kept copy or not", !K.canTalk(base, "missing") && K.canTalk(base, "ok") && K.canTalk(base, "offline"));
+
+/* ── where it began (parity-3) ── */
+{
+  const opening = { body: "the opening", mine: false, date: "" };
+  const reply = { id: "1", body: "a reply", mine: false, date: "2026-10-01T10:00:00Z" };
+  ok("the opening is where it began", K.openingLetter([opening, reply]) === opening);
+  ok("a dropped opening leaves no card, not the first reply", K.openingLetter([reply]) === null);
+  ok("no letters, no card", K.openingLetter([]) === null);
+}
 
 /* ── words ── */
 ok("title: A KINDRED / A VOICE YOU KNOW", K.pageTitle(base, t) === "kd.kindred" && K.pageTitle({ revealed: false }, t) === "kd.voiceKnown");

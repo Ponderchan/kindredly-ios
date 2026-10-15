@@ -17,14 +17,14 @@ import { PlusGlyph } from "../../components/ComposeTray";
 import { WrenBird } from "../../components/WrenBird";
 import { ReplyStrip, type ReplyStripHandle } from "../../components/10a";
 import "../../data/strings-step5-platform"; // vo.play, vo.pause
-import { buildRoomDock, buildRoomItems, roomComposer, windowItems } from "./build-items";
+import { buildRoomDock, buildRoomItems, windowItems } from "./build-items";
 import { useRoomModel, type ChatUi } from "./useRoomModel";
 import { RoomIntroduction } from "./RoomIntroduction";
 import { ChatHeader } from "./ChatHeader";
 import { RoomRowRN, type RowEnv } from "./ChatRowsRN";
 import { DockAbove, ExpiredCard, GoneLine, RoundTool } from "./ChatDockRN";
 import { useChatListRN } from "./useChatListRN";
-import { useKeyboardRN } from "./useKeyboardRN";
+import { useKeyboardRN, useKeyboardTray } from "./useKeyboardRN";
 import { useOpeningVoiceRN } from "./VoiceOpeningRN";
 
 /* THE ROOM IN REACT NATIVE — the fallback behind the remote switch (10a
@@ -52,7 +52,9 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
      Return-to-send, between the Wren tool and the +;
    · the 10a look on the theme (ChatRowsRN, ChatDockRN, the shared React
      Native ChatHeader with its 36pt back chevron and round kindred face),
-     the trace tray in the keyboard's place (LeaveATrace's 10a cards).
+     the trace tray in the keyboard's place (LeaveATrace's 10a cards; the
+     two swap in one commit and the tray rises with the keyboard's timing
+     or fades under Reduce Motion — useKeyboardTray).
 
    Room-specific rules that live in the model and are only drawn here: no
    bubbles' speaker labels and no minute times (the sides say who; the day
@@ -194,30 +196,39 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
     onItemAction: m.onItemAction,
     photoOf,
     voice: opening,
+    a11yRef: list.a11yRef,
   };
 
-  /** the strip's send: exactly the words it held; a plain line empties the field at once (the
-      model puts them back if it refuses), a fold, a song or a bare song link only once it went */
-  const onStripSend = (value: string): boolean | void => {
-    const facts = roomComposer({ t, text: value, prompt: m.mode?.kind === "question" ? m.mode.prompt : "", mode: m.mode, sending: m.sending, slow: false });
-    const clears = facts.clearOnSend && facts.canSend;
-    void m.onSend(value, undefined, clears);
-    return clears ? undefined : false;
+  /** the strip's send: exactly the words it held. The React Native strip never empties itself
+      (it returns false): the model empties the field synchronously when it takes a plain line —
+      before its first await — and only once a fold, a song or a bare song link went, and leaves
+      the words alone when it refuses. A self-clear would run after a synchronous refusal had put
+      them back, and wipe them (Swift's field clears first and gets them back after; the strip's
+      order is the other way round). */
+  const onStripSend = (value: string): boolean => {
+    void m.onSend(value, undefined, false);
+    return false;
   };
 
-  const togglePlus = () => {
-    if (m.tracing) {
-      m.setTracing(false);
-      return;
-    }
-    // choosing something to leave is not something you do mid-sentence: the tray takes the keyboard's place
-    strip.current?.blur();
-    promptRef.current?.blur();
-    m.setTracing(true);
+  /* the trace tray in the keyboard's place: drawn only while the keyboard is down, so the two swap
+     in one commit (useKeyboardTray); the list is followed again once the tray's motion settled */
+  const tray = useKeyboardTray(keyboard, m.tracing, m.setTracing, list.settleAfter);
+  // choosing something to leave is not something you do mid-sentence: the tray takes the keyboard's place
+  const togglePlus = () =>
+    tray.toggle(() => {
+      strip.current?.blur();
+      promptRef.current?.blur();
+    });
+  /** a card: a note, a question or a song hand the keyboard to the field (the tray stays until it
+      is up); the moment opens the picker, the tray going down as it does */
+  const onPick = (k: TraceKind) => {
+    if (k === "moment") tray.close();
+    else tray.handOff();
+    m.onTrace(k);
   };
 
   const subtitle = detail?.revealedAt ? t("rm.kindredSince", { date: dLong(detail.revealedAt).toUpperCase() }) : archNameThird(m.read?.archetype?.id);
-  const trayOpen = m.tracing && open && dock.traces.length > 0;
+  const trayOpen = tray.shown && open && dock.traces.length > 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
@@ -252,7 +263,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
             status={m.composer.status}
             statusAlarm={m.composer.statusAlarm}
             onDock={m.onDock}
-            prompt={{ seed: promptSeed, ref: promptRef, onChange: m.onPromptText, onFocus: () => m.setTracing(false) }}
+            prompt={{ seed: promptSeed, ref: promptRef, onChange: m.onPromptText, onFocus: tray.onFieldFocus }}
           />
           {dock.terminal === "gone" ? (
             <GoneLine text={dock.goneText} />
@@ -270,7 +281,8 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
               onSend={onStripSend}
               onChangeText={m.setText}
               initialText={m.text}
-              onFocus={() => m.setTracing(false)}
+              // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
+              onFocus={tray.onFieldFocus}
               sendLabel={dock.sendLabel}
               inputProps={{ autoCapitalize: dock.autocapitalize ? "sentences" : "none" }}
               leading={
@@ -279,7 +291,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
                 </RoundTool>
               }
               trailing={
-                <RoundTool label={m.tracing ? dock.plusCloseLabel : dock.plusLabel} onPress={togglePlus}>
+                <RoundTool label={m.tracing ? dock.plusCloseLabel : dock.plusLabel} onPress={togglePlus} onEscape={trayOpen ? tray.close : undefined}>
                   <PlusGlyph size={24} open={m.tracing} color={m.tracing ? tk.ind : tk.ink} />
                 </RoundTool>
               }
@@ -288,12 +300,15 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
           )}
         </View>
         {trayOpen && (
-          <TraceTray
-            actions={dock.traces.map((tr) => ({ id: tr.key as TraceKind, title: tr.title, sub: tr.subtitle }))}
-            onPick={(k) => m.onTrace(k)}
-            height={traceTrayHeight(keyboard.lastHeight, insets.bottom)}
-            bottomInset={insets.bottom}
-          />
+          // VoiceOver's escape from a card closes the tray (KTraceTray)
+          <View onAccessibilityEscape={tray.close}>
+            <TraceTray
+              actions={dock.traces.map((tr) => ({ id: tr.key as TraceKind, title: tr.title, sub: tr.subtitle }))}
+              onPick={onPick}
+              height={traceTrayHeight(keyboard.lastHeight, insets.bottom)}
+              bottomInset={insets.bottom}
+            />
+          </View>
         )}
       </KeyboardAvoidingView>
 

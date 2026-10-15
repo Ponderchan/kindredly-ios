@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollView } from "react-native";
+import { AccessibilityInfo, type HostInstance, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView, type Text, type View } from "react-native";
 import type { KChatItem } from "../../../modules/kindredly-ui/src/Conversation";
 import type { RenderWindow } from "../../lib/render-window";
 import { indexOfKey } from "./build-items";
-import { atBottomOf, follow, spendsOwn, type Follow, type FollowFacts } from "./follow";
+import { atBottomOf, follow, jumpsNow, settlesAtEnd, spendsOwn, staleKeys, type Follow, type FollowFacts } from "./follow";
+import { useKeyboardSettle } from "./useKeyboardRN";
 
 /* THE REACT NATIVE CONVERSATION'S LIST (10a step 5, slice chat-rn): the
    room and chat fallbacks' ScrollView, behaving as the SwiftUI list does.
@@ -21,11 +22,23 @@ import { atBottomOf, follow, spendsOwn, type Follow, type FollowFacts } from "./
      bug 9), and none of them move someone reading further up. The first
      content opens at the newest line. An own send, a reply begun or a fold
      sent go to the end from anywhere (the window back at the newest first).
+   · The keyboard (KeyboardAvoidingView animates its padding with
+     LayoutAnimation, so the scrollToEnd onLayout runs lands on the frame's
+     old height) and the tray (which rises the same way) are followed again
+     once they have settled, when the reader was at the end as they began
+     and no finger is on the list (settlesAtEnd).
    · A tapped quote widens the window to the line it quotes if it has to,
      scrolls to it once it is laid out and lights it for a moment
-     (room/[id].tsx's 90pt above, opacity 0.5 for 1.4s).
+     (room/[id].tsx's 90pt above, opacity 0.5 for 1.4s), and VoiceOver's
+     focus lands on the line it reached (KChatBubble's voFocus in SwiftUI).
+     A row's position is used only while the row is mounted: one that left
+     the window is forgotten, so a jump never lands on a stale y.
 
-   Give the ScrollView `listProps` and each row `rowLayout(key)`. */
+   Give the ScrollView `listProps`, each row `rowLayout(key)`, and each
+   row's VoiceOver element `a11yRef(key)` (a fold half under its own key). */
+
+/** a row's VoiceOver element: a Pressable, the View MessageMenu wraps, a Text */
+export type A11yNode = View | Text;
 
 /** how far down from the top the window grows (KConversation's reach) */
 const REACH_TOP = 600;
@@ -33,12 +46,24 @@ const REACH_TOP = 600;
 const JUMP_ABOVE = 90;
 /** and stays lit this long */
 const LIT_MS = 1400;
+/** VoiceOver's focus moves once the jump's scroll has landed */
+const FOCUS_AFTER_MS = 350;
 
 export function useChatListRN(items: readonly KChatItem[], built: readonly KChatItem[], win: RenderWindow) {
   const scrollRef = useRef<ScrollView>(null);
-  const st = useRef({ atBottom: true, painted: false, ownPending: false, firstKey: undefined as string | undefined, lastKey: undefined as string | undefined, viewport: 0 });
+  const st = useRef({
+    atBottom: true,
+    painted: false,
+    ownPending: false,
+    dragging: false,
+    firstKey: undefined as string | undefined,
+    lastKey: undefined as string | undefined,
+    viewport: 0,
+  });
   const rowY = useRef(new Map<string, number>());
   const pendingJump = useRef<string | null>(null);
+  /** where VoiceOver should land after the jump: the quoted line itself (a fold half), else its row */
+  const pendingFocus = useRef<string | null>(null);
   const [lit, setLit] = useState<string | null>(null);
 
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -56,6 +81,37 @@ export function useChatListRN(items: readonly KChatItem[], built: readonly KChat
     }, Math.max(0, ms));
     timers.current.add(id);
   }, []);
+
+  /* each row's VoiceOver element, by key — one stable callback per key, so a re-render doesn't
+     detach and re-attach every ref */
+  const nodes = useRef(new Map<string, A11yNode>());
+  const refFns = useRef(new Map<string, (node: A11yNode | null) => void>());
+  const a11yRef = useCallback((key: string) => {
+    let fn = refFns.current.get(key);
+    if (!fn) {
+      fn = (node: A11yNode | null) => {
+        if (node) nodes.current.set(key, node);
+        else nodes.current.delete(key);
+      };
+      refFns.current.set(key, fn);
+    }
+    return fn;
+  }, []);
+
+  /* rows that left the window are forgotten: their y belongs to an older, longer list, and a jump
+     to one of them must wait for its fresh layout */
+  useEffect(() => {
+    const mounted = new Set<string>();
+    for (const it of items) {
+      mounted.add(it.key);
+      for (const h of it.fold?.halves ?? []) mounted.add(h.key);
+    }
+    for (const k of staleKeys(rowY.current.keys(), mounted)) rowY.current.delete(k);
+    for (const k of staleKeys(refFns.current.keys(), mounted)) {
+      refFns.current.delete(k);
+      nodes.current.delete(k);
+    }
+  }, [items]);
 
   const apply = (d: Follow) => {
     if (d === "none") return;
@@ -95,6 +151,32 @@ export function useChatListRN(items: readonly KChatItem[], built: readonly KChat
     st.current.atBottom = atBottomOf({ contentHeight: contentSize.height, offsetY: contentOffset.y, viewportHeight: layoutMeasurement.height });
     if (st.current.painted && contentOffset.y < REACH_TOP && win.hasMore) win.grow();
   };
+  const onScrollBeginDrag = () => {
+    st.current.dragging = true;
+  };
+  const onScrollEndDrag = () => {
+    st.current.dragging = false;
+  };
+
+  /** to the end, gliding, once a motion that moved the list's height has settled — unless the
+      reader has scrolled away (or holds the list) since it began */
+  const settle = useCallback(() => {
+    const s = st.current;
+    if (!s.painted || s.dragging || !s.atBottom) return;
+    scrollRef.current?.scrollToEnd({ animated: true });
+  }, []);
+  // the keyboard: KeyboardAvoidingView's LayoutAnimation leaves onLayout's scrollToEnd short
+  useKeyboardSettle(() => ({ painted: st.current.painted, atEnd: st.current.atBottom, dragging: st.current.dragging }), settle);
+  /** a layout motion of `ms` (the tray rising or going) starts now: at the end now, at the end
+      once it settled */
+  const settleAfter = useCallback(
+    (ms: number) => {
+      const s = st.current;
+      if (!settlesAtEnd({ painted: s.painted, atEndBefore: s.atBottom, dragging: s.dragging })) return;
+      later(ms + 30, settle);
+    },
+    [later, settle],
+  );
 
   /** go to the end after delayMs — an own send, a reply begun, a fold sent — from anywhere, the
       window back at the newest first */
@@ -121,19 +203,29 @@ export function useChatListRN(items: readonly KChatItem[], built: readonly KChat
     if (!key) return;
     const y = rowY.current.get(key);
     if (y == null) return;
+    const focusKey = pendingFocus.current ?? key;
     pendingJump.current = null;
+    pendingFocus.current = null;
     scrollRef.current?.scrollTo({ y: Math.max(0, y - JUMP_ABOVE), animated: true });
     light(key);
+    // VoiceOver goes where the eye went: the quoted line (a fold half), else its row
+    later(FOCUS_AFTER_MS, () => {
+      const node = nodes.current.get(focusKey) ?? nodes.current.get(key);
+      if (node) AccessibilityInfo.sendAccessibilityEvent(node as unknown as HostInstance, "focus");
+    });
   };
 
-  /** a tapped quote: to the line it quotes (a fold half finds its fold), widening the window
-      first when the line is older than it */
+  /** a tapped quote: to the line it quotes (a fold half finds its fold), widening the window first
+      when the line is older than it — and then waiting for that row's own layout, never a position
+      remembered from when it was last mounted */
   const jumpTo = (key: string) => {
     const index = indexOfKey(built, key);
     if (index < 0) return;
+    const mounted = jumpsNow(index, win);
     win.include(index);
     pendingJump.current = built[index].key;
-    tryJump();
+    pendingFocus.current = key;
+    if (mounted) tryJump();
   };
 
   /** each row reports where it sits (a quote's jump lands on it) */
@@ -145,6 +237,8 @@ export function useChatListRN(items: readonly KChatItem[], built: readonly KChat
   const listProps = {
     ref: scrollRef,
     onScroll,
+    onScrollBeginDrag,
+    onScrollEndDrag,
     onContentSizeChange,
     onLayout,
     scrollEventThrottle: 32,
@@ -157,5 +251,5 @@ export function useChatListRN(items: readonly KChatItem[], built: readonly KChat
     showsVerticalScrollIndicator: false,
   };
 
-  return { scrollRef, listProps, rowLayout, lit, requestEnd, jumpTo };
+  return { scrollRef, listProps, rowLayout, a11yRef, lit, requestEnd, jumpTo, settleAfter };
 }

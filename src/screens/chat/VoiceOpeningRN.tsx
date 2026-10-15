@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import type { ThreadDetail } from "../../lib/db";
 import { fmt } from "../../lib/format";
+import { t } from "../../lib/i18n";
 import { useSignedUrls } from "../../lib/images";
 import { playbackPosition, useVoicePlayback, type VoicePlayback } from "../../lib/voice-playback";
 import { demoMediaUrl } from "../../data/demo";
@@ -21,9 +22,12 @@ import "../../data/strings-step5-platform"; // vo.play, vo.pause
    draws from it, so a voice can't play on after the screen is left (the
    player pauses on blur and is released on unmount) and two cards can't
    play over each other. The link is signed from storage (re-signed when it
-   lapses), a demo thread's sample stands in for a demo path. A press before
-   the link is signed (offline) does nothing and the card is drawn dimmed;
-   a load that failed is a card at rest, and the next press loads it again.
+   lapses), a demo thread's sample stands in for a demo path. Before the
+   link is signed (offline) the card is unavailable, as KVoiceCard's
+   `unavailable` is: drawn dimmed, its touches stopped, and heard by
+   VoiceOver as a dimmed control (not a live "Play" that does nothing on a
+   double-tap); a load that failed is a card at rest, and the next press
+   loads it again.
    The card is AudioCard's row (AudioCardView: the theme's lav2 panel, the
    ind disc, VoiceOver's vo.play / vo.pause with the time as its value),
    moved on between the player's transitions by a 4 Hz tick while it plays. */
@@ -71,9 +75,22 @@ export function VoiceOpeningCard({ voice, compact = true, style }: { voice: Open
     return () => clearInterval(id);
   }, [playing]);
   const unavailable = !voice.url;
+  const durationS = s?.durationS || voice.durationS;
+  const card = <AudioCardView compact={compact} playing={playing} positionS={playbackPosition(s)} durationS={durationS} onToggle={voice.toggle} />;
+  if (!unavailable) return <View style={style}>{card}</View>;
+  /* unavailable: one VoiceOver element over the card, a dimmed button (the card's own button
+     inside it is hidden from VoiceOver by `accessible`), and the touches stop at it (box-only) */
   return (
-    <View style={[{ opacity: unavailable ? 0.55 : 1 }, style]}>
-      <AudioCardView compact={compact} playing={playing} positionS={playbackPosition(s)} durationS={s?.durationS || voice.durationS} onToggle={voice.toggle} />
+    <View
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={t("vo.play")}
+      accessibilityValue={{ text: fmt(durationS) }}
+      accessibilityState={{ disabled: true }}
+      pointerEvents="box-only"
+      style={[{ opacity: 0.55 }, style]}
+    >
+      {card}
     </View>
   );
 }

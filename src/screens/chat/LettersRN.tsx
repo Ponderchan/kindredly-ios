@@ -11,7 +11,7 @@ import { Introduction } from "../../components/Introduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { ReplyStrip, type ReplyStripHandle } from "../../components/10a";
 import "../../data/strings-step5-platform"; // vo.play, vo.pause
-import { buildLetterItems, buildLettersDock, lettersComposer, windowItems } from "./build-items";
+import { buildLetterItems, buildLettersDock, windowItems } from "./build-items";
 import { useLettersModel } from "./useLettersModel";
 import type { ChatUi } from "./useRoomModel";
 import { ChatHeader } from "./ChatHeader";
@@ -149,14 +149,19 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
     onItemAction: m.onItemAction,
     photoOf: () => ({ path: null, uri: null }),
     voice: opening,
+    a11yRef: list.a11yRef,
   };
 
-  /** the strip's send: exactly the words it held; the field empties at once and the model puts
-      them back if the letter didn't go */
-  const onStripSend = (value: string): boolean | void => {
-    const clears = lettersComposer({ t, text: value, sending: m.sending, slow: false }).clearOnSend;
-    void m.onSend(value, undefined, clears);
-    return clears ? undefined : false;
+  /** the strip's send: exactly the words it held. The React Native strip never empties itself
+      (it returns false): the model empties the field synchronously when it takes the letter —
+      before its first await — puts the words back if the letter didn't go, and leaves them alone
+      when it refuses (no thread loaded yet, offline with nothing kept, one already going). A
+      self-clear would run after a synchronous refusal had put them back, and wipe them: the letter
+      lost with no word said (Swift's field clears first and gets them back after; the strip's order
+      is the other way round). */
+  const onStripSend = (value: string): boolean => {
+    void m.onSend(value, undefined, false);
+    return false;
   };
 
   return (

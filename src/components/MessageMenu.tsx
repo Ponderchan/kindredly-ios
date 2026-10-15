@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, Ref } from "react";
 import { Platform, View } from "react-native";
 import { Button, ContextMenu, Host, RNHostView } from "@expo/ui/swift-ui";
 import { contentShape, shapes } from "@expo/ui/swift-ui/modifiers";
@@ -51,19 +51,23 @@ export function a11yActions(actions: MessageAction[]) {
  * `a11yExtra` adds VoiceOver-only actions that are not in the menu (a reply's quote jump, the
  * nested tap a combined element would otherwise swallow). Without either, the child is read as
  * it always was. Without menu actions there is no Host: the child is returned as is, or in a
- * plain accessible View when a label or extra actions were given.
+ * plain accessible View when a label or extra actions were given. `a11yRef` reaches the
+ * accessible View the child is wrapped in (none when the child is returned as is), so a screen
+ * can move VoiceOver's focus to the line (a quote's jump).
  */
 export function MessageMenu({
   actions,
   radius = 18,
   accessibilityLabel,
   a11yExtra,
+  a11yRef,
   children,
 }: {
   actions: MessageAction[];
   radius?: number;
   accessibilityLabel?: string;
   a11yExtra?: MessageAction[];
+  a11yRef?: Ref<View>;
   children: ReactElement;
 }) {
   const { dark } = useTheme(); // above the early return, so it runs every render
@@ -71,7 +75,7 @@ export function MessageMenu({
   const labelled = !!accessibilityLabel || !!a11yExtra?.length;
   if (Platform.OS !== "ios" || !actions.length) {
     return labelled ? (
-      <View accessible accessibilityLabel={accessibilityLabel} {...a11yActions(spoken)}>
+      <View ref={a11yRef} accessible accessibilityLabel={accessibilityLabel} {...a11yActions(spoken)}>
         {children}
       </View>
     ) : (
@@ -89,7 +93,7 @@ export function MessageMenu({
         </ContextMenu.Items>
         <ContextMenu.Trigger>
           <RNHostView matchContents>
-            <View accessible accessibilityLabel={accessibilityLabel} {...a11yActions(spoken)}>
+            <View ref={a11yRef} accessible accessibilityLabel={accessibilityLabel} {...a11yActions(spoken)}>
               {children}
             </View>
           </RNHostView>
