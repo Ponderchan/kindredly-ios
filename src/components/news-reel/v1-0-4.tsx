@@ -62,13 +62,12 @@ function Fold({ s }: { s: number }) {
       <Rise>
         <View style={{ backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden" }}>
           <Row seed="news-104-a">
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ flex: 1, fontSize: s * 0.045, fontWeight: "600", color: P.ink }}>No. 4417</Text>
-              <View style={{ minWidth: s * 0.06, height: s * 0.06, borderRadius: s * 0.03, backgroundColor: "#3A34D6", alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: s * 0.034, fontWeight: "600", color: "#FFFFFF" }}>1</Text>
-              </View>
+            <Text style={{ fontSize: s * 0.045, fontWeight: "600", color: P.ink }}>No. 4417</Text>
+            {/* a pen pal on you says so in words, as the list does (owner, 2026-10-15) */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ fontSize: s * 0.03, fontWeight: "600", letterSpacing: 0.3, color: "#3A34D6" }}>{t("state.yourTurn").toUpperCase()}</Text>
+              <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: BAR }} />
             </View>
-            <View style={{ width: "70%", height: 6, borderRadius: 3, backgroundColor: BAR }} />
           </Row>
           {(["news-104-b", "news-104-c"] as const).map((seed) => (
             <Animated.View key={seed} style={[{ overflow: "hidden" }, going]}>
