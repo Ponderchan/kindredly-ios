@@ -49,7 +49,13 @@ export default function JournalDetail() {
 
   const makeCover = async (i: number) => {
     if (!e || isDemo) return;
-    await setCover(e.id, i);
+    try {
+      await setCover(e.id, i);
+    } catch (err) {
+      console.warn("[journal] the cover didn't change:", err);
+      Alert.alert(t("sc.journalTitle"), t("cp.fail.generic"));
+      return;
+    }
     setE({ ...e, coverIndex: i, mediaUri: e.media?.[i] || e.mediaUri });
   };
 
@@ -79,7 +85,13 @@ export default function JournalDetail() {
         text: t("jd.tear"),
         style: "destructive",
         onPress: async () => {
-          await deleteEntry(e.id);
+          try {
+            await deleteEntry(e.id);
+          } catch (err) {
+            console.warn("[journal] the page wasn't torn out:", err);
+            Alert.alert(t("sc.journalTitle"), t("cp.fail.generic"));
+            return;
+          }
           goBack();
         },
       },
