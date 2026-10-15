@@ -58,11 +58,14 @@ export function SendArrow({ size = 30 }: { size?: number }) {
 /* THE PLANE (owner, 2026-09-20): on the Today card's write-back box the
    dim SEND word stays while the box is empty; the moment there are words
    it becomes a black pill with a paper plane — the shape every phone
-   already reads as "this goes now". */
-export function SendPlane({ on = true, ink = "#111113" }: { on?: boolean; ink?: string }) {
+   already reads as "this goes now". A solid ink key, so the pill is the
+   theme's ink (unless the caller gives its own) and the plane on it is the
+   page colour, as on every ink fill in 10a. */
+export function SendPlane({ on = true, ink }: { on?: boolean; ink?: string }) {
+  const T = useTheme().t;
   return (
-    <View style={{ width: 54, height: 36, borderRadius: 18, backgroundColor: ink, alignItems: "center", justifyContent: "center", opacity: on ? 1 : 0.35 }}>
-      <Svg width={19} height={19} viewBox="0 0 24 24" fill="#FFFFFF">
+    <View style={{ width: 54, height: 36, borderRadius: 18, backgroundColor: ink ?? T.ink, alignItems: "center", justifyContent: "center", opacity: on ? 1 : 0.35 }}>
+      <Svg width={19} height={19} viewBox="0 0 24 24" fill={T.bg}>
         <Path d="M3.4 2.6a1 1 0 0 0-1.3 1.2l2.3 7.2a1 1 0 0 0 .8.7l8.3 1.3-8.3 1.3a1 1 0 0 0-.8.7l-2.3 7.2a1 1 0 0 0 1.3 1.2l18-8.4a1 1 0 0 0 0-1.8z" />
       </Svg>
     </View>

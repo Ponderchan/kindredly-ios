@@ -1,7 +1,8 @@
 import { Pressable, Text, View } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { C, F } from "../theme/tokens";
-import { P, PF } from "../theme/post";
+import { F } from "../theme/tokens";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
 
 /* Audio playback row — play/pause + progress + duration. Shared by voice
@@ -9,8 +10,12 @@ import { fmt } from "../lib/format";
 
    `system` switches it into the postal system's language (Today only, while
    that direction is on trial): square corners, no tinted panel, ruled bars,
-   mono numerals. The rounded lavender default stays for every other surface,
-   which is still on the old palette. */
+   mono numerals. The rounded lavender default stays for every other surface.
+
+   The chrome is the theme's: the rounded panel is the accent's palest wash
+   (lav2), the default tint is ind, and the play glyph on it is the page
+   colour. A `tint` the caller passes is content (a journal page's mood
+   colour) and is kept as given, with the white glyph it was drawn with. */
 
 const BARS = [12, 18, 24, 16, 20, 26, 14, 22, 18, 24, 20, 14, 22, 16, 24, 18];
 
@@ -18,7 +23,7 @@ export function AudioCard({
   url,
   durationS,
   compact = false,
-  tint = C.purple,
+  tint,
   system = false,
 }: {
   url: string;
@@ -27,6 +32,8 @@ export function AudioCard({
   tint?: string;
   system?: boolean;
 }) {
+  const P = useP();
+  const { t: tk } = useTheme();
   const player = useAudioPlayer(url);
   const status = useAudioPlayerStatus(player);
 
@@ -43,7 +50,9 @@ export function AudioCard({
     }
   };
 
-  const ink = system ? P.pen : tint;
+  const ink = system ? P.pen : tint ?? tk.ind;
+  // white on a caller's mood colour, as drawn; the page colour on ind
+  const glyph = !system && tint ? "#FFFFFF" : tk.bg;
 
   return (
     <View
@@ -53,7 +62,7 @@ export function AudioCard({
         gap: 12,
         padding: system ? 0 : compact ? 10 : 14,
         borderRadius: system ? 0 : 14,
-        backgroundColor: system ? "transparent" : C.purpleLt,
+        backgroundColor: system ? "transparent" : tk.lav2,
       }}
     >
       <Pressable
@@ -67,7 +76,7 @@ export function AudioCard({
           justifyContent: "center",
         }}
       >
-        <Text style={{ color: "#fff", fontSize: compact ? 13 : 15, marginLeft: playing ? 0 : 2 }}>
+        <Text style={{ color: glyph, fontSize: compact ? 13 : 15, marginLeft: playing ? 0 : 2 }}>
           {playing ? "❚❚" : "▶"}
         </Text>
       </Pressable>

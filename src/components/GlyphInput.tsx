@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { StyleSheet, TextInput, View, type TextInputProps, type TextStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+import { useTheme } from "../lib/theme";
 
 /* THE GLYPH, AND THE FIELD IT USED TO BE THE CARET OF.
    ────────────────────────────────────────────────────────────────────────
@@ -10,9 +11,10 @@ import Svg, { Circle, Path } from "react-native-svg";
    system's caret again. The glyph itself is still drawn for the
    introduction ritual. */
 
+/* the mark's two colours are hers, not the page's: the same ink eye and
+   amber beak in every theme */
 const INK = "#1E1B35";
 const AMBER = "#D8A63F";
-const PEN = "#3A3AF5"; // theme/post P.pen — the caret and the selection, in the product's own blue
 
 /* drawn, not typed: a dot and a chevron, so the eye sits exactly on the
    text's x-height whatever face the page is set in */
@@ -36,14 +38,26 @@ export function WrenGlyph({ size }: { size: number }) {
    text goes in is worse than a plain one. The wrapper keeps one thing:
    the flex the callers put on the field, which on the field itself made
    Yoga size it from a zero basis and lose the height fieldBox set. The
-   glyph stays drawn for the ritual that types a name onto a sticker. */
+   glyph stays drawn for the ritual that types a name onto a sticker.
+
+   The caret and the selection are the theme's ind, the product's one
+   actionable colour, so they read on a dark page too. The placeholder and
+   the keyboard follow the theme unless the caller says otherwise. */
 const flat = (s: TextStyle | TextStyle[] | undefined): TextStyle => (StyleSheet.flatten(s) as TextStyle) || {};
 
 export const GlyphInput = forwardRef<TextInput, TextInputProps>(function GlyphInput(props, ref) {
+  const { t: tk, dark } = useTheme();
   const st = flat(props.style as TextStyle);
   return (
     <View style={{ flex: (st.flex as number) ?? undefined, alignSelf: "stretch" }}>
-      <TextInput {...props} ref={ref} style={[props.style, { flex: undefined }]} selectionColor={PEN} />
+      <TextInput
+        placeholderTextColor={tk.faint}
+        keyboardAppearance={dark ? "dark" : "light"}
+        {...props}
+        ref={ref}
+        style={[props.style, { flex: undefined }]}
+        selectionColor={tk.ind}
+      />
     </View>
   );
 });
