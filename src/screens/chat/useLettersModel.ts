@@ -109,10 +109,13 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
   const composer: ComposerFacts = lettersComposer({ t, text, sending, slow, offline: status === "offline" && !detail });
 
   const nowMs = useTakeBackClock(undefined, 0);
+  /* readable, not actionable: a gone pen pal or a thread the server calls missing (letters have no
+     reply in their menus anyway; the rule is the room's, kept the same here) */
+  const canWrite = !detail?.gone && status !== "missing";
   const menuCtx: MenuCtx = useMemo(
-    () => ({ t, isDemo, otherExists: !!detail?.other, nowMs, skewMs: 0, trans, canTranslate: offerTranslate }),
+    () => ({ t, isDemo, otherExists: !!detail?.other, nowMs, skewMs: 0, trans, canTranslate: offerTranslate, canWrite }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isDemo, detail?.other, nowMs, trans, getLang()],
+    [isDemo, detail?.other, nowMs, trans, canWrite, getLang()],
   );
 
   /** OPTIMISTIC — the same contract as the room: the letter appears as you release it; a failure

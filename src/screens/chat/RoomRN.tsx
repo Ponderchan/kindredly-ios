@@ -22,8 +22,9 @@ import { WrenBird } from "../../components/WrenBird";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { fieldBox } from "../../lib/field";
 import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
-import { foldHalfMenu, halfKey, lineMenu, photoMenu as photoMenuOf, songMenu as songMenuOf } from "./build-items";
+import { foldHalfMenu, foldKey, halfKey, lineMenu, photoMenu as photoMenuOf, songMenu as songMenuOf } from "./build-items";
 import { useRoomModel, type ChatUi } from "./useRoomModel";
+import { RoomIntroduction } from "./RoomIntroduction";
 
 /* THE ROOM IN REACT NATIVE — the fallback behind the remote switch (10a
    step 5). This is room/[id].tsx's screen as it was, moved here so the
@@ -31,8 +32,12 @@ import { useRoomModel, type ChatUi } from "./useRoomModel";
    (ConversationNative). Its JSX is unchanged; what it shows and does now
    comes from the same model the Swift screen runs on (useRoomModel: the
    thread offline-safe, every send, every action) and its long-press menus
-   from the same rules (build-items), so the two can't drift. The next
-   slice moves it onto the theme and the 10a look. */
+   from the same rules (build-items), so the two can't drift: a sealed
+   fold's ANSWER TO OPEN goes through the model's onItemPress (it clears a
+   reply chip and focuses), nothing that writes is offered in a room that is
+   gone, missing or expired (canWrite), and the introduction the model runs
+   for a recent reveal is drawn here too (RoomIntroduction). The next slice
+   moves it onto the theme and the 10a look. */
 
 /* THE ROOM — where you are once you know each other.
    ────────────────────────────────────────────────────────────────────────
@@ -98,6 +103,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
     }),
     [],
   );
+  const model = useRoomModel(id, { ui, expiredParam: props.expired ?? params.expired, closingParam: props.closing ?? params.closing });
   const {
     detail,
     name,
@@ -133,7 +139,9 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
     menuCtx,
     keyOf,
     onItemAction,
-  } = useRoomModel(id, { ui, expiredParam: props.expired ?? params.expired, closingParam: props.closing ?? params.closing });
+    onItemPress,
+    canWrite,
+  } = model;
 
   const weight = weightedCount(text);
   const over = weight > LETTER_MAX;
@@ -277,12 +285,11 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
                       </>
                     ) : f.mine ? (
                       <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink40, marginTop: 8 }}>{t("rm.fold.waiting", { name })}</Text>
-                    ) : (
+                    ) : !canWrite ? null : (
                       <Pressable
-                        onPress={() => {
-                          setMode({ kind: "answer", fold: f });
-                          setTimeout(() => inputRef.current?.focus(), 120);
-                        }}
+                        // the model's: it clears a reply chip, sets the mode and focuses the field
+                        onPress={() => onItemPress(foldKey(f), "fold")}
+                        accessibilityRole="button"
                         hitSlop={6}
                         style={{ marginTop: 8 }}
                       >
@@ -473,7 +480,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
           </Text>
         )}
 
-        {replyTo && !mode && (
+        {replyTo && !mode && canWrite && (
           <View style={{ marginHorizontal: 22, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 10, borderLeftWidth: 2, borderLeftColor: P.pen, paddingLeft: 10, paddingVertical: 3, backgroundColor: P.paper }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1.2, color: P.pen }}>
@@ -525,10 +532,11 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
             operable: the tray opened, the composer accepted words, and only
             the send failed, with a dialog blaming the moment. It stays
             readable; it stops being somewhere you can leave things. */}
-        {detail?.gone ? (
+        {detail?.gone || model.status === "missing" ? (
           <View style={{ paddingHorizontal: 26, paddingTop: 6, paddingBottom: 22 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 11.5, lineHeight: 18, letterSpacing: 0.3, color: P.ink40, textAlign: "center" }}>
-              {t("ch.gone")}
+              {/* gone says they left; missing stays ambiguous between that and a block (buildRoomDock) */}
+              {detail?.gone ? t("ch.gone") : t("fail.closed.body")}
             </Text>
           </View>
         ) : expired ? (
@@ -599,7 +607,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
           </Pressable>
         </View>
         )}
-        {tracing && !detail?.gone && !expired && <TraceTray actions={TRACES} onPick={onTrace} />}
+        {tracing && canWrite && <TraceTray actions={TRACES} onPick={onTrace} />}
       </KeyboardAvoidingView>
 
 
@@ -608,6 +616,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string 
           what this product is for: accumulated evidence that you are
           alike, curated by nobody. */}
       <PhotoLightbox photo={photoFull} onClose={() => setPhotoFull(null)} />
+      <RoomIntroduction m={model} />
       <Modal visible={shelf} transparent animationType="slide" onRequestClose={() => setShelf(false)}>
         <View style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.32)", justifyContent: "flex-end" }}>
           <Pressable style={{ flex: 1 }} onPress={() => setShelf(false)} />

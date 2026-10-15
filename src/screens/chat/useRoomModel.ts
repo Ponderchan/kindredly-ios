@@ -43,6 +43,7 @@ import {
   nextTakeBackClose,
   roadOf,
   roomComposer,
+  roomFolds,
   roomStream,
   type ComposerFacts,
   type MenuCtx,
@@ -290,7 +291,10 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   const isDemo = !!id?.startsWith("demo-");
 
   const lines = usePendingLines();
-  const { detail: raw, folds, status, reload, mutateFolds } = useThreadDetail(id, { markSeen: true, pending: lines.pending });
+  const { detail: raw, folds: loadedFolds, status, reload, mutateFolds } = useThreadDetail(id, { markSeen: true, pending: lines.pending });
+  /* the store screenshots' room is its five lines in the reader's language, no English folds
+     between them (room/[id].tsx returned before loading folds in store mode) */
+  const folds = roomFolds(loadedFolds, { id, storeMode: __DEV__ && storeMode });
 
   /* a line taken back shows its note at once, before the reload confirms it */
   const [takenLocal, setTakenLocal] = useState<ReadonlySet<string>>(() => new Set());
@@ -418,13 +422,25 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   // offline with nothing kept: say so on the status line rather than show an empty room
   const composer: ComposerFacts = roomComposer({ t, text, prompt: mode?.kind === "question" ? mode.prompt : "", mode, sending, slow, offline: status === "offline" && !detail });
 
+  /* readable, not actionable (owner): a gone kindred, a thread the server calls missing, an expired
+     room — no reply, no ANSWER TO OPEN, no reply quote over the gone line or the expired card */
+  const canWrite = !detail?.gone && status !== "missing" && !expired;
+  const canWriteRef = useRef(canWrite);
+  canWriteRef.current = canWrite;
+
   const nowMs = useTakeBackClock(detail?.messages, skew.current);
   const menuCtx: MenuCtx = useMemo(
-    () => ({ t, isDemo, otherExists: !!detail?.other, nowMs, skewMs: skew.current, trans, canTranslate: offerTranslate }),
+    () => ({ t, isDemo, otherExists: !!detail?.other, nowMs, skewMs: skew.current, trans, canTranslate: offerTranslate, canWrite }),
     // t is read fresh on a language change (useLang re-renders), so lang is in the deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isDemo, detail?.other, nowMs, trans, getLang()],
+    [isDemo, detail?.other, nowMs, trans, canWrite, getLang()],
   );
+  // a room that closed (gone, missing, expired) while a reply or a mode was open lets go of both
+  useEffect(() => {
+    if (canWrite) return;
+    setReplyTo(null);
+    setMode(null);
+  }, [canWrite, setMode]);
 
   /* ── sends ── */
 
@@ -653,7 +669,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
 
   const startReply = useCallback(
     (m: ThreadMessage) => {
-      if (!m.id) return;
+      if (!m.id || !canWriteRef.current) return;
       setMode(null);
       setReplyTo({ quote: { id: m.id, excerpt: Array.from(m.body).slice(0, 140).join(""), sender: m.mine ? "me" : (detailRef.current?.other ?? undefined) }, mine: m.mine });
       ui.focus("body", 120);
@@ -771,6 +787,8 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     (key: string, part: KChatPart) => {
       const target = targetsRef.current.get(key);
       if (part === "fold" && target?.kind === "fold") {
+        // a sealed fold opens only by answering it, and only where something can be left
+        if (!canWriteRef.current || target.fold.mine) return;
         setReplyTo(null);
         setMode({ kind: "answer", fold: target.fold });
         ui.focus("body", 120);
@@ -851,6 +869,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     settled,
     lastAt,
     expired,
+    canWrite,
     closing,
     daysLeft,
     quietDays,

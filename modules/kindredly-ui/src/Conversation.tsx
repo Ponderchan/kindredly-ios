@@ -141,6 +141,9 @@ export type KChatStrings = {
 export type KChatCommands = KStandardCommands & {
   scrollTo: { key: string; animated?: boolean; highlight?: boolean; onlyAtBottom?: boolean };
   composer: { canSend: boolean; status: string; statusAlarm: boolean; clearOnSend: boolean };
+  /** failed: the voice card shows itself unavailable and takes no taps. Send it only while there
+      is no signed link at all; a load that failed (offline, a lapsed link) goes as failed: false,
+      so the next press can reach voice-playback, which loads it again (known bug 2). */
   playback: KStandardCommands["playback"] & { failed?: boolean };
   tray: { open: boolean };
 };

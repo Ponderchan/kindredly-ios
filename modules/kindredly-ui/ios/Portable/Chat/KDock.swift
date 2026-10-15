@@ -25,6 +25,18 @@ import SwiftUI
  Inset 12 (the gone line 26). Bottom padding: 10 above the keyboard or the tray, the home
  indicator's inset (at least 10) when both are down.
 
+ ACCESSIBILITY SIZES. 1-6 sit in a scroll view at most 40% of the surface tall (KChatCappedHeight:
+ its content's height up to that), so at AX5 on an SE the dock can't push the composer under the
+ keyboard and leave the list nothing; the body field shows 3 lines before it scrolls inside (5 at
+ ordinary sizes) and the round tools stop growing at xxxLarge, as KTabBar's fixed bar does.
+
+ VOICEOVER'S ESCAPE (two-finger Z) closes only what is open: the reply quote, the mode box (from
+ its prompt field or its x), the tray from the + (the tray's own cards close it too, KChatTray).
+ Everywhere else it falls through to the stack's back.
+
+ THE TRAY rises on KChatMotion.tray: the composer sheet's curve, a plain ease under Reduce Motion
+ (the list and the dock reflow inside the same transaction, so no overshoot moves them either).
+
  NEVER REMOVE A FOCUSED FIELD (the expo focus/unmount crash). Both fields stay mounted for the
  life of the dock: the composer row is collapsed and disabled under the gone line or the expired
  card, after the fields have let go and a runloop has passed; the prompt field is collapsed when
@@ -38,18 +50,23 @@ struct KChatDockView: View {
   let birds: KChatBirds
   /// the home indicator's inset (the Host ignores it, so the dock pads itself)
   let bottomInset: CGFloat
+  /// the conversation's height above the keyboard: the lines above the composer take at most 40%
+  let surfaceHeight: CGFloat
   @ObservedObject var driver: KConversationDriver
   let actions: KConversationActions
 
   /// the terminal state drawn: it follows dock.terminal a runloop after the fields let go
   @State private var shownTerminal: KChatTerminal
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.dynamicTypeSize) private var typeSize
 
-  init(theme: KTheme, variant: KChatVariant, dock: KChatDock, birds: KChatBirds, bottomInset: CGFloat, driver: KConversationDriver, actions: KConversationActions) {
+  init(theme: KTheme, variant: KChatVariant, dock: KChatDock, birds: KChatBirds, bottomInset: CGFloat, surfaceHeight: CGFloat, driver: KConversationDriver, actions: KConversationActions) {
     self.theme = theme
     self.variant = variant
     self.dock = dock
     self.birds = birds
     self.bottomInset = bottomInset
+    self.surfaceHeight = surfaceHeight
     self.driver = driver
     self.actions = actions
     _shownTerminal = State(initialValue: dock.terminal)
@@ -57,33 +74,25 @@ struct KChatDockView: View {
 
   private var composerHidden: Bool { shownTerminal != .none }
 
+  /// the most the lines above the composer may take before they scroll
+  private var aboveCap: CGFloat { max(120, (surfaceHeight * 0.4).rounded()) }
+
+  private var trayAnimation: Animation { KChatMotion.tray(reduceMotion: reduceMotion) }
+
   private var bottomPadding: CGFloat {
     driver.keyboardHeight > 0 || driver.trayOpen ? 10 : max(10, bottomInset)
   }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
-      if !dock.closingText.isEmpty {
-        closingLine.padding(.bottom, 8)
+      // always mounted (the mode box holds the prompt field): its content's height, up to the cap
+      KChatCappedHeight(cap: aboveCap) {
+        ScrollView {
+          aboveComposer
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDismissesKeyboard(.never)
       }
-      if let notice = dock.notice {
-        noticeCard(notice).padding(.bottom, 10)
-      }
-      if dock.signDoor != .none {
-        signDoor.padding(.bottom, 10)
-      }
-      if !driver.status.isEmpty {
-        Text(driver.status)
-          .kText(.mono(10, .medium, tracking: 0.12))
-          .foregroundStyle(driver.statusAlarm ? KBrand.postRed : theme.mute)
-          .multilineTextAlignment(.center)
-          .frame(maxWidth: .infinity)
-          .padding(.bottom, 6)
-      }
-      if !dock.replyLabel.isEmpty && dock.mode == nil {
-        replyBar.padding(.bottom, 8)
-      }
-      modeBox
       switch shownTerminal {
       case .gone:
         Text(dock.goneText)
@@ -108,7 +117,6 @@ struct KChatDockView: View {
         .accessibilityHidden(composerHidden)
     }
     .padding(.horizontal, 12)
-    .padding(.top, 8)
     .padding(.bottom, bottomPadding)
     .background(theme.bg)
     .onChange(of: dock.terminal) { _, now in
@@ -118,15 +126,40 @@ struct KChatDockView: View {
       // the prompt field collapses: it lets go first
       if !shows { driver.prompt.blur() }
     }
-    .accessibilityAction(.escape) {
-      if driver.trayOpen {
-        withAnimation(KChatMotion.panelRise) { driver.trayOpen = false }
-      } else if dock.mode != nil {
-        actions.onDock("modeClose")
-      } else if !dock.replyLabel.isEmpty {
-        actions.onDock("replyClose")
+  }
+
+  /// 1-6: the closing line, Wren's notice, the sign door, the status line, the reply quote, the mode
+  /// box. The dock's top padding is inside the scroll view, so the x's 44pt targets (which hang out
+  /// of their rows) are never cut by its edge.
+  private var aboveComposer: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      if !dock.closingText.isEmpty {
+        closingLine.padding(.bottom, 8)
       }
+      if let notice = dock.notice {
+        noticeCard(notice).padding(.bottom, 10)
+      }
+      if dock.signDoor != .none {
+        signDoor.padding(.bottom, 10)
+      }
+      if !driver.status.isEmpty {
+        Text(driver.status)
+          .kText(.mono(10, .medium, tracking: 0.12))
+          .foregroundStyle(driver.statusAlarm ? KBrand.postRed : theme.mute)
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: .infinity)
+          .padding(.bottom, 6)
+      }
+      // never above the gone line or the expired card (TS doesn't send one there either)
+      if !dock.replyLabel.isEmpty && dock.mode == nil && shownTerminal == .none {
+        replyBar
+          .padding(.bottom, 8)
+          .accessibilityAction(.escape) { actions.onDock("replyClose") }
+      }
+      modeBox
     }
+    .padding(.top, 8)
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   /// The composer goes under the gone line or the expired card only once its fields have let go
@@ -328,6 +361,8 @@ struct KChatDockView: View {
     .padding(12)
     .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.lav2))
     .overlay(RoundedRectangle(cornerRadius: 16, style: .circular).strokeBorder(theme.ind, lineWidth: 1.5))
+    // from the prompt field or the x: escape closes the mode (hidden, nothing in it takes focus)
+    .accessibilityAction(.escape) { actions.onDock("modeClose") }
     .padding(.bottom, 8)
     .frame(maxHeight: shown ? nil : 0, alignment: .top)
     .clipped()
@@ -343,6 +378,8 @@ struct KChatDockView: View {
       theme: theme,
       controller: driver.body,
       placeholder: dock.placeholder,
+      // at accessibility sizes a line is ~63pt: three, then it scrolls inside
+      lines: typeSize.isAccessibilitySize ? 1...3 : 1...5,
       returnSends: true,
       autocapitalize: dock.autocapitalize,
       onChange: { actions.onText($0) },
@@ -372,6 +409,7 @@ struct KChatDockView: View {
                 .accessibilityHidden(true)
             }
           }
+          .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
       },
       trailing: {
@@ -379,6 +417,11 @@ struct KChatDockView: View {
           KRoundTool(theme: theme, glyph: .plus(open: driver.trayOpen), accessibilityLabel: driver.trayOpen ? dock.plusCloseLabel : dock.plusLabel) {
             togglePlus()
           }
+          .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+          // escape on the + closes the tray it opened; with the tray shut it goes back as usual
+          .modifier(KChatEscape(enabled: driver.trayOpen) {
+            withAnimation(trayAnimation) { driver.trayOpen = false }
+          })
         }
       },
       onSend: { send() }
@@ -390,11 +433,11 @@ struct KChatDockView: View {
 
   private func togglePlus() {
     if driver.trayOpen {
-      withAnimation(KChatMotion.panelRise) { driver.trayOpen = false }
+      withAnimation(trayAnimation) { driver.trayOpen = false }
     } else {
       // choosing something to leave is not something you do mid-sentence
       driver.blurAll()
-      withAnimation(KChatMotion.panelRise) { driver.trayOpen = true }
+      withAnimation(trayAnimation) { driver.trayOpen = true }
     }
   }
 
@@ -419,6 +462,38 @@ struct KChatDockView: View {
     // the card's hard shadow hangs 5 outside, right and below
     .padding(.trailing, InkCardVariant.me.shadowOffset)
     .padding(.bottom, InkCardVariant.me.shadowOffset)
+  }
+}
+
+/// VoiceOver's escape on a view only while there is something for it to close; otherwise the
+/// view has none, and escape goes on up to the stack's back.
+struct KChatEscape: ViewModifier {
+  let enabled: Bool
+  let action: () -> Void
+
+  @ViewBuilder
+  func body(content: Content) -> some View {
+    if enabled {
+      content.accessibilityAction(.escape, action)
+    } else {
+      content
+    }
+  }
+}
+
+/// Its one subview (a scroll view) at its content's height, up to `cap`; beyond that the subview
+/// gets `cap` and scrolls. A ScrollView asked for its ideal height reports its content's.
+struct KChatCappedHeight: Layout {
+  let cap: CGFloat
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    guard let subview = subviews.first else { return .zero }
+    let natural = subview.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
+    return CGSize(width: proposal.width ?? natural.width, height: min(natural.height, cap))
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    subviews.first?.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
   }
 }
 

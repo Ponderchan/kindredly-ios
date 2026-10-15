@@ -42,6 +42,7 @@ const menuCtx = (over: Partial<import("./build-items").MenuCtx> = {}): import(".
   skewMs: 0,
   trans: {},
   canTranslate: () => false,
+  canWrite: true,
   ...over,
 });
 
@@ -125,6 +126,13 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("my fold half: copy only", actKeys(B.foldHalfMenu({ ...half, mine: true }, menuCtx())) === "copy");
   ok("letters theirs: copy, translate, report — no reply, no take back", actKeys(B.letterMenu(theirs, "t1", c)) === "copy,translate,report");
   ok("letters mine: copy", actKeys(B.letterMenu({ ...fresh }, "m1", menuCtx())) === "copy");
+
+  // readable, not actionable (owner): a gone, missing or expired room offers nothing that writes
+  const shut = menuCtx({ canWrite: false, canTranslate: (b) => b.startsWith("hola") });
+  ok("a closed room: their line keeps copy, translate, keep, report — no reply", actKeys(B.lineMenu(theirs, "t1", shut)) === "copy,translate,keep,report");
+  ok("a closed room: my fresh line keeps take back, loses reply", actKeys(B.lineMenu(fresh, "m1", { ...shut, canTranslate: () => false })) === "copy,takeBack");
+  ok("a closed room: a photo keeps report, loses reply", actKeys(B.photoMenu(photo, shut)) === "report");
+  ok("a closed room: a song keeps copy link and the shelf, loses reply", actKeys(B.songMenu(song, shut)) === "copyLink,shelf,report");
 }
 
 /* ── room rows (demo-juno has every kind) ── */
@@ -159,6 +167,11 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("an opened fold has two halves keyed half:<id>", open?.fold?.halves.length === 2 && open.fold.halves.every((h) => h.key.startsWith("half:")));
   const sealedQ = folds.find((f) => f.fold?.state === "sealed" && f.fold.prompt);
   ok("their sealed question: the prompt, ANSWER TO OPEN", sealedQ?.fold?.answerKey === "rm.fold.answerKey" && sealedQ.fold.hint === "rm.fold.answerToOpen");
+  const shutItems = B.buildRoomItems(stream, roomCtx(d, { name: "Juno", canWrite: false }));
+  const shutSealed = shutItems.filter((i) => i.fold?.state === "sealed");
+  ok("a closed room: sealed folds keep their prompt, lose the hint and ANSWER TO OPEN", shutSealed.length > 0 && shutSealed.every((f) => f.fold?.answerKey === "" && f.fold.hint === ""));
+  ok("a closed room: no row offers reply", shutItems.every((i) => !i.menu.some((a) => a.key === "reply")));
+  ok("a closed room: a waiting fold still says it waits", shutItems.some((i) => i.fold?.state === "waiting" && i.fold.hint !== ""));
   ok("folds keep 14 above them", folds.every((f) => f.gap === 14));
   const line = items.find((i) => i.kind === "line" && i.key === "demo-juno-2");
   ok("VoiceOver hears whose, the words and the day", !!line && line.a11yLabel.startsWith("mm.you, let it in") && line.a11yLabel.endsWith(line.ownDay));
@@ -184,6 +197,21 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const letters = B.buildLetterItems(conv, { ...roomCtx(d), time, voice });
   ok("letters: the opening is a voice card too", letters[0].kind === "voice" && letters[0].speakerLabel !== "");
   ok("words openings stay words", B.buildRoomItems(B.roomStream(conv, []), roomCtx(d))[0].kind === "line");
+
+  // the caption keeps what the opening letter had (copy, translate, keep; the reader in letters)
+  const captioned: Detail = { ...d, opening: "hola, a voice from the bus", openingFromMe: false };
+  const cConv = B.conversation(captioned);
+  const tr = { canTranslate: (b: string) => b.startsWith("hola") };
+  const roomVoice = B.buildRoomItems(B.roomStream(cConv, []), roomCtx(captioned, { voice, name: "Mira", ...tr }))[0];
+  ok("room voice: the caption's menu is copy, translate, keep (no id: no reply, no report)", roomVoice.kind === "voice" && actKeys(roomVoice.menu) === "copy,translate,keep");
+  ok("room voice: VoiceOver hears whose it is", roomVoice.a11yLabel.startsWith("Mira, hola"));
+  const shown = B.buildRoomItems(B.roomStream(cConv, []), roomCtx(captioned, { voice, trans: { opening: { text: "hi, a voice", shown: true } } }))[0];
+  ok("room voice: the caption's translation shows under it", shown.translation === "shown" && shown.translationText === "hi, a voice" && shown.menu.some((a) => a.key === "original"));
+  const lettersVoice = B.buildLetterItems(cConv, { ...roomCtx(captioned, { name: "No. 4481", ...tr }), time, voice })[0];
+  ok("letters voice: opens the reader, the letter's menu", lettersVoice.tappable && actKeys(lettersVoice.menu) === "copy,translate");
+  ok("letters voice: VoiceOver hears whose it is", lettersVoice.a11yLabel.startsWith("No. 4481, hola"));
+  const bare = B.buildRoomItems(B.roomStream(B.conversation({ ...d, opening: "" }), []), roomCtx(d, { voice }))[0];
+  ok("a voice opening without a caption has no menu", bare.kind === "voice" && bare.menu.length === 0);
 }
 
 /* ── letters ── */
@@ -254,6 +282,10 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const answer = B.buildRoomDock({ ...base, mode: { kind: "answer", fold } });
   ok("answering: the prompt read-only", answer.mode?.showsPrompt === false && answer.mode.promptText === "what at nine?" && answer.mode.title === "rm.mode.answerQ");
   ok("song mode: no capitals", B.buildRoomDock({ ...base, mode: { kind: "song" } }).autocapitalize === false);
+  const replying = { replyTo: { quote: { id: "x", excerpt: "the box" }, mine: false } };
+  ok("no reply quote over the gone line", B.buildRoomDock({ ...base, ...replying, gone: true }).replyLabel === "" && B.buildRoomDock({ ...base, ...replying, gone: true }).replyExcerpt === "");
+  ok("no reply quote over the expired card", B.buildRoomDock({ ...base, ...replying, expired: true }).replyLabel === "");
+  ok("no reply quote in a missing room", B.buildRoomDock({ ...base, ...replying, missing: true }).replyLabel === "");
   const gone = B.buildRoomDock({ ...base, gone: true, mode: { kind: "note" } });
   ok("gone: the gone line, no tray, no mode", gone.terminal === "gone" && gone.traces.length === 0 && gone.mode === null && gone.goneText === "ch.gone");
   const expired = B.buildRoomDock({ ...base, expired: true, quietDays: 31 });
@@ -315,6 +347,18 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("last word: the newest message", B.lastWordAt(d, NOW) === Math.max(...d.messages.map((m) => Date.parse(m.date))));
   ok("last word with no messages: the day it opened", B.lastWordAt({ ...d, messages: [] }, NOW) === Date.parse(d.since!));
   ok("last word with nothing known: now", B.lastWordAt(null, NOW) === NOW);
+}
+
+/* ── store mode (the App Store screenshots) ── */
+{
+  const d = demoDetail("demo-mira")!;
+  const folds = demoFolds("demo-mira");
+  ok("demo-mira has folds outside store mode", B.roomFolds(folds, { id: "demo-mira", storeMode: false }).length === folds.length && folds.length > 0);
+  const storeFolds = B.roomFolds(folds, { id: B.STORE_ROOM_ID, storeMode: true });
+  ok("the store room draws no folds", storeFolds.length === 0);
+  const items = B.buildRoomItems(B.roomStream(B.conversation(d), storeFolds), roomCtx(d));
+  ok("the store room has no fold rows", items.every((i) => i.kind !== "fold"));
+  ok("store mode leaves other rooms' folds alone", B.roomFolds(demoFolds("demo-juno"), { id: "demo-juno", storeMode: true }).length === demoFolds("demo-juno").length);
 }
 
 /* ── every demo thread builds ── */

@@ -14,20 +14,26 @@ import SwiftUI
    Midnight: 1.07-1.11:1, critic).
  - a pen-pal letter (KLetterBlock): the label line (YOU · OCT 14) when the writer or the day
    changes, a light-outline block (sf, 1.5 ln, corners 16; mine lav2 with a lav outline),
-   padding 12 14, at most 86%; the words in the reader's Letter font (owner question 1, pen-pal
-   letters are letters being read); the 24-hour time at its foot. A tap opens the reader.
+   padding 12 14, hugging its words up to 86% (KLetterLayout: a two-word letter is a small
+   block); the words in the reader's Letter font (owner question 1, pen-pal letters are letters
+   being read); the 24-hour time at its foot, on the right. A tap opens the reader; the menu, its
+   lifted preview and VoiceOver's frame are the block itself, never the 86% around it.
  - a moment (KPhotoTile): a square 70% of the width, corners 16, soft2 until it loads.
  - a song (KSongCard): the light-outline card with music.note in ind, the title, the host and a
    chevron; the shelf link under the last song.
  - a fold (KFoldCard): sealed on soft with a 1.5 line outline; opened on sf with a 2 ln outline
    and a 3/3 hard shadow; each opened half is a line with its own menu.
  - a line taken back (KRecallNote), the day rule (KChatDayRule), the translation under a line
-   (KChatTranslationLine), the voice opening (a KVoiceCard on the one player).
+   (KChatTranslationLine), the voice opening (a KVoiceCard on the one player; its caption keeps
+   the opening letter's menu and translation, and in letters opens the reader).
 
  ACCESSIBILITY. Each line is one element: its label is the owner's a11yLabel (whose, the words,
  the day), the menu's items are its actions (kMenu), and the nested tap targets are named
  actions on it (the quote jump). Day rules are headers, so the rotor can jump by day. Tappable
- blocks are buttons.
+ blocks are buttons. A moment reads whose and which day (its a11yLabel), not only "Open photo".
+ The voice opening is a labelled group (whose, the caption): the card is its play control, the
+ caption its words with the letter's menu. A line a quote jump lands on takes VoiceOver's focus
+ (voFocus, KConversation), so the jump is heard, not only lit.
 
  Rows are Equatable on what they draw (not on the driver or the actions object, which live as
  long as the surface), so a parent redraw doesn't redraw them.
@@ -47,6 +53,9 @@ struct KChatRow: View, Equatable {
   let strings: KChatStrings
   let driver: KConversationDriver
   let actions: KConversationActions
+  /// VoiceOver's focus, set to a row's key after a quote jump (not part of ==: it is the same
+  /// state for every row, for the life of the list)
+  let voFocus: AccessibilityFocusState<String?>.Binding
 
   static func == (a: KChatRow, b: KChatRow) -> Bool {
     a.item == b.item && a.theme == b.theme && a.variant == b.variant && a.first == b.first && a.lit == b.lit
@@ -70,22 +79,22 @@ struct KChatRow: View, Equatable {
   private var content: some View {
     switch item.kind {
     case .line:
-      KChatBubble(theme: theme, item: item, maxWidth: (width * 0.84).rounded(), strings: strings, actions: actions)
+      KChatBubble(theme: theme, item: item, maxWidth: (width * 0.84).rounded(), strings: strings, actions: actions, voFocus: voFocus)
     case .letter:
-      KLetterBlock(theme: theme, item: item, maxWidth: (width * 0.86).rounded(), strings: strings, driver: driver, actions: actions)
+      KLetterBlock(theme: theme, item: item, maxWidth: (width * 0.86).rounded(), strings: strings, driver: driver, actions: actions, voFocus: voFocus)
     case .photo:
-      KPhotoTile(theme: theme, item: item, side: (width * 0.7).rounded(), strings: strings, actions: actions)
+      KPhotoTile(theme: theme, item: item, side: (width * 0.7).rounded(), strings: strings, actions: actions, voFocus: voFocus)
     case .song:
-      KSongCard(theme: theme, item: item, maxWidth: (width * 0.86).rounded(), actions: actions)
+      KSongCard(theme: theme, item: item, maxWidth: (width * 0.86).rounded(), actions: actions, voFocus: voFocus)
     case .fold:
       if let fold = item.fold {
         KFoldCard(theme: theme, item: item, fold: fold, strings: strings, actions: actions)
       }
     case .recalled:
-      KRecallNote(theme: theme, item: item)
+      KRecallNote(theme: theme, item: item, voFocus: voFocus)
     case .voice:
       if variant == .letters {
-        KLetterBlock(theme: theme, item: item, maxWidth: (width * 0.86).rounded(), strings: strings, driver: driver, actions: actions)
+        KLetterBlock(theme: theme, item: item, maxWidth: (width * 0.86).rounded(), strings: strings, driver: driver, actions: actions, voFocus: voFocus)
       } else {
         KChatVoiceLine(theme: theme, item: item, maxWidth: (width * 0.84).rounded(), strings: strings, driver: driver, actions: actions)
       }
@@ -179,6 +188,7 @@ struct KChatBubble: View {
   let maxWidth: CGFloat
   let strings: KChatStrings
   let actions: KConversationActions
+  let voFocus: AccessibilityFocusState<String?>.Binding
 
   static let radius: CGFloat = 18
   static let tail: CGFloat = 5
@@ -227,6 +237,7 @@ struct KChatBubble: View {
     .contentShape(shape)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(item.a11yLabel)
+    .accessibilityFocused(voFocus, equals: item.key)
     .kChatAction(item.quote.map { $0.target.isEmpty ? "" : strings.goToQuote } ?? "") {
       actions.onItemPress(item.key, .quote)
     }
@@ -275,19 +286,31 @@ struct KChatVoiceLine: View {
   let driver: KConversationDriver
   let actions: KConversationActions
 
+  private var edge: Alignment { item.mine ? .trailing : .leading }
+
   var body: some View {
     VStack(alignment: item.mine ? .trailing : .leading, spacing: 6) {
       KChatVoiceCard(theme: theme, key: item.voiceKey, duration: item.voiceDuration, strings: strings, panel: true, driver: driver, actions: actions)
       if !item.body.isEmpty {
-        // the caption is the voice letter's title, never drawn as its body
+        // the caption is the voice letter's title, never drawn as its body; it keeps the opening
+        // letter's menu (copy, translate, keep)
         Text(item.body)
           .kText(.letterHint)
           .foregroundStyle(theme.sub)
+          .multilineTextAlignment(item.mine ? .trailing : .leading)
+          .fixedSize(horizontal: false, vertical: true)
           .padding(.horizontal, 6)
-          .frame(maxWidth: maxWidth, alignment: item.mine ? .trailing : .leading)
+          .padding(.vertical, 2)
+          .contentShape(RoundedRectangle(cornerRadius: 8, style: .circular))
+          .kMenu(item.menu, preview: .rounded(8)) { actions.onItemAction(item.key, $0) }
+          .frame(maxWidth: maxWidth, alignment: edge)
       }
+      KChatTranslationLine(theme: theme, translation: item.translation, text: item.translationText, strings: strings, maxWidth: maxWidth)
     }
-    .frame(maxWidth: .infinity, alignment: item.mine ? .trailing : .leading)
+    .frame(maxWidth: .infinity, alignment: edge)
+    // a group VoiceOver names (whose, the caption): the card plays, the caption has the menu
+    .accessibilityElement(children: .contain)
+    .accessibilityLabel(item.a11yLabel)
     .padding(.bottom, 2)
   }
 }
@@ -327,14 +350,14 @@ struct KLetterBlock: View {
   let strings: KChatStrings
   let driver: KConversationDriver
   let actions: KConversationActions
+  let voFocus: AccessibilityFocusState<String?>.Binding
 
-  private static let shape = RoundedRectangle(cornerRadius: 16, style: .circular)
   private var edge: Alignment { item.mine ? .trailing : .leading }
 
   var body: some View {
     VStack(alignment: item.mine ? .trailing : .leading, spacing: 0) {
       if !item.speakerLabel.isEmpty {
-        // the row's own label already says whose and when
+        // the row's own label (or the voice group's) already says whose and when
         Text(item.speakerLabel)
           .kText(.mono(10, .medium, tracking: 0.1))
           .foregroundStyle(theme.mute)
@@ -343,21 +366,22 @@ struct KLetterBlock: View {
           .accessibilityHidden(true)
       }
       if item.kind == .voice {
-        // the voice card is its own control; the block only frames it
-        block
+        voiceBlock
           .frame(maxWidth: maxWidth, alignment: edge)
-          .accessibilityElement(children: .contain)
       } else {
         SwiftUI.Button {
-          if item.tappable { actions.onItemPress(item.key, .body) }
+          open()
         } label: {
-          block
+          textBlock
         }
         .buttonStyle(KChatPlainPress())
-        .frame(maxWidth: maxWidth, alignment: edge)
         .accessibilityLabel(item.a11yLabel)
         .accessibilityAddTraits(item.tappable ? .isButton : [])
+        .accessibilityFocused(voFocus, equals: item.key)
+        // the menu, its lift and VoiceOver's frame are the block, which hugs its words; the 86%
+        // frame only caps it
         .kMenu(item.menu, preview: .rounded(16)) { actions.onItemAction(item.key, $0) }
+        .frame(maxWidth: maxWidth, alignment: edge)
       }
       KChatTranslationLine(theme: theme, translation: item.translation, text: item.translationText, strings: strings, maxWidth: maxWidth)
     }
@@ -365,34 +389,120 @@ struct KLetterBlock: View {
     .padding(.bottom, 10)
   }
 
-  private var block: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      if item.kind == .voice {
-        KChatVoiceCard(theme: theme, key: item.voiceKey, duration: item.voiceDuration, strings: strings, panel: false, driver: driver, actions: actions)
-        if !item.body.isEmpty {
-          Text(item.body)
-            .kText(.letterHint)
-            .foregroundStyle(theme.sub)
-        }
-      } else {
-        Text(item.body)
-          .kText(.letterRead(15.5, lineHeight: 23.0 / 15.5, place: .penPalLetter))
-          .foregroundStyle(theme.ink)
-          .multilineTextAlignment(.leading)
-          .fixedSize(horizontal: false, vertical: true)
-      }
+  private func open() {
+    if item.tappable { actions.onItemPress(item.key, .body) }
+  }
+
+  private var timeText: some View {
+    Text(item.timeLabel)
+      .kText(.mono(10, .medium))
+      .foregroundStyle(theme.mute)
+  }
+
+  /// A letter's words and its time under them on the right, as wide as the wider of the two.
+  private var textBlock: some View {
+    KLetterLayout(spacing: 6) {
+      Text(item.body)
+        .kText(.letterRead(15.5, lineHeight: 23.0 / 15.5, place: .penPalLetter))
+        .foregroundStyle(theme.ink)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
       if !item.timeLabel.isEmpty {
-        Text(item.timeLabel)
-          .kText(.mono(10, .medium))
-          .foregroundStyle(theme.mute)
-          .frame(maxWidth: .infinity, alignment: .trailing)
+        timeText
       }
     }
-    .padding(.horizontal, 14)
-    .padding(.vertical, 12)
-    .background(Self.shape.fill(item.mine ? theme.lav2 : theme.sf))
-    .overlay(Self.shape.strokeBorder(item.mine ? theme.lav : theme.ln, lineWidth: 1.5))
-    .contentShape(Self.shape)
+    .modifier(KLetterFrame(theme: theme, mine: item.mine))
+  }
+
+  /// The voice opening in letters: the card is its own control (the disc plays; the bars, as in a
+  /// room, take no tap); the caption (and a time, when there is one) is the letter: a tap opens the
+  /// reader, a long press its menu.
+  private var voiceBlock: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      KChatVoiceCard(theme: theme, key: item.voiceKey, duration: item.voiceDuration, strings: strings, panel: false, driver: driver, actions: actions)
+      if !item.body.isEmpty || !item.timeLabel.isEmpty {
+        SwiftUI.Button {
+          open()
+        } label: {
+          VStack(alignment: .leading, spacing: 6) {
+            if !item.body.isEmpty {
+              Text(item.body)
+                .kText(.letterHint)
+                .foregroundStyle(theme.sub)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            if !item.timeLabel.isEmpty {
+              timeText.frame(maxWidth: .infinity, alignment: .trailing)
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(KChatPlainPress())
+        .accessibilityAddTraits(item.tappable ? .isButton : [])
+        .kMenu(item.menu, preview: .rounded(8)) { actions.onItemAction(item.key, $0) }
+      }
+    }
+    .modifier(KLetterFrame(theme: theme, mine: item.mine))
+    // a group VoiceOver names (whose, the caption): the card plays, the caption opens the letter
+    .accessibilityElement(children: .contain)
+    .accessibilityLabel(item.a11yLabel)
+  }
+}
+
+/// The letter block's face: padding 12 14, sf (mine lav2) with a 1.5 ln (mine lav) outline,
+/// corners 16.
+private struct KLetterFrame: ViewModifier {
+  let theme: KTheme
+  let mine: Bool
+
+  private static let shape = RoundedRectangle(cornerRadius: 16, style: .circular)
+
+  func body(content: Content) -> some View {
+    content
+      .padding(.horizontal, 14)
+      .padding(.vertical, 12)
+      .background(Self.shape.fill(mine ? theme.lav2 : theme.sf))
+      .overlay(Self.shape.strokeBorder(mine ? theme.lav : theme.ln, lineWidth: 1.5))
+      .contentShape(Self.shape)
+  }
+}
+
+/// A letter's words, then (optionally) its time under them on the right: as wide as the wider of
+/// the two, the words wrapped at the width offered, so a short letter hugs its words (chat/[id]
+/// and the spec's inventory 61: at most 86%, never a fixed 86%). The first subview is the words,
+/// laid out from the leading edge; any after it sit at the trailing edge.
+struct KLetterLayout: Layout {
+  var spacing: CGFloat = 6
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let offered = ProposedViewSize(width: proposal.width, height: nil)
+    var width: CGFloat = 0
+    var height: CGFloat = 0
+    for (i, subview) in subviews.enumerated() {
+      let size = subview.sizeThatFits(offered)
+      width = max(width, size.width)
+      height += size.height + (i > 0 ? spacing : 0)
+    }
+    if let cap = proposal.width { width = min(width, cap) }
+    return CGSize(width: width, height: height)
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    // the words are laid out at the width they were measured at, so they wrap the same way
+    let offered = ProposedViewSize(width: proposal.width ?? bounds.width, height: nil)
+    var y = bounds.minY
+    for (i, subview) in subviews.enumerated() {
+      let size = subview.sizeThatFits(offered)
+      if i > 0 { y += spacing }
+      let x = i == 0 ? bounds.minX : bounds.maxX - size.width
+      // the words get the width they were measured at (proposing their own fitted width back can
+      // wrap them a line sooner); the time is one line at its own width
+      let width = i == 0 ? (offered.width ?? size.width) : size.width
+      subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(width: width, height: size.height))
+      y += size.height
+    }
   }
 }
 
@@ -404,6 +514,7 @@ struct KPhotoTile: View {
   let side: CGFloat
   let strings: KChatStrings
   let actions: KConversationActions
+  let voFocus: AccessibilityFocusState<String?>.Binding
 
   private static let shape = RoundedRectangle(cornerRadius: 16, style: .circular)
 
@@ -416,8 +527,10 @@ struct KPhotoTile: View {
         .contentShape(Self.shape)
     }
     .buttonStyle(KChatPlainPress())
-    .accessibilityLabel(strings.photoOpen)
+    // whose moment and which day ("Open photo" is in it); the Button is the button trait
+    .accessibilityLabel(item.a11yLabel.isEmpty ? strings.photoOpen : item.a11yLabel)
     .accessibilityAddTraits(.isImage)
+    .accessibilityFocused(voFocus, equals: item.key)
     .kMenu(item.menu, preview: .rounded(16)) { actions.onItemAction(item.key, $0) }
     .frame(maxWidth: .infinity, alignment: item.mine ? .trailing : .leading)
     .padding(.bottom, 6)
@@ -431,6 +544,7 @@ struct KSongCard: View {
   let item: KChatItem
   let maxWidth: CGFloat
   let actions: KConversationActions
+  let voFocus: AccessibilityFocusState<String?>.Binding
 
   private static let shape = RoundedRectangle(cornerRadius: 16, style: .circular)
   private var edge: Alignment { item.mine ? .trailing : .leading }
@@ -467,6 +581,7 @@ struct KSongCard: View {
       .frame(maxWidth: maxWidth, alignment: edge)
       .accessibilityLabel(item.a11yLabel)
       .accessibilityAddTraits(.isLink)
+      .accessibilityFocused(voFocus, equals: item.key)
       .kMenu(item.menu, preview: .rounded(16)) { actions.onItemAction(item.key, $0) }
 
       if !item.shelfLink.isEmpty {
@@ -523,6 +638,14 @@ struct KFoldCard: View {
           .kText(.letter(13.5, italic: true))
           .foregroundStyle(theme.mute)
           .padding(.top, 8)
+      case .sealed where fold.answerKey.isEmpty:
+        // a room nothing can be left in: no door, only the hint if there is one
+        if !fold.hint.isEmpty {
+          Text(fold.hint)
+            .kText(.letter(13.5, italic: true))
+            .foregroundStyle(theme.mute)
+            .padding(.top, 8)
+        }
       case .sealed:
         SwiftUI.Button {
           actions.onItemPress(item.key, .fold)
@@ -603,6 +726,7 @@ struct KFoldHalfView: View {
 struct KRecallNote: View {
   let theme: KTheme
   let item: KChatItem
+  let voFocus: AccessibilityFocusState<String?>.Binding
 
   var body: some View {
     Text(item.body)
@@ -612,5 +736,7 @@ struct KRecallNote: View {
       .frame(maxWidth: .infinity, alignment: item.mine ? .trailing : .leading)
       .padding(.bottom, 4)
       .accessibilityLabel(item.a11yLabel.isEmpty ? item.body : item.a11yLabel)
+      // a quote of a line later taken back still jumps here
+      .accessibilityFocused(voFocus, equals: item.key)
   }
 }

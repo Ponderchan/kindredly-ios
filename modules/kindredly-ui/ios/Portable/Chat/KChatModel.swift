@@ -423,13 +423,21 @@ public final class KConversationDriver: ObservableObject {
   /// the voice card's state, for the item whose key is playbackKey
   @Published public var playback: KPlayback?
   @Published public var playbackKey = ""
-  /// the voice can't be played (no link yet, or it failed to load)
+  /// the voice can't be played yet: there is no signed link at all. The card then takes no taps,
+  /// so the owner never says this for a load that failed (offline, a lapsed link): that card stays
+  /// pressable, and the press loads it again.
   @Published public var voiceUnavailable = false
 
   /// the keyboard's overlap at the bottom of the surface, 0 while it is down
   @Published public internal(set) var keyboardHeight: CGFloat = 0
-  /// the last overlap seen while it was up (the tray takes its place at this height)
+  /// the software keyboard's height at its last rise (the tray takes its place at this height); 0
+  /// before any. Only a real software keyboard counts: a hardware keyboard's shortcut bar (55-70pt)
+  /// and the heights an interactive dismissal passes through on the way down never do.
   public internal(set) var lastKeyboardHeight: CGFloat = 0
+  /// the highest overlap of the keyboard's current rise
+  private var risePeak: CGFloat = 0
+  /// below this an overlap is a hardware keyboard's shortcut bar, not a keyboard (an SE's is 216)
+  static let softwareKeyboardMin: CGFloat = 200
   /// the room's trace tray is open (Swift owns it; the + toggles it)
   @Published public var trayOpen = false
 
@@ -447,7 +455,12 @@ public final class KConversationDriver: ObservableObject {
   /// The keyboard's measured overlap (KConversation calls this).
   func setKeyboard(_ height: CGFloat) {
     let h = max(0, height.rounded())
-    if h > 0 { lastKeyboardHeight = h }
+    if h > 0 {
+      // a new rise starts from nothing; on the way down (an interactive dismissal) the peak holds
+      if keyboardHeight == 0 { risePeak = 0 }
+      risePeak = max(risePeak, h)
+      if risePeak > Self.softwareKeyboardMin { lastKeyboardHeight = risePeak }
+    }
     if h != keyboardHeight { keyboardHeight = h }
   }
 
@@ -499,6 +512,11 @@ public final class KConversationActions {
 /// .45s cubic-bezier(.25,1.25,.45,1), H:129) and the lit row after a quote jump.
 public enum KChatMotion {
   public static let panelRise = Animation.timingCurve(0.25, 1.25, 0.45, 1, duration: 0.45)
+  /// The tray opening or closing: the rise, or under Reduce Motion a plain ease with no overshoot
+  /// (the list and the dock reflow inside the same transaction, so the curve moves them too).
+  public static func tray(reduceMotion: Bool) -> Animation {
+    reduceMotion ? .easeOut(duration: 0.2) : panelRise
+  }
   /// how long a quoted line stays lit after a jump to it
   public static let litSeconds: Double = 1.4
 }

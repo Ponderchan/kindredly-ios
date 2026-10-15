@@ -28,17 +28,22 @@ import SwiftUI
    the tray, a growing composer and a translation opening keep the newest line in view while at
    the bottom; a line arriving while the reader is up in the history moves nothing. The owner
    asks to follow a new line explicitly (scroll request onlyAtBottom), and to go to the end on
-   its own send.
+   its own send. Whether that request may move the list is decided by where the list stood when
+   the new row arrived (atBottomAtAppend, noted as items.last changes, before the new row's
+   layout), not when the request lands: by then a tall row the anchor didn't follow has already
+   pushed the end more than 60pt away, which is exactly the case the request is for.
  - Keep the place when older items go in above (pattern 6): an id-based ScrollPosition over
    .scrollTargetLayout(), anchored on the row nearest the dock (anchor .bottom), so the rows on
    screen stay put; a window that slides back toward the newest doesn't follow the end either.
    (Verify on a device: the spike measured ~45pt with the top anchor.)
  - Near the top (600pt) asks for older items once per arrival at the top; the end of a window
    that slid away from the newest asks for newer ones.
- - A quote jump scrolls the item to the centre and lights it (.5 for 1.4s); an item outside the
+ - A quote jump scrolls the item to the centre and lights it (.5 for 1.4s) and gives it
+   VoiceOver's focus once the scroll has settled (lit alone is only visual); an item outside the
    window is jumped to as soon as the owner's wider window arrives.
- - A drag dismisses the keyboard interactively; a tap on the list puts it away too (it used to:
-   React Native's default), while buttons in rows still do what they do.
+ - A drag dismisses the keyboard interactively; a tap on the list's empty space puts it away too
+   (it used to: React Native's default). Only empty space: the tap target sits behind the rows,
+   so ANSWER TO OPEN, a quote, the voice disc and every menu keep the keyboard where it is.
  */
 public struct KConversation: View {
   private let theme: KTheme
@@ -60,6 +65,8 @@ public struct KConversation: View {
   @State private var box = KConversationBox()
   /// the item lit after a quote jump
   @State private var lit: String?
+  /// VoiceOver's focus: a quote jump moves it to the line it lands on
+  @AccessibilityFocusState private var voFocus: String?
 
   /// - Parameters:
   ///   - items: the render window, oldest first; the list opens at the last
@@ -106,7 +113,7 @@ public struct KConversation: View {
     GeometryReader { geo in
       VStack(spacing: 0) {
         list(width: max(0, geo.size.width - 2 * Self.gutter))
-        KChatDockView(theme: theme, variant: variant, dock: dock, birds: birds, bottomInset: bottomInset, driver: driver, actions: actions)
+        KChatDockView(theme: theme, variant: variant, dock: dock, birds: birds, bottomInset: bottomInset, surfaceHeight: geo.size.height, driver: driver, actions: actions)
         KChatTray(theme: theme, traces: dock.traces, bottomInset: bottomInset, driver: driver, actions: actions)
       }
       .background { keyboardProbe }
@@ -125,6 +132,8 @@ public struct KConversation: View {
       if near && hasOlder { actions.onReachTop() }
     }
     .onChange(of: items.last?.key) { _, _ in
+      // where the list stood before the new row is laid out (a follow request reads it)
+      noteAppend()
       // the window has moved (or a line arrived): what the slide back asked for is in
       DispatchQueue.main.async { box.windowMoving = false }
       applyPendingJump()
@@ -155,7 +164,8 @@ public struct KConversation: View {
             width: width,
             strings: strings,
             driver: driver,
-            actions: actions
+            actions: actions,
+            voFocus: $voFocus
           )
           .equatable()
         }
@@ -164,16 +174,26 @@ public struct KConversation: View {
       .padding(.horizontal, Self.gutter)
       .padding(.top, 12)
       .padding(.bottom, 12)
+      // behind the rows, gutters and gaps: a tap on empty space, never on a row's controls
+      .background { dismissTarget }
     }
     .scrollPosition($position, anchor: .bottom)
     .defaultScrollAnchor(.bottom, for: .initialOffset)
     .defaultScrollAnchor(followsEnd ? UnitPoint.bottom : nil, for: .sizeChanges)
     .scrollDismissesKeyboard(.interactively)
     .kScrollChrome(chrome)
-    // a tap on the list puts the keyboard away; buttons in rows still get their own taps
-    .simultaneousGesture(TapGesture().onEnded {
-      if driver.body.isFocused || driver.prompt.isFocused { driver.blurAll() }
-    })
+    // and under a conversation shorter than the screen
+    .background { dismissTarget }
+  }
+
+  /// Empty space that puts the keyboard away when tapped.
+  private var dismissTarget: some View {
+    Color.clear
+      .contentShape(Rectangle())
+      .onTapGesture {
+        if driver.body.isFocused || driver.prompt.isFocused { driver.blurAll() }
+      }
+      .accessibilityHidden(true)
   }
 
   /// The keyboard's overlap: a reader that ignores the keyboard's safe area less one that
@@ -232,16 +252,35 @@ public struct KConversation: View {
     }
   }
 
+  /// Notes, as a new last row arrives and before its layout reaches the scroll geometry, whether
+  /// the list was at its end: a follow request (onlyAtBottom) is decided on that, for a second.
+  private func noteAppend() {
+    box.atBottomAtAppend = chrome.isAtBottom && !hasNewer
+    box.appendSerial += 1
+    let serial = box.appendSerial
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+      if box.appendSerial == serial { box.atBottomAtAppend = false }
+    }
+  }
+
   private func perform(_ request: KConversationDriver.ScrollRequest) {
-    if request.onlyAtBottom && !(chrome.isAtBottom && !hasNewer) { return }
+    // at the end now, or when the row this request follows arrived (a tall row the .sizeChanges
+    // anchor didn't follow has already taken the end out of reach)
+    let wasAtEnd = (chrome.isAtBottom || box.atBottomAtAppend) && !hasNewer
+    if request.onlyAtBottom && !wasAtEnd { return }
     switch request.target {
     case .top:
       move(request.animated) { position.scrollTo(edge: .top) }
     case .end:
       move(request.animated) { position.scrollTo(edge: .bottom) }
-      // and once more after the new row's real height is in (it was only estimated)
+      let follow = request.onlyAtBottom
+      // and once more after the new row's real height is in (it was only estimated); a follow
+      // only while the reader hasn't put a finger on the list since
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        if chrome.isAtBottom || !request.onlyAtBottom { position.scrollTo(edge: .bottom) }
+        if !follow || (!chrome.isInteracting && (chrome.isAtBottom || box.atBottomAtAppend)) {
+          position.scrollTo(edge: .bottom)
+        }
+        if follow { box.atBottomAtAppend = false }
       }
     case let .item(key):
       guard items.contains(where: { $0.key == key }) else {
@@ -251,7 +290,11 @@ public struct KConversation: View {
       }
       box.pendingJump = nil
       move(request.animated) { position.scrollTo(id: key, anchor: .center) }
-      if request.highlight { light(key) }
+      if request.highlight {
+        light(key)
+        // VoiceOver goes where the eye does, once the row is on screen
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { voFocus = key }
+      }
     }
   }
 
@@ -296,4 +339,8 @@ private final class KConversationBox {
   /// a slide back toward the newest is on its way: don't follow its rows to the end
   var windowMoving = false
   var windowMoveSerial = 0
+  /// the list was at its end when the last new row arrived (for a second, or until the follow
+  /// request it is for has run)
+  var atBottomAtAppend = false
+  var appendSerial = 0
 }

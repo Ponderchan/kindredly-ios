@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { AppState, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { KConversationView, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
@@ -7,6 +7,7 @@ import type { KChatCommands, KChatDockAction, KChatItem, KChatPart, KChatStrings
 import { SurfaceHost } from "../../components/NativeSurface";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { Introduction } from "../../components/Introduction";
+import { RoomIntroduction } from "./RoomIntroduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { WrenBird } from "../../components/WrenBird";
 import { getLang, t, useLang } from "../../lib/i18n";
@@ -14,7 +15,6 @@ import { useTheme } from "../../lib/theme";
 import { PF } from "../../theme/post";
 import { dLong, dShort, fmt } from "../../lib/format";
 import { archNameThird } from "../../lib/aura-copy";
-import { useAuth } from "../../lib/auth";
 import { blurThen } from "../../lib/keyboard";
 import { localImageRef, useSignedImageRefs, useSignedUrls } from "../../lib/images";
 import { useBirdImageRef } from "../../lib/bird-images";
@@ -142,16 +142,32 @@ function useOpeningVoice(detail: ThreadDetail | null, isDemo: boolean) {
   return { url, voice, durationS: detail?.openingDurationS ?? null };
 }
 
-/** A voice card shown unavailable (tapped before its link was signed) can't be tapped again, so
-    it is told again once the link is there: whatever the player last said, failure cleared. */
+/** The playback command for the voice card, never "unavailable" (known bug 2). KVoiceCard takes
+    no taps while unavailable, and voice-playback reloads a failed item only on the next press: a
+    failed load (offline, a lapsed link) is sent as a card at rest, so that press can come. The
+    card is unavailable only while there is no signed link at all (onVoice's own branch). */
+function voiceArgs(s: VoicePlayback | null): KChatCommands["playback"] {
+  return { ...playbackCommandArgs(s), failed: false };
+}
+
+/** The voice card is told again whenever its link changes (signed at last, re-signed every hour,
+    gone) and whenever the app comes back to the front (a connection back): whatever the player
+    last said, as a card that takes a press. */
 function useVoiceLinkArrived(url: string | null, send: () => void) {
-  const had = useRef(!!url);
+  const prev = useRef(url);
+  const sendRef = useRef(send);
+  sendRef.current = send;
   useEffect(() => {
-    if (url && !had.current) send();
-    had.current = !!url;
-    // `send` reads the latest state from a ref
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (url === prev.current) return;
+    prev.current = url;
+    sendRef.current();
   }, [url]);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") sendRef.current();
+    });
+    return () => sub.remove();
+  }, []);
 }
 
 /** The words the rows share. */
@@ -170,7 +186,6 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   useLang();
   const { key: themeKey, letterFont } = useTheme();
   const safe = useSafeAreaInsets();
-  const auth = useAuth();
   const { ref, commands, ui, live } = useChatSurface();
   const m = useRoomModel(id, { ui, expiredParam, closingParam });
   const detail = m.detail;
@@ -239,7 +254,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   const voice = useVoicePlayback({
     onChange: (s) => {
       voiceState.current = s;
-      commands.send("playback", playbackCommandArgs(s));
+      commands.send("playback", voiceArgs(s));
     },
   });
 
@@ -250,12 +265,14 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
     commands.send("setText", { target: "body", value: m.text });
     commands.send("setText", { target: "prompt", value: m.mode?.kind === "question" ? m.mode.prompt : "" });
     commands.send("composer", { canSend: m.composer.canSend, status: m.composer.status, statusAlarm: m.composer.statusAlarm, clearOnSend: m.composer.clearOnSend });
-    commands.send("playback", playbackCommandArgs(voiceState.current));
+    commands.send("playback", voiceArgs(voiceState.current));
   };
 
-  useVoiceLinkArrived(opening.url, () => commands.send("playback", playbackCommandArgs(voiceState.current)));
+  useVoiceLinkArrived(opening.url, () => commands.send("playback", voiceArgs(voiceState.current)));
   const onVoice = (key: string) => {
     if (!opening.url) {
+      // no signed link yet (offline): the one case the card shows itself unavailable, until the
+      // link arrives (useVoiceLinkArrived)
       commands.send("playback", { ...playbackCommandArgs(null), key, failed: true });
       return;
     }
@@ -321,24 +338,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
 
       <PhotoLightbox photo={m.photoFull} onClose={() => m.setPhotoFull(null)} />
       <SongShelf open={m.shelf} onClose={() => m.setShelf(false)} songs={m.songs} songSays={m.songSays} name={m.name} />
-      <Introduction
-        open={m.ceremony}
-        wren={m.wren}
-        otherSeed={detail?.other || "anon"}
-        otherFace={detail?.otherFace ?? null}
-        otherName={detail?.otherName || t("cm.kindred")}
-        otherArchetype={m.read?.archetype ? archNameThird(m.read.archetype.id) : null}
-        myName={auth.handle || t("in.meFallback")}
-        road={m.road}
-        mySeed={auth.user?.id || "me"}
-        myFace={(auth.profile?.avatarId as string) || null}
-        notice={m.kindredNotice}
-        since={detail?.revealedAt ?? new Date().toISOString()}
-        stamp={detail?.stamp ?? null}
-        onClose={() => m.setCeremony(false)}
-        // already in the room
-        onTalk={() => m.setCeremony(false)}
-      />
+      <RoomIntroduction m={m} />
     </View>
   );
 }
@@ -451,7 +451,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   const voice = useVoicePlayback({
     onChange: (s) => {
       voiceState.current = s;
-      commands.send("playback", playbackCommandArgs(s));
+      commands.send("playback", voiceArgs(s));
     },
   });
 
@@ -460,12 +460,13 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   live.current.reseed = () => {
     commands.send("setText", { target: "body", value: m.text });
     commands.send("composer", { canSend: m.composer.canSend, status: m.composer.status, statusAlarm: m.composer.statusAlarm, clearOnSend: m.composer.clearOnSend });
-    commands.send("playback", playbackCommandArgs(voiceState.current));
+    commands.send("playback", voiceArgs(voiceState.current));
   };
 
-  useVoiceLinkArrived(opening.url, () => commands.send("playback", playbackCommandArgs(voiceState.current)));
+  useVoiceLinkArrived(opening.url, () => commands.send("playback", voiceArgs(voiceState.current)));
   const onVoice = (key: string) => {
     if (!opening.url) {
+      // no signed link yet: unavailable until it arrives (useVoiceLinkArrived)
       commands.send("playback", { ...playbackCommandArgs(null), key, failed: true });
       return;
     }

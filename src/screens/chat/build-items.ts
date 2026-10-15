@@ -21,7 +21,8 @@ import { parseSongUrl } from "../../lib/song";
      minutes on the server's clock, report only with someone on the other
      side and never on a demo row, translate only when the words look like
      another language or a translation is already shown, nothing on a line
-     taken back
+     taken back; and nothing that writes (reply, ANSWER TO OPEN) in a room
+     that is gone, missing or expired — readable, not actionable (owner)
    · the dock: closing soon, Wren's notice, the sign door, the reply quote,
      the mode box, the gone line, the expired door, the placeholder, the
      trace tray
@@ -90,6 +91,16 @@ export function messageKey(m: ThreadMessage): string {
 export const foldKey = (f: Fold): string => `fold:${f.id}`;
 export const halfKey = (f: Fold): string => `half:${f.id}`;
 
+/** The demo room the App Store screenshots are taken in (lib/dev-store storeMode). */
+export const STORE_ROOM_ID = "demo-mira";
+const NO_FOLDS: readonly Fold[] = [];
+
+/** The folds a room draws. In store mode the screenshot room is its five lines in the reader's
+    language and nothing else: the demo folds are English and would sit between them. */
+export function roomFolds(folds: readonly Fold[], o: { id: string | undefined; storeMode: boolean }): readonly Fold[] {
+  return o.storeMode && o.id === STORE_ROOM_ID ? NO_FOLDS : folds;
+}
+
 /** Words that are nothing but a song link travel as a song (room/[id].tsx). */
 export function isBareSong(body: string): boolean {
   const t = body.trim();
@@ -115,11 +126,18 @@ export type MenuCtx = {
   trans: Translations;
   /** the words look like another language (lib/lang-guess offerTranslate) */
   canTranslate: (body: string) => boolean;
+  /** something can still be left here: false when their account is gone, the server calls the
+      thread missing, or the room expired. Readable, not actionable (owner): no reply in any menu,
+      no ANSWER TO OPEN on a sealed fold, no reply quote in the dock. */
+  canWrite: boolean;
 };
 
 const act = (key: string, title: string, icon: string, destructive = false): KMenuAction => ({ key, title, icon, destructive });
 
 const canReport = (id: string | null | undefined, c: MenuCtx): boolean => !!id && !c.isDemo && c.otherExists;
+
+/** Reply sits on a line with an id, in a room that can still be written in. */
+const canReply = (m: ThreadMessage, c: MenuCtx): boolean => !!m.id && c.canWrite;
 
 /** Whether a line of mine can still be taken back (two minutes on the server's clock). */
 export function takeBackOpen(m: ThreadMessage, nowMs: number, skewMs: number): boolean {
@@ -150,7 +168,7 @@ function translateAct(key: string, body: string, c: MenuCtx): KMenuAction | null
 export function lineMenu(m: ThreadMessage, key: string, c: MenuCtx): KMenuAction[] {
   if (m.recalledAt || !m.body) return [];
   const acts: KMenuAction[] = [];
-  if (m.id) acts.push(act("reply", c.t("mm.reply"), "arrowshape.turn.up.left"));
+  if (canReply(m, c)) acts.push(act("reply", c.t("mm.reply"), "arrowshape.turn.up.left"));
   acts.push(act("copy", c.t("mm.copy"), "doc.on.doc"));
   if (!m.mine) {
     const tr = translateAct(key, m.body, c);
@@ -166,7 +184,7 @@ export function lineMenu(m: ThreadMessage, key: string, c: MenuCtx): KMenuAction
 /** A moment: reply, and report theirs. */
 export function photoMenu(m: ThreadMessage, c: MenuCtx): KMenuAction[] {
   const acts: KMenuAction[] = [];
-  if (m.id) acts.push(act("reply", c.t("mm.reply"), "arrowshape.turn.up.left"));
+  if (canReply(m, c)) acts.push(act("reply", c.t("mm.reply"), "arrowshape.turn.up.left"));
   if (!m.mine && canReport(m.id, c)) acts.push(act("report", c.t("mm.report"), "flag", true));
   return acts;
 }
@@ -174,7 +192,7 @@ export function photoMenu(m: ThreadMessage, c: MenuCtx): KMenuAction[] {
 /** A song: reply, copy link, songs between you, report theirs. */
 export function songMenu(m: ThreadMessage, c: MenuCtx): KMenuAction[] {
   const acts: KMenuAction[] = [];
-  if (m.id) acts.push(act("reply", c.t("mm.reply"), "arrowshape.turn.up.left"));
+  if (canReply(m, c)) acts.push(act("reply", c.t("mm.reply"), "arrowshape.turn.up.left"));
   if (m.meta?.url) acts.push(act("copyLink", c.t("mm.copyLink"), "link"));
   acts.push(act("shelf", c.t("mm.songs"), "music.note.list"));
   if (!m.mine && canReport(m.id, c)) acts.push(act("report", c.t("mm.report"), "flag", true));
@@ -314,6 +332,8 @@ export function buildRoomItems(stream: readonly StreamItem[], c: RoomItemsCtx): 
         : [];
       const state: "open" | "waiting" | "sealed" = a ? "open" : f.mine ? "waiting" : "sealed";
       const q = f.kind === "question";
+      // a sealed fold in a room nothing can be left in has no door: no hint, no ANSWER TO OPEN
+      const answerable = state === "sealed" && c.canWrite;
       out.push({
         ...blank(foldKey(f), "fold", f.mine),
         dayLabel,
@@ -323,8 +343,8 @@ export function buildRoomItems(stream: readonly StreamItem[], c: RoomItemsCtx): 
           kindLabel,
           prompt,
           state,
-          hint: state === "waiting" ? c.t("rm.fold.waiting", { name: c.name }) : state === "sealed" ? (q ? c.t("rm.fold.answerToOpen") : c.t("rm.fold.foldToOpen")) : "",
-          answerKey: state === "sealed" ? (q ? c.t("rm.fold.answerKey") : c.t("rm.fold.foldKey")) : "",
+          hint: state === "waiting" ? c.t("rm.fold.waiting", { name: c.name }) : answerable ? (q ? c.t("rm.fold.answerToOpen") : c.t("rm.fold.foldToOpen")) : "",
+          answerKey: answerable ? (q ? c.t("rm.fold.answerKey") : c.t("rm.fold.foldKey")) : "",
           halves,
         },
         ownDay: day,
@@ -346,13 +366,16 @@ export function buildRoomItems(stream: readonly StreamItem[], c: RoomItemsCtx): 
     }
 
     if (isOpening(m) && c.voice) {
+      // the caption is the opening letter's words: copy, translate and keep, as they always were
       out.push({
         ...blank(key, "voice", m.mine),
         ...base,
         body: m.body,
-        a11yLabel: join(speaker, m.body),
+        a11yLabel: join(speaker, m.body, day),
         voiceKey: c.voice.key,
         voiceDuration: c.voice.duration,
+        menu: lineMenu(m, key, c),
+        ...translationOf(key, c.trans),
       });
       continue;
     }
@@ -429,13 +452,17 @@ export function buildLetterItems(conv: readonly ThreadMessage[], c: LetterItemsC
       continue;
     }
     if (isOpening(m) && c.voice) {
+      // the opening letter, spoken: its caption opens the reader and has the letter's menu
       out.push({
         ...blank(key, "voice", m.mine),
         speakerLabel: showLabel ? ownLabel : "",
         body: m.body,
-        a11yLabel: join(speaker, m.body),
+        a11yLabel: join(speaker, m.body, day),
+        tappable: true,
         voiceKey: c.voice.key,
         voiceDuration: c.voice.duration,
+        menu: letterMenu(m, key, c),
+        ...translationOf(key, c.trans),
         ownDay: day,
         ownLabel,
       });
@@ -561,6 +588,7 @@ export function buildRoomDock(i: RoomDockInput): KChatDock {
   const terminal: KChatDock["terminal"] = i.gone || i.missing ? "gone" : i.expired ? "expired" : "none";
   // a room in its last week says so above whatever is written — not while a fold is being written
   const showClosing = i.closing && terminal === "none" && !(i.mode && i.mode.kind !== "song");
+  const showReply = !!i.replyTo && !i.mode && terminal === "none";
   return {
     ...NO_DOCK,
     closingText: showClosing ? (i.daysLeft <= 1 ? t("rm.closing.day") : t("rm.closing.days", { n: i.daysLeft })) : "",
@@ -574,9 +602,10 @@ export function buildRoomDock(i: RoomDockInput): KChatDock {
           closeLabel: t("wren.trackClose"),
         }
       : null,
-    // the reply quote shows only while no mode is set (a fold carries no quote)
-    replyLabel: i.replyTo && !i.mode ? (i.replyTo.mine ? t("mm.replyingSelf") : t("mm.replyingTo", { name: i.name })).toLocaleUpperCase(i.locale) : "",
-    replyExcerpt: i.replyTo && !i.mode ? i.replyTo.quote.excerpt : "",
+    // the reply quote shows only while no mode is set (a fold carries no quote), and only over a
+    // composer: never above the gone line or the expired card
+    replyLabel: showReply && i.replyTo ? (i.replyTo.mine ? t("mm.replyingSelf") : t("mm.replyingTo", { name: i.name })).toLocaleUpperCase(i.locale) : "",
+    replyExcerpt: showReply && i.replyTo ? i.replyTo.quote.excerpt : "",
     replyCloseLabel: t("wren.trackClose"),
     mode:
       i.mode && terminal === "none"

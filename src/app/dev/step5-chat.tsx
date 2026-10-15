@@ -25,16 +25,26 @@ import { LettersRN } from "../../screens/chat/LettersRN";
                               extras (store mode: its five lines translated)
               demo-long       300 lines: the render window, paging near the
                               top, the quote jump outside the window
-              demo-voice      a voice opening with replies (known bug 2)
+              demo-voice      a voice opening with replies (known bug 2): the
+                              disc plays and stays pressable after a failed
+                              load; the caption's long press is copy / keep
               demo-closing    the closing line (?closing=1)
               demo-expired    the REKINDLE door (?expired=1)
+              demo-juno       expired: every kind in a room nothing can be
+                              left in — no Reply in any menu, a sealed fold
+                              with no ANSWER TO OPEN, no reply quote
               demo-gone-kindred  a kindred whose account is gone
      LETTERS  demo-north      you went first (5 and 5)
               demo-blackberry they went first, in gold
               demo-band-*     the band's three states
-              demo-voice      the voice opening as a letter block
+              demo-voice      the voice opening as a letter block: the
+                              caption opens the reader, its long press is
+                              the letter's menu
               demo-gone-penpal  a gone pen pal: the veil, ACCOUNT CLOSED
               demo-quiet      a short correspondence
+
+   In letters, a short letter's block hugs its words, and a long press
+   lifts the block itself, never the 86% around it.
 
    THEME cycles the dev theme override through Classic, Midnight, Lavender
    and Paper (and off); RN shows the React Native fallback on the same
@@ -51,6 +61,7 @@ const FIXTURES: Fixture[] = [
   { id: "demo-voice", variant: "room", label: "ROOM · VOICE" },
   { id: "demo-closing", variant: "room", label: "ROOM · CLOSING", closing: "1" },
   { id: "demo-expired", variant: "room", label: "ROOM · EXPIRED", expired: "1" },
+  { id: "demo-juno", variant: "room", label: "ROOM · CLOSED, EVERY KIND", expired: "1" },
   { id: "demo-gone-kindred", variant: "room", label: "ROOM · GONE" },
   { id: "demo-north", variant: "letters", label: "LETTERS · YOU FIRST" },
   { id: "demo-blackberry", variant: "letters", label: "LETTERS · THEY FIRST" },
@@ -102,7 +113,7 @@ function ChatLab() {
   const themeIndex = forced ? keys.indexOf(forced) : -1;
   const nextTheme = () => setDevThemeOverride(themeIndex + 1 < keys.length ? keys[themeIndex + 1] : null);
   // remount per fixture and renderer, so each opens fresh (and at its newest line)
-  const screenKey = `${fx.variant}:${fx.id}:${rn ? "rn" : "swift"}`;
+  const screenKey = `${index}:${fx.variant}:${fx.id}:${rn ? "rn" : "swift"}`;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: tk.bg }}>
@@ -115,7 +126,7 @@ function ChatLab() {
           <Chip label={`THEME ${forced ? THEMES[key].name.toUpperCase() : "OFF"}`} onPress={nextTheme} />
           <Chip label={rn ? "RN" : "SWIFT"} on={rn} onPress={() => available && setRn((v) => !v)} />
           {FIXTURES.map((f, i) => (
-            <Chip key={`${f.variant}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
+            <Chip key={`${i}:${f.variant}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
           ))}
         </ScrollView>
         {!available ? (
