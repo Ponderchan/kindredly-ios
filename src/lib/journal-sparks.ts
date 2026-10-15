@@ -3,6 +3,8 @@ import { t as tr } from "./i18n";
 import { detectThemes } from "./writing-engine/journal-sparks/detect-themes";
 import { THEME_SPARK } from "./writing-engine/journal-sparks/themes";
 import { getMood } from "../data/moods";
+// js.42 and js.43 (two sparks that used to be raw English) are registered there
+import "../data/strings-step5-notes";
 
 /* The line on an empty SEALED page (just for me).
    ────────────────────────────────────────────────────────────────────────
@@ -57,7 +59,7 @@ const NIGHT = [
 const FUTURE = [
   "js.17",
   "js.18",
-  "I hope you still remember…",
+  "js.42",
   "js.19",
   "js.10",
   "js.15",
@@ -76,7 +78,7 @@ const PRIVATE = [
   "js.24",
   "js.23",
   "js.21",
-  "behind the \"I'm fine\"…",
+  "js.43",
   "js.22",
   "js.20",
 ];

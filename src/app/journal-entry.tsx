@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { usePreventRemove } from "expo-router/react-navigation";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
 import { getLang, t, useLang } from "../lib/i18n";
 import { DEMO_TEXT, storeMode } from "../lib/dev-store";
 import { PF } from "../theme/post";
 import { useP } from "../lib/theme";
-import { SelfCompose } from "../components/SelfCompose";
+import { SelfCompose, type SelfComposeState } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
+import "../data/strings-step5-notes";
 
 /* The sealed room's desk — its own page again.
 
@@ -28,18 +30,40 @@ export default function JournalEntryRoute() {
   useLang();
   const P = useP();
   const router = useRouter();
+  const navigation = useNavigation();
   const { demo } = useLocalSearchParams<{ demo?: string }>();
   const [text, setText] = useState(__DEV__ && storeMode && demo ? DEMO_TEXT[getLang()].line : "");
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
+  const goBack = useCallback(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal")), [router]);
 
   /* Same guard as the letter desk, minus the draft. A sealed page has no
      draft shelf — and it shouldn't get one here: this room's whole promise is
      that nothing leaves it, so a half-written page either becomes an entry or
-     it never existed. */
+     it never existed.
+
+     10a step 5: the guard covers everything a page can hold — words,
+     pictures, a film, a finished recording (it used to look at the words
+     only, so ✕ threw a recording away without asking) — and every way out:
+     ✕, the edge swipe and anything else that removes the page all come
+     through usePreventRemove, which also stops the native swipe while it
+     holds. It lets the page go while it seals and once it is sealed (the
+     send-off leaves by itself), and the sheet's DISCARD replays the very
+     removal it caught, so it can't loop back into the guard. A recording
+     still in progress isn't counted until it stops (Recorder says nothing
+     before then). */
+  const [page, setPage] = useState<SelfComposeState>({ hasSomething: false, busy: false, sealed: false });
+  const guarded = page.hasSomething && !page.busy && !page.sealed;
   const [leaving, setLeaving] = useState(false);
-  const closeWithGuard = () => {
-    if (!text.trim()) return goBack();
+  const caught = useRef<Parameters<Parameters<typeof usePreventRemove>[1]>[0]["data"]["action"] | null>(null);
+  usePreventRemove(guarded, ({ data }) => {
+    caught.current = data.action;
     openLeaveSheet(() => setLeaving(true));
+  });
+  const discard = () => {
+    setLeaving(false);
+    const action = caught.current;
+    caught.current = null;
+    if (action) navigation.dispatch(action);
+    else goBack();
   };
 
   return (
@@ -49,7 +73,7 @@ export default function JournalEntryRoute() {
           not a title. It sits with the close button; the promise sits opposite
           it. */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 20, paddingTop: 6, paddingBottom: 10 }}>
-        <Pressable onPress={closeWithGuard} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
+        <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         <Text style={{ fontFamily: PF.letter, fontSize: 22, fontWeight: "700", color: P.ink, marginLeft: 6 }}>
@@ -61,17 +85,20 @@ export default function JournalEntryRoute() {
             <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke={P.ink40} strokeWidth={1.3} strokeLinecap="round" />
             <Rect x={2.5} y={5.6} width={7} height={5} fill={P.ink40} />
           </Svg>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: P.ink40 }}>{t("je.justForMe")}</Text>
+          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{t("je.justForMe")}</Text>
         </View>
       </View>
-      <SelfCompose text={text} setText={setText} onDone={goBack} />
+      <SelfCompose text={text} setText={setText} onDone={goBack} onState={setPage} />
 
       <LeaveSheet
         open={leaving}
         title={t("je.leaveTitle")}
-        body={t("je.leaveBody")}
-        actions={[{ label: t("cp.leave.discard"), kind: "destructive", onPress: goBack }]}
-        onCancel={() => setLeaving(false)}
+        body={text.trim() ? t("je.leaveBody") : t("je.leaveBodyMedia")}
+        actions={[{ label: t("cp.leave.discard"), kind: "destructive", onPress: discard }]}
+        onCancel={() => {
+          caught.current = null;
+          setLeaving(false);
+        }}
       />
     </SafeAreaView>
   );

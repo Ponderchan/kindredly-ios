@@ -168,3 +168,68 @@ export const moodName = (id: MoodId): string => {
   if (lang === "en") return getMood(id).n;
   return (MOOD_LOC[id] as any)?.[lang] || getMood(id).n;
 };
+
+/* ── THE FOUR GROUPS (10a, owner 2026-10-15) ───────────────────────────
+   10a draws a page's mood as one of four colours with a line face: Calm,
+   Happy, Tired, Low. The owner kept the thirty faces as the choices INSIDE
+   a group: "四组（平静/开心/累/低落），生气类归「低落」，不加第五组" — the
+   angry faces go to Low, there is no fifth group. Storage is unchanged: a
+   page still stores one of the thirty MoodIds (or an old legacy id), and its
+   group is worked out from that face every time it is drawn.
+
+   The table below is the mapping the owner asked to be shown ("映射表待出给
+   他看"); it is built by tone and is a proposal until he signs it off. The
+   FIRST face of each group is the one stored when only the colour block is
+   tapped (owner question 8's default: Calm / Cheerful / Sleepy / Nervous —
+   not Heartbroken, which says more than a writer who only chose blue did).
+   That face's name is printed after the date and its tone feeds the
+   empty-page sparks and the private Aura tone stickers, so a change here is
+   a product change, not a refactor.
+
+   The colours are the 10a mood pairs in themes.json "mood" (theme/themes
+   MOOD10A, KMood in Swift), the same in every theme; this file stays free
+   of them so the pure builders and their node tests can read the table. */
+
+export type MoodGroup = "calm" | "happy" | "tired" | "low";
+
+/** the four groups, in the owner's order */
+export const MOOD_GROUPS: readonly MoodGroup[] = ["calm", "happy", "tired", "low"];
+
+/** every face in its group, the group's default face first (5 + 9 + 5 + 11 = 30) */
+export const MOOD_GROUP_FACES: Readonly<Record<MoodGroup, readonly MoodId[]>> = {
+  calm: ["calm", "content", "pleased", "okay", "shy"],
+  happy: ["cheerful", "delighted", "excited", "playful", "in-love", "amazed", "surprised", "smug", "mischievous"],
+  tired: ["sleepy", "drained", "numb", "meh", "over-it"],
+  low: ["nervous", "crying", "heartbroken", "shocked", "stunned", "frustrated", "irritable", "grumpy", "unimpressed", "angry", "mad"],
+};
+
+/** the face stored when a group's colour block is tapped and no face is picked (owner question 8) */
+export const MOOD_GROUP_DEFAULT: Readonly<Record<MoodGroup, MoodId>> = {
+  calm: MOOD_GROUP_FACES.calm[0],
+  happy: MOOD_GROUP_FACES.happy[0],
+  tired: MOOD_GROUP_FACES.tired[0],
+  low: MOOD_GROUP_FACES.low[0],
+};
+
+/** each group's display name key (strings-step5-notes) */
+export const MOOD_GROUP_KEY: Readonly<Record<MoodGroup, string>> = {
+  calm: "mood.group.calm",
+  happy: "mood.group.happy",
+  tired: "mood.group.tired",
+  low: "mood.group.low",
+};
+
+const GROUP_OF = (() => {
+  const out = {} as Record<MoodId, MoodGroup>;
+  for (const g of MOOD_GROUPS) for (const id of MOOD_GROUP_FACES[g]) out[id] = g;
+  return out;
+})();
+
+/** A stored mood's group, through getMood: the seven legacy ids map by their face, and a missing
+    or unknown value is Calm (the colour a page with no readable mood has always been drawn in). */
+export const moodGroup = (id?: string | null): MoodGroup => GROUP_OF[getMood(id).id] ?? "calm";
+
+/** Whether a page ever stored a mood this app can name: one of the thirty, or a legacy id. A page
+    without one keeps the Calm colour but shows no mood name ("· Calm" would claim a choice that was
+    never made). */
+export const isNamedMood = (id?: string | null): boolean => !!id && (id in MOODS || id in LEGACY_MOOD);

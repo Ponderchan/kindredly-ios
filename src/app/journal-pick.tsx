@@ -7,7 +7,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as MediaLibrary from "expo-media-library/legacy";
 import Svg, { Line, Path, Rect } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { BRAND } from "../theme/themes";
+import { useP, useTheme } from "../lib/theme";
 import { leavePicked, takeKept } from "../lib/journal-handoff";
 
 /* TO YOURSELF STARTS AT THE PICTURES (owner, 2026-09-20).
@@ -26,11 +28,21 @@ import { leavePicked, takeKept } from "../lib/journal-handoff";
    so nothing is copied until NEXT; a `ph://` frame is resolved to a file
    only for the ones that were chosen. With ?more=1 the roll is adding to
    a page that already has pictures: the keys are hidden, and NEXT merges
-   and goes back instead of opening a new page. */
+   and goes back instead of opening a new page.
+
+   10a step 5: painted from the theme (useP / useTheme) — the page, the
+   album sheet (it was a fixed white slab, glaring in Midnight), the empty
+   frames and the selected album row. The two note keys keep their own pale
+   colours with a fixed dark ink on them, the marks on a picture stay white
+   on dark, and the pick stays the confirm green. Mono labels at 10 and 11. */
 
 /* the pick is a confirmation, so it wears the app's confirm green — the
    kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
 const TICK = "#2E7D4F";
+/* the two note keys keep their own pale colours in every theme (P.keyText,
+   P.keyVoice), so their glyphs and words keep a fixed dark ink: the theme's
+   ink is light in Midnight */
+const KEY_INK = BRAND.inkOnBrand;
 const MAX = 9;
 const PAGE = 60;
 type Frame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
@@ -38,6 +50,8 @@ type Album = { id: string | null; title: string; count: number; cover: string | 
 
 export default function JournalPick() {
   useLang();
+  const P = useP();
+  const { t: tk } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -208,7 +222,7 @@ export default function JournalPick() {
   const Tile = ({ label, tint, onPress, children }: { label: string; tint: string; onPress: () => void; children: React.ReactNode }) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: tint, opacity: pressed ? 0.6 : 1 })}>
       {children}
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: P.ink }}>{label.toUpperCase()}</Text>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: KEY_INK }}>{label.toUpperCase()}</Text>
     </Pressable>
   );
 
@@ -219,7 +233,7 @@ export default function JournalPick() {
     return (
       <Pressable key={item.id} onPress={() => toggle(item)} style={{ width: cell, height: cell }}>
         {/* expo-image reads ph:// straight from the library; RN's Image cannot */}
-        <Image source={{ uri: item.uri }} style={{ width: cell, height: cell, backgroundColor: "#EFEDE6" }} contentFit="cover" recyclingKey={item.id} transition={0} />
+        <Image source={{ uri: item.uri }} style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} contentFit="cover" recyclingKey={item.id} transition={0} />
         {item.video ? (
           <View style={{ position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(17,17,19,0.55)", paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 }}>
             <Svg width={8} height={8} viewBox="0 0 24 24" fill="#FFFFFF">
@@ -243,18 +257,18 @@ export default function JournalPick() {
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
       <Tile label={t("jp.write")} tint={P.keyText} onPress={() => router.replace("/journal-entry")}>
-        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={KEY_INK} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M4 20l4-1 11-11-3-3L5 16z" />
           <Line x1={13} y1={8} x2={16} y2={11} />
         </Svg>
       </Tile>
       <Tile label={t("jp.say")} tint={P.keyVoice} onPress={() => router.replace("/journal-entry?start=voice")}>
-        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={KEY_INK} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
           <Rect x={9} y={3} width={6} height={11} rx={3} />
           <Path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
         </Svg>
       </Tile>
-      {frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: "#EFEDE6" }} />}
+      {frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
     </View>
   );
   const rest = adding ? frames : frames.slice(1);
@@ -317,7 +331,7 @@ export default function JournalPick() {
         ListFooterComponent={
           perm === "limited" ? (
             <Pressable onPress={() => void MediaLibrary.presentPermissionsPickerAsync()} hitSlop={8} style={{ alignItems: "center", paddingVertical: 18 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.2, color: P.pen }}>{t("jp.limited")} ›</Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen }}>{t("jp.limited")} ›</Text>
             </Pressable>
           ) : null
         }
@@ -325,7 +339,7 @@ export default function JournalPick() {
 
       {/* the albums, dropped from the title: a full sheet of them over the roll */}
       {albumsOpen && (
-        <Animated.View entering={SlideInUp.duration(260)} exiting={SlideOutUp.duration(220)} style={{ position: "absolute", left: 0, right: 0, top: insets.top + 54, bottom: 0, backgroundColor: "#FFFFFF" }}>
+        <Animated.View entering={SlideInUp.duration(260)} exiting={SlideOutUp.duration(220)} style={{ position: "absolute", left: 0, right: 0, top: insets.top + 54, bottom: 0, backgroundColor: tk.sf }}>
           {albums === null ? (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
               <ActivityIndicator color={P.ink40} />
@@ -338,12 +352,12 @@ export default function JournalPick() {
               renderItem={({ item, index }) => {
                 const current = index === 0 ? album.id === null : album.id === item.id;
                 return (
-                  <Pressable onPress={() => openAlbum(item, index === 0)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, height: 62, backgroundColor: current || pressed ? "#F3F2FA" : "transparent" })}>
-                    <View style={{ width: 44, height: 44, borderRadius: 4, backgroundColor: "#EFEDE6", overflow: "hidden" }}>
+                  <Pressable onPress={() => openAlbum(item, index === 0)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, height: 62, backgroundColor: current || pressed ? tk.lav2 : "transparent" })}>
+                    <View style={{ width: 44, height: 44, borderRadius: 4, backgroundColor: tk.soft2, overflow: "hidden" }}>
                       {!!item.cover && <Image source={{ uri: item.cover }} style={{ width: 44, height: 44 }} contentFit="cover" transition={0} />}
                     </View>
                     <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letter, fontSize: 16, color: P.ink }}>{item.title}</Text>
-                    <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>{item.count}</Text>
+                    <Text style={{ fontFamily: PF.monoMed, fontSize: 11, color: P.ink40 }}>{item.count}</Text>
                   </Pressable>
                 );
               }}

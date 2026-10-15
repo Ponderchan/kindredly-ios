@@ -1,164 +1,188 @@
-import { Image, Pressable, Text, View } from "react-native";
+import { memo, useEffect, useState } from "react";
+import { Image, Pressable, Text, View, type AccessibilityActionEvent } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import Svg, { Path, Rect } from "react-native-svg";
-import { P, PF } from "../theme/post";
-import { W14, cardShadow } from "./AuraCard";
-import { MoodIcon } from "./MoodIcon";
-import { getMood } from "../data/moods";
-import { fmt, hashStr, localeTag } from "../lib/format";
-import type { JournalEntry } from "../lib/journal";
+import { PF } from "../theme/post";
+import { BRAND } from "../theme/themes";
+import { useTheme } from "../lib/theme";
+import { playbackProgress, type VoicePlayback } from "../lib/voice-playback";
+import { MoodChip, PlayMark, TypeIcon } from "../screens/notes/notes-glyphs";
+import { waveHeight, type NoteVM, type NotesView } from "../screens/notes/notes-model";
 
-/* ONE PAGE ON THE WALL — the owner's T7 (Sealed Eight Sets).
-   ────────────────────────────────────────────────────────────────────────
-   A white card whose height is its content's: six lines of serif for a
-   text page; a photo edge to edge with +N; a voice page is its waveform
-   with the play button on the bar and, when there are words, one line
-   of them beneath; a video is its first frame with a play mark and the
-   length. Along the top of every card: the mood's own face, the day, and
-   the kind — the top since 2026-09-23, as on the web's card and the way a
-   letter wears its postmark: a page is found by its day, and in two
-   columns of uneven cards the tops are the one line the eye comes back
-   to. One picture, with +N for the rest. Two columns of these, dealt in
-   turn, is the wall. */
+/* ONE NOTE — the React Native twin of Swift's KNoteCard (10a step 5), for
+   the Notes fallback. It draws a NoteVM (screens/notes/notes-model), so
+   every word on it is the one the SwiftUI card shows.
 
-/* each kind's own colour — the sheet's four: text indigo, photo green,
-   voice amber, video coral. The voice bar wears it too, not the mood. */
-const KIND_INK: Record<JournalEntry["type"], string> = { text: "#3A34D6", photo: "#2E7D4F", voice: "#C98A1B", video: "#E5484D" };
+   The 10a card (H:55, H:344): the theme's card face, a 1.5 ln outline, no
+   shadow, corners 22 (16 in List). Along the top, the group's colour with
+   its line face (36 on a Card, 28 in Grid and List) and the date in mono —
+   "OCT 14 · 21:37 · Sleepy" on a Card, "OCT 14" in Grid (owner question
+   9), "OCT 14 · Sleepy" in List — and the type icon in ind. Then what it
+   holds: the cover (160 tall, 96 in Grid, +N for the rest), a video's
+   frame with its length, or a voice note's waveform with a small play
+   mark of our own (owner question 10) on the screen's ONE player; then
+   the words — whole on a Card, five lines in Grid, one line in List.
+   Pressed, it dips a point. VoiceOver hears one button with the whole
+   label, and Play / Pause as actions on a voice note.
 
-export const day = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.toLocaleDateString(localeTag(), { month: "short" }).toUpperCase()} ${d.getDate()}`;
+   A video still plays muted in its own player here (the SwiftUI card shows
+   a still frame instead): this is the fallback, and it keeps what the wall
+   always did. */
+
+/* the badges sit on the picture, in the same dark ink in every theme */
+const ON_PICTURE = "rgba(30,27,53,0.72)";
+const ON_PICTURE_SOFT = "rgba(30,27,53,0.55)";
+
+type Props = {
+  note: NoteVM;
+  layout: NotesView;
+  /** the screen's one player (useVoicePlayback state) */
+  playback: VoicePlayback | null;
+  onPress: (id: string) => void;
+  onToggleVoice: (id: string) => void;
+  playLabel: string;
+  pauseLabel: string;
 };
 
-export function SealedTile({ e, onPress }: { e: JournalEntry; onPress: () => void }) {
-  const m = getMood(e.mood);
-  const photos = e.type === "photo" ? (e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []) : [];
+export const SealedTile = memo(function SealedTile({ note, layout, playback, onPress, onToggleVoice, playLabel, pauseLabel }: Props) {
+  const { t: tk } = useTheme();
+  const list = layout === "list";
+  const grid = layout === "grid";
+  const chip = list || grid ? { size: 28, radius: 9, face: 18 } : { size: 36, radius: 11, face: 22 };
+  const label = list ? note.listLabel : grid ? note.shortLabel : note.label;
+  const mine = playback && playback.key === note.id ? playback : null;
+  const playing = !!mine?.playing;
+  const voice = note.kind === "voice" && !!note.voice;
+
+  const onAction = (e: AccessibilityActionEvent) => {
+    if (e.nativeEvent.actionName === "activate") onPress(note.id);
+    else if (e.nativeEvent.actionName === "voice") onToggleVoice(note.id);
+  };
+
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [{ backgroundColor: W14.card, borderRadius: 14, overflow: "hidden", opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}>
-      {/* the head: the mood's face on a tile of its own colour, the day in
-          solid ink, the kind in its type colour */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 8 }}>
-        <View style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: m.bg, alignItems: "center", justifyContent: "center" }}>
-          <MoodIcon id={m.id} size={20} />
-        </View>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.ink }} numberOfLines={1}>{day(e.date)}</Text>
-        <KindMark kind={e.type} />
+    <Pressable
+      onPress={() => onPress(note.id)}
+      accessibilityRole="button"
+      accessibilityLabel={note.a11y}
+      accessibilityActions={voice && !list ? [{ name: "activate" }, { name: "voice", label: playing ? pauseLabel : playLabel }] : [{ name: "activate" }]}
+      onAccessibilityAction={onAction}
+      style={({ pressed }) => ({
+        backgroundColor: tk.sf,
+        borderWidth: 1.5,
+        borderColor: tk.ln,
+        borderRadius: list ? 16 : 22,
+        flexDirection: list ? "row" : "column",
+        alignItems: list ? "center" : "stretch",
+        gap: list ? 12 : grid ? 10 : 12,
+        paddingTop: list ? 10 : grid ? 12 : 14,
+        paddingBottom: list ? 10 : grid ? 14 : 16,
+        paddingLeft: list ? 10 : grid ? 12 : 16,
+        paddingRight: list ? 14 : grid ? 12 : 16,
+        transform: pressed ? [{ translateX: 1 }, { translateY: 1 }] : [],
+        // in Grid a row is as tall as its taller note: both fill it
+        flexGrow: grid ? 1 : 0,
+      })}
+    >
+      {/* the head: the group's colour and face, the date, the type */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: list ? 0 : 1 }}>
+        <MoodChip group={note.group} size={chip.size} radius={chip.radius} face={chip.face} />
+        <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }}>
+          {label}
+        </Text>
+        {!list && (
+          <>
+            <View style={{ flex: 1 }} />
+            <TypeIcon kind={note.kind} color={tk.ind} />
+          </>
+        )}
       </View>
 
-      {e.type === "photo" && photos.length > 0 && (
-        <View style={{ marginHorizontal: 8, borderRadius: 10, overflow: "hidden" }}>
-          <Image source={{ uri: photos[0] }} style={{ width: "100%", aspectRatio: 1 }} resizeMode="cover" />
-          {photos.length > 1 && (
-            <View style={{ position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(30,27,53,0.72)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#FFFFFF" }}>+{photos.length - 1}</Text>
+      {!list && note.kind === "photo" && !!note.photo && (
+        <View style={{ height: grid ? 96 : 160, borderRadius: 12, overflow: "hidden", backgroundColor: tk.soft2 }}>
+          <Image source={{ uri: note.photo }} style={{ width: "100%", height: "100%" }} resizeMode="cover" accessibilityIgnoresInvertColors />
+          {note.photoMore > 0 && <Badge text={`+${note.photoMore}`} />}
+        </View>
+      )}
+      {!list && note.kind === "video" && !!note.video && (
+        <View style={{ height: grid ? 96 : 160, borderRadius: 12, overflow: "hidden", backgroundColor: tk.soft2 }}>
+          <VideoTile uri={note.video} />
+          <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: ON_PICTURE_SOFT, alignItems: "center", justifyContent: "center" }}>
+              <PlayMark playing={false} size={14} color={BRAND.paperWhite} />
             </View>
-          )}
+          </View>
+          {!!note.duration && <Badge text={note.duration} />}
         </View>
       )}
-      {e.type === "video" && !!e.mediaUri && (
-        <View style={{ marginHorizontal: 8, borderRadius: 10, overflow: "hidden" }}>
-          <VideoTile uri={e.mediaUri} dur={e.dur} />
-        </View>
-      )}
-      {e.type === "voice" && !!e.mediaUri && <VoiceTile uri={e.mediaUri} dur={e.dur} tint={KIND_INK.voice} seed={e.id} />}
+      {!list && voice && <VoiceRow note={note} playback={mine} onToggle={() => onToggleVoice(note.id)} />}
 
-      {/* the words: a text page gets six lines; a caption under media gets two */}
-      {!!e.body ? (
-        <View style={{ paddingHorizontal: 12, paddingTop: e.type === "text" ? 2 : 8, paddingBottom: 12 }}>
-          {/* a page, not a letter: the system face (SF / PingFang), as the
-              rest of the sealed room has always been — the serif is for
-              letters between people. 15.5 / 25 for a page, 13 / 20 for a
-              caption; clamped by LINES, so a cut never lands inside a glyph */}
-          <Text style={{ fontFamily: PF.letter, fontSize: e.type === "text" ? 15.5 : 13, lineHeight: e.type === "text" ? 25 : 20, color: e.type === "text" ? P.ink : P.ink60 }} numberOfLines={e.type === "text" ? 6 : 2}>
-            {e.body}
-          </Text>
-        </View>
-      ) : (
-        <View style={{ height: 10 }} />
-      )}
+      {list ? (
+        <Text numberOfLines={1} style={{ flex: 1, fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
+          {note.listLine}
+        </Text>
+      ) : note.body ? (
+        <Text numberOfLines={grid ? 5 : undefined} style={{ fontSize: grid ? 15 : 17, lineHeight: grid ? 22.5 : 25.5, color: tk.ink }}>
+          {note.body}
+        </Text>
+      ) : null}
+
+      {list && <TypeIcon kind={note.kind} color={tk.ind} />}
     </Pressable>
   );
-}
+});
 
-export function KindMark({ kind }: { kind: JournalEntry["type"] }) {
-  const c = KIND_INK[kind];
+function Badge({ text }: { text: string }) {
   return (
-    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-      {kind === "text" && <Path d="M4 7h16M4 12h16M4 17h10" />}
-      {kind === "photo" && (
-        <>
-          <Rect x={3} y={4} width={18} height={16} rx={2} />
-          <Path d="M3 16l5-5 4 4 3-3 6 6" />
-        </>
-      )}
-      {kind === "voice" && <Path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2" />}
-      {kind === "video" && (
-        <>
-          <Rect x={3} y={5} width={18} height={14} rx={2} />
-          <Path d="M10 9l5 3-5 3z" fill={c} />
-        </>
-      )}
-    </Svg>
+    <View style={{ position: "absolute", right: 8, bottom: 8, backgroundColor: ON_PICTURE, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: BRAND.paperWhite }}>{text}</Text>
+    </View>
   );
 }
 
-/* a video: its first frame, still, a play mark and the length */
-function VideoTile({ uri, dur }: { uri: string; dur?: number }) {
-  // muted, playing, looping — the first frames ARE the thumbnail, and a
-  // paused player showed a black box in the wall
+/* a video in the fallback: muted, playing, looping — the first frames ARE
+   the thumbnail, and a paused player showed a black box */
+function VideoTile({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.muted = true;
     p.loop = true;
     p.play();
   });
-  return (
-    <View style={{ backgroundColor: "#1C1A22", aspectRatio: 4 / 3 }}>
-      <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="cover" nativeControls={false} pointerEvents="none" />
-      <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(30,27,53,0.55)", alignItems: "center", justifyContent: "center" }}>
-          <Svg width={14} height={14} viewBox="0 0 24 24">
-            <Path d="M8 5l12 7-12 7z" fill="#FFFFFF" />
-          </Svg>
-        </View>
-      </View>
-      <View style={{ position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-        <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 10 }}>{fmt(dur || 0)}</Text>
-      </View>
-    </View>
-  );
+  return <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="cover" nativeControls={false} pointerEvents="none" />;
 }
 
-/* a voice page: the play button on the bar, bars as long as the recording
-   (one per two seconds, capped), the length at the end. The bar heights are
-   fixed per page so the card never dances. */
-function VoiceTile({ uri, dur, tint, seed }: { uri: string; dur?: number; tint: string; seed: string }) {
-  const player = useAudioPlayer(uri);
-  const status = useAudioPlayerStatus(player);
-  const total = status.duration || dur || 0;
-  const pct = total > 0 ? Math.min(1, (status.currentTime || 0) / total) : 0;
-  const n = Math.max(9, Math.min(22, Math.round((dur || 0) / 2) + 6));
-  const bars = Array.from({ length: n }, (_, i) => 5 + (hashStr(`${seed}:${i}`) % 13));
-  const toggle = () => {
-    if (status.playing) player.pause();
-    else {
-      if (total > 0 && pct >= 0.99) player.seekTo(0);
-      player.play();
-    }
-  };
+/* A voice note: our small play mark, the seeded bars (4 wide, 3 apart,
+   6–34 tall in a 36 box, as many as fit), the length. At rest the bars are
+   ind at .8; while it plays, the played part is ind and the rest .3. The
+   bars move on locally from the player's last transition. */
+function VoiceRow({ note, playback, onToggle }: { note: NoteVM; playback: VoicePlayback | null; onToggle: () => void }) {
+  const { t: tk } = useTheme();
+  const [w, setW] = useState(0);
+  const playing = !!playback?.playing;
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => tick((n) => n + 1), 100);
+    return () => clearInterval(id);
+  }, [playing]);
+  const progress = playback ? playbackProgress(playback) : 0;
+  const count = w > 0 ? Math.max(1, Math.floor((w + 3) / 7)) : 0;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingTop: 2 }}>
-      <Pressable onPress={toggle} hitSlop={8} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
-        <Svg width={12} height={12} viewBox="0 0 24 24">
-          {status.playing ? <Path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="#FFFFFF" /> : <Path d="M8 5l12 7-12 7z" fill="#FFFFFF" />}
-        </Svg>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <Pressable
+        onPress={onToggle}
+        hitSlop={9}
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={({ pressed }) => ({ width: 26, height: 26, borderRadius: 13, backgroundColor: tk.lav, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
+      >
+        <PlayMark playing={playing} size={12} color={tk.ind} />
       </Pressable>
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 2, height: 22 }}>
-        {bars.map((h, i) => (
-          <View key={i} style={{ width: 3, height: h, borderRadius: 1.5, backgroundColor: i / n < pct ? tint : "#DCD9F0" }} />
-        ))}
+      <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ flex: 1, height: 36, flexDirection: "row", alignItems: "center", gap: 3, overflow: "hidden" }}>
+        {Array.from({ length: count }, (_, i) => {
+          const lit = playback && (playing || playback.positionS > 0) ? i / count < progress : null;
+          return <View key={i} style={{ width: 4, height: waveHeight(note.waveSeed, i), borderRadius: 2, backgroundColor: tk.ind, opacity: lit === null ? 0.8 : lit ? 1 : 0.3 }} />;
+        })}
       </View>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, color: P.ink60 }}>{fmt(dur || 0)}</Text>
+      {!!note.duration && <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.1, color: tk.sub }}>{note.duration}</Text>}
     </View>
   );
 }

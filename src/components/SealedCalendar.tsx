@@ -1,79 +1,61 @@
-import { useMemo, useState } from "react";
-import { localeTag } from "../lib/format";
-import { t } from "../lib/i18n";
 import { Pressable, Text, View } from "react-native";
-import { F } from "../theme/tokens";
-import { P, PF } from "../theme/post";
+import Svg, { Path } from "react-native-svg";
+import { PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 import { MoodIcon } from "./MoodIcon";
-import type { JournalEntry } from "../lib/journal";
+import type { MonthVM } from "../screens/notes/notes-model";
 
-/* The month as an emotional weather map: every day you wrote drops that day's
-   mood face into its cell. Tap a filled day → its detail. The calendar is the
-   only navigation a private journal needs — no filter row. */
+/* The month as an emotional weather map, in the Notes fallback (10a step
+   5): every day you wrote shows that day's newest page's face in its cell,
+   with a count when there were several. Tap a filled day → that page, or
+   the day page when it holds more than one. The calendar is the only
+   navigation a private journal needs — no filter row.
 
-const WD = ["S", "M", "T", "W", "T", "F", "S"];
+   It draws a MonthVM (screens/notes/notes-model buildMonth), the month the
+   SwiftUI overlay draws, so both agree on the days: the weekday letters
+   are the language's own and start on its first weekday (known bug 5:
+   they were English S M T W T F S everywhere), the title is the locale's
+   ("2026年10月", not "10月 2026"), › stops at this month and ‹ at the
+   first month with a page. Painted from the theme. */
 
-export function dayKey(d: string | number | Date): string {
-  const x = new Date(d);
-  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
-}
+/** Re-exported for the callers that always took it from here. */
+export { dayKey } from "../screens/notes/notes-model";
 
-type Cell = { entry: JournalEntry; count: number };
-
-export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]; onPickDay: (key: string) => void }) {
-  // latest entry + count per day (entries arrive newest-first)
-  const byDay = useMemo(() => {
-    const map = new Map<string, Cell>();
-    for (const e of entries) {
-      const k = dayKey(e.date);
-      const cur = map.get(k);
-      if (cur) cur.count += 1;
-      else map.set(k, { entry: e, count: 1 });
-    }
-    return map;
-  }, [entries]);
-
-  const now = new Date();
-  const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() });
-  const todayKey = dayKey(now);
-
-  const first = new Date(ym.y, ym.m, 1);
-  const lead = first.getDay(); // 0=Sun
-  const days = new Date(ym.y, ym.m + 1, 0).getDate();
-  const monthName = first.toLocaleDateString(localeTag(), { month: "long" }).toUpperCase();
-  const prefix = `${ym.y}-${String(ym.m + 1).padStart(2, "0")}-`;
-  let inMonth = 0;
-  for (const [k, c] of byDay) if (k.startsWith(prefix)) inMonth += c.count;
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < lead; i++) cells.push(null);
-  for (let d = 1; d <= days; d++) cells.push(d);
+export function SealedCalendar({
+  month,
+  weekdays,
+  prevLabel,
+  nextLabel,
+  onStep,
+  onPickDay,
+}: {
+  month: MonthVM;
+  /** seven letters from the language's first weekday */
+  weekdays: string[];
+  prevLabel: string;
+  nextLabel: string;
+  onStep: (delta: number) => void;
+  onPickDay: (key: string) => void;
+}) {
+  const { t: tk } = useTheme();
+  const cells: (MonthVM["days"][number] | null)[] = [...Array.from({ length: month.lead }, () => null), ...month.days];
   while (cells.length % 7 !== 0) cells.push(null);
-
-  const step = (delta: number) => {
-    const m = ym.m + delta;
-    setYm({ y: ym.y + Math.floor(m / 12), m: ((m % 12) + 12) % 12 });
-  };
 
   return (
     <View style={{ paddingHorizontal: 22 }}>
       {/* month nav */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6, marginBottom: 16 }}>
-        <Pressable onPress={() => step(-1)} hitSlop={12} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink60 }}>‹</Text>
-        </Pressable>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: P.ink }}>
-          {monthName} {ym.y}
+        <Chevron dir="left" enabled={month.canPrev} label={prevLabel} onPress={() => onStep(-1)} />
+        <Text accessibilityRole="header" style={{ flexShrink: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.54, color: tk.ink }}>
+          {month.title}
         </Text>
-        <Pressable onPress={() => step(1)} hitSlop={12} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 18, color: P.ink60 }}>›</Text>
-        </Pressable>
+        <Chevron dir="right" enabled={month.canNext} label={nextLabel} onPress={() => onStep(1)} />
       </View>
 
       {/* weekday header */}
-      <View style={{ flexDirection: "row", marginBottom: 6 }}>
-        {WD.map((w, i) => (
-          <Text key={i} style={{ flex: 1, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.5, color: P.ink40 }}>
+      <View style={{ flexDirection: "row", marginBottom: 6 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {weekdays.map((w, i) => (
+          <Text key={i} style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 10, color: tk.faint }}>
             {w}
           </Text>
         ))}
@@ -83,37 +65,29 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
       <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
         {cells.map((d, i) => {
           if (d === null) return <View key={i} style={{ width: `${100 / 7}%`, aspectRatio: 1 }} />;
-          const key = `${ym.y}-${String(ym.m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-          const cell = byDay.get(key);
-          const isToday = key === todayKey;
+          const filled = !!d.targetId;
           return (
             <Pressable
               key={i}
-              disabled={!cell}
-              onPress={() => cell && onPickDay(key)}
+              disabled={!filled}
+              onPress={() => filled && onPickDay(d.key)}
+              accessibilityRole={filled ? "button" : "text"}
+              accessibilityLabel={d.a11y}
+              accessibilityState={{ disabled: !filled }}
               style={{ width: `${100 / 7}%`, aspectRatio: 1, alignItems: "center", justifyContent: "center" }}
             >
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: isToday ? 1.5 : 0,
-                  borderColor: P.ink,
-                }}
-              >
-                {cell ? (
+              <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", borderWidth: d.today ? 1.5 : 0, borderColor: tk.ln, borderRadius: 11 }}>
+                {filled && d.mood ? (
                   <>
-                    <MoodIcon id={cell.entry.mood} size={34} />
-                    {cell.count > 1 && (
-                      <View style={{ position: "absolute", right: -2, top: -2, minWidth: 15, height: 15, paddingHorizontal: 3, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ color: P.paper, fontSize: 8.5, fontFamily: PF.monoMed }}>{cell.count}</Text>
+                    <MoodIcon id={d.mood} size={34} />
+                    {d.count > 1 && (
+                      <View style={{ position: "absolute", right: -2, top: -2, minWidth: 15, height: 15, paddingHorizontal: 3, borderRadius: 4, backgroundColor: tk.ink, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ color: tk.bg, fontSize: 9, fontFamily: PF.monoMed }}>{d.count}</Text>
                       </View>
                     )}
                   </>
                 ) : (
-                  <Text style={{ fontFamily: PF.mono, fontSize: 12.5, color: isToday ? P.ink : P.ink40 }}>{d}</Text>
+                  <Text style={{ fontSize: 13, color: d.future ? tk.faint : d.today ? tk.ink : tk.mute }}>{d.n}</Text>
                 )}
               </View>
             </Pressable>
@@ -122,9 +96,28 @@ export function SealedCalendar({ entries, onPickDay }: { entries: JournalEntry[]
       </View>
 
       {/* the month, summed — so an empty grid still says something */}
-      <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 8 }}>
-        {inMonth === 0 ? t("jt.monthNone") : inMonth === 1 ? t("jt.month1") : t("jt.monthN", { n: inMonth })}
+      <Text accessibilityLabel={month.footerA11y} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute, textAlign: "center", marginTop: 8 }}>
+        {month.footer}
       </Text>
     </View>
+  );
+}
+
+function Chevron({ dir, enabled, label, onPress }: { dir: "left" | "right"; enabled: boolean; label: string; onPress: () => void }) {
+  const { t: tk } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!enabled}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !enabled }}
+      style={({ pressed }) => ({ width: 40, height: 40, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
+    >
+      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={enabled ? tk.ink : tk.faint} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+        <Path d={dir === "left" ? "M15 6l-7 6 7 6" : "M9 6l7 6-7 6"} />
+      </Svg>
+    </Pressable>
   );
 }
