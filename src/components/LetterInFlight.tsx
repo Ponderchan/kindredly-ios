@@ -8,7 +8,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
-import { P, PF } from "../theme/post";
+import { MONO, PF } from "../theme/post";
+import { useP } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
 import { SEND_BEAT_MS } from "../lib/net";
@@ -35,6 +36,12 @@ import { SEND_BEAT_MS } from "../lib/net";
  *
  * When the reader has asked the system for less motion, the animation is
  * the message, so the words come back instead of the flight.
+ *
+ * 10a (step 5): it wears the theme (useP: the route in ink at a fifth, the
+ * flown part in ind, the envelope on the card face), so Midnight shows a
+ * pale route on the dark page instead of a black one; its small mono is 10
+ * and 11. On Today's SwiftUI desk it sits over the Host where the pill was
+ * (bottom = the tab bar's room + 6), the pill having stepped aside.
  */
 const BIRD = 34;
 /* just inside the beat, so she is on the postmark — not still over the
@@ -42,6 +49,7 @@ const BIRD = 34;
 const CYCLE = Math.max(380, SEND_BEAT_MS - 70);
 
 export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolean }) {
+  const P = useP();
   const [w, setW] = useState(0);
   const p = useSharedValue(0);
   const reduced = useReducedMotion();
@@ -81,7 +89,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
     return (
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink12, paddingVertical: 16 }}>
         <WrenBird size={26} pose="fly" mood="content" />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.3, color: P.pen }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.3, color: P.pen }}>
           {t("ld.onItsWay")}
           {to ? ` · ${to}` : ""}
         </Text>
@@ -111,7 +119,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
       </View>
       {to ? (
         <Text
-          style={{ position: "absolute", right: 0, top: 46, fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40 }}
+          style={{ position: "absolute", right: 0, top: 46, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: P.ink40 }}
         >
           {to}
         </Text>
@@ -122,7 +130,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
           send; when the send is slow, the row says so. */}
       {slow ? (
         <Text
-          style={{ position: "absolute", left: 0, top: 46, fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, color: P.ink40, textTransform: "uppercase" }}
+          style={{ position: "absolute", left: 0, top: 46, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: P.ink40, textTransform: "uppercase" }}
         >
           {t("net.slow")}
         </Text>
@@ -138,7 +146,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
             had her going up her own route backwards. */}
         <WrenBird size={BIRD} pose="fly" mood="delight" />
         <Svg width={15} height={11} viewBox="0 0 15 11" style={{ marginTop: -6 }}>
-          <Rect x={0.6} y={0.6} width={13.8} height={9.8} rx={1} fill={P.paper} stroke={P.ink} strokeWidth={1} />
+          <Rect x={0.6} y={0.6} width={13.8} height={9.8} rx={1} fill={P.sheet} stroke={P.ink} strokeWidth={1} />
           <Path d="M0.6 1.4 L7.5 6.4 L14.4 1.4" fill="none" stroke={P.ink} strokeWidth={1} />
         </Svg>
       </Animated.View>
