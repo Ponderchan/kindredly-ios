@@ -16,6 +16,7 @@ import * as Notifications from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
+import { ThemeProvider } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
 import { useAppFonts } from "../theme/fonts";
 import { loadLang } from "../lib/i18n";
@@ -180,6 +181,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <EntitlementProvider>
+            {/* the 10a theme (lib/theme): every screen sits inside it, none
+                reads it yet — they all still paint the static P */}
+            <ThemeProvider>
             <WrenSkinProvider>
             <WrenStageProvider>
             <FingerprintOnLaunch />
@@ -232,6 +236,7 @@ export default function RootLayout() {
             </View>
             </WrenStageProvider>
             </WrenSkinProvider>
+            </ThemeProvider>
           </EntitlementProvider>
         </AuthProvider>
       </SafeAreaProvider>
