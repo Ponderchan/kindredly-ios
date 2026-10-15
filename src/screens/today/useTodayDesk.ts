@@ -660,6 +660,25 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const [flightFull, setFlightFull] = useState(false);
   const [needsAccount, setNeedsAccount] = useState(false);
   const [readerId, setReaderId] = useState<string | null>(null);
+  /* THE READER FOLDS BACK, whoever closes it: its ✕, a swipe down, a send
+     (LetterReader), or its letter leaving the desk under it. The desk's
+     field takes the draft again (the epoch), and a pouch sheet raised
+     inside the reader goes with it (it is drawn there, LetterReader). */
+  const closeReader = useCallback(() => {
+    setReaderId(null);
+    setFlightFull(false);
+    setDraftEpoch((e) => e + 1);
+  }, []);
+  /* its letter left while it was open (the day turning at eight rebuilds the
+     desk, a block, a reload): the reader is closed in the same render it
+     stops drawing (LetterReader draws only a letter on the desk), so the
+     pill never stays hidden behind a reader nobody can see, and the draft
+     epoch still moves */
+  const readerGone = readerId != null && !feed.some((l) => l.id === readerId);
+  const openReaderId = readerGone ? null : readerId;
+  useEffect(() => {
+    if (readerGone) closeReader();
+  }, [readerGone, closeReader]);
   /* the letter a blocked send was aimed at, so signing in resumes THAT one */
   const pendingReply = useRef<PoolLetter | null>(null);
 
@@ -869,10 +888,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
         depsRef.current.seal(dayRef.current, factsRef.current);
       },
       grab: setHeld,
-      closeReader: () => {
-        setReaderId(null);
-        setDraftEpoch((e) => e + 1);
-      },
+      closeReader,
       closeFlightSheet: () => setFlightFull(false),
       closeSignUp: () => setNeedsAccount(false),
       signedIn: () => {
@@ -883,7 +899,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       },
       blocked: removeAuthor,
     }),
-    [changeDraft, send, cardAction, requestScroll, removeAuthor],
+    [changeDraft, send, cardAction, requestScroll, removeAuthor, closeReader],
   );
 
   /* ── the words ── */
@@ -909,8 +925,10 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   );
   const states = C.envelopeStates(idx);
   const stateWord = { opened: t("ld.env.read"), current: t("ld.env.open"), sealed: t("ld.env.sealed") };
+  // only over letters she brought back: a quiet day draws no arrival, in either renderer
+  const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: feed.length });
   const arrival = {
-    open: source.fresh,
+    open: arrivalOpen,
     line: t(source.sent ? "ld.arrived" : "ld.arrivedKept"),
     states,
     labels: states.map((_, i) => t("ld.env.a11y", { n: i + 1, total: states.length })),
@@ -931,12 +949,12 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     plateRight: C.plateLabel({ loaded: source.loaded, count: feed.length, atEnd }, t),
     deskStrip,
     arrival,
-    freshUnfold: source.fresh,
+    freshUnfold: arrivalOpen,
     reply: { letterId: current?.id ?? "", draft, preview: C.draftPreview(draft), state: replyNow },
     sending,
     slow,
     toast,
-    pillHidden: sending || readerId != null || plusOpen,
+    pillHidden: sending || openReaderId != null || plusOpen,
     facts,
     sealed,
     held,
@@ -944,7 +962,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     scroll,
     draftEpoch,
     answeredSerial,
-    readerId,
+    readerId: openReaderId,
     flyTo: sendingTo?.author ? `NO.${postNo(sendingTo.author)}` : null,
     strings,
   };

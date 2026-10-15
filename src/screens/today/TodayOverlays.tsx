@@ -15,7 +15,8 @@ import type { TodayModel } from "./useTodayDesk";
    - "Reply sent." (2.2s), just above where the pill rests (bottomRoom +
      the pill + 16, the mock's place), on the theme's ink;
    - the pouch-full sheet (five in flight: "I'll wait." is the only way
-     out), window-level so the floating tab bar can't cover it;
+     out), window-level so the floating tab bar can't cover it (inside the
+     unfolded reader, the reader draws it);
    - the guest sheet a reply raises, which sends THAT letter once signed in;
    - the report card and the block question (lib/report-flow), the card
      dropping where a card's ⋯ sits;
@@ -31,9 +32,11 @@ export function TodayOverlays({ model }: { model: TodayModel }) {
     <>
       {view.toast && <Toast msg={t("ld.toast.thread")} bottom={bottomRoom + PILL_H + 16} />}
 
+      {/* while the reader is open it draws this sheet itself: a second Modal
+          can't be presented over its page sheet (LetterReader) */}
       <LeaveSheet
         modal
-        open={sheets.flightFull}
+        open={sheets.flightFull && view.readerId == null}
         title={t("ld.flightFull.title")}
         body={t("ld.flightFull.body")}
         actions={[{ label: t("ld.flightFull.ok"), kind: "primary", onPress: act.closeFlightSheet }]}

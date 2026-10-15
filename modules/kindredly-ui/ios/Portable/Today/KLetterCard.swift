@@ -27,17 +27,21 @@ import SwiftUI
  - a 2pt ln rule (14 above, 10 below), then ↑ PASS (a label: the swipe is the move) and REPLY ↓
    in ind (a 44pt target), both mono 600 11 at .14em.
 
- VoiceOver reads the card as one element (the docket, the topic, the letter) with its moves as
- actions: write back, translate or show the original, unfold, play, report, block, next and
- previous letter (↑ PASS is only a label for sighted readers).
+ VoiceOver reads the card as one element (TS's a11yLabel: the docket, the topic, why the matcher
+ chose it, the letter or what the voice letter is) with its moves as actions: write back,
+ translate or show the original, unfold, play or pause (as the press would do now), report,
+ block, next and previous letter (↑ PASS is only a label for sighted readers). Every move says
+ which card it came from: the stack settles on THAT card before the field opens or the page
+ moves, whatever page it last settled on (VoiceOver scrolls cards into view on its own).
  */
 
-/// What a card's taps do (one object per surface, so a card is always equal to itself).
+/// What a card's taps do (one object per surface, so a card is always equal to itself). Each
+/// carries the card's id: a reply is always bound to its own letter.
 final class KLetterCardActions {
-  var onReply: () -> Void = {}
+  var onReply: (_ letterId: String) -> Void = { _ in }
   var onAction: (_ letterId: String, _ action: String) -> Void = { _, _ in }
-  var onNext: () -> Void = {}
-  var onPrevious: () -> Void = {}
+  var onNext: (_ letterId: String) -> Void = { _ in }
+  var onPrevious: (_ letterId: String) -> Void = { _ in }
 }
 
 struct KLetterCard: View, Equatable {
@@ -81,24 +85,7 @@ struct KLetterCard: View, Equatable {
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(card.a11yLabel)
-    .accessibilityActions {
-      SwiftUI.Button(labels.replyA11y) { actions.onReply() }
-      if case let .translate(_, label, enabled, _) = card.capsule, enabled {
-        SwiftUI.Button(label) { actions.onAction(card.id, "translate") }
-      }
-      if card.isVoice {
-        if card.voiceReady {
-          SwiftUI.Button(labels.play) { actions.onAction(card.id, "voice") }
-        }
-      } else {
-        SwiftUI.Button(labels.unfoldA11y) { actions.onAction(card.id, "unfold") }
-      }
-      ForEach(card.menu) { item in
-        SwiftUI.Button(item.title) { actions.onAction(card.id, item.key) }
-      }
-      SwiftUI.Button(labels.next) { actions.onNext() }
-      SwiftUI.Button(labels.previous) { actions.onPrevious() }
-    }
+    .modifier(KLetterCardAccessibilityActions(card: card, labels: labels, voice: voice, actions: actions))
   }
 
   // ── the docket row ──
@@ -209,7 +196,9 @@ struct KLetterCard: View, Equatable {
         .foregroundStyle(theme.ink)
         .lineLimit(1)
       Spacer(minLength: 12)
-      SwiftUI.Button(action: actions.onReply) {
+      SwiftUI.Button {
+        actions.onReply(card.id)
+      } label: {
         Text(labels.reply)
           .kText(Self.monoLabel)
           .foregroundStyle(theme.ind)
@@ -224,6 +213,38 @@ struct KLetterCard: View, Equatable {
       .padding(.leading, -16)
     }
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+}
+
+/// The card's VoiceOver actions. A modifier of its own so the voice action can follow the one
+/// player (Pause while this letter plays, Play otherwise) while the card itself stays equal to
+/// itself: only this observes the player, which reports transitions, never ticks.
+struct KLetterCardAccessibilityActions: ViewModifier {
+  let card: KLetterCardModel
+  let labels: KTodayLabels
+  @ObservedObject var voice: KTodayVoice
+  let actions: KLetterCardActions
+
+  func body(content: Content) -> some View {
+    let playing = voice.key == card.id && voice.playback?.playing == true
+    content.accessibilityActions {
+      SwiftUI.Button(labels.replyA11y) { actions.onReply(card.id) }
+      if case let .translate(_, label, enabled, _) = card.capsule, enabled {
+        SwiftUI.Button(label) { actions.onAction(card.id, "translate") }
+      }
+      if card.isVoice {
+        if card.voiceReady {
+          SwiftUI.Button(playing ? labels.pause : labels.play) { actions.onAction(card.id, "voice") }
+        }
+      } else {
+        SwiftUI.Button(labels.unfoldA11y) { actions.onAction(card.id, "unfold") }
+      }
+      ForEach(card.menu) { item in
+        SwiftUI.Button(item.title) { actions.onAction(card.id, item.key) }
+      }
+      SwiftUI.Button(labels.next) { actions.onNext(card.id) }
+      SwiftUI.Button(labels.previous) { actions.onPrevious(card.id) }
+    }
   }
 }
 

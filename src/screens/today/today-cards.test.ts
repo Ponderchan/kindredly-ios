@@ -87,6 +87,9 @@ const L = (p: Partial<Letter> & { id: string }): Letter => ({
   ok("arrival: the first page has the first envelope open in your hand", M.envelopeStates(0).join() === "current,sealed,sealed");
   ok("arrival: paging opens them one by one", M.envelopeStates(2).join() === "opened,opened,current");
   ok("arrival: settles once the third is behind you", !M.arrivalSettled(2) && M.arrivalSettled(3));
+  ok("arrival: shows when she has just come back and there are letters", M.arrivalShows({ fresh: true, onDesk: 3 }));
+  ok("arrival: a quiet day (or a first load with nothing yet) draws none — no envelopes pointing at nothing", !M.arrivalShows({ fresh: true, onDesk: 0 }));
+  ok("arrival: not fresh, not shown", !M.arrivalShows({ fresh: false, onDesk: 3 }));
 }
 
 /* ── the plate ── */
@@ -136,6 +139,14 @@ const L = (p: Partial<Letter> & { id: string }): Letter => ({
   const d = M.buildCard({ letter: L({ id: "v2", kind: "voice", media_path: "x/v.m4a", body: M.DEFAULT_VOICE_CAPTION }), offer: null, signal: null, voiceReady: true }, "#FFFFFF", fmt);
   ok("voice: the default caption is not shown", d.caption === "" && d.voiceReady);
   ok("voice: VoiceOver says it is a voice letter", d.a11yLabel.endsWith("ld.voiceLetter"));
+  ok(
+    "voice: VoiceOver hears how long it is, that it can't play yet, then the caption",
+    v.a11yLabel === "PM09 · NO.8007. #tiny win. ld.voiceLetter. 1:14. ld.voice.unavailable. About my grandmother's kitchen",
+  );
+  const ready = M.buildCard({ letter: L({ id: "v", kind: "voice", media_path: "x/v.m4a", duration_s: 74, body: "About my grandmother's kitchen" }), offer: null, signal: null, voiceReady: true }, "#FFFFFF", fmt);
+  ok("voice: once signed it isn't called unavailable", ready.a11yLabel === "PM09 · NO.8007. #tiny win. ld.voiceLetter. 1:14. About my grandmother's kitchen");
+  const vs = M.buildCard({ letter: L({ id: "v", kind: "voice", media_path: "x/v.m4a", body: M.DEFAULT_VOICE_CAPTION }), offer: null, signal: { kind: "close" }, voiceReady: true }, "#FFFFFF", fmt);
+  ok("voice: the matcher's reason is read for a voice letter too", vs.capsule.kind === "signal" && vs.a11yLabel === "PM09 · NO.8007. #tiny win. ld.close. ld.voiceLetter");
 }
 
 /* ── the capsule slot ── */
@@ -160,6 +171,12 @@ const L = (p: Partial<Letter> & { id: string }): Letter => ({
 
   const card = M.buildCard({ letter: L({ id: "x", body: "¿Alguien más siente que septiembre se va demasiado rápido?", lang: "es" }), offer, xl: { text: "Does anyone else feel September goes too fast?", on: true, busy: false }, signal: close, voiceReady: false }, "#FFFFFF", fmt);
   ok("card: the translation swaps the text in place", card.body === "Does anyone else feel September goes too fast?" && card.capsule.kind === "translate");
+  ok("card: VoiceOver doesn't read a signal the translate capsule took the slot from", !card.a11yLabel.includes("ld.close"));
+
+  const why = M.buildCard({ letter: L({ id: "w" }), offer: null, signal: close, voiceReady: false }, "#FFFFFF", fmt);
+  ok("card: VoiceOver hears why the matcher chose it (the lime capsule), beside the topic", why.a11yLabel === "PM09 · NO.8007. #tiny win. ld.close. I fixed the wobbly chair today.");
+  const owl = M.buildCard({ letter: L({ id: "o" }), offer: null, signal: { kind: "hour", stickerId: "night_writer" }, voiceReady: false }, "#FFFFFF", fmt);
+  ok("card: a shared-sticker reason is read in its words", owl.a11yLabel.includes(". ld.both.label(name=S:night_writer). "));
 }
 
 /* ── the fold estimate (React Native card) ── */

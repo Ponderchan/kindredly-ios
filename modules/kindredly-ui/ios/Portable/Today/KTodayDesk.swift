@@ -27,10 +27,10 @@ import SwiftUI
  LAYOUT. Two layers in one ZStack, so the keyboard moves only what it should:
  - the desk (status-bar strip, the plate, the card stack, the bottom fade) ignores the keyboard's
    safe area, so typing never resizes or re-snaps the cards;
- - the dock (the pill, the reply strip and its hint, the tap-catcher) sits in a VStack that
-   respects it (the Host ignores only the container safe area: ignoreSafeArea "container"), so
-   the strip rides the keyboard in its own transaction. Never a .safeAreaInset: iOS 18 reports
-   one twice (spike pattern 1).
+ - the dock (the tap-catcher under the whole layer, the pill, the reply strip and its hint) is a
+   layer that respects it (the Host ignores only the container safe area: ignoreSafeArea
+   "container"), so the strip rides the keyboard in its own transaction. Never a .safeAreaInset:
+   iOS 18 reports one twice (spike pattern 1).
  The keyboard's height is measured, not assumed (spike pattern 5): the desk layer's height (which
  ignores the keyboard) less the dock layer's (which respects it). Only the dock reads it.
 
@@ -334,6 +334,10 @@ public final class KTodayDriver: ObservableObject {
   @Published public internal(set) var settledCard = 0
   /// the blind's cord is held: the stack must not scroll under the pull
   @Published public var scrollLocked = false
+  /// the reply field has the keyboard (the dock sets it): the stack must not scroll under the
+  /// words, which are bound to the settled card. Here, not only on the dock, because the stack
+  /// observes the driver (rare changes) and never the dock (a composer update per keystroke).
+  @Published public internal(set) var typing = false
   @Published private(set) var scrollRequest: ScrollRequest?
   private var serial = 0
 

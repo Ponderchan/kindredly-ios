@@ -18,9 +18,11 @@ import SwiftUI
  dimmed (a full pouch: drawn off, still pressed, so TS can say why). Return is a new line: a reply
  is a letter, and letters keep their paragraphs. Under it, 6 above the keyboard, the hint in mono
  500 10 at .14em, sub (the postmark red when over the limit). While it is up, a clear catcher
- covers everything above it: a tap there puts the keyboard away, and the cards can't scroll under
- the words. With a hardware keyboard (focused, no keyboard inset) the strip sits on the pill's
- line instead, above the tab bar.
+ covers the whole dock layer behind it (not only what is above the hidden pill's room, which left
+ a band open to the cards): a tap anywhere but the strip puts the keyboard away, and the cards
+ can't scroll under the words (the stack is also scroll-disabled while typing, driver.typing).
+ VoiceOver's escape puts the keyboard away too. With a hardware keyboard (focused, no keyboard
+ inset) the strip sits on the pill's line instead, above the tab bar.
 
  THE FIELD NEVER LEAVES. It is always mounted, only hidden (the expo focus/unmount crash), and it
  is bound to the card the stack has settled on: what the reader types goes to TS with that card's
@@ -55,18 +57,20 @@ struct KReplyDock: View {
 
   var body: some View {
     let pillShown = !pillHidden && !dock.focused && !dock.awaitingSend && boundId != nil
-    VStack(spacing: 0) {
-      // the catcher: a tap above the strip puts the keyboard away
+    // one layer, the strip drawn last: the catcher covers ALL of it behind the strip, so no band
+    // between the hidden pill's room and the strip lets a touch through to the cards (a drag there
+    // would scroll another letter under the words, and the field would answer that one)
+    ZStack(alignment: .bottom) {
+      // the catcher: a tap anywhere but the strip puts the keyboard away
       Color.clear
         .contentShape(Rectangle())
         .onTapGesture { dock.reply.blur() }
         .allowsHitTesting(dock.focused)
         .accessibilityHidden(true)
-      ZStack(alignment: .bottom) {
-        strip
-        pill(shown: pillShown)
-      }
+      pill(shown: pillShown)
+      strip
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     .background {
       GeometryReader { geo in
         Color.clear.onChange(of: geo.size.height, initial: true) { _, height in
@@ -97,6 +101,8 @@ struct KReplyDock: View {
           },
           onFocus: { now in
             dock.setFocused(now)
+            // the stack stops scrolling while the words are up (it reads the driver, not the dock)
+            if driver.typing != now { driver.typing = now }
             actions.onReplyFocus(now)
             if now && boundId == nil { dock.reply.blur() }
           }
@@ -122,6 +128,16 @@ struct KReplyDock: View {
     .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: dock.focused)
     .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: dock.hardwareKeyboard)
     .allowsHitTesting(dock.focused)
+    // VoiceOver's escape (the two-finger scrub) puts the keyboard away without sending: the
+    // catcher is hidden from VoiceOver, the pill is gone and the keyboard has no key for it.
+    // A container of its own, so the escape reaches it from the field and the send key inside.
+    // Always attached, acting only while focused (and the strip is hidden from VoiceOver
+    // otherwise): a modifier that came and went with the focus would rebuild the strip, and the
+    // field in it, at the moment it took the keyboard.
+    .accessibilityElement(children: .contain)
+    .accessibilityAction(.escape) {
+      if dock.focused { dock.reply.blur() }
+    }
     .accessibilityHidden(!dock.focused)
     .dynamicTypeSize(...DynamicTypeSize.accessibility3)
   }

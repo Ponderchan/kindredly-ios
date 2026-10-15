@@ -9,6 +9,7 @@ import { sinceShort } from "../../lib/format";
 import { MosaicId } from "../../components/MosaicId";
 import { StampTile } from "../../components/StampTile";
 import { LetterInFlight } from "../../components/LetterInFlight";
+import { LeaveSheet } from "../../components/LeaveSheet";
 import { InkPanel, ReplyStrip } from "../../components/10a";
 import type { TodayModel } from "./useTodayDesk";
 
@@ -31,7 +32,9 @@ import type { TodayModel } from "./useTodayDesk";
    finished on the desk is one reply; closing the reader hands the words
    back to the desk's field (the model bumps its draft epoch). Sending
    closes the reader: the letter is answered, and the fly-by and "Reply
-   sent." play on the desk.
+   sent." play on the desk. With the pouch full, SEND explains instead, in
+   a sheet drawn inside this reader (a second window-level modal can't be
+   presented over this one), and the reader stays.
 
    10a dress, from the theme: the page colour, the ink panel (corners 28, a
    hard 6/6 shadow), mono 11 for what the machine says. */
@@ -98,8 +101,10 @@ export function LetterReader({ model }: { model: TodayModel }) {
                   autoFocus
                   onChangeText={(v) => act.changeDraft(letter.id, v)}
                   onSend={(v) => {
-                    /* once it's gone the letter is answered, so the reader closes with it;
-                       a full pouch only explains, and the reader stays */
+                    /* once it's gone the letter is answered, so the reader closes with it
+                       (the fly-by and "Reply sent." play on the desk). A full pouch only
+                       explains, and the reader stays: the sheet that explains is drawn in
+                       here, below */
                     if (!state.pouchFull) act.closeReader();
                     act.send(letter.id, v);
                     return false;
@@ -120,6 +125,21 @@ export function LetterReader({ model }: { model: TodayModel }) {
             )}
           </View>
         </KeyboardAvoidingView>
+
+        {/* THE POUCH IS FULL, said over the letter. It is drawn in the reader's
+            own tree, not as the desk's window-level sheet: a React Native
+            Modal presents from the screen's view controller, which is already
+            presenting this page sheet, so UIKit would refuse the second one and
+            SEND here would do nothing (TodayOverlays draws the desk's sheet only
+            while no reader is open). Closing the reader takes this with it. */}
+        <LeaveSheet
+          open={model.sheets.flightFull}
+          title={t("ld.flightFull.title")}
+          body={t("ld.flightFull.body")}
+          actions={[{ label: t("ld.flightFull.ok"), kind: "primary", onPress: act.closeFlightSheet }]}
+          cancelLabel={null}
+          onCancel={act.closeFlightSheet}
+        />
       </View>
     </Modal>
   );

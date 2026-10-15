@@ -38,7 +38,9 @@ import "../../data/strings-step5-today";
    - DESK · ARRIVAL (her first return: the strip of three envelopes, the
      first card unfolding) · LOADING (no desk yet: the plate blank, no
      blind) · KEPT (a desk shown while the first load is in flight) ·
-     QUIET (nothing on the desk: CLOSED, the strip, the blind);
+     QUIET (nothing on the desk: CLOSED, the strip, the blind). LOADING
+     and QUIET are also her first return, and must draw no arrival: there
+     are no letters for her envelopes to be;
    - STRIP (an unopened post of Wren's), POUCH (five in flight: SEND dims,
      the sheet explains), and what the next reply does: OK · GONE (taken
      back: ld.unreachable, the letter leaves) · OFFLINE · SUSPENDED · GUEST
@@ -82,7 +84,8 @@ function TodayLab() {
       loaded: mode !== "loading" && mode !== "kept",
       flights: pouch ? 5 : 1,
       waiting: 2,
-      fresh: mode === "arrival",
+      // she has just come back in LOADING and QUIET too: neither may draw her envelopes over nothing
+      fresh: mode === "arrival" || mode === "loading" || mode === "quiet",
       deskUnread: strip ? 1 : 0,
     }),
     // round: RESET deals the same letters again as a new desk

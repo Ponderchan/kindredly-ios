@@ -106,6 +106,15 @@ export function envelopeStates(idx: number): EnvelopeState[] {
 }
 /** The arrival is over once the third envelope is behind the reader. */
 export const arrivalSettled = (idx: number): boolean => idx >= ARRIVAL_ENVELOPES;
+/**
+ * Whether her arrival shows: she has just come back AND there are letters
+ * on the desk for her envelopes to be. A quiet day (loaded, nothing on the
+ * desk: an empty pool after onboarding, an offline cold start with nothing
+ * kept) and a first load with nothing yet draw none — she never says "I
+ * brought back three" over envelopes that point at nothing. The first card's
+ * unfold follows the same rule. Decided here, so both renderers agree.
+ */
+export const arrivalShows = ({ fresh, onDesk }: { fresh: boolean; onDesk: number }): boolean => fresh && onDesk > 0;
 
 /* ── the plate ────────────────────────────────────────────────────────── */
 
@@ -229,7 +238,17 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
   const topic = st ? `#${st.name.toLowerCase()}` : "";
   const colors = channelColors(st?.color ?? null, surfaceHex);
   const post = docket(letter, fmt);
-  const words = isVoice ? [fmt.t("ld.voiceLetter"), caption].filter(Boolean).join(". ") : shown;
+  const ready = isVoice && voiceReady;
+  const durationLabel = letter.duration_s && letter.duration_s > 0 ? fmt.clock(letter.duration_s) : "";
+  const capsule: CardCapsule = isVoice ? (signal ? capsuleFor(null, null, signal, fmt) : { kind: "none" }) : capsuleFor(offer, xl, signal, fmt);
+  /* WHAT VOICEOVER HEARS is everything the eye gets from the card, since it
+     reads the card as one element (its children are ignored): the docket,
+     the topic, why the matcher chose it (the lime capsule, beside the topic
+     at the foot; a translate capsule is an action instead), then the letter
+     — or, for a voice letter, that it is one, how long it is, that it can't
+     play yet (its link isn't signed), and the writer's caption. */
+  const why = capsule.kind === "signal" ? capsule.label : "";
+  const words = isVoice ? [fmt.t("ld.voiceLetter"), durationLabel, ready ? "" : fmt.t("ld.voice.unavailable"), caption].filter(Boolean).join(". ") : shown;
   return {
     id: letter.id,
     postmark: post,
@@ -247,12 +266,12 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     bodyLine: tier.line,
     bodyCenter: tier.center,
     isVoice,
-    voiceReady: isVoice && voiceReady,
+    voiceReady: ready,
     caption,
-    durationLabel: letter.duration_s && letter.duration_s > 0 ? fmt.clock(letter.duration_s) : "",
-    capsule: isVoice ? (signal ? capsuleFor(null, null, signal, fmt) : { kind: "none" }) : capsuleFor(offer, xl, signal, fmt),
+    durationLabel,
+    capsule,
     menu: cardMenu(letter, fmt.t),
-    a11yLabel: [post, topic, words].filter(Boolean).join(". "),
+    a11yLabel: [post, topic, why, words].filter(Boolean).join(". "),
     demo: letter.id.startsWith("demo"),
   };
 }

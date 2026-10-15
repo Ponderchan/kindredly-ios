@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { AccessibilityInfo, Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, Keyframe, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -40,10 +40,20 @@ import type { TodayModel } from "./useTodayDesk";
    What stays its own is the drawing: a paging ScrollView, one letter per
    page; the 10a reply strip (uncontrolled, keyed by the letter so each one
    keeps its own words; Return is a new line); the arrival in React Native;
-   the blind as the last page with its cord freezing the pager. */
+   the blind as the last page with its cord freezing the pager.
+
+   VoiceOver gets what the Swift card gives it: the card is one element
+   whose moves are actions (write back, translate, unfold, play / pause,
+   report, block, next and previous letter). Write back answers the card it
+   is on, never just the page the pager last settled on; next and previous
+   move VoiceOver's focus with the page; escape puts the keyboard away. */
 
 const WINDOW_H = Dimensions.get("window").height;
 const WINDOW_W = Dimensions.get("window").width;
+/** VoiceOver's focus key for the blind's page (no letter id can be it) */
+const END_PAGE = "\u0000end";
+/** a page moved for VoiceOver is on screen by then (the pager's animated scroll) */
+const FOCUS_AFTER_MS = 450;
 
 /* the first of what she brought back opens the way your letter folded, in reverse */
 const UNFOLD = new Keyframe({
@@ -107,6 +117,61 @@ export function TodayRN({ model }: { model: TodayModel }) {
     });
   }, [navigation, act]);
 
+  /* ── VoiceOver ── */
+  // each card's element, and the blind's page, so focus can follow a page moved by an action
+  const cardEls = useRef(new Map<string, View>());
+  const endEl = useRef<View>(null);
+  const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (focusTimer.current) clearTimeout(focusTimer.current);
+    },
+    [],
+  );
+  const focusLater = (key: string) => {
+    if (focusTimer.current) clearTimeout(focusTimer.current);
+    focusTimer.current = setTimeout(() => {
+      focusTimer.current = null;
+      const el = key === END_PAGE ? endEl.current : cardEls.current.get(key);
+      if (el) AccessibilityInfo.sendAccessibilityEvent(el, "focus");
+    }, FOCUS_AFTER_MS);
+  };
+  /* next / previous letter from card `from`'s own actions (not from wherever
+     the pager last settled), and VoiceOver's focus goes with the page */
+  const step = (from: number, by: number) => {
+    const to = from + by;
+    if (to < 0) return;
+    if (to < view.feed.length) {
+      act.goto(to);
+      focusLater(view.feed[to].id);
+    } else if (to === view.feed.length && view.loaded) {
+      act.settle(to);
+      scrollRef.current?.scrollTo({ y: to * vh, animated: true });
+      focusLater(END_PAGE);
+    }
+  };
+  /* WRITE BACK ANSWERS THE CARD IT WAS PRESSED ON. The strip is keyed by
+     the page's letter, and the page follows the pager's momentum; a card
+     VoiceOver scrolled into view may not be that page yet. So the page goes
+     to that card first, and the strip that mounts for it takes the focus. */
+  const focusOnBind = useRef<string | null>(null);
+  const replyTo = (i: number) => {
+    const id = view.feed[i]?.id;
+    if (!id) return;
+    if (i === view.idx) {
+      strip.current?.focus();
+      return;
+    }
+    focusOnBind.current = id;
+    act.goto(i);
+  };
+  const boundId = view.current?.id ?? null;
+  useEffect(() => {
+    if (!boundId || focusOnBind.current !== boundId) return;
+    focusOnBind.current = null;
+    strip.current?.focus();
+  }, [boundId]);
+
   const blindActive = focused && view.idx >= view.feed.length - 1;
   const blind = (
     <CloseOfDay sealed={view.sealed} facts={view.facts} onSeal={act.seal} onGrab={act.grab} active={blindActive} />
@@ -144,16 +209,37 @@ export function TodayRN({ model }: { model: TodayModel }) {
           >
             {view.cards.map((card, i) => (
               <Animated.View key={card.id + (view.freshUnfold && i === 0 ? ":fresh" : "")} entering={view.freshUnfold && i === 0 ? UNFOLD : undefined}>
-                <LetterPageRN card={card} letter={view.feed[i]} height={vh} model={model} onReply={() => strip.current?.focus()} />
+                <LetterPageRN
+                  card={card}
+                  letter={view.feed[i]}
+                  height={vh}
+                  model={model}
+                  onReply={() => replyTo(i)}
+                  onStep={(by) => step(i, by)}
+                  cardRef={(el) => {
+                    if (el) cardEls.current.set(card.id, el);
+                    else cardEls.current.delete(card.id);
+                  }}
+                />
               </Animated.View>
             ))}
             {/* the blind, once the desk has answered: never "the day is over" while we're still asking */}
-            {view.loaded && <View style={{ height: vh, backgroundColor: tk.bg }}>{blind}</View>}
+            {view.loaded && (
+              <View ref={endEl} collapsable={false} style={{ height: vh, backgroundColor: tk.bg }}>
+                {blind}
+              </View>
+            )}
           </ScrollView>
         </View>
 
-        {/* one reply bar, bound to the letter you're on, always the same height */}
-        <View style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: kbOpen ? 10 : tabH + 6 }}>
+        {/* one reply bar, bound to the letter you're on, always the same height;
+            VoiceOver's escape (the two-finger scrub) puts the keyboard away
+            without sending: the iPhone keyboard has no key for it */}
+        <View
+          collapsable={false}
+          onAccessibilityEscape={kbOpen ? () => Keyboard.dismiss() : undefined}
+          style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: kbOpen ? 10 : tabH + 6 }}
+        >
           {!view.atEnd && current ? (
             <View style={{ minHeight: 78 }}>
               {view.sending ? (
@@ -193,12 +279,33 @@ export function TodayRN({ model }: { model: TodayModel }) {
 
 /* ── one letter, a page ── */
 
-function LetterPageRN({ card, letter, height, model, onReply }: { card: CardVM; letter: PoolLetter; height: number; model: TodayModel; onReply: () => void }) {
+function LetterPageRN({
+  card,
+  letter,
+  height,
+  model,
+  onReply,
+  onStep,
+  cardRef,
+}: {
+  card: CardVM;
+  letter: PoolLetter;
+  height: number;
+  model: TodayModel;
+  /** write back to THIS card (the page goes to it first) */
+  onReply: () => void;
+  /** VoiceOver's next (+1) / previous (-1) letter, from this card */
+  onStep: (by: number) => void;
+  /** the card's one VoiceOver element, so focus can be sent to it */
+  cardRef: (el: View | null) => void;
+}) {
   const { t: tk } = useTheme();
   const face = useLetterFamily();
   const italic = useLetterFamily(true);
   const { act, view } = model;
   const s = view.strings;
+  // the voice action says what a press does now: pause while this letter plays
+  const playing = model.voice.state?.key === card.id && !!model.voice.state?.playing;
   const [frameH, setFrameH] = useState(0);
   const [textH, setTextH] = useState(0);
   const folded = !card.isVoice && overflows({ text: card.body, size: card.bodySize, line: card.bodyLine, width: WINDOW_W - 92, frameH, textH });
@@ -212,17 +319,23 @@ function LetterPageRN({ card, letter, height, model, onReply }: { card: CardVM; 
         contentStyle={{ flex: 1 }}
       >
         <View
+          ref={cardRef}
           accessible
           accessibilityLabel={card.a11yLabel}
           accessibilityActions={[
             { name: "reply", label: s.replyA11y },
             ...(card.capsule.kind === "translate" && card.capsule.enabled ? [{ name: "translate", label: card.capsule.label }] : []),
-            ...(card.isVoice ? (card.voiceReady ? [{ name: "voice", label: s.play }] : []) : [{ name: "unfold", label: s.unfoldA11y }]),
+            ...(card.isVoice ? (card.voiceReady ? [{ name: "voice", label: playing ? s.pause : s.play }] : []) : [{ name: "unfold", label: s.unfoldA11y }]),
             ...card.menu.map((m) => ({ name: m.key, label: m.title })),
+            // the swipe, without a swipe (as the Swift card offers them)
+            { name: "next", label: s.next },
+            { name: "previous", label: s.previous },
           ]}
           onAccessibilityAction={(e) => {
             const name = e.nativeEvent.actionName;
             if (name === "reply") onReply();
+            else if (name === "next") onStep(1);
+            else if (name === "previous") onStep(-1);
             else if (name === "translate" || name === "unfold" || name === "voice" || name === "report" || name === "block") act.cardAction(card.id, name);
           }}
           style={{ flex: 1 }}

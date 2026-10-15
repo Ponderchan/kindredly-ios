@@ -8,9 +8,10 @@ import { strings } from "../lib/i18n";
    renderers and the dev page go through it), and so does CloseOfDay.
 
    All of them are for VoiceOver: the card is one element whose moves are
-   actions (↑ PASS is only a label for sighted readers), the envelopes of
-   the first arrival had no names at all, and the blind's cord could not be
-   pulled without a finger.
+   actions (↑ PASS is only a label for sighted readers) and which says what
+   the eye sees on it (a voice letter that can't play yet), the envelopes
+   of the first arrival had no names at all, and the blind's cord could not
+   be pulled without a finger.
 
    Everything else the tab says reuses keys already in nine languages:
    ld.today / closed / allRead / pass / replyArrow / send / unfold /
@@ -40,6 +41,8 @@ strings(
     "ld.env.sealed": "Not opened yet",
     // VoiceOver: pulling the blind's cord, as an action on the cord
     "cod.close.a11y": "Close the day",
+    // VoiceOver, in a voice letter's card: its link isn't signed yet (offline, or still asking), so it can't be played
+    "ld.voice.unavailable": "Can't play right now",
   },
   /* es, pt, id: step 6 */
   {},

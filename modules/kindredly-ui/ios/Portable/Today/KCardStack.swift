@@ -31,7 +31,16 @@ import SwiftUI
 
  Requests: TS's scrollTo (the top, a card by id: an envelope's tap, the day turning, re-pressing
  the tab) and the anchor that comes with the cards after a letter is answered or blocked. While the
- blind's cord is held the stack doesn't scroll (TS's lock command). It ignores the keyboard.
+ blind's cord is held, or the reply field has the keyboard, the stack doesn't scroll (TS's lock
+ command; the dock's focus): the words are bound to the settled card, and a drag under them must
+ not move them to another letter. It ignores the keyboard.
+
+ A CARD'S MOVES NAME THE CARD. Write back, next and previous come with the card's id, and the
+ stack starts from THAT card's page, not from `settled`: VoiceOver scrolls the card it reads into
+ view itself, which may never pass through an idle scroll phase, so `settled` can still be a page
+ behind. Write back settles on the card (go(), which tells TS and the dock) before the field opens,
+ so the reply is bound to the letter it was asked for. Next and previous move VoiceOver's focus to
+ the page they land on once it is on screen.
  */
 
 /// A page of the stack: what it holds and where it sits.
@@ -128,9 +137,13 @@ struct KCardStack: View {
   @State private var settled: KTodayPage.Key = .top
   @State private var box = KCardStackBox()
   @State private var cardActions = KLetterCardActions()
+  /// VoiceOver's focus, by card id (or `endFocus`): next and previous move it with the page
+  @AccessibilityFocusState private var voFocus: String?
 
   /// the page motion: H's .45s ease, instant under Reduce Motion
   static let motion = Animation.timingCurve(0.3, 0.9, 0.3, 1, duration: 0.45)
+  /// VoiceOver's focus key for the blind's page (no letter id can be it)
+  static let endFocus = "\u{0}end"
 
   private var cards: [KLetterCardModel] { content.cards }
   private var showsEnd: Bool { content.endPage && endPage != nil }
@@ -176,6 +189,7 @@ struct KCardStack: View {
         ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
           KLetterCard(theme: theme, card: card, labels: content.labels, voice: voice, actions: cardActions)
             .equatable()
+            .accessibilityFocused($voFocus, equals: card.id)
             .frame(height: geometry.cardHeight)
             .modifier(KFreshUnfold(active: content.freshUnfold && i == 0))
             .padding(.bottom, KTodayGeometry.cardGap)
@@ -186,6 +200,7 @@ struct KCardStack: View {
           endPage
             .frame(height: geometry.endHeight)
             .frame(maxWidth: .infinity)
+            .accessibilityFocused($voFocus, equals: Self.endFocus)
             .padding(.horizontal, KTodayGeometry.gutter)
         }
         Color.clear
@@ -197,7 +212,8 @@ struct KCardStack: View {
     .scrollIndicators(.hidden)
     .scrollTargetBehavior(KTodaySnap(offsets: pages.map(\.offset), current: currentIndex))
     .scrollPosition($position)
-    .scrollDisabled(driver.scrollLocked)
+    // the cord is held, or the field has the keyboard (the words stay on their letter)
+    .scrollDisabled(driver.scrollLocked || driver.typing)
     .kScrollChrome(chrome)
     .onScrollGeometryChange(for: CGFloat.self) { geo in
       geo.contentOffset.y + geo.contentInsets.top
@@ -231,10 +247,10 @@ struct KCardStack: View {
   }
 
   private func bindCardActions() {
-    cardActions.onReply = { [dock] in dock.reply.focus() }
+    cardActions.onReply = { id in reply(to: id) }
     cardActions.onAction = { [actions] id, action in actions.onCardAction(id, action) }
-    cardActions.onNext = { step(1) }
-    cardActions.onPrevious = { step(-1) }
+    cardActions.onNext = { id in step(from: id, by: 1) }
+    cardActions.onPrevious = { id in step(from: id, by: -1) }
   }
 
   // ── the leading items: the desk strip and the arrival ──
@@ -316,8 +332,38 @@ struct KCardStack: View {
     withTransaction(instant) { position.scrollTo(y: pages[index].offset) }
   }
 
-  private func step(_ by: Int) {
-    go(to: currentIndex + by, animated: true)
+  /// Write back on a card: settle on THAT card first (go() tells TS and binds the dock to it), then
+  /// open the field, so the words can only go to the letter they were asked for.
+  private func reply(to id: String) {
+    if let i = cards.firstIndex(where: { $0.id == id }), driver.settledCard != i {
+      go(to: KTodayPage.index(of: .card(i), card: i, in: pages), animated: false)
+    }
+    dock.reply.focus()
+  }
+
+  /// Next / previous letter from the card the action came from (not from `settled`, which a
+  /// VoiceOver scroll may have left behind), with VoiceOver's focus following the page.
+  private func step(from id: String, by: Int) {
+    let pages = self.pages
+    let from: Int
+    if let i = cards.firstIndex(where: { $0.id == id }) {
+      from = KTodayPage.index(of: .card(i), card: i, in: pages)
+    } else {
+      from = currentIndex
+    }
+    let to = from + by
+    guard pages.indices.contains(to) else { return }
+    go(to: to, animated: true)
+    let target: String?
+    switch pages[to].key {
+    case .top: target = cards.first?.id
+    case let .card(i): target = cards.indices.contains(i) ? cards[i].id : nil
+    case .end: target = Self.endFocus
+    }
+    guard let target else { return }
+    // once the page is on screen (the move is .45s; at once under Reduce Motion), or VoiceOver's
+    // own scroll to the element would fight the stack's
+    DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.05 : 0.5)) { voFocus = target }
   }
 }
 

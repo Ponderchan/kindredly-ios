@@ -9,18 +9,30 @@ import SwiftUI
  the line and open one by one as the reader pages (sealed in ln, open in your hand in ind, read
  in mute; the paper sf; the flag ind, mute once read). Tapping one goes to its letter. It folds
  away (height, opacity, scaleY .35 over .38s) when the third is behind the reader or one of them
- is answered; TS decides (arrival.open) and says every word.
+ is answered; TS decides (arrival.open, never on a desk with no letters: today-cards
+ arrivalShows) and says every word.
 
  Not a counter: the desk never shows arithmetic, but three envelopes she physically brought back
  are an object, not a meter. It scrolls with the cards; it never takes height from them.
+
+ THE ENTRANCE, as the old arrival played it (and TodayRN's still does): she lands (560ms after
+ 80, in the island), her line fades in (360ms after 320), then the envelopes come up one by one
+ from 8pt below (320ms after 480 + i × 120), all ease-out. Under Reduce Motion everything is
+ there at once.
  */
 struct KArrival: View {
   static let bird: CGFloat = 34
+  /// how far below its place an envelope starts
+  static let envelopeRise: CGFloat = 8
 
   let theme: KTheme
   let arrival: KTodayArrival
   let bird: AnyView?
   let onEnvelope: (Int) -> Void
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// the entrance has begun: the line and each envelope animate to their places, each on its delay
+  @State private var entered = false
 
   var body: some View {
     HStack(alignment: .top, spacing: 12) {
@@ -39,8 +51,11 @@ struct KArrival: View {
           .kText(.letter(13.5, italic: true, lineHeight: 20.0 / 13.5))
           .foregroundStyle(theme.sub)
           .fixedSize(horizontal: false, vertical: true)
+          .opacity(entered || reduceMotion ? 1 : 0)
+          .animation(reduceMotion ? nil : .easeOut(duration: 0.36).delay(0.32), value: entered)
         HStack(alignment: .bottom, spacing: 9) {
           ForEach(Array(arrival.states.enumerated()), id: \.offset) { i, state in
+            let shown = entered || reduceMotion
             SwiftUI.Button {
               onEnvelope(i)
             } label: {
@@ -51,6 +66,9 @@ struct KArrival: View {
             }
             .buttonStyle(KFadePressStyle())
             .padding(-8)
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : Self.envelopeRise)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.32).delay(0.48 + Double(i) * 0.12), value: entered)
             .accessibilityLabel(i < arrival.labels.count ? arrival.labels[i] : "")
             .accessibilityValue(i < arrival.values.count ? arrival.values[i] : "")
           }
@@ -62,6 +80,8 @@ struct KArrival: View {
     .padding(.top, 12)
     .padding(.bottom, 10)
     .accessibilityElement(children: .contain)
+    // the entrance plays once, as she lands (at once under Reduce Motion: the animations are nil)
+    .onAppear { entered = true }
   }
 }
 
