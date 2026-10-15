@@ -7,33 +7,69 @@ import { supabase, supabaseReady } from "./supabase";
 import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
 import { t } from "./i18n";
+import {
+  TAKEN_BACK,
+  buildThreadDetail,
+  confirmMissing,
+  decideThreadFetch,
+  emptyReadFail,
+  isNetworkish,
+  isSchemaError,
+  readReason,
+  unconfirmedEmpty,
+  writeFailOf,
+  type MessageRow,
+  type OfflineReason,
+  type SessionCheck,
+  type ThreadDetailResult,
+  type ThreadRow,
+  type WriteFail,
+} from "./thread-detail-core";
 
 /* what a line taken back reads as in the database (web 0031): the body, and the
-   thread's list preview when it was the latest. Never anyone's writing. */
-export const TAKEN_BACK = "(taken back)";
+   thread's list preview when it was the latest. Never anyone's writing.
+   (Defined in thread-detail-core so node tests and demo fixtures share it.) */
+export { TAKEN_BACK };
+export type { OfflineReason, ThreadDetailResult, WriteFail };
 /* WHY IT DIDN'T GO. Every write in here returns a bare null on failure, so
    the screens could only ever say "try again" — advice that is wrong when
    there is no network to try on, and wrong again when the row was refused
    for a reason no amount of retrying will change. Tracking the last failure
    costs one assignment and lets the interface tell the reader something
    true. It is deliberately not part of any return type: callers that don't
-   care are unaffected. */
-export type WriteFail = "offline" | "timeout" | "denied" | "server";
-let lastFail: WriteFail | null = null;
-export const lastWriteFail = (): WriteFail | null => lastFail;
-export function noteFail(e: unknown): null {
-  const m = (e as { message?: string })?.message ?? String(e ?? "");
-  lastFail = /abort|timeout/i.test(m)
-    ? "timeout"
-    : isOffline(e) || /network request failed|fetch failed/i.test(m)
-      ? "offline"
-      : /row-level security|violates|permission|policy/i.test(m)
-        ? "denied"
-        : "server";
+   care are unaffected.
+
+   Step 5 (10a): the reply RPC's own refusals get their own names — gone,
+   blocked, suspended, session (web 0020:105-125) — instead of 'server',
+   which told a reader to "try again" at a letter that could never be
+   answered. And every write clears the flag BEFORE its first early
+   return (writer() below), so a refusal is never read off a stale
+   failure from an earlier write. See WriteFail in thread-detail-core. */
+let lastFailKind: WriteFail | null = null;
+let lastFailAt = 0;
+/* A REASON IS READ RIGHT AFTER ITS WRITE. Some alerts follow a failure
+   that never passed through here (compose's daily-cap call goes to
+   /api), and would otherwise read whatever a write minutes earlier said —
+   "This one has closed" over a compose that merely timed out. A reason
+   older than this is no longer the reason. Generous enough for a reload
+   that hangs on its full deadline between the write and the alert. */
+const FAIL_FRESH_MS = 60_000;
+/** why the last write in this module (or folds.ts) failed, if that was in
+    the last minute; null after a success, before any write, or when stale */
+export const lastWriteFail = (): WriteFail | null => (lastFailKind && Date.now() - lastFailAt <= FAIL_FRESH_MS ? lastFailKind : null);
+/** set the failure reason directly, for refusals decided on the phone (a ghost's letter, a closed room) */
+export function setFail(kind: WriteFail): null {
+  lastFailKind = kind;
+  lastFailAt = Date.now();
   return null;
 }
+/** record why a write failed (see writeFailOf) and return null, for `return noteFail(e)` */
+export function noteFail(e: unknown): null {
+  return setFail(writeFailOf(e, isOffline(e)));
+}
+/** forget the last failure — every write calls this before anything else */
 export const clearFail = () => {
-  lastFail = null;
+  lastFailKind = null;
 };
 
 
@@ -44,19 +80,70 @@ export const clearFail = () => {
    the device; its user id is the same id. */
 let uidCache: string | null = null;
 if (supabase) supabase.auth.onAuthStateChange((_e, s) => { uidCache = s?.user?.id ?? null; });
-async function uid(): Promise<string | null> {
-  if (!supabase) return null;
-  if (uidCache) return uidCache;
+
+/**
+ * Who is signed in, or why that can't be said. `network` covers a session
+ * whose token expired while the phone is offline (auth's refresh failed
+ * with a retryable fetch error) — that reader is not a guest, and must
+ * never be shown a guest's empty screen. `no-session` is a real answer: a
+ * guest, or a session that is really gone.
+ */
+export type WhoAmI = { id: string } | { reason: "not-ready" | "no-session" | "network" };
+export async function whoAmI(): Promise<WhoAmI> {
+  if (!supabase) return { reason: "not-ready" };
+  if (uidCache) return { id: uidCache };
   try {
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
     const id = data.session?.user?.id ?? null;
-    if (id) { uidCache = id; return id; }
+    if (id) {
+      uidCache = id;
+      return { id };
+    }
+    if (error && isNetworkish(error)) return { reason: "network" };
     const u = await supabase.auth.getUser();
-    uidCache = u.data.user?.id ?? null;
-    return uidCache;
-  } catch {
-    return null;
+    const uid2 = u.data.user?.id ?? null;
+    if (uid2) {
+      uidCache = uid2;
+      return { id: uid2 };
+    }
+    return u.error && isNetworkish(u.error) ? { reason: "network" } : { reason: "no-session" };
+  } catch (e) {
+    return isNetworkish(e) ? { reason: "network" } : { reason: "no-session" };
   }
+}
+async function uid(): Promise<string | null> {
+  const w = await whoAmI();
+  return "id" in w ? w.id : null;
+}
+
+/* WHO A READ WAS ASKED AS. whoAmI() answers from uidCache, but every
+   PostgREST request fetches its own token: once the access token has
+   expired and auth's refresh fails, getSession() hands back no session
+   and supabase-js sends the anon key instead (supabase-js fetchWithAuth).
+   The threads policies are `to authenticated`, so that read answers 0 rows
+   and no error — a deleted thread, to anyone who believes it. Called only
+   after an empty answer (no cost on the common path); see
+   unconfirmedEmpty / confirmMissing / emptyReadFail. */
+async function sessionCheck(): Promise<SessionCheck> {
+  try {
+    const { data, error } = await supabase!.auth.getSession();
+    return { uid: data.session?.user?.id ?? null, error };
+  } catch (e) {
+    return { uid: null, error: e };
+  }
+}
+
+/* THE START OF EVERY WRITE: forget the last failure first (before any early
+   return), then name why there is no writer if there isn't one — offline,
+   or no session — so the screen's alert says something true. */
+async function writer(): Promise<string | null> {
+  clearFail();
+  if (!supabaseReady) return null;
+  const w = await whoAmI();
+  if ("id" in w) return w.id;
+  if (w.reason === "network") setFail("offline");
+  else if (w.reason === "no-session") setFail("session");
+  return null;
 }
 
 /** current writer's pen name (handle) for thread name-reveal. */
@@ -188,10 +275,12 @@ export async function publishLetter(
   body: string,
   lang: string,
 ): Promise<string | null> {
-  if (!supabaseReady || !body) return null;
-  const id = await uid();
+  if (!body) {
+    clearFail();
+    return null;
+  }
+  const id = await writer();
   if (!id) return null;
-  clearFail();
   try {
     const { data, error } = await supabase!
       .from("letters")
@@ -350,8 +439,11 @@ export async function publishVoiceLetter(
   caption: string,
   lang: string,
 ): Promise<true | null> {
-  if (!supabaseReady || !fileUri) return null;
-  const id = await uid();
+  if (!fileUri) {
+    clearFail();
+    return null;
+  }
+  const id = await writer();
   if (!id) return null;
   try {
     const path = `${id}/${Date.now()}.m4a`;
@@ -378,10 +470,12 @@ export async function publishVoiceLetter(
 
 /** upload a tiny-moment photo into the 'moments' bucket; returns its path. */
 export async function uploadMoment(fileUri: string): Promise<string | null> {
-  if (!supabaseReady || !fileUri) return null;
-  const id = await uid();
+  if (!fileUri) {
+    clearFail();
+    return null;
+  }
+  const id = await writer();
   if (!id) return null;
-  clearFail();
   try {
     const path = `${id}/${Date.now()}.jpg`;
     const res = await fetch(fileUri);
@@ -408,11 +502,16 @@ export function momentUrl(mediaPath?: string | null): string | null {
 /** withdraw a pool letter — it stops being offered; correspondences it
     already opened are untouched (they are the other person's too) */
 export async function withdrawLetter(id: string): Promise<boolean> {
-  if (!supabaseReady) return false;
-  const me = await uid();
+  const me = await writer();
   if (!me) return false;
-  const { error } = await supabase!.from("letters").update({ active: false }).eq("id", id).eq("author", me);
-  return !error;
+  try {
+    const { error } = await supabase!.from("letters").update({ active: false }).eq("id", id).eq("author", me);
+    if (error) noteFail(error);
+    return !error;
+  } catch (e) {
+    noteFail(e);
+    return false;
+  }
 }
 
 /** one reader, once — the eye on My letters. Fire-and-forget; before 0020
@@ -427,10 +526,15 @@ export async function replyToLetter(
   letter: PoolLetter,
   body: string,
 ): Promise<string | null> {
-  if (!supabaseReady || !letter || !letter.author) return null;
-  const me = await uid();
-  if (!me) return null;
+  /* the flag is cleared before ANY early return (critic, 10a step 5): the
+     uid check used to return first, so an expired session read whatever
+     the previous write had said */
   clearFail();
+  if (!letter) return null;
+  // a ghost's letter (0009: author nulled with the account) can't be answered
+  if (!letter.author) return setFail("gone");
+  const me = await writer();
+  if (!me) return null;
   try {
     /* ONE ROUND TRIP, WHEN THE SERVER HAS 0017. The three statements below
        are the same three this function used to run from the phone, one at a
@@ -553,19 +657,65 @@ export async function readThreadsCache(): Promise<ThreadSummary[] | null> {
 /** seconds since the list was last fetched for real — Infinity if never */
 export const threadsAge = (): number => (threadsFetchedAt ? (Date.now() - threadsFetchedAt) / 1000 : Infinity);
 
+/** your correspondences, newest first — or null when they couldn't be read
+    (offline, no session, no keys). Writes the kept copy on success. For
+    "a guest" versus "couldn't reach" use fetchThreadsResult. */
 export async function fetchThreads(): Promise<ThreadSummary[] | null> {
-  const list = await fetchThreadsUncached();
-  if (list) {
-    threadsMem = list;
-    threadsFetchedAt = Date.now();
-    void scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(list)).catch(() => {});
-  }
-  return list;
+  const r = await fetchThreadsResult();
+  return r.status === "ok" ? r.threads : null;
 }
 
-/** a correspondence that has just left the list (you blocked them): gone from
-    the kept copy too, so the tab can't paint it again before the next fetch */
+/**
+ * The list with its reason when there is none (10a step 5). A guest and a
+ * dropped connection both used to read as null, so a screen had to choose
+ * between leaving guests on a blank list forever and telling a reader with
+ * correspondences that nobody knows their name.
+ * - `ok`: the list (also written to the kept copy, see readThreadsCache);
+ * - `offline` + reason `no-session`: a real answer — nobody is signed in,
+ *   so there is nothing to list; show the empty/guest state;
+ * - `offline` + `network` / `error` / `not-ready`: no answer; keep the kept
+ *   copy, and with none show an offline line (auth.err.offline), never the
+ *   empty state.
+ */
+export type ThreadsResult = { status: "ok"; threads: ThreadSummary[] } | { status: "offline"; reason: OfflineReason };
+/* one realtime burst pokes the tabs layout and the Kindreds tab at the same
+   debounce (critic: two full list fetches per poke); a call made while a
+   read is in flight shares that read */
+let threadsInFlight: Promise<ThreadsResult> | null = null;
+/* bumped when a thread is forgotten or a letter leaves: a read that began
+   before can't write the forgotten row (or the pre-send list) back into
+   the kept list, nor mark it fresh */
+let threadsGen = 0;
+export function fetchThreadsResult(): Promise<ThreadsResult> {
+  if (threadsInFlight) return threadsInFlight;
+  const gen = threadsGen;
+  const run = (async (): Promise<ThreadsResult> => {
+    const r = await fetchThreadsUncached();
+    if (r.status === "ok" && gen === threadsGen) {
+      threadsMem = r.threads;
+      threadsFetchedAt = Date.now();
+      void scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(r.threads)).catch(() => {});
+    }
+    return r;
+  })();
+  threadsInFlight = run;
+  void run.finally(() => {
+    if (threadsInFlight === run) threadsInFlight = null;
+  });
+  return run;
+}
+
+/** a correspondence that has just left the list (you blocked them, or the
+    server says it is gone): out of the kept list, and its kept room and
+    folds deleted too, so nothing can paint it again (once bug 1 kept caches
+    offline, a blocked thread could otherwise repaint from its own cache) */
 export async function forgetThread(threadId: string): Promise<void> {
+  await Promise.all([
+    scoped.removeItem(detailCacheKey(threadId)).catch(() => {}),
+    scoped.removeItem(foldsCacheKey(threadId)).catch(() => {}),
+  ]);
+  threadsInFlight = null; // a read begun before this still holds the thread
+  threadsGen++;
   const list = (await readThreadsCache())?.filter((x) => x.id !== threadId);
   if (!list) return;
   threadsMem = list;
@@ -573,20 +723,21 @@ export async function forgetThread(threadId: string): Promise<void> {
   await scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(list)).catch(() => {});
 }
 
-async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
-  if (!me) return null;
+async function fetchThreadsUncached(): Promise<ThreadsResult> {
+  if (!supabaseReady) return { status: "offline", reason: "not-ready" };
+  const who = await whoAmI();
+  if (!("id" in who)) return { status: "offline", reason: who.reason };
+  const me = who.id;
   try {
-    let { data, error } = await supabase!
+    let { data, error, status } = await supabase!
       .from("threads")
       .select(
         "id,a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at",
       )
       .or(`a.eq.${me},b.eq.${me}`)
       .order("last_at", { ascending: false });
-    if (error) {
-      // pre-0011 fallback: face columns absent
+    if (error && !isNetworkish(error, status)) {
+      // pre-0011 fallback: face columns absent (no point retrying a dropped connection)
       const retry = await supabase!
         .from("threads")
         .select(
@@ -596,8 +747,16 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
         .order("last_at", { ascending: false });
       data = retry.data as any;
       error = retry.error;
+      status = retry.status;
     }
-    if (error || !data) return null;
+    if (error) return { status: "offline", reason: readReason(error, status) };
+    if (!data) return { status: "offline", reason: "error" };
+    /* an empty list asked with the anon key (expired token, refresh failed)
+       must not overwrite the kept list with nothing — see sessionCheck */
+    if (!data.length) {
+      const why = unconfirmedEmpty(await sessionCheck(), me);
+      if (why) return { status: "offline", reason: why };
+    }
 
     /* their letters, beside the rows (the one-tap "a reply is on its way" and
        its side table went 2026-10-10: one person had ever used it) */
@@ -615,7 +774,7 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
       theirs.set(m.thread_id, list);
     }
 
-    return data.map((r: any) => {
+    const threads = data.map((r: any) => {
       const iamA = r.a === me;
       return {
         id: r.id,
@@ -643,8 +802,9 @@ async function fetchThreadsUncached(): Promise<ThreadSummary[] | null> {
         lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
       } as ThreadSummary;
     });
-  } catch {
-    return null;
+    return { status: "ok", threads };
+  } catch (e) {
+    return { status: "offline", reason: readReason(e) };
   }
 }
 
@@ -659,10 +819,24 @@ export interface ThreadDetail {
   iSigned?: boolean; // my pen name is enclosed with this correspondence
   theirSigned?: boolean; // theirs is — one signature from a reveal
   otherFace?: string | null; // the face they chose to give at signing (library id)
-  since?: string | null; // when the first reply opened this thread
+  /** when the thread row was created — the FIRST REPLY's date. Never the
+      opening letter's date (openingAt) nor the names date (revealedAt):
+      known bug 3 stamped this on the stranger's letter. */
+  since?: string | null;
+  /** when both names were sealed (0020 threads.revealed_at), ISO — "KINDRED SINCE" */
+  revealedAt?: string | null;
+  /** the opening letter's own created_at, read through threads.letter (0020);
+      null when unreadable (withdrawn, blocked, or older than 0020) — then show no date */
+  openingAt?: string | null;
+  /** the pool letter this correspondence grew from (0020 threads.letter) */
+  letterId?: string | null;
   opening: string;
   openingFromMe: boolean;
-  openingMedia?: string | null; // voice-letter opening (storage path)
+  /** a voice opening (storage path in 'voice-letters'): the reply RPC copies
+      letters.media_path into threads.opening_media (0020:136-142). When set,
+      the opening is a voice letter wherever it is shown — not only while it
+      is the room's only item (known bug 2). `opening` is then its caption. */
+  openingMedia?: string | null;
   openingDurationS?: number | null;
   messages: ThreadMessage[];
 }
@@ -699,99 +873,162 @@ export function theirLatest(messages: ThreadMessage[] | undefined | null, fallba
 
 /* THE LAST READ OF A ROOM, ON THE PHONE (owner, build 18: "a room takes
    three seconds to open"). The room paints this at once and the fetch
-   replaces it; a room opened once never opens blank again. */
+   replaces it; a room opened once never opens blank again. Written only
+   after a WHOLE read (both queries answered) — never after a partial one. */
 const DETAIL_CACHE = "kindredly_thread_detail";
+const FOLDS_CACHE = "kindredly_thread_folds";
+/** storage key (account-scoped) of a thread's kept detail */
+export const detailCacheKey = (threadId: string): string => `${DETAIL_CACHE}:${threadId}`;
+/** storage key (account-scoped) of a thread's kept folds — folds.ts reads and writes it */
+export const foldsCacheKey = (threadId: string): string => `${FOLDS_CACHE}:${threadId}`;
+
+/** the kept detail of a thread (the last whole read), or null */
 export async function readThreadDetailCache(threadId: string): Promise<ThreadDetail | null> {
   try {
-    const raw = await scoped.getItem(`${DETAIL_CACHE}:${threadId}`);
+    const raw = await scoped.getItem(detailCacheKey(threadId));
     return raw ? (JSON.parse(raw) as ThreadDetail) : null;
   } catch {
     return null;
   }
 }
 
-export async function fetchThreadMessages(
-  threadId: string,
-): Promise<ThreadDetail | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
-  if (!me) return null;
+/* the thread row's column sets, newest server first. The first embeds the
+   opening letter through threads.letter (0020) for its created_at; RLS on
+   letters hides a withdrawn or blocked letter, and the embed is then null. */
+const THREAD_COLS = {
+  sets: [
+    "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at,opening_letter:letters!letter(created_at)",
+    // the embed refused (schema cache): the 0020 columns without the letter's date
+    "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at",
+    // pre-0020: no revealed_at / letter
+    "a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at",
+    // pre-0007 / pre-0011: no media or face columns
+    "a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,created_at",
+  ],
+  from: 0, // the first set this server accepted — later reads start there
+};
+const MESSAGE_COLS = {
+  sets: [
+    "id,sender,body,created_at,kind,media_path,meta,recalled_at",
+    // pre-0031: no recalled_at
+    "id,sender,body,created_at,kind,media_path,meta",
+    // pre-0015: no kind / media columns
+    "sender,body,created_at",
+  ],
+  from: 0,
+};
+type Answer<T> = { data: T | null; error: unknown | null; status: number };
+/* run the column sets in order until one answers. Only a schema refusal
+   (a column or relationship this server doesn't have) moves on to the
+   older set; a dropped connection or any other error ends the chain at
+   once — retrying older schemas offline only adds waits, and a passing
+   5xx must not demote the read for the rest of the launch. The set that
+   answered is remembered, so an older server pays the failed tries once
+   per launch, not on every read. */
+async function firstAnswer<T>(run: (cols: string) => PromiseLike<Answer<T>>, cols: { sets: string[]; from: number }): Promise<Answer<T>> {
+  let last: Answer<T> = { data: null, error: null, status: 0 };
+  for (let i = cols.from; i < cols.sets.length; i++) {
+    last = await run(cols.sets[i]);
+    if (!last.error) {
+      cols.from = i;
+      return last;
+    }
+    if (!isSchemaError(last.error, last.status)) return last;
+  }
+  return last;
+}
+
+/**
+ * One thread, with its reason when there is none (10a step 5; the root of
+ * known bug 1). Never throws.
+ * - `{status:'ok', detail}` — the row and every message were read; the
+ *   detail is also written to the kept copy (readThreadDetailCache).
+ * - `{status:'offline', reason}` — no keys (not-ready), nobody signed in or
+ *   the session not restored (no-session), a dropped connection (network),
+ *   or a query error (error) — INCLUDING a failed messages query after the
+ *   row was read. Keep what is painted; the cache is not touched.
+ * - `{status:'missing'}` — the server answered without error that this
+ *   reader has no such thread (deleted, or hidden by a block), and a
+ *   session for this reader is there after it (an empty answer asked with
+ *   the anon key is offline instead — confirmMissing). The kept detail and
+ *   folds are deleted; the screen shows a closed state in place.
+ * The detail carries revealedAt, openingAt (the opening letter's own date)
+ * and openingMedia (a voice opening). Demo ids are not handled here — see
+ * useThreadDetail.
+ */
+export async function fetchThreadDetail(threadId: string): Promise<ThreadDetailResult> {
+  if (!supabaseReady) return { status: "offline", reason: "not-ready" };
+  if (!threadId) return { status: "missing" };
+  const who = await whoAmI();
+  if (!("id" in who)) return { status: "offline", reason: who.reason };
+  const me = who.id;
   try {
     /* the row and the messages in ONE round trip, not one after the other
        — the serial pair was the whole of the wait on a slow link */
     const [tRes, mRes] = await Promise.all([
-      supabase!
-        .from("threads")
-        .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at")
-        .eq("id", threadId)
-        .maybeSingle(),
-      supabase!
-        .from("messages")
-        .select("id,sender,body,created_at,kind,media_path,meta,recalled_at")
-        .eq("thread_id", threadId)
-        .order("created_at"),
+      firstAnswer<ThreadRow>(
+        (cols) => supabase!.from("threads").select(cols).eq("id", threadId).maybeSingle() as unknown as PromiseLike<Answer<ThreadRow>>,
+        THREAD_COLS,
+      ),
+      firstAnswer<MessageRow[]>(
+        (cols) => supabase!.from("messages").select(cols).eq("thread_id", threadId).order("created_at") as unknown as PromiseLike<Answer<MessageRow[]>>,
+        MESSAGE_COLS,
+      ),
     ]);
-    let t = tRes.data;
-    if (!t) {
-      // pre-0007 fallback: media columns absent
-      const retry = await supabase!
-        .from("threads")
-        .select("a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,created_at")
-        .eq("id", threadId)
-        .maybeSingle();
-      t = retry.data as any;
+    let verdict = decideThreadFetch({
+      threadError: tRes.error,
+      threadStatus: tRes.status,
+      hasRow: !!tRes.data,
+      messagesError: mRes.error,
+      messagesStatus: mRes.status,
+    });
+    /* an empty answer asked with the anon key (an expired token whose
+       refresh failed) is not a deleted thread: nothing is removed, and
+       the screen keeps what it painted */
+    if (verdict.status === "missing") verdict = confirmMissing(verdict, await sessionCheck(), me);
+    if (verdict.status === "missing") {
+      void scoped.removeItem(detailCacheKey(threadId)).catch(() => {});
+      void scoped.removeItem(foldsCacheKey(threadId)).catch(() => {});
+      return verdict;
     }
-    let { data: msgs, error: msgErr } = mRes;
-    if (msgErr) {
-      // pre-0031: no recalled_at yet
-      const retry = await supabase!
-        .from("messages")
-        .select("id,sender,body,created_at,kind,media_path,meta")
-        .eq("thread_id", threadId)
-        .order("created_at");
-      if (!retry.error) { msgs = retry.data as any; msgErr = null; }
-    }
-    if (msgErr) {
-      // pre-0015 fallback: kind/media columns absent
-      const retry = await supabase!
-        .from("messages")
-        .select("sender,body,created_at")
-        .eq("thread_id", threadId)
-        .order("created_at");
-      msgs = retry.data as any;
-    }
-    if (!t) return null;
-    const iamA = t.a === me;
-    const detail: ThreadDetail = {
-      stamp: t.stamp,
-      revealed: !!t.revealed,
-      otherName: iamA ? t.b_name : t.a_name,
-      otherFace: ((iamA ? (t as any).b_face : (t as any).a_face) as string | undefined) ?? null,
-      other: iamA ? t.b : t.a,
-      gone: !(iamA ? t.b : t.a),
-      myCount: iamA ? t.a_count : t.b_count,
-      otherCount: iamA ? t.b_count : t.a_count,
-      iSigned: !!(iamA ? t.a_name : t.b_name),
-      theirSigned: !!(iamA ? t.b_name : t.a_name),
-      since: (t as any).created_at ?? null,
-      opening: t.opening || "",
-      openingFromMe: t.b === me,
-      openingMedia: (t as any).opening_media ?? null,
-      openingDurationS: (t as any).opening_duration_s ?? null,
-      messages: (msgs || []).map((m: any) => ({
-        id: m.id,
-        body: m.body,
-        mine: m.sender === me,
-        date: m.created_at,
-        kind: m.kind ?? "text",
-        mediaPath: m.media_path ?? null,
-        meta: m.meta ?? null,
-        recalledAt: m.recalled_at ?? null,
-        replyMine: m.meta?.reply ? m.meta.reply.sender === me : undefined,
-      })),
-    };
-    void scoped.setItem(`${DETAIL_CACHE}:${threadId}`, JSON.stringify(detail)).catch(() => {});
-    return detail;
+    if (verdict.status === "offline") return verdict;
+    const detail = buildThreadDetail(tRes.data!, mRes.data ?? [], me);
+    void scoped.setItem(detailCacheKey(threadId), JSON.stringify(detail)).catch(() => {});
+    return { status: "ok", detail };
+  } catch (e) {
+    return { status: "offline", reason: readReason(e) };
+  }
+}
+
+/**
+ * The old shape, kept for callers not yet on fetchThreadDetail /
+ * useThreadDetail: the fresh detail; when the network can't answer, the
+ * kept copy (so a screen that does setDetail(await fetchThreadMessages(id))
+ * no longer goes blank offline); null when the thread is missing, or
+ * offline with nothing kept.
+ */
+export async function fetchThreadMessages(threadId: string): Promise<ThreadDetail | null> {
+  const r = await fetchThreadDetail(threadId);
+  if (r.status === "ok") return r.detail;
+  if (r.status === "offline") return readThreadDetailCache(threadId);
+  return null;
+}
+
+/**
+ * Is this thread revealed (names traded)? For push routing (room vs chat):
+ * the kept detail first, then the kept list, then a one-column read — so an
+ * offline cold start from a notification still opens a kindred in the room.
+ * null when nothing can say (offline with no copy, or missing).
+ */
+export async function fetchThreadRevealed(threadId: string): Promise<boolean | null> {
+  const kept = await readThreadDetailCache(threadId);
+  if (kept) return !!kept.revealed;
+  const row = (await readThreadsCache())?.find((x) => x.id === threadId);
+  if (row) return !!row.revealed;
+  if (!supabaseReady) return null;
+  try {
+    const { data, error } = await supabase!.from("threads").select("revealed").eq("id", threadId).maybeSingle();
+    return error || !data ? null : !!(data as { revealed?: boolean }).revealed;
   } catch {
     return null;
   }
@@ -808,23 +1045,27 @@ export async function sendThreadMessage(
   body: string,
   extra?: { kind: "photo" | "song" | "text"; mediaPath?: string; meta?: { url?: string; title?: string; reply?: MessageQuote } },
 ): Promise<{ ok: true; id?: string; createdAt?: string } | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
+  const me = await writer();
   if (!me) return null;
-  clearFail();
   try {
     /* NOBODY HOME. Four surfaces write through here — chat, the room's three
        traces, and thread — so this is the one place the check cannot be
        forgotten. RLS lets a participant insert into a thread whose other
        side 0009 has set to null, which meant letters to a deleted
        correspondent were accepted and stored and never read. The composer is
-       closed upstream; this is the lock behind it. */
-    const { data: sides } = await supabase!
+       closed upstream; this is the lock behind it. A thread the server no
+       longer shows this reader (0024 hides a blocked pair's both ways) is
+       just as closed — both say 'gone', so the alert stops advising a retry.
+       An empty answer is 'gone' only when it was asked with this reader's
+       session (emptyReadFail): an expired token whose refresh failed sends
+       the anon key, which also reads no row. */
+    const { data: sides, error: sidesErr } = await supabase!
       .from("threads")
       .select("a,b")
       .eq("id", threadId)
       .maybeSingle();
-    if (sides && !(sides.a === me ? sides.b : sides.a)) return null;
+    if (!sidesErr && !sides) return setFail(emptyReadFail(await sessionCheck(), me));
+    if (sides && !(sides.a === me ? sides.b : sides.a)) return setFail("gone");
 
     /* body always carries a readable fallback, so the web app and any
        pre-0015 reader degrade to plain text instead of an empty bubble */
@@ -854,8 +1095,13 @@ export async function sendThreadMessage(
     if (error) return noteFail(error) as null;
     /* the list is out of date the moment a letter leaves: the next visit
        to Kindreds asks again, so the stranger you just answered has moved
-       to IN TRANSIT by the time you're back (owner, 2026-09-23) */
+       to IN TRANSIT by the time you're back (owner, 2026-09-23) — and a
+       read already in flight began before it, so nobody joins that one,
+       and its answer (bumped generation) can't write the pre-send list
+       back as fresh */
     threadsFetchedAt = 0;
+    threadsInFlight = null;
+    threadsGen++;
     return { ok: true, id: saved?.id, createdAt: saved?.created_at };
   } catch (e) {
     return noteFail(e);
@@ -867,20 +1113,21 @@ export async function sendThreadMessage(
    completes the reveal. Returns { revealed } — true when the second
    signature just landed (mine), so the caller can hold the ceremony. */
 export async function signThread(threadId: string): Promise<{ revealed: boolean } | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
-  if (!me) return null;
   /* chat/[id] reports this failure through alertFail, which reads the module
      flag — without clearing it first, a failed signature inherits whatever
      the last write said and can announce a lost connection over a live one. */
-  clearFail();
+  const me = await writer();
+  if (!me) return null;
   try {
-    const { data: t } = await supabase!
+    const { data: t, error: tErr } = await supabase!
       .from("threads")
       .select("a,b,a_name,b_name,revealed")
       .eq("id", threadId)
       .maybeSingle();
-    if (!t) return null;
+    if (tErr) return noteFail(tErr);
+    // no row: 'gone' only if asked as this reader (see sendThreadMessage)
+    if (!t) return setFail(emptyReadFail(await sessionCheck(), me));
+    if (!(t.a === me ? t.b : t.a)) return setFail("gone");
     const iamA = t.a === me;
     const theirs = iamA ? t.b_name : t.a_name;
     const patch: Record<string, unknown> = { [iamA ? "a_name" : "b_name"]: await currentHandle() };
@@ -894,10 +1141,10 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
       const retry = await supabase!.from("threads").update(patch).eq("id", threadId);
       error = retry.error;
     }
-    if (error) return null;
+    if (error) return noteFail(error);
     return { revealed: !!theirs || !!t.revealed };
-  } catch {
-    return null;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -906,8 +1153,8 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
    The server is the clock — this only asks. "too_late" when the two minutes
    are up; null when it couldn't ask (offline, or before 0031 ran). */
 export async function takeBack(messageId: string): Promise<"ok" | "too_late" | null> {
-  if (!supabaseReady) return null;
   clearFail();
+  if (!supabaseReady) return null;
   try {
     const { error } = await supabase!.rpc("take_back", { p_id: messageId });
     if (!error) return "ok";
@@ -925,8 +1172,7 @@ export async function reportContent(input: {
   reason?: string;
   snapshot?: string | null;
 }): Promise<true | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
+  const me = await writer();
   if (!me) return null;
   try {
     const { error } = await supabase!.from("reports").insert({
@@ -937,9 +1183,9 @@ export async function reportContent(input: {
       reason: input.reason || "other",
       snapshot: input.snapshot ? String(input.snapshot).slice(0, 1000) : null,
     });
-    return error ? null : true;
-  } catch {
-    return null;
+    return error ? noteFail(error) : true;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -1028,28 +1274,34 @@ export async function fetchBlocks(): Promise<BlockRow[] | null> {
 }
 
 export async function unblockUser(targetUser: string): Promise<true | null> {
-  if (!supabaseReady || !targetUser) return null;
-  const me = await uid();
+  if (!targetUser) {
+    clearFail();
+    return null;
+  }
+  const me = await writer();
   if (!me) return null;
   try {
     const { error } = await supabase!.from("blocks").delete().eq("blocker", me).eq("blocked", targetUser);
-    return error ? null : true;
-  } catch {
-    return null;
+    return error ? noteFail(error) : true;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
 export async function blockUser(targetUser: string): Promise<true | null> {
-  if (!supabaseReady || !targetUser) return null;
-  const me = await uid();
+  if (!targetUser) {
+    clearFail();
+    return null;
+  }
+  const me = await writer();
   if (!me) return null;
   try {
     const { error } = await supabase!
       .from("blocks")
       .upsert({ blocker: me, blocked: targetUser }, { onConflict: "blocker,blocked" });
-    return error ? null : true;
-  } catch {
-    return null;
+    return error ? noteFail(error) : true;
+  } catch (e) {
+    return noteFail(e);
   }
 }
 
@@ -1063,8 +1315,7 @@ export async function sendSupportLetter(
   replyTo: string | null,
   appVersion: string,
 ): Promise<true | null> {
-  if (!supabaseReady) return null;
-  const me = await uid();
+  const me = await writer();
   if (!me) return null;
   try {
     const { error } = await supabase!.from("support_letters").insert({
@@ -1073,8 +1324,8 @@ export async function sendSupportLetter(
       reply_to: replyTo?.trim() || null,
       app_version: appVersion,
     });
-    return error ? null : true;
-  } catch {
-    return null;
+    return error ? noteFail(error) : true;
+  } catch (e) {
+    return noteFail(e);
   }
 }

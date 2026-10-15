@@ -3,7 +3,7 @@ import { hatch, type Archetype, type DimScore } from "./hatch-engine";
 import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";
 import { supabase, supabaseReady } from "./supabase";
-import { fetchThreads, upsertFingerprint, TAKEN_BACK, type PoolLetter } from "./db";
+import { fetchThreads, upsertFingerprint, whoAmI, TAKEN_BACK, type PoolLetter } from "./db";
 import { signalFrom, type AuraFacts, type Signal } from "./today-signal";
 import { loadLore } from "./lore";
 import { getCounters } from "./usage-counters";
@@ -68,6 +68,10 @@ export interface Aura {
   /** counted, never generated: over half your letters left after 22:00 or
       before 06:00. Journal pages are deliberately excluded from the count. */
   nightOwl: boolean;
+  /** true when your letters couldn't be read from the server: this is the
+      last kept read (or, with none kept, a read of this phone's words
+      alone that was not saved). Show it; don't celebrate changes in it. */
+  stale?: boolean;
 }
 
 export interface WritingRow {
@@ -82,33 +86,65 @@ export interface WritingRow {
 }
 type Row = WritingRow;
 
+/** everything I have written into the world, as fetchMyWriting reads it */
+export interface MyWriting {
+  /** my active pool letters, newest first (up to 200) */
+  letters: Row[];
+  /** my thread messages, newest first (up to 400), lines taken back left out */
+  messages: Row[];
+  /** the local wall-clock hour of each piece — evidence for counted notices */
+  hours: number[];
+}
+const NOTHING_WRITTEN: MyWriting = { letters: [], messages: [], hours: [] };
+
 /* everything I have written INTO THE WORLD — pool letters and thread
    messages, with their ids and dates so each is one piece with one day.
-   Server-fetched (they live there), fail-safe to []. */
-export async function fetchMyLetters(): Promise<{ letters: Row[]; messages: Row[]; hours: number[] }> {
-  if (!supabaseReady) return { letters: [], messages: [], hours: [] };
+   Server-fetched (they live there).
+
+   NULL WHEN IT COULDN'T BE READ (10a step 5). This used to fail to empty
+   lists, and an empty answer is an answer: offline, myAura rebuilt the
+   card from the hatch line alone, overwrote the kept read and the stamp
+   facts, and Me said FROM YOUR FIRST LINES · 0 LETTERS to someone with a
+   year of letters (the Me offline bug, same root as known bug 1). */
+/**
+ * Your writing, or null when it couldn't be read (offline, or a query
+ * failed) — keep whatever you showed last. A guest (no session) and a
+ * build without keys get empty lists: nothing of theirs is on a server.
+ */
+export async function fetchMyWriting(): Promise<MyWriting | null> {
+  if (!supabaseReady) return NOTHING_WRITTEN;
   try {
-    const { data: s } = await supabase!.auth.getSession();
-    const me = s.session?.user?.id;
-    if (!me) return { letters: [], messages: [], hours: [] };
+    const who = await whoAmI();
+    if (!("id" in who)) return who.reason === "network" ? null : NOTHING_WRITTEN;
+    const me = who.id;
     const mine = (cols: string) => supabase!.from("letters").select(cols).eq("author", me).eq("active", true).order("created_at", { ascending: false }).limit(200);
-    let l: { data: unknown; error: unknown } = await mine("id,body,created_at,lang,stamp,reads");
-    // pre-0020: no `reads` column yet — read the rest without it
-    if (l.error) l = await mine("id,body,created_at,lang,stamp");
-    const [m] = await Promise.all([
+    const [first, m] = await Promise.all([
+      mine("id,body,created_at,lang,stamp,reads"),
       supabase!.from("messages").select("id,body,created_at,thread_id").eq("sender", me).order("created_at", { ascending: false }).limit(400),
     ]);
+    let l: { data: unknown; error: unknown } = first;
+    // pre-0020: no `reads` column yet — read the rest without it
+    if (l.error) l = await mine("id,body,created_at,lang,stamp");
+    if (l.error || m.error) return null;
     const letters = ((l.data || []) as Row[]).filter((r) => r.body);
     const messages = ((m.data || []) as Row[]).filter((r) => r.body && r.body !== TAKEN_BACK); // a line taken back (web 0031) is nobody's writing
     return {
       letters,
       messages,
-      // local wall-clock hour of each piece — evidence for counted notices
       hours: [...letters, ...messages].filter((r) => r.created_at).map((r) => new Date(r.created_at!).getHours()),
     };
   } catch {
-    return { letters: [], messages: [], hours: [] };
+    return null;
   }
+}
+
+/**
+ * The old shape: your writing, or EMPTY LISTS when it couldn't be read.
+ * Kept only for callers not yet moved (My letters); new code uses
+ * fetchMyWriting and keeps what it showed when that is null.
+ */
+export async function fetchMyLetters(): Promise<MyWriting> {
+  return (await fetchMyWriting()) ?? NOTHING_WRITTEN;
 }
 
 const STOP = new Set(
@@ -211,9 +247,42 @@ async function loadAuraFacts(): Promise<AuraFacts> {
   }
   return facts;
 }
-function saveAuraFacts(usage: UsageSticker[], stamps: (string | null | undefined)[]): void {
-  const f = { usage: usage.map((u) => u.id), stamps: [...new Set(stamps.filter((x): x is string => !!x))] };
+/* the stamps you have posted under, each with the last day you used it —
+   the Me Stamps segment labels every cell with that date (10a, H:81) */
+function saveAuraFacts(usage: UsageSticker[], letters: Row[]): void {
+  const stampsAt: Record<string, string> = {};
+  for (const r of letters) {
+    if (!r.stamp || !r.created_at) continue;
+    if (!stampsAt[r.stamp] || r.created_at > stampsAt[r.stamp]) stampsAt[r.stamp] = r.created_at;
+  }
+  const stamps = [...new Set(letters.map((r) => r.stamp).filter((x): x is string => !!x))];
+  const f = { usage: usage.map((u) => u.id), stamps, stampsAt };
   void AsyncStorage.setItem(FACTS_KEY, JSON.stringify(f)).catch(() => {});
+}
+
+/** a stamp you have posted a letter under, and the last time you did (ISO; null if the kept read predates dates) */
+export interface UsedStamp {
+  id: string;
+  at: string | null;
+}
+/**
+ * The stamps you have used, newest first, as the last full aura read left
+ * them on this phone (Me reads them; nothing is fetched). Empty before the
+ * first read. Offline reads never overwrite this.
+ */
+export async function readUsedStamps(): Promise<UsedStamp[]> {
+  try {
+    const raw = await AsyncStorage.getItem(FACTS_KEY);
+    if (!raw) return [];
+    const f = JSON.parse(raw) as { stamps?: string[]; stampsAt?: Record<string, string> };
+    const at = f.stampsAt ?? {};
+    const ids = [...new Set([...(f.stamps ?? []), ...Object.keys(at)])];
+    return ids
+      .map((id) => ({ id, at: at[id] ?? null }))
+      .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
+  } catch {
+    return [];
+  }
 }
 /* THE LAST READ, KEPT — so the Me tab paints the card the moment it opens
    instead of after the letters have come back from the network. The card
@@ -262,7 +331,7 @@ const EMPTY: Aura = {
 
 /* the counted layer — threads, kept letters, the bird, the Today taps.
    Each source fails to "nothing counted", never to an error. */
-async function readUsage(mine: Awaited<ReturnType<typeof fetchMyLetters>>, journal: Awaited<ReturnType<typeof loadJournal>>): Promise<UsageSticker[]> {
+async function readUsage(mine: MyWriting, journal: Awaited<ReturnType<typeof loadJournal>>): Promise<UsageSticker[]> {
   const [threads, lore, counters, skin, accessory, name] = await Promise.all([
     fetchThreads().catch(() => null),
     loadLore().catch(() => []),
@@ -288,7 +357,30 @@ async function readUsage(mine: Awaited<ReturnType<typeof fetchMyLetters>>, journ
   }
 }
 
+/* the words the aura page counts and quotes (texts, pieceText), from pieces */
+function wordsOf(pieces: readonly Piece[]): Pick<Aura, "texts" | "pieceText"> {
+  const texts = pieces.map((p) => p.text);
+  const pieceText: Aura["pieceText"] = {};
+  for (const p of pieces) pieceText[p.id] = { text: p.text, source: p.source, createdAt: p.createdAt };
+  return { texts, pieceText };
+}
+
+/**
+ * The aura, read from everything you wrote. When your letters can't be
+ * read from the server (fetchMyWriting null) nothing kept is overwritten:
+ * the last kept read comes back marked `stale`, carrying the words this
+ * phone holds itself (the hatch line, and the journal pages when the aura
+ * scope lets it read them). The kept card is saved without its words, so
+ * without these the aura page would count no words and quote nothing.
+ * With none kept, a read of this phone's words alone comes back `stale`.
+ * Neither is saved (not the card, not the stamp facts, not the sticker
+ * seats, not the history).
+ */
 export async function myAura(firstLine?: string | null): Promise<Aura> {
+  const fetched = await fetchMyWriting();
+  const persist = !!fetched;
+  const mine: MyWriting = fetched ?? NOTHING_WRITTEN;
+  /* the phone's own pieces first: an offline read hands them back with the kept card */
   const pieces: Piece[] = [];
   if (firstLine && firstLine.trim().length >= 3) pieces.push(toPiece("hatch-line", "hatch", firstLine.trim(), "", null));
   let sealedCount = 0;
@@ -305,22 +397,23 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   } catch {
     /* the sealed room stays sealed — the aura just reads less */
   }
-  const mine = await fetchMyLetters();
+  if (!fetched) {
+    const kept = await readAuraCache();
+    if (kept) return { ...kept, ...wordsOf(pieces), stale: true };
+  }
   for (const r of mine.letters) pieces.push(toPiece(r.id, "letter", r.body, r.created_at, r.lang));
   for (const r of mine.messages) pieces.push(toPiece(r.id, "reply", r.body, r.created_at, null));
 
   const usage = await readUsage(mine, journal);
-  saveAuraFacts(usage, mine.letters.map((r) => r.stamp));
+  if (persist) saveAuraFacts(usage, mine.letters);
   const lastWrittenAt = [...mine.letters, ...mine.messages].map((r) => r.created_at).filter(Boolean).sort().pop() ?? null;
   if (!pieces.length) {
-    const empty = { ...EMPTY, usage, lastWrittenAt };
-    saveAuraCache(empty);
+    const empty: Aura = { ...EMPTY, usage, lastWrittenAt, ...(persist ? {} : { stale: true }) };
+    if (persist) saveAuraCache(empty);
     return empty;
   }
 
-  const texts = pieces.map((p) => p.text);
-  const pieceText: Aura["pieceText"] = {};
-  for (const p of pieces) pieceText[p.id] = { text: p.text, source: p.source, createdAt: p.createdAt };
+  const { texts, pieceText } = wordsOf(pieces);
 
   /* SAME WORDS, SAME READ (stall probe, 2026-09-20). The hatch and the
      sticker pass over every piece are the heaviest thing the Me tab does,
@@ -330,7 +423,7 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
      back, and the engine stays cold. */
   const key = `${pieces.map((p) => p.id).sort().join("|")}#${scope.sealed ? 1 : 0}`;
   try {
-    const lastKey = await AsyncStorage.getItem(AURA_CACHE_KEY + ":key");
+    const lastKey = persist ? await AsyncStorage.getItem(AURA_CACHE_KEY + ":key") : null;
     if (lastKey === key) {
       const cached = await readAuraCache();
       if (cached && cached.phase !== "empty") return { ...cached, texts, pieceText, usage, lastWrittenAt };
@@ -343,7 +436,8 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
   // what the reader is told: phase, stickers, title, all quotable.
   const prevState = await loadStickerState();
   const { readout, state, phase } = readStickers(pieces, prevState, { now: new Date().toISOString(), hours: mine.hours });
-  void saveStickerState(state, prevState);
+  // a read of the phone's words alone must not move the seats it would retire
+  if (persist) void saveStickerState(state, prevState);
 
   // the instrument — still the shape, the correspondent read, the vector
   const h = hatch(texts);
@@ -386,8 +480,9 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
     nightOwl:
       mine.hours.length >= 3 &&
       mine.hours.filter((h) => h >= 22 || h < 6).length / mine.hours.length > 0.5,
+    ...(persist ? {} : { stale: true }),
   };
-  saveAuraCache(aura, key);
+  if (persist) saveAuraCache(aura, key);
   return aura;
 }
 
@@ -395,11 +490,12 @@ export async function myAura(firstLine?: string | null): Promise<Aura> {
 
 export async function refreshFingerprint(firstLine?: string | null): Promise<void> {
   try {
-    const mine = await fetchMyLetters();
+    const mine = await fetchMyWriting();
     /* nothing published yet → nothing the hatch didn't already know. The
        hatch vector was built from EVERY fed thought; rebuilding here from
-       the one saved line alone would make the fingerprint thinner. */
-    if (!mine.letters.length && !mine.messages.length) return;
+       the one saved line alone would make the fingerprint thinner. And a
+       read that failed is not "nothing published": leave the vector be. */
+    if (!mine || (!mine.letters.length && !mine.messages.length)) return;
     let line = firstLine;
     if (line == null && supabaseReady) {
       try {
@@ -445,7 +541,10 @@ const titleKey = (a: Aura): string | null => {
   return t.adjective ? `${t.adjective}-${t.noun}` : t.noun;
 };
 
+/** append today's snapshot when the read changed; a stale (offline) read
+    is never recorded — it would log a change that didn't happen */
 export async function recordAuraSnapshot(a: Aura): Promise<AuraSnapshot[]> {
+  if (a.stale) return loadAuraHistory();
   try {
     const raw = await AsyncStorage.getItem(HIST_KEY);
     const hist: AuraSnapshot[] = raw ? JSON.parse(raw) : [];
