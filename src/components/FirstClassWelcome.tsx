@@ -10,7 +10,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { THEMES } from "../theme/themes";
+import { useP, useTheme } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
 
@@ -39,8 +41,15 @@ const kaChunk = () => {
   } catch {}
 };
 
-/* the red-and-blue chevrons down an airmail envelope's edge */
+/* the red-and-blue chevrons down an airmail envelope's edge. Printed on
+   the envelope, so they don't follow the theme: the postmark's red, and the
+   day themes' indigo, which in Classic is where the old pen lands
+   (#3A3AF5 → #3A34D6). Midnight's indigo is a pale violet made for its dark
+   ground; on an envelope it would read as a different border. */
+const AIRMAIL_IND = THEMES.classic.ind;
+
 function AirmailEdge({ w, flip }: { w: number; flip?: boolean }) {
+  const P = useP();
   const bars = Math.ceil(w / 14) + 1;
   return (
     <Svg width={w} height={9} style={flip ? { transform: [{ rotate: "180deg" }] } : undefined}>
@@ -48,7 +57,7 @@ function AirmailEdge({ w, flip }: { w: number; flip?: boolean }) {
         <Path
           key={i}
           d={`M${i * 14} 9 L${i * 14 + 7} 0 L${i * 14 + 12} 0 L${i * 14 + 5} 9 Z`}
-          fill={i % 2 ? P.post : P.pen}
+          fill={i % 2 ? P.post : AIRMAIL_IND}
         />
       ))}
     </Svg>
@@ -56,6 +65,8 @@ function AirmailEdge({ w, flip }: { w: number; flip?: boolean }) {
 }
 
 export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; onDone: () => void }) {
+  const P = useP();
+  const T = useTheme().t;
   const card = useSharedValue(0);
   const mark = useSharedValue(0);
   const reduced = useReducedMotion();
@@ -90,9 +101,13 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
     transform: [{ scale: 2.2 - mark.value * 1.2 }, { rotate: `${-13 + (1 - mark.value) * 9}deg` }],
   }));
 
+  /* the ticket is a card on the theme — its face is the card face (sf), so
+     in Lavender it stays white over the lavender page — and its button is
+     the solid ink one, labelled in the page colour. The dim behind it is a
+     fixed scrim, like every overlay in 10a: dark over any ground. */
   return (
     <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(17,17,19,0.55)", alignItems: "center", justifyContent: "center", paddingHorizontal: 28 }}>
-      <Animated.View style={[{ width: "100%", maxWidth: 360, backgroundColor: P.paper }, cardStyle]}>
+      <Animated.View style={[{ width: "100%", maxWidth: 360, backgroundColor: P.sheet }, cardStyle]}>
         <AirmailEdge w={360} />
 
         <View style={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 26, alignItems: "center" }}>
@@ -119,7 +134,7 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
             onPress={onDone}
             style={{ marginTop: 26, alignSelf: "stretch", backgroundColor: P.ink, paddingVertical: 15, alignItems: "center" }}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: "#fff" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: T.bg }}>
               {t("pw.welcome.go")}
             </Text>
           </Pressable>

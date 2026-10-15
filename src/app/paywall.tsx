@@ -3,7 +3,9 @@ import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { THEMES } from "../theme/themes";
+import { useP } from "../lib/theme";
 import { W14 } from "../components/AuraCard";
 import { CofounderMark } from "../components/CofounderMark";
 import { FirstClassWelcome } from "../components/FirstClassWelcome";
@@ -27,9 +29,24 @@ import { track, type PaywallSource } from "../lib/track";
    that never close, voice letters, the wardrobe (kindreds are free and
    unlimited). Nothing else is promised. */
 
+/* THE SAME SHEET IN EVERY THEME (10a). The night page, the gold and the
+   pale pass are First Class's own colours, the way the mock keeps the
+   First Class card the same in every theme, so none of them follow the
+   reader's theme. Moving them would break the sheet: on the theme's card
+   face the pass would be #1A1830 in Midnight, all but the night page's own
+   colour, and would vanish into it. The white type and the notches belong
+   to the night page and the dark type to the pass, so they stay with them.
+
+   The pass's indigo — the stripe, the glyphs, the chosen fare — is the day
+   themes' indigo, fixed. In Classic that is where the old pen lands anyway
+   (#3A3AF5 → #3A34D6); Midnight's own indigo is a pale violet made for a
+   dark ground and would sit under 3:1 on the pass.
+
+   Only the page behind the welcome follows the theme. */
 const NIGHT = "#1E1B35";
 const GOLD = "#D8A63F";
 const GOLD_INK = "#8A6E20";
+const PASS_IND = THEMES.classic.ind;
 const COFOUNDERS_TOTAL = 100;   // "Founding 100 only, numbered" — the App Store product says the same, and so does the web
 
 /* the fare ladder is a design decision, not a dashboard setting: annual is
@@ -88,6 +105,7 @@ export function PaywallBody({
   courier?: string; // her name, when it isn't saved yet
 }) {
   useLang();
+  const P = useP();
   const savedName = useWrenName();
   const wren = courier || savedName;
   const { handle } = useAuth();
@@ -214,7 +232,7 @@ export function PaywallBody({
         <View style={{ marginTop: 20, backgroundColor: "#F9F8FF", borderRadius: 18, overflow: "hidden" }}>
           <View style={{ flexDirection: "row", height: 6 }}>
             {Array.from({ length: 40 }, (_, i) => (
-              <View key={i} style={{ flex: 1, backgroundColor: i % 4 === 0 ? P.pen : i % 4 === 2 ? GOLD : "#F9F8FF" }} />
+              <View key={i} style={{ flex: 1, backgroundColor: i % 4 === 0 ? PASS_IND : i % 4 === 2 ? GOLD : "#F9F8FF" }} />
             ))}
           </View>
           <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
@@ -246,7 +264,7 @@ export function PaywallBody({
                     </View>
                   ) : (
                     <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#E4E1FA", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontFamily: PF.mono, fontSize: 11.5, color: P.pen }}>{glyphs[i]}</Text>
+                      <Text style={{ fontFamily: PF.mono, fontSize: 11.5, color: PASS_IND }}>{glyphs[i]}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
@@ -283,14 +301,14 @@ export function PaywallBody({
                         setSelected(p.id);
                         track("fare_selected", { source, fare: p.period });
                       }}
-                      style={{ flex: p.period === "lifetime" ? 0.9 : 1, paddingHorizontal: 11, paddingVertical: 12, borderRadius: 12, borderWidth: on ? 2 : 1.5, borderColor: on ? P.pen : "#DCD9F0", backgroundColor: "#FFFFFF", position: "relative" }}
+                      style={{ flex: p.period === "lifetime" ? 0.9 : 1, paddingHorizontal: 11, paddingVertical: 12, borderRadius: 12, borderWidth: on ? 2 : 1.5, borderColor: on ? PASS_IND : "#DCD9F0", backgroundColor: "#FFFFFF", position: "relative" }}
                     >
                       {p.period === "annual" && saving != null && saving > 0 && (
                         <View style={{ position: "absolute", right: 8, top: -9, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: GOLD }}>
                           <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: W14.ink }}>{t("fc.save", { n: saving })}</Text>
                         </View>
                       )}
-                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? P.pen : "rgba(30,27,53,0.5)" }}>
+                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? PASS_IND : "rgba(30,27,53,0.5)" }}>
                         {p.period === "annual" ? t("fc.yearly") : p.period === "monthly" ? t("fc.monthly") : t("fc.lifetimeLabel")}
                       </Text>
                       <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 20, letterSpacing: -0.4, color: W14.ink, marginTop: 5 }} numberOfLines={1} adjustsFontSizeToFit>
