@@ -25,12 +25,14 @@ import SwiftUI
  A day with pages is its newest page's group fill with the number in the group's ink at 600, and a
  tap on it goes to that page (actions.onDayPick: the screen closes the overlay and the list goes
  to that note). A day without pages is the number in ink (faint in the future), not tappable;
- today has a 2pt ln ring inside its cell. The footer: a legend of the four groups with this
- month's counts, and "N NOTES".
+ today has a 2pt ring inside its cell (ln, or the fixed dark ink on a filled day, where Midnight's
+ pale ln would vanish). The footer: a legend of the four groups with this month's counts, and
+ "N NOTES".
 
- VoiceOver: the overlay is modal (the notes under the dim can't be reached), the dim is a Close
- button, and the escape gesture (two-finger Z) closes it. It fades in over .2s from .97 (a fade
- alone under Reduce Motion: the screen picks the transition).
+ VoiceOver: the overlay is one modal container (the notes under the dim can't be reached), the dim
+ is a Close button, the escape gesture (two-finger Z) closes it, and focus moves to the month's
+ title when it opens. It fades in over .2s from .97 (a fade alone under Reduce Motion: the screen
+ picks the transition).
  */
 
 /// One day of a calendar month, as TS built it.
@@ -112,6 +114,8 @@ struct KNotesCalendar: View {
   @ObservedObject var driver: KNotesDriver
   let actions: KNotesActions
 
+  @AccessibilityFocusState private var titleFocused: Bool
+
   var body: some View {
     ZStack(alignment: .top) {
       Self.dim
@@ -127,10 +131,20 @@ struct KNotesCalendar: View {
         panel(month)
           .padding(.horizontal, 16)
           .padding(.top, topInset + 58)
+          .onAppear(perform: focusTitle)
       }
     }
+    // one container, so the modal trait and the escape belong to the overlay as a whole (on a bare
+    // ZStack SwiftUI hands them to each child, and the notes under the dim stay reachable)
+    .accessibilityElement(children: .contain)
     .accessibilityAddTraits(.isModal)
     .accessibilityAction(.escape) { actions.onCalendarToggle(false) }
+  }
+
+  /// VoiceOver starts on the month's title when the panel opens, not on the header's calendar
+  /// button the modal now hides. A beat after it appears, once it is in the accessibility tree.
+  private func focusTitle() {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { titleFocused = true }
   }
 
   private func panel(_ month: KNotesMonth) -> some View {
@@ -144,6 +158,7 @@ struct KNotesCalendar: View {
           .lineLimit(1)
           .minimumScaleFactor(0.8)
           .accessibilityAddTraits(.isHeader)
+          .accessibilityFocused($titleFocused)
         Spacer(minLength: 8)
         chevron(.chevronRight, enabled: month.canNext, label: strings.nextMonth) { actions.onCalendarMonth(1) }
       }
@@ -195,7 +210,9 @@ struct KNotesCalendar: View {
         .frame(height: 38)
         .background { shape.fill(day.group?.mood.fill ?? .clear) }
         .overlay {
-          if day.today { shape.strokeBorder(theme.ln, lineWidth: 2) }
+          // on a filled day the ring is the pale keys' fixed dark ink: Midnight's ln is pale and
+          // vanished on the group fills (~1.1:1); the light themes' ln is that same ink
+          if day.today { shape.strokeBorder(day.group == nil ? theme.ln : KBrand.inkOnBrand, lineWidth: 2) }
         }
       if let target = day.targetId {
         SwiftUI.Button {

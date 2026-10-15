@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
@@ -47,12 +47,18 @@ import "../../data/strings-step5-notes";
      an unknown and a missing mood: the Calm colour without a name);
    - EVENING: none / the card / the off row (answers move between them);
    - ONCE: her first-visit line;
-   - PICKER: the composer's new mood picker (four blocks, then the faces).
+   - PICKER: the composer's new mood picker (four blocks, then the faces);
+   - PUSH: what would leave the page really goes there (the sample pages
+     open; the others show "not here any more"), instead of saying where.
+     The check it is for: RN, open the calendar, page back a month, tap a
+     day → the page opens → back → still the calendar, on that month (the
+     fallback's calendar is a mode the model keeps across a blur). In SWIFT
+     the overlay closes on the way out instead (a day tap scrolls there).
    The screen's own controls work: the view button, the calendar (paging,
    a day → the list goes there in Swift; the fallback opens the page), the
    voice notes on the one player (the sample voice is an https file), her
    line, the evening rows. What would leave the page says where it would
-   go instead. The panel's words are English: a dev page. */
+   go instead, unless PUSH is on. The panel's words are English: a dev page. */
 
 type Data = "demo" | "one" | "empty" | "many" | "legacy";
 const DATA: { key: Data; label: string }[] = [
@@ -108,6 +114,8 @@ function NotesLab() {
   const [panel, setPanel] = useState(true);
   const [picker, setPicker] = useState(false);
   const [mood, setMood] = useState<MoodId | null>(null);
+  const [push, setPush] = useState(false);
+  const router = useRouter();
 
   /* the films as local files (expo-asset downloads them from the dev server into the cache) */
   const [films, setFilms] = useState<{ landscape: string | null; portrait: string | null }>({ landscape: null, portrait: null });
@@ -148,7 +156,7 @@ function NotesLab() {
     }
   }, [data, films]);
 
-  const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
+  const away = useCallback((where: string) => (push ? router.push(where as never) : Alert.alert("Dev page", `In the app this opens ${where}.`)), [push, router]);
   const demo = useMemo<NotesDemo>(
     () => ({ entries, evening, setEvening, wrenLine: once, setWrenLine: setOnce, away }),
     [entries, evening, once, away],
@@ -189,9 +197,10 @@ function NotesLab() {
             ))}
             <Chip label="ONCE" on={once} onPress={() => setOnce((v) => !v)} />
             <Chip label="PICKER" on={picker} onPress={() => setPicker((v) => !v)} />
+            <Chip label="PUSH" on={push} onPress={() => setPush((v) => !v)} />
           </Row>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
-            {`THEME ${themeLabel} (${key}) · ${native ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KNotesView in this build)"} · ${model.notes.length} PAGES · ${model.view.toUpperCase()}${films.landscape ? "" : " · FILMS LOADING"}${mood ? ` · MOOD ${mood}` : ""}`}
+            {`THEME ${themeLabel} (${key}) · ${native ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KNotesView in this build)"} · ${model.notes.length} PAGES · ${model.view.toUpperCase()}${model.calendarOpen ? ` · CALENDAR ${model.month.key}` : ""}${films.landscape ? "" : " · FILMS LOADING"}${mood ? ` · MOOD ${mood}` : ""}`}
           </Text>
         </View>
       ) : (

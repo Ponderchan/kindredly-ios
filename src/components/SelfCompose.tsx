@@ -18,7 +18,7 @@ import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { moodGroup, type MoodId } from "../data/moods";
+import { moodGroup, moodName, type MoodId } from "../data/moods";
 import { moodColors } from "../screens/notes/notes-glyphs";
 import { useNativeSurface } from "../lib/surfaces";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
@@ -473,8 +473,13 @@ export function SelfCompose({
             HOW DID THIS FEEL? until it is. Sealed's calendar is made of
             these faces, which is why one is required. */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: moodOpen ? 12 : 24 }}>
+          {/* icon-only, and the only way into the picker: VoiceOver hears the face
+              picked, or the question until one is */}
           <Pressable
             onPress={askMood}
+            accessibilityRole="button"
+            accessibilityLabel={mood ? moodName(mood) : t("sc.askMood")}
+            accessibilityState={{ expanded: moodOpen }}
             style={({ pressed }) => ({
               width: 52,
               height: 52,

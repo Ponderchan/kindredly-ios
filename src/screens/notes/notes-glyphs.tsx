@@ -78,8 +78,11 @@ export function ViewIcon({ view, size = 16, color }: { view: NotesView; size?: n
 }
 
 /** The calendar button's drawing: the page and its rings, with the six little squares of the
-    month's latest days in their groups' ink (empty ones in `empty`). */
-export function CalendarGlyph({ groups, color, empty, size = 20 }: { groups: readonly MoodGroup[]; color: string; empty: string; size?: number }) {
+    month's latest days in their groups' ink (empty ones in `empty`) — or in their groups' pale fill
+    when `onDark` (the squares sit on a dark ground: Midnight's page, or a light theme's filled key),
+    where the inks (Tired #3A34D6, Low #3B6E9B) would read as empty slots. KNotesCalendarButton
+    makes the same choice. */
+export function CalendarGlyph({ groups, color, empty, onDark = false, size = 20 }: { groups: readonly MoodGroup[]; color: string; empty: string; onDark?: boolean; size?: number }) {
   const s = size / 20;
   return (
     <View style={{ width: size, height: size }}>
@@ -89,7 +92,7 @@ export function CalendarGlyph({ groups, color, empty, size = 20 }: { groups: rea
       </Svg>
       <View style={{ position: "absolute", left: 5 * s, top: 11 * s, width: (3 * 3.4 + 2 * 1.4) * s, flexDirection: "row", flexWrap: "wrap", gap: 1.4 * s }}>
         {Array.from({ length: 6 }, (_, i) => (
-          <View key={i} style={{ width: 3.4 * s, height: 3.4 * s, borderRadius: 1 * s, backgroundColor: groups[i] ? moodColors(groups[i]).ink : empty }} />
+          <View key={i} style={{ width: 3.4 * s, height: 3.4 * s, borderRadius: 1 * s, backgroundColor: groups[i] ? moodColors(groups[i])[onDark ? "fill" : "ink"] : empty }} />
         ))}
       </View>
     </View>

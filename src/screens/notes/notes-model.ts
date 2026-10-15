@@ -20,7 +20,8 @@ import { hashStr } from "../../lib/mosaic";
      for VoiceOver, and never when no mood was ever stored;
    - its one line for List: the first line of its words, or what it holds
      ("Voice note · 0:35", "3 pictures", "a video");
-   - its media: the cover of a photo page (and +N for the rest), the file of
+   - its media: the cover of a photo page (the picture coverIndex names, the
+     one the detail page's "make it the cover" picks; +N for the rest), the file of
      a video (a poster is made from it) or a voice page (played by the one
      player), each only on the page type that has it — on a voice or video
      page mediaUri is the recording, never a picture.
@@ -50,6 +51,29 @@ export function parseStoredView(raw: string | null | undefined): NotesView {
   if (raw === "grid") return "grid";
   if (raw === "list" || raw === "compact") return "list";
   return "card";
+}
+
+/** Where Dynamic Type's accessibility sizes begin, as React Native's fontScale reports them on iOS
+    (xxxLarge is 1.353, the first accessibility size 1.786): the line SwiftUI's
+    typeSize.isAccessibilitySize draws. Not 1.35, which would take xxxLarge in as well. */
+export const AX_FONT_SCALE = 1.5;
+
+/** The reader's text is at an accessibility size (fontScale from useWindowDimensions). */
+export const isAxFontScale = (fontScale: number): boolean => fontScale >= AX_FONT_SCALE;
+
+/** How many notes lie side by side: two in Grid, one in Card and List — and one in Grid too at
+    accessibility text sizes, where two ~165pt cards can't hold their words (KNotesScreen.columns,
+    the same rule in Swift). */
+export function noteColumns(view: NotesView, fontScale: number): 1 | 2 {
+  return view === "grid" && !isAxFontScale(fontScale) ? 2 : 1;
+}
+
+/** The list's rows, `columns` notes to a row, each row keyed by its first note (the key Swift's
+    rows take too). */
+export function noteRows<T extends { id: string }>(notes: readonly T[], columns: 1 | 2): { key: string; notes: T[] }[] {
+  const out: { key: string; notes: T[] }[] = [];
+  for (let i = 0; i < notes.length; i += columns) out.push({ key: notes[i].id, notes: notes.slice(i, i + columns) });
+  return out;
 }
 
 /** A local-time YYYY-MM-DD key (the calendar's day). */
@@ -145,6 +169,14 @@ export function photosOf(e: JournalEntry): string[] {
   return e.mediaUri ? [e.mediaUri] : [];
 }
 
+/** A photo page's cover: the picture its coverIndex names (the detail page's "make it the cover"),
+    or the first when the index is missing or out of range; null on every other kind. The same file
+    lib/journal's loadJournal resolves into mediaUri. */
+export function coverOf(e: JournalEntry): string | null {
+  const photos = photosOf(e);
+  return photos[e.coverIndex ?? 0] ?? photos[0] ?? null;
+}
+
 /** The first line of a page's words, trimmed. */
 export const firstLine = (body: string | null | undefined): string => (body || "").split("\n")[0].trim();
 
@@ -210,7 +242,7 @@ export function buildNote(e: JournalEntry, fmt: NotesFormat): NoteVM {
     body: e.body || "",
     listLine: line,
     listLineIsWords: words,
-    photo: photos[0] ?? null,
+    photo: coverOf(e),
     photoMore: Math.max(0, photos.length - 1),
     video: e.type === "video" && e.mediaUri ? e.mediaUri : null,
     voice: e.type === "voice" && e.mediaUri ? e.mediaUri : null,

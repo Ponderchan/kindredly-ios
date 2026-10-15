@@ -64,6 +64,9 @@ public final class KNotesScrollState: ObservableObject {
     phase == .interacting || phase == .decelerating || phase == .tracking
   }
 
+  /// A finger is on the list, or it is still coasting from one (a settle pass must not fight it).
+  var isReaderScrolling: Bool { readerScrolling }
+
   /// One frame's offset (contentOffset.y + contentInsets.top, clamped to 0...the end).
   func scrolled(to y: CGFloat) {
     offset = y
@@ -80,10 +83,11 @@ public final class KNotesScrollState: ObservableObject {
     apply()
   }
 
-  /// The notes now on screen, top first (ids that aren't notes already left out).
-  func visible(_ ids: [String]) {
-    let top = ids.first
-    if top != topNoteId { topNoteId = top }
+  /// The topmost note on screen, worked out by the screen; nil (none counted as visible, as in the
+  /// moment a layout changes) keeps the one before, so the chip never blinks out over a long page.
+  func visible(top: String?) {
+    guard let top, top != topNoteId else { return }
+    topNoteId = top
   }
 
   /// Back to shown (the empty state, a new layout).
@@ -229,7 +233,9 @@ struct KNotesViewButton: View {
 }
 
 /// The calendar button: 34 round, the calendar drawing with the month's six latest days in their
-/// groups' ink (empty slots in line), lav while the overlay is open (H:50, H:181, H:347).
+/// groups' ink (empty slots in line), lav while the overlay is open (H:50, H:181, H:347). On a dark
+/// theme the squares take their groups' pale fill instead: the button's face is dark there (sf, or
+/// lav while open), and Tired's and Low's inks (#3A34D6, #3B6E9B) sank into it like empty slots.
 struct KNotesCalendarButton: View {
   let theme: KTheme
   let open: Bool
@@ -261,7 +267,7 @@ struct KNotesCalendarButton: View {
 
   private func square(_ i: Int) -> some View {
     RoundedRectangle(cornerRadius: 1, style: .circular)
-      .fill(i < groups.count ? groups[i].mood.ink : theme.line)
+      .fill(i < groups.count ? (theme.isDark ? groups[i].mood.fill : groups[i].mood.ink) : theme.line)
       .frame(width: 3.4, height: 3.4)
   }
 }

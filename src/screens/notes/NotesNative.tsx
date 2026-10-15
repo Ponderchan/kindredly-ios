@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
-import { useNavigation } from "expo-router";
+import { useFocusEffect, useNavigation } from "expo-router";
+import { File, Paths } from "expo-file-system";
 import { useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import { KNotesView, type KNotesCommands, type KNotesMonthRecord, type KNotesNote, type KNotesPalette, type KNotesStrings } from "../../../modules/kindredly-ui/src/Notes";
 import { SurfaceHost } from "../../components/NativeSurface";
@@ -10,6 +11,8 @@ import { useRenderWindow } from "../../lib/render-window";
 import { useBirdImageRef } from "../../lib/bird-images";
 import { playbackCommandArgs } from "../../lib/voice-playback";
 import { localeTag } from "../../lib/format";
+import { assetFileUri } from "../../lib/images";
+import { hashStr } from "../../lib/mosaic";
 import { P } from "../../theme/post";
 import { EMPTY_STICKER, EMPTY_TAPE } from "./notes-glyphs";
 import type { MonthVM, NoteVM } from "./notes-model";
@@ -41,7 +44,21 @@ import type { NotesModel } from "./useNotesModel";
      view gets the month and the player's state again.
    Until the journal has been read and the remembered view is known, it
    draws the page colour only, so the first frame is the right view with
-   the right notes (no flash of the empty state, no crossfade of views). */
+   the right notes (no flash of the empty state, no crossfade of views).
+
+   THE CALENDAR closes when the tab loses focus (a push, another tab): the
+   overlay never waits behind another page. That rule is this renderer's
+   only — the model keeps the calendar across a blur, because the React
+   Native fallback's calendar is a mode whose day tap pushes the page, and
+   its reader comes back to the month they were browsing.
+
+   DEV AND STORE MODE: the sample video (data/demo demo-j-video) is a remote
+   https mp4, and KImageStore makes no frame from a remote file (spike I3),
+   which would leave a blank block where the film is — in App Store
+   screenshots too. In a dev build only, Swift gets a local copy instead:
+   the clip downloaded once into the cache (useDevFilms), or, offline, the
+   dev page's bundled landscape film. A release build never downloads it,
+   and its journal videos are local files already. */
 
 /** A journal picture as Swift loads it: a local file keyed by its name (stable across the
     container moves lib/journal re-resolves), anything else by its URL. */
@@ -51,8 +68,10 @@ export function journalImage(uri: string, kind?: "videoPoster"): { uri: string; 
   return kind ? { uri, key, kind } : { uri, key };
 }
 
-/** A NoteVM as Swift's KNoteCard takes it. */
-export function nativeNote(n: NoteVM): KNotesNote {
+/** A NoteVM as Swift's KNoteCard takes it. `films` (dev only) maps a remote sample video to a local
+    copy, so KImageStore can make its frame. */
+export function nativeNote(n: NoteVM, films?: Readonly<Record<string, string>>): KNotesNote {
+  const video = n.video ? (films?.[n.video] ?? n.video) : null;
   return {
     id: n.id,
     kind: n.kind,
@@ -64,7 +83,7 @@ export function nativeNote(n: NoteVM): KNotesNote {
     listLine: n.listLine,
     photo: n.photo ? journalImage(n.photo) : null,
     photoMore: n.photoMore,
-    video: n.video ? journalImage(n.video, "videoPoster") : null,
+    video: video ? journalImage(video, "videoPoster") : null,
     duration: n.duration,
     playable: !!n.voice,
     waveSeed: n.waveSeed,
@@ -103,6 +122,52 @@ function useSameContent<T>(value: T): T {
 /** the empty state's fixed colours: the note keys' own, the tape, the sticker */
 const PALETTE: KNotesPalette = { keyText: P.keyText, keyVoice: P.keyVoice, tape: EMPTY_TAPE, sticker: EMPTY_STICKER };
 
+/* ── dev and store mode: a local copy of a remote sample video ── */
+
+/** the dev page's bundled film, standing in when the sample can't be downloaded (a release build
+    folds the require away with __DEV__) */
+const DEV_FILM: number | null = __DEV__ ? require("../../../assets/dev/notes-film-landscape.mp4") : null;
+const devFilmCopies = new Map<string, Promise<string | null>>();
+
+/** Dev only: a local file for a remote sample video — the clip downloaded once into the cache, or
+    the bundled film when that fails (offline). Memoised per URL; null when neither is there. */
+function devLocalFilm(url: string): Promise<string | null> {
+  const hit = devFilmCopies.get(url);
+  if (hit) return hit;
+  const p = (async () => {
+    try {
+      const file = new File(Paths.cache, `notes-sample-${hashStr(url).toString(36)}.mp4`);
+      if (file.exists && (file.size ?? 0) > 0) return file.uri;
+      return (await File.downloadFileAsync(url, file, { idempotent: true })).uri;
+    } catch (e) {
+      console.warn("[notes] the sample video wasn't copied for its frame; the dev film stands in:", e);
+      return DEV_FILM != null ? await assetFileUri(DEV_FILM).catch(() => null) : null;
+    }
+  })();
+  devFilmCopies.set(url, p);
+  return p;
+}
+
+/** Dev only: { remote sample video URL → local copy } for the samples among `notes`, filled in as the
+    copies land. Empty in a release build. */
+function useDevFilms(notes: readonly NoteVM[]): Readonly<Record<string, string>> {
+  const wanted = useMemo(() => (__DEV__ ? [...new Set(notes.filter((n) => n.sample && n.video && /^https?:/i.test(n.video)).map((n) => n.video as string))].join("\n") : ""), [notes]);
+  const [films, setFilms] = useState<Readonly<Record<string, string>>>({});
+  useEffect(() => {
+    if (!wanted) return;
+    let alive = true;
+    for (const url of wanted.split("\n")) {
+      void devLocalFilm(url).then((uri) => {
+        if (alive && uri) setFilms((m) => (m[url] === uri ? m : { ...m, [url]: uri }));
+      });
+    }
+    return () => {
+      alive = false;
+    };
+  }, [wanted]);
+  return films;
+}
+
 export function NotesNative({ model }: { model: NotesModel }) {
   const { key: theme, t: tk } = useTheme();
   const letterFont = useLetterFont();
@@ -128,9 +193,23 @@ export function NotesNative({ model }: { model: NotesModel }) {
     commands.send("playback", playbackCommandArgs(model.playback));
   }, [commands, model.playback]);
 
+  /* ── the calendar closes on blur: the overlay never waits behind another tab or a pushed page ──
+     (a ref, so a new `act` — the evening's answers re-create it — never runs the cleanup while on show) */
+  const actRef = useRef(act);
+  actRef.current = act;
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        actRef.current.setCalendar(false);
+      },
+      [],
+    ),
+  );
+
   /* ── the window ── */
   const win = useRenderWindow(model.notes.length, { initial: 60, step: 60, anchor: "start" });
-  const notes = useSameContent(useMemo(() => model.notes.slice(win.start, win.end).map(nativeNote), [model.notes, win.start, win.end]));
+  const films = useDevFilms(model.notes);
+  const notes = useSameContent(useMemo(() => model.notes.slice(win.start, win.end).map((n) => nativeNote(n, films)), [model.notes, win.start, win.end, films]));
   const rev = useRev(notes);
 
   /* ── a calendar day: close, make sure its page is sent, go there ── */

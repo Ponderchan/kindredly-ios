@@ -18,7 +18,8 @@ import { strings } from "../lib/i18n";
    jt.notes, jt.viewCard, jt.viewMenu, jt.moments, jt.said, jt.justYou,
    jt.emptyTitle, jt.emptyBody, jt.new, jp.write, jp.say ("Voice note" in
    "Voice note · 0:35"), jt.picture, jt.pictures, jt.aVideo, ev.*,
-   sc.askMood, sc.moodHint (the picker's hint), wren.trackClose (closing
+   sc.askMood (also the composer's mood key for VoiceOver until a face is
+   picked, then the face's name), sc.moodHint (the picker's hint), wren.trackClose (closing
    the calendar), js.1, and moodName() for the thirty faces.
 
    After this release jt.viewCompact, jt.tape, jt.month1 / monthN /
@@ -59,6 +60,8 @@ strings(
     "js.43": "behind the \"I'm fine\"…",
     // the detail page when the page isn't there (torn out, or unreadable), instead of a blank page
     "jd.notFound": "This page isn't here any more.",
+    // VoiceOver's name for the detail page's ··· key (the way to Drift and to Delete); it read the dots
+    "jd.more": "More",
     // the leave question when the page has a picture, a film or a recording but no words
     // (je.leaveBody says "You've written something", which isn't true then)
     "je.leaveBodyMedia": "What's on this page isn't kept until you seal it.",

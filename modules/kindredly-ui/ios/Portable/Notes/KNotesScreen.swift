@@ -36,8 +36,15 @@ import SwiftUI
 
  SCROLL REQUESTS come from TS through the driver: the top (the tab pressed again), and a note
  (a calendar day: the list goes there with the note's top under the header). A note not yet in the
- window waits until it arrives. When the layout changes, the list goes back to the note that was
- on top.
+ window waits until it arrives. Every jump is settled: the rows it passed were only estimated, so
+ it lands again without animation once they're laid out (spike pattern 3), unless the reader's
+ finger or another jump came first. When the layout changes, the list goes back to the note that
+ was on top — unless the reader is at the top (Wren's line or the evening rows on screen), where
+ the list stays put and those rows stay in view.
+
+ THE TOP NOTE (the date chip's day, the layout anchor) is the visible note earliest in the window,
+ counted when any part of it is on screen: a page taller than the screen is still the one being
+ read.
 
  Per-frame values live in KScrollModel (the shrink and the pull caption, capped at 44: nothing
  changes past the header's full shrink) and KNotesScrollState (hidden or not, the top note), read
@@ -212,6 +219,10 @@ final class KNotesBox {
   var pendingNote: (id: String, animated: Bool)?
   /// the window size the last reach-end was sent for (once per window)
   var reachedAt = -1
+  /// bumped by every jump, so a settle pass left over from an earlier one does nothing
+  var settleToken = 0
+  /// Wren's line or the evening rows are on screen: the reader is at the top
+  var extrasVisible = false
 }
 
 /// One row of the list: a note, or two side by side in Grid.
@@ -368,7 +379,8 @@ public struct KNotesScreen: View {
       .onScrollPhaseChange { _, phase in
         scrollState.phaseChanged(phase)
       }
-      .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.3) { ids in
+      // any part on screen counts: a long page (whole on a Card) may never show 30% of itself
+      .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { ids in
         visibleChanged(ids)
       }
       // the header's hide rule, every frame, without redrawing anything but what it changes:
@@ -405,12 +417,10 @@ public struct KNotesScreen: View {
       }
       .onChange(of: columns) { _, _ in
         // a new layout: back to the note that was on top
-        guard let top = scrollState.topNoteId, let row = rowId(for: top) else { return }
-        DispatchQueue.main.async { proxy.scrollTo(row, anchor: .top) }
+        reanchor(proxy)
       }
       .onChange(of: content.layout) { _, _ in
-        guard let top = scrollState.topNoteId, let row = rowId(for: top) else { return }
-        DispatchQueue.main.async { proxy.scrollTo(row, anchor: .top) }
+        reanchor(proxy)
       }
     }
   }
@@ -423,19 +433,63 @@ public struct KNotesScreen: View {
 
   private func scroll(_ proxy: ScrollViewProxy, to id: String?, animated: Bool) {
     guard let id else { return }
-    if animated && !reduceMotion {
+    box.settleToken &+= 1
+    let token = box.settleToken
+    let animate = animated && !reduceMotion
+    if animate {
       withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(id, anchor: .top) }
     } else {
       proxy.scrollTo(id, anchor: .top)
     }
+    settle(proxy, to: id, token: token, after: animate ? 0.4 : 0)
+  }
+
+  /// Lands a jump exactly. The rows it passed in the LazyVStack were only estimated (cards of every
+  /// height), so the first scrollTo can stop short of the note or past it, leaving it under the
+  /// header (spike pattern 3: 62pt short on first layout). So, as KLab.settleAtEnd does: once the
+  /// jump is done (after its animation, or on the next turn), scrollTo again without animation, and
+  /// once more a beat later — unless another jump has started or the reader has taken the list.
+  private func settle(_ proxy: ScrollViewProxy, to id: String, token: Int, after delay: TimeInterval) {
+    let box = self.box
+    let state = self.scrollState
+    let again = {
+      guard box.settleToken == token, !state.isReaderScrolling else { return }
+      proxy.scrollTo(id, anchor: .top)
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+      again()
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { again() }
+    }
+  }
+
+  /// A new layout (or a column count change): back to the note that was on top. Not at the top of
+  /// the list: there the offset stays, and with it Wren's line and the evening rows, which a jump to
+  /// the first note would push up under the header.
+  private func reanchor(_ proxy: ScrollViewProxy) {
+    guard !box.extrasVisible, let top = scrollState.topNoteId, let row = rowId(for: top) else { return }
+    // one turn later, so the new layout's rows exist
+    DispatchQueue.main.async { scroll(proxy, to: row, animated: false) }
   }
 
   private func visibleChanged(_ ids: [String]) {
-    // the notes on screen, top first (Wren's line and the evening rows aren't notes)
-    let notes = ids.filter { content.index[$0] != nil }
-    scrollState.visible(notes)
+    // the topmost note on screen: the visible note earliest in the window (the ids don't come in
+    // screen order); Wren's line and the evening rows sit above every note
+    var top: (id: String, index: Int)?
+    var extras = false
+    var last = -1
+    for id in ids {
+      if id == Self.wrenId || id == Self.eveningId {
+        extras = true
+        continue
+      }
+      guard let i = content.index[id] else { continue }
+      if i < (top?.index ?? Int.max) { top = (id, i) }
+      last = max(last, i)
+    }
+    box.extrasVisible = extras
+    scrollState.visible(top: top?.id)
     // near the end of the window: ask for more, once per window
-    guard content.hasMore, let last = notes.compactMap({ content.index[$0] }).max() else { return }
+    guard content.hasMore, last >= 0 else { return }
     let lastIndex = columns == 2 ? last + 1 : last
     if lastIndex >= content.notes.count - 8 && box.reachedAt != content.notes.count {
       box.reachedAt = content.notes.count
@@ -496,8 +550,12 @@ public struct KNotesScreen: View {
 
   // ── nothing yet ─────────────────────────────────────────────────────────
 
+  /// The empty state scrolls when it doesn't fit (accessibility sizes, an iPhone SE with the off
+  /// row): its bottom margin is the list's, the fade's less 6, so its last scroll position leaves the
+  /// two keys clear of the fade drawn over it, not in its graded band.
   private var emptyBody: some View {
-    GeometryReader { geo in
+    let bottom = KBottomFade.contentMargin(height: fadeHeight)
+    return GeometryReader { geo in
       ScrollView(.vertical) {
         VStack(spacing: 0) {
           if content.evening == .on {
@@ -508,13 +566,13 @@ public struct KNotesScreen: View {
           KNotesEmpty(theme: theme, strings: content.strings, palette: content.palette, actions: actions)
           Spacer(minLength: 24)
         }
-        // centred between the header and the floating tab bar, scrolling when it doesn't fit
-        .frame(minHeight: max(0, geo.size.height - KNotesHeaderBar.fullHeight - tabBarRoom - 12))
+        // centred between the header and the fade, scrolling when it doesn't fit
+        .frame(minHeight: max(0, geo.size.height - KNotesHeaderBar.fullHeight - bottom))
       }
       .scrollIndicators(.hidden)
       .scrollBounceBehavior(.basedOnSize, axes: .vertical)
       .contentMargins(.top, KNotesHeaderBar.fullHeight, for: .scrollContent)
-      .contentMargins(.bottom, tabBarRoom + 12, for: .scrollContent)
+      .contentMargins(.bottom, bottom, for: .scrollContent)
     }
   }
 }

@@ -1,10 +1,12 @@
 /* Behaviour lock for the Notes tab's model (screens/notes/notes-model): the
    page order and de-duplication, every label (the mood name in Card and
    List, not in Grid, never for a page with no stored mood), the media each
-   kind carries, the List line, the four groups over the thirty faces, the
-   calendar (bounds, paging, lead days per first weekday, today / future,
-   the newest page per day, counts and footer), the button's six squares,
-   the stored view, and the evening question's exact order — the rules both
+   kind carries (a photo page's cover is the one coverIndex names), the List
+   line, the four groups over the thirty faces, the calendar (bounds,
+   paging, lead days per first weekday, today / future, the newest page per
+   day, counts and footer), the button's six squares, the stored view, the
+   Grid's columns (one at accessibility text sizes, as Swift), and the
+   evening question's exact order — the rules both
    renderers draw, so a remote flip between SwiftUI and React Native never
    changes what the reader sees.
    Not wired to a runner; run by hand from the repo root with plain node (it
@@ -138,6 +140,12 @@ const NOW = new Date(2026, 9, 16, 15, 0); // Friday 16 October 2026, 15:00
   const album = M.buildNote(page("ph", at(2026, 10, 14), { type: "photo", media: ["f1", "f2", "f3"], mediaUri: "f1" }), fmt);
   eq("an album: its cover and +2", [album.photo, album.photoMore, album.video, album.voice], ["f1", 2, null, null]);
   eq("an album with no words: List says how many", [album.listLine, album.listLineIsWords], ["3 pictures", false]);
+  const covered = M.buildNote(page("phc", at(2026, 10, 14), { type: "photo", media: ["fog", "bridge"], coverIndex: 1, mediaUri: "bridge" }), fmt);
+  eq("the cover the detail page picked (coverIndex 1), not the first picture; +1 still counts the rest", [covered.photo, covered.photoMore], ["bridge", 1]);
+  eq("…even before loadJournal re-resolved mediaUri (the stored album and index decide)", M.buildNote(page("phc2", at(2026, 10, 14), { type: "photo", media: ["fog", "bridge"], coverIndex: 1, mediaUri: "fog" }), fmt).photo, "bridge");
+  eq("a cover index past the album (pictures removed) falls back to the first", M.buildNote(page("phc3", at(2026, 10, 14), { type: "photo", media: ["fog"], coverIndex: 4 }), fmt).photo, "fog");
+  eq("a negative or fractional cover index falls back to the first", [-1, 0.5].map((coverIndex) => M.coverOf(page("phc4", at(2026, 10, 14), { type: "photo", media: ["a", "b"], coverIndex }))), ["a", "a"]);
+  eq("coverOf is null off photo pages", M.coverOf(page("v0", at(2026, 10, 14), { type: "video", media: ["x"], mediaUri: "x" })), null);
   const single = M.buildNote(page("ph1", at(2026, 10, 14), { type: "photo", mediaUri: "only" }), fmt);
   eq("a photo page saved before albums: its one picture, no +N", [single.photo, single.photoMore, single.listLine], ["only", 0, "1 picture"]);
   const voice = M.buildNote(page("v", at(2026, 10, 14), { type: "voice", mediaUri: "rec.m4a", dur: 35 }), fmt);
@@ -166,6 +174,15 @@ const NOW = new Date(2026, 9, 16, 15, 0); // Friday 16 October 2026, 15:00
 {
   eq("the button cycles Card → Grid → List → Card", [M.nextView("card"), M.nextView("grid"), M.nextView("list")], ["grid", "list", "card"]);
   eq("stored views: compact is List, card/nothing/junk is Card", ["compact", "list", "grid", "card", null, "wall"].map((v) => M.parseStoredView(v)), ["list", "list", "grid", "card", "card", "card"]);
+
+  // iOS fontScale per text size (RCTAccessibilityManager): large 1.0, xxxLarge 1.353, AX1 1.786, AX5 3.571
+  eq("Grid is two to a row up to xxxLarge (not an accessibility size in SwiftUI either)", [1, 1.235, 1.353].map((s) => M.noteColumns("grid", s)), [2, 2, 2]);
+  eq("Grid is one to a row at every accessibility size, as KNotesScreen.columns", [1.786, 2.143, 3.571].map((s) => M.noteColumns("grid", s)), [1, 1, 1]);
+  eq("Card and List are always one to a row", [M.noteColumns("card", 1), M.noteColumns("list", 1), M.noteColumns("card", 3)], [1, 1, 1]);
+  const five = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
+  eq("rows of two keyed by their first note; an odd last note alone", M.noteRows(five, 2).map((r) => [r.key, r.notes.map((n) => n.id).join("")]), [["a", "ab"], ["c", "cd"], ["e", "e"]]);
+  eq("rows of one: each note its own row, keyed by itself", M.noteRows(five, 1).map((r) => r.key), ["a", "b", "c", "d", "e"]);
+  eq("no notes, no rows", M.noteRows([], 2), []);
 }
 
 /* ── the calendar ─────────────────────────────────────────────────────── */

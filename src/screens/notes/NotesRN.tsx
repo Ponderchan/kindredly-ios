@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Dimensions, Modal, Pressable, Text, View } from "react-native";
+import { Dimensions, Modal, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Svg, { Line, Path, Rect } from "react-native-svg";
@@ -15,7 +15,7 @@ import { WrenBird } from "../../components/WrenBird";
 import { BottomFade } from "../../components/10a/BottomFade";
 import { BOTTOM_FADE } from "../../components/10a/kit";
 import { CalendarGlyph, EMPTY_STICKER, EMPTY_TAPE, ViewIcon } from "./notes-glyphs";
-import { NOTES_VIEWS, type NoteVM, type NotesView } from "./notes-model";
+import { NOTES_VIEWS, noteColumns, noteRows, type NoteVM, type NotesView } from "./notes-model";
 import type { NotesModel } from "./useNotesModel";
 
 /* THE NOTES TAB IN REACT NATIVE — the remote switch's fallback (app_surfaces
@@ -30,9 +30,12 @@ import type { NotesModel } from "./useNotesModel";
    header's two keys open a VIEW menu (now Card, Grid and List, the views
    the SwiftUI button cycles) and the calendar as a mode in place of the
    list, where a day with one page opens it and a day with several opens
-   the day page. The cards are the 10a cards (SealedTile), Grid in rows of
-   two of equal height. The last card clears the floating tab bar and the
-   bottom fade. Every mono label is 9, 10 or 11. */
+   the day page — and coming back from that page (or another tab) finds the
+   calendar still open on the month being browsed. The cards are the 10a
+   cards (SealedTile), Grid in rows of two of equal height, one to a row at
+   accessibility text sizes as in Swift (notes-model noteColumns). The last
+   card clears the floating tab bar and the bottom fade. Every mono label is
+   9, 10 or 11. */
 
 const WIN_W = Dimensions.get("window").width;
 const VIEW_LABEL: Record<NotesView, "viewCard" | "viewGrid" | "viewList"> = { card: "viewCard", grid: "viewGrid", list: "viewList" };
@@ -41,7 +44,7 @@ type Row = { key: string; notes: NoteVM[] };
 
 export function NotesRN({ model }: { model: NotesModel }) {
   const P = useP();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const tabRoom = useTabBarSpace();
   const { strings: s, act } = model;
   const bottomRoom = Math.max(tabRoom + 72, BOTTOM_FADE.height - 6);
@@ -63,12 +66,10 @@ export function NotesRN({ model }: { model: NotesModel }) {
   });
   const pullNote = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [-40, -8, 0], [1, 0, 0], "clamp") }));
 
-  const rows = useMemo<Row[]>(() => {
-    if (model.view !== "grid") return model.notes.map((n) => ({ key: n.id, notes: [n] }));
-    const out: Row[] = [];
-    for (let i = 0; i < model.notes.length; i += 2) out.push({ key: model.notes[i].id, notes: model.notes.slice(i, i + 2) });
-    return out;
-  }, [model.notes, model.view]);
+  /* Grid is rows of two, and one to a row at accessibility text sizes, as Swift draws it */
+  const { fontScale } = useWindowDimensions();
+  const columns = noteColumns(model.view, fontScale);
+  const rows = useMemo<Row[]>(() => noteRows(model.notes, columns), [model.notes, columns]);
 
   const evening: EveningAskStrings = { ask: s.eveningAsk, yes: s.eveningYes, no: s.eveningNo, foot: s.eveningFoot, onLine: s.eveningOn, turnOff: s.eveningOff };
   const eveningRow = <EveningAsk state={model.evening.state} busy={model.evening.busy} strings={evening} onYes={act.eveningYes} onNo={act.eveningNo} onOff={act.eveningOff} />;
@@ -82,10 +83,10 @@ export function NotesRN({ model }: { model: NotesModel }) {
             <SealedTile note={n} layout={model.view} playback={model.playback?.key === n.id ? model.playback : null} onPress={act.open} onToggleVoice={act.toggleVoice} playLabel={s.play} pauseLabel={s.pause} />
           </View>
         ))}
-        {model.view === "grid" && item.notes.length === 1 && <View style={{ flex: 1 }} />}
+        {columns === 2 && item.notes.length === 1 && <View style={{ flex: 1 }} />}
       </View>
     ),
-    [model.view, model.playback, act.open, act.toggleVoice, s.play, s.pause],
+    [model.view, columns, model.playback, act.open, act.toggleVoice, s.play, s.pause],
   );
 
   const viewLabel = s[VIEW_LABEL[model.view]];
@@ -111,7 +112,9 @@ export function NotesRN({ model }: { model: NotesModel }) {
                 </View>
                 <PlateKey on={model.calendarOpen} onPress={() => act.setCalendar(!model.calendarOpen)} label={s.calendarA11y} expanded={model.calendarOpen}>
                   <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.8, color: keyInk(model.calendarOpen) }}>{s.monthCount}</Text>
-                  <CalendarGlyph groups={model.recentGroups} color={keyInk(model.calendarOpen)} empty={model.calendarOpen ? tk.bg : tk.line} size={15} />
+                  {/* the squares sit on the key: the ink (filled) or the page (outlined); on a dark one the
+                      groups' pale fills read, where their inks sank into Midnight's page */}
+                  <CalendarGlyph groups={model.recentGroups} color={keyInk(model.calendarOpen)} empty={model.calendarOpen ? tk.bg : tk.line} onDark={model.calendarOpen ? !dark : dark} size={15} />
                   <Caret open={model.calendarOpen} color={keyInk(model.calendarOpen)} />
                 </PlateKey>
               </View>
@@ -155,7 +158,7 @@ export function NotesRN({ model }: { model: NotesModel }) {
           </Animated.ScrollView>
         ) : (
           <Animated.FlatList
-            key={model.view /* rows of two and rows of one don't share cells */}
+            key={`${model.view}-${columns}` /* rows of two and rows of one don't share cells */}
             data={rows}
             keyExtractor={(r) => r.key}
             renderItem={renderRow}

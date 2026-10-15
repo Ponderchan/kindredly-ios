@@ -50,9 +50,12 @@ import "../../data/strings-step5-notes";
      (scoped kindredly_notes_view; the old "compact" is List), and
      `viewReady` once that read has landed, so the first view drawn is the
      remembered one and nothing crossfades on launch;
-   - the calendar: open or not (closed whenever the tab loses focus), the
-     month on show (opens on this month, pages between the earliest month
-     with a page and this one), its MonthVM, and the button's six squares;
+   - the calendar: open or not, the month on show (opens on this month,
+     pages between the earliest month with a page and this one), its
+     MonthVM, and the button's six squares. A blur leaves both as they were,
+     so the fallback's calendar mode comes back from a pushed page (or
+     another tab) on the month being browsed; the SwiftUI overlay closes
+     itself on blur in NotesNative, since it never waits behind a page;
      "today" is re-read on every focus and when the app comes back, so the
      today ring and the future days never go stale past midnight;
    - her first-visit line: useWrenOnce("sealed") decided only once there are
@@ -60,7 +63,9 @@ import "../../data/strings-step5-notes";
      name swapped in (speakAs);
    - the evening question (useEveningAsk, on real pages only);
    - the one voice player (useVoicePlayback): a finished note replays from
-     the start, another note replaces it, it pauses when the tab loses focus;
+     the start, another note replaces it, it pauses when the tab loses
+     focus, when the view changes and when the calendar opens (List and the
+     calendar leave no play mark on screen to pause it with);
    - where every tap goes.
    The dev page (app/dev/step5-notes) passes `demo` instead: its own pages
    and evening state, nothing read or written, and every way out reported
@@ -235,13 +240,16 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [ym, setYm] = useState<YearMonth>(() => ymOf(new Date()));
 
+  /* the calendar stays as it was across a blur: the fallback's calendar is a
+     mode whose day tap pushes the page, and the reader comes back to the
+     month they were browsing. The SwiftUI overlay closes itself on blur
+     (NotesNative), where a day tap scrolls instead. */
   useFocusEffect(
     useCallback(() => {
       setNow(Date.now());
       const stop = refresh();
       return () => {
         stop?.();
-        setCalendarOpen(false); // the overlay never waits behind another tab or a pushed page
       };
     }, [refresh]),
   );
@@ -294,9 +302,13 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
   /* ── the evening question ── */
   const evening = useEveningAsk(realPages, { enabled: !demo && loaded, wren });
 
-  /* ── the one voice player ── */
-  const voice = useVoicePlayback();
+  /* ── the one voice player ──
+     paused on every view change: List draws no play mark in either renderer,
+     so a note playing on into List would have nothing on screen to stop it
+     (the calendar pauses it too, below) */
+  const voice = useVoicePlayback({ pauseOn: view });
   const toggle = voice.toggle; // stable: the api object itself is new every render
+  const pauseVoice = voice.pause; // stable too
 
   /* ── the words ── */
   const strings = useMemo<NotesStrings>(
@@ -365,8 +377,12 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
         if (!demoRef.current) void scoped.setItem(VIEW_KEY, next).catch((e) => console.warn("[notes] the view wasn't remembered:", e));
       },
       setCalendar: (open) => {
-        // it always opens on this month
-        if (open) setYm(ymOf(new Date()));
+        if (open) {
+          // it opens on this month (and stays on the month being browsed while it is open)
+          setYm(ymOf(new Date()));
+          // the fallback's calendar takes the list's place, and Swift's dims it: no play mark is left to pause it with
+          pauseVoice();
+        }
         setCalendarOpen(open);
       },
       calendarMonth: (delta) => setYm((cur) => stepMonth(clampMonth(cur, boundsRef.current), delta, boundsRef.current)),
@@ -401,7 +417,7 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
       },
       compose: (kind) => go(kind === "voice" ? "/journal-entry?start=voice" : "/journal-entry"),
     }),
-    [go, toggle, evening.yes, evening.no, evening.turnOff],
+    [go, toggle, pauseVoice, evening.yes, evening.no, evening.turnOff],
   );
 
   return {

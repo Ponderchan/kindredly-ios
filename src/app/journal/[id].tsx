@@ -147,7 +147,14 @@ export default function JournalDetail() {
         </Pressable>
         {/* samples get the menu too — hiding it read as "delete is missing",
             not "this is a sample". Drift stays real-pages-only inside. */}
-        <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} accessibilityRole="button" style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+        <Pressable
+          onPress={() => setMenuOpen(true)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("jd.more")}
+          accessibilityState={{ expanded: menuOpen }}
+          style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
+        >
           <Text style={{ fontFamily: PF.mono, fontSize: 20, color: P.ink }}>···</Text>
         </Pressable>
       </View>
@@ -335,7 +342,10 @@ function DriftIcon() {
 
    Tap a photo to see it full-screen on ink; long-press to make it the cover
    (the old MAKE THIS THE COVER button and the ✦ badges went with the strip —
-   one gesture on the thing itself instead of chrome beside it). */
+   one gesture on the thing itself instead of chrome beside it). The cover
+   is the one coverIndex names, as the Notes card shows it: it takes the big
+   cell, the others follow in their stored order, so a long-press moves the
+   picture into the anchor and the card agrees with the page. */
 function PhotoGallery({
   photos,
   coverIndex,
@@ -353,23 +363,30 @@ function PhotoGallery({
   if (!photos.length) return null;
   const G = 2;
   const H = 250;
+  // the drawing order: the cover first (an index past the album, or none, is the first picture),
+  // then the rest as stored; `k` is a place in it, `order[k]` the picture's index in the album
+  const cover = Number.isInteger(coverIndex) && coverIndex >= 0 && coverIndex < photos.length ? coverIndex : 0;
+  const order = [cover, ...photos.map((_, i) => i).filter((i) => i !== cover)];
 
-  const cell = (i: number, style: object) => (
-    <Pressable
-      key={photos[i] + i}
-      style={[style, { overflow: "hidden" }]}
-      onPress={() => setFull(photos[i])}
-      onLongPress={() => {
-        if (!canSetCover || i === coverIndex) return;
-        onSetCover(i);
-      }}
-      delayLongPress={350}
-    >
-      <Image source={{ uri: photos[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-    </Pressable>
-  );
+  const cell = (k: number, style: object) => {
+    const i = order[k];
+    return (
+      <Pressable
+        key={photos[i] + i}
+        style={[style, { overflow: "hidden" }]}
+        onPress={() => setFull(photos[i])}
+        onLongPress={() => {
+          if (!canSetCover || i === cover) return;
+          onSetCover(i);
+        }}
+        delayLongPress={350}
+      >
+        <Image source={{ uri: photos[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+      </Pressable>
+    );
+  };
 
-  const rest = photos.slice(5);
+  const rest = order.slice(5);
   return (
     <View style={{ marginBottom: 18 }}>
       {/* the anchor band — cover left, next four in a 2x2 */}
@@ -382,12 +399,12 @@ function PhotoGallery({
           {cell(0, { flex: 1 })}
           <View style={{ flex: 1, gap: G }}>
             <View style={{ flex: 1, flexDirection: "row", gap: G }}>
-              {photos[1] ? cell(1, { flex: 1 }) : <View style={{ flex: 1 }} />}
-              {photos[2] ? cell(2, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 1 ? cell(1, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 2 ? cell(2, { flex: 1 }) : <View style={{ flex: 1 }} />}
             </View>
             <View style={{ flex: 1, flexDirection: "row", gap: G }}>
-              {photos[3] ? cell(3, { flex: 1 }) : <View style={{ flex: 1 }} />}
-              {photos[4] ? cell(4, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 3 ? cell(3, { flex: 1 }) : <View style={{ flex: 1 }} />}
+              {order.length > 4 ? cell(4, { flex: 1 }) : <View style={{ flex: 1 }} />}
             </View>
           </View>
         </View>
@@ -401,10 +418,10 @@ function PhotoGallery({
       {rest.length > 0 && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: G, marginTop: G }} onLayout={(ev) => setRowW(ev.nativeEvent.layout.width)}>
           {rowW > 0 &&
-            rest.map((p, k) => {
+            rest.map((i, k) => {
               const side = (rowW - G * 2) / 3;
               return (
-                <View key={p + k} style={{ width: side, height: side }}>
+                <View key={photos[i] + i} style={{ width: side, height: side }}>
                   {cell(k + 5, { flex: 1 })}
                 </View>
               );

@@ -12,7 +12,8 @@ import SwiftUI
           │ The words, system 17 at 1.5, whole.     │
           └─────────────────────────────────────────┘
    Grid   two to a row, equal heights; chip 28, "OCT 14" only (owner question 9), picture 96, five lines
-   List   a row: chip 28 · "OCT 14 · Sleepy" · the one line · the type icon
+   List   a row: chip 28 · "OCT 14 · Sleepy" · the one line · the type icon (the label, capped,
+          truncates before the line does; stacked at accessibility sizes — KNoteListRow)
 
  Every word is TS's (screens/notes/notes-model): the three labels, the one line ("Voice note · 0:35"
  on a voice note with no words), the length, the VoiceOver label. The material is the theme's card
@@ -204,20 +205,7 @@ public struct KNoteCard: View, Equatable {
   private var content: some View {
     switch layout {
     case .list:
-      HStack(alignment: .center, spacing: 12) {
-        HStack(alignment: .center, spacing: 10) {
-          KMoodChip(group: note.group, metrics: .compact)
-          labelText
-        }
-        .layoutPriority(1)
-        Text(note.listLine)
-          .kText(Self.smallBody)
-          .foregroundStyle(theme.ink)
-          .lineLimit(1)
-          .truncationMode(.tail)
-          .frame(maxWidth: .infinity, alignment: .leading)
-        KLineIcon(note.kind.glyph, size: 18, lineWidth: 2, color: theme.ind)
-      }
+      KNoteListRow(theme: theme, note: note)
     case .card, .grid:
       VStack(alignment: .leading, spacing: layout == .grid ? 10 : 12) {
         HStack(alignment: .center, spacing: 10) {
@@ -267,6 +255,98 @@ public struct KNoteCard: View, Equatable {
     case .text:
       EmptyView()
     }
+  }
+}
+
+/// List's row: the chip, "OCT 14 · Sleepy", the one line, the type icon. The label gives way before
+/// the words: it is capped at `labelMax` (150 at the default text size, growing with it), and the
+/// line keeps at least `lineMin` — so the label truncates first, and a long mood name in another
+/// language ("14 DE OUT. · De coração partido" on an iPhone SE) still leaves some of the note's
+/// words. The chip and label keep the layout priority, so they are offered their capped width first
+/// against the line's reserved minimum (were the line given the priority, its infinite frame would
+/// take everything and cut the label to "O…"; with no priority at all, the label would be offered
+/// half and truncate even in English). The cap is KCapWidth, not frame(maxWidth:), which would take
+/// the whole proposal up to the cap and leave a short label a wide empty box. At accessibility text
+/// sizes the row stacks: the chip, the label and the icon above, the one line under them.
+/// SealedTile (the React Native twin) lays it out the same way.
+struct KNoteListRow: View {
+  /// the label's widest at the default text size
+  static let labelMaxBase: CGFloat = 150
+  /// the narrowest the one line may get
+  static let lineMin: CGFloat = 64
+
+  let theme: KTheme
+  let note: KNote
+
+  @ScaledMetric(relativeTo: .caption2) private var labelMax: CGFloat = KNoteListRow.labelMaxBase
+  @Environment(\.dynamicTypeSize) private var typeSize
+
+  var body: some View {
+    if typeSize.isAccessibilitySize {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(alignment: .center, spacing: 10) {
+          KMoodChip(group: note.group, metrics: .compact)
+          label
+          Spacer(minLength: 0)
+          icon
+        }
+        line
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+    } else {
+      HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
+          KMoodChip(group: note.group, metrics: .compact)
+          KCapWidth(max: labelMax) { label }
+        }
+        .layoutPriority(1)
+        line
+          .frame(minWidth: Self.lineMin, maxWidth: .infinity, alignment: .leading)
+        icon
+      }
+    }
+  }
+
+  private var label: some View {
+    Text(note.listLabel)
+      .kText(KNoteCard.label)
+      .foregroundStyle(theme.sub)
+      .lineLimit(1)
+      .truncationMode(.tail)
+  }
+
+  private var line: some View {
+    Text(note.listLine)
+      .kText(KNoteCard.smallBody)
+      .foregroundStyle(theme.ink)
+      .lineLimit(1)
+      .truncationMode(.tail)
+  }
+
+  private var icon: some View {
+    KLineIcon(note.kind.glyph, size: 18, lineWidth: 2, color: theme.ind)
+  }
+}
+
+/// Proposes at most `max` wide to its one child and takes the child's own size: a cap that, unlike
+/// frame(maxWidth:), doesn't widen a short child to the cap when more room is offered.
+struct KCapWidth: Layout {
+  let max: CGFloat
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    guard let child = subviews.first else { return .zero }
+    let cap = Swift.max(0, max)
+    var size = child.sizeThatFits(ProposedViewSize(width: proposal.width.map { Swift.min($0, cap) }, height: proposal.height))
+    if size.width > cap {
+      // asked for its ideal and it is wider than the cap: measure it at the cap
+      size = child.sizeThatFits(ProposedViewSize(width: cap, height: proposal.height))
+      size.width = Swift.min(size.width, cap)
+    }
+    return size
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    subviews.first?.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
   }
 }
 

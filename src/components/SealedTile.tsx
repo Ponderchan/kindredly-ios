@@ -1,12 +1,12 @@
 import { memo, useEffect, useState } from "react";
-import { Image, Pressable, Text, View, type AccessibilityActionEvent } from "react-native";
+import { Image, Pressable, Text, View, useWindowDimensions, type AccessibilityActionEvent } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { PF } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import { useTheme } from "../lib/theme";
 import { playbackProgress, type VoicePlayback } from "../lib/voice-playback";
 import { MoodChip, PlayMark, TypeIcon } from "../screens/notes/notes-glyphs";
-import { waveHeight, type NoteVM, type NotesView } from "../screens/notes/notes-model";
+import { isAxFontScale, waveHeight, type NoteVM, type NotesView } from "../screens/notes/notes-model";
 
 /* ONE NOTE — the React Native twin of Swift's KNoteCard (10a step 5), for
    the Notes fallback. It draws a NoteVM (screens/notes/notes-model), so
@@ -24,6 +24,14 @@ import { waveHeight, type NoteVM, type NotesView } from "../screens/notes/notes-
    Pressed, it dips a point. VoiceOver hears one button with the whole
    label, and Play / Pause as actions on a voice note.
 
+   LIST is one row: the colour, the label, the one line, the type icon.
+   The label gives way before the words: it is capped (LIST_LABEL_MAX, by
+   the text size) and shrinks to an ellipsis while the line keeps at least
+   LIST_LINE_MIN, so a long mood name ("14 DE OUT. · De coração partido")
+   on an iPhone SE still leaves some of the note's words. At accessibility
+   text sizes the row stacks — the colour, the label and the icon above,
+   the one line under them — as Swift's KNoteCard does.
+
    A video still plays muted in its own player here (the SwiftUI card shows
    a still frame instead): this is the fallback, and it keeps what the wall
    always did. */
@@ -31,6 +39,11 @@ import { waveHeight, type NoteVM, type NotesView } from "../screens/notes/notes-
 /* the badges sit on the picture, in the same dark ink in every theme */
 const ON_PICTURE = "rgba(30,27,53,0.72)";
 const ON_PICTURE_SOFT = "rgba(30,27,53,0.55)";
+
+/* List: the label's widest (at the default text size; it grows with the
+   text) and the narrowest the one line may get — KNoteCard's numbers */
+const LIST_LABEL_MAX = 150;
+const LIST_LINE_MIN = 64;
 
 type Props = {
   note: NoteVM;
@@ -45,8 +58,12 @@ type Props = {
 
 export const SealedTile = memo(function SealedTile({ note, layout, playback, onPress, onToggleVoice, playLabel, pauseLabel }: Props) {
   const { t: tk } = useTheme();
+  const { fontScale } = useWindowDimensions();
   const list = layout === "list";
   const grid = layout === "grid";
+  // List in one row, or stacked at accessibility text sizes
+  const listRow = list && !isAxFontScale(fontScale);
+  const listStacked = list && !listRow;
   const chip = list || grid ? { size: 28, radius: 9, face: 18 } : { size: 36, radius: 11, face: 22 };
   const label = list ? note.listLabel : grid ? note.shortLabel : note.label;
   const mine = playback && playback.key === note.id ? playback : null;
@@ -70,9 +87,9 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
         borderWidth: 1.5,
         borderColor: tk.ln,
         borderRadius: list ? 16 : 22,
-        flexDirection: list ? "row" : "column",
-        alignItems: list ? "center" : "stretch",
-        gap: list ? 12 : grid ? 10 : 12,
+        flexDirection: listRow ? "row" : "column",
+        alignItems: listRow ? "center" : "stretch",
+        gap: listRow ? 12 : listStacked ? 8 : grid ? 10 : 12,
         paddingTop: list ? 10 : grid ? 12 : 14,
         paddingBottom: list ? 10 : grid ? 14 : 16,
         paddingLeft: list ? 10 : grid ? 12 : 16,
@@ -83,12 +100,13 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
       })}
     >
       {/* the head: the group's colour and face, the date, the type */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: list ? 0 : 1 }}>
+      {/* in a List row it shrinks (the label to an ellipsis) before the words do */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 }}>
         <MoodChip group={note.group} size={chip.size} radius={chip.radius} face={chip.face} />
-        <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }}>
+        <Text numberOfLines={1} style={{ flexShrink: 1, maxWidth: listRow ? LIST_LABEL_MAX * fontScale : undefined, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }}>
           {label}
         </Text>
-        {!list && (
+        {!listRow && (
           <>
             <View style={{ flex: 1 }} />
             <TypeIcon kind={note.kind} color={tk.ind} />
@@ -116,7 +134,7 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
       {!list && voice && <VoiceRow note={note} playback={mine} onToggle={() => onToggleVoice(note.id)} />}
 
       {list ? (
-        <Text numberOfLines={1} style={{ flex: 1, fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
+        <Text numberOfLines={1} style={listRow ? { flex: 1, minWidth: LIST_LINE_MIN, fontSize: 15, lineHeight: 22.5, color: tk.ink } : { fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
           {note.listLine}
         </Text>
       ) : note.body ? (
@@ -125,7 +143,11 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
         </Text>
       ) : null}
 
-      {list && <TypeIcon kind={note.kind} color={tk.ind} />}
+      {listRow && (
+        <View style={{ flexShrink: 0 }}>
+          <TypeIcon kind={note.kind} color={tk.ind} />
+        </View>
+      )}
     </Pressable>
   );
 });
