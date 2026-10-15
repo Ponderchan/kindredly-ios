@@ -246,8 +246,12 @@ export default function KindredsTab() {
      transit". Slow letters are mostly waiting, and a list of waiting reads
      like being left on read. */
   const fold = tab === "all" && !show;
-  const theirTurn = useMemo(() => (fold ? main.filter((th) => !th.revealed && !onMe(th)) : []), [main, fold, onMe]);
-  const rows = useMemo(() => (fold ? main.filter((th) => th.revealed || onMe(th)) : main), [main, fold, onMe]);
+  /* only a pen pal whose last letter is yours is waiting on them — the same
+     rule as the THEIR TURN filter; one who wrote after you went first keeps
+     a full row, their newest words showing */
+  const folds = useCallback((th: ThreadSummary) => !th.revealed && !onMe(th) && th.lastSenderMe, [onMe]);
+  const theirTurn = useMemo(() => (fold ? main.filter(folds) : []), [main, fold, folds]);
+  const rows = useMemo(() => (fold ? main.filter((th) => !folds(th)) : main), [main, fold, folds]);
 
   const counts = { kindreds: live.filter((th) => th.revealed).length, penpals: live.filter((th) => !th.revealed).length };
   const dots = {
