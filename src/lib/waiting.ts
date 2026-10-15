@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { fetchThreads, type ThreadSummary } from "./db";
-import { threadState } from "./thread-state";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { track } from "./track";
-import { readRoomSeen, unreadOf } from "./room-seen";
+import { readRoomSeen } from "./room-seen";
 import { fetchWrenPosts, readPostsCache, wrenUnread } from "./wren-desk";
+import { countOnYou } from "../screens/kindreds/kindreds-model";
 
 /* How many correspondences are waiting on YOU — someone answered your letter
    and you have not written back.
@@ -42,15 +42,15 @@ const publish = () => {
    moment you have read them, answered or not: you already know each other,
    and a friend's note read and left for later is not a debt. So the tab's
    number, the title's "letters to answer" and the kindred's own badge all
-   clear together when a kindred's room is opened. */
+   clear together when a kindred's room is opened. A closed account owes
+   nothing: there is nobody at the other end.
+
+   10a step 5: the rule itself lives in the Kindreds model
+   (screens/kindreds/kindreds-model countOnYou, node-tested), which the
+   tab's title, its chips' dots and both of its renderers read, so the
+   badge on the tab and the sentence on the page can't disagree. */
 export function onYou(threads: ThreadSummary[], ledger: Record<string, number>): number {
-  let n = 0;
-  for (const t of threads) {
-    if (t.gone) continue; // nobody at the other end: nothing is owed
-    if (t.revealed) n += unreadOf(ledger, t.id, t.theirs);
-    else if (threadState(t)?.needsYou) n += 1;
-  }
-  return n;
+  return countOnYou(threads, ledger);
 }
 
 export function setWaiting(n: number) {

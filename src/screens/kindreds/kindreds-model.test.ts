@@ -1,0 +1,346 @@
+/* Behaviour lock for the Kindreds tab's model (screens/kindreds/kindreds-model):
+   who is listed, the owner's order, the fold, the quiet group, closed
+   accounts, the empty lines, the row words and menus, the orbit — the rules
+   both renderers draw, so a remote flip between SwiftUI and React Native
+   never changes what the reader sees.
+   Not wired to a runner; run by hand from the repo root with plain node (it
+   strips the types itself from Node 22.18 / 23.6 on):
+     node src/screens/kindreds/kindreds-model.test.ts
+   The model imports lib/thread-state (which imports lib/i18n → React
+   Native) and lib/room-seen (→ AsyncStorage), so a load hook stands in a
+   two-line i18n and storage for this process only, and adds ".ts" to the
+   extensionless relative imports Metro wants. Every line prints ok/FAIL
+   and the process exits non-zero if any fail. */
+
+import { registerHooks } from "node:module";
+
+const STUBS: Record<string, string> = {
+  i18n: `export const t = (k) => k; export const getLang = () => "en";`,
+  "scoped-store": `export const scoped = { getItem: async () => null, setItem: async () => {}, removeItem: async () => {} };`,
+};
+registerHooks({
+  resolve(specifier, context, next) {
+    const m = /(?:^|\/)(i18n|scoped-store)$/.exec(specifier);
+    if (m) return { url: "kd-stub:" + m[1], shortCircuit: true };
+    if (/^\.\.?\//.test(specifier) && !/\.[a-z]+$/i.test(specifier)) return next(specifier + ".ts", context);
+    return next(specifier, context);
+  },
+  load(url, context, next) {
+    if (url.startsWith("kd-stub:")) return { format: "module", source: STUBS[url.slice("kd-stub:".length)], shortCircuit: true };
+    return next(url, context);
+  },
+});
+
+const M = await import("./kindreds-model.ts");
+const { DEMO_THREADS, DEMO_STATE_THREADS, DEMO_ROOM_SEEN } = await import("../../data/demo.ts");
+type Thread = import("../../lib/db").ThreadSummary;
+type Facts = import("./kindreds-model").KindredsFacts;
+
+let fails = 0;
+const ok = (name: string, cond: boolean) => {
+  console.log((cond ? "ok  " : "FAIL") + " " + name);
+  if (!cond) fails++;
+};
+
+const H = 3600_000;
+const DAY = 24 * H;
+const now = Date.now();
+
+let seq = 0;
+function th(p: Partial<Thread> & { id: string }): Thread {
+  seq++;
+  return {
+    stamp: "growing",
+    revealed: false,
+    mine: 1,
+    theirs: 1,
+    otherName: null,
+    other: "u-" + p.id,
+    preview: "words " + p.id,
+    lastSenderMe: false,
+    lastAt: now - seq * H,
+    ...p,
+  } as Thread;
+}
+
+/* an English-ish fmt: keys come back as themselves, with their vars, so the tests can read them */
+const fmt = {
+  t: (k: string, v?: Record<string, string | number>) => (v ? `${k}(${Object.entries(v).map(([a, b]) => `${a}=${b}`).join(",")})` : k),
+  when: (at: number | string) => `T${typeof at === "number" ? Math.round((now - at) / H) : "s"}`,
+  penPal: (o: string | null | undefined) => (o ? `No. ${o}` : "UNSIGNED"),
+  sentence: (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
+  upper: (s: string) => s.toUpperCase(),
+};
+
+const base = (threads: Thread[], over: Partial<Facts> = {}): Facts => ({
+  threads,
+  ledger: {},
+  premium: false,
+  settled: true,
+  tab: "all",
+  show: null,
+  loadState: "ready",
+  desk: { unread: 0, lastLine: null, lastAt: null },
+  wrenName: "Wren",
+  notice: false,
+  wrenLine: null,
+  ...over,
+});
+
+const ids = (items: ReturnType<typeof M.buildKindredsView>["items"]) => items.map((i) => i.id);
+const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
+  const it = v.items.find((i) => i.id === id);
+  return it && (it.type === "row" || it.type === "wren") ? it.row : undefined;
+};
+
+/* ── who is listed ── */
+{
+  const v = M.buildKindredsView(base([th({ id: "a", mine: 0, theirs: 1 }), th({ id: "b", mine: 0, theirs: 0 }), th({ id: "c", mine: 1, theirs: 0, lastSenderMe: true })]), fmt);
+  ok("a reply to your own letter is listed (mine 0, theirs 1)", ids(v.items).includes("a"));
+  ok("a thread nobody wrote in isn't", !ids(v.items).includes("b"));
+}
+
+/* ── the owner's order: on you first, then the newest, no grouping ── */
+{
+  const kOld = th({ id: "k-old", revealed: true, otherName: "Old", theirs: 4, lastAt: now - 10 * H });
+  const kOnMe = th({ id: "k-onme", revealed: true, otherName: "Ana", theirs: 4, lastAt: now - 9 * H });
+  const pTurn = th({ id: "p-turn", lastSenderMe: false, lastAt: now - 1 * H });
+  const pTheir = th({ id: "p-their", lastSenderMe: true, theirs: 2, mine: 3, lastAt: now - 30 * 60_000 });
+  const kNew = th({ id: "k-new", revealed: true, otherName: "New", theirs: 2, lastAt: now - 20 * 60_000 });
+  const ledger = { "k-old": 4, "k-onme": 2, "k-new": 2 };
+  const c = M.classify(base([kOld, kOnMe, pTurn, pTheir, kNew], { ledger, tab: "penpals" }));
+  ok("PEN PALS: your turn first, then theirs", c.main.map((t) => t.id).join() === "p-turn,p-their");
+  const all = M.classify(base([kOld, kOnMe, pTurn, pTheir, kNew], { ledger }));
+  ok("ALL: on-you rows (pen pal and kindred) by recency, then the rest by recency", all.main.map((t) => t.id).join() === "p-turn,k-onme,k-new,p-their,k-old");
+  ok("ALL folds the pen pal whose last letter is yours", all.folded.map((t) => t.id).join() === "p-their" && !all.rows.some((t) => t.id === "p-their"));
+  ok("kindreds never fold", !all.folded.some((t) => t.revealed));
+  const pp = M.classify(base([kOld, kOnMe, pTurn, pTheir, kNew], { ledger, tab: "penpals" }));
+  ok("PEN PALS doesn't fold", pp.folded.length === 0 && pp.rows.length === 2);
+  const filt = M.classify(base([kOld, kOnMe, pTurn, pTheir, kNew], { ledger, show: "your" }));
+  ok("the filter doesn't fold either", filt.folded.length === 0);
+}
+
+/* ── waiting (the tab's number and the title) ── */
+{
+  const ts = [
+    th({ id: "k1", revealed: true, theirs: 5 }),
+    th({ id: "p1", lastSenderMe: false }),
+    th({ id: "p2", lastSenderMe: true }),
+    th({ id: "g1", lastSenderMe: false, gone: true, other: null as unknown as string }),
+    th({ id: "kq", revealed: true, theirs: 3, lastAt: now - 40 * DAY }),
+  ];
+  const ledger = { k1: 2, kq: 1 };
+  ok("waiting: kindred unread letters each + one per pen pal on you; closed owe nothing; quiet rooms count", M.countOnYou(ts, ledger) === 3 + 1 + 2);
+  ok("a room never opened claims nothing", M.countOnYou([th({ id: "k9", revealed: true, theirs: 5 })], {}) === 0);
+  const v = M.buildKindredsView(base(ts, { ledger }), fmt);
+  ok("status: N letters to answer, active", v.status === "kindreds.toAnswer(n=6)" && v.statusActive);
+  const one = M.buildKindredsView(base([th({ id: "p1" })]), fmt);
+  ok("status: one letter", one.status === "kindreds.toAnswerOne");
+  const none = M.buildKindredsView(base([th({ id: "p2", lastSenderMe: true })]), fmt);
+  ok("status: all answered, not a button", none.status === "kindreds.allAnswered" && !none.statusActive);
+}
+
+/* ── the entitlement: nothing expires (or closes) before it answers ── */
+{
+  const q = th({ id: "q", revealed: true, otherName: "Q", lastAt: now - 34 * DAY });
+  const cl = th({ id: "cl", revealed: true, otherName: "C", lastAt: now - 25 * DAY });
+  const unsettled = M.buildKindredsView(base([q, cl], { settled: false }), fmt);
+  ok("unsettled: no Expired group", !ids(unsettled.items).includes("group-expired") && ids(unsettled.items).includes("q"));
+  ok("unsettled: the quiet room is an ordinary row", rowOf(unsettled, "q")!.trailingLink === "" && !rowOf(unsettled, "q")!.dim);
+  ok("unsettled: no CLOSES IN tag", rowOf(unsettled, "cl")!.tags.length === 0);
+  ok("unsettled: no Plush count", unsettled.named === 0);
+  const settled = M.buildKindredsView(base([q, cl]), fmt);
+  ok("settled: the quiet room is in Expired", ids(settled.items).join().endsWith("group-expired,q"));
+  ok("settled: CLOSES IN, in postal red", rowOf(settled, "cl")!.tags[0]?.tone === "post" && rowOf(settled, "cl")!.tags[0]?.text.startsWith("KD.CLOSESIN(N="));
+  ok("settled: the Plush count is the unexpired kindreds", settled.named === 1);
+  const fc = M.buildKindredsView(base([q, cl], { premium: true }), fmt);
+  ok("First Class: nothing quiet, nothing closing", !ids(fc.items).includes("group-expired") && rowOf(fc, "cl")!.tags.length === 0 && fc.named === 2);
+  const last = M.buildKindredsView(base([th({ id: "cd", revealed: true, lastAt: now - 29.6 * DAY })]), fmt);
+  ok("inside its last day: CLOSES WITHIN A DAY", rowOf(last, "cd")!.tags[0]?.text === "KD.CLOSESDAY");
+}
+
+/* ── the quiet room and the your-turn filter (critic: the title said N, the filter said none) ── */
+{
+  const q = th({ id: "q", revealed: true, otherName: "Q", theirs: 4, lastAt: now - 34 * DAY });
+  const ledger = { q: 2 };
+  const plain = M.buildKindredsView(base([q], { ledger }), fmt);
+  const r = rowOf(plain, "q")!;
+  ok("quiet row: Rekindle, no badge, expired words, no time, dim", r.trailingLink === "kd.menu.rekindle ›" && r.badge === "" && r.preview.startsWith("kd.expiredRow(n=") && r.time === "" && r.dim);
+  ok("quiet row's menu: rekindle, read, page, report, block (demo rows aside)", r.actions.map((a) => a.key).join() === "rekindle,read,page,report,block");
+  const filtered = M.buildKindredsView(base([q], { ledger, show: "your" }), fmt);
+  const f = rowOf(filtered, "q")!;
+  ok("under the filter the quiet room with unread letters is shown", !!f);
+  ok("…with its badge in Rekindle's place, the expired words kept", f.badge === "2" && f.trailingLink === "" && f.preview.startsWith("kd.expiredRow"));
+  ok("the filter shows no Expired header and no Wren", !ids(filtered.items).includes("group-expired") && !ids(filtered.items).includes("wren"));
+  ok("Showing line counts what it shows", filtered.items.some((i) => i.type === "showing" && i.text.includes("n=1")));
+}
+
+/* ── Wren: pinned first in ALL with no filter, nowhere else ── */
+{
+  const ts = [th({ id: "p1" }), th({ id: "k1", revealed: true })];
+  const all = M.buildKindredsView(base(ts, { desk: { unread: 2, lastLine: "News", lastAt: new Date(now - H).toISOString() } }), fmt);
+  const first = all.items.find((i) => i.type === "wren" || i.type === "row");
+  ok("ALL: Wren is the first row", first?.id === "wren");
+  const w = rowOf(all, "wren")!;
+  ok("Wren: her name, the official mark, her last line, a badge, no menu", w.name === "Wren" && w.faceBadge && w.preview === "News" && w.badge === "2" && w.actions.length === 0);
+  ok("Wren's VoiceOver label says OFFICIAL and the count", w.a11yLabel.startsWith("Wren, wo.tag, 2"));
+  const quietDesk = M.buildKindredsView(base(ts), fmt);
+  ok("Wren with no posts: no time, the desk's subline", rowOf(quietDesk, "wren")!.time === "" && rowOf(quietDesk, "wren")!.preview === "wo.row.sub");
+  ok("KINDREDS: no Wren", !ids(M.buildKindredsView(base(ts, { tab: "kindreds" }), fmt).items).includes("wren"));
+  ok("PEN PALS: no Wren", !ids(M.buildKindredsView(base(ts, { tab: "penpals" }), fmt).items).includes("wren"));
+  ok("filtered: no Wren", !ids(M.buildKindredsView(base(ts, { show: "your" }), fmt).items).includes("wren"));
+  ok("an unread desk lights ALL's dot", all.chips[0].dot);
+}
+
+/* ── the empty lines, exactly as kindreds.tsx:412 had them ── */
+{
+  const q = th({ id: "q", revealed: true, lastAt: now - 40 * DAY });
+  const gonePal = th({ id: "gp", gone: true, other: null as unknown as string });
+  const goneKin = th({ id: "gk", revealed: true, gone: true, other: null as unknown as string, otherName: "Sol" });
+  const line = (threads: Thread[], over: Partial<Facts> = {}) => M.classify(base(threads, over)).emptyLine;
+  ok("ALL with only a quiet room: no line", line([q]) === null);
+  ok("ALL with nothing: no line (Wren is there)", line([]) === null);
+  ok("KINDREDS with only a quiet room: no hint", line([q], { tab: "kindreds" }) === null);
+  ok("KINDREDS empty: the hint", line([th({ id: "p" })], { tab: "kindreds" }) === "hintKindreds");
+  ok("KINDREDS with only a closed kindred: no hint", line([goneKin], { tab: "kindreds" }) === null);
+  ok("PEN PALS empty: the hint, even over a closed pen pal", line([gonePal], { tab: "penpals" }) === "hintPenpals");
+  ok("filter with nothing on you: ALL ANSWERED, even over quiet and closed", line([q, gonePal, th({ id: "p", lastSenderMe: true })], { show: "your" }) === "allAnswered");
+  const v = M.buildKindredsView(base([gonePal], { tab: "penpals" }), fmt);
+  ok("the hint's words and link", v.items.some((i) => i.type === "hintPenpals" && i.text === "kd.penPalsEmpty" && i.link === "kd.toDesk"));
+}
+
+/* ── the rows' words ── */
+{
+  const ledger = { k: 1, k9: 0 };
+  const ts = [
+    th({ id: "k", revealed: true, otherName: "Mira", theirs: 4, lastSenderMe: true, preview: "see you" }),
+    th({ id: "k9", revealed: true, otherName: null, theirs: 14 }),
+    th({ id: "p-turn", mine: 2, theirs: 3, lastSenderMe: false }),
+    th({ id: "p-their", mine: 3, theirs: 2, lastSenderMe: true }),
+    th({ id: "p-names", mine: 5, theirs: 5 }),
+    th({ id: "p-they", mine: 5, theirs: 5, theirSigned: true }),
+    th({ id: "p-you", mine: 5, theirs: 5, iSigned: true }),
+    th({ id: "g", mine: 2, theirs: 2, gone: true, other: null as unknown as string }),
+  ];
+  const v = M.buildKindredsView(base(ts, { ledger, tab: "penpals" }), fmt);
+  const vk = M.buildKindredsView(base(ts, { ledger, tab: "kindreds" }), fmt);
+  const k = rowOf(vk, "k")!;
+  ok("kindred: the number, no turn words, no progress", k.badge === "3" && k.tags.length === 0 && k.progress === "");
+  ok("kindred: You: when the last word was yours", k.youPrefix === "mm.you: " && k.preview === "see you");
+  ok("kindred: their page and mark as read", k.actions.map((a) => a.key).join() === "read,page,report,block");
+  ok("a kindred with no name reads A kindred; 9+ caps the badge", rowOf(vk, "k9")!.name === "kd.aKindred" && rowOf(vk, "k9")!.badge === "9+");
+  const k0 = M.buildKindredsView(base([th({ id: "k0", revealed: true, theirs: 3 })], { ledger: { k0: 3 } }), fmt);
+  ok("kindred all read: mark as unread", rowOf(k0, "k0")!.actions.map((a) => a.key).join() === "unread,page,report,block");
+  const pt = rowOf(v, "p-turn")!;
+  ok("pen pal: YOUR TURN in ind, no number", pt.tags.length === 1 && pt.tags[0].text === "STATE.YOURTURN" && pt.tags[0].tone === "ind" && pt.badge === "");
+  ok("pen pal: n/5 is letters each way", pt.progress === "2/5" && rowOf(v, "p-names")!.progress === "5/5");
+  ok("pen pal: their name is the postal number", pt.name === "No. u-p-turn");
+  ok("pen pal: report and block only", pt.actions.map((a) => a.key).join() === "report,block" && pt.actions.every((a) => (a.key === "report" || a.key === "block") === !!a.destructive));
+  ok("pen pal: THEIR TURN in mute", rowOf(v, "p-their")!.tags[0]?.text === "STATE.WAITINGTHEM" && rowOf(v, "p-their")!.tags[0]?.tone === "mute");
+  ok("five each: SWAP NAMES? in brass replaces the turn", rowOf(v, "p-names")!.tags.map((x) => x.tone).join() === "brass" && rowOf(v, "p-names")!.tags[0].text === "STATE.SWAPNAMES");
+  ok("they went first: brass", rowOf(v, "p-they")!.tags[0]?.text === "STATE.THEYWENTFIRST" && rowOf(v, "p-they")!.tags[0]?.tone === "brass");
+  ok("you went first: a grey turn tag", rowOf(v, "p-you")!.tags[0]?.text === "STATE.YOUWENTFIRST" && rowOf(v, "p-you")!.tags[0]?.tone === "mute");
+  ok("pen pal VoiceOver: name, state, n of 5, time", pt.a11yLabel === "No. u-p-turn, state.yourTurn, mk.ofFive(n=2), " + pt.time);
+  const g = rowOf(v, "g")!;
+  ok("closed account: ACCOUNT CLOSED, dim, name dim, time kept, no progress, no tags", g.preview === "kd.accountClosed" && g.dim && g.nameDim && g.time !== "" && g.progress === "" && g.tags.length === 0);
+  ok("closed account: no menu, and a name that isn't a shared number", g.actions.length === 0 && g.name === "UNSIGNED");
+  ok("closed accounts come last", ids(v.items)[ids(v.items).length - 1] === "g");
+  ok("a closed pen pal is drawn as the veil (gone face input)", g.face?.role === "penpal" && g.face.gone === true);
+  const demo = M.buildKindredsView(base([th({ id: "demo-x", revealed: true, theirs: 2 })], { ledger: { "demo-x": 1 } }), fmt);
+  ok("demo rows have no menu", rowOf(demo, "demo-x")!.actions.length === 0);
+  const demoOn = M.buildKindredsView(base([th({ id: "demo-x", revealed: true, theirs: 2 })], { ledger: { "demo-x": 1 }, demoMenus: true }), fmt);
+  ok("…unless the dev page asks", rowOf(demoOn, "demo-x")!.actions.length === 4);
+}
+
+/* ── chips ── */
+{
+  const ts = [th({ id: "k", revealed: true, theirs: 2 }), th({ id: "p", lastSenderMe: true }), th({ id: "q", revealed: true, lastAt: now - 40 * DAY }), th({ id: "g", gone: true, other: null as unknown as string })];
+  const v = M.buildKindredsView(base(ts, { ledger: { k: 1 }, tab: "kindreds" }), fmt);
+  ok("chips: All / Kindreds n / Pen pals n, sentence-cased", v.chips.map((c) => `${c.label}${c.count}`).join("|") === "Kd.tab.all|Kd.tab.kindreds2|Kd.tab.penpals1");
+  ok("chips: glyphs and the selected one", v.chips.map((c) => c.glyph).join() === "none,kindred,penPal" && v.chips[1].selected && !v.chips[0].selected);
+  ok("chips: a dot where someone is on you", v.chips[0].dot && v.chips[1].dot && !v.chips[2].dot);
+  ok("chips: VoiceOver reads the name and the count", v.chips[1].a11yLabel === "Kd.tab.kindreds, 2" && v.chips[0].a11yLabel === "Kd.tab.all");
+}
+
+/* ── load states ── */
+{
+  const failed = M.buildKindredsView(base([], { loadState: "failed" }), fmt);
+  ok("failed with nothing kept: an offline line under Wren, never the empty state", !failed.empty && failed.items.some((i) => i.type === "line" && i.text === "auth.err.offline") && ids(failed.items).includes("wren"));
+  ok("none (no session, a guest) with nothing: the empty state", M.buildKindredsView(base([], { loadState: "none" }), fmt).empty);
+  ok("ready with nothing: the empty state", M.buildKindredsView(base([], { loadState: "ready" }), fmt).empty);
+  ok("loading: not the empty state yet", !M.buildKindredsView(base([], { loadState: "loading" }), fmt).empty);
+  ok("a closed account alone still isn't empty", !M.buildKindredsView(base([th({ id: "g", gone: true, other: null as unknown as string })]), fmt).empty);
+}
+
+/* ── the band's words, her line, the notice ── */
+{
+  const v = M.buildKindredsView(base([th({ id: "p" })], { notice: true, wrenLine: "Wren says hi" }), fmt);
+  ok("her once-line comes first, then the notice", v.items[0].type === "wrenLine" && v.items[1].type === "notice");
+  ok("the legend: closer, and the new your-turn words; the chip's name", v.legendCloser === "kd.legendCloser" && v.legendTurn === "kd.legendTurn10" && v.orbitChipLabel === "kd.orbit");
+  ok("title", v.title === "kindreds.title");
+}
+
+/* ── the orbit ── */
+{
+  const ts = [
+    th({ id: "o3", theirs: 3, mine: 2 }),
+    th({ id: "o1", theirs: 0, mine: 1, lastSenderMe: true }),
+    th({ id: "o2", theirs: 7, mine: 6, lastSenderMe: true }),
+    th({ id: "kin", revealed: true }),
+    th({ id: "gone", gone: true, other: null as unknown as string }),
+  ];
+  const a = M.buildKindredsView(base(ts), fmt).orbit;
+  ok("named people and closed accounts are never drawn", a.length === 3 && !a.some((o) => o.id === "kin" || o.id === "gone"));
+  ok("in a stable order (thread id)", a.map((o) => o.id).join() === "o1,o2,o3");
+  ok("ring = THEIR letters, capped at five; the void at 0", a.find((o) => o.id === "o1")!.ring === 0 && a.find((o) => o.id === "o2")!.ring === 5 && a.find((o) => o.id === "o3")!.ring === 3);
+  ok("your turn is inked", a.find((o) => o.id === "o3")!.turn && !a.find((o) => o.id === "o1")!.turn);
+  ok("drift: a direction and 150–270 s a circuit", a.every((o) => (o.dir === 1 || o.dir === -1) && o.period >= 150 && o.period < 270));
+  ok("a face is the developed FACE v1 mask", a.every((o) => o.mask > 0 && o.mask < 1 << 25));
+  // a reply re-sorts the list (o1 newest, now on you) — nobody moves
+  const moved = ts.map((t) => (t.id === "o1" ? { ...t, lastSenderMe: false, lastAt: now } : t)).reverse();
+  const b = M.buildKindredsView(base(moved), fmt).orbit;
+  ok("a re-sort moves nobody on the orbit (same a0, dir, period)", a.every((o) => { const p = b.find((x) => x.id === o.id)!; return p.a0 === o.a0 && p.dir === o.dir && p.period === o.period; }));
+}
+
+/* ── the folded row ── */
+{
+  const theirs = Array.from({ length: 8 }, (_, i) => th({ id: `f${i}`, lastSenderMe: true, mine: 2, theirs: 1 }));
+  const v = M.buildKindredsView(base(theirs), fmt);
+  const fold = v.items.find((i) => i.type === "fold");
+  ok("eight waiting on them: one folded row", !!fold && v.items.filter((i) => i.type === "row").length === 0);
+  if (fold && fold.type === "fold") {
+    ok("six faces, then +2", fold.fold.faces.length === 6 && fold.fold.more === "+2");
+    ok("label and VoiceOver", fold.fold.label === "State.waitingthem · 8" && fold.fold.a11yLabel === "State.waitingthem · 8, Kd.tab.penpals");
+    ok("each face is named for VoiceOver", fold.fold.faces.every((f) => f.a11yLabel.startsWith("No. ")));
+  }
+  ok("the fold sits after the rows and before the quiet group", (() => {
+    const mix = M.buildKindredsView(base([...theirs.slice(0, 2), th({ id: "r", lastSenderMe: false }), th({ id: "q", revealed: true, lastAt: now - 40 * DAY })]), fmt);
+    const order = ids(mix.items);
+    return order.indexOf("r") < order.indexOf("fold") && order.indexOf("fold") < order.indexOf("group-expired");
+  })());
+}
+
+/* ── the demo fixtures draw every state the sim checks ask for ── */
+{
+  const demo = [...DEMO_THREADS, ...DEMO_STATE_THREADS];
+  const v = M.buildKindredsView(base(demo, { ledger: DEMO_ROOM_SEEN, demoMenus: true }), fmt);
+  const order = ids(v.items);
+  ok("demo: Ren's room is in Expired", order.indexOf("group-expired") >= 0 && order.indexOf("demo-expired") > order.indexOf("group-expired"));
+  ok("demo: Pia's room closes soon", rowOf(v, "demo-closing")!.tags.some((t) => t.tone === "post"));
+  ok("demo: the closed kindred and pen pal are at the foot", order.slice(-2).sort().join() === "demo-gone-kindred,demo-gone-penpal");
+  ok("demo: the closed kindred keeps the face they gave", rowOf(v, "demo-gone-kindred")!.face?.avatarId === "f-honey");
+  ok("demo: kindreds with a seeded ledger show numbers", rowOf(v, "demo-juno")!.badge !== "" && rowOf(v, "demo-mira")!.badge === "2");
+  ok("demo: a brass moment and a fold", Object.values(v.items).some((i) => i.type === "row" && i.row.tags.some((t) => t.tone === "brass")) && order.includes("fold"));
+  ok("demo: the orbit has no kindreds", !v.orbit.some((o) => o.id === "demo-mira" || o.id === "demo-juno"));
+}
+
+/* ── faces for the native list ── */
+{
+  const v = M.buildKindredsView(base([th({ id: "k", revealed: true, otherFace: "f-cloud" }), th({ id: "p", theirs: 2 })]), fmt);
+  const f = M.faceInputs(v);
+  ok("faces: one per thread row, keyed by id; Wren has none", Object.keys(f).sort().join() === "k,p" && f.k.role === "kindred" && f.k.avatarId === "f-cloud" && f.p.role === "penpal");
+  ok("a pen pal's face develops with THEIR letters", f.p.develop === 0.15 + 0.85 * (2 / 5));
+}
+
+console.log(fails ? `\n${fails} FAILED` : "\nall passed");
+if (fails) process.exit(1);

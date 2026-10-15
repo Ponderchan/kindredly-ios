@@ -1,0 +1,729 @@
+// Portable: this file imports SwiftUI only, so the 1.1.0 pure-Swift app can take it as is.
+
+import SwiftUI
+
+/*
+ THE KINDREDS TAB (10a, H:61-65 with the owner's decisions), drawn by SwiftUI. Every word, date,
+ count, the order of the list and every menu are TS's (src/screens/kindreds/kindreds-model.ts);
+ this draws them and reports taps. Its own state is only what belongs to the gesture: whether
+ the orbit band is open, how far the list is scrolled, the pull, and two measured heights.
+
+   KINDREDS ........................................ 2 LETTERS TO ANSWER   (scrolls away)
+   ┌ band, pinned under the status bar ──────────────────────────────────────────────┐
+   │   (the orbit: 300 open, a 50% watermark strip of it behind the chips when folded) │
+   │ [◎] [All] [☺ Kindreds 3] [▦ Pen pals 21]                                          │
+   └───────────────────────────────────────────────────────────────────────────────────┘
+   her once-line · the notifications bar · offline · Showing … CLEAR
+   Wren (pinned, ALL only) · rows (on you first, then the newest) · their turn, folded ·
+   the empty line or hint · Expired · n + quiet rooms · closed accounts
+                                                       (bottom fade over the last rows)
+
+ LAYOUT. One ScrollView: a LazyVStack whose first child is the title row (46 tall, 4 above, 12
+ below: H's gap) and whose one Section has the band as its pinned header and the items as its
+ rows. The Host ignores every safe area, so the status-bar strip above the scroll view is drawn
+ here from `topInset`, and the band pins right under it, as H's scroll container starts at 54.
+ The last row clears the floating tab bar (`bottomInset`) and a 176pt KBottomFade lies over the
+ bottom of the screen. No text field: the keyboard's safe area is ignored too.
+
+ THE BAND (KKindredsDriver owns it; TS only resets it). Folded it is as tall as the chip row
+ (measured, ≈58: large text grows it rather than clipping); open it is 300, or more when the
+ legend wraps in a long language. It moves over .5s on cubic-bezier(.3,1,.3,1), and changes
+ instantly under Reduce Motion. It opens from the Orbit chip, or from a pull at the top: the
+ deepest point of one drag, finger down only, past 56pt (the device-tuned threshold of the React
+ Native screen; H's 12 is a mouse-wheel filter). It folds from the chip, or once a drag (or the
+ glide after one) carries the list more than 24pt down while open; the list then goes back to
+ the top once the finger lifts, and again when it settles. Opening from the chip in the middle
+ of the list scrolls to the top first, and a programmatic scroll never folds it. It starts
+ folded on every visit (TS's reset command on blur, and here on disappear).
+
+ WATERMARK. Folded, the orbit's middle strip shows behind the chips at 50%, fading out over the
+ first 80pt of scroll; it keeps drifting (owner 10-11 wanted motion when folded) until it has
+ faded out. Those per-frame values live in KScrollModel (offset capped at 81), read only by small
+ child views: the screen itself never redraws as the list scrolls.
+
+ SCROLL REQUESTS (TS commands through the driver): top, and list, the title's tap ("2 LETTERS
+ TO ANSWER" shows only those): the band folds and the list scrolls to where the band pins, so
+ the first row sits right under it rather than behind it.
+ */
+
+/// One chip under the band.
+public struct KKindredsChip: Identifiable, Equatable, Sendable {
+  public let key: String
+  /// cased for a chip ("Pen pals")
+  public let label: String
+  /// "" for none
+  public let count: String
+  public let glyph: KFilterChip.Glyph
+  public let selected: Bool
+  /// someone in this group is waiting on you
+  public let dot: Bool
+  public let a11yLabel: String
+
+  public var id: String { key }
+
+  public init(key: String, label: String, count: String, glyph: KFilterChip.Glyph, selected: Bool, dot: Bool, a11yLabel: String) {
+    self.key = key
+    self.label = label
+    self.count = count
+    self.glyph = glyph
+    self.selected = selected
+    self.dot = dot
+    self.a11yLabel = a11yLabel
+  }
+}
+
+/// One entry of the list under the band, in TS's order.
+public enum KKindredsItem: Identifiable, Equatable, Sendable {
+  /// her once-line: the reader's own Wren and what she says
+  case wrenLine(id: String, bird: KImageRef?, text: String)
+  /// notifications are off: tap to turn them on, × to close for two weeks
+  case notice(id: String, text: String, closeLabel: String)
+  /// a quiet line of fact ("Not connected.")
+  case line(id: String, text: String)
+  /// "Showing · your turn · 3" and CLEAR ×
+  case showing(id: String, text: String, clear: String)
+  /// Wren's desk, pinned first (ALL with no filter); no menu
+  case wren(KPersonRowModel)
+  /// a kindred, a pen pal, a quiet room or a closed account
+  case row(KPersonRowModel)
+  /// their turn, folded
+  case fold(KFoldModel)
+  /// "ALL ANSWERED" under a filter with nothing in it
+  case emptyLine(id: String, text: String)
+  /// no kindreds yet: a dashed face and the five-letters line (to Wren's guide)
+  case hintKindreds(id: String, text: String)
+  /// no pen pals yet: the line and "TO THE DESK ›"
+  case hintPenpals(id: String, text: String, link: String)
+  /// "Expired · 2" over the quiet rooms
+  case groupHeader(id: String, text: String)
+
+  public var id: String {
+    switch self {
+    case let .wrenLine(id, _, _), let .notice(id, _, _), let .line(id, _), let .showing(id, _, _),
+         let .emptyLine(id, _), let .hintKindreds(id, _), let .hintPenpals(id, _, _), let .groupHeader(id, _):
+      return id
+    case let .wren(row), let .row(row):
+      return row.id
+    case let .fold(fold):
+      return fold.id
+    }
+  }
+}
+
+/// Everything the screen shows, from TS.
+public struct KKindredsContent: Equatable, Sendable {
+  public var title: String = ""
+  public var status: String = ""
+  /// the status is a way in (letters are waiting): ind, and a button
+  public var statusActive = false
+  public var statusA11y: String = ""
+  public var legendCloser: String = ""
+  public var legendTurn: String = ""
+  public var orbitChipLabel: String = ""
+  /// the tab is focused: the orbit may drift
+  public var active = true
+  public var chips: [KKindredsChip] = []
+  public var orbit: [KOrbitItem] = []
+  public var items: [KKindredsItem] = []
+
+  public init() {}
+}
+
+/// Where the screen's taps go. One object for the life of the surface, so a row's closures never
+/// make it unequal to itself. Set the closures once.
+public final class KKindredsActions {
+  /// a row (kindred, pen pal, quiet, closed) was tapped, with its id
+  public var onRow: (String) -> Void = { _ in }
+  /// a row's menu item (or its VoiceOver action): the row's id and the item's key
+  public var onRowAction: (_ id: String, _ key: String) -> Void = { _, _ in }
+  /// Wren's row
+  public var onWren: () -> Void = {}
+  /// the folded row (not a face)
+  public var onFold: () -> Void = {}
+  /// a folded face, with its id
+  public var onFoldFace: (String) -> Void = { _ in }
+  /// a group chip, with its key
+  public var onChip: (String) -> Void = { _ in }
+  /// the status by the title, while it is a way in
+  public var onTitle: () -> Void = {}
+  /// CLEAR × on the Showing line
+  public var onClear: () -> Void = {}
+  /// an empty hint: "kindreds" or "penpals"
+  public var onHint: (String) -> Void = { _ in }
+  /// the notifications bar: "turnOn" or "close"
+  public var onNotice: (String) -> Void = { _ in }
+  /// her once-line was tapped away
+  public var onWrenLine: () -> Void = {}
+
+  public init() {}
+}
+
+/// The band's state and the screen's scroll requests: what TS's commands reach (through the
+/// adapter) and what the gestures change. Not observed by the list, only by the band.
+public final class KKindredsDriver: ObservableObject {
+  /// What opened or folded the band, as reported.
+  public enum Via: String, Sendable {
+    case chip
+    case pull
+    case scroll
+    case title
+  }
+
+  /// Where a scroll request goes.
+  public enum ScrollTarget: Equatable, Sendable {
+    /// the top: the title row
+    case top
+    /// where the band pins: the first item right under it
+    case list
+  }
+
+  struct ScrollRequest: Equatable {
+    let target: ScrollTarget
+    let animated: Bool
+    let serial: Int
+  }
+
+  /// the deepest pull of one drag that opens the band (kindreds.tsx: -56, tuned on a device)
+  public static let pullToOpen: CGFloat = 56
+  /// how far a drag may carry the list down while the band is open before it folds (H:499)
+  public static let foldPast: CGFloat = 24
+  /// the band's motion: .5s cubic-bezier(.3,1,.3,1) (H:62)
+  public static let motion = Animation.timingCurve(0.3, 1, 0.3, 1, duration: 0.5)
+
+  @Published public private(set) var bandOpen = false
+  @Published private(set) var scrollRequest: ScrollRequest?
+
+  /// told whenever the band opens or folds (not on a reset)
+  public var onBandChange: ((_ open: Bool, _ via: Via) -> Void)?
+  /// set by the screen from the environment
+  var reduceMotion = false
+
+  private var serial = 0
+  private var offset: CGFloat = 0
+  private var phase: ScrollPhase = .idle
+  /// the band folded under a drag: back to the top once the finger lifts, and again on settling
+  private var settlePending = false
+
+  public init() {}
+
+  private var animation: Animation? { reduceMotion ? nil : Self.motion }
+
+  /// The Orbit chip.
+  public func toggleBand() {
+    setBand(!bandOpen, via: .chip)
+  }
+
+  /// Folds the band at once, without moving or reporting anything: a new visit starts folded.
+  public func reset() {
+    settlePending = false
+    guard bandOpen else { return }
+    var instant = Transaction()
+    instant.disablesAnimations = true
+    withTransaction(instant) { bandOpen = false }
+  }
+
+  /// Scrolls to the top, or to where the band pins (folding it first).
+  public func scroll(to target: ScrollTarget, animated: Bool = true) {
+    if target == .list && bandOpen {
+      setBand(false, via: .title)
+    }
+    request(target, animated: animated)
+  }
+
+  private func request(_ target: ScrollTarget, animated: Bool) {
+    serial += 1
+    scrollRequest = ScrollRequest(target: target, animated: animated, serial: serial)
+  }
+
+  private func setBand(_ open: Bool, via: Via) {
+    guard open != bandOpen else { return }
+    withAnimation(animation) { bandOpen = open }
+    onBandChange?(open, via)
+    // opened in the middle of the list: to the top with it, or it would pin open over the rows
+    // and fold again on the next scroll
+    if open && offset > 0.5 {
+      request(.top, animated: true)
+    }
+  }
+
+  /// A drag ended (the scroll model's pull release), with its deepest pull past the top.
+  func pullReleased(_ depth: CGFloat) {
+    if !bandOpen && depth >= Self.pullToOpen {
+      setBand(true, via: .pull)
+    }
+  }
+
+  /// The list's offset (capped at 81, KScrollModel).
+  func offsetChanged(_ y: CGFloat) {
+    offset = y
+    guard bandOpen, y > Self.foldPast else { return }
+    // only a reader's scroll folds it: a drag, or the glide after one; never a programmatic one
+    guard phase == .interacting || phase == .decelerating || phase == .tracking else { return }
+    setBand(false, via: .scroll)
+    settlePending = true
+    if phase != .interacting { request(.top, animated: true) }
+  }
+
+  func phaseChanged(_ next: ScrollPhase) {
+    phase = next
+    guard settlePending else { return }
+    switch next {
+    case .decelerating:
+      request(.top, animated: true)
+    case .idle:
+      settlePending = false
+      request(.top, animated: true)
+    default:
+      break
+    }
+  }
+}
+
+/// What the screen keeps without drawing: the title block's height and the last scroll served.
+final class KKindredsBox {
+  var titleHeight: CGFloat = 62
+  var scrollSerial = 0
+}
+
+public struct KKindredsScreen: View {
+  static let status = KTextStyle.mono(11, .medium, tracking: 0.12)
+  static let small = KTextStyle.system(13)
+  static let smallStrong = KTextStyle.system(13, .semibold)
+  static let monoLine = KTextStyle.mono(11, .semibold, tracking: 0.11)
+
+  private let theme: KTheme
+  private let content: KKindredsContent
+  private let topInset: CGFloat
+  private let bottomInset: CGFloat
+  private let driver: KKindredsDriver
+  private let actions: KKindredsActions
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// The band's watermark, the fold rule and the pull read this; offset stops changing past 81.
+  /// Held in @State, not @StateObject: the screen keeps the one model without observing it, so
+  /// a scroll frame redraws only the small views that do (KKindredsOrbitBlock, KKindredsFoldRule),
+  /// never the list.
+  @State private var chrome = KScrollModel(offsetCap: 81)
+  @State private var position = ScrollPosition(edge: .top)
+  @State private var box = KKindredsBox()
+
+  /// - Parameters:
+  ///   - topInset: the status bar's height (the Host ignores safe areas)
+  ///   - bottomInset: how far the last row must clear the bottom (the tab bar and the fade)
+  ///   - driver: the band and the scroll requests
+  ///   - actions: where the taps go
+  public init(theme: KTheme, content: KKindredsContent, topInset: CGFloat, bottomInset: CGFloat, driver: KKindredsDriver, actions: KKindredsActions) {
+    self.theme = theme
+    self.content = content
+    self.topInset = topInset
+    self.bottomInset = bottomInset
+    self.driver = driver
+    self.actions = actions
+  }
+
+  public var body: some View {
+    VStack(spacing: 0) {
+      // the status bar's strip: the page colour, nothing pinned under the clock
+      Color.clear.frame(height: topInset)
+      ScrollView(.vertical) {
+        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+          titleRow
+          Section {
+            // H's 12 between the band and the list
+            Color.clear
+              .frame(height: 12)
+              .accessibilityHidden(true)
+            ForEach(content.items) { item in
+              itemView(item)
+            }
+          } header: {
+            KKindredsBand(theme: theme, content: content, driver: driver, chrome: chrome, actions: actions)
+          }
+        }
+      }
+      .scrollIndicators(.hidden)
+      // a short list still bounces, so a new reader's pull still opens the orbit
+      .scrollBounceBehavior(.always, axes: .vertical)
+      .contentMargins(.bottom, bottomInset, for: .scrollContent)
+      .scrollPosition($position)
+      .kScrollChrome(chrome)
+      .onScrollPhaseChange { _, phase in
+        driver.phaseChanged(phase)
+      }
+      .background {
+        KKindredsFoldRule(chrome: chrome, driver: driver)
+      }
+    }
+    .overlay(alignment: .bottom) {
+      KBottomFade(theme: theme)
+    }
+    .background { theme.bg.ignoresSafeArea() }
+    .ignoresSafeArea(.keyboard)
+    .onReceive(driver.$scrollRequest) { request in
+      guard let request, request.serial > box.scrollSerial else { return }
+      box.scrollSerial = request.serial
+      scroll(to: request.target, animated: request.animated)
+    }
+    .onAppear {
+      driver.reduceMotion = reduceMotion
+      chrome.onPullRelease = { [driver] depth in driver.pullReleased(depth) }
+    }
+    .onChange(of: reduceMotion) { _, reduce in
+      driver.reduceMotion = reduce
+    }
+    .onDisappear {
+      driver.reset()
+    }
+  }
+
+  private func scroll(to target: KKindredsDriver.ScrollTarget, animated: Bool) {
+    let pinAt = box.titleHeight
+    let move = {
+      switch target {
+      case .top: position.scrollTo(edge: .top)
+      case .list: position.scrollTo(y: pinAt)
+      }
+    }
+    if animated && !reduceMotion {
+      withAnimation(KKindredsDriver.motion) { move() }
+    } else {
+      move()
+    }
+  }
+
+  // ── the title row: KINDREDS and its one fact; it scrolls away ──────────
+  private var titleRow: some View {
+    HStack(alignment: .center, spacing: 12) {
+      Text(content.title)
+        .kText(.pageTitle)
+        .foregroundStyle(theme.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .accessibilityAddTraits(.isHeader)
+        .layoutPriority(1)
+      Spacer(minLength: 0)
+      status
+    }
+    .frame(minHeight: 46)
+    .padding(.top, 4)
+    .padding(.horizontal, KPersonRow.inset)
+    .padding(.bottom, 12)
+    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+      box.titleHeight = height
+    }
+  }
+
+  @ViewBuilder
+  private var status: some View {
+    let label = Text(content.status)
+      .kText(Self.status)
+      .foregroundStyle(content.statusActive ? theme.ind : theme.mute)
+      .lineLimit(1)
+      .minimumScaleFactor(0.6)
+    if content.statusActive {
+      SwiftUI.Button {
+        actions.onTitle()
+      } label: {
+        label.contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+      .accessibilityLabel(content.statusA11y)
+    } else {
+      label.accessibilityLabel(content.statusA11y)
+    }
+  }
+
+  // ── the list ───────────────────────────────────────────────────────────
+  @ViewBuilder
+  private func itemView(_ item: KKindredsItem) -> some View {
+    switch item {
+    case let .wrenLine(_, bird, text):
+      KWrenLine(theme: theme, bird: bird, line: text) { actions.onWrenLine() }
+
+    case let .notice(_, text, closeLabel):
+      KNoticeBar(
+        theme: theme,
+        text: text,
+        closeLabel: closeLabel,
+        onTap: { actions.onNotice("turnOn") },
+        onClose: { actions.onNotice("close") }
+      )
+
+    case let .line(_, text):
+      Text(text)
+        .kText(Self.small)
+        .foregroundStyle(theme.mute)
+        .padding(.horizontal, KPersonRow.inset)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+    case let .showing(_, text, clear):
+      HStack(alignment: .firstTextBaseline, spacing: 12) {
+        Text(text)
+          .kText(Self.small)
+          .foregroundStyle(theme.mute)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+        Spacer(minLength: 0)
+        SwiftUI.Button {
+          actions.onClear()
+        } label: {
+          Text(clear)
+            .kText(Self.smallStrong)
+            .foregroundStyle(theme.ind)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+      }
+      .padding(.horizontal, KPersonRow.inset)
+      .padding(.bottom, 2)
+
+    case let .wren(row):
+      KPersonRow(theme: theme, row: row, onTap: { actions.onWren() })
+        .equatable()
+
+    case let .row(row):
+      KPersonRow(
+        theme: theme,
+        row: row,
+        onTap: { actions.onRow(row.id) },
+        onAction: { key in actions.onRowAction(row.id, key) }
+      )
+      .equatable()
+
+    case let .fold(fold):
+      KFoldRow(theme: theme, fold: fold, onFace: { id in actions.onFoldFace(id) }, onRow: { actions.onFold() })
+        .equatable()
+
+    case let .emptyLine(_, text):
+      Text(text)
+        .kText(Self.monoLine)
+        .foregroundStyle(theme.mute)
+        .padding(.horizontal, KPersonRow.inset)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+    case let .hintKindreds(_, text):
+      SwiftUI.Button {
+        actions.onHint("kindreds")
+      } label: {
+        HStack(alignment: .center, spacing: 12) {
+          Circle()
+            .strokeBorder(theme.faint, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            .frame(width: 42, height: 42)
+          Text(text)
+            .kText(.letter(13.5, lineHeight: 19.0 / 13.5))
+            .foregroundStyle(theme.sub)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, KPersonRow.inset)
+        .padding(.vertical, 13)
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+
+    case let .hintPenpals(_, text, link):
+      SwiftUI.Button {
+        actions.onHint("penpals")
+      } label: {
+        VStack(alignment: .leading, spacing: 8) {
+          Text(text)
+            .kText(.letter(14, italic: true, lineHeight: 20.0 / 14))
+            .foregroundStyle(theme.sub)
+            .multilineTextAlignment(.leading)
+          Text(link)
+            .kText(Self.monoLine)
+            .foregroundStyle(theme.ind)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, KPersonRow.inset)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+
+    case let .groupHeader(_, text):
+      Text(text)
+        .kText(Self.smallStrong)
+        .foregroundStyle(theme.mute)
+        .padding(.horizontal, KPersonRow.inset)
+        .padding(.top, 18)
+        .padding(.bottom, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityAddTraits(.isHeader)
+    }
+  }
+}
+
+// MARK: - The band
+
+/// The pinned band: the orbit (open) or its watermark (folded), and the chip row along its
+/// bottom. Observes the driver; the scroll-driven parts are its small children.
+struct KKindredsBand: View {
+  /// H's open band
+  static let openHeight: CGFloat = 300
+  /// the orbit block's top: 6 open, -96 folded (so its middle strip shows behind the chips)
+  static let orbitTopOpen: CGFloat = 6
+  static let orbitTopFolded: CGFloat = -96
+
+  let theme: KTheme
+  let content: KKindredsContent
+  @ObservedObject var driver: KKindredsDriver
+  let chrome: KScrollModel
+  let actions: KKindredsActions
+
+  @State private var chipRowHeight: CGFloat = 58
+  @State private var legendHeight: CGFloat = 16
+
+  /// 300, or taller when the legend wraps (critic-kindreds: a long language's legend would run
+  /// into the chips)
+  private var openHeight: CGFloat {
+    max(Self.openHeight, Self.orbitTopOpen + KOrbitGeometry.height + legendHeight + 8 + chipRowHeight)
+  }
+
+  var body: some View {
+    let open = driver.bandOpen
+    Color.clear
+      .frame(height: open ? openHeight : chipRowHeight)
+      .frame(maxWidth: .infinity)
+      .overlay(alignment: .top) {
+        KKindredsOrbitBlock(
+          theme: theme,
+          orbit: content.orbit,
+          legendCloser: content.legendCloser,
+          legendTurn: content.legendTurn,
+          open: open,
+          active: content.active,
+          chrome: chrome,
+          legendHeight: $legendHeight
+        )
+        .padding(.horizontal, KPersonRow.inset)
+        .offset(y: open ? Self.orbitTopOpen : Self.orbitTopFolded)
+        // H: pointer-events none; a stray tap on the open orbit does nothing
+        .allowsHitTesting(false)
+      }
+      .overlay(alignment: .bottom) {
+        chipRow
+      }
+      .clipped()
+      .background(theme.bg)
+  }
+
+  private var chipRow: some View {
+    ScrollView(.horizontal) {
+      HStack(alignment: .center, spacing: 8) {
+        KOrbitChip(
+          theme: theme,
+          isOn: driver.bandOpen,
+          a11yLabel: content.orbitChipLabel,
+          a11yHint: [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
+        ) {
+          driver.toggleBand()
+        }
+        ForEach(content.chips) { chip in
+          KFilterChip(
+            theme: theme,
+            label: chip.label,
+            count: chip.count,
+            glyph: chip.glyph,
+            selected: chip.selected,
+            dot: chip.dot,
+            a11yLabel: chip.a11yLabel
+          ) {
+            actions.onChip(chip.key)
+          }
+        }
+      }
+      // 24 from the screen's left (the band's 22 and the row's 2), to its right edge
+      .padding(.leading, 24)
+      .padding(.trailing, 24)
+      .padding(.top, 10)
+      .padding(.bottom, 8)
+    }
+    .scrollIndicators(.hidden)
+    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    .fixedSize(horizontal: false, vertical: true)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+      if abs(height - chipRowHeight) > 0.5 { chipRowHeight = height }
+    }
+  }
+}
+
+/// The orbit and its legend. Reads the scroll offset (the watermark's fade), so it redraws while
+/// the list moves near the top; nothing above it does.
+struct KKindredsOrbitBlock: View {
+  static let legend = KTextStyle.mono(10, .medium, tracking: 0.06)
+  /// the orbit's opacity, filter and legend: .4s CSS ease (H:62)
+  static let fade = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.4)
+
+  let theme: KTheme
+  let orbit: [KOrbitItem]
+  let legendCloser: String
+  let legendTurn: String
+  let open: Bool
+  let active: Bool
+  @ObservedObject var chrome: KScrollModel
+  @Binding var legendHeight: CGFloat
+
+  var body: some View {
+    // folded, the watermark fades out over the first 80pt of scroll (H: clamp(0, 1 - sc/80, 1))
+    let fade = max(0, min(1, 1 - chrome.offset / 80))
+    VStack(spacing: 0) {
+      KOrbit(theme: theme, items: orbit, active: active && (open || fade > 0))
+        .equatable()
+      legend
+        .opacity(open ? 1 : 0)
+        .accessibilityHidden(!open)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+          if abs(height - legendHeight) > 0.5 { legendHeight = height }
+        }
+    }
+    .opacity(open ? 1 : 0.5 * fade)
+    .animation(Self.fade, value: open)
+  }
+
+  private var legend: some View {
+    ViewThatFits(in: .horizontal) {
+      HStack(alignment: .center, spacing: 14) {
+        item(.rings, legendCloser).lineLimit(1)
+        item(.turn, legendTurn).lineLimit(1)
+      }
+      VStack(alignment: .center, spacing: 4) {
+        item(.rings, legendCloser)
+        item(.turn, legendTurn)
+      }
+    }
+    .frame(maxWidth: .infinity)
+  }
+
+  private func item(_ kind: KLegendGlyph.Kind, _ text: String) -> some View {
+    HStack(alignment: .center, spacing: 5) {
+      KLegendGlyph(theme: theme, kind: kind, size: kind == .rings ? 14 : 9)
+      Text(text)
+        .kText(Self.legend)
+        .foregroundStyle(theme.sub)
+        .multilineTextAlignment(.center)
+    }
+    .accessibilityElement(children: .combine)
+  }
+}
+
+/// Folds the band when a reader's scroll carries the list past 24 while it is open. Draws
+/// nothing; it is the one view that follows the offset for the rule.
+struct KKindredsFoldRule: View {
+  @ObservedObject var chrome: KScrollModel
+  let driver: KKindredsDriver
+
+  var body: some View {
+    Color.clear
+      .onChange(of: chrome.offset) { _, offset in
+        driver.offsetChanged(offset)
+      }
+      .accessibilityHidden(true)
+  }
+}
