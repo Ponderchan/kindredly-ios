@@ -284,8 +284,24 @@ export function startSurfaces(): void {
     breadcrumb), whatever the table says. A route that must not change
     under the reader's thumb fixes it at mount — NativeSurface mode "mount"
     does exactly that, after surfacesReady(). */
+/* DEV ONLY: force a surface native (true) or React Native (false) for this
+   run of the app, from ui-lab, so a Swift screen can be tried on real data
+   before its NATIVE_DEFAULTS key flips. Never saved; ignored in release. */
+const devForced = new Map<string, boolean>();
+export function setDevSurfaceOverride(key: string, on: boolean | null): void {
+  if (!__DEV__) return;
+  if (on === null) devForced.delete(key);
+  else devForced.set(key, on);
+  changed();
+}
+export function devSurfaceOverride(key: string): boolean | null {
+  return __DEV__ && devForced.has(key) ? (devForced.get(key) as boolean) : null;
+}
+
 export function nativeOn(key: string): boolean {
-  if (!surfaceOn(remote, NATIVE_DEFAULTS, key)) return false;
+  const forced = devSurfaceOverride(key);
+  if (forced === false) return false;
+  if (forced === null && !surfaceOn(remote, NATIVE_DEFAULTS, key)) return false;
   if (struckOut(arming, key)) return false;
   if (moduleThere === null) moduleThere = !!requireOptionalNativeModule(NATIVE_MODULE);
   return moduleThere;

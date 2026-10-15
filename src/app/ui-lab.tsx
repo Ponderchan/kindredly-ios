@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Host } from "@expo/ui/swift-ui";
 import { InkCardHost, KGalleryHost, KTabBar, isKindredlyUIAvailable, isKindredlyUIViewAvailable, type KThemeKey } from "../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../lib/theme";
+import { NATIVE_DEFAULTS, devSurfaceOverride, setDevSurfaceOverride, useNativeSurface } from "../lib/surfaces";
 // as tr: this page's `t` is the theme's colours
 import { t as tr } from "../lib/i18n";
 import THEMES from "../theme/themes.json";
@@ -72,6 +73,16 @@ export default function UiLab() {
               </Pressable>
             );
           })}
+        </View>
+
+        {/* the dev surface switch: try a Swift screen on real data before its key flips */}
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginBottom: 8 }}>
+          SURFACES · TAP: DEFAULT → SWIFT → RN
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 16 }}>
+          {Object.keys(NATIVE_DEFAULTS).map((key) => (
+            <SurfaceChip key={key} surface={key} />
+          ))}
         </View>
 
         <Text style={{ fontSize: 16, lineHeight: 24, color: t.ink, marginHorizontal: 16, marginBottom: 12 }}>
@@ -162,5 +173,34 @@ function TabBarSample({ theme }: { theme: KThemeKey }) {
         />
       </Host>
     </View>
+  );
+}
+
+/* one surface: default (whatever the table and NATIVE_DEFAULTS say), forced
+   Swift, forced React Native — dev only, for this run of the app */
+function SurfaceChip({ surface }: { surface: string }) {
+  const { t } = useTheme();
+  const on = useNativeSurface(surface);
+  const forced = devSurfaceOverride(surface);
+  const next = forced === null ? true : forced ? false : null;
+  const mode = forced === null ? "default" : forced ? "swift" : "rn";
+  return (
+    <Pressable
+      onPress={() => setDevSurfaceOverride(surface, next)}
+      accessibilityRole="button"
+      style={({ pressed }) => ({
+        paddingVertical: 7,
+        paddingHorizontal: 11,
+        borderRadius: 18,
+        borderWidth: 2,
+        borderColor: t.ln,
+        backgroundColor: forced === null ? t.sf : t.ink,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text style={{ fontSize: 12, fontWeight: "600", color: forced === null ? t.ink : t.sf }}>
+        {surface} · {mode}{on ? " ✓" : ""}
+      </Text>
+    </Pressable>
   );
 }
