@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { Pressable, ScrollView, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "expo-router";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -298,6 +298,10 @@ const TONE = (tk: Tk): Record<TagTone, string> => ({ ind: tk.ind, mute: tk.mute,
    a row with a menu doesn't fade under the finger (owner 10-11). */
 function Row({ row, onOpen, onAction }: { row: RowVM; onOpen: () => void; onAction: (id: string, key: string) => void }) {
   const s = useRowStyle();
+  /* MessageMenu hosts the row in its own native view, which sizes to its
+     content: without an explicit width the row grows past the screen and the
+     preview never wraps (the old ListRow passed the window width for this) */
+  const { width } = useWindowDimensions();
   const { t: tk } = useTheme();
   const tone = TONE(tk);
   const actions: MessageAction[] = row.actions.map((a) => ({ key: a.key, label: a.title, icon: a.icon, destructive: a.destructive, onPress: () => onAction(row.id, a.key) }));
@@ -313,7 +317,7 @@ function Row({ row, onOpen, onAction }: { row: RowVM; onOpen: () => void; onActi
       style={({ pressed }) => ({ opacity: pressed && !actions.length ? 0.6 : 1 })}
     >
       <MessageMenu actions={actions} radius={0}>
-        <View style={s.row}>
+        <View style={[s.row, { width }]}>
           <View style={{ opacity: row.dim ? 0.45 : 1 }}>
             <Face row={row} />
           </View>
