@@ -1,24 +1,14 @@
 hey app review 👋
 
-tl;dr kindredly = slow anonymous pen pals. you write one letter, a few strangers who write kinda like you get it, replies take hours or days. on purpose, not a bug lol
+kindredly = slow anonymous pen pals. replies take hours/days, on purpose lol
+no demo acct: tap "Just looking →" on the first screen
 
-no demo acct needed: tap "Just looking →" on the first screen. apple / google / email code sign-in work too.
+1.2.3 = bugfix build:
+- IAP fixed. last 2 builds shiped w/o the store key (our bad), buy + resotre work now
+- journal + google sign-in fixes
 
-whats new in 1.2.3 (bugfix build):
-- in-app purchases: the last 2 builds shipped without the store key (build config thing, our bad) so the paywall showed placeholder prices + couldnt reach the store. fixed, buy + restore work now
-- journal: a rare storage error could wipe the on-device journal. fixed
-- google sign-in sometimes showed an error right after signing in fine. fixed
-- Kindreds: pen pals say YOUR TURN / THEIR TURN instead of a number, and the ones waiting on the other person fold into one row in All
+safety: 18+, report/block on every letter + convo, 3 diff ppl report a writer = they cant send anymore, compose goes thru a safety check
+delete acct: Me → gear → Delete account
+IAP: First Class monthly/annual + Cofounder (one-time)
 
-moderation (the imporant bit):
-- 18+ at signup
-- report + block on every letter, line, row and conversation. block is instant and two-way
-- 3 diff people report the same writer -> that writer cant send letters anymore, automaticaly
-- open letters from Compose go thru an automated safety check before delivery
-- hello@kindredly.io · https://kindredly.io/support
-
-delete account: Me -> gear (top right) -> Delete account
-IAP: First Class monthly / annual (auto-renew) + Cofounder (one-time, non-consumable)
-pushes: someone wrote you / names traded / Wren's desk news, the odd reminder from the bird, and an opt-in 8am knock
-
-thx for reviewing! ship it 🙏 (jk. but pls)
+thx 🙏
