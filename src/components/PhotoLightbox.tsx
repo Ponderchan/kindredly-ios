@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MediaImage } from "../lib/media";
 import { t } from "../lib/i18n";
+import { dismissKeyboard } from "../lib/keyboard";
 
 /* A PHOTO, BIG (owner, 2026-10-10: a tiny moment in a kindred's room
    couldn't be tapped, let alone opened). Tap a photo — in a room, on Wren's
@@ -13,7 +14,13 @@ import { t } from "../lib/i18n";
    so panning around a close-up can't throw it away. Takes a moments-bucket
    path (signed, lib/media) or a plain uri. The stage is near-black and the
    × white on its dark disc in every theme: a photo is looked at on dark,
-   so none of this follows the page's colours. */
+   so none of this follows the page's colours.
+
+   10a (step 5): opening puts the keyboard away, whoever holds it — a
+   React Native field, or a SwiftUI one React Native's Keyboard.dismiss()
+   can't reach (lib/keyboard) — so it never stays up over the photo. The
+   screens already let go before they open it (blurThen); this is the
+   backstop for any caller that doesn't. */
 
 export type LightboxPhoto = { path?: string | null; uri?: string | null } | null;
 
@@ -22,7 +29,11 @@ export function PhotoLightbox({ photo, onClose }: { photo: LightboxPhoto; onClos
   const insets = useSafeAreaInsets();
   const pinched = useRef(false);
   const zoomed = useRef(false);
-  useEffect(() => { pinched.current = false; zoomed.current = false; }, [photo]);
+  useEffect(() => {
+    pinched.current = false;
+    zoomed.current = false;
+    if (photo) dismissKeyboard();
+  }, [photo]);
   const tap = () => {
     if (pinched.current || zoomed.current) return;
     onClose();

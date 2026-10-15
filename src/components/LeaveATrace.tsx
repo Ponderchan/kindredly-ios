@@ -1,9 +1,12 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { P, PF, rule } from "../theme/post";
+import { MONO, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
+import { localeTag } from "../lib/format";
+import { StickerBox } from "./10a/StickerBox";
 
 /* THE "+" IS NOT AN ATTACHMENT BUTTON.
    ────────────────────────────────────────────────────────────────────────
@@ -17,7 +20,11 @@ import { t, useLang } from "../lib/i18n";
    Rows that aren't built yet are shown LOCKED and dimmed rather than
    hidden or, worse, live-looking and dead. The settings panel taught that
    lesson: a row that looks like a feature and does nothing is worse than
-   no row, but a row that plainly says "not yet" is an honest promise. */
+   no row, but a row that plainly says "not yet" is an honest promise.
+
+   10a (step 5): every colour is the theme's — the tray was a fixed
+   #F3F2FA with white cells, a white slab in Midnight inside the themed
+   Wren desk (spec bug 11). */
 
 export type TraceKind = "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea";
 
@@ -29,13 +36,18 @@ export interface TraceAction {
 }
 
 /* line icons in the post's own hand — the sheet is a list of things to
-   leave, so each row is drawn, not pasted in from the emoji keyboard */
-export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
-  const c = { stroke: color, strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
+   leave, so each row is drawn, not pasted in from the emoji keyboard. The
+   same drawings are KLineGlyph's note / ask / moment / song / bug / idea
+   in SwiftUI (one 18 grid), so the tray reads the same in both renderers.
+   `size` scales the drawing; `stroke` is the line on screen, in points
+   (1.4 at 18, as it always was; the 10a cards draw 2 at 28). */
+export function TraceIcon({ kind, color, size = 18, stroke = 1.4 }: { kind: TraceKind; color: string; size?: number; stroke?: number }) {
+  const c = { stroke: color, strokeWidth: (stroke * 18) / size, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
+  const box = { width: size, height: size, viewBox: "0 0 18 18" };
   switch (kind) {
     case "note":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Path d="M4 2.5h7l3 3v10H4z" {...c} />
           <Path d="M11 2.5v3h3" {...c} />
           <Line x1={6.5} y1={9} x2={11.5} y2={9} {...c} />
@@ -44,15 +56,15 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
       );
     case "ask":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Path d="M3 3.5h12v8H8.5L5.5 14v-2.5H3z" {...c} />
           <Path d="M7.6 6.6a1.5 1.5 0 1 1 2.1 1.4c-.5.3-.7.6-.7 1.1" {...c} />
-          <Circle cx={9} cy={10.6} r={0.5} fill={color} />
+          <Circle cx={9} cy={10.6} r={0.6} fill={color} />
         </Svg>
       );
     case "moment":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Rect x={2.5} y={5} width={13} height={9.5} {...c} />
           <Path d="M6.5 5l1-2h3l1 2" {...c} />
           <Circle cx={9} cy={9.7} r={2.4} {...c} />
@@ -60,7 +72,7 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
       );
     case "song":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Path d="M7 13.5V4.5l7-1.5v9" {...c} />
           <Circle cx={5} cy={13.5} r={2} {...c} />
           <Circle cx={12} cy={12} r={2} {...c} />
@@ -70,7 +82,7 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
        usually), a bug, an idea */
     case "photo":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Rect x={2.5} y={3} width={13} height={12} {...c} />
           <Path d="M2.5 12l3.5-3.5 3 3 2-2 4.5 4.5" {...c} />
           <Circle cx={11.5} cy={6.5} r={1.3} {...c} />
@@ -78,7 +90,7 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
       );
     case "bug":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Path d="M6 8a3 3 0 0 1 6 0v3.5a3 3 0 0 1-6 0z" {...c} />
           <Path d="M7 5.5l-1.5-2M11 5.5l1.5-2" {...c} />
           <Line x1={9} y1={8} x2={9} y2={14.5} {...c} />
@@ -87,7 +99,7 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
       );
     case "idea":
       return (
-        <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Svg {...box}>
           <Path d="M5.5 7.5a3.5 3.5 0 1 1 5.6 2.8c-.6.5-.9 1-.9 1.7H7.8c0-.7-.3-1.2-.9-1.7A3.5 3.5 0 0 1 5.5 7.5z" {...c} />
           <Line x1={7.8} y1={14} x2={10.2} y2={14} {...c} />
           <Line x1={8.3} y1={15.5} x2={9.7} y2={15.5} {...c} />
@@ -96,16 +108,17 @@ export function TraceIcon({ kind, color }: { kind: TraceKind; color: string }) {
   }
 }
 
-function LockIcon({ color }: { color: string }) {
+function LockIcon({ color, size = 14 }: { color: string; size?: number }) {
   const c = { stroke: color, strokeWidth: 1.3, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
   return (
-    <Svg width={14} height={14} viewBox="0 0 14 14">
+    <Svg width={size} height={size} viewBox="0 0 14 14">
       <Rect x={2.5} y={6} width={9} height={6.5} {...c} />
       <Path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" {...c} />
     </Svg>
   );
 }
 
+/** The sheet form (a title, then a row per trace), on the theme. */
 export function LeaveATrace({
   open,
   actions,
@@ -119,22 +132,26 @@ export function LeaveATrace({
 }) {
   useLang(); // repaint when the reader changes language
   const insets = useSafeAreaInsets();
+  const { t: tk } = useTheme();
   if (!open) return null;
 
   return (
     <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-        <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.32)" }} />
+        {/* the 10a dim (KDim.composer) */}
+        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.3)" }} />
       </Animated.View>
 
       <Animated.View
         entering={SlideInDown.duration(260)}
-        style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
+        style={{ backgroundColor: tk.sf, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, ...rule }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{t("lat.title")}</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12 }}>
+          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.ink }}>
+            {t("lat.title")}
+          </Text>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
+            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: tk.mute }}>✕</Text>
           </Pressable>
         </View>
 
@@ -144,24 +161,26 @@ export function LeaveATrace({
               key={a.id}
               disabled={a.locked}
               onPress={() => onPick(a.id)}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !!a.locked }}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 14,
                 paddingVertical: 15,
                 borderBottomWidth: i === actions.length - 1 ? 0 : 1,
-                borderBottomColor: P.ink12,
+                borderBottomColor: tk.line,
                 opacity: a.locked ? 0.38 : pressed ? 0.55 : 1,
               })}
             >
-              <View style={{ width: 34, height: 34, borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-                <TraceIcon kind={a.id} color={P.ink} />
+              <View style={{ width: 34, height: 34, borderRadius: 10, borderWidth: 1.5, borderColor: tk.line, alignItems: "center", justifyContent: "center" }}>
+                <TraceIcon kind={a.id} color={tk.ink} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: PF.letter, fontSize: 16.5, color: P.ink }}>{a.title}</Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12.5, color: P.ink40, marginTop: 1 }}>{a.sub}</Text>
+                <Text style={{ fontSize: 16, color: tk.ink }}>{a.title}</Text>
+                {!!a.sub && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, color: tk.sub, marginTop: 1 }}>{a.sub}</Text>}
               </View>
-              {a.locked ? <LockIcon color={P.ink40} /> : <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.ink40 }}>›</Text>}
+              {a.locked ? <LockIcon color={tk.mute} /> : <Text style={{ fontFamily: PF.mono, fontSize: 13, color: tk.faint }}>›</Text>}
             </Pressable>
           ))}
         </View>
@@ -170,31 +189,111 @@ export function LeaveATrace({
   );
 }
 
-/* THE SAME FOUR, AS A TRAY (owner, 2026-09-20): under the bar where the
-   keyboard was, round white cells with a word beneath — a chat app's
-   drawer — instead of a sheet with a title. Locked rows are still shown,
-   dimmed, with the lock. */
-export function TraceTray({ actions, onPick }: { actions: TraceAction[]; onPick: (kind: TraceKind) => void }) {
+/* the 10a choice card's numbers (KChoiceCard, H:132): the least height
+   inside the outline, the grid's inset and gap */
+const CARD_MIN = 116;
+const TRAY_INSET = 12;
+const TRAY_GAP = 10;
+
+/** The tray's height: the keyboard's place (its last height, or 260 above the home indicator),
+    never less than the whole 2×2 grid at its least (KChatTray.height's rule). */
+export function traceTrayHeight(lastKeyboard: number, bottomInset: number): number {
+  const keyboard = lastKeyboard > 0 ? lastKeyboard : 260 + bottomInset;
+  const grid = 2 * (CARD_MIN + 4) + TRAY_GAP + 2 * TRAY_INSET + 1 + bottomInset;
+  return Math.max(keyboard, grid);
+}
+
+/* THE SAME CHOICES, AS A TRAY (owner, 2026-09-20): under the bar where the
+   keyboard was — a chat app's drawer — instead of a sheet with a title.
+
+   10a (KChatTray's React Native twin): the tray is the theme's soft with a
+   line on top; the choices are the composer-card material two by two, 10
+   apart, inset 12 — sf, a 2 ln outline, corners 18, a hard 3/3 ln shadow,
+   at least 116 tall — each with its drawing at 28 in ink at a 2pt line,
+   the title in mono 600 11 caps and the italic line under it in sub.
+   Pressed, a card drops onto its shadow. Locked cards are dimmed with the
+   lock in an ind disc. Larger type scrolls inside. Give it the keyboard's
+   last height (traceTrayHeight) so it takes exactly the keyboard's place. */
+export function TraceTray({
+  actions,
+  onPick,
+  height,
+  bottomInset = 0,
+}: {
+  actions: TraceAction[];
+  onPick: (kind: TraceKind) => void;
+  /** the tray's height (traceTrayHeight); default: 260 above the home indicator, at least the grid */
+  height?: number;
+  /** the home indicator's inset, kept clear under the cards */
+  bottomInset?: number;
+}) {
   useLang();
+  const { t: tk } = useTheme();
+  const rows: TraceAction[][] = [];
+  for (let i = 0; i < actions.length; i += 2) rows.push(actions.slice(i, i + 2));
   return (
-    <View style={{ height: 296, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 10, paddingTop: 22 }}>
-      {actions.map((a) => (
-        <Pressable key={a.id} disabled={a.locked} onPress={() => onPick(a.id)} style={({ pressed }) => ({ width: "25%", alignItems: "center", marginBottom: 18, opacity: a.locked ? 0.4 : pressed ? 0.6 : 1 })}>
-          <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ transform: [{ scale: 1.35 }] }}>
-              <TraceIcon kind={a.id} color={P.ink} />
-            </View>
-            {a.locked && (
-              <View style={{ position: "absolute", right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9, backgroundColor: P.pen, alignItems: "center", justifyContent: "center" }}>
-                <LockIcon color="#FFFFFF" />
-              </View>
-            )}
+    <View style={{ height: height ?? traceTrayHeight(0, bottomInset), backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: tk.line }}>
+      <ScrollView
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: TRAY_INSET, paddingRight: TRAY_INSET + 3, paddingBottom: TRAY_INSET + 3 + bottomInset, gap: TRAY_GAP }}
+      >
+        {rows.map((row, r) => (
+          <View key={r} style={{ flexDirection: "row", gap: TRAY_GAP }}>
+            {row.map((a) => (
+              <TraceCard key={a.id} a={a} onPick={onPick} />
+            ))}
+            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
           </View>
-          <Text numberOfLines={2} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: P.ink60, marginTop: 8, textAlign: "center", paddingHorizontal: 4 }}>
-            {a.title.toUpperCase()}
-          </Text>
-        </Pressable>
-      ))}
+        ))}
+      </ScrollView>
     </View>
+  );
+}
+
+function TraceCard({ a, onPick }: { a: TraceAction; onPick: (kind: TraceKind) => void }) {
+  const { t: tk } = useTheme();
+  return (
+    <Pressable
+      disabled={a.locked}
+      onPress={() => onPick(a.id)}
+      accessibilityRole="button"
+      accessibilityLabel={a.sub ? `${a.title}, ${a.sub}` : a.title}
+      accessibilityState={{ disabled: !!a.locked }}
+      style={{ flex: 1, opacity: a.locked ? 0.45 : 1 }}
+    >
+      {({ pressed }) => (
+        <StickerBox
+          fill={tk.sf}
+          stroke={tk.ln}
+          lineWidth={2}
+          radius={18}
+          shadow={tk.ln}
+          offset={3}
+          pressed={pressed && !a.locked}
+          faceStyle={{ minHeight: CARD_MIN + 4, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 14 }}
+        >
+          <TraceIcon kind={a.id} color={tk.ink} size={28} stroke={2} />
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.1, color: tk.ink, textAlign: "center", marginTop: 4 }}
+          >
+            {a.title.toLocaleUpperCase(localeTag())}
+          </Text>
+          {!!a.sub && (
+            <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, color: tk.sub, textAlign: "center" }}>
+              {a.sub}
+            </Text>
+          )}
+          {a.locked && (
+            <View style={{ position: "absolute", top: 8, right: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: tk.ind, alignItems: "center", justifyContent: "center" }}>
+              <LockIcon color={tk.bg} size={12} />
+            </View>
+          )}
+        </StickerBox>
+      )}
+    </Pressable>
   );
 }

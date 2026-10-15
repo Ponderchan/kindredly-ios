@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { PF } from "../../theme/post";
@@ -11,7 +11,7 @@ import { OfficialBird } from "../../components/WrenDesk";
 import { GuideCard, GuideChips } from "../../components/GuideCard";
 import { NewsCard, newsIdOf } from "../../components/news-reel";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
-import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
+import { TraceTray, traceTrayHeight, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
 import { dShort } from "../../lib/format";
 import { alertFail } from "../../lib/fail";
@@ -43,6 +43,8 @@ import {
 } from "../../lib/wren-desk";
 import { DEMO_WREN_POSTS } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
+import { atBottomOf, follow, settlesAtEnd, spendsOwn, type FollowFacts } from "../../screens/chat/follow";
+import { useKeyboardRN, useKeyboardSettle, useKeyboardTray } from "../../screens/chat/useKeyboardRN";
 
 /* WREN'S DESK — the one room everybody has.
    ────────────────────────────────────────────────────────────────────────
@@ -60,7 +62,30 @@ import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
      what they write back appears here under her name and knocks once
 
    Nothing here is a correspondence: no reveal, no count to five, no aura
-   read of her. */
+   read of her.
+
+   10a step 5 (owner: this release fixes the desk's scroll and keyboard
+   only; its reels, guides and ChatField stay as they are):
+   · it follows its end only while you are at it (screens/chat/follow,
+     the rule the room and chat fallbacks use): a guide reel or a picture
+     finishing its layout, MORE chips opening, no longer yank someone
+     reading further up back down (spec bug 10); the first content, your
+     own mail, her answer on the phone, a guide asked for by link or by a
+     chip are brought into view from anywhere (critic: they always were);
+   · the keyboard, the tray and a growing field keep the newest line in
+     sight when you are at the end (spec bug 9) — the list follows its own
+     height, not only its content, and once more after the keyboard or the
+     tray has finished moving (the avoiding view animates its padding, so
+     the first scroll lands on the old height);
+   · the tray and the keyboard swap in one commit, the tray rising with
+     the keyboard's timing (or fading under Reduce Motion) instead of the
+     field jumping a keyboard's height and back (useKeyboardTray);
+   · a drag down the list takes the keyboard with it, and the field keeps
+     its 14 above the keyboard instead of carrying the home indicator's
+     inset up with it (the inset is the field's own padding only while the
+     keyboard and the tray are down);
+   · the tray is on the theme (LeaveATrace's 10a cards, in the keyboard's
+     place). */
 
 type Item =
   | { type: "post"; post: WrenPost; at: string }
@@ -94,6 +119,63 @@ export default function WrenDeskScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const pendingSend = useRef<string | null>(null);
+  const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardRN();
+
+  /* FOLLOW THE END ONLY WHILE AT IT (spec bugs 9 and 10; screens/chat/follow). `atBottom` is
+     what the reader was at the last scroll; `ownPending` is set by anything of theirs that
+     should be seen wherever they were (their mail, her answer, a linked guide, a chip). */
+  const scroll = useRef({ atBottom: true, painted: false, ownPending: false, dragging: false, viewport: 0 });
+  const wantEnd = () => {
+    scroll.current.ownPending = true;
+  };
+  /* once the keyboard or the tray has finished moving: the end again, if it was where the reader
+     was as the move began (KeyboardAvoidingView animates its padding, so onListLayout's scroll
+     lands on the frame's old height) — never under a finger */
+  const settle = () => {
+    const s = scroll.current;
+    if (!s.painted || s.dragging || !s.atBottom) return;
+    scrollRef.current?.scrollToEnd({ animated: true });
+  };
+  useKeyboardSettle(() => ({ painted: scroll.current.painted, atEnd: scroll.current.atBottom, dragging: scroll.current.dragging }), settle);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+  }, []);
+  const settleAfter = (ms: number) => {
+    const s = scroll.current;
+    if (!settlesAtEnd({ painted: s.painted, atEndBefore: s.atBottom, dragging: s.dragging })) return;
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(settle, ms + 30);
+  };
+  /* the ⊕'s tray in the keyboard's place: drawn only while the keyboard is down */
+  const trayKit = useKeyboardTray(keyboard, tray, setTray, settleAfter);
+  const decide = (facts: FollowFacts) => {
+    const d = follow(facts);
+    if (spendsOwn(facts, d)) scroll.current.ownPending = false;
+    if (d === "none") return;
+    scroll.current.painted = true;
+    scroll.current.atBottom = true;
+    scrollRef.current?.scrollToEnd({ animated: d === "glide" });
+  };
+  const onListScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    scroll.current.atBottom = atBottomOf({ contentHeight: contentSize.height, offsetY: contentOffset.y, viewportHeight: layoutMeasurement.height });
+  };
+  const onListContent = (_w: number, h: number) => {
+    const s = scroll.current;
+    // the first paint is the first time there is something in the stream (the chips and the empty
+    // line alone don't count), so the posts open at the newest instead of gliding down to it
+    decide({ event: "content", painted: s.painted, hasContent: h > 0 && stream.length > 0, atBottom: s.atBottom, ownPending: s.ownPending });
+  };
+  // the keyboard, the tray or a growing field took some of the list's height
+  const onListLayout = (e: LayoutChangeEvent) => {
+    const s = scroll.current;
+    const h = e.nativeEvent.layout.height;
+    if (h === s.viewport) return;
+    s.viewport = h;
+    decide({ event: "viewport", painted: s.painted, hasContent: s.painted, atBottom: s.atBottom, ownPending: false });
+  };
 
   const load = useCallback(() => {
     let alive = true;
@@ -152,6 +234,7 @@ export default function WrenDeskScreen() {
   /* her own answer, kept on this phone */
   const show = async (answer: Answer, q: string | null) => {
     const item: WrenLocal = { id: Date.now(), q, answer, at: new Date().toISOString() };
+    wantEnd(); // her answer is brought into view wherever you were
     setLocal((l) => [...l, item]);
     await keepLocal(item);
   };
@@ -166,6 +249,7 @@ export default function WrenDeskScreen() {
     const r = await sendWrenMail(body, kind, mediaPath);
     setSending(false);
     if (r === true) {
+      wantEnd(); // your own mail is brought into view
       setMail((m) => [...m, { id: -Date.now(), kind, body, mediaPath, at: new Date().toISOString(), reply: null, repliedAt: null }]);
       void fetchWrenMail().then((m) => m && setMail(m));
       return true;
@@ -230,6 +314,10 @@ export default function WrenDeskScreen() {
     { id: "idea", title: t("wo.idea.t"), sub: "" },
   ];
   const onHand = (kind: string) => {
+    // a bug, an idea or a note hands the keyboard to the field: the tray stays until it is up; a
+    // picture opens the picker, the tray going down as it does
+    if (kind === "photo") trayKit.close();
+    else trayKit.handOff();
     setTray(false);
     if (kind === "photo") {
       void sendPhoto();
@@ -265,7 +353,7 @@ export default function WrenDeskScreen() {
   const notIt = (q: string) => () => void post(q, "note");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: P.paper }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingTop: 2, paddingBottom: 10 }}>
         <Pressable
           onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))}
@@ -290,7 +378,17 @@ export default function WrenDeskScreen() {
           contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 12, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          keyboardDismissMode="interactive"
+          scrollEventThrottle={32}
+          onScroll={onListScroll}
+          onScrollBeginDrag={() => {
+            scroll.current.dragging = true;
+          }}
+          onScrollEndDrag={() => {
+            scroll.current.dragging = false;
+          }}
+          onContentSizeChange={onListContent}
+          onLayout={onListLayout}
         >
           {stream.length === 0 && (
             <View style={{ alignItems: "center", paddingTop: 28, paddingBottom: 8 }}>
@@ -390,13 +488,11 @@ export default function WrenDeskScreen() {
             </View>
           </View>
         )}
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: 14 }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 14, paddingBottom: keyboard.up || trayKit.shown ? 14 : 14 + insets.bottom }}>
           {/* ⊕ on the left, the arrow inside the pill (owner, 2026-09-20) */}
           <Pressable
-            onPress={() => {
-              Keyboard.dismiss();
-              setTray((v) => !v);
-            }}
+            // with the keyboard up the tray rises as it goes down, in the same commit
+            onPress={() => trayKit.toggle(Keyboard.dismiss)}
             hitSlop={6}
             style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: T.ln, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
@@ -408,11 +504,16 @@ export default function WrenDeskScreen() {
             canSend={canSend}
             onSend={() => void send()}
             onChangeText={setText}
-            onFocus={() => setTray(false)}
+            // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
+            onFocus={trayKit.onFieldFocus}
             placeholder={mode === "bug" ? t("wo.bug.ph") : mode === "idea" ? t("wo.idea.ph") : t("wo.ph")}
           />
         </View>
-        {tray && <TraceTray actions={HANDS} onPick={onHand} />}
+        {trayKit.shown && (
+          <View onAccessibilityEscape={trayKit.close}>
+            <TraceTray actions={HANDS} onPick={onHand} height={traceTrayHeight(keyboard.lastHeight, insets.bottom)} bottomInset={insets.bottom} />
+          </View>
+        )}
       </KeyboardAvoidingView>
       <PhotoLightbox photo={photoFull} onClose={() => setPhotoFull(null)} />
 
