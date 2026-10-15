@@ -19,7 +19,15 @@ import { useTheme } from "../lib/theme";
    something every reader can reach.
 
    The menu is iOS's own and draws light or dark; the host is told which by
-   the theme, so a Midnight page gets the dark menu. */
+   the theme, so a Midnight page gets the dark menu.
+
+   KEPT FOR THE REACT NATIVE FALLBACKS ONLY (10a step 5). A Host per row is
+   what made the room, the chat and Kindreds janky; the SwiftUI screens draw
+   their menus with .kMenu inside their one Host instead, with the same
+   items (screens/chat/build-items menus, computed in TS). This stays for
+   the screens the remote switch can send back to React Native (RoomRN,
+   LettersRN, the React Native Kindreds list), which render a window of
+   rows rather than every row, so the number of Hosts stays bounded. */
 
 export type MessageAction = {
   key: string;
@@ -37,9 +45,39 @@ export function a11yActions(actions: MessageAction[]) {
   };
 }
 
-export function MessageMenu({ actions, radius = 18, children }: { actions: MessageAction[]; radius?: number; children: ReactElement }) {
+/**
+ * A long-press menu on its child. `accessibilityLabel` names the element VoiceOver reads (the
+ * row's own label — whose, the words, the day — rather than whatever text it finds inside), and
+ * `a11yExtra` adds VoiceOver-only actions that are not in the menu (a reply's quote jump, the
+ * nested tap a combined element would otherwise swallow). Without either, the child is read as
+ * it always was. Without menu actions there is no Host: the child is returned as is, or in a
+ * plain accessible View when a label or extra actions were given.
+ */
+export function MessageMenu({
+  actions,
+  radius = 18,
+  accessibilityLabel,
+  a11yExtra,
+  children,
+}: {
+  actions: MessageAction[];
+  radius?: number;
+  accessibilityLabel?: string;
+  a11yExtra?: MessageAction[];
+  children: ReactElement;
+}) {
   const { dark } = useTheme(); // above the early return, so it runs every render
-  if (Platform.OS !== "ios" || !actions.length) return children;
+  const spoken = a11yExtra?.length ? [...actions, ...a11yExtra] : actions;
+  const labelled = !!accessibilityLabel || !!a11yExtra?.length;
+  if (Platform.OS !== "ios" || !actions.length) {
+    return labelled ? (
+      <View accessible accessibilityLabel={accessibilityLabel} {...a11yActions(spoken)}>
+        {children}
+      </View>
+    ) : (
+      children
+    );
+  }
   const shape = radius > 0 ? shapes.roundedRectangle({ cornerRadius: radius }) : shapes.rectangle();
   return (
     <Host matchContents ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
@@ -51,7 +89,9 @@ export function MessageMenu({ actions, radius = 18, children }: { actions: Messa
         </ContextMenu.Items>
         <ContextMenu.Trigger>
           <RNHostView matchContents>
-            <View accessible {...a11yActions(actions)}>{children}</View>
+            <View accessible accessibilityLabel={accessibilityLabel} {...a11yActions(spoken)}>
+              {children}
+            </View>
           </RNHostView>
         </ContextMenu.Trigger>
       </ContextMenu>

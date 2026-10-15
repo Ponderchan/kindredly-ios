@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PF } from "../theme/post";
+import { MONO, PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
 import { IntroductionRitual, T_RITUAL_DONE } from "./IntroductionRitual";
@@ -9,6 +10,7 @@ import { stickerName } from "../lib/sticker-copy";
 import type { ThreadMessage } from "../lib/db";
 import { roadFact, type KindredNotice } from "../lib/kindred-read";
 import { t, useLang } from "../lib/i18n";
+import { dismissKeyboard } from "../lib/keyboard";
 import { WrenBird } from "./WrenBird";
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
@@ -25,10 +27,17 @@ import { WrenBird } from "./WrenBird";
    gave. The face above it is the same mosaic you watched come into view,
    finally next to what it was becoming.
 
-   The sheet is a page of the theme: its ground, type and header rule (the
-   full-strength rule is an outline, so ln) come from it, and the one
-   button is post's solid pen button, written out here from the theme with
-   its label in the page colour, the 10a colour for type on an ind fill. */
+   The sheet is a page of the theme: its ground and type come from it, and
+   the one button is the 10a main action — the theme's ind with its label
+   in the page colour (the 10a colour for type on an ind fill), corners 14.
+
+   10a (step 5): no rule under the header (the owner took the rules away;
+   the ground does the separating), mono on the 9/10/11 sizes, the × named
+   for VoiceOver. Whoever arrives after the second signature gets this —
+   the room runs it too now (useCeremony), so the one who signed FIRST
+   sees it; the callers pass the reader's own name with a lower-case "you"
+   in their language as its fallback (in.meFallback) and the day the names
+   met (revealed_at), never today. */
 export function Introduction({
   open,
   wren,
@@ -69,17 +78,22 @@ export function Introduction({
   onTalk: () => void;
 }) {
   useLang(); // repaint when the reader changes language
+  /* it rises on its own (the second signature landing, a room opened after the reveal), not from a
+     tap that already let go of the keyboard: put it away, whoever holds it (lib/keyboard) */
+  useEffect(() => {
+    if (open) dismissKeyboard();
+  }, [open]);
   const P = useP();
   const tk = useTheme().t;
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: P.paper }}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12 }}>
+          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: P.ink }}>
             {t("intro.carriedBy", { name: wren.toUpperCase() })}
           </Text>
-          <Pressable onPress={onClose} hitSlop={12}>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>
         </View>
@@ -113,7 +127,7 @@ export function Introduction({
                 : t("in.roadWait", { n: fact!.letters, d: fact!.days, g: fact!.longestWaitDays });
             return (
               <Animated.View entering={FadeIn.duration(500).delay(T_RITUAL_DONE)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
                 <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{line}</Text>
               </Animated.View>
             );
@@ -125,9 +139,13 @@ export function Introduction({
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
-          <Pressable onPress={onTalk} style={({ pressed }) => ({ backgroundColor: P.pen, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: tk.bg }}>
-{t("in.talkTo", { name: otherName.toUpperCase() })}
+          <Pressable
+            onPress={onTalk}
+            accessibilityRole="button"
+            style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
+          >
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.bg }}>
+              {t("in.talkTo", { name: otherName.toUpperCase() })}
             </Text>
           </Pressable>
         </View>

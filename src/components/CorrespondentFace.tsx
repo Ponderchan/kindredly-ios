@@ -1,5 +1,7 @@
 import { View } from "react-native";
-import { P } from "../theme/post";
+import { useTheme } from "../lib/theme";
+import { developFor } from "../lib/mosaic";
+import { BRAND } from "../theme/themes";
 import { AvatarImage } from "./AvatarImage";
 import { MosaicId } from "./MosaicId";
 
@@ -12,12 +14,22 @@ import { MosaicId } from "./MosaicId";
    both COMPLETE, and nothing but the presence of a name told them apart.
 
    So completion gets a mark of its own — a hairline frame, which is what
-   this product uses for everything else that is finished. Ink for "this
-   face is done", brass for "and they've already put their name in".
+   this product uses for everything else that is finished. A quiet line for
+   "this face is done", brass for "and they've already put their name in".
 
    develop runs on THEIR letters only. You come to know someone by reading
    them; how much you have written changes nothing about how clearly you
-   see them. */
+   see them (lib/mosaic developFor, which Swift's KMosaic reads too).
+
+   10a (step 5):
+   · on the theme — the frame is the theme's line, the brass is the brand's
+     wax (KBrand brassSeal), the mosaic paints in the theme's ink (MosaicId);
+   · a kindred is a ROUND face, a pen pal a square mosaic (owner 10-15): a
+     revealed kindred who gave no face is drawn round too, with the
+     stranger glyph, as their Kindreds row is (critic);
+   · a null seed is NO ONE — a deleted account (0009) — and wears the veil,
+     the same for every ghost because it claims nothing; never the hash of a
+     placeholder like "anon", which dressed every ghost in one face. */
 
 const SIZES = {
   sm: { cell: 2.8, gap: 0.9, avatar: 22, pad: 3 }, // the orbit
@@ -31,39 +43,33 @@ export function CorrespondentFace({
   revealed,
   otherFace,
   theirSigned,
-  iSigned,
   size = "md",
 }: {
-  seed: string;
+  /** their user id; null (or "") for a deleted account, which draws the veil */
+  seed: string | null | undefined;
   /** how many letters they have sent you */
   theirs: number;
   revealed: boolean;
   otherFace?: string | null;
   theirSigned?: boolean;
+  /** I signed first: the face is done either way (a quiet frame), so it changes nothing drawn */
   iSigned?: boolean;
   size?: keyof typeof SIZES;
 }) {
+  const { t: tk } = useTheme();
   const s = SIZES[size];
-  const complete = revealed || theirs >= 5;
-  // brass only for the state that is waiting on you
-  const frame = !complete ? null : theirSigned && !revealed ? P.brassSeal : iSigned && !revealed ? P.ink12 : revealed ? null : P.ink12;
 
-  const face =
-    revealed && otherFace ? (
-      <AvatarImage id={otherFace} seed={seed} size={s.avatar} />
-    ) : (
-      <MosaicId
-        seed={seed}
-        cell={s.cell}
-        gap={s.gap}
-        develop={revealed ? 1 : 0.15 + 0.85 * (Math.min(theirs, 5) / 5)}
-      />
-    );
+  // no one behind it: the veil, no frame (nothing about them is complete or waiting)
+  if (!seed) return <MosaicId seed={null} cell={s.cell} gap={s.gap} />;
 
+  // a kindred: round — their portrait, or the stranger glyph when they gave none
+  if (revealed) return <AvatarImage id={otherFace ?? null} seed={seed} size={s.avatar} />;
+
+  const complete = theirs >= 5;
+  // brass only for the state that is waiting on you; a quiet line for a face that is done
+  const frame = !complete ? null : theirSigned ? BRAND.brassSeal : tk.line;
+
+  const face = <MosaicId seed={seed} cell={s.cell} gap={s.gap} develop={developFor(theirs)} />;
   if (!frame) return face;
-  return (
-    <View style={{ padding: s.pad, borderWidth: 1, borderColor: frame }}>
-      {face}
-    </View>
-  );
+  return <View style={{ padding: s.pad, borderWidth: 1, borderColor: frame }}>{face}</View>;
 }
