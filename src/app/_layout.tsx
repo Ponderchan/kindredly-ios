@@ -16,14 +16,14 @@ import * as Notifications from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
-import { ThemeProvider } from "../lib/theme";
+import { ThemeProvider, useP, useTheme } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
 import { loadLang } from "../lib/i18n";
 import { startSurfaces } from "../lib/surfaces";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
-import { fetchThreadMessages } from "../lib/db";
+import { fetchThreadMessages, readThreadDetailCache } from "../lib/db";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,7 +45,14 @@ function KnockRouting() {
        already know opened the screen you had both outgrown. The outbox row
        carries only a thread id, so the split is resolved here, from the
        thread itself; if that read fails we still open something rather than
-       nothing. */
+       nothing.
+
+       THE PHONE'S OWN COPY FIRST (10a step 5). A named kindred is named for
+       good, so a cached detail that says so settles it with no network at
+       all — a knock opened offline, or on a slow link, still lands in the
+       room instead of the stranger's screen. Only a copy that says "not yet"
+       (they may have traded names since) or no copy at all asks the server,
+       and if the server can't answer, the copy's answer stands. */
     const open = async (res: Notifications.NotificationResponse) => {
       const data = res.notification.request.content.data as { thread?: string; wren?: number; line?: string; pool?: unknown; index?: unknown } | undefined;
       /* her own lines, scheduled on the phone (lib/local-push): a question
@@ -78,12 +85,17 @@ function KnockRouting() {
       }
       const id = data?.thread;
       if (typeof id !== "string" || !id) return;
-      let revealed = false;
-      try {
-        const d = await fetchThreadMessages(id);
-        revealed = !!d?.revealed;
-      } catch {
-        /* fall through to /chat — the pre-reveal screen reads either way */
+      const cached = await readThreadDetailCache(id);
+      let revealed = !!cached?.revealed;
+      if (!revealed) {
+        try {
+          const d = await fetchThreadMessages(id);
+          if (d) revealed = !!d.revealed;
+        } catch (e) {
+          /* fall through to the copy's answer (or /chat) — the pre-reveal
+             screen reads either way */
+          console.log("[knock] couldn't read the thread, using the phone's copy:", e);
+        }
       }
       router.push(revealed ? `/room/${id}` : `/chat/${id}`);
     };
@@ -158,7 +170,65 @@ function LocalLinesOnLaunch() {
 // over the bottom controls and eats taps — silence it in dev.
 LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
-const WASH = { contentStyle: { backgroundColor: P.penWash } };
+/* THE LAUNCH'S OWN GROUND. The launch piece (app/index → LaunchAnimation)
+   is drawn on the splash's lavender, an object with its own colour like
+   the postmark — not a theme surface — so the entry route keeps it under
+   its first frame, and the splash never blinks to the theme's page on the
+   way in. */
+const LAUNCH_GROUND = { contentStyle: { backgroundColor: P.penWash } };
+
+/* A SCREEN ARRIVES ON ITS OWN COLOUR. The stack paints every incoming page
+   on its contentStyle until the page's first render — so a lavender page
+   pushed from a lavender tab used to slide in as a white slab for as long
+   as its first frame took (owner, 2026-09-19), which is why some routes
+   once named the old wash here. With 10a every page sits on the theme's
+   one ground (tk.bg: white in Classic, lavender in Lavender, cream in
+   Paper, night in Midnight), so the stack paints that, for every route,
+   and follows the theme as it changes.
+
+   EXCEPT a page that still paints a ground of its own: it names that
+   ground here, from the same source the page reads, until it moves to
+   tk.bg (then its line goes). courier keeps the accent's palest wash on
+   purpose (useP().penWash, the theme's lav2; see app/courier.tsx), and
+   aura-card is not themed yet (the fixed P.penWash). Neither belongs to a
+   step-5 slice, so without these lines both would slide in on a white
+   slab in Classic for good. A page a step-5 slice is still to retheme
+   (aura, kindred/[id], my-letters, my-kindreds, keepsakes, drafts,
+   blocked, settings) gets no line: it moves to tk.bg with its slice, and
+   any that keeps another ground adds its own line here, the same way. */
+function ThemedStack() {
+  const { t: tk } = useTheme();
+  const pal = useP();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: tk.bg },
+        }}
+      >
+        <Stack.Screen name="index" options={LAUNCH_GROUND} />
+        {/* the two doors out of the launch fade in over its last frame */}
+        <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
+        <Stack.Screen name="(tabs)" options={{ animation: "fade", animationDuration: 450 }} />
+        {/* WRITING TO A STRANGER rises from the bottom (10a), and the edge
+            swipe can't take it away: the guarded ✕ is its one way out, so
+            words are never lost to a stray swipe (owner). */}
+        <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false }} />
+        {/* a page to yourself rises the same way */}
+        <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+        {/* the reader fills the screen — the letter opens where you are,
+            it doesn't slide in from the side or pop up as a card */}
+        <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
+        {/* the two pages that still paint their own ground (see above) */}
+        <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash } }} />
+        <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: P.penWash } }} />
+      </Stack>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   /* the launch piece lives on the entry route (app/index.tsx): the egg,
@@ -182,8 +252,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <EntitlementProvider>
-            {/* the 10a theme (lib/theme): every screen sits inside it, none
-                reads it yet — they all still paint the static P */}
+            {/* the 10a theme (lib/theme): every screen sits inside it, and
+                the stack paints its ground (ThemedStack) */}
             <ThemeProvider>
             <WrenSkinProvider>
             <WrenStageProvider>
@@ -192,49 +262,7 @@ export default function RootLayout() {
             <StallProbe />
               <BirdSnapshots />
             <KnockRouting />
-            <View style={{ flex: 1, backgroundColor: P.paper }}>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: P.paper },
-                }}
-              >
-                {/* the launch is drawn on the wash — so is the screen under it */}
-                <Stack.Screen name="index" options={WASH} />
-                {/* the two doors out of the launch fade in over its last frame */}
-                <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
-                {/* A SCREEN ARRIVES ON ITS OWN COLOUR. The stack paints every
-                    incoming page on paper until the page's first render — so
-                    a lavender page pushed from a lavender tab slid in as a
-                    white slab for as long as its first frame took, which on a
-                    phone with a big aura to read was long enough to see as
-                    "tap → white" (owner, 2026-09-19). Each wash-coloured
-                    route says so here; paper stays the default. */}
-                <Stack.Screen name="(tabs)" options={{ ...WASH, animation: "fade", animationDuration: 450 }} />
-                <Stack.Screen name="aura" options={WASH} />
-                <Stack.Screen name="aura-card" options={WASH} />
-                <Stack.Screen name="courier" options={WASH} />
-                <Stack.Screen name="settings" options={WASH} />
-                <Stack.Screen name="kindred/[id]" options={WASH} />
-                <Stack.Screen name="my-letters" options={WASH} />
-                <Stack.Screen name="my-kindreds" options={WASH} />
-                <Stack.Screen name="keepsakes" options={WASH} />
-                <Stack.Screen name="drafts" options={WASH} />
-                <Stack.Screen name="blocked" options={WASH} />
-                {/* Writing is a PAGE, not a popup — and it arrives from the
-                    RIGHT, continuing forward from wherever you chose it. Sliding
-                    up from the bottom read as a second, separate event. */}
-                <Stack.Screen name="compose" options={{ animation: "slide_from_right" }} />
-                <Stack.Screen name="journal-entry" options={{ animation: "slide_from_right" }} />
-                <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
-                <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
-                {/* the reader fills the screen — the letter opens where you are,
-                    it doesn't slide in from the side or pop up as a card */}
-                <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
-              </Stack>
-
-              {/* the launch, over everything, until it has lifted away */}
-            </View>
+            <ThemedStack />
             </WrenStageProvider>
             </WrenSkinProvider>
             </ThemeProvider>

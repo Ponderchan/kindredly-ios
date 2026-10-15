@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Appearance, useColorScheme } from "react-native";
-import { P } from "../theme/post";
+import { DEFAULT_LETTER_FONT, P, letterFamily, letterFontKey, type LetterFace, type LetterFontKey } from "../theme/post";
 import {
   DEFAULT_PREFS,
   THEMES,
@@ -18,10 +18,14 @@ import {
    Midnight, Lavender, Paper — and a Match system switch, resolved by the
    rule in theme/themes.ts and handed to every screen through useTheme().
 
-   No screen reads it yet. Every screen still imports the static P (and C,
-   Y, ROW, PUNCH) and paints exactly what it painted before; a screen moves
-   over by taking its colours from useTheme() — or, for a P screen, from
-   useP() below — one file at a time.
+   Screens move onto it one file at a time: a screen that still imports the
+   static P (and C, Y, ROW, PUNCH) paints exactly what it painted before; a
+   screen moves over by taking its colours from useTheme() — or, for a P
+   screen, from useP() below. The navigation chrome (the root stack's and
+   the tabs' grounds) already follows it.
+
+   It also carries the reader's letter font (letterFont / setLetterFont,
+   useLetterFont, useLetterFamily), a device setting like the theme.
 
    The choice is the phone's, not the account's: raw AsyncStorage, not
    scoped-store, because the theme has to be known before anyone has signed
@@ -40,6 +44,22 @@ export const DARK_READY = false;
 
 const KEY = "kindredly_theme"; // { pick, matchSystem } as JSON
 
+/* THE LETTER FONT (10a) is the phone's too, for the same reasons, and sits
+   beside the theme: raw AsyncStorage, the bare key as a string. What it is
+   and where it applies: theme/post (LETTER_FACES, letterFamily). Garamond
+   can't be chosen until GARAMOND_READY, and a stored "garamond" reads as
+   the default until then. */
+const LETTER_KEY = "kindredly_letter_font"; // "newsreader" | "newyork" | "garamond"
+
+export {
+  GARAMOND_READY,
+  LETTER_FONT_CHOICES,
+  LETTER_FONT_KEYS,
+  letterFamily,
+  type LetterFace,
+  type LetterFontKey,
+} from "../theme/post";
+
 export type Theme = {
   /** the theme in effect right now */
   key: ThemeKey;
@@ -51,6 +71,14 @@ export type Theme = {
   matchSystem: boolean;
   setPick: (k: ThemeKey) => void;
   setMatchSystem: (on: boolean) => void;
+  /** the face other people's letters are set in for this reader — always
+      one this build can draw (never Garamond before GARAMOND_READY). Swift
+      screens take it as their `letterFont` prop; React Native text takes
+      letterFamily(letterFont) or useLetterFamily(). */
+  letterFont: LetterFontKey;
+  /** Settings' letter-font picker. Saved on the phone; a key this build
+      can't draw (Garamond before GARAMOND_READY) is ignored. */
+  setLetterFont: (k: LetterFontKey) => void;
 };
 
 /* outside the provider: the default theme, and setters that do nothing */
@@ -63,6 +91,8 @@ const ThemeCtx = createContext<Theme>({
   matchSystem: DEFAULT_PREFS.matchSystem,
   setPick: () => {},
   setMatchSystem: () => {},
+  letterFont: DEFAULT_LETTER_FONT,
+  setLetterFont: () => {},
 });
 
 /* THE NATIVE PARTS FOLLOW THE THEME. The keyboard, alerts, context menus
@@ -150,6 +180,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setPrefs((p) => ({ ...p, matchSystem: on }));
   }, []);
 
+  // the letter font: read once, written only when the reader picks (the
+  // same rule as the theme's — a pick made before the read wins)
+  const [letterFont, setLetterFontState] = useState<LetterFontKey>(DEFAULT_LETTER_FONT);
+  const letterTouched = useRef(false);
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(LETTER_KEY)
+      .then((raw) => {
+        if (alive && !letterTouched.current && raw != null) setLetterFontState(letterFontKey(raw));
+      })
+      .catch((e) => console.warn("[theme] the saved letter font wasn't read, using the default:", e));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const setLetterFont = useCallback((k: LetterFontKey) => {
+    if (letterFontKey(k) !== k) {
+      console.warn(`[theme] letter font "${k}" can't be drawn by this build; keeping the current one`);
+      return;
+    }
+    letterTouched.current = true;
+    setLetterFontState(k);
+    AsyncStorage.setItem(LETTER_KEY, k).catch((e) => console.warn("[theme] the letter font wasn't saved:", e));
+  }, []);
+
   const devKey = useDevThemeOverride();
   const key = devKey ?? resolveTheme({ ...prefs, systemScheme: system, darkReady: DARK_READY });
   const t = THEMES[key];
@@ -164,14 +219,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [scheme]);
 
   const value = useMemo<Theme>(
-    () => ({ key, t, dark: t.dark, pick: prefs.pick, matchSystem: prefs.matchSystem, setPick, setMatchSystem }),
-    [key, t, prefs, setPick, setMatchSystem],
+    () => ({ key, t, dark: t.dark, pick: prefs.pick, matchSystem: prefs.matchSystem, setPick, setMatchSystem, letterFont, setLetterFont }),
+    [key, t, prefs, setPick, setMatchSystem, letterFont, setLetterFont],
   );
   return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 }
 
 /** the theme in effect, its colours, and the reader's choice with setters */
 export const useTheme = (): Theme => useContext(ThemeCtx);
+
+/** The reader's letter font (always one this build can draw). Pass it to a
+    Swift screen as `letterFont`; put it in the deps of anything memoised
+    on letter text. */
+export const useLetterFont = (): LetterFontKey => useContext(ThemeCtx).letterFont;
+
+/** The React Native type for someone's letter in the reader's chosen face —
+    spread it into the Text style: `style={[{ fontSize: 17 }, useLetterFamily()]}`.
+    Only for letters being READ (theme/post: where the letter font applies);
+    inputs and chat bubbles stay in the system face. */
+export function useLetterFamily(italic = false): LetterFace {
+  const k = useLetterFont();
+  return useMemo(() => letterFamily(k, italic), [k, italic]);
+}
 
 /* ── useP(): the migration adapter ─────────────────────────────────────────
    A P-shaped palette drawn from the active theme. A screen that paints from

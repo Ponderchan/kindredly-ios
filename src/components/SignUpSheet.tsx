@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Alert, Keyboard, Pressable, Text, View } from "react-native";
+import { Alert, Modal, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { t, useLang } from "../lib/i18n";
-import { P, PF, rule } from "../theme/post";
+import { MONO, PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { useAuth } from "../lib/auth";
+import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
+
+/* the 10a dim (H:128), as LeaveSheet's */
+const DIM = "rgba(30,27,53,0.3)";
 
 /* THE ONE MOMENT A GHOST IS ASKED TO SIGN IN.
    ────────────────────────────────────────────────────────────────────────
@@ -28,19 +33,29 @@ import { useAuth } from "../lib/auth";
    YOU SIGN IN WITHOUT LEAVING THE SCREEN, and the thing you were doing is
    retried for you. Routing back to onboarding would throw away the letter
    that caused the prompt — asking someone to sign in and charging them their
-   words for it is worse than not asking. */
+   words for it is worse than not asking.
+
+   It wears the theme like LeaveSheet (sf sheet, ln rules, ind for the
+   email key, the 10a dim), and like LeaveSheet it can sit in a
+   window-level Modal (`modal`) so the floating tab bar can't cover its
+   bottom row when it is raised inside a tab. */
 export function SignUpSheet({
   open,
   reason,
+  modal = false,
   onClose,
   onSignedIn,
 }: {
   open: boolean;
   reason: string;
+  /** draw it in a transparent window-level Modal, above the floating tab bar */
+  modal?: boolean;
   onClose: () => void;
   onSignedIn: () => void;
 }) {
   useLang();
+  const P = useP();
+  const { t: tk, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const auth = useAuth();
   const [busy, setBusy] = useState<null | "apple" | "email">(null);
@@ -80,19 +95,19 @@ export function SignUpSheet({
     );
   };
 
-  return (
-    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
+  const sheet = (
+    <View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-        <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.32)" }} />
+        <Pressable onPress={onClose} accessible={false} style={{ flex: 1, backgroundColor: DIM }} />
       </Animated.View>
 
       <Animated.View
         entering={SlideInDown.duration(260)}
-        style={{ backgroundColor: P.paper, borderTopWidth: 1, borderTopColor: P.ink, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
+        style={{ backgroundColor: tk.sf, borderTopWidth: 1, borderTopColor: tk.ln, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, ...rule }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{t("su.title")}</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
+          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{t("su.title")}</Text>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>
         </View>
@@ -105,7 +120,7 @@ export function SignUpSheet({
           {auth.appleAvailable ? (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              buttonStyle={dark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
               cornerRadius={0}
               style={{ height: 50, width: "100%", opacity: busy ? 0.5 : 1 }}
               onPress={doApple}
@@ -114,16 +129,17 @@ export function SignUpSheet({
           <Pressable
             onPress={doEmail}
             disabled={!!busy}
+            accessibilityRole="button"
             style={({ pressed }) => ({
               borderWidth: 1,
-              borderColor: P.ink,
+              borderColor: tk.ln,
               paddingVertical: 15,
               alignItems: "center",
-              backgroundColor: pressed ? P.penWash : "transparent",
+              backgroundColor: pressed ? tk.lav2 : "transparent",
               opacity: busy ? 0.5 : 1,
             })}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: P.pen }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.ind }}>
               {busy === "email" ? "…" : t("ob.continueEmail")}
             </Text>
           </Pressable>
@@ -131,17 +147,25 @@ export function SignUpSheet({
           {/* Leaving is always allowed and always cheap. A sheet you can't
               refuse is a wall, and a wall this early costs more than the
               account is worth. */}
-          <Pressable onPress={onClose} style={{ paddingVertical: 16, alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{t("su.notYet")}</Text>
+          <Pressable onPress={onClose} accessibilityRole="button" style={{ paddingVertical: 16, alignItems: "center" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{t("su.notYet")}</Text>
           </Pressable>
         </View>
       </Animated.View>
     </View>
   );
+
+  if (!modal) return sheet;
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
+      {sheet}
+    </Modal>
+  );
 }
 
-/** open it the way LeaveSheet opens: keyboard out of the way first */
-export function openSignUpSheet(show: () => void) {
-  Keyboard.dismiss();
-  setTimeout(show, 120);
+/** Open it the way LeaveSheet opens: keyboard out of the way first,
+    SwiftUI fields included (lib/keyboard). Pass the Swift screen's view
+    ref as `target` so its field lets go too. */
+export function openSignUpSheet(show: () => void, target?: CommandTarget) {
+  blurThen(show, target, { delayMs: KEYBOARD_OUT_MS });
 }

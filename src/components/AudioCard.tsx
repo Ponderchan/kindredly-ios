@@ -4,6 +4,8 @@ import { F } from "../theme/tokens";
 import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
+import { t, useLang } from "../lib/i18n";
+import "../data/strings-step5-platform"; // vo.play, vo.pause
 
 /* Audio playback row — play/pause + progress + duration. Shared by voice
    pool cards, the letter reader, thread openings, and journal voice cards.
@@ -15,44 +17,61 @@ import { fmt } from "../lib/format";
    The chrome is the theme's: the rounded panel is the accent's palest wash
    (lav2), the default tint is ind, and the play glyph on it is the page
    colour. A `tint` the caller passes is content (a journal page's mood
-   colour) and is kept as given, with the white glyph it was drawn with. */
+   colour) and is kept as given, with the white glyph it was drawn with.
+
+   VoiceOver hears the button by name — "Play the voice letter" / "Pause"
+   (vo.play / vo.pause; a journal page passes its own, jt.play / jt.pause) —
+   with the time as its value, not the ▶ glyph.
+
+   TWO WAYS TO PLAY (10a step 5). AudioCard plays its own url with its own
+   expo-audio player, as it always has. AudioCardView draws the same row
+   from a player someone else holds: a screen with several voice letters
+   (Today's pages) keeps ONE player (lib/voice-playback) so a letter can't
+   play on after a swipe, and hands each row its state. */
 
 const BARS = [12, 18, 24, 16, 20, 26, 14, 22, 18, 24, 20, 14, 22, 16, 24, 18];
 
-export function AudioCard({
-  url,
-  durationS,
-  compact = false,
-  tint,
-  system = false,
-}: {
-  url: string;
-  durationS?: number | null;
+export type AudioCardLook = {
   compact?: boolean;
   tint?: string;
   system?: boolean;
+  /** VoiceOver name of the button while stopped (default vo.play) */
+  playLabel?: string;
+  /** VoiceOver name of the button while playing (default vo.pause) */
+  pauseLabel?: string;
+};
+
+/** The row drawn from someone else's player: whether it plays, where it
+    is, how long it runs, and what a press should do. */
+export function AudioCardView({
+  playing,
+  positionS,
+  durationS,
+  onToggle,
+  compact = false,
+  tint,
+  system = false,
+  playLabel,
+  pauseLabel,
+}: AudioCardLook & {
+  playing: boolean;
+  /** seconds in */
+  positionS: number;
+  /** seconds in all (0 = not known yet) */
+  durationS: number;
+  onToggle: () => void;
 }) {
+  useLang();
   const P = useP();
   const { t: tk } = useTheme();
-  const player = useAudioPlayer(url);
-  const status = useAudioPlayerStatus(player);
-
-  const playing = status.playing;
-  const total = status.duration || durationS || 0;
-  const pos = status.currentTime || 0;
+  const total = durationS || 0;
+  const pos = positionS || 0;
   const pct = total > 0 ? Math.min(1, pos / total) : 0;
-
-  const toggle = () => {
-    if (playing) player.pause();
-    else {
-      if (total > 0 && pos >= total - 0.3) player.seekTo(0);
-      player.play();
-    }
-  };
 
   const ink = system ? P.pen : tint ?? tk.ind;
   // white on a caller's mood colour, as drawn; the page colour on ind
   const glyph = !system && tint ? "#FFFFFF" : tk.bg;
+  const time = playing || pos > 0 ? fmt(pos) : fmt(total);
 
   return (
     <View
@@ -66,7 +85,10 @@ export function AudioCard({
       }}
     >
       <Pressable
-        onPress={toggle}
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityLabel={playing ? (pauseLabel ?? t("vo.pause")) : (playLabel ?? t("vo.play"))}
+        accessibilityValue={{ text: time }}
         style={{
           width: compact ? 36 : 44,
           height: compact ? 36 : 44,
@@ -80,7 +102,7 @@ export function AudioCard({
           {playing ? "❚❚" : "▶"}
         </Text>
       </Pressable>
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 2, height: 26 }}>
+      <View accessibilityElementsHidden style={{ flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 2, height: 26 }}>
         {BARS.map((h, i) => {
           const lit = i / BARS.length <= pct;
           return (
@@ -97,9 +119,37 @@ export function AudioCard({
           );
         })}
       </View>
-      <Text style={{ fontFamily: system ? PF.mono : F.sansBold, fontSize: 12, color: system ? P.ink60 : ink }}>
-        {playing || pos > 0 ? fmt(pos) : fmt(total)}
+      <Text accessibilityElementsHidden style={{ fontFamily: system ? PF.mono : F.sansBold, fontSize: 12, color: system ? P.ink60 : ink }}>
+        {time}
       </Text>
     </View>
   );
+}
+
+/** The row with its own player: plays `url`, restarting from the top when
+    pressed at the end. */
+export function AudioCard({
+  url,
+  durationS,
+  ...look
+}: AudioCardLook & {
+  url: string;
+  durationS?: number | null;
+}) {
+  const player = useAudioPlayer(url);
+  const status = useAudioPlayerStatus(player);
+
+  const playing = status.playing;
+  const total = status.duration || durationS || 0;
+  const pos = status.currentTime || 0;
+
+  const toggle = () => {
+    if (playing) player.pause();
+    else {
+      if (total > 0 && pos >= total - 0.3) player.seekTo(0);
+      player.play();
+    }
+  };
+
+  return <AudioCardView {...look} playing={playing} positionS={pos} durationS={total} onToggle={toggle} />;
 }

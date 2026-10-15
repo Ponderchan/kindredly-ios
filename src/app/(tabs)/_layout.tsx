@@ -8,8 +8,9 @@ import { refreshWaiting, useWaiting } from "../../lib/waiting";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { useNativeSurface } from "../../lib/surfaces";
+import { useTheme } from "../../lib/theme";
+import { PlusSheetOpen } from "../../lib/screen-insets";
 import { PostFan } from "../../components/PostFan";
-import { P } from "../../theme/post";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
@@ -27,11 +28,18 @@ import { P } from "../../theme/post";
    reaches a running app on its next ask; `choosing` is shared, so an open
    sheet becomes the open fan rather than vanishing. The two bars take
    different room, so the layout tells its screens which (TabBarSpace,
-   read with useTabBarSpace). */
+   read with useTabBarSpace).
+
+   10a step 5: every tab sits on the theme's one ground (sceneStyle tk.bg,
+   so a tab's first frame is never another colour), and the layout tells
+   its screens whether the + sheet is open (PlusSheetOpen, read with
+   usePlusSheetOpen from lib/screen-insets) so Today can step its write-back
+   pill out of the sheet's way. */
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
   const waiting = useWaiting();
   const { user } = useAuth();
+  const { t: tk } = useTheme();
   const native = useNativeSurface("tabbar") && nativeTabBarReady();
   const insets = useSafeAreaInsets();
 
@@ -45,6 +53,7 @@ export default function TabsLayout() {
 
   return (
     <TabBarSpace.Provider value={native ? nativeTabBarRoom(insets.bottom) : tabBarHeight(insets.bottom)}>
+    <PlusSheetOpen.Provider value={choosing}>
     <View style={{ flex: 1 }}>
       <Tabs
         tabBar={(props) =>
@@ -54,7 +63,7 @@ export default function TabsLayout() {
             <PostTabBar {...props} onPost={() => setChoosing((c) => !c)} open={choosing} waiting={waiting} />
           )
         }
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: P.penWash } }}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: tk.bg } }}
       >
         <Tabs.Screen name="letters" />
         <Tabs.Screen name="journal" />
@@ -64,6 +73,7 @@ export default function TabsLayout() {
 
       {!native && choosing && <PostFan onClose={() => setChoosing(false)} />}
     </View>
+    </PlusSheetOpen.Provider>
     </TabBarSpace.Provider>
   );
 }

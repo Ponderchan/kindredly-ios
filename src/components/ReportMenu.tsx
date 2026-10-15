@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
-import { P, PF } from "../theme/post";
-import { PUNCH } from "../theme/punch";
+import { P as STATIC_P, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 import { useWrenName } from "../lib/wren-name";
-import { blockUser, forgetThread, reportContent } from "../lib/db";
+import { useReportFlow, type ReportContext, type ReportFlow, type ReportTarget } from "../lib/report-flow";
 import { LeaveSheet } from "./LeaveSheet";
+import "../data/strings-step5-platform"; // rp.menu.a11y
 
 /* Report / block (App Store requirement for anonymous UGC). Wired to the
    backend reports + blocks tables — three distinct reporters auto-suspend
@@ -26,141 +26,155 @@ import { LeaveSheet } from "./LeaveSheet";
    A FAILURE SAYS SO (2026-10-10, iOS safety gap 3): a report that didn't
    reach the server used to answer "Reported" all the same, and a block that
    failed walked you out of the room as if it had held. Now the card says it
-   couldn't, and you stay where you were to try again. */
+   couldn't, and you stay where you were to try again.
 
-type Stage = null | "menu" | "block" | "sent" | "failed" | "blockFailed";
+   TWO PARTS (10a step 5). The flow is lib/report-flow (useReportFlow), so
+   a Swift screen's own menu can start it; ReportSheet below draws its
+   stages — the card and the block sheet — for any caller, and ReportMenu
+   is the ⋯ plus that sheet, for the React Native screens. The card wears
+   the theme: the 10a menu card (sf, a 2pt ln outline, a hard 3/3 ln
+   shadow), rows in the theme's ink, block in the postal red. The ⋯ is a
+   button VoiceOver can name (rp.menu.a11y). */
 
-export function ReportMenu({
-  targetUser,
-  context,
-  refId,
-  snapshot,
-  onBlocked,
-  ring,
-}: {
-  targetUser?: string;
-  context: "letter" | "thread" | "message";
-  refId?: string;
-  snapshot?: string;
-  onBlocked?: () => void;
-  /** the sticker-punch face: a small outlined ring instead of bare dots */
-  ring?: boolean;
-}) {
+/** Draws a report flow's stages: the three choices, the one-line answer,
+    the block question. Render it once per screen, anywhere — it is a
+    window-level Modal. `top` places the card (default: just under the
+    header, where the ⋯ usually is). */
+export function ReportSheet({ flow, top }: { flow: ReportFlow; top?: number }) {
   useLang();
   const wren = useWrenName();
   const insets = useSafeAreaInsets();
-  const [stage, setStage] = useState<Stage>(null);
-  const [busy, setBusy] = useState(false);
-  /* a correspondence whose other side is gone (account closed) or not yet
-     loaded has no one to report or block — no ⋯ at all, rather than a menu
-     whose every choice fails. A desk letter always carries its author. */
-  const nobody = context === "thread" && !targetUser;
-
-  const report = async () => {
-    if (busy) return;
-    setBusy(true);
-    const ok = await reportContent({ targetUser, context, refId, reason: "other", snapshot });
-    setBusy(false);
-    setStage(ok ? "sent" : "failed");
-  };
-
-  const block = async () => {
-    if (busy) return;
-    setBusy(true);
-    const ok = targetUser ? await blockUser(targetUser) : null;
-    setBusy(false);
-    if (!ok) {
-      setStage("blockFailed");
-      return;
-    }
-    if (context === "thread" && refId) await forgetThread(refId);
-    setStage(null);
-    onBlocked?.();
-  };
+  const { t: tk } = useTheme();
+  const { stage, busy } = flow;
 
   const Row = ({ label, icon, tone = "ink", onPress }: { label: string; icon: "flag" | "ban" | "none"; tone?: "ink" | "red"; onPress: () => void }) => (
-    <Pressable onPress={onPress} disabled={busy} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, height: 48, backgroundColor: pressed ? "#F3F2FA" : "transparent" })}>
+    <Pressable
+      onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, height: 48, backgroundColor: pressed ? tk.soft2 : "transparent" })}
+    >
       <View style={{ width: 20, alignItems: "center" }}>
         {icon === "flag" && (
-          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={tk.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
             <Path d="M4 22V4" />
             <Path d="M4 4h12l-2 4 2 4H4" />
           </Svg>
         )}
         {icon === "ban" && (
-          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#C8412E" strokeWidth={1.8} strokeLinecap="round">
+          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={STATIC_P.post} strokeWidth={1.8} strokeLinecap="round">
             <Circle cx={12} cy={12} r={9} />
             <Line x1={5.6} y1={5.6} x2={18.4} y2={18.4} />
           </Svg>
         )}
       </View>
-      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? "#C8412E" : P.ink }}>{label}</Text>
+      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? STATIC_P.post : tk.ink }}>{label}</Text>
     </Pressable>
   );
 
-  if (nobody) return null;
+  return (
+    <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={flow.close}>
+      <Pressable onPress={flow.close} accessible={false} style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.14)" }}>
+        {stage !== null && stage !== "block" && (
+          <View
+            accessibilityViewIsModal
+            style={{
+              position: "absolute",
+              top: top ?? insets.top + 50,
+              right: 16,
+              width: 236,
+              backgroundColor: tk.sf,
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: tk.ln,
+              paddingVertical: 4,
+              // the 10a hard shadow: an offset, no blur (iOS needs radius 0 and full opacity)
+              shadowColor: tk.ln,
+              shadowOffset: { width: 3, height: 3 },
+              shadowOpacity: 1,
+              shadowRadius: 0,
+            }}
+          >
+            {stage !== "menu" ? (
+              <>
+                {/* the confirmation lives in the same card — no second sheet */}
+                <Text accessibilityLiveRegion="polite" style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: tk.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
+                  {stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : t("rp.blockFailed")}
+                </Text>
+                <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 2 }} />
+                <Row label={t("wu.done")} icon="none" onPress={flow.close} />
+              </>
+            ) : (
+              <>
+                <Row label={busy ? "…" : t("rp.menu.report")} icon="flag" onPress={() => void flow.report()} />
+                <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => flow.askBlock()} />
+                <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 4 }} />
+                <Row label={t("rp.menu.never")} icon="none" onPress={flow.close} />
+              </>
+            )}
+          </View>
+        )}
+      </Pressable>
+
+      <LeaveSheet
+        open={stage === "block"}
+        title={t("rp.blockTitle")}
+        body={t("rp.blockBody")}
+        actions={[{ label: busy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: () => void flow.block() }]}
+        cancelLabel={t("set.neverMind")}
+        onCancel={flow.close}
+      />
+    </Modal>
+  );
+}
+
+/** The ⋯ that opens Report / Block, with its sheet — for a React Native
+    screen. Draws nothing when there is no one to report (a correspondence
+    whose other side is gone or not loaded). onBlocked runs once a block
+    has held (and a "thread" context's thread is forgotten): the caller
+    decides where to go. */
+export function ReportMenu({
+  targetUser,
+  context,
+  refId,
+  threadId,
+  snapshot,
+  onBlocked,
+  ring,
+}: {
+  targetUser?: string;
+  context: ReportContext;
+  refId?: string;
+  /** the thread to forget after a block, when it isn't refId (a line in a room) */
+  threadId?: string;
+  snapshot?: ReportTarget["snapshot"];
+  onBlocked?: () => void;
+  /** the sticker-punch face: a small outlined ring instead of bare dots */
+  ring?: boolean;
+}) {
+  useLang();
+  const { t: tk } = useTheme();
+  const flow = useReportFlow({ context, targetUser, refId, threadId, snapshot, onBlocked: () => onBlocked?.() });
+
+  if (flow.nobody) return null;
   return (
     <>
       <Pressable
-        onPress={() => setStage("menu")}
+        onPress={flow.openMenu}
         hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t("rp.menu.a11y")}
         style={
           ring
-            ? { width: 26, height: 26, borderRadius: 13, borderWidth: 2.2, borderColor: PUNCH.ink, alignItems: "center", justifyContent: "center" }
+            ? { width: 26, height: 26, borderRadius: 13, borderWidth: 2.2, borderColor: tk.ln, alignItems: "center", justifyContent: "center" }
             : { width: 42, height: 42, alignItems: "center", justifyContent: "center" }
         }
       >
-        <Text style={ring ? { fontSize: 12, lineHeight: 14, color: PUNCH.ink, fontFamily: PF.monoSemi } : { fontSize: 20, color: P.ink, fontFamily: PF.mono }}>⋯</Text>
+        <Text style={ring ? { fontSize: 12, lineHeight: 14, color: tk.ink, fontFamily: PF.monoSemi } : { fontSize: 20, color: tk.ink, fontFamily: PF.mono }}>⋯</Text>
       </Pressable>
 
       {/* window-level, so it sits over whatever row the ⋯ is in */}
-      <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={() => !busy && setStage(null)}>
-        <Pressable onPress={() => !busy && setStage(null)} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.14)" }}>
-          {stage !== null && stage !== "block" && (
-            <View
-              style={{
-                position: "absolute",
-                top: insets.top + 50,
-                right: 16,
-                width: 236,
-                backgroundColor: "#FFFFFF",
-                borderRadius: 14,
-                paddingVertical: 4,
-                shadowColor: "#000",
-                shadowOpacity: 0.16,
-                shadowRadius: 18,
-                shadowOffset: { width: 0, height: 8 },
-              }}
-            >
-              {stage !== "menu" ? (
-                <>
-                  {/* the confirmation lives in the same card — no second sheet */}
-                  <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: P.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>{stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : t("rp.blockFailed")}</Text>
-                  <View style={{ height: 1, backgroundColor: P.ink12, marginVertical: 2 }} />
-                  <Row label={t("wu.done")} icon="none" onPress={() => setStage(null)} />
-                </>
-              ) : (
-                <>
-                  <Row label={busy ? "…" : t("rp.menu.report")} icon="flag" onPress={report} />
-                  <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => setStage("block")} />
-                  <View style={{ height: 1, backgroundColor: P.ink12, marginVertical: 4 }} />
-                  <Row label={t("rp.menu.never")} icon="none" onPress={() => setStage(null)} />
-                </>
-              )}
-            </View>
-          )}
-        </Pressable>
-
-        <LeaveSheet
-          open={stage === "block"}
-          title={t("rp.blockTitle")}
-          body={t("rp.blockBody")}
-          actions={[{ label: busy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: block }]}
-          cancelLabel={t("set.neverMind")}
-          onCancel={() => !busy && setStage(null)}
-        />
-      </Modal>
-
+      <ReportSheet flow={flow} />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Pressable,
   type StyleProp,
@@ -11,6 +12,8 @@ import {
 import { C, F, cardStyle, navyBtn, radius } from "../theme/tokens";
 import { t, useLang } from "../lib/i18n";
 import { SLOW_MS } from "../lib/net";
+import { useTheme } from "../lib/theme";
+import { toastColors } from "./10a/kit";
 
 /* Small shared UI atoms ported from kindredly-v20.jsx (Dots/Skip/TopBar/Toast
    + the navy CTA + caps labels + cards). */
@@ -159,11 +162,25 @@ export function ProgressBar({ pct, color = C.purple, track = C.lineSoft, height 
   );
 }
 
+/* THE TOAST (10a: spec-today "Send overlays"). One short line that comes
+   and goes on its own — "Reply sent.", the slow-network note — never a
+   button. It wears the theme as every ink fill in 10a does: an ink pill
+   with the page colour on it, system 600 13, corners 22, padding 12 18
+   (on Midnight a light pill with dark type, which is right). The caller
+   places it (`bottom`: above the write-back pill on Today, above the reply
+   strip in a chat) and decides how long it stays; it takes no touch.
+   VoiceOver hears the line once when it appears, so a confirmation isn't
+   something only sighted readers get. */
 export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
+  const { t: tk } = useTheme();
+  const c = toastColors(tk);
+  React.useEffect(() => {
+    if (msg) AccessibilityInfo.announceForAccessibility(msg);
+  }, [msg]);
   return (
-    <View style={{ position: "absolute", left: 0, right: 0, bottom, alignItems: "center" }} pointerEvents="none">
-      <View style={{ backgroundColor: C.navy, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22 }}>
-        <Text style={{ color: "#fff", fontFamily: F.sansSemi, fontSize: 13 }}>{msg}</Text>
+    <View style={{ position: "absolute", left: 16, right: 16, bottom, alignItems: "center" }} pointerEvents="none">
+      <View style={{ backgroundColor: c.fill, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22 }}>
+        <Text style={{ color: c.text, fontSize: 13, fontWeight: "600", textAlign: "center" }}>{msg}</Text>
       </View>
     </View>
   );
@@ -174,7 +191,13 @@ export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
    about to land or about to time out, so the reader's only move was to
    wait and then wonder. This flips true once an action has been in flight
    longer than a send normally takes; the screens use it to say so out loud
-   rather than to spin harder. */
+   rather than to spin harder.
+
+   10a: it holds no colour of its own — what it turns on does. Say it with
+   the themed Toast above (t("net.slow")), or, in a chat, on the status
+   line in the dock above the strip, where the keyboard can't cover it
+   (spec-chat: the slow note moves into the dock). Both renderers use the
+   same timer: a Swift screen gets the flag as a prop. */
 export function useSlow(active: boolean, after: number = SLOW_MS): boolean {
   const [slow, setSlow] = React.useState(false);
   React.useEffect(() => {
