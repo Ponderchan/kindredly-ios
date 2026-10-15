@@ -103,6 +103,11 @@ const LOCAL_PROFILE_KEY = "kindredly_profile_local";
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!supabaseReady);
   const [session, setSession] = useState<Session | null>(null);
+  /* the session as of now, for callbacks made once (deleteAccount's scrub
+     read the first render's session — usually none — and so never removed
+     the deleted account's bucket) */
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [localProfile, setLocalProfile] = useState<Record<string, any>>({});
   /* saveProfile is defined further down and the adopt effect above it needs to
@@ -426,7 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: t("auth.err.delete") };
     }
     try {
-      const uid = session?.user?.id;
+      const uid = sessionRef.current?.user?.id;
       const keys = await AsyncStorage.getAllKeys();
       /* namespaced now: scrub exactly the deleted account's bucket (its
          journal included — the account is gone, its sealed pages go with
