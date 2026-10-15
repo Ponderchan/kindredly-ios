@@ -18,7 +18,6 @@ import { EntitlementProvider } from "../lib/entitlement";
 import { WrenSkinProvider } from "../lib/wren-skin";
 import { ThemeProvider } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
-import { useAppFonts } from "../theme/fonts";
 import { loadLang } from "../lib/i18n";
 import { startSurfaces } from "../lib/surfaces";
 import "../data/strings"; // registers every surface's catalog
@@ -162,7 +161,6 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 const WASH = { contentStyle: { backgroundColor: P.penWash } };
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useAppFonts();
   /* the launch piece lives on the entry route (app/index.tsx): the egg,
      the hatch, the flight, the mark — it covers the session check and
      leaves once the mark has landed */
@@ -174,11 +172,10 @@ export default function RootLayout() {
     startSurfaces();
   }, []);
 
+  // the fonts are embedded (theme/post), so nothing waits on them
   useEffect(() => {
-    if (fontsLoaded || fontError) SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
+    void SplashScreen.hideAsync();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: P.paper }}>

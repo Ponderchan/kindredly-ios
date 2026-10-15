@@ -36,8 +36,20 @@ export const P = {
   keyVoice: "#D6EBFA",
 } as const;
 
-/* Family names are the fonts' PostScript names: the faces are embedded in the
-   app (theme/fonts has why, and why an italic face also wants fontStyle). */
+/* THE FACES ARE EMBEDDED. The thirteen files in assets/fonts, each named by
+   its PostScript name, are listed under the expo-font plugin in app.json, so
+   the build puts them in the app and iOS registers them before any JS runs —
+   no runtime loading, no splash wait. They used to come from the Expo Google
+   Fonts package roots, which ship every weight a package has: 68 files,
+   12.2 MB in the 1.2.3 app, for 12 faces actually set (now 2.6 MB). The family
+   tokens here, in theme/tokens (F) and theme/y2k (F2) are those PostScript
+   names, and so is every SwiftUI Font.custom in modules/kindredly-ui.
+   Italic needs saying twice: fontFamily the italic face AND fontStyle
+   "italic" — iOS files Fraunces-Italic under the one Fraunces family, and
+   React Native picks the face whose style matches fontStyle, so the italic
+   face asked for alone comes out upright. (A JS bundle that relies on these
+   names must never reach a binary built without them: runtimeVersion follows
+   the app version, so an update can't.) */
 export const PF = {
   mono: "IBMPlexMono-Regular",
   monoMed: "IBMPlexMono-Medium",
@@ -50,9 +62,11 @@ export const PF = {
   // your input box"). Inter falls through to the system face for CJK.
   writing: "Inter-Regular",
   // a letter between two people — read and written in a text serif
-  // (Newsreader; see theme/fonts for why not Fraunces); CJK glyphs fall
-  // through to the system face, which is what we want. On a build with the
-  // faces embedded, fontStyle "italic" finds Newsreader-Italic in its family.
+  // (Newsreader: a text face made for long reading on a screen. Fraunces stays
+  // the display voice; its ball-terminal f and hooked ligatures are a
+  // mannerism in the middle of someone's sentence — owner, 2026-09-20). CJK
+  // glyphs fall through to the system face, which is what we want; fontStyle
+  // "italic" finds Newsreader-Italic in its family.
   letterSerif: "Newsreader-Regular",
   serif: "Fraunces-Regular",
   serifItalic: "Fraunces-Italic",

@@ -39,7 +39,8 @@ export const C = {
 export type ColorKey = keyof typeof C;
 
 /* Font families: the PostScript names of the faces embedded in the app (see
-   theme/fonts.ts, which also says why an italic face wants fontStyle too). */
+   the note above PF in theme/post, which also says why an italic face wants
+   fontStyle too). */
 export const F = {
   // v20 typography: Fraunces (serif — headings, letter bodies, quotes) +
   // Inter (sans — UI chrome). Recolored to the blue-white palette above.
