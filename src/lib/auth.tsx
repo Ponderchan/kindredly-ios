@@ -69,6 +69,35 @@ export function useAuth(): AuthValue {
 
 const redirectTo = Linking.createURL("auth-callback");
 
+/* ONE CODE, ONE EXCHANGE (owner's phone, 2026-10-15: "PKCE code verifier not
+   found in storage" on Continue with Google). The Google redirect reaches two
+   listeners — openAuthSessionAsync's result and the app-wide deep-link
+   handler that exists for the email link — and both exchanged the same code.
+   The first one in deletes the verifier; the second fails, and when the
+   second was Google's own, its error was shown over a sign-in that had just
+   worked. Now every caller of a code shares one exchange, and an exchange
+   that errors while a session is already there (the other path won) counts
+   as done. */
+const exchanges = new Map<string, Promise<{ error: string | null }>>();
+function exchangeOnce(code: string): Promise<{ error: string | null }> {
+  const running = exchanges.get(code);
+  if (running) return running;
+  const p = (async () => {
+    if (!supabase) return { error: "Auth not configured." };
+    try {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) return { error: null };
+      const { data } = await supabase.auth.getSession();
+      if (data.session && !data.session.user.is_anonymous) return { error: null };
+      return { error: error.message };
+    } catch (e: any) {
+      return { error: e?.message || "Sign-in failed." };
+    }
+  })();
+  exchanges.set(code, p);
+  return p;
+}
+
 const LOCAL_PROFILE_KEY = "kindredly_profile_local";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -163,9 +192,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase || !url) return;
     try {
       const code = (Linking.parse(url).queryParams?.code as string) || "";
-      if (code) await supabase.auth.exchangeCodeForSession(code);
-    } catch {
-      /* ignore malformed callbacks */
+      if (code) {
+        const { error } = await exchangeOnce(code);
+        if (error) console.warn("[auth] link sign-in:", error);
+      }
+    } catch (e) {
+      console.warn("[auth] malformed callback:", e);
     }
   }, []);
   useEffect(() => {
@@ -268,8 +300,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.type === "success" && res.url) {
         const code = (Linking.parse(res.url).queryParams?.code as string) || "";
         if (code) {
-          const { error: e2 } = await supabase.auth.exchangeCodeForSession(code);
-          if (e2) return { error: e2.message };
+          const { error: e2 } = await exchangeOnce(code);
+          if (e2) return { error: e2 };
           return { ok: true };
         }
       }
