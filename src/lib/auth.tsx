@@ -9,6 +9,7 @@ import React, {
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { adoptGuestBucket, claimLegacyKeys, scoped, setStorageUser } from "./scoped-store";
+import { handOverJournal } from "./journal";
 import { forgetThisDevice } from "./notify";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
@@ -432,12 +433,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const uid = sessionRef.current?.user?.id;
+      /* …except the journal (owner, 2026-10-15: "日记留吧"): sealed pages
+         belong to the phone, as this sheet says, so they are handed to the
+         guest bucket the phone falls back to before the scrub. If the
+         hand-over fails, the account's journal is left unscrubbed rather
+         than lost. */
+      let journalHandedOver = true;
+      if (uid) {
+        try {
+          await handOverJournal(uid);
+        } catch (e) {
+          journalHandedOver = false;
+          console.warn("[auth] journal hand-over failed; leaving it in place:", e);
+        }
+      }
       const keys = await AsyncStorage.getAllKeys();
-      /* namespaced now: scrub exactly the deleted account's bucket (its
-         journal included — the account is gone, its sealed pages go with
-         it), plus any legacy bare keys. Other accounts' buckets stay. */
+      /* namespaced: scrub exactly the deleted account's bucket, plus any
+         legacy bare keys — never a bare journal, and never the account's
+         journal if it couldn't be handed over. Other accounts' buckets stay. */
+      const isJournal = (k: string) => k.split("::")[0].startsWith("kindredly_journal");
       const gone = keys.filter(
-        (k) => k.startsWith("kindredly") && (uid ? k.endsWith(`::${uid}`) || !k.includes("::") : !k.includes("::")),
+        (k) =>
+          k.startsWith("kindredly") &&
+          (uid ? k.endsWith(`::${uid}`) || !k.includes("::") : !k.includes("::")) &&
+          !(isJournal(k) && (!k.includes("::") || !journalHandedOver)),
       );
       if (gone.length) await AsyncStorage.multiRemove(gone);
     } catch {
