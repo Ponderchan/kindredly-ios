@@ -10,10 +10,11 @@ import { rowStyleFor, type RowStyle } from "./10a/kit";
 
    10a (step 5): useRowStyle() below is the row on the theme. The owner
    keeps the sizes (52 face, gap 14, name 17/600, two-line 15/20 preview,
-   badge 20) and the colours come from 10a: names ink, preview sub, the
-   time always mute in mono 500 11 (blue is kept for the kindred number and
-   YOUR TURN), the badge ind with the page colour on it, the hairline under
-   the words in line (H:65), the disc soft2, and the 22pt inset of the mock
+   time 13 in the system face, badge 20 — the same sizes the Swift
+   KPersonRow draws) and the colours come from 10a: names ink, preview sub,
+   the time always mute (blue is kept for the kindred number and YOUR
+   TURN), the badge ind with the page colour on it, the hairline under the
+   words in line (H:65), the disc soft2, and the 22pt inset of the mock
    (H:63-65). The recipe is rowStyleFor in components/10a/kit (pure, tested).
 
    The static ROW and row* exports below are the prototype's fixed colours,

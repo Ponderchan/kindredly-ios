@@ -167,12 +167,13 @@ export function OfficialMark({ size = 16, ground }: { size?: number; ground?: st
    unopened.
 
    In the list she is drawn with the shared row (useRowStyle): the owner's
-   sizes in 10a colours — name ink, the time always mute in mono 11 (the
-   badge already says something is new), preview sub, the badge ind with
-   the page colour on it, the 22 inset. `hairline` draws the 10a rule under
-   her words (H:65) for a list that draws its rules that way; the list
-   before step 5 draws its own above the next row and leaves it off. With
-   no posts the time is hidden and the preview is wo.row.sub.
+   sizes in 10a colours — name ink, the time system 13 like every row
+   under her and always mute (the badge already says something is new),
+   preview sub, the badge ind with the page colour on it, the 22 inset.
+   `hairline` draws the 10a rule under her words (H:65) for a list that
+   draws its rules that way; the list before step 5 draws its own above
+   the next row and leaves it off. With no posts the time is hidden and
+   the preview is wo.row.sub.
 
    On its own (the empty Kindreds page) it is a card: sf with the soft
    shadow, which stays fixed. */

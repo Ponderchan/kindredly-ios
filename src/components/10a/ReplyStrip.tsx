@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { View, type StyleProp, type TextInput, type TextInputProps, type ViewStyle } from "react-native";
 import { GlyphInput } from "../GlyphInput";
 import { useTheme } from "../../lib/theme";
@@ -24,6 +24,25 @@ import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKey
    was typed in onSend(value). To put text in — a draft resumed, a send
    that failed and must give the words back, a reader closing — call
    setText on the handle; that is the only way text goes in after mount.
+
+   HOW TEXT GOES IN (React Native 0.86, Fabric). The TextInput's native
+   `text` prop is not a one-off: every time it changes, the shadow node
+   writes it into the field's state (BaseTextInputShadowNode
+   updateStateIfNeeded) and the native view puts it over what is shown
+   whenever no keystroke is in flight (RCTTextInputComponentView
+   updateState). So that prop — defaultValue here, on every render — must
+   change exactly when text is put in and never drift back by itself
+   (handing `value` for one render and then dropping it wiped the words a
+   frame later). It lives in `seed.text`: initialText once, at mount, and
+   after that only what setText and clear say. When setText must put in
+   the very text the prop already carries (the person typed over it) a
+   prop that doesn't change can't do it: "" goes in by the field's own
+   clear(), anything else by a fresh field (`seed.n` is its key) that
+   takes the keyboard if the old one had it (onBlur then onFocus may fire
+   around the swap). A device check belongs to
+   the 0b spike: setText after typing, setText of the same draft after
+   editing it, and setText after a send has cleared the field — each must
+   stay on screen, with the send key matching what is shown.
 
    SENDING. The key and, with returnSends (the default, as in every chat),
    the keyboard's Return both send. Return then never inserts a newline,
@@ -65,7 +84,8 @@ export type ReplyStripProps = {
   onChangeText?: (value: string) => void;
   /** the keyboard's Return sends (default true); false for a letter, where Return is a new line */
   returnSends?: boolean;
-  /** the text the field starts with (read at mount only; use setText after) */
+  /** the text the field starts with (read once, at mount: a later change is
+      ignored, so it can never overwrite what is being typed; use setText) */
   initialText?: string;
   /** beside the strip, on the left: round tools */
   leading?: ReactNode;
@@ -114,15 +134,21 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
 ) {
   const { t: tk } = useTheme();
   const input = useRef<TextInput>(null);
-  const text = useRef(initialText ?? "");
+  /* the field's native `text` prop (see HOW TEXT GOES IN): `text` changes
+     only in setText and clear; `n` is the field's key, bumped to put in the
+     text the prop already carries; `focus` is whether that fresh field
+     takes the keyboard */
+  const [seed, setSeed] = useState(() => ({ text: initialText ?? "", n: 0, focus: false }));
+  /* the prop as last committed: Fabric puts setText's text in only when
+     the next commit carries something different */
+  const committed = useRef(seed.text);
+  useLayoutEffect(() => {
+    committed.current = seed.text;
+  }, [seed.text]);
+  /* what the field holds (every edit, setText and clear) */
+  const text = useRef(seed.text);
   const [empty, setEmpty] = useState(text.current.length === 0);
   const [hasWords, setHasWords] = useState(text.current.trim().length > 0);
-  /* setText's text, handed to the TextInput as `value` for one render only:
-     it sends it to the native view once and the field is uncontrolled again */
-  const [seed, setSeed] = useState<{ value: string } | null>(null);
-  useEffect(() => {
-    if (seed) setSeed(null);
-  }, [seed]);
 
   const latest = useRef(onChangeText);
   latest.current = onChangeText;
@@ -135,6 +161,9 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
 
   const clear = () => {
     input.current?.clear();
+    /* the prop follows, so it never holds text the field no longer shows
+       (a later setText of those words is then a change Fabric applies) */
+    setSeed((s) => (s.text === "" ? s : { ...s, text: "" }));
     note("");
   };
 
@@ -142,7 +171,17 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
     ref,
     () => ({
       setText(value: string) {
-        setSeed({ value });
+        const shown = text.current;
+        /* a different prop goes in on the next commit; the same one as
+           committed also cancels any other text set since */
+        setSeed((s) => (s.text === value ? s : { ...s, text: value }));
+        if (value === committed.current && value !== shown) {
+          if (value === "") input.current?.clear();
+          else {
+            const focus = input.current?.isFocused() ?? false;
+            setSeed((s) => ({ text: value, n: s.n + 1, focus }));
+          }
+        }
         note(value);
       },
       clear,
@@ -151,7 +190,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
       getText: () => text.current,
       isFocused: () => input.current?.isFocused() ?? false,
     }),
-    // note and clear only touch refs and state setters
+    // note, clear and setText only touch refs and state setters
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -180,10 +219,10 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
         faceStyle={{ flexDirection: "row", alignItems: "flex-end", minHeight, paddingLeft: padLeft, paddingRight: padRight }}
       >
         <GlyphInput
+          key={seed.n}
           ref={input}
           {...inputProps}
-          defaultValue={initialText}
-          value={seed?.value}
+          defaultValue={seed.text}
           onChangeText={note}
           placeholder={placeholder}
           placeholderTextColor={tk.mute}
@@ -192,7 +231,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
           submitBehavior={returnSends ? "submit" : "newline"}
           onSubmitEditing={returnSends ? send : undefined}
           editable={editable}
-          autoFocus={autoFocus}
+          autoFocus={seed.n > 0 ? seed.focus : autoFocus}
           maxLength={maxLength}
           onFocus={onFocus}
           onBlur={onBlur}

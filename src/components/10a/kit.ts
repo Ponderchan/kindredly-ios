@@ -1,5 +1,5 @@
 import type { TextStyle, ViewStyle } from "react-native";
-import { MONO, PF, channelColors } from "../../theme/post";
+import { MONO, channelColors } from "../../theme/post";
 import type { ThemeTokens } from "../../theme/themes";
 
 /* THE 10a TWINS' RECIPES (10a step 5, React Native).
@@ -174,8 +174,8 @@ export function fadeColors(bg: string): [string, string] {
 /* ── the chat row (Kindreds; owner 2026-10-11 sizes, 10a colours) ─────── */
 
 /** One row's metrics. The owner keeps the sizes (52 face, gap 14, name
-    17/600, two-line 15/20 preview, badge 20); the inset is the mock's 22
-    from the screen edge (H:63-65). */
+    17/600, two-line 15/20 preview, time 13 system, badge 20); the inset is
+    the mock's 22 from the screen edge (H:63-65). */
 export const ROW_METRICS = { face: 52, gap: 14, pad: 22, badge: 20 } as const;
 
 export type RowStyle = {
@@ -210,7 +210,9 @@ export type RowStyle = {
   /** add to `text` for the 10a hairline under the words (H:65) */
   readonly hairline: ViewStyle;
   readonly name: TextStyle;
-  /** always mute, mono 500 11 (H:65; the owner keeps blue for the kindred number and YOUR TURN) */
+  /** the system face at 13 — the size the row already had (foundation,
+      kindreds: "time 13 system"; KPersonRow draws the same) — always mute
+      (H:65; the owner keeps blue for the kindred number and YOUR TURN) */
   readonly time: TextStyle;
   readonly preview: TextStyle;
   readonly you: TextStyle;
@@ -232,7 +234,7 @@ export function rowStyleFor(tk: ThemeTokens): RowStyle {
     text: { flex: 1, minWidth: 0, paddingVertical: 12, gap: 3 },
     hairline: { borderBottomWidth: 1, borderBottomColor: tk.line },
     name: { fontSize: 17, fontWeight: "600", color: tk.ink },
-    time: { fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.mute },
+    time: { fontSize: 13, color: tk.mute },
     preview: { fontSize: 15, lineHeight: 20, color: tk.sub },
     you: { color: tk.ink },
     badge: { minWidth: badge, height: badge, borderRadius: badge / 2, paddingHorizontal: 6, backgroundColor: tk.ind, alignItems: "center", justifyContent: "center", marginTop: 2 },

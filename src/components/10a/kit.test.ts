@@ -23,7 +23,6 @@ registerHooks({
 
 const kit = await import("./kit.ts");
 const { THEMES, THEME_KEYS } = await import("../../theme/themes.ts");
-const { MONO } = await import("../../theme/post.ts");
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => { console.log((cond ? "ok  " : "FAIL") + " " + name); if (!cond) fails++; };
@@ -92,7 +91,7 @@ for (const key of THEME_KEYS) {
   ok(`${key}: the row keeps the owner's sizes (52 face, gap 14, name 17/600, preview 15/20, badge 20)`, r.face === 52 && r.gap === 14 && r.name.fontSize === 17 && r.name.fontWeight === "600" && r.preview.fontSize === 15 && r.preview.lineHeight === 20 && r.badge.height === 20);
   ok(`${key}: the row sits 22 in (H:63-65)`, r.pad === 22 && r.row.paddingHorizontal === 22);
   ok(`${key}: row colours by role — name ink, preview sub, badge ind`, r.name.color === tk.ink && r.preview.color === tk.sub && r.badge.backgroundColor === tk.ind && r.badgeText.color === tk.bg);
-  ok(`${key}: the time is always mute, mono 11`, r.time.color === tk.mute && r.time.fontSize === MONO.title && r.time.fontFamily === "IBMPlexMono-Medium");
+  ok(`${key}: the time keeps its size — system 13, no mono — and is always mute`, r.time.color === tk.mute && r.time.fontSize === 13 && r.time.fontFamily === undefined && r.time.fontWeight === undefined);
   ok(`${key}: the hairline is line, the disc soft2, the row filled with the page`, r.hairline.borderBottomColor === tk.line && r.disc.backgroundColor === tk.soft2 && r.row.backgroundColor === tk.bg);
   ok(`${key}: the badge number reads on ind`, kit.contrastRatio(r.badgeText.color as string, r.badge.backgroundColor as string) >= 4.5);
 
