@@ -3,7 +3,8 @@ import { useRouter } from "expo-router";
 import { GUIDE_HREF, reelOf } from "./guide-reel";
 import { ReelSquare } from "./ReelSquare";
 import { GUIDE_BY_ID, type GuideId } from "../data/guides";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { useWrenName } from "../lib/wren-name";
 
@@ -17,6 +18,8 @@ import { useWrenName } from "../lib/wren-name";
    room is on screen. */
 export function GuideCard({ guide, onNotIt }: { guide: GuideId; onNotIt?: () => void }) {
   useLang();
+  const P = useP();
+  const T = useTheme().t;
   const wren = useWrenName();
   const router = useRouter();
   const g = GUIDE_BY_ID[guide];
@@ -24,7 +27,7 @@ export function GuideCard({ guide, onNotIt }: { guide: GuideId; onNotIt?: () => 
   const body = g.frames.map((_, n) => t(`gd.${guide}.f${n + 1}`, { wren })).join(" ");
   return (
     <View style={{ marginTop: 6, marginBottom: 8 }}>
-      <View style={{ maxWidth: 360, borderRadius: 18, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, overflow: "hidden" }}>
+      <View style={{ maxWidth: 360, borderRadius: 18, backgroundColor: T.sf, borderWidth: 1, borderColor: P.ink12, overflow: "hidden" }}>
         <ReelSquare reel={reel} label={t(`gd.${guide}.title`)} />
         <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, gap: 6 }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 17, fontWeight: "700", color: P.ink }}>{t(`gd.${guide}.title`)}</Text>
@@ -33,7 +36,7 @@ export function GuideCard({ guide, onNotIt }: { guide: GuideId; onNotIt?: () => 
         <Pressable
           onPress={() => router.push(GUIDE_HREF[guide] as never)}
           accessibilityRole="button"
-          style={({ pressed }) => ({ borderTopWidth: 1, borderTopColor: P.ink12, paddingVertical: 12, alignItems: "center", backgroundColor: pressed ? "#F6F5FB" : "#FFFFFF" })}
+          style={({ pressed }) => ({ borderTopWidth: 1, borderTopColor: P.ink12, paddingVertical: 12, alignItems: "center", backgroundColor: pressed ? T.soft2 : T.sf })}
         >
           <Text style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "600", color: P.pen }}>{t(`gd.${guide}.cta`)}</Text>
         </Pressable>
@@ -53,6 +56,7 @@ export function GuideCard({ guide, onNotIt }: { guide: GuideId; onNotIt?: () => 
    without typing */
 export function GuideChips({ ids, onPick, more, onMore }: { ids: GuideId[]; onPick: (g: GuideId) => void; more?: boolean; onMore?: () => void }) {
   useLang();
+  const P = useP();
   return (
     <View style={{ marginTop: 18 }}>
       <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.3, color: P.ink40, marginBottom: 8 }}>{t("gd.chips.head")}</Text>

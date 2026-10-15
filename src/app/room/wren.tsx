@@ -4,7 +4,8 @@ import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { P, PF } from "../../theme/post";
+import { PF } from "../../theme/post";
+import { useP, useTheme } from "../../lib/theme";
 import { ChatField } from "../../components/ChatField";
 import { OfficialBird } from "../../components/WrenDesk";
 import { GuideCard, GuideChips } from "../../components/GuideCard";
@@ -71,6 +72,9 @@ const FIRST_CHIPS: GuideId[] = ["letters", "kindreds", "aura"];
 
 export default function WrenDeskScreen() {
   useLang();
+  // the theme's colours: P keyed like the static palette (useP), T the 10a tokens
+  const P = useP();
+  const T = useTheme().t;
   const router = useRouter();
   const params = useLocalSearchParams<{ guide?: string }>();
   const { isGuest } = useAuth();
@@ -344,7 +348,7 @@ export default function WrenDeskScreen() {
                 {(newDay || !sameSpeaker) && Label(label, mine, newDay)}
                 {photo ? (
                   <Pressable onPress={() => setPhotoFull({ path: photo })} accessibilityRole="imagebutton" accessibilityLabel={t("ph.open")} style={{ width: "62%", marginBottom: 6 }}>
-                    <MediaImage path={photo} style={{ width: "100%", aspectRatio: 0.75, backgroundColor: "#EFEDE6" }} />
+                    <MediaImage path={photo} style={{ width: "100%", aspectRatio: 0.75, backgroundColor: T.soft2 }} />
                   </Pressable>
                 ) : (
                   <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
@@ -394,7 +398,7 @@ export default function WrenDeskScreen() {
               setTray((v) => !v);
             }}
             hitSlop={6}
-            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: T.ln, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
             <PlusGlyph size={24} open={tray} color={tray ? P.pen : P.ink} />
           </Pressable>

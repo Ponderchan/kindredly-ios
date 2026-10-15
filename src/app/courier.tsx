@@ -5,7 +5,8 @@ import { Pressable, Text, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP } from "../lib/theme";
 import { PALETTE, daylight, type Daylight } from "../components/CourierCard";
 import { WrenHome } from "../components/WrenHome";
 import type { WrenAccessory, WrenStage } from "../components/WrenBird";
@@ -32,6 +33,11 @@ import { getStageFloor, stageIndex, wrenStage } from "../lib/wren-style";
 
 export default function CourierRoom() {
   useLang();
+  /* the page under her cover follows the theme (the cover keeps the hour's
+     sky, see WrenHome). Its ground stays the accent's palest wash — useP's
+     penWash, not t.bg — because the keepsake cards and the two cells on it
+     have no edge of their own, and in Classic t.bg is as white as they are. */
+  const P = useP();
   const router = useRouter();
   const params = useLocalSearchParams<{ play?: string }>(); // ?play=1 — from her day off on Me
   const wren = useWrenName();

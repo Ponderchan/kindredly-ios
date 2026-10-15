@@ -11,7 +11,9 @@ import { Alert, Animated, Easing, Keyboard, LayoutAnimation, Pressable, ScrollVi
 import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { PALETTE, daylight } from "./CourierCard";
 import { t as tr, useLang } from "../lib/i18n";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
+import { THEMES } from "../theme/themes";
 import { useHatchlingForm } from "../lib/hatchling-form";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin, type WrenStage } from "./WrenBird";
 import { CourierStage } from "./CourierStage";
@@ -40,6 +42,14 @@ import type { GrowthStats } from "../data/growth";
    threads, the dates are the days the stages really turned. */
 
 const WB = WHEREABOUTS_META;
+
+/* THE COVER KEEPS ITS OWN COLOURS. Her sky is the hour's (CourierCard's
+   daylight), not the theme's, and it already has a night of its own. So
+   what is drawn on it — her bubble, the PLAY sticker, the DAY chip, the
+   status band on its bottom edge — keeps fixed colours in every theme, and
+   its dark type is the 10a ink, fixed (type on the lime sticker is always
+   dark). Only the page under the band follows the theme. */
+const COVER_INK = THEMES.classic.ink;
 
 export function WrenHome({
   stats,
@@ -91,6 +101,8 @@ export function WrenHome({
   autoPlay?: boolean;
 }) {
   useLang();
+  const P = useP();
+  const T = useTheme().t;
   const { skin, pick } = useWrenSkinControl();
   const info = stageInfo(stats, stageFloor);
   const wren = useWrenName();
@@ -302,8 +314,8 @@ export function WrenHome({
             accessibilityState={{ expanded: log, disabled: !flies }}
             style={({ pressed }) => ({ position: "absolute", left: 16, bottom: 12, maxWidth: coverW - 32 - 152, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 4, opacity: pressed ? 0.8 : 1 })}
           >
-            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13, color: P.ink }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
-            {flies && <Text style={{ fontFamily: PF.letter, fontSize: 11, color: P.ink40 }}>{log ? "▴" : "▾"}</Text>}
+            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13, color: COVER_INK }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+            {flies && <Text style={{ fontFamily: PF.letter, fontSize: 11, color: "rgba(30,27,53,0.4)" }}>{log ? "▴" : "▾"}</Text>}
           </Pressable>
         )}
 
@@ -318,10 +330,10 @@ export function WrenHome({
             {canPlay && (
               /* the game's door: a sticker in the signal colour, the pillars and
                  her on it, PLAY — it has to read as a game at a glance */
-              <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: P.ink, shadowColor: P.ink, shadowOffset: { width: pressed ? 1 : 3, height: pressed ? 1 : 3 }, shadowOpacity: 1, shadowRadius: 0, transform: [{ translateY: pressed ? 2 : 0 }] })}>
+              <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: COVER_INK, shadowColor: COVER_INK, shadowOffset: { width: pressed ? 1 : 3, height: pressed ? 1 : 3 }, shadowOpacity: 1, shadowRadius: 0, transform: [{ translateY: pressed ? 2 : 0 }] })}>
                 <PillarsGlyph size={24} />
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: P.ink }}>{tr("ff.play").toUpperCase()}</Text>
-                <Text style={{ fontSize: 9, color: P.ink }}>▶</Text>
+                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: COVER_INK }}>{tr("ff.play").toUpperCase()}</Text>
+                <Text style={{ fontSize: 9, color: COVER_INK }}>▶</Text>
               </Pressable>
             )}
           </View>
@@ -380,8 +392,8 @@ export function WrenHome({
             const st8 = idx < cur ? "done" : idx === cur ? "now" : "later";
             return (
               <View key={st} style={{ flexDirection: "row", alignItems: "center", flex: i < JOURNEY.length - 1 ? 1 : 0 }}>
-                <View style={{ width: st8 === "now" ? 16 : 12, height: st8 === "now" ? 16 : 12, borderRadius: 999, backgroundColor: st8 === "later" ? "transparent" : st8 === "now" ? P.pen : P.ink, borderWidth: st8 === "later" ? 1.5 : st8 === "now" ? 3 : 0, borderColor: st8 === "now" ? "#DCD9F0" : P.ink40 }} />
-                {i < JOURNEY.length - 1 && <View style={{ flex: 1, height: 2, backgroundColor: idx < cur ? P.ink : "#DCD9F0", marginHorizontal: 4 }} />}
+                <View style={{ width: st8 === "now" ? 16 : 12, height: st8 === "now" ? 16 : 12, borderRadius: 999, backgroundColor: st8 === "later" ? "transparent" : st8 === "now" ? P.pen : P.ink, borderWidth: st8 === "later" ? 1.5 : st8 === "now" ? 3 : 0, borderColor: st8 === "now" ? T.lav : P.ink40 }} />
+                {i < JOURNEY.length - 1 && <View style={{ flex: 1, height: 2, backgroundColor: idx < cur ? P.ink : T.lav, marginHorizontal: 4 }} />}
               </View>
             );
           })}
@@ -420,7 +432,7 @@ export function WrenHome({
                 const def = keepsake(k.id);
                 if (!def) return null;
                 return (
-                  <Pressable key={k.id} onPress={() => onOpenKeepsake(k.id)} style={({ pressed }) => ({ flex: 1, backgroundColor: "#FFFFFF", borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
+                  <Pressable key={k.id} onPress={() => onOpenKeepsake(k.id)} style={({ pressed }) => ({ flex: 1, backgroundColor: T.sf, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
                     <Image source={def.icon} style={{ width: 40, height: 40 }} resizeMode="contain" />
                     <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 8, textAlign: "center" }}>{tr(`ks.name.${def.id}`)}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>{k.evidence}</Text>
@@ -469,11 +481,13 @@ export function WrenHome({
 const COVER_H = 300;
 
 
-/* a counted fact as a sticker label: white, the band's ink as the edge and
-   the mark, the number in bold */
+/* a counted fact as a sticker label: the card face (white in Classic), the
+   band's ink as the edge and the mark, the number in bold */
 function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | "next"; text: string; tone: string }) {
+  const P = useP();
+  const T = useTheme().t;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", borderRadius: 999, borderWidth: 1.5, borderColor: tone, paddingLeft: 10, paddingRight: 13, paddingVertical: 6 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: T.sf, borderRadius: 999, borderWidth: 1.5, borderColor: tone, paddingLeft: 10, paddingRight: 13, paddingVertical: 6 }}>
       {/* a kindred wears the kindred face (round 3a), as everywhere else */}
       {icon === "kindred" ? <StateGlyph kind="kindreds" size={16} /> : (
       <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -498,8 +512,10 @@ function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | 
 }
 
 function Cell({ label, value, count, swatch, on, onPress }: { label: string; value: string; count: string; swatch: string; on: boolean; onPress: () => void }) {
+  const P = useP();
+  const T = useTheme().t;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, backgroundColor: "#FFFFFF", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : "transparent", opacity: pressed ? 0.85 : 1 })}>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, backgroundColor: T.sf, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : "transparent", opacity: pressed ? 0.85 : 1 })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: swatch }} />
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40 }}>{label}</Text>
@@ -525,6 +541,8 @@ function drivingThread(threads: ThreadSummary[], state: string): ThreadSummary |
 }
 
 function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadSummary[]; state: string; wren: string; onOpenThread: (t: ThreadSummary) => void }) {
+  const P = useP();
+  const T = useTheme().t;
   const t = drivingThread(threads, state);
   const who = t ? (t.revealed && t.otherName ? t.otherName : `No. ${postNo(t.other)}`) : null;
   const rows: string[] = t
@@ -542,7 +560,7 @@ function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadS
     : [tr("wren.slip.nothing"), tr("wren.slip.write")];
 
   return (
-    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: P.ink12, backgroundColor: "#FFFFFF", borderRadius: 12, overflow: "hidden" }}>
+    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
         <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.slip")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
@@ -579,9 +597,11 @@ const GRACE: Record<WrenStage, { amp: number; speed: number; wobble: number }> =
 };
 
 function FlightLog({ state, carried, threads, driving, wren }: { state: Whereabouts | "dozing"; carried: { at: string }[]; threads: ThreadSummary[]; driving: ThreadSummary | null; wren: string }) {
+  const P = useP();
+  const T = useTheme().t;
   const { rows, line } = flightLog(state, carried, threads, driving);
   return (
-    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: P.ink12, backgroundColor: "#FFFFFF", borderRadius: 12, overflow: "hidden" }}>
+    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
         <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.log")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
