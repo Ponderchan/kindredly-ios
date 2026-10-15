@@ -20,6 +20,7 @@ import { ThemeProvider } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
 import { useAppFonts } from "../theme/fonts";
 import { loadLang } from "../lib/i18n";
+import { startSurfaces } from "../lib/surfaces";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
@@ -168,6 +169,9 @@ export default function RootLayout() {
   // the reader's own language choice, restored before the first paint
   useEffect(() => {
     void loadLang();
+    // which screens draw in SwiftUI (lib/surfaces): the cache now, the table
+    // when it answers, again on every return to the front
+    startSurfaces();
   }, []);
 
   useEffect(() => {
