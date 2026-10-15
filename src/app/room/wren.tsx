@@ -8,6 +8,7 @@ import { P, PF } from "../../theme/post";
 import { ChatField } from "../../components/ChatField";
 import { OfficialBird } from "../../components/WrenDesk";
 import { GuideCard, GuideChips } from "../../components/GuideCard";
+import { NewsCard, newsIdOf } from "../../components/news-reel";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { TraceTray, type TraceAction } from "../../components/LeaveATrace";
 import { PlusGlyph } from "../../components/ComposeTray";
@@ -348,7 +349,11 @@ export default function WrenDeskScreen() {
                 ) : (
                   <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
                 )}
-                {it.type === "post" && !!it.post.link && (
+                {/* a release's reel plays right under its post; a reel this build
+                    doesn't ship leaves the words alone, with no dead button */}
+                {it.type === "post" && newsIdOf(it.post.link) ? (
+                  <NewsCard id={newsIdOf(it.post.link)!} label={body.split("\n")[0]} />
+                ) : it.type === "post" && !!it.post.link && (
                   <Pressable onPress={() => openLink(it.post.link!)} hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4, marginBottom: 6 }}>
                     <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: P.pen }}>{t("wo.open")} ›</Text>
                   </Pressable>
