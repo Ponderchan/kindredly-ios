@@ -453,7 +453,9 @@ export function WrenHome({
           </View>
         )}
 
-        {/* ── the door to First Class: her archive, not your words ── */}
+        {/* ── the door to First Class, named for what it opens on this page:
+             her full wardrobe. It said FULL ARCHIVE, which no build ever had
+             (audit, 2026-10-12; Apple 2.3.2 reads a paywall against the app). ── */}
         <Pressable onPress={onPlus} style={({ pressed }) => ({ marginTop: 24, backgroundColor: "#FFF8DE", borderRadius: 999, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 13, gap: 10, opacity: pressed ? 0.85 : 1 })}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#D8A63F" }} />
           <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "#8A6A1C" }}>{tr("wren.fcArchive")}</Text>

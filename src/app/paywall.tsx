@@ -23,8 +23,9 @@ import { track, type PaywallSource } from "../lib/track";
    same pass reads MEMBERSHIP ACTIVE and the button manages the
    subscription through Apple.
 
-   EVERY LINE IS A GATE THAT EXISTS IN THE CODE AND HAS A DOOR: more
-   kindreds, voice letters, the wardrobe. Nothing else is promised. */
+   EVERY LINE IS A GATE THAT EXISTS IN THE CODE AND HAS A DOOR: rooms
+   that never close, voice letters, the wardrobe (kindreds are free and
+   unlimited). Nothing else is promised. */
 
 const NIGHT = "#1E1B35";
 const GOLD = "#D8A63F";
