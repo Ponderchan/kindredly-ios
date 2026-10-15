@@ -1,4 +1,4 @@
-import { scoped as AsyncStorage, storageUser } from "./scoped-store";
+import { scoped as AsyncStorage, scopedTo, storageOwner } from "./scoped-store";
 import { Directory, File, Paths } from "expo-file-system";
 import type { MoodId } from "../data/moods";
 
@@ -81,24 +81,32 @@ const COUNT_KEY = "kindredly_journal_n";
 let readFailed = false;
 let noted: string | null = null; // `${account}:${count}` last written
 
+/* ONE ACCOUNT FROM READ TO WRITE. A scoped key is fixed when its call is
+   made, but the account can change before the answer comes back — signing
+   out, a guest linking Apple — and WrenStage reads the journal in the very
+   commit that flips it. A count written on that answer landed in the NEW
+   account, which then looked like a journal storage had lost and was locked
+   out of writing for good. So every read, and every change from its read to
+   its save, is pinned to the account it started on. */
+type Store = ReturnType<typeof scopedTo>;
 type Stored = { pages: unknown[]; unreadable?: string; vanished?: boolean };
 
 /** a storage read of ours; one that fails marks the session. */
-async function read(key: string): Promise<string | null> {
+async function read(store: Store, key: string): Promise<string | null> {
   try {
-    return await AsyncStorage.getItem(key);
+    return await store.getItem(key);
   } catch (err) {
     readFailed = true;
     throw err;
   }
 }
 
-/** remember how many pages there are — best-effort, and only on a change. */
-async function noteCount(n: number): Promise<void> {
-  const mark = `${storageUser()}:${n}`;
+/** remember how many pages this account has — best-effort, only on a change. */
+async function noteCount(store: Store, owner: string, n: number): Promise<void> {
+  const mark = `${owner}:${n}`;
   if (mark === noted) return;
   try {
-    await AsyncStorage.setItem(COUNT_KEY, String(n));
+    await store.setItem(COUNT_KEY, String(n));
     noted = mark;
   } catch (err) {
     console.warn("[journal] couldn't note the page count:", err);
@@ -108,9 +116,9 @@ async function noteCount(n: number): Promise<void> {
 /** the pages exactly as saved. Rejects when storage can't be read; a blob
     that isn't a list comes back as `unreadable` for a writer to set aside,
     and nothing where pages were comes back as `vanished`. */
-async function readStored(): Promise<Stored> {
-  const raw = await read(KEY);
-  if (!raw) return Number(await read(COUNT_KEY)) > 0 ? { pages: [], vanished: true } : { pages: [] };
+async function readStored(store: Store): Promise<Stored> {
+  const raw = await read(store, KEY);
+  if (!raw) return Number(await read(store, COUNT_KEY)) > 0 ? { pages: [], vanished: true } : { pages: [] };
   try {
     const parsed: unknown = JSON.parse(raw);
     if (Array.isArray(parsed)) return { pages: parsed };
@@ -121,8 +129,8 @@ async function readStored(): Promise<Stored> {
 }
 
 /** keep every unreadable journal, oldest first, before a write replaces it. */
-async function setAside(raw: string): Promise<void> {
-  const kept = await AsyncStorage.getItem(RESCUE_KEY);
+async function setAside(store: Store, raw: string): Promise<void> {
+  const kept = await store.getItem(RESCUE_KEY);
   let all: unknown[] = [];
   if (kept) {
     try {
@@ -132,7 +140,7 @@ async function setAside(raw: string): Promise<void> {
       all = [kept];
     }
   }
-  await AsyncStorage.setItem(RESCUE_KEY, JSON.stringify([...all, { at: new Date().toISOString(), raw }]));
+  await store.setItem(RESCUE_KEY, JSON.stringify([...all, { at: new Date().toISOString(), raw }]));
   console.warn(`[journal] the stored journal didn't parse (${raw.length} chars); set aside under ${RESCUE_KEY}`);
 }
 
@@ -171,10 +179,12 @@ const isPage = (e: unknown, id: string): e is Partial<JournalEntry> =>
     and stays stored exactly as it was. */
 export async function loadJournal(): Promise<JournalEntry[]> {
   try {
-    const { pages, unreadable, vanished } = await readStored();
+    const owner = await storageOwner();
+    const store = scopedTo(owner);
+    const { pages, unreadable, vanished } = await readStored(store);
     if (unreadable !== undefined) console.warn("[journal] the stored journal didn't parse; showing none, keeping it");
     else if (vanished) console.warn("[journal] storage answered nothing where the journal had pages; showing none, writing nothing");
-    else void noteCount(pages.length); // journals saved before the count existed get one here
+    else void noteCount(store, owner, pages.length); // journals saved before the count existed get one here
     return showAll(pages);
   } catch (err) {
     console.warn("[journal] couldn't read the journal:", err);
@@ -188,12 +198,14 @@ export async function loadJournal(): Promise<JournalEntry[]> {
     checks the write), so callers retry with the same page id. */
 async function rewrite(change: (pages: unknown[]) => unknown[]): Promise<JournalEntry[]> {
   if (readFailed) throw new Error("journal: a read failed this session; nothing is written until the app restarts");
-  const { pages, unreadable, vanished } = await readStored();
+  const owner = await storageOwner();
+  const store = scopedTo(owner);
+  const { pages, unreadable, vanished } = await readStored(store);
   if (vanished) throw new Error("journal: storage lost track of a journal that had pages; not writing over it");
-  if (unreadable !== undefined) await setAside(unreadable);
+  if (unreadable !== undefined) await setAside(store, unreadable);
   const next = change(pages);
-  await AsyncStorage.setItem(KEY, JSON.stringify(next));
-  await noteCount(next.length);
+  await store.setItem(KEY, JSON.stringify(next));
+  await noteCount(store, owner, next.length);
   return showAll(next);
 }
 

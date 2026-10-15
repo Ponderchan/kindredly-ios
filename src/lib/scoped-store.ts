@@ -24,8 +24,22 @@ let gate: Promise<void> = new Promise((r) => {
   releaseGate = r;
 });
 
-/** whose bucket reads and writes go to right now (null until auth resolves) */
-export const storageUser = (): string | null => ns;
+/** the account reads and writes go to, once auth has said which (waiting
+    as they do) */
+export async function storageOwner(): Promise<string> {
+  if (ns === null) await gate;
+  return ns as string;
+}
+
+/** an AsyncStorage-shaped store pinned to one account, for a read and the
+    write that follows it: a scoped key is fixed when its call is made, but
+    the account can change before the answer comes back */
+export function scopedTo(owner: string) {
+  return {
+    getItem: (key: string): Promise<string | null> => AsyncStorage.getItem(`${key}::${owner}`),
+    setItem: (key: string, value: string): Promise<void> => AsyncStorage.setItem(`${key}::${owner}`, value),
+  };
+}
 
 export function setStorageUser(uid: string | null): void {
   ns = uid || "anon";
