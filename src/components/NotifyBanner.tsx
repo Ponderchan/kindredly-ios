@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { AppState, Linking, Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, Linking, Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import * as Notifications from "expo-notifications";
 import Svg, { Path } from "react-native-svg";
 import { useFocusEffect } from "expo-router";
@@ -8,7 +8,9 @@ import { scoped } from "../lib/scoped-store";
 import { registerForReplies } from "../lib/notify";
 import { replanLocal } from "../lib/local-push";
 import { useAuth } from "../lib/auth";
-import { ROW } from "./ChatRowStyle";
+import { useTheme } from "../lib/theme";
+import { MONO, PF } from "../theme/post";
+import { ROW_METRICS, noticeColors, notifyBannerShows } from "./10a/kit";
 
 /* TURN NOTIFICATIONS ON (owner, 2026-10-11, after another app's inbox).
    For someone whose phone won't let Kindredly knock, a thin bar under the
@@ -20,17 +22,15 @@ import { ROW } from "./ChatRowStyle";
    notifications already work. Coming back from Settings with them on, the
    device is registered at once and the bar goes.
 
-   THE BAR KEEPS ITS COLOURS IN EVERY THEME. A pale sky panel with indigo
-   type is a pair that holds its contrast whatever page it lies on, and 10a
-   has no token for a notice, so both are fixed here, as Settings keeps its
-   own notifications-off panel. The indigo is the one the chat rows used
-   (ROW.blue, Classic's ind), written out so the bar no longer reads ROW for
-   colour; ROW still gives the row inset. */
-const NOTICE_GROUND = "#EEF5FD";
-const NOTICE_INK = "#3A34D6";
+   10a (step 5): THREE PARTS. useNotifyBanner() is the logic — where the
+   phone stands, whether the bar shows, the two things it can do — for
+   Kindreds (React Native or Swift, whose KNoticeBar only draws) and for
+   Settings' notifications-off notice. NoticeBar is the themed view: the
+   theme's lav ground with ind type (ink where ind can't be read on it;
+   kit.ts noticeColors), no longer the fixed sky panel. NotifyBanner is the
+   two together, as Kindreds has always placed it. */
 
 const KEY = "kindredly_notify_banner_closed";
-const QUIET_MS = 14 * 24 * 3600 * 1000;
 
 export type Perm = "granted" | "ask" | "settings";
 
@@ -59,77 +59,174 @@ export async function turnNotificationsOn(perm: Perm): Promise<void> {
   await Linking.openURL("app-settings:notifications").catch(() => Linking.openSettings());
 }
 
-export function NotifyBanner({ preview = false }: { preview?: boolean } = {}) {
-  useLang();
+export type NotifyBannerState = {
+  /** where the phone stands; null until the first read, and when it can't be read (say nothing then) */
+  perm: Perm | null;
+  /** notifications are known to be off on this phone — Settings' notice shows on this alone (guests too, and whatever × said) */
+  off: boolean;
+  /** Kindreds' bar shows: off, not a guest, not ×'d in the last two weeks (or the dev preview) */
+  show: boolean;
+  /** read the permission again (done for you on focus and on coming back to the app) */
+  check: () => Promise<void>;
+  /** iOS's question, or Kindredly's page in Settings; then reads the permission again */
+  turnOn: () => Promise<void>;
+  /** the bar's ×: away for two weeks on this phone */
+  close: () => void;
+};
+
+/** The notifications-off logic, for Kindreds' bar and Settings' notice.
+    `preview` (dev only; Kindreds?nb=1) shows the bar whatever the phone
+    says, and each visit starts with it back, so × can be tried again. */
+export function useNotifyBanner({ preview = false }: { preview?: boolean } = {}): NotifyBannerState {
   const { isGuest } = useAuth();
   const [perm, setPerm] = useState<Perm | null>(null);
+  const permRef = useRef<Perm | null>(null);
   const [closedAt, setClosedAt] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
+  const dev = __DEV__ && preview;
 
   const check = useCallback(async () => {
+    let p: Perm | null;
     try {
-      const p = await readPerm();
-      setPerm((prev) => {
-        if (p === "granted" && prev && prev !== "granted") void registerForReplies();
-        return p;
-      });
-    } catch {
-      setPerm("granted"); // can't tell: say nothing rather than nag
+      p = await readPerm();
+    } catch (e) {
+      console.warn("[notify] permission read:", e);
+      p = null; // can't tell: say nothing rather than nag
     }
+    // back from Settings with them on: register this phone at once
+    if (p === "granted" && permRef.current && permRef.current !== "granted") void registerForReplies();
+    permRef.current = p;
+    setPerm(p);
   }, []);
 
   useEffect(() => {
     let live = true;
-    // dev preview: each visit starts with the bar back, so × can be tried again
-    if (__DEV__ && preview) {
+    if (dev) {
       void scoped.removeItem(KEY).catch(() => {});
       setClosedAt(null);
       setReady(true);
     } else {
-      scoped.getItem(KEY)
-        .then((v) => { if (live) setClosedAt(v ? Number(v) : null); })
-        .catch(() => {})
-        .finally(() => { if (live) setReady(true); });
+      scoped
+        .getItem(KEY)
+        .then((v) => {
+          if (live) setClosedAt(v ? Number(v) : null);
+        })
+        .catch((e) => console.warn("[notify] the bar's closed-at wasn't read:", e))
+        .finally(() => {
+          if (live) setReady(true);
+        });
     }
-    const sub = AppState.addEventListener("change", (s) => { if (s === "active") void check(); });
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") void check();
+    });
     return () => {
       live = false;
       sub.remove();
     };
-  }, [check, preview]);
-  useFocusEffect(useCallback(() => { void check(); }, [check]));
+  }, [check, dev]);
+  useFocusEffect(
+    useCallback(() => {
+      void check();
+    }, [check]),
+  );
 
-  /* × always closes it — even in the dev preview (Kindreds?nb=1 only stands
-     in for "notifications are off") */
-  const closed = !!closedAt && Date.now() - closedAt < QUIET_MS;
-  const off = (__DEV__ && preview) || (!isGuest && !!perm && perm !== "granted");
-  const show = ready && !closed && off;
-  if (!show) return null;
+  const turnOn = useCallback(async () => {
+    await turnNotificationsOn(permRef.current ?? "ask");
+    await check();
+  }, [check]);
 
-  const turnOn = async () => {
-    await turnNotificationsOn(perm ?? "ask");
-    if (perm === "ask") void check();
-  };
-  const close = () => {
+  const close = useCallback(() => {
     const now = Date.now();
     setClosedAt(now);
-    void scoped.setItem(KEY, String(now)).catch(() => {});
-  };
+    void scoped.setItem(KEY, String(now)).catch((e) => console.warn("[notify] the bar's × wasn't saved:", e));
+  }, []);
 
+  const off = perm != null && perm !== "granted";
+  const show = notifyBannerShows({ ready, closedAt, now: Date.now(), preview: dev, isGuest, perm });
+  return { perm, off, show, check, turnOn, close };
+}
+
+/** The bell, 16 on a 24 grid. */
+function Bell({ color }: { color: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: NOTICE_GROUND, marginTop: 12 }}>
-      <Pressable onPress={() => void turnOn()} accessibilityRole="button" style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: ROW.pad, paddingVertical: 11, opacity: pressed ? 0.6 : 1 })}>
-        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={NOTICE_INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <Path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-          <Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-        </Svg>
-        <Text numberOfLines={2} style={{ flex: 1, fontSize: 14, lineHeight: 19, color: NOTICE_INK }}>{t("nb.turnOn")}</Text>
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </Svg>
+  );
+}
+
+/** The themed notice (KNoticeBar's twin): a bell and a line of type on the
+    theme's lav, the whole line one button; `actionLabel` adds a mono line
+    under it (Settings' TURN THEM ON ›); `onClose` adds the × with
+    `closeLabel` for VoiceOver. Full width with the rows' 22 inset by
+    default; Settings passes its own inset and rounds it with `style`.
+    Every word comes in translated. */
+export function NoticeBar({
+  text,
+  actionLabel,
+  closeLabel,
+  onPress,
+  onClose,
+  inset = ROW_METRICS.pad,
+  style,
+}: {
+  text: string;
+  actionLabel?: string;
+  /** VoiceOver's name for the × (nb.close) */
+  closeLabel?: string;
+  onPress: () => void;
+  onClose?: () => void;
+  /** the left (and, without ×, right) inset of the type */
+  inset?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { t: tk } = useTheme();
+  const c = noticeColors(tk);
+  return (
+    <View style={[{ flexDirection: "row", alignItems: "center", backgroundColor: c.ground }, style]}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={actionLabel ? `${text} ${actionLabel}` : text}
+        style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: actionLabel ? "flex-start" : "center", gap: 8, paddingLeft: inset, paddingRight: onClose ? 0 : inset, paddingVertical: 11, opacity: pressed ? 0.6 : 1 })}
+      >
+        <View style={{ marginTop: actionLabel ? 1.5 : 0 }}>
+          <Bell color={c.ink} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={actionLabel ? undefined : 2} style={{ fontSize: 14, lineHeight: 19, color: c.ink }}>
+            {text}
+          </Text>
+          {!!actionLabel && (
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.12, color: c.ink, marginTop: 6 }}>{actionLabel}</Text>
+          )}
+        </View>
       </Pressable>
-      <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("nb.close")} style={{ paddingHorizontal: ROW.pad, paddingVertical: 11 }}>
-        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={NOTICE_INK} strokeWidth={2.2} strokeLinecap="round">
-          <Path d="M5 5l14 14M19 5L5 19" />
-        </Svg>
-      </Pressable>
+      {onClose && (
+        <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={closeLabel} style={{ paddingHorizontal: inset, paddingVertical: 11 }}>
+          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={c.ink} strokeWidth={2.2} strokeLinecap="round">
+            <Path d="M5 5l14 14M19 5L5 19" />
+          </Svg>
+        </Pressable>
+      )}
     </View>
+  );
+}
+
+/** Kindreds' bar: useNotifyBanner() drawn as a NoticeBar under the title
+    (nb.turnOn, × nb.close), or nothing. */
+export function NotifyBanner({ preview = false, style }: { preview?: boolean; style?: StyleProp<ViewStyle> } = {}) {
+  useLang();
+  const bar = useNotifyBanner({ preview });
+  if (!bar.show) return null;
+  return (
+    <NoticeBar
+      text={t("nb.turnOn")}
+      closeLabel={t("nb.close")}
+      onPress={() => void bar.turnOn()}
+      onClose={bar.close}
+      style={[{ marginTop: 12 }, style]}
+    />
   );
 }
