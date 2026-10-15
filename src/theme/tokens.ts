@@ -38,27 +38,25 @@ export const C = {
 
 export type ColorKey = keyof typeof C;
 
-/* Font families (registered by theme/fonts.ts). Bricolage Grotesque = the
-   display/heading register (brand, titles, letter bodies). Instrument Sans =
-   the UI/body register (labels, buttons, chrome). Matches the live web. */
+/* Font families: the PostScript names of the faces embedded in the app (see
+   theme/fonts.ts, which also says why an italic face wants fontStyle too). */
 export const F = {
   // v20 typography: Fraunces (serif — headings, letter bodies, quotes) +
   // Inter (sans — UI chrome). Recolored to the blue-white palette above.
-  serif: "Fraunces_400Regular",
-  serifMed: "Fraunces_500Medium",
-  serifSemi: "Fraunces_600SemiBold",
-  serifItalic: "Fraunces_400Regular_Italic",
+  serif: "Fraunces-Regular",
+  serifSemi: "Fraunces-SemiBold",
+  serifItalic: "Fraunces-Italic",
   // letter bodies read in the system font (iOS: SF Pro for latin, PingFang for
   // CJK) — clean and native like Apple Journal, and Chinese renders properly
   // instead of falling back out of a latin-only serif. `undefined` = system.
   letter: undefined as unknown as string,
   letterLight: undefined as unknown as string,
-  letterItalic: "Fraunces_400Regular_Italic",
-  sans: "Inter_400Regular",
-  sansMed: "Inter_500Medium",
-  sansSemi: "Inter_600SemiBold",
-  sansBold: "Inter_700Bold",
-  sansExtra: "Inter_800ExtraBold",
+  letterItalic: "Fraunces-Italic",
+  sans: "Inter-Regular",
+  sansMed: "Inter-Medium",
+  sansSemi: "Inter-SemiBold",
+  sansBold: "Inter-Bold",
+  sansExtra: "Inter-ExtraBold",
 } as const;
 
 /* Soft, low shadows to match the flat product look. */

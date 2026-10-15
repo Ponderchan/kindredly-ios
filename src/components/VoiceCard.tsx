@@ -287,7 +287,7 @@ export function AuraOrb({
                 position: "absolute",
                 left: S / 2 + r * Math.cos(a) - 7,
                 top: S / 2 + r * Math.sin(a) * 0.86 - 9,
-                fontFamily: "IBMPlexMono_500Medium",
+                fontFamily: "IBMPlexMono-Medium",
                 fontSize: 13,
                 color: dark ? "#B9B2FF" : "#9A93E8",
                 opacity: 0.85,

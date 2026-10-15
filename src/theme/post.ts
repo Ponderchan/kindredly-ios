@@ -36,27 +36,26 @@ export const P = {
   keyVoice: "#D6EBFA",
 } as const;
 
+/* Family names are the fonts' PostScript names: the faces are embedded in the
+   app (theme/fonts has why, and why an italic face also wants fontStyle). */
 export const PF = {
-  mono: "IBMPlexMono_400Regular",
-  monoMed: "IBMPlexMono_500Medium",
-  monoSemi: "IBMPlexMono_600SemiBold",
+  mono: "IBMPlexMono-Regular",
+  monoMed: "IBMPlexMono-Medium",
+  monoSemi: "IBMPlexMono-SemiBold",
   // the letter itself — system font, so CJK renders properly (see F.letter)
   letter: undefined as unknown as string,
   // WHERE YOU WRITE. A plain, quiet sans — the type a person types in, not
   // the type a letter is set in. Writing is done in this; the letter is
   // read in letterSerif once it arrives (owner, 2026-09-20: "the font in
   // your input box"). Inter falls through to the system face for CJK.
-  writing: "Inter_400Regular",
+  writing: "Inter-Regular",
   // a letter between two people — read and written in a text serif
   // (Newsreader; see theme/fonts for why not Fraunces); CJK glyphs fall
-  // through to the system face, which is what we want
-  letterSerif: "Newsreader_400Regular",
-  serif: "Fraunces_400Regular",
-  serifItalic: "Fraunces_400Regular_Italic",
-  // Wren's handwriting — reserved for words she physically puts on paper
-  // (the letter about you), never for the machine or for people's letters
-  hand: "Caveat_400Regular",
-  handSemi: "Caveat_600SemiBold",
+  // through to the system face, which is what we want. On a build with the
+  // faces embedded, fontStyle "italic" finds Newsreader-Italic in its family.
+  letterSerif: "Newsreader-Regular",
+  serif: "Fraunces-Regular",
+  serifItalic: "Fraunces-Italic",
 } as const;
 
 /* A panel. What used to be a white card with a radius and a shadow is, in this
