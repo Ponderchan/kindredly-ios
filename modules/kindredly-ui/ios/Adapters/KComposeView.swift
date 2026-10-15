@@ -22,7 +22,7 @@ import ExpoUI
  - stamp: { id, name, washHex, inkHex, lineHex, a11yLabel }, id "" for none chosen
  - mode: write | speak;  tray: none | stamps | more
  - sections: [{ title, items: [{ id, name, inkHex, a11yLabel }] }], converted once per rev
- - askOn, more { askOn, voiceOn, voiceLocked }, plusDot, quota, capPanel, busy
+ - askOn, more { askOn, askDisabled, voiceOn, voiceLocked }, plusDot, quota, capPanel, busy
  - children: <KIsland name="wren">, <KIsland name="recorder">
 
  Commands (KCommandBus):
@@ -64,6 +64,7 @@ struct KComposeStringsRecord: Record {
   @Field var moreAsk: String = ""
   @Field var moreVoice: String = ""
   @Field var voiceLocked: String = ""
+  @Field var askDisabled: String = ""
   @Field var capText: String = ""
   @Field var capSub: String = ""
   @Field var capLink: String = ""
@@ -83,6 +84,7 @@ struct KComposeStringsRecord: Record {
     s.moreAsk = moreAsk
     s.moreVoice = moreVoice
     s.voiceLocked = voiceLocked
+    s.askDisabled = askDisabled
     s.capText = capText
     s.capSub = capSub
     s.capLink = capLink
@@ -127,6 +129,7 @@ struct KComposeSectionRecord: Record {
 
 struct KComposeMoreRecord: Record {
   @Field var askOn: Bool = false
+  @Field var askDisabled: Bool = false
   @Field var voiceOn: Bool = false
   @Field var voiceLocked: Bool = false
 }
@@ -244,6 +247,7 @@ final class KComposeViewProps: KScreenProps {
     }
     c.askOn = askOn
     c.askCellOn = more.askOn
+    c.askCellDisabled = more.askDisabled
     c.voiceCellOn = more.voiceOn
     c.voiceLocked = more.voiceLocked
     c.plusDot = plusDot

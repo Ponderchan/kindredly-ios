@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
 import { MONO, P as STATIC_P, PF, channelColors } from "../theme/post";
@@ -26,7 +27,12 @@ import { StampTile } from "./StampTile";
    stamps and their names, the amber pencil and photo sun, the red shutter.
    One exception: StampGlyph's default ink stays the static one, because
    the caller that leans on it is the stamps guide reel, a picture with its
-   own fixed colours; the tray passes the theme's ink explicitly. */
+   own fixed colours; the tray passes the theme's ink explicitly.
+
+   REDUCE MOTION (as the SwiftUI page does): the nudge stands still, and
+   the plus and the stamp key change state at once instead of turning and
+   coming apart. Read once per glyph (reanimated's useReducedMotion, as
+   LetterTravel reads it). */
 
 export const TRAY_H = 296;
 
@@ -67,10 +73,15 @@ export function StampGlyph({ size = 22, color = STATIC_P.ink, face }: { size?: n
 export function PlusGlyph({ size = 22, color, open = false }: { size?: number; color?: string; open?: boolean }) {
   const P = useP();
   const ink = color ?? P.ink;
+  const reduce = useReducedMotion();
   const v = useRef(new Animated.Value(open ? 1 : 0)).current;
   useEffect(() => {
+    if (reduce) {
+      v.setValue(open ? 1 : 0);
+      return;
+    }
     Animated.timing(v, { toValue: open ? 1 : 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }).start();
-  }, [open, v]);
+  }, [open, v, reduce]);
   const rotate = v.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] });
   return (
     <Animated.View style={{ width: size, height: size, transform: [{ rotate }] }}>
@@ -225,8 +236,9 @@ export function StampTray({
         <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
           <StampTile id={it.id} w={40} r={5} />
         </View>
-        {/* its name, in its own ink — a stamp is a word as much as a picture */}
-        <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: 58, textAlign: "center" }}>
+        {/* its name, in its own ink — a stamp is a word as much as a picture; two lines, as
+            NEVER TOLD ANYONE and MI HA FATTO LA GIORNATA need */}
+        <Text numberOfLines={2} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: 58, textAlign: "center" }}>
           {it.name}
         </Text>
       </Pressable>
@@ -277,17 +289,35 @@ export function StampTray({
   );
 }
 
-export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: boolean; voiceOn: boolean; premium: boolean; onAsk: () => void; onVoice: () => void }) {
+/* THE ⊕ TRAY. `askDisabled` (the compose page while speaking: a recording
+   carries no question, and the field is drawn only under a written letter)
+   dims the ASK cell, takes its tap away and tells VoiceOver why. */
+export function MoreTray({
+  askOn,
+  askDisabled = false,
+  voiceOn,
+  premium,
+  onAsk,
+  onVoice,
+}: {
+  askOn: boolean;
+  askDisabled?: boolean;
+  voiceOn: boolean;
+  premium: boolean;
+  onAsk: () => void;
+  onVoice: () => void;
+}) {
   const P = useP();
   const { t: tk } = useTheme();
-  const cell = (label: string, on: boolean, onPress: () => void, glyph: React.ReactNode, lock?: boolean) => (
+  const cell = (label: string, on: boolean, onPress: () => void, glyph: React.ReactNode, lock?: boolean, disabled?: boolean) => (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityValue={lock ? { text: t("cp.voiceLocked.a11y") } : undefined}
-      accessibilityState={{ selected: on }}
-      style={({ pressed }) => ({ width: 82, alignItems: "center", opacity: pressed ? 0.6 : 1 })}
+      accessibilityValue={disabled ? { text: t("cp.askVoice.a11y") } : lock ? { text: t("cp.voiceLocked.a11y") } : undefined}
+      accessibilityState={{ selected: on, disabled: !!disabled }}
+      style={({ pressed }) => ({ width: 82, alignItems: "center", opacity: disabled ? 0.45 : pressed ? 0.6 : 1 })}
     >
       <View style={{ width: 62, height: 62, borderRadius: 16, backgroundColor: on ? P.ink : tk.sf, borderWidth: 1, borderColor: on ? P.ink : P.ink12, alignItems: "center", justifyContent: "center" }}>
         {glyph}
@@ -305,7 +335,7 @@ export function MoreTray({ askOn, voiceOn, premium, onAsk, onVoice }: { askOn: b
   );
   return (
     <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingTop: 22 }}>
-      {cell(t("cp.tray.ask"), askOn, onAsk, <QuestionGlyph color={askOn ? tk.bg : P.ink} />)}
+      {cell(t("cp.tray.ask"), askOn, onAsk, <QuestionGlyph color={askOn ? tk.bg : P.ink} />, false, askDisabled)}
       {cell(t("cp.tray.voice"), voiceOn, onVoice, <View style={{ opacity: premium ? 1 : 0.45 }}><MicGlyph color={voiceOn ? tk.bg : P.ink} /></View>, !premium)}
     </View>
   );
@@ -317,12 +347,18 @@ export const stampOf = (id: string | null) => (id ? getStamp(id) : null);
 /* THE NUDGE. When the key reads PICK A MOOD STAMP, the stamp key is the
    one just to its left — and a small chevron at the key's left edge
    leans toward it, again and again, until a stamp is on the envelope
-   (owner, 2026-09-20). Native-driven, not an interaction. */
+   (owner, 2026-09-20). Native-driven, not an interaction. Under Reduce
+   Motion it stands still. */
 export function Nudge({ color }: { color?: string }) {
   const P = useP();
   const ink = color ?? P.pen;
+  const reduce = useReducedMotion();
   const x = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    if (reduce) {
+      x.setValue(0);
+      return;
+    }
     const sine = Easing.inOut(Easing.sin);
     const loop = Animated.loop(
       Animated.sequence([
@@ -334,7 +370,7 @@ export function Nudge({ color }: { color?: string }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [x]);
+  }, [x, reduce]);
   return (
     <Animated.View pointerEvents="none" style={{ position: "absolute", left: 10, top: 0, bottom: 0, justifyContent: "center", transform: [{ translateX: x }] }}>
       <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
@@ -356,10 +392,15 @@ export function Nudge({ color }: { color?: string }) {
 export function StampKeyGlyph({ open, size = 23, color }: { open: boolean; size?: number; color?: string }) {
   const P = useP();
   const ink = color ?? P.ink;
+  const reduce = useReducedMotion();
   const v = useRef(new Animated.Value(open ? 1 : 0)).current;
   useEffect(() => {
+    if (reduce) {
+      v.setValue(open ? 1 : 0);
+      return;
+    }
     Animated.timing(v, { toValue: open ? 1 : 0, duration: 360, easing: open ? Easing.out(Easing.cubic) : Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false }).start();
-  }, [open, v]);
+  }, [open, v, reduce]);
   const u = size / 24; // one viewBox unit in points
   const gone = v.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0, 0] });
   const here = v.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0, 1] });

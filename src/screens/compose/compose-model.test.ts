@@ -110,6 +110,28 @@ ok("cap panel: not with some left", !M.capVisible({ capHit: false, free: true, l
 ok("cap panel: not at an unknown count", !M.capVisible({ capHit: false, free: true, left: null }));
 ok("cap panel: not for First Class at a stale zero", !M.capVisible({ capHit: false, free: false, left: 0 }));
 
+// ── the server decides at zero (the count only shows) ──
+ok("bump first: a free writer at zero asks the server before the courier", M.bumpBeforeFlight({ free: true, left: 0 }));
+ok("bump first: not with letters left (the bump runs after her gate)", !M.bumpBeforeFlight({ free: true, left: 2 }));
+ok("bump first: not at an unknown count", !M.bumpBeforeFlight({ free: true, left: null }));
+ok("bump first: not for First Class (or the demo)", !M.bumpBeforeFlight({ free: false, left: 0 }));
+ok("after a bump: First Class clears the count (and with it the panel)", M.leftAfterBump({ premium: true, count: 7 }, 5) === null);
+ok("after a bump: First Class at a stale zero shows no panel", (() => {
+  const left = M.leftAfterBump({ premium: true, count: 6, cap: 5 }, 5);
+  return left === null && !M.capVisible({ capHit: false, free: true, left }) && M.quotaFor({ free: true, left }, fmt) === "";
+})());
+ok("after a bump: a free writer's count against its cap", M.leftAfterBump({ premium: false, count: 3, cap: 5 }, 5) === 2);
+ok("after a bump: no cap sent reads the fallback", M.leftAfterBump({ premium: false, count: 1 }, 5) === 4);
+ok("after a bump: a day turned (UTC) lifts the zero", M.leftAfterBump({ premium: false, count: 1, cap: 5 }, 5) === 4 && !M.capVisible({ capHit: false, free: true, left: 4 }));
+ok("after a bump: no count leaves the page as it is", M.leftAfterBump({ premium: false }, 5) === undefined);
+ok("after a bump: junk count leaves the page as it is", M.leftAfterBump({ premium: false, count: "3" }, 5) === undefined);
+
+// ── the count's colour ──
+ok("count colour: past the ceiling, postmark red in every theme", M.countBrand("post", false) === "postRed" && M.countBrand("post", true) === "postRed");
+ok("count colour: near it on a light page, brassSeal (goldText is under 3:1)", M.countBrand("amber", false) === "brassSeal");
+ok("count colour: near it on Midnight, goldText", M.countBrand("amber", true) === "goldText");
+ok("count colour: far from it, the theme's mute", M.countBrand("mute", false) === "mute" && M.countBrand("mute", true) === "mute");
+
 // ── Wren's line ──
 const line = (p: Partial<Parameters<typeof M.wrenLineFor>[0]>) =>
   M.wrenLineFor({ langHello: false, mode: "write", hasRecording: false, weight: 0, hello: "HELLO", voicePrompt: "PROMPT", moodLine: "MOOD", ladderLine: "LADDER", ...p }, fmt);
@@ -120,19 +142,43 @@ ok("Wren: a recording without its line, the prompt", line({ mode: "speak", hasRe
 ok("Wren: a recording with its line, her mood", line({ mode: "speak", hasRecording: true, weight: REPLY_MIN }) === "cp.quote:MOOD");
 
 // ── sendBody ──
-ok("send: the letter, trimmed", M.sendBody("write", "  hello there  ", "") === "hello there");
-ok("send: the question rides under it", M.sendBody("write", "hello", " what about you? ") === "hello\n\nwhat about you?");
-ok("send: a blank question adds nothing", M.sendBody("write", "hello", "   ") === "hello");
-ok("send: speaking sends the line alone (the question isn't asked of a recording)", M.sendBody("speak", " a line ", "q?") === "a line");
+ok("send: the letter, trimmed", M.sendBody("write", "  hello there  ", "", true) === "hello there");
+ok("send: the question rides under it", M.sendBody("write", "hello", " what about you? ", true) === "hello\n\nwhat about you?");
+ok("send: a blank question adds nothing", M.sendBody("write", "hello", "   ", true) === "hello");
+ok("send: speaking sends the line alone (the question isn't asked of a recording)", M.sendBody("speak", " a line ", "q?", true) === "a line");
+ok("send: a question turned off stays off the letter (its words kept, not sent)", M.sendBody("write", "hello", "what about you?", false) === "hello");
+
+// ── the question off and on again ──
+{
+  // typed, turned off: nothing of it rides; turned on again: the same words ride
+  const ask = "What small kindness stayed with you?";
+  const off = { text: "", ask, askOn: false, hasRecording: false };
+  ok("question off: its words are not sent", M.sendBody("write", "a letter", ask, false) === "a letter");
+  ok("question off: alone, it doesn't hold the page (it rides with nothing)", !M.leaveGuard(off).guard);
+  ok("question off: a draft keeps the letter without it", M.draftToKeep({ text: " a letter ", ask, askOn: false, sel: null, draftId: null }).ask === "");
+  ok("question off: the autosave keeps the letter without it", M.autosaveDraft({ text: "a letter", ask, askOn: false, sel: null, mode: "write", draftId: null }, { kind: "open" })?.ask === "");
+  ok("question off: no dot on the +", !M.plusDot({ tray: null, askOn: false, mode: "write" }));
+  ok("question on again: the same words ride under the letter", M.sendBody("write", "a letter", ask, true) === `a letter\n\n${ask}`);
+  ok("question on again: it holds the page", M.leaveGuard({ ...off, askOn: true }).guard);
+  ok("question on again: the draft carries it", M.draftToKeep({ text: "a letter", ask, askOn: true, sel: null, draftId: null }).ask === ask);
+  ok("question on again: the autosave carries it", M.autosaveDraft({ text: "a letter", ask, askOn: true, sel: null, mode: "write", draftId: null }, { kind: "open" })?.ask === ask);
+}
+
+// ── SAVE AS DRAFT ──
+ok("draft: the letter trimmed, its stamp and id", (() => {
+  const d = M.draftToKeep({ text: "  dear you  ", ask: "q?", askOn: true, sel: "growing", draftId: "d-3" });
+  return d.body === "dear you" && d.ask === "q?" && d.stamp === "growing" && d.id === "d-3";
+})());
+ok("draft: no stamp saves as ''", M.draftToKeep({ text: "x", ask: "", askOn: false, sel: null, draftId: null }).stamp === "");
 
 // ── leave guard ──
-ok("guard: an empty page just goes", !M.leaveGuard({ text: "  ", ask: "", hasRecording: false }).guard);
-ok("guard: words ask, and may be kept", (() => { const g = M.leaveGuard({ text: "hi", ask: "", hasRecording: false }); return g.guard && g.canSaveDraft; })());
-ok("guard: a question alone asks too", M.leaveGuard({ text: "", ask: "why?", hasRecording: false }).guard);
-ok("guard: a recording with no caption asks (it was lost on ✕)", (() => { const g = M.leaveGuard({ text: "", ask: "", hasRecording: true }); return g.guard && !g.canSaveDraft; })());
+ok("guard: an empty page just goes", !M.leaveGuard({ text: "  ", ask: "", askOn: false, hasRecording: false }).guard);
+ok("guard: words ask, and may be kept", (() => { const g = M.leaveGuard({ text: "hi", ask: "", askOn: false, hasRecording: false }); return g.guard && g.canSaveDraft; })());
+ok("guard: a question alone asks too", M.leaveGuard({ text: "", ask: "why?", askOn: true, hasRecording: false }).guard);
+ok("guard: a recording with no caption asks (it was lost on ✕)", (() => { const g = M.leaveGuard({ text: "", ask: "", askOn: false, hasRecording: true }); return g.guard && !g.canSaveDraft; })());
 
 // ── autosave ──
-const snap = { text: "a letter I was writing", ask: "", sel: "growing", mode: "write" as const, draftId: null };
+const snap = { text: "a letter I was writing", ask: "", askOn: false, sel: "growing", mode: "write" as const, draftId: null };
 ok("autosave: a page left without deciding is kept", M.autosaveDraft(snap, { kind: "open" })?.body === snap.text);
 ok("autosave: never after DISCARD", M.autosaveDraft(snap, { kind: "discarded" }) === null);
 ok("autosave: never after SAVE AS DRAFT (no second copy)", M.autosaveDraft(snap, { kind: "saved", id: "d-1" }) === null);
@@ -143,11 +189,16 @@ ok("autosave: a resumed draft keeps its id", M.autosaveDraft({ ...snap, draftId:
 ok("autosave: no stamp saves as ''", M.autosaveDraft({ ...snap, sel: null }, { kind: "open" })?.stamp === "");
 
 // ── the + dot ──
-ok("dot: nothing attached", !M.plusDot({ tray: null, askOn: false, ask: "", mode: "write" }));
-ok("dot: a question open", M.plusDot({ tray: null, askOn: true, ask: "", mode: "write" }));
-ok("dot: a question typed", M.plusDot({ tray: null, askOn: false, ask: "q", mode: "write" }));
-ok("dot: speaking", M.plusDot({ tray: null, askOn: false, ask: "", mode: "speak" }));
-ok("dot: hidden while its own tray is open", !M.plusDot({ tray: "more", askOn: true, ask: "q", mode: "speak" }));
+ok("dot: nothing attached", !M.plusDot({ tray: null, askOn: false, mode: "write" }));
+ok("dot: a question open", M.plusDot({ tray: null, askOn: true, mode: "write" }));
+ok("dot: speaking", M.plusDot({ tray: null, askOn: false, mode: "speak" }));
+ok("dot: hidden while its own tray is open", !M.plusDot({ tray: "more", askOn: true, mode: "speak" }));
+
+// ── the ASK cell ──
+ok("ask cell: off and pressable while writing", (() => { const c = M.askCell({ askOpen: false, mode: "write" }); return !c.on && !c.disabled; })());
+ok("ask cell: lit while the question shows", M.askCell({ askOpen: true, mode: "write" }).on);
+ok("ask cell: disabled while speaking (no field to open, nothing to focus)", M.askCell({ askOpen: false, mode: "speak" }).disabled);
+ok("ask cell: not lit while speaking, even with a question open underneath", (() => { const c = M.askCell({ askOpen: true, mode: "speak" }); return !c.on && c.disabled; })());
 
 // ── stamp sections ──
 const known = new Set(["a", "b", "c", "d"]);

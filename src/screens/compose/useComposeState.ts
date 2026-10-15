@@ -29,13 +29,16 @@ import { setFlag } from "../../lib/flags";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { alertFail, type AlertFailOptions } from "../../lib/fail";
 import {
+  askCell,
   autosaveDraft,
+  bumpBeforeFlight,
   capVisible,
   countFor,
+  draftToKeep,
   isFreeWriter,
   keyFor,
   leaveGuard,
-  leftFromCount,
+  leftAfterBump,
   plusDot as plusDotFor,
   quotaFor,
   sendBody,
@@ -77,13 +80,22 @@ import {
    - the cap's fallback is the server's five (FREE_PER_DAY), not three;
    - the count near the ceiling is localized;
    - a free writer sees "N LEFT TODAY" (lettersLeftToday, then each bump's
-     own count), and at zero the cap panel at once — a send at zero asks the
-     server's count again before the courier takes off, so a day that has
-     turned (UTC) still lets the letter go;
+     own count), and at zero the cap panel at once. The count only shows:
+     the server decides. A send at zero asks bump-letters before the courier
+     takes off (compose-model bumpBeforeFlight) — a 429 keeps the panel and
+     nothing flies; a yes sends, and that one bump carries the letter (it is
+     never bumped twice: a yes her gate then turns back is kept for the next
+     try). That lets through a day that turned (UTC) and a First Class
+     writer whose entitlement read failed closed (their letters_daily row
+     counts First Class letters too); any bump that answers premium takes
+     the count and the panel off the page. The store-mode demo shows no
+     count at all;
    - a resumed draft with a question shows the question (it was attached,
      hidden, and still sent);
    - turning the question off takes it off the letter (it was hidden and
-     still sent).
+     still sent) and keeps its words: on again, they are back. While it is
+     off it is not sent, not guarded and not drafted. The ASK cell is off
+     while speaking (a recording carries no question).
 
    KEYBOARD AND SHEETS. A sheet, an Alert or a push from the page lets go
    of the keyboard first, whoever drew the field (blurThen with the Swift
@@ -235,7 +247,8 @@ export type ComposeState = {
   capPanel: boolean;
   capText: string;
   plusDot: boolean;
-  more: { askOn: boolean; voiceOn: boolean; voiceLocked: boolean };
+  /** the + tray's cells: ASK lit while the question shows, off while speaking */
+  more: { askOn: boolean; askDisabled: boolean; voiceOn: boolean; voiceLocked: boolean };
   /** words from elsewhere, for the Swift page (a draft resumed, a seed) */
   seed: ComposeSeed;
   /** a field to focus, for the Swift page (the question just attached) */
@@ -339,8 +352,12 @@ export function useComposeState(opts: {
   const askRef = useRef("");
   const busyRef = useRef(false);
   const outcome = useRef<LeaveOutcome>({ kind: "open" });
-  const snapRef = useRef({ sel, mode, draftId, recUri, recDur, quotaLeft });
-  snapRef.current = { sel, mode, draftId, recUri, recDur, quotaLeft };
+  /* the server's yes for one letter that hasn't gone yet (a bump before the
+     flight that her gate then turned back): the next try spends it instead
+     of counting the same letter twice */
+  const heldBump = useRef<Extract<BumpResult, { ok: true }> | null>(null);
+  const snapRef = useRef({ sel, mode, draftId, recUri, recDur, quotaLeft, askOpen });
+  snapRef.current = { sel, mode, draftId, recUri, recDur, quotaLeft, askOpen };
 
   const setText = (v: string) => {
     textRef.current = v;
@@ -392,10 +409,10 @@ export function useComposeState(opts: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.draft]);
 
-  // the free writer's count for today, once there is a real account
+  // the free writer's count for today, once there is a real account (never on the store-mode demo)
   const realAccount = env.signedIn && !env.isGuest;
   useEffect(() => {
-    if (!realAccount) return;
+    if (!realAccount || demo) return;
     let alive = true;
     void ioRef.current.lettersLeftToday().then((r) => {
       if (alive && r) setQuotaLeft(r.left);
@@ -403,13 +420,13 @@ export function useComposeState(opts: {
     return () => {
       alive = false;
     };
-  }, [realAccount]);
+  }, [realAccount, demo]);
 
   // the silent autosave when the page goes — only a page left without deciding
   useEffect(
     () => () => {
       const s = snapRef.current;
-      const d = autosaveDraft({ text: textRef.current, ask: askRef.current, sel: s.sel, mode: s.mode, draftId: s.draftId }, outcome.current);
+      const d = autosaveDraft({ text: textRef.current, ask: askRef.current, askOn: s.askOpen, sel: s.sel, mode: s.mode, draftId: s.draftId }, outcome.current);
       if (d) void ioRef.current.saveDraft(d).catch(() => {});
     },
     [],
@@ -441,11 +458,13 @@ export function useComposeState(opts: {
   );
   const key = keyFor({ mode, weight, wordsReady, hasStamp: !!sel, busy, tray }, fmt);
   const count = countFor({ mode, weight }, fmt);
-  const free = isFreeWriter(env);
+  // the store-mode demo is nobody's day: no count, no panel (the store screenshots come from it)
+  const free = isFreeWriter(env) && !demo;
   const quota = quotaFor({ free, left: quotaLeft }, fmt);
   const capPanel = capVisible({ capHit, free, left: quotaLeft });
   const capText = t("cp.cap", { n: capN ?? FREE_PER_DAY });
   const chosen = getStamp(sel);
+  const askCellNow = askCell({ askOpen, mode });
 
   // the stamp tray's sections, read off the letter as it stands when the tray opens
   const trayText = tray === "stamps" ? text : "";
@@ -477,38 +496,8 @@ export function useComposeState(opts: {
       busyRef.current = false;
       setBusy(false);
     };
-    /* NONE LEFT: ask the server's count again before anything flies — a day
-       that turned (UTC) since the page opened lets the letter go; otherwise
-       the cap panel stays, and the courier never takes off to bounce back. */
-    if (isFreeWriter(e) && s.quotaLeft === 0) {
-      const fresh = await x.lettersLeftToday();
-      if (!fresh || fresh.left <= 0) {
-        finish();
-        setCapHit(true);
-        return;
-      }
-      setQuotaLeft(fresh.left);
-    }
-    /* THE COUNTER OPENS THE MOMENT YOU HAND IT OVER: the gate, the cap and
-       the publish run under the courier's flight, and every failure steps
-       back to the page — still mounted, words intact — and explains. */
-    setStep("sending");
-    const back = () => setStep("write");
-    const body = sendBody(s.mode, words, question);
-
-    // her gate reads the letter itself when written, and the line that travels with a recording
-    const gate = await x.screen(body);
-    if (!gate.ok) {
-      finish();
-      back();
-      x.alert(t("cp.gate.title", { wren: e.wren }), t("cp.gate.body"));
-      return;
-    }
-
-    const bump = await x.bumpLetters();
-    if (!bump.ok) {
-      finish();
-      back();
+    /** the server said no: the cap panel, the account, or the plain failure */
+    const refused = (bump: Extract<BumpResult, { ok: false }>) => {
       if (bump.reason === "daily_cap") {
         setCapN(bump.cap ?? FREE_PER_DAY);
         setQuotaLeft(0);
@@ -522,9 +511,60 @@ export function useComposeState(opts: {
       } else {
         x.alertFail(t("cp.fail.title"), t("cp.fail.generic"));
       }
+    };
+    /** the server let a letter go: its count for a free writer; First Class takes the count and the panel away */
+    const counted = (bump: Extract<BumpResult, { ok: true }>) => {
+      const left = leftAfterBump(bump, FREE_PER_DAY);
+      if (left !== undefined) setQuotaLeft(left);
+    };
+
+    /* NONE LEFT, BY OUR COUNT: the count is a guess (the entitlement read
+       fails closed, and the server counts First Class letters too), so it
+       never refuses a send. The server decides, before anything flies: a
+       429 keeps the panel and the courier never takes off to bounce back;
+       a yes — a day that turned (UTC), a First Class writer — lets the
+       letter go, and that one bump carries it through the flight. */
+    let bump: Extract<BumpResult, { ok: true }> | null = heldBump.current;
+    heldBump.current = null;
+    if (!bump && bumpBeforeFlight({ free: isFreeWriter(e) && !demo, left: s.quotaLeft })) {
+      const first = await x.bumpLetters();
+      if (!first.ok) {
+        finish();
+        refused(first);
+        return;
+      }
+      counted(first);
+      bump = first;
+    }
+
+    /* THE COUNTER OPENS THE MOMENT YOU HAND IT OVER: the gate, the cap and
+       the publish run under the courier's flight, and every failure steps
+       back to the page — still mounted, words intact — and explains. */
+    setStep("sending");
+    const back = () => setStep("write");
+    const body = sendBody(s.mode, words, question, s.askOpen);
+
+    // her gate reads the letter itself when written, and the line that travels with a recording
+    const gate = await x.screen(body);
+    if (!gate.ok) {
+      // a yes from the server already spent on this letter waits for the next try
+      heldBump.current = bump;
+      finish();
+      back();
+      x.alert(t("cp.gate.title", { wren: e.wren }), t("cp.gate.body"));
       return;
     }
-    if (!bump.premium && typeof bump.count === "number") setQuotaLeft(leftFromCount(bump.count, bump.cap ?? FREE_PER_DAY));
+
+    if (!bump) {
+      const next = await x.bumpLetters();
+      if (!next.ok) {
+        finish();
+        back();
+        refused(next);
+        return;
+      }
+      counted(next);
+    }
 
     let ok: string | true | null;
     if (s.mode === "speak" && s.recUri) ok = await x.publishVoiceLetter(stamp, s.recUri, s.recDur, body, letterLang());
@@ -565,11 +605,17 @@ export function useComposeState(opts: {
       void ioRef.current.noteStampUsed(id).then(setRecent);
     },
     toggleAsk: () => {
+      /* a recording carries no question and the field is drawn only under a
+         written letter: the cell is off while speaking (askCell), and a tap
+         that reaches here anyway changes nothing and queues no focus for a
+         field that isn't on the page */
+      if (askCell({ askOpen, mode }).disabled) return;
       setTray(null);
       if (askOpen) {
-        // the question comes off the letter with its field (it used to stay, hidden, and go)
+        /* the question comes off the letter with its field (it used to stay,
+           hidden, and go) — and keeps its words: one tap never throws away
+           what was typed, and turning it on again brings them back */
         setAskOpen(false);
-        if (askRef.current) seedWords(null, "");
       } else {
         setAskOpen(true);
         setFocus((f) => ({ serial: f.serial + 1, target: "ask" }));
@@ -596,7 +642,7 @@ export function useComposeState(opts: {
     },
     send: () => void send(),
     close: () => {
-      const g = leaveGuard({ text: textRef.current, ask: askRef.current, hasRecording: !!snapRef.current.recUri });
+      const g = leaveGuard({ text: textRef.current, ask: askRef.current, askOn: snapRef.current.askOpen, hasRecording: !!snapRef.current.recUri });
       if (!g.guard) {
         ioRef.current.goBack();
         return;
@@ -608,10 +654,10 @@ export function useComposeState(opts: {
       setLeaving(false);
       const s = snapRef.current;
       try {
-        /* the draft carries what the writer has — its question too, and
-           never the placeholder (that once glued the app's own prompt to a
-           letter a stranger then read as the writer's words) */
-        const id = await ioRef.current.saveDraft({ id: s.draftId, stamp: s.sel || "", body: textRef.current.trim(), ask: askRef.current });
+        /* the draft carries what the writer has — its question too while it
+           is on, and never the placeholder (that once glued the app's own
+           prompt to a letter a stranger then read as the writer's words) */
+        const id = await ioRef.current.saveDraft(draftToKeep({ text: textRef.current, ask: askRef.current, askOn: s.askOpen, sel: s.sel, draftId: s.draftId }));
         // kept: the autosave when the page goes must not save it again, under a new id
         outcome.current = { kind: "saved", id };
       } catch {
@@ -704,8 +750,8 @@ export function useComposeState(opts: {
     quota,
     capPanel,
     capText,
-    plusDot: plusDotFor({ tray, askOn: askOpen, ask, mode }),
-    more: { askOn: askOpen || !!ask.trim(), voiceOn: mode === "speak", voiceLocked: !env.premium },
+    plusDot: plusDotFor({ tray, askOn: askOpen, mode }),
+    more: { askOn: askCellNow.on, askDisabled: askCellNow.disabled, voiceOn: mode === "speak", voiceLocked: !env.premium },
     seed,
     focus,
     leaving,

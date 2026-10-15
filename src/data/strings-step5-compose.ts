@@ -36,6 +36,8 @@ strings(
     "cp.stampChosen.a11y": "Mood stamp: {name}. Change it",
     "cp.editor.a11y": "Your letter",
     "cp.voiceLocked.a11y": "First Class only",
+    // VoiceOver: why ASK A QUESTION is off while speaking (a recording carries no question)
+    "cp.askVoice.a11y": "Only with a written letter",
   },
   /* es, pt, id: step 6 */
   {},

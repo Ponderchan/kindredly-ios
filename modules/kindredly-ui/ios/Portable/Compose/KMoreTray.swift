@@ -9,7 +9,10 @@ import SwiftUI
  A cell is a 62 square with corners of 16 — sf with a 1pt line edge, or ink when it is on, the
  drawing in the page colour then — over its label in mono 600 9 at .1em in sub. The voice cell
  is First Class: for anyone else its microphone is drawn at .45 with a small ind padlock badge
- (18, bg lock) at its corner, and a tap goes to the paywall (TS decides).
+ (18, bg lock) at its corner, and a tap goes to the paywall (TS decides). The ASK cell is off
+ while speaking (a recording carries no question, and the question field is drawn only under a
+ written letter): its drawing and label at .45, not pressable, and VoiceOver says why (dimmed,
+ "Only with a written letter"), so a tap never lights a cell for a field that isn't there.
 
  The two drawings are ComposeTray's own: a question mark drawn in one stroke with its dot, and a
  microphone on a stand, 1.7-1.8 strokes with round caps on the 24 grid, 26 across.
@@ -20,7 +23,11 @@ struct KMoreTray: View {
   let voiceLabel: String
   /// VoiceOver's value on the locked voice cell ("First Class only")
   let voiceLockedLabel: String
+  /// VoiceOver's value on the ASK cell while it is off ("Only with a written letter")
+  let askDisabledLabel: String
   let askOn: Bool
+  /// the ASK cell is off (speaking)
+  let askDisabled: Bool
   let voiceOn: Bool
   let voiceLocked: Bool
   let onAsk: () -> Void
@@ -28,8 +35,8 @@ struct KMoreTray: View {
 
   var body: some View {
     HStack(alignment: .top, spacing: 10) {
-      cell(label: askLabel, on: askOn, locked: false, glyph: .question, action: onAsk)
-      cell(label: voiceLabel, on: voiceOn, locked: voiceLocked, glyph: .mic, action: onVoice)
+      cell(label: askLabel, on: askOn, locked: false, disabled: askDisabled, value: askDisabled ? askDisabledLabel : "", glyph: .question, action: onAsk)
+      cell(label: voiceLabel, on: voiceOn, locked: voiceLocked, disabled: false, value: voiceLocked ? voiceLockedLabel : "", glyph: .mic, action: onVoice)
       Spacer(minLength: 0)
     }
     .padding(.horizontal, 18)
@@ -41,7 +48,7 @@ struct KMoreTray: View {
     }
   }
 
-  private func cell(label: String, on: Bool, locked: Bool, glyph: KMoreGlyph.Kind, action: @escaping () -> Void) -> some View {
+  private func cell(label: String, on: Bool, locked: Bool, disabled: Bool, value: String, glyph: KMoreGlyph.Kind, action: @escaping () -> Void) -> some View {
     SwiftUI.Button(action: action) {
       VStack(spacing: 8) {
         ZStack {
@@ -58,7 +65,7 @@ struct KMoreTray: View {
               }
             }
             .frame(width: 26, height: 26)
-            .opacity(locked ? 0.45 : 1)
+            .opacity(locked || disabled ? 0.45 : 1)
         }
         .frame(width: 62, height: 62)
         .overlay(alignment: .bottomTrailing) {
@@ -76,14 +83,16 @@ struct KMoreTray: View {
           .foregroundStyle(theme.sub)
           .multilineTextAlignment(.center)
           .fixedSize(horizontal: false, vertical: true)
+          .opacity(disabled ? 0.45 : 1)
       }
       .frame(width: 82)
       .contentShape(Rectangle())
     }
     .buttonStyle(KFloatPressStyle())
+    .disabled(disabled)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(label)
-    .accessibilityValue(locked ? voiceLockedLabel : "")
+    .accessibilityValue(value)
     .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }

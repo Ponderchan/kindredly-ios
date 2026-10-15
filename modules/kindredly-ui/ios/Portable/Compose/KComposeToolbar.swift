@@ -17,7 +17,13 @@ import SwiftUI
    it would cut the word;
  - on the right, the key: its label in mono 600 11 at .14em, mute until the letter can go and
    ind when it can (or when it wants a stamp), SEND where the label doesn't fit beside the pill
-   (the old rule measured a 170pt key; here the toolbar simply tries the long word first). While
+   (the old rule measured a 170pt key; here the toolbar simply tries the long word first). When
+   neither fits on one line (PICK A MOOD STAMP and SENDING… have no short word: SCEGLI UN
+   FRANCOBOLLO DELL'UMORE at the default size on an SE, CHOISIS UN TIMBRE D'HUMEUR at XL, the
+   English at xxxLarge), the last choice takes the width it is offered: two lines, right-aligned,
+   shrinking to .75 before it would cut a word, so the + and the stamp key never leave the
+   gutter (a label with a fixed width overflowed the row, which then centred, pushing the + off
+   the left edge). While
    the words are still short, a thin line under the label fills toward the floor in ind on a
    line-coloured track, with no digits (owner question 5's default). PICK A MOOD STAMP brings a
    chevron that leans toward the stamp key, again and again (-4 over .52s, back over .52s, a
@@ -138,10 +144,12 @@ private struct KComposeTravelKey: View {
           KComposeNudge(color: theme.ind)
         }
         ViewThatFits(in: .horizontal) {
-          label(key.label, key: key)
+          label(key.label, key: key, fits: true)
           if !key.narrowLabel.isEmpty {
-            label(key.narrowLabel, key: key)
+            label(key.narrowLabel, key: key, fits: true)
           }
+          // the last choice can always fit: it wraps and shrinks into the width it is offered
+          label(key.narrowLabel.isEmpty ? key.label : key.narrowLabel, key: key, fits: false)
         }
       }
       .frame(minHeight: 44)
@@ -153,12 +161,34 @@ private struct KComposeTravelKey: View {
     .animation(.easeOut(duration: 0.18), value: key.tone)
   }
 
-  private func label(_ text: String, key: KComposeKey) -> some View {
-    Text(text)
-      .kText(.mono(11, .semibold, tracking: 0.14))
-      .foregroundStyle(key.tone == .ind ? theme.ind : theme.mute)
-      .lineLimit(1)
-      .fixedSize()
+  /// - fits: true for a one-line label at its own width (ViewThatFits takes it only where it
+  ///   fits), false for the last choice, which takes the width it is offered (two lines, .75)
+  @ViewBuilder private func label(_ text: String, key: KComposeKey, fits: Bool) -> some View {
+    if fits {
+      floorLine(
+        Text(text)
+          .kText(.mono(11, .semibold, tracking: 0.14))
+          .foregroundStyle(key.tone == .ind ? theme.ind : theme.mute)
+          .lineLimit(1)
+          .fixedSize(),
+        key: key
+      )
+    } else {
+      floorLine(
+        Text(text)
+          .kText(.mono(11, .semibold, tracking: 0.14))
+          .foregroundStyle(key.tone == .ind ? theme.ind : theme.mute)
+          .lineLimit(2)
+          .multilineTextAlignment(.trailing)
+          .minimumScaleFactor(0.75)
+          .fixedSize(horizontal: false, vertical: true),
+        key: key
+      )
+    }
+  }
+
+  private func floorLine(_ label: some View, key: KComposeKey) -> some View {
+    label
       // the floor, as a line under the label (no digits): ind filling a line-coloured track
       .overlay(alignment: .bottomLeading) {
         if key.progress >= 0 {

@@ -19,7 +19,8 @@ import SwiftUI
    spent one is never replayed on a rebuilt editor; a rebuilt editor starts from controller.text;
  - Return is a newline: letters keep their paragraphs. Nothing here sends.
  The writing style is system 17 (KTextStyle.input, H:136) in ink, the caret ind, the placeholder
- (the spark) mute, drawn over the empty editor where UITextView puts its first line.
+ (the spark) mute, drawn over the empty editor where UITextView puts its first line, and read by
+ VoiceOver as the editor's hint while the page is empty.
 
  Never take it off screen while it holds the keyboard (the expo focus/unmount crash): the page
  swaps it for the caption field only from the + tray, which blurs first.
@@ -84,6 +85,8 @@ struct KComposeEditor: View {
         }
       }
       .accessibilityLabel(accessibilityLabel)
+      // the spark the sighted writer sees on the empty page (the placeholder is hidden from VoiceOver)
+      .accessibilityHint(text.isEmpty ? placeholder : "")
       .onChange(of: text) { _, new in
         edited(new)
       }

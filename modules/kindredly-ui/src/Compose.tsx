@@ -68,6 +68,8 @@ export type KComposeStrings = {
   moreVoice: string;
   /** VoiceOver's value on the locked voice cell ("First Class only") */
   voiceLocked: string;
+  /** VoiceOver's value on the ASK cell while speaking, when it is off ("Only with a written letter") */
+  askDisabled: string;
   /** the daily-cap panel: its line, its sub, its link */
   capText: string;
   capSub: string;
@@ -91,8 +93,9 @@ export type KComposeStamp = {
 export type KComposeStampItem = { id: string; name: string; inkHex: string; a11yLabel: string };
 export type KComposeSection = { title: string; items: KComposeStampItem[] };
 
-/** The more tray's cells. */
-export type KComposeMore = { askOn: boolean; voiceOn: boolean; voiceLocked: boolean };
+/** The more tray's cells. askOn: lit (the question shows); askDisabled: off while speaking (a
+    recording carries no question); voiceLocked: not First Class (a tap goes to the paywall). */
+export type KComposeMore = { askOn: boolean; askDisabled: boolean; voiceOn: boolean; voiceLocked: boolean };
 
 /** The live state, sent as the `composer` command whenever it changes (and on attach). */
 export type KComposeLive = {

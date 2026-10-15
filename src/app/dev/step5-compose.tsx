@@ -4,7 +4,7 @@ import { Redirect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable, type KScreenHandle } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
-import { t, useLang } from "../../lib/i18n";
+import { getLang, setLang, t, useLang, type Lang } from "../../lib/i18n";
 import { OFFICIAL_NAME } from "../../lib/wren-desk";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { PF } from "../../theme/post";
@@ -33,22 +33,38 @@ import "../../data/strings-step5-compose";
    - SWIFT / RN: which renderer (SWIFT needs a dev client built with
      KComposeView, after pod install);
    - PAGE: EMPTY (a fresh page, the spark), FLOOR (a first line: the floor
-     line half full), DRAFT (a resumed draft with its stamp and question),
-     LONG (near the ceiling: the count), each a fresh page;
-   - FC (First Class: no quota, the voice letter open), GUEST (the cap's
-     check asks for an account), LEFT ? / 4 / 1 / 0 (the free writer's day;
-     0 shows the cap panel at once), FAIL (the publish fails: the page comes
-     back with its words), CAP (the server says the day is spent).
+     line half full), STAMP? (words enough and no stamp: PICK A MOOD STAMP
+     and its nudge), DRAFT (a resumed draft with its stamp and question: the
+     caret stays in the letter), LONG (near the ceiling: the count in brass),
+     each a fresh page;
+   - LANG: EN / IT / FR / DE / JA, the app's language for this session
+     (not saved; the language the page opened with comes back when it
+     closes). STAMP? in IT, FR and DE is the travel key's longest label
+     (SCEGLI UN FRANCOBOLLO DELL'UMORE wraps to two lines on an SE instead
+     of pushing the + off the left edge); EMPTY in FR or JA shows Wren's
+     once-per-language hello whole (once per language per install);
+   - FC (First Class: no quota, the voice letter open), FC@SERVER (First
+     Class by the server's word only, as when the entitlement read failed
+     at launch: the page guesses free and shows the count, the server says
+     premium — at 0 the letter still goes, and the count and panel leave),
+     GUEST (the cap's check asks for an account), LEFT ? / 4 / 1 / 0 (the
+     free writer's day; 0 shows the cap panel at once, drawn only while the
+     keyboard and the trays are away — check it on an SE-sized simulator),
+     FAIL (the publish fails: the page comes back with its words), CAP (the
+     server says the day is spent).
+   Under VoiceOver, a two-finger Z closes an open tray, then asks to leave.
    What would leave the page (back, the paywall, the sign-up sheet) says
    where it would go instead. The panel's words are English: a dev page. */
 
-type Page = "empty" | "floor" | "draft" | "long";
+type Page = "empty" | "floor" | "stamp" | "draft" | "long";
 const PAGES: { key: Page; label: string }[] = [
   { key: "empty", label: "EMPTY" },
   { key: "floor", label: "FLOOR" },
+  { key: "stamp", label: "STAMP?" },
   { key: "draft", label: "DRAFT" },
   { key: "long", label: "LONG" },
 ];
+const DEV_LANGS: Lang[] = ["en", "it", "fr", "de", "ja"];
 type Left = null | 4 | 1 | 0;
 const LEFTS: { key: Left; label: string }[] = [
   { key: null, label: "LEFT ?" },
@@ -65,6 +81,8 @@ const DEMO_DRAFT: Draft = {
   ask: "What small kindness stayed with you this week?",
 };
 const FLOOR_TEXT = "I fixed the";
+// past the floor (20 weighted), no stamp yet: the key asks for one
+const READY_TEXT = "I fixed the squeaky gate this morning and nobody noticed, which felt right.";
 // about 980 weighted: the count near the ceiling, in brass
 const LONG_TEXT = ("I keep a list of the small things that went right. " as string).repeat(19).trim();
 
@@ -83,6 +101,7 @@ function ComposeLab() {
   const [swift, setSwift] = useState(swiftAvailable);
   const [page, setPage] = useState<Page>("empty");
   const [premium, setPremium] = useState(false);
+  const [serverPremium, setServerPremium] = useState(false);
   const [guest, setGuest] = useState(false);
   const [left, setLeft] = useState<Left>(4);
   const [fail, setFail] = useState(false);
@@ -90,7 +109,14 @@ function ComposeLab() {
   const [panel, setPanel] = useState(true);
   // a fresh page for every change of page, renderer, account or day
   const [run, setRun] = useState(0);
-  const pageKey = `${run}:${page}:${swift}:${premium}:${guest}:${String(left)}`;
+  const pageKey = `${run}:${page}:${swift}:${premium}:${serverPremium}:${guest}:${String(left)}`;
+  const lang = useLang();
+
+  // the language this page opened with comes back when it closes
+  useEffect(() => {
+    const opened = getLang();
+    return () => setLang(opened, false);
+  }, []);
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
 
@@ -102,6 +128,7 @@ function ComposeLab() {
           page={page}
           swift={swift && swiftAvailable}
           premium={premium}
+          serverPremium={serverPremium}
           guest={guest}
           left={left}
           fail={fail}
@@ -126,7 +153,13 @@ function ComposeLab() {
             ))}
           </Row>
           <Row>
+            {DEV_LANGS.map((l) => (
+              <Chip key={l} label={l.toUpperCase()} on={lang === l} onPress={() => { setLang(l, false); setRun((n) => n + 1); }} />
+            ))}
+          </Row>
+          <Row>
             <Chip label="FC" on={premium} onPress={() => setPremium((v) => !v)} />
+            <Chip label="FC@SERVER" on={serverPremium} onPress={() => setServerPremium((v) => !v)} />
             <Chip label="GUEST" on={guest} onPress={() => setGuest((v) => !v)} />
             {LEFTS.map((l) => (
               <Chip key={l.label} label={l.label} on={left === l.key} onPress={() => setLeft(l.key)} />
@@ -147,7 +180,7 @@ function ComposeLab() {
 
 /* One compose page on the demo: the route's own layout (the page, the
    courier above it, the leave sheet), with the world stood in for. */
-function DemoPage(p: { page: Page; swift: boolean; premium: boolean; guest: boolean; left: Left; fail: boolean; cap: boolean; onDone: () => void }) {
+function DemoPage(p: { page: Page; swift: boolean; premium: boolean; serverPremium: boolean; guest: boolean; left: Left; fail: boolean; cap: boolean; onDone: () => void }) {
   const { t: tk } = useTheme();
   const viewRef = useRef<KScreenHandle>(null);
   const drafts = useRef(new Map<string, Draft>([[DEMO_DRAFT.id, DEMO_DRAFT]]));
@@ -157,7 +190,16 @@ function DemoPage(p: { page: Page; swift: boolean; premium: boolean; guest: bool
   flags.current = p;
 
   const params = useMemo<ComposeParams>(
-    () => (p.page === "draft" ? { draft: DEMO_DRAFT.id } : p.page === "floor" ? { seed: FLOOR_TEXT } : p.page === "long" ? { seed: LONG_TEXT, stamp: "tiny-win" } : {}),
+    () =>
+      p.page === "draft"
+        ? { draft: DEMO_DRAFT.id }
+        : p.page === "floor"
+          ? { seed: FLOOR_TEXT }
+          : p.page === "stamp"
+            ? { seed: READY_TEXT }
+            : p.page === "long"
+              ? { seed: LONG_TEXT, stamp: "tiny-win" }
+              : {},
     [p.page],
   );
 
@@ -173,7 +215,8 @@ function DemoPage(p: { page: Page; swift: boolean; premium: boolean; guest: bool
         await wait(200);
         const f = flags.current;
         if (f.guest) return { ok: false, reason: "unauthorized" };
-        if (f.premium) return { ok: true, premium: true, count: ++used.current };
+        // First Class (by the page's word or the server's alone): counted (honest stats), never capped
+        if (f.premium || f.serverPremium) return { ok: true, premium: true, count: ++used.current };
         if (f.cap || used.current >= 5) return { ok: false, reason: "daily_cap", cap: 5, used: used.current };
         return { ok: true, premium: false, count: ++used.current, cap: 5 };
       },

@@ -15,7 +15,10 @@ import SwiftUI
    caret never slips under the toolbar the way a growing TextField in a ScrollView does. While
    speaking, the Recorder (an island) and the line that travels with it take its place;
  - the question, when one is attached: a 1pt line, its label, a one-line field of 140;
- - the daily-cap panel (First Class cream) when the day's letters are spent;
+ - the daily-cap panel (First Class cream) when the day's letters are spent, drawn only while the
+   keyboard and the trays are away: it never takes the editor's height on a small phone (on an
+   SE with the keyboard up it would leave the editor one line), and NONE LEFT TODAY stays on the
+   small line above the toolbar while the writer types;
  - the small line above the toolbar: the count near the ceiling and, for a free writer, "N LEFT
    TODAY", right-aligned (owner question 6's default);
  - the toolbar: the + (the question and the voice letter behind it, a dot when one rides with
@@ -34,7 +37,12 @@ import SwiftUI
  A TRAY TAKES THE KEYBOARD'S PLACE. Opening one blurs first (the tap does it at once; a tray
  that arrives from TS while a field is focused does it too), and the tray is drawn only once the
  keyboard has gone, so it is uncovered as the keyboard slides away instead of rising over it.
- Focusing a field closes the tray (onFieldFocus: TS owns which tray is open).
+ Focusing a field closes the tray (onFieldFocus: TS owns which tray is open). Under Reduce
+ Motion a tray fades in and out instead of sliding 296pt.
+
+ VOICEOVER'S ESCAPE (two-finger Z) closes an open tray first, then asks to leave as the × does
+ (onClose, guarded by TS). Without it the gesture reached the navigation stack and popped the
+ page past the leave guard, losing a recording (which can't be a draft) without a word.
 
  THE WORDS. The fields are uncontrolled: the words live in the fields (KField's rules, through
  the driver's two controllers, body and ask), every edit is reported (onTextChange) and nothing
@@ -217,6 +225,8 @@ public struct KComposeStrings: Equatable, Sendable {
   public var moreVoice = ""
   /// VoiceOver's value on the locked voice cell
   public var voiceLocked = ""
+  /// VoiceOver's value on the ASK cell while it is off (speaking: a recording carries no question)
+  public var askDisabled = ""
   public var capText = ""
   public var capSub = ""
   public var capLink = ""
@@ -235,8 +245,9 @@ public struct KComposeContent: Equatable, Sendable {
   public var sections: [KComposeStampSection] = []
   /// the question field shows
   public var askOn = false
-  /// the + tray's cells
+  /// the + tray's cells (ASK is off while speaking)
   public var askCellOn = false
+  public var askCellDisabled = false
   public var voiceCellOn = false
   public var voiceLocked = false
   /// the + key's dot
@@ -317,6 +328,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   /// the height of the page laid out around the keyboard, and of the page under it
   @State private var keptHeight: CGFloat = 0
   @State private var fullHeight: CGFloat = 0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// - Parameters:
   ///   - content: everything that isn't live (the caller's props)
@@ -351,6 +363,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   private var keyboardUp: Bool { fullHeight - keptHeight > 1 }
   /// the tray, once the keyboard has gone
   private var showTray: Bool { content.tray != .none && !keyboardUp }
+  /// the cap panel, only while the keyboard and the trays are away (see the top of the file)
+  private var showCap: Bool { content.capPanel && !keyboardUp && !showTray }
 
   private var toolbarBottom: CGFloat {
     if keyboardUp { return 16 }
@@ -382,7 +396,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         askField
       }
 
-      if content.capPanel {
+      if showCap {
         KCapPanel(text: content.strings.capText, sub: content.strings.capSub, link: content.strings.capLink, onLink: actions.onCapLink)
           .padding(.horizontal, Self.gutter)
           .padding(.top, 10)
@@ -401,11 +415,11 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       if showTray {
         tray
           .frame(height: Self.trayHeight + bottomInset)
-          .transition(.move(edge: .bottom).combined(with: .opacity))
+          .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
       }
     }
-    .animation(.easeOut(duration: 0.22), value: showTray)
-    .animation(.easeOut(duration: 0.2), value: content.capPanel)
+    .animation(reduceMotion ? .easeOut(duration: 0.15) : .easeOut(duration: 0.22), value: showTray)
+    .animation(.easeOut(duration: 0.2), value: showCap)
     .background { theme.bg.ignoresSafeArea() }
     // the keyboard: the page as laid out around it, and the page under it (see THE KEYBOARD)
     .background {
@@ -423,7 +437,16 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       // a tray takes the keyboard's place: let go first
       if tray != .none { driver.blurAll() }
     }
+    // a container of its own, so VoiceOver's escape reaches it from any element on the page
     .accessibilityElement(children: .contain)
+    .accessibilityAction(.escape) {
+      // an open tray closes first (onTray toggles the open one shut); then the guarded way out
+      if content.tray != .none {
+        actions.onTray(content.tray)
+      } else {
+        actions.onClose()
+      }
+    }
   }
 
   // ── the top row ──
@@ -440,7 +463,10 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         .accessibilityAddTraits(.isHeader)
       HStack(spacing: 0) {
         SwiftUI.Button(action: actions.onClose) {
-          KLineIcon(.close, size: 20, lineWidth: 1.6, color: theme.ink)
+          // the system × at 400, 24 (H:136; KTextStyle.close)
+          Text(verbatim: "×")
+            .kText(.close)
+            .foregroundStyle(theme.ink)
             .frame(width: 44, height: 44, alignment: .leading)
             .contentShape(Rectangle())
         }
@@ -581,7 +607,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         askLabel: content.strings.moreAsk,
         voiceLabel: content.strings.moreVoice,
         voiceLockedLabel: content.strings.voiceLocked,
+        askDisabledLabel: content.strings.askDisabled,
         askOn: content.askCellOn,
+        askDisabled: content.askCellDisabled,
         voiceOn: content.voiceCellOn,
         voiceLocked: content.voiceLocked,
         onAsk: actions.onAskToggle,
@@ -599,7 +627,10 @@ enum KComposeAsk {
   static let maxLength = 140
 }
 
-/// Wren's line, watching the live state.
+/// Wren's line, watching the live state. Never cut short: her once-per-language hello runs to
+/// about 150 characters in French and about 70 full-width ones in Japanese and Korean, more than
+/// three lines in this column; the editor below takes whatever room is left. The row stops
+/// growing at the page's accessibility cap instead of truncating her words.
 private struct KComposeWrenLine: View {
   let theme: KTheme
   @ObservedObject var driver: KComposeDriver
@@ -610,7 +641,7 @@ private struct KComposeWrenLine: View {
       .foregroundStyle(theme.sub)
       .fixedSize(horizontal: false, vertical: true)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .lineLimit(3)
+      .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
 }
 
@@ -646,10 +677,13 @@ private struct KComposeNoteLine: View {
     }
   }
 
+  /// compose-model countBrand: near the ceiling, brass that reads as small mono text — brassSeal
+  /// on the light pages (goldText measures under 3:1 on Classic, Lavender and Paper), goldText on
+  /// Midnight (5.8:1 there); past it, postmark red.
   private func color(_ tone: KComposeCount.Tone) -> Color {
     switch tone {
     case .mute: return theme.mute
-    case .amber: return KBrand.goldText
+    case .amber: return theme.isDark ? KBrand.goldText : KBrand.brassSeal
     case .post: return KBrand.postRed
     }
   }

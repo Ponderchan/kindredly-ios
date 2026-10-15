@@ -25,8 +25,20 @@ import { COUNTER_FROM, LETTER_MAX, OPENING_MIN, REPLY_MIN } from "../../lib/weig
    THE QUOTA (owner question 6's default): free writers only, signed in
    with a real account, once First Class has answered — "N LEFT TODAY" on
    the small line above the toolbar, NONE LEFT TODAY at zero, and at zero
-   the daily-cap panel shows at once instead of letting the letter fly and
-   bounce back. First Class, a guest, or a count we couldn't read: nothing.
+   the daily-cap panel shows at once. First Class, a guest, the store-mode
+   demo, or a count we couldn't read: nothing. The count only SHOWS; the
+   server DECIDES. At zero the send asks the server first (bump-letters,
+   before the courier takes off): a 429 keeps the panel and nothing flies,
+   a yes sends — a day that turned (UTC), or a First Class writer whose
+   entitlement read failed (the server counts First Class letters too, so
+   their row can read five or more). A yes for First Class takes the count
+   and the panel off the page.
+
+   THE QUESTION. Turning it off keeps its words (one tap must never throw
+   away what was typed); it simply stops riding with the letter — not sent,
+   not guarded, not drafted — until it is turned on again, words and all.
+   A recording never carries a question, so the ASK cell is off while
+   speaking.
 
    LEAVING. The guarded ✕ is the page's only way out (no edge swipe). A
    page with words, a question, or a recording asks first; a recording
@@ -135,9 +147,27 @@ export function leftFromCount(count: number, cap: number): number {
 }
 
 /** Who sees the quota: a real account, signed in, that First Class has
-    answered for and isn't First Class. */
+    answered for and isn't First Class. A guess (the entitlement read can
+    fail closed): it draws the count, it never refuses a send. */
 export function isFreeWriter(p: { signedIn: boolean; isGuest: boolean; premium: boolean; premiumSettled: boolean }): boolean {
   return p.signedIn && !p.isGuest && p.premiumSettled && !p.premium;
+}
+
+/** The send asks the server (bump-letters) before the courier takes off:
+    only when the count we show says none left. Everywhere else the bump
+    runs under the flight, after her gate. */
+export function bumpBeforeFlight(p: { free: boolean; left: number | null }): boolean {
+  return p.free && p.left === 0;
+}
+
+/** The day's count after the server let a letter go: null for First Class
+    (no count, no panel: it said premium), the count against its cap for a
+    free writer, undefined when it sent no count (leave the page as it is). */
+export function leftAfterBump(b: { premium: boolean; count?: unknown; cap?: unknown }, fallbackCap: number): number | null | undefined {
+  if (b.premium) return null;
+  if (typeof b.count !== "number" || !Number.isFinite(b.count)) return undefined;
+  const cap = typeof b.cap === "number" && Number.isFinite(b.cap) ? b.cap : fallbackCap;
+  return leftFromCount(b.count, cap);
 }
 
 /** "N LEFT TODAY" for a free writer whose count we know, "" otherwise. */
@@ -152,6 +182,17 @@ export function quotaFor(p: { free: boolean; left: number | null }, fmt: Compose
     for a free writer with none left. */
 export function capVisible(p: { capHit: boolean; free: boolean; left: number | null }): boolean {
   return p.capHit || (p.free && p.left === 0);
+}
+
+/** Which colour the count near the ceiling takes: postmark red past it;
+    within 40 of it, brass that reads as small mono text — brassSeal on the
+    light pages (goldText is under 3:1 there), goldText on Midnight (where
+    it is the one that reads); the theme's mute before that. A brand name
+    (themes.json brand), so both renderers pick the same one. */
+export function countBrand(tone: CountTone, dark: boolean): "mute" | "brassSeal" | "goldText" | "postRed" {
+  if (tone === "post") return "postRed";
+  if (tone === "amber") return dark ? "goldText" : "brassSeal";
+  return "mute";
 }
 
 /** Wren's one line: her language hello (once per language, an empty page,
@@ -173,37 +214,56 @@ export function wrenLineFor(
   return fmt.t("cp.quote", { s: line });
 }
 
-/** What goes out: the letter with its question under it, or the line that
-    travels with a recording. */
-export function sendBody(mode: ComposeMode, text: string, ask: string): string {
+/** The question as it rides with the letter: its words while it is on,
+    nothing while it is off (its words are kept, not sent; see THE QUESTION). */
+const riding = (ask: string, askOn: boolean) => (askOn ? ask : "");
+
+/** What goes out: the letter with its question under it (only while the
+    question is on), or the line that travels with a recording. */
+export function sendBody(mode: ComposeMode, text: string, ask: string, askOn: boolean): string {
   if (mode === "speak") return text.trim();
-  const a = ask.trim();
+  const a = riding(ask, askOn).trim();
   return a ? `${text.trim()}\n\n${a}` : text.trim();
 }
 
-/** The leave guard: words (the letter or its question) or a recording ask
-    first; only words can be kept as a draft. */
-export function leaveGuard(p: { text: string; ask: string; hasRecording: boolean }): LeaveGuard {
-  const words = p.text.trim() !== "" || p.ask.trim() !== "";
+/** The leave guard: words (the letter, or its question while it is on) or
+    a recording ask first; only words can be kept as a draft. */
+export function leaveGuard(p: { text: string; ask: string; askOn: boolean; hasRecording: boolean }): LeaveGuard {
+  const words = p.text.trim() !== "" || riding(p.ask, p.askOn).trim() !== "";
   return { guard: words || p.hasRecording, canSaveDraft: words };
+}
+
+/** What SAVE AS DRAFT keeps: the letter (trimmed) and its question while it
+    is on, under the draft's own id when it has one. */
+export function draftToKeep(snap: { text: string; ask: string; askOn: boolean; sel: string | null; draftId: string | null }): DraftInput {
+  return { id: snap.draftId, stamp: snap.sel ?? "", body: snap.text.trim(), ask: riding(snap.ask, snap.askOn) };
 }
 
 /** The silent autosave when the page goes, or null: only for a written page
     that left without deciding (see LEAVING above), with at least a few
-    characters. */
+    characters; the question only while it is on. */
 export function autosaveDraft(
-  snap: { text: string; ask: string; sel: string | null; mode: ComposeMode; draftId: string | null },
+  snap: { text: string; ask: string; askOn: boolean; sel: string | null; mode: ComposeMode; draftId: string | null },
   outcome: LeaveOutcome,
 ): DraftInput | null {
   if (outcome.kind !== "open") return null;
   if (snap.mode !== "write") return null; // a recording doesn't survive as a draft
   if (snap.text.trim().length < 3) return null;
-  return { id: snap.draftId, stamp: snap.sel ?? "", body: snap.text, ask: snap.ask };
+  return { id: snap.draftId, stamp: snap.sel ?? "", body: snap.text, ask: riding(snap.ask, snap.askOn) };
 }
 
-/** The + key's dot: something rides with the letter (a question, the voice). */
-export function plusDot(p: { tray: ComposeTray; askOn: boolean; ask: string; mode: ComposeMode }): boolean {
-  return p.tray !== "more" && (p.askOn || p.ask.trim() !== "" || p.mode === "speak");
+/** The + tray's ASK cell: lit while the question shows under the letter;
+    off while speaking (a recording carries no question, and the field is
+    drawn only under a written letter), so a tap there neither lights it
+    nor queues a focus for a field that isn't on the page. */
+export function askCell(p: { askOpen: boolean; mode: ComposeMode }): { on: boolean; disabled: boolean } {
+  return { on: p.askOpen && p.mode === "write", disabled: p.mode === "speak" };
+}
+
+/** The + key's dot: something rides with the letter (the question while it
+    is on, the voice). A question turned off rides with nothing. */
+export function plusDot(p: { tray: ComposeTray; askOn: boolean; mode: ComposeMode }): boolean {
+  return p.tray !== "more" && (p.askOn || p.mode === "speak");
 }
 
 /** The stamp tray's sections, in order: FOR THIS LETTER (read off the

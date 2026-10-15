@@ -155,6 +155,7 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
     moreAsk: t("cp.tray.ask"),
     moreVoice: t("cp.tray.voice"),
     voiceLocked: t("cp.voiceLocked.a11y"),
+    askDisabled: t("cp.askVoice.a11y"),
     capText: state.capText,
     capSub: t("cp.repliesFree"),
     capLink: t("cp.discover"),

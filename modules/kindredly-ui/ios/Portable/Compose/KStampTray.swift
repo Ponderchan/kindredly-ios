@@ -9,7 +9,10 @@ import SwiftUI
  its head in mono 600 10 at .14em in mute, six to a row. A tile is the stamp's own art at 40
  (KStampArt: stamps keep their colours in every theme), ringed 2pt in ind with corners of 7
  when it is the one on the envelope, its name under it in mono 9 in its channel ink (worked out
- by TS against this tray's soft, so a deep stamp's name still reads on Midnight's dark tray).
+ by TS against this tray's soft, so a deep stamp's name still reads on Midnight's dark tray), on
+ up to two centred lines (NEVER TOLD ANYONE, HAT MEINEN TAG GERETTET, MI HA FATTO LA GIORNATA
+ don't fit one line of 58 even at .8; a row of the grid grows to its tallest name). The tiles
+ stop growing at accessibility1, as the + tray's cells do.
  A tap picks it (TS closes the tray and notes it as recently used).
 
  The custom stamp and the stamp cam are doors not built yet (ComposeTray DOORS_OPEN = false):
@@ -78,8 +81,10 @@ struct KStampTray: View {
         Text(item.name)
           .kText(.mono(9, .medium, tracking: 0.02))
           .foregroundStyle(item.ink)
-          .lineLimit(1)
+          .lineLimit(2)
+          .multilineTextAlignment(.center)
           .minimumScaleFactor(0.8)
+          .fixedSize(horizontal: false, vertical: true)
           .frame(maxWidth: 58)
       }
       .padding(.top, 6)
@@ -91,5 +96,6 @@ struct KStampTray: View {
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(item.accessibilityLabel)
     .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
 }
