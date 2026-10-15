@@ -4,7 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { t, useLang } from "../lib/i18n";
-import { P, PF, solidBtn } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { WrenBird } from "../components/WrenBird";
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { sendSupportLetter } from "../lib/db";
@@ -24,6 +25,11 @@ import { fieldBox } from "../lib/field";
 const VERSION = `${Constants.expoConfig?.version ?? "1.0.0"}${Constants.expoConfig?.ios?.buildNumber ? ` (${Constants.expoConfig.ios.buildNumber})` : ""}`;
 
 export default function WriteToUs() {
+  const P = useP();
+  const { t: tk, dark } = useTheme();
+  /* post's solidBtn, drawn from the theme: the pen blue, with its label in
+     the page colour (the text on anything filled with ind) */
+  const solidBtn = { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" } as const;
   useLang();
   const router = useRouter();
   const wren = useWrenName();
@@ -57,7 +63,7 @@ export default function WriteToUs() {
             {speakAs(email.trim() ? t("wu.takenAddr") : t("wu.takenNoAddr"), wren)}
           </Text>
           <Pressable onPress={() => router.back()} style={({ pressed }) => ({ ...solidBtn, alignSelf: "stretch", marginTop: 30, opacity: pressed ? 0.85 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>{t("wu.done")}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: tk.bg }}>{t("wu.done")}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -88,7 +94,8 @@ export default function WriteToUs() {
             multiline
             autoFocus
             placeholder={t("wu.ph")}
-            placeholderTextColor={P.ink40}
+            placeholderTextColor={tk.faint}
+            keyboardAppearance={dark ? "dark" : "light"}
             style={{ ...fieldBox(body, 25, 320), borderBottomWidth: 1, borderBottomColor: P.ink12, paddingTop: 10, paddingBottom: 10, fontFamily: PF.letter, fontSize: 17, lineHeight: 25, color: P.ink }}
           />
 
@@ -102,7 +109,8 @@ export default function WriteToUs() {
             autoCorrect={false}
             keyboardType="email-address"
             placeholder={t("wu.addrPh")}
-            placeholderTextColor={P.ink40}
+            placeholderTextColor={tk.faint}
+            keyboardAppearance={dark ? "dark" : "light"}
             style={{ borderBottomWidth: 1, borderBottomColor: P.ink12, paddingVertical: 10, marginTop: 6, fontFamily: PF.letter, fontSize: 16, color: P.ink }}
           />
           <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, lineHeight: 18, color: P.ink40, marginTop: 8 }}>
@@ -116,7 +124,7 @@ export default function WriteToUs() {
           )}
 
           <Pressable onPress={send} disabled={!canSend} style={({ pressed }) => ({ ...solidBtn, marginTop: 26, opacity: canSend ? (pressed ? 0.85 : 1) : 0.4 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: tk.bg }}>
               {sending ? "…" : t("wu.send", { wren: wren.toUpperCase() })}
             </Text>
           </Pressable>

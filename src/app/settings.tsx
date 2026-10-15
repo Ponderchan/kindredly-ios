@@ -4,8 +4,9 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, AppState, Linking, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
-import { W14, cardShadow } from "../components/AuraCard";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
+import { cardShadow } from "../components/AuraCard";
 import { SettingsIcon, type SettingsGlyph } from "../components/SettingsIcons";
 import { useAuth } from "../lib/auth";
 import { LeaveSheet } from "../components/LeaveSheet";
@@ -26,7 +27,18 @@ const APP_VERSION = `${Constants.expoConfig?.version ?? "1.0.0"}${Constants.expo
 
 /* Settings — everything that isn't the profile itself, behind Me's gear. */
 
+/* THE TWO EXITS STAY RED IN EVERY THEME. Sign out and delete are the only
+   danger on the page and 10a has no token for danger, so the red and its
+   pale tile are fixed. The note that notifications are off is the same
+   kind of thing: a blue panel with its own blue type, a pair that keeps its
+   contrast whatever is around it. Everything else here — type, cards,
+   rules, tiles, the switches — takes its colour from the theme. */
+const DANGER = "#B23838";
+const DANGER_TILE = "#FBEAEA";
+
 export default function Settings() {
+  const P = useP();
+  const { t: tk } = useTheme();
   const auth = useAuth();
   const { handle, profile } = auth;
   const router = useRouter();
@@ -198,10 +210,10 @@ export default function Settings() {
      and the hairline between rows starts past the tile */
   const Row = ({ glyph, label, value, onPress, last, danger }: { glyph: SettingsGlyph; label: string; value?: string; onPress?: () => void; last?: boolean; danger?: boolean }) => (
     <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16, opacity: pressed ? 0.6 : 1 })}>
-      <SettingsIcon glyph={glyph} color={danger ? "#B23838" : "#3A34D6"} tile={danger ? "#FBEAEA" : "#EEEDFB"} />
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: W14.hair }}>
-        <Text style={{ fontFamily: PF.letter, fontSize: 15, color: danger ? "#B23838" : W14.ink }}>{label}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 13, color: "rgba(30,27,53,0.5)", marginLeft: 12 }}>{value ?? "›"}</Text>
+      <SettingsIcon glyph={glyph} color={danger ? DANGER : tk.ind} tile={danger ? DANGER_TILE : tk.lav2} />
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: tk.line }}>
+        <Text style={{ fontFamily: PF.letter, fontSize: 15, color: danger ? DANGER : tk.ink }}>{label}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 13, color: tk.mute, marginLeft: 12 }}>{value ?? "›"}</Text>
       </View>
     </Pressable>
   );
@@ -209,27 +221,27 @@ export default function Settings() {
   const SwitchRow = ({ glyph, title, sub, value, onChange, last, disabled }: { glyph: SettingsGlyph; title: string; sub: string; value: boolean; onChange: (v: boolean) => void; last?: boolean; disabled?: boolean }) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16 }}>
       <SettingsIcon glyph={glyph} />
-      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: last ? 0 : 1, borderBottomColor: W14.hair }}>
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 11, borderBottomWidth: last ? 0 : 1, borderBottomColor: tk.line }}>
         <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 15, color: W14.ink }}>{title}</Text>
-          <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 2 }}>{sub}</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 15, color: tk.ink }}>{title}</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: tk.mute, marginTop: 2 }}>{sub}</Text>
         </View>
-        <Switch accessibilityLabel={title} accessibilityHint={sub} value={value} onValueChange={onChange} disabled={disabled} trackColor={{ true: P.pen, false: "#D8D8D6" }} />
+        <Switch accessibilityLabel={title} accessibilityHint={sub} value={value} onValueChange={onChange} disabled={disabled} trackColor={{ true: P.pen, false: tk.faint }} />
       </View>
     </View>
   );
   const Card = ({ children, style }: { children: React.ReactNode; style?: object }) => (
-    <View style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, marginBottom: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.06 }, style]}>{children}</View>
+    <View style={[{ backgroundColor: tk.sf, borderRadius: 18, marginBottom: 22, overflow: "hidden" }, cardShadow, { shadowOpacity: 0.06 }, style]}>{children}</View>
   );
-  const Head = ({ children }: { children: string }) => <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: "rgba(30,27,53,0.5)", marginBottom: 8, marginLeft: 4 }}>{children}</Text>;
+  const Head = ({ children }: { children: string }) => <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.6, color: tk.mute, marginBottom: 8, marginLeft: 4 }}>{children}</Text>;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: W14.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: tk.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: W14.ink }}>{t("settings.title")}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.6, color: tk.ink }}>{t("settings.title")}</Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -304,14 +316,14 @@ export default function Settings() {
         <Card style={{ marginBottom: 0 }}>
           <Row glyph="door" label={t("set.signOut")} onPress={onSignOut} danger />
           <Pressable onPress={() => setAskDelete(true)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 16, opacity: pressed ? 0.6 : 1 })}>
-            <SettingsIcon glyph="trash" color="#B23838" tile="#FBEAEA" />
+            <SettingsIcon glyph="trash" color={DANGER} tile={DANGER_TILE} />
             <View style={{ flex: 1, paddingVertical: 12 }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 15, color: "#B23838" }}>{t("set.deleteAcct")}</Text>
-              <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 2 }}>{t("set.deleteSub")}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 15, color: DANGER }}>{t("set.deleteAcct")}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: tk.mute, marginTop: 2 }}>{t("set.deleteSub")}</Text>
             </View>
           </Pressable>
         </Card>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.45)", textAlign: "center", marginTop: 22 }}>
+        <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.4, color: tk.mute, textAlign: "center", marginTop: 22 }}>
           {t("set.version", { v: APP_VERSION })}
         </Text>
       </ScrollView>

@@ -3,7 +3,8 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
-import { P, PF, rule } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { MosaicId } from "../components/MosaicId";
 import { useWrenName } from "../lib/wren-name";
 import { dLong, postNo } from "../lib/format";
@@ -25,6 +26,8 @@ import { fetchBlocks, unblockUser, type BlockRow } from "../lib/db";
    handed to the bird, not a case file the reporter owns. What matters to
    the person who filed one is what it DOES, so that's what the line says. */
 export default function BlockedScreen() {
+  const P = useP();
+  const { t: tk } = useTheme();
   useLang();
   const router = useRouter();
   const wren = useWrenName();
@@ -69,7 +72,8 @@ export default function BlockedScreen() {
           {loaded ? String(rows.length).padStart(2, "0") : "··"}
         </Text>
       </View>
-      <View style={{ ...rule }} />
+      {/* post's full-strength rule; a rule is an outline, so it's ln */}
+      <View style={{ borderBottomWidth: 1, borderBottomColor: tk.ln }} />
 
       {loaded && rows.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>

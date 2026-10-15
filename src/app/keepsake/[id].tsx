@@ -3,7 +3,8 @@ import { Image, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { t, useLang } from "../../lib/i18n";
-import { P, PF, ruleSoft } from "../../theme/post";
+import { PF } from "../../theme/post";
+import { useP, useTheme } from "../../lib/theme";
 import { keepsake } from "../../data/keepsakes";
 import { loadShelf, markSeen, type Minted } from "../../lib/keepsakes";
 import { WrenBird } from "../../components/WrenBird";
@@ -20,6 +21,8 @@ import { speakAs, useWrenName } from "../../lib/wren-name";
    It can be shared. Nothing here can delete what actually happened:
    taking a keepsake off a shelf never removes a letter. */
 export default function KeepsakeDetail() {
+  const P = useP();
+  const { t: tk } = useTheme();
   useLang();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -80,7 +83,7 @@ export default function KeepsakeDetail() {
             <Text style={{ fontFamily: PF.monoMed, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 30, marginBottom: 10 }}>
               {t("ks.evidence")}
             </Text>
-            <View style={[{ paddingBottom: 12 }, ruleSoft]}>
+            <View style={{ paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
               <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 0.8, color: P.ink }}>{mine.evidence}</Text>
             </View>
 
@@ -109,7 +112,7 @@ export default function KeepsakeDetail() {
 
             <Pressable
               onPress={() => Share.share({ message: t("ks.shareTail", { name: t(`ks.name.${def.id}`), evidence: mine.evidence }) })}
-              style={({ pressed }) => ({ borderWidth: 1, borderColor: P.ink, paddingVertical: 14, alignItems: "center", marginTop: 34, opacity: pressed ? 0.7 : 1 })}
+              style={({ pressed }) => ({ borderWidth: 1, borderColor: tk.ln, paddingVertical: 14, alignItems: "center", marginTop: 34, opacity: pressed ? 0.7 : 1 })}
             >
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.8, color: P.ink }}>{t("ks.share")}</Text>
             </Pressable>

@@ -1,16 +1,21 @@
 import { View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { useTheme } from "../lib/theme";
 
 /* THE SETTINGS ROWS' MARKS — one small stroke glyph per row, on a tinted
    tile, so a list of eighteen mono labels reads as places rather than a
    ledger. Drawn on the 24-grid like the aura room's share and grid marks;
-   tinted by the caller (ink for most, red for the two exits). */
+   tinted by the caller (ink for most, red for the two exits). Left to
+   itself the mark is the theme's indigo on its palest wash. */
 
 export type SettingsGlyph =
   | "pen" | "cake" | "globe" | "bird" | "bell" | "heart" | "draft" | "ticket" | "restore" | "card"
   | "help" | "mail" | "star" | "shield" | "doc" | "lock" | "door" | "trash";
 
-export function SettingsIcon({ glyph, color = "#3A34D6", tile = "#EEEDFB" }: { glyph: SettingsGlyph; color?: string; tile?: string }) {
+export function SettingsIcon({ glyph, color: colorIn, tile: tileIn }: { glyph: SettingsGlyph; color?: string; tile?: string }) {
+  const { t: tk } = useTheme();
+  const color = colorIn ?? tk.ind;
+  const tile = tileIn ?? tk.lav2;
   return (
     <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: tile, alignItems: "center", justifyContent: "center" }}>
       <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">

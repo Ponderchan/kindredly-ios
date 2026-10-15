@@ -3,7 +3,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
-import { P, PF, ruleSoft } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP } from "../lib/theme";
 import { WrenBird } from "../components/WrenBird";
 import { speakAs, useWrenName } from "../lib/wren-name";
 
@@ -19,6 +20,7 @@ const QA = (wren: string): { q: string; a: string }[] =>
   [1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => ({ q: t(`hp.q${i}`), a: t(`hp.a${i}`, { wren }) }));
 
 export default function Help() {
+  const P = useP();
   useLang();
   const router = useRouter();
   const wren = useWrenName();
@@ -46,7 +48,7 @@ export default function Help() {
         {qa.map((row, i) => {
           const on = open === i;
           return (
-            <Pressable key={row.q} onPress={() => setOpen(on ? null : i)} style={[{ paddingVertical: 15 }, ruleSoft]}>
+            <Pressable key={row.q} onPress={() => setOpen(on ? null : i)} style={{ paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
               <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
                 <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 16, fontWeight: "600", color: P.ink, lineHeight: 23 }}>
                   {row.q}

@@ -3,19 +3,30 @@ import Svg, { Circle, Rect } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { C } from "../theme/tokens";
 import { shade } from "../lib/format";
+import { useTheme } from "../lib/theme";
 import type { GrowthStamp as StampDef } from "../data/growth";
 
 /* A collectible growth stamp — white postage frame with punched perforations,
-   gradient face, emoji mark. Locked stamps go grey with a small padlock. */
+   gradient face, emoji mark. Locked stamps go grey with a small padlock.
+
+   The stamp is an object and keeps its own colours in every theme. The one
+   exception is the perforations: they are holes, so they are filled with
+   whatever the stamp sits on — `ground`, the page by default, the card's
+   face when the caller puts it on a card. */
 export function GrowthStampTile({
   stamp,
   earned,
   size = 92,
+  ground,
 }: {
   stamp: StampDef;
   earned: boolean;
   size?: number;
+  /** the colour behind the stamp, which the perforations show */
+  ground?: string;
 }) {
+  const { t: tk } = useTheme();
+  const hole = ground ?? tk.bg;
   const W = size;
   const H = size * 1.18;
   const r = size * 0.033; // perforation radius
@@ -35,7 +46,7 @@ export function GrowthStampTile({
           cx={horiz ? t : fixed}
           cy={horiz ? fixed : t}
           r={r}
-          fill={C.cream}
+          fill={hole}
         />
       );
     });
