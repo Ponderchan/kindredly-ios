@@ -214,18 +214,21 @@ not `eas env:exec`. The b27 build log says so in its first lines ("No environmen
 variables with visibility "Plain text" and "Sensitive" found"), and the 1.0.2 archive's
 bundle has Supabase in it but no `appl_` key — so a local build ships with IAP off:
 placeholder prices and "Can't reach the store". The RevenueCat iOS key is a public SDK
-key; its EAS visibility must be "Sensitive" (or Plain text).
+key; its EAS visibility must be "Sensitive" (or Plain text) — fixed 2026-10-15 (recreated
+as Sensitive in production, preview and development). And **clear the bundler cache
+whenever a variable changes** (`--clear` / `--clear-cache`): the first export after the
+fix still came out with no key, from code Metro had cached with the empty value.
 
 Check a bundle before anything ships (counts only — never print the key):
 
 ```bash
 cd ~/Desktop/claude-projects/kindredly-ios
-eas env:exec production "npx expo export --platform ios --output-dir /tmp/kindredly-ota-check"
+eas env:exec production "npx expo export --platform ios --clear --output-dir /tmp/kindredly-ota-check"
 F=$(ls /tmp/kindredly-ota-check/_expo/static/js/ios/*.hbc)
 LC_ALL=C grep -c -a "wndkpoiuoxufvplnlaww" "$F"      # must be ≥ 1 (Supabase)
 LC_ALL=C grep -c -a "appl_[A-Za-z0-9]" "$F"          # must be ≥ 1 (RevenueCat)
 # only then, with the owner's go-ahead (it reaches every phone on that version):
-eas update --channel production --environment production --message "<what changed>"
+eas update --channel production --environment production --clear-cache --message "<what changed>"
 ```
 
 The same two counts on a built `.ipa` (`Payload/Kindredly.app/main.jsbundle`) belong in
