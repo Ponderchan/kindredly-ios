@@ -8,3 +8,30 @@ import { requireOptionalNativeModule } from "expo";
 export function isKindredlyUIAvailable(): boolean {
   return requireOptionalNativeModule("KindredlyUI") != null;
 }
+
+/* Whether this binary's KindredlyUI has one particular view. The module being there is not
+   enough once views are added to it a step at a time: a dev client built after the module
+   arrived but before, say, KTabBarView would have the module and not the view, and rendering a
+   view the binary doesn't have is a red screen. This asks the same question requireNativeView
+   asks before it draws: expo's own getViewConfig (expo-modules-core ios/Core/Modules/
+   CoreModule.swift), which answers null for a view the module doesn't define.
+
+   Asked once per view and remembered: a binary can't gain a view while it runs. */
+type ExpoGlobal = { getViewConfig?: (moduleName: string, viewName?: string) => unknown };
+const views = new Map<string, boolean>();
+
+export function isKindredlyUIViewAvailable(viewName: string): boolean {
+  const known = views.get(viewName);
+  if (known !== undefined) return known;
+  let there = false;
+  if (isKindredlyUIAvailable()) {
+    try {
+      const expo = (globalThis as { expo?: ExpoGlobal }).expo;
+      there = expo?.getViewConfig?.("KindredlyUI", viewName) != null;
+    } catch (e) {
+      console.log(`[kindredly-ui] could not ask for ${viewName}, using React Native:`, e);
+    }
+  }
+  views.set(viewName, there);
+  return there;
+}

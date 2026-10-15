@@ -19,6 +19,7 @@ import SwiftUI
 public struct KGallery: View {
   private let theme: KTheme
   @State private var plusOpen = false
+  @State private var tab = 0
   @State private var translated = false
   @State private var meChip = 0
   @State private var knock = true
@@ -136,19 +137,22 @@ public struct KGallery: View {
   // ── Float: the tab bar (H:117-119) and a popover ──
   private var floats: some View {
     VStack(alignment: .leading, spacing: 22) {
-      KFloat(theme: theme, corner: .bar) {
-        HStack(spacing: 0) {
-          tabIcon("envelope", on: true)
-          tabIcon("person.2", on: false)
-          KPrimaryRound(theme: theme, isOpen: plusOpen, accessibilityLabel: plusOpen ? "Close" : "Write") {
-            plusOpen.toggle()
-          }
-          .frame(maxWidth: .infinity)
-          tabIcon("note.text", on: false)
-          tabIcon("person.crop.circle", on: false)
-        }
-        .frame(height: 62)
-      }
+      // the real bar (KTabBar.swift): tap a tab for the lens and the pop; Kindreds carries a 3
+      KTabBar(
+        theme: theme,
+        items: [
+          KTabItem(glyph: .today, label: "Today"),
+          KTabItem(glyph: .notes, label: "Notes"),
+          KTabItem(glyph: .kindreds, label: "Kindreds", badge: 3),
+          KTabItem(glyph: .me, label: "Me"),
+        ],
+        selectedIndex: tab,
+        isPanelOpen: plusOpen,
+        plusLabel: "Write",
+        closeLabel: "Close",
+        onSelect: { tab = $0 },
+        onPlus: { plusOpen.toggle() }
+      )
       KFloat(theme: theme, corner: .popover) {
         VStack(alignment: .leading, spacing: 4) {
           Text("A popover").kText(.name).foregroundStyle(theme.ink)
@@ -161,14 +165,6 @@ public struct KGallery: View {
       }
     }
     .padding(.bottom, 8)
-  }
-
-  private func tabIcon(_ name: String, on: Bool) -> some View {
-    Image(systemName: name)
-      .font(.system(size: 21, weight: on ? .semibold : .regular))
-      .foregroundStyle(on ? theme.ind : theme.ink)
-      .frame(maxWidth: .infinity)
-      .accessibilityHidden(true)
   }
 
   // ── the button levels (H:78, 81, 119, 124) ──

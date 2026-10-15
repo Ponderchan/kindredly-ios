@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Redirect } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { InkCardHost, KGalleryHost, isKindredlyUIAvailable, type KThemeKey } from "../../modules/kindredly-ui";
+import { Host } from "@expo/ui/swift-ui";
+import { InkCardHost, KGalleryHost, KTabBar, isKindredlyUIAvailable, isKindredlyUIViewAvailable, type KThemeKey } from "../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../lib/theme";
+// as tr: this page's `t` is the theme's colours
+import { t as tr } from "../lib/i18n";
 import THEMES from "../theme/themes.json";
 import { PF } from "../theme/post";
 
@@ -21,6 +25,11 @@ import { PF } from "../theme/post";
      edge, and each theme's face, outline and hard shadow.
    - the gallery: every Portable piece (type, both InkCards, SoftGroup, Float, the buttons,
      the capsules, the Me chips) in the theme in effect, one Host for all of it.
+   - the 10a tab bar (KTabBar, what components/NativeTabBar draws in the tabs), one per theme,
+     each in a box of its theme's page: tap a tab and the lens slides and the icon pops, tap
+     the + and the composer sheet rises over the dim inside the box. Kindreds carries a count
+     of 3 (hidden while it is the tab selected). Nothing navigates from here; a card or the dim
+     just closes the sheet. A build whose module predates the bar says so.
 
    A build without the module says so instead of drawing empty boxes. */
 const KEYS = Object.keys(THEMES.themes) as KThemeKey[];
@@ -94,7 +103,64 @@ export default function UiLab() {
             <KGalleryHost theme={key} />
           </>
         ) : null}
+
+        {native ? (
+          <>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginTop: 20, marginBottom: 4 }}>TAB BAR · ONE PER THEME</Text>
+            {isKindredlyUIViewAvailable("KTabBarView") ? (
+              KEYS.map((k) => <TabBarSample key={k} theme={k} />)
+            ) : (
+              <Text style={{ fontSize: 16, lineHeight: 24, color: t.ink, marginHorizontal: 16 }}>
+                This build's KindredlyUI predates the tab bar (no KTabBarView). Run pod install, then rebuild the dev client.
+              </Text>
+            )}
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/* one theme's tab bar, live but going nowhere: the same view the tabs use, in a box tall
+   enough for the sheet (the sheet sits 12 above the bar, the bar 16 off the box's bottom with
+   no safe area here). The words are the app's own, so a change of language shows here too. */
+const SAMPLE_TABS = [
+  { glyph: "today", label: "tab.today" },
+  { glyph: "notes", label: "tab.notes" },
+  { glyph: "kindreds", label: "tab.kindreds" },
+  { glyph: "me", label: "tab.me" },
+] as const;
+
+function TabBarSample({ theme }: { theme: KThemeKey }) {
+  const kt = THEMES.themes[theme];
+  const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ backgroundColor: kt.bg, paddingTop: 12 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute, marginHorizontal: 16 }}>{kt.name.toUpperCase()}</Text>
+      <Host style={{ height: 320 }} ignoreSafeArea="all" colorScheme={kt.dark ? "dark" : "light"}>
+        <KTabBar
+          theme={theme}
+          tabs={SAMPLE_TABS.map((s) => ({ glyph: s.glyph, label: tr(s.label), badge: s.glyph === "kindreds" ? 3 : 0 }))}
+          activeIndex={active}
+          panelOpen={open}
+          safeAreaBottom={0}
+          plusLabel={tr("pc.post")}
+          closeLabel={tr("wren.trackClose")}
+          panelTitle={tr("pc.post")}
+          panelCards={[
+            { key: "stranger", title: tr("pc.stranger"), subtitle: tr("pc.strangerSaid"), glyph: "letter", tone: "lavender" },
+            { key: "yourself", title: tr("pc.yourself"), subtitle: tr("pc.yourselfSaid"), glyph: "note", tone: "warm" },
+          ]}
+          onTabPress={(i) => {
+            setOpen(false);
+            setActive(i);
+          }}
+          onPlusPress={() => setOpen((o) => !o)}
+          onPanelAction={() => setOpen(false)}
+          onPanelDismiss={() => setOpen(false)}
+        />
+      </Host>
+    </View>
   );
 }

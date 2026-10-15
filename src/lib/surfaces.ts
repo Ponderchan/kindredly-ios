@@ -38,8 +38,15 @@ import { resolveSurfaces, surfaceOn, type SurfaceMap } from "./surfaces-resolve"
 /* Each SwiftUI surface adds its key here when it ships: true = use Swift.
    The key is the `surface` string the table uses. Until a key is here (or
    a row turns it on) the screen stays React Native. An OTA update can
-   change these, but the table is faster and needs no publish. */
-export const NATIVE_DEFAULTS: Record<string, boolean> = {};
+   change these, but the table is faster and needs no publish.
+
+     tabbar   the 10a tab bar and its composer sheet (components/NativeTabBar;
+              off → PostTabBar + PostFan). The tabs layout also checks the
+              binary has the Swift view itself, so a dev client built before
+              it simply keeps the React Native bar. */
+export const NATIVE_DEFAULTS: Record<string, boolean> = {
+  tabbar: true,
+};
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */
