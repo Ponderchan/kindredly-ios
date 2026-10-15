@@ -3,7 +3,7 @@
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { FirstFlight } from "../components/FirstFlight";
-import { P } from "../theme/post";
+import { useP } from "../lib/theme";
 import type { PoolLetter } from "../lib/db";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, setFlag } from "../lib/flags";
@@ -16,6 +16,7 @@ const DEMO = [
 
 export default function FirstFlightPreview() {
   const router = useRouter();
+  const P = useP(); // the same ground FirstFlight paints, from the theme
   if (!__DEV__) return <View style={{ flex: 1, backgroundColor: P.penWash }} />;
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>

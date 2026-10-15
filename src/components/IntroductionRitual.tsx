@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { Easing, FadeIn, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
 import { COLS, MosaicId, inkedCells } from "./MosaicId";
 import { WrenGlyph } from "./GlyphInput";
@@ -28,7 +29,15 @@ import type { KindredNotice } from "../lib/kindred-read";
       bump, overlap a little, bounce apart — and are faces, not mosaics,
       from the bump on. A small chip underneath says since when.
    ⑤ ONE MORE STICKER. What she noticed — the label you both wear — is a
-      real sticker label with a ×2 corner, slapped under the two of you. */
+      real sticker label with a ×2 corner, slapped under the two of you.
+
+   WHAT FOLLOWS THE THEME. The road is drawn in the page's own inks: the
+   ground line, the windows' frames and the envelopes' edges in the outline
+   colour (ln), the envelopes' faces on the card face (sf), the names and
+   counts in ink. The stickers keep their own colours in every theme — the
+   white cut edge, the kindred green, the green since-chip, the ink ×2
+   corner, the white ring round each face — because a sticker is an object
+   with its own print, not chrome. So does the lit window's warm pane. */
 
 const T_ROAD = 380;
 const T_STEP = 240; // one letter crosses every 240 ms; the last lands before the burst
@@ -73,6 +82,7 @@ export function IntroductionRitual({
   const bg = "#7CC58F";
   const fg = "#1E1B35";
   const chipLook = notice ? stickerLook(notice.stickerId, 1) : null;
+  const P = useP();
 
   return (
     <View style={{ alignItems: "center" }}>
@@ -135,6 +145,8 @@ const ROAD_W = 300;
 const ROAD_H = 100;
 const WIN = 34;
 function Flight({ road, stamp }: { road: ThreadMessage[]; stamp?: string | null }) {
+  const P = useP();
+  const tk = useTheme().t;
   const [mine, setMine] = useState(0);
   const [theirs, setTheirs] = useState(0);
   useEffect(() => {
@@ -147,7 +159,7 @@ function Flight({ road, stamp }: { road: ThreadMessage[]; stamp?: string | null 
   return (
     <View style={{ width: ROAD_W, height: ROAD_H + 44 }}>
       {/* the ground the two windows stand on, and the dotted road between */}
-      <View style={{ position: "absolute", left: 10, right: 10, top: y + WIN / 2 + 2, height: 1.5, backgroundColor: P.ink }} />
+      <View style={{ position: "absolute", left: 10, right: 10, top: y + WIN / 2 + 2, height: 1.5, backgroundColor: tk.ln }} />
       <View style={{ position: "absolute", left: x0 + WIN / 2 + 6, right: ROAD_W - x1 + WIN / 2 + 6, top: y - 30, height: 0, borderTopWidth: 1.5, borderStyle: "dotted", borderColor: P.ink12 }} />
       <Window x={x0} y={y} label={t("ui.you").toUpperCase()} count={mine} roof />
       <Window x={x1} y={y} label={t("in.them").toUpperCase()} count={theirs} />
@@ -163,6 +175,8 @@ function Flight({ road, stamp }: { road: ThreadMessage[]; stamp?: string | null 
 
 /* a window with a sill: the count of letters that have landed on it */
 function Window({ x, y, label, count, roof }: { x: number; y: number; label: string; count: number; roof?: boolean }) {
+  const P = useP();
+  const tk = useTheme().t;
   const pop = useSharedValue(0);
   useEffect(() => {
     if (count === 0) return;
@@ -173,15 +187,15 @@ function Window({ x, y, label, count, roof }: { x: number; y: number; label: str
     <View style={{ position: "absolute", left: x - WIN / 2 - 20, top: y - WIN / 2 - 14, width: WIN + 40, alignItems: "center" }}>
       {/* your side is home — a roof; theirs is a window in a wall we cannot see */}
       {roof ? (
-        <View style={{ width: 0, height: 0, borderLeftWidth: WIN / 2 + 5, borderRightWidth: WIN / 2 + 5, borderBottomWidth: 14, borderLeftColor: "transparent", borderRightColor: "transparent", borderBottomColor: P.ink }} />
+        <View style={{ width: 0, height: 0, borderLeftWidth: WIN / 2 + 5, borderRightWidth: WIN / 2 + 5, borderBottomWidth: 14, borderLeftColor: "transparent", borderRightColor: "transparent", borderBottomColor: tk.ln }} />
       ) : (
         <View style={{ height: 14 }} />
       )}
-      <View style={{ width: WIN, height: WIN, borderWidth: 1.5, borderColor: P.ink, backgroundColor: "#FFF8DE", alignItems: "center", justifyContent: "center" }}>
-        <View style={{ position: "absolute", width: 1.5, height: WIN, backgroundColor: P.ink }} />
-        <View style={{ position: "absolute", width: WIN, height: 1.5, backgroundColor: P.ink }} />
+      <View style={{ width: WIN, height: WIN, borderWidth: 1.5, borderColor: tk.ln, backgroundColor: "#FFF8DE", alignItems: "center", justifyContent: "center" }}>
+        <View style={{ position: "absolute", width: 1.5, height: WIN, backgroundColor: tk.ln }} />
+        <View style={{ position: "absolute", width: WIN, height: 1.5, backgroundColor: tk.ln }} />
       </View>
-      {!roof && <View style={{ width: WIN + 10, height: 3, backgroundColor: P.ink, marginTop: -1 }} />}
+      {!roof && <View style={{ width: WIN + 10, height: 3, backgroundColor: tk.ln, marginTop: -1 }} />}
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 5 }}>
         <Animated.Text style={[{ fontFamily: PF.letter, fontWeight: "800", fontSize: 15, color: P.ink }, style]}>{count}</Animated.Text>
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 8, letterSpacing: 1.2, color: P.ink40 }}>{label}</Text>
@@ -193,6 +207,8 @@ function Window({ x, y, label, count, roof }: { x: number; y: number; label: str
 /* one letter crossing: the courier carries it over the arc, the envelope
    spins a little, and on landing the day stamps on and both fade */
 function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: number; y: number; at: number; date?: string | null; stamp?: string | null; mine: boolean }) {
+  const P = useP();
+  const tk = useTheme().t;
   const v = useSharedValue(0);
   useEffect(() => {
     v.value = withDelay(
@@ -226,10 +242,10 @@ function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: nu
       <View style={{ position: "absolute", top: -22, transform: [{ scaleX: dir }] }}>
         <WrenBird size={26} pose="fly" mood="delight" skin="sticker" />
       </View>
-      <View style={{ width: 34, height: 22, borderRadius: 3, backgroundColor: "#FFFFFF", borderWidth: 1.2, borderColor: mine ? P.ink40 : P.ink, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <View style={{ width: 34, height: 22, borderRadius: 3, backgroundColor: P.sheet, borderWidth: 1.2, borderColor: mine ? P.ink40 : tk.ln, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: 1, backgroundColor: P.ink12 }} />
         {stamp ? <View style={{ position: "absolute", right: 2, top: 2 }}><StampTile id={stamp} w={9} r={1} /></View> : null}
-        <Animated.View style={[{ paddingHorizontal: 3, paddingVertical: 1, borderWidth: 1, borderColor: P.pen, borderRadius: 2, backgroundColor: "#FFFFFF" }, stampStyle]}>
+        <Animated.View style={[{ paddingHorizontal: 3, paddingVertical: 1, borderWidth: 1, borderColor: P.pen, borderRadius: 2, backgroundColor: P.sheet }, stampStyle]}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 6.5, letterSpacing: 0.4, color: P.pen }}>{date ? dShort(date).toUpperCase() : "—"}</Text>
         </Animated.View>
       </View>
@@ -259,6 +275,7 @@ function Burst({ seed, at }: { seed: string; at: number }) {
   );
 }
 function Scrap({ r, c, n, v }: { r: number; c: number; n: number; v: { value: number } }) {
+  const P = useP(); // a mosaic cell is ink, as 10a draws the mosaic
   const x0 = c * (CELL + GAP) - GRID / 2 + CELL / 2;
   const y0 = r * (CELL + GAP) - GRID / 2 + CELL / 2;
   // each scrap has its own throw: direction from its place in the grid, a little chaos from its index

@@ -12,7 +12,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { WrenBird, type WrenMood } from "./WrenBird";
 import { MORNING_HOUR } from "../lib/notify";
 // `t` is bound as a local timer handle further down, so the translator comes
@@ -47,9 +48,16 @@ import { localeTag } from "../lib/format";
 /* the blind is cut from the product's own neutrals: the inset grey-white
    for the cloth, ink for the slats' shadow lines. The cream it wore first
    (#EFE8D8) was a constant nothing else used — a fourth neutral for one
-   page. Her note stays white paper, the tape brass. */
-const CANVAS = P.paperDeep;
-const FRAME = P.ink;
+   page. Her note stays white paper, the tape brass.
+
+   So it follows the theme, read from the active palette: the cloth is
+   paperDeep (soft2, a shade under the page), and the frame — roller, lip,
+   sill edge, cord and ring — is drawn in the outline colour (ln), as is
+   every slat at the same 16% the ink used to draw them at. Her note is a
+   card (sf, with an ln edge). The page and the room behind the glass keep
+   the accent's palest wash (useP's penWash, lav2). CLOSED stays printed in
+   the postmark red and the tape stays brass: they're objects, not chrome.
+   (CANVAS and FRAME are set inside Counter, from the theme in effect.) */
 const PULL_DONE = 0.45; // past here, letting go finishes the pull
 
 let Haptics: typeof import("expo-haptics") | null = null;
@@ -84,13 +92,15 @@ export function CloseOfDay({
   onGrab?: (held: boolean) => void;
 }) {
   useLang(); // repaint when the reader changes language
+  const P = useP();
+  const tk = useTheme().t;
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 }}>
         {/* the heading is a capsule: ink on white, a dot of the pen colour for
             the day that just turned, the same pill the rest of the app tags
-            things with */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: P.paper, borderRadius: 999, borderWidth: 1.5, borderColor: P.ink, paddingLeft: 13, paddingRight: 16, paddingVertical: 8 }}>
+            things with (the card face and the outline colour, from the theme) */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: P.sheet, borderRadius: 999, borderWidth: 1.5, borderColor: tk.ln, paddingLeft: 13, paddingRight: 16, paddingVertical: 8 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: P.pen }} />
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 2, color: P.ink }}>{tr("cod.wholePost")}</Text>
         </View>
@@ -118,6 +128,10 @@ const RING = 30;
 const HIT = 26; // the ring's hit area reaches this far past it
 
 function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: DayFacts; onSeal: () => void; onGrab?: (held: boolean) => void }) {
+  const P = useP();
+  const tk = useTheme().t;
+  const CANVAS = P.paperDeep; // the blind's cloth, a shade under the page
+  const FRAME = tk.ln; // roller, lip, sill edge, cord and ring
   /* 0 = rolled up, 1 = down on the sill */
   const y = useSharedValue(sealed ? 1 : 0);
   const from = useSharedValue(0);
@@ -238,7 +252,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
             note the last. */}
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, backgroundColor: CANVAS, overflow: "hidden" }, blind]}>
           {Array.from({ length: Math.ceil(WIN_H / 14) }, (_, i) => (
-            <View key={i} style={{ position: "absolute", left: 0, right: 0, top: i * 14 + 10, height: 1, backgroundColor: "rgba(17,17,19,0.16)" }} />
+            <View key={i} style={{ position: "absolute", left: 0, right: 0, top: i * 14 + 10, height: 1, backgroundColor: FRAME, opacity: 0.16 }} />
           ))}
           <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: WIN_H, alignItems: "center" }}>
             <Print />
@@ -266,6 +280,7 @@ function Counter({ sealed, facts, onSeal, onGrab }: { sealed: boolean; facts: Da
 
 /* printed on the blind: the word and the date */
 function Print() {
+  const P = useP();
   const d = new Date();
   const day = String(d.getDate());
   // the date is printed in the reader's own language
@@ -285,6 +300,7 @@ function Print() {
    back and how long that is — the countdown is part of the sign, not a
    board hung under it */
 function NextPost() {
+  const P = useP();
   const [h, m] = useUntilMorning();
   const wren = useWrenName();
   const next = `${String(MORNING_HOUR).padStart(2, "0")}:00`;
@@ -317,11 +333,13 @@ export function slipLines(f: DayFacts): string[] {
 const TAPE = "rgba(232,166,60,0.45)"; // a strip of tape, the brass of the stamps at half strength
 
 function Note({ facts }: { facts: DayFacts }) {
+  const P = useP();
+  const tk = useTheme().t;
   const wren = useWrenName();
   const lines = slipLines(facts);
   return (
     <View style={{ marginTop: 22, width: 266, transform: [{ rotate: "-1.6deg" }] }}>
-      <View style={{ backgroundColor: P.paper, borderWidth: 1, borderColor: P.ink, paddingHorizontal: 17, paddingTop: 18, paddingBottom: 13 }}>
+      <View style={{ backgroundColor: P.sheet, borderWidth: 1, borderColor: tk.ln, paddingHorizontal: 17, paddingTop: 18, paddingBottom: 13 }}>
         <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 17.5, lineHeight: 25, color: P.ink }}>{lines.join(" ")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "right" }}>— {wren.toUpperCase()}</Text>
       </View>
