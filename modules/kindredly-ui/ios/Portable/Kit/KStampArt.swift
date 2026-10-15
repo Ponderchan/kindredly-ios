@@ -31,7 +31,9 @@ import SwiftUI
 
  It is decorative unless it gets an accessibilityLabel (the stamp's name, from TS, in the
  reader's language): without one VoiceOver skips it, with one it reads as an image of that name.
- A button holding a stamp should label the button instead.
+ An empty or blank label counts as none, so a name TS couldn't find ("" from sname() for an id
+ stamps.ts doesn't list) hides the stamp rather than leaving an image VoiceOver can only call
+ "Image". A button holding a stamp should label the button instead.
  */
 public struct KStampArt: View {
   private let id: String
@@ -45,7 +47,8 @@ public struct KStampArt: View {
   ///   - size: the side of the square, in points
   ///   - fallbackHex: the stamp's colour from TS, for the tinted tile ("#RRGGBB" or "#RRGGBBAA")
   ///   - fallbackCorner: the tile's corner radius; nil for an eighth of the side
-  ///   - accessibilityLabel: the stamp's name, to make it an image VoiceOver reads; nil hides it
+  ///   - accessibilityLabel: the stamp's name, to make it an image VoiceOver reads; nil, "" or
+  ///     whitespace alone hides it
   public init(
     id: String,
     size: CGFloat,
@@ -143,13 +146,14 @@ struct KStampArtEntry: Sendable {
   }
 }
 
-/// No label: hidden from VoiceOver. A label: one image element of that name.
+/// No label (nil, "" or whitespace alone): hidden from VoiceOver. A label: one image element of
+/// that name.
 private struct KStampArtLabel: ViewModifier {
   let label: String?
 
   @ViewBuilder
   func body(content: Content) -> some View {
-    if let label {
+    if let label, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       content
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
