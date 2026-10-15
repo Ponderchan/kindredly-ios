@@ -202,8 +202,21 @@ a small bug) should reach phones without waiting for App Review.
   (`eas.json`); `preview` on `preview`. Development builds ignore updates.
 - `checkAutomatically: ON_LOAD`, `fallbackToCacheTimeout: 0`: the app opens on what
   it already has and fetches an update in the background; the next launch runs it.
-  A broken update rolls back to the embedded bundle on its own (anti-bricking).
+  Rollback on its own covers only an update that crashes **before its first screen
+  draws** (expo-updates ErrorRecovery); a bug on any later screen stays on every phone
+  until the previous update is republished by hand. So an update is tried first: on a
+  preview build of the same version if one is installed (publish to `preview`), and in
+  any case on the simulator from this same checkout, before it goes to `production`.
 - Only builds that contain expo-updates (1.0.4 on) can receive one.
+- **Publish only from the code the live binary was built from.** An update replaces
+  the app's JavaScript wholesale, so it must be that build's code plus the fix — never
+  another branch at the same version. 1.0.4 (binary 1.2.3) is built from branch
+  `hotfix-1.0.4`, checked out at `~/Desktop/claude-projects/kindredly-ios-hotfix`. The
+  main checkout is the 10a overhaul (`ios-1.2.3`): published from there, its JS would
+  call native code 1.0.4 doesn't have, and it lacks the journal fix.
+- **The overhaul's version must move past the live one** (1.3.0, say) before it builds
+  or publishes anything — merging `hotfix-1.0.4` into it brings `"version": "1.2.3"`
+  along without a conflict, and from then on its updates would land on 1.0.4 phones.
 
 **The pitfall: what gets inlined.** `EXPO_PUBLIC_*` values are baked into the bundle
 at build/update time. Supabase and the API base come from the `production` profile's
@@ -222,13 +235,20 @@ fix still came out with no key, from code Metro had cached with the empty value.
 Check a bundle before anything ships (counts only — never print the key):
 
 ```bash
-cd ~/Desktop/claude-projects/kindredly-ios
+cd ~/Desktop/claude-projects/kindredly-ios-hotfix   # the live build's code (see above)
+git branch --show-current                             # must be: hotfix-1.0.4
+node -p "require('./app.json').expo.version"          # must be the live binary's: 1.2.3
+# this checkout has no .env.local, so give the export the production profile's public values
+EXPO_PUBLIC_SUPABASE_URL=https://wndkpoiuoxufvplnlaww.supabase.co \
+EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_bJM4pydUeVPY1CWuifk7Yw_CqclSzVj \
+EXPO_PUBLIC_API_BASE=https://kindredly.io \
 eas env:exec production "npx expo export --platform ios --clear --output-dir /tmp/kindredly-ota-check"
 F=$(ls /tmp/kindredly-ota-check/_expo/static/js/ios/*.hbc)
 LC_ALL=C grep -c -a "wndkpoiuoxufvplnlaww" "$F"      # must be ≥ 1 (Supabase)
 LC_ALL=C grep -c -a "appl_[A-Za-z0-9]" "$F"          # must be ≥ 1 (RevenueCat)
 # only then, with the owner's go-ahead (it reaches every phone on that version):
 eas update --channel production --environment production --clear-cache --message "<what changed>"
+# (--channel preview first when a preview build of this version is installed to try it on)
 ```
 
 The same two counts on a built `.ipa` (`Payload/Kindredly.app/main.jsbundle`) belong in
