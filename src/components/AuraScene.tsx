@@ -33,6 +33,20 @@ export function AuraArtBand({ width, src }: { width: number; src: number }) {
   );
 }
 
+/* THE 10a SLOT (H:78): one of the fifty in a slot of a fixed height (110 on
+   the Aura card), FITTED BY HEIGHT — never cover-cropped, which at the
+   card's width cut about 40% of every picture's height (heads, feet,
+   windows; critic). The picture is 16:9, so it sits centred, as wide as
+   the height allows, on `ground` (the slot's soft2) at the sides. */
+export function AuraArtFit({ width, height, src, ground }: { width: number; height: number; src: number; ground: string }) {
+  const w = Math.min(width, Math.round(height / ART_RATIO));
+  return (
+    <View style={{ width, height, backgroundColor: ground, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <Image source={src} style={{ width: w, height: Math.round(w * ART_RATIO) }} resizeMode="contain" />
+    </View>
+  );
+}
+
 const D = {
   paper: "#FFFFFF", // before colour there is no colour: the drawing sits on the card's own paper
   pencil: "rgba(111,104,184,0.62)", // faint, but a drawing — not nothing
@@ -42,8 +56,14 @@ const D = {
   brass: "#D8A63F",
 } as const;
 
-export function AuraScene({ width, fidelity, day }: { width: number; fidelity: Fidelity; day: Daylight }) {
-  const h = Math.round(width * SCENE_RATIO);
+/* `ground` is what the rungs before colour are drawn on. It used to be the
+   card's own white paper, always, which in a 10a card's soft2 art slot is a
+   white block — and in Midnight a white slab (critic): the 10a card passes
+   the slot's colour (tk.soft2). The colour rung keeps the hour's sky.
+   `height` fills a slot of that height instead of the scene's own ratio
+   (the art is drawn "slice", so the desk stays whole and the edges give). */
+export function AuraScene({ width, height, fidelity, day, ground = D.paper }: { width: number; height?: number; fidelity: Fidelity; day: Daylight; ground?: string }) {
+  const h = height ?? Math.round(width * SCENE_RATIO);
   const pal = PALETTE[day];
   const night = day === "night";
   /* colour: strokes go cream on the night sky, umber by day */
@@ -62,7 +82,7 @@ export function AuraScene({ width, fidelity, day }: { width: number; fidelity: F
           </LinearGradient>
         </Defs>
       )}
-      <Rect x={0} y={0} width={357} height={114} fill={fidelity === "colour" ? "url(#auraSky)" : D.paper} />
+      <Rect x={0} y={0} width={357} height={114} fill={fidelity === "colour" ? "url(#auraSky)" : ground} />
 
       {fidelity === "lines" && (
         <>

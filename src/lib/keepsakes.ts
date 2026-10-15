@@ -196,7 +196,23 @@ export interface Minted extends Keepsake {
   minted: number;
 }
 
-export async function mint(ctx: KeepsakeCtx): Promise<Minted[]> {
+/* ONE MINT AT A TIME. Her room (WrenHome) and the Me tab (10a: Me mints
+   too, so its keepsakes block doesn't lag behind a reader who never opens
+   her room) both read the shelf, add to it and write it back; two at once
+   would each write what it read, and the slower would drop the other's
+   new keepsake. Each mint waits for the one before it. */
+let minting: Promise<unknown> = Promise.resolve();
+
+export function mint(ctx: KeepsakeCtx): Promise<Minted[]> {
+  const next = minting.then(
+    () => mintNow(ctx),
+    () => mintNow(ctx),
+  );
+  minting = next;
+  return next;
+}
+
+async function mintNow(ctx: KeepsakeCtx): Promise<Minted[]> {
   const found = evaluate(ctx);
   const fresh = new Map(found.map((k) => [k.id, k]));
   try {

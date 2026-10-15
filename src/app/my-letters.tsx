@@ -3,12 +3,14 @@ import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "reac
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { P, PF } from "../theme/post";
-import { W14, cardShadow } from "../components/AuraCard";
+import { MONO, PF } from "../theme/post";
+import { useLetterFamily, useTheme } from "../lib/theme";
+import { BRAND, type ThemeTokens } from "../theme/themes";
 import { StampTile } from "../components/StampTile";
 import { AvatarImage } from "../components/AvatarImage";
+import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { t, useLang } from "../lib/i18n";
-import { fetchMyLetters, type WritingRow } from "../lib/aura";
+import { fetchMyWriting, type WritingRow } from "../lib/aura";
 import { fetchThreads, withdrawLetter, type ThreadSummary } from "../lib/db";
 import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
 
@@ -16,7 +18,15 @@ import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
    as cards in two columns: the date, its stamp, the words, and what came
    of it — answered (by whom, if they signed), or still quiet. Drafts sit
    among them in a dashed card. A blue tile writes the next one.
-   Replies inside correspondences are not letters; they live in Kindreds. */
+   Replies inside correspondences are not letters; they live in Kindreds.
+
+   10a: on the theme (no fixed white cards on a lavender wash), under the
+   secondary page's header (MY LETTERS, the manage key on the right; while
+   managing, Cancel and the title). Your letters are set in the reader's
+   Letter font (owner question 1's recommended answer: My letters follows
+   it). The write tile is ind with the page colour on it; the remove key
+   is the postmark red. A failed read keeps what was shown, rather than
+   emptying the page (fetchMyWriting answers null, never empty lists). */
 
 type Filter = "all" | "answered" | "quiet" | "drafts";
 interface Card {
@@ -34,6 +44,8 @@ const ymd = (iso: string) => iso.slice(0, 10).replace(/-/g, ".");
 export default function MyLetters() {
   useLang();
   const router = useRouter();
+  const { t: tk } = useTheme();
+  const letterFace = useLetterFamily();
   const [letters, setLetters] = useState<WritingRow[] | null>(null);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -43,8 +55,9 @@ export default function MyLetters() {
 
   useEffect(() => {
     let alive = true;
-    fetchMyLetters().then((m) => alive && setLetters(m.letters));
-    fetchThreads().then((th) => alive && setThreads(th || []));
+    // a failed read (null) keeps what was shown; with nothing shown yet it settles on none
+    fetchMyWriting().then((m) => alive && setLetters((cur) => (m ? m.letters : cur ?? [])));
+    fetchThreads().then((th) => alive && th && setThreads(th));
     loadDrafts().then((d) => alive && setDrafts(d));
     return () => {
       alive = false;
@@ -95,44 +108,39 @@ export default function MyLetters() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4, height: 48 }}>
-        {managing ? (
-          <>
-            <Pressable onPress={() => setManaging(false)} hitSlop={10} style={{ paddingHorizontal: 8, height: 40, justifyContent: "center" }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 16, color: W14.ink }}>{t("ml.cancel")}</Text>
-            </Pressable>
-            <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.letter, fontWeight: "700", fontSize: 17, color: W14.ink }}>
-              {t("ml.manage")} <Text style={{ color: "rgba(30,27,53,0.5)", fontWeight: "400" }}>{counts.all + counts.drafts}</Text>
-            </Text>
-            <View style={{ width: 64 }} />
-          </>
-        ) : (
-          <>
-            <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 24, color: W14.ink }}>‹</Text>
-            </Pressable>
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.5, color: W14.ink }}>{t("ml.title")}</Text>
-              <Text style={{ fontFamily: PF.letter, fontSize: 15, color: "rgba(30,27,53,0.5)" }}>{counts.all}</Text>
-            </View>
-            {/* three lines, all the same length — manage */}
-            <Pressable onPress={() => setManaging(true)} hitSlop={10} accessibilityLabel={t("ml.manage")} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-              <Svg width={22} height={22} viewBox="0 0 24 24" stroke={W14.ink} strokeWidth={2} strokeLinecap="round">
+    <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
+      {managing ? (
+        <View style={{ height: 52, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}>
+          <Pressable onPress={() => setManaging(false)} hitSlop={10} accessibilityRole="button" style={{ paddingHorizontal: 8, height: 40, justifyContent: "center" }}>
+            <Text style={{ fontSize: 16, color: tk.ink }}>{t("ml.cancel")}</Text>
+          </Pressable>
+          <Text accessibilityRole="header" style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: "600", color: tk.ink }}>
+            {t("ml.manage")} <Text style={{ color: tk.mute, fontWeight: "400" }}>{counts.all + counts.drafts}</Text>
+          </Text>
+          <View style={{ width: 64 }} />
+        </View>
+      ) : (
+        <SecondaryHeader
+          title={`${t("ml.title").toLocaleUpperCase()} · ${counts.all}`}
+          fallbackHref="/(tabs)/me"
+          right={
+            /* three lines, all the same length — manage */
+            <Pressable onPress={() => setManaging(true)} hitSlop={6} accessibilityRole="button" accessibilityLabel={t("ml.manage")} style={({ pressed }) => ({ width: 34, height: 34, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}>
+              <Svg width={22} height={22} viewBox="0 0 24 24" stroke={tk.ink} strokeWidth={2} strokeLinecap="round">
                 <Path d="M4 7h16M4 12h16M4 17h16" />
               </Svg>
             </Pressable>
-          </>
-        )}
-      </View>
+          }
+        />
+      )}
 
       {/* the four filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 12, gap: 8 }} style={{ flexGrow: 0 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, gap: 8 }} style={{ flexGrow: 0 }}>
         {(["all", "answered", "quiet", "drafts"] as Filter[]).map((f) => {
           const on = filter === f;
           return (
-            <Pressable key={f} onPress={() => setFilter(f)} style={{ backgroundColor: on ? W14.ink : "#FFFFFF", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: on ? "#FFFFFF" : W14.ink }}>
+            <Pressable key={f} onPress={() => setFilter(f)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ backgroundColor: on ? tk.ink : tk.sf, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: on ? tk.bg : tk.ink }}>
                 {t(`ml.f.${f}`)} {counts[f]}
               </Text>
             </Pressable>
@@ -140,31 +148,31 @@ export default function MyLetters() {
         })}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 14, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-        {letters && shown.length === 0 && filter !== "all" && <Text style={{ fontFamily: PF.letter, fontSize: 14, color: "rgba(30,27,53,0.55)", textAlign: "center", marginTop: 40 }}>{t("ml.none")}</Text>}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+        {letters && shown.length === 0 && filter !== "all" && <Text style={{ fontSize: 14, color: tk.mute, textAlign: "center", marginTop: 40 }}>{t("ml.none")}</Text>}
         <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
           {cols.map((col, ci) => (
             <View key={ci} style={{ flex: 1, gap: 12 }}>
               {col.map((c) =>
                 c === "write" ? (
-                  <Pressable key="write" onPress={() => router.push("/compose")} style={({ pressed }) => ({ backgroundColor: P.pen, borderRadius: 16, paddingVertical: 22, alignItems: "center", gap: 10, opacity: pressed ? 0.9 : 1 })}>
-                    <View style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.6)", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontFamily: PF.letter, fontSize: 20, color: "#FFFFFF", marginTop: -2 }}>+</Text>
+                  <Pressable key="write" onPress={() => router.push("/compose")} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 16, paddingVertical: 22, alignItems: "center", gap: 10, opacity: pressed ? 0.9 : 1 })}>
+                    <View style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: tk.bg, opacity: 0.85, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 20, color: tk.bg, marginTop: -2 }}>+</Text>
                     </View>
-                    <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: "#FFFFFF" }}>{t("ml.write")}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: tk.bg }}>{t("ml.write")}</Text>
                   </Pressable>
                 ) : c.kind === "draft" ? (
-                  <Jiggle key={c.id} on={managing} seed={ci} onRemove={() => remove(c)}>
-                    <Pressable onPress={managing ? undefined : () => router.push(`/compose?draft=${c.id}`)} style={({ pressed }) => ({ borderRadius: 16, borderWidth: 1.5, borderStyle: "dashed", borderColor: "#B9B4F0", paddingHorizontal: 14, paddingVertical: 12, opacity: pressed ? 0.8 : 1 })}>
-                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)" }}>{t("ml.draft")} · {ymd(c.date)}</Text>
-                      <Text style={{ fontFamily: PF.letterSerif, fontSize: 14, lineHeight: 20, color: "rgba(30,27,53,0.7)", marginTop: 8 }} numberOfLines={3}>
+                  <Jiggle key={c.id} on={managing} seed={ci} onRemove={() => remove(c)} tk={tk}>
+                    <Pressable onPress={managing ? undefined : () => router.push(`/compose?draft=${c.id}`)} style={({ pressed }) => ({ borderRadius: 16, borderWidth: 1.5, borderStyle: "dashed", borderColor: tk.faint, paddingHorizontal: 14, paddingVertical: 12, opacity: pressed ? 0.8 : 1 })}>
+                      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.draft")} · {ymd(c.date)}</Text>
+                      <Text style={[{ fontSize: 14, lineHeight: 20, color: tk.sub, marginTop: 8 }, letterFace]} numberOfLines={3}>
                         {c.body || t("ml.draftEmpty")}
                       </Text>
                     </Pressable>
                   </Jiggle>
                 ) : (
-                  <Jiggle key={c.id} on={managing} seed={ci} onRemove={() => remove(c)}>
-                    <LetterCard c={c} onOpen={managing || !c.answers[0] ? undefined : () => router.push(c.answers[0].revealed ? `/room/${c.answers[0].id}` : `/chat/${c.answers[0].id}`)} />
+                  <Jiggle key={c.id} on={managing} seed={ci} onRemove={() => remove(c)} tk={tk}>
+                    <LetterCard c={c} tk={tk} letterFace={letterFace} onOpen={managing || !c.answers[0] ? undefined : () => router.push(c.answers[0].revealed ? `/room/${c.answers[0].id}` : `/chat/${c.answers[0].id}`)} />
                   </Jiggle>
                 ),
               )}
@@ -178,7 +186,7 @@ export default function MyLetters() {
 
 /* manage mode: the card rocks like an iOS home screen in edit, each on its
    own phase, and wears a red × on its corner */
-function Jiggle({ on, seed, onRemove, children }: { on: boolean; seed: number; onRemove: () => void; children: React.ReactNode }) {
+function Jiggle({ on, seed, onRemove, tk, children }: { on: boolean; seed: number; onRemove: () => void; tk: ThemeTokens; children: React.ReactNode }) {
   const v = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!on) {
@@ -205,8 +213,8 @@ function Jiggle({ on, seed, onRemove, children }: { on: boolean; seed: number; o
     <Animated.View style={{ transform: [{ rotate }] }}>
       {children}
       {on && (
-        <Pressable onPress={onRemove} hitSlop={8} style={{ position: "absolute", top: -8, right: -8, width: 26, height: 26, borderRadius: 13, backgroundColor: "#E5484D", borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-          <Svg width={11} height={11} viewBox="0 0 24 24" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round">
+        <Pressable onPress={onRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("ml.rm.remove")} style={{ position: "absolute", top: -8, right: -8, width: 26, height: 26, borderRadius: 13, backgroundColor: BRAND.postRed, borderWidth: 2, borderColor: tk.sf, alignItems: "center", justifyContent: "center" }}>
+          <Svg width={11} height={11} viewBox="0 0 24 24" stroke={BRAND.paperWhite} strokeWidth={3} strokeLinecap="round">
             <Path d="M6 6l12 12M18 6L6 18" />
           </Svg>
         </Pressable>
@@ -215,54 +223,54 @@ function Jiggle({ on, seed, onRemove, children }: { on: boolean; seed: number; o
   );
 }
 
-function LetterCard({ c, onOpen }: { c: Card; onOpen?: () => void }) {
+function LetterCard({ c, tk, letterFace, onOpen }: { c: Card; tk: ThemeTokens; letterFace: { fontFamily: string; fontStyle: "normal" | "italic" }; onOpen?: () => void }) {
   const a = c.answers;
   const named = a.find((th) => th.revealed && th.otherName);
   return (
-    <Pressable onPress={onOpen} disabled={!onOpen} style={({ pressed }) => [{ backgroundColor: W14.card, borderRadius: 16, overflow: "hidden", opacity: pressed ? 0.92 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}>
+    <Pressable onPress={onOpen} disabled={!onOpen} style={({ pressed }) => ({ backgroundColor: tk.sf, borderRadius: 16, borderWidth: 1.5, borderColor: tk.line, overflow: "hidden", opacity: pressed ? 0.92 : 1 })}>
       <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
           <View>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.5)" }}>{c.date ? ymd(c.date) : ""}</Text>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{c.date ? ymd(c.date) : ""}</Text>
             {/* who read it, who wrote back */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 5 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="rgba(30,27,53,0.45)" strokeWidth={2}>
+                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={tk.mute} strokeWidth={2}>
                   <Path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" />
                   <Circle cx={12} cy={12} r={3} />
                 </Svg>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: "rgba(30,27,53,0.5)" }}>{c.reads}</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute }}>{c.reads}</Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="rgba(30,27,53,0.45)" strokeWidth={2} strokeLinejoin="round">
+                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={tk.mute} strokeWidth={2} strokeLinejoin="round">
                   <Rect x={3} y={5.5} width={18} height={13} rx={2} />
                   <Path d="M3.5 7l8.5 6 8.5-6" />
                 </Svg>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: "rgba(30,27,53,0.5)" }}>{c.answers.length}</Text>
+                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute }}>{c.answers.length}</Text>
               </View>
             </View>
           </View>
           {!!c.stamp && <StampTile id={c.stamp} w={28} r={6} />}
         </View>
-        <Text style={{ fontFamily: PF.letterSerif, fontSize: 14.5, lineHeight: 20, color: W14.ink, marginTop: 10 }} numberOfLines={5}>
+        <Text style={[{ fontSize: 14.5, lineHeight: 20, color: tk.ink, marginTop: 10 }, letterFace]} numberOfLines={5}>
           {c.body}
         </Text>
       </View>
       {/* what came of it */}
-      <View style={{ borderTopWidth: 1, borderTopColor: W14.hair, paddingHorizontal: 14, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View style={{ borderTopWidth: 1, borderTopColor: tk.line, paddingHorizontal: 14, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 6 }}>
         {a.length === 0 ? (
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: "rgba(30,27,53,0.45)" }}>{t("ml.quiet")}</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.quiet")}</Text>
         ) : named ? (
           <>
             <AvatarImage id={named.otherFace ?? null} seed={named.other} size={18} />
-            <Text style={{ fontFamily: PF.letter, fontSize: 12, color: W14.ink }} numberOfLines={1}>
+            <Text style={{ fontSize: 12, color: tk.ink }} numberOfLines={1}>
               {a.length > 1 ? t("ml.repliedMore", { who: named.otherName!, n: a.length - 1 }) : t("ml.replied", { who: named.otherName! })}
             </Text>
           </>
         ) : (
           <>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2E7D4F" }} />
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: "#2E7D4F" }} numberOfLines={1}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: BRAND.greenText }} />
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.dark ? "#7CC58F" : BRAND.greenText }} numberOfLines={1}>
               {t("ml.answered")} · {a.length}
             </Text>
           </>
