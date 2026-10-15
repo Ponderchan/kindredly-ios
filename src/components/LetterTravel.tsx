@@ -38,6 +38,11 @@ const TOTAL = 3.7;
 /** the arrival card, before the fade: the clock rests here until the send has landed */
 const HOLD_AT = TOTAL - 0.18;
 
+/* THE SHEET KEEPS ITS OWN COLOURS IN EVERY THEME (10a). The whole piece is
+   an illustration — the room and the desk, the paper, the daylit planet,
+   the sky — a picture of the letter leaving, not the page around it, so
+   nothing here reads the theme. The words land on that daylight sky, so
+   their ink is fixed dark too: a dark theme's light ink would vanish on it. */
 const C = {
   page: "#ECEAFA",
   ink: "#1E1B35",

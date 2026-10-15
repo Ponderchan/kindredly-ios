@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
 import { getFlags, setFlag } from "../lib/flags";
@@ -19,11 +20,17 @@ import { cardShadow } from "./AuraCard";
    Settings has no switch for it any more (owner, 2026-10-13: two switches,
    the knock and Notifications), so a yes leaves a slim row here, in Notes,
    to turn it off again; a no leaves nothing. Nothing about the page itself
-   is read or sent. */
+   is read or sent.
+
+   The card and the row are the theme's: the card face is sf, the type is
+   ink / sub / mute, the yes is the pen fill with its label in the page
+   colour. The card's soft shadow is fixed, as every soft shadow is in 10a. */
 
 const FLAG = "ev_ask_answered";
 
 export function EveningAsk({ pages }: { pages: number }) {
+  const P = useP();
+  const tk = useTheme().t;
   const wren = useWrenName();
   const [show, setShow] = useState(false);
   const [on, setOn] = useState(false); // answered yes, and it's still on: the slim row
@@ -115,7 +122,7 @@ export function EveningAsk({ pages }: { pages: number }) {
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(420)} exiting={FadeOut.duration(200)} style={[{ backgroundColor: "#FFFFFF", borderRadius: 18, padding: 16, marginTop: 4, marginBottom: 14 }, cardShadow, { shadowOpacity: 0.06 }]}>
+    <Animated.View entering={FadeIn.duration(420)} exiting={FadeOut.duration(200)} style={[{ backgroundColor: P.sheet, borderRadius: 18, padding: 16, marginTop: 4, marginBottom: 14 }, cardShadow, { shadowOpacity: 0.06 }]}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
         <WrenBird size={26} mood="content" />
         <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: P.ink }}>{t("ev.ask", { wren })}</Text>
@@ -125,7 +132,7 @@ export function EveningAsk({ pages }: { pages: number }) {
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: P.ink60 }}>{t("ev.no")}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => void yes()} disabled={busy} style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, backgroundColor: P.pen, opacity: pressed || busy ? 0.6 : 1 })}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: "#FFFFFF" }}>{t("ev.yes")}</Text>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 1.2, color: tk.bg }}>{t("ev.yes")}</Text>
         </Pressable>
       </View>
       <Text style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 16, color: P.ink40, marginTop: 10 }}>{t("ev.foot")}</Text>

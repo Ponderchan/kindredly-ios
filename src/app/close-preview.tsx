@@ -3,13 +3,17 @@ import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CloseOfDay } from "../components/CloseOfDay";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP } from "../lib/theme";
 
 /* Dev-only: the close of day on its own, inside a two-page vertical pager
    like Today's, so the cord's pull can be tried against the scroll it has
-   to win over. Reachable at /close-preview; nothing here is saved. */
+   to win over. Reachable at /close-preview; nothing here is saved. Painted
+   from the theme like the page it hosts, so the dev theme switch shows it
+   whole. */
 
 export default function ClosePreview() {
+  const P = useP(); // above the dev gate, so it runs every render
   if (!__DEV__) return <Redirect href="/" />;
   const [sealed, setSealed] = useState(false);
   const [held, setHeld] = useState(false);

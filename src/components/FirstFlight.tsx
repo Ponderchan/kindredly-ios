@@ -44,7 +44,7 @@ const FLY0 = 0.8, FLY1 = 2.6;
 
 export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, onDone }: { her: string; opener: string; stops: PoolLetter[]; form?: HatchlingForm; mark?: string | null; skin?: WrenSkin; accessory?: WrenAccessory; onDone: () => void }) {
   const P = useP();
-  const { t: tk } = useTheme();
+  const tk = useTheme().t;
   const { width, height } = useWindowDimensions();
   const k = Math.min(width / W, height / H);
   const clock = useSharedValue(0);
@@ -148,7 +148,7 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
               <React.Fragment key={i}>
                 <Circle cx={x} cy={y} r={16} fill={i === 0 ? tk.sf : "#FFF3C4"} stroke={tk.ln} strokeWidth={1.5} />
                 <Circle cx={x} cy={y} r={10} fill="none" stroke={tk.ln} strokeWidth={0.8} strokeDasharray="1.5 2.5" opacity={0.7} />
-                <Rect x={x - 3} y={y - 3} width={6} height={6} fill={i === 0 ? P.ink : P.post} />
+                <Rect x={x - 3} y={y - 3} width={6} height={6} fill={i === 0 ? tk.ln : P.post} />
               </React.Fragment>
             ))}
           </Svg>

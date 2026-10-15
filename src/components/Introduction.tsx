@@ -1,6 +1,7 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { P, PF, rule, solidBtn } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
 import { IntroductionRitual, T_RITUAL_DONE } from "./IntroductionRitual";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -22,7 +23,12 @@ import { WrenBird } from "./WrenBird";
    the introducing. Her voice is the serif italic she always speaks in;
    the NAME is set in the letter face, because a name is a thing a person
    gave. The face above it is the same mosaic you watched come into view,
-   finally next to what it was becoming. */
+   finally next to what it was becoming.
+
+   The sheet is a page of the theme: its ground, type and header rule (the
+   full-strength rule is an outline, so ln) come from it, and the one
+   button is post's solid pen button, written out here from the theme with
+   its label in the page colour, the 10a colour for type on an ind fill. */
 export function Introduction({
   open,
   wren,
@@ -63,11 +69,13 @@ export function Introduction({
   onTalk: () => void;
 }) {
   useLang(); // repaint when the reader changes language
+  const P = useP();
+  const tk = useTheme().t;
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: P.paper }}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12, ...rule }}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
           <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>
             {t("intro.carriedBy", { name: wren.toUpperCase() })}
           </Text>
@@ -117,8 +125,8 @@ export function Introduction({
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
-          <Pressable onPress={onTalk} style={({ pressed }) => ({ ...solidBtn, opacity: pressed ? 0.85 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: "#fff" }}>
+          <Pressable onPress={onTalk} style={({ pressed }) => ({ backgroundColor: P.pen, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 1.8, color: tk.bg }}>
 {t("in.talkTo", { name: otherName.toUpperCase() })}
             </Text>
           </Pressable>

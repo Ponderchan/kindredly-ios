@@ -37,7 +37,15 @@ import { t } from "../lib/i18n";
    JS thread busy with the session and the first screen can't drop frames.
    Drawn on #ECECFE, the native splash's colour, so nothing flashes.
    (Pivots are given in points: React Native's transformOrigin string
-   parser misreads a decimal percentage such as "79.6%".) */
+   parser misreads a decimal percentage such as "79.6%".)
+
+   THE SAME IN EVERY THEME (10a). The native splash can't follow the theme
+   — its colour is baked into the binary, and the saved theme isn't read
+   until JS runs — so the piece that continues it doesn't either: the
+   lavender ground, the mark's indigo and gold, and the word and the line
+   under it in fixed dark inks, which is what keeps them legible on that
+   ground in a dark theme. The first screen fades in over it in the
+   theme's own colours. */
 
 const BG = "#ECECFE";
 const INK = "#3A34D6";
