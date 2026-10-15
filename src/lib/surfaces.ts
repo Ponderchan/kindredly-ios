@@ -5,7 +5,17 @@ import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { requireOptionalNativeModule } from "expo";
 import { supabase, supabaseReady } from "./supabase";
-import { resolveSurfaces, surfaceOn, type SurfaceMap } from "./surfaces-resolve";
+import {
+  armSurface,
+  clearSurface,
+  emptyArming,
+  resolveSurfaces,
+  settleArming,
+  struckOut,
+  surfaceOn,
+  type ArmingRecord,
+  type SurfaceMap,
+} from "./surfaces-resolve";
 
 /* THE REMOTE SWITCH FOR NATIVE SCREENS (10a, 1.3.0).
    ────────────────────────────────────────────────────────────────────────
@@ -33,20 +43,63 @@ import { resolveSurfaces, surfaceOn, type SurfaceMap } from "./surfaces-resolve"
    screen every launch before 0033 has been run.
 
    Asked at launch and when the app comes back to the front, at most once
-   every ten minutes (a minute after a failure). */
+   every ten minutes (a minute after a failure).
+
+   The one wait: a screen that picks its renderer once (components/
+   NativeSurface) waits for surfacesReady() — the PHONE's copy, a local
+   read of a few milliseconds, never the network — so a cold start from a
+   push can't pick Swift before a kill row already on the phone is known.
+
+   THE CRASH BREADCRUMB. A Swift screen that crashes the app as it opens
+   can't be reached by any row in time, so the phone keeps its own count:
+   armNative() before the Host mounts, clearNative() once it has stood for
+   a few seconds, and two launches in a row that found the mark still set
+   send that screen back to React Native for the rest of this binary
+   (lib/surfaces-resolve: settleArming). nativeOn() answers false for it
+   from then on, whatever the table says. */
 
 /* Each SwiftUI surface adds its key here when it ships: true = use Swift.
    The key is the `surface` string the table uses. Until a key is here (or
    a row turns it on) the screen stays React Native. An OTA update can
    change these, but the table is faster and needs no publish.
 
-     tabbar   the 10a tab bar and its composer sheet (components/NativeTabBar;
-              off → PostTabBar + PostFan). The tabs layout also checks the
-              binary has the Swift view itself, so a dev client built before
-              it simply keeps the React Native bar. */
+     tabbar       the 10a tab bar and its composer sheet (components/
+                  NativeTabBar; off → PostTabBar + PostFan). The tabs layout
+                  also checks the binary has the Swift view itself, so a dev
+                  client built before it simply keeps the React Native bar.
+
+   10a step 5. Each is false until its screen has passed its simulator
+   checks (batch 3 turns them on, one key at a time). Every one of them
+   keeps its React Native screen, chosen by <NativeSurface> (components/
+   NativeSurface), which also checks that the binary has the Swift view:
+
+     room         a named kindred's room (room/[id]) — KConversationView
+     chat         a pen pal's chat before names (chat/[id]) — KConversationView
+     kindreds     the Kindreds tab — KKindredsView
+     today        the Today tab, the letter cards and the reply dock — KTodayView
+     compose      writing to a stranger (compose) — KComposeView
+     me           the Me tab — KMeView
+     settings     Settings (in the Me stack) — KSettingsView
+     editprofile  Edit profile (in the Me stack) — KEditProfileView
+     notes        the Notes tab — KNotesView
+
+   The one-letter reader, a kindred's page and Wren's desk stay React
+   Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
+  room: false,
+  chat: false,
+  kindreds: false,
+  today: false,
+  compose: false,
+  me: false,
+  settings: false,
+  editprofile: false,
+  notes: false,
 };
+
+/** the nine step-5 surface keys (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */
@@ -87,6 +140,90 @@ function loadCache(): Promise<void> {
   return cacheRead;
 }
 
+/* ── the crash breadcrumb ──────────────────────────────────────────────── */
+
+const ARMING_KEY = "kindredly_native_arming";
+
+/* Strikes belong to one binary: the version AND the build, so a rebuilt
+   1.3.0 that fixes a crash starts with a clean slate. */
+const BINARY: string | null = VERSION ? `${VERSION} (${Application.nativeBuildVersion ?? "?"})` : null;
+
+let arming: ArmingRecord = emptyArming(BINARY);
+let armingRead: Promise<void> | null = null;
+let armingWrite: Promise<void> = Promise.resolve();
+let settled = false;
+
+/* Read once per process, and settled at once: last launch's marks become
+   strikes and are written back spent, so a crash later in THIS process is
+   counted against this process's own marks only. */
+function loadArming(): Promise<void> {
+  if (!armingRead)
+    armingRead = AsyncStorage.getItem(ARMING_KEY)
+      .then((raw) => {
+        arming = settleArming(raw, BINARY);
+        const struck = Object.keys(arming.strikes);
+        if (struck.length) console.log("[surfaces] native screens that didn't survive opening last time:", arming.strikes);
+        if (raw != null) persistArming();
+        if (struck.length) changed();
+      })
+      .catch((e) => console.log("[surfaces] crash breadcrumb read failed, counting none:", e));
+  return armingRead;
+}
+
+/* every write is the whole record, one after another, so two screens
+   arming at once can't interleave */
+function persistArming(): Promise<void> {
+  const snapshot = JSON.stringify(arming);
+  armingWrite = armingWrite
+    .then(() => AsyncStorage.setItem(ARMING_KEY, snapshot))
+    .catch((e) => console.log("[surfaces] crash breadcrumb write failed:", e));
+  return armingWrite;
+}
+
+/** Resolves once this phone's own answers are in memory: the cached table
+    (lib/surfaces' cache, a local read) and the crash breadcrumb. Never the
+    network, never rejects. NativeSurface waits for it before choosing, so
+    a cold start can't pick Swift past a kill row or a struck-out screen
+    that the phone already knows about. */
+export function surfacesReady(): Promise<void> {
+  return Promise.all([loadCache(), loadArming()]).then(() => {
+    settled = true;
+  });
+}
+
+/** true once surfacesReady() has resolved in this process: a screen that
+    mounts after that can choose at once, with no waiting frame */
+export function surfacesSettled(): boolean {
+  return settled;
+}
+
+/** Mark `surface` as opening, before its Host mounts. Resolves once the
+    mark is on disk (or the write failed, which is logged), so a crash in
+    the Host's first frames still finds it at the next launch. Waits for
+    the launch's own read first, so this process's mark is never mistaken
+    for the last one's. */
+export async function armNative(surface: string): Promise<void> {
+  await loadArming();
+  arming = armSurface(arming, surface, Date.now());
+  await persistArming();
+}
+
+/** `surface` opened and stood (or closed without taking the app down):
+    its mark goes and its strikes are forgiven. Fire and forget. */
+export function clearNative(surface: string): void {
+  const own = (o: object) => Object.prototype.hasOwnProperty.call(o, surface);
+  if (!own(arming.armed) && !own(arming.strikes)) return;
+  arming = clearSurface(arming, surface);
+  void persistArming();
+}
+
+/** true = `surface` crashed the app while opening on the last two launches
+    that tried it, on this binary: it stays React Native here. nativeOn()
+    already answers false for it; this is for logs and the dev lab. */
+export function nativeStruckOut(surface: string): boolean {
+  return struckOut(arming, surface);
+}
+
 /** Ask app_surfaces for this binary's rows (its version and '*') and keep
     the answer. Resolves to the table's map in force afterwards — fresh,
     cached, or {} — and never rejects. Throttled and de-duplicated, so any
@@ -125,6 +262,7 @@ let started = false;
 export function startSurfaces(): void {
   if (started) return;
   started = true;
+  void surfacesReady(); // the breadcrumb is settled at launch, before any screen arms
   void readSurfaces();
   AppState.addEventListener("change", (s) => {
     if (s === "active") void readSurfaces();
@@ -132,10 +270,13 @@ export function startSurfaces(): void {
 }
 
 /** The answer right now, without waiting: true = draw `key` in SwiftUI.
-    A route that must not change under the reader's thumb can fix it at
-    mount with useState(() => nativeOn(key)). */
+    False for a surface that has struck out on this binary (the crash
+    breadcrumb), whatever the table says. A route that must not change
+    under the reader's thumb fixes it at mount — NativeSurface mode "mount"
+    does exactly that, after surfacesReady(). */
 export function nativeOn(key: string): boolean {
   if (!surfaceOn(remote, NATIVE_DEFAULTS, key)) return false;
+  if (struckOut(arming, key)) return false;
   if (moduleThere === null) moduleThere = !!requireOptionalNativeModule(NATIVE_MODULE);
   return moduleThere;
 }
@@ -153,6 +294,7 @@ export function useNativeSurface(key: string): boolean {
   /* a screen can mount before the root layout's effect has run (children's
      effects go first), so the first one to ask makes sure the cache is read */
   useEffect(() => {
+    void surfacesReady();
     void readSurfaces();
   }, []);
   return useSyncExternalStore(subscribe, () => nativeOn(key));

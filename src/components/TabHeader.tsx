@@ -1,24 +1,98 @@
 import type { ReactNode } from "react";
-import { Text, View, type ViewStyle } from "react-native";
-import { P, PF } from "../theme/post";
+import { Pressable, Text, View, type ViewStyle } from "react-native";
+import { MONO, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 
-/* EVERY TAB'S PLATE (owner, 2026-09-23). The tab's name in capitals — 18pt,
-   the app's own face (30 was the Kindreds title's and 20 still too loud for
-   a name every tab wears; the owner, same day) — on one 1pt rule,
-   with the tab's one fact or control on the right. Today, Notes, Kindreds
-   and Me wear the same one; only the + has none, because it isn't a place.
-   Today's rule used to be 3pt, thickened to match its stickers' outlines;
-   one weight for every tab reads as one system, so it's 1pt like the rest.
+/* EVERY TAB'S PLATE. The tab's name in capitals with the tab's one fact or
+   control on the right. Today, Notes, Kindreds and Me wear the same one;
+   only the + has none, because it isn't a place.
 
-   A long name in some languages (SEELENVERWANDTE, AUJOURD'HUI) shrinks to
-   fit its line rather than pushing the right-hand fact off the screen. */
-export function TabHeader({ title, right, ink = P.ink, style }: { title: string; right?: ReactNode; ink?: string; style?: ViewStyle }) {
+   10a: the name is the mock's page title — system 600 at 22 with .04em of
+   tracking (H:61, 71) — and the rule under it is gone on all four tabs
+   (the owner's call): the page's own ground does the separating now. It
+   paints from the theme. A long name in some languages (SEELENVERWANDTE,
+   AUJOURD'HUI) shrinks to fit its line, to .7, rather than pushing the
+   right-hand fact off the screen; VoiceOver hears it as the page's header.
+
+   The right side is either your own node (`right`: Notes' two keys, Me's
+   gear) or the mock's status label (`rightLabel`: mono 11 at .12em, in
+   mute — or ind when it is a way in, like Kindreds' "2 TO ANSWER"). The
+   Swift tabs draw their own title row; this is the React Native one, for
+   the screens and fallbacks that stay React Native.
+
+   `rule` puts the old 1pt line back, for the one screen still drawn on it:
+   the React Native Kindreds sky (KindredsSky) uses the title's rule as its
+   horizon, until the Kindreds fallback is redrawn without it. */
+export function TabHeader({
+  title,
+  right,
+  rightLabel,
+  rightTone = "mute",
+  onRightPress,
+  rightA11yLabel,
+  ink,
+  rule = false,
+  style,
+}: {
+  title: string;
+  /** your own right-hand node (keys, a gear); wins over rightLabel */
+  right?: ReactNode;
+  /** the mock's status label on the right (mono 11, uppercase as given) */
+  rightLabel?: string;
+  /** mute (a plain fact) or ind (a way in) */
+  rightTone?: "mute" | "ind";
+  /** makes the label a button */
+  onRightPress?: () => void;
+  /** VoiceOver's name for the label when it is a button (default: the label) */
+  rightA11yLabel?: string;
+  /** the title's colour; default the theme's ink */
+  ink?: string;
+  /** the old 1pt rule under the plate (KindredsSky only — see above) */
+  rule?: boolean;
+  style?: ViewStyle;
+}) {
+  const { t: tk } = useTheme();
+  const color = ink ?? tk.ink;
+
+  let side: ReactNode = right ?? null;
+  if (side == null && rightLabel) {
+    const label = (
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+        style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.3, color: rightTone === "ind" ? tk.ind : tk.mute, textAlign: "right" }}
+      >
+        {rightLabel}
+      </Text>
+    );
+    side = onRightPress ? (
+      <Pressable onPress={onRightPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={rightA11yLabel ?? rightLabel} style={{ flexShrink: 1 }}>
+        {label}
+      </Pressable>
+    ) : (
+      <View style={{ flexShrink: 1 }}>{label}</View>
+    );
+  }
+
   return (
-    <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 44, marginHorizontal: 16, paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ink }, style]}>
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} accessibilityRole="header" style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 18, letterSpacing: 0.8, color: ink }}>
+    <View
+      style={[
+        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 52, marginHorizontal: 16, paddingHorizontal: 6 },
+        rule ? { borderBottomWidth: 1, borderBottomColor: color } : null,
+        style,
+      ]}
+    >
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        accessibilityRole="header"
+        style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 22, letterSpacing: 0.88, color }}
+      >
         {title}
       </Text>
-      {right}
+      {side}
     </View>
   );
 }

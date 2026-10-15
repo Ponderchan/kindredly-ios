@@ -67,6 +67,8 @@ export const PF = {
   // mannerism in the middle of someone's sentence — owner, 2026-09-20). CJK
   // glyphs fall through to the system face, which is what we want; fontStyle
   // "italic" finds Newsreader-Italic in its family.
+  // 10a: someone's letter being READ takes the reader's own choice instead —
+  // letterFamily(letterFont) below, or useLetterFamily() in lib/theme.
   letterSerif: "Newsreader-Regular",
   serif: "Fraunces-Regular",
   serifItalic: "Fraunces-Italic",
@@ -84,6 +86,90 @@ export const solidBtn = { backgroundColor: P.pen, paddingVertical: 15, alignItem
 export const rule = { borderBottomWidth: 1, borderBottomColor: P.ink } as const;
 export const ruleSoft = { borderBottomWidth: 1, borderBottomColor: P.ink12 } as const;
 
+/* ── THE MONO SIZES (10a) ──────────────────────────────────────────────────
+   Mono labels and titles come in three sizes only: 9, 10 and 11 (the 10a
+   rule, CLAUDE-CODE-PROMPTS.md:58). Owner question 2 is still open and is
+   built with its recommended answer: the titles drawn at 12 and 13 (EDIT
+   PROFILE, SETTINGS, a sheet's heading) go to 11 as well, YOUR COURIER keeps
+   its 12, and the two numbers on the Me profile card stay 13 because they
+   are figures, not labels. One table, so the owner's answer is one line;
+   KType's mono table says the same for SwiftUI. */
+export const MONO = {
+  /** stamp dates, the smallest tags */
+  small: 9,
+  /** section labels, legends, units */
+  label: 10,
+  /** times, group headers, buttons, and every title (the old 12s and 13s) */
+  title: 11,
+  /** YOUR COURIER only */
+  courier: 12,
+  /** the two numbers on the Me profile card */
+  figure: 13,
+} as const;
+
+/* ── THE LETTER FONT (10a, a device setting) ───────────────────────────────
+   Someone else's letter is set in the face the reader chose: Newsreader
+   (the default, embedded), New York (Apple's own serif, in every iPhone, no
+   file needed) or EB Garamond. Where it applies is owner question 1, built
+   with its recommended answer: wherever a letter is READ — the Today card
+   and its reader, a pen pal's letter blocks before names are traded, My
+   letters, the opening letter on a kindred's page, the quotes in Keepsakes
+   and Lore. Room chat bubbles, fold answers and every input stay in the
+   system face.
+
+   The choice itself lives in lib/theme (ThemeProvider: letterFont and
+   setLetterFont; useLetterFont, useLetterFamily), stored on the phone like
+   the theme. This part is pure, so it runs under plain node
+   (node src/theme/post.test.ts).
+
+   EB GARAMOND IS NOT IN THE APP YET. Its file needs the owner's approval to
+   download (OFL, Google Fonts), and only a new binary can carry it (app.json
+   ios.fonts; runtimeVersion follows the app version, so no update can reach
+   a binary without it). Until then GARAMOND_READY is false: the choice is
+   offered nowhere, and a stored "garamond" reads as the default, so nothing
+   ever asks iOS for a face it doesn't have. When the files land: add
+   EBGaramond-Regular.ttf (and EBGaramond-Italic.ttf, for Wren's italic
+   lines) to assets/fonts and app.json, check the PostScript names in
+   LETTER_FACES against the files, then flip this. */
+export const GARAMOND_READY: boolean = false;
+
+export type LetterFontKey = "newsreader" | "newyork" | "garamond";
+/** every value the setting can hold, in the order Settings lists them */
+export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["newsreader", "newyork", "garamond"];
+export const DEFAULT_LETTER_FONT: LetterFontKey = "newsreader";
+/** the choices Settings may offer on this build: no Garamond until GARAMOND_READY */
+export const LETTER_FONT_CHOICES: readonly LetterFontKey[] = LETTER_FONT_KEYS.filter((k) => k !== "garamond" || GARAMOND_READY);
+
+/* the faces, by PostScript name. New York has no file and no name: React
+   Native (Fabric) maps "ui-serif" to the system serif design, which is New
+   York (RCTFontUtils.mm:321-345), and finds its italic from fontStyle. */
+const LETTER_FACES: Readonly<Record<LetterFontKey, { regular: string; italic: string }>> = {
+  newsreader: { regular: "Newsreader-Regular", italic: "Newsreader-Italic" },
+  newyork: { regular: "ui-serif", italic: "ui-serif" },
+  garamond: { regular: "EBGaramond-Regular", italic: "EBGaramond-Italic" },
+};
+
+/** Whatever was stored, as a letter font this build can draw: an unknown
+    value (or Garamond before GARAMOND_READY) is the default. */
+export function letterFontKey(raw: unknown): LetterFontKey {
+  if (raw === "newsreader" || raw === "newyork") return raw;
+  if (raw === "garamond" && GARAMOND_READY) return raw;
+  return DEFAULT_LETTER_FONT;
+}
+
+/** a Text style fragment: spread it into the style of a letter's text */
+export type LetterFace = { fontFamily: string; fontStyle: "normal" | "italic" };
+
+/** The React Native type for a letter set in `key`. Italic is said twice —
+    the italic face AND fontStyle "italic" — as every italic in this app
+    must be (see PF above); the upright one says "normal", so it never
+    inherits an italic from a parent Text. A key this build can't draw
+    (Garamond before GARAMOND_READY) gives the default face. */
+export function letterFamily(key: LetterFontKey, italic = false): LetterFace {
+  const face = LETTER_FACES[letterFontKey(key)];
+  return italic ? { fontFamily: face.italic, fontStyle: "italic" } : { fontFamily: face.regular, fontStyle: "normal" };
+}
+
 /* ── the channel tag's two colours ────────────────────────────────────────
    The tag and its pasted stamp are the same thing said twice, so they share a
    hue. But the 44 designed colours are chosen to look right as a printed tile,
@@ -95,7 +181,13 @@ export const ruleSoft = { borderBottomWidth: 1, borderBottomColor: P.ink12 } as 
    until it clears 4.5:1 against its own wash.
 
    The tag's rule still carries the true, undarkened colour (a border needs
-   only 3:1, which all six clear), so the exact designed hue stays on screen. */
+   only 3:1, which all six clear), so the exact designed hue stays on screen.
+
+   Those two are fixed to a warm paper. On a theme's own surface — Midnight's
+   dark trays above all, where a wash of a deep stamp is nearly black and a
+   darker ink can't be read on it — use channelColors(stamp, surface) below,
+   which says the same three things against the surface it is given. The old
+   pair is kept, unchanged, so their callers draw exactly what they drew. */
 
 const PAPER_RGB = [0xfa, 0xf8, 0xf3] as const;
 
@@ -129,4 +221,66 @@ export function channelInk(hex?: string | null): string {
   return P.ink;
 }
 
+/* ── channelColors: the same three colours on any theme's surface ──────── */
+
+type RGB = readonly [number, number, number];
+
+/* a stamp without a usable colour reads as a quiet violet-grey (10a mute) */
+const NEUTRAL_RGB: RGB = [0x8a, 0x86, 0xa3];
+/* a wash darker than this takes a lighter ink, not a darker one (Midnight's
+   surfaces and the washes over them sit near .01–.03; the light themes'
+   washes above .6) */
+const DARK_WASH = 0.18;
+
+const toHex = (c: RGB) => `#${hx(c[0])}${hx(c[1])}${hx(c[2])}`;
+const chan = (v: number) => {
+  const s = v / 255;
+  return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+};
+const lum = (c: RGB) => 0.2126 * chan(c[0]) + 0.7152 * chan(c[1]) + 0.0722 * chan(c[2]);
+/* measured on the hex that reaches the screen, not the unrounded mix */
+const shown = (c: RGB): RGB => parse(toHex(c))!;
+/** WCAG contrast ratio of two colours */
+function contrast(a: RGB, b: RGB): number {
+  const la = lum(shown(a));
+  const lb = lum(shown(b));
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+const over = (c: RGB, under: RGB, alpha: number): RGB => [
+  c[0] * alpha + under[0] * (1 - alpha),
+  c[1] * alpha + under[1] * (1 - alpha),
+  c[2] * alpha + under[2] * (1 - alpha),
+];
+
+export type ChannelColors = {
+  /** the tag's fill: the stamp at 14% over the surface */
+  wash: string;
+  /** the tag's text: the stamp's hue, walked darker (light surface) or
+      lighter (dark surface) until it clears 4.5:1 on the wash */
+  ink: string;
+  /** the tag's rule: the stamp itself where it clears 3:1 on the surface,
+      otherwise the ink */
+  line: string;
+};
+
+/** The topic tag's colours for a stamp on the surface it sits on — pass
+    that surface's colour (tk.sf on a card, tk.bg on the page, tk.soft2 in a
+    tray). Never throws: a missing or malformed stamp colour reads as a
+    neutral grey, a missing surface as the old paper. */
+export function channelColors(stampHex?: string | null, surfaceHex?: string | null, alpha = 0.14): ChannelColors {
+  const c: RGB = parse(stampHex) ?? NEUTRAL_RGB;
+  const under: RGB = parse(surfaceHex) ?? PAPER_RGB;
+  const wash = shown(over(c, under, alpha));
+  const dark = lum(wash) < DARK_WASH;
+  let ink: string | null = null;
+  for (let k = 0; k <= 0.85 && !ink; k += 0.03) {
+    // k = 0 is the stamp itself; each step is 3% further from the wash
+    const step: RGB = dark
+      ? [c[0] + (255 - c[0]) * k, c[1] + (255 - c[1]) * k, c[2] + (255 - c[2]) * k]
+      : [c[0] * (1 - k), c[1] * (1 - k), c[2] * (1 - k)];
+    if (contrast(wash, step) >= 4.5) ink = toHex(step);
+  }
+  const inkHex = ink ?? (dark ? "#FFFFFF" : P.ink);
+  return { wash: toHex(wash), ink: inkHex, line: contrast(c, under) >= 3 ? toHex(c) : inkHex };
+}
 

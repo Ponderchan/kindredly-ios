@@ -1,9 +1,10 @@
-import { Keyboard, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PF } from "../theme/post";
+import { MONO, PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
+import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
 
 /* LEAVING A COMPOSER WITH WORDS IN IT.
    ────────────────────────────────────────────────────────────────────────
@@ -30,7 +31,21 @@ import { t, useLang } from "../lib/i18n";
    the filled button is ind with its label in the page colour, as every
    filled key in 10a is. Two things stay fixed: the postal red of the
    destructive row (an object's colour, like the postmark, in every theme)
-   and the dim over the page behind. */
+   and the dim over the page behind — the 10a dim, the same one the mock
+   lays under its composer sheet (H:128).
+
+   ABOVE THE FLOATING TAB BAR (10a). By default the sheet is an absolutely
+   positioned View in its screen, and the tab bar the tabs layout draws
+   after its screens sits on top of it — hence bottomExtra. Inside the Me
+   tab's own stack (Settings, Edit profile) nothing a screen draws can clear
+   the bar, so `modal` puts the sheet in a transparent React Native Modal,
+   window-level, over the bar and everything else. Prefer `modal` for any
+   sheet raised inside the tabs; a pushed root route doesn't need it.
+
+   The mono sizes follow the 10a rule (theme/post MONO: a title is 11). */
+
+/* the 10a dim (H:128): the ink at 30%, over the page behind */
+const DIM = "rgba(30,27,53,0.3)";
 
 export interface LeaveAction {
   label: string;
@@ -51,6 +66,7 @@ export function LeaveSheet({
   actions,
   cancelLabel,
   bottomExtra = 0,
+  modal = false,
   onCancel,
 }: {
   open: boolean;
@@ -63,8 +79,12 @@ export function LeaveSheet({
   cancelLabel?: string | null;
   /** extra room under the buttons, for a sheet raised inside a tab screen:
       the tab bar draws OVER this one, so without it the bottom row sits
-      behind the bar — untappable, and invisible. */
+      behind the bar — untappable, and invisible. Ignored with `modal`,
+      which is above the bar already. */
   bottomExtra?: number;
+  /** draw the sheet in a transparent window-level Modal, above the
+      floating tab bar and every screen (see above) */
+  modal?: boolean;
   onCancel: () => void;
 }) {
   useLang(); // repaint when the reader changes language
@@ -73,12 +93,12 @@ export function LeaveSheet({
   const insets = useSafeAreaInsets();
   if (!open) return null;
 
-  return (
-    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
+  const sheet = (
+    <View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
         {/* ink at low opacity rather than a blur: the page behind stays
             readable, which matters when the question is about that page */}
-        <Pressable onPress={onCancel} style={{ flex: 1, backgroundColor: "rgba(17,17,19,0.32)" }} />
+        <Pressable onPress={onCancel} accessible={false} style={{ flex: 1, backgroundColor: DIM }} />
       </Animated.View>
 
       <Animated.View
@@ -87,12 +107,12 @@ export function LeaveSheet({
           backgroundColor: tk.sf,
           borderTopWidth: 1,
           borderTopColor: tk.ln,
-          paddingBottom: Math.max(insets.bottom, 12) + 6 + bottomExtra,
+          paddingBottom: Math.max(insets.bottom, 12) + 6 + (modal ? 0 : bottomExtra),
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{title.toUpperCase()}</Text>
-          <Pressable onPress={onCancel} hitSlop={12}>
+          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{title.toUpperCase()}</Text>
+          <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
             <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>
         </View>
@@ -106,6 +126,7 @@ export function LeaveSheet({
             <Pressable
               key={a.label}
               onPress={a.onPress}
+              accessibilityRole="button"
               style={({ pressed }) => [
                 a.kind === "primary"
                   ? { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" as const, opacity: pressed ? 0.85 : 1 }
@@ -127,8 +148,8 @@ export function LeaveSheet({
               <Text
                 style={{
                   fontFamily: PF.monoSemi,
-                  fontSize: 12.5,
-                  letterSpacing: 1.8,
+                  fontSize: MONO.title,
+                  letterSpacing: 1.6,
                   color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : P.post,
                 }}
               >
@@ -138,19 +159,27 @@ export function LeaveSheet({
           ))}
 
           {cancelLabel === null ? null : (
-            <Pressable onPress={onCancel} style={{ paddingVertical: 16, alignItems: "center" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.8, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
+            <Pressable onPress={onCancel} accessibilityRole="button" style={{ paddingVertical: 16, alignItems: "center" }}>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
             </Pressable>
           )}
         </View>
       </Animated.View>
     </View>
   );
+
+  if (!modal) return sheet;
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onCancel}>
+      {sheet}
+    </Modal>
+  );
 }
 
-/** open the sheet the way the reference does: keyboard out of the way first,
-    so the sheet rises into the space it just vacated instead of over it */
-export function openLeaveSheet(show: () => void) {
-  Keyboard.dismiss();
-  setTimeout(show, 120);
+/** Open the sheet the way the reference does: keyboard out of the way
+    first, so the sheet rises into the space it just vacated instead of over
+    it. Reaches a SwiftUI field too (lib/keyboard): pass the Swift screen's
+    view ref as `target` and its field is told to let go first. */
+export function openLeaveSheet(show: () => void, target?: CommandTarget) {
+  blurThen(show, target, { delayMs: KEYBOARD_OUT_MS });
 }
