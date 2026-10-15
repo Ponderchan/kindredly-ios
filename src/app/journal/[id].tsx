@@ -6,13 +6,19 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../../lib/i18n";
-import { P, PF, rule } from "../../theme/post";
+import { PF } from "../../theme/post";
+import { useP, useTheme } from "../../lib/theme";
 import { AudioCard } from "../../components/AudioCard";
 import { MoodIcon } from "../../components/MoodIcon";
 import { getMood } from "../../data/moods";
 import { DEMO_JOURNAL } from "../../data/demo";
 import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
+
+/* the ink on the drift highlight: the highlight is pale in every theme, so
+   the words on it keep Classic's ink rather than the page's (light in a
+   dark theme) */
+const ON_HIGHLIGHT = "#1E1B35";
 
 /* A single journal page — the sealed room, one page at a time. Read it, let a
    line drift, or tear it out. Sample pages are read-only.
@@ -22,6 +28,8 @@ import { PhotoLightbox } from "../../components/PhotoLightbox";
    face and the photos keep their colour — they're content. */
 export default function JournalDetail() {
   useLang();
+  const P = useP();
+  const tk = useTheme().t;
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [e, setE] = useState<JournalEntry | null>(null);
@@ -117,7 +125,7 @@ export default function JournalDetail() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* header — back + a ··· menu; the date leads the entry from the centre */}
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, rule]}>
+      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, { borderBottomWidth: 1, borderBottomColor: tk.ln }]}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
@@ -166,11 +174,11 @@ export default function JournalDetail() {
 
         {/* drifted state — the action itself now lives in the ··· menu */}
         {e.driftedLine && (
-          <View style={{ marginTop: 28, borderTopWidth: 1, borderTopColor: P.ink, paddingTop: 14 }}>
+          <View style={{ marginTop: 28, borderTopWidth: 1, borderTopColor: tk.ln, paddingTop: 14 }}>
             <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.pen, marginBottom: 10 }}>
               {t("jd.oneLineOut")}
             </Text>
-            <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 24, color: P.ink, backgroundColor: "#F6E7A6" }}>{e.driftedLine}</Text>
+            <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 24, color: ON_HIGHLIGHT, backgroundColor: "#F6E7A6" }}>{e.driftedLine}</Text>
             <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
               {t("jd.tomorrowStranger")}
             </Text>
@@ -194,7 +202,7 @@ export default function JournalDetail() {
               right: 14,
               backgroundColor: P.paper,
               borderWidth: 1,
-              borderColor: P.ink,
+              borderColor: tk.ln,
               minWidth: 232,
             }}
           >
@@ -236,6 +244,7 @@ export default function JournalDetail() {
 
 /* a tiny monochrome calendar (the 📅 emoji bakes in a wrong date) */
 function CalGlyph() {
+  const P = useP();
   return (
     <View style={{ width: 13, height: 13, borderWidth: 1.4, borderColor: P.ink60, alignItems: "center", justifyContent: "center" }}>
       <View style={{ position: "absolute", top: -2.5, left: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: P.ink60 }} />
@@ -246,6 +255,7 @@ function CalGlyph() {
 }
 
 function MenuRow({ label, onPress, destructive, icon }: { label: string; onPress: () => void; destructive?: boolean; icon?: React.ReactNode }) {
+  const P = useP();
   return (
     <Pressable
       onPress={onPress}
@@ -273,6 +283,7 @@ function MenuRow({ label, onPress, destructive, icon }: { label: string; onPress
    in an app to make someone parse a metaphor. The row says DELETE; the paper
    language keeps its home in the confirm, where there's room for it. */
 function BinIcon() {
+  const P = useP();
   return (
     <Svg width={15} height={15} viewBox="0 0 16 16">
       <Path d="M2.6 4.2h10.8" stroke={P.post} strokeWidth={1.5} strokeLinecap="round" />
@@ -285,6 +296,7 @@ function BinIcon() {
 
 /* the drift rows share one mark: a dotted line leaving, with an arrow */
 function DriftIcon() {
+  const P = useP();
   return (
     <Svg width={15} height={15} viewBox="0 0 16 16">
       <Path d="M2.6 9.6c3.4-4.4 6.8-4.4 10.2 0" fill="none" stroke={P.ink} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="1.6 2" />
@@ -316,6 +328,7 @@ function PhotoGallery({
   onSetCover: (i: number) => void;
   canSetCover: boolean;
 }) {
+  const P = useP();
   const [full, setFull] = useState<string | null>(null);
   const [rowW, setRowW] = useState(0);
   if (!photos.length) return null;

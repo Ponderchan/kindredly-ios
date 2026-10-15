@@ -2,7 +2,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { MOODS, MOOD_IDS, type MoodId } from "../data/moods";
 import { MoodIcon } from "./MoodIcon";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 
 /* THE MOOD TRAY (owner, 2026-09-20) — the sealed page's answer to the
    letter's stamp tray. The round key on the bar shows a blank face until
@@ -13,8 +14,10 @@ import { P, PF } from "../theme/post";
 export const MOOD_TRAY_H = 296;
 
 export function MoodTray({ selected, onPick }: { selected: MoodId | null; onPick: (id: MoodId) => void }) {
+  const P = useP();
+  const tk = useTheme().t;
   return (
-    <View style={{ height: MOOD_TRAY_H, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12 }}>
+    <View style={{ height: MOOD_TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 16, paddingBottom: 20, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
         {MOOD_IDS.map((id) => {
           const on = selected === id;
@@ -35,7 +38,9 @@ export function MoodTray({ selected, onPick }: { selected: MoodId | null; onPick
 }
 
 /* the blank face on the key before a mood is chosen */
-export function MoodKeyGlyph({ size = 26, color = P.ink }: { size?: number; color?: string }) {
+export function MoodKeyGlyph({ size = 26, color: given }: { size?: number; color?: string }) {
+  const P = useP();
+  const color = given ?? P.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
       <Circle cx={12} cy={12} r={9} />

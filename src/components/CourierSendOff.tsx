@@ -11,7 +11,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { Seal } from "./Seal";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
@@ -45,6 +46,12 @@ function kaChunk(heavy: boolean) {
 
 export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void }) {
   useLang(); // repaint when the reader changes language
+  /* The desk and the page are drawn in the page's own inks, not as art:
+     the desk below the slot is a mask that has to be the same ground as
+     the screen it sits on, or it shows as a slab. The seal and the bird
+     keep their own colours. */
+  const P = useP();
+  const tk = useTheme().t;
   const wren = useWrenName();
   const reduce = useReducedMotion();
 
@@ -107,7 +114,7 @@ export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void
         <Animated.View style={[{ width: 280, height: 430 }, deskStyle]}>
           {/* the page, above the slot, about to be taken in */}
           <Animated.View style={[{ position: "absolute", top: 46, left: 140 - 59, zIndex: 2 }, sinkStyle]}>
-            <View style={{ width: 118, height: 150, backgroundColor: P.paper, borderWidth: 1.4, borderColor: P.ink }}>
+            <View style={{ width: 118, height: 150, backgroundColor: P.paper, borderWidth: 1.4, borderColor: tk.ln }}>
               <View style={{ height: 1.5, backgroundColor: P.ink12, marginTop: 26, marginHorizontal: 13 }} />
               <View style={{ height: 1.5, backgroundColor: P.ink12, marginTop: 16, marginHorizontal: 13 }} />
               <View style={{ height: 1.5, backgroundColor: P.ink12, marginTop: 16, marginHorizontal: 13, marginRight: 36 }} />
@@ -119,9 +126,9 @@ export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void
 
           {/* the desk: everything below the slot swallows the page */}
           <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 130, backgroundColor: P.paper, zIndex: 3 }} />
-          <View style={{ position: "absolute", left: 50, right: 50, bottom: 130, borderTopWidth: 1.5, borderTopColor: P.ink, zIndex: 4 }} />
-          <View style={{ position: "absolute", left: 44, bottom: 128, width: 5, height: 5, backgroundColor: P.ink, zIndex: 4 }} />
-          <View style={{ position: "absolute", right: 44, bottom: 128, width: 5, height: 5, backgroundColor: P.ink, zIndex: 4 }} />
+          <View style={{ position: "absolute", left: 50, right: 50, bottom: 130, borderTopWidth: 1.5, borderTopColor: tk.ln, zIndex: 4 }} />
+          <View style={{ position: "absolute", left: 44, bottom: 128, width: 5, height: 5, backgroundColor: tk.ln, zIndex: 4 }} />
+          <View style={{ position: "absolute", right: 44, bottom: 128, width: 5, height: 5, backgroundColor: tk.ln, zIndex: 4 }} />
 
           {/* she keeps her back to it — this one is not hers to carry */}
           <Animated.View style={[{ position: "absolute", right: 16, bottom: 152, zIndex: 5, alignItems: "flex-end" }, afterStyle]}>

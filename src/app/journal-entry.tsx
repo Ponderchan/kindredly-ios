@@ -6,7 +6,8 @@ import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
 import { getLang, t, useLang } from "../lib/i18n";
 import { DEMO_TEXT, storeMode } from "../lib/dev-store";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP } from "../lib/theme";
 import { SelfCompose } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
 
@@ -25,6 +26,7 @@ import { localeTag } from "../lib/format";
    more this product than one you toggled while typing. */
 export default function JournalEntryRoute() {
   useLang();
+  const P = useP();
   const router = useRouter();
   const { demo } = useLocalSearchParams<{ demo?: string }>();
   const [text, setText] = useState(__DEV__ && storeMode && demo ? DEMO_TEXT[getLang()].line : "");

@@ -7,9 +7,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
-import {C} from "../theme/tokens";
 import { getLang, t, useLang } from "../lib/i18n";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme, type PostPalette } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { MoodKeyGlyph, MoodTray } from "./MoodTray";
@@ -33,8 +33,9 @@ const LANG = "en";
 /* This page had its own warm palette. It now maps onto the app's one system,
    so the sealed room is written on the same surface it's read on. The ruled
    lines stay — they're what makes it a notebook page, not a text box — and the
-   tape stays, because that's a hand, and a hand is allowed. */
-const Z = {
+   tape stays, because that's a hand, and a hand is allowed.
+   Drawn from the theme in effect (useP), so it is built in the component. */
+const zine = (P: PostPalette) => ({
   bg: P.paper,
   paper: P.paper,
   ink: P.ink,
@@ -43,7 +44,7 @@ const Z = {
   gold: P.pen, // the actionable colour, same as everywhere
   tapeA: "rgba(197,174,128,0.5)",
   tapeB: "rgba(150,148,232,0.45)",
-};
+});
 
 type Photo = { uri: string; ratio: number };
 
@@ -57,6 +58,9 @@ export function SelfCompose({
   onDone: () => void;
 }) {
   useLang();
+  const P = useP();
+  const { t: tk, dark } = useTheme();
+  const Z = zine(P);
   const wren = useWrenName();
   const [pIdx, setPIdx] = useState(0);
   const [moodOpen, setMoodOpen] = useState(false); // the tray under the bar
@@ -330,7 +334,8 @@ export function SelfCompose({
                   value={text}
                   onChangeText={setText}
                   placeholder={t("sc.ph")}
-                  placeholderTextColor="#C4B48D"
+                  placeholderTextColor={tk.faint}
+                  keyboardAppearance={dark ? "dark" : "light"}
                   multiline
                   style={{ minHeight: 60, maxHeight: 180, color: Z.ink, fontFamily: PF.writing, fontSize: 19, lineHeight: 30, paddingTop: 6, paddingBottom: 8, textAlignVertical: "top" }}
                 />
@@ -409,7 +414,8 @@ export function SelfCompose({
                 value={text}
                 onChangeText={setText}
                 placeholder={spark}
-                placeholderTextColor="#C4B48D"
+                placeholderTextColor={tk.faint}
+                keyboardAppearance={dark ? "dark" : "light"}
                 multiline
                 style={{
                   minHeight: 328,
@@ -444,7 +450,7 @@ export function SelfCompose({
               height: 52,
               borderRadius: 26,
               borderWidth: 1.5,
-              borderColor: mood ? MOODS[mood].col : moodOpen ? P.pen : P.ink,
+              borderColor: mood ? MOODS[mood].col : moodOpen ? P.pen : tk.ln,
               backgroundColor: mood ? MOODS[mood].bg : "transparent",
               alignItems: "center",
               justifyContent: "center",
@@ -475,8 +481,8 @@ export function SelfCompose({
               alignItems: "center",
             }}
           >
-            {hasSomething && !mood && !busy && !moodOpen && <Nudge color="#FFFFFF" />}
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: hasSomething && !busy ? "#fff" : P.ink40 }}>
+            {hasSomething && !mood && !busy && !moodOpen && <Nudge color={tk.bg} />}
+            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: hasSomething && !busy ? tk.bg : P.ink40 }}>
               {busy ? t("sc.sealing") : !mood && hasSomething ? t("sc.askMood") : t("sc.seal")}
             </Text>
           </Pressable>
@@ -511,7 +517,9 @@ export function SelfCompose({
 
 /* ONE FRAME, FULL SCREEN — back, a count, a bin, and the one thing you
    can do to it from here: make it the cover. Touching the picture goes
-   back to the page. */
+   back to the page. The picture sits on near-black with white controls in
+   every theme, the way a photo viewer does, so nothing here follows the
+   theme. */
 function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(index ?? 0);

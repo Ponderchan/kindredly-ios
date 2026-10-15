@@ -1,6 +1,7 @@
 import { Image, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { P, PF } from "../theme/post";
+import { PF } from "../theme/post";
+import { useP, useTheme } from "../lib/theme";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
 import { getMood } from "../data/moods";
@@ -21,6 +22,9 @@ import type { JournalEntry } from "../lib/journal";
    The mood faces, photos, video and the drift highlight are CONTENT and keep
    their own colour. Only the chrome around them is mono. */
 
+/* the ink on the drift highlight in a dark theme: Classic's ink, fixed */
+const ON_HIGHLIGHT = "#1E1B35";
+
 function meta(e: JournalEntry): string {
   const d = new Date(e.date);
   const mon = d.toLocaleDateString(localeTag(), { month: "short" }).toUpperCase();
@@ -30,6 +34,7 @@ function meta(e: JournalEntry): string {
 }
 
 export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => void }) {
+  const P = useP();
   const m = getMood(e.mood);
   const photos = e.type === "photo" ? (e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []) : [];
   const hasMedia = e.type === "photo" ? photos.length > 0 : e.type === "voice" || e.type === "video";
@@ -174,6 +179,8 @@ function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: 
 }
 
 function Body({ e, pure, lines }: { e: JournalEntry; pure: boolean; lines: number }) {
+  const P = useP();
+  const { dark } = useTheme();
   const style = { fontFamily: PF.letter, fontSize: pure ? 18 : 15, lineHeight: pure ? 28 : 24, color: pure ? P.ink : P.ink60 } as const;
   const line = e.driftedLine;
   if (line && e.body.includes(line)) {
@@ -181,7 +188,9 @@ function Body({ e, pure, lines }: { e: JournalEntry; pure: boolean; lines: numbe
     return (
       <Text style={style} numberOfLines={lines}>
         {e.body.slice(0, i)}
-        <Text style={{ backgroundColor: "#F6E7A6" }}>{line}</Text>
+        {/* the highlight is pale in every theme, so on a dark theme the
+            words on it keep a dark ink instead of the page's light one */}
+        <Text style={{ backgroundColor: "#F6E7A6", color: dark ? ON_HIGHLIGHT : undefined }}>{line}</Text>
         {e.body.slice(i + line.length)}
       </Text>
     );

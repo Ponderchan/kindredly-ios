@@ -1,7 +1,8 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useWrenName } from "../lib/wren-name";
 import { t, useLang } from "../lib/i18n";
-import { C, F } from "../theme/tokens";
+import { F } from "../theme/tokens";
+import { useTheme } from "../lib/theme";
 import { MoodIcon } from "./MoodIcon";
 import { MOOD_IDS, MOODS, type MoodId } from "../data/moods";
 
@@ -17,6 +18,7 @@ export function MoodModal({
   onCancel: () => void;
 }) {
   useLang();
+  const tk = useTheme().t;
   const wren = useWrenName();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
@@ -25,11 +27,11 @@ export function MoodModal({
         onPress={onCancel}
       >
         <Pressable
-          style={{ backgroundColor: C.cream, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 44 }}
+          style={{ backgroundColor: tk.sf, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 44 }}
           onPress={() => {}}
         >
-          <Text style={{ fontFamily: F.serif, fontSize: 22, color: C.ink, textAlign: "center" }}>{t("mm.title")}</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13, color: C.muted, textAlign: "center", marginTop: 6 }}>
+          <Text style={{ fontFamily: F.serif, fontSize: 22, color: tk.ink, textAlign: "center" }}>{t("mm.title")}</Text>
+          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13, color: tk.mute, textAlign: "center", marginTop: 6 }}>
             {t("mm.sub", { wren })}
           </Text>
           <ScrollView style={{ maxHeight: 380, marginTop: 20 }} showsVerticalScrollIndicator={false}>
@@ -37,7 +39,7 @@ export function MoodModal({
               {MOOD_IDS.map((id) => (
                 <Pressable key={id} onPress={() => onPick(id)} style={{ width: "25%", alignItems: "center", marginBottom: 16 }}>
                   <MoodIcon id={id} size={48} />
-                  <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: C.muted, marginTop: 4 }}>{MOODS[id].n}</Text>
+                  <Text style={{ fontFamily: F.sans, fontSize: 10.5, color: tk.mute, marginTop: 4 }}>{MOODS[id].n}</Text>
                 </Pressable>
               ))}
             </View>

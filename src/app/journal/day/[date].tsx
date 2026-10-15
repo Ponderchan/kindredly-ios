@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { P, PF, rule } from "../../../theme/post";
+import { PF } from "../../../theme/post";
+import { useP, useTheme } from "../../../lib/theme";
 import { SealedEntry } from "../../../components/SealedEntry";
 import { dayKey } from "../../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../../lib/journal";
@@ -13,6 +14,8 @@ import { t, useLang } from "../../../lib/i18n";
    the top of the day. Tap one to open the full page. */
 export default function SealedDay() {
   useLang(); // repaint when the reader changes language
+  const P = useP();
+  const tk = useTheme().t;
   const { date } = useLocalSearchParams<{ date: string }>();
   const router = useRouter();
   const [day, setDay] = useState<JournalEntry[]>([]);
@@ -38,7 +41,7 @@ export default function SealedDay() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, rule]}>
+      <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }, { borderBottomWidth: 1, borderBottomColor: tk.ln }]}>
         <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
         </Pressable>
