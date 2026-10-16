@@ -24,11 +24,16 @@
 // are the ink, any other opaque dark colour is read as the ink with a warning (Illustrator's CMYK
 // black #231F20), and a light colour is refused (a white knock-out or highlight); extra root
 // attributes, <title>, <desc>, <metadata>, comments, ids, data-* and editor attributes are
-// ignored; inline style="" declarations are read like attributes; a <g id="guides"> (the
-// template's guide layer) is stripped with everything in it; Figma's frame clip (Clip content,
-// on by default: a clipPath of one rect over the whole artboard, which clips nothing the live
-// area allows) is let go. Circles, ellipses, rects, lines, polylines and polygons become path
-// data (scripts/art-path.mjs shapeData for the round ones).
+// ignored; inline style="" declarations are read like attributes, and the properties an editor
+// writes there that change no mark (Inkscape's -inkscape-stroke and any other vendor property,
+// stop-color, solid-color, font-variation-settings and the other text and paint-server ones) are
+// ignored; the template's guide layer is stripped with everything in it, found by its name (id,
+// data-name or inkscape:label "guides", with a note) or, when the export dropped the name
+// (Figma's "Include id attribute" off, Illustrator's Object IDs = Minimal), by what it holds:
+// only the preview ground, hairlines and see-through tints (with a warning); Figma's frame clip
+// (Clip content, on by default: a clipPath of one rect over the whole artboard, which clips
+// nothing the live area allows) is let go. Circles, ellipses, rects, lines, polylines and
+// polygons become path data (scripts/art-path.mjs shapeData for the round ones).
 //
 // IT CHECKS every drawing rule and prints a report per file naming the element (its line and a
 // short description), what is wrong and by how much. An ERROR rejects the icon (it is left out
@@ -51,9 +56,11 @@
 //   - ink outside the live area x 2–22, y 2–22, with every stroke at the 2.4 check weight;
 //   - less than 1.25 clear space between two marks at the 2.4 check weight (1.5 for a group
 //     icon, which shows at 12pt in the calendar legend), measured edge to edge on the sampled
-//     outlines (curves flattened every 0.08 units). Two elements whose ink overlaps by half a
-//     unit or more at the master weight are one joined mark (the tongue under its smile) and are
-//     not measured against each other.
+//     outlines (curves flattened every 0.08 units); marks that touch or overlap, however deeply,
+//     are refused the same way. The one exception is the spec's one joined mark, a face's tongue:
+//     a filled element hanging under a stroked smile in the mouth band, overlapping it by half a
+//     unit or more at the master weight, is one mark with it and not measured against it. A
+//     group icon never joins anything.
 // Warnings: the eye line (y 10.5 ± 0.75) and the mouth line (y 15.5, down to 16.5; both may
 // drop together by 0.75 under a top accent), the eyes' symmetry about x 12, the cluster box
 // (x 5–19, y 7.5–20) and the cluster's size and centre, strokes shorter than 3, fills narrower
@@ -92,7 +99,8 @@ export const LIVE = [2, 22];
 export const CLEAR = { face: 1.25, group: 1.5 };
 /** marks per icon: a group icon exactly, a face at most */
 export const MARKS = { group: 3, face: 5 };
-/** two elements whose ink overlaps by this much at the master weight are one joined mark */
+/** a tongue whose ink overlaps its smile by this much at the master weight is one mark with it
+    (nothing else ever joins: see tongueUnder) */
 export const JOIN_OVERLAP = 0.5;
 /** curves are flattened into chords about this long */
 const STEP = 0.08;
@@ -408,11 +416,21 @@ const GEOMETRY = {
 };
 // harmless everywhere: names, classes (a <style> sheet is refused on its own), the fill and clip
 // rules (holes are refused, so the rule never decides anything), the miter limit (joins are
-// round), dash offsets and path lengths (dash arrays are refused), rendering hints
+// round), dash offsets and path lengths (dash arrays are refused), rendering hints, and the
+// properties that only mean something to an element the importer refuses or never draws — the
+// paint servers' stop-, solid-, flood- and lighting- colours, overflow and enable-background, and
+// the text properties (text is refused). Inkscape writes these into every shape's style="" (1.x:
+// font-variation-settings:normal and stop-color on each path; 0.92: overflow:visible,
+// solid-color, enable-background:accumulate…), and none of them changes a mark.
 const IGNORED = new Set([
   "id", "class", "fill-rule", "clip-rule", "stroke-miterlimit", "stroke-dashoffset", "pathLength", "paint-order",
   "shape-rendering", "color-interpolation", "color-interpolation-filters", "color-rendering", "image-rendering",
   "text-rendering", "isolation", "lang", "tabindex", "focusable", "role", "color",
+  "stop-color", "stop-opacity", "solid-color", "solid-opacity", "flood-color", "flood-opacity", "lighting-color",
+  "overflow", "enable-background", "font",
+  "line-height", "letter-spacing", "word-spacing", "text-anchor", "text-align", "text-indent", "text-transform",
+  "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "writing-mode",
+  "direction", "baseline-shift", "dominant-baseline", "alignment-baseline", "white-space", "unicode-bidi",
 ]);
 // read on the root only: its size and housekeeping (the viewBox is checked on its own)
 const ROOT_IGNORED = new Set(["width", "height", "x", "y", "viewBox", "version", "baseProfile", "preserveAspectRatio", "enable-background", "overflow", "contentScriptType", "contentStyleType", "zoomAndPan"]);
@@ -428,7 +446,9 @@ function classifyAttr(tag, name, value, isRoot) {
   if (PAINT.has(name)) return "paint";
   if (GEOMETRY[tag]?.includes(name)) return "geometry";
   if (isRoot && ROOT_IGNORED.has(name)) return "ignore";
-  if (IGNORED.has(name) || name.startsWith("data-") || name.startsWith("aria-") || name === "xmlns") return "ignore";
+  if (IGNORED.has(name) || name.startsWith("data-") || name.startsWith("aria-") || name.startsWith("font-") || name === "xmlns") return "ignore";
+  // a vendor property (-inkscape-stroke, -inkscape-font-specification, -webkit-…): an editor's own
+  if (name.startsWith("-")) return "ignore";
   if (name === "xlink:href" || name === "href") return { refuse: `a link to another element (${name}="${v}")` };
   if (name.includes(":")) return "ignore"; // xml:space, xmlns:xlink, inkscape:…, sodipodi:…, serif:…
   switch (name) {
@@ -476,6 +496,72 @@ const declarations = (style) =>
       const k = d.indexOf(":");
       return k < 0 ? [d.trim(), ""] : [d.slice(0, k).trim(), d.slice(k + 1).trim()];
     });
+
+/* ── the template's guides ───────────────────────────────────────────────── */
+
+/** a guides layer by name: id, data-name (Illustrator) or inkscape:label, "guide(s)" with an
+    editor's numeric suffix ("guides-2", "guides_1"); the attribute and value that say so, or null */
+const GUIDES_NAME = /^guides?(?:[-_ ]\d+)?$/i;
+function guidesName(el) {
+  for (const k of ["id", "data-name", "inkscape:label"]) {
+    const v = attr(el, k);
+    if (v !== undefined && GUIDES_NAME.test(v.trim())) return [k, v];
+  }
+  return null;
+}
+
+/** an opacity value as a number (1 when it can't be read: the refusal says so elsewhere) */
+function opacityOf(v) {
+  if (v === undefined) return 1;
+  const s = String(v).trim();
+  const pct = /^([+-]?(?:\d+\.?\d*|\.\d+))%$/.exec(s);
+  if (pct) return Number(pct[1]) / 100;
+  const m = NUM.exec(s);
+  return m ? Number(m[1]) : 1;
+}
+
+/**
+ * The paint the guides check needs, resolved like SVG does: fill, stroke and stroke-width and
+ * the fill's opacity inherited, opacity multiplied down the tree, style="" over attributes.
+ */
+function guidePaint(el, parent) {
+  const own = {};
+  for (const [k, v] of el.attrs) if (k !== "style") own[k] = String(v).trim();
+  const style = attr(el, "style");
+  if (style !== undefined) for (const [k, v] of declarations(style)) own[k] = v;
+  const pick = (k) => (own[k] !== undefined && own[k] !== "inherit" ? own[k] : parent[k]);
+  return {
+    fill: pick("fill"),
+    stroke: pick("stroke"),
+    "stroke-width": pick("stroke-width"),
+    fillOpacity: own["fill-opacity"] !== undefined && own["fill-opacity"] !== "inherit" ? opacityOf(own["fill-opacity"]) : parent.fillOpacity,
+    alpha: parent.alpha * opacityOf(own.opacity),
+  };
+}
+
+/** a stroke under this is a guide's hairline, never a mark (every mark's stroke is 2) */
+const HAIRLINE = 0.25;
+
+/**
+ * What a drawable element is as part of the template's guides: "board" (the preview ground, a
+ * rect over the whole artboard in a colour that isn't the ink), "hairline" (a stroke thinner
+ * than 0.25 over no fill or a see-through one), "tint" (a see-through fill with no stroke), or
+ * null when it could be art.
+ */
+function guideKind(tag, el, p, covers) {
+  if (!DRAWABLE.has(tag)) return null;
+  const fill = classifyPaint(p.fill);
+  const stroke = classifyPaint(p.stroke);
+  const w = NUM.exec(p["stroke-width"] ?? "1");
+  const hair = !stroke.none && (w ? Number(w[1]) : 1) < HAIRLINE;
+  if (!stroke.none && !hair) return null;
+  const filled = !fill.none && tag !== "line";
+  if (tag === "rect" && filled && !fill.ink && !hair && covers(el)) return "board";
+  const fillAlpha = filled ? (readColour(p.fill).rgba?.[3] ?? 1) * p.fillOpacity * p.alpha : 0;
+  if (filled && fillAlpha >= 1) return null;
+  if (hair) return "hairline";
+  return filled ? "tint" : null;
+}
 
 /* ── geometry ────────────────────────────────────────────────────────────── */
 
@@ -680,8 +766,11 @@ function inside(px, py, subs) {
  */
 function markDistance(A, B) {
   const pts = (m) => m.subs.flatMap((s) => s.pts);
-  if (B.fill && pts(A).some(([x, y]) => inside(x, y, B.subs))) return { d: 0, inside: true, p: pts(A)[0], q: pts(A)[0] };
-  if (A.fill && pts(B).some(([x, y]) => inside(x, y, A.subs))) return { d: 0, inside: true, p: pts(B)[0], q: pts(B)[0] };
+  // a point of one drawing inside the other's fill: that point is where they meet
+  const inA = B.fill ? pts(A).find(([x, y]) => inside(x, y, B.subs)) : undefined;
+  if (inA) return { d: 0, inside: true, p: inA, q: inA };
+  const inB = A.fill ? pts(B).find(([x, y]) => inside(x, y, A.subs)) : undefined;
+  if (inB) return { d: 0, inside: true, p: inB, q: inB };
   let best = { d: Infinity };
   for (const a of A.segs) {
     if (boxGap(a.box, B.box) >= best.d) continue;
@@ -697,6 +786,40 @@ function markDistance(A, B) {
 
 /** half the ink's width around a mark's drawing at a stroke weight (a fill has none) */
 const halfInk = (m, weight) => (m.fill ? 0 : weight / 2);
+
+/** the lowest point (largest y) of a mark's drawing where it crosses x, or null where it doesn't */
+function lowestAt(m, x) {
+  let y = null;
+  for (const { s } of m.segs) {
+    const [ax, ay, bx, by] = s;
+    if ((ax - x) * (bx - x) > 0) continue;
+    const yy = ax === bx ? Math.max(ay, by) : ay + ((x - ax) / (bx - ax)) * (by - ay);
+    if (y === null || yy > y) y = yy;
+  }
+  return y;
+}
+
+/** the mouth band: a mark centred below this is a mouth or hangs from one */
+const MOUTH_BAND = 13;
+
+/**
+ * Whether two marks are the one joined mark the spec allows, a tongue under its smile: one is a
+ * fill and the other a stroke, and the fill sits in the mouth band (its centre below y 13), across
+ * the stroke (its centre x inside the stroke's span) and under it (its centre at or below the
+ * stroke's, and below the stroke's line where that crosses it). A dot on a mouth's end, a tear
+ * beside a frown or an eye that drops onto the mouth is none of those.
+ */
+function tongueUnder(A, B) {
+  if (A.fill === B.fill) return false;
+  const [fill, stroke] = A.fill ? [A, B] : [B, A];
+  const fx = (fill.box[0] + fill.box[2]) / 2;
+  const fy = (fill.box[1] + fill.box[3]) / 2;
+  if (fy <= MOUTH_BAND) return false;
+  if (fx <= stroke.box[0] || fx >= stroke.box[2]) return false;
+  if (fy < (stroke.box[1] + stroke.box[3]) / 2 - EPS) return false;
+  const line = lowestAt(stroke, fx);
+  return line !== null && fy > line;
+}
 
 /** the length of a stroke's centre-line */
 const polyLength = (subs) => subs.reduce((n, { pts }) => n + pts.slice(1).reduce((s, p, k) => s + Math.hypot(p[0] - pts[k][0], p[1] - pts[k][1]), 0), 0);
@@ -805,6 +928,59 @@ export function checkSvg(text, { kind = "face" } = {}) {
   };
   findClips(root);
 
+  // The template's guides exported without their name — Figma with "Include id attribute" off,
+  // Illustrator with Object IDs set to Minimal: recognised by what they hold instead. A <g> made
+  // only of the preview ground, hairlines and see-through tints (at least two of them, a hairline
+  // or the ground with a tint among them), or a run of such elements side by side, not grouped,
+  // that holds the ground and at least one more, is stripped with one warning. Nothing in it could
+  // be a mark, whose strokes are 2 and whose ink is solid; a <g> that holds a mark beside its
+  // guides isn't stripped, and everything in it is checked as usual.
+  const guideKinds = (g, p) => {
+    const kinds = [];
+    const visit = (el, pp) => {
+      for (const c of el.children) {
+        const t = localName(c.tag);
+        if (SKIPPED.has(t)) continue;
+        const cp = guidePaint(c, pp);
+        if (t === "g") {
+          if (!visit(c, cp)) return false;
+          continue;
+        }
+        const k = guideKind(t, c, cp, covers);
+        if (!k) return false;
+        kinds.push(k);
+      }
+      return true;
+    };
+    return visit(g, guidePaint(g, p)) ? kinds : null;
+  };
+  const guidesByContent = (children, p) => {
+    const found = new Map();
+    for (const c of children) {
+      if (localName(c.tag) !== "g" || guidesName(c)) continue;
+      const kinds = guideKinds(c, p);
+      if (kinds && kinds.length >= 2 && (kinds.includes("hairline") || (kinds.includes("board") && kinds.includes("tint"))))
+        found.set(c, { first: true, what: `a <g> of ${kinds.length} elements: the preview ground, hairlines and tints` });
+    }
+    let run = [];
+    const flush = () => {
+      if (run.length >= 2 && run.some((r) => r.kind === "board")) {
+        const what = `${run.length} elements on lines ${run[0].el.line}–${run[run.length - 1].el.line}, not in a group: the preview ground, hairlines and tints`;
+        run.forEach((r, k) => found.set(r.el, { first: k === 0, what }));
+      }
+      run = [];
+    };
+    for (const c of children) {
+      const t = localName(c.tag);
+      if (SKIPPED.has(t)) continue;
+      const k = t === "g" ? null : guideKind(t, c, guidePaint(c, p), covers);
+      if (k) run.push({ el: c, kind: k });
+      else flush();
+    }
+    flush();
+    return found;
+  };
+
   const drawables = [];
   const walk = (el, inherited, isRoot) => {
     const tag = localName(el.tag);
@@ -830,10 +1006,18 @@ export function checkSvg(text, { kind = "face" } = {}) {
     const paint = { ...inherited, ...own };
 
     if (isRoot || tag === "g") {
+      const base = { fill: paint.fill.v, stroke: paint.stroke.v, "stroke-width": paint["stroke-width"].v, fillOpacity: 1, alpha: 1 };
+      const unnamed = guidesByContent(el.children, base);
       for (const child of el.children) {
         const ctag = localName(child.tag);
-        if (ctag === "g" && /^guides?$/i.test(attr(child, "id") ?? attr(child, "data-name") ?? "")) {
-          notes.push({ line: child.line, text: `stripped <g id="${attr(child, "id") ?? attr(child, "data-name")}"> and everything in it (the template's guides)` });
+        const name = ctag === "g" ? guidesName(child) : null;
+        if (name) {
+          notes.push({ line: child.line, text: `stripped <g ${name[0]}="${name[1]}"> and everything in it (the template's guides)` });
+          continue;
+        }
+        const found = unnamed.get(child);
+        if (found) {
+          if (found.first) warn(child.line, `the template's guides layer was exported (${found.what}); stripped (delete the guides group before export)`);
           continue;
         }
         if (child.tag.includes(":") && !child.tag.startsWith("svg:")) {
@@ -1024,20 +1208,27 @@ export function checkSvg(text, { kind = "face" } = {}) {
       err(m.line, `${m.where} reaches ${at}${m.fill ? "" : " at the 2.4 check weight"}: ${num(over)} past the live area (2–22)`);
   }
 
-  // pairs: joined marks, then the clear space at the check weight
+  // pairs: the one joined mark, then the clear space at the check weight. Overlap is allowed only
+  // inside one mark, the tongue joined to its smile (the spec); separate marks never touch. So a
+  // pair is joined only when it is a face's fill and stroke overlapping by JOIN_OVERLAP or more at
+  // the master weight, the fill hanging under the stroke in the mouth band (tongueUnder). Every
+  // other pair — a group icon's, two strokes, two fills, eye dots on a mouth's ends, a tear pushed
+  // into a frown — is measured however deep it overlaps, and refused as touching.
   const need = CLEAR[kind];
   const parent = marks.map((_, k) => k);
   const findRoot = (k) => (parent[k] === k ? k : (parent[k] = findRoot(parent[k])));
   const pairs = [];
+  const joins = [];
   for (let a = 0; a < marks.length; a++)
     for (let b = a + 1; b < marks.length; b++) {
       const A = marks[a];
       const B = marks[b];
       const r = markDistance(A, B);
       const overlap = r.inside ? Infinity : halfInk(A, STROKE) + halfInk(B, STROKE) - r.d;
-      if (overlap >= JOIN_OVERLAP - EPS) {
+      if (kind === "face" && overlap >= JOIN_OVERLAP - EPS && tongueUnder(A, B)) {
         parent[findRoot(a)] = findRoot(b);
-        notes.push({ line: B.line, text: `${B.where} joins ${A.where} (line ${A.line}) as one mark` });
+        joins.push({ A, B });
+        notes.push({ line: B.line, text: `${B.where} joins ${A.where} (line ${A.line}) as one mark (a tongue under its smile)` });
         continue;
       }
       // where the gap is: the middle of the space between the two inks at the check weight
@@ -1047,7 +1238,7 @@ export function checkSvg(text, { kind = "face" } = {}) {
         const [ux, uy] = [(r.q[0] - r.p[0]) / r.d, (r.q[1] - r.p[1]) / r.d];
         at = [(r.p[0] + ux * hA + r.q[0] - ux * hB) / 2, (r.p[1] + uy * hA + r.q[1] - uy * hB) / 2];
       }
-      pairs.push({ A, B, gap: r.d - hA - hB, at });
+      pairs.push({ A, B, gap: r.d - hA - hB, master: r.d - halfInk(A, STROKE) - halfInk(B, STROKE), at });
     }
 
   // eyes and mouth, found by position on the joined marks
@@ -1077,7 +1268,8 @@ export function checkSvg(text, { kind = "face" } = {}) {
     if (pr.gap < need - EPS) {
       const shown = f2(pr.gap) === f2(need) ? pr.gap.toFixed(3) : num(pr.gap);
       const at = pr.at ? `, closest near (${num(pr.at[0])}, ${num(pr.at[1])})` : "";
-      const how = pr.gap <= -(halfInk(pr.A, CHECK_WEIGHT) + halfInk(pr.B, CHECK_WEIGHT)) + EPS ? "touch" : pr.gap <= 0 ? "touch at the 2.4 check weight" : `are ${shown} apart at the 2.4 check weight`;
+      // "touch" when the inks already meet (or overlap) as drawn, at the master weight
+      const how = pr.master <= EPS ? "touch" : pr.gap <= 0 ? "touch at the 2.4 check weight" : `are ${shown} apart at the 2.4 check weight`;
       const rule = kind === "group" ? "a group icon's marks need" : "marks need";
       err(null, `${named(pr.A)} and ${named(pr.B)} ${how}; ${rule} ${num(need)} (${num(need - Math.max(pr.gap, -CHECK_WEIGHT))} more)${at}`);
     }
@@ -1127,7 +1319,9 @@ export function checkSvg(text, { kind = "face" } = {}) {
   }
 
   const ink = unionBox(marks.map((m) => grow(m.box, halfInk(m, CHECK_WEIGHT))));
-  result.stats = { marks: marks.length, closest: closest ? closest.gap : null, need, ink };
+  // closest: every pair of separate marks, overlapping ones included (they are refused above);
+  // joined: the tongues, which are one mark with their smile and are named in the report instead
+  result.stats = { marks: marks.length, closest: closest ? closest.gap : null, need, ink, joined: joins.length };
   return result;
 }
 
@@ -1260,7 +1454,8 @@ export function formatReport({ results, unexpected }) {
     if (r.status === "ok") {
       const s = c.stats;
       const space = s.closest === null ? "" : `, closest ${num(s.closest)} apart at 2.4 (needs ${num(s.need)})`;
-      out.push(`  ok        ${r.file.padEnd(pad)}  ${s.marks} marks${space}, ink x ${num(s.ink[0])}–${num(s.ink[2])} y ${num(s.ink[1])}–${num(s.ink[3])}`);
+      const joined = s.joined ? ` (${s.joined === 1 ? "a tongue" : `${s.joined} tongues`} joined to the smile)` : "";
+      out.push(`  ok        ${r.file.padEnd(pad)}  ${s.marks} marks${joined}${space}, ink x ${num(s.ink[0])}–${num(s.ink[2])} y ${num(s.ink[1])}–${num(s.ink[3])}`);
     } else {
       out.push(`  REJECTED  ${r.file.padEnd(pad)}  ${c.errors.length} error${c.errors.length === 1 ? "" : "s"}; left out, the app keeps its fallback`);
     }

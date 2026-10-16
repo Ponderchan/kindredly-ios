@@ -5,17 +5,20 @@
    It checks, in order: the names read from moods.ts (4 group icons + 30 faces, in the owner's
    groups); the committed src/data/mood-line-art.ts is what the importer writes today; the four
    reference group icons in design/moods-line/_reference pass with no error and no warning, and
-   the template passes as the Calm group icon once its guides are stripped; the clear-space metric
-   reproduces the spec's and the critic's measurements; the tolerance the critic asked for
-   (Figma's and Illustrator's own exports, inherited paint, keywords, CMYK black, editor
-   attributes, Figma's frame clip); every refusal, each naming the element; the mark count, the
-   live area and the clear space, group and face; joined marks; the warnings that stay warnings;
-   shapes to path data; and the whole set: a partial delivery, a misspelled file, a rejected file
-   and two icons drawn alike. */
+   the template passes as the Calm group icon once its guides are stripped — found by their name
+   (id, data-name, inkscape:label) or, exported with the ids SPEC.html's settings drop, by what
+   they hold, grouped or loose; the clear-space metric reproduces the spec's and the critic's
+   measurements; the tolerance the critic asked for (Figma's, Illustrator's and Inkscape's own
+   exports, inherited paint, keywords, CMYK black, editor attributes and style properties,
+   Figma's frame clip); every refusal, each naming the element; the mark count, the live area and
+   the clear space, group and face; the one joined mark (a face's tongue under its smile) and
+   every other overlap refused as touching; the warnings that stay warnings; shapes to path data;
+   and the whole set: a partial delivery, a misspelled file, a rejected file and two icons drawn
+   alike. */
 
 import { readFileSync } from "node:fs";
 import { parsePath, toArtPath } from "./art-path.mjs";
-import { CLEAR, DIR, GRID, MOODS, OUT, checkSvg, classifyPaint, flatten, importSet, readFolder, readMoods } from "./import-mood-art.mjs";
+import { CLEAR, DIR, GRID, MOODS, OUT, checkSvg, classifyPaint, flatten, formatReport, importSet, readFolder, readMoods } from "./import-mood-art.mjs";
 
 let fails = 0;
 const ok = (name, cond) => {
@@ -96,8 +99,33 @@ ok("the spec's first happy geometry (smile at 14.5) measures 1.32 and fails a gr
   return near(r.stats?.closest, 1.32) && refuses(r, /a group icon's marks need 1\.5 \(0\.18 more\)/);
 })());
 {
-  const t = group(readFileSync(new URL("_template-24.svg", DIR), "utf8"));
+  const TEMPLATE = readFileSync(new URL("_template-24.svg", DIR), "utf8");
+  const t = group(TEMPLATE);
   ok("the template passes as the Calm group icon, its guides stripped", clean(t) && t.notes.some((n) => /stripped <g id="guides">/.test(n.text)) && t.shapes.length === 3);
+  // the export settings SPEC.html recommends drop every id (Figma: Include id attribute off;
+  // Illustrator: Object IDs = Minimal), so the guides are found by what they hold
+  const bare = TEMPLATE.replace(/\s(?:id|data-name)="[^"]*"/g, "");
+  const nb = group(bare);
+  ok("the template with every id removed: its guides found by what they hold, stripped with one warning", (() => {
+    const hit = !/\sid="/.test(bare) && nb.errors.length === 0 && nb.warnings.length === 1 && /the template's guides layer was exported \(a <g> of 12 elements: the preview ground, hairlines and tints\); stripped \(delete the guides group before export\)/.test(nb.warnings[0].text) && nb.shapes.length === 3;
+    if (!hit) for (const m of [...nb.errors, ...nb.warnings]) console.log(`     got: ${m.line ?? ""} ${m.text}`);
+    return hit;
+  })());
+  // the element, not the template's comment that names it
+  const GUIDES_TAG = /^(\s*)<g id="guides">/m;
+  const named = (from, to) => group(TEMPLATE.replace(GUIDES_TAG, `$1${to}`)).notes.some((n) => from.test(n.text));
+  ok('Illustrator\'s id="guides-2" data-name="guides": the name is read from either', named(/stripped <g id="guides-2">/, '<g id="guides-2" data-name="guides">') && named(/stripped <g data-name="guides">/, '<g id="Layer_3" data-name="guides">'));
+  ok('Inkscape\'s inkscape:label="Guides" (its id is g12)', named(/stripped <g inkscape:label="Guides">/, '<g id="g12" inkscape:label="Guides">'));
+  const inner = /^\s*<g id="guides">([\s\S]*?)<\/g>/m.exec(TEMPLATE)[1];
+  const loose = group(svg(inner + DOTS + SMILE));
+  ok("the guides ungrouped (a run of loose elements, the ground first): stripped with one warning", (() => {
+    const hit = loose.errors.length === 0 && loose.warnings.length === 1 && /guides layer was exported \(12 elements on lines \d+–\d+, not in a group/.test(loose.warnings[0].text) && loose.shapes.length === 3;
+    if (!hit) for (const m of [...loose.errors, ...loose.warnings]) console.log(`     got: ${m.line ?? ""} ${m.text}`);
+    return hit;
+  })());
+  const mixed = group(svg(`<g><path d="M12 0V24" fill="none" stroke="#3A34D6" stroke-width="0.04"/>${DOTS + SMILE}</g>`));
+  ok("a <g> that holds a mark beside a hairline is not guides: everything in it is checked", refuses(mixed, /stroke-width 0\.04; every stroke is 2/) && !mixed.warnings.some((w) => /guides layer/.test(w.text)));
+  ok("Figma's frame fill alone (a white board, no hairlines) is still refused as a background", refuses(group(svg(`<rect width="24" height="24" fill="#FFFFFF"/><g>${DOTS + SMILE}</g>`)), /a background over the whole artboard/));
 }
 
 /* ── the metric against the critic's measurements ── */
@@ -151,6 +179,23 @@ ok("paint inherited from a <g> (and style=\"\" declarations) is resolved", (() =
   return clean(r) && r.shapes.every((s) => s.f === "none" && s.s === "#000000");
 })());
 ok("ids, data-*, inkscape:/sodipodi: attributes, fill-rule and the miter limit are ignored", clean(group(svg(`<g id="art" data-name="Art" inkscape:label="x">` + C(8.5, 10.5, 1.5, ' id="eye-l" fill-rule="evenodd"') + C(15.5, 10.5, 1.5) + S("M8 14.75c1.2 1.4 2.6 2 4 2s2.8-.6 4-2", ' stroke-miterlimit="10"') + "</g>"))));
+{
+  // Inkscape writes style="" on every shape, with its own and no-op properties in it
+  const INKSCAPE = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="24" height="24" viewBox="0 0 24 24" version="1.1" id="svg1" inkscape:version="1.3.2 (091e20e, 2023-11-25)" sodipodi:docname="mood-group-calm.svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview id="namedview1" pagecolor="#ffffff" bordercolor="#000000" inkscape:document-units="px"/>
+  <defs id="defs1"/>
+  <g inkscape:label="Layer 1" inkscape:groupmode="layer" id="layer1">
+    <circle style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2;stroke-dasharray:none;font-variation-settings:normal;stop-color:#000000;stop-opacity:1;-inkscape-stroke:none;paint-order:normal" id="path1" cx="8.5" cy="10.5" r="1.5"/>
+    <circle style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;font-family:sans-serif;-inkscape-font-specification:sans-serif" id="path2" cx="15.5" cy="10.5" r="1.5"/>
+    <path style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none;paint-order:normal;font-variation-settings:normal" d="M 8,14.75 C 9.2,16.15 10.6,16.75 12,16.75 13.4,16.75 14.8,16.15 16,14.75" id="path3" sodipodi:nodetypes="csc" inkscape:connector-curvature="0"/>
+  </g>
+</svg>`;
+  const r = group(INKSCAPE);
+  ok("Inkscape (1.x and 0.92 styles): -inkscape-stroke, font-variation-settings, stop-color, solid-color, overflow, enable-background… ignored", clean(r) && r.shapes.length === 3 && r.shapes[2].s === "#000000");
+  if (!clean(r)) for (const m of [...r.errors, ...r.warnings]) console.log(`     got: ${m.line ?? ""} ${m.text}`);
+  ok("a style property that does mean something is still read (Inkscape's stroke-dasharray:1,1)", refuses(group(INKSCAPE.replace("stroke-dasharray:none;stroke-dashoffset", "stroke-dasharray:1,1;stroke-dashoffset")), /a dashed stroke \(stroke-dasharray 1,1\)/));
+}
 ok("an editor's own elements (Inkscape's sodipodi:namedview) are ignored", (() => {
   const r = group(svg(`<sodipodi:namedview id="base" pagecolor="#ffffff"/>` + DOTS + SMILE, `xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" viewBox="0 0 24 24"`));
   return clean(r) && r.notes.some((n) => /ignored <sodipodi:namedview>/.test(n.text));
@@ -217,16 +262,45 @@ ok("a face with 5 marks (two eyes, a mouth, two tears) is fine", face(svg(S("M6.
 refusal("ink past the live area at the 2.4 check weight", svg(DOTS + S("M3 15.5h18")), /<path d="M3 15\.5h18"> reaches x 1\.8 at the 2\.4 check weight: 0\.2 past the live area \(2–22\)/);
 ok("a stroke centred 3.2 from the edge just fits at 2.4 (2.0 exactly)", group(svg(DOTS + S("M3.2 15.5h17.6"))).errors.every((e) => !/live area/.test(e.text)));
 refusal("two marks too close, saying how much more space they need and where", svg(C(8.5, 10.5, 1.5) + C(15.5, 10.5, 1.5) + S("M8 13.5h8")), /\(left eye\) and .*\(mouth\) are 0\.3 apart at the 2\.4 check weight; a group icon's marks need 1\.5 \(1\.2 more\), closest near \(8\.5, 12\.15\)/);
-refusal("marks that touch", svg(C(8.5, 10.5, 1.5) + C(15.5, 10.5, 1.5) + S("M8 12.75h8")), /touch at the 2\.4 check weight/);
+refusal("marks whose inks overlap as drawn (touch)", svg(C(8.5, 10.5, 1.5) + C(15.5, 10.5, 1.5) + S("M8 12.75h8")), /\(left eye\) and .* touch; a group icon's marks need 1\.5/);
+refusal("marks apart as drawn that touch at the 2.4 check weight", svg(C(8.5, 10.5, 1.5) + C(15.5, 10.5, 1.5) + S("M8 13.1h8")), /touch at the 2\.4 check weight; a group icon's marks need 1\.5 \(1\.6 more\)/);
 
 /* ── joined marks ── */
 
 {
+  // overlap is allowed only inside one mark, the tongue joined to its smile; separate marks never
+  // touch, however deep they overlap (they used to be joined once they overlapped by 0.5)
   const TONGUE = S("M7.5 14.5c1.5 2.2 3 3 4.5 3s3-.8 4.5-3") + F("M12 16.8h2.6v1.4a1.3 1.3 0 0 1-2.6 0z");
-  const r = face(svg(S("M6.25 11c.9-1.6 2.6-1.6 3.5 0") + C(15.5, 10.5, 1.5) + TONGUE));
-  ok("a tongue under its smile is one joined mark: not measured against it, and noted", r.errors.length === 0 && r.notes.some((n) => /joins .* as one mark/.test(n.text)));
+  const PLAYFUL = svg(S("M6.25 11c.9-1.6 2.6-1.6 3.5 0") + C(15.5, 10.5, 1.5) + TONGUE);
+  const r = face(PLAYFUL);
+  ok("playful's tongue under its smile is one joined mark: not measured against it, and noted", r.errors.length === 0 && r.stats.joined === 1 && r.notes.some((n) => /joins .* as one mark \(a tongue under its smile\)/.test(n.text)));
+  ok("the closest space is still measured between the separate marks (playful 1.32)", near(r.stats.closest, 1.32));
+  {
+    const set = importSet(new Map([["mood-playful.svg", PLAYFUL]]), moods);
+    ok("the report names the joined tongue on the ok line", /ok\s+mood-playful\.svg\s+4 marks \(a tongue joined to the smile\), closest 1\.32 apart at 2\.4 \(needs 1\.25\)/.test(formatReport(set)));
+  }
+  const unjoined = (name, r, re) => {
+    const hit = refuses(r, re) && !r.notes.some((n) => /joins/.test(n.text));
+    ok(name, hit);
+    if (!hit) for (const m of [...r.errors, ...r.notes]) console.log(`     got: ${m.line ?? ""} ${m.text}`);
+  };
+  const DASHES = S("M6.25 10.5h3.5") + S("M14.25 10.5h3.5");
+  const crossing = group(svg(DASHES + S("M8 11.5c1.2 1.4 2.6 2 4 2s2.8-.6 4-2")));
+  unjoined("a group icon whose smile crosses both dash eyes: refused as touching, never joined", crossing, /\(left eye\) and .* touch; a group icon's marks need 1\.5/);
+  ok("  …both eyes are named, and the closest space can't read 2.1 for marks that overlap", crossing.errors.filter((e) => /touch;/.test(e.text)).length === 2 && crossing.stats.closest < 0);
+  unjoined("a face whose two eye dashes overlap into one bar", face(svg(S("M7 10.5h5") + S("M11.5 10.5h5.5") + S("M9.5 15.5h5"))), /\(left eye\) and .*\(right eye\) touch; marks need 1\.25/);
+  unjoined("a face whose eye dots sit on the mouth's ends", face(svg(DOTS + S("M8.5 11.5c1.2 1.4 2.3 2 3.5 2s2.3-.6 3.5-2"))), /<circle cx=8\.5 cy=10\.5 r=1\.5> \(left eye\) and .* touch; marks need 1\.25/);
+  const FROWN = S("M8 17c1.2-1.4 2.6-2 4-2s2.8.6 4 2");
+  const TEAR = (x, y) => F(`M${x} ${y}c.6.9 1 1.5 1 2a1 1 0 0 1-2 0c0-.5.4-1.1 1-2z`);
+  unjoined("a tear that touches the frown is refused", face(svg(DOTS + FROWN + TEAR(17.5, 13.6))), /\(mouth\) and .*\(accent\) touch at the 2\.4 check weight/);
+  unjoined("…and so is the same tear pushed further into the frown (it used to pass as joined)", face(svg(DOTS + FROWN + TEAR(16.5, 14.6))), /\(mouth\) and .* touch; marks need 1\.25/);
+  unjoined("…and a drop inside the frown's span but above its line", face(svg(DOTS + FROWN + TEAR(14.5, 14.2))), /touch; marks need 1\.25/);
+  unjoined("a group icon never joins, not even a tongue under its smile", group(svg(C(8.5, 10.5, 1.5) + TONGUE)), /touch; a group icon's marks need 1\.5/);
+  unjoined("two strokes that overlap deeply (a dash laid on the mouth) are touching, not joined", face(svg(DOTS + S("M8 15.5h8") + S("M11 16.25h3"))), /touch; marks need 1\.25/);
   const graze = face(svg(DOTS + S("M8 15.5h8") + S("M12 17.3h2")));
-  ok("two strokes that only graze (overlap under 0.5) are too close, not joined", refuses(graze, /touch/) && !graze.notes.some((n) => /joins/.test(n.text)));
+  unjoined("two strokes that only graze are touching too", graze, /touch/);
+  const tongueGraze = face(svg(S("M6.25 11c.9-1.6 2.6-1.6 3.5 0") + C(15.5, 10.5, 1.5) + S("M7.5 14.5c1.5 2.2 3 3 4.5 3s3-.8 4.5-3") + F("M12 18.25h2.6v1.2a1.3 1.3 0 0 1-2.6 0z")));
+  unjoined("a tongue that only grazes its smile (overlap 0.25, under 0.5) is not joined but touching", tongueGraze, /\(mouth\) and .* touch; marks need 1\.25/);
 }
 
 /* ── warnings stay warnings ── */
