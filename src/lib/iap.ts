@@ -118,14 +118,28 @@ export async function iapPurchase(
   }
 }
 
-export async function iapRestore(): Promise<boolean> {
-  if (!IAP_READY) return false;
+/** What a restore came back with: First Class found on this Apple ID ("restored"), the App
+    Store answered and found nothing ("nothing"), no answer (offline, a StoreKit error:
+    "failed"), or purchases can't be reached by this build at all (no RevenueCat key or no
+    native module: "unavailable"). Settings tells the last two apart from "nothing": telling
+    someone who paid that nothing was found is the wrong sentence. */
+export type RestoreOutcome = "restored" | "nothing" | "failed" | "unavailable";
+
+export async function iapRestoreOutcome(): Promise<RestoreOutcome> {
+  if (!IAP_READY) return "unavailable";
   const P = load();
-  if (!P) return false;
+  if (!P) return "unavailable";
   try {
     const info = await P.restorePurchases();
-    return succeeded(info);
-  } catch {
-    return false;
+    return succeeded(info) ? "restored" : "nothing";
+  } catch (e) {
+    console.warn("[iap] restore:", e);
+    return "failed";
   }
+}
+
+/** true when First Class came back (the paywall's restore). See iapRestoreOutcome for why a
+    failure is not the same as nothing found. */
+export async function iapRestore(): Promise<boolean> {
+  return (await iapRestoreOutcome()) === "restored";
 }
