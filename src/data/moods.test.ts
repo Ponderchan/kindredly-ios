@@ -128,8 +128,25 @@ const NONE: (string | null | undefined)[] = [undefined, null, "", "zzz", "group-
   ok("nothing, junk and inherited keys: no name", NONE.every((id) => Moods.moodLabel(id) === ""));
   setLang("de");
   eq("a face in the reader's language", [Moods.moodLabel("sleepy"), Moods.moodLabel("wistful")], ["Schläfrig", "Schläfrig"]);
-  eq("a group alone goes through t() (English until step 6 writes the others)", Moods.moodLabel("group-low"), "Low");
+  eq("a group alone goes through t() (this file's stub i18n answers in English)", Moods.moodLabel("group-low"), "Low");
   setLang("en");
+}
+
+/* ── gendered names (es, pt, fr, it agree with the writer's pronoun) ─── */
+{
+  setLang("es");
+  Moods.setMoodPronoun("she");
+  eq("she: the feminine form", Moods.moodName("in-love"), "Enamorada");
+  Moods.setMoodPronoun("he");
+  eq("he: the masculine form", Moods.moodName("in-love"), "Enamorado");
+  Moods.setMoodPronoun("they");
+  eq("they / unset: the neutral wording", Moods.moodName("in-love"), "Con mariposas");
+  eq("a name with one form is the same for everyone", Moods.moodName("content"), "A gusto");
+  Moods.setMoodPronoun("she");
+  eq("languages without gender ignore the pronoun", (setLang("de"), Moods.moodName("in-love")), "Verliebt");
+  Moods.setMoodPronoun("they");
+  setLang("en");
+  eq("English has one name for everyone", Moods.moodName("in-love"), "In love");
 }
 
 /* ── moodTone ─────────────────────────────────────────────────────────── */

@@ -1,4 +1,5 @@
 import { getLang, t } from "../lib/i18n";
+import type { PronounId } from "../lib/pronouns";
 // the four group names (mood.group.*) moodLabel says
 import "./strings-step5-notes";
 /* The Kindredly moods — 30 icons designed as colored shapes-with-faces
@@ -160,44 +161,62 @@ export const getMood = (id?: string | null): Mood => {
   return (alias && FACES[alias]) || FACES.calm;
 };
 
-/* localized display names — en is the mood's own `n`; es/pt/id here.
-   The web backend keeps its own copy of `n`; this is display-only. */
-const MOOD_LOC: Partial<Record<FaceId, { es: string; pt: string; id: string; fr: string; de: string; it: string; ja: string; ko: string }>> = {
-  "calm": { es: "Tranquilo", pt: "Calmo", id: "Tenang", fr: "Calme", de: "Ruhig", it: "Calmo", ja: "おだやか", ko: "차분함" },
-  "numb": { es: "Insensible", pt: "Entorpecido", id: "Mati rasa", fr: "Engourdi", de: "Taub", it: "Intorpidito", ja: "無感覚", ko: "무감각" },
-  "content": { es: "A gusto", pt: "Contente", id: "Puas", fr: "Serein", de: "Zufrieden", it: "Contento", ja: "満ち足りた", ko: "만족" },
-  "in-love": { es: "Enamorado", pt: "Apaixonado", id: "Jatuh cinta", fr: "Amoureux", de: "Verliebt", it: "Innamorato", ja: "恋してる", ko: "사랑에 빠짐" },
-  "surprised": { es: "Sorprendido", pt: "Surpreso", id: "Terkejut", fr: "Surpris", de: "Überrascht", it: "Sorpreso", ja: "びっくり", ko: "놀람" },
-  "shocked": { es: "Impactado", pt: "Chocado", id: "Kaget", fr: "Choqué", de: "Schockiert", it: "Scioccato", ja: "ショック", ko: "충격" },
-  "frustrated": { es: "Frustrado", pt: "Frustrado", id: "Frustrasi", fr: "Frustré", de: "Frustriert", it: "Frustrato", ja: "もどかしい", ko: "답답함" },
-  "stunned": { es: "Atónito", pt: "Atônito", id: "Tercengang", fr: "Sidéré", de: "Fassungslos", it: "Sbalordito", ja: "呆然", ko: "멍함" },
-  "cheerful": { es: "Alegre", pt: "Alegre", id: "Ceria", fr: "Joyeux", de: "Fröhlich", it: "Allegro", ja: "うきうき", ko: "명랑" },
-  "pleased": { es: "Satisfecho", pt: "Satisfeito", id: "Senang", fr: "Ravi", de: "Erfreut", it: "Soddisfatto", ja: "うれしい", ko: "흡족" },
-  "sleepy": { es: "Con sueño", pt: "Com sono", id: "Mengantuk", fr: "Somnolent", de: "Schläfrig", it: "Assonnato", ja: "ねむい", ko: "졸림" },
-  "irritable": { es: "Irritable", pt: "Irritado", id: "Mudah kesal", fr: "Irritable", de: "Gereizt", it: "Irritabile", ja: "イライラ", ko: "예민함" },
-  "amazed": { es: "Asombrado", pt: "Maravilhado", id: "Takjub", fr: "Émerveillé", de: "Verblüfft", it: "Meravigliato", ja: "感動", ko: "경이로움" },
-  "angry": { es: "Enojado", pt: "Bravo", id: "Marah", fr: "En colère", de: "Wütend", it: "Arrabbiato", ja: "怒り", ko: "화남" },
-  "okay": { es: "Bien", pt: "Ok", id: "Baik saja", fr: "Ça va", de: "Okay", it: "Okay", ja: "まあまあ", ko: "괜찮음" },
-  "heartbroken": { es: "Con el corazón roto", pt: "De coração partido", id: "Patah hati", fr: "Le cœur brisé", de: "Gebrochenes Herz", it: "Cuore spezzato", ja: "失恋", ko: "상심" },
-  "grumpy": { es: "Gruñón", pt: "Rabugento", id: "Uring-uringan", fr: "Grognon", de: "Mürrisch", it: "Scontroso", ja: "不機嫌", ko: "시무룩" },
-  "meh": { es: "Meh", pt: "Meh", id: "Biasa aja", fr: "Bof", de: "Meh", it: "Meh", ja: "びみょう", ko: "그저 그럼" },
-  "smug": { es: "Presumido", pt: "Convencido", id: "Puas diri", fr: "Fier de moi", de: "Selbstgefällig", it: "Compiaciuto", ja: "得意げ", ko: "우쭐" },
-  "nervous": { es: "Nervioso", pt: "Nervoso", id: "Gugup", fr: "Nerveux", de: "Nervös", it: "Nervoso", ja: "緊張", ko: "긴장" },
-  "drained": { es: "Agotado", pt: "Esgotado", id: "Terkuras", fr: "Vidé", de: "Ausgelaugt", it: "Svuotato", ja: "消耗", ko: "탈진" },
-  "crying": { es: "Llorando", pt: "Chorando", id: "Menangis", fr: "En larmes", de: "Weinend", it: "In lacrime", ja: "泣いてる", ko: "울고 있음" },
-  "shy": { es: "Tímido", pt: "Tímido", id: "Malu-malu", fr: "Timide", de: "Schüchtern", it: "Timido", ja: "照れ", ko: "수줍음" },
-  "mischievous": { es: "Travieso", pt: "Travesso", id: "Jahil", fr: "Espiègle", de: "Schelmisch", it: "Birichino", ja: "いたずら心", ko: "장난기" },
-  "unimpressed": { es: "Indiferente", pt: "Sem entusiasmo", id: "Datar", fr: "Pas impressionné", de: "Unbeeindruckt", it: "Indifferente", ja: "冷めてる", ko: "시큰둥" },
-  "delighted": { es: "Encantado", pt: "Encantado", id: "Girang", fr: "Enchanté", de: "Entzückt", it: "Felicissimo", ja: "大喜び", ko: "기쁨" },
-  "excited": { es: "Emocionado", pt: "Empolgado", id: "Bersemangat", fr: "Excité", de: "Aufgeregt", it: "Entusiasta", ja: "わくわく", ko: "신남" },
-  "mad": { es: "Furioso", pt: "Furioso", id: "Berang", fr: "Furieux", de: "Sauer", it: "Furioso", ja: "激怒", ko: "격분" },
-  "playful": { es: "Juguetón", pt: "Brincalhão", id: "Iseng", fr: "Joueur", de: "Verspielt", it: "Giocoso", ja: "遊び心", ko: "장난스러움" },
-  "over-it": { es: "Harto", pt: "De saco cheio", id: "Muak", fr: "Lassé", de: "Fertig damit", it: "Stufo", ja: "もううんざり", ko: "질림" },
+/* localized display names — en is the mood's own `n`; the other eight here.
+   The web backend keeps its own copy of `n`; this is display-only.
+
+   A name that agrees in gender (es, pt, fr, it: "Enamorado" / "Enamorada")
+   is written { m, f, n }: m for a writer whose pronoun is he, f for she, n
+   for they or unset — a neutral wording where the language has a natural
+   one, else the grammatical default. Notes are private, so the only person
+   who ever reads a page's mood name is the one who wrote it, and the app
+   knows their pronoun (lib/pronouns; the root layout hands it over with
+   setMoodPronoun). A plain string is the same for everyone. */
+type MoodLocName = string | { m: string; f: string; n: string };
+const MOOD_LOC: Partial<Record<FaceId, { es: MoodLocName; pt: MoodLocName; id: string; fr: MoodLocName; de: string; it: MoodLocName; ja: string; ko: string }>> = {
+  "calm": { es: { m: "Tranquilo", f: "Tranquila", n: "En paz" }, pt: "Em paz", id: "Damai", fr: "Zen", de: "Entspannt", it: { m: "Tranquillo", f: "Tranquilla", n: "In pace" }, ja: "のんびり", ko: "차분함" },
+  "numb": { es: "En automático", pt: "No automático", id: "Mati rasa", fr: { m: "Éteint", f: "Éteinte", n: "Éteint" }, de: "Leer", it: { m: "Spento", f: "Spenta", n: "Spento" }, ja: "からっぽ", ko: "멍함" },
+  "content": { es: "A gusto", pt: "Contente", id: "Puas", fr: { m: "Serein", f: "Sereine", n: "En paix" }, de: "Zufrieden", it: { m: "Contento", f: "Contenta", n: "Contento" }, ja: "満たされた", ko: "만족" },
+  "in-love": { es: { m: "Enamorado", f: "Enamorada", n: "Con mariposas" }, pt: { m: "Apaixonado", f: "Apaixonada", n: "Amando" }, id: "Jatuh cinta", fr: { m: "Amoureux", f: "Amoureuse", n: "Amoureux" }, de: "Verliebt", it: { m: "Innamorato", f: "Innamorata", n: "Innamorato" }, ja: "恋してる", ko: "설렘" },
+  "surprised": { es: { m: "Sorprendido", f: "Sorprendida", n: "Sorprendido" }, pt: { m: "Surpreso", f: "Surpresa", n: "Surpresa boa" }, id: "Terkejut", fr: { m: "Surpris", f: "Surprise", n: "Surpris" }, de: "Überrascht", it: { m: "Sorpreso", f: "Sorpresa", n: "Sorpreso" }, ja: "びっくり", ko: "놀람" },
+  "shocked": { es: "En shock", pt: "Em choque", id: "Syok", fr: "Sous le choc", de: "Schockiert", it: "Sotto shock", ja: "ショック", ko: "충격" },
+  "frustrated": { es: { m: "Frustrado", f: "Frustrada", n: "Frustrado" }, pt: { m: "Frustrado", f: "Frustrada", n: "Frustração" }, id: "Frustrasi", fr: { m: "Frustré", f: "Frustrée", n: "Frustré" }, de: "Frustriert", it: { m: "Frustrato", f: "Frustrata", n: "Frustrato" }, ja: "くやしい", ko: "답답함" },
+  "stunned": { es: "Sin palabras", pt: "Sem reação", id: "Linglung", fr: { m: "Déboussolé", f: "Déboussolée", n: "Déboussolé" }, de: "Fassungslos", it: { m: "Spiazzato", f: "Spiazzata", n: "Spiazzato" }, ja: "呆然", ko: "황당함" },
+  "cheerful": { es: "Feliz", pt: "Feliz", id: "Ceria", fr: "De bonne humeur", de: "Fröhlich", it: { m: "Allegro", f: "Allegra", n: "Di buonumore" }, ja: "たのしい", ko: "즐거움" },
+  "pleased": { es: { m: "Satisfecho", f: "Satisfecha", n: "Satisfecho" }, pt: "Leve", id: "Nyaman", fr: { m: "Content", f: "Contente", n: "Content" }, de: "Wohlig", it: { m: "Soddisfatto", f: "Soddisfatta", n: "Soddisfatto" }, ja: "ほっこり", ko: "흐뭇함" },
+  "sleepy": { es: "Con sueño", pt: "Com sono", id: "Mengantuk", fr: "J'ai sommeil", de: "Schläfrig", it: { m: "Assonnato", f: "Assonnata", n: "Assonnato" }, ja: "ねむい", ko: "졸림" },
+  "irritable": { es: "Irritable", pt: "Sem paciência", id: "Kesal", fr: "Irritable", de: "Gereizt", it: "Irritabile", ja: "イライラ", ko: "예민함" },
+  "amazed": { es: { m: "Asombrado", f: "Asombrada", n: "Asombrado" }, pt: { m: "Maravilhado", f: "Maravilhada", n: "De queixo caído" }, id: "Takjub", fr: { m: "Émerveillé", f: "Émerveillée", n: "Émerveillé" }, de: "Fasziniert", it: { m: "Incantato", f: "Incantata", n: "Incantato" }, ja: "感動", ko: "감탄" },
+  "angry": { es: { m: "Enojado", f: "Enojada", n: "Con rabia" }, pt: "Com raiva", id: "Marah", fr: "En colère", de: "Wütend", it: { m: "Arrabbiato", f: "Arrabbiata", n: "Arrabbiato" }, ja: "怒ってる", ko: "화남" },
+  "okay": { es: "Bien", pt: "Ok", id: "Oke", fr: "Ça va", de: "Okay", it: "Okay", ja: "まあまあ", ko: "괜찮음" },
+  "heartbroken": { es: "Corazón roto", pt: "Na fossa", id: "Patah hati", fr: "Cœur brisé", de: "Todtraurig", it: "Col cuore spezzato", ja: "かなしい", ko: "속상함" },
+  "grumpy": { es: "De mal humor", pt: "De mau humor", id: "Cemberut", fr: "Grognon", de: "Mürrisch", it: "Col broncio", ja: "不機嫌", ko: "짜증남" },
+  "meh": { es: "Más o menos", pt: "Mais ou menos", id: "Biasa aja", fr: "Bof", de: "Geht so", it: "Così così", ja: "びみょう", ko: "그저 그럼" },
+  "smug": { es: { m: "Orgulloso", f: "Orgullosa", n: "Orgulloso" }, pt: "Me achando", id: "Bangga", fr: { m: "Fier de moi", f: "Fière de moi", n: "Fier de moi" }, de: "Stolz", it: "Gongolante", ja: "鼻高々", ko: "우쭐함" },
+  "nervous": { es: { m: "Nervioso", f: "Nerviosa", n: "Con nervios" }, pt: "Com ansiedade", id: "Gugup", fr: { m: "Nerveux", f: "Nerveuse", n: "Nerveux" }, de: "Nervös", it: "In ansia", ja: "緊張", ko: "긴장" },
+  "drained": { es: { m: "Agotado", f: "Agotada", n: "Sin energía" }, pt: "Sem energia", id: "Lemas", fr: { m: "Vidé", f: "Vidée", n: "Sans énergie" }, de: "Ausgelaugt", it: { m: "Sfinito", f: "Sfinita", n: "Senza forze" }, ja: "ぐったり", ko: "방전" },
+  "crying": { es: "Llorando", pt: "Chorando", id: "Menangis", fr: "En larmes", de: "In Tränen", it: "In lacrime", ja: "泣いてる", ko: "눈물" },
+  "shy": { es: { m: "Tímido", f: "Tímida", n: "Con vergüenza" }, pt: "Com vergonha", id: "Malu-malu", fr: "Timide", de: "Verlegen", it: { m: "Timido", f: "Timida", n: "Timido" }, ja: "照れてる", ko: "쑥스러움" },
+  "mischievous": { es: { m: "Travieso", f: "Traviesa", n: "Travieso" }, pt: "Aprontando", id: "Jahil", fr: "Espiègle", de: "Schelmisch", it: { m: "Birichino", f: "Birichina", n: "Birichino" }, ja: "企んでる", ko: "짓궂음" },
+  "unimpressed": { es: "Indiferente", pt: "Indiferente", id: "Sinis", fr: { m: "Blasé", f: "Blasée", n: "Blasé" }, de: "Gelangweilt", it: { m: "Annoiato", f: "Annoiata", n: "Annoiato" }, ja: "冷めてる", ko: "시큰둥함" },
+  "delighted": { es: "Radiante", pt: "Rindo à toa", id: "Girang", fr: "Aux anges", de: "Bester Laune", it: "Raggiante", ja: "うれしい", ko: "기쁨" },
+  "excited": { es: { m: "Emocionado", f: "Emocionada", n: "Emocionado" }, pt: { m: "Empolgado", f: "Empolgada", n: "Vibrando" }, id: "Bersemangat", fr: "Enthousiaste", de: "Begeistert", it: "Entusiasta", ja: "わくわく", ko: "신남" },
+  "mad": { es: { m: "Furioso", f: "Furiosa", n: "Echando chispas" }, pt: { m: "Furioso", f: "Furiosa", n: "Fora de mim" }, id: "Geram", fr: "Hors de moi", de: "Stinksauer", it: { m: "Furioso", f: "Furiosa", n: "Su tutte le furie" }, ja: "キレそう", ko: "분노" },
+  "playful": { es: "Bromista", pt: "Zoando", id: "Iseng", fr: { m: "Taquin", f: "Taquine", n: "Taquin" }, de: "Albern", it: { m: "Giocoso", f: "Giocosa", n: "In vena di scherzi" }, ja: "ノリノリ", ko: "장난스러움" },
+  "over-it": { es: { m: "Harto", f: "Harta", n: "Hasta la coronilla" }, pt: "De saco cheio", id: "Jenuh", fr: "Ras-le-bol", de: "Bedient", it: { m: "Stufo", f: "Stufa", n: "Stufo" }, ja: "うんざり", ko: "질림" },
 };
+/** whose pronoun the gendered names agree with: the reader's own (they until it is known) */
+let moodPronoun: PronounId = "they";
+export function setMoodPronoun(p: PronounId): void {
+  moodPronoun = p;
+}
+
 export const moodName = (id: FaceId): string => {
   const lang = getLang();
   if (lang === "en") return getMood(id).n;
-  return (MOOD_LOC[id] as any)?.[lang] || getMood(id).n;
+  const v = (MOOD_LOC[id] as Record<string, MoodLocName> | undefined)?.[lang];
+  if (!v) return getMood(id).n;
+  if (typeof v === "string") return v;
+  return (moodPronoun === "she" ? v.f : moodPronoun === "he" ? v.m : v.n) || v.m;
 };
 
 /* ── THE FOUR GROUPS (10a, owner 2026-10-15 / 2026-10-16) ─────────────

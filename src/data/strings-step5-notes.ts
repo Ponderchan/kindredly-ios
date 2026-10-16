@@ -131,7 +131,7 @@ strings(
     "jt.play": "Putar",
     "jt.pause": "Jeda",
     "mood.group.calm": "Tenang",
-    "mood.group.happy": "Gembira",
+    "mood.group.happy": "Senang",
     "mood.group.tired": "Lelah",
     "mood.group.low": "Kacau",
     "js.42": "semoga kamu masih ingat…",

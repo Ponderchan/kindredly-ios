@@ -20,6 +20,8 @@ import { ThemeProvider, useP, useTheme } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
 import { loadLang } from "../lib/i18n";
 import { startSurfaces } from "../lib/surfaces";
+import { isPronounId, readYourPronoun } from "../lib/pronouns";
+import { setMoodPronoun } from "../data/moods";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
@@ -166,6 +168,30 @@ function LocalLinesOnLaunch() {
   return null;
 }
 
+/* THE MOOD NAMES AGREE WITH THEIR WRITER (data/moods setMoodPronoun): in
+   Spanish, Portuguese, French and Italian a face's name takes the reader's
+   gender ("Enamorada"), and they / unset gets the neutral wording. The
+   pronoun is the account's (user_metadata.pronoun) before this phone's copy,
+   as Edit profile reads it; a change there lands here through the profile. */
+function MoodPronoun() {
+  const { profile } = useAuth();
+  const account = profile.pronoun;
+  useEffect(() => {
+    let alive = true;
+    if (isPronounId(account)) {
+      setMoodPronoun(account);
+      return;
+    }
+    void readYourPronoun().then((device) => {
+      if (alive) setMoodPronoun(device ?? "they");
+    });
+    return () => {
+      alive = false;
+    };
+  }, [account]);
+  return null;
+}
+
 // Simulator-only expo-notifications keychain noise. The toast it raises sits
 // over the bottom controls and eats taps — silence it in dev.
 LogBox.ignoreLogs(["Error reading persisted server registration info"]);
@@ -258,6 +284,7 @@ export default function RootLayout() {
             <WrenSkinProvider>
             <WrenStageProvider>
             <FingerprintOnLaunch />
+            <MoodPronoun />
             <LocalLinesOnLaunch />
             <StallProbe />
               <BirdSnapshots />
