@@ -176,10 +176,12 @@ export function OfficialMark({ size = 16, ground }: { size?: number; ground?: st
    the preview is wo.row.sub.
 
    On its own (the empty Kindreds page) it is a card: sf with the soft
-   shadow, which stays fixed. */
+   shadow, which stays fixed. On Midnight the shadow is navy on a navy page
+   and sf is 1.1:1 on bg, so the card also wears aura.tsx's card edge (1pt
+   line) — it is React Native even when the Swift Kindreds surface is on. */
 export function WrenDeskRow({ inList = false, onUnread, hairline = false }: { inList?: boolean; onUnread?: (n: number) => void; hairline?: boolean } = {}) {
   const router = useRouter();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const row = useRowStyle();
   const { unread, loaded, lastLine, lastAt } = useWrenDesk();
 
@@ -230,7 +232,7 @@ export function WrenDeskRow({ inList = false, onUnread, hairline = false }: { in
       onPress={open}
       accessibilityRole="button"
       accessibilityLabel={[OFFICIAL_NAME, t("wo.tag"), unread ? t("wo.new") : null, ago, line].filter(Boolean).join(", ")}
-      style={({ pressed }) => [{ backgroundColor: tk.sf, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }]}
+      style={({ pressed }) => [{ backgroundColor: tk.sf, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 13, marginBottom: 2, opacity: pressed ? 0.85 : 1 }, cardShadow, { shadowOpacity: 0.05 }, dark ? { borderWidth: 1, borderColor: tk.line } : null]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <OfficialBird size={44} ground={tk.sf} />

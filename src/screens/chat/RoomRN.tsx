@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView, Text, View
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { useTheme } from "../../lib/theme";
+import { scrimColor, useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { dLong, dShort } from "../../lib/format";
 import { archNameThird } from "../../lib/aura-copy";
@@ -321,14 +321,18 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
 
 /* THE SHELF — every song either of you left, in order. A song in a scroll is gone by tomorrow;
    gathered, the same messages become what this product is for: accumulated evidence that you are
-   alike, curated by nobody. On the theme, under the 10a dim. */
+   alike, curated by nobody. On the theme, under the 10a dim (lib/theme scrimColor: black on
+   Midnight). On Midnight the shelf is sf with LeaveSheet's ln rule on top, and the bird's line
+   steps down to soft2 (Midnight's soft is sf), so neither melts into what is under it; the
+   light themes keep the page-coloured shelf and the soft card. ConversationNative's SongShelf
+   is the same sheet over the Swift room. */
 function SongShelfRN({ open, onClose, songs, songSays, name }: { open: boolean; onClose: () => void; songs: SharedSong[]; songSays: { line: string; evidence: string } | null; name: string }) {
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.3)", justifyContent: "flex-end" }}>
+      <View style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3), justifyContent: "flex-end" }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} />
-        <View style={{ backgroundColor: tk.bg, maxHeight: "72%", paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+        <View style={{ backgroundColor: dark ? tk.sf : tk.bg, maxHeight: "72%", paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: dark ? 1 : 0, borderTopColor: tk.ln }}>
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 18, paddingBottom: 12 }}>
             <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.14, color: tk.ink }}>
               {t("rm.shelf.title", { name: name.toUpperCase() })}
@@ -338,7 +342,7 @@ function SongShelfRN({ open, onClose, songs, songSays, name }: { open: boolean; 
             </Pressable>
           </View>
           {!!songSays && (
-            <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: tk.soft, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
+            <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: dark ? tk.soft2 : tk.soft, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
               <WrenBird size={18} mood="curious" />
               <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: tk.ink }}>{t(songSays.line === "late" ? "rm.shelf.late" : "rm.shelf.both", { name })}</Text>
               <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 1, color: tk.mute }}>{songSays.evidence}</Text>

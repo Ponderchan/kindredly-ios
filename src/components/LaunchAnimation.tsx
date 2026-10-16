@@ -170,7 +170,8 @@ export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDo
      mode drew the wordmark at full opacity for a frame before the hatch).
      The status bar's text follows the piece's ground, not the theme's: the
      lavender keeps dark text when the saved pick turns out to be Midnight.
-     Mounted after the root's (app/_layout), so it wins while the piece is up */
+     The root sets no style (app/_layout leaves the bar to iOS), so this one
+     holds while the piece is up */
   return (
     <>
       <StatusBar style={inks.night ? "light" : "dark"} />

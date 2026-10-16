@@ -2,7 +2,8 @@ import { Modal, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { scrimColor, useP, useTheme } from "../lib/theme";
+import { dangerInk } from "../screens/settings/settings-model";
 import { t, useLang } from "../lib/i18n";
 import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
 
@@ -29,10 +30,14 @@ import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
    Its colours are the theme's. The sheet is a sheet, so it is sf (the same
    white as the page in Classic); the rules and the quiet outline are ln;
    the filled button is ind with its label in the page colour, as every
-   filled key in 10a is. Two things stay fixed: the postal red of the
-   destructive row (an object's colour, like the postmark, in every theme)
-   and the dim over the page behind — the 10a dim, the same one the mock
-   lays under its composer sheet (H:128).
+   filled key in 10a is. One thing stays fixed: the postal red of the
+   destructive row (an object's colour, like the postmark, in every theme).
+   The dim is lib/theme scrimColor: the 10a navy the mock lays under its
+   composer sheet (H:128) in the light themes, black on Midnight, where navy
+   lightens the page. On Midnight the destructive WORD
+   leaves the postal red for Settings' exits' red (settings-model dangerInk,
+   as ReportMenu's block does): the postal red is 4.2:1 on the dark sf, under
+   4.5 for an 11pt label. Its rule keeps the postal red.
 
    ABOVE THE FLOATING TAB BAR (10a). By default the sheet is an absolutely
    positioned View in its screen, and the tab bar the tabs layout draws
@@ -43,9 +48,6 @@ import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
    sheet raised inside the tabs; a pushed root route doesn't need it.
 
    The mono sizes follow the 10a rule (theme/post MONO: a title is 11). */
-
-/* the 10a dim (H:128): the ink at 30%, over the page behind */
-const DIM = "rgba(30,27,53,0.3)";
 
 export interface LeaveAction {
   label: string;
@@ -89,16 +91,16 @@ export function LeaveSheet({
 }) {
   useLang(); // repaint when the reader changes language
   const P = useP();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const insets = useSafeAreaInsets();
   if (!open) return null;
 
   const sheet = (
     <View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-        {/* ink at low opacity rather than a blur: the page behind stays
+        {/* a low-opacity dim rather than a blur: the page behind stays
             readable, which matters when the question is about that page */}
-        <Pressable onPress={onCancel} accessible={false} style={{ flex: 1, backgroundColor: DIM }} />
+        <Pressable onPress={onCancel} accessible={false} style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3) }} />
       </Animated.View>
 
       <Animated.View
@@ -150,7 +152,7 @@ export function LeaveSheet({
                   fontFamily: PF.monoSemi,
                   fontSize: MONO.title,
                   letterSpacing: 1.6,
-                  color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : P.post,
+                  color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : dark ? dangerInk(tk.ink, P.post) : P.post,
                 }}
               >
                 {a.label}

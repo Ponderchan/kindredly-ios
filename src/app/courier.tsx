@@ -1,10 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 /* the gesture library's scroll view: a drag that starts on her (the perch,
    components/CourierStage) blocks the page's scroll instead of racing it */
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { PF } from "../theme/post";
 import { useP } from "../lib/theme";
 import { PALETTE, daylight, type Daylight } from "../components/CourierCard";
@@ -30,6 +31,11 @@ import { getStageFloor, stageIndex, wrenStage } from "../lib/wren-style";
    that looked like navigation. A chevron means a door, so it is one: the
    card on Me opens this page — her status, her journey, the keepsakes she
    brought home, and her wardrobe — and the tab stays what it is. */
+
+/* the cover's height under the status-bar strip: WrenHome's COVER_H, which
+   it doesn't export (the day-off course is taller, but the page is held at
+   the top while it plays) */
+const COVER_H = 300;
 
 export default function CourierRoom() {
   useLang();
@@ -88,9 +94,35 @@ export default function CourierRoom() {
   const coverSky = PALETTE[playSky ?? daylight()];
   const equip = (a: WrenAccessory) => dress(a);
 
+  /* THE STATUS BAR READS HER SKY (step 7.1). The cover runs under the bar
+     with the hour's sky, not the theme's ground, so while it is there the
+     bar says which: light text on the night sky (16.6:1), dark on the three
+     day skies (13.2:1 or more) — in every theme. iOS 26 reads the ground and
+     would pick the same, but iOS 18 follows the window, and that gave dark
+     text on the night sky in the light themes and light text on the day sky
+     in Midnight. Once the cover has scrolled out from under the bar (its
+     bottom edge past the bar's text) the page names nothing, and the
+     default takes the band and the page (app/_layout). Only while this page
+     is focused: covered by a keepsake or the paywall's sheet, it would
+     still be mounted, and its style would go on overriding what the bar
+     reads there (the strip above the sheet names nothing; see
+     app/paywall). The scroll is read every frame but the page re-renders
+     only when the cover crosses the line. */
+  const focused = useIsFocused();
+  const [underSky, setUnderSky] = useState(true);
+  const underSkyRef = useRef(true);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const under = e.nativeEvent.contentOffset.y < COVER_H + insets.top / 2;
+    if (under === underSkyRef.current) return;
+    underSkyRef.current = under;
+    setUnderSky(under);
+  };
+  const barOnSky = (playSky ?? daylight()) === "night" ? "light" : "dark";
+
   return (
     <View style={{ flex: 1, backgroundColor: P.penWash }}>
-      <ScrollView ref={scrollRef} scrollEnabled={!playSky} keyboardShouldPersistTaps={playSky ? "always" : "handled"} contentContainerStyle={{ paddingBottom: 0 }} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never">
+      {focused && (underSky || !!playSky) && <StatusBar style={barOnSky} />}
+      <ScrollView ref={scrollRef} scrollEnabled={!playSky} keyboardShouldPersistTaps={playSky ? "always" : "handled"} contentContainerStyle={{ paddingBottom: 0 }} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never" onScroll={onScroll} scrollEventThrottle={16}>
         {/* the cover runs under the status bar; the header sits on it */}
         <View style={{ height: insets.top, backgroundColor: coverSky.sky[0] }} />
         {/* the header rides on the cover and scrolls away with it */}

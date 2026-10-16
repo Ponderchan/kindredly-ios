@@ -1,4 +1,5 @@
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Polygon, Stop } from "react-native-svg";
+import { useTheme } from "../lib/theme";
 import { Y } from "../theme/y2k";
 
 /* THE SHELL YOU PICK BEFORE YOU WRITE — and the one thing about her you get
@@ -74,12 +75,21 @@ export function EggBody({ shell: s, gid, children, strokeWidth = 2.4 }: { shell:
   );
 }
 
+/** The egg's shadow on the ground, as the ellipse's fill and opacity — here
+    and under the hatch. The shell is art and keeps its colours in every
+    theme; the shadow is the one part that has to answer the ground it falls
+    on. Y.ink at .1 is 1.23:1 on Classic's console, but over Midnight's lav2
+    it is 1.03:1 and the egg floats, so a dark theme casts black at .35
+    (1.18:1, about Classic's step). */
+export const eggShadow = (dark: boolean) => (dark ? { fill: "#000000", opacity: 0.35 } : { fill: Y.ink, opacity: 0.1 });
+
 /** the egg on its own, with a ground shadow — sized so the egg fills the box */
 export function EggShell({ variant = 0, size = 120, shadow = true }: { variant?: number; size?: number; shadow?: boolean }) {
   const s = EGG_SHELLS[variant] ?? EGG_SHELLS[0];
+  const { dark } = useTheme();
   return (
     <Svg width={size} height={size} viewBox="-110 -110 220 220">
-      {shadow && <Ellipse cx={0} cy={100} rx={62} ry={8} fill={Y.ink} opacity={0.1} />}
+      {shadow && <Ellipse cx={0} cy={100} rx={62} ry={8} {...eggShadow(dark)} />}
       <G transform="scale(0.98)">
         <EggBody shell={s} gid={`egg-${s.id}`} />
       </G>

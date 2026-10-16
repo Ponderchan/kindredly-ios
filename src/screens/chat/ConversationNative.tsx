@@ -11,7 +11,7 @@ import { RoomIntroduction } from "./RoomIntroduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { WrenBird } from "../../components/WrenBird";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { useTheme } from "../../lib/theme";
+import { scrimColor, useTheme } from "../../lib/theme";
 import { PF } from "../../theme/post";
 import { dLong, dShort, fmt } from "../../lib/format";
 import { archNameThird } from "../../lib/aura-copy";
@@ -343,14 +343,18 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   );
 }
 
-/* THE SHELF — every song either of you left, in order (room/[id].tsx), on the theme. */
+/* THE SHELF — every song either of you left, in order (room/[id].tsx), on the theme.
+   On Midnight it is drawn as a sheet rather than more page: under the black dim (lib/theme
+   scrimColor) it is sf with LeaveSheet's ln rule on top, and the bird's line inside steps
+   down to soft2 — Midnight's soft is sf, so a soft card would vanish into the sheet. The
+   light themes keep the page-coloured shelf and the soft card. */
 function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; onClose: () => void; songs: SharedSong[]; songSays: { line: string; evidence: string } | null; name: string }) {
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.3)", justifyContent: "flex-end" }}>
+      <View style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3), justifyContent: "flex-end" }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} />
-        <View style={{ backgroundColor: tk.bg, maxHeight: "72%", paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+        <View style={{ backgroundColor: dark ? tk.sf : tk.bg, maxHeight: "72%", paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: dark ? 1 : 0, borderTopColor: tk.ln }}>
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 18, paddingBottom: 12 }}>
             <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: tk.ink }}>
               {t("rm.shelf.title", { name: name.toUpperCase() })}
@@ -360,7 +364,7 @@ function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; on
             </Pressable>
           </View>
           {!!songSays && (
-            <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: tk.soft, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
+            <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: dark ? tk.soft2 : tk.soft, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
               <WrenBird size={18} mood="curious" />
               <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: tk.ink }}>{t(songSays.line === "late" ? "rm.shelf.late" : "rm.shelf.both", { name })}</Text>
               <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute }}>{songSays.evidence}</Text>

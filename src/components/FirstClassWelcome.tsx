@@ -12,7 +12,7 @@ import Animated, {
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { PF } from "../theme/post";
 import { THEMES } from "../theme/themes";
-import { useP, useTheme } from "../lib/theme";
+import { scrimColor, useP, useTheme } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
 
@@ -48,10 +48,17 @@ const kaChunk = () => {
    ground; on an envelope it would read as a different border. */
 const AIRMAIL_IND = THEMES.classic.ind;
 
-function AirmailEdge({ w, flip }: { w: number; flip?: boolean }) {
+/* `clip` ends the strip at the ticket's edge. The strip is drawn w (360)
+   wide, wider than the ticket on any phone under 416pt (the ticket is the
+   width less the 28pt gutters), so unclipped it runs past the right edge
+   onto the dim: about 23pt on a 393pt iPhone, 41pt on an SE. That happens in
+   the light themes too, a defect older than 7.1 that is left alone there
+   because the light themes must not change in this step (owner question).
+   On Midnight the ticket has a frame, so it is clipped now. */
+function AirmailEdge({ w, flip, clip }: { w: number; flip?: boolean; clip?: boolean }) {
   const P = useP();
   const bars = Math.ceil(w / 14) + 1;
-  return (
+  const strip = (
     <Svg width={w} height={9} style={flip ? { transform: [{ rotate: "180deg" }] } : undefined}>
       {Array.from({ length: bars }, (_, i) => (
         <Path
@@ -62,11 +69,12 @@ function AirmailEdge({ w, flip }: { w: number; flip?: boolean }) {
       ))}
     </Svg>
   );
+  return clip ? <View style={{ overflow: "hidden" }}>{strip}</View> : strip;
 }
 
 export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; onDone: () => void }) {
   const P = useP();
-  const T = useTheme().t;
+  const { t: T, dark } = useTheme();
   const card = useSharedValue(0);
   const mark = useSharedValue(0);
   const reduced = useReducedMotion();
@@ -104,11 +112,17 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
   /* the ticket is a card on the theme — its face is the card face (sf), so
      in Lavender it stays white over the lavender page — and its button is
      the solid ink one, labelled in the page colour. The dim behind it is a
-     fixed scrim, like every overlay in 10a: dark over any ground. */
+     fixed scrim, like every overlay in 10a: dark over any ground.
+     On Midnight the fixed scrim barely darkens the dark page, so it is black
+     (lib/theme scrimColor), and the ticket takes a 1.5 ln frame: sf on the
+     dimmed page is 1.2:1, and without one only the airmail strips showed,
+     the sides melting into the page. The strips are clipped to it
+     (AirmailEdge clip); the card itself doesn't clip, so the FIRST CLASS
+     mark can still come down from outside it. */
   return (
-    <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(17,17,19,0.55)", alignItems: "center", justifyContent: "center", paddingHorizontal: 28 }}>
-      <Animated.View style={[{ width: "100%", maxWidth: 360, backgroundColor: P.sheet }, cardStyle]}>
-        <AirmailEdge w={360} />
+    <View style={{ position: "absolute", inset: 0, backgroundColor: dark ? scrimColor(true, 0.55) : "rgba(17,17,19,0.55)", alignItems: "center", justifyContent: "center", paddingHorizontal: 28 }}>
+      <Animated.View style={[{ width: "100%", maxWidth: 360, backgroundColor: P.sheet }, dark && { borderWidth: 1.5, borderColor: T.ln }, cardStyle]}>
+        <AirmailEdge w={360} clip={dark} />
 
         <View style={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 26, alignItems: "center" }}>
           <WrenBird size={92} mood="delight" accessory="scarf" stage="wren" />
@@ -140,7 +154,7 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
           </Pressable>
         </View>
 
-        <AirmailEdge w={360} flip />
+        <AirmailEdge w={360} flip clip={dark} />
       </Animated.View>
     </View>
   );

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppState, InteractionManager, LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
@@ -244,21 +243,37 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
    line: it moves to tk.bg with its slice, and any that keeps another
    ground adds its own line here, the same way.
 
-   THE STATUS BAR FOLLOWS THE THEME (step 7.1). Nothing drew one, so the
-   bar took the plist's default, which follows the window: dark text in
-   the light themes. Midnight's ground needs light text, so it is said
-   here; the light themes say "dark", the text the default already gave
-   them. It is mounted before the stack, so it sits at the bottom of React
-   Native's status-bar stack: a page on a fixed light ground (the launch's
-   lavender, a daylight sky) mounts its own <StatusBar style="dark" /> and
-   wins while it is up. */
+   THE STATUS BAR IS LEFT TO iOS (step 7.1). No style is pinned here: the
+   plist's UIStatusBarStyleDefault picks the text. On iOS 18 the default
+   follows the window's light or dark, which lib/theme holds on the theme's
+   side in every case (Match system on: Midnight exactly when the phone is
+   dark), so taking the pin away changes nothing there. On iOS 26 the
+   default reads the ground under the bar — the Midnight sweep shows dark
+   text on the courier's day sky and on the send's sky (courier-1, courier-2,
+   travel-preview-2). A style pinned to the theme (it was here for a day,
+   from 9fe54c2) overrode that, and was wrong on iOS 26 wherever the ground
+   isn't the theme's: the courier's night sky, the paywall's night page in
+   onboarding, the photo lightbox. The strip above a page sheet is the
+   window's ground under the sheet's dim — #ECECFE in the light themes,
+   Midnight's #0F0E1C, which shows as #08070F — always on the theme's side,
+   so the default reads it right on both runtimes and no sheet names a
+   style. Only a fixed ground that the window's light or dark would get
+   wrong on iOS 18 names its own, and only while its screen is focused (the
+   stack keeps covered screens mounted, and the last StatusBar mounted
+   wins): the launch piece, the courier's cover (by its sky) and
+   onboarding's fare page (light, on the night page). Once none is mounted,
+   React Native hands the bar back to the default.
+   Still open, for whoever owns components/PhotoLightbox: on iOS 18 in the
+   light themes the window is light, so the default puts dark text on the
+   lightbox's rgba(10,10,12,.96), as it did before 9fe54c2 and does in the
+   shipping app; only iOS 26 reads it right. {!!photo && <StatusBar
+   style="light" />} inside its Modal would fix it. */
 function ThemedStack() {
   const { t: tk, dark } = useTheme();
   const pal = useP();
   const launchGround = useMemo(() => ({ contentStyle: { backgroundColor: launchInks(dark, tk).bg } }), [dark, tk]);
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
-      <StatusBar style={dark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,

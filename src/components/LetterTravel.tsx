@@ -18,7 +18,9 @@ import { useTheme } from "../lib/theme";
    globe on a dotted great-circle route, other people's letters crossing
    beside her, toward the SOMEWHERE pin on the night side (CROSS).
 
-   Daylight, not night: the point is that the letter crosses the world.
+   Daylight in the light themes: the point is that the letter crosses the
+   world. In Midnight the sky is night (see the colours below), and the
+   planet keeps its day side and its night side.
 
    Same construction as the launch piece: the sheet's numbers, driven by
    one clock; the bird is the product's own WrenBird laid over the SVG,
@@ -39,15 +41,31 @@ const TOTAL = 3.7;
 /** the arrival card, before the fade: the clock rests here until the send has landed */
 const HOLD_AT = TOTAL - 0.18;
 
-/* THE ILLUSTRATION KEEPS ITS OWN COLOURS IN EVERY THEME (10a): the desk,
-   the paper, the daylit planet, the sky — a picture of the letter leaving.
-   The words land on that daylight sky, so their ink is fixed dark too: a
-   dark theme's light ink would vanish on it.
+/* THE ILLUSTRATION KEEPS ITS OWN COLOURS IN EVERY THEME (10a): the paper,
+   the envelope, the planet with its day and its night side — a picture of
+   the letter leaving.
    THE GROUND IS THE PAGE'S (owner: every page follows the theme). The room
    the page folds up in, the last frame it fades to, and the view under it
    all paint the theme's page colour, so the piece opens on the page the
    writer just left and closes on the one the courier returns them to —
-   Midnight no longer flashes a lavender room on the way in and out. */
+   Midnight no longer flashes a lavender room on the way in and out.
+   THE SKY IS THE THEME'S DAY OR NIGHT (step 7.1; the owner's rule for the
+   release: what is best for the user). The light themes keep the daylight
+   sky as designed, its words in fixed dark inks. Midnight gets a night sky
+   — the courier cover's night (CourierCard), deepening to C.night at the
+   horizon, a few faint stars where the day has clouds — because the
+   daylight one turned a dark screen into a full-screen flash of pale blue
+   at every send, at the hour someone chose a dark theme for. Its words take
+   the theme's ink and sub (12.6:1 and 7.6:1 at the least, where they sit),
+   and the stars stay smaller and dimmer than the route's dots.
+   The desk is the room's furniture, so it takes the room's: on the dark
+   room the day desk's pale rule and legs glowed as three bars, so Midnight
+   draws them in its line and soft2 (1.44:1 and 1.29:1 on its ground;
+   Classic's day desk is 1.38:1 and 1.28:1), and the paper's shadow in black
+   at .35 — navy at .1 was nothing on the night ground.
+   The status bar needs nothing of its own here: the sky is light exactly
+   when the theme is, so the bar's text the system picks for the room is
+   right for the sky too, through every frame of the fade. */
 const C = {
   page: "#ECEAFA", // the room before 10a; now only the fallback ground (see `ground`)
   ink: "#1E1B35",
@@ -62,8 +80,40 @@ const C = {
   cream: "#FFE7BE",
   coral: "#F2887E",
   rule: "#DDD9F0",
+  legs: "#E4E1F6",
   night: "#2B2650",
+  // Midnight's sky: the courier cover's night (CourierCard PALETTE.night), C.night between
+  nightTop: "#1E1B35",
+  nightLow: "#2E2A6B",
 } as const;
+
+/* the two skies, top to bottom (the gradient's stops at 0, .46 and 1) */
+const SKY = {
+  day: ["#E8F4FF", C.sky, C.skyHi],
+  night: [C.nightTop, C.night, C.nightLow],
+} as const;
+
+/* Midnight's stars, in the sheet's coordinates: [x, y, r, opacity]. Smaller
+   and dimmer than the route's dots (r 1.6–2.4 at .72), and kept clear of
+   the words (y 60–195), of the status bar, and of the band the route and
+   the crossing letters fly through (30pt or more outside the arc). */
+const STARS: [number, number, number, number][] = [
+  [28, 214, 1.1, 0.55],
+  [74, 252, 0.9, 0.4],
+  [122, 206, 1.3, 0.62],
+  [168, 238, 0.8, 0.36],
+  [232, 214, 1, 0.5],
+  [284, 248, 1.2, 0.58],
+  [338, 206, 0.9, 0.42],
+  [368, 270, 1.1, 0.5],
+  [18, 300, 0.8, 0.38],
+  [376, 352, 0.9, 0.4],
+  [14, 372, 1, 0.45],
+  [44, 764, 1.1, 0.5],
+  [118, 812, 0.8, 0.36],
+  [318, 748, 1, 0.48],
+  [366, 818, 1.2, 0.56],
+];
 
 /* the seal lands with a tap. expo-haptics may be missing from an older dev
    client — it degrades to silence, never a crash */
@@ -116,8 +166,14 @@ export function LetterTravel({
   ground?: string;
 }) {
   useLang();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const ground = groundProp ?? tk.bg ?? C.page;
+  /* Midnight's night (see C): the sky, the desk, the paper's shadow, the words */
+  const sky = dark ? SKY.night : SKY.day;
+  const deskTop = dark ? tk.line : C.rule;
+  const deskLegs = dark ? tk.soft2 : C.legs;
+  const wordInk = dark ? tk.ink : C.ink;
+  const noteInk = dark ? tk.sub : "rgba(30,27,53,0.62)";
   const wren = useWrenName();
   const reduce = useReducedMotion();
   const { width: sw, height: sh } = useWindowDimensions();
@@ -289,9 +345,9 @@ export function LetterTravel({
       <Svg width={sw} height={sh} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
         <Defs>
           <LinearGradient id="trvSky" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#E8F4FF" />
-            <Stop offset="0.46" stopColor={C.sky} />
-            <Stop offset="1" stopColor={C.skyHi} />
+            <Stop offset="0" stopColor={sky[0]} />
+            <Stop offset="0.46" stopColor={sky[1]} />
+            <Stop offset="1" stopColor={sky[2]} />
           </LinearGradient>
           <LinearGradient id="trvSea" x1="0.1" y1="0" x2="0.9" y2="1">
             <Stop offset="0" stopColor={C.sea} />
@@ -312,21 +368,32 @@ export function LetterTravel({
           </ClipPath>
         </Defs>
 
-        {/* the room, then daylight sky */}
+        {/* the room, then the sky: daylight, or Midnight's night */}
         <Rect x={0} y={0} width={W} height={H} fill={ground} />
         <Rect x={0} y={0} width={W} height={H} fill="url(#trvSky)" opacity={out} />
 
-        {/* a few clouds only while we are still near the ground */}
-        <G opacity={out * (1 - cross) * 0.8}>
-          <Ellipse cx={74} cy={gTop - 96} rx={48} ry={14} fill="#fff" opacity={0.78} />
-          <Ellipse cx={300} cy={gTop - 150} rx={40} ry={12} fill="#fff" opacity={0.62} />
-        </G>
+        {dark ? (
+          /* the night's stars come in with the sky and stay — they are far
+             away, so the pull-back doesn't move them — each breathing a
+             little on the wall clock (still, for reduced motion) */
+          <G opacity={out}>
+            {STARS.map(([x, y, r, a], i) => (
+              <Circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity={a * (0.72 + 0.28 * Math.sin(beat * 1.6 + i * 1.7))} />
+            ))}
+          </G>
+        ) : (
+          /* a few clouds only while we are still near the ground */
+          <G opacity={out * (1 - cross) * 0.8}>
+            <Ellipse cx={74} cy={gTop - 96} rx={48} ry={14} fill="#fff" opacity={0.78} />
+            <Ellipse cx={300} cy={gTop - 150} rx={40} ry={12} fill="#fff" opacity={0.62} />
+          </G>
+        )}
 
         {/* the desk, which sinks away as the camera pulls back */}
         <G opacity={1 - out}>
-          <Rect x={0} y={588 + out * 110} width={W} height={4} rx={2} fill={C.rule} />
-          <Rect x={46} y={592 + out * 110} width={10} height={150} fill="#E4E1F6" />
-          <Rect x={337} y={592 + out * 110} width={10} height={150} fill="#E4E1F6" />
+          <Rect x={0} y={588 + out * 110} width={W} height={4} rx={2} fill={deskTop} />
+          <Rect x={46} y={592 + out * 110} width={10} height={150} fill={deskLegs} />
+          <Rect x={337} y={592 + out * 110} width={10} height={150} fill={deskLegs} />
         </G>
 
         {/* ═══ the planet ═══ */}
@@ -389,7 +456,7 @@ export function LetterTravel({
 
         {/* the page folding into a sealed envelope, on your desk */}
         <G opacity={envOnDesk} transform={`translate(${deskX} ${deskY}) rotate(${lerp(fold, 0, -7)})`}>
-          <Ellipse cx={0} cy={foldH / 2 + 16} rx={foldW / 2 - 8} ry={8} fill={C.ink} opacity={0.1 * (1 - out)} />
+          <Ellipse cx={0} cy={foldH / 2 + 16} rx={foldW / 2 - 8} ry={8} fill={dark ? "#000" : C.ink} opacity={(dark ? 0.35 : 0.1) * (1 - out)} />
           <Rect x={-foldW / 2} y={-foldH / 2} width={foldW} height={foldH} rx={3} fill={sealed ? C.ylw : "#fff"} stroke={sealed ? "#C9A93A" : C.rule} strokeWidth={2} />
           <G opacity={clamp(1 - fold * 1.15, 0, 1)}>
             {[150, 120, 164, 96, 140, 74].map((w, i) => (
@@ -444,8 +511,8 @@ export function LetterTravel({
 
       {/* the words, in real type on the sheet's grid */}
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(84), alignItems: "center", opacity: markIn * (1 - outro), transform: [{ translateY: (1 - markIn) * 8 * k }] }}>
-        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 30 * k, lineHeight: 36 * k, letterSpacing: -0.7 * k, color: C.ink, textAlign: "center", paddingHorizontal: 24 }}>{title ?? t("so.travel.title")}</Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: "rgba(30,27,53,0.62)", marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
+        <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 30 * k, lineHeight: 36 * k, letterSpacing: -0.7 * k, color: wordInk, textAlign: "center", paddingHorizontal: 24 }}>{title ?? t("so.travel.title")}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: noteInk, marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
       </View>
     </Animated.View>
   );

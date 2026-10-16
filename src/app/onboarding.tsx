@@ -1576,16 +1576,29 @@ function Foot({
   skip?: string;
   onSkip?: () => void;
 }) {
-  const { Y, bevel, key: keyBtn, mono } = useEggOS();
+  const { Y, bevel, key: keyBtn, mono, dark } = useEggOS();
+  /* OFF. The light themes fade the key to .4, and the gold reads as a soft
+     gold. Over Midnight's console the same fade turns the gold a muddy brown
+     (#6C5649) with its dark label at about 2:1 and a pale ln edge, on the
+     HATCHING… key every night-time onboarding passes. So in a dark theme an
+     off key, either tone, is an unlit slot instead: the console's deeper
+     wash, a faint edge and shadow, its label in dim (6.5:1 on lav). */
+  const offDark = dark && !on;
   return (
     <View style={{ paddingHorizontal: 18, paddingBottom: 10, paddingTop: 8 }}>
       <Pressable
         onPress={() => on && onPress()}
         disabled={!on}
-        style={[keyBtn, bevel(4, 4), { backgroundColor: tone === "brass" ? Y.brass : Y.blue, opacity: on ? 1 : 0.4 }]}
+        style={[
+          keyBtn,
+          bevel(4, 4),
+          offDark
+            ? { backgroundColor: Y.groundDeep, borderColor: Y.faint, shadowColor: Y.faint }
+            : { backgroundColor: tone === "brass" ? Y.brass : Y.blue, opacity: on ? 1 : 0.4 },
+        ]}
       >
         {/* the gold stays gold in every theme, so the label on it is the fixed dark ink */}
-        <Text style={[mono(12.5, "b"), { color: tone === "brass" ? Y.fixedInk : Y.onFill }]}>{label}</Text>
+        <Text style={[mono(12.5, "b"), { color: offDark ? Y.dim : tone === "brass" ? Y.fixedInk : Y.onFill }]}>{label}</Text>
       </Pressable>
       {skip ? (
         <Pressable onPress={onSkip} style={{ paddingTop: 12, alignItems: "center" }}>

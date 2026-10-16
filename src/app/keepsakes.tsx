@@ -21,12 +21,16 @@ import "../data/strings-step5-me";
    secondary page's header (KEEPSAKES, the count on the right); each tile
    the theme's soft block with the icon, its name and its proof in mono 9,
    and the ind dot on one not opened yet — which VoiceOver hears too
-   ("{name}, new", the words Me's tiles use: me-model keepsakeA11y). */
+   ("{name}, new", the words Me's tiles use: me-model keepsakeA11y).
+
+   On Midnight soft is sf, 1.1:1 on bg, so the tiles wear the 1pt mute
+   outline the same tiles wear on the courier page (WrenHome: 5.9:1 on bg;
+   faint is the disabled colour), and the two pages agree. */
 
 export default function Keepsakes() {
   useLang();
   const router = useRouter();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const wren = useWrenName();
   const [shelf, setShelf] = useState<Minted[] | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
@@ -73,7 +77,7 @@ export default function Keepsakes() {
                   onPress={() => router.push(`/keepsake/${k.id}`)}
                   accessibilityRole="button"
                   accessibilityLabel={keepsakeA11y(name, isNew, { t })}
-                  style={({ pressed }) => ({ flex: 1, backgroundColor: tk.soft, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}
+                  style={({ pressed }) => ({ flex: 1, backgroundColor: tk.soft, borderRadius: 14, borderWidth: dark ? 1 : 0, borderColor: tk.mute, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}
                 >
                   <Image source={def.icon} style={{ width: 40, height: 40 }} resizeMode="contain" />
                   <Text numberOfLines={2} style={{ fontSize: 12, fontWeight: "600", color: tk.ink, marginTop: 8, textAlign: "center" }}>

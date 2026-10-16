@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { PF } from "../theme/post";
 import { THEMES } from "../theme/themes";
 import { useP } from "../lib/theme";
@@ -42,7 +43,25 @@ import { track, type PaywallSource } from "../lib/track";
    (#3A3AF5 → #3A34D6); Midnight's own indigo is a pale violet made for a
    dark ground and would sit under 3:1 on the pass.
 
-   Only the page behind the welcome follows the theme. */
+   Only the page behind the welcome follows the theme.
+
+   THE STATUS BAR IS LIGHT ONLY ON THE FULL PAGE (step 7.1). In
+   onboarding's fare step the pass is a full page, so the bar sits on the
+   night page: light, 16.6:1. iOS 26 picks that by itself; iOS 18 follows
+   the window, which is light in the light themes, and would give dark text
+   there (app/_layout). It is mounted only while that screen is focused, as
+   every page's own status bar is.
+
+   The route is a page sheet, and its bar is not over the night page at all
+   but over the strip above the sheet: the window's ground under the
+   sheet's dim. lib/theme paints that ground on the theme's side — #ECECFE
+   in the light themes, Midnight's #0F0E1C, which the dim shows as #08070F
+   — so the default reads it right on both runtimes (iOS 18 by the window's
+   light or dark, iOS 26 by the ground): dark text, 18:1 on #ECECFE; light
+   text, 20:1 on #08070F. Light there would be 1.17:1 on the lavender, so
+   the sheet names nothing, whether it shows the pass or the welcome, and
+   neither do Terms and Privacy opened in Safari over it. Onboarding's
+   welcome sits on the theme's page, so it names nothing either. */
 const NIGHT = "#1E1B35";
 const GOLD = "#D8A63F";
 const GOLD_INK = "#8A6E20";
@@ -83,7 +102,7 @@ export default function Paywall() {
   /* sent here by an expired room: say so, or the fare page reads as a
      non sequitur to someone who only wanted to answer a friend */
   const lead = source === "rekindle" ? t("pw.road.rekindle") : undefined;
-  return <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} />;
+  return <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} sheet />;
 }
 
 /* THE PASS ITSELF, wherever it's shown. The route above presents it as a
@@ -96,6 +115,7 @@ export function PaywallBody({
   head,
   lead,
   courier,
+  sheet,
 }: {
   source: PaywallSource;
   onClose: () => void; // × — dismissed without buying
@@ -103,6 +123,7 @@ export function PaywallBody({
   head?: string; // the headline, when the page has a reason of its own
   lead?: string; // the line under it
   courier?: string; // her name, when it isn't saved yet
+  sheet?: boolean; // presented as the route's page sheet: the bar is over the window's ground, not the night page
 }) {
   useLang();
   const P = useP();
@@ -110,6 +131,7 @@ export function PaywallBody({
   const wren = courier || savedName;
   const { handle } = useAuth();
   const { premium, refresh } = useEntitlement();
+  const focused = useIsFocused(); // the full page's status bar (see above)
 
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -211,6 +233,8 @@ export function PaywallBody({
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: NIGHT }} edges={["top", "bottom"]}>
+      {/* light on the night page; a sheet leaves the bar to iOS (see above) */}
+      {focused && !sheet && <StatusBar style="light" />}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
         {/* a modal closes; it doesn't go back. An × on the sheet, not a ‹ */}
         <Pressable onPress={back} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>

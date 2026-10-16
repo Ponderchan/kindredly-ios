@@ -22,15 +22,16 @@
    COLOUR. The type and chrome around the egg — the readout, your words once
    the dark lifts, her first word's bubble, the chirp's note — take the
    console skin in the theme's colours (lib/egg-os). The egg is art and keeps
-   its own in every theme: the shell, its crack and shard outlines and its
-   shadow on the ground read the static Y as Y_ART, and the burst (the dark,
-   the flash, the gold glow and dust, the words while they fly) is a picture
-   of light, so its colours are fixed too. */
+   its own in every theme: the shell, its crack and shard outlines read the
+   static Y as Y_ART, and the burst (the dark, the flash, the gold glow and
+   dust, the words while they fly) is a picture of light, so its colours are
+   fixed too. Only the shadow on the ground answers a dark theme
+   (EggShell's eggShadow). */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, G, Path, Polygon, RadialGradient, Rect, Stop, Defs } from "react-native-svg";
-import { EGG_SHELLS, EggBody, ShellGradient } from "./EggShell";
+import { EGG_SHELLS, EggBody, ShellGradient, eggShadow } from "./EggShell";
 import { type WrenMood, type WrenSkin } from "./WrenBird";
 import { HatchlingRig, useChickIdle } from "./HatchlingRig";
 import type { HatchlingForm } from "../lib/hatchling-form";
@@ -39,6 +40,11 @@ import { t } from "../lib/i18n";
 import { firstWord } from "../lib/first-word";
 import { F2, Y as Y_ART } from "../theme/y2k";
 import { useEggOS } from "../lib/egg-os";
+
+/* The burst's cream flash on a dark theme: capped, since a full-screen near-white flash at
+   night is harsh in a dark room (step 7.1, decided for the reader's comfort; still 5.9:1 at its
+   peak over the console). The light themes flash at full strength, as designed. */
+const FLASH_NIGHT = 0.6;
 
 let Haptics: typeof import("expo-haptics") | null = null;
 try {
@@ -163,7 +169,7 @@ export function HatchStage({
   onBorn: () => void;
   celebrate?: number; // bump it and she hops (the key was pressed)
 }) {
-  const { Y, mono } = useEggOS();
+  const { Y, mono, dark } = useEggOS();
   const reduce = useReducedMotion();
   const sh = EGG_SHELLS[shell] ?? EGG_SHELLS[0];
   const [, bump] = useState(0);
@@ -445,7 +451,7 @@ export function HatchStage({
           <Rect x={0} y={0} width={box.w} height={box.h} fill="url(#hdark)" />
         </Svg>
       )}
-      {a.flash > 0 && <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "#FFF6E3", opacity: a.flash }} />}
+      {a.flash > 0 && <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "#FFF6E3", opacity: dark ? a.flash * FLASH_NIGHT : a.flash }} />}
 
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <View style={{ width: W, height: H, transform: [{ translateX: shakeX }, { translateY: shakeY }] }}>
@@ -459,7 +465,7 @@ export function HatchStage({
             </Defs>
             <ShellGradient shell={sh} gid="hshard" />
             <G transform={stageT}>
-              <Ellipse cx={CX} cy={CY + 58} rx={66} ry={9} fill={Y_ART.ink} opacity={0.1} />
+              <Ellipse cx={CX} cy={CY + 58} rx={66} ry={9} {...eggShadow(dark)} />
               <Circle cx={0} cy={0} r={150} fill="url(#hglow)" opacity={glowOp} transform={`translate(${CX} ${CY}) scale(${glowK})`} />
               {phase === "crack" && (
                 <G transform={`translate(${CX} ${CY}) rotate(${wob}) scale(${(1 + Math.sin(a.t * 2.3) * 0.014) * (1 + a.pop * 0.04)} ${(1 + Math.sin(a.t * 2.3) * 0.014) * (1 - a.pop * 0.05)})`}>
