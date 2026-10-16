@@ -27,16 +27,16 @@ const ok = (name: string, cond: boolean) => { console.log((cond ? "ok  " : "FAIL
 /* ── the letter font ── */
 ok("the default is Newsreader", DEFAULT_LETTER_FONT === "newsreader");
 ok("three values in all", LETTER_FONT_KEYS.join() === "newsreader,newyork,garamond");
-ok("Garamond is not ready on this build", GARAMOND_READY === false);
-ok("Settings offers no Garamond while it isn't ready", !LETTER_FONT_CHOICES.includes("garamond") && LETTER_FONT_CHOICES.join() === "newsreader,newyork");
+ok("Garamond is embedded on this build", GARAMOND_READY === true);
+ok("Settings offers all three", LETTER_FONT_CHOICES.join() === "newsreader,newyork,garamond");
 ok("a stored New York stays New York", letterFontKey("newyork") === "newyork");
-ok("a stored Garamond reads as the default until it is ready", letterFontKey("garamond") === "newsreader");
+ok("a stored Garamond stays Garamond", letterFontKey("garamond") === "garamond");
 ok("junk reads as the default", ["", null, undefined, 3, "NewYork", "times"].every((v) => letterFontKey(v) === "newsreader"));
 ok("Newsreader upright", (() => { const f = letterFamily("newsreader"); return f.fontFamily === "Newsreader-Regular" && f.fontStyle === "normal"; })());
 ok("Newsreader italic is said twice", (() => { const f = letterFamily("newsreader", true); return f.fontFamily === "Newsreader-Italic" && f.fontStyle === "italic"; })());
 ok("New York is the system serif (ui-serif)", (() => { const f = letterFamily("newyork"); return f.fontFamily === "ui-serif" && f.fontStyle === "normal"; })());
 ok("New York italic comes from fontStyle", (() => { const f = letterFamily("newyork", true); return f.fontFamily === "ui-serif" && f.fontStyle === "italic"; })());
-ok("Garamond asks for no missing face before it is ready", letterFamily("garamond").fontFamily === "Newsreader-Regular" && letterFamily("garamond", true).fontFamily === "Newsreader-Italic");
+ok("Garamond upright and its italic both ask for the one embedded face", (() => { const u = letterFamily("garamond"); const i = letterFamily("garamond", true); return u.fontFamily === "EBGaramond-Regular" && u.fontStyle === "normal" && i.fontFamily === "EBGaramond-Regular" && i.fontStyle === "italic"; })());
 
 /* ── the mono table (owner question 2's default) ── */
 ok("labels and titles are 9, 10, 11", MONO.small === 9 && MONO.label === 10 && MONO.title === 11);

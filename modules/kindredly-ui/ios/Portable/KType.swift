@@ -440,9 +440,10 @@ public enum KMonoSizes {
  - New York is the system serif, .system(size:weight:design: .serif), scaled by .kText's
    @ScaledMetric as the system sans is. It needs no file.
  - EB Garamond needs its file in the app (assets/fonts, app.json ios.fonts) and a native build,
-   and the file waits for the owner's approval. Until then garamondReady is false: the choice is
-   left out of pickers (choices) and a stored "garamond" is drawn as Newsreader (drawn), never
-   as the system sans a missing custom font would silently turn into.
+   and it is embedded (owner approved the download, 2026-10-16): Regular only, cut to Latin.
+   garamondReady guards a build without it: the choice is left out of pickers (choices) and a
+   stored "garamond" is drawn as Newsreader (drawn), never as the system sans a missing custom
+   font would silently turn into.
  */
 public enum KLetterFace: String, CaseIterable, Sendable {
   /// Newsreader, the default
@@ -452,9 +453,9 @@ public enum KLetterFace: String, CaseIterable, Sendable {
   /// EB Garamond, the mock's own serif, once it is embedded
   case garamond
 
-  /// GARAMOND_READY. False until EBGaramond-Regular.ttf is in assets/fonts and app.json ios.fonts
-  /// and a binary carrying it ships; the JS side keeps its own GARAMOND_READY in step.
-  public static let garamondReady = false
+  /// GARAMOND_READY: EBGaramond-Regular.ttf is in assets/fonts and app.json's expo-font list, so
+  /// a binary built from here carries it; the JS side keeps its own GARAMOND_READY in step.
+  public static let garamondReady = true
 
   /// The face for a key the JS side sends ("newsreader", "newyork", "garamond"). Anything else
   /// is Newsreader.
@@ -477,9 +478,8 @@ public enum KLetterFace: String, CaseIterable, Sendable {
     switch self {
     case .newsreader: return 1.0
     case .newYork: return 1.19
-    // NOT MEASURED: the file isn't in the app. Read (hhea ascender + |descender| + lineGap) /
-    // unitsPerEm from EBGaramond-Regular.ttf when it lands, before garamondReady turns true.
-    case .garamond: return 1.3
+    // measured from the embedded file: (hhea ascender 1007 + |descender| 298 + lineGap 0) / 1000
+    case .garamond: return 1.305
     }
   }
 }

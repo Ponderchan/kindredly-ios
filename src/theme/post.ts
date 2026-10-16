@@ -122,16 +122,15 @@ export const MONO = {
    the theme. This part is pure, so it runs under plain node
    (node src/theme/post.test.ts).
 
-   EB GARAMOND IS NOT IN THE APP YET. Its file needs the owner's approval to
-   download (OFL, Google Fonts), and only a new binary can carry it (app.json
-   ios.fonts; runtimeVersion follows the app version, so no update can reach
-   a binary without it). Until then GARAMOND_READY is false: the choice is
-   offered nowhere, and a stored "garamond" reads as the default, so nothing
-   ever asks iOS for a face it doesn't have. When the files land: add
-   EBGaramond-Regular.ttf (and EBGaramond-Italic.ttf, for Wren's italic
-   lines) to assets/fonts and app.json, check the PostScript names in
-   LETTER_FACES against the files, then flip this. */
-export const GARAMOND_READY: boolean = false;
+   EB GARAMOND is embedded (assets/fonts/EBGaramond-Regular.ttf, OFL — the
+   licence sits beside it): the Google Fonts variable file pinned to 400 and
+   cut to Latin with fontTools (851 KB → 216 KB; CJK and other scripts fall
+   through to the system face, as they do from Newsreader). Only the Regular
+   is in the app: an italic letter in Garamond asks for the Regular with
+   fontStyle "italic", the same face Swift slants (KType). Only a binary
+   built with the file can draw it (runtimeVersion follows the app version,
+   so no update reaches a binary without it). */
+export const GARAMOND_READY: boolean = true;
 
 export type LetterFontKey = "newsreader" | "newyork" | "garamond";
 /** every value the setting can hold, in the order Settings lists them */
@@ -146,7 +145,7 @@ export const LETTER_FONT_CHOICES: readonly LetterFontKey[] = LETTER_FONT_KEYS.fi
 const LETTER_FACES: Readonly<Record<LetterFontKey, { regular: string; italic: string }>> = {
   newsreader: { regular: "Newsreader-Regular", italic: "Newsreader-Italic" },
   newyork: { regular: "ui-serif", italic: "ui-serif" },
-  garamond: { regular: "EBGaramond-Regular", italic: "EBGaramond-Italic" },
+  garamond: { regular: "EBGaramond-Regular", italic: "EBGaramond-Regular" },
 };
 
 /** Whatever was stored, as a letter font this build can draw: an unknown

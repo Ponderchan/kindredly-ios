@@ -45,7 +45,8 @@
               "./assets/fonts/IBMPlexMono-Medium.ttf",
               "./assets/fonts/IBMPlexMono-SemiBold.ttf",
               "./assets/fonts/Newsreader-Regular.ttf",
-              "./assets/fonts/Newsreader-Italic.ttf"
+              "./assets/fonts/Newsreader-Italic.ttf",
+              "./assets/fonts/EBGaramond-Regular.ttf"
             ]
           }
         }
