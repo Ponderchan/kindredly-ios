@@ -4,8 +4,8 @@ import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
-import { getMood, moodGroup } from "../data/moods";
-import { moodColors } from "../screens/notes/notes-glyphs";
+import { moodFace, moodGroup } from "../data/moods";
+import { MoodChip, moodColors } from "../screens/notes/notes-glyphs";
 import { fmt, noteDay, time24 } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
 
@@ -35,7 +35,8 @@ function meta(e: JournalEntry): string {
 
 export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => void }) {
   const P = useP();
-  const m = getMood(e.mood);
+  const face = moodFace(e.mood);
+  const group = moodGroup(e.mood);
   const photos = e.type === "photo" ? (e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []) : [];
   const hasMedia = e.type === "photo" ? photos.length > 0 : e.type === "voice" || e.type === "video";
 
@@ -57,9 +58,11 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
         opacity: pressed ? 0.55 : 1,
       })}
     >
-      {/* head — a big mood face + the date filed in mono */}
+      {/* head — a big mood face + the date filed in mono. A page that chose only a
+          group (or stored no readable mood: Calm) shows the group's tile and face,
+          the Notes card head's 36/r11/22 */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>
-        <MoodIcon id={m.id} size={38} />
+        {face ? <MoodIcon id={face} size={38} /> : <MoodChip group={group} size={36} radius={11} face={22} />}
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: P.ink60 }}>{meta(e)}</Text>
       </View>
 
@@ -71,8 +74,8 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
 
       {/* voice — on its group's 10a colour and ink (the mood is content), square-cornered */}
       {e.type === "voice" && !!e.mediaUri && (
-        <View style={{ backgroundColor: moodColors(moodGroup(e.mood)).fill, padding: 10 }}>
-          <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={moodColors(moodGroup(e.mood)).ink} />
+        <View style={{ backgroundColor: moodColors(group).fill, padding: 10 }}>
+          <AudioCard url={e.mediaUri} durationS={e.dur} compact tint={moodColors(group).ink} />
         </View>
       )}
 

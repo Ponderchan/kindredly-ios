@@ -18,8 +18,8 @@ import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { moodGroup, moodName, type MoodId } from "../data/moods";
-import { moodColors } from "../screens/notes/notes-glyphs";
+import { moodFace, moodGroup, moodLabel, type MoodId } from "../data/moods";
+import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
 import { useNativeSurface } from "../lib/surfaces";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
@@ -469,16 +469,18 @@ export function SelfCompose({
             photo / voice / video keys are gone: the way in (journal-pick)
             already decided what kind of page this is, and the album has
             its own + cell. The mood key shows a blank face until a mood is
-            picked, then that face; the seal key turns pen blue and asks
+            picked, then that face (or, for a group alone, the group's face
+            on the group's colour); the seal key turns pen blue and asks
             HOW DID THIS FEEL? until it is. Sealed's calendar is made of
             these faces, which is why one is required. */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 8, paddingBottom: moodOpen ? 12 : 24 }}>
           {/* icon-only, and the only way into the picker: VoiceOver hears the face
-              picked, or the question until one is */}
+              picked (or the group, when only a colour was chosen), or the question
+              until one is */}
           <Pressable
             onPress={askMood}
             accessibilityRole="button"
-            accessibilityLabel={mood ? moodName(mood) : t("sc.askMood")}
+            accessibilityLabel={mood ? moodLabel(mood) : t("sc.askMood")}
             accessibilityState={{ expanded: moodOpen }}
             style={({ pressed }) => ({
               width: 52,
@@ -493,7 +495,9 @@ export function SelfCompose({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            {mood ? <MoodIcon id={mood} size={36} /> : <MoodKeyGlyph size={27} color={moodOpen ? P.pen : P.ink} />}
+            {/* a face: its art; the group alone: the key is the group's tile and holds the
+                group's face (32 at stroke 1.75, the mood spec's L step) */}
+            {mood ? <MoodKeyFace mood={mood} /> : <MoodKeyGlyph size={27} color={moodOpen ? P.pen : P.ink} />}
           </Pressable>
 
           <Pressable
@@ -559,6 +563,15 @@ export function SelfCompose({
       />
     </View>
   );
+}
+
+/** What the mood key holds once a mood is chosen: a face's art, or — the group alone — the group's
+    face in its ink (the key's own fill and ring are the group's tile). */
+function MoodKeyFace({ mood }: { mood: MoodId }) {
+  const face = moodFace(mood);
+  if (face) return <MoodIcon id={face} size={36} />;
+  const g = moodGroup(mood);
+  return <MoodFace group={g} size={32} width={1.75} color={moodColors(g).ink} />;
 }
 
 /* ONE FRAME, FULL SCREEN — back, a count, a bin, and the one thing you

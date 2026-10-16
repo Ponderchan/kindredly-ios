@@ -1,11 +1,26 @@
-import { getLang } from "../lib/i18n";
+import { getLang, t } from "../lib/i18n";
+// the four group names (mood.group.*) moodLabel says
+import "./strings-step5-notes";
 /* The Kindredly moods — 30 icons designed as colored shapes-with-faces
    (art in data/mood-art.ts). Colors/tones come from that design file.
    `n` = display name; `col` the shape color; `bg` a light plate tint;
    `tone` groups them for palettes. LEGACY_MOOD maps the original 8
-   backend ids onto the nearest new id so old journal entries still render. */
+   backend ids onto the nearest new id so old journal entries still render.
 
-export type MoodId =
+   WHAT A PAGE STORES (owner, 2026-10-16): one of the thirty faces (FaceId),
+   or — when only a group's colour block was tapped — that group alone
+   (GroupMoodId: group-calm, group-happy, group-tired, group-low). MoodId is
+   either; lib/journal stores it as given and imports MoodId by name, so the
+   journal widened with this type and needed no edit. Old pages may also hold
+   a legacy id or nothing at all.
+
+   Read a stored value through the helpers at the bottom (moodGroup,
+   moodFace, resolveMood, moodArtKey, moodLabel, moodTone, isNamedMood),
+   never through getMood alone: getMood is the face table, and it turns a
+   group-only value into Calm. */
+
+/** one of the thirty faces */
+export type FaceId =
   | "calm"
   | "numb"
   | "content"
@@ -37,10 +52,17 @@ export type MoodId =
   | "playful"
   | "over-it";
 
-export type MoodTone = "soft" | "up" | "spark" | "edge" | "low" | "flat";
-export interface Mood { id: MoodId; n: string; col: string; bg: string; tone: MoodTone }
+/** A page that chose only a group's colour, no face. Not the bare group names: "calm" is already a
+    face. */
+export type GroupMoodId = "group-calm" | "group-happy" | "group-tired" | "group-low";
 
-export const MOODS: Record<MoodId, Mood> = {
+/** What a journal page stores (lib/journal JournalEntry.mood): a face, or a group alone. */
+export type MoodId = FaceId | GroupMoodId;
+
+export type MoodTone = "soft" | "up" | "spark" | "edge" | "low" | "flat";
+export interface Mood { id: FaceId; n: string; col: string; bg: string; tone: MoodTone }
+
+const FACES: Readonly<Record<FaceId, Mood>> = {
   "calm": { id: "calm", n: "Calm", col: "#8FBBD9", bg: "#EFF5F9", tone: "soft" },
   "numb": { id: "numb", n: "Numb", col: "#9AA0AE", bg: "#F0F1F3", tone: "flat" },
   "content": { id: "content", n: "Content", col: "#F3B07A", bg: "#FDF3EC", tone: "soft" },
@@ -73,12 +95,18 @@ export const MOODS: Record<MoodId, Mood> = {
   "over-it": { id: "over-it", n: "Over it", col: "#9B93A8", bg: "#F1EFF2", tone: "flat" },
 };
 
-export const MOOD_IDS: MoodId[] = [
+/** The thirty faces by id — faces only. Its type lets a whole MoodId index it (onboarding's
+    moodToWren hands it the MoodId its own row of faces picked, always a face) while a literal group
+    id reads as `never`, so `MOODS["group-low"].tone` does not compile: a group-only value is read
+    through moodTone, moodLabel, moodGroup or moodArtKey. */
+export const MOODS = FACES as Readonly<Record<FaceId, Mood>> & { readonly [K in GroupMoodId]: never };
+
+export const MOOD_IDS: FaceId[] = [
   "calm", "numb", "content", "in-love", "surprised", "shocked", "frustrated", "stunned", "cheerful", "pleased", "sleepy", "irritable", "amazed", "angry", "okay", "heartbroken", "grumpy", "meh", "smug", "nervous", "drained", "crying", "shy", "mischievous", "unimpressed", "delighted", "excited", "mad", "playful", "over-it"
 ];
 
 /* zh labels (parallel to MOODS) */
-export const MOOD_ZH: Record<MoodId, string> = {
+export const MOOD_ZH: Record<FaceId, string> = {
   "calm": "平静",
   "numb": "麻木",
   "content": "满足",
@@ -112,7 +140,7 @@ export const MOOD_ZH: Record<MoodId, string> = {
 };
 
 /* original 8 backend ids → nearest new id (historical data only) */
-export const LEGACY_MOOD: Record<string, MoodId> = {
+export const LEGACY_MOOD: Record<string, FaceId> = {
   "tender": "in-love",
   "restless": "irritable",
   "wistful": "sleepy",
@@ -122,16 +150,20 @@ export const LEGACY_MOOD: Record<string, MoodId> = {
   "heavy": "drained",
 };
 
+/** own keys only: "constructor" or "toString" is not a mood */
+const has = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+
+/** The face table: a face, a legacy id's face, else Calm — a group-only value too (see moodFace). */
 export const getMood = (id?: string | null): Mood => {
-  if (!id) return MOODS.calm;
-  if (MOODS[id as MoodId]) return MOODS[id as MoodId];
-  const alias = LEGACY_MOOD[id];
-  return (alias && MOODS[alias]) || MOODS.calm;
+  if (!id) return FACES.calm;
+  if (has(FACES, id)) return FACES[id as FaceId];
+  const alias = has(LEGACY_MOOD, id) ? LEGACY_MOOD[id] : undefined;
+  return (alias && FACES[alias]) || FACES.calm;
 };
 
 /* localized display names — en is the mood's own `n`; es/pt/id here.
    The web backend keeps its own copy of `n`; this is display-only. */
-const MOOD_LOC: Partial<Record<MoodId, { es: string; pt: string; id: string; fr: string; de: string; it: string; ja: string; ko: string }>> = {
+const MOOD_LOC: Partial<Record<FaceId, { es: string; pt: string; id: string; fr: string; de: string; it: string; ja: string; ko: string }>> = {
   "calm": { es: "Tranquilo", pt: "Calmo", id: "Tenang", fr: "Calme", de: "Ruhig", it: "Calmo", ja: "おだやか", ko: "차분함" },
   "numb": { es: "Insensible", pt: "Entorpecido", id: "Mati rasa", fr: "Engourdi", de: "Taub", it: "Intorpidito", ja: "無感覚", ko: "무감각" },
   "content": { es: "A gusto", pt: "Contente", id: "Puas", fr: "Serein", de: "Zufrieden", it: "Contento", ja: "満ち足りた", ko: "만족" },
@@ -163,28 +195,29 @@ const MOOD_LOC: Partial<Record<MoodId, { es: string; pt: string; id: string; fr:
   "playful": { es: "Juguetón", pt: "Brincalhão", id: "Iseng", fr: "Joueur", de: "Verspielt", it: "Giocoso", ja: "遊び心", ko: "장난스러움" },
   "over-it": { es: "Harto", pt: "De saco cheio", id: "Muak", fr: "Lassé", de: "Fertig damit", it: "Stufo", ja: "もううんざり", ko: "질림" },
 };
-export const moodName = (id: MoodId): string => {
+export const moodName = (id: FaceId): string => {
   const lang = getLang();
   if (lang === "en") return getMood(id).n;
   return (MOOD_LOC[id] as any)?.[lang] || getMood(id).n;
 };
 
-/* ── THE FOUR GROUPS (10a, owner 2026-10-15) ───────────────────────────
+/* ── THE FOUR GROUPS (10a, owner 2026-10-15 / 2026-10-16) ─────────────
    10a draws a page's mood as one of four colours with a line face: Calm,
    Happy, Tired, Low. The owner kept the thirty faces as the choices INSIDE
    a group: "四组（平静/开心/累/低落），生气类归「低落」，不加第五组" — the
-   angry faces go to Low, there is no fifth group. Storage is unchanged: a
-   page still stores one of the thirty MoodIds (or an old legacy id), and its
-   group is worked out from that face every time it is drawn.
+   angry faces go to Low, there is no fifth group.
 
-   The table below is the mapping the owner asked to be shown ("映射表待出给
-   他看"); it is built by tone and is a proposal until he signs it off. The
-   FIRST face of each group is the one stored when only the colour block is
-   tapped (owner question 8's default: Calm / Cheerful / Sleepy / Nervous —
-   not Heartbroken, which says more than a writer who only chose blue did).
-   That face's name is printed after the date and its tone feeds the
-   empty-page sparks and the private Aura tone stickers, so a change here is
-   a product change, not a refactor.
+   GROUP ONLY (owner, 2026-10-16): tapping a group's colour block and no face
+   stores that group itself (MOOD_GROUP_IDS: group-calm …), shown with the
+   group's own icon and named by the group ("OCT 14 · 21:37 · Low"). It
+   replaced the default face the block used to store (MOOD_GROUP_DEFAULT,
+   retired: Calm / Cheerful / Sleepy / Nervous said more than a writer who
+   only chose blue). A face page keeps its face, its name and its group,
+   worked out from the face every time it is drawn.
+
+   The table below is the owner's (plan doc, 2026-10-15): Unimpressed is
+   Tired, anger is Low. A change here moves pages between colours, names and
+   tones, so it is a product change, not a refactor.
 
    The colours are the 10a mood pairs in themes.json "mood" (theme/themes
    MOOD10A, KMood in Swift), the same in every theme; this file stays free
@@ -195,21 +228,21 @@ export type MoodGroup = "calm" | "happy" | "tired" | "low";
 /** the four groups, in the owner's order */
 export const MOOD_GROUPS: readonly MoodGroup[] = ["calm", "happy", "tired", "low"];
 
-/** every face in its group, the group's default face first (5 + 9 + 6 + 10 = 30) — the owner's
-    table (plan doc, 2026-10-15): Unimpressed is Tired, anger is Low */
-export const MOOD_GROUP_FACES: Readonly<Record<MoodGroup, readonly MoodId[]>> = {
+/** every face in its group (5 + 9 + 6 + 10 = 30) — the owner's table (plan doc, 2026-10-15):
+    Unimpressed is Tired, anger is Low */
+export const MOOD_GROUP_FACES: Readonly<Record<MoodGroup, readonly FaceId[]>> = {
   calm: ["calm", "content", "pleased", "okay", "shy"],
   happy: ["cheerful", "delighted", "excited", "playful", "in-love", "amazed", "surprised", "smug", "mischievous"],
   tired: ["sleepy", "drained", "numb", "meh", "over-it", "unimpressed"],
   low: ["nervous", "crying", "heartbroken", "shocked", "stunned", "frustrated", "irritable", "grumpy", "angry", "mad"],
 };
 
-/** the face stored when a group's colour block is tapped and no face is picked (owner question 8) */
-export const MOOD_GROUP_DEFAULT: Readonly<Record<MoodGroup, MoodId>> = {
-  calm: MOOD_GROUP_FACES.calm[0],
-  happy: MOOD_GROUP_FACES.happy[0],
-  tired: MOOD_GROUP_FACES.tired[0],
-  low: MOOD_GROUP_FACES.low[0],
+/** what a group-only page stores, per group */
+export const MOOD_GROUP_IDS: Readonly<Record<MoodGroup, GroupMoodId>> = {
+  calm: "group-calm",
+  happy: "group-happy",
+  tired: "group-tired",
+  low: "group-low",
 };
 
 /** each group's display name key (strings-step5-notes) */
@@ -220,17 +253,67 @@ export const MOOD_GROUP_KEY: Readonly<Record<MoodGroup, string>> = {
   low: "mood.group.low",
 };
 
+/** A group-only page's tone, for the empty-page sparks and the private Aura tone stickers. Tired is
+    flat, on purpose: the default face it replaced (Sleepy) was soft. */
+export const MOOD_GROUP_TONE: Readonly<Record<MoodGroup, MoodTone>> = {
+  calm: "soft",
+  happy: "up",
+  tired: "flat",
+  low: "low",
+};
+
 const GROUP_OF = (() => {
-  const out = {} as Record<MoodId, MoodGroup>;
+  const out = {} as Record<FaceId, MoodGroup>;
   for (const g of MOOD_GROUPS) for (const id of MOOD_GROUP_FACES[g]) out[id] = g;
   return out;
 })();
 
-/** A stored mood's group, through getMood: the seven legacy ids map by their face, and a missing
-    or unknown value is Calm (the colour a page with no readable mood has always been drawn in). */
-export const moodGroup = (id?: string | null): MoodGroup => GROUP_OF[getMood(id).id] ?? "calm";
+const GROUP_OF_ID = (() => {
+  const out = {} as Record<GroupMoodId, MoodGroup>;
+  for (const g of MOOD_GROUPS) out[MOOD_GROUP_IDS[g]] = g;
+  return out;
+})();
 
-/** Whether a page ever stored a mood this app can name: one of the thirty, or a legacy id. A page
+/** A stored value that chose a group and no face. */
+export const isGroupOnly = (id?: string | null): id is GroupMoodId => typeof id === "string" && has(GROUP_OF_ID, id);
+
+/** The face a stored value names: a face, or a legacy id's face; null for a group-only value and for
+    a missing or unknown one. */
+export const moodFace = (id?: string | null): FaceId | null => {
+  if (!id) return null;
+  if (has(FACES, id)) return id as FaceId;
+  return has(LEGACY_MOOD, id) ? LEGACY_MOOD[id] : null;
+};
+
+/** A stored value's group. Group ids first (getMood would make them Calm); then the face, the seven
+    legacy ids by their face; a missing or unknown value is Calm (the colour a page with no readable
+    mood has always been drawn in). */
+export const moodGroup = (id?: string | null): MoodGroup => {
+  if (isGroupOnly(id)) return GROUP_OF_ID[id];
+  return GROUP_OF[getMood(id).id] ?? "calm";
+};
+
+/** What a page is drawn as: its face (a legacy id as its new face), its group id when only a group
+    was chosen, and group-calm when nothing readable was stored. */
+export const resolveMood = (id?: string | null): MoodId => moodFace(id) ?? (isGroupOnly(id) ? id : MOOD_GROUP_IDS.calm);
+
+/** A stored value's art key in data/mood-art: "mood-<face>" for a face (a legacy id by its face),
+    "mood-group-<g>" for a group alone, "mood-group-calm" for a missing or unknown value. */
+export const moodArtKey = (id?: string | null): string => `mood-${resolveMood(id)}`;
+
+/** Whether a page ever stored a mood this app can name: a face, a legacy id, or a group alone. A page
     without one keeps the Calm colour but shows no mood name ("· Calm" would claim a choice that was
     never made). */
-export const isNamedMood = (id?: string | null): boolean => !!id && (id in MOODS || id in LEGACY_MOOD);
+export const isNamedMood = (id?: string | null): boolean => isGroupOnly(id) || moodFace(id) !== null;
+
+/** The name after the date, in the reader's language: the group's name for a group alone, the face's
+    name for a face (a legacy id by its face), "" for a missing or unknown value. */
+export const moodLabel = (id?: string | null): string => {
+  if (isGroupOnly(id)) return t(MOOD_GROUP_KEY[GROUP_OF_ID[id]]);
+  const face = moodFace(id);
+  return face ? moodName(face) : "";
+};
+
+/** A stored value's tone: the group's (MOOD_GROUP_TONE) for a group alone, the face's otherwise (a
+    missing or unknown value is Calm's, soft). */
+export const moodTone = (id?: string | null): MoodTone => (isGroupOnly(id) ? MOOD_GROUP_TONE[GROUP_OF_ID[id]] : getMood(id).tone);

@@ -3,10 +3,13 @@ import Svg, { Path } from "react-native-svg";
 import { PF } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { MoodIcon } from "./MoodIcon";
+import { MoodChip } from "../screens/notes/notes-glyphs";
+import { moodFace, moodGroup } from "../data/moods";
 import type { MonthVM } from "../screens/notes/notes-model";
 
 /* The month as an emotional weather map, in the Notes fallback (10a step
-   5): every day you wrote shows that day's newest page's face in its cell,
+   5): every day you wrote shows that day's newest page's face in its cell
+   (a page that chose only a group: the group's tile and face, 34/r10/21),
    with a count when there were several. Tap a filled day → that page, or
    the day page when it holds more than one. The calendar is the only
    navigation a private journal needs — no filter row.
@@ -79,7 +82,7 @@ export function SealedCalendar({
               <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", borderWidth: d.today ? 1.5 : 0, borderColor: tk.ln, borderRadius: 11 }}>
                 {filled && d.mood ? (
                   <>
-                    <MoodIcon id={d.mood} size={34} />
+                    <DayMood mood={d.mood} />
                     {d.count > 1 && (
                       <View style={{ position: "absolute", right: -2, top: -2, minWidth: 15, height: 15, paddingHorizontal: 3, borderRadius: 4, backgroundColor: tk.ink, alignItems: "center", justifyContent: "center" }}>
                         <Text style={{ color: tk.bg, fontSize: 9, fontFamily: PF.monoMed }}>{d.count}</Text>
@@ -101,6 +104,12 @@ export function SealedCalendar({
       </Text>
     </View>
   );
+}
+
+/** A day's mood: a face's art, or the group's tile with its face for a group alone. */
+function DayMood({ mood }: { mood: string }) {
+  const face = moodFace(mood);
+  return face ? <MoodIcon id={face} size={34} /> : <MoodChip group={moodGroup(mood)} size={34} radius={10} face={21} />;
 }
 
 function Chevron({ dir, enabled, label, onPress }: { dir: "left" | "right"; enabled: boolean; label: string; onPress: () => void }) {

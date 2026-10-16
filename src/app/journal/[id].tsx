@@ -10,11 +10,11 @@ import { PF } from "../../theme/post";
 import { useP, useTheme } from "../../lib/theme";
 import { AudioCard } from "../../components/AudioCard";
 import { MoodIcon } from "../../components/MoodIcon";
-import { getMood, isNamedMood, moodGroup, moodName } from "../../data/moods";
+import { moodFace, moodGroup, moodLabel } from "../../data/moods";
 import { demoJournal } from "../../data/demo";
 import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
-import { moodColors } from "../../screens/notes/notes-glyphs";
+import { MoodChip, moodColors } from "../../screens/notes/notes-glyphs";
 import "../../data/strings-step5-notes";
 import "../../data/strings-step5-kitrn"; // a11y.back
 
@@ -132,8 +132,10 @@ export default function JournalDetail() {
     );
   }
 
-  const m = getMood(e.mood);
-  const tint = moodColors(moodGroup(e.mood)).ink;
+  const face = moodFace(e.mood);
+  const group = moodGroup(e.mood);
+  const moodName = moodLabel(e.mood);
+  const tint = moodColors(group).ink;
   const pure = e.type === "text";
 
   // the page stays neutral — the mood lives in its face, not the background
@@ -160,16 +162,19 @@ export default function JournalDetail() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {/* the mood face leads, the date sits under it — both centred (Apple-style) */}
+        {/* the mood face leads, the date sits under it — both centred (Apple-style).
+            A face draws its art; a page that chose only a group (or stored no
+            readable mood: Calm) draws the group's tile with the group's face, 52 like
+            the composer's key that chose it (face 32 at stroke 1.75) */}
         <View style={{ alignItems: "center", marginBottom: 24, marginTop: 4 }}>
-          <MoodIcon id={m.id} size={48} />
+          {face ? <MoodIcon id={face} size={48} /> : <MoodChip group={group} size={52} radius={16} face={32} stroke={1.75} />}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
             <CalGlyph />
-            {/* the face's name after the date, as the cards say it — never
-                for a page that stored no mood */}
+            {/* the mood's name after the date, as the cards say it (the group's
+                name for a group alone) — never for a page that stored no mood */}
             <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
               {new Date(e.date).toLocaleDateString(localeTag(), { weekday: "short", month: "short", day: "numeric" }).toLocaleUpperCase(localeTag())}
-              {isNamedMood(e.mood) ? ` · ${moodName(m.id)}` : ""}
+              {moodName ? ` · ${moodName}` : ""}
               {isDemo ? " · SAMPLE" : ""}
             </Text>
           </View>

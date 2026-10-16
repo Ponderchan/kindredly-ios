@@ -3,7 +3,7 @@ import { AppState } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { fmt as fmtDuration, firstWeekday, localeTag, monthTitle, noteDay, time24, weekdayLetters } from "../../lib/format";
-import { moodName, type MoodGroup } from "../../data/moods";
+import { moodLabel, type MoodGroup } from "../../data/moods";
 import { demoJournal } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { hiddenDemoIds, loadJournal, type JournalEntry } from "../../lib/journal";
@@ -171,7 +171,7 @@ export function notesFormat(): NotesFormat {
   const thisYear = new Date().getFullYear();
   return {
     t,
-    moodName,
+    moodLabel,
     day: (iso) => noteDay(iso, { locale }),
     time: (iso) => time24(iso, { locale }),
     longDate: (iso) => {

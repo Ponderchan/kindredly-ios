@@ -68,14 +68,20 @@ export function journalImage(uri: string, kind?: "videoPoster"): { uri: string; 
   return kind ? { uri, key, kind } : { uri, key };
 }
 
+/** A note record with its mood icon: the art key (moods moodArtKey: "mood-sleepy", or the group's own
+    "mood-group-low" for a page that chose only a group) beside its group. KNotesNote gains the field
+    with the Swift mood-art slice; until then Swift's record ignores it and draws the group face. */
+export type KNotesNoteRecord = KNotesNote & { icon: string };
+
 /** A NoteVM as Swift's KNoteCard takes it. `films` (dev only) maps a remote sample video to a local
     copy, so KImageStore can make its frame. */
-export function nativeNote(n: NoteVM, films?: Readonly<Record<string, string>>): KNotesNote {
+export function nativeNote(n: NoteVM, films?: Readonly<Record<string, string>>): KNotesNoteRecord {
   const video = n.video ? (films?.[n.video] ?? n.video) : null;
   return {
     id: n.id,
     kind: n.kind,
     group: n.group,
+    icon: n.icon,
     label: n.label,
     shortLabel: n.shortLabel,
     listLabel: n.listLabel,

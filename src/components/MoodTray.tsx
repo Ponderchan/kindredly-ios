@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import { MOODS, MOOD_GROUPS, MOOD_GROUP_DEFAULT, MOOD_GROUP_FACES, MOOD_GROUP_KEY, MOOD_IDS, moodGroup, moodName, type MoodGroup, type MoodId } from "../data/moods";
+import { MOODS, MOOD_GROUPS, MOOD_GROUP_FACES, MOOD_GROUP_IDS, MOOD_GROUP_KEY, MOOD_IDS, moodGroup, moodName, type FaceId, type MoodGroup, type MoodId } from "../data/moods";
 import { MoodIcon } from "./MoodIcon";
 import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
@@ -17,15 +17,17 @@ import "../data/strings-step5-notes";
    tray so the two composers feel like one hand made them.
 
    10a step 5: FOUR COLOUR BLOCKS (owner, 2026-10-15: four groups, the
-   thirty faces as the choices inside them, storage unchanged). A row of
-   Calm, Happy, Tired and Low, each the group's 10a colour with its line
-   face over its name; below, the open group's faces.
-   - Tapping a block stores that group's default face at once (owner
-     question 8: Calm, Cheerful, Sleepy, Nervous) and opens its faces, so
-     a writer who only means "blue" is done in one tap;
+   thirty faces as the choices inside them). A row of Calm, Happy, Tired
+   and Low, each the group's 10a colour with its group face over its name;
+   below, the open group's faces.
+   - Tapping a block stores THE GROUP ITSELF at once (group-calm …, owner
+     2026-10-16 — no default face any more) and opens its faces, so a
+     writer who only means "blue" is done in one tap;
    - tapping the open block again closes the tray;
    - tapping a face stores it and closes the tray;
-   - reopening shows the stored face's group open.
+   - tapping the chosen face again takes it back to the group alone (the
+     tray stays open, the block still chosen);
+   - reopening shows the stored mood's group open.
    Before any group is chosen the hint (sc.moodHint) sits under the blocks.
    The faces are the thirty art faces (MoodIcon), five to a row, each with
    its name in the reader's language — the old tray printed the English
@@ -42,7 +44,7 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
   const P = useP();
   const { t: tk } = useTheme();
   const [open, setOpen] = useState<MoodGroup | null>(selected ? moodGroup(selected) : null);
-  // a face stored from elsewhere (the dev page, a reset) opens its group
+  // a mood stored from elsewhere (the dev page, a reset) opens its group
   useEffect(() => {
     if (selected) setOpen(moodGroup(selected));
   }, [selected]);
@@ -53,8 +55,12 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
       return;
     }
     setOpen(g);
-    onPick(MOOD_GROUP_DEFAULT[g], false);
+    onPick(MOOD_GROUP_IDS[g], false);
   };
+  // the chosen face tapped again: back to its group alone
+  const pickFace = (g: MoodGroup, id: FaceId) => (selected === id ? onPick(MOOD_GROUP_IDS[g], false) : onPick(id, true));
+  // the group the stored mood is in (a face's, or the group alone); none before a choice
+  const chosen = selected ? moodGroup(selected) : null;
 
   return (
     <View style={{ height: MOOD_TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: tk.line }}>
@@ -70,7 +76,7 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
                 onPress={() => pickGroup(g)}
                 accessibilityRole="button"
                 accessibilityLabel={name}
-                accessibilityState={{ selected: on, expanded: on }}
+                accessibilityState={{ selected: chosen === g, expanded: on }}
                 style={({ pressed }) => ({
                   height: 72,
                   borderRadius: 16,
@@ -102,7 +108,7 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
             return (
               <Pressable
                 key={id}
-                onPress={() => onPick(id, true)}
+                onPress={() => pickFace(open, id)}
                 accessibilityRole="button"
                 accessibilityLabel={name}
                 accessibilityState={{ selected: on }}

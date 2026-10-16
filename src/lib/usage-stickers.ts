@@ -1,7 +1,7 @@
 import type { JournalEntry } from "./journal";
 import type { ThreadSummary } from "./db";
 import { STAMPS } from "../data/stamps";
-import { getMood, type MoodTone } from "../data/moods";
+import { moodTone, type MoodTone } from "../data/moods";
 import { detectThemes } from "./writing-engine/journal-sparks/detect-themes";
 import { detectLanguage } from "./writing-engine/resolve-language";
 import type { JournalTheme } from "./writing-engine/types";
@@ -229,7 +229,7 @@ export function usageStickers(f: UsageFacts): UsageSticker[] {
   if (j.length >= 5) {
     const tones = new Map<MoodTone, number>();
     for (const e of j) {
-      const tone = getMood(e.mood).tone;
+      const tone = moodTone(e.mood); // a group alone counts with its group's tone
       tones.set(tone, (tones.get(tone) ?? 0) + 1);
     }
     const [tone, n] = [...tones.entries()].sort((a, b) => b[1] - a[1])[0];

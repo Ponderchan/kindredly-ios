@@ -2,7 +2,7 @@ import type { JournalEntry } from "./journal";
 import { t as tr } from "./i18n";
 import { detectThemes } from "./writing-engine/journal-sparks/detect-themes";
 import { THEME_SPARK } from "./writing-engine/journal-sparks/themes";
-import { getMood } from "../data/moods";
+import { moodTone } from "../data/moods";
 // js.42 and js.43 (two sparks that used to be raw English) are registered there
 import "../data/strings-step5-notes";
 
@@ -118,7 +118,7 @@ export function journalSpark(entries: JournalEntry[], now = new Date()): string 
   }
 
   // SETTLED — the recent moods choose, because the writer already told us
-  const tones = entries.slice(0, 5).map((e) => getMood(e.mood).tone);
+  const tones = entries.slice(0, 5).map((e) => moodTone(e.mood)); // a group alone has its group's tone
   const heavy = tones.filter((t) => t === "low" || t === "flat" || t === "edge").length;
   const bright = tones.filter((t) => t === "up" || t === "spark").length;
   if (heavy >= 3) return tr(pick([...PRIVATE, "js.36"], seed));

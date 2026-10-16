@@ -1,8 +1,11 @@
 /* Behaviour lock for the Notes tab's model (screens/notes/notes-model): the
    page order and de-duplication, every label (the mood name in Card and
-   List, not in Grid, never for a page with no stored mood), the media each
+   List, not in Grid, never for a page with no stored mood; the group's name
+   for a page that chose only a group), the icon's art key, the media each
    kind carries (a photo page's cover is the one coverIndex names), the List
-   line, the four groups over the thirty faces, the calendar (bounds,
+   line, the four groups over the thirty faces, group-only pages (label,
+   group, tone, icon, the calendar's day, counts and legend, the six
+   squares), the calendar (bounds,
    paging, lead days per first weekday, today / future, the newest page per
    day, counts and footer), the button's six squares, the stored view, the
    Grid's columns (one at accessibility text sizes, as Swift), and the
@@ -13,14 +16,16 @@
    strips the types itself from Node 22.18 / 23.6 on):
      node src/screens/notes/notes-model.test.ts
    data/moods imports lib/i18n (React Native), so a load hook stands in a
-   two-line i18n for this process only, and adds ".ts" to the extensionless
-   relative imports Metro wants. Every line prints ok/FAIL and the process
+   small i18n for this process only (English group names, strings() a
+   no-op), and adds ".ts" to the extensionless relative imports Metro
+   wants. Every line prints ok/FAIL and the process
    exits non-zero if any fail. */
 
 import { registerHooks } from "node:module";
 
 const STUBS: Record<string, string> = {
-  i18n: `export const t = (k) => k; export const getLang = () => "en";`,
+  i18n: `const W = { "mood.group.calm": "Calm", "mood.group.happy": "Happy", "mood.group.tired": "Tired", "mood.group.low": "Low" };
+export const t = (k) => W[k] ?? k; export const getLang = () => "en"; export const strings = () => {};`,
 };
 registerHooks({
   resolve(specifier, context, next) {
@@ -74,7 +79,8 @@ const t = (k: string, vars?: Record<string, string | number>) => {
 };
 const fmt: Fmt = {
   t,
-  moodName: (id) => Moods.getMood(id).n,
+  // the real helper: the stub's t knows the four group names, getLang is "en" (a face's own n)
+  moodLabel: Moods.moodLabel,
   day: (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
   time: (iso) => new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }).replace(/^24/, "00"),
   longDate: (iso) => new Date(iso).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
@@ -93,12 +99,15 @@ const NOW = new Date(2026, 9, 16, 15, 0); // Friday 16 October 2026, 15:00
   const all = Moods.MOOD_GROUPS.flatMap((g) => [...Moods.MOOD_GROUP_FACES[g]]);
   eq("the four groups in the owner's order", Moods.MOOD_GROUPS, ["calm", "happy", "tired", "low"]);
   ok("every one of the thirty faces is in exactly one group", all.length === 30 && new Set(all).size === 30 && Moods.MOOD_IDS.every((id) => all.includes(id)));
-  eq("default faces (owner question 8): Calm, Cheerful, Sleepy, Nervous", Moods.MOOD_GROUP_DEFAULT, { calm: "calm", happy: "cheerful", tired: "sleepy", low: "nervous" });
-  ok("each default is its group's first face", Moods.MOOD_GROUPS.every((g) => Moods.MOOD_GROUP_FACES[g][0] === Moods.MOOD_GROUP_DEFAULT[g]));
+  eq("a block alone stores the group itself (owner, 2026-10-16)", Moods.MOOD_GROUP_IDS, { calm: "group-calm", happy: "group-happy", tired: "group-tired", low: "group-low" });
+  ok("the default face is retired", !("MOOD_GROUP_DEFAULT" in Moods));
+  eq("Unimpressed is Tired (owner's table)", Moods.moodGroup("unimpressed"), "tired");
   ok("the angry faces are Low (owner: no fifth group)", ["angry", "mad", "frustrated", "irritable", "grumpy"].every((id) => Moods.moodGroup(id) === "low"));
   eq("legacy ids go by their face (tender→in-love: happy, heavy→drained: tired, restless→irritable: low)", ["tender", "heavy", "restless"].map(Moods.moodGroup), ["happy", "tired", "low"]);
   eq("missing and unknown moods are Calm", [Moods.moodGroup(undefined), Moods.moodGroup(""), Moods.moodGroup("zzz")], ["calm", "calm", "calm"]);
   ok("a stored face or a legacy id is named; nothing or junk is not", Moods.isNamedMood("sleepy") && Moods.isNamedMood("tender") && !Moods.isNamedMood(undefined) && !Moods.isNamedMood("") && !Moods.isNamedMood("zzz"));
+  eq("a group alone is in its own group, never Calm by getMood", Moods.MOOD_GROUPS.map((g) => Moods.moodGroup(`group-${g}`)), ["calm", "happy", "tired", "low"]);
+  ok("a group alone is named", Moods.MOOD_GROUPS.every((g) => Moods.isNamedMood(`group-${g}`)));
 }
 
 /* ── order and identity ───────────────────────────────────────────────── */
@@ -122,17 +131,55 @@ const NOW = new Date(2026, 9, 16, 15, 0); // Friday 16 October 2026, 15:00
   eq("Grid label: the day only (owner question 9)", n.shortLabel, "OCT 14");
   eq("List label: day · face", n.listLabel, "OCT 14 · Sleepy");
   eq("its group", n.group, "tired");
+  eq("its icon is its face's art, its mood the face", [n.icon, n.mood], ["mood-sleepy", "sleepy"]);
   eq("List line: the first line of the words", [n.listLine, n.listLineIsWords], ["Long day.", true]);
   ok("VoiceOver hears the long date, time, face, kind and words", n.a11y === "Wednesday, October 14, 21:37, Sleepy, Text note, Long day. Second line.");
   const none = M.buildNote(page("p2", at(2026, 10, 14, 9, 5), { mood: undefined as unknown as Entry["mood"] }), fmt);
   eq("no stored mood: no name anywhere, Calm colour", [none.label, none.listLabel, none.group], ["OCT 14 · 09:05", "OCT 14", "calm"]);
+  eq("no stored mood: the Calm group's icon, not a face", [none.icon, none.mood], ["mood-group-calm", "group-calm"]);
+  const junk = M.buildNote(page("p2j", at(2026, 10, 14, 9, 5), { mood: "zzz" as Entry["mood"] }), fmt);
+  eq("an unknown mood: the same as none", [junk.label, junk.group, junk.icon], ["OCT 14 · 09:05", "calm", "mood-group-calm"]);
   ok("no stored mood: VoiceOver says no face either", !none.a11y.includes("Calm"));
   const legacy = M.buildNote(page("p3", at(2026, 10, 14), { mood: "wistful" as Entry["mood"] }), fmt);
-  eq("a legacy mood is named by its face", [legacy.listLabel, legacy.mood, legacy.group], ["OCT 14 · Sleepy", "sleepy", "tired"]);
+  eq("a legacy mood is named by its face", [legacy.listLabel, legacy.mood, legacy.group, legacy.icon], ["OCT 14 · Sleepy", "sleepy", "tired", "mood-sleepy"]);
   const midnight = M.buildNote(page("p4", at(2026, 10, 14, 0, 5)), fmt);
   ok("midnight reads 00:05, never 24:05", midnight.label.includes("00:05"));
   const long = M.buildNote(page("p5", at(2026, 10, 14), { body: "word ".repeat(80) }), fmt);
   ok("VoiceOver reads at most ~120 characters of the words, cut at a space, with …", long.a11y.endsWith("…") && long.a11y.length < 200);
+}
+
+/* ── group-only pages (owner, 2026-10-16) ─────────────────────────────── */
+{
+  const low = M.buildNote(page("g1", at(2026, 10, 14, 21, 37), { mood: "group-low", body: "Rain." }), fmt);
+  eq("Card label: day · time · the group's name", low.label, "OCT 14 · 21:37 · Low");
+  eq("List label: day · the group's name; Grid: the day only", [low.listLabel, low.shortLabel], ["OCT 14 · Low", "OCT 14"]);
+  eq("its group, its group id, the group's own icon", [low.group, low.mood, low.icon], ["low", "group-low", "mood-group-low"]);
+  ok("VoiceOver hears the group's name", low.a11y === "Wednesday, October 14, 21:37, Low, Text note, Rain.");
+  eq("every group alone: its group, its name, its icon", Moods.MOOD_GROUPS.map((g) => { const n = M.buildNote(page("g-" + g, at(2026, 10, 14), { mood: `group-${g}` as Entry["mood"] }), fmt); return [n.group, n.listLabel, n.icon]; }), [
+    ["calm", "OCT 14 · Calm", "mood-group-calm"],
+    ["happy", "OCT 14 · Happy", "mood-group-happy"],
+    ["tired", "OCT 14 · Tired", "mood-group-tired"],
+    ["low", "OCT 14 · Low", "mood-group-low"],
+  ]);
+  eq("its tone: calm soft, happy up, tired flat, low low", Moods.MOOD_GROUPS.map((g) => Moods.moodTone(`group-${g}`)), ["soft", "up", "flat", "low"]);
+
+  const pages = [
+    page("a", at(2026, 10, 14, 8), { mood: "cheerful" }),
+    page("b", at(2026, 10, 14, 22), { mood: "group-tired" }), // the day's newest
+    page("c", at(2026, 10, 12), { mood: "group-happy" }),
+    page("d", at(2026, 10, 10), { mood: "group-low" }),
+    page("e", at(2026, 10, 8), { mood: "nervous" }),
+    page("f", at(2026, 10, 6), { mood: "group-calm" }),
+  ];
+  const oct = M.buildMonth(pages, { y: 2026, m: 9 }, NOW, 0, fmt);
+  const d14 = oct.days[13];
+  eq("a day whose newest page is a group alone shows that group (and its group id for the fallback)", [d14.group, d14.mood, d14.targetId, d14.count], ["tired", "group-tired", "b", 2]);
+  eq("…and a day holding only a group-only page", [oct.days[11].group, oct.days[11].mood], ["happy", "group-happy"]);
+  eq("legend counts: each group-only page in its group (calm, happy, tired, low)", oct.counts, [1, 2, 1, 2]);
+  eq("legend for VoiceOver counts them too", oct.legendA11y, ["Calm, 1 note", "Happy, 2 notes", "Tired, 1 note", "Low, 2 notes"]);
+  eq("footer counts every page", [oct.footer, oct.total], ["6 NOTES", 6]);
+  eq("the six squares: group-only days in their groups", M.recentGroups(pages, NOW), ["calm", "low", "low", "happy", "tired"]);
+  eq("pages this month count them", M.pagesThisMonth(pages, NOW), 6);
 }
 
 /* ── media per kind ───────────────────────────────────────────────────── */

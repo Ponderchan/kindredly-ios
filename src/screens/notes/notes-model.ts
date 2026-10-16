@@ -1,5 +1,5 @@
 import type { JournalEntry, JournalType } from "../../lib/journal";
-import { MOOD_GROUPS, getMood, isNamedMood, moodGroup, type MoodGroup, type MoodId } from "../../data/moods";
+import { MOOD_GROUPS, moodArtKey, moodGroup, resolveMood, type MoodGroup, type MoodId } from "../../data/moods";
 import { hashStr } from "../../lib/mosaic";
 
 /* THE NOTES TAB, AS DATA (10a step 5). Pure: no React, no React Native,
@@ -14,10 +14,14 @@ import { hashStr } from "../../lib/mosaic";
    repeated id breaks a SwiftUI ForEach). Each page becomes a NoteVM with
    every word it shows already built:
    - its group's colour (lib moods: the four 10a groups over the thirty
-     faces; an unknown or missing mood is Calm) and, after the date, the
-     face's own name — in Card ("OCT 14 · 21:37 · Sleepy") and List
-     ("OCT 14 · Sleepy"), not in Grid ("OCT 14": owner question 9), always
-     for VoiceOver, and never when no mood was ever stored;
+     faces; a page that chose only a group is in that group; an unknown or
+     missing mood is Calm), its icon's art key (moods moodArtKey: the face,
+     or the group's own icon for a group alone and for no readable mood)
+     and, after the date, the mood's name (moods moodLabel: the face's own,
+     or the group's for a group alone) — in Card ("OCT 14 · 21:37 · Sleepy",
+     "OCT 14 · 21:37 · Low") and List ("OCT 14 · Sleepy"), not in Grid
+     ("OCT 14": owner question 9), always for VoiceOver, and never when no
+     mood was ever stored;
    - its one line for List: the first line of its words, or what it holds
      ("Voice note · 0:35", "3 pictures", "a video");
    - its media: the cover of a photo page (the picture coverIndex names, the
@@ -30,7 +34,8 @@ import { hashStr } from "../../lib/mosaic";
    earliest month with a page — at most 120 months back, so a bogus old
    date can't make a decade of empty months — and this month; never into
    the future. A day shows the group of its newest page, and tapping it
-   goes to that page (the day's first card in a newest-first list). The
+   goes to that page (the day's first card in a newest-first list); the
+   legend counts every page in its group, a group-only page included. The
    first weekday follows the language (format FIRST_WEEKDAY, owner
    question 11), and so do the weekday letters and the month's title.
 
@@ -83,11 +88,12 @@ export function dayKey(d: string | number | Date): string {
 }
 
 /** Everything the builders say, handed in by the caller (useNotesModel: i18n's t, lib/format's
-    dates in the reader's locale, moods' moodName). */
+    dates in the reader's locale, moods' moodLabel). */
 export type NotesFormat = {
   t: (key: string, vars?: Record<string, string | number>) => string;
-  /** a face's name in the reader's language (moods moodName) */
-  moodName: (id: MoodId) => string;
+  /** a stored mood's name in the reader's language: the face's, the group's for a group alone, ""
+      for none or an unknown one (moods moodLabel) */
+  moodLabel: (mood: string | null | undefined) => string;
   /** a day as a card label: "OCT 14", "14 OCT", "10月14日" (format noteDay) */
   day: (iso: string) => string;
   /** a clock time, 24h: "21:37" (format time24) */
@@ -108,9 +114,13 @@ export type NoteVM = {
   kind: JournalType;
   /** the 10a colour */
   group: MoodGroup;
-  /** the stored face (resolved: a legacy id is its new face), for the art face on the fallback and the detail page */
+  /** the stored mood, resolved (moods resolveMood): its face (a legacy id is its new face), its group
+      id for a group alone, group-calm when no readable mood was stored */
   mood: MoodId;
-  /** Card: "OCT 14 · 21:37 · Sleepy" (no name when no mood was ever stored) */
+  /** the icon's art key (moods moodArtKey): "mood-sleepy", "mood-group-low"; Swift draws it */
+  icon: string;
+  /** Card: "OCT 14 · 21:37 · Sleepy", "OCT 14 · 21:37 · Low" for a group alone (no name when no
+      mood was ever stored) */
   label: string;
   /** Grid and the floating date chip: "OCT 14" */
   shortLabel: string;
@@ -135,7 +145,7 @@ export type NoteVM = {
   duration: string;
   /** seeds the waveform's bar heights (waveHeight) */
   waveSeed: number;
-  /** VoiceOver: the long date, the time, the face's name, what it is, the start of the words */
+  /** VoiceOver: the long date, the time, the mood's name, what it is, the start of the words */
   a11y: string;
   dayKey: string;
   /** a dev sample page */
@@ -221,9 +231,7 @@ export function a11yWords(body: string | null | undefined): string {
 
 /** One page as a NoteVM. */
 export function buildNote(e: JournalEntry, fmt: NotesFormat): NoteVM {
-  const face = getMood(e.mood);
-  const named = isNamedMood(e.mood);
-  const name = named ? fmt.moodName(face.id) : "";
+  const name = fmt.moodLabel(e.mood);
   const day = fmt.day(e.date);
   const time = fmt.time(e.date);
   const withName = (s: string) => (name ? `${s} · ${name}` : s);
@@ -235,7 +243,8 @@ export function buildNote(e: JournalEntry, fmt: NotesFormat): NoteVM {
     id: e.id,
     kind: e.type,
     group: moodGroup(e.mood),
-    mood: face.id,
+    mood: resolveMood(e.mood),
+    icon: moodArtKey(e.mood),
     label: withName(`${day} · ${time}`),
     shortLabel: day,
     listLabel: withName(day),
@@ -316,7 +325,8 @@ export type DayVM = {
   key: string;
   /** the group of the day's newest page; null for a day with none */
   group: MoodGroup | null;
-  /** that page's face (the fallback draws its art) */
+  /** that page's mood, resolved (moods resolveMood: a face, or a group id for a group alone) — the
+      fallback draws a face's art, or the group's tile */
   mood: MoodId | null;
   /** how many pages that day */
   count: number;
@@ -337,7 +347,7 @@ export type MonthVM = {
   /** blank cells before the 1st, from the language's first weekday */
   lead: number;
   days: DayVM[];
-  /** pages per group this month, in MOOD_GROUPS order */
+  /** pages per group this month, in MOOD_GROUPS order (a group-only page in its group) */
   counts: number[];
   total: number;
   /** "9 NOTES" (drawn), "9 notes" (read) */
@@ -391,7 +401,7 @@ export function buildMonth(entries: readonly JournalEntry[], ym: YearMonth, now:
         n: d,
         key,
         group: moodGroup(hit.e.mood),
-        mood: getMood(hit.e.mood).id,
+        mood: resolveMood(hit.e.mood),
         count: hit.n,
         // a future day does nothing, even holding a page dated ahead (a clock that was wrong):
         // it keeps its colour, and the page is in the list
