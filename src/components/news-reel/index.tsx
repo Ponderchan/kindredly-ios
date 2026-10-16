@@ -8,10 +8,14 @@ import { reel as v104 } from "./v1-0-4";
    A desk post can point at a release's reel with the link
    kindredly:///news/<App Store version>; this build plays the reels it
    ships with, right under the post. A post for a reel this build doesn't
-   have shows only its words — and builds before 1.0.4 drop the link
-   altogether (they keep http links only), so the words must stand alone. */
+   have shows only its words — and builds before 1.0.5 drop the link
+   altogether (they keep http links only), so the words must stand alone.
+
+   The reel in v1-0-4 was made for "1.0.4"; the 2026-10-15 hotfix took that
+   number without these features, so they ship — and the reel plays — as
+   1.0.5. The desk post that points at it must say kindredly:///news/1.0.5. */
 const NEWS: Record<string, Reel> = {
-  "1.0.4": v104,
+  "1.0.5": v104,
 };
 
 export const newsReelOf = (id: string): Reel | null => NEWS[id] ?? null;

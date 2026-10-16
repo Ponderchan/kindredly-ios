@@ -6,11 +6,11 @@ import { ReelSquare } from "../components/ReelSquare";
 import { P, PF } from "../theme/post";
 
 /* dev only — a release's reel as Wren's room will play it, without a post
-   in the database. kindredly:///news-preview?v=1.0.4 — add &scene=<key> to loop one scene */
+   in the database. kindredly:///news-preview?v=1.0.5 — add &scene=<key> to loop one scene */
 export default function NewsPreview() {
   const { v, scene } = useLocalSearchParams<{ v?: string; scene?: string }>();
   if (!__DEV__) return <Redirect href="/" />;
-  const id = v || "1.0.4";
+  const id = v || "1.0.5";
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>

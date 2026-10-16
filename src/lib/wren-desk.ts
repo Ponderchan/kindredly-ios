@@ -43,7 +43,7 @@ const toPost = (r: any): WrenPost => ({
   i18n: r.body_i18n && typeof r.body_i18n === "object" ? r.body_i18n : null,
   /* a web page, or a place in the app: a guide (kindredly:///guide/<id>) or
      a release's reel played under the post (kindredly:///news/<version>).
-     Until 1.0.4 only http links got through, so the in-app ones were dropped. */
+     Until 1.0.5 only http links got through, so the in-app ones were dropped. */
   link: typeof r.link === "string" && (/^https?:\/\//.test(r.link) || /^kindredly:\/\/\/?(guide\/[a-z]+|news\/[0-9][0-9.]*)$/.test(r.link)) ? r.link : null,
   at: String(r.published_at || r.at || ""),
 });
