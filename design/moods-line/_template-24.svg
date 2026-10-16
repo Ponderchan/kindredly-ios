@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- KINDREDLY MOOD FACE · template v1 · 24 x 24. Draw only inside <g id="art"> in #000000.
+       Delete <g id="guides"> before export. The app draws the tile and tints the art. -->
+  <g id="guides">
+    <rect x="0" y="0" width="24" height="24" fill="#DDEFD6"/>
+    <rect x="2" y="2" width="20" height="20" fill="none" stroke="#E0483C" stroke-width="0.06"/>
+    <rect x="5" y="7.5" width="14" height="12.5" fill="none" stroke="#3A34D6" stroke-width="0.05" stroke-dasharray="0.3 0.2"/>
+    <path d="M12 0V24" fill="none" stroke="#3A34D6" stroke-width="0.04"/>
+    <path d="M0 10.5H24 M0 15.5H24" fill="none" stroke="#3A34D6" stroke-width="0.04"/>
+    <path d="M8.5 7.5V13.5 M15.5 7.5V13.5" fill="none" stroke="#2E7D4F" stroke-width="0.04"/>
+    <path d="M8 7.5V13.5 M16 7.5V13.5" fill="none" stroke="#B8842A" stroke-width="0.04" stroke-dasharray="0.25 0.2"/>
+    <rect x="16.5" y="2" width="5.5" height="6" fill="#E0483C" fill-opacity="0.08"/>
+    <rect x="2.5" y="12.5" width="4.5" height="3.5" fill="#E0483C" fill-opacity="0.08"/>
+    <rect x="17" y="12.5" width="4.5" height="3.5" fill="#E0483C" fill-opacity="0.08"/>
+    <circle cx="4" cy="4" r="1.5" fill="none" stroke="#55506E" stroke-width="0.04"/>
+    <circle cx="20" cy="20" r="2.2" fill="none" stroke="#55506E" stroke-width="0.04"/>
+  </g>
+  <g id="art">
+    <!-- example: mood-group-calm -->
+    <circle cx="8.5" cy="10.5" r="1.5" fill="#000000"/>
+    <circle cx="15.5" cy="10.5" r="1.5" fill="#000000"/>
+    <path d="M8 14.75c1.2 1.4 2.6 2 4 2s2.8-.6 4-2" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
