@@ -3,16 +3,20 @@ import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Host } from "@expo/ui/swift-ui";
-import { KTabBar, isKindredlyUIViewAvailable, type KTabBarCard, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
+import { KTabBar, isKindredlyUIViewAvailable, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
+import { useBirdImageRef } from "../lib/bird-images";
+import { useWrenName } from "../lib/wren-name";
+import { useLettersLeft, usePublishStage } from "../lib/use-publish-stage";
 import { tabBarHeight } from "./PostTabBar";
+import "../data/strings-today3d"; // pub.* (the publish entry's words)
 
 /* THE 10a TAB BAR, IN SWIFTUI (1.3.0) — the floating bar with the sliding
-   lens, the + that turns into an ×, and the composer sheet it opens, all
-   drawn by modules/kindredly-ui (KTabBar). This file is the React Native
-   side of it: it turns the navigator's state into the bar's props, the
-   bar's taps back into navigation, and holds the one Host they share.
+   lens, the + that turns into an ×, and what the + opens, all drawn by
+   modules/kindredly-ui (KTabBar). This file is the React Native side of
+   it: it turns the navigator's state into the bar's props, the bar's taps
+   back into navigation, and holds the one Host they share.
 
    The tabs layout picks it when useNativeSurface("tabbar") is on and the
    binary has the view (nativeTabBarReady); otherwise PostTabBar and PostFan
@@ -22,13 +26,26 @@ import { tabBarHeight } from "./PostTabBar";
    PRESSES DO WHAT POSTTABBAR'S DO. A tab emits tabPress to the navigator
    and navigates only if it isn't already the focused tab and nobody
    prevented it — re-pressing the tab you're on emits and does nothing else,
-   as today. The + toggles the sheet. The two cards are PostFan's two
-   choices with PostFan's destinations — to a stranger (/compose), to
-   yourself (/journal-pick) — and its order: push first, close after the
-   slide, so the composer slides in over the sheet. One difference, from
-   the mock: a tab tapped while the sheet is open also closes it (H:445,
-   go() clears the composer). The React Native fan stayed open over the
-   new tab.
+   as today. The + toggles what it opens. One difference, from the mock: a
+   tab tapped while it is open also closes it (H:445, go() clears the
+   composer). The React Native fan stayed open over the new tab.
+
+   THE + IS THE PUBLISH ENTRY (Today 3d × 25b, design Prompt 8), and it
+   opens by who is pressing it (lib/publish-stage): a new reader — their
+   first week, or Wren still a chick — gets a bottom sheet, Wren asking
+   which one tonight, with a letter row (and, for the free plan, the real
+   letters left today) and a diary-note row, while the bar slides away; a
+   returning reader gets two round buttons, LETTER and NOTE, popping from
+   behind the +. Neither is new writing UI: the letter goes to the letter
+   composer (/compose), the note to the diary composer (/journal-pick),
+   PostFan's own two destinations, in PostFan's order — push first, close
+   after the slide, so the composer slides in over what the + opened.
+   Today reads the same stage and the same open flag (usePlusSheetOpen,
+   which the tabs layout provides) to fade its band and window and step its
+   card back; nothing crosses between the two Hosts.
+
+   The 10a cards ("stranger" / "yourself") stay wired, so a binary or a lab
+   that still asks for them goes where they always went.
 
    ONE HOST, TWO SIZES. A SwiftUI hosting view can take every touch inside
    its frame, even where it draws nothing — UIHostingController's view is
@@ -37,15 +54,15 @@ import { tabBarHeight } from "./PostTabBar";
    full-screen Host could leave the screens under it untappable. Not
    relying on either answer, the Host is the bar's strip at the
    bottom of the screen (the bar and its gap below, full width) while
-   the sheet is closed, and the whole screen while it is open or closing —
-   the dim covers everything and the sheet rises from just above the bar.
-   SwiftUI lays all of it out from the bottom edge, so growing the Host
-   upward moves nothing. Closing, the Host stays full-screen for
-   PANEL_OUT_MS so the sheet and the dim can finish going, then shrinks.
-   The strip takes no more than PostTabBar did — it was a full-width slab
-   54 + inset tall — and both the wrapper and the Host are box-none, so if
-   the hosting view does let touches through where it draws nothing, the
-   gutters beside the bar pass them on.
+   the + is closed, and the whole screen while it is open or closing —
+   the dim covers everything and the sheet or the buttons rise from the
+   bar. SwiftUI lays all of it out from the bottom edge, so growing the
+   Host upward moves nothing. Closing, the Host stays full-screen for
+   PANEL_OUT_MS so the sheet, the buttons and the dim can finish going,
+   then shrinks. The strip takes no more than PostTabBar did — it was a
+   full-width slab 54 + inset tall — and both the wrapper and the Host are
+   box-none, so if the hosting view does let touches through where it
+   draws nothing, the gutters beside the bar pass them on.
 
    The Host ignores safe areas: the bar is placed from the bottom inset we
    pass (KTabBarMetrics.bottomGap), and the keyboard never lifts it — it
@@ -54,13 +71,18 @@ import { tabBarHeight } from "./PostTabBar";
 
    No haptics: PostTabBar and PostFan have none, so neither does this.
 
-   Every word is an existing key, already in nine languages: the tab names
-   (tab.*), the sheet's header and the +'s name (pc.post, the post
-   chooser's own heading), the × (wren.trackClose, the app's "Close"), and
-   the cards (pc.stranger / pc.yourself with the old chooser's replies,
-   pc.strangerSaid / pc.yourselfSaid, as subtitles). */
+   Words: the tab names (tab.*), the +'s name (pc.post, the post chooser's
+   own heading), the × (wren.trackClose, the app's "Close"), the 10a cards
+   (pc.stranger / pc.yourself with pc.strangerSaid / pc.yourselfSaid), and
+   the publish entry's pub.* (data/strings-today3d, English for now). Wren
+   is called by the name the reader gave her. */
 
 type BarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
+
+/* the publish entry's props, as the bar takes them */
+type PanelStyle = NonNullable<KTabBarProps["panelStyle"]>;
+type PublishSheet = NonNullable<KTabBarProps["sheet"]>;
+type PublishPop = NonNullable<KTabBarProps["pop"]>;
 
 /* the four tabs, in the bar's order — the mock's order too (H:448): Today,
    Notes, +, Kindreds, Me. `name` is the route under (tabs)/. */
@@ -71,11 +93,19 @@ const TABS: readonly { name: string; glyph: KTabGlyph; label: string }[] = [
   { name: "me", glyph: "me", label: "tab.me" },
 ];
 
-/* what the + offers — PostFan's two choices, same routes */
+/* the 10a cards — PostFan's two choices, same routes */
 const CHOICES: readonly { key: string; to: string; title: string; subtitle: string; glyph: KTabBarCard["glyph"]; tone: KTabBarCard["tone"] }[] = [
   { key: "stranger", to: "/compose", title: "pc.stranger", subtitle: "pc.strangerSaid", glyph: "letter", tone: "lavender" },
   { key: "yourself", to: "/journal-pick", title: "pc.yourself", subtitle: "pc.yourselfSaid", glyph: "note", tone: "warm" },
 ];
+
+/* where every key the + can report goes: the 10a cards' and the publish
+   entry's (KPublishAction in ios/Portable/KPlusPanel.swift) */
+const ROUTES: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(CHOICES.map((c) => [c.key, c.to])),
+  letter: "/compose",
+  note: "/journal-pick",
+};
 
 /** the bar's height (KTabBarMetrics.height) */
 export const NATIVE_BAR_H = 62;
@@ -116,12 +146,13 @@ export function useTabBarSpace(): number {
   return useContext(TabBarSpace) ?? tabBarHeight(insets.bottom);
 }
 
-/* how long the Host stays full-screen after the sheet closes: the dim's .3s
-   fade and a little over (KMotion.dimFade). The sheet is transparent after
-   .25s even though its scale runs on to .45s, so nothing visible is cut;
-   it is kept short because the screen under the Host can't take taps until
-   the Host shrinks. */
-const PANEL_OUT_MS = 320;
+/* how long the Host stays full-screen after the + closes: the new reader's
+   sheet shrinks over .45s (KMotion.publishSheetGrow) and the bar comes back
+   up over .35s, the returning reader's buttons fly back over .4s plus
+   NOTE's 50ms, and the dim fades over .3s — so .45s and a little over.
+   Kept no longer than that because the screen under the Host can't take
+   taps until the Host shrinks. */
+const PANEL_OUT_MS = 480;
 
 /* PostFan's wait between pushing the composer and closing the sheet under it */
 const CLOSE_AFTER_PUSH_MS = 420;
@@ -134,11 +165,11 @@ export function nativeTabBarReady(): boolean {
 }
 
 type Props = BarProps & {
-  /** the sheet is open (the layout's `choosing`) */
+  /** the + is open (the layout's `choosing`) */
   open: boolean;
-  /** the + was pressed: toggle the sheet */
+  /** the + was pressed: toggle it */
   onPost: () => void;
-  /** close the sheet */
+  /** close it */
   onClose: () => void;
   /** letters on you plus posts on Wren's desk (lib/waiting), on the Kindreds tab */
   waiting: number;
@@ -151,9 +182,16 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
   const router = useRouter();
   const current: string = state.routes[state.index]?.name ?? "letters";
 
+  // what the + opens: the new reader's sheet or the returning reader's two buttons
+  const panelStyle: PanelStyle = usePublishStage() === "new" ? "sheet" : "pop";
+  const wren = useWrenName();
+  const bird = useBirdImageRef("content");
+  // the free plan's count, asked as the sheet opens (the buttons show none)
+  const left = useLettersLeft(open && panelStyle === "sheet");
+
   /* full screen while open, and for PANEL_OUT_MS after it closes. Decided
-     during render, not in an effect, so the frame the sheet starts closing
-     in is already a full-screen one; each close restarts the wait. */
+     during render, not in an effect, so the frame it starts closing in is
+     already a full-screen one; each close restarts the wait. */
   const [wasOpen, setWasOpen] = useState(open);
   const [closedAt, setClosedAt] = useState(0);
   if (wasOpen !== open) {
@@ -182,11 +220,11 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
     go(tab.name);
   };
 
-  // push first, close after the slide — the composer slides over the sheet
+  // push first, close after the slide — the composer slides over what the + opened
   const onPanelAction = (key: string) => {
-    const choice = CHOICES.find((c) => c.key === key);
-    if (!choice) return;
-    router.push(choice.to);
+    const to = ROUTES[key];
+    if (!to) return;
+    router.push(to);
     setTimeout(onClose, CLOSE_AFTER_PUSH_MS);
   };
 
@@ -197,6 +235,24 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
   );
   const cards = useMemo<KTabBarCard[]>(
     () => CHOICES.map((c) => ({ key: c.key, title: t(c.title), subtitle: t(c.subtitle), glyph: c.glyph, tone: c.tone })),
+    [lang],
+  );
+  const sheet = useMemo<PublishSheet>(
+    () => ({
+      ask: t("pub.ask"),
+      letterTitle: t("pub.letter"),
+      letterSub: t("pub.letterSub", { name: wren }),
+      // hidden for First Class, a guest, and a count that couldn't be read: never a guess
+      letterLeft: left == null ? "" : t("pub.left", { n: left }),
+      noteTitle: t("pub.note"),
+      noteSub: t("pub.noteSub"),
+      footnote: t("pub.foot"),
+      bird,
+    }),
+    [lang, wren, left, bird],
+  );
+  const pop = useMemo<PublishPop>(
+    () => ({ letterLabel: t("pub.popLetter"), noteLabel: t("pub.popNote"), letterA11y: t("pub.letter"), noteA11y: t("pub.note") }),
     [lang],
   );
 
@@ -217,6 +273,9 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
           closeLabel={t("wren.trackClose")}
           panelTitle={t("pc.post")}
           panelCards={cards}
+          panelStyle={panelStyle}
+          sheet={sheet}
+          pop={pop}
           onTabPress={onTabPress}
           onPlusPress={onPost}
           onPanelAction={onPanelAction}

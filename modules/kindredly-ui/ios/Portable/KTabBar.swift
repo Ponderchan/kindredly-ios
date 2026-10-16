@@ -50,6 +50,13 @@ import SwiftUI
  Dynamic Type size, and each tab and the + show the large content viewer instead, as UIKit's
  own tab bar does. With Reduce Motion on, the lens slides on a plain ease without the stretch
  and the icons don't pop.
+
+ THE PUBLISH ENTRY (Today 3d × 25b, Prompt 8; KPlusPanel.swift). The + is where a reader writes,
+ and the holder can give it the design's turn, .35s cubic-bezier(.3,1.3,.4,1) (plusTurn,
+ KMotion.plusTurnPublish), instead of the 10a sheet's. For a new reader the + opens a bottom
+ sheet that takes the bar's place: hidden drops the whole bar 160 on that same curve, out of
+ sight and out of reach, and brings it back up when the sheet goes. With Reduce Motion it fades
+ out and in instead.
  */
 
 /// The four tabs' drawings (P:70-75). The order on the bar is the caller's.
@@ -129,6 +136,10 @@ public enum KTabBarMetrics {
   public static func bottomGap(safeAreaBottom: CGFloat) -> CGFloat {
     max(safeAreaBottom - 4, 16)
   }
+
+  /// How far the bar drops when hidden (Today 3d Prompt 8: translateY(160)), enough to clear the
+  /// screen's bottom edge from any gap.
+  public static let hiddenDrop: CGFloat = 160
 }
 
 public extension KMotion {
@@ -158,6 +169,8 @@ public struct KTabBar: View {
   private let isPanelOpen: Bool
   private let plusLabel: String
   private let closeLabel: String
+  private let plusTurn: Animation
+  private let hidden: Bool
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -170,6 +183,10 @@ public struct KTabBar: View {
   ///   - isPanelOpen: true turns the + into an × (what it opens is showing)
   ///   - plusLabel: what VoiceOver says for the + while closed, already translated
   ///   - closeLabel: what it says for the × while open, already translated
+  ///   - plusTurn: the curve the + turns to an × on: the 10a sheet's (KMotion.plusTurn) unless the
+  ///     holder says otherwise; the publish entry passes KMotion.plusTurnPublish
+  ///   - hidden: the bar slides 160 down out of sight (the new reader's publish sheet takes its
+  ///     place), on the publish turn's curve; with Reduce Motion it fades instead
   ///   - onSelect: a tab was tapped, with its index; selected or not
   ///   - onPlus: the + (or ×) was tapped
   public init(
@@ -179,6 +196,8 @@ public struct KTabBar: View {
     isPanelOpen: Bool,
     plusLabel: String,
     closeLabel: String,
+    plusTurn: Animation = KMotion.plusTurn,
+    hidden: Bool = false,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void
   ) {
@@ -188,6 +207,8 @@ public struct KTabBar: View {
     self.isPanelOpen = isPanelOpen
     self.plusLabel = plusLabel
     self.closeLabel = closeLabel
+    self.plusTurn = plusTurn
+    self.hidden = hidden
     self.onSelect = onSelect
     self.onPlus = onPlus
   }
@@ -224,8 +245,16 @@ public struct KTabBar: View {
     }
     // the bar never grows; its count is the only text (see the note at the top)
     .dynamicTypeSize(...DynamicTypeSize.large)
+    // out of the way for the publish sheet: down 160, or with Reduce Motion a fade
+    .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurnPublish) {
+      $0
+        .offset(y: hidden && !reduceMotion ? KTabBarMetrics.hiddenDrop : 0)
+        .opacity(hidden && reduceMotion ? 0 : 1)
+    }
+    .allowsHitTesting(!hidden)
     .accessibilityElement(children: .contain)
     .accessibilityAddTraits(.isTabBar)
+    .accessibilityHidden(hidden)
   }
 
   // ── the lens (H:118) ──
@@ -314,7 +343,7 @@ public struct KTabBar: View {
 
   // ── the + (H:119) ──
   private var plus: some View {
-    KPrimaryRound(theme: theme, isOpen: isPanelOpen, accessibilityLabel: isPanelOpen ? closeLabel : plusLabel, action: onPlus)
+    KPrimaryRound(theme: theme, isOpen: isPanelOpen, accessibilityLabel: isPanelOpen ? closeLabel : plusLabel, turn: plusTurn, action: onPlus)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       // the whole column takes the tap, as the mock's cell and PostTabBar's column do; the disc
       // keeps its own press (a child's gesture wins inside the circle)

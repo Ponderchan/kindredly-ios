@@ -27,13 +27,23 @@ import ExpoUI
  - panelTitle: the sheet's header; panelLinkKey / panelLinkTitle: its link on the right, shown
    only when the title is not empty
  - panelCards: [{ key, title, subtitle, glyph, tone }]; glyph letter / note, tone lavender / warm
+ - panelStyle: what the + opens: "cards" (the 10a sheet above, the default; ui-lab), "sheet" (the
+   new reader's publish sheet) or "pop" (the returning reader's two buttons). Anything else is
+   "cards"
+ - sheet: { ask, letterTitle, letterSub, letterLeft, noteTitle, noteSub, footnote, bird }: the
+   publish sheet's words ("" letterLeft hides the count) and the user's own Wren
+   ({ uri, key, kind }, an empty uri for none yet)
+ - pop: { letterLabel, noteLabel, letterA11y, noteA11y }: the two buttons' labels and what
+   VoiceOver says for each
  Every string arrives translated; nothing in Swift holds a word.
 
  Events, with what nativeEvent carries:
  - onTabPress { index }: a tab was tapped, selected or not; JS decides what that means
  - onPlusPress {}: the + (or ×) was tapped
- - onPanelAction { key }: a card (or the header link) was tapped
- - onPanelDismiss {}: the dim was tapped, or VoiceOver's escape
+ - onPanelAction { key }: a card (or the header link) was tapped; for the publish sheet and the
+   two buttons, "letter" or "note"
+ - onPanelDismiss {}: the dim was tapped, VoiceOver's escape, or the publish sheet was dragged
+   down
 
  Named on* with their own nouns rather than onPress, as @expo/ui names its own events
  (onButtonPress): a precaution against clashing with React Native's generic ones.
@@ -58,6 +68,28 @@ struct KTabBarCardRecord: Record {
   @Field var tone: String = "lavender"
 }
 
+/// The new reader's publish sheet, as JS sends it.
+struct KTabBarSheetRecord: Record {
+  @Field var ask: String = ""
+  @Field var letterTitle: String = ""
+  @Field var letterSub: String = ""
+  /// "3 LEFT"; empty hides it (First Class, a guest, a count that couldn't be read)
+  @Field var letterLeft: String = ""
+  @Field var noteTitle: String = ""
+  @Field var noteSub: String = ""
+  @Field var footnote: String = ""
+  /// the user's own Wren (a BirdSnapshots capture); an empty uri while there is none yet
+  @Field var bird: KImageRefRecord = KImageRefRecord()
+}
+
+/// The returning reader's two buttons, as JS sends them.
+struct KTabBarPopRecord: Record {
+  @Field var letterLabel: String = ""
+  @Field var noteLabel: String = ""
+  @Field var letterA11y: String = ""
+  @Field var noteA11y: String = ""
+}
+
 final class KTabBarViewProps: UIBaseViewProps {
   /// a key of src/theme/themes.json: classic, midnight, lavender or paper
   @Field var theme: String = "classic"
@@ -71,6 +103,10 @@ final class KTabBarViewProps: UIBaseViewProps {
   @Field var panelLinkKey: String = ""
   @Field var panelLinkTitle: String = ""
   @Field var panelCards: [KTabBarCardRecord] = []
+  /// cards, sheet or pop (KPublishStyle)
+  @Field var panelStyle: String = "cards"
+  @Field var sheet: KTabBarSheetRecord = KTabBarSheetRecord()
+  @Field var pop: KTabBarPopRecord = KTabBarPopRecord()
 
   var onTabPress = EventDispatcher()
   var onPlusPress = EventDispatcher()
@@ -108,10 +144,42 @@ struct KTabBarView: ExpoSwiftUI.View {
       panelLink: props.panelLinkTitle.isEmpty ? nil : KPlusPanelLink(key: props.panelLinkKey, title: props.panelLinkTitle),
       cards: cards,
       safeAreaBottom: props.safeAreaBottom,
+      // a style this binary doesn't know opens the 10a sheet
+      style: KPublishStyle(rawValue: props.panelStyle) ?? .cards,
+      sheet: sheetModel,
+      pop: popModel,
       onSelect: { props.onTabPress(["index": $0]) },
       onPlus: { props.onPlusPress() },
       onPanelAction: { props.onPanelAction(["key": $0]) },
       onDismiss: { props.onPanelDismiss() }
     )
+    // the publish sheet's Wren is a KImage: the one shared loader, as every step-5 screen has
+    .kImageLoader(KImageStore.shared)
+  }
+
+  /// the new reader's publish sheet, from its record
+  private var sheetModel: KPublishSheetModel {
+    let r = props.sheet
+    var m = KPublishSheetModel()
+    m.ask = r.ask
+    m.letterTitle = r.letterTitle
+    m.letterSub = r.letterSub
+    m.letterLeft = r.letterLeft
+    m.noteTitle = r.noteTitle
+    m.noteSub = r.noteSub
+    m.footnote = r.footnote
+    m.bird = r.bird.ref
+    return m
+  }
+
+  /// the returning reader's two buttons, from their record
+  private var popModel: KPublishPopModel {
+    let r = props.pop
+    var m = KPublishPopModel()
+    m.letterLabel = r.letterLabel
+    m.noteLabel = r.noteLabel
+    m.letterA11y = r.letterA11y
+    m.noteA11y = r.noteA11y
+    return m
   }
 }
