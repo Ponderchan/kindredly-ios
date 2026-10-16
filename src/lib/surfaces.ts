@@ -69,8 +69,10 @@ import {
                   also checks the binary has the Swift view itself, so a dev
                   client built before it simply keeps the React Native bar.
 
-   10a step 5. Each is false until its screen has passed its simulator
-   checks (batch 3 turns them on, one key at a time). Every one of them
+   10a step 5. Turned on 2026-10-16 after each screen was checked on the
+   simulator in Swift against the real account (Kindreds, the pen-pal chat,
+   Today, compose, Me, Settings, Edit profile, Notes; the room against demo
+   rows, the account having no kindred yet) and in all four themes. Every one of them
    keeps its React Native screen, chosen by <NativeSurface> (components/
    NativeSurface), which also checks that the binary has the Swift view:
 
@@ -88,15 +90,15 @@ import {
    Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
-  room: false,
-  chat: false,
-  kindreds: false,
-  today: false,
-  compose: false,
-  me: false,
-  settings: false,
-  editprofile: false,
-  notes: false,
+  room: true,
+  chat: true,
+  kindreds: true,
+  today: true,
+  compose: true,
+  me: true,
+  settings: true,
+  editprofile: true,
+  notes: true,
 };
 
 /** the nine step-5 surface keys (the `surface` prop of NativeSurface) */

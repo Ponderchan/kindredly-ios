@@ -44,15 +44,15 @@ ok("'constructor' is not a surface that is on", surfaceOn({}, {}, "constructor")
 ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes" as unknown as boolean }, { chat: true }, "chat") === true);
 
 /* ── NATIVE_DEFAULTS (lib/surfaces imports React Native, so its table is
-   read as text): the nine step-5 keys are there, every one still false
-   until batch 3, and the tab bar stays on ── */
+   read as text): the nine step-5 keys are there and on (turned on
+   2026-10-16 after the simulator checks), and the tab bar stays on ── */
 {
   const src = readFileSync(new URL("./surfaces.ts", import.meta.url), "utf8");
   const block = src.match(/export const NATIVE_DEFAULTS[^=]*=\s*\{([\s\S]*?)\};/)?.[1] ?? "";
   const entries = Object.fromEntries([...block.matchAll(/^\s*(\w+):\s*(true|false),/gm)].map((m) => [m[1], m[2] === "true"]));
   const NINE = ["room", "chat", "kindreds", "today", "compose", "me", "settings", "editprofile", "notes"];
   ok("NATIVE_DEFAULTS has all nine step-5 keys", NINE.every((k) => k in entries));
-  ok("every step-5 key is false until it ships", NINE.every((k) => entries[k] === false));
+  ok("every step-5 key is on", NINE.every((k) => entries[k] === true));
   ok("the tab bar stays on", entries.tabbar === true);
   ok("nothing else is in the table", Object.keys(entries).length === NINE.length + 1);
 }
