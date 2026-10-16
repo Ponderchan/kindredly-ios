@@ -1,6 +1,6 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { hungerRead } from "../lib/hunger";
-import { dShort, postNo } from "../lib/format";
+import { dShort, noteDay, postNo } from "../lib/format";
 import { Image } from "react-native";
 import { keepsake } from "../data/keepsakes";
 import { CofounderMark } from "./CofounderMark";
@@ -528,8 +528,9 @@ function Cell({ label, value, count, swatch, on, onPress }: { label: string; val
   );
 }
 
-const short = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+/* the journey's dates in the reader's locale ("SEP 20", "20 SET", "9月20日"); they were en-US in
+   every language */
+const short = (iso: string) => noteDay(iso);
 
 /* which journey set her status — the same rules whereabouts() reads */
 function drivingThread(threads: ThreadSummary[], state: string): ThreadSummary | null {
