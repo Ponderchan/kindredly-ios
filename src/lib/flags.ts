@@ -41,3 +41,36 @@ export async function unsetFlag(name: string): Promise<void> {
     /* best-effort */
   }
 }
+
+/* THE DAY'S DESK IS DONE (Today 3d). One flag per desk day (lib/day), set
+   when the last letter left the desk and her DayClosed Live Activity went
+   up, so a relaunch into a finished desk never starts it again. Only the
+   newest day matters, so sealing a day drops the older ones (a key a day
+   used to pile up here for good). */
+const SEALED = "sealed:";
+export const sealedFlag = (day: string): string => SEALED + day;
+
+/** whether this desk day is already sealed */
+export async function isSealed(day: string): Promise<boolean> {
+  return !!(await getFlags())[sealedFlag(day)];
+}
+
+/** seal this desk day, and forget the days before it */
+export async function sealDay(day: string): Promise<void> {
+  try {
+    const flags = await getFlags();
+    const key = sealedFlag(day);
+    let changed = !flags[key];
+    for (const k of Object.keys(flags)) {
+      if (k.startsWith(SEALED) && k !== key) {
+        delete flags[k];
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    flags[key] = true;
+    await AsyncStorage.setItem(KEY, JSON.stringify(flags));
+  } catch (e) {
+    console.warn("[flags] seal day:", e);
+  }
+}

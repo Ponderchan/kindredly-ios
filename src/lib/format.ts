@@ -137,6 +137,15 @@ export function time24(d: string | number | Date, opts: { locale?: string } = {}
 }
 
 /**
+ * A clock time in the reader's own clock: en "8:00 AM", de "8:00", ja "8:00", ko "오전 8:00",
+ * id "8.00". Unlike time24 it keeps the locale's 12- or 24-hour habit, so a line like
+ * "I'm back at {t}" reads the way the reader's phone tells the time.
+ */
+export function clockTime(d: string | number | Date, opts: { locale?: string } = {}): string {
+  return new Date(d).toLocaleTimeString(opts.locale ?? localeTag(), { hour: "numeric", minute: "2-digit" });
+}
+
+/**
  * A calendar month's title in the locale's own order: "OCTOBER 2026", "OCTUBRE DE 2026",
  * "2026年10月", "2026년 10월". Upper-cased unless opts.upper is false (CJK has no case).
  */

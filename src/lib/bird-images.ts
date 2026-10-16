@@ -43,7 +43,9 @@ export type BirdPose =
   | "think20"
   | "official"
   | "fcFree"
-  | "fcMember";
+  | "fcMember"
+  // Today (3d x 25b): the wire bird's curious face, at the 56 set's size
+  | "curious56";
 
 /** What a pose draws. Anything pinned overrides the user's look; the rest is hers. */
 export type BirdPoseSpec = {
@@ -79,6 +81,13 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   // the First Class stamp (FirstClassStub.tsx:50): the grown bird in the user's look
   fcFree: { size: 36, mood: "curious", stage: "wren" },
   fcMember: { size: 36, mood: "delight", stage: "wren" },
+  /* Today's Wren on the arc (screens/today/today-birds): she turns curious on
+     a drag and a pass. Her other faces there are the 56 base set (content,
+     delight, sleepy, fly), so this is that set's size and the five faces
+     crossfade as one drawing. curious24 is the room dock's, too small to
+     scale up. Her look and stage, unpinned; the hatchling's face is
+     HatchEyes, as for every mood. Not base: captured only while Today asks. */
+  curious56: { size: 56, mood: "curious" },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */
@@ -222,7 +231,7 @@ export function birdImageRef(pose: BirdPose, wilt = false): ImageRefRecord | nul
  * placeholder the screen already has. While a new look is being captured the
  * previous picture stays. Keeps the variant captured while mounted.
  *
- * @param pose  'content' 'mini' 'curious24' 'think20' 'official' 'fcFree' 'fcMember' (or a Live Activity pose)
+ * @param pose  'content' 'mini' 'curious24' 'curious56' 'think20' 'official' 'fcFree' 'fcMember' (or a Live Activity pose)
  * @param opts.wilt starving (lib/hunger → wilt): greyed and drooping. Its own capture.
  */
 export function useBirdImageRef(pose: BirdPose, opts: { wilt?: boolean } = {}): ImageRefRecord | null {

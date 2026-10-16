@@ -13,8 +13,9 @@ import { TodayRN } from "../../screens/today/TodayRN";
 import { TodayOverlays } from "../../screens/today/TodayOverlays";
 import { DEMO_DESK, demoDeps, useDemoSource, type DemoFixture, type DemoReply } from "../../screens/today/today-demo";
 import "../../data/strings-step5-today";
+import "../../data/strings-today3d";
 
-/* dev only — THE TODAY DESK ON FIXTURES (10a step 5, slice today).
+/* dev only — THE TODAY DESK ON FIXTURES (10a step 5; Today 3d × 25b).
    kindredly:///dev/step5-today
 
    The Today tab as either renderer draws it, on screens/today/today-demo's
@@ -22,12 +23,13 @@ import "../../data/strings-step5-today";
    close), a Spanish letter it also named (the translate capsule wins the
    slot; ES→EN translates in place), a long letter that folds (UNFOLD opens
    the reader), a voice letter (the sample sound plays through the desk's
-   one player and stops on a swipe), a long Chinese letter folded before it
-   is measured, an unsigned letter (the veil, no ⋯) — then the blind.
-   The same model runs on it as on the tab (useTodayCore), so the card
-   stack, the plate shrinking into its postmark, the reply strip on the
-   keyboard, the send (the fly-by, "Reply sent.", the next card sliding up),
-   the pouch, a refused reply and the guest sheet all behave as they will.
+   one player and stops when the card changes), a long Chinese letter
+   folded before it is measured, an unsigned letter (the veil; its ⋯ only
+   offers Bring back). The same model runs on it as on the tab
+   (useTodayCore), so pass and bring back, the reply on the keyboard, the
+   send (the fly-by, "Reply sent.", the next letter coming up), the pouch,
+   a refused reply, the guest sheet, done (her letter, the window) all
+   behave as they will. The day is kept in memory, never put away.
 
    The panel at the bottom (HIDE for a clean screenshot: the desk then
    leaves the floating tab bar's room, as on the tab; a dot brings it back):
@@ -35,28 +37,36 @@ import "../../data/strings-step5-today";
      OFF = the normal theme), never saved;
    - SWIFT / RN: which renderer (SWIFT needs a dev client built with
      KTodayView, after pod install);
-   - DESK · ARRIVAL (her first return: the strip of three envelopes, the
-     first card unfolding) · LOADING (no desk yet: the plate blank, no
-     blind) · KEPT (a desk shown while the first load is in flight) ·
-     QUIET (nothing on the desk: CLOSED, the strip, the blind). LOADING
-     and QUIET are also her first return, and must draw no arrival: there
-     are no letters for her envelopes to be;
-   - STRIP (an unopened post of Wren's), POUCH (five in flight: SEND dims,
-     the sheet explains), and what the next reply does: OK · GONE (taken
-     back: ld.unreachable, the letter leaves) · OFFLINE · SUSPENDED · GUEST
-     (the sign-up sheet). RESET puts the letters back.
+   - DESK · LEFT=1 (one letter left: pass it to see the desk finish) ·
+     DONE (the desk finishes while you watch: the flow plays) · REOPENED
+     (opening into a finished desk: everything at rest, the Host remounted)
+     · QUIET (nothing came past the desk) · OFFLINE (an offline cold start
+     with nothing kept) · LOADING (the first load, nothing yet) · KEPT (a
+     desk shown while the first load is in flight) · ARRIVAL (her first
+     return: her line over the wire, the first card unfolding). LOADING and
+     QUIET are also her first return, and must draw no arrival;
+   - PLAY (she can play: off is an egg, so her letter's invite drops the
+     game and the window shows when she's back), POUCH (five in flight: SEND
+     dims, the sheet explains), and what the next reply does: OK · GONE
+     (taken back: ld.unreachable, the letter leaves) · OFFLINE · SUSPENDED ·
+     GUEST (the sign-up sheet). RESET deals the day again.
    Report and block say what they would do instead of reaching the server
    (a block still clears the writer's letters). The panel's words are
    English: a dev page. */
 
-type Mode = "desk" | "arrival" | "loading" | "kept" | "quiet";
+type Mode = "desk" | "left1" | "done" | "reopened" | "quiet" | "offline" | "loading" | "kept" | "arrival";
 const MODES: { key: Mode; label: string }[] = [
   { key: "desk", label: "DESK" },
-  { key: "arrival", label: "ARRIVAL" },
+  { key: "left1", label: "LEFT=1" },
+  { key: "done", label: "DONE" },
+  { key: "reopened", label: "REOPENED" },
+  { key: "quiet", label: "QUIET" },
+  { key: "offline", label: "OFFLINE" },
   { key: "loading", label: "LOADING" },
   { key: "kept", label: "KEPT" },
-  { key: "quiet", label: "QUIET" },
+  { key: "arrival", label: "ARRIVAL" },
 ];
+const ALL = DEMO_DESK.map((l) => l.id);
 const REPLIES: DemoReply[] = ["ok", "gone", "offline", "suspended", "guest"];
 
 export default function Step5Today() {
@@ -72,25 +82,33 @@ function TodayLab() {
 
   const [swift, setSwift] = useState(swiftAvailable);
   const [mode, setMode] = useState<Mode>("desk");
-  const [strip, setStrip] = useState(true);
+  const [play, setPlay] = useState(true);
   const [pouch, setPouch] = useState(false);
   const [reply, setReply] = useState<DemoReply>("ok");
   const [panel, setPanel] = useState(true);
-  const [round, setRound] = useState(0); // RESET: a new pool object puts every letter back
+  const [round, setRound] = useState(0); // RESET: a new fixture deals the day again
 
   const fixture = useMemo<DemoFixture>(
-    () => ({
-      pool: mode === "loading" || mode === "quiet" ? [] : mode === "arrival" ? DEMO_DESK.slice(0, 3) : [...DEMO_DESK],
-      loaded: mode !== "loading" && mode !== "kept",
-      flights: pouch ? 5 : 1,
-      waiting: 2,
-      // she has just come back in LOADING and QUIET too: neither may draw her envelopes over nothing
-      fresh: mode === "arrival" || mode === "loading" || mode === "quiet",
-      deskUnread: strip ? 1 : 0,
-    }),
-    // round: RESET deals the same letters again as a new desk
+    () => {
+      const empty = mode === "quiet" || mode === "offline" || mode === "loading";
+      return {
+        desk: empty ? [] : mode === "arrival" ? DEMO_DESK.slice(0, 3) : [...DEMO_DESK],
+        passed: mode === "left1" ? ALL.slice(0, -1) : mode === "done" || mode === "reopened" ? [...ALL] : [],
+        // reopened: the desk was done two hours ago (her letter's postmark)
+        doneAt: mode === "reopened" ? Date.now() - 2 * 3600_000 : null,
+        loaded: mode !== "loading" && mode !== "offline" && mode !== "kept",
+        offline: mode === "offline",
+        flights: pouch ? 5 : 1,
+        waiting: 2,
+        // she has just come back in LOADING and QUIET too: neither may draw her line over nothing
+        fresh: mode === "arrival" || mode === "loading" || mode === "quiet",
+        stage: play ? "wren" : "egg",
+        wilt: false,
+      };
+    },
+    // round: RESET deals the same letters again as a new day
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, pouch, strip, round],
+    [mode, pouch, play, round],
   );
   const replyRef = useRef(reply);
   replyRef.current = reply;
@@ -100,6 +118,7 @@ function TodayLab() {
   const model: TodayModel = useTodayCore(source, deps);
   blockedRef.current = model.act.blocked;
 
+  const hostKey = mode === "reopened" && model.view.phase === "done" ? `reopened:${round}` : "live";
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   // with the panel hidden the desk leaves the floating tab bar's room, as on the tab
   const room = panel ? 0 : nativeTabBarRoom(safe.bottom);
@@ -108,7 +127,8 @@ function TodayLab() {
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <TabBarSpace.Provider value={room}>
         <View style={{ flex: 1 }}>
-          {swift && swiftAvailable ? <TodayNative model={model} /> : <TodayRN model={model} />}
+          {/* REOPENED remounts the renderer once the fixture's desk is done, so it opens into a finished desk (at rest) rather than watching it finish */}
+          {swift && swiftAvailable ? <TodayNative key={hostKey} model={model} /> : <TodayRN key={hostKey} model={model} />}
           <TodayOverlays model={model} />
         </View>
       </TabBarSpace.Provider>
@@ -129,7 +149,7 @@ function TodayLab() {
             ))}
           </Row>
           <Row>
-            <Chip label="STRIP" on={strip} onPress={() => setStrip((v) => !v)} />
+            <Chip label="PLAY" on={play} onPress={() => setPlay((v) => !v)} />
             <Chip label="POUCH" on={pouch} onPress={() => setPouch((v) => !v)} />
             {REPLIES.map((r) => (
               <Chip key={r} label={r.toUpperCase()} on={reply === r} onPress={() => setReply(r)} />
@@ -137,7 +157,7 @@ function TodayLab() {
             <Chip label="RESET" onPress={() => setRound((n) => n + 1)} />
           </Row>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
-            {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KTodayView in this build)"} · PAGE ${model.view.idx}/${model.view.feed.length}`}
+            {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KTodayView in this build)"} · ${model.view.phase.toUpperCase()} · LEFT ${model.view.left}/${model.view.feed.length}`}
           </Text>
         </View>
       ) : (

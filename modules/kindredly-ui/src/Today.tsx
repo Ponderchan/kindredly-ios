@@ -1,14 +1,15 @@
 import { requireNativeView } from "expo";
-import { forwardRef, memo, useMemo, type ReactNode, type Ref } from "react";
+import { forwardRef, memo, useMemo, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
-import type { KInsets, KMenuAction, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
 
 /* THE TODAY TAB, drawn by SwiftUI (ios/Portable/Today/KTodayDesk.swift, adapter
-   ios/Adapters/KTodayView.swift), for src/screens/today/TodayNative.tsx. Every word, date, count
-   and menu comes in from TS (src/screens/today/today-cards.ts builds the cards); Swift draws them
-   and reports taps. Swift keeps only the gesture's and the keyboard's state: the card the stack
-   settled on, the scroll, the field's focus.
+   ios/Adapters/KTodayView.swift), for src/screens/today/TodayNative.tsx. Every word, date, count,
+   rule and menu comes in from TS (src/screens/today/today-cards.ts builds the cards and her
+   letter); Swift draws them and reports taps. Swift keeps only the gesture's, the keyboard's and
+   the day's-end pictures' state: the card on screen (it advances before TS confirms a pass and
+   reconciles by id), the drag, the field's focus, Wren's flight.
 
    It is a whole screen: put it alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost field in
    src/components/NativeSurface.tsx: ignoreSafeArea "container", so the keyboard's safe area stays
@@ -18,13 +19,11 @@ import type { KInsets, KMenuAction, KScreenBaseProps, KScreenHandle, KStandardCo
    useKCommands<KTodayCommands>(ref, { blurOnUnmount: true, onViewAttach }) and reseed the bound
    letter's draft in onViewAttach (a remounted view starts with an empty field).
 
-   insets.top is the status bar; insets.tabBarRoom the floating bar's room (the pill sits 6 above
+   insets.top is the status bar; insets.tabBarRoom the floating bar's room (the band sits 2 above
    it). Pass `cards` memoised with a rev from useRev — apart from the drafts, so typing never
    re-sends fifteen letters. Anything that changes often (the composer's key and hint, focus,
-   playback, scroll requests, the cord's lock, text seeds) goes through commands, never props.
-
-   Islands go in as children, every one on every render, in this order: <KIsland name="deskBird">,
-   <KIsland name="arrivalBird">, and the end page's <KSlot name="endPage"> (src/Slot.tsx). */
+   playback, text seeds) goes through commands, never props. No children: Wren is drawn in Swift
+   from her own pictures (`birds`, BirdSnapshots captures), so the desk has no islands. */
 
 /** The one capsule slot at a card's foot. */
 export type KTodayCapsule = {
@@ -60,41 +59,69 @@ export type KTodayCard = {
   capsule: KTodayCapsule;
   menu: KMenuAction[];
   a11yLabel: string;
+  /** the reply field's placeholder for this letter: "write back to No. 7273…" */
+  replyPlaceholder: string;
 };
 
-/** Her first return: the line and the three envelopes, with what VoiceOver says of each. */
-export type KTodayArrival = {
-  open: boolean;
-  line: string;
-  states: ("opened" | "current" | "sealed")[];
-  labels: string[];
-  values: string[];
-};
+/** TS's phase of the desk (today-cards DeskPhase). */
+export type KTodayPhase = "loading" | "offline" | "reading" | "done";
+
+/** The tab bar's + panel over Today. */
+export type KTodayPlus = "closed" | "sheet" | "pop";
 
 /** Every word on the desk that isn't on a card. */
 export type KTodayStrings = {
   title: string;
-  /** CLOSED / ALL READ / "" */
-  rightLabel: string;
-  /** the desk strip's line; "" draws none */
-  deskStrip: string;
-  pass: string;
+  /** NEXT, under the glass disc */
+  next: string;
+  /** REPLY, under the ink disc */
   reply: string;
   replyA11y: string;
   unfold: string;
   unfoldA11y: string;
   voiceLetter: string;
   more: string;
-  next: string;
-  previous: string;
+  /** VoiceOver's "Next letter" (the card's action) */
+  nextA11y: string;
+  bringBack: string;
   play: string;
   pause: string;
-  placeholder: string;
   send: string;
+  placeholder: string;
+  offlineTitle: string;
+  offlineBody: string;
+  loadingA11y: string;
 };
 
-/** Where the reader's page goes after the cards changed under it: the card now in its place ("" = the end page). */
-export type KTodayAnchor = { id: string; serial: number };
+/** Her counted note when the desk is done (today-cards WrenLetterVM). */
+export type KTodayWrenLetter = {
+  from: string;
+  stamp: string;
+  lines: string[];
+  sign: string;
+  bag: string;
+  foot: string;
+  countdown: string;
+  notYet: string;
+  chip: string;
+  a11y: string;
+};
+
+/** The window's sky by the hour, "#RRGGBB" (today-cards WindowSky). */
+export type KTodaySky = { top: string; bottom: string; pillarFill: string; pillarInk: string; text: string; stars: boolean; night: boolean };
+
+/** The window to her game (today-cards WindowVM). */
+export type KTodayWindow = { canPlay: boolean; eyebrow: string; line: string; a11yLabel: string; a11yHint: string; sky: KTodaySky };
+
+/** Her five pictures (today-birds useTodayBirds); null for one not captured yet. */
+export type KTodayBirds = {
+  idle: KImageRefProps | null;
+  curious: KImageRefProps | null;
+  delight: KImageRefProps | null;
+  sleepy: KImageRefProps | null;
+  fly: KImageRefProps | null;
+  flyIsPerch: boolean;
+};
 
 /** The reply strip's state for the bound letter, sent on every change. */
 export type KTodayComposer = {
@@ -108,12 +135,10 @@ export type KTodayComposer = {
   sendSerial: number;
 };
 
-/** The Today view's commands. */
+/** The Today view's commands: setText, focus, blur, reset, composer, playback. */
 export type KTodayCommands = Omit<KStandardCommands, "scrollTo" | "composer" | "playback"> & {
-  scrollTo: { key: "top" | (string & {}); animated?: boolean };
   composer: KTodayComposer;
   playback: { key: string; playing: boolean; positionS: number; durationS: number; at: number; failed: boolean };
-  lock: { held: boolean };
 };
 
 export type KTodayCardAction = "unfold" | "translate" | "report" | "block" | "voice";
@@ -121,42 +146,54 @@ export type KTodayCardAction = "unfold" | "translate" | "report" | "block" | "vo
 export type KTodayViewProps = CommonViewModifierProps &
   KScreenBaseProps & {
     strings: KTodayStrings;
-    arrival: KTodayArrival;
+    phase: KTodayPhase;
+    /** letters on today's desk not yet passed (NEXT's number) */
+    left: number;
+    leftA11y: string;
+    /** the letters not passed yet, the one on screen first */
     cards: KTodayCard[];
+    titleLocked: boolean;
     freshUnfold: boolean;
-    endPage: boolean;
-    pillHidden: boolean;
-    anchor: KTodayAnchor;
-    onCardIndex?: (index: number) => void;
+    /** her first-arrival line over the wire, "" for none */
+    arrivalLine: string;
+    wrenLetter: KTodayWrenLetter;
+    window: KTodayWindow;
+    birds: KTodayBirds;
+    night: boolean;
+    plus: KTodayPlus;
+    hideBand: boolean;
+    onPass?: (letterId: string) => void;
+    onBringBack?: () => void;
+    onReplyOpen?: (letterId: string) => void;
+    onWindow?: () => void;
     onReplyChange?: (letterId: string, text: string) => void;
     onReplySend?: (letterId: string, text: string, serial: number) => void;
     onReplyFocus?: (focused: boolean) => void;
     onCardAction?: (letterId: string, action: KTodayCardAction) => void;
-    onDeskStrip?: () => void;
-    onEnvelope?: (index: number) => void;
-    /** the three islands, every one on every render */
-    children?: ReactNode;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
 
 type NativeCapsule = Required<KTodayCapsule>;
 type NativeCard = Omit<KTodayCard, "capsule" | "menu"> & { capsule: NativeCapsule; menu: { key: string; title: string; icon: string; destructive: boolean }[] };
+type NativeImageRef = Required<KImageRefProps>;
+type NativeBirds = { idle: NativeImageRef; curious: NativeImageRef; delight: NativeImageRef; sleepy: NativeImageRef; fly: NativeImageRef; flyIsPerch: boolean };
 
-type NativeKTodayViewProps = Omit<
-  KTodayViewProps,
-  "letterFont" | "insets" | "rev" | "cards" | "onCardIndex" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction" | "onDeskStrip" | "onEnvelope"
-> &
+type Handlers = "onPass" | "onBringBack" | "onReplyOpen" | "onWindow" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction";
+
+type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "rev" | "cards" | "birds" | Handlers> &
   Required<Pick<KTodayViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     cards: NativeCard[];
-    onTodayCardIndex?: Ev<{ index: number }>;
+    birds: NativeBirds;
+    onTodayPass?: Ev<{ letterId: string }>;
+    onTodayBringBack?: Ev<Record<string, never>>;
+    onTodayReplyOpen?: Ev<{ letterId: string }>;
+    onTodayWindow?: Ev<Record<string, never>>;
     onTodayReplyChange?: Ev<{ letterId: string; text: string }>;
     onTodayReplySend?: Ev<{ letterId: string; text: string; serial: number }>;
     onTodayReplyFocus?: Ev<{ focused: boolean }>;
     onTodayCardAction?: Ev<{ letterId: string; action: KTodayCardAction }>;
-    onTodayDeskStrip?: Ev<Record<string, never>>;
-    onTodayEnvelope?: Ev<{ index: number }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -177,6 +214,14 @@ export function nativeTodayCards(cards: readonly KTodayCard[]): NativeCard[] {
   }));
 }
 
+/** A picture as the Swift record wants it: none is an empty uri, never null. */
+const nativeRef = (r: KImageRefProps | null): NativeImageRef => (r ? { uri: r.uri, key: r.key, kind: r.kind ?? "image" } : { uri: "", key: "", kind: "image" });
+
+/** Her five pictures as the Swift record wants them. */
+export function nativeTodayBirds(b: KTodayBirds): NativeBirds {
+  return { idle: nativeRef(b.idle), curious: nativeRef(b.curious), delight: nativeRef(b.delight), sleepy: nativeRef(b.sleepy), fly: nativeRef(b.fly), flyIsPerch: b.flyIsPerch };
+}
+
 // the view's JS name is the Swift struct's name (ios/Adapters/KTodayView.swift)
 const NativeKTodayView = requireNativeView<NativeKTodayViewProps>("KindredlyUI", "KTodayView");
 
@@ -185,10 +230,11 @@ const NativeKTodayView = requireNativeView<NativeKTodayViewProps>("KindredlyUI",
     view, whose every props update re-converts the whole map. */
 export const KTodayView = memo(
   forwardRef<KScreenHandle, KTodayViewProps>(function KTodayView(
-    { modifiers, letterFont, insets, rev, cards, onCardIndex, onReplyChange, onReplySend, onReplyFocus, onCardAction, onDeskStrip, onEnvelope, ...rest },
+    { modifiers, letterFont, insets, rev, cards, birds, onPass, onBringBack, onReplyOpen, onWindow, onReplyChange, onReplySend, onReplyFocus, onCardAction, ...rest },
     ref,
   ) {
     const sent = useMemo(() => nativeTodayCards(cards), [cards]);
+    const pictures = useMemo(() => nativeTodayBirds(birds), [birds]);
     return (
       <NativeKTodayView
         ref={ref}
@@ -201,13 +247,15 @@ export const KTodayView = memo(
         insets={insets ?? NO_INSETS}
         rev={rev ?? 0}
         cards={sent}
-        onTodayCardIndex={onCardIndex ? (e) => onCardIndex(e.nativeEvent.index) : undefined}
+        birds={pictures}
+        onTodayPass={onPass ? (e) => onPass(e.nativeEvent.letterId) : undefined}
+        onTodayBringBack={onBringBack ? () => onBringBack() : undefined}
+        onTodayReplyOpen={onReplyOpen ? (e) => onReplyOpen(e.nativeEvent.letterId) : undefined}
+        onTodayWindow={onWindow ? () => onWindow() : undefined}
         onTodayReplyChange={onReplyChange ? (e) => onReplyChange(e.nativeEvent.letterId, e.nativeEvent.text) : undefined}
         onTodayReplySend={onReplySend ? (e) => onReplySend(e.nativeEvent.letterId, e.nativeEvent.text, e.nativeEvent.serial) : undefined}
         onTodayReplyFocus={onReplyFocus ? (e) => onReplyFocus(e.nativeEvent.focused) : undefined}
         onTodayCardAction={onCardAction ? (e) => onCardAction(e.nativeEvent.letterId, e.nativeEvent.action) : undefined}
-        onTodayDeskStrip={onDeskStrip ? () => onDeskStrip() : undefined}
-        onTodayEnvelope={onEnvelope ? (e) => onEnvelope(e.nativeEvent.index) : undefined}
       />
     );
   }),

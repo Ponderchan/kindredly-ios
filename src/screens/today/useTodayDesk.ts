@@ -5,9 +5,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { KScreenHandle } from "../../../modules/kindredly-ui";
 import type { KTodayCardAction } from "../../../modules/kindredly-ui/src/Today";
 import { useTheme } from "../../lib/theme";
-import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
+import { getLang, hasString, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { guessLatin } from "../../lib/lang-guess";
-import { fmt as clock, postNo, postmark } from "../../lib/format";
+import { clockTime, fmt as clock, penPalName, postNo, postmark } from "../../lib/format";
 import { getStamp, sname } from "../../data/stamps";
 import { stickerName } from "../../lib/sticker-copy";
 import { POOL_CACHE_KEY, fetchMatches, fetchPool, fetchThreads, lastWriteFail, markLetterRead, replyToLetter, type PoolLetter } from "../../lib/db";
@@ -15,20 +15,21 @@ import type { WriteFail } from "../../lib/thread-detail-core";
 import type { Signal } from "../../lib/today-signal";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
 import { noteWrote, replanLocal } from "../../lib/local-push";
-import { bump, getCounters, repliedToday, seenToday } from "../../lib/usage-counters";
+import { bump } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
 import { screenNow, translate } from "../../lib/wren";
-import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, getFlags, setFlag, unsetFlag } from "../../lib/flags";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, getFlags, isSealed, sealDay, unsetFlag } from "../../lib/flags";
 import { useAuth } from "../../lib/auth";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
-import { deskDay } from "../../lib/day";
+import { deskDay, isNightHour } from "../../lib/day";
 import { startDayClosed } from "../../lib/activities";
 import { onYou } from "../../lib/waiting";
 import { readRoomSeen } from "../../lib/room-seen";
-import { wrenStageDirty } from "../../lib/wren-stage";
+import { useWrenStage, wrenStageDirty } from "../../lib/wren-stage";
 import { useWrenName } from "../../lib/wren-name";
-import { WREN_ROOM } from "../../lib/wren-desk";
+import { hungerRead } from "../../lib/hunger";
+import { usePublishStage } from "../../lib/use-publish-stage";
 import { DEMO_POOL, demoMediaUrl, seedDemoThread } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { alertFail } from "../../lib/fail";
@@ -41,69 +42,102 @@ import { usePlusSheetOpen } from "../../lib/screen-insets";
 import { openLeaveSheet } from "../../components/LeaveSheet";
 import { openSignUpSheet } from "../../components/SignUpSheet";
 import { useSlow } from "../../components/ui";
-import { useWrenDesk } from "../../components/WrenDesk";
+import { PALETTE, daylight } from "../../components/CourierCard";
+import type { WrenStage } from "../../components/WrenBird";
 import "../../data/strings-step5-today";
+import "../../data/strings-today3d";
 import * as C from "./today-cards";
 
-/* THE TODAY TAB'S MODEL (10a step 5): everything the tab knows and does,
-   for whichever renderer draws it — TodayNative (SwiftUI, one Host) or
-   TodayRN (the remote switch's React Native fallback). The rules live in
-   today-cards (pure, node-tested); this file gathers the facts and does the
-   side effects, in three parts:
+/* THE TODAY TAB'S MODEL (10a step 5; Today 3d × 25b, 2026-10-16):
+   everything the tab knows and does, for whichever renderer draws it —
+   TodayNative (SwiftUI, one Host) or TodayRN (the remote switch's React
+   Native fallback). The rules live in today-cards (pure, node-tested); this
+   file gathers the facts and does the side effects, in three parts:
 
-   - useTodaySource(): the desk itself. Last put-away desk first, then the
-     pool and the threads together, the matcher's second pass, the 45s
-     focus throttle, the put-away desk (and the 8 o'clock knock's replan),
-     the first arrival's flags, her desk's unread count (useWrenDesk). A
-     null answer (offline, signed out) keeps the desk AND the pouch and the
-     waiting count (they used to drop to zero offline, so a send looked
-     allowed and her slip said nobody was waiting).
-   - useTodayCore(source, deps): the reader's day on that desk. The page
-     (TS keeps it; a renderer reports where it settled), the seen counter
-     and the 2s read receipt, the day turning at eight, the blind and her
-     slip (W33 counts), per-letter drafts (the source of truth: every edit
-     lands here, no debounce), translations and the one capsule, the
-     signals, the one voice player (paused on a page change and a tab
-     switch: a voice letter used to play on after a swipe), send() with
-     every outcome, the pouch, the guest sheet, report / block, the unfold
-     reader, the toast. Its IO goes through `deps`, so the dev page runs
-     the same code on fixtures with no network.
+   - useTodaySource(): the day on this phone. The saved day first (the desk
+     dealt this morning, what was passed and answered, done), then the pool
+     and the threads together, the matcher's second pass, the freeze once
+     the day is dealt (owner question 1: nothing joins the desk until
+     08:00; replies, blocks and withdrawn letters still leave it), the 45s
+     focus throttle, the put-away record (and the 8 o'clock knock's
+     replan), the first arrival's flags, her stage and whether she can
+     play. A null answer (offline, signed out) keeps the desk AND the pouch
+     and the waiting count; a first load that comes back with nothing says
+     offline, never done.
+   - useTodayCore(source, deps): the reader's day on that desk. Pass and
+     bring back (one step), the seen counter (once a day per letter, kept
+     in the record so a relaunch never counts twice) and the read receipt
+     (2s on the card, or at once when REPLY opens), the day turning at
+     eight, done (her counted letter, the DayClosed Live Activity started
+     by itself when the last letter goes — owner question 2 — and never on
+     a quiet day or a relaunch), the window to her game with its sky by the
+     hour, per-letter drafts (the source of truth: every edit lands here, no
+     debounce), translations and the one capsule, the signals, the one
+     voice player (paused when the card changes and on a tab switch),
+     send() with every outcome, the pouch, the guest sheet, report / block,
+     the unfold reader, the toast, the + panel's stage. Its IO goes through
+     `deps`, so the dev page runs the same code on fixtures with no network.
    - useTodayDesk(): the two together, as the route uses them.
 
-   Every word a renderer shows is set here or in today-cards, with t(). */
+   Every word a renderer shows is set here or in today-cards, with t().
 
-/* ── the desk on the phone ─────────────────────────────────────────────── */
+   LEGACY: until integrate and rn-fallback rewire TodayNative / TodayRN /
+   TodayOverlays, the view also carries what the step-5 scroll stack and
+   the blind read (idx, atEnd, quiet, plateRight, deskStrip, facts, sealed,
+   held, anchor, scroll, pillHidden, the arrival's envelopes) and the
+   actions they call (settle, goto, toTop, seal, grab, openDeskStrip). They
+   never pass a letter, so on them the desk behaves as it did. Marked
+   "legacy" below; delete them with those renderers. */
 
-/* THE DESK IS PUT AWAY AS IT WAS LEFT — the fifteen, in the matcher's
-   order, with the day they belong to. Opening on the same day paints
-   exactly that, and the network only adds to it (owner, 2026-09-19: the
-   letter under the thumb used to swap twice within two seconds of opening).
-   Onboarding still writes the raw list; that shape is read as a placeholder. */
-type DeskCache = { day: string; desk: PoolLetter[] };
-/* lib/local-push reads the key: the 8 o'clock knock is skipped only for a
-   morning whose own desk is known to be empty, so a desk that fills or
-   empties re-plans it — once per change, not on every put-away */
+/* ── the day on the phone ─────────────────────────────────────────────── */
+
+/* THE DAY IS PUT AWAY AS IT IS — the desk in its dealt order with the
+   letters passed and answered, under the same key and with the same `day`
+   and `desk` fields as before (lib/local-push reads them). Opening on the
+   same day paints exactly that; the network only prunes a frozen desk
+   (owner, 2026-09-19: the letter under the thumb used to swap twice within
+   two seconds of opening). Onboarding still writes the raw list; that shape
+   is read as a placeholder. */
+/* the 8 o'clock knock is skipped only for a morning whose own desk is known
+   to be empty, so a desk that fills or empties re-plans it — once per
+   change, not on every put-away */
 let deskWasFull: boolean | null = null;
-function putAway(desk: PoolLetter[]): void {
-  const full = desk.length > 0;
+function putAway(rec: C.DayRecord): void {
+  const full = rec.desk.length > 0;
   const changed = full !== deskWasFull;
   deskWasFull = full;
-  void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify({ day: deskDay(), desk } satisfies DeskCache))
+  void AsyncStorage.setItem(POOL_CACHE_KEY, JSON.stringify(rec))
     .then(() => (changed ? replanLocal({ force: true }) : undefined))
     .catch((e) => console.warn("[today] desk put-away:", e));
 }
-async function readDeskCache(): Promise<{ desk: PoolLetter[]; today: boolean } | null> {
+async function readSaved(today: string): Promise<{ rec: C.DayRecord; placeholder: boolean } | null> {
   try {
-    const raw = await AsyncStorage.getItem(POOL_CACHE_KEY);
-    if (!raw) return null;
-    const c = JSON.parse(raw) as PoolLetter[] | DeskCache;
-    if (Array.isArray(c)) return c.length ? { desk: rationPool(c), today: false } : null;
-    if (!Array.isArray(c.desk) || !c.desk.length) return null;
-    return { desk: c.desk, today: c.day === deskDay() };
+    return C.readDayRecord(await AsyncStorage.getItem(POOL_CACHE_KEY), today);
   } catch (e) {
-    console.warn("[today] desk cache unreadable:", e);
+    console.warn("[today] desk read:", e);
     return null;
   }
+}
+
+/** A day record held in memory, changed through `update` synchronously (so a caller can read what it did). */
+export function useMemoryDay(init: () => C.DayRecord, onChange?: (rec: C.DayRecord) => void): { rec: C.DayRecord; update: (fn: (rec: C.DayRecord) => C.DayRecord) => void; reset: (rec: C.DayRecord) => void; get: () => C.DayRecord } {
+  const [rec, setRec] = useState(init);
+  const ref = useRef(rec);
+  const changeRef = useRef(onChange);
+  changeRef.current = onChange;
+  const update = useCallback((fn: (r: C.DayRecord) => C.DayRecord) => {
+    const next = fn(ref.current);
+    if (next === ref.current) return;
+    ref.current = next;
+    setRec(next);
+    changeRef.current?.(next);
+  }, []);
+  const reset = useCallback((next: C.DayRecord) => {
+    ref.current = next;
+    setRec(next);
+  }, []);
+  const get = useCallback(() => ref.current, []);
+  return { rec, update, reset, get };
 }
 
 /** the first arrival lasts the day she came back */
@@ -111,47 +145,106 @@ const ARRIVAL_TTL = 20 * 60 * 60 * 1000;
 /** a fresh pool is fresh for this long; a tab switch inside it doesn't refetch */
 const REFOCUS_MS = 45_000;
 
-/* ── the source: what is on the desk ───────────────────────────────────── */
+/* ── the source: the day on this phone ─────────────────────────────────── */
 
 export type TodaySource = {
-  /** the desk (the day's ration, in the order it was dealt) */
-  pool: PoolLetter[];
-  /** the network has answered at least once (or a kept desk is today's) */
+  /** today's record: the desk (passed letters included), passed, answered, seen, undo, dealt, done */
+  rec: C.DayRecord;
+  /** a non-null pool answer came this session, or a known record of today was read */
   loaded: boolean;
+  /** a load ended with no answer while nothing was loaded (an offline cold start with nothing kept) */
+  offline: boolean;
   /** correspondences opened and not yet answered (the pouch, lib/ration) */
   flights: number;
-  /** correspondences waiting on a reply from you (her slip) */
+  /** correspondences waiting on a reply from you (her letter) */
   waiting: number;
+  /** her stage (useWrenStage), null until the first read lands */
+  stage: WrenStage | null;
+  /** she's starving (hungerRead on the threads the load already fetched) */
+  wilt: boolean;
+  /** she can play her game: hatched and not wilted (the PLAY sticker's rule) */
+  canPlay: boolean;
   /** her first crossing just landed: the arrival shows */
   fresh: boolean;
   /** did the opener leave, or stay on the phone (which line she says) */
   sent: boolean;
   settleArrival: () => void;
-  /** her desk's unopened posts (the strip) */
-  deskUnread: number;
-  /** read the desk again; `reset` rebuilds it (the day turned) */
+  /** read the desk again; `reset` starts the day over (the day turned) */
   reload: (reset?: boolean) => void;
-  /** a letter leaves the desk (answered, or it can't be answered) */
-  remove: (id: string) => void;
-  /** every letter by this writer leaves (blocked) */
-  removeAuthor: (author: string) => void;
-  /** dev builds may show the demo desk when the real one is empty */
+  /** every change to the day goes through here (and is put away) */
+  update: (fn: (rec: C.DayRecord) => C.DayRecord) => void;
+  /** dev builds may show the demo desk when the real one has nothing dealt */
   demoAllowed: boolean;
 };
 
+/** What the matcher answered: its writers' scores, and their letters (the narrowed second fetch). */
+type Matched = { score: Map<string, number>; theirs: PoolLetter[] };
+
+/** A real deal waits this long for the matcher (counted from the pool's answer) before it deals without it. */
+const MATCH_WAIT_MS = 1500;
+const TIMED_OUT = Symbol("timed out");
+
+/** `p`'s answer, or TIMED_OUT once `ms` have passed without one. */
+function within<T>(p: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  return new Promise((resolve) => {
+    const id = setTimeout(() => resolve(TIMED_OUT), ms);
+    void p.then((v) => {
+      clearTimeout(id);
+      resolve(v);
+    });
+  });
+}
+
+/** A day's deal from a pool and the matcher's answer: matched first, then the server's newest-first, rationed to the fifteen. */
+function scoredDeal(base: readonly PoolLetter[], m: Matched): PoolLetter[] {
+  const seen = new Set(base.map((l) => l.id));
+  const scored = [...base, ...m.theirs.filter((l) => !seen.has(l.id))].map((l) => ({ ...l, close: l.author ? m.score.get(l.author) : undefined }));
+  return rationPool([...scored].sort((a, b) => (b.close ?? -1) - (a.close ?? -1)));
+}
+
+/** A load's matcher pass on the desk it dealt (or filled, or froze). */
+function withMatches(r: C.DayRecord, mode: C.LoadMode, theirs: PoolLetter[], score: Map<string, number>): PoolLetter[] {
+  const cur = r.desk;
+  const close = (l: PoolLetter) => (l.author ? score.get(l.author) : undefined);
+  if (mode === "frozen") {
+    // nothing joins; the scores are only attached in place
+    let changed = false;
+    const next = cur.map((l) => {
+      const c = close(l);
+      if (c === l.close) return l;
+      changed = true;
+      return { ...l, close: c };
+    });
+    return changed ? next : cur;
+  }
+  // a desk being dealt: matched first, then the server's newest-first, behind what the reader has already seen
+  if (mode === "deal") return C.dealDesk(cur, r.passed, scoredDeal(cur, { score, theirs }));
+  // a desk filling: as it was, the matched newcomers at the end
+  const seen = new Set(cur.map((l) => l.id));
+  const scored = [...cur, ...theirs.filter((l) => !seen.has(l.id))].map((l) => ({ ...l, close: close(l) }));
+  return scored.slice(0, Math.max(cur.length, DAY_LETTERS));
+}
+
 export function useTodaySource(): TodaySource {
+  const { stage } = useWrenStage();
+  const store = useMemoryDay(() => C.emptyDay(deskDay()), putAway);
+  const placeholderRef = useRef(false);
+  const [loaded, setLoaded] = useState(false);
+  const loadedRef = useRef(false);
+  const [offline, setOffline] = useState(false);
   const [flights, setFlights] = useState(0);
   const [waiting, setWaiting] = useState(0);
-  const [pool, setPool] = useState<PoolLetter[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [wilt, setWilt] = useState(false);
   const lastLoad = useRef(0);
-  const loadedRef = useRef(false);
-  const desk = useWrenDesk();
+  const readOnce = useRef(false);
+  /** a new day makes the answer of a load still in flight stale */
+  const generation = useRef(0);
+  const { update, reset, get } = store;
 
   /* THE FIRST ARRIVAL. Onboarding ends with her first crossing; when Today
-     opens after it she lands with the three envelopes, and the first of
-     them unfolds. It stays until the third is behind you or you answer one
-     of them, and it expires with the day she came back. */
+     opens after it, her line is up over the wire and the first card
+     unfolds. It stays until three letters are passed or you answer one,
+     and it expires with the day she came back. */
   const [fresh, setFresh] = useState(false);
   const [sent, setSent] = useState(true);
   useEffect(() => {
@@ -173,53 +266,116 @@ export function useTodaySource(): TodaySource {
     void unsetFlag(ARRIVAL_FRESH);
   }, []);
 
-  /* THE DESK DOESN'T REARRANGE ITSELF UNDER YOU (owner, 2026-09-19). A
-     reload with letters already on the desk only ADDS at the end and
-     attaches the matcher's scores in place; the order is rebuilt only when
-     there's nothing on the desk yet, when what's there is a placeholder, or
-     when the day turns. The letters don't wait on the matcher, and the
-     matcher chooses people, not just the order (its writers' letters come
-     back with the scores, a narrowed second fetch). */
-  const load = useCallback(async (reset = false) => {
-    if (!loadedRef.current && !reset) {
-      const c = await readDeskCache();
-      if (c) {
-        setPool((cur) => (cur.length ? cur : c.desk));
-        if (c.today) loadedRef.current = true;
+  /* A LOAD. The saved day paints first (once a session); then the pool and
+     the threads together, the matcher asked at the same time. A null pool
+     answer changes nothing (offline is said only while nothing is loaded).
+     Otherwise the desk is dealt (a new day, or onboarding's placeholder),
+     filled (dealt but not frozen yet: a legacy record) or, frozen, only
+     pruned of withdrawn letters.
+
+     A real deal (nothing on the desk yet) waits up to MATCH_WAIT_MS for the
+     matcher, the loading card still up, and deals once, matched writers
+     first: the first letter of the day is the best-matched one, and nothing
+     swaps under the thumb. A matcher slower than that is not waited for: the
+     desk deals without it, and its late pass fills in behind the letter on
+     screen (dealDesk). Onboarding's placeholder is already showing letters,
+     so it deals at once and the pass does the same. Otherwise the matcher's
+     pass appends to a fill or only attaches its scores. A deal or a fill
+     then freezes, whether or not the matcher answered. */
+  const load = useCallback(
+    async (restart = false) => {
+      try {
+        const today = deskDay();
+        if (restart || get().day !== today) {
+          // the day turned: yesterday's desk, passes, done and title lock all go
+          generation.current++;
+          placeholderRef.current = false;
+          loadedRef.current = false;
+          setLoaded(false);
+          setOffline(false);
+          reset(C.emptyDay(today));
+        }
+        const gen = generation.current;
+        const stale = () => gen !== generation.current;
+        if (!readOnce.current) {
+          readOnce.current = true;
+          const saved = await readSaved(today);
+          if (stale()) return;
+          const cur = get();
+          // what was kept paints, unless this session's desk already moved
+          if (saved && cur.desk.length === 0 && cur.passed.length === 0 && cur.answered.length === 0) {
+            placeholderRef.current = saved.placeholder;
+            reset(saved.rec);
+            if (!saved.placeholder && C.recordKnown(saved.rec)) {
+              loadedRef.current = true;
+              setLoaded(true);
+            }
+          }
+        }
+
+        // asked beside the pool, so a deal rarely has to wait for it (its failure is no answer)
+        const matchesP = fetchMatches().catch((e) => {
+          console.warn("[today] matcher:", e);
+          return null;
+        });
+        const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
+        if (stale()) return;
+        /* offline keeps what the pouch and her letter last knew (critic): no
+           threads is no answer, not "nobody" */
+        if (th) {
+          setFlights(inFlight(th as FlightThread[]));
+          setWilt(!!hungerRead({ threads: th, lastWrittenAt: null })?.wilt);
+          const w = onYou(th, await readRoomSeen());
+          if (stale()) return;
+          setWaiting(w);
+        }
+        if (!p) {
+          if (!loadedRef.current) setOffline(true);
+          return;
+        }
+        const pool = p;
+        const mode = C.loadMode(get(), placeholderRef.current);
+        // the matcher chooses people, not just the order: its writers' letters come back with the scores
+        const matcher: Promise<Matched | null> = (async () => {
+          const m = await matchesP;
+          if (!m?.closest?.length) return null;
+          const score = new Map(m.closest.map((c) => [c.uid, c.score]));
+          const theirs = mode === "frozen" ? [] : (await fetchPool(C.POOL_PAGE, m.closest.map((c) => c.uid))) || [];
+          return { score, theirs };
+        })().catch((e) => {
+          console.warn("[today] matcher pass:", e);
+          return null;
+        });
+        // a real deal holds the loading card a moment for the matcher (see A LOAD)
+        const early = mode === "deal" && !placeholderRef.current ? await within(matcher, MATCH_WAIT_MS) : TIMED_OUT;
+        if (stale()) return;
+        update((r) =>
+          C.withDesk(
+            r,
+            mode === "deal"
+              ? C.dealDesk(r.desk, r.passed, early !== TIMED_OUT && early ? scoredDeal(pool, early) : rationPool(pool))
+              : C.keepDesk(r.desk, pool, mode === "fill" ? rationPool(pool) : [], mode === "frozen"),
+          ),
+        );
+        placeholderRef.current = false;
+        loadedRef.current = true;
+        setLoaded(true);
+        setOffline(false);
+
+        // the pass, unless the deal already had its answer (or its "no one")
+        if (early === TIMED_OUT) {
+          const late = await matcher;
+          if (stale()) return;
+          if (late) update((r) => C.withDesk(r, withMatches(r, mode, late.theirs, late.score)));
+        }
+        if (stale()) return;
+        if (mode !== "frozen") update((r) => C.freeze(r, Date.now()));
+      } catch (e) {
+        console.warn("[today] load:", e);
       }
-    }
-    const rebuild = reset || !loadedRef.current;
-    const [p, th] = await Promise.all([fetchPool(), fetchThreads()]);
-    /* offline keeps what the pouch and her slip last knew (critic): no
-       threads is no answer, not "nobody" */
-    if (th) {
-      setFlights(inFlight(th as FlightThread[]));
-      setWaiting(onYou(th, await readRoomSeen()));
-    }
-    const dealt = rationPool(p || []);
-    // no answer (offline, signed out) leaves the desk as it is rather than clearing it
-    setPool((cur) => (!p && cur.length ? cur : rebuild || !cur.length ? dealt : C.keepDesk(cur, p || [], dealt)));
-    setLoaded(true);
-    loadedRef.current = true;
-    const m = await fetchMatches();
-    if (!m?.closest?.length) {
-      setPool((cur) => {
-        putAway(cur);
-        return cur;
-      });
-      return;
-    }
-    const score = new Map(m.closest.map((c) => [c.uid, c.score]));
-    const theirs = (await fetchPool(40, m.closest.map((c) => c.uid))) || [];
-    setPool((cur) => {
-      const seen = new Set(cur.map((l) => l.id));
-      const scored = [...cur, ...theirs.filter((l) => !seen.has(l.id))].map((l) => ({ ...l, close: l.author ? score.get(l.author) : undefined }));
-      // a desk being built: matched first, then the server's newest-first. A desk in use: as it was, the matched newcomers at the end
-      const next = rebuild || !seen.size ? rationPool(scored.sort((a, b) => (b.close ?? -1) - (a.close ?? -1))) : scored.slice(0, Math.max(cur.length, DAY_LETTERS));
-      putAway(next);
-      return next;
-    });
-  }, []);
+    },
+    [get, reset, update],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -230,24 +386,30 @@ export function useTodaySource(): TodaySource {
     }, [load]),
   );
 
-  // a letter leaving the desk leaves the put-away desk too, or it would be back next open
-  const remove = useCallback((id: string) => {
-    setPool((cur) => {
-      const next = cur.filter((l) => l.id !== id);
-      if (next.length !== cur.length) putAway(next);
-      return next;
-    });
-  }, []);
-  const removeAuthor = useCallback((author: string) => {
-    setPool((cur) => {
-      const next = cur.filter((l) => l.author !== author);
-      if (next.length !== cur.length) putAway(next);
-      return next;
-    });
-  }, []);
-  const reload = useCallback((reset = false) => void load(reset), [load]);
+  const reload = useCallback(
+    (restart = false) => {
+      lastLoad.current = Date.now();
+      void load(restart);
+    },
+    [load],
+  );
 
-  return { pool, loaded, flights, waiting, fresh, sent, settleArrival, deskUnread: desk.unread, reload, remove, removeAuthor, demoAllowed: true };
+  return {
+    rec: store.rec,
+    loaded,
+    offline,
+    flights,
+    waiting,
+    stage,
+    wilt,
+    canPlay: stage !== "egg" && !wilt,
+    fresh,
+    sent,
+    settleArrival,
+    reload,
+    update,
+    demoAllowed: true,
+  };
 }
 
 /* ── the core's IO ─────────────────────────────────────────────────────── */
@@ -263,17 +425,15 @@ export type TodayDeps = {
   signal: (letter: PoolLetter) => Promise<Signal | null>;
   markRead: (id: string) => void;
   bump: (key: "seen" | "replied" | "translated") => void;
-  /** today's counters, for her slip */
-  counters: () => Promise<{ seen: number; replied: number }>;
   /** after a reply went: the conversion event, her stage, the fingerprint, the evening ask */
   afterReply: (letter: PoolLetter, text: string, demo: boolean) => void;
   seedDemo: (letter: PoolLetter, text: string) => void;
-  /** whether this desk day's blind is already down */
+  /** whether this desk day is already sealed (flag sealed:{day}) */
   sealed: (day: string) => Promise<boolean>;
-  /** the blind came down: the flag and her on the lock screen */
-  seal: (day: string, facts: C.DayFacts) => void;
-  /** to her desk (the strip) */
-  openDesk: () => void;
+  /** the desk is done: the flag, and her on the lock screen till she's back */
+  seal: (day: string, facts: { read: number; waiting: number }) => void;
+  /** the window: her game (Flappy Words) */
+  openWindow: () => void;
   /** dev: a report or block that shouldn't reach the server; return true when handled */
   intercept?: (action: "report" | "block", letter: PoolLetter) => boolean;
   /** dev: pretend to be a guest (null: ask the session) */
@@ -292,10 +452,6 @@ export function useRealTodayDeps(): TodayDeps {
       signal: signalFor,
       markRead: markLetterRead,
       bump: (key) => void bump(key),
-      counters: async () => {
-        const c = await getCounters();
-        return { seen: seenToday(c), replied: repliedToday(c) };
-      },
       afterReply: (_letter, text, demo) => {
         if (!demo) {
           // the moment a stranger's letter becomes a correspondence — the product's most important conversion
@@ -306,12 +462,12 @@ export function useRealTodayDeps(): TodayDeps {
         void noteWrote("letter");
       },
       seedDemo: (letter, text) => void seedDemoThread(letter, text),
-      sealed: async (day) => !!(await getFlags())[`sealed:${day}`],
+      sealed: isSealed,
       seal: (day, facts) => {
-        void setFlag(`sealed:${day}`);
-        void startDayClosed({ read: facts.read, waiting: facts.waiting }); // her, on the lock screen, till she's back
+        void sealDay(day);
+        void startDayClosed(facts); // her, on the lock screen, till she's back
       },
-      openDesk: () => router.push(`/room/${WREN_ROOM}`),
+      openWindow: () => router.push("/courier?play=1"),
     }),
     [router],
   );
@@ -319,90 +475,133 @@ export function useRealTodayDeps(): TodayDeps {
 
 /* ── the core: the reader's day on the desk ────────────────────────────── */
 
-/** A scroll the renderer should do; its serial makes two asks two scrolls. */
+/** legacy: a scroll the step-5 renderers should do; its serial makes two asks two scrolls. */
 export type TodayScroll = { serial: number; target: "top" | (string & {}); animated: boolean };
 
-/** Where the page goes after the cards changed under it (the card now in its place, "" = the end page). */
+/** legacy: where the step-5 stack's page goes after the cards changed under it (the card now in its place, "" = the end page). */
 export type TodayAnchor = { id: string; serial: number };
 
 export type TodayStrings = {
   title: string;
-  pass: string;
+  /** NEXT, under the glass disc */
+  next: string;
+  /** REPLY, under the ink disc */
   reply: string;
   replyA11y: string;
   unfold: string;
   unfoldA11y: string;
   voiceLetter: string;
   more: string;
-  next: string;
-  previous: string;
+  /** VoiceOver's "Next letter" (the card's action) */
+  nextA11y: string;
+  bringBack: string;
   play: string;
   pause: string;
-  placeholder: string;
   send: string;
+  placeholder: string;
+  offlineTitle: string;
+  offlineBody: string;
+  loadingA11y: string;
+  /** legacy: ↑ PASS, on the step-5 card */
+  pass: string;
+  /** legacy: VoiceOver's "Previous letter" on the step-5 card */
+  previous: string;
 };
 
+/** The + panel over the tab: closed, the first-week sheet, or the two round buttons. */
+export type TodayPlus = "closed" | "sheet" | "pop";
+
 export type TodayView = {
+  phase: C.DeskPhase;
   loaded: boolean;
-  /** loaded with nothing on the desk: the plate says CLOSED, the strip and the blind stay */
-  quiet: boolean;
   /** the dev demo desk is showing */
   demo: boolean;
+  /** today's desk, passed letters included (LetterReader finds its letter here) */
   feed: PoolLetter[];
+  /** the letters not passed yet, the one on screen first (what both renderers draw) */
   cards: C.CardVM[];
-  /** the reader's page: 0…feed.length (feed.length = the blind) */
-  idx: number;
-  atEnd: boolean;
+  /** letters on today's desk not yet passed (NEXT's number) */
+  left: number;
+  leftA11y: string;
+  /** the letter on screen */
   current: PoolLetter | null;
-  /** CLOSED / ALL READ / "" */
-  plateRight: string;
-  /** the desk strip's line; "" for none */
-  deskStrip: string;
+  /** the title has shrunk for the day: a letter was passed, or the desk is done */
+  titleLocked: boolean;
+  /** Bring back is offered (the card's ⋯ carries it; the RN ⋯ reads this) */
+  canBringBack: boolean;
+  /** her first arrival: her line over the wire while the first three letters are up. legacy: states / labels / values are the step-5 envelopes */
   arrival: { open: boolean; line: string; states: C.EnvelopeState[]; labels: string[]; values: string[] };
   /** the first card unfolds as it arrives (the arrival is open) */
   freshUnfold: boolean;
-  /** the reply, bound to the reader's page */
+  /** the reply, bound to the letter on screen */
   reply: { letterId: string; draft: string; preview: string; state: C.ReplyState };
   sending: boolean;
   /** the send has taken longer than a send takes (the fly-by says "a headwind") */
   slow: boolean;
   /** "Reply sent." is up */
   toast: boolean;
-  /** a send in flight, the reader open, or the + sheet up */
-  pillHidden: boolean;
-  facts: C.DayFacts;
-  sealed: boolean;
-  /** the blind's cord is held: the stack doesn't scroll */
-  held: boolean;
-  anchor: TodayAnchor;
-  scroll: TodayScroll;
+  /** the control band and Wren step aside: a send in flight, or the reader open */
+  hideBand: boolean;
+  /** the + panel, by the reader's stage (lib/use-publish-stage) */
+  plus: TodayPlus;
+  /** her letter when the desk is done */
+  wrenLetter: C.WrenLetterVM;
+  /** the window to her game */
+  window: C.WindowVM;
+  /** her yawn hours (21:00–07:59) */
+  night: boolean;
+  /** her, for the pictures: the reader's own courier (name, stage, wilted) */
+  wren: { name: string; stage: WrenStage | null; wilt: boolean };
   /** bumped when the reader closes: the Swift field takes the draft again */
   draftEpoch: number;
   /** the last send press answered (Swift's dock waits for it) */
   answeredSerial: number;
   /** the letter in the unfolded reader, or null */
   readerId: string | null;
-  /** the "to" of the fly-by: NO.xxxx */
+  /** the "to" of the fly-by: the pen pal's number ("NO.7273") */
   flyTo: string | null;
   strings: TodayStrings;
+
+  /* ── legacy (the step-5 scroll stack and the blind) ── */
+  /** legacy: loaded with nothing on the desk */
+  quiet: boolean;
+  /** legacy: the step-5 stack's page, 0…cards.length (cards.length = the blind); always 0 for the new renderers */
+  idx: number;
+  /** legacy */
+  atEnd: boolean;
+  /** legacy: CLOSED / ALL READ / "" */
+  plateRight: string;
+  /** legacy: Wren's desk strip is dropped from Today (Kindreds carries it): always "" */
+  deskStrip: string;
+  /** legacy: the blind's slip */
+  facts: { read: number; replied: number; waiting: number };
+  /** the desk day is sealed (done, or the legacy blind pulled) */
+  sealed: boolean;
+  /** legacy: the blind's cord is held */
+  held: boolean;
+  /** legacy */
+  anchor: TodayAnchor;
+  /** legacy */
+  scroll: TodayScroll;
+  /** legacy: a send in flight, the reader open, or the + panel up */
+  pillHidden: boolean;
 };
 
 export type TodayActions = {
-  /** the stack settled on a page (feed.length = the blind) */
-  settle: (index: number) => void;
-  /** an envelope of the arrival: go to that letter */
-  goto: (index: number) => void;
-  /** re-pressing the tab: to the first letter */
-  toTop: () => void;
+  /** a card passed (the swipe up, NEXT, VoiceOver's "Next letter"); an id not on the desk is ignored */
+  pass: (letterId: string) => void;
+  /** the ⋯'s Bring back: the last pass, one step */
+  bringBack: () => void;
+  /** REPLY opened the field for the letter on screen: that is reading it (the read receipt goes now) */
+  replyOpen: (letterId: string) => void;
+  /** the window: her game, when she can play */
+  window: () => void;
   changeDraft: (letterId: string, text: string) => void;
   /** send the reply to `letterId`; `text` from the field (else the draft); `serial` the press's, echoed when answered */
   send: (letterId: string, text?: string, serial?: number) => void;
   cardAction: (letterId: string, action: KTodayCardAction) => void;
   /** the React Native ⋯: the report flow's menu about this letter */
   openMenu: (letterId: string) => void;
-  openDeskStrip: () => void;
-  seal: () => void;
-  grab: (held: boolean) => void;
   closeReader: () => void;
   closeFlightSheet: () => void;
   closeSignUp: () => void;
@@ -410,6 +609,20 @@ export type TodayActions = {
   signedIn: () => void;
   /** a block held: every letter by that writer leaves the desk (the report flow calls it; so does the dev page) */
   blocked: (author: string) => void;
+
+  /* ── legacy (the step-5 scroll stack and the blind) ── */
+  /** legacy: the stack settled on a page (cards.length = the blind) */
+  settle: (index: number) => void;
+  /** legacy: an envelope of the arrival: go to that letter */
+  goto: (index: number) => void;
+  /** legacy: re-pressing the tab: to the first letter */
+  toTop: () => void;
+  /** legacy: the strip is gone; does nothing */
+  openDeskStrip: () => void;
+  /** legacy: the blind's cord pulled */
+  seal: () => void;
+  /** legacy: the cord held / let go */
+  grab: (held: boolean) => void;
 };
 
 export type TodayModel = {
@@ -428,6 +641,9 @@ export type TodayModel = {
   sheets: { flightFull: boolean; needsAccount: boolean };
 };
 
+/** the same minute keeps the same Date, so a tick inside it doesn't re-render the tab */
+const sameMinute = (a: Date, b: Date) => Math.floor(a.getTime() / 60000) === Math.floor(b.getTime() / 60000);
+
 export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const lang = useLang(); // every word follows the reader's language
   const { t: tk } = useTheme();
@@ -436,6 +652,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   wrenRef.current = wren;
   const { isGuest: sessionGuest } = useAuth();
   const plusOpen = usePlusSheetOpen();
+  const publishStage = usePublishStage();
   const { full } = useLocalSearchParams<{ full?: string }>();
   // dev: /letters?full=1 pretends the pouch is full, to see the sheet without five real letters out
   const forceFull = __DEV__ && full === "1";
@@ -445,99 +662,163 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const sourceRef = useRef(source);
   sourceRef.current = source;
 
-  /* ── the feed ── */
-  const [demoGone, setDemoGone] = useState<ReadonlySet<string>>(() => new Set());
-  const demo = source.demoAllowed && __DEV__ && source.loaded && (source.pool.length === 0 || storeMode);
+  /* ── the clock: the day turning at eight, the countdown, the sky ── */
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const d = new Date();
+      setNow((cur) => (sameMinute(cur, d) ? cur : d));
+    }, 30000);
+    return () => clearInterval(tick);
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const d = new Date();
+      setNow((cur) => (sameMinute(cur, d) ? cur : d));
+    }, []),
+  );
+  const day = deskDay(now);
+  const hour = now.getHours();
+  const dayRef = useRef(day);
+  dayRef.current = day;
+
+  /* ── the record: the real day, or the dev demo desk (in memory, never put away) ── */
+  const realRec = source.rec;
+  const nothingDealt = realRec.desk.length === 0 && realRec.passed.length === 0 && realRec.answered.length === 0;
+  const demo = source.demoAllowed && __DEV__ && source.loaded && (nothingDealt || storeMode);
+  const demoStore = useMemoryDay(() => ({ ...C.emptyDay(day), desk: DEMO_POOL }));
+  const rec = demo ? demoStore.rec : realRec;
+  const recRef = useRef(rec);
+  recRef.current = rec;
+  const updateRef = useRef(source.update);
+  updateRef.current = demo ? demoStore.update : source.update;
+  const update = useCallback((fn: (r: C.DayRecord) => C.DayRecord) => updateRef.current(fn), []);
+
   const feed = useMemo<PoolLetter[]>(() => {
-    if (!demo) return source.pool;
+    if (!demo) return rec.desk;
+    // store mode's first letter is in the reader's language
     const base = storeMode ? [{ ...DEMO_POOL[0], body: DEMO_TEXT[getLang()].letter, lang: getLang() }, ...DEMO_POOL.slice(1)] : DEMO_POOL;
-    return base.filter((l) => !demoGone.has(l.id));
-    // lang: store mode's first letter is in the reader's language
+    return rec.desk.map((l) => base.find((b) => b.id === l.id) ?? l);
+    // lang: store mode's first letter follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, source.pool, demoGone, lang]);
+  }, [demo, rec.desk, lang]);
   const feedRef = useRef(feed);
   feedRef.current = feed;
   const demoRef = useRef(demo);
   demoRef.current = demo;
 
-  /* ── the page ── */
-  const [rawIdx, setRawIdx] = useState(0);
-  const idx = Math.min(rawIdx, feed.length);
+  const phase = C.deskPhase({ loaded: source.loaded, offline: source.offline, desk: rec.desk, passed: rec.passed });
+  const unpassed = useMemo(() => C.unpassed(feed, rec.passed), [feed, rec.passed]);
+  const unpassedRef = useRef(unpassed);
+  unpassedRef.current = unpassed;
+
+  /* legacy: the step-5 stack's page. The new renderers never move it (it
+     stays 0), so the letter on screen is the first not passed. */
+  const [rawIdx, setIdx] = useState(0);
+  const idx = Math.min(rawIdx, unpassed.length);
   const idxRef = useRef(idx);
   idxRef.current = idx;
-  const current = feed[idx] ?? null;
-  const atEnd = idx >= feed.length;
+  const current = unpassed[idx] ?? null;
+  const currentRef = useRef(current);
+  currentRef.current = current;
+  const atEnd = idx >= unpassed.length;
   const [scroll, setScroll] = useState<TodayScroll>({ serial: 0, target: "top", animated: false });
   const [anchor, setAnchor] = useState<TodayAnchor>({ id: "", serial: 0 });
   const requestScroll = useCallback((target: TodayScroll["target"], animated: boolean) => setScroll((s) => ({ serial: s.serial + 1, target, animated })), []);
+  const [held, setHeld] = useState(false);
 
-  /* "did I pull the blind today" — one flag per desk day. The day turns at
-     eight, when she's back (lib/day); an app left open across eight sees the
-     flag lift, the blind roll up and the desk rebuilt with the next fifteen. */
-  const [day, setDay] = useState(deskDay());
-  useEffect(() => {
-    const tick = setInterval(() => {
-      const d = deskDay();
-      setDay((cur) => (cur === d ? cur : d));
-    }, 30000);
-    return () => clearInterval(tick);
-  }, []);
-  const firstDay = useRef(true);
-  useEffect(() => {
-    if (firstDay.current) {
-      firstDay.current = false;
-      return;
-    }
-    sourceRef.current.reload(true);
-    setRawIdx(0);
-    requestScroll("top", false);
-  }, [day, requestScroll]);
-
+  /* "is this desk day done" — one flag per desk day, so the Live Activity
+     goes up once. The day turns at eight, when she's back (lib/day); an app
+     left open across eight starts the day over: the record, the passed
+     list, done and the title lock all reset, within 30 s. */
   const [sealed, setSealed] = useState(false);
+  const sealedRef = useRef(false);
   useEffect(() => {
     let live = true;
-    void depsRef.current.sealed(day).then((s) => live && setSealed(s));
+    void depsRef.current
+      .sealed(day)
+      .then((s) => {
+        if (live && s) {
+          sealedRef.current = true;
+          setSealed(true);
+        }
+      })
+      .catch((e) => console.warn("[today] sealed flag:", e));
     return () => {
       live = false;
     };
   }, [day]);
-  const [held, setHeld] = useState(false);
-
-  /* what her slip says — read off the phone's own counters when the day
-     closes, never guessed (W33: every number is a count) */
-  const [counts, setCounts] = useState({ seen: 0, replied: 0 });
+  const shownDay = useRef(day);
   useEffect(() => {
-    if (!sealed && !(source.loaded && atEnd)) return;
-    let live = true;
-    void depsRef.current.counters().then((c) => live && setCounts(c));
-    return () => {
-      live = false;
-    };
-  }, [sealed, source.loaded, atEnd, feed.length]);
-  const facts = useMemo(() => C.dayFacts({ onDesk: feed.length, seen: counts.seen, replied: counts.replied, waiting: source.waiting }), [feed.length, counts, source.waiting]);
-  const factsRef = useRef(facts);
-  factsRef.current = facts;
+    if (shownDay.current === day) return;
+    shownDay.current = day;
+    sealedRef.current = false;
+    setSealed(false);
+    sourceRef.current.reload(true);
+    if (demoRef.current) demoStore.reset({ ...C.emptyDay(day), desk: DEMO_POOL });
+    setIdx(0);
+    requestScroll("top", false);
+    // demoStore.reset is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day, requestScroll]);
 
-  /* counted for the reader's own stickers: every letter the page lands on,
-     once (Picky / Generous) — dev letters never */
-  const seenIds = useRef(new Set<string>());
+  /* counted for the reader's own stickers: every letter that comes on
+     screen, once a day (Picky / Generous). The record keeps the ids, so a
+     relaunch doesn't count them again — dev letters never count */
   const currentId = current?.id ?? null;
   useEffect(() => {
-    if (!currentId || currentId.startsWith("demo") || seenIds.current.has(currentId)) return;
-    seenIds.current.add(currentId);
-    depsRef.current.bump("seen");
-  }, [currentId]);
-  /* the writer's eye: read once it has been the page for two seconds —
-     flicking past is not reading (one per reader; the database keeps that) */
+    if (!currentId) return;
+    let counted = false;
+    update((r) => {
+      const m = C.markSeen(r, currentId);
+      counted = m.counted;
+      return m.rec;
+    });
+    if (counted && !demoRef.current && !currentId.startsWith("demo")) depsRef.current.bump("seen");
+  }, [currentId, update]);
+  /* the writer's eye: read once it has been on screen for two seconds
+     (flicking past is not reading), or at once when REPLY opens (replying
+     is reading). One per reader; the database keeps that. */
+  const readNow = useRef<string | null>(null);
+  const markReadNow = useCallback((id: string) => {
+    if (demoRef.current || id.startsWith("demo") || readNow.current === id) return;
+    readNow.current = id;
+    depsRef.current.markRead(id);
+  }, []);
   useEffect(() => {
     if (!currentId || currentId.startsWith("demo")) return;
-    const timer = setTimeout(() => depsRef.current.markRead(currentId), 2000);
+    readNow.current = null;
+    const timer = setTimeout(() => markReadNow(currentId), 2000);
     return () => clearTimeout(timer);
-  }, [currentId]);
-  /* the third envelope is behind you: the arrival is over, the desk is the desk */
+  }, [currentId, markReadNow]);
+  /* three letters passed: the arrival is over, the desk is the desk (legacy: three pages paged) */
   useEffect(() => {
-    if (source.fresh && C.arrivalSettled(idx)) sourceRef.current.settleArrival();
-  }, [source.fresh, idx]);
+    if (source.fresh && (C.arrivalSettled(rec.passed.length) || C.arrivalSettled(idx))) sourceRef.current.settleArrival();
+  }, [source.fresh, rec.passed.length, idx]);
+
+  /* DONE. Reading → done (the last letter passed, answered, blocked or
+     withdrawn): the moment is kept (her letter's postmark), and if anything
+     went past the desk today the day is sealed and she goes up on the lock
+     screen (owner question 2). Reaching done any other way — a quiet day,
+     a relaunch into a finished desk, the first load — only keeps the
+     moment: no Live Activity. */
+  const waitingRef = useRef(source.waiting);
+  waitingRef.current = source.waiting;
+  const prevPhase = useRef<C.DeskPhase | null>(null);
+  useEffect(() => {
+    const prev = prevPhase.current;
+    prevPhase.current = phase;
+    if (phase !== "done" || prev === "done") return;
+    update((r) => C.markDone(r, Date.now()));
+    if (prev !== "reading") return;
+    const r = recRef.current;
+    const count = r.passed.length + r.answered.length;
+    if (count === 0 || sealedRef.current) return;
+    sealedRef.current = true;
+    setSealed(true);
+    // the dev demo desk doesn't put her on the lock screen
+    if (!demoRef.current) depsRef.current.seal(dayRef.current, { read: count, waiting: waitingRef.current });
+  }, [phase, update]);
 
   /* ── drafts: always the letter's own, never the page's ── */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -593,8 +874,8 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     },
     [signed],
   );
-  // paused when the page changes and when the tab loses focus (lib/voice-playback)
-  const voice = useVoicePlayback({ pauseOn: idx });
+  // paused when the letter on screen changes and when the tab loses focus (lib/voice-playback)
+  const voice = useVoicePlayback({ pauseOn: currentId ?? "" });
   // read at the moment of a tap, so the actions object keeps its identity across renders
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
@@ -605,9 +886,17 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const fmt = useMemo<C.TodayFormat>(
     () => ({
       t,
+      has: hasString,
       postmark: (iso) => postmark(iso),
       postNo: (uid) => postNo(uid),
+      penPal: (uid, o) => penPalName(uid, { upper: o.upper, compact: o.compact }),
       clock: (s) => clock(s),
+      clockHour: (h) => {
+        const d = new Date();
+        d.setHours(h, 0, 0, 0);
+        return clockTime(d);
+      },
+      stampTime: (ms) => `${postmark(ms)} · ${clockTime(ms)}`,
       stamp: (id) => {
         const st = getStamp(id);
         return st ? { color: st.color, name: sname(st.name) } : null;
@@ -618,16 +907,18 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lang],
   );
+  const bringBackNow = C.canBringBack(rec) && phase === "reading";
   const cards = useMemo(
     () =>
       C.buildCards(
-        feed.map((letter) => ({ letter, offer: translateOffer(letter), xl: xl[letter.id] ?? null, signal: signals[letter.id] ?? null, voiceReady: !!voiceUrl(letter) })),
+        unpassed.map((letter) => ({ letter, offer: translateOffer(letter), xl: xl[letter.id] ?? null, signal: signals[letter.id] ?? null, voiceReady: !!voiceUrl(letter) })),
         tk.sf,
         fmt,
+        { bringBackOnFirst: bringBackNow },
       ),
     // lang: the translate offer reads the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [feed, xl, signals, voiceUrl, tk.sf, fmt, lang],
+    [unpassed, xl, signals, voiceUrl, tk.sf, fmt, lang, bringBackNow],
   );
 
   /* ── the reply ── */
@@ -641,10 +932,10 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   flightsRef.current = flights;
   const [answeredSerial, setAnsweredSerial] = useState(0);
   const answer = useCallback((serial: number) => setAnsweredSerial((s) => Math.max(s, serial)), []);
-  /* the letter the courier is carrying (the fly-by's "to"), whichever page is showing */
+  /* the letter the courier is carrying (the fly-by's "to"), whichever card is showing */
   const [sendingTo, setSendingTo] = useState<PoolLetter | null>(null);
   const draft = current ? drafts[current.id] ?? "" : "";
-  /** the send key and the hint for any letter's draft (the page's, or the reader's) */
+  /** the send key and the hint for any letter's draft (the one on screen, or the reader's) */
   const replyFor = useCallback(
     (letterId: string): C.ReplyState => {
       const l = feedRef.current.find((x) => x.id === letterId);
@@ -669,11 +960,10 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     setFlightFull(false);
     setDraftEpoch((e) => e + 1);
   }, []);
-  /* its letter left while it was open (the day turning at eight rebuilds the
-     desk, a block, a reload): the reader is closed in the same render it
-     stops drawing (LetterReader draws only a letter on the desk), so the
-     pill never stays hidden behind a reader nobody can see, and the draft
-     epoch still moves */
+  /* its letter left while it was open (the day turning at eight, a block, a
+     reload): the reader is closed in the same render it stops drawing
+     (LetterReader draws only a letter on the desk), so the band never stays
+     hidden behind a reader nobody can see, and the draft epoch still moves */
   const readerGone = readerId != null && !feed.some((l) => l.id === readerId);
   const openReaderId = readerGone ? null : readerId;
   useEffect(() => {
@@ -684,29 +974,42 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
 
   const isGuest = () => depsRef.current.guest?.() ?? sessionGuest;
 
-  /* a letter leaves the desk: the page stays where it is (the next letter
-     slides into it) and the renderer is told where that is, in the same
-     update as the cards */
-  const removeLetter = useCallback((id: string) => {
-    const f = feedRef.current;
-    const i = f.findIndex((l) => l.id === id);
-    if (i < 0) return;
-    const next = f.filter((l) => l.id !== id);
-    const at = Math.min(idxRef.current - (i < idxRef.current ? 1 : 0), next.length);
-    setRawIdx(at);
+  /* letters leave the desk (answered, refused, blocked): the record says
+     so; legacy, the step-5 stack's page stays where it is (the next letter
+     slides into it) and is told where that is */
+  const legacyFollow = useCallback((gone: ReadonlySet<string>) => {
+    const list = unpassedRef.current;
+    const i = idxRef.current;
+    if (!list.some((l) => gone.has(l.id))) return;
+    const next = list.filter((l) => !gone.has(l.id));
+    const before = list.slice(0, Math.min(i, list.length)).filter((l) => gone.has(l.id)).length;
+    const at = Math.max(0, Math.min(i - before, next.length));
+    setIdx(at);
     setAnchor((a) => ({ id: next[at]?.id ?? "", serial: a.serial + 1 }));
-    if (demoRef.current) setDemoGone((g) => new Set(g).add(id));
-    else sourceRef.current.remove(id);
   }, []);
-  const removeAuthor = useCallback((author: string) => {
-    const r = C.withoutAuthor(feedRef.current, author, idxRef.current);
-    setRawIdx(r.idx);
-    setAnchor((a) => ({ id: r.feed[r.idx]?.id ?? "", serial: a.serial + 1 }));
-    if (demoRef.current) setDemoGone((g) => new Set([...g, ...feedRef.current.filter((l) => l.author === author).map((l) => l.id)]));
-    else sourceRef.current.removeAuthor(author);
-  }, []);
+  const answered = useCallback(
+    (id: string) => {
+      legacyFollow(new Set([id]));
+      update((r) => C.answerLetter(r, id));
+    },
+    [legacyFollow, update],
+  );
+  const dropped = useCallback(
+    (id: string) => {
+      legacyFollow(new Set([id]));
+      update((r) => C.dropLetters(r, [id]));
+    },
+    [legacyFollow, update],
+  );
+  const removeAuthor = useCallback(
+    (author: string) => {
+      legacyFollow(new Set(feedRef.current.filter((l) => l.author === author).map((l) => l.id)));
+      update((r) => C.dropAuthor(r, author));
+    },
+    [legacyFollow, update],
+  );
 
-  /* THE LETTER BEING ANSWERED IS PASSED IN, never read from the page: a
+  /* THE LETTER BEING ANSWERED IS PASSED IN, never read from the screen: a
      reply is always bound to its own letter, so it can never go to the
      wrong stranger. */
   const send = useCallback(
@@ -770,7 +1073,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
           /* gone, blocked, suspended, an expired session and offline each say
              what is true; anything else keeps "try again" */
           blurThen(() => alertFail(t("cp.fail.title"), t("ld.replyFail"), { context: "reply", onSignIn: () => openSignUpSheet(() => setNeedsAccount(true), viewRef) }), viewRef);
-          if (action === "remove") removeLetter(to.id);
+          if (action === "remove") dropped(to.id);
           return; // the draft stays in the box (or left with its letter)
         }
         d.bump("replied");
@@ -785,12 +1088,13 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       changeDraft(to.id, "");
       setToast(true);
       setTimeout(() => setToast(false), 2200);
-      /* AND IT LEAVES THE DESK: the next letter slides up into the page */
-      removeLetter(to.id);
+      /* AND IT LEAVES THE DESK: that is the design's auto-next (the next
+         letter comes on screen), and done when it was the last one */
+      answered(to.id);
     },
     // forceFull, wren and the guest rule are read at the moment; the rest are refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [forceFull, wren, sessionGuest, answer, changeDraft, removeLetter],
+    [forceFull, wren, sessionGuest, answer, changeDraft, answered, dropped],
   );
 
   /* ── report / block: always reachable ── */
@@ -857,20 +1161,33 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     }
   }
 
-  const dayRef = useRef(day);
-  dayRef.current = day;
+  /* ── her letter, the window ── */
+  const canPlay = source.canPlay;
+  const canPlayRef = useRef(canPlay);
+  canPlayRef.current = canPlay;
+  const factsCount = rec.passed.length + rec.answered.length;
+  const repliedCount = rec.answered.length;
+  const wrenLetter = useMemo(
+    () => C.buildWrenLetter({ facts: { count: factsCount, replied: repliedCount, waiting: source.waiting, canPlay }, name: wren, doneAt: rec.doneAt, now }, fmt),
+    [factsCount, repliedCount, source.waiting, canPlay, wren, rec.doneAt, now, fmt],
+  );
+  const light = daylight(hour);
+  const flightWindow = useMemo(() => C.buildWindow({ canPlay, name: wren, countdown: wrenLetter.countdown, sky: C.windowSky(PALETTE[light], light === "night") }, t), [canPlay, wren, wrenLetter.countdown, light, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* legacy: the blind's slip — the letters landed on today (kept in the record), what was answered, who's waiting */
+  const facts = useMemo(() => ({ read: Math.max(rec.seen.length, factsCount), replied: repliedCount, waiting: source.waiting }), [rec.seen.length, factsCount, repliedCount, source.waiting]);
+  const factsRef = useRef(facts);
+  factsRef.current = facts;
+
   const act = useMemo<TodayActions>(
     () => ({
-      settle: (i) => setRawIdx(Math.max(0, Math.min(i, feedRef.current.length))),
-      goto: (i) => {
-        const l = feedRef.current[i];
-        if (!l) return;
-        setRawIdx(i);
-        requestScroll(l.id, true);
+      pass: (id) => update((r) => C.passLetter(r, id)),
+      bringBack: () => update(C.bringBack),
+      replyOpen: (id) => {
+        if (id === currentRef.current?.id) markReadNow(id);
       },
-      toTop: () => {
-        setRawIdx(0);
-        requestScroll("top", true);
+      window: () => {
+        if (canPlayRef.current) blurThen(() => depsRef.current.openWindow(), viewRef);
       },
       changeDraft,
       send: (id, text, serial) => void send(id, text, serial),
@@ -882,51 +1199,73 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
         setMenuLetter(letter);
         blurThen(() => reportRef.current.openMenu(), viewRef);
       },
-      openDeskStrip: () => blurThen(() => depsRef.current.openDesk(), viewRef, { delayMs: 0 }),
-      seal: () => {
-        setSealed(true);
-        depsRef.current.seal(dayRef.current, factsRef.current);
-      },
-      grab: setHeld,
       closeReader,
       closeFlightSheet: () => setFlightFull(false),
       closeSignUp: () => setNeedsAccount(false),
       signedIn: () => {
         setNeedsAccount(false);
-        // the letter that raised the sheet, never whatever the page shows now
+        // the letter that raised the sheet, never whatever is on screen now
         const to = pendingReply.current;
         if (to) void send(to.id);
       },
       blocked: removeAuthor,
+
+      // legacy
+      settle: (i) => setIdx(Math.max(0, Math.min(i, unpassedRef.current.length))),
+      goto: (i) => {
+        const l = unpassedRef.current[i];
+        if (!l) return;
+        setIdx(i);
+        requestScroll(l.id, true);
+      },
+      toTop: () => {
+        setIdx(0);
+        requestScroll("top", true);
+      },
+      openDeskStrip: () => {},
+      seal: () => {
+        if (sealedRef.current) return;
+        sealedRef.current = true;
+        setSealed(true);
+        depsRef.current.seal(dayRef.current, { read: factsRef.current.read, waiting: factsRef.current.waiting });
+      },
+      grab: setHeld,
     }),
-    [changeDraft, send, cardAction, requestScroll, removeAuthor, closeReader],
+    [update, markReadNow, changeDraft, send, cardAction, closeReader, removeAuthor, requestScroll],
   );
 
   /* ── the words ── */
   const strings = useMemo<TodayStrings>(
     () => ({
       title: t("ld.today"),
-      pass: t("ld.pass"),
-      reply: t("ld.replyArrow"),
+      next: t("ld.next"),
+      reply: t("ld.replyBtn"),
       replyA11y: t("ld.reply.a11y"),
       unfold: t("ld.unfold"),
       unfoldA11y: t("ld.unfold.a11y"),
       voiceLetter: t("ld.voiceLetter"),
       more: t("rp.menu.a11y"),
-      next: t("ld.next.a11y"),
-      previous: t("ld.prev.a11y"),
+      nextA11y: t("ld.next.a11y"),
+      bringBack: t("ld.bringBack"),
       play: t("vo.play"),
       pause: t("vo.pause"),
-      placeholder: t("ld.writeBackPh"),
       send: t("ld.send"),
+      placeholder: t("ld.writeBackPh"),
+      offlineTitle: t("net.offline.title"),
+      offlineBody: t("ld.offlineDesk"),
+      loadingA11y: t("ld.loading.a11y"),
+      pass: t("ld.pass"),
+      previous: t("ld.prev.a11y"),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lang],
   );
-  const states = C.envelopeStates(idx);
+
+  const left = unpassed.length;
+  // only over letters she brought back, and only while the first three are up: a quiet day draws no arrival, in either renderer
+  const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: left }) && phase === "reading" && rec.passed.length < C.ARRIVAL_LETTERS;
+  const states = C.envelopeStates(idx + rec.passed.length);
   const stateWord = { opened: t("ld.env.read"), current: t("ld.env.open"), sealed: t("ld.env.sealed") };
-  // only over letters she brought back: a quiet day draws no arrival, in either renderer
-  const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: feed.length });
   const arrival = {
     open: arrivalOpen,
     line: t(source.sent ? "ld.arrived" : "ld.arrivedKept"),
@@ -934,37 +1273,48 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     labels: states.map((_, i) => t("ld.env.a11y", { n: i + 1, total: states.length })),
     values: states.map((s) => stateWord[s]),
   };
-  const unread = source.deskUnread;
-  const deskStrip = unread > 0 ? (unread === 1 ? t("wo.strip.one") : t("wo.strip.many", { n: unread })) : "";
 
   const view: TodayView = {
+    phase,
     loaded: source.loaded,
-    quiet: source.loaded && feed.length === 0,
     demo,
     feed,
     cards,
-    idx,
-    atEnd,
+    left,
+    leftA11y: left === 1 ? t("ld.left.a11y.1") : t("ld.left.a11y", { n: left }),
     current,
-    plateRight: C.plateLabel({ loaded: source.loaded, count: feed.length, atEnd }, t),
-    deskStrip,
+    titleLocked: rec.passed.length > 0 || phase === "done",
+    canBringBack: bringBackNow,
     arrival,
     freshUnfold: arrivalOpen,
     reply: { letterId: current?.id ?? "", draft, preview: C.draftPreview(draft), state: replyNow },
     sending,
     slow,
     toast,
-    pillHidden: sending || openReaderId != null || plusOpen,
+    hideBand: sending || openReaderId != null,
+    plus: plusOpen ? (publishStage === "new" ? "sheet" : "pop") : "closed",
+    wrenLetter,
+    window: flightWindow,
+    night: isNightHour(hour),
+    wren: { name: wren, stage: source.stage, wilt: source.wilt },
+    draftEpoch,
+    answeredSerial,
+    readerId: openReaderId,
+    flyTo: sendingTo?.author ? penPalName(sendingTo.author, { upper: true, compact: true }) : null,
+    strings,
+
+    // legacy
+    quiet: source.loaded && feed.length === 0,
+    idx,
+    atEnd,
+    plateRight: !source.loaded ? "" : feed.length === 0 ? t("ld.closed") : atEnd ? t("ld.allRead") : "",
+    deskStrip: "",
     facts,
     sealed,
     held,
     anchor,
     scroll,
-    draftEpoch,
-    answeredSerial,
-    readerId: openReaderId,
-    flyTo: sendingTo?.author ? `NO.${postNo(sendingTo.author)}` : null,
-    strings,
+    pillHidden: sending || openReaderId != null || plusOpen,
   };
 
   return { view, act, viewRef, draftFor, replyFor, voice, voiceUrl, report, sheets: { flightFull, needsAccount } };

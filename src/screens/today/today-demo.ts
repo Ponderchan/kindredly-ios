@@ -4,15 +4,20 @@ import type { PoolLetter } from "../../lib/db";
 import type { Signal } from "../../lib/today-signal";
 import type { WriteFail } from "../../lib/thread-detail-core";
 import { screenNow } from "../../lib/wren";
-import type { TodayDeps, TodaySource } from "./useTodayDesk";
+import { deskDay } from "../../lib/day";
+import type { WrenStage } from "../../components/WrenBird";
+import { emptyDay, type DayRecord } from "./today-cards";
+import { useMemoryDay, type TodayDeps, type TodaySource } from "./useTodayDesk";
 
 /* DEV ONLY — THE TODAY DESK ON FIXTURES (10a step 5, slice today), for
    src/app/dev/step5-today.tsx: every state the simulator checks ask for,
    with no network and no account. The same model runs on it
    (useTodayCore), so a send, a translation, the pouch, a refused reply,
-   the arrival, the quiet day and the first load behave exactly as on the
-   real desk; only the IO is pretend (TodayDeps below) and the words of the
-   letters are written here (they are other people's letters, not UI).
+   the arrival, pass and bring back, done (her letter, the window), the
+   quiet day, offline and the first load behave exactly as on the real
+   desk; only the IO is pretend (TodayDeps below), the day is kept in
+   memory (never put away), and the words of the letters are written here
+   (they are other people's letters, not UI).
 
    The letters: a telegram the matcher named (auras close), a letter in
    Spanish the matcher also named (the translate capsule wins the slot), a
@@ -60,37 +65,49 @@ const DEMO_TRANSLATIONS: Record<string, string> = {
 /** What the next reply does on the dev page. */
 export type DemoReply = "ok" | "gone" | "offline" | "suspended" | "guest";
 
+/** The day as a fixture: what is on the desk and how far the reader got. */
 export type DemoFixture = {
-  pool: PoolLetter[];
+  desk: PoolLetter[];
+  /** ids already passed today (LEFT=1, DONE) */
+  passed: string[];
+  /** when the desk was first seen done (DONE reopened); null = not yet */
+  doneAt: number | null;
   loaded: boolean;
+  offline: boolean;
   flights: number;
   waiting: number;
   fresh: boolean;
-  deskUnread: number;
+  /** her stage: an egg can't play */
+  stage: WrenStage | null;
+  /** she's starving: she can't play either */
+  wilt: boolean;
 };
 
-/** The desk as a fixture: its letters leave as the real ones do, and come back with the fixture. */
+const recordOf = (fx: DemoFixture): DayRecord => ({ ...emptyDay(deskDay()), desk: fx.desk, passed: fx.passed, dealtAt: fx.desk.length ? Date.now() : null, doneAt: fx.doneAt });
+
+/** The day as a fixture, in memory: its letters are passed, answered and blocked as the real ones are, and come back with the fixture. */
 export function useDemoSource(fx: DemoFixture): TodaySource {
-  const [pool, setPool] = useState(fx.pool);
-  useEffect(() => setPool(fx.pool), [fx.pool]);
+  const store = useMemoryDay(() => recordOf(fx));
+  const { reset } = store;
+  useEffect(() => reset(recordOf(fx)), [fx, reset]);
   const [fresh, setFresh] = useState(fx.fresh);
   useEffect(() => setFresh(fx.fresh), [fx.fresh]);
-  const remove = useCallback((id: string) => setPool((cur) => cur.filter((l) => l.id !== id)), []);
-  const removeAuthor = useCallback((a: string) => setPool((cur) => cur.filter((l) => l.author !== a)), []);
-  const reload = useCallback(() => setPool(fx.pool), [fx.pool]);
+  const reload = useCallback(() => reset(recordOf(fx)), [fx, reset]);
   const settleArrival = useCallback(() => setFresh(false), []);
   return {
-    pool,
+    rec: store.rec,
     loaded: fx.loaded,
+    offline: fx.offline,
     flights: fx.flights,
     waiting: fx.waiting,
+    stage: fx.stage,
+    wilt: fx.wilt,
+    canPlay: fx.stage !== "egg" && !fx.wilt,
     fresh,
     sent: true,
     settleArrival,
-    deskUnread: fx.deskUnread,
     reload,
-    remove,
-    removeAuthor,
+    update: store.update,
     demoAllowed: false,
   };
 }
@@ -118,12 +135,12 @@ export function demoDeps({ reply, blocked }: { reply: () => DemoReply; blocked: 
     signal: async (l) => DEMO_SIGNALS[l.id] ?? null,
     markRead: () => {},
     bump: () => {},
-    counters: async () => ({ seen: 6, replied: 1 }),
     afterReply: () => {},
     seedDemo: () => {},
     sealed: async () => false,
-    seal: () => {},
-    openDesk: () => away("In the app this opens Wren's desk."),
+    // in the app the day is sealed here and her DayClosed Live Activity goes up (lib/activities)
+    seal: (day, facts) => console.log(`[step5-today] the desk is done: sealed ${day}, DayClosed with ${facts.read} read, ${facts.waiting} waiting`),
+    openWindow: () => away("In the app this opens her game (Courier, ?play=1)."),
     intercept: (action, letter) => {
       if (action === "report") {
         away("A report would go to the server with this letter's words. Nothing was sent.");

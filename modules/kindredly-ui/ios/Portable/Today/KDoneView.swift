@@ -12,6 +12,8 @@ import SwiftUI
            REPLY fade and drop 12; she takes off (fly) along the arc to its REPLY end (550 ms);
            her letter rises into the card's slot from 70 below (the new-card curve)
       820  she dives into the window (550 ms)
+      900  the arc, drawn to the end, leaves as the buttons did: it fades and drops 12 (the
+           design's "两枚钮和弧退场"; the window would otherwise show its apex over its top edge)
      1000  the window rises in (450 ms)
      1600  when she can play: the flap loop and the pipes start; otherwise she settles, content
 
@@ -53,8 +55,10 @@ public final class KDayFlow: ObservableObject {
   @Published public private(set) var arcFill: CGFloat = 0
   /// the arc's dashed layer
   @Published public private(set) var dashOpacity: Double = 1
-  /// NEXT, REPLY and their labels (the arc stays)
+  /// NEXT, REPLY and their labels
   @Published public private(set) var bandShown = true
+  /// the arc as a whole: it leaves once it has been drawn (t = 900)
+  @Published public private(set) var arcShown = true
   /// where Wren is: 0 on the wire, 1 at the arc's REPLY end, 2 in the window
   @Published public private(set) var flight: CGFloat = 0
   /// the face the timeline asks for; nil leaves her to the desk's own rules
@@ -115,6 +119,9 @@ public final class KDayFlow: ObservableObject {
     after(0.82, token) { flow in
       withAnimation(KTodayMotion.flight) { flow.put(\.flight, 2) }
     }
+    after(0.9, token) { flow in
+      withAnimation(KTodayMotion.bandFade) { flow.put(\.arcShown, false) }
+    }
     after(1.0, token) { flow in
       withAnimation(KTodayMotion.windowIn) { flow.put(\.windowShown, true) }
     }
@@ -152,6 +159,7 @@ public final class KDayFlow: ObservableObject {
       put(\.arcFill, 0)
       put(\.dashOpacity, 1)
       put(\.bandShown, true)
+      put(\.arcShown, true)
       put(\.flight, 0)
       put(\.faceOverride, nil)
       put(\.letterShown, false)
@@ -168,6 +176,7 @@ public final class KDayFlow: ObservableObject {
     put(\.arcFill, 1)
     put(\.dashOpacity, 0)
     put(\.bandShown, false)
+    put(\.arcShown, false)
     put(\.letterShown, true)
     put(\.windowShown, true)
     put(\.faceOverride, canPlay ? KWrenFace.fly : KWrenFace.idle)

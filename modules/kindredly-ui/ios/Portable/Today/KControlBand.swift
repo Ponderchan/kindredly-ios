@@ -15,15 +15,20 @@ import SwiftUI
  - THE ARC is the road Wren flies today, from above NEXT's centre to above REPLY's. Two layers of
    the same path in ink 2.5 with round caps: dashed [3, 6] at flow.dashOpacity, and solid, trimmed
    0 → flow.arcFill. In done the flow draws the solid layer to the end (600ms, .4 0 .3 1) while the
-   dashes fade, and it stays drawn. The arc never moves for done; it goes with the band when the
-   band is hidden or slides away for the keyboard.
+   dashes fade; once drawn (t = 900) the arc leaves as the buttons did, fading and dropping 12
+   (flow.arcShown; the design's "两枚钮和弧退场"), so nothing of it hangs over the window. Opening
+   Today on a done desk draws no arc. It also goes with the band when the band is hidden or slides
+   away for the keyboard.
  - NEXT and REPLY are told apart by material, not by size: NEXT is seen through (frosted glass,
    the count inside), REPLY is pressed (solid ink, the envelope in bg, which stays legible on
    Midnight's pale ink). Both shrink to .94 under the finger (KPressScaleStyle).
  - The glass (CSS: rgba(255,255,255,.45), backdrop blur 18 + saturate 170%, an inset 1px white .75
-   edge, 0 6 18 -8 rgba(30,27,53,.35)) is .ultraThinMaterial under a white .45 tint, in the
-   theme's own colour scheme so Midnight gets the dark material; Midnight's tint is rgba(26,24,48,.5)
-   and its edge white .18, its shadow black .5. CSS paints an outer box-shadow only outside the
+   edge, 0 6 18 -8 rgba(30,27,53,.35)) is .ultraThinMaterial, the design's own SwiftUI stand-in for
+   "white .45 over blur", in the theme's colour scheme. In the light themes the material is the
+   whole of it: it already carries its own light tint, and a second white .45 on top made the disc
+   nearly opaque, the page's colour with only a shadow to show it. Midnight gets the dark material
+   under the design's rgba(26,24,48,.5) (which gives it the theme's indigo, not the material's
+   grey); its edge is white .18 and its shadow black .5. CSS paints an outer box-shadow only outside the
    box, so under a see-through disc the shadow is masked to outside the circle here too:
    otherwise its core (spread -8, so mostly inside the disc) would grey the glass.
  - Glass needs something behind it to read as glass, so the page gets a faint radial ground
@@ -35,7 +40,8 @@ import SwiftUI
    takes no touches (bandFade);
  - typing (the reply field has the keyboard): the whole band slides down 160 (bandSlide; a fade
    under Reduce Motion), as the tab bar goes under the keyboard;
- - done (flow.bandShown false): the buttons and their labels fade and drop 12, the arc stays;
+ - done (flow.bandShown false): the buttons and their labels fade and drop 12; once the arc is
+   drawn (flow.arcShown false) it does the same;
  - not enabled (loading, offline): the buttons at .4 with no touches, nothing in NEXT's disc.
  Taps are also refused while a card is moving (deck.animating: no re-entry) and while typing.
  */
@@ -172,7 +178,7 @@ struct KControlBand: View {
     GeometryReader { geo in
       let W = geo.size.width
       ZStack(alignment: .topLeading) {
-        KBandArc(theme: theme, width: W, dashOpacity: flow.dashOpacity, fill: flow.arcFill)
+        KBandArc(theme: theme, width: W, dashOpacity: flow.dashOpacity, fill: flow.arcFill, shown: flow.arcShown)
         buttons(W)
       }
       .frame(width: W, height: KBandLayout.height, alignment: .topLeading)
@@ -219,8 +225,8 @@ struct KControlBand: View {
     // loading or offline: at .4 until the desk is there
     .opacity(enabled ? 1 : 0.4)
     .animation(KTodayMotion.bandFade, value: enabled)
-    // done: the buttons fade (.3s) and drop 12 (.35s); the arc stays. A fade alone under Reduce
-    // Motion. Each curve pinned here: the flow may land several values in one transaction, and
+    // done: the buttons fade (.3s) and drop 12 (.35s); the arc follows once drawn (KBandArc). A
+    // fade alone under Reduce Motion. Each curve pinned here: the flow may land several values in one transaction, and
     // its rest and reset disable animations, which .animation(_:value:) honours.
     .opacity(shown ? 1 : 0)
     .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandFade, value: shown)
@@ -281,14 +287,17 @@ struct KControlBand: View {
 }
 
 /// The arc, two layers of one path: the dashes (fading out in done, .3s) and the solid line the
-/// flow draws over them (600ms, .4 0 .3 1). Each pins its own curve: the flow may land several
-/// values in one transaction, and its rest and reset disable animations, which
-/// .animation(_:value:) honours. Under Reduce Motion both land on the 200ms ease.
+/// flow draws over them (600ms, .4 0 .3 1); then, drawn, the whole arc leaves as the buttons do
+/// (fades .3s, drops 12 over .35s). Each pins its own curve: the flow may land several values in
+/// one transaction, and its rest and reset disable animations, which .animation(_:value:)
+/// honours. Under Reduce Motion everything lands on the 200ms ease and nothing drops.
 private struct KBandArc: View {
   let theme: KTheme
   let width: CGFloat
   let dashOpacity: Double
   let fill: CGFloat
+  /// false once the day's end has drawn it: the arc fades and drops 12
+  let shown: Bool
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
@@ -309,6 +318,11 @@ private struct KBandArc: View {
         .animation(nil, value: drawn)
     }
     .frame(width: width, height: KBandLayout.height, alignment: .topLeading)
+    // drawn, it leaves with the buttons' motion (a fade alone under Reduce Motion)
+    .opacity(shown ? 1 : 0)
+    .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandFade, value: shown)
+    .offset(y: shown || reduceMotion ? 0 : 12)
+    .animation(KTodayMotion.bandSlide, value: shown)
     .allowsHitTesting(false)
     .accessibilityHidden(true)
   }
@@ -319,8 +333,9 @@ private struct KBandArc: View {
 private struct KGlassDisc: View {
   let theme: KTheme
 
+  /// Midnight's indigo over the dark material; nothing over the light one (see the note at the top)
   private var tint: Color {
-    theme.isDark ? Color(.sRGB, red: 26 / 255, green: 24 / 255, blue: 48 / 255, opacity: 0.5) : Color.white.opacity(0.45)
+    theme.isDark ? Color(.sRGB, red: 26 / 255, green: 24 / 255, blue: 48 / 255, opacity: 0.5) : Color.clear
   }
 
   private var edge: Color {
@@ -371,12 +386,16 @@ private struct KOutsideCircle: Shape {
 }
 
 /*
- THE RADIAL GROUND (Prompt 3): without it the glass reads as a grey disc on white. The design's
- "radial-gradient(120% 60% at 50% 100%, …)" in the theme's lav2, faint: lav2 at the bottom centre,
- .35 of it at 45%, nothing at the edge, over bg. The ellipse has radii 1.2W × 0.6H about the
- bottom centre: a 2.4W × 1.2H rectangle centred on (W/2, H) with an elliptical gradient out to half
- of it, clipped to the frame. The desk puts it behind everything, in the Host's full frame; it
- draws bg itself, so it can stand in for the page colour.
+ THE RADIAL GROUND (Prompt 3): without it the glass reads as nothing on white. The design's
+ "radial-gradient(120% 60% at 50% 100%, #DCD9F3 0%, #F3F1FA 45%, #fff 100%)": the ground colour at
+ the bottom centre, .35 of it at 45% (over white that is the design's #F3F1FA), nothing at the
+ edge, over bg. The design's #DCD9F3 is no Classic token (Classic's lav2, #EEEDFB, is half as deep
+ against white, and the glass vanished on it): it is Lavender's lav, so Classic takes exactly that,
+ and every other theme its own lav (Lavender's is the same colour; Paper's the warm one; Midnight's
+ stands off its page about as far as the design's stands off white). The ellipse has radii
+ 1.2W × 0.6H about the bottom centre: a 2.4W × 1.2H rectangle centred on (W/2, H) with an
+ elliptical gradient out to half of it, clipped to the frame. The desk puts it behind everything,
+ in the Host's full frame; it draws bg itself, so it can stand in for the page colour.
  */
 struct KTodayGround: View {
   let theme: KTheme
@@ -385,15 +404,21 @@ struct KTodayGround: View {
     self.theme = theme
   }
 
+  /// the colour at the ground's centre: the design's #DCD9F3 on Classic, the theme's lav elsewhere
+  static func base(_ theme: KTheme) -> Color {
+    theme.key == KTheme.classic.key ? KTheme.lavender.lav : theme.lav
+  }
+
   var body: some View {
+    let base = Self.base(theme)
     GeometryReader { geo in
       let w = geo.size.width, h = geo.size.height
       Rectangle()
         .fill(EllipticalGradient(
           stops: [
-            .init(color: theme.lav2, location: 0),
-            .init(color: theme.lav2.opacity(0.35), location: 0.45),
-            .init(color: theme.lav2.opacity(0), location: 1),
+            .init(color: base, location: 0),
+            .init(color: base.opacity(0.35), location: 0.45),
+            .init(color: base.opacity(0), location: 1),
           ],
           center: .center,
           startRadiusFraction: 0,

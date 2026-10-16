@@ -4,38 +4,42 @@ import type { WriteFail } from "../../lib/thread-detail-core";
 import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { VEIL_MASK, mosaicMask } from "../../lib/mosaic";
-import { DAY_LETTERS, MAX_IN_FLIGHT } from "../../lib/ration";
+import { DAY_LETTERS, MAX_IN_FLIGHT, rationPool } from "../../lib/ration";
+import { MORNING_HOUR, untilMorning } from "../../lib/day";
 import { channelColors } from "../../theme/post";
 
-/* THE TODAY TAB, AS DATA (10a step 5). Pure: no React, no React Native, no
-   i18n — every word comes in through `fmt`, so
-   `node src/screens/today/today-cards.test.ts` locks the rules. Both
-   renderers draw what these builders return: the SwiftUI desk
+/* THE TODAY TAB, AS DATA (10a step 5; Today 3d × 25b, 2026-10-16). Pure: no
+   React, no React Native, no i18n — every word comes in through `t` /
+   `fmt`, so `node src/screens/today/today-cards.test.ts` locks the rules.
+   Both renderers draw what these builders return: the SwiftUI desk
    (TodayNative → KTodayView) and the React Native fallback (TodayRN), so a
    remote flip between them never changes what the reader sees or what a
    tap does.
 
    What lives here:
-   - the desk's own rules: keepDesk (a reload only appends, never
-     reshuffles under the thumb), the day's facts (W33: every number is a
-     count), the arrival's three envelopes;
-   - the card: docket (postmark · NO.xxxx or UNSIGNED, the FACE v1 mask or
-     the veil), the stamp and its topic tag in the stamp's channel colours
-     worked out on the card's own face, the body in its tier, the voice
-     block, ONE capsule slot (translation wins over the signal, owner), the
-     ⋯ menu (Report / Block on every signed letter — always reachable, App
-     Store), and what VoiceOver reads;
-   - the plate's right label: blank only while the first load is in
-     flight (it used to say CLOSED then), CLOSED on a quiet day (the plate
-     and the strip stay on a quiet day now), ALL READ on the end page;
+   - the saved day (DayRecord): the desk dealt this morning, frozen once
+     dealt, with the letters passed and answered today, the letters already
+     counted as seen, the one letter "bring back" can restore, and when the
+     desk was first seen done. It is put away under the same key as the old
+     { day, desk } (lib/local-push reads those two fields);
+   - the phase (loading / offline / reading / done) and every move on the
+     day: pass, bring back (one step), answer, drop (gone / blocked /
+     withdrawn), seen, freeze, done; how a load deals, fills or only prunes;
+   - her counted letter when the desk is done (W33: every number on it is a
+     count the phone holds; a zero gets its own sentence) and the window to
+     her game, with its sky by the hour;
+   - the card: docket (postmark · the pen pal's number in the reader's
+     language, or UNSIGNED, the FACE v1 mask or the veil), the stamp and its
+     topic tag in the stamp's channel colours worked out on the card's own
+     face, the body in its tier, the voice block, ONE capsule slot
+     (translation wins over the signal, owner), the ⋯ menu (Report / Block
+     on every signed letter — always reachable, App Store — and Bring back
+     on the card on screen), the reply field's placeholder, and what
+     VoiceOver reads;
    - the reply: the send key's three states (disabled / enabled / dimmed —
      a full pouch still takes the tap so the sheet can say why) and the
-     hint's four lines;
-   - what a refused reply does (gone and blocked take the letter off the
-     desk; nothing else does);
-   - the desk's geometry, the one formula Swift also uses (KTodayGeometry):
-     card height from the Host's height, the end page and its blind's
-     scale, so an iPhone SE fits. */
+     hint's four lines; what a refused reply does;
+   - the desk's geometry, the one formula Swift also uses (KTodayGeometry). */
 
 /** i18n's t, as the builders take it. */
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
@@ -43,92 +47,372 @@ export type TFn = (key: string, vars?: Record<string, string | number>) => strin
 /** Everything the builders need that isn't pure: words, dates, stamp names. */
 export type TodayFormat = {
   t: TFn;
+  /** i18n hasString: the reader's language has its own words for the key (missing: assume it does) */
+  has?: (key: string) => boolean;
   /** format.postmark: "SEP.23" in the reader's language */
   postmark: (iso: string) => string;
   /** format.postNo: the writer's four-digit number */
   postNo: (uid: string) => number;
+  /** format.penPalName: "No. 7273" / "NO.7273" / "N.º7273", in the reader's language */
+  penPal: (uid: string, o: { upper: boolean; compact: boolean }) => string;
   /** m:ss (format.fmt) */
   clock: (seconds: number) => string;
+  /** format.clockTime of today at hour:00, in the reader's clock: "8:00 AM", "8:00" */
+  clockHour: (hour: number) => string;
+  /** `${postmark(ms)} · ${clockTime(ms)}`: "OCT.15 · 10:14 PM" */
+  stampTime: (ms: number) => string;
   /** the stamp's colour and its name in the reader's language (sname), or null for an id stamps.ts doesn't list */
   stamp: (id: string) => { color: string; name: string } | null;
   /** a sticker's name in the reader's language (sticker-copy stickerName) */
   stickerName: (id: string) => string;
 };
 
-/* ── the desk ─────────────────────────────────────────────────────────── */
+/* ── the saved day ────────────────────────────────────────────────────── */
+
+export type DeskLetter = PoolLetter;
+
+/**
+ * Today's desk as the phone keeps it (AsyncStorage POOL_CACHE_KEY). `day`
+ * and `desk` keep their names: lib/local-push reads them.
+ */
+export type DayRecord = {
+  v: 2;
+  /** the deskDay() it belongs to */
+  day: string;
+  /** today's desk in dealt order, passed letters INCLUDED; answered, blocked and withdrawn letters removed */
+  desk: DeskLetter[];
+  /** ids passed today, in pass order (a passed letter that is later blocked or withdrawn stays here: it was read) */
+  passed: string[];
+  /** ids answered today (a reply went; the letter left `desk`) */
+  answered: string[];
+  /** ids already counted by bump("seen") today (dedupe across relaunches) */
+  seen: string[];
+  /** the id bring-back would restore: set by a pass, cleared by bringBack, a reply, or that letter leaving */
+  undo: string | null;
+  /** ms when the day's deal froze; null = not frozen */
+  dealtAt: number | null;
+  /** ms the desk was first seen done today */
+  doneAt: number | null;
+};
+
+export function emptyDay(day: string): DayRecord {
+  return { v: 2, day, desk: [], passed: [], answered: [], seen: [], undo: null, dealtAt: null, doneAt: null };
+}
+
+const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+const isLetter = (x: unknown): x is DeskLetter => isObj(x) && typeof x.id === "string" && typeof x.created_at === "string";
+const ids = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
+const msOrNull = (x: unknown): number | null => (typeof x === "number" && Number.isFinite(x) ? x : null);
+
+/**
+ * Parse what AsyncStorage holds.
+ * - v2 with day === today → { rec, placeholder: false }
+ * - legacy { day, desk } with day === today → v2 with empty lists, dealtAt null (it fills, then freezes)
+ * - onboarding's raw array (non-empty) → { rec: { ...emptyDay(today), desk: rationPool(list) }, placeholder: true }
+ * - any record from another day, unreadable input or empty input → null (a stale desk is NOT painted)
+ */
+export function readDayRecord(raw: string | null, today: string): { rec: DayRecord; placeholder: boolean } | null {
+  if (!raw) return null;
+  let c: unknown;
+  try {
+    c = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (Array.isArray(c)) {
+    const list = c.filter(isLetter);
+    return list.length ? { rec: { ...emptyDay(today), desk: rationPool(list) }, placeholder: true } : null;
+  }
+  if (!isObj(c) || c.day !== today || !Array.isArray(c.desk)) return null;
+  const desk = c.desk.filter(isLetter);
+  if (c.v !== 2) return { rec: { ...emptyDay(today), desk }, placeholder: false };
+  const undo = typeof c.undo === "string" ? c.undo : null;
+  return {
+    rec: { v: 2, day: today, desk, passed: ids(c.passed), answered: ids(c.answered), seen: ids(c.seen), undo, dealtAt: msOrNull(c.dealtAt), doneAt: msOrNull(c.doneAt) },
+    placeholder: false,
+  };
+}
+
+/**
+ * Whether a saved record of today says anything yet: something was dealt,
+ * passed or answered. A bare empty record (an empty deal not yet refilled)
+ * doesn't count as knowing the day, so the first paint says "loading", not
+ * "nothing came past your desk", until the network answers.
+ */
+export const recordKnown = (rec: DayRecord): boolean => rec.desk.length > 0 || rec.passed.length > 0 || rec.answered.length > 0 || rec.dealtAt != null;
+
+/* ── the phase and the current letter ─────────────────────────────────── */
+
+export type DeskPhase = "loading" | "offline" | "reading" | "done";
+
+/** The letters not passed yet, in dealt order. The first is the one on screen. */
+export function unpassed<T extends { id: string }>(desk: readonly T[], passed: readonly string[]): T[] {
+  if (!passed.length) return [...desk];
+  const gone = new Set(passed);
+  return desk.filter((l) => !gone.has(l.id));
+}
+
+/**
+ * Where the desk is. Letters left to read → reading (a placeholder desk
+ * paints too, before the network). Nothing left: the first load never says
+ * done (it says loading, or offline once a load came back empty-handed);
+ * loaded, it is done — and that includes a quiet day, loaded with nothing
+ * dealt.
+ */
+export function deskPhase(a: { loaded: boolean; offline: boolean; desk: readonly { id: string }[]; passed: readonly string[] }): DeskPhase {
+  if (unpassed(a.desk, a.passed).length > 0) return "reading";
+  if (!a.loaded) return a.offline ? "offline" : "loading";
+  return "done";
+}
+
+/* ── the moves (each returns the same object when nothing changes) ────── */
+
+const onDesk = (rec: DayRecord, id: string): boolean => rec.desk.some((l) => l.id === id);
+
+/** The desk replaced (a load): the undo goes if its letter left. */
+export function withDesk(rec: DayRecord, desk: DeskLetter[]): DayRecord {
+  if (desk === rec.desk || (desk.length === rec.desk.length && desk.every((l, i) => l === rec.desk[i]))) return rec;
+  const undo = rec.undo != null && desk.some((l) => l.id === rec.undo) ? rec.undo : null;
+  return { ...rec, desk, undo };
+}
+
+/** Pass a letter on the desk: it joins the passed list and becomes the one bring-back restores. */
+export function passLetter(rec: DayRecord, id: string): DayRecord {
+  if (!onDesk(rec, id) || rec.passed.includes(id)) return rec;
+  return { ...rec, passed: [...rec.passed, id], undo: id };
+}
+
+/** Bring back is one step: the last pass, while that letter is still on the desk. */
+export function canBringBack(rec: DayRecord): boolean {
+  return rec.undo != null && rec.passed.includes(rec.undo) && onDesk(rec, rec.undo);
+}
+
+export function bringBack(rec: DayRecord): DayRecord {
+  if (!canBringBack(rec)) return rec;
+  const id = rec.undo;
+  return { ...rec, passed: rec.passed.filter((p) => p !== id), undo: null };
+}
+
+/**
+ * A reply went: the letter leaves the desk and is counted as answered. A
+ * letter that had been passed moves from passed to answered, so it is never
+ * counted twice on her letter.
+ */
+export function answerLetter(rec: DayRecord, id: string): DayRecord {
+  if (!onDesk(rec, id)) return rec;
+  return {
+    ...rec,
+    desk: rec.desk.filter((l) => l.id !== id),
+    passed: rec.passed.includes(id) ? rec.passed.filter((p) => p !== id) : rec.passed,
+    answered: rec.answered.includes(id) ? rec.answered : [...rec.answered, id],
+    undo: rec.undo === id ? null : rec.undo,
+  };
+}
+
+/** Letters that can't be answered any more (taken back, a block, a writer gone) leave the desk. The passed list keeps them: they were read. */
+export function dropLetters(rec: DayRecord, gone: readonly string[]): DayRecord {
+  if (!gone.length) return rec;
+  const out = new Set(gone);
+  const desk = rec.desk.filter((l) => !out.has(l.id));
+  if (desk.length === rec.desk.length) return rec;
+  return { ...rec, desk, undo: rec.undo != null && out.has(rec.undo) ? null : rec.undo };
+}
+
+/** Every letter by a blocked writer leaves the desk. */
+export function dropAuthor(rec: DayRecord, author: string): DayRecord {
+  return dropLetters(
+    rec,
+    rec.desk.filter((l) => l.author === author).map((l) => l.id),
+  );
+}
+
+/** A letter on screen counts once a day for the reader's own stickers (Picky / Generous), across relaunches. */
+export function markSeen(rec: DayRecord, id: string): { rec: DayRecord; counted: boolean } {
+  if (rec.seen.includes(id)) return { rec, counted: false };
+  return { rec: { ...rec, seen: [...rec.seen, id] }, counted: true };
+}
+
+/** The day's deal is done: nothing joins the desk until the morning. An empty deal stays open, so a quiet morning can still fill. */
+export function freeze(rec: DayRecord, now: number): DayRecord {
+  if (rec.dealtAt != null || rec.desk.length === 0) return rec;
+  return { ...rec, dealtAt: now };
+}
+
+/** The first moment the desk was seen done (her letter's postmark). */
+export function markDone(rec: DayRecord, now: number): DayRecord {
+  if (rec.doneAt != null) return rec;
+  return { ...rec, doneAt: now };
+}
+
+/* ── dealing ──────────────────────────────────────────────────────────── */
 
 /** one page of the server's newest letters (fetchPool's default) */
 export const POOL_PAGE = 40;
 
+/** How a load treats the desk: deal it, fill an unfrozen desk, or (frozen) only prune it. */
+export type LoadMode = "deal" | "fill" | "frozen";
+
+export function loadMode(rec: DayRecord, placeholder: boolean): LoadMode {
+  if (placeholder || (rec.desk.length === 0 && rec.dealtAt == null)) return "deal";
+  return rec.dealtAt != null ? "frozen" : "fill";
+}
+
 /**
  * A reload lands on a desk already in use: every letter the server still
- * has stays where it is, and the day's new ones join at the end, up to the
- * fifteen. `all` is one page of the newest letters; when it is full, a
- * letter missing from it may simply have aged past it, so only a short
- * page (the server's whole pool) can say a letter is gone.
+ * has stays where it is, and (unless the desk is frozen) the day's new ones
+ * join at the end, up to the fifteen. `all` is one page of the newest
+ * letters; when it is full, a letter missing from it may simply have aged
+ * past it, so only a short page (the server's whole pool) can say a letter
+ * is gone.
  */
-export function keepDesk<T extends { id: string }>(cur: readonly T[], all: readonly T[], fresh: readonly T[]): T[] {
+export function keepDesk<T extends { id: string }>(cur: readonly T[], all: readonly T[], fresh: readonly T[], frozen = false): T[] {
   const alive = new Set(all.map((l) => l.id));
   const kept = all.length < POOL_PAGE ? cur.filter((l) => alive.has(l.id)) : [...cur];
+  if (frozen) return kept.length === cur.length ? (cur as T[]) : kept;
   const seen = new Set(kept.map((l) => l.id));
   const add = fresh.filter((l) => !seen.has(l.id));
   return [...kept, ...add].slice(0, Math.max(kept.length, DAY_LETTERS));
 }
 
-/** The letters left on the desk when an author is blocked, and where the
-    reader's page goes: the same letter if it stays, else the one that
-    slides into its place (indexes before it shift down). */
-export function withoutAuthor<T extends { id: string; author: string | null }>(feed: readonly T[], author: string, idx: number): { feed: T[]; idx: number } {
-  const next = feed.filter((l) => l.author !== author);
-  const removedBefore = feed.slice(0, Math.min(idx, feed.length)).filter((l) => l.author === author).length;
-  return { feed: next, idx: Math.max(0, Math.min(idx - removedBefore, next.length)) };
+/**
+ * Deal the day onto a desk that may already show something (onboarding's
+ * placeholder, or the first deal before the matcher answered). What the
+ * reader has passed stays, in pass order, then the letter on screen; the
+ * deal fills in behind them. Nothing swaps under the thumb.
+ */
+export function dealDesk<T extends { id: string }>(cur: readonly T[], passed: readonly string[], dealt: readonly T[]): T[] {
+  const byId = new Map(cur.map((l) => [l.id, l]));
+  const head: T[] = passed.map((id) => byId.get(id)).filter((l): l is T => !!l);
+  const onScreen = unpassed(cur, passed)[0];
+  if (onScreen) head.push(onScreen);
+  const taken = new Set(head.map((l) => l.id));
+  return [...head, ...dealt.filter((l) => !taken.has(l.id))].slice(0, Math.max(head.length, DAY_LETTERS));
 }
 
-/** What her slip on the blind says (CloseOfDay DayFacts). */
-export type DayFacts = { read: number; replied: number; waiting: number };
+/* ── her letter (the counted note) and the window ─────────────────────── */
+
+export type WrenLetterFacts = { count: number; replied: number; waiting: number; canPlay: boolean };
+
+/** Her counts (W33): letters that went past the desk today (passed + answered), the replies, the correspondences waiting on you. */
+export function wrenLetterFacts({ rec, waiting, canPlay }: { rec: DayRecord; waiting: number; canPlay: boolean }): WrenLetterFacts {
+  return { count: rec.passed.length + rec.answered.length, replied: rec.answered.length, waiting, canPlay };
+}
 
 /**
- * The day's counts (owner W33: every number is a count, never a guess).
- * `read` is what went past the desk: the counter of letters landed on, or
- * — when the counter has fallen behind — what is still on the desk plus
- * what was answered (answered letters leave the desk, so the desk alone
- * undercounts: after three replies on fifteen it used to say twelve).
+ * Her letter, line by line. Every clause is a count; a zero gets its own
+ * sentence and an empty clause is left out. Then when she's back (the
+ * reader's clock), and the invitation: with a lap of her game when she can
+ * play, without it when she can't.
  */
-export function dayFacts({ onDesk, seen, replied, waiting }: { onDesk: number; seen: number; replied: number; waiting: number }): DayFacts {
-  return { read: Math.max(seen, onDesk + replied), replied, waiting };
+export function wrenLetterLines(f: WrenLetterFacts, morning: string, t: TFn): string[] {
+  const out: string[] = [];
+  out.push(f.count === 0 ? t("wl.count.0") : f.count === 1 ? t("wl.count.1") : t("wl.count.N", { n: f.count }));
+  if (f.replied > 0) out.push(f.replied === 1 ? t("wl.replied.1") : t("wl.replied.N", { n: f.replied }));
+  if (f.waiting > 0) out.push(f.waiting === 1 ? t("wl.waiting.1") : t("wl.waiting.N", { n: f.waiting }));
+  out.push(t("wl.next", { t: morning }));
+  out.push(f.canPlay ? t("wl.invite") : t("wl.invitePlain"));
+  return out;
 }
 
-/** The three envelopes she brought back, as the reader pages past them. */
-export type EnvelopeState = "opened" | "current" | "sealed";
-export const ARRIVAL_ENVELOPES = 3;
-export function envelopeStates(idx: number): EnvelopeState[] {
-  return Array.from({ length: ARRIVAL_ENVELOPES }, (_, i) => (i < idx ? "opened" : i === idx ? "current" : "sealed"));
+/** "8H 06M": the hours and minutes to her return (minutes padded). */
+export function countdownLabel(u: { h: number; m: number }, t: TFn): string {
+  return t("ld.countdown", { h: u.h, m: String(u.m).padStart(2, "0") });
 }
-/** The arrival is over once the third envelope is behind the reader. */
-export const arrivalSettled = (idx: number): boolean => idx >= ARRIVAL_ENVELOPES;
+
+/** the first character as a reader sees it (a grapheme), so "Émile" gives É and an emoji stays whole */
+function firstGrapheme(s: string): string {
+  const name = s.trim();
+  if (!name) return "";
+  const Seg = (Intl as unknown as { Segmenter?: new (l?: string, o?: { granularity: string }) => { segment: (x: string) => Iterable<{ segment: string }> } }).Segmenter;
+  if (Seg) {
+    for (const g of new Seg(undefined, { granularity: "grapheme" }).segment(name)) return g.segment;
+  }
+  return Array.from(name)[0] ?? "";
+}
+
+export type WrenLetterVM = {
+  /** FROM YOUR COURIER */
+  from: string;
+  /** "OCT.15 · 10:14 PM": when the desk was first seen done */
+  stamp: string;
+  lines: string[];
+  /** "— W." */
+  sign: string;
+  /** the bag's label: OPENS AT 8:00 AM (no number: nothing is counted that isn't known) */
+  bag: string;
+  /** WREN IS BACK IN */
+  foot: string;
+  /** 8H 06M */
+  countdown: string;
+  /** NOT YET · 8H 06M (the bag's tap) */
+  notYet: string;
+  /** THAT'S ALL FOR TODAY (the letter's tap) */
+  chip: string;
+  a11y: string;
+};
+
+export function buildWrenLetter(
+  { facts, name, doneAt, now }: { facts: WrenLetterFacts; name: string; doneAt: number | null; now: Date },
+  fmt: Pick<TodayFormat, "t" | "stampTime" | "clockHour">,
+): WrenLetterVM {
+  const { t } = fmt;
+  const morning = fmt.clockHour(MORNING_HOUR);
+  const countdown = countdownLabel(untilMorning(now), t);
+  return {
+    from: t("wl.from"),
+    stamp: fmt.stampTime(doneAt ?? now.getTime()),
+    lines: wrenLetterLines(facts, morning, t),
+    sign: t("wl.sign", { initial: firstGrapheme(name).toLocaleUpperCase(), name }),
+    bag: t("bag.opens", { t: morning }).toLocaleUpperCase(),
+    foot: t("cod.nextPost", { name: name.toLocaleUpperCase() }),
+    countdown,
+    notYet: `${t("ld.notYet")} · ${countdown}`,
+    chip: t("cod.wholePost"),
+    a11y: t("wl.a11y", { name }),
+  };
+}
+
+/** The window's sky, by the hour, in the game's own palette (hex). */
+export type WindowSky = { top: string; bottom: string; pillarFill: string; pillarInk: string; text: string; stars: boolean; night: boolean };
+
+/**
+ * The sky from one of the courier card's palettes (components/CourierCard
+ * PALETTE[daylight(hour)]); `night` is daylight === "night". The pipes take
+ * the scene's scrim, outlined in the palette's chip (her moonlit ink at
+ * night), and the words go white after dark.
+ */
+export function windowSky(p: { sky: readonly [string, string]; scrim: string; chip: string; text: string; stars: boolean }, night: boolean): WindowSky {
+  return { top: p.sky[0], bottom: p.sky[1], pillarFill: p.scrim, pillarInk: night ? "#DAD6F2" : p.chip, text: night ? "#FFFFFF" : p.text, stars: p.stars, night };
+}
+
+export type WindowVM = { canPlay: boolean; eyebrow: string; line: string; a11yLabel: string; a11yHint: string; sky: WindowSky };
+
+/** The window to her game. When she can't play (an egg, or wilted), it says when she's back instead of offering a lap. */
+export function buildWindow({ canPlay, name, countdown, sky }: { canPlay: boolean; name: string; countdown: string; sky: WindowSky }, t: TFn): WindowVM {
+  const line = canPlay ? t("win.fly", { name }) : `${t("cod.nextPost", { name: name.toLocaleUpperCase() })} ${countdown}`;
+  return { canPlay, eyebrow: t("cod.wholePost"), line, a11yLabel: canPlay ? t("ff.title") : line, a11yHint: canPlay ? t("ff.hint") : "", sky };
+}
+
+/* ── the arrival ──────────────────────────────────────────────────────── */
+
+/** the three letters she brought back on her first crossing */
+export const ARRIVAL_LETTERS = 3;
 /**
  * Whether her arrival shows: she has just come back AND there are letters
- * on the desk for her envelopes to be. A quiet day (loaded, nothing on the
- * desk: an empty pool after onboarding, an offline cold start with nothing
- * kept) and a first load with nothing yet draw none — she never says "I
- * brought back three" over envelopes that point at nothing. The first card's
- * unfold follows the same rule. Decided here, so both renderers agree.
+ * on the desk for it to be about. A quiet day and a first load with nothing
+ * yet draw none — she never says "I brought back three" over nothing. The
+ * first card's unfold follows the same rule. Decided here, so both
+ * renderers agree.
  */
 export const arrivalShows = ({ fresh, onDesk }: { fresh: boolean; onDesk: number }): boolean => fresh && onDesk > 0;
+/** The arrival is over once three letters have been passed. */
+export const arrivalSettled = (passedCount: number): boolean => passedCount >= ARRIVAL_LETTERS;
 
-/* ── the plate ────────────────────────────────────────────────────────── */
-
-/**
- * The plate's right label. Nothing while the first load is in flight (the
- * page used to say CLOSED while it was still asking — "the day is over
- * while we're still asking", the worst thing it can say); CLOSED on a
- * quiet day (loaded, nothing on the desk); ALL READ on the end page; no
- * counter ever (the founding spec).
- */
-export function plateLabel({ loaded, count, atEnd }: { loaded: boolean; count: number; atEnd: boolean }, t: TFn): string {
-  if (!loaded) return "";
-  if (count === 0) return t("ld.closed");
-  return atEnd ? t("ld.allRead") : "";
+/** @deprecated the step-5 arrival's envelopes, for the scroll-stack renderers until integrate rewires them. */
+export type EnvelopeState = "opened" | "current" | "sealed";
+/** @deprecated see EnvelopeState */
+export function envelopeStates(idx: number): EnvelopeState[] {
+  return Array.from({ length: ARRIVAL_LETTERS }, (_, i) => (i < idx ? "opened" : i === idx ? "current" : "sealed"));
 }
 
 /* ── the card ─────────────────────────────────────────────────────────── */
@@ -176,8 +460,10 @@ export type CardVM = {
   /** "1:14", "" when unknown */
   durationLabel: string;
   capsule: CardCapsule;
-  /** the ⋯ menu: Report / Block; [] for an unsigned letter (nobody to report) */
+  /** the ⋯ menu: Report / Block (signed letters), then Bring back (the card on screen, after a pass); [] for none */
   menu: KMenuAction[];
+  /** the reply field's placeholder for this letter: "write back to No. 7273…", or "write back…" unsigned */
+  replyPlaceholder: string;
   /** what VoiceOver reads for the whole card */
   a11yLabel: string;
   /** a dev sample (demo-): skips the counters, the read receipt and the pouch */
@@ -193,9 +479,9 @@ export type CardInput = {
   voiceReady: boolean;
 };
 
-/** The docket line: when it was posted and who by (NO.xxxx), or UNSIGNED. */
-export function docket(letter: Pick<PoolLetter, "created_at" | "author">, fmt: Pick<TodayFormat, "postmark" | "postNo" | "t">): string {
-  return `${fmt.postmark(letter.created_at)} · ${letter.author ? `NO.${fmt.postNo(letter.author)}` : fmt.t("ld.unsigned")}`;
+/** The docket line: when it was posted and who by (the pen pal's number, "NO.7273" / "N.º7273"), or UNSIGNED. */
+export function docket(letter: Pick<PoolLetter, "created_at" | "author">, fmt: Pick<TodayFormat, "postmark" | "penPal" | "t">): string {
+  return `${fmt.postmark(letter.created_at)} · ${letter.author ? fmt.penPal(letter.author, { upper: true, compact: true }) : fmt.t("ld.unsigned")}`;
 }
 
 /** The capsule slot: translation wins (owner), else the signal, else nothing. */
@@ -218,17 +504,20 @@ export function capsuleFor(offer: { code: string } | null, xl: Translation | nul
   return { kind: "signal", label: fmt.t("ld.both.label", { name: fmt.stickerName(signal.stickerId) }), glyph: signal.kind === "hour" ? "clock" : "stickers" };
 }
 
-/** The ⋯ menu of a desk letter: Report and Block, for anyone signed. */
-export function cardMenu(letter: Pick<PoolLetter, "author">, t: TFn): KMenuAction[] {
-  if (!letter.author) return [];
-  return [
-    { key: "report", title: t("rp.menu.report"), icon: "flag", destructive: false },
-    { key: "block", title: t("rp.menu.block"), icon: "nosign", destructive: true },
-  ];
+/** The ⋯ menu of a desk letter: Report and Block, for anyone signed; then Bring back when it is offered (the only item on an unsigned letter). */
+export function cardMenu(letter: Pick<PoolLetter, "author">, t: TFn, o: { bringBack: boolean } = { bringBack: false }): KMenuAction[] {
+  const items: KMenuAction[] = letter.author
+    ? [
+        { key: "report", title: t("rp.menu.report"), icon: "flag", destructive: false },
+        { key: "block", title: t("rp.menu.block"), icon: "nosign", destructive: true },
+      ]
+    : [];
+  if (o.bringBack) items.push({ key: "bringBack", title: t("ld.bringBack"), icon: "arrow.uturn.backward", destructive: false });
+  return items;
 }
 
 /** One desk letter as both renderers draw it. `surfaceHex` is the card's face (tk.sf): the topic tag's colours are worked out on it. */
-export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat): CardVM {
+export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat, o: { bringBack: boolean } = { bringBack: false }): CardVM {
   const { letter, offer, xl, signal, voiceReady } = input;
   const st = fmt.stamp(letter.stamp);
   const isVoice = letter.kind === "voice" && !!letter.media_path;
@@ -270,14 +559,20 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     caption,
     durationLabel,
     capsule,
-    menu: cardMenu(letter, fmt.t),
+    menu: cardMenu(letter, fmt.t, o),
+    // the field names the pen pal; until the reader's language has that line, its own "write back…"
+    replyPlaceholder:
+      letter.author && (fmt.has?.("ld.writeBackTo") ?? true)
+        ? fmt.t("ld.writeBackTo", { name: fmt.penPal(letter.author, { upper: false, compact: false }) })
+        : fmt.t("ld.writeBackPh"),
     a11yLabel: [post, topic, why, words].filter(Boolean).join(". "),
     demo: letter.id.startsWith("demo"),
   };
 }
 
-export function buildCards(inputs: readonly CardInput[], surfaceHex: string, fmt: TodayFormat): CardVM[] {
-  return inputs.map((i) => buildCard(i, surfaceHex, fmt));
+/** The cards in order; Bring back goes on the first (the one on screen) only, when `bringBackOnFirst` (canBringBack && reading). */
+export function buildCards(inputs: readonly CardInput[], surfaceHex: string, fmt: TodayFormat, o: { bringBackOnFirst: boolean } = { bringBackOnFirst: false }): CardVM[] {
+  return inputs.map((i, n) => buildCard(i, surfaceHex, fmt, { bringBack: o.bringBackOnFirst && n === 0 }));
 }
 
 /* ── the fold (the React Native card; Swift measures its own) ────────── */
@@ -335,7 +630,7 @@ export function replyState(
   return { ok, sendState, hint, hintWarn: over > 0, pouchFull };
 }
 
-/** The first line of a draft, for the resting pill ("" shows the placeholder). */
+/** The first line of a draft ("" shows the placeholder). */
 export function draftPreview(text: string): string {
   const first = text.trim().split("\n")[0] ?? "";
   return first.length > 80 ? first.slice(0, 80).trimEnd() + "…" : first;
@@ -351,47 +646,33 @@ export function replyFailAction(kind: WriteFail | null | undefined, isGuest: boo
 
 /* ── the geometry (KTodayGeometry in Swift: change them together) ────── */
 
-/** the plate band, fixed in layout (the title shrinks inside it) */
+/** the title band, fixed in layout (the title shrinks inside it) */
 export const BAND = 52;
-/** the first card sits this far under the band (H's gap; the snap line) */
-export const CONTENT_TOP = 12;
-/** from one card's foot to the next card's top: H's 12 + 120 */
-export const CARD_GAP = 132;
-/** the write-back pill's height (H:115), and what clears it under a card */
-export const PILL_H = 52;
-export const PILL_AIR = 14;
-/** the shortest card, and the window the blind needs before it scales (312 × 404 plus its capsule and cue) */
+/** the card sits this far under the band */
+export const CONTENT_TOP = 4;
+/** between the card's foot and the control band (NEXT · the arc · REPLY) */
+export const CARD_AIR = 14;
+/** the control band's height */
+export const CONTROL_H = 80;
+/** the band's bottom sits this far above the tab bar's room */
+export const CONTROL_LIFT = 2;
+/** the shortest card (an iPhone SE still gets a letter, not a strip) */
 export const CARD_MIN = 360;
-export const BLIND_H = 520;
-export const END_MIN = 300;
+/** the page's side gutter */
+export const GUTTER = 16;
 
-export type DeskGeometry = {
-  /** the pill's bottom above the screen's: the tab bar's room + 6 (H:115's 104 on Face ID) */
-  bottomRoom: number;
-  /** what the stack's scroll view is tall: the Host less the status bar and the band */
-  viewH: number;
-  cardH: number;
-  /** one card and the gap after it */
-  stride: number;
-  /** the blind's page (the pill is hidden there) */
-  endH: number;
-  /** the blind scaled to fit an SE */
-  endScale: number;
-};
+/** y from the Host's top */
+export type DeskGeometry = { cardTop: number; cardH: number; controlTop: number };
 
 /**
  * The desk's numbers from the Host's height. The card scales with the
- * screen (owner): what is left under the band once the snap line (12) and
- * the pill with its air (52 + 14) above the tab bar are taken out, never
- * under 360 — about 559 on a 393 × 852 phone and 427 on an iPhone SE. The
- * desk strip and the arrival scroll with the cards, so they never take
- * height from them (critic: pinned, they clamped the SE card to 360 and
- * hid REPLY ↓ under the pill).
+ * screen (owner): what is left under the band once the control band and
+ * its air above the tab bar are taken out, never under 360. A 393 × 852
+ * phone (top 54, room 98) gives the design exactly: card at 110, 548 tall,
+ * the band at 672.
  */
 export function deskGeometry({ hostH, safeTop, tabBarRoom }: { hostH: number; safeTop: number; tabBarRoom: number }): DeskGeometry {
-  const bottomRoom = tabBarRoom + 6;
-  const viewH = Math.max(0, hostH - safeTop - BAND);
-  const cardH = Math.max(CARD_MIN, Math.round(viewH - CONTENT_TOP - (bottomRoom + PILL_H + PILL_AIR)));
-  const endH = Math.max(END_MIN, Math.round(viewH - CONTENT_TOP - bottomRoom));
-  return { bottomRoom, viewH, cardH, stride: cardH + CARD_GAP, endH, endScale: Math.min(1, endH / BLIND_H) };
+  const cardTop = safeTop + BAND + CONTENT_TOP;
+  const cardH = Math.max(CARD_MIN, Math.round(hostH - cardTop - CARD_AIR - CONTROL_H - (tabBarRoom + CONTROL_LIFT)));
+  return { cardTop, cardH, controlTop: cardTop + cardH + CARD_AIR };
 }

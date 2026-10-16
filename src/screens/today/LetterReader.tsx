@@ -92,7 +92,8 @@ export function LetterReader({ model }: { model: TodayModel }) {
             ) : writing ? (
               <>
                 <ReplyStrip
-                  placeholder={s.placeholder}
+                  // the letter's own: "write back to No. 7273…" (or "write back…" unsigned), as on the desk
+                  placeholder={card.replyPlaceholder || s.placeholder}
                   sendLabel={s.send}
                   initialText={model.draftFor(letter.id)}
                   canSend={state.ok}

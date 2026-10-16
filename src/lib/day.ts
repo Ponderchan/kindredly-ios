@@ -17,3 +17,26 @@ export function deskDay(now: Date = new Date()): string {
   d.setHours(d.getHours() - MORNING_HOUR);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/* WHEN SHE'S BACK (Today 3d, 2026-10-16). One morning for everything that
+   counts to it: her letter's countdown, the NOT YET chip, the window's
+   "back in", and the DayClosed Live Activity (lib/activities). Before this
+   there were two copies, one in activities and one in CloseOfDay. */
+
+/** the next MORNING_HOUR:00 local, strictly after `now` (between 00:00 and 08:00 that is today's, never "tomorrow's") */
+export function nextMorning(now: Date = new Date()): Date {
+  const d = new Date(now.getTime());
+  d.setHours(MORNING_HOUR, 0, 0, 0);
+  if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+/** whole minutes to nextMorning, rounded down: h = floor(min / 60), m = min % 60; ms is the exact gap */
+export function untilMorning(now: Date = new Date()): { h: number; m: number; ms: number } {
+  const ms = Math.max(0, nextMorning(now).getTime() - now.getTime());
+  const min = Math.floor(ms / 60000);
+  return { h: Math.floor(min / 60), m: min % 60, ms };
+}
+
+/** her yawn hours: 21:00 to 07:59 (she's asleep on the wire, and dozes off when the desk is done) */
+export const isNightHour = (hour: number): boolean => hour >= 21 || hour < MORNING_HOUR;

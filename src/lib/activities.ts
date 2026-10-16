@@ -1,7 +1,8 @@
 import { Platform } from "react-native";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { t } from "./i18n";
-import { MORNING_HOUR, deskDay } from "./day";
+import { deskDay, isNightHour, nextMorning } from "./day";
+import { clockTime } from "./format";
 import { getWrenName } from "./wren-name";
 import { supabase, supabaseReady } from "./supabase";
 import { STAMPS } from "../data/stamps";
@@ -11,7 +12,9 @@ import { snapshotBird, type BirdPose } from "../components/BirdSnapshots";
    ────────────────────────────────────────────────────────────────────────
    Two Live Activities, both of them things that are actually happening:
 
-   · DAY CLOSED — starts when the blind is pulled, counts to the hour she's
+   · DAY CLOSED — starts by itself when the last letter leaves Today's
+     desk (passed, answered or blocked: Today 3d, owner question 2; never on a quiet day,
+     never on a relaunch into a finished desk), counts to the hour she's
      back (the desk's day turns then, lib/day), and is ended on the next
      open past that hour. No push: the countdown is the system's own timer.
 
@@ -74,13 +77,6 @@ async function birdFile(pose: BirdPose): Promise<string> {
   return dst.uri;
 }
 
-const hhmm = () => `${String(MORNING_HOUR).padStart(2, "0")}:00`;
-const nextMorning = (): Date => {
-  const d = new Date();
-  d.setHours(MORNING_HOUR, 0, 0, 0);
-  if (d <= new Date()) d.setDate(d.getDate() + 1);
-  return d;
-};
 /* Apple ends a Live Activity itself after eight hours. A countdown that the
    system will freeze at five in the morning is worse than none, so past
    eight hours out the blind shows the hour she's back and no clock. */
@@ -95,9 +91,10 @@ export async function startDayClosed(facts: { read: number; waiting: number }): 
   try {
     for (const i of m.DayClosed.getInstances()) await i.end("immediate");
     const wren = (await getWrenName()).toUpperCase();
-    /* off duty in the evening, asleep once it's late — she has more than one
-       way of being done for the day */
-    const bird = await birdFile(new Date().getHours() >= 21 ? "sleepy" : "content");
+    /* off duty in the evening, asleep in her yawn hours (21:00–07:59, the
+       same hours Today has her doze off) — she has more than one way of
+       being done for the day */
+    const bird = await birdFile(isNightHour(new Date().getHours()) ? "sleepy" : "content");
     const mini = await birdFile("mini");
     const backAt = nextMorning();
     const timer = backAt.getTime() - Date.now() <= EIGHT_H;
@@ -116,7 +113,8 @@ export async function startDayClosed(facts: { read: number; waiting: number }): 
         none: t("cod.slip.read0"),
         waitingLine: facts.waiting === 0 ? "" : facts.waiting === 1 ? t("la.closed.waiting1") : t("la.closed.waitingN", { n: facts.waiting }),
         backIn: t("cod.nextPost", { name: wren }),
-        backAtLabel: t("cod.blind.next", { t: hhmm() }).toUpperCase(),
+        // the hour in the reader's own clock: "AT 8:00 AM", "A LAS 8:00"
+        backAtLabel: t("cod.blind.next", { t: clockTime(backAt) }).toUpperCase(),
       },
       "kindredly:///(tabs)/letters",
       backAt,

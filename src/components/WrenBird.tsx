@@ -289,8 +289,14 @@ export function Shapes({ list, bare, wilt }: { list: WShape[]; bare?: boolean; w
 const EL0 = { x: 89.5, y: 103 };
 const ER0 = { x: 117.5, y: 99.5 };
 export function HatchEyes({ mood, skin, form, wilt = false }: { mood: WrenMood; skin: WrenSkin; form?: HatchlingForm; wilt?: boolean }) {
-  /* the patch must match the body it covers, greyed with her when she wilts */
-  const patch = wilt ? wiltColour(CHICK_FILL[skin]) : CHICK_FILL[skin];
+  /* every mark greys with her when she wilts, as every colour of the drawn
+     set does (Shapes): the patch must match the body it covers, and the
+     delight stars, the tear and the thought dots lose colour with the rest
+     of her (they used to stay bright on a grey chick) */
+  const c = (x: string) => (wilt ? wiltColour(x) ?? x : x);
+  const patch = c(CHICK_FILL[skin]);
+  const eye = c(EYE);
+  const hi = c(HI);
   /* the read moves her eyes apart and scales them (shapeHatchling); the
      mood's marks follow, or a wide-set chick would smile beside her eyes */
   const spread = form?.eyeSpread ?? 0;
@@ -305,8 +311,8 @@ export function HatchEyes({ mood, skin, form, wilt = false }: { mood: WrenMood; 
   );
   const both = (d: (e: { x: number; y: number }) => string, sw: number) => (
     <G>
-      <Path d={d(EL)} stroke={EYE} strokeWidth={sw} fill="none" strokeLinecap="round" />
-      <Path d={d(ER)} stroke={EYE} strokeWidth={sw} fill="none" strokeLinecap="round" />
+      <Path d={d(EL)} stroke={eye} strokeWidth={sw} fill="none" strokeLinecap="round" />
+      <Path d={d(ER)} stroke={eye} strokeWidth={sw} fill="none" strokeLinecap="round" />
     </G>
   );
   switch (mood) {
@@ -328,15 +334,15 @@ export function HatchEyes({ mood, skin, form, wilt = false }: { mood: WrenMood; 
       return (
         <G>
           <Patch />
-          <Path d={`M${EL.x} ${EL.y - 11} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z`} fill="#E8A63C" />
-          <Path d={`M${ER.x} ${ER.y - 11} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z`} fill="#E8A63C" />
+          <Path d={`M${EL.x} ${EL.y - 11} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z`} fill={c("#E8A63C")} />
+          <Path d={`M${ER.x} ${ER.y - 11} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z`} fill={c("#E8A63C")} />
         </G>
       );
     case "worry":
       return (
         <G>
           {both((e) => `M${e.x - 10} ${e.y - 13} Q${e.x} ${e.y - 9} ${e.x + 10} ${e.y - 13}`, 4.5)}
-          <Path d={`M${ER.x + 18} ${ER.y - 4} q5 8 0 14 q-5 -6 0 -14 z`} fill="#8ECBE8" />
+          <Path d={`M${ER.x + 18} ${ER.y - 4} q5 8 0 14 q-5 -6 0 -14 z`} fill={c("#8ECBE8")} />
         </G>
       );
     case "listen":
@@ -345,25 +351,26 @@ export function HatchEyes({ mood, skin, form, wilt = false }: { mood: WrenMood; 
       return (
         <G>
           <Patch />
-          <Circle cx={EL.x} cy={EL.y} r={9} fill={EYE} />
-          <Circle cx={EL.x - 3} cy={EL.y - 3} r={3} fill={HI} />
-          <Circle cx={ER.x} cy={ER.y} r={6} fill={EYE} />
-          <Circle cx={ER.x - 2} cy={ER.y - 2} r={2} fill={HI} />
+          {/* sized by the read's eye scale, as her own eyes are (shapeHatchling) */}
+          <Circle cx={EL.x} cy={EL.y} r={9 * k} fill={eye} />
+          <Circle cx={EL.x - 3 * k} cy={EL.y - 3 * k} r={3 * k} fill={hi} />
+          <Circle cx={ER.x} cy={ER.y} r={6 * k} fill={eye} />
+          <Circle cx={ER.x - 2 * k} cy={ER.y - 2 * k} r={2 * k} fill={hi} />
         </G>
       );
     case "think":
       return (
         <G>
-          <Circle cx={ER.x + 24} cy={ER.y - 18} r={2.6} fill="#A6A1B6" />
-          <Circle cx={ER.x + 32} cy={ER.y - 24} r={2.2} fill="#A6A1B6" />
-          <Circle cx={ER.x + 38} cy={ER.y - 31} r={1.8} fill="#A6A1B6" />
+          <Circle cx={ER.x + 24} cy={ER.y - 18} r={2.6} fill={c("#A6A1B6")} />
+          <Circle cx={ER.x + 32} cy={ER.y - 24} r={2.2} fill={c("#A6A1B6")} />
+          <Circle cx={ER.x + 38} cy={ER.y - 31} r={1.8} fill={c("#A6A1B6")} />
         </G>
       );
     case "wink":
       return (
         <G>
           <Circle cx={EL.x} cy={EL.y} r={11 * k} fill={patch} />
-          <Path d={`M${EL.x - 9} ${EL.y} Q${EL.x} ${EL.y - 6} ${EL.x + 9} ${EL.y}`} stroke={EYE} strokeWidth={6} fill="none" strokeLinecap="round" />
+          <Path d={`M${EL.x - 9} ${EL.y} Q${EL.x} ${EL.y - 6} ${EL.x + 9} ${EL.y}`} stroke={eye} strokeWidth={6} fill="none" strokeLinecap="round" />
         </G>
       );
     default:

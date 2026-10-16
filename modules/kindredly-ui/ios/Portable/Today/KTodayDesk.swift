@@ -3,500 +3,349 @@
 import SwiftUI
 
 /*
- THE TODAY TAB (10a, H:28-46 and H:108-125 with the owner's decisions), drawn by SwiftUI. Every
- word, date, count, which letters are on the desk and in what order, every menu and every rule
- is TS's (src/screens/today/today-cards.ts, useTodayDesk): this draws them and reports taps. Its
- own state is only what belongs to the gesture and the keyboard: which card has settled, how far
- the stack is scrolled, whether the field has the keyboard, and a few measured heights.
+ THE TODAY TAB (Today 3d × 25b, 2026-10-16), drawn by SwiftUI. Every word, date, count, which
+ letters are on the desk and in what order, every menu and every rule is TS's
+ (src/screens/today/today-cards.ts, useTodayDesk): this draws them and reports taps. Its own
+ state is only what belongs to the gesture, the keyboard and the day's-end pictures: the card on
+ screen (KDeckState), the drag (KDeckMotion), the field (KTodayDock) and the done flow (KDayFlow).
 
-   TODAY ........................................................ ALL READ   (52, fixed)
-   [Wren] Wren left something on her desk.                      ›     ┐ scroll with the cards
-   [Wren] Your letter is on its way. I brought back three.  ✉ ✉ ✉    ┘ (never take their height)
-   ┌ card ───────────────────────────────────────────────────────┐   one card per swipe,
-   │ ▦ SEP.23 · NO.7273                               [stamp] (⋯) │   snapped 12 under the band
-   │                 the letter, in its tier, folded                │
-   │ #made my day                                    ES→EN read it │
-   │ ──────────────────────────────────────────────────────────── │
-   │ ↑ PASS                                               REPLY ↓ │
-   └──────────────────────────────────────────────────────────────┘
-   (the next card peeks 132 below, under the fade)
-   … the close-of-day blind as the last page (a React Native island)
-   [✎ write back…                                            (↑)]   the pill, bottomRoom up
-   (fade 176, solid from 42%)                         (the tab bar, its own Host, below)
+   TODAY                                                     (52, fixed; shrinks as a card is pulled)
+   ┌ card ───────────────────────────────────────────────────┐  one letter (KCardDeck), or Wren's
+   │ ▦ SEP.23 · NO.7273                           [stamp] (⋯) │  letter in done (KDoneView), in
+   │                 the letter, in its tier, folded            │  the same slot: x 16…W−16,
+   │ #made my day                                ES→EN read it │  y cardTop, cardHeight tall
+   └───────────────────────────────────────────────────────────┘
+        · ˙ ˙ ˙ ˙ ˙ ˙ ˙ (Wren, on the arc) ˙ ˙ ˙ ˙ ˙ ˙ ·           the control band, 80, 14 under
+      (  3  )                                     (  ✉  )         the card (KControlBand), with Wren
+       NEXT                                        REPLY          over it (KWireWren); in done the
+                                                                  window (KFlightWindow) in its place
+   (the tab bar, its own Host, below)
 
  LAYOUT. Two layers in one ZStack, so the keyboard moves only what it should:
- - the desk (status-bar strip, the plate, the card stack, the bottom fade) ignores the keyboard's
-   safe area, so typing never resizes or re-snaps the cards;
- - the dock (the tap-catcher under the whole layer, the pill, the reply strip and its hint) is a
-   layer that respects it (the Host ignores only the container safe area: ignoreSafeArea
-   "container"), so the strip rides the keyboard in its own transaction. Never a .safeAreaInset:
-   iOS 18 reports one twice (spike pattern 1).
+ - the desk (the radial ground, the card slot, the plate, the band, the window, Wren) ignores the
+   keyboard's safe area, so typing never resizes the card;
+ - the dock (the scrim and the reply strip) is a layer that respects it (the Host ignores only the
+   container safe area: ignoreSafeArea "container"), so the strip rides the keyboard in its own
+   transaction. Never a .safeAreaInset: iOS 18 reports one twice (spike pattern 1).
  The keyboard's height is measured, not assumed (spike pattern 5): the desk layer's height (which
  ignores the keyboard) less the dock layer's (which respects it). Only the dock reads it.
 
- THE PLATE: TODAY at 22, shrinking into a centred postmark over the first 40pt of scroll, driven
- here from the scroll offset (KScrollModel, read by the plate alone; never a JS round trip, which
- would stutter). The band stays 52 in layout, so the stack's frame never changes mid-scroll.
+ THE DAY'S END. The desk starts the flow: the deck's last pass (optimistic; TS has to confirm
+ within 1.5 s or the flow resets and the deck snaps back to TS's first card), the shown card
+ leaving as the last one while TS says done, or TS's phase turning from reading to done by a
+ removal the deck didn't see. A desk that opens done, or comes up done from loading or offline
+ (a relaunch reading the kept day, a quiet day's first load), is drawn at rest with no replay; a
+ phase that leaves done (the day turned) resets it.
 
- One Host covers the full desk, the quiet day (no cards: the plate says CLOSED, the strip and the
- blind stay) and the first load (nothing on the desk yet: the plate blank, no blind). The toast,
- the send's fly-by, the reader and the sheets are React Native, over the Host.
+ One Host covers the full desk, the quiet day, the first load and the offline cold start. The
+ toast, the send's fly-by, the reader and the sheets are React Native, over the Host.
  */
 
 // MARK: - Geometry
 
 /// The desk's numbers from the Host's height: src/screens/today/today-cards.ts deskGeometry, the same
-/// formula (change them together). The card scales with the screen (owner): about 559 on a 393 × 852
-/// phone, 427 on an iPhone SE, never under 360.
+/// formula (change them together). 393 × 852, status bar 54, tab bar room 98 → card top 110, card
+/// 548, band top 672 (the design exactly); never a card under 360.
 public struct KTodayGeometry: Equatable, Sendable {
   /// the plate band, fixed in layout
   public static let band: CGFloat = 52
-  /// the first card sits this far under the band: the snap line (H:28's scroll-padding)
-  public static let contentTop: CGFloat = 12
-  /// from one card's foot to the next card's top (H:39's 12 + 120)
-  public static let cardGap: CGFloat = 132
-  /// the gutter on either side of the cards (H:28)
+  /// the card sits this far under the band
+  public static let contentTop: CGFloat = 4
+  /// from the card's foot to the band's top
+  public static let cardAir: CGFloat = 14
+  /// the control band
+  public static let controlHeight: CGFloat = 80
+  /// the band's bottom sits this far above the tab bar's room
+  public static let controlLift: CGFloat = 2
+  /// the gutter on either side of the card
   public static let gutter: CGFloat = 16
-  public static let pillHeight: CGFloat = 52
-  public static let pillAir: CGFloat = 14
   public static let cardMin: CGFloat = 360
-  /// the blind's own height before it scales (CloseOfDay's 312 × 404 window, capsule and cue)
-  public static let blindHeight: CGFloat = 520
-  public static let endMin: CGFloat = 300
 
-  /// the pill's bottom above the screen's: the tab bar's room + 6 (H:115's 104 on Face ID)
-  public let bottomRoom: CGFloat
-  /// the stack's scroll view: the Host less the status bar and the band
-  public let viewHeight: CGFloat
-  public private(set) var cardHeight: CGFloat
-  /// one card and the gap after it
-  public private(set) var stride: CGFloat
-  /// the blind's page; the pill is hidden there
-  public let endHeight: CGFloat
+  /// y from the Host's top
+  public let cardTop: CGFloat
+  public let cardHeight: CGFloat
+  /// the control band's top, y from the Host's top
+  public let controlTop: CGFloat
 
   public init(hostHeight: CGFloat, safeTop: CGFloat, tabBarRoom: CGFloat) {
-    let room = tabBarRoom + 6
-    let view = max(0, hostHeight - safeTop - Self.band)
-    bottomRoom = room
-    viewHeight = view
-    cardHeight = max(Self.cardMin, (view - Self.contentTop - (room + Self.pillHeight + Self.pillAir)).rounded())
-    stride = cardHeight + Self.cardGap
-    endHeight = max(Self.endMin, (view - Self.contentTop - room).rounded())
+    cardTop = safeTop + Self.band + Self.contentTop
+    cardHeight = max(Self.cardMin, (hostHeight - cardTop - Self.cardAir - Self.controlHeight - (tabBarRoom + Self.controlLift)).rounded())
+    controlTop = cardTop + cardHeight + Self.cardAir
   }
-
-  /// The desk with Wren's strip and the arrival above card 0 (`leading`, measured) taking their
-  /// height from the cards when the cards can spare it and stay at least cardMin: on a tall phone
-  /// the first card then sits whole under them when Today opens, its tags and PASS / REPLY clear of
-  /// the pill (seen on the simulator: without this the foot of the first card opened under the
-  /// pill until the first swipe). Where the cards can't spare it (an SE, a tall arrival) they keep
-  /// their height and the strip scrolls away above the first card, as before. Swift only: TS's
-  /// deskGeometry mirrors the base formula, not this.
-  public func fitting(leading: CGFloat) -> KTodayGeometry {
-    guard leading > 0.5 else { return self }
-    let fitted = (cardHeight - leading).rounded()
-    guard fitted >= Self.cardMin else { return self }
-    var g = self
-    g.cardHeight = fitted
-    g.stride = fitted + Self.cardGap
-    return g
-  }
-}
-
-// MARK: - What TS sends
-
-/// One envelope of the first arrival.
-public enum KEnvelopeState: String, Sendable {
-  case opened
-  case current
-  case sealed
-}
-
-/// Her return from the first crossing: the line and the three envelopes she brought back.
-public struct KTodayArrival: Equatable, Sendable {
-  public var open = false
-  public var line = ""
-  public var states: [KEnvelopeState] = []
-  /// VoiceOver: "Letter 1 of 3", one per envelope
-  public var labels: [String] = []
-  /// VoiceOver: "read", "open now", "not opened yet", one per envelope
-  public var values: [String] = []
-
-  public init() {}
-}
-
-/// The capsule slot at a card's foot: translation wins over the signal (owner).
-public enum KCardCapsule: Equatable, Sendable {
-  case none
-  /// "ES→EN" + "Read it in yours" (or "EN←ES" + "Show original"; busy: not enabled)
-  case translate(code: String, label: String, enabled: Bool, value: String)
-  /// the lime capsule: "auras close" with the rings, "Night owl, like you" with the clock, …
-  case signal(label: String, glyph: KAurasClose.Glyph)
-}
-
-/// One desk letter, every word already set by TS (today-cards buildCard).
-public struct KLetterCardModel: Identifiable, Equatable, Sendable {
-  public var id = ""
-  /// "SEP.23 · NO.7273"
-  public var postmark = ""
-  /// FACE v1, bit row × 5 + column
-  public var mask = 0
-  /// a deleted account: the veil in faint
-  public var ghost = false
-  public var stampId = ""
-  public var stampHex = ""
-  /// VoiceOver's name for the stamp ("" hides it)
-  public var stampName = ""
-  /// "#made my day", "" for none
-  public var topic = ""
-  public var topicWash = ""
-  public var topicInk = ""
-  public var topicLine = ""
-  /// the text shown (the translation when it is on); "" for a voice letter
-  public var body = ""
-  public var bodySize: CGFloat = 30
-  public var bodyLine: CGFloat = 40
-  public var bodyCenter = true
-  public var isVoice = false
-  /// the voice letter's link is signed
-  public var voiceReady = false
-  public var caption = ""
-  public var durationLabel = ""
-  public var capsule: KCardCapsule = .none
-  /// Report / Block; [] for an unsigned letter
-  public var menu: [KMenuItem] = []
-  public var a11yLabel = ""
-
-  public init() {}
-}
-
-/// Every word on the desk that isn't on a card, and the card's own fixed words.
-public struct KTodayLabels: Equatable, Sendable {
-  /// "↑ PASS"
-  public var pass = ""
-  /// "REPLY ↓"
-  public var reply = ""
-  /// VoiceOver: "Write back"
-  public var replyA11y = ""
-  /// "UNFOLD ↓"
-  public var unfold = ""
-  /// VoiceOver: "Unfold the whole letter"
-  public var unfoldA11y = ""
-  /// "VOICE LETTER"
-  public var voiceLetter = ""
-  /// VoiceOver: the ⋯, "Report or block"
-  public var more = ""
-  /// VoiceOver actions: "Next letter", "Previous letter"
-  public var next = ""
-  public var previous = ""
-  /// VoiceOver: the voice letter's toggle
-  public var play = ""
-  public var pause = ""
-  /// "write back…"
-  public var placeholder = ""
-  /// "SEND"
-  public var send = ""
-
-  public init() {}
-}
-
-/// Where the reader's page should be after the cards changed under it (a letter answered or
-/// blocked): the card now in its place, or "" for the end page. Sent in the same props update as
-/// the cards, so it never lands on the old list.
-public struct KTodayAnchor: Equatable, Sendable {
-  public var id = ""
-  public var serial = 0
-
-  public init(id: String = "", serial: Int = 0) {
-    self.id = id
-    self.serial = serial
-  }
-}
-
-/// Everything the desk shows, from TS.
-public struct KTodayContent: Equatable, Sendable {
-  public var title = ""
-  /// CLOSED / ALL READ / ""
-  public var rightLabel = ""
-  /// the desk strip's line; "" draws no strip
-  public var deskStrip = ""
-  public var arrival = KTodayArrival()
-  /// the first card unfolds as it arrives (her return)
-  public var freshUnfold = false
-  public var cards: [KLetterCardModel] = []
-  /// the desk has loaded: the blind is the last page
-  public var endPage = false
-  /// TS hides the pill: a send in flight, the reader open, the + sheet open
-  public var pillHidden = false
-  public var labels = KTodayLabels()
-  public var anchor = KTodayAnchor()
-
-  public init() {}
-}
-
-// MARK: - Live state (each read only by the small views that need it)
-
-/// The reply strip's state for one letter, sent by TS on every change (the composer command).
-public struct KTodayComposer: Equatable, Sendable {
-  public var letterId = ""
-  public var sendState: KSendState = .disabled
-  public var hint = ""
-  /// the hint in the postmark red (over the limit)
-  public var hintWarn = false
-  /// the draft's first line for the resting pill; "" shows the placeholder
-  public var preview = ""
-  /// a send is in flight
-  public var sending = false
-  /// the last send press TS has answered
-  public var sendSerial = 0
-
-  public init() {}
-}
-
-/// The dock's state: the field, what TS says about it, focus and the keyboard. Read by the dock alone,
-/// so a keystroke never redraws the cards.
-public final class KTodayDock: ObservableObject {
-  /// the reply field; the adapter blurs it before the view goes (FocusableView)
-  public let reply = KFieldController()
-  @Published public private(set) var composer = KTodayComposer()
-  @Published public private(set) var focused = false
-  /// a send was pressed and TS hasn't answered it yet: the dock stays hidden (the fly-by is TS's)
-  @Published private(set) var awaitingSend = false
-  /// focused with no software keyboard (a hardware one): the strip sits above the tab bar instead
-  @Published private(set) var hardwareKeyboard = false
-  /// the dock layer's height (it respects the keyboard) and the desk layer's (it doesn't)
-  @Published var respectingHeight: CGFloat = 0
-  @Published var fullHeight: CGFloat = 0
-  private(set) var pressSerial = 0
-  private var focusSerial = 0
-
-  public init() {}
-
-  /// the keyboard's overlap at the bottom of the Host (0 while it is down)
-  var keyboardInset: CGFloat { max(0, fullHeight - respectingHeight) }
-
-  /// TS's composer command.
-  public func apply(_ next: KTodayComposer) {
-    if awaitingSend && next.sendSerial >= pressSerial && !next.sending {
-      awaitingSend = false
-    }
-    if next != composer { composer = next }
-  }
-
-  /// The send key, enabled: the field lets go and the dock hides until TS answers. Returns the press's serial.
-  func pressSend() -> Int {
-    pressSerial += 1
-    awaitingSend = true
-    reply.blur()
-    return pressSerial
-  }
-
-  /// The send key, dimmed (a full pouch): TS explains; nothing hides.
-  func pressDimmed() -> Int {
-    pressSerial += 1
-    return pressSerial
-  }
-
-  func setFocused(_ now: Bool) {
-    guard now != focused else { return }
-    focused = now
-    focusSerial += 1
-    if !now {
-      hardwareKeyboard = false
-      return
-    }
-    // a software keyboard is up within its animation; no inset by then means a hardware one
-    let serial = focusSerial
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-      guard let self, self.focused, self.focusSerial == serial else { return }
-      let hardware = self.keyboardInset < 40
-      if hardware != self.hardwareKeyboard { self.hardwareKeyboard = hardware }
-    }
-  }
-}
-
-/// The one voice letter playing, as TS's single player reports it (the playback command, on
-/// transitions only). Read by the voice block on each voice card alone.
-public final class KTodayVoice: ObservableObject {
-  @Published public private(set) var key = ""
-  @Published public private(set) var playback: KPlayback?
-  /// the loaded item wouldn't load (an expired link, offline)
-  @Published public private(set) var failed = false
-
-  public init() {}
-
-  public func apply(key: String, playback: KPlayback?, failed: Bool) {
-    if key != self.key { self.key = key }
-    if playback != self.playback { self.playback = playback }
-    if failed != self.failed { self.failed = failed }
-  }
-}
-
-/// The stack's scroll state: which card has settled, the cord's lock, and TS's scroll requests.
-public final class KTodayDriver: ObservableObject {
-  /// Where a scroll request goes.
-  public enum Target: Equatable, Sendable {
-    /// the top of the desk (the strip and the arrival in view)
-    case top
-    /// a card by its id
-    case card(String)
-  }
-
-  struct ScrollRequest: Equatable {
-    let target: Target
-    let animated: Bool
-    let serial: Int
-  }
-
-  /// the card on screen once the scroll settles (cards.count = the end page)
-  @Published public internal(set) var settledCard = 0
-  /// the blind's cord is held: the stack must not scroll under the pull
-  @Published public var scrollLocked = false
-  /// the reply field has the keyboard (the dock sets it): the stack must not scroll under the
-  /// words, which are bound to the settled card. Here, not only on the dock, because the stack
-  /// observes the driver (rare changes) and never the dock (a composer update per keystroke).
-  @Published public internal(set) var typing = false
-  @Published private(set) var scrollRequest: ScrollRequest?
-  private var serial = 0
-
-  public init() {}
-
-  public func scroll(to target: Target, animated: Bool) {
-    serial += 1
-    scrollRequest = ScrollRequest(target: target, animated: animated, serial: serial)
-  }
-}
-
-/// Where the desk's taps go. One object for the life of the surface; set the closures once.
-public final class KTodayActions {
-  /// the card the stack settled on (cards.count = the end page)
-  public var onCardIndex: (Int) -> Void = { _ in }
-  /// the reader's edit in the reply field, for the letter it is bound to
-  public var onReplyChange: (_ letterId: String, _ text: String) -> Void = { _, _ in }
-  /// the send key (enabled or dimmed), with the words and the press's serial
-  public var onReplySend: (_ letterId: String, _ text: String, _ serial: Int) -> Void = { _, _, _ in }
-  /// the field took or let go of the keyboard
-  public var onReplyFocus: (Bool) -> Void = { _ in }
-  /// a card's action: unfold, translate, report, block, voice
-  public var onCardAction: (_ letterId: String, _ action: String) -> Void = { _, _ in }
-  /// the desk strip (to her desk)
-  public var onDeskStrip: () -> Void = {}
-  /// an arrival envelope, 0...2
-  public var onEnvelope: (Int) -> Void = { _ in }
-
-  public init() {}
 }
 
 // MARK: - The desk
+
+/// What the desk keeps without drawing: the latest phase (for a delayed check) and the optimistic
+/// play waiting for TS to say done.
+final class KTodayDeskBox {
+  var phase: KTodayPhase = .loading
+  /// bumps whenever an optimistic play is started or settled, so an older check lapses
+  var confirmSerial = 0
+}
 
 public struct KTodayDesk: View {
   private let theme: KTheme
   private let content: KTodayContent
   private let topInset: CGFloat
   private let tabBarRoom: CGFloat
-  private let driver: KTodayDriver
   private let dock: KTodayDock
   private let voice: KTodayVoice
+  @ObservedObject private var deck: KDeckState
+  /// written by the deck, read per frame by the plate and Wren only: never observed here
+  private let motion: KDeckMotion
+  @ObservedObject private var flow: KDayFlow
   private let actions: KTodayActions
-  private let deskBird: AnyView?
-  private let arrivalBird: AnyView?
-  private let endPage: AnyView?
 
-  /// The plate reads this (offset capped at 40: past it nothing changes); the screen itself never
-  /// observes it, so a scroll frame redraws the plate alone.
-  @State private var chrome = KScrollModel(offsetCap: 40)
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var box = KTodayDeskBox()
+
+  /// a pass TS hasn't confirmed by then, when it started the day's end, puts the desk back
+  static let confirmWait = 1.5
 
   /// - Parameters:
   ///   - topInset: the status bar (the Host ignores the container safe area)
-  ///   - tabBarRoom: the floating tab bar's room (useTabBarSpace()); the pill sits 6 above it
-  ///   - deskBird, arrivalBird: Wren as React Native islands (22, 34), placed only while their row shows
-  ///   - endPage: the close-of-day blind (a React Native island), the stack's last page once loaded
+  ///   - tabBarRoom: the floating tab bar's room (useTabBarSpace()); the band sits 2 above it
   public init(
     theme: KTheme,
     content: KTodayContent,
     topInset: CGFloat,
     tabBarRoom: CGFloat,
-    driver: KTodayDriver,
     dock: KTodayDock,
     voice: KTodayVoice,
-    actions: KTodayActions,
-    deskBird: AnyView? = nil,
-    arrivalBird: AnyView? = nil,
-    endPage: AnyView? = nil
+    deck: KDeckState,
+    motion: KDeckMotion,
+    flow: KDayFlow,
+    actions: KTodayActions
   ) {
     self.theme = theme
     self.content = content
     self.topInset = topInset
     self.tabBarRoom = tabBarRoom
-    self.driver = driver
     self.dock = dock
     self.voice = voice
+    self._deck = ObservedObject(wrappedValue: deck)
+    self.motion = motion
+    self._flow = ObservedObject(wrappedValue: flow)
     self.actions = actions
-    self.deskBird = deskBird
-    self.arrivalBird = arrivalBird
-    self.endPage = endPage
+  }
+
+  /// the deck takes the finger, NEXT and the card's moves
+  private var deckEnabled: Bool {
+    content.phase == .reading && !deck.typing && content.plus == .closed && !content.hideBand
+      && !deck.animating && flow.isReading
+  }
+
+  /// the field's placeholder: the shown card's own, else the plain one
+  private var placeholder: String {
+    if let id = deck.shownId, let card = content.cards.first(where: { $0.id == id }), !card.replyPlaceholder.isEmpty {
+      return card.replyPlaceholder
+    }
+    return content.labels.placeholder
   }
 
   public var body: some View {
+    let _ = remember()
     ZStack(alignment: .bottom) {
       // the desk: never moves for the keyboard
       GeometryReader { geo in
+        let W = geo.size.width
         let geometry = KTodayGeometry(hostHeight: geo.size.height, safeTop: topInset, tabBarRoom: tabBarRoom)
-        VStack(spacing: 0) {
-          // the status bar's strip: the page colour
-          Color.clear.frame(height: topInset)
-          KTodayHeader(theme: theme, title: content.title, rightLabel: content.rightLabel, chrome: chrome)
-          KCardStack(
-            theme: theme,
-            content: content,
-            geometry: geometry,
-            driver: driver,
-            dock: dock,
-            voice: voice,
-            actions: actions,
-            chrome: chrome,
-            deskBird: deskBird,
-            arrivalBird: arrivalBird,
-            endPage: endPage
-          )
-        }
-        .overlay(alignment: .bottom) {
-          KTodayFade(theme: theme, driver: driver, cardCount: content.cards.count, endPage: content.endPage)
-        }
-        .onChange(of: geo.size.height, initial: true) { _, height in
-          if abs(dock.fullHeight - height) > 0.5 { dock.fullHeight = height }
-        }
+        desk(width: W, geometry: geometry)
+          .frame(width: W, height: geo.size.height, alignment: .topLeading)
+          .onChange(of: geo.size.height, initial: true) { _, height in
+            if abs(dock.fullHeight - height) > 0.5 { dock.fullHeight = height }
+          }
       }
+      .coordinateSpace(name: "kToday")
       .ignoresSafeArea(.keyboard)
 
       // the dock: rides the keyboard
       KReplyDock(
         theme: theme,
         labels: content.labels,
-        bottomRoom: tabBarRoom + 6,
-        cardIds: content.cards.map(\.id),
-        pillHidden: content.pillHidden,
+        placeholder: placeholder,
+        restingBottom: tabBarRoom + KTodayGeometry.controlLift,
         dock: dock,
-        driver: driver,
+        deck: deck,
         actions: actions
       )
     }
     .background { theme.bg.ignoresSafeArea() }
+    .onAppear { appear() }
+    .onChange(of: content.phase) { old, now in phaseChanged(from: old, to: now) }
+    .onChange(of: deck.beat) { _, beat in beatChanged(beat) }
+    .onChange(of: content.window.canPlay) { _, can in
+      flow.refresh(canPlay: can, reduceMotion: reduceMotion)
+    }
+    .onChange(of: reduceMotion) { _, reduce in
+      flow.refresh(canPlay: content.window.canPlay, reduceMotion: reduce)
+    }
   }
-}
 
-/// The bottom fade (H:108) over the stack, under the pill. It fades itself out once the blind has
-/// settled, where its solid part would cover the cue and the sill (critic).
-struct KTodayFade: View {
-  let theme: KTheme
-  @ObservedObject var driver: KTodayDriver
-  let cardCount: Int
-  let endPage: Bool
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// The desk layer, back to front, in the Host's coordinates.
+  private func desk(width W: CGFloat, geometry g: KTodayGeometry) -> some View {
+    let plus = content.plus
+    let windowShown = flow.windowShown && plus == .closed
+    return ZStack(alignment: .topLeading) {
+      // 1. the page and its faint radial ground (the glass needs something behind it)
+      KTodayGround(theme: theme)
+        .frame(width: W)
+        .frame(maxHeight: .infinity)
 
-  var body: some View {
-    let onBlind = endPage && driver.settledCard >= cardCount
-    KBottomFade(theme: theme)
-      .opacity(onBlind ? 0 : 1)
-      .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: onBlind)
+      // 2. the card slot: the deck, and Wren's letter over it in done (neither clips: the
+      // letter's chip and the bag's label hang outside the card)
+      ZStack {
+        KCardDeck(
+          theme: theme,
+          content: content,
+          height: g.cardHeight,
+          enabled: deckEnabled,
+          deck: deck,
+          motion: motion,
+          voice: voice,
+          actions: actions,
+          onReply: { id in reply(id) }
+        )
+        KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow)
+      }
+      .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: g.cardHeight)
+      // the + panel: the card steps back a little
+      .scaleEffect(plus == .sheet ? 0.98 : plus == .pop ? 0.97 : 1)
+      .offset(y: plus == .sheet ? -10 : 0)
+      .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.stepBack, value: plus)
+      .offset(x: KTodayGeometry.gutter, y: g.cardTop)
+
+      // 3. the status bar's strip and the plate, over the card (a card pulled up goes under it)
+      VStack(spacing: 0) {
+        theme.bg.frame(height: topInset)
+        KTodayHeader(
+          theme: theme,
+          title: content.title,
+          locked: content.titleLocked || deck.pendingLeft != nil,
+          motion: motion
+        )
+      }
+      .frame(width: W)
+
+      // 4. the control band: NEXT, REPLY and the arc
+      KControlBand(
+        theme: theme,
+        left: content.left,
+        labels: content.labels,
+        leftA11y: content.leftA11y,
+        enabled: content.phase == .reading || content.phase == .done,
+        hidden: content.hideBand || plus != .closed,
+        deck: deck,
+        flow: flow,
+        onNext: { [deck] in deck.requestNext() },
+        onReply: { if let id = deck.shownId { reply(id) } }
+      )
+      .frame(width: W, height: KTodayGeometry.controlHeight)
+      .offset(y: g.controlTop)
+
+      // 5. the window to her game, in the band's place once the day is done
+      KFlightWindow(theme: theme, model: content.window, looping: flow.looping) { [actions] in
+        if content.window.canPlay { actions.onWindow() }
+      }
+      .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: KBandLayout.windowHeight)
+      .opacity(windowShown ? 1 : 0)
+      .offset(y: flow.windowShown || reduceMotion ? 0 : 10)
+      .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.windowIn, value: flow.windowShown)
+      .animation(KTodayMotion.bandFade, value: plus)
+      .allowsHitTesting(windowShown)
+      .accessibilityHidden(!windowShown)
+      .offset(x: KTodayGeometry.gutter, y: g.controlTop + KBandLayout.windowFrameTop)
+
+      // 6. Wren, over everything, taking no touches
+      KWireWren(
+        theme: theme,
+        birds: content.birds,
+        width: W,
+        controlTop: g.controlTop,
+        night: content.night,
+        canPlay: content.window.canPlay,
+        arrivalLine: content.arrivalLine,
+        hidden: plus != .closed || (content.hideBand && flow.isReading),
+        motion: motion,
+        deck: deck,
+        flow: flow
+      )
+      .frame(width: W)
+      .frame(maxHeight: .infinity)
+      .allowsHitTesting(false)
+    }
+  }
+
+  // ── routing ──
+
+  /// REPLY and the card's "Write back": only for the card on screen, while it can be answered.
+  private func reply(_ id: String) {
+    guard id == deck.shownId, content.phase == .reading, deckEnabled else { return }
+    dock.reply.focus()
+    deck.emit(.replyOpened)
+    actions.onReplyOpen(id)
+  }
+
+  // ── the day's end ──
+
+  private func remember() {
+    box.phase = content.phase
+  }
+
+  private func appear() {
+    box.confirmSerial &+= 1
+    if content.phase == .done {
+      flow.rest(canPlay: content.window.canPlay, reduceMotion: reduceMotion)
+    } else {
+      flow.reset()
+    }
+  }
+
+  private func play() {
+    flow.play(night: content.night, canPlay: content.window.canPlay, reduceMotion: reduceMotion)
+  }
+
+  private func phaseChanged(from old: KTodayPhase, to now: KTodayPhase) {
+    box.phase = now
+    if now == .done {
+      // TS confirmed (an optimistic play stands), or a removal the deck didn't see as a beat;
+      // a desk that comes up done (a relaunch reading the kept day, a quiet day's first load)
+      // is drawn at rest, never replayed
+      box.confirmSerial &+= 1
+      guard flow.isReading else { return }
+      if old == .reading {
+        play()
+      } else {
+        flow.rest(canPlay: content.window.canPlay, reduceMotion: reduceMotion)
+      }
+    } else if old == .done || !flow.isReading {
+      // the day turned (or an unconfirmed play is still showing): back to the reading desk
+      box.confirmSerial &+= 1
+      flow.reset()
+    }
+  }
+
+  private func beatChanged(_ beat: KDeckBeat) {
+    switch beat.kind {
+    case .passed(last: true):
+      // optimistic: TS has to say done within confirmWait, or the desk goes back to reading
+      guard flow.isReading else { return }
+      play()
+      guard content.phase != .done else { return }
+      box.confirmSerial &+= 1
+      let serial = box.confirmSerial
+      DispatchQueue.main.asyncAfter(deadline: .now() + Self.confirmWait) { [box, flow] in
+        guard box.confirmSerial == serial, box.phase != .done else { return }
+        box.confirmSerial &+= 1
+        flow.reset()
+      }
+    case .left(last: true):
+      // the shown card left as the last one: only TS's done ends the day (a day turning empties
+      // the cards too, with the phase back at loading)
+      if content.phase == .done, flow.isReading { play() }
+    default:
+      break
+    }
   }
 }

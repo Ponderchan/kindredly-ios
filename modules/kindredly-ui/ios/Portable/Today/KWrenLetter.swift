@@ -26,9 +26,11 @@ import SwiftUI
 
  The material is the Me InkCard's (sf, a 2.5 ln outline, corners of 24, a hard 5/5 ln shadow),
  padded 0 18 12 inside the outline. The bag takes whatever height is left (margins 14 above, 56
- at the sides, 8 below) and stands aside when less than 96 is left. Where the lines don't fit at
- 20 (a small phone, large text) they step down to 18, then 16, and at the last truncate rather
- than spill out of the card.
+ at the sides, 8 below), never less than the design's 120: it is the done state's main object, so
+ the lines give way first. The whole letter is laid out at 20 (the design's), 18, then 16 with the
+ bag's 120 kept, and only when even 16 leaves less than that (a small phone, large text) does the
+ bag stand aside, the lines then taking the room back at 20, 18 or 16, and at the last truncating
+ rather than spilling out of the card.
 
  Taps: the letter bounces (.6 s) and shows the chip (THAT'S ALL FOR TODAY) under the card for
  1.6 s; the bag jiggles (.45 s) and shows NOT YET · 8H 06M for 1.5 s, and its tap stays its own.
@@ -43,14 +45,14 @@ struct KWrenLetter: View {
   static let hole: CGFloat = 7
   static let stampSize = CGSize(width: 46, height: 56)
   static let stampBird: CGFloat = 32
-  /// the line sizes, tried in order until the lines fit (20 is the design's)
+  /// the line sizes, tried in order until the letter fits (20 is the design's)
   static let lineSizes: [CGFloat] = [20, 18, 16]
   /// the bag's margins: above, either side, below
   static let bagTop: CGFloat = 14
   static let bagSide: CGFloat = 56
   static let bagBottom: CGFloat = 8
-  /// below this the bag stands aside (the design wants 120; it gives way down to here first)
-  static let bagLeast: CGFloat = 96
+  /// the bag's least height (the design's min-height 120): the lines step down to keep it
+  static let bagMin: CGFloat = 120
 
   /// the chips' pop: kpop .3s with CSS's default ease
   static let popIn = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)
@@ -112,11 +114,17 @@ struct KWrenLetter: View {
 
   // ── the card ──
   private var card: some View {
-    VStack(spacing: 0) {
-      letter
-        .layoutPriority(1)
-      bagRoom
-      foot
+    // the first layout that fits: the bag's 120 kept at 20, 18, 16; then without the bag at 20,
+    // 18, 16; then 16 truncating. Each is measured at its ideal height, the bag's room at its 120
+    // (+ margins), so the one chosen always leaves the bag at least that.
+    ViewThatFits(in: .vertical) {
+      ForEach(Self.lineSizes, id: \.self) { size in
+        layout(size: size, fixed: true, bag: true)
+      }
+      ForEach(Self.lineSizes, id: \.self) { size in
+        layout(size: size, fixed: true, bag: false)
+      }
+      layout(size: Self.lineSizes.last ?? 16, fixed: false, bag: false)
     }
     // padding 0 18 12 inside the 2.5 outline (border-box)
     .padding(EdgeInsets(top: Self.border, leading: 18 + Self.border, bottom: 12 + Self.border, trailing: 18 + Self.border))
@@ -133,19 +141,30 @@ struct KWrenLetter: View {
     }
   }
 
+  /// one whole letter: the letter, the bag's room (or, without the bag, the space it leaves) and
+  /// the foot at the bottom
+  private func layout(size: CGFloat, fixed: Bool, bag: Bool) -> some View {
+    VStack(spacing: 0) {
+      letter(size: size, fixed: fixed)
+        .layoutPriority(1)
+      if bag {
+        bagRoom
+          .frame(minHeight: Self.bagTop + Self.bagMin + Self.bagBottom)
+      } else {
+        Spacer(minLength: 0)
+      }
+      foot
+    }
+  }
+
   // ── the letter: holes, header, lines; one tap target and one VoiceOver element ──
-  private var letter: some View {
+  private func letter(size: CGFloat, fixed: Bool) -> some View {
     VStack(alignment: .leading, spacing: 0) {
       holes
       header
         .padding(.top, 12)
-      ViewThatFits(in: .vertical) {
-        ForEach(Self.lineSizes, id: \.self) { size in
-          lines(size: size, fixed: true)
-        }
-        lines(size: Self.lineSizes.last ?? 16, fixed: false)
-      }
-      .padding(.top, 10)
+      lines(size: size, fixed: fixed)
+        .padding(.top, 10)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .contentShape(Rectangle())
@@ -236,7 +255,8 @@ struct KWrenLetter: View {
     GeometryReader { geo in
       let height = geo.size.height - Self.bagTop - Self.bagBottom
       let width = geo.size.width - 2 * Self.bagSide
-      if height >= Self.bagLeast && width > 0 {
+      // the layout that carries the bag keeps it at bagMin or more (see card)
+      if height > 0 && width > 0 {
         bag(width: width, height: height)
           .position(x: geo.size.width / 2, y: Self.bagTop + height / 2)
       }

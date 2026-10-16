@@ -144,6 +144,13 @@ export function strings(en: Dict, es: Dict, pt: Dict, id: Dict, fr?: Dict, de?: 
   if (ko) Object.assign(KO, ko);
 }
 
+/** whether the reader's language has its own words for `key` (t() would
+    otherwise fall back to English) — for a new line that should give way to
+    an older, already-localized one until its languages are written */
+export function hasString(key: string): boolean {
+  return key in DICTS[current];
+}
+
 /** t("kindreds.waiting", { n: 2 }) — {vars} are replaced in place */
 export function t(key: string, vars?: Record<string, string | number>): string {
   const s = DICTS[current][key] ?? EN[key] ?? key;
