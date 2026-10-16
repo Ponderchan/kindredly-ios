@@ -192,11 +192,11 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
 
 /* ── the footer ── */
 {
-  ok("the store's label and the binary's own (owner question 7)", footerVersion({ store: "1.0.5", binary: "1.3.0", build: "29" }) === "1.0.5 · 1.3.0 (29)");
-  ok("no build: the version alone", footerVersion({ store: "1.0.5", binary: "1.3.0", build: null }) === "1.0.5 · 1.3.0");
-  ok("binary unknown: the store's alone", footerVersion({ store: "1.0.5", binary: null, build: "29" }) === "1.0.5");
+  ok("the store's label and the build, never the binary's own (owner, 2026-10-16)", footerVersion({ store: "1.0.5", binary: "1.3.0", build: "29" }) === "1.0.5 (29)");
+  ok("no build: the store's label alone", footerVersion({ store: "1.0.5", binary: "1.3.0", build: null }) === "1.0.5");
+  ok("binary unknown: the build still shows", footerVersion({ store: "1.0.5", binary: null, build: "29" }) === "1.0.5 (29)");
   const v = buildSettingsView(facts(), t);
-  ok("the footer wraps it in set.version", v.footer === "set.version{v:1.0.5 · 1.3.0 (29)}");
+  ok("the footer wraps it in set.version", v.footer === "set.version{v:1.0.5 (29)}");
   ok("never the email", !v.footer.includes("@"));
   ok("STORE_VERSION is this release's App Store label", STORE_VERSION === "1.0.5");
 }

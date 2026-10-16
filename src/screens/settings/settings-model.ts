@@ -28,7 +28,7 @@ import type { RestoreOutcome } from "../../lib/iap";
    - FIRST CLASS: membership, restore (… while it runs), manage;
    - HELP, SAFETY (report / block stays reachable: Apple);
    - the two exits in red, delete with its subline;
-   - the footer: the App Store's label and the binary's own, never the
+   - the footer: the App Store's label and the build number, never the
      email (owner question 7: "1.0.5 · 1.3.0 (29)"). */
 
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
@@ -183,8 +183,9 @@ export type VersionFacts = {
 /* ── constants ─────────────────────────────────────────────────────────── */
 
 /** The App Store's version label for this release. The store and the binary number their
-    releases apart (the store says 1.0.5 for binary 1.3.0), and readers compare what they see
-    with the store, so the footer shows both (owner question 7). UPDATE IT EACH RELEASE, with the
+    releases apart (the store says 1.0.5 for binary 1.3.0); readers only ever see the store's,
+    so the footer shows that with the build number support needs, and never the binary's own
+    (owner, 2026-10-16: question 7 decided on product logic). UPDATE IT EACH RELEASE, with the
     build that ships under it. */
 export const STORE_VERSION = "1.0.5";
 
@@ -275,11 +276,11 @@ export function ageBand(dob: string | null | undefined, now: number): string | n
   return a >= 45 ? "45+" : a >= 35 ? "35–44" : a >= 25 ? "25–34" : "18–24";
 }
 
-/** The footer's version: the App Store's label, then the binary's own with its build
-    ("1.0.5 · 1.3.0 (29)"); what isn't known is left out, never guessed. */
+/** The footer's version: the App Store's label with the build number ("1.0.5 (29)"). The
+    binary's own version (1.3.0) means nothing to a reader and the build already names the
+    binary for support, so it isn't shown; a build that isn't known is left out, never guessed. */
 export function footerVersion(v: VersionFacts): string {
-  const binary = v.binary ? `${v.binary}${v.build ? ` (${v.build})` : ""}` : "";
-  return [v.store, binary].filter(Boolean).join(" · ");
+  return v.build ? `${v.store} (${v.build})` : v.store;
 }
 
 /** The theme a pick stands for by day: Midnight has no day of its own, so Classic (H:429). */
