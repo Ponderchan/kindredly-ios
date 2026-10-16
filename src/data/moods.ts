@@ -195,12 +195,13 @@ export type MoodGroup = "calm" | "happy" | "tired" | "low";
 /** the four groups, in the owner's order */
 export const MOOD_GROUPS: readonly MoodGroup[] = ["calm", "happy", "tired", "low"];
 
-/** every face in its group, the group's default face first (5 + 9 + 5 + 11 = 30) */
+/** every face in its group, the group's default face first (5 + 9 + 6 + 10 = 30) — the owner's
+    table (plan doc, 2026-10-15): Unimpressed is Tired, anger is Low */
 export const MOOD_GROUP_FACES: Readonly<Record<MoodGroup, readonly MoodId[]>> = {
   calm: ["calm", "content", "pleased", "okay", "shy"],
   happy: ["cheerful", "delighted", "excited", "playful", "in-love", "amazed", "surprised", "smug", "mischievous"],
-  tired: ["sleepy", "drained", "numb", "meh", "over-it"],
-  low: ["nervous", "crying", "heartbroken", "shocked", "stunned", "frustrated", "irritable", "grumpy", "unimpressed", "angry", "mad"],
+  tired: ["sleepy", "drained", "numb", "meh", "over-it", "unimpressed"],
+  low: ["nervous", "crying", "heartbroken", "shocked", "stunned", "frustrated", "irritable", "grumpy", "angry", "mad"],
 };
 
 /** the face stored when a group's colour block is tapped and no face is picked (owner question 8) */
