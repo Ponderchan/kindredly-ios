@@ -3,14 +3,18 @@
 import SwiftUI
 
 /*
- ONE LETTER ON THE DESK (H:32-37, 10a ink card), at the height the stack gives it. Inside the
- InkCard (.today: sf, a 2.5 ln outline, corners of 28, a hard 6/6 shadow, padding 18 20 14):
+ ONE LETTER ON THE DESK (Today 3d × 25b, design Prompts 1–2), at the height the deck's slot gives
+ it (KTodayGeometry.cardHeight: 548 on a 393 × 852 phone, never under 360). Inside the InkCard
+ (.me: sf, a 2.5 ln outline, corners of 24, a hard 5/5 shadow, padding 16; .today, which the
+ composer sheet shares, is not retuned):
 
  - the docket row, 10 apart: the writer's FACE v1 (KMosaic 28, cell 4.8, gap 1, ink; a deleted
-   account is the veil in faint), the postmark in mono 600 11 at .08em, the stamp in a 34 box
-   (corners of 10, a 2pt ln outline, sf; the real stamp art inside, whose own perforated frame
-   stands in for H's dotted one: stamps are content and keep their colours), and the ⋯ in a 34
-   circle that opens Report / Block (a SwiftUI Menu, inside the one Host);
+   account is the veil in faint), the postmark in mono 500 12 at .08em in sub, the stamp in a 34
+   box (corners of 10, a 2pt ln outline, sf; the letter's REAL stamp art inside, whose own
+   perforated frame stands in for the design's dashed one and mood glyph: stamps are content and
+   keep their colours), and the ⋯ in a 34 circle that opens TS's menu (Report / Block / Bring
+   back the last letter; only Bring back on an unsigned letter: a SwiftUI Menu, inside the one
+   Host);
  - the letter, filling what is left, in the reader's Letter font at its tier (telegram 30/40
    centred, 21/33, 18/29), padded 0 10, centred in its space. A letter that doesn't fit is
    FOLDED, never scrolled in place (one swipe means one thing on this page): its height is
@@ -23,16 +27,14 @@ import SwiftUI
    link is signed it shows itself unavailable; the caption is never drawn as the letter;
  - the foot: the topic tag (the stamp's channel colours, worked out on this card's face by TS) and
    the one capsule (translation wins over the lime signal), side by side, stacked when they
-   don't fit (a long language, large text);
- - a 2pt ln rule (14 above, 10 below), then ↑ PASS (a label: the swipe is the move) and REPLY ↓
-   in ind (a 44pt target), both mono 600 11 at .14em.
+   don't fit (a long language, large text). It is the card's last row: the old rule and the
+   ↑ PASS / REPLY ↓ row are gone, because NEXT and REPLY are the control band's buttons now.
 
  VoiceOver reads the card as one element (TS's a11yLabel: the docket, the topic, why the matcher
- chose it, the letter or what the voice letter is) with its moves as actions: write back,
- translate or show the original, unfold, play or pause (as the press would do now), report,
- block, next and previous letter (↑ PASS is only a label for sighted readers). Every move says
- which card it came from: the stack settles on THAT card before the field opens or the page
- moves, whatever page it last settled on (VoiceOver scrolls cards into view on its own).
+ chose it, the letter or what the voice letter is) with its moves as actions, in this order:
+ write back, translate or show the original, unfold or play/pause (as the press would do now),
+ every menu item (report, block, bring back), and next letter. Every move names the card it came
+ from, so the desk can refuse a reply to a card that is no longer the one shown.
  */
 
 /// What a card's taps do (one object per surface, so a card is always equal to itself). Each
@@ -41,13 +43,14 @@ final class KLetterCardActions {
   var onReply: (_ letterId: String) -> Void = { _ in }
   var onAction: (_ letterId: String, _ action: String) -> Void = { _, _ in }
   var onNext: (_ letterId: String) -> Void = { _ in }
-  var onPrevious: (_ letterId: String) -> Void = { _ in }
 }
 
 struct KLetterCard: View, Equatable {
   static let mosaicCell: CGFloat = 4.8
   static let stampBox: CGFloat = 34
   static let monoLabel = KTextStyle.monoReply
+  /// the postmark, SEP.23 · NO.7273 (design Prompt 2: mono 12 at .08em in the sub colour)
+  static let postmarkStyle = KTextStyle.mono(12, .medium, tracking: 0.08)
 
   let theme: KTheme
   let card: KLetterCardModel
@@ -60,7 +63,7 @@ struct KLetterCard: View, Equatable {
   }
 
   var body: some View {
-    InkCard(theme: theme) {
+    InkCard(theme: theme, variant: .me) {
       docket
       Group {
         if card.isVoice {
@@ -75,13 +78,6 @@ struct KLetterCard: View, Equatable {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       foot
-      Rectangle()
-        .fill(theme.ln)
-        .frame(height: 2)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
-        .accessibilityHidden(true)
-      moves
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(card.a11yLabel)
@@ -99,8 +95,8 @@ struct KLetterCard: View, Equatable {
         }
       }
       Text(card.postmark)
-        .kText(.monoPostmark)
-        .foregroundStyle(theme.ink)
+        .kText(Self.postmarkStyle)
+        .foregroundStyle(theme.sub)
         .lineLimit(1)
         .minimumScaleFactor(0.75)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -187,33 +183,6 @@ struct KLetterCard: View, Equatable {
       KAurasClose(theme: theme, label: label, glyph: glyph)
     }
   }
-
-  // ── ↑ PASS · REPLY ↓ ──
-  private var moves: some View {
-    HStack(alignment: .center) {
-      Text(labels.pass)
-        .kText(Self.monoLabel)
-        .foregroundStyle(theme.ink)
-        .lineLimit(1)
-      Spacer(minLength: 12)
-      SwiftUI.Button {
-        actions.onReply(card.id)
-      } label: {
-        Text(labels.reply)
-          .kText(Self.monoLabel)
-          .foregroundStyle(theme.ind)
-          .lineLimit(1)
-          // a 44pt target round the 11pt word, taken back outside so the row keeps its height
-          .padding(.vertical, 15)
-          .padding(.leading, 16)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(KFadePressStyle())
-      .padding(.vertical, -15)
-      .padding(.leading, -16)
-    }
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-  }
 }
 
 /// The card's VoiceOver actions. A modifier of its own so the voice action can follow the one
@@ -239,11 +208,12 @@ struct KLetterCardAccessibilityActions: ViewModifier {
       } else {
         SwiftUI.Button(labels.unfoldA11y) { actions.onAction(card.id, "unfold") }
       }
+      // Report, Block and Bring back the last letter, as TS orders them
       ForEach(card.menu) { item in
         SwiftUI.Button(item.title) { actions.onAction(card.id, item.key) }
       }
-      SwiftUI.Button(labels.next) { actions.onNext(card.id) }
-      SwiftUI.Button(labels.previous) { actions.onPrevious(card.id) }
+      // "Next letter": the same pass as NEXT (the deck serves deck.requestNext())
+      SwiftUI.Button(labels.nextA11y) { actions.onNext(card.id) }
     }
   }
 }
