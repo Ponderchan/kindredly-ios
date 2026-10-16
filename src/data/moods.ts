@@ -95,10 +95,15 @@ const FACES: Readonly<Record<FaceId, Mood>> = {
   "over-it": { id: "over-it", n: "Over it", col: "#9B93A8", bg: "#F1EFF2", tone: "flat" },
 };
 
-/** The thirty faces by id — faces only. Its type lets a whole MoodId index it (onboarding's
-    moodToWren hands it the MoodId its own row of faces picked, always a face) while a literal group
-    id reads as `never`, so `MOODS["group-low"].tone` does not compile: a group-only value is read
-    through moodTone, moodLabel, moodGroup or moodArtKey. */
+/** The thirty faces by id — faces only; a group id is not a key, so MOODS["group-low"] is undefined
+    at runtime. The type guards only a LITERAL group id (it reads as `never`, so
+    `MOODS["group-low"].tone` does not compile). A MoodId VARIABLE still type-checks here and comes
+    back typed `Mood` — `MOODS[entry.mood].col` compiles and throws on a group-only page — so anything
+    holding a MoodId (a journal entry's mood above all) must go through moodTone, moodLabel,
+    moodGroup, moodFace, resolveMood or moodArtKey, never MOODS[id]. Index this table with a FaceId
+    only. The `never` intersection stays only because onboarding's moodToWren still indexes it with a
+    MoodId (always a face there); once that call reads moodTone, this becomes a plain
+    Readonly<Record<FaceId, Mood>> and a MoodId index stops compiling. */
 export const MOODS = FACES as Readonly<Record<FaceId, Mood>> & { readonly [K in GroupMoodId]: never };
 
 export const MOOD_IDS: FaceId[] = [
