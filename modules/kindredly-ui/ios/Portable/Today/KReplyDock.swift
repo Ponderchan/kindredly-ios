@@ -3,51 +3,78 @@
 import SwiftUI
 
 /*
- THE REPLY DOCK (H:115, H:123-125): the write-back pill at rest, the reply strip on the keyboard.
+ THE REPLY DOCK (Today 3d × 25b, Prompt 7). There is no pill any more: REPLY on the control band
+ raises the keyboard (the desk focuses dock.reply), the band and the tab bar go down under it, and
+ the reply strip rides the keyboard:
 
- AT REST, the pill (H:115): 16 from either edge, its bottom bottomRoom above the screen's (the tab
- bar's room + 6: H's 104 on Face ID), 52 tall, sf, a 2pt ln outline, corners of 18, a hard 3/3
- shadow, padding 0 8 0 16, 12 between: the pen, "write back…" in system 15 mute (or the draft's
- first line in ink), and the ink ↑ disc. The whole pill focuses the strip. It goes (opacity .25s,
- down 160 over .4s on cubic-bezier(.3,.9,.3,1); a plain fade under Reduce Motion) while the strip
- is up, while a send is in flight, on the blind, with the reader open or the + sheet up, and
- while there is no letter to answer.
+   (the whole layer dimmed: rgba(30,27,53,.18), Midnight black .35; a tap drops the keyboard)
+      REPLY AND A THREAD OPENS                      the composer's hint, 6 in, 6 above the strip
+   ┌──────────────────────────────────────────────┐
+   │ write back to No. 7273…               [ ✈ ]  │  the strip: 16 from either edge, 54 at least,
+   └──────────────────────────────────────────────┘  corners of 16, sf, a 2 ln outline, a hard 2/2
+   ═══════════════ keyboard, 12 below ═══════════════  ln shadow; system 17, up to five lines
 
- TYPING, the strip (H:124, KReplyStrip on the one KField): 12 from either edge, 26 above the
- keyboard, growing to five lines; the send key disabled, enabled (the plane, owner question 3) or
- dimmed (a full pouch: drawn off, still pressed, so TS can say why). Return is a new line: a reply
- is a letter, and letters keep their paragraphs. Under it, 6 above the keyboard, the hint in mono
- 500 10 at .14em, sub (the postmark red when over the limit). While it is up, a clear catcher
- covers the whole dock layer behind it (not only what is above the hidden pill's room, which left
- a band open to the cards): a tap anywhere but the strip puts the keyboard away, and the cards
- can't scroll under the words (the stack is also scroll-disabled while typing, driver.typing).
- VoiceOver's escape puts the keyboard away too. With a hardware keyboard (focused, no keyboard
- inset) the strip sits on the pill's line instead, above the tab bar.
+ - THE STRIP is this file's own (KTodayReplyField); Kit/KReplyStrip, which rooms and chats share,
+   keeps its own look. The field is the one KField; Return is a new line (a reply is a letter and
+   letters keep their paragraphs). The send key is KSendKey with its three states, unchanged:
+   disabled (the faint SEND), enabled (the plane, owner question 3), dimmed (a full pouch: drawn
+   off, still pressed, so TS can say why).
+ - THE HINT is TS's composer hint (the four hint lines; the postmark red when over the limit), in
+   mono 500 10 at .14em, sub, over the strip.
+ - THE SCRIM covers the whole layer behind the strip while the field has the keyboard, and fades
+   in over .2s: a tap anywhere but the strip drops the keyboard. The tab bar's own Host isn't
+   dimmed; it sits under the keyboard. VoiceOver's escape drops the keyboard too.
+ - With a hardware keyboard (focused, no keyboard inset) the strip's bottom sits on the band's
+   bottom line (restingBottom) instead of 12 above a keyboard that isn't there.
 
  THE FIELD NEVER LEAVES. It is always mounted, only hidden (the expo focus/unmount crash), and it
- is bound to the card the stack has settled on: what the reader types goes to TS with that card's
- id (onReplyChange), and TS seeds the field (setText) when the bound letter changes. TS's composer
- command says what the key and the hint show; a composer for another letter is ignored until TS
- catches up. SEND (enabled): the field lets go at once and the dock stays hidden until TS answers
- the press (its serial comes back in the composer): TS's fly-by takes the pill's place.
+ is bound to the card the deck shows (deck.shownId): what the reader types goes to TS with that
+ card's id (onReplyChange), and TS seeds the field (setText) when the bound letter changes. TS's
+ composer command says what the key and the hint show; a composer for another letter is ignored
+ until TS catches up. Focus sets deck.typing (the band slides away, Wren is delighted, the deck
+ holds still) and losing it says keyboardDown. SEND (enabled): the field lets go at once, and
+ deck.typing stays on until TS answers the press (its serial comes back in the composer), so the
+ band doesn't rise under TS's fly-by.
  */
 struct KReplyDock: View {
-  let theme: KTheme
-  let labels: KTodayLabels
-  let bottomRoom: CGFloat
-  let cardIds: [String]
-  let pillHidden: Bool
-  @ObservedObject var dock: KTodayDock
-  @ObservedObject var driver: KTodayDriver
-  let actions: KTodayActions
+  private let theme: KTheme
+  private let labels: KTodayLabels
+  private let placeholder: String
+  private let restingBottom: CGFloat
+  @ObservedObject private var dock: KTodayDock
+  @ObservedObject private var deck: KDeckState
+  private let actions: KTodayActions
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  /// the letter the dock answers: the settled card, none on the blind
-  private var boundId: String? {
-    let i = driver.settledCard
-    return cardIds.indices.contains(i) ? cardIds[i] : nil
+  /// - Parameters:
+  ///   - labels: SEND (labels.send)
+  ///   - placeholder: the shown card's replyPlaceholder ("write back to No. 7273…"), else
+  ///     labels.placeholder
+  ///   - restingBottom: tabBarRoom + 2, the band's bottom line: where the strip sits with a
+  ///     hardware keyboard
+  ///   - dock: the field, TS's composer, focus and the keyboard
+  ///   - deck: the shown card (the field's letter) and typing
+  init(
+    theme: KTheme,
+    labels: KTodayLabels,
+    placeholder: String,
+    restingBottom: CGFloat,
+    dock: KTodayDock,
+    deck: KDeckState,
+    actions: KTodayActions
+  ) {
+    self.theme = theme
+    self.labels = labels
+    self.placeholder = placeholder
+    self.restingBottom = restingBottom
+    self._dock = ObservedObject(wrappedValue: dock)
+    self._deck = ObservedObject(wrappedValue: deck)
+    self.actions = actions
   }
+
+  /// the letter the field answers: the card the deck shows (none in done)
+  private var boundId: String? { deck.shownId }
 
   /// TS's composer, when it is about the bound letter
   private var composer: KTodayComposer? {
@@ -55,19 +82,25 @@ struct KReplyDock: View {
     return dock.composer
   }
 
+  /// the scrim's colour in this theme
+  private var scrimColor: Color {
+    theme.isDark
+      ? Color.black.opacity(0.35)
+      : Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.18)
+  }
+
   var body: some View {
-    let pillShown = !pillHidden && !dock.focused && !dock.awaitingSend && boundId != nil
-    // one layer, the strip drawn last: the catcher covers ALL of it behind the strip, so no band
-    // between the hidden pill's room and the strip lets a touch through to the cards (a drag there
-    // would scroll another letter under the words, and the field would answer that one)
+    let focused = dock.focused
+    // one layer, the strip drawn last: the scrim covers ALL of it behind the strip, so a touch
+    // anywhere else drops the keyboard and never reaches a card under the words
     ZStack(alignment: .bottom) {
-      // the catcher: a tap anywhere but the strip puts the keyboard away
-      Color.clear
+      scrimColor
+        .opacity(focused ? 1 : 0)
+        .animation(.easeOut(duration: 0.2), value: focused)
         .contentShape(Rectangle())
         .onTapGesture { dock.reply.blur() }
-        .allowsHitTesting(dock.focused)
+        .allowsHitTesting(focused)
         .accessibilityHidden(true)
-      pill(shown: pillShown)
       strip
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -79,31 +112,46 @@ struct KReplyDock: View {
       }
     }
     .onChange(of: boundId) { _, id in
-      // nothing to answer (the blind): the field lets go
+      // nothing to answer (done): the field lets go
       if id == nil && dock.focused { dock.reply.blur() }
     }
+    .onChange(of: dock.awaitingSend) { _, _ in syncTyping() }
+  }
+
+  /// deck.typing: the field has the keyboard, or a send it let go of hasn't been answered yet
+  private func syncTyping() {
+    let now = dock.focused || dock.awaitingSend
+    if deck.typing != now { deck.typing = now }
   }
 
   // ── the strip and its hint ──
   private var strip: some View {
     let state = composer?.sendState ?? .disabled
+    let hint = composer?.hint ?? ""
     let onKeyboard = dock.focused && !dock.hardwareKeyboard
-    return VStack(alignment: .leading, spacing: 7) {
-      KReplyStrip(
+    return VStack(alignment: .leading, spacing: 6) {
+      Text(hint)
+        .kText(.monoMetaWide)
+        .foregroundStyle(composer?.hintWarn == true ? KBrand.postRed : theme.sub)
+        .lineLimit(2)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.leading, 6)
+        .accessibilityHidden(hint.isEmpty)
+      KTodayReplyField(
         theme: theme,
         field: KField(
           theme: theme,
           controller: dock.reply,
-          placeholder: labels.placeholder,
+          placeholder: placeholder,
           returnSends: false,
           onChange: { text in
             if let id = boundId { actions.onReplyChange(id, text) }
           },
           onFocus: { now in
             dock.setFocused(now)
-            // the stack stops scrolling while the words are up (it reads the driver, not the dock)
-            if driver.typing != now { driver.typing = now }
+            syncTyping()
             actions.onReplyFocus(now)
+            if !now { deck.emit(.keyboardDown) }
             if now && boundId == nil { dock.reply.blur() }
           }
         ),
@@ -111,29 +159,20 @@ struct KReplyDock: View {
         sendLabel: labels.send,
         onSend: { send(state) }
       )
-      // the strip's 4/4 shadow hangs outside it
-      .padding(.trailing, KReplyStrip<EmptyView, EmptyView>.shadowOffset)
-      Text(composer?.hint ?? "")
-        .kText(.monoMetaWide)
-        .foregroundStyle(composer?.hintWarn == true ? KBrand.postRed : theme.sub)
-        .lineLimit(2)
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.leading, 2)
-        .accessibilityHidden(composer?.hint.isEmpty ?? true)
     }
-    .padding(.horizontal, 12)
-    // 6 above the keyboard (the strip lands 26 above it); on the pill's line with a hardware keyboard
-    .padding(.bottom, onKeyboard ? 6 : max(6, bottomRoom - 20))
+    .padding(.horizontal, KTodayGeometry.gutter)
+    // 12 above the keyboard; on the band's bottom line with a hardware keyboard
+    .padding(.bottom, onKeyboard ? 12 : restingBottom)
     .opacity(dock.focused ? 1 : 0)
     .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: dock.focused)
     .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: dock.hardwareKeyboard)
     .allowsHitTesting(dock.focused)
-    // VoiceOver's escape (the two-finger scrub) puts the keyboard away without sending: the
-    // catcher is hidden from VoiceOver, the pill is gone and the keyboard has no key for it.
-    // A container of its own, so the escape reaches it from the field and the send key inside.
-    // Always attached, acting only while focused (and the strip is hidden from VoiceOver
-    // otherwise): a modifier that came and went with the focus would rebuild the strip, and the
-    // field in it, at the moment it took the keyboard.
+    // VoiceOver's escape (the two-finger scrub) drops the keyboard without sending: the scrim is
+    // hidden from VoiceOver and the keyboard has no key for it. A container of its own, so the
+    // escape reaches it from the field and the send key inside. Always attached, acting only
+    // while focused (and the strip is hidden from VoiceOver otherwise): a modifier that came and
+    // went with the focus would rebuild the strip, and the field in it, at the moment it took the
+    // keyboard.
     .accessibilityElement(children: .contain)
     .accessibilityAction(.escape) {
       if dock.focused { dock.reply.blur() }
@@ -155,46 +194,55 @@ struct KReplyDock: View {
       break
     }
   }
+}
 
-  // ── the pill ──
-  private func pill(shown: Bool) -> some View {
-    let preview = composer?.preview ?? ""
-    return SwiftUI.Button {
-      dock.reply.focus()
-    } label: {
-      HStack(alignment: .center, spacing: 12) {
-        KLineIcon(.pen, size: 18, lineWidth: 2, color: theme.ink)
-        Text(preview.isEmpty ? labels.placeholder : preview)
-          .kText(.rowLabel)
-          .foregroundStyle(preview.isEmpty ? theme.mute : theme.ink)
-          .lineLimit(1)
-          .frame(maxWidth: .infinity, alignment: .leading)
-        KLineIcon(.arrowUp, size: 15, lineWidth: 2.6, color: theme.bg)
-          .frame(width: 32, height: 32)
-          .background(Circle().fill(theme.ink))
-      }
-      // padding 0 8 0 16 inside the 2pt outline (border-box, 52 tall)
-      .padding(.leading, 16 + 2)
-      .padding(.trailing, 8 + 2)
-      .frame(height: KTodayGeometry.pillHeight)
-      .frame(maxWidth: .infinity)
+/*
+ TODAY'S REPLY STRIP (Prompt 7): at least 54 tall and growing with the field up to five lines,
+ corners of 16, sf, a 2 ln outline and a hard 2/2 ln shadow (hanging outside, right and below);
+ padding 0 7 0 14 inside the outline, the field and the send key 8 apart. The send key keeps to
+ the bottom line, centred on the resting row, as the field grows.
+ */
+private struct KTodayReplyField: View {
+  static let minHeight: CGFloat = 54
+  static let borderWidth: CGFloat = 2
+  static let cornerRadius: CGFloat = 16
+  static let shadowOffset: CGFloat = 2
+
+  let theme: KTheme
+  let field: KField
+  let sendState: KSendState
+  let sendLabel: String
+  let onSend: () -> Void
+
+  /// the room inside the outline at rest
+  private var innerHeight: CGFloat { Self.minHeight - 2 * Self.borderWidth }
+
+  var body: some View {
+    HStack(alignment: .bottom, spacing: 8) {
+      field
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 12)
+        .frame(minHeight: innerHeight)
+      KSendKey(theme: theme, state: sendState, label: sendLabel, action: onSend)
+        // centred on the resting row, and kept on the bottom line as the field grows
+        .alignmentGuide(.bottom) { $0[VerticalAlignment.center] + innerHeight / 2 }
     }
-    .buttonStyle(KStickerButtonStyle(
-      shape: RoundedRectangle(cornerRadius: 18, style: .circular),
-      fill: theme.sf,
-      stroke: theme.ln,
-      lineWidth: 2,
-      shadow: theme.ln,
-      shadowOffset: 3
-    ))
-    .accessibilityLabel(preview.isEmpty ? labels.placeholder : preview)
-    .accessibilityHint(labels.replyA11y)
-    .padding(.horizontal, KTodayGeometry.gutter)
-    .padding(.bottom, bottomRoom)
-    .animation(reduceMotion ? nil : .easeOut(duration: 0.25)) { $0.opacity(shown ? 1 : 0) }
-    .animation(reduceMotion ? nil : .timingCurve(0.3, 0.9, 0.3, 1, duration: 0.4)) { $0.offset(y: shown || reduceMotion ? 0 : 160) }
-    .allowsHitTesting(shown)
-    .accessibilityHidden(!shown)
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    // padding 0 7 0 14 inside the 2 outline (border-box): the plane pill sits as far from the
+    // right edge as from the top and bottom
+    .padding(.leading, 14 + Self.borderWidth)
+    .padding(.trailing, 7 + Self.borderWidth)
+    .padding(.vertical, Self.borderWidth)
+    .frame(minHeight: Self.minHeight)
+    .background {
+      KStickerBackground(
+        shape: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .circular),
+        fill: theme.sf,
+        stroke: theme.ln,
+        lineWidth: Self.borderWidth,
+        shadow: theme.ln,
+        shadowOffset: Self.shadowOffset
+      )
+    }
+    .accessibilityElement(children: .contain)
   }
 }

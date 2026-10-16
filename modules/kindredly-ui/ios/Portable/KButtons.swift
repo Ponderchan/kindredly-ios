@@ -39,7 +39,8 @@ struct KPlusGlyph: Shape {
  the mock's rgba(58,52,214,.55) in the light themes), and a white + drawn 22 wide. The SVG's
  stroke is 2.6 in its 24-unit box, so 2.6 × 22/24 on screen, with round ends. When isOpen is
  true the + turns 45° into an ×, on the mock's curve (.4s, cubic-bezier(.3,1.2,.4,1), which
- overshoots a little and settles).
+ overshoots a little and settles). A caller can pass its own turn: the tab bar's publish entry
+ (Today 3d, Prompt 8) turns it on KMotion.plusTurnPublish (.35s, cubic-bezier(.3,1.3,.4,1)).
 
  The mock turns the whole circle, and CSS turns a box-shadow with its box, so there the glow
  swings down and to the left as the + opens. Here only the + turns and the glow stays below:
@@ -53,16 +54,20 @@ public struct KPrimaryRound: View {
   private let theme: KTheme
   private let isOpen: Bool
   private let accessibilityLabel: String
+  private let turn: Animation
   private let action: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// - Parameters:
   ///   - isOpen: true turns the + into an × (the composer is open)
   ///   - accessibilityLabel: what VoiceOver says, e.g. "Write" closed and "Close" open
-  public init(theme: KTheme, isOpen: Bool, accessibilityLabel: String, action: @escaping () -> Void) {
+  ///   - turn: the curve the + turns on; KMotion.plusTurn unless the caller has its own (the
+  ///     publish entry's KMotion.plusTurnPublish). Reduce Motion always gets a plain ease.
+  public init(theme: KTheme, isOpen: Bool, accessibilityLabel: String, turn: Animation = KMotion.plusTurn, action: @escaping () -> Void) {
     self.theme = theme
     self.isOpen = isOpen
     self.accessibilityLabel = accessibilityLabel
+    self.turn = turn
     self.action = action
   }
 
@@ -73,7 +78,7 @@ public struct KPrimaryRound: View {
         .frame(width: 22, height: 22)
         .rotationEffect(.degrees(isOpen ? 45 : 0))
         // the turn overshoots a little; with Reduce Motion it is a plain ease
-        .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurn, value: isOpen)
+        .animation(reduceMotion ? .easeInOut(duration: 0.25) : turn, value: isOpen)
         .frame(width: 48, height: 48)
         .background(Circle().fill(theme.ind))
         .kSoftShadows(KSoftShadow.primaryGlow(for: theme), in: Circle())
@@ -81,6 +86,39 @@ public struct KPrimaryRound: View {
     }
     .buttonStyle(KFloatPressStyle())
     .accessibilityLabel(accessibilityLabel)
+  }
+}
+
+public extension KMotion {
+  /// The + turning to × as the publish entry (Today 3d, Prompt 8): transform .35s
+  /// cubic-bezier(.3,1.3,.4,1), a little more overshoot than plusTurn and a little quicker. The
+  /// tab bar passes it to KPrimaryRound(turn:) and slides itself away on it for the sheet.
+  static let plusTurnPublish = Animation.timingCurve(0.3, 1.3, 0.4, 1, duration: 0.35)
+}
+
+/*
+ PRESSING A ROUND CONTROL that is neither a sticker nor a float (Today 3d, Prompt 3: NEXT's glass
+ disc and REPLY's ink disc): it shrinks to .94 over 150ms, as the design's
+ "transition:transform .15s; :active scale(.94)" does, and comes back the same way. KFloatPressStyle
+ is the same scale on the shorter press curve; this one keeps the design's own timing and lets a
+ caller pass another scale or curve. Reduce Motion keeps it: it follows the finger, it is feedback.
+ */
+public struct KPressScaleStyle: ButtonStyle {
+  private let scale: CGFloat
+  private let animation: Animation
+
+  /// - Parameters:
+  ///   - scale: the size while the finger is down
+  ///   - animation: the curve both ways
+  public init(scale: CGFloat = 0.94, animation: Animation = .easeOut(duration: 0.15)) {
+    self.scale = scale
+    self.animation = animation
+  }
+
+  public func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .scaleEffect(configuration.isPressed ? scale : 1)
+      .animation(animation, value: configuration.isPressed)
   }
 }
 
