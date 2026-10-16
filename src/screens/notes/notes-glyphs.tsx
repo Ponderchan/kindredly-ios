@@ -1,19 +1,31 @@
 import { View } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
-import { MOOD10A } from "../../theme/themes";
+import { MOOD10A, MOOD10A_FACE } from "../../theme/themes";
 import type { MoodGroup } from "../../data/moods";
+import { MOOD_LINE_ART, MOOD_LINE_GRID, type LineShape } from "../../data/mood-line-art";
 import type { JournalType } from "../../lib/journal";
+import { ArtShapes } from "../../components/ArtShapes";
 import type { NotesView } from "./notes-model";
 
-/* THE NOTES MOCK'S LINE DRAWINGS IN REACT NATIVE (10a step 5): the four
-   mood faces, the four type icons, the three view icons, the calendar —
-   the same path data Swift's KLineGlyph draws (Portable/Kit/KLineGlyph),
-   on the same 24 grid with round caps, so the fallback and the SwiftUI
-   screen draw one set of icons. Colours come from the caller (the theme)
-   or from the 10a mood pairs (themes.json "mood", the same in every
-   theme). */
+/* THE NOTES MOCK'S LINE DRAWINGS IN REACT NATIVE (10a step 5): the mood
+   faces, the four type icons, the three view icons, the calendar — the
+   same path data Swift draws (Portable/Kit/KLineGlyph, Kit/KMoodArt), on
+   the same 24 grid with round caps, so the fallback and the SwiftUI screen
+   draw one set of icons. Colours come from the caller (the theme) or from
+   the 10a mood pairs (themes.json "mood", the same in every theme).
 
-/** the four line faces (the Notes mock's FACE, H:155) */
+   THE MOOD FACES (owner, 2026-10-16) are the redrawn line icons in
+   data/mood-line-art (scripts/import-mood-art.mjs from design/moods-line):
+   a template in one ink, painted here in the group's face ink (MOOD10A_FACE:
+   the ink, Happy's darker #94681C) with every stroke at the size's optical
+   step — 2.4 for a face of 14pt or less, 2.0 up to 29pt, 1.75 from 30pt —
+   as KMoodChip draws them in Swift. A face asks for its icon by art key
+   (moods moodArtKey: "mood-sleepy", "mood-group-low"); an icon not drawn
+   yet falls back to its group's icon, and a group icon not drawn yet to the
+   10a face below (MOOD_FACE_PATH), the same chain as Swift. */
+
+/** the four 10a line faces (the Notes mock's FACE, H:155): the last fallback, for a group whose
+    icon isn't in data/mood-line-art */
 export const MOOD_FACE_PATH: Readonly<Record<MoodGroup, string>> = {
   calm: "M8.5 10.5h.01 M15.5 10.5h.01 M8 14.5c1.2 1.4 2.6 2 4 2s2.8-.6 4-2",
   happy: "M6.5 10.5c.8-1.2 2.2-1.2 3 0 M14.5 10.5c.8-1.2 2.2-1.2 3 0 M7.5 14c1.5 2.3 3 3.2 4.5 3.2s3-.9 4.5-3.2",
@@ -26,8 +38,24 @@ export const MOOD_FACE_PATH: Readonly<Record<MoodGroup, string>> = {
 export const EMPTY_TAPE = "#BFE0C8";
 export const EMPTY_STICKER = "#F5D33A";
 
-/** a group's fill and ink (themes.json "mood") */
-export const moodColors = (g: MoodGroup): { fill: string; ink: string } => ({ fill: MOOD10A[g][0], ink: MOOD10A[g][1] });
+/** a group's fill and ink (themes.json "mood"), and the ink its face is drawn in on that fill
+    (themes.json "moodFace": the ink, except Happy's #94681C) */
+export const moodColors = (g: MoodGroup): { fill: string; ink: string; face: string } => ({ fill: MOOD10A[g][0], ink: MOOD10A[g][1], face: MOOD10A_FACE[g] });
+
+/** The stroke a mood face is drawn with at a face size, in 24-grid units: the optical steps 2.4
+    (14pt or less), 2.0 (15–29pt), 1.75 (30pt and up), so one master reads from the 12pt legend
+    to the 32pt detail page. KMoodArt.strokeStep is the same in Swift. */
+export const moodStrokeStep = (faceSize: number): number => (faceSize <= 14 ? 2.4 : faceSize < 30 ? 2 : 1.75);
+
+/** the master stroke the mood icons are drawn at (design/moods-line: stroke 2) */
+const MOOD_LINE_STROKE = 2;
+
+/** An icon's line art by art key, or null when it isn't drawn yet (or the key is unknown). */
+export function moodLineArt(key: string | undefined | null): readonly LineShape[] | null {
+  if (!key || !Object.prototype.hasOwnProperty.call(MOOD_LINE_ART, key)) return null;
+  const art = MOOD_LINE_ART[key];
+  return art && art.length ? art : null;
+}
 
 /** the type icons (H:157; video is ours, in the same hand) */
 const TYPE_PATH: Readonly<Record<JournalType, string>> = {
@@ -52,18 +80,31 @@ function Line({ d, size, color, width }: { d: string; size: number; color: strin
   );
 }
 
-/** A group's line face. */
-export function MoodFace({ group, size, color, width = 2 }: { group: MoodGroup; size: number; color?: string; width?: number }) {
-  return <Line d={MOOD_FACE_PATH[group]} size={size} color={color ?? moodColors(group).ink} width={width} />;
+/** A mood's line face: the icon `icon` names (an art key, moods moodArtKey) when it is drawn, else
+    the group's icon, else the group's 10a face. `width` is the stroke in 24-grid units (default the
+    optical step for `size`); `color` defaults to the group's face ink. Draw it on its tile: a face
+    never stands on the page by itself (MoodChip, the tray's blocks, the composer's key). */
+export function MoodFace({ group, icon, size, color, width }: { group: MoodGroup; icon?: string; size: number; color?: string; width?: number }) {
+  const ink = color ?? moodColors(group).face;
+  const stroke = width ?? moodStrokeStep(size);
+  const art = moodLineArt(icon) ?? moodLineArt(`mood-group-${group}`);
+  if (!art) return <Line d={MOOD_FACE_PATH[group]} size={size} color={ink} width={stroke} />;
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${MOOD_LINE_GRID} ${MOOD_LINE_GRID}`}>
+      <ArtShapes list={art} tint={ink} strokeScale={stroke / MOOD_LINE_STROKE} />
+    </Svg>
+  );
 }
 
-/** KMoodChip's twin: a rounded square in the group's fill with its face in the group's ink —
-    36/r11/22 on a Card, 28/r9/18 in Grid and List, 18/r5 or r6 in the chip and the legend. */
-export function MoodChip({ group, size, radius, face, stroke = 2 }: { group: MoodGroup; size: number; radius: number; face: number; stroke?: number }) {
+/** KMoodChip's twin: a rounded square in the group's fill with its face in the group's face ink —
+    36/r11/22 on a Card, 28/r9/18 in Grid and List, 18/r5 or r6 in the chip and the legend. `icon`
+    is the page's art key (moods moodArtKey); without one the group's icon is drawn. `stroke`
+    defaults to the optical step for the face size. */
+export function MoodChip({ group, icon, size, radius, face, stroke }: { group: MoodGroup; icon?: string; size: number; radius: number; face: number; stroke?: number }) {
   const c = moodColors(group);
   return (
     <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: c.fill, alignItems: "center", justifyContent: "center" }}>
-      <MoodFace group={group} size={face} color={c.ink} width={stroke} />
+      <MoodFace group={group} icon={icon} size={face} color={c.face} width={stroke} />
     </View>
   );
 }

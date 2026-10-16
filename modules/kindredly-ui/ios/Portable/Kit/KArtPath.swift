@@ -4,10 +4,15 @@ import SwiftUI
 
 /*
  ART DRAWN FROM SVG: a picture made in the design set and kept as a flat list of SVG shapes on a
- square grid, drawn by SwiftUI from the very path data React Native hands react-native-svg. The
- stamps are the first (Kit/KStampArt.swift; their table, Kit/KStampArtData.swift, is generated
- from src/data/stamp-art.ts by scripts/gen-stamp-art-swift.mjs). The mood art
- (src/data/mood-art.ts) has the same shape and can follow the same way.
+ square grid, drawn by SwiftUI from the very path data React Native hands react-native-svg. Two
+ sets are drawn this way, each from a generated table (both generators share
+ scripts/art-path.mjs, the reader that checks every path the way KSVGPath reads it):
+   - the stamps (Kit/KStampArt.swift; Kit/KStampArtData.swift from src/data/stamp-art.ts by
+     scripts/gen-stamp-art-swift.mjs), drawn AS BAKED: each shape in its own colours and widths;
+   - the mood icons (Kit/KMoodArt.swift; Kit/KMoodArtData.swift from src/data/mood-line-art.ts
+     by scripts/gen-mood-art-swift.mjs, itself imported from the owner's SVG files by
+     scripts/import-mood-art.mjs), drawn AS A TEMPLATE: one-colour line faces in a placeholder
+     ink, painted at draw time (below).
 
  KArtPath is one shape: its path data `d` on the art's grid, read by the module's SVG reader
  (KSVGPath in Kit/KLineGlyph.swift: M L H V C S Q T A Z, absolute and relative, arcs as cubic
@@ -17,14 +22,23 @@ import SwiftUI
    - width, cap, join and dash in grid units, so they scale with the art as stroke-width does
      with the viewBox; a width of 0 strokes nothing (CoreGraphics would draw a hairline);
    - the miter limit is SVG's 4, not CoreGraphics' 10.
- There is no opacity and no transform. The generator refuses art that needs either and draws
- that stamp as its tinted tile instead, so nothing reaches this file to be drawn half right.
+ There is no opacity and no transform. The generators refuse art that needs either (a stamp is
+ drawn as its tinted tile instead, a mood icon falls back to its group's icon), so nothing reaches
+ this file to be drawn half right.
 
  KArt is a whole picture: the paths read once into SwiftUI paths, then drawn into a
  GraphicsContext scaled from the grid to the box it's given (centred, if the box isn't square)
  and clipped to the grid, as an SVG viewport clips. Draw it in a Canvas, as KStampArt does:
 
      Canvas { context, box in art.draw(in: context, size: box) }
+
+ THE TEMPLATE DRAW, draw(in:size:tint:strokeScale:), is the only runtime override, and it is for
+ art made to be painted: every fill and every stroke the art has (each non-nil one) is painted in
+ `tint`, whatever colour the table holds, and every stroke width is multiplied by `strokeScale`
+ (the dash pattern stays as drawn). KMoodArt uses it to paint a mood icon in its group's face ink
+ and to give one 2-unit master the size's optical step (2.4 / 2.0 / 1.75: a scale of 1.2 / 1 /
+ 0.875). MoodFace does the same in React Native (ArtShapes's tint and strokeScale). The stamps
+ never use it: their colours are content.
  */
 
 /// One SVG shape of a piece of art: its path data on the art's grid, and how it is painted.
@@ -100,15 +114,10 @@ public struct KArt: Sendable {
     self.shapes = paths.map(\.path)
   }
 
-  /// Draws the picture into `context`, the grid scaled to fit `size` and centred in it.
+  /// Draws the picture into `context`, the grid scaled to fit `size` and centred in it, each shape
+  /// in its own colours and widths.
   public func draw(in context: GraphicsContext, size: CGSize) {
-    guard grid > 0, size.width > 0, size.height > 0 else { return }
-    var ctx = context
-    let scale = min(size.width, size.height) / grid
-    ctx.translateBy(x: (size.width - grid * scale) / 2, y: (size.height - grid * scale) / 2)
-    ctx.scaleBy(x: scale, y: scale)
-    // the viewBox clips, as react-native-svg's viewport does: nothing past the grid's edge
-    ctx.clip(to: Path(CGRect(x: 0, y: 0, width: grid, height: grid)))
+    guard let ctx = gridContext(context, size: size) else { return }
     for (shape, p) in zip(shapes, paths) {
       if let fill = p.fill {
         ctx.fill(shape, with: .color(KArtPath.color(fill)))
@@ -117,5 +126,34 @@ public struct KArt: Sendable {
         ctx.stroke(shape, with: .color(KArtPath.color(stroke)), style: p.strokeStyle)
       }
     }
+  }
+
+  /// Draws the picture as a template: every fill and stroke the art has painted in `tint`, every
+  /// stroke width times `strokeScale` (the mood icons: their group's face ink, the size's step).
+  public func draw(in context: GraphicsContext, size: CGSize, tint: Color, strokeScale: CGFloat) {
+    guard let ctx = gridContext(context, size: size) else { return }
+    let paint = GraphicsContext.Shading.color(tint)
+    for (shape, p) in zip(shapes, paths) {
+      if p.fill != nil {
+        ctx.fill(shape, with: paint)
+      }
+      if p.stroke != nil, p.width > 0, strokeScale > 0 {
+        var style = p.strokeStyle
+        style.lineWidth = p.width * strokeScale
+        ctx.stroke(shape, with: paint, style: style)
+      }
+    }
+  }
+
+  /// `context` moved onto the grid: scaled to fit `size`, centred, clipped to the grid as the
+  /// viewBox clips in react-native-svg (nothing past the grid's edge); nil for an empty box.
+  private func gridContext(_ context: GraphicsContext, size: CGSize) -> GraphicsContext? {
+    guard grid > 0, size.width > 0, size.height > 0 else { return nil }
+    var ctx = context
+    let scale = min(size.width, size.height) / grid
+    ctx.translateBy(x: (size.width - grid * scale) / 2, y: (size.height - grid * scale) / 2)
+    ctx.scaleBy(x: scale, y: scale)
+    ctx.clip(to: Path(CGRect(x: 0, y: 0, width: grid, height: grid)))
+    return ctx
   }
 }

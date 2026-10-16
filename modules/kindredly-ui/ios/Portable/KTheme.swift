@@ -165,11 +165,15 @@ public struct KMood: Equatable, Sendable {
   public let key: String
   public let fill: Color
   public let ink: Color
+  /// The ink a mood face is drawn in on this mood's own tile (themes.json "moodFace"): the ink,
+  /// except where the brand colour is too faint for a face (Happy: #94681C, 4.0:1 on its fill,
+  /// against the brand gold's 2.7:1). Faces only; everything else keeps `ink`.
+  public let faceInk: Color
 
-  public static let calm  = KMood(key: "calm", fill: Color(hex: "#DDEFD6"), ink: Color(hex: "#2E7D4F"))
-  public static let happy = KMood(key: "happy", fill: Color(hex: "#F6E7C6"), ink: Color(hex: "#B8842A"))
-  public static let tired = KMood(key: "tired", fill: Color(hex: "#E4E2F4"), ink: Color(hex: "#3A34D6"))
-  public static let low   = KMood(key: "low", fill: Color(hex: "#CFE3F5"), ink: Color(hex: "#3B6E9B"))
+  public static let calm  = KMood(key: "calm", fill: Color(hex: "#DDEFD6"), ink: Color(hex: "#2E7D4F"), faceInk: Color(hex: "#2E7D4F"))
+  public static let happy = KMood(key: "happy", fill: Color(hex: "#F6E7C6"), ink: Color(hex: "#B8842A"), faceInk: Color(hex: "#94681C"))
+  public static let tired = KMood(key: "tired", fill: Color(hex: "#E4E2F4"), ink: Color(hex: "#3A34D6"), faceInk: Color(hex: "#3A34D6"))
+  public static let low   = KMood(key: "low", fill: Color(hex: "#CFE3F5"), ink: Color(hex: "#3B6E9B"), faceInk: Color(hex: "#3B6E9B"))
 
   /// Every mood, in the order themes.json lists them.
   public static let all: [KMood] = [calm, happy, tired, low]

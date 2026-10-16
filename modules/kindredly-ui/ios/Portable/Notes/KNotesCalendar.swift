@@ -239,7 +239,8 @@ struct KNotesCalendar: View {
     let legend = HStack(spacing: 10) {
       ForEach(Array(KMoodGroup.allCases.enumerated()), id: \.offset) { i, group in
         HStack(spacing: 5) {
-          KMoodChip(group: group, metrics: .legend)
+          // the legend names the four groups: always their group icons, never a page's face
+          KMoodChip(group: group, icon: group.iconKey, metrics: .legend)
           Text(i < month.counts.count ? month.counts[i] : "")
             .kText(Self.count)
             .foregroundStyle(theme.sub)

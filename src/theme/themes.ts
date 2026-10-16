@@ -52,6 +52,16 @@ export const BRAND: Readonly<typeof data.brand> = data.brand;
 export type MoodKey = keyof typeof data.mood;
 export const MOOD10A = data.mood as unknown as Readonly<Record<MoodKey, readonly [fill: string, ink: string]>>;
 
+/* the ink a mood FACE is drawn in on its own tile (themes.json "moodFace";
+   KMood.faceInk in Swift): the mood's ink, except where the brand colour is
+   too faint for a face — Happy's #94681C, 4.0:1 on its fill, where the brand
+   gold is 2.7:1 (owner, 2026-10-16). Faces only: the gold stays the Happy
+   ink for everything else. */
+const MOOD_FACE: Partial<Record<string, string>> = data.moodFace;
+export const MOOD10A_FACE = Object.fromEntries(
+  (Object.keys(MOOD10A) as MoodKey[]).map((k) => [k, MOOD_FACE[k] ?? MOOD10A[k][1]]),
+) as Readonly<Record<MoodKey, string>>;
+
 /* ── the choice and how it resolves ───────────────────────────────────────
    The reader chooses two things: a theme (pick) and whether to follow the
    phone (matchSystem). Owner, 2026-10-15: everyone follows the system after

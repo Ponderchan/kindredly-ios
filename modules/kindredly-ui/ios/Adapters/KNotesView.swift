@@ -17,9 +17,11 @@ import ExpoUI
  Props, beyond KScreenProps (insets.top = the status bar the screen draws its strip for,
  insets.tabBarRoom = the floating bar the bottom fade and the last note clear):
  - strings: KNotesStringsRecord (every word that isn't on a note; weekdays as an array)
- - notes: [{ id, kind, group, label, shortLabel, listLabel, body, listLine, photo, photoMore,
-   video, duration, playable, waveSeed, a11y }] — the window TS sends (60, then 60 more), newest
-   first; photo and video are image refs ({ uri, key, kind }; uri "" for none; video's kind is
+ - notes: [{ id, kind, group, icon, label, shortLabel, listLabel, body, listLine, photo,
+   photoMore, video, duration, playable, waveSeed, a11y }] — the window TS sends (60, then 60
+   more), newest first; icon is the mood icon's art key (moods.ts moodArtKey: "mood-sleepy",
+   "mood-group-low"; KMoodChip draws the group's icon for one it has no drawing for, "" included);
+   photo and video are image refs ({ uri, key, kind }; uri "" for none; video's kind is
    "videoPoster"). Converted once per rev.
  - hasMore: more notes lie past the window
  - empty: no notes at all (the empty state)
@@ -62,6 +64,8 @@ struct KNoteRecord: Record {
   @Field var kind: String = "text"
   /// calm | happy | tired | low
   @Field var group: String = "calm"
+  /// the mood icon's art key ("mood-sleepy", "mood-group-low"); "" from a bundle that sends none
+  @Field var icon: String = ""
   @Field var label: String = ""
   @Field var shortLabel: String = ""
   @Field var listLabel: String = ""
@@ -83,6 +87,7 @@ struct KNoteRecord: Record {
       id: id,
       kind: KNoteKind(rawValue: kind) ?? .text,
       group: KMoodGroup.from(group),
+      icon: icon,
       label: label,
       shortLabel: shortLabel,
       listLabel: listLabel,

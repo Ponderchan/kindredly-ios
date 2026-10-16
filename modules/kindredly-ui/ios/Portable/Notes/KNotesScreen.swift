@@ -322,10 +322,10 @@ public struct KNotesScreen: View {
     }
   }
 
-  private func chipInfo(_ id: String) -> (label: String, group: KMoodGroup)? {
+  private func chipInfo(_ id: String) -> (label: String, group: KMoodGroup, icon: String)? {
     guard let i = content.index[id], i < content.notes.count else { return nil }
     let n = content.notes[i]
-    return (n.shortLabel, n.group)
+    return (n.shortLabel, n.group, n.icon)
   }
 
   // ── the list ────────────────────────────────────────────────────────────

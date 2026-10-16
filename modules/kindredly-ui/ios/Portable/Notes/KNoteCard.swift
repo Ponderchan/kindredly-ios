@@ -78,6 +78,9 @@ public struct KNote: Identifiable, Equatable, Sendable {
   public let id: String
   public let kind: KNoteKind
   public let group: KMoodGroup
+  /// the mood icon's art key (src/data/moods.ts moodArtKey): "mood-sleepy", "mood-group-low" for a
+  /// page that chose only a group; "" draws the group's icon (KMoodChip)
+  public let icon: String
   /// Card: "OCT 14 · 21:37 · Sleepy"
   public let label: String
   /// Grid and the date chip: "OCT 14"
@@ -101,10 +104,11 @@ public struct KNote: Identifiable, Equatable, Sendable {
   /// VoiceOver: the long date, the time, the face's name, what it is, the start of the words
   public let a11yLabel: String
 
-  public init(id: String, kind: KNoteKind, group: KMoodGroup, label: String, shortLabel: String, listLabel: String, body: String, listLine: String, photo: KImageRef?, photoMore: Int, video: KImageRef?, duration: String, playable: Bool, waveSeed: UInt32, a11yLabel: String) {
+  public init(id: String, kind: KNoteKind, group: KMoodGroup, icon: String = "", label: String, shortLabel: String, listLabel: String, body: String, listLine: String, photo: KImageRef?, photoMore: Int, video: KImageRef?, duration: String, playable: Bool, waveSeed: UInt32, a11yLabel: String) {
     self.id = id
     self.kind = kind
     self.group = group
+    self.icon = icon
     self.label = label
     self.shortLabel = shortLabel
     self.listLabel = listLabel
@@ -209,7 +213,7 @@ public struct KNoteCard: View, Equatable {
     case .card, .grid:
       VStack(alignment: .leading, spacing: layout == .grid ? 10 : 12) {
         HStack(alignment: .center, spacing: 10) {
-          KMoodChip(group: note.group, metrics: layout == .grid ? .compact : .card)
+          KMoodChip(group: note.group, icon: note.icon, metrics: layout == .grid ? .compact : .card)
           labelText
           Spacer(minLength: 0)
           KLineIcon(note.kind.glyph, size: 18, lineWidth: 2, color: theme.ind)
@@ -285,7 +289,7 @@ struct KNoteListRow: View {
     if typeSize.isAccessibilitySize {
       VStack(alignment: .leading, spacing: 8) {
         HStack(alignment: .center, spacing: 10) {
-          KMoodChip(group: note.group, metrics: .compact)
+          KMoodChip(group: note.group, icon: note.icon, metrics: .compact)
           label
           Spacer(minLength: 0)
           icon
@@ -296,7 +300,7 @@ struct KNoteListRow: View {
     } else {
       HStack(alignment: .center, spacing: 12) {
         HStack(alignment: .center, spacing: 10) {
-          KMoodChip(group: note.group, metrics: .compact)
+          KMoodChip(group: note.group, icon: note.icon, metrics: .compact)
           KCapWidth(max: labelMax) { label }
         }
         .layoutPriority(1)

@@ -6,16 +6,27 @@
 // TypeScript theme reads it directly, and the SwiftUI views read this generated copy, so a
 // colour is changed once, in the JSON, and this script is run again. The generated file
 // imports SwiftUI only, so the pure-Swift app planned for 1.1.0 can take it as it is.
-// Besides the themes it carries the JSON's fixed colours (KBrand) and mood pairs (KMood).
+// Besides the themes it carries the JSON's fixed colours (KBrand) and mood pairs (KMood), each
+// mood with the ink its face is drawn in on its own tile (KMood.faceInk): the mood's ink, unless
+// themes.json "moodFace" names a darker one for that mood (Happy's #94681C, 4.0:1 on its fill,
+// where the brand gold is 2.7:1; owner, 2026-10-16).
 //
 // Nothing is guessed. A theme missing a token, a token that is not a #RRGGBB hex, a key in a
 // theme that the token list does not name, or a name that is not a usable Swift identifier is
 // an error, not a fallback: a wrong colour should stop the script, not reach a screen.
 import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const SRC = new URL("../src/theme/themes.json", import.meta.url);
 const OUT = new URL("../modules/kindredly-ui/ios/Portable/KTheme.swift", import.meta.url);
 const CHECK = process.argv.includes("--check");
+// --src <file> reads another themes.json, with --check only (the test feeds it broken tables)
+const srcAt = process.argv.indexOf("--src");
+if (srcAt > 0 && (!CHECK || !process.argv[srcAt + 1])) {
+  console.error("gen-theme-swift: --src <file> goes with --check only");
+  process.exit(1);
+}
+const SRC = srcAt > 0 ? pathToFileURL(resolve(process.argv[srcAt + 1])) : new URL("../src/theme/themes.json", import.meta.url);
 
 // what each token is for (CLAUDE-CODE-PROMPTS.md:18-31; lav2 has no role there, and the mock
 // uses it once, for the WRITE A LETTER composer card). Doc comments only; a token added to
@@ -117,6 +128,14 @@ moods.forEach(([k, pair]) => {
   hex(pair[0], `mood ${k} fill`);
   hex(pair[1], `mood ${k} ink`);
 });
+// a mood's face ink, where it isn't the mood's ink: only for moods themes.json has
+const moodFace = src.moodFace ?? {};
+if (typeof moodFace !== "object" || Array.isArray(moodFace)) fail("themes.json moodFace is not an object of mood: #RRGGBB");
+for (const [k, v] of Object.entries(moodFace)) {
+  if (!moods.some(([m]) => m === k)) fail(`moodFace ${k} names no mood in themes.json "mood"`);
+  hex(v, `moodFace ${k}`);
+}
+const faceInk = (k, ink) => moodFace[k] ?? ink;
 
 const pad = Math.max(...tokens.map((t) => t.length));
 const lines = [];
@@ -180,10 +199,14 @@ out("public struct KMood: Equatable, Sendable {");
 out("  public let key: String");
 out("  public let fill: Color");
 out("  public let ink: Color");
+out("  /// The ink a mood face is drawn in on this mood's own tile (themes.json \"moodFace\"): the ink,");
+out("  /// except where the brand colour is too faint for a face (Happy: #94681C, 4.0:1 on its fill,");
+out("  /// against the brand gold's 2.7:1). Faces only; everything else keeps `ink`.");
+out("  public let faceInk: Color");
 const mpad = Math.max(...moods.map(([k]) => k.length));
 out();
 for (const [k, [fill, ink]] of moods) {
-  out(`  public static let ${k.padEnd(mpad)} = KMood(key: ${swiftString(k)}, fill: Color(hex: "${hex(fill, k)}"), ink: Color(hex: "${hex(ink, k)}"))`);
+  out(`  public static let ${k.padEnd(mpad)} = KMood(key: ${swiftString(k)}, fill: Color(hex: "${hex(fill, k)}"), ink: Color(hex: "${hex(ink, k)}"), faceInk: Color(hex: "${hex(faceInk(k, ink), k)}"))`);
 }
 out();
 out("  /// Every mood, in the order themes.json lists them.");

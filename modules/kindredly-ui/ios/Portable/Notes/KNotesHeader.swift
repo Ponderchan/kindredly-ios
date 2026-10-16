@@ -272,13 +272,14 @@ struct KNotesCalendarButton: View {
   }
 }
 
-/// The floating date chip: the topmost note's day, while the header is hidden.
+/// The floating date chip: the topmost note's day, while the header is hidden, with its mood icon
+/// (any of the 34, at 13pt: the smallest a face is drawn).
 struct KNotesDateChip: View {
   static let label = KTextStyle.mono(11, .semibold, tracking: 0.12)
 
   let theme: KTheme
-  /// the chip's day and colour for a note id (nil for an id it doesn't know)
-  let lookup: (String) -> (label: String, group: KMoodGroup)?
+  /// the chip's day, colour and mood icon (an art key) for a note id (nil for an id it doesn't know)
+  let lookup: (String) -> (label: String, group: KMoodGroup, icon: String)?
   @ObservedObject var state: KNotesScrollState
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -287,7 +288,7 @@ struct KNotesDateChip: View {
     let info = state.topNoteId.flatMap(lookup)
     let shown = state.headerHidden && info != nil
     HStack(spacing: 8) {
-      KMoodChip(group: info?.group ?? .calm, metrics: .chip)
+      KMoodChip(group: info?.group ?? .calm, icon: info?.icon, metrics: .chip)
       Text(info?.label ?? "")
         .kText(Self.label)
         .foregroundStyle(theme.bg)

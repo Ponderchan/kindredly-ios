@@ -33,6 +33,11 @@ export type KNotesNote = {
   id: string;
   kind: KNotesKind;
   group: KNotesGroup;
+  /** the mood icon's art key (src/data/moods.ts moodArtKey): "mood-sleepy" for a face,
+      "mood-group-low" for a page that chose only a group. Swift draws it from its generated table
+      (Kit/KMoodArtData.swift) on the group's tile; a key with no drawing yet ("" included) draws the
+      group's icon. */
+  icon: string;
   /** Card: "OCT 14 · 21:37 · Sleepy" */
   label: string;
   /** Grid and the date chip: "OCT 14" */
