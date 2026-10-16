@@ -89,7 +89,7 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
                   transform: on ? [{ translateX: -1 }, { translateY: -1 }] : pressed ? [{ translateX: 1 }, { translateY: 1 }] : [],
                 })}
               >
-                <MoodFace group={g} size={26} color={c.ink} />
+                <MoodFace group={g} size={26} />
                 <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 13, fontWeight: "600", color: c.ink, paddingHorizontal: 4 }}>
                   {name}
                 </Text>

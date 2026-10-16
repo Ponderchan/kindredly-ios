@@ -95,16 +95,10 @@ const FACES: Readonly<Record<FaceId, Mood>> = {
   "over-it": { id: "over-it", n: "Over it", col: "#9B93A8", bg: "#F1EFF2", tone: "flat" },
 };
 
-/** The thirty faces by id — faces only; a group id is not a key, so MOODS["group-low"] is undefined
-    at runtime. The type guards only a LITERAL group id (it reads as `never`, so
-    `MOODS["group-low"].tone` does not compile). A MoodId VARIABLE still type-checks here and comes
-    back typed `Mood` — `MOODS[entry.mood].col` compiles and throws on a group-only page — so anything
-    holding a MoodId (a journal entry's mood above all) must go through moodTone, moodLabel,
-    moodGroup, moodFace, resolveMood or moodArtKey, never MOODS[id]. Index this table with a FaceId
-    only. The `never` intersection stays only because onboarding's moodToWren still indexes it with a
-    MoodId (always a face there); once that call reads moodTone, this becomes a plain
-    Readonly<Record<FaceId, Mood>> and a MoodId index stops compiling. */
-export const MOODS = FACES as Readonly<Record<FaceId, Mood>> & { readonly [K in GroupMoodId]: never };
+/** The thirty faces by id — faces only. Index it with a FaceId: a MoodId (a journal entry's mood
+    above all) may be a group id, so it doesn't compile here; such values go through moodTone,
+    moodLabel, moodGroup, moodFace, resolveMood or moodArtKey. */
+export const MOODS: Readonly<Record<FaceId, Mood>> = FACES;
 
 export const MOOD_IDS: FaceId[] = [
   "calm", "numb", "content", "in-love", "surprised", "shocked", "frustrated", "stunned", "cheerful", "pleased", "sleepy", "irritable", "amazed", "angry", "okay", "heartbroken", "grumpy", "meh", "smug", "nervous", "drained", "crying", "shy", "mischievous", "unimpressed", "delighted", "excited", "mad", "playful", "over-it"

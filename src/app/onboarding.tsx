@@ -52,7 +52,7 @@ import { NAME_IDEAS, isReservedName, saveWrenEgg, saveWrenName } from "../lib/wr
 import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
-import { MOODS, MOOD_IDS, moodName, type MoodId } from "../data/moods";
+import { MOODS, MOOD_IDS, moodName, moodTone, type MoodId } from "../data/moods";
 import { MoodIcon } from "../components/MoodIcon";
 
 /* Onboarding — EGG OS.
@@ -1923,7 +1923,7 @@ function DoorArt({ i, on }: { i: number; on: boolean }) {
 
 /* the nine moods, mapped onto the faces she actually has */
 function moodToWren(m: MoodId): WrenMood {
-  const tone = MOODS[m].tone;
+  const tone = moodTone(m);
   if (tone === "low" || tone === "edge") return "worry";
   if (tone === "up" || tone === "spark") return "delight";
   if (tone === "flat") return "think";

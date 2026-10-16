@@ -571,7 +571,7 @@ function MoodKeyFace({ mood }: { mood: MoodId }) {
   const face = moodFace(mood);
   if (face) return <MoodIcon id={face} size={36} />;
   const g = moodGroup(mood);
-  return <MoodFace group={g} size={32} width={1.75} color={moodColors(g).ink} />;
+  return <MoodFace group={g} size={32} width={1.75} />;
 }
 
 /* ONE FRAME, FULL SCREEN — back, a count, a bin, and the one thing you

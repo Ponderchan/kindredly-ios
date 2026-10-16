@@ -102,7 +102,7 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
       {/* the head: the group's colour and face, the date, the type */}
       {/* in a List row it shrinks (the label to an ellipsis) before the words do */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 }}>
-        <MoodChip group={note.group} size={chip.size} radius={chip.radius} face={chip.face} />
+        <MoodChip group={note.group} icon={note.icon} size={chip.size} radius={chip.radius} face={chip.face} />
         <Text numberOfLines={1} style={{ flexShrink: 1, maxWidth: listRow ? LIST_LABEL_MAX * fontScale : undefined, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }}>
           {label}
         </Text>
