@@ -137,7 +137,9 @@ export function countFor(p: { mode: ComposeMode; weight: number }, fmt: ComposeF
   if (p.mode !== "write" || p.weight < COUNTER_FROM) return null;
   const over = p.weight - LETTER_MAX;
   if (over > 0) return { text: fmt.t("ui.overLimit", { n: over }), tone: "post" };
-  return { text: fmt.t("cp.charsLeft", { n: -over }), tone: over > -40 ? "amber" : "mute" };
+  const left = -over;
+  // one left has its own key: "QUEDAN 1" / "RESTAM 1" are wrong in Spanish and Portuguese
+  return { text: left === 1 ? fmt.t("cp.charsLeftOne") : fmt.t("cp.charsLeft", { n: left }), tone: over > -40 ? "amber" : "mute" };
 }
 
 /** Letters left today from the day's count (letters_daily) and the cap. */

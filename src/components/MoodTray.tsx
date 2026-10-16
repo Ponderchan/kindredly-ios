@@ -118,7 +118,9 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
                 <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.fill, borderWidth: on ? 2 : 0, borderColor: tk.ln }}>
                   <MoodFace group={open} icon={`mood-${id}`} size={30} />
                 </View>
-                <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? c.ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
+                {/* two lines, shrinking a little before cutting: a name like "CON EL CORAZÓN
+                    ROTO" or "SELBSTGEFÄLLIG" is wider than the 20% column */}
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? c.ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                   {name.toLocaleUpperCase(localeTag())}
                 </Text>
               </Pressable>
@@ -148,7 +150,7 @@ export function MoodTrayFlat({ selected, onPick }: { selected: MoodId | null; on
               <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: moodColors(moodGroup(id)).fill, borderWidth: on ? 2 : 0, borderColor: tk.ln }}>
                 <MoodFace group={moodGroup(id)} icon={`mood-${id}`} size={30} />
               </View>
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? moodColors(moodGroup(id)).ink : P.ink60, marginTop: 5 }}>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? moodColors(moodGroup(id)).ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                 {name.toLocaleUpperCase(localeTag())}
               </Text>
             </Pressable>

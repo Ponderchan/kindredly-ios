@@ -569,14 +569,17 @@ struct KMeChipsRow: View {
 
   var body: some View {
     let drop = pinOffset > 0 ? max(0, chrome.offset - pinOffset) : 0
-    ScrollView(.horizontal) {
-      KSegmentChips(theme: theme, labels: labels, selection: $selection, firstClassIndex: labels.count > 3 ? 3 : nil)
-        .padding(.top, 4)
-        .padding(.horizontal, 18)
-        .padding(.bottom, 10)
+    // the whole row in view if it can be (First Class is the fourth chip): at its own size, then
+    // tight, and only then scrolling sideways (KSegmentChips' note)
+    ViewThatFits(in: .horizontal) {
+      chips(tight: false)
+      chips(tight: true)
+      ScrollView(.horizontal) {
+        chips(tight: true)
+      }
+      .scrollIndicators(.hidden)
+      .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
-    .scrollIndicators(.hidden)
-    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     .fixedSize(horizontal: false, vertical: true)
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     .background(theme.bg)
@@ -584,6 +587,14 @@ struct KMeChipsRow: View {
       if abs(height - rowHeight) > 0.5 { rowHeight = height }
     }
     .offset(y: drop)
+  }
+
+  private func chips(tight: Bool) -> some View {
+    KSegmentChips(theme: theme, labels: labels, selection: $selection, firstClassIndex: labels.count > 3 ? 3 : nil, tight: tight)
+      .padding(.top, 4)
+      .padding(.horizontal, 18)
+      .padding(.bottom, 10)
+      .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 

@@ -86,6 +86,7 @@ ok("count: N LEFT in mute far from the ceiling", (() => { const c = M.countFor({
 ok("count: brass within 40 of the ceiling", M.countFor({ mode: "write", weight: LETTER_MAX - 39 }, fmt)?.tone === "amber");
 ok("count: mute at exactly 40 left", M.countFor({ mode: "write", weight: LETTER_MAX - 40 }, fmt)?.tone === "mute");
 ok("count: 0 LEFT at the ceiling, brass", (() => { const c = M.countFor({ mode: "write", weight: LETTER_MAX }, fmt); return c?.text === "cp.charsLeft:0" && c.tone === "amber"; })());
+ok("count: 1 LEFT has its own key (singular)", M.countFor({ mode: "write", weight: LETTER_MAX - 1 }, fmt)?.text === "cp.charsLeftOne");
 ok("count: over the ceiling in red, localized", (() => { const c = M.countFor({ mode: "write", weight: LETTER_MAX + 7 }, fmt); return c?.text === "ui.overLimit:7" && c.tone === "post"; })());
 
 // ── quota ──

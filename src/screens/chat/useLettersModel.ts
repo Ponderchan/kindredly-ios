@@ -295,8 +295,8 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     setCeremony,
     road,
     kindredNotice,
-    /** the reader's own name for the introduction, or a lower-case "you" in their language */
-    myName: auth.handle || t("in.meFallback"),
+    /** the reader's own pen name for the introduction, or "" (Introduction words that case) */
+    myName: auth.handle || "",
     /** the day the names met (0020 revealed_at), not today */
     since: detail?.revealedAt ?? new Date().toISOString(),
     theirLatest: theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening),

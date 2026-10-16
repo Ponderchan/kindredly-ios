@@ -12,6 +12,7 @@ import { roadFact, type KindredNotice } from "../lib/kindred-read";
 import { t, useLang } from "../lib/i18n";
 import { dismissKeyboard } from "../lib/keyboard";
 import { WrenBird } from "./WrenBird";
+import "../data/strings-step5-chat"; // in.meFallback, in.knowYouUnsigned
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
    ────────────────────────────────────────────────────────────────────────
@@ -35,9 +36,12 @@ import { WrenBird } from "./WrenBird";
    the ground does the separating), mono on the 9/10/11 sizes, the × named
    for VoiceOver. Whoever arrives after the second signature gets this —
    the room runs it too now (useCeremony), so the one who signed FIRST
-   sees it; the callers pass the reader's own name with a lower-case "you"
-   in their language as its fallback (in.meFallback) and the day the names
-   met (revealed_at), never today. */
+   sees it; the callers pass the reader's own pen name ("" when they have
+   none) and the day the names met (revealed_at), never today. Without a pen
+   name the ritual labels their face with a lower-case "you" in their
+   language (in.meFallback) and the line under it has its own sentence
+   (in.knowYouUnsigned): a "you" dropped into in.knowYou takes the wrong case
+   in German, Italian or Korean ("dich" in the sentence, "du" on the label). */
 export function Introduction({
   open,
   wren,
@@ -62,6 +66,7 @@ export function Introduction({
   otherName: string;
   /** the read of their writing — the part a name could never have said */
   otherArchetype?: string | null;
+  /** the reader's own pen name, or "" when they have none */
   myName: string;
   /** the letters that bought this, oldest first — five each way */
   road?: ThreadMessage[];
@@ -109,7 +114,7 @@ export function Introduction({
               mosaic flying into a postmark, the name typed into it by •>,
               and both faces resolving side by side. */}
           <View style={{ marginTop: 22, marginBottom: 4 }}>
-            <IntroductionRitual road={road} otherSeed={otherSeed} otherFace={otherFace} otherName={otherName} mySeed={mySeed} myFace={myFace} myName={myName} since={since} stamp={stamp} notice={notice} />
+            <IntroductionRitual road={road} otherSeed={otherSeed} otherFace={otherFace} otherName={otherName} mySeed={mySeed} myFace={myFace} myName={myName || t("in.meFallback")} since={since} stamp={stamp} notice={notice} />
           </View>
 
           {/* what she noticed — a label you both wear, or their strongest;
@@ -134,7 +139,7 @@ export function Introduction({
           })()}
 
           <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
-            {t("in.knowYou", { name: myName })}
+            {myName ? t("in.knowYou", { name: myName }) : t("in.knowYouUnsigned")}
           </Text>
         </ScrollView>
 

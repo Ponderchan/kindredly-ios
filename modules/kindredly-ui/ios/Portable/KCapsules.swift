@@ -273,23 +273,28 @@ public struct KTranslateCapsule: View {
 
  The chips sit in an HStack and take only the room they need. The mock's row scrolls sideways
  when it runs out of room (overflow-x:auto, padding 4 18 10); put this in a horizontal
- ScrollView with that padding, which also leaves the shadows their room.
+ ScrollView with that padding, which also leaves the shadows their room. `tight` (padding 8 10,
+ 6 apart) is the step before scrolling, for a language whose four words are wider than the
+ phone (Italian "Messaggera · Aura · Francobolli · Prima classe"): KMeChipsRow tries the row at
+ its own size, then tight, and only then lets it scroll.
  */
 public struct KSegmentChips: View {
   private let theme: KTheme
   private let labels: [String]
   @Binding private var selection: Int
   private let firstClassIndex: Int?
+  private let tight: Bool
 
-  public init(theme: KTheme, labels: [String], selection: Binding<Int>, firstClassIndex: Int? = nil) {
+  public init(theme: KTheme, labels: [String], selection: Binding<Int>, firstClassIndex: Int? = nil, tight: Bool = false) {
     self.theme = theme
     self.labels = labels
     self._selection = selection
     self.firstClassIndex = firstClassIndex
+    self.tight = tight
   }
 
   public var body: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: tight ? 6 : 8) {
       ForEach(labels.indices, id: \.self) { i in
         chip(i)
       }
@@ -324,7 +329,7 @@ public struct KSegmentChips: View {
         .lineLimit(1)
         .fixedSize()
         .padding(.vertical, 8 + 2)
-        .padding(.horizontal, 12 + 2)
+        .padding(.horizontal, tight ? 8 + 2 : 12 + 2)
     }
     .buttonStyle(KStickerButtonStyle(
       shape: RoundedRectangle(cornerRadius: 20, style: .circular),

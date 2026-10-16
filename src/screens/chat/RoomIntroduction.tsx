@@ -24,7 +24,7 @@ export function RoomIntroduction({ m }: { m: Pick<RoomModel, "ceremony" | "setCe
       otherFace={detail?.otherFace ?? null}
       otherName={detail?.otherName || t("cm.kindred")}
       otherArchetype={m.read?.archetype ? archNameThird(m.read.archetype.id) : null}
-      myName={auth.handle || t("in.meFallback")}
+      myName={auth.handle || ""}
       road={m.road}
       mySeed={auth.user?.id || "me"}
       myFace={(auth.profile?.avatarId as string) || null}

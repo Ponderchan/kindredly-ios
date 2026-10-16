@@ -2,8 +2,7 @@ import { strings } from "../lib/i18n";
 
 /* 10a STEP 5 — THE KINDREDS TAB'S NEW WORDS (slice "kindreds").
    ────────────────────────────────────────────────────────────────────────
-   English only for now: t() falls back to English in every language, and
-   step 6 writes the eight others natively (written AS the language, not
+   All nine languages: step 6 wrote the eight beside English natively (written AS the language, not
    translated). The Kindreds route imports this file for its side effect
    (src/app/(tabs)/kindreds.tsx), and so does the dev page.
 
@@ -28,8 +27,36 @@ strings(
     // (the system adds on / off); replaces the bare OPEN / FOLD as a label
     "kd.orbit": "Orbit",
   },
-  /* es, pt, id: step 6 */
-  {},
-  {},
-  {},
+  /* ── es ── */
+  {
+    "kd.orbit": "Órbita",
+  },
+  /* ── pt ── */
+  {
+    "kd.orbit": "Órbita",
+  },
+  /* ── id ── */
+  {
+    "kd.orbit": "Orbit",
+  },
+  /* ── fr ── */
+  {
+    "kd.orbit": "Orbite",
+  },
+  /* ── de ── */
+  {
+    "kd.orbit": "Orbit",
+  },
+  /* ── it ── */
+  {
+    "kd.orbit": "Orbita",
+  },
+  /* ── ja ── */
+  {
+    "kd.orbit": "軌道",
+  },
+  /* ── ko ── */
+  {
+    "kd.orbit": "궤도",
+  },
 );
