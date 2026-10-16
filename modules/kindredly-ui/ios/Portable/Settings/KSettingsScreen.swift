@@ -275,11 +275,17 @@ struct KSettingsAppearanceGroup: View {
                   .kText(.subtext)
                   .foregroundStyle(theme.mute)
                   .fixedSize(horizontal: false, vertical: true)
+                  // shown, but read once, as the hint (SoftToggleRow's rule)
+                  .accessibilityHidden(true)
               }
               .frame(maxWidth: .infinity, alignment: .leading)
             }
             .toggleStyle(KToggleStyle(theme: theme))
+            .accessibilityLabel(Text(appearance.matchLabel))
             .accessibilityHint(appearance.matchSub)
+            // the whole row flips it, not only the 26-tall track
+            .contentShape(Rectangle())
+            .onTapGesture { actions.onMatchSystem(!appearance.matchOn) }
           }
         }
         if !appearance.fonts.isEmpty {

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../../../lib/i18n";
@@ -48,6 +48,12 @@ export default function WriteToUs() {
   /* the one filled button: the theme's ind, its label in the page colour */
   const solidBtn = { backgroundColor: tk.ind, paddingVertical: 15, alignItems: "center" } as const;
   const canSend = body.trim().length >= 2 && !sending;
+
+  // VoiceOver hears a failed send (accessibilityLiveRegion on the line is Android's only); each
+  // try clears `failed` first, so a second failure is said again
+  useEffect(() => {
+    if (failed && Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(t("wu.fail"));
+  }, [failed]);
 
   const send = async () => {
     if (!canSend) return;

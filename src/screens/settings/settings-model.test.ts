@@ -124,8 +124,10 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("selected = the theme in effect (Lavender picked, Midnight after dark)", night.appearance.selectedTheme === "midnight");
   const forced = swatches(theme({ effective: "midnight" }), t);
   ok("the dev switch forcing Midnight shows its swatch", forced.some((s) => s.key === "midnight"));
-  ok("Match system on: Midnight after dark, the pick by day", matchSub(theme({ pick: "lavender" }), t) === "set.matchSystem.on{day:theme.lavender}");
-  ok("Match system on with Midnight picked: Classic by day", matchSub(theme({ pick: "midnight" }), t) === "set.matchSystem.on{day:theme.classic}");
+  ok("Match system on: Midnight after dark, the pick by day", matchSub(theme({ pick: "lavender" }), t) === "set.matchSystem.on{night:theme.midnight,day:theme.lavender}");
+  ok("Match system on with Midnight picked: Classic by day", matchSub(theme({ pick: "midnight" }), t) === "set.matchSystem.on{night:theme.midnight,day:theme.classic}");
+  const onLine = readFileSync(new URL("../../data/strings-step5-settings.ts", import.meta.url), "utf8").match(/"set\.matchSystem\.on": "([^"]*)"/)?.[1] ?? "";
+  ok("the Match system line names both themes by placeholder, never in its words", onLine.includes("{night}") && onLine.includes("{day}") && !/Midnight|Classic|Lavender|Paper/.test(onLine));
   ok("Match system off: always the pick", matchSub(theme({ pick: "paper", matchSystem: false }), t) === "set.matchSystem.off{theme:theme.paper}");
   ok("the font tiles: Newsreader and New York, by their own names", v.appearance.fonts.map((f) => `${f.key}=${f.name}`).join(",") === "newsreader=Newsreader,newyork=New York");
   ok("each tile carries the specimen (Aa, the same in every language)", v.appearance.fonts.every((f) => f.sample === "Aa"));

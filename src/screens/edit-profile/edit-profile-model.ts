@@ -101,11 +101,17 @@ export const FIELD_SPECS: Readonly<Record<FieldKind, FieldSpec>> = {
 
 /** What leaving the one-field page does with what was typed: save it only when it is a real,
     changed value. Empty is never saved (the old one stays), and the courier can't take her own
-    official name (reserved: shown under the field as it is typed, and not saved). */
+    official name (reserved: shown under the field as it is typed, and not saved).
+    UNCHANGED COMES FIRST: the name she already has is never called reserved. An account that
+    never named her is still "Wren", and every visit opens on "Wren" for a moment while her name
+    is read from the phone (useWrenName starts at DEFAULT_WREN), so testing reserved first put the
+    red line up the moment the page opened, telling them the name they have isn't allowed (the
+    old Settings prompt returned on an unchanged value before it looked). */
 export function checkField(kind: FieldKind, raw: string, current: string, isReserved: (name: string) => boolean): { value: string; save: boolean; error: "reserved" | null } {
   const value = raw.trim().slice(0, FIELD_SPECS[kind].max);
+  if (value === current.trim()) return { value, save: false, error: null };
   if (kind === "courier" && value && isReserved(value)) return { value, save: false, error: "reserved" };
-  return { value, save: value.length > 0 && value !== current.trim(), error: null };
+  return { value, save: value.length > 0, error: null };
 }
 
 /* ── the page ──────────────────────────────────────────────────────────── */
@@ -221,9 +227,10 @@ export type ProfilePatch = Record<string, unknown>;
 export type SaveQueue = {
   /** a change that can wait: merged with what is waiting, sent once the picks stop */
   later(patch: ProfilePatch): void;
-  /** a change that goes now: sent with whatever was waiting, after anything already sent */
+  /** a change that goes now: sent at once, with whatever was waiting */
   now(patch: ProfilePatch): Promise<void>;
-  /** sends what is waiting (leaving the page, the app going to the background) */
+  /** sends what is waiting (leaving the page, the app going to the background); resolves once
+      every save handed over so far has finished */
   flush(): Promise<void>;
   /** something is waiting */
   readonly waiting: boolean;
@@ -231,12 +238,17 @@ export type SaveQueue = {
 
 type Timers = { set: (fn: () => void, ms: number) => unknown; clear: (handle: unknown) => void };
 
-/** ONE QUEUE FOR EVERY SAVE THE PAGE MAKES. Each send goes out only after the one before it
-    has finished, and what waits is merged, so a face picked twice is one save and a pronoun
-    sent while a face waits carries the face along. `save` is called through the caller's ref
-    to the latest auth.saveProfile (useEditProfileModel), so no send ever pushes a profile
-    captured before the previous one landed (auth.tsx used to spread the profile its closure
-    held, and a late face save put back the pen name it was made before). */
+/** ONE QUEUE FOR EVERY SAVE THE PAGE MAKES. What waits is merged, so a face picked twice is one
+    save and a pronoun sent while a face waits carries the face along; only the face and photo
+    picks wait (the debounce), and a send hands its patch to `save` AT ONCE, in call order.
+    `save` is the latest auth.saveProfile (through the caller's ref, useEditProfileModel), which
+    writes the phone's copy the moment it is called (merged into its ref of the local picture, in
+    call order) and runs the account syncs one after another itself (its syncChain). So the queue
+    must not wait for one save's network round trip before handing over the next: it did, and a
+    face picked while the one before was still on its way to the account wasn't even written on
+    the phone until that trip ended, so Me showed the old face, and iOS suspending the app in
+    that window lost the new one on the phone too. The returned promise (and flush's) resolves
+    once everything handed over so far has finished. */
 export function createSaveQueue(
   save: (patch: ProfilePatch) => Promise<unknown>,
   delayMs = FACE_SAVE_DELAY_MS,
@@ -257,10 +269,18 @@ export function createSaveQueue(
     if (!pending) return chain;
     const patch = pending;
     pending = null;
-    chain = chain.then(() => save(patch)).then(
-      () => undefined,
-      (e) => onError(e),
-    );
+    // handed over now (the phone's copy is written in this call); the chain only tracks it
+    let done: Promise<void>;
+    try {
+      done = Promise.resolve(save(patch)).then(
+        () => undefined,
+        (e) => onError(e),
+      );
+    } catch (e) {
+      onError(e);
+      done = Promise.resolve();
+    }
+    chain = chain.then(() => done);
     return chain;
   };
 

@@ -11,7 +11,7 @@ import SwiftUI
    │┌─────┐│   - a card filling the rest: its sf, corners of 7, a 1.5 outline in its ln and a hard
    ││     ││     2/2 shadow in its ln;
    │└─────┘│   - a 9pt bar, corners of 5, its sf with a 1.5 ln outline, holding a 5pt dot in its
-   │(•    )│     ind: the tab bar.
+   │(  •  )│     ind in its middle: the tab bar.
    └───────┘
     Classic    the name under it, 7 below, system 500 11: ind when selected, sub otherwise (.2s).
 
@@ -109,13 +109,13 @@ struct KMiniPhone: View {
         )
         .padding(.trailing, 2) // the shadow's room inside the tile
         .frame(maxHeight: .infinity)
-        ZStack(alignment: .leading) {
+        // the tab bar, its dot in the middle (H:99: display flex, justify-content center)
+        ZStack(alignment: .center) {
           RoundedRectangle(cornerRadius: 5, style: .circular).fill(theme.sf)
           RoundedRectangle(cornerRadius: 5, style: .circular).strokeBorder(theme.ln, lineWidth: 1.5)
           Circle()
             .fill(theme.ind)
             .frame(width: 5, height: 5)
-            .padding(.leading, 6)
         }
         .frame(height: 9)
       }

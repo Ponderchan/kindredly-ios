@@ -287,11 +287,17 @@ export function dayOf(pick: string, theme: Pick<ThemeFacts, "dark">): string {
   return theme.dark.includes(pick) ? "classic" : pick;
 }
 
+/** The theme a pick stands for after dark: the dark theme (themes.json's first, Midnight). */
+export function nightOf(theme: Pick<ThemeFacts, "dark">): string {
+  return theme.dark[0] ?? "midnight";
+}
+
 /** Match system's subline (H:99): "Midnight after dark · Lavender by day" while on, "Always
-    Paper" while off. */
+    Paper" while off. Both themes come in by their swatch names (theme.*), never written into
+    the sentence, so a translation names them as their swatches do. */
 export function matchSub(theme: ThemeFacts, t: TFn): string {
   return theme.matchSystem
-    ? t("set.matchSystem.on", { day: t(`theme.${dayOf(theme.pick, theme)}`) })
+    ? t("set.matchSystem.on", { night: t(`theme.${nightOf(theme)}`), day: t(`theme.${dayOf(theme.pick, theme)}`) })
     : t("set.matchSystem.off", { theme: t(`theme.${theme.pick}`) });
 }
 

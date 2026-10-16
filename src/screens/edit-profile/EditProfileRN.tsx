@@ -24,6 +24,8 @@ import type { EditProfileModel } from "./useEditProfileModel";
 
 /* the hints are Newsreader italic whatever the Letter font (they are not letters) */
 const HINT = letterFamily("newsreader", true);
+/** YOU and YOUR COURIER's headers: 4 in from the group (H:92; Settings' are 10) */
+const EDIT_HEADER_INSET = 4;
 
 export function EditProfileRN({ model }: { model: EditProfileModel }) {
   const { t: tk } = useTheme();
@@ -31,7 +33,10 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
   const tabBar = useTabBarSpace();
   const { view, act, avatar } = model;
   const scroll = useRef<ScrollView>(null);
-  const facesY = useRef(0);
+  /* "See new faces" puts the note away FIRST and scrolls once it has gone: the note sits above
+     the strip, so a y measured with it there is about 150pt too low once it goes (the strip
+     ended up under the header). The strip's next layout, without the note, does the scroll. */
+  const seeFaces = useRef(false);
 
   const cameraMenu = () =>
     ActionSheetIOS.showActionSheetWithOptions({ options: [view.photoLabel, view.randomLabel, t("set.neverMind")], cancelButtonIndex: 2 }, (i) => {
@@ -78,16 +83,30 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
         {/* the one-time note for a legacy portrait */}
         {view.note && (
           <View style={{ backgroundColor: tk.lav2, borderRadius: 16, padding: 14, gap: 12 }}>
-            <View style={{ gap: 4 }}>
-              <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: "600", color: tk.ink }}>
-                {view.note.title}
-              </Text>
-              <Text style={{ fontSize: 13, lineHeight: 19, color: tk.sub }}>{view.note.body}</Text>
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: "600", color: tk.ink }}>
+                  {view.note.title}
+                </Text>
+                <Text style={{ fontSize: 13, lineHeight: 19, color: tk.sub }}>{view.note.body}</Text>
+              </View>
+              {/* three of the new faces, as a glimpse (KNewFacesNoteView: 34, overlapping by 10,
+                  a 2pt ring in the note's own lav2) */}
+              {view.note.faceIds.length > 0 && (
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ flexDirection: "row" }}>
+                  {view.note.faceIds.slice(0, 3).map((id, i) => (
+                    <View key={id} style={{ width: 34, height: 34, borderRadius: 17, overflow: "hidden", backgroundColor: tk.soft2, marginLeft: i ? -10 : 0 }}>
+                      <AvatarImage id={id} seed={avatar.seed} size={34} />
+                      <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, borderRadius: 17, borderWidth: 2, borderColor: tk.lav2 }} />
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <Pressable
                 onPress={() => {
-                  scroll.current?.scrollTo({ y: facesY.current, animated: true });
+                  seeFaces.current = true;
                   act.noteSee();
                 }}
                 accessibilityRole="button"
@@ -103,12 +122,25 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
         )}
 
         {/* the face strip */}
-        <View onLayout={(e) => (facesY.current = e.nativeEvent.layout.y)} style={{ gap: 10, paddingTop: 4 }}>
+        <View
+          onLayout={(e) => {
+            const y = e.nativeEvent.layout.y;
+            // See new faces: the layout without the note is the one to scroll to
+            if (seeFaces.current && !view.note) {
+              seeFaces.current = false;
+              scroll.current?.scrollTo({ y, animated: true });
+            }
+          }}
+          style={{ gap: 10, paddingTop: 4 }}
+        >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {/* in capitals in both renderers, whatever case a translation is written in
+                (SoftGroupHeader's textCase, SoftSection's toLocaleUpperCase) */}
             <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: 10 }}>
-              {view.facesHeader}
+              {view.facesHeader.toLocaleUpperCase()}
             </Text>
-            <Pressable onPress={act.random} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ln, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12, opacity: pressed ? 0.7 : 1 })}>
+            {/* hitSlop 8: the key is ~28 tall, its target 44 */}
+            <Pressable onPress={act.random} accessibilityRole="button" hitSlop={8} style={({ pressed }) => ({ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ln, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12, opacity: pressed ? 0.7 : 1 })}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ink }}>{view.randomLabel}</Text>
             </Pressable>
           </View>
@@ -129,15 +161,17 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
         </View>
 
         {/* YOU */}
-        <SoftSection header={view.youHeader}>
+        {/* Edit's headers sit 4 in from the group (H:92), Settings' 10 */}
+        <SoftSection header={view.youHeader} headerInset={EDIT_HEADER_INSET}>
           <SoftPlainRowRN label={view.pen.label} value={view.pen.value} onPress={act.pen} />
           <SoftPlainRowRN label={view.pronoun.label} value={view.pronoun.value} onPress={pronounMenu} />
           <SoftPlainRowRN label={view.birthday.label} value={view.birthday.value} chevron={false} last />
         </SoftSection>
-        <Text style={[{ fontSize: 13, lineHeight: 19.5, color: tk.mute, textAlign: "center", paddingHorizontal: 20, marginTop: -2 }, HINT]}>{view.footer}</Text>
+        {/* H:94: the page's 12 plus the footer's own 4 (the Swift page the same) */}
+        <Text style={[{ fontSize: 13, lineHeight: 19.5, color: tk.mute, textAlign: "center", paddingHorizontal: 20, marginTop: 4 }, HINT]}>{view.footer}</Text>
 
         {/* YOUR COURIER */}
-        <SoftSection header={view.courierHeader}>
+        <SoftSection header={view.courierHeader} headerInset={EDIT_HEADER_INSET}>
           <SoftPlainRowRN label={view.courier.label} value={view.courier.value} onPress={act.courierName} last />
         </SoftSection>
       </ScrollView>

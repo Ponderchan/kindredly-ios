@@ -48,10 +48,13 @@ import "../../data/strings-step5-settings";
      where going back saves. Whatever waits is sent first.
    - The new-faces note (owner question 12): only for a legacy portrait,
      once; either button, or any face change, puts it away for good.
-   - Every save goes through ONE queue, one after another, calling the
-     latest auth.saveProfile, so no save can revert another (auth.tsx's old
-     closure did). A failed sync is said once per visit: the change stays on
-     the phone, and the next save carries it up. */
+   - Every save goes through ONE queue, handed to the latest
+     auth.saveProfile at once and in order (it writes the phone's copy then
+     and there, merged into its ref of the local picture, and runs the
+     account syncs one after another), so no save can revert another
+     (auth.tsx's old closure did) and none waits on another's network trip.
+     A failed sync is said once per visit: the change stays on the phone, and
+     the next save carries it up. */
 
 const FIELD_ROUTE = { pen: "/me/edit-field?f=pen", courier: "/me/edit-field?f=courier" } as const;
 
@@ -247,7 +250,8 @@ export function useEditProfileModel(): EditProfileModel {
   return {
     view,
     pool,
-    avatar: { id: avatarId, photo, seed: user?.id ?? "me" },
+    // Me's rule (useMeModel), so a reader with no session and no face sees one mosaic on both
+    avatar: { id: avatarId, photo, seed: user?.id || "you" },
     act,
   };
 }

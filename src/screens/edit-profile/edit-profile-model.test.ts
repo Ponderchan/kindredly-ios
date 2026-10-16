@@ -2,10 +2,12 @@
    edit-profile-model): the pronoun (the account's before the phone's), the
    face pool by pronoun, the dice, the one-time note for the six legacy
    portraits only, the one-field page's rules (pen 20, courier 16 as
-   lib/wren-name cuts, Wren reserved, empty never saved), the birthday read
-   as a calendar date, the rows (birthday shown, never edited; no courier
-   pronoun row), and the save queue (one at a time, merged, flushed on
-   leaving) — the rules both renderers draw.
+   lib/wren-name cuts, Wren reserved but never for the name she already
+   has, empty never saved), the birthday read as a calendar date, the rows
+   (birthday shown, never edited; no courier pronoun row), and the save
+   queue (merged, each save handed over at once in call order, never
+   behind another's network trip, flushed on leaving) — the rules both
+   renderers draw.
    Not wired to a runner; run by hand from the repo root with plain node (it
    strips the types itself from Node 22.18 / 23.6 on):
      node src/screens/edit-profile/edit-profile-model.test.ts
@@ -92,6 +94,13 @@ ok("too long is cut, not refused", checkField("pen", "x".repeat(30), "may", rese
 ok("courier: Wren is reserved and not saved", JSON.stringify(checkField("courier", "wren", "Pip", reserved)) === JSON.stringify({ value: "wren", save: false, error: "reserved" }));
 ok("courier: a name is saved, cut to 16", checkField("courier", "Bartholomew-the-Second", "Pip", reserved).value.length === 16);
 ok("a pen name may be Wren (only the courier can't)", checkField("pen", "Wren", "may", reserved).save);
+ok(
+  "courier: her name unchanged is never called reserved (a Wren never renamed, and every visit's first moment)",
+  JSON.stringify(checkField("courier", "Wren", "Wren", reserved)) === JSON.stringify({ value: "Wren", save: false, error: null }),
+);
+ok("courier: unchanged with spaces round it, still no error and no save", JSON.stringify(checkField("courier", " Wren ", "Wren", reserved)) === JSON.stringify({ value: "Wren", save: false, error: null }));
+ok("courier: Wren typed over another name is still reserved", checkField("courier", "Wren", "Pip", reserved).error === "reserved");
+ok("courier: a new case of her own Wren is a change, and reserved", checkField("courier", "wren", "Wren", reserved).error === "reserved");
 
 /* ── the birthday ── */
 ok("a birthday in the reader's form", birthdayValue("1991-11-01", fmt) === "1991/11/1");
@@ -153,23 +162,22 @@ const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
     await new Promise((r) => setTimeout(r, 0));
   };
 
+  /* `called` is what auth.saveProfile was handed and when (it writes the phone's copy in that
+     call); `sent` is what has finished (its account sync). */
+  const called: Record<string, unknown>[] = [];
   const sent: Record<string, unknown>[] = [];
-  let inFlight = 0;
-  let maxInFlight = 0;
   const save = async (p: Record<string, unknown>) => {
-    inFlight++;
-    maxInFlight = Math.max(maxInFlight, inFlight);
+    called.push(p);
     await new Promise((r) => setTimeout(r, 5));
     sent.push(p);
-    inFlight--;
   };
   const q = createSaveQueue(save, 600, fake, () => {});
 
   q.later({ avatarId: "a" });
   q.later({ avatarId: "b" });
-  ok("two quick picks wait as one", q.waiting && sent.length === 0);
+  ok("two quick picks wait as one", q.waiting && called.length === 0);
   await advance(599);
-  ok("nothing goes before the picks settle", sent.length === 0);
+  ok("nothing goes before the picks settle", called.length === 0);
   await advance(1);
   await new Promise((r) => setTimeout(r, 20));
   ok("then one save, the last pick", sent.length === 1 && sent[0].avatarId === "b");
@@ -183,12 +191,45 @@ const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
   const p1 = q.now({ pronoun: "they" });
   q.later({ avatarId: "e" });
   const p2 = q.flush();
+  ok("each save is handed over at once, in call order, without waiting for the one before to finish", called.length === 4 && called[2].pronoun === "they" && called[2].avatarId === "d" && called[3].avatarId === "e" && sent.length === 2);
   await Promise.all([p1, p2]);
-  ok("saves never overlap", maxInFlight === 1);
-  ok("in order, each with what waited", sent.length === 4 && sent[2].pronoun === "they" && sent[3].avatarId === "e");
+  ok("a flush resolves once everything handed over has finished", sent.length === 4 && sent.includes(called[2]) && sent.includes(called[3]));
 
   await q.flush();
-  ok("a flush with nothing waiting sends nothing", sent.length === 4);
+  ok("a flush with nothing waiting sends nothing", called.length === 4 && sent.length === 4);
+
+  /* the case that lost a face: a pick while the one before is still on its way to the account */
+  {
+    const handed: Record<string, unknown>[] = [];
+    let release = () => {};
+    const slow = createSaveQueue(
+      (p) => {
+        handed.push(p);
+        return handed.length === 1 ? new Promise<void>((r) => (release = r)) : Promise.resolve();
+      },
+      600,
+      fake,
+      () => {},
+    );
+    slow.later({ avatarId: "A" });
+    await advance(600);
+    ok("face A is handed over (its sync still out)", handed.length === 1);
+    slow.later({ avatarId: "B" });
+    const left = slow.flush(); // leaving the page, or the app going to the background
+    ok("face B is written at once, not after A's round trip", handed.length === 2 && handed[1].avatarId === "B");
+    let settled = false;
+    void left.then(() => (settled = true));
+    await new Promise((r) => setTimeout(r, 0));
+    ok("but the flush still waits for A to finish", !settled);
+    release();
+    await left;
+    ok("and resolves once it has", true);
+  }
+
+  let throws = 0;
+  const sync = createSaveQueue(() => { throw new Error("thrown at once"); }, 600, fake, () => throws++);
+  await sync.now({ a: 1 });
+  ok("a save that throws at once is reported, and the queue still resolves", throws === 1);
 
   let errors = 0;
   const bad = createSaveQueue(async () => { throw new Error("offline"); }, 600, fake, () => errors++);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Text, TextInput, View } from "react-native";
+import { AccessibilityInfo, Alert, Platform, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../lib/theme";
@@ -49,7 +49,15 @@ export default function EditFieldScreen() {
     if (!touched.current) setText(current);
   }, [current]);
 
+  // unchanged is never an error (checkField), so the name she has, "Wren" included, and the
+  // moment before her name is read never show the reserved line
   const check = checkField(kind, text, current, isReservedName);
+  const reserved = check.error === "reserved";
+  // VoiceOver hears the reserved line when it appears: accessibilityLiveRegion below is
+  // Android's only, and going back with it up saves nothing
+  useEffect(() => {
+    if (reserved && Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(t("ob.naming.reserved"));
+  }, [reserved]);
   const latest = useRef({ text, current });
   latest.current = { text, current };
   const saveProfile = auth.saveProfile;
@@ -106,7 +114,7 @@ export default function EditFieldScreen() {
             style={{ fontSize: 17, color: tk.ink, paddingVertical: 14 }}
           />
         </View>
-        {check.error === "reserved" ? (
+        {reserved ? (
           <Text accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 18, color: dangerInk(tk.ink, P.post), paddingHorizontal: 4 }}>
             {t("ob.naming.reserved")}
           </Text>

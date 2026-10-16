@@ -27,9 +27,11 @@ import SwiftUI
  VStack: the avatar island must not sit in a lazy container. 16 from the edges, blocks 12 apart;
  the strip runs edge to edge. The page clears the floating tab bar and the bottom fade.
 
- The note's "See new faces" scrolls the strip to the top of the view, then tells TS (which puts
- the note away for good); "Keep mine" only tells TS. A scrollTo command ("faces" or "top")
- reaches the same place through the driver.
+ The note's "See new faces" tells TS (which puts the note away for good) and scrolls the strip
+ to the top of the view ONCE THE NOTE HAS GONE: the note sits above the strip, so a scroll aimed
+ while it was there landed about 150pt too far once it went (more at large text), the strip
+ under the header. "Keep mine" only tells TS. A scrollTo command ("faces" or "top") reaches the
+ same places through the driver.
  */
 
 // MARK: - What the screen shows
@@ -160,6 +162,8 @@ public struct KEditProfileScreen<Avatar: View>: View {
   public static var avatarSize: CGFloat { 112 }
   static var gutter: CGFloat { 16 }
   static var gap: CGFloat { 12 }
+  /// YOU and YOUR COURIER's headers, in from the group (H:92)
+  static var headerInset: CGFloat { 4 }
   static var topID: String { "kEditTop" }
   static var facesID: String { "kEditFaces" }
 
@@ -173,6 +177,8 @@ public struct KEditProfileScreen<Avatar: View>: View {
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var box = KEditProfileBox()
+  /// "See new faces" was pressed: the strip is scrolled to once the note has gone
+  @State private var facesAfterNote = false
 
   /// - Parameters:
   ///   - topInset: the status bar's height (the Host ignores safe areas)
@@ -210,7 +216,8 @@ public struct KEditProfileScreen<Avatar: View>: View {
               .id(Self.topID)
             if let note = content.note {
               KNewFacesNoteView(theme: theme, note: note) {
-                scroll(proxy, to: .faces, animated: true)
+                // the note goes first (TS); the scroll waits for the page without it (below)
+                facesAfterNote = true
                 actions.onNoteSee()
               } onKeep: {
                 actions.onNoteKeep()
@@ -235,8 +242,8 @@ public struct KEditProfileScreen<Avatar: View>: View {
               .fixedSize(horizontal: false, vertical: true)
               .frame(maxWidth: .infinity)
               .padding(.horizontal, 20)
-              // H:94: the footer sits just under its group
-              .padding(.top, 6 - Self.gap)
+              // H:94: the page's gap (12) plus the footer's own 4 (React Native: marginTop 4)
+              .padding(.top, 4)
             courierGroup
           }
           .padding(.horizontal, Self.gutter)
@@ -248,6 +255,12 @@ public struct KEditProfileScreen<Avatar: View>: View {
           guard let request, request.serial > box.served else { return }
           box.served = request.serial
           scroll(proxy, to: request.target, animated: request.animated)
+        }
+        .onChange(of: content.note == nil) { _, gone in
+          guard gone, facesAfterNote else { return }
+          facesAfterNote = false
+          // a turn later, once the page has been laid out without the note
+          DispatchQueue.main.async { scroll(proxy, to: .faces, animated: true) }
         }
       }
     }
@@ -279,8 +292,9 @@ public struct KEditProfileScreen<Avatar: View>: View {
           .clipShape(Circle())
           .accessibilityHidden(true)
         cameraMenu
-          // right -2, bottom 2 (H:91)
-          .offset(x: 2, y: -2)
+          // right -2, bottom 2 (H:91), for the 36 circle: the 44 target (its 4pt padding) is
+          // what aligns to the corner, so the offset counts that 4 on both axes
+          .offset(x: 2 + 4, y: -2 + 4)
       }
       .frame(width: side, height: side)
       Text(content.avatarHint)
@@ -325,7 +339,8 @@ public struct KEditProfileScreen<Avatar: View>: View {
 
   // ── YOU (H:92) ────────────────────────────────────────────────────────
   private var youGroup: some View {
-    SoftGroupSection(theme: theme, header: content.youHeader) {
+    // H:92: Edit's headers sit 4 in from the group (Settings' 10)
+    SoftGroupSection(theme: theme, header: content.youHeader, headerInset: Self.headerInset) {
       SwiftUI.Button {
         actions.onPen()
       } label: {
@@ -357,7 +372,7 @@ public struct KEditProfileScreen<Avatar: View>: View {
 
   // ── YOUR COURIER (H:93, without the gender row: owner question 13) ───
   private var courierGroup: some View {
-    SoftGroupSection(theme: theme, header: content.courierHeader) {
+    SoftGroupSection(theme: theme, header: content.courierHeader, headerInset: Self.headerInset) {
       SwiftUI.Button {
         actions.onCourierName()
       } label: {
@@ -401,23 +416,39 @@ struct KNewFacesNoteView: View {
         }
         .accessibilityHidden(true)
       }
-      HStack(spacing: 12) {
-        KSecondaryButton(theme: theme, title: note.see, action: onSee)
-        SwiftUI.Button(action: onKeep) {
-          Text(note.keep)
-            .kText(.chip)
-            .foregroundStyle(theme.ind)
-            .lineLimit(1)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 8)
-            .contentShape(Rectangle())
+      // side by side while both fit on one line each; stacked when they don't (accessibility
+      // text sizes, or a long language), where each one-line label would otherwise be cut
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 12) {
+          KSecondaryButton(theme: theme, title: note.see, action: onSee)
+          keepButton(oneLine: true)
         }
-        .buttonStyle(KFadePressStyle())
+        VStack(alignment: .leading, spacing: 8) {
+          KSecondaryButton(theme: theme, title: note.see, action: onSee)
+          keepButton(oneLine: false)
+        }
       }
     }
     .padding(14)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.lav2))
     .accessibilityElement(children: .contain)
+  }
+
+  /// Keep mine, a quiet link: one line beside See new faces (so ViewThatFits can tell when the
+  /// pair no longer fits), wrapping when stacked under it.
+  private func keepButton(oneLine: Bool) -> some View {
+    SwiftUI.Button(action: onKeep) {
+      Text(note.keep)
+        .kText(.chip)
+        .foregroundStyle(theme.ind)
+        .lineLimit(oneLine ? 1 : nil)
+        .fixedSize(horizontal: false, vertical: !oneLine)
+        .multilineTextAlignment(.leading)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 8)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
   }
 }

@@ -23,12 +23,14 @@ import { SettingsIcon, type SettingsGlyph } from "../../components/SettingsIcons
 
 const ROW_PAD = 14;
 
-export function SoftSection({ header, children, style }: { header: string; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+/** A header over its soft block. headerInset: how far the header sits in from the block's edge
+    (Settings 10, H:101; Edit profile 4, H:92), as SoftGroupHeader's in Swift. */
+export function SoftSection({ header, headerInset = 10, children, style }: { header: string; headerInset?: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { t: tk } = useTheme();
   return (
     <View style={[{ gap: 6 }, style]}>
       {!!header && (
-        <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: 10 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: headerInset }}>
           {header.toLocaleUpperCase()}
         </Text>
       )}
@@ -140,7 +142,7 @@ export function SoftPlainRowRN({ label, value, chevron = true, last = false, onP
 }
 
 /** One theme as a tiny phone (H:99): its bg, a title bar in its ln, a card in its sf with a hard
-    ln shadow, the tab bar with its ind dot. */
+    ln shadow, the tab bar with its ind dot in the middle of it (justify-content: center). */
 function MiniPhone({ k }: { k: string }) {
   const th = THEMES[(k in THEMES ? k : "classic") as ThemeKey];
   return (
@@ -150,7 +152,7 @@ function MiniPhone({ k }: { k: string }) {
         <View style={{ position: "absolute", left: 2, top: 2, right: -2, bottom: -2, borderRadius: 7, backgroundColor: th.ln }} />
         <View style={{ flex: 1, borderRadius: 7, backgroundColor: th.sf, borderWidth: 1.5, borderColor: th.ln }} />
       </View>
-      <View style={{ height: 9, borderRadius: 5, backgroundColor: th.sf, borderWidth: 1.5, borderColor: th.ln, justifyContent: "center", paddingLeft: 4.5 }}>
+      <View style={{ height: 9, borderRadius: 5, backgroundColor: th.sf, borderWidth: 1.5, borderColor: th.ln, justifyContent: "center", alignItems: "center" }}>
         <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: th.ind }} />
       </View>
     </View>

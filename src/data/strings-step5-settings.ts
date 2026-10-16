@@ -29,7 +29,9 @@ strings(
     // Settings: the appearance group (theme swatches, Match system, the Letter font)
     "set.sec.appearance": "APPEARANCE",
     "set.matchSystem": "Match system",
-    "set.matchSystem.on": "Midnight after dark · {day} by day",
+    // {night} and {day} are the themes' own names (theme.*), so this line never names a theme
+    // differently from its swatch
+    "set.matchSystem.on": "{night} after dark · {day} by day",
     "set.matchSystem.off": "Always {theme}",
     // the four themes' names on their swatches (themes.json's names are English literals)
     "theme.classic": "Classic",

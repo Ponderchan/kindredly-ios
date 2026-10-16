@@ -23,7 +23,7 @@ import SwiftUI
  - SoftRow: the Settings row, an SF Symbol in its 28pt box (H:101); a tint (the exits' red,
    KTheme.danger) colours its label and symbol;
  - SoftToggleRow: the same with the 10a switch at its end (KToggleStyle), read by VoiceOver as
-   one switch with its label, its subline as the hint;
+   one switch named by its label, its subline once, as the hint; the whole row takes the tap;
  - SoftPlainRow: Edit profile's row, no icon box, its value in system 500 14 (H:92).
  At the accessibility text sizes a row's value moves under its label instead of squeezing it to
  nothing. Every word is passed in, already translated.
@@ -48,15 +48,21 @@ public struct SoftGroup<Content: View>: View {
   }
 }
 
-/// A group header: mono 600 10 at .14em in mute, set in from the group's edge by 10 (H:101).
-/// The mock writes them in capitals; this sets any title that way.
+/// A group header: mono 600 10 at .14em in mute, set in from the group's edge by 10 (H:101;
+/// Edit profile's are 4 in, H:92: pass inset 4). The mock writes them in capitals; this sets any
+/// title that way.
 public struct SoftGroupHeader: View {
+  /// Settings' inset (H:101)
+  public static var defaultInset: CGFloat { 10 }
+
   private let theme: KTheme
   private let title: String
+  private let inset: CGFloat
 
-  public init(theme: KTheme, title: String) {
+  public init(theme: KTheme, title: String, inset: CGFloat = SoftGroupHeader.defaultInset) {
     self.theme = theme
     self.title = title
+    self.inset = inset
   }
 
   public var body: some View {
@@ -64,28 +70,30 @@ public struct SoftGroupHeader: View {
       .textCase(.uppercase)
       .kText(.monoSection)
       .foregroundStyle(theme.mute)
-      .padding(.horizontal, 10)
+      .padding(.horizontal, inset)
       .accessibilityAddTraits(.isHeader)
   }
 }
 
 /// A header and its group, 6 apart (H:101: a flex column with gap 6). An empty header draws the
-/// group alone (Settings' two exits).
+/// group alone (Settings' two exits). headerInset: SoftGroupHeader's (10, or Edit profile's 4).
 public struct SoftGroupSection<Content: View>: View {
   private let theme: KTheme
   private let header: String
+  private let headerInset: CGFloat
   private let content: Content
 
-  public init(theme: KTheme, header: String, @ViewBuilder content: () -> Content) {
+  public init(theme: KTheme, header: String, headerInset: CGFloat = SoftGroupHeader.defaultInset, @ViewBuilder content: () -> Content) {
     self.theme = theme
     self.header = header
+    self.headerInset = headerInset
     self.content = content()
   }
 
   public var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       if !header.isEmpty {
-        SoftGroupHeader(theme: theme, title: header)
+        SoftGroupHeader(theme: theme, title: header, inset: headerInset)
       }
       SoftGroup(theme: theme) { content }
     }
@@ -316,8 +324,11 @@ public struct SoftRowIcon: View {
  Settings row's icon box and words, and the 10a switch at the end (KToggleStyle, 44 × 26). The
  switch is CONTROLLED: it shows `isOn` and asks for the other value through `onChange`; the
  caller decides (a permission prompt can say no) and passes the answer back in. So the switch
- never shows a state the app doesn't hold. VoiceOver hears one switch: the label, its on/off
- value, the subline as the hint.
+ never shows a state the app doesn't hold. VoiceOver hears one switch: the label as its name,
+ its on/off value, the subline ONCE, as the hint (the subline sits in the Toggle's label, which
+ KToggleStyle's accessibility representation would otherwise read as part of the name, and then
+ the hint again; the React Native row reads label and hint the same way). The whole row takes
+ the tap, not only the 44 × 26 track (26 tall is under the 44pt target).
  */
 public struct SoftToggleRow: View {
   private let theme: KTheme
@@ -327,6 +338,8 @@ public struct SoftToggleRow: View {
   private let isOn: Bool
   private let divider: Bool
   private let onChange: (Bool) -> Void
+
+  @Environment(\.isEnabled) private var isEnabled
 
   /// - Parameters:
   ///   - systemImage: the SF Symbol in the box; nil for a row without one (Match system)
@@ -363,12 +376,15 @@ public struct SoftToggleRow: View {
                 .kText(.subtext)
                 .foregroundStyle(theme.mute)
                 .fixedSize(horizontal: false, vertical: true)
+                // shown, but read once, as the hint below
+                .accessibilityHidden(true)
             }
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         }
         .toggleStyle(KToggleStyle(theme: theme))
         .padding(.vertical, 12)
+        .accessibilityLabel(Text(label))
         .accessibilityHint(subtitle ?? "")
         if divider {
           SoftDivider(theme: theme)
@@ -376,6 +392,12 @@ public struct SoftToggleRow: View {
       }
     }
     .padding(.horizontal, 14)
+    // the whole row flips the switch (the track's own tap wins on the track); VoiceOver keeps
+    // the Toggle's representation
+    .contentShape(Rectangle())
+    .onTapGesture {
+      if isEnabled { onChange(!isOn) }
+    }
   }
 }
 

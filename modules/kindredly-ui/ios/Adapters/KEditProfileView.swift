@@ -38,7 +38,8 @@ import ExpoUI
  - onEditPen {}                 the Pen name row
  - onEditPronoun { id }         a pronoun from the menu (she | he | they)
  - onEditCourierName {}         the courier's Name row
- - onEditNoteSee {}             the new-faces note: See new faces (Swift has scrolled to the strip)
+ - onEditNoteSee {}             the new-faces note: See new faces (TS puts the note away; Swift
+                                scrolls to the strip once the note-less props arrive)
  - onEditNoteKeep {}            the new-faces note: Keep mine
 
  This file imports ExpoUI, whose public Button, Text and Image would make bare names ambiguous,
