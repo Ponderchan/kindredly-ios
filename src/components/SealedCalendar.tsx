@@ -2,9 +2,8 @@ import { Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { PF } from "../theme/post";
 import { useTheme } from "../lib/theme";
-import { MoodIcon } from "./MoodIcon";
 import { MoodChip } from "../screens/notes/notes-glyphs";
-import { moodFace, moodGroup } from "../data/moods";
+import { moodArtKey, moodGroup } from "../data/moods";
 import type { MonthVM } from "../screens/notes/notes-model";
 
 /* The month as an emotional weather map, in the Notes fallback (10a step
@@ -106,10 +105,9 @@ export function SealedCalendar({
   );
 }
 
-/** A day's mood: a face's art, or the group's tile with its face for a group alone. */
+/** A day's mood: the group's tile with the page's own face (or the group's, for a group alone). */
 function DayMood({ mood }: { mood: string }) {
-  const face = moodFace(mood);
-  return face ? <MoodIcon id={face} size={34} /> : <MoodChip group={moodGroup(mood)} size={34} radius={10} face={21} />;
+  return <MoodChip group={moodGroup(mood)} icon={moodArtKey(mood)} size={34} radius={10} face={21} />;
 }
 
 function Chevron({ dir, enabled, label, onPress }: { dir: "left" | "right"; enabled: boolean; label: string; onPress: () => void }) {

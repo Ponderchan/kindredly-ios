@@ -10,13 +10,8 @@ import SwiftUI
 /// ink, in src/data/moods.ts order (each group's icon, then its faces). KMoodArt paints every
 /// mark in the group's face ink and scales the strokes by the size's step.
 ///
-/// Drawn: 4 of 34, 12 marks.
-/// Not drawn yet (paths: nil; KMoodChip falls back to the group's icon, then the 10a line face): 30
-///   mood-calm, mood-content, mood-pleased, mood-okay, mood-shy, mood-cheerful, mood-delighted,
-///   mood-excited, mood-playful, mood-in-love, mood-amazed, mood-surprised, mood-smug,
-///   mood-mischievous, mood-sleepy, mood-drained, mood-numb, mood-meh, mood-over-it,
-///   mood-unimpressed, mood-nervous, mood-crying, mood-heartbroken, mood-shocked, mood-stunned,
-///   mood-frustrated, mood-irritable, mood-grumpy, mood-angry, mood-mad
+/// Drawn: 34 of 34, 107 marks.
+/// Not drawn yet: none.
 enum KMoodArtData {
   /// The grid the icons are drawn on: viewBox 0 0 24 24.
   static let grid: CGFloat = 24
@@ -29,55 +24,180 @@ enum KMoodArtData {
     KMoodArtEntry("mood-group-calm", paths: [
       KArtPath("M7,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
       KArtPath("M14,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
-      KArtPath("M8 14.75c1.2 1.4 2.6 2 4 2s2.8-.6 4-2", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8 14.75C10 17.42 14 17.42 16 14.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
     ]),
-    KMoodArtEntry("mood-calm", paths: nil),
-    KMoodArtEntry("mood-content", paths: nil),
-    KMoodArtEntry("mood-pleased", paths: nil),
-    KMoodArtEntry("mood-okay", paths: nil),
-    KMoodArtEntry("mood-shy", paths: nil),
+    KMoodArtEntry("mood-calm", paths: [
+      KArtPath("M6 10C6.48 11.67 9.52 11.67 10 10", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14 10C14.48 11.67 17.52 11.67 18 10", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M9.5 15C10.75 17 13.25 17 14.5 15", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-content", paths: [
+      KArtPath("M6.5 8.75H10.5A0.63 0.63 0 0 1 10.5 10C10.25 10 10 10.25 10 10.5A1.5 1.5 0 0 1 7 10.5C7 10.25 6.75 10 6.5 10A0.63 0.63 0 0 1 6.5 8.75Z", fill: 0x000000FF),
+      KArtPath("M13.5 8.75H17.5A0.63 0.63 0 0 1 17.5 10C17.25 10 17 10.25 17 10.5A1.5 1.5 0 0 1 14 10.5C14 10.25 13.75 10 13.5 10A0.63 0.63 0 0 1 13.5 8.75Z", fill: 0x000000FF),
+      KArtPath("M9 15C10.5 17 13.5 17 15 15", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-pleased", paths: [
+      KArtPath("M6.25 11.25C7.09 9.25 8.91 9.25 9.75 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14.25 11.25C15.09 9.25 16.91 9.25 17.75 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10.5 15.75H13.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-okay", paths: [
+      KArtPath("M7,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M14,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M9.5 15.5H14.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-shy", paths: [
+      KArtPath("M6.5 9L9.5 10.5L6.5 12", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.5 9L14.5 10.5L17.5 12", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8.5 16.25C9.38 14.58 11.13 14.58 12 16.25S14.63 17.92 15.5 16.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
     // ── Happy ──
     KMoodArtEntry("mood-group-happy", paths: [
-      KArtPath("M6.25 11c.9-1.6 2.6-1.6 3.5 0", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
-      KArtPath("M14.25 11c.9-1.6 2.6-1.6 3.5 0", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
-      KArtPath("M7.5 14.75c1.5 2.2 3 3 4.5 3s3-.8 4.5-3", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M6.25 11.25C7.09 9.25 8.91 9.25 9.75 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14.25 11.25C15.09 9.25 16.91 9.25 17.75 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M7.75 15C9.88 19 14.13 19 16.25 15", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
     ]),
-    KMoodArtEntry("mood-cheerful", paths: nil),
-    KMoodArtEntry("mood-delighted", paths: nil),
-    KMoodArtEntry("mood-excited", paths: nil),
-    KMoodArtEntry("mood-playful", paths: nil),
-    KMoodArtEntry("mood-in-love", paths: nil),
-    KMoodArtEntry("mood-amazed", paths: nil),
-    KMoodArtEntry("mood-surprised", paths: nil),
-    KMoodArtEntry("mood-smug", paths: nil),
-    KMoodArtEntry("mood-mischievous", paths: nil),
+    KMoodArtEntry("mood-cheerful", paths: [
+      KArtPath("M7,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M14,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M8.75 14.5H15.25A0.75 0.75 0 0 1 16 15.25C16 16.77 14.21 18 12 18C9.79 18 8 16.77 8 15.25A0.75 0.75 0 0 1 8.75 14.5Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-delighted", paths: [
+      KArtPath("M6.5 9L9.5 10.5L6.5 12", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.5 9L14.5 10.5L17.5 12", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8.75 14.5H15.25A0.75 0.75 0 0 1 16 15.25C16 16.77 14.21 18 12 18C9.79 18 8 16.77 8 15.25A0.75 0.75 0 0 1 8.75 14.5Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-excited", paths: [
+      KArtPath("M8 7.6L8.68 9.82 11 9.78 9.09 11.11 9.85 13.3 8 11.9 6.15 13.3 6.91 11.11 5 9.78 7.32 9.82Z", fill: 0x000000FF),
+      KArtPath("M16 7.6L16.68 9.82 19 9.78 17.09 11.11 17.85 13.3 16 11.9 14.15 13.3 14.91 11.11 13 9.78 15.32 9.82Z", fill: 0x000000FF),
+      KArtPath("M8.75 15.25H15.25A0.75 0.75 0 0 1 16 16C16 17.52 14.21 18.75 12 18.75C9.79 18.75 8 17.52 8 16A0.75 0.75 0 0 1 8.75 15.25Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-playful", paths: [
+      KArtPath("M6.5 11C7.2 9 9.3 9 10 11", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14.5,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M8.5 14.75C10.25 17.42 13.75 17.42 15.5 14.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M11.5 16.5H14.5V17.75A1.5 1.5 0 0 1 11.5 17.75Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-in-love", paths: [
+      KArtPath("M8 13C5.77 11.59 5.25 10.56 5.25 9.5C5.25 8.6 5.9 8 6.75 8C7.21 8 7.74 8.26 8 8.75C8.26 8.26 8.79 8 9.25 8C10.1 8 10.75 8.6 10.75 9.5C10.75 10.56 10.23 11.59 8 13Z", fill: 0x000000FF),
+      KArtPath("M16 13C13.77 11.59 13.25 10.56 13.25 9.5C13.25 8.6 13.9 8 14.75 8C15.21 8 15.74 8.26 16 8.75C16.26 8.26 16.79 8 17.25 8C18.1 8 18.75 8.6 18.75 9.5C18.75 10.56 18.23 11.59 16 13Z", fill: 0x000000FF),
+      KArtPath("M8.5 15.75C10.25 19.08 13.75 19.08 15.5 15.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-amazed", paths: [
+      KArtPath("M8 7.6L8.68 9.82 11 9.78 9.09 11.11 9.85 13.3 8 11.9 6.15 13.3 6.91 11.11 5 9.78 7.32 9.82Z", fill: 0x000000FF),
+      KArtPath("M16 7.6L16.68 9.82 19 9.78 17.09 11.11 17.85 13.3 16 11.9 14.15 13.3 14.91 11.11 13 9.78 15.32 9.82Z", fill: 0x000000FF),
+      KArtPath("M10,16.75a2,2.5 0 1 0 4,0a2,2.5 0 1 0 -4,0Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-surprised", paths: [
+      KArtPath("M6,10.5a2,2 0 1 0 4,0a2,2 0 1 0 -4,0Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14,10.5a2,2 0 1 0 4,0a2,2 0 1 0 -4,0Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10,17a2,2.5 0 1 0 4,0a2,2.5 0 1 0 -4,0Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-smug", paths: [
+      KArtPath("M6.5 8.75H10.5A0.63 0.63 0 0 1 10.5 10C10.25 10 10 10.25 10 10.5A1.5 1.5 0 0 1 7 10.5C7 10.25 6.75 10 6.5 10A0.63 0.63 0 0 1 6.5 8.75Z", fill: 0x000000FF),
+      KArtPath("M13.5 8.75H17.5A0.63 0.63 0 0 1 17.5 10C17.25 10 17 10.25 17 10.5A1.5 1.5 0 0 1 14 10.5C14 10.25 13.75 10 13.5 10A0.63 0.63 0 0 1 13.5 8.75Z", fill: 0x000000FF),
+      KArtPath("M10.25 16.5H12.75C14.25 16.5 15.5 15.75 16 14.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-mischievous", paths: [
+      KArtPath("M6.25 9.5L10 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.75 9.5L14 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8 15C10 18.33 14 18.33 16 15", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
     // ── Tired ──
     KMoodArtEntry("mood-group-tired", paths: [
-      KArtPath("M6.25 10.5h3.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
-      KArtPath("M14.25 10.5h3.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
-      KArtPath("M10.5 15.5h3", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M6.25 10.5H9.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14.25 10.5H17.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10.5 15.5H13.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
     ]),
-    KMoodArtEntry("mood-sleepy", paths: nil),
-    KMoodArtEntry("mood-drained", paths: nil),
-    KMoodArtEntry("mood-numb", paths: nil),
-    KMoodArtEntry("mood-meh", paths: nil),
-    KMoodArtEntry("mood-over-it", paths: nil),
-    KMoodArtEntry("mood-unimpressed", paths: nil),
+    KMoodArtEntry("mood-sleepy", paths: [
+      KArtPath("M6 10.75C6.48 12.42 9.52 12.42 10 10.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14 10.75C14.48 12.42 17.52 12.42 18 10.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10.5 16.25H13.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.25 3.25H20.5L17.25 7H20.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-drained", paths: [
+      KArtPath("M6 10C6.48 11.67 9.52 11.67 10 10", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14 10C14.48 11.67 17.52 11.67 18 10", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10.5,16.5a1.5,1.75 0 1 0 3,0a1.5,1.75 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M20 2.75C20.83 4.1 21.5 4.72 21.5 6A1.5 1.5 0 0 1 18.5 6C18.5 4.72 19.18 4.1 20 2.75Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-numb", paths: [
+      KArtPath("M6,10.75a2,2 0 1 0 4,0a2,2 0 1 0 -4,0Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14,10.75a2,2 0 1 0 4,0a2,2 0 1 0 -4,0Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10 16.5H14", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-meh", paths: [
+      KArtPath("M7,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M14,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
+      KArtPath("M9.5 14.75L14.5 16.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-over-it", paths: [
+      KArtPath("M6.25 10.5H9.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14.25 10.5H17.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8 16C9 14.33 11 14.33 12 16S15 17.67 16 16", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-unimpressed", paths: [
+      KArtPath("M6.5 8.75H10.5A0.63 0.63 0 0 1 10.5 10C10.25 10 10 10.25 10 10.5A1.5 1.5 0 0 1 7 10.5C7 10.25 6.75 10 6.5 10A0.63 0.63 0 0 1 6.5 8.75Z", fill: 0x000000FF),
+      KArtPath("M13.5 8.75H17.5A0.63 0.63 0 0 1 17.5 10C17.25 10 17 10.25 17 10.5A1.5 1.5 0 0 1 14 10.5C14 10.25 13.75 10 13.5 10A0.63 0.63 0 0 1 13.5 8.75Z", fill: 0x000000FF),
+      KArtPath("M9.5 16.25L14.5 14.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
     // ── Low ──
     KMoodArtEntry("mood-group-low", paths: [
       KArtPath("M7,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
       KArtPath("M14,10.5a1.5,1.5 0 1 0 3,0a1.5,1.5 0 1 0 -3,0Z", fill: 0x000000FF),
-      KArtPath("M8 17c1.2-1.4 2.6-2 4-2s2.8.6 4 2", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8 17C10 14.33 14 14.33 16 17", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
     ]),
-    KMoodArtEntry("mood-nervous", paths: nil),
-    KMoodArtEntry("mood-crying", paths: nil),
-    KMoodArtEntry("mood-heartbroken", paths: nil),
-    KMoodArtEntry("mood-shocked", paths: nil),
-    KMoodArtEntry("mood-stunned", paths: nil),
-    KMoodArtEntry("mood-frustrated", paths: nil),
-    KMoodArtEntry("mood-irritable", paths: nil),
-    KMoodArtEntry("mood-grumpy", paths: nil),
-    KMoodArtEntry("mood-angry", paths: nil),
-    KMoodArtEntry("mood-mad", paths: nil),
+    KMoodArtEntry("mood-nervous", paths: [
+      KArtPath("M6.3,10.5a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0Z", fill: 0x000000FF),
+      KArtPath("M13.3,10.5a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0Z", fill: 0x000000FF),
+      KArtPath("M8 16.5C9 14.83 11 14.83 12 16.5S15 18.17 16 16.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M19.25 3.25C20.08 4.6 20.75 5.23 20.75 6.5A1.5 1.5 0 0 1 17.75 6.5C17.75 5.23 18.43 4.6 19.25 3.25Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-crying", paths: [
+      KArtPath("M6 10H10M8 10V13.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14 10H18M16 10V13.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M9.75 18.5H14.25A0.75 0.75 0 0 0 15 17.75C15 16.09 13.66 14.75 12 14.75C10.34 14.75 9 16.09 9 17.75A0.75 0.75 0 0 0 9.75 18.5Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-heartbroken", paths: [
+      KArtPath("M6.25 11.25L9.75 9.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.75 11.25L14.25 9.5", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8.5 17C10.25 14.33 13.75 14.33 15.5 17", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M19.75 13.5C20.58 14.85 21.25 15.48 21.25 16.75A1.5 1.5 0 0 1 18.25 16.75C18.25 15.48 18.93 14.85 19.75 13.5Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-shocked", paths: [
+      KArtPath("M6.3,10.5a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0Z", fill: 0x000000FF),
+      KArtPath("M13.3,10.5a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0Z", fill: 0x000000FF),
+      KArtPath("M9.25 19.5A0.75 0.75 0 0 1 8.5 18.75C8.5 15.6 10.07 14.25 12 14.25C13.93 14.25 15.5 15.6 15.5 18.75A0.75 0.75 0 0 1 14.75 19.5C13.75 19.5 13.25 18.5 12 18.5C10.75 18.5 10.25 19.5 9.25 19.5Z", fill: 0x000000FF),
+    ]),
+    KMoodArtEntry("mood-stunned", paths: [
+      KArtPath("M6,10.5a2,2 0 1 0 4,0a2,2 0 1 0 -4,0Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14,10.5a2,2 0 1 0 4,0a2,2 0 1 0 -4,0Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8.5 17.25C9.38 15.58 11.13 15.58 12 17.25S14.63 18.92 15.5 17.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-frustrated", paths: [
+      KArtPath("M6.5 9L9.5 10.5L6.5 12", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.5 9L14.5 10.5L17.5 12", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8.5 17C10.25 14.33 13.75 14.33 15.5 17", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-irritable", paths: [
+      KArtPath("M6 9.25L10 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M18 9.25L14 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10 16.5H14", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-grumpy", paths: [
+      KArtPath("M6.25 10.5H9.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M14.25 10.5H17.75", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M9 17C10.5 14.67 13.5 14.67 15 17", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-angry", paths: [
+      KArtPath("M6 9.25L10 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M18 9.25L14 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M8.5 17C10.25 14.33 13.75 14.33 15.5 17", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
+    KMoodArtEntry("mood-mad", paths: [
+      KArtPath("M6.5 9L10 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M17.5 9L14 11.25", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+      KArtPath("M10,15h4a1.5,1.5 0 0 1 1.5,1.5v1a1.5,1.5 0 0 1 -1.5,1.5h-4a1.5,1.5 0 0 1 -1.5,-1.5v-1a1.5,1.5 0 0 1 1.5,-1.5Z", fill: nil, stroke: 0x000000FF, width: 2, cap: .round, join: .round),
+    ]),
   ]
 }

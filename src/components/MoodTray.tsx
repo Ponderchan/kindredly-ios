@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import { MOODS, MOOD_GROUPS, MOOD_GROUP_FACES, MOOD_GROUP_IDS, MOOD_GROUP_KEY, MOOD_IDS, moodGroup, moodName, type FaceId, type MoodGroup, type MoodId } from "../data/moods";
-import { MoodIcon } from "./MoodIcon";
+import { MOOD_GROUPS, MOOD_GROUP_FACES, MOOD_GROUP_IDS, MOOD_GROUP_KEY, MOOD_IDS, moodGroup, moodName, type FaceId, type MoodGroup, type MoodId } from "../data/moods";
 import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
@@ -114,8 +113,10 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
                 accessibilityState={{ selected: on }}
                 style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 12, opacity: pressed ? 0.6 : 1 })}
               >
-                <View style={{ width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: on ? c.fill : "transparent", borderWidth: on ? 1.5 : 0, borderColor: c.ink }}>
-                  <MoodIcon id={id} size={40} />
+                {/* the face on its group tile (48/r14, face 30); the chosen one wears the
+                    blocks' 2pt ink ring */}
+                <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.fill, borderWidth: on ? 2 : 0, borderColor: tk.ln }}>
+                  <MoodFace group={open} icon={`mood-${id}`} size={30} />
                 </View>
                 <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? c.ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                   {name.toLocaleUpperCase(localeTag())}
@@ -144,10 +145,10 @@ export function MoodTrayFlat({ selected, onPick }: { selected: MoodId | null; on
           const name = moodName(id);
           return (
             <Pressable key={id} onPress={() => onPick(id)} accessibilityRole="button" accessibilityLabel={name} accessibilityState={{ selected: on }} style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 14, opacity: pressed ? 0.6 : 1 })}>
-              <View style={{ width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: on ? MOODS[id].bg : "transparent", borderWidth: on ? 1.5 : 0, borderColor: MOODS[id].col }}>
-                <MoodIcon id={id} size={40} />
+              <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: moodColors(moodGroup(id)).fill, borderWidth: on ? 2 : 0, borderColor: tk.ln }}>
+                <MoodFace group={moodGroup(id)} icon={`mood-${id}`} size={30} />
               </View>
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? MOODS[id].col : P.ink60, marginTop: 5 }}>
+              <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.6, color: on ? moodColors(moodGroup(id)).ink : P.ink60, marginTop: 5 }}>
                 {name.toLocaleUpperCase(localeTag())}
               </Text>
             </Pressable>

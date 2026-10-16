@@ -9,8 +9,7 @@ import { t, useLang } from "../../lib/i18n";
 import { PF } from "../../theme/post";
 import { useP, useTheme } from "../../lib/theme";
 import { AudioCard } from "../../components/AudioCard";
-import { MoodIcon } from "../../components/MoodIcon";
-import { moodFace, moodGroup, moodLabel } from "../../data/moods";
+import { moodArtKey, moodGroup, moodLabel } from "../../data/moods";
 import { demoJournal } from "../../data/demo";
 import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
@@ -132,7 +131,6 @@ export default function JournalDetail() {
     );
   }
 
-  const face = moodFace(e.mood);
   const group = moodGroup(e.mood);
   const moodName = moodLabel(e.mood);
   const tint = moodColors(group).ink;
@@ -162,12 +160,12 @@ export default function JournalDetail() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {/* the mood face leads, the date sits under it — both centred (Apple-style).
-            A face draws its art; a page that chose only a group (or stored no
-            readable mood: Calm) draws the group's tile with the group's face, 52 like
-            the composer's key that chose it (face 32 at stroke 1.75) */}
+        {/* the mood leads, the date sits under it — both centred (Apple-style): the
+            page's own face on its group tile (the group's face for a group alone,
+            Calm for no readable mood), 52 like the composer's key that chose it
+            (face 32 at stroke 1.75) */}
         <View style={{ alignItems: "center", marginBottom: 24, marginTop: 4 }}>
-          {face ? <MoodIcon id={face} size={48} /> : <MoodChip group={group} size={52} radius={16} face={32} stroke={1.75} />}
+          <MoodChip group={group} icon={moodArtKey(e.mood)} size={52} radius={16} face={32} stroke={1.75} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
             <CalGlyph />
             {/* the mood's name after the date, as the cards say it (the group's

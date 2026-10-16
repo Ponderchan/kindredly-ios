@@ -2,9 +2,8 @@ import { Image, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
-import { MoodIcon } from "./MoodIcon";
 import { AudioCard } from "./AudioCard";
-import { moodFace, moodGroup } from "../data/moods";
+import { moodArtKey, moodGroup } from "../data/moods";
 import { MoodChip, moodColors } from "../screens/notes/notes-glyphs";
 import { fmt, noteDay, time24 } from "../lib/format";
 import type { JournalEntry } from "../lib/journal";
@@ -35,7 +34,6 @@ function meta(e: JournalEntry): string {
 
 export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => void }) {
   const P = useP();
-  const face = moodFace(e.mood);
   const group = moodGroup(e.mood);
   const photos = e.type === "photo" ? (e.media?.length ? e.media : e.mediaUri ? [e.mediaUri] : []) : [];
   const hasMedia = e.type === "photo" ? photos.length > 0 : e.type === "voice" || e.type === "video";
@@ -58,11 +56,11 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
         opacity: pressed ? 0.55 : 1,
       })}
     >
-      {/* head — a big mood face + the date filed in mono. A page that chose only a
-          group (or stored no readable mood: Calm) shows the group's tile and face,
-          the Notes card head's 36/r11/22 */}
+      {/* head — the mood on its group tile + the date filed in mono: the page's own
+          face, or the group's for a group alone (Calm for no readable mood), at the
+          Notes card head's 36/r11/22 */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>
-        {face ? <MoodIcon id={face} size={38} /> : <MoodChip group={group} size={36} radius={11} face={22} />}
+        <MoodChip group={group} icon={moodArtKey(e.mood)} size={36} radius={11} face={22} />
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: P.ink60 }}>{meta(e)}</Text>
       </View>
 

@@ -13,12 +13,11 @@ import { useP, useTheme, type PostPalette } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { MoodKeyGlyph, MoodTray, MoodTrayFlat } from "./MoodTray";
-import { MoodIcon } from "./MoodIcon";
 import { Recorder } from "./Recorder";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { moodFace, moodGroup, moodLabel, type MoodId } from "../data/moods";
+import { moodArtKey, moodGroup, moodLabel, type MoodId } from "../data/moods";
 import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
 import { useNativeSurface } from "../lib/surfaces";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
@@ -565,13 +564,10 @@ export function SelfCompose({
   );
 }
 
-/** What the mood key holds once a mood is chosen: a face's art, or — the group alone — the group's
-    face in its ink (the key's own fill and ring are the group's tile). */
+/** What the mood key holds once a mood is chosen: the chosen face (or the group's, for a group
+    alone) in the group's face ink — the key's own fill and ring are the group's tile. */
 function MoodKeyFace({ mood }: { mood: MoodId }) {
-  const face = moodFace(mood);
-  if (face) return <MoodIcon id={face} size={36} />;
-  const g = moodGroup(mood);
-  return <MoodFace group={g} size={32} width={1.75} />;
+  return <MoodFace group={moodGroup(mood)} icon={moodArtKey(mood)} size={32} width={1.75} />;
 }
 
 /* ONE FRAME, FULL SCREEN — back, a count, a bin, and the one thing you

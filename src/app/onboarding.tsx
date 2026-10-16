@@ -52,8 +52,8 @@ import { NAME_IDEAS, isReservedName, saveWrenEgg, saveWrenName } from "../lib/wr
 import { track } from "../lib/track";
 import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
-import { MOODS, MOOD_IDS, moodName, moodTone, type MoodId } from "../data/moods";
-import { MoodIcon } from "../components/MoodIcon";
+import { MOOD_IDS, moodGroup, moodName, moodTone, type MoodId } from "../data/moods";
+import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
 
 /* Onboarding — EGG OS.
    ────────────────────────────────────────────────────────────────────────
@@ -1242,17 +1242,17 @@ export default function Onboarding() {
                             style={{
                               width: 36,
                               height: 36,
-                              borderRadius: 18,
+                              borderRadius: 11,
                               borderWidth: 2,
                               borderColor: on ? Y.blue : Y.ln,
-                              backgroundColor: MOODS[id].bg,
+                              backgroundColor: moodColors(moodGroup(id)).fill,
                               alignItems: "center",
                               justifyContent: "center",
                               overflow: "hidden",
                               transform: [{ scale: on ? 1.14 : 1 }],
                             }}
                           >
-                            <MoodIcon id={id} size={27} />
+                            <MoodFace group={moodGroup(id)} icon={`mood-${id}`} size={22} />
                           </View>
                         </Pressable>
                       );
