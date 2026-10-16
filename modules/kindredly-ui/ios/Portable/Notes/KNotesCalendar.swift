@@ -5,7 +5,7 @@ import SwiftUI
 /*
  THE NOTES CALENDAR (10a, H:113, H:179-181), an overlay over the notes:
 
-   ░░░░░░░░░░░░░░ dim (ink at .18): a tap closes ░░░░░░░░░░░░░░░░░░░░░░░
+   ░░░░░░░░░░░░░░ dim (ink at .18): a tap closes ░░░░░░░░░░░░░░░░░░░░░░░   Midnight: black at .35
      ┌───────────────────────────────────────────────┐   58 under the status bar,
      │  ‹            OCTOBER 2026               ›    │   16 from each side
      │  S    M    T    W    T    F    S              │   the language's letters, from its first day
@@ -107,6 +107,12 @@ struct KNotesCalendar: View {
   static let dayOn = KTextStyle.system(13, .semibold)
   static let dayOff = KTextStyle.system(13)
   static let dim = KBrand.inkOnBrand.opacity(0.18)
+  /// Midnight's dim. The fixed dark ink at .18 comes out lighter than Midnight's page (#121020 on
+  /// #0F0E1C), so nothing dimmed. Black at .35 fades the notes under the panel a little harder
+  /// than Classic's dim does, by the same margin as KDim's black under the composer (a near-black
+  /// page can't itself step down): ink against the page falls from 15.4:1 to 6.7:1 (Classic: 16.6
+  /// to 11.5).
+  static let dimDark = Color.black.opacity(0.35)
 
   let theme: KTheme
   let strings: KNotesStrings
@@ -118,7 +124,7 @@ struct KNotesCalendar: View {
 
   var body: some View {
     ZStack(alignment: .top) {
-      Self.dim
+      (theme.isDark ? Self.dimDark : Self.dim)
         .ignoresSafeArea()
         .contentShape(Rectangle())
         .onTapGesture { actions.onCalendarToggle(false) }

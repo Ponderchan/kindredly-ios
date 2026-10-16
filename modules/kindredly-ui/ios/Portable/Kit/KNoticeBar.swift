@@ -5,8 +5,9 @@ import SwiftUI
 /*
  A NOTICE: "notifications are off, turn them on" under the Kindreds title (NotifyBanner.tsx),
  and Settings' notifications-off panel in THE QUIET. Themed now: the theme's lav ground with
- its ind ink, which hold their contrast in every theme, Midnight included, instead of the fixed
- #EEF5FD and #3A34D6 (#1F5FA8 in Settings) the React Native pieces paint.
+ its ind ink, instead of the fixed #EEF5FD and #3A34D6 (#1F5FA8 in Settings) the React Native
+ pieces paint. On Midnight the ground is lav2 (KTheme.lavUnderInd): ind on Midnight's lav is
+ 4.38:1, under the 4.5 the 14pt words need, and on lav2 it is 5.09:1.
 
  Two looks (Style):
  - bar: full width, square, as the Kindreds banner lies across the list: 16 in from each side,
@@ -115,12 +116,20 @@ public struct KNoticeBar: View {
     }
     .background {
       if style == .panel {
-        RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.lav)
+        RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.lavUnderInd)
       } else {
-        Rectangle().fill(theme.lav)
+        Rectangle().fill(theme.lavUnderInd)
       }
     }
   }
+}
+
+extension KTheme {
+  /// The pale ground ind words sit on (a notice, a group chip that is on): lav, or lav2 on
+  /// Midnight. The cause is the token pair: Midnight's ind on its lav is 4.38:1 (Classic's is
+  /// 6.24:1), under the 4.5 body text needs, and on lav2, the darker of its two lavs, 5.09:1.
+  /// Retire this if themes.json darkens Midnight's lav.
+  var lavUnderInd: Color { isDark ? lav2 : lav }
 }
 
 /// A plain press: the label fades to .6 while the finger is down (React Native's Pressable

@@ -6,8 +6,8 @@ import SwiftUI
  THE 10a BUTTON LEVELS (tokens-10a.md §8). Where the prompts and the mock differ, the mock's
  numbers are used:
 
- - PRIMARY: solid ind, white mark. Only the round + in the tab bar is primary (H:119); the
-   write-back ↑ is solid ink in the mock (H:115), so it is a secondary.
+ - PRIMARY: solid ind, white mark (bg in Midnight). Only the round + in the tab bar is primary
+   (H:119); the write-back ↑ is solid ink in the mock (H:115), so it is a secondary.
  - SECONDARY: solid ink, text in bg, corners of 14 ("See your labels", UPLOAD; H:78, 81).
  - TERTIARY: sf with a 2pt ln outline and ink text, a hard 2/2 shadow if asked (STAMP CAM; H:81).
  - DISABLED: faint text on a soft2 pill, mono 600 11 at .12em (the SEND pill; H:124). The
@@ -35,17 +35,19 @@ struct KPlusGlyph: Shape {
 }
 
 /*
- THE ROUND + (H:119): a 48 circle in ind with an indigo glow under it (0 6 14 -4
- rgba(58,52,214,.55)), and a white + drawn 22 wide. The SVG's stroke is 2.6 in its 24-unit box,
- so 2.6 × 22/24 on screen, with round ends. When isOpen is true the + turns 45° into an ×, on
- the mock's curve (.4s, cubic-bezier(.3,1.2,.4,1), which overshoots a little and settles).
+ THE ROUND + (H:119): a 48 circle in ind with a glow of the same ind under it (0 6 14 -4 at .55,
+ the mock's rgba(58,52,214,.55) in the light themes), and a white + drawn 22 wide. The SVG's
+ stroke is 2.6 in its 24-unit box, so 2.6 × 22/24 on screen, with round ends. When isOpen is
+ true the + turns 45° into an ×, on the mock's curve (.4s, cubic-bezier(.3,1.2,.4,1), which
+ overshoots a little and settles).
 
  The mock turns the whole circle, and CSS turns a box-shadow with its box, so there the glow
  swings down and to the left as the + opens. Here only the + turns and the glow stays below:
  the circle looks the same either way, and light doesn't turn with a button.
 
- The + is white in every theme, as in the mock. On Midnight's ind (#8E89FF) that is a contrast
- of about 2.9, just under the 3 WCAG asks of a graphic.
+ The + is white in the light themes, as in the mock. Midnight draws it in bg instead: white on
+ its pale ind (#8E89FF) is 2.93:1, under the 3 WCAG asks of a graphic, and bg is 6.52:1, the
+ colour every other mark on an ind fill already takes there (the tab count, the voice disc).
  */
 public struct KPrimaryRound: View {
   private let theme: KTheme
@@ -67,14 +69,14 @@ public struct KPrimaryRound: View {
   public var body: some View {
     Button(action: action) {
       KPlusGlyph()
-        .stroke(Color.white, style: StrokeStyle(lineWidth: 2.6 * 22 / 24, lineCap: .round))
+        .stroke(theme.isDark ? theme.bg : Color.white, style: StrokeStyle(lineWidth: 2.6 * 22 / 24, lineCap: .round))
         .frame(width: 22, height: 22)
         .rotationEffect(.degrees(isOpen ? 45 : 0))
         // the turn overshoots a little; with Reduce Motion it is a plain ease
         .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurn, value: isOpen)
         .frame(width: 48, height: 48)
         .background(Circle().fill(theme.ind))
-        .kSoftShadows(KSoftShadow.primaryGlow, in: Circle())
+        .kSoftShadows(KSoftShadow.primaryGlow(for: theme), in: Circle())
         .contentShape(Circle())
     }
     .buttonStyle(KFloatPressStyle())

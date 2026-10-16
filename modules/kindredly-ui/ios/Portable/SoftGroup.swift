@@ -130,7 +130,8 @@ struct SoftChevron: View {
 /*
  A SETTINGS ROW (H:101), left to right:
  - the row is set in 14 from each side, with 12 between the icon box and the text column;
- - the icon box is 28 × 28, corners of 8, in sf, with the icon centred in it;
+ - the icon box is 28 × 28, corners of 8, in sf (soft2 in Midnight, SoftRowIcon.boxFill), with
+   the icon centred in it;
  - the text column is 12 above and below, and its bottom edge is the row's 1pt divider in line.
    So the divider starts under the text, not under the icon, as in iOS's own lists. The CSS
    border adds its 1pt to the row's height, and so does this one;
@@ -187,7 +188,7 @@ public struct SoftRow<Icon: View, Accessory: View>: View {
     HStack(alignment: stacked ? .top : .center, spacing: 12) {
       icon
         .frame(width: 28, height: 28)
-        .background(RoundedRectangle(cornerRadius: 8, style: .circular).fill(theme.sf))
+        .background(RoundedRectangle(cornerRadius: 8, style: .circular).fill(SoftRowIcon.boxFill(theme)))
         .padding(.top, stacked ? 10 : 0)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 0) {
@@ -294,6 +295,13 @@ public extension SoftRow where Icon == SoftRowIcon {
 /// What sits in a row's icon box: an SF Symbol in sub (or the row's tint), or with no symbol the
 /// mock's own placeholder, a 10 × 10 square with corners of 3 outlined 1.5 in sub (H:101).
 public struct SoftRowIcon: View {
+  /// The icon box's fill: the mock's sf, or soft2 in Midnight. The box sits on its group's soft,
+  /// and Midnight's soft is its sf, so an sf box vanished there (1.00:1) and the symbol floated
+  /// with no tile; soft2 stands 1.17:1 off the group, a touch clearer than Classic's 1.09:1.
+  static func boxFill(_ theme: KTheme) -> Color {
+    theme.isDark ? theme.soft2 : theme.sf
+  }
+
   private let theme: KTheme
   private let systemImage: String?
   private let tint: Color?
@@ -361,7 +369,7 @@ public struct SoftToggleRow: View {
       if let systemImage {
         SoftRowIcon(theme: theme, systemImage: systemImage)
           .frame(width: 28, height: 28)
-          .background(RoundedRectangle(cornerRadius: 8, style: .circular).fill(theme.sf))
+          .background(RoundedRectangle(cornerRadius: 8, style: .circular).fill(SoftRowIcon.boxFill(theme)))
           .accessibilityHidden(true)
       }
       VStack(alignment: .leading, spacing: 0) {

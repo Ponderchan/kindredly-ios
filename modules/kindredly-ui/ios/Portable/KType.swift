@@ -189,6 +189,15 @@ public enum KType {
 
   /// A face's natural line height as a multiple of its size (see the note at the top), the serif
   /// in the given Letter face (Newsreader by default).
+  /// The reader's language is written in a script whose glyphs iOS draws from its own CJK faces
+  /// (ja, ko): the letter serifs have none, and those faces stand taller than the serif's line,
+  /// so serif text gets `tallScriptLineHeight` at least. Set from TS (KindredlyUI.setTextScript);
+  /// read at body time, and a language change re-renders every screen with new strings anyway.
+  nonisolated(unsafe) public static var tallScript = false
+  /// the least line height (× size) a serif style gets while `tallScript` (CJK body text sits at
+  /// about 1.6–1.8)
+  public static let tallScriptLineHeight: CGFloat = 1.6
+
   public static func naturalLineHeight(_ face: KTextStyle.Face, letterFace: KLetterFace = .newsreader) -> CGFloat {
     switch face {
     case .system: return 1.19
@@ -359,7 +368,12 @@ struct KTextModifier: ViewModifier {
     let letterFace = style.letterFace(in: environmentFace)
     // what CSS line-height adds over the natural line, in points at the scaled size
     let natural = KType.naturalLineHeight(style.face, letterFace: letterFace)
-    let leading = style.lineHeight.map { max(0, ($0 - natural) * size) } ?? 0
+    var leading = style.lineHeight.map { max(0, ($0 - natural) * size) } ?? 0
+    // Japanese and Korean in a serif style: the CJK glyphs come from iOS's own faces, taller than
+    // the serif's line, so the line opens up to tallScriptLineHeight (KType.tallScript)
+    if KType.tallScript, style.face == .serif || style.face == .serifItalic {
+      leading = max(leading, (KType.tallScriptLineHeight - natural) * size)
+    }
     // the system faces (SF, New York) are sized here; the embedded faces scale themselves
     // (relativeTo) by the same metric
     let font: Font

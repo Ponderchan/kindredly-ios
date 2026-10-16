@@ -17,8 +17,8 @@ import SwiftUI
  - progress: a pen pal's "2/5", letters each way (the five-each rule); "" for none.
  - time: always mute (the owner keeps blue for the kindred number and YOUR TURN); "" hides it.
  - tags lead the preview, each in its own tone (ind YOUR TURN, mute THEIR TURN, brass SWAP
-   NAMES? / THEY WENT FIRST, postal red CLOSES IN n DAYS), then youPrefix ("You: ") in ink, then
-   the words. Every string arrives translated and cased.
+   NAMES? / THEY WENT FIRST (wax gold on Midnight), postal red CLOSES IN n DAYS), then
+   youPrefix ("You: ") in ink, then the words. Every string arrives translated and cased.
  - trailing: the badge (ind with the page colour on it, 20 high, "9+") or a link-coloured word
    ("Rekindle ›") that is NOT a button: a tap anywhere on the row opens it.
  - dim: the face at .45 (a quiet room, a closed account).
@@ -45,7 +45,9 @@ public struct KRowTag: Hashable, Sendable {
     case mute
     /// postmark red (KBrand.postRed): CLOSES IN n DAYS
     case post
-    /// the seal's brass (KBrand.brassSeal): SWAP NAMES?, THEY WENT FIRST
+    /// the seal's brass (KBrand.brassSeal): SWAP NAMES?, THEY WENT FIRST. Wax gold on Midnight,
+    /// as the profile's mark and the compose count switch brass on dark: brass on Midnight's page
+    /// is 4.47:1, under the 4.5 a 12pt tag needs, and wax gold is 8.59:1
     case brass
   }
 
@@ -62,7 +64,7 @@ public struct KRowTag: Hashable, Sendable {
     case .ind: return theme.ind
     case .mute: return theme.mute
     case .post: return KBrand.postRed
-    case .brass: return KBrand.brassSeal
+    case .brass: return theme.isDark ? KBrand.waxGold : KBrand.brassSeal
     }
   }
 }

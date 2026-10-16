@@ -41,6 +41,7 @@ export {
   type UseKCommandsOptions,
 } from "./src/commands";
 export { nativeDismissKeyboard } from "./src/keyboard";
+export { nativeSetTextScript } from "./src/textScript";
 export { KIsland, KSlot, type KIslandProps, type KSlotProps } from "./src/Slot";
 
 // step 5: the eight screens (stubs until their slices land)

@@ -301,6 +301,10 @@ struct KChatVoiceLine: View {
           .fixedSize(horizontal: false, vertical: true)
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
+          // the page's own colour under the lifted copy, which is see-through otherwise and lifts
+          // onto the system's preview platter (KMenu); drawn in Midnight only, where that platter
+          // is off-theme, so the light themes lift exactly as before
+          .background(theme.isDark ? theme.bg : Color.clear)
           .contentShape(RoundedRectangle(cornerRadius: 8, style: .circular))
           .kMenu(item.menu, preview: .rounded(8)) { actions.onItemAction(item.key, $0) }
           .frame(maxWidth: maxWidth, alignment: edge)
@@ -441,6 +445,9 @@ struct KLetterBlock: View {
         }
         .buttonStyle(KChatPlainPress())
         .accessibilityAddTraits(item.tappable ? .isButton : [])
+        // the letter block's own face under the lifted copy (KLetterFrame's fill), as the room's
+        // caption takes the page's: Midnight only, the light themes lift as before
+        .background(theme.isDark ? (item.mine ? theme.lav2 : theme.sf) : Color.clear)
         .kMenu(item.menu, preview: .rounded(8)) { actions.onItemAction(item.key, $0) }
       }
     }

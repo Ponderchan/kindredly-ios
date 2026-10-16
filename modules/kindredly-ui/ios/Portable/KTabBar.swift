@@ -5,7 +5,8 @@ import SwiftUI
 
 /*
  THE 10a TAB BAR (H:117-119, 445, 486; tokens-10a.md §7.3 and §11 item 6). A float: a solid sf
- face, corners of 34, 62 tall, 16 in from each side, the soft two-layer shadow and no glass.
+ face, corners of 34, 62 tall, 16 in from each side, the soft two-layer shadow and no glass
+ (in Midnight a black shadow and a 1pt line edge, see KFloat).
  Five equal columns: two tabs, the round + (KPrimaryRound), two tabs. No words under the icons
  (the mock's showLabels is false); each tab's name is still there for VoiceOver and for the
  large content viewer.
@@ -13,7 +14,8 @@ import SwiftUI
  Where the selection is, the mock does not light up the icon's own capsule (it stays
  transparent, H:445). A LENS slides behind it instead (H:118):
  - 5 in from the bar's top and bottom, the column's width less 10, corners of 26, lav fill,
-   a 1.5 ring of sf inside its edge and an indigo glow under it, 0 3 10 -3 rgba(58,52,214,.35);
+   a 1.5 ring of sf inside its edge and a glow under it, 0 3 10 -3 in ind at .35 (the mock's
+   rgba(58,52,214,.35) in the light themes; Midnight's own ind there, see KSoftShadow.lensGlow);
  - it slides on .5s cubic-bezier(.3,1.45,.4,1), which runs well past the new column and comes
    back, and for the first half-second it is stretched sideways to 1.22 (scaleX on .25s
    ease-out, both ways), so it reads as something soft being pulled across;
@@ -141,10 +143,12 @@ public extension KMotion {
 }
 
 public extension KSoftShadow {
-  /// The lens's indigo glow: 0 3 10 -3 rgba(58,52,214,.35) (H:118).
-  static let lensGlow: [KSoftShadow] = [
-    KSoftShadow(y: 3, blur: 10, spread: -3, color: Color(.sRGB, red: 58 / 255, green: 52 / 255, blue: 214 / 255, opacity: 0.35)),
-  ]
+  /// The lens's glow: 0 3 10 -3 in the theme's ind at .35 (H:118: rgba(58,52,214,.35), the light
+  /// themes' ind). The mock's fixed indigo glowed darker than Midnight's lens and bar; the
+  /// theme's ind reads as light there too.
+  static func lensGlow(for theme: KTheme) -> [KSoftShadow] {
+    [KSoftShadow(y: 3, blur: 10, spread: -3, color: theme.ind.opacity(0.35))]
+  }
 }
 
 public struct KTabBar: View {
@@ -236,7 +240,7 @@ public struct KTabBar: View {
           .fill(theme.lav)
           // inset 0 0 0 1.5px sf: a ring of the bar's face just inside the lens's edge
           .overlay(shape.strokeBorder(theme.sf, lineWidth: 1.5))
-          .kSoftShadows(KSoftShadow.lensGlow, in: shape)
+          .kSoftShadows(KSoftShadow.lensGlow(for: theme), in: shape)
           .frame(width: max(0, colW - 10), height: max(0, geo.size.height - 10))
           // pulled sideways while it travels: 1.22 on .25s ease-out, held to .52s, back on .25s
           .keyframeAnimator(initialValue: CGFloat(1), trigger: [col, repress]) { content, stretch in

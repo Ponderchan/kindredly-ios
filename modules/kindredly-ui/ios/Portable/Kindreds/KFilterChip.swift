@@ -6,8 +6,9 @@ import SwiftUI
  A GROUP CHIP under the Kindreds band (H:62, with the owner's 16.5 text): All / Kindreds n /
  Pen pals n.
 
- - On: the theme's lav fill and border, the words in ind. Off: sf, the words in ink, a line
-   border. 1.5 border, capsule. The mock's padding is 9 / 16 inside the border (content-box, as
+ - On: the theme's lav fill and border, the words in ind (lav2 on Midnight, KTheme.lavUnderInd:
+   ind on its lav is 4.38:1, on lav2 5.09:1). Off: sf, the words in ink, a line border. 1.5
+   border, capsule. The mock's padding is 9 / 16 inside the border (content-box, as
    KSticker notes), so the drawn padding adds the border.
  - Optional mark before the words (KLegendGlyph kindred / penPal, 18), the count after them at
    14.5 and .55, and a 6pt ind dot after that when someone in an unselected group is waiting on
@@ -89,8 +90,8 @@ public struct KFilterChip: View {
       }
       .padding(.vertical, Self.padV)
       .padding(.horizontal, Self.padH)
-      .background(Capsule().fill(selected ? theme.lav : theme.sf))
-      .overlay(Capsule().strokeBorder(selected ? theme.lav : theme.line, lineWidth: Self.border))
+      .background(Capsule().fill(selected ? theme.lavUnderInd : theme.sf))
+      .overlay(Capsule().strokeBorder(selected ? theme.lavUnderInd : theme.line, lineWidth: Self.border))
       .contentShape(Capsule())
     }
     .buttonStyle(KFadePressStyle())

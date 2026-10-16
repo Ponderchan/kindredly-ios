@@ -22,6 +22,8 @@ import { loadLang } from "../lib/i18n";
 import { startSurfaces } from "../lib/surfaces";
 import { isPronounId, readYourPronoun } from "../lib/pronouns";
 import { setMoodPronoun } from "../data/moods";
+import { useLang } from "../lib/i18n";
+import { nativeSetTextScript } from "../../modules/kindredly-ui";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
@@ -192,6 +194,17 @@ function MoodPronoun() {
   return null;
 }
 
+/* THE SWIFT TYPE KNOWS THE READER'S SCRIPT (modules/kindredly-ui textScript): Japanese and
+   Korean set the letter serifs with CJK leading, since iOS draws those glyphs from its own
+   taller faces. Told at launch and on every language change. */
+function TextScript() {
+  const lang = useLang();
+  useEffect(() => {
+    nativeSetTextScript(lang);
+  }, [lang]);
+  return null;
+}
+
 // Simulator-only expo-notifications keychain noise. The toast it raises sits
 // over the bottom controls and eats taps — silence it in dev.
 LogBox.ignoreLogs(["Error reading persisted server registration info"]);
@@ -285,6 +298,7 @@ export default function RootLayout() {
             <WrenStageProvider>
             <FingerprintOnLaunch />
             <MoodPronoun />
+            <TextScript />
             <LocalLinesOnLaunch />
             <StallProbe />
               <BirdSnapshots />

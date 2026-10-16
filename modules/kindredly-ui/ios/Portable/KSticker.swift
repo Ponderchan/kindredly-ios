@@ -9,8 +9,8 @@ import SwiftUI
  - as a STICKER: a face, an outline in ln, and a hard shadow, which is the same shape again in
    ln (or ind), moved right and down, with no blur at all. InkCards, tags, chips and the
    tertiary button are stickers.
- - as a FLOAT: a face with a soft, blurred shadow and no outline. The tab bar and the round +
-   are floats.
+ - as a FLOAT: a face with a soft, blurred shadow and no outline (Midnight's has a 1pt edge,
+   see KFloat). The tab bar and the round + are floats.
 
  Shapes follow the CSS: corners are plain circular arcs (RoundedRectangle style .circular), as
  the browser and React Native draw border-radius, not SwiftUI's continuous corners. An outline
@@ -145,8 +145,11 @@ public struct KFloatPressStyle: ButtonStyle {
  deviation, which is about what SwiftUI's blur radius is, so the radius here is blur / 2. That
  is the usual conversion and close, not exact; compare on a device.
 
- The colours are the mock's, fixed and not themed (H:117, H:119), so they nearly disappear in
- Midnight, as they do in the mock (tokens-10a.md §7).
+ The light themes keep the mock's colours (H:117, H:119). Midnight doesn't: in the mock they
+ nearly disappear there (tokens-10a.md §7), the float's navy shadow coming out lighter than the
+ page and the glows a darker blue than the button they light. So the float's shadow is black in
+ Midnight (float(for:), and KFloat gives it an edge), and the glows are drawn in the theme's own
+ ind, which in the light themes is the mock's rgba(58,52,214) exactly.
  */
 public struct KSoftShadow: Sendable {
   public let x: CGFloat
@@ -163,18 +166,34 @@ public struct KSoftShadow: Sendable {
     self.color = color
   }
 
-  /// The float's two layers: 0 10 28 -10 rgba(30,27,53,.45), 0 2 6 -2 rgba(30,27,53,.18)
-  /// (H:117, P:50).
+  /// The float's two layers in the light themes: 0 10 28 -10 rgba(30,27,53,.45), 0 2 6 -2
+  /// rgba(30,27,53,.18) (H:117, P:50).
   public static let float: [KSoftShadow] = [
     KSoftShadow(y: 10, blur: 28, spread: -10, color: Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.45)),
     KSoftShadow(y: 2, blur: 6, spread: -2, color: Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.18)),
   ]
 
-  /// The round +'s indigo glow: 0 6 14 -4 rgba(58,52,214,.55) (H:119). The mock keeps the
-  /// light theme's indigo in Midnight too.
-  public static let primaryGlow: [KSoftShadow] = [
-    KSoftShadow(y: 6, blur: 14, spread: -4, color: Color(.sRGB, red: 58 / 255, green: 52 / 255, blue: 214 / 255, opacity: 0.55)),
+  /// Midnight's float: the same two layers in black at .6 and .35. The mock's navy is lighter
+  /// than Midnight's page (its core lands at #161427 on #0F0E1C), so it lit the ground instead of
+  /// shading it; black at least darkens what the bar passes over (at the core, 1.14:1 on a card,
+  /// against the navy's 1.01:1). No shadow shows much on a near-black page, so KFloat adds a 1pt
+  /// edge too.
+  public static let floatDark: [KSoftShadow] = [
+    KSoftShadow(y: 10, blur: 28, spread: -10, color: Color.black.opacity(0.6)),
+    KSoftShadow(y: 2, blur: 6, spread: -2, color: Color.black.opacity(0.35)),
   ]
+
+  /// The float's shadow in this theme: the mock's in the light themes, black in Midnight.
+  public static func float(for theme: KTheme) -> [KSoftShadow] {
+    theme.isDark ? floatDark : float
+  }
+
+  /// The round +'s glow: 0 6 14 -4 in the theme's ind at .55 (H:119: rgba(58,52,214,.55), the
+  /// light themes' ind). The mock keeps that indigo in Midnight too, where it glows a darker blue
+  /// than the #8E89FF disc it sits under; the theme's ind keeps the glow the button's own light.
+  public static func primaryGlow(for theme: KTheme) -> [KSoftShadow] {
+    [KSoftShadow(y: 6, blur: 14, spread: -4, color: theme.ind.opacity(0.55))]
+  }
 }
 
 public extension View {

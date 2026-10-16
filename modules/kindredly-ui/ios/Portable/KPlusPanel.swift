@@ -165,10 +165,24 @@ public struct KPlusPanel: View {
   }
 }
 
-/// The dim layer over the screen while the composer is open: rgba(30,27,53,.3) (H:128), the
-/// same in every theme.
+/// The dim layer over the screen while the composer is open: rgba(30,27,53,.3) (H:128) in the
+/// light themes, black at .45 in Midnight (composer(for:)).
+///
+/// The mock's navy is fixed, and over Midnight's #0F0E1C page it comes out lighter (#141224), so
+/// nothing receded. No dim can step a near-black page the way Classic's steps white (1.9:1; black
+/// itself only gets 1.1:1 off #0F0E1C), so Midnight's does its work on what is on the page, a
+/// little harder than Classic's: ink against the page falls from 15.4:1 to 5.0:1 (Classic: 16.6
+/// to 8.7).
 public enum KDim {
+  /// the light themes' dim (H:128)
   public static let composer = Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.3)
+  /// Midnight's
+  public static let composerDark = Color.black.opacity(0.45)
+
+  /// The composer's dim in this theme.
+  public static func composer(for theme: KTheme) -> Color {
+    theme.isDark ? composerDark : composer
+  }
 }
 
 public extension KMotion {
@@ -272,7 +286,7 @@ public struct KTabStage: View {
     // to its size. So the stage is never bigger than its Host, even while the Host is only the
     // bar's strip and the sheet, closed and invisible, reaches far above it. (A root view bigger
     // than its hosting view can be centred in it instead of pinned, and the bar would drop.)
-    KDim.composer
+    KDim.composer(for: theme)
       .opacity(open ? 1 : 0)
       .animation(KMotion.dimFade, value: open)
       .contentShape(Rectangle())
