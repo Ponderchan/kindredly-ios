@@ -38,12 +38,14 @@ export function AuraArtBand({ width, src }: { width: number; src: number }) {
    the Aura card), FITTED BY HEIGHT — never cover-cropped, which at the
    card's width cut about 40% of every picture's height (heads, feet,
    windows; critic). The picture is 16:9, so it sits centred, as wide as
-   the height allows, on `ground` (the slot's soft2) at the sides. */
-export function AuraArtFit({ width, height, src, ground }: { width: number; height: number; src: number; ground: string }) {
-  const w = Math.min(width, Math.round(height / ART_RATIO));
+   the height allows, on `ground` (the slot's soft2) at the sides.
+   `inset` lays it in the slot as a print instead: that far in from every
+   edge, with corners of its own (0, the default, runs it top to bottom). */
+export function AuraArtFit({ width, height, src, ground, inset = 0 }: { width: number; height: number; src: number; ground: string; inset?: number }) {
+  const w = Math.min(width - 2 * inset, Math.round((height - 2 * inset) / ART_RATIO));
   return (
     <View style={{ width, height, backgroundColor: ground, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-      <Image source={src} style={{ width: w, height: Math.round(w * ART_RATIO) }} resizeMode="contain" />
+      <Image source={src} style={{ width: w, height: Math.round(w * ART_RATIO), borderRadius: inset ? 8 : 0 }} resizeMode="contain" />
     </View>
   );
 }

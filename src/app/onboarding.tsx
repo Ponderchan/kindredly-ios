@@ -54,6 +54,7 @@ import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } f
 import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
 import { MOOD_IDS, moodGroup, moodName, moodTone, type MoodId } from "../data/moods";
 import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
+import { dangerInk } from "../screens/settings/settings-model";
 
 /* Onboarding — EGG OS.
    ────────────────────────────────────────────────────────────────────────
@@ -103,7 +104,9 @@ import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
    Midnight's. Three things keep their colours in every theme: the egg and
    hatchling art (the unchosen egg in the dock still reads the static Y, as
    Y_ART), the sign-in row, which is drawn to Apple's and Google's own
-   button rules, and the content fills — the brass key, the cream cue deck,
+   button rules (by Apple's, its black key goes white on Midnight — see
+   solidKey; the Send key, the app's own, goes to the console's blue there),
+   and the content fills — the brass key, the cream cue deck,
    the age warning, the mood faces — whose type is a fixed dark ink. */
 
 type Step = "welcome" | "username" | "you" | "cakeday" | "avatar" | "egg" | "write" | "hatch" | "naming" | "dress" | "fare" | "flight";
@@ -535,6 +538,11 @@ export default function Onboarding() {
      window carousel cycled the headline with the card, and the sign-in keys
      underneath walked up and down with each language's line count. */
   if (step === "welcome") {
+    /* the email and code captions sit on the console, not on the white
+       fields, so the fields' #D0342C is their red only on a light ground: on
+       Midnight's it is 3.0:1, and the theme's red (settings-model dangerInk,
+       the exits' red) is 4.8:1 */
+    const badInk = dark ? dangerInk(tk.ink, Y.warn) : "#D0342C";
     return (
       <Console>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -554,15 +562,16 @@ export default function Onboarding() {
 
           <View style={{ paddingHorizontal: 18, marginTop: 24 }}>
               <>
-                {/* THE APPLE KEY IS DRAWN, TO APPLE'S OWN GUIDELINES — black,
-                    the logo, "Continue with Apple", 52pt — so its logo sits
+                {/* THE APPLE KEY IS DRAWN, TO APPLE'S OWN GUIDELINES — black
+                    (white on Midnight, Apple's style for a dark ground), the
+                    logo, "Continue with Apple", 52pt — so its logo sits
                     in the same left column as the other two. The system
                     component centres its logo with the text and can't be
                     told otherwise; three keys with two alignments read as a
                     mistake (owner, 2026-09-19). Custom buttons are allowed
                     by the HIG when they keep the logo, wording and sizing. */}
                 {appleAvailable ? (
-                  <AuthKey dark first icon={<AppleLogo />} label={busy === "apple" ? "…" : t("ob.continueApple")} onPress={doApple} disabled={!!busy} dim={!!busy && busy !== "apple"} />
+                  <AuthKey solid first icon={<AppleLogo color={solidKey(dark).ink} />} label={busy === "apple" ? "…" : t("ob.continueApple")} onPress={doApple} disabled={!!busy} dim={!!busy && busy !== "apple"} />
                 ) : null}
                 <AuthKey
                   icon={<GoogleG />}
@@ -584,7 +593,8 @@ export default function Onboarding() {
                   <>
                     {/* the fields the email key unfolds into are keys of the
                         sign-in row, so like the row they keep their white, their
-                        type and their red in every theme (see AuthKey) */}
+                        type and their red edge in every theme (see AuthKey);
+                        the caption under them is the console's (badInk) */}
                     <View
                       style={{
                         height: 52,
@@ -612,7 +622,7 @@ export default function Onboarding() {
                         style={{ fontSize: 24, letterSpacing: 12, color: "#1F1F1F", textAlign: "center", height: 52 }}
                       />
                     </View>
-                    <Text style={{ fontSize: 13, color: codeBad ? "#D0342C" : Y.dim, textAlign: "center", marginTop: 10, lineHeight: 19 }}>
+                    <Text style={{ fontSize: 13, color: codeBad ? badInk : Y.dim, textAlign: "center", marginTop: 10, lineHeight: 19 }}>
                       {busy === "email" ? "…" : codeBad ? t("ob.code.bad") : t("ob.code.cap", { email: emailVal.trim() })}
                     </Text>
                     <Pressable onPress={() => { setCodeStage(null); setCodeVal(""); setCodeBad(false); }} hitSlop={8} style={{ alignSelf: "center", marginTop: 8, padding: 4 }}>
@@ -653,14 +663,18 @@ export default function Onboarding() {
                         style={{ fontSize: 17, color: "#1F1F1F", paddingLeft: 54, paddingRight: 18, height: 52 }}
                       />
                     </View>
+                    {/* on Midnight the Send key takes the console's accent, not
+                        Apple's white, so it doesn't merge with the white field
+                        above it (ind on lav2 5.09:1, its bg label 6.52:1) */}
                     <AuthKey
-                      dark
-                      icon={<MailGlyph size={18} color="#FFFFFF" />}
+                      solid
+                      face={dark ? { face: Y.blue, ink: Y.onFill } : undefined}
+                      icon={<MailGlyph size={18} color={dark ? Y.onFill : solidKey(dark).ink} />}
                       label={busy === "email" ? "…" : t("ob.email.send")}
                       onPress={sendEmailLink}
                       disabled={!!busy}
                     />
-                    <Text style={{ fontSize: 13, color: emailBad ? "#D0342C" : Y.dim, textAlign: "center", marginTop: 10 }}>
+                    <Text style={{ fontSize: 13, color: emailBad ? badInk : Y.dim, textAlign: "center", marginTop: 10 }}>
                       {emailBad ? t("ob.email.bad") : t("ob.email.body")}
                     </Text>
                   </>
@@ -1606,13 +1620,25 @@ function Foot({
    they match the native Apple button's geometry exactly (52pt, radius 10),
    carry the real four-colour G, and speak in the system face with sentence
    case. A sign-in button that looks like every other app's is the point.
-   So the row keeps its colours in every theme: the black key, the white
-   keys, their type and the glyphs on them are the buttons Apple's and
-   Google's rules describe, not the console's chrome (SIGNIN_INK below). */
+   So the row keeps its colours in every theme: the white keys, their type
+   and the glyphs on them are the buttons Apple's and Google's rules
+   describe, not the console's chrome (SIGNIN_INK below). The keys that
+   turn are the black ones: Apple's by Apple's rule (solidKey), and the
+   Send key, the app's own, to the console's accent (AuthKey's `face`). */
+
+/* APPLE'S SOLID KEY — Continue with Apple, and the Send key that borrows
+   it in the light themes: black on a light ground; on Midnight, Apple's
+   white style, which the HIG gives for dark grounds — the black key's edge
+   is gone there (1.4:1 on the console) and only its logo and label float.
+   The mark on it is drawn in its label's ink. */
+const solidKey = (dark: boolean) =>
+  dark ? { face: "#FFFFFF", pressed: "#F2F2F2", ink: "#000000" } : { face: "#000000", pressed: "#222222", ink: "#FFFFFF" };
+
 function AuthKey({
   icon,
   label,
-  dark = false,
+  solid = false,
+  face,
   first = false,
   onPress,
   disabled,
@@ -1620,12 +1646,18 @@ function AuthKey({
 }: {
   icon: React.ReactNode;
   label: string;
-  dark?: boolean;
+  /** Apple's solid key (solidKey) rather than the white outlined one */
+  solid?: boolean;
+  /** a solid face of its own in place of solidKey's (the Send key on
+      Midnight); pressed, it shows the same face at .85 */
+  face?: { face: string; ink: string };
   first?: boolean;
   onPress: () => void;
   disabled?: boolean;
   dim?: boolean;
 }) {
+  const { dark } = useEggOS();
+  const sk = face ? { ...face, pressed: face.face } : solidKey(dark);
   return (
     <Pressable
       onPress={onPress}
@@ -1634,28 +1666,29 @@ function AuthKey({
         height: 52,
         borderRadius: 10,
         marginTop: first ? 0 : 12,
-        backgroundColor: dark ? (pressed ? "#222222" : "#000000") : pressed ? "#F2F2F2" : "#FFFFFF",
-        borderWidth: dark ? 0 : 1,
+        backgroundColor: solid ? (pressed ? sk.pressed : sk.face) : pressed ? "#F2F2F2" : "#FFFFFF",
+        borderWidth: solid ? 0 : 1,
         borderColor: "rgba(0,0,0,0.18)",
         alignItems: "center",
         justifyContent: "center",
-        opacity: dim ? 0.5 : 1,
+        opacity: dim ? 0.5 : face && pressed ? 0.85 : 1,
       })}
     >
       {/* the icon is PINNED at 18pt, the label is centred: one column of
           marks down the three keys, the way every real sign-in stack does it */}
       <View style={{ position: "absolute", left: 18, top: 0, bottom: 0, width: 24, alignItems: "center", justifyContent: "center" }}>{icon}</View>
-      <Text style={{ fontSize: 17, fontWeight: "600", color: dark ? "#FFFFFF" : "#1F1F1F" }}>{label}</Text>
+      <Text style={{ fontSize: 17, fontWeight: "600", color: solid ? sk.ink : "#1F1F1F" }}>{label}</Text>
     </Pressable>
   );
 }
 
-/* the Apple logo, white on the black key (Apple's mark, at their proportions) */
-function AppleLogo({ size = 20 }: { size?: number }) {
+/* the Apple logo, in the solid key's ink — white on the black key, black on
+   the white one (Apple's mark, at their proportions) */
+function AppleLogo({ size = 20, color = "#FFFFFF" }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
-        fill="#FFFFFF"
+        fill={color}
         d="M16.37 12.68c-.02-2.42 1.98-3.58 2.07-3.64-1.13-1.65-2.88-1.88-3.5-1.9-1.49-.15-2.91.88-3.67.88-.76 0-1.92-.86-3.16-.84-1.62.02-3.12.95-3.96 2.4-1.69 2.93-.43 7.27 1.21 9.65.8 1.16 1.76 2.47 3.01 2.42 1.21-.05 1.67-.78 3.13-.78 1.46 0 1.87.78 3.15.76 1.3-.02 2.13-1.18 2.92-2.35.92-1.35 1.3-2.65 1.32-2.72-.03-.01-2.53-.97-2.55-3.88zM13.97 5.57c.67-.81 1.12-1.94 1-3.07-.96.04-2.13.64-2.82 1.45-.62.72-1.16 1.87-1.02 2.97 1.07.08 2.17-.55 2.84-1.35z"
       />
     </Svg>
@@ -1685,8 +1718,9 @@ function DiceGlyph({ size = 16 }: { size?: number }) {
     </Svg>
   );
 }
-/* the mail glyph is drawn on the sign-in row's white keys (and in white on
-   the black one), so its dark is the row's own, the same in every theme */
+/* the mail glyph is drawn on the sign-in row's white keys (and in the Send
+   key's own ink on it), so its dark is the row's own, the same in every
+   theme */
 const SIGNIN_INK = "#111113";
 function MailGlyph({ size = 20, color = SIGNIN_INK }: { size?: number; color?: string }) {
   return (

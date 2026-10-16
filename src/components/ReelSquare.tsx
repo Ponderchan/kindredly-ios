@@ -3,13 +3,30 @@ import { Pressable, View, type LayoutChangeEvent } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
 import type { Reel } from "./guide-reel/kit";
+import { useTheme } from "../lib/theme";
 
 /* A REEL, PLAYING — the square every moving card in Wren's room is built
    on (a guide's, and since 1.2.3 a release's own "what's new"). Scenes play
    one after another with a thin bar per scene, like a story's; a tap starts
    it over; it only runs while the room is on screen. Lifted out of
-   GuideCard unchanged so both cards play the same way. */
-export function ReelSquare({ reel, label, max = 360 }: { reel: Reel; label: string; max?: number }) {
+   GuideCard unchanged so both cards play the same way.
+
+   A reel is a light picture in every theme (guide-reel/kit). On Midnight's
+   dark card it gets an edge of its own: a hairline in the reel's own rule
+   colour just inside the square, so the light picture ends on a drawn line
+   instead of running raw into the dark around it. Its corners follow the
+   clip of whatever holds the square (the holder passes it as `corners`), so
+   the line is never cut: both cards round at 18 with a 1pt border, a clip
+   of 17 inside. In GuideCard the text sits under the square, so only its
+   top corners are clipped (the default, top 17 / bottom 0); NewsCard holds
+   nothing else, so its card clips all four (top 17 / bottom 17); a bare
+   square with no card has none (0 / 0). The light themes draw no edge:
+   there the square sits on a light card as it always has. */
+const EDGE = "rgba(17,17,19,0.14)"; // the reel's own hairline, as its scene bars' track
+const GUIDE_CORNERS = { top: 17, bottom: 0 }; // GuideCard's clip: text below the square
+
+export function ReelSquare({ reel, label, max = 360, corners = GUIDE_CORNERS }: { reel: Reel; label: string; max?: number; corners?: { top: number; bottom: number } }) {
+  const { dark } = useTheme();
   const [w, setW] = useState(0);
   const [i, setI] = useState(0);
   const [run, setRun] = useState(0); // bumps to restart the reel from the top
@@ -32,6 +49,7 @@ export function ReelSquare({ reel, label, max = 360 }: { reel: Reel; label: stri
           <Animated.View key={`${scene.key}-${run}-${i}`} entering={FadeIn.duration(260)} exiting={FadeOut.duration(200)} style={{ position: "absolute", left: 0, top: 0, width: s, height: s }}>
             {scene.render(s)}
           </Animated.View>
+          {dark && <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width: s, height: s, borderWidth: 1, borderColor: EDGE, borderTopLeftRadius: corners.top, borderTopRightRadius: corners.top, borderBottomLeftRadius: corners.bottom, borderBottomRightRadius: corners.bottom }} />}
           <View pointerEvents="none" style={{ position: "absolute", left: 10, right: 10, top: 10, flexDirection: "row", gap: 4 }}>
             {reel.scenes.map((sc, n) => (
               <Seg key={`${sc.key}-${run}`} state={n < i ? "done" : n === i ? "now" : "todo"} ms={sc.ms} play={focused} />

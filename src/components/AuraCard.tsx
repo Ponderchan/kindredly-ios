@@ -122,6 +122,9 @@ export function StickerChip({
    · nothing yet   → the dashed frame with a faded sketch behind it ── */
 const sceneId = (adj: string | null, noun: string): string => `${(adj ?? "quiet").replace(/_/g, "-")}-${noun.replace(/_/g, "-")}`;
 
+/* AuraArt lives on the share card (AuraTicket), fixed paper in every theme,
+   so the face it falls back to takes the card's ink (W14.ink), not the
+   theme's: Midnight's light ink is 1.03:1 on these pale slots. */
 export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura; seed: string; avatarId?: string | null; width: number; height: number; radius?: number }) {
   void seed;
   const stage = aura.phase;
@@ -133,7 +136,7 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
     const src = AURA_SCENES[sceneId(title.adjective, title.noun)];
     return (
       <View style={[frame, { backgroundColor: W14.slot }]}>
-        {src ? <Image source={src} style={img} resizeMode="cover" /> : <MosaicId seed={seed} cell={8} gap={1.5} develop={1} />}
+        {src ? <Image source={src} style={img} resizeMode="cover" /> : <MosaicId seed={seed} cell={8} gap={1.5} develop={1} color={W14.ink} />}
       </View>
     );
   }
@@ -141,7 +144,7 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
     const src = AURA_SKETCHES[sceneId(null, title.noun)];
     return (
       <View style={[frame, { backgroundColor: W14.slotEmpty, borderWidth: 2, borderStyle: "dashed", borderColor: W14.slotEdge }]}>
-        {src ? <Image source={src} style={img} resizeMode="cover" /> : <MosaicId seed={seed} cell={8} gap={1.5} develop={0.5} />}
+        {src ? <Image source={src} style={img} resizeMode="cover" /> : <MosaicId seed={seed} cell={8} gap={1.5} develop={0.5} color={W14.ink} />}
       </View>
     );
   }
@@ -220,7 +223,12 @@ export function AuraArtSlot({ art, width, height = AURA_ART_H }: { art: AuraCard
       : art.sceneId && art.fidelity === "sketch" && AURA_SKETCHES[art.sceneId]
         ? AURA_SKETCHES[art.sceneId]
         : null;
-  if (src) return <AuraArtFit width={width} height={height} src={src} ground={tk.soft2} />;
+  /* Midnight lays the picture in as a print (inset 6, its own corners).
+     The fifty scenes and their sketches are drawn on baked pale paper, the
+     sketches almost all paper; run flush to the dark slot's top and bottom
+     they read as a light slab cut into it, with soft2 bars at the sides.
+     The picture keeps its colours; the light themes keep it flush. */
+  if (src) return <AuraArtFit width={width} height={height} src={src} ground={tk.soft2} inset={dark ? 6 : 0} />;
   return (
     <View style={{ width, height, backgroundColor: tk.soft2, overflow: "hidden" }}>
       <AuraScene width={width} height={height} fidelity={art.fidelity} day={daylight()} pal={pal} />
@@ -375,7 +383,9 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
       {!!desc && <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: W14.ink, marginTop: 16 }}>{desc}</Text>}
       <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: W14.hair, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(30,27,53,0.4)" }}>{t("ac.formedFrom", { n: letters })}</Text>
-        <MosaicId seed={seed} cell={4} gap={1} develop={1} />
+        {/* the card's own ink: the card is white in every theme and travels
+            as a PNG, where the theme's (light, in Midnight) face would vanish */}
+        <MosaicId seed={seed} cell={4} gap={1} develop={1} color={W14.ink} />
       </View>
     </View>
   );

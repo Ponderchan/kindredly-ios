@@ -3,7 +3,7 @@ import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PF } from "../theme/post";
-import { useTheme } from "../lib/theme";
+import { scrimColor, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
 import { StickerBox } from "./10a/StickerBox";
@@ -132,19 +132,21 @@ export function LeaveATrace({
 }) {
   useLang(); // repaint when the reader changes language
   const insets = useSafeAreaInsets();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   if (!open) return null;
 
   return (
     <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-        {/* the 10a dim (KDim.composer) */}
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.3)" }} />
+        {/* the 10a dim (KDim.composer; black on Midnight, lib/theme scrimColor) */}
+        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3) }} />
       </Animated.View>
 
+      {/* on Midnight the sheet carries LeaveSheet's ln rule on top: sf on the dimmed page is
+          1.1:1, so without an edge the sheet melts into the page (the light themes keep none) */}
       <Animated.View
         entering={SlideInDown.duration(260)}
-        style={{ backgroundColor: tk.sf, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
+        style={{ backgroundColor: tk.sf, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: dark ? 1 : 0, borderTopColor: tk.ln, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12 }}>
           <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.ink }}>

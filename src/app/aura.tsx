@@ -5,8 +5,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { storeAura, storeMode } from "../lib/dev-store";
 import { t as tr, useLang } from "../lib/i18n";
 import { PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
-import { BRAND } from "../theme/themes";
+import { scrimColor, useP, useTheme } from "../lib/theme";
+import { BRAND, type ThemeTokens } from "../theme/themes";
 import { AuraCard, StickerChip, cardShadow } from "../components/AuraCard";
 import { GridIcon, ShareIcon } from "../components/Icons";
 import { useAuth } from "../lib/auth";
@@ -52,23 +52,37 @@ type Tab = "portrait" | "dims" | "habits";
    pause bar) is ind, the other pause bars mute; and type on an ink or ind
    fill is the page colour.
 
-   Kept the same in every theme: the dim behind the sheets (a scrim is
-   dark over any ground), the cards' soft shadow, and the aura green
-   (BRAND.greenText: an established reading, every other word you lean
-   on), which is a brand colour in 10a. The stickers keep their own
-   colours.
+   Kept the same in every theme: the cards' soft shadow, and the stickers'
+   own colours. The aura green (BRAND.greenText: an established reading,
+   every other word you lean on) is a brand colour in 10a, but as text on
+   Midnight's sf it is 3.42:1, so there it is the lit green the other
+   pages use on dark cards (greenOn). The dim behind the sheets is the
+   app's one scrim (lib/theme scrimColor): the 10a navy in the light
+   themes, black in Midnight, where navy would lighten the page.
 
    10a step 5: the room sits on the page colour (tk.bg) under the secondary
    page's header (its title in mono, share on the right), and PORTRAIT is
    the same 10a Aura card Me draws (components/AuraCard, from the Me
    model's buildAuraCard), so the card you tapped on Me is the card that
    heads the room — no differently drawn copy (critic). */
-const SCRIM = "rgba(30,27,53,0.35)";
+
+/* MIDNIGHT'S EDGES. The cards are edged by their soft navy shadow alone,
+   which can't be seen on a near-black page, and sf on bg is 1.11:1 — the
+   cards read as loose text. So in Midnight each takes a 1pt line edge, and
+   each sheet the ln rule round its top that the 10a sheets carry
+   (LeaveSheet): the dim can't set a dark sheet off a dark page (sf on the
+   dimmed bg is 1.16:1). The light themes keep the shadow alone, and the
+   sheets no rule. */
+const cardEdge = (tk: ThemeTokens) => (tk.dark ? { borderWidth: 1, borderColor: tk.line } : null);
+const sheetEdge = (tk: ThemeTokens) => (tk.dark ? { borderTopWidth: 1, borderTopColor: tk.ln } : null);
+/** the aura green as text on a card: 8.41:1 on Midnight's sf (my-letters, my-kindreds) */
+const greenOn = (tk: ThemeTokens) => (tk.dark ? "#7CC58F" : BRAND.greenText);
 
 export default function AuraScreen() {
   useLang();
   const P = useP();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
+  const scrim = scrimColor(dark, 0.35);
   const router = useRouter();
   const { user, profile } = useAuth();
   const [aura, setAura] = useState<Aura | null>(null);
@@ -192,8 +206,8 @@ export default function AuraScreen() {
           {/* the sentence and the read: the whole piece, the words the rule
               fired on marked, and what the sticker says it means */}
           <Modal visible={!!reading} transparent animationType="slide" onRequestClose={() => setReading(null)}>
-            <Pressable onPress={() => setReading(null)} style={{ flex: 1, backgroundColor: SCRIM, justifyContent: "flex-end" }}>
-              <Pressable onPress={() => {}} style={{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34, maxHeight: "80%" }}>
+            <Pressable onPress={() => setReading(null)} style={{ flex: 1, backgroundColor: scrim, justifyContent: "flex-end" }}>
+              <Pressable onPress={() => {}} style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34, maxHeight: "80%" }, sheetEdge(tk)]}>
                 <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
                   <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{tr("wa.readTitle")}</Text>
@@ -219,8 +233,8 @@ export default function AuraScreen() {
 
           {/* the grid of nine */}
           <Modal visible={grid} transparent animationType="slide" onRequestClose={() => setGrid(false)}>
-            <Pressable onPress={() => setGrid(false)} style={{ flex: 1, backgroundColor: SCRIM, justifyContent: "flex-end" }}>
-              <Pressable onPress={() => {}} style={{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34 }}>
+            <Pressable onPress={() => setGrid(false)} style={{ flex: 1, backgroundColor: scrim, justifyContent: "flex-end" }}>
+              <Pressable onPress={() => {}} style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34 }, sheetEdge(tk)]}>
                 <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
                   <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{tr("wa.nine")}</Text>
@@ -255,13 +269,13 @@ export default function AuraScreen() {
           </View>
 
           {/* the words you lean on */}
-          <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+          <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
             <Text style={{ fontFamily: PF.serif, fontSize: 21, color: tk.ink }}>{tr("wa.words")}</Text>
             {words.length ? (
               <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "baseline", columnGap: 16, rowGap: 8, marginTop: 16 }}>
                 {words.map(([w, c], i) => (
                   <Pressable key={w} onPress={() => setWord(word === w ? null : w)} hitSlop={4} style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                    <Text style={{ fontFamily: PF.serif, fontSize: i < 2 ? 24 : i < 4 ? 20 : 17, color: word === w ? P.pen : i % 2 ? BRAND.greenText : tk.ind }}>{w}</Text>
+                    <Text style={{ fontFamily: PF.serif, fontSize: i < 2 ? 24 : i < 4 ? 20 : 17, color: word === w ? P.pen : i % 2 ? greenOn(tk) : tk.ind }}>{w}</Text>
                     <Text style={{ fontFamily: PF.mono, fontSize: 9.5, color: tk.mute, marginLeft: 2 }}>{c}</Text>
                   </Pressable>
                 ))}
@@ -278,7 +292,7 @@ export default function AuraScreen() {
           </View>
 
           {/* how you pause */}
-          <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+          <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
             <Text style={{ fontFamily: PF.serif, fontSize: 21, color: tk.ink }}>{tr("wa.pauses")}</Text>
             <View style={{ marginTop: 14, gap: 12 }}>
               {pauses.map(([label, c], i) => {
@@ -299,7 +313,7 @@ export default function AuraScreen() {
 
           {/* the rest of the stickers: writing ones without a seat, then what the product counted */}
           {extras.length > 0 && (
-            <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+            <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
               <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("us.more")}</Text>
               <View style={{ marginTop: 14, gap: 14 }}>
                 {extras.map((s, i) => (
@@ -312,13 +326,13 @@ export default function AuraScreen() {
             </View>
           )}
           {usageBy.length === 0 ? (
-            <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+            <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
               <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{usageGroupLabel("habit")}</Text>
               <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: tk.sub, marginTop: 12 }}>{tr("us.none")}</Text>
             </View>
           ) : (
             usageBy.map(({ g, items }) => (
-              <View key={g} style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }]}>
+              <View key={g} style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
                 <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{usageGroupLabel(g)}</Text>
                 <View style={{ marginTop: 14, gap: 14 }}>
                   {items.map((u, i) => (
@@ -335,7 +349,7 @@ export default function AuraScreen() {
             ))
           )}
 
-          <Pressable onPress={() => setScope(true)} style={{ marginTop: 12, backgroundColor: tk.sf, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Pressable onPress={() => setScope(true)} style={[{ marginTop: 12, backgroundColor: tk.sf, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 10 }, cardEdge(tk)]}>
             <Text style={{ fontFamily: PF.mono, fontSize: 13, color: tk.sub }}>🔒</Text>
             <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 14, color: tk.ink }}>{tr("wa.scopeRow")}</Text>
             <Text style={{ fontFamily: PF.letter, fontSize: 16, color: tk.faint }}>›</Text>
@@ -343,8 +357,8 @@ export default function AuraScreen() {
 
           {/* which of your text is in scope */}
           <Modal visible={scope} transparent animationType="slide" onRequestClose={() => setScope(false)}>
-            <Pressable onPress={() => setScope(false)} style={{ flex: 1, backgroundColor: SCRIM, justifyContent: "flex-end" }}>
-              <Pressable onPress={() => {}} style={{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34 }}>
+            <Pressable onPress={() => setScope(false)} style={{ flex: 1, backgroundColor: scrim, justifyContent: "flex-end" }}>
+              <Pressable onPress={() => {}} style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34 }, sheetEdge(tk)]}>
                 <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
                   <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{tr("wa.scopeTitle")}</Text>
@@ -409,7 +423,7 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
   const quote = ev && piece ? piece.text.slice(ev.start, ev.end) : null;
   const when = piece?.createdAt ? dShort(piece.createdAt) : "";
   return (
-    <View style={[{ flex: 1, backgroundColor: tk.sf, borderRadius: 18, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18, marginRight: 0 }, cardShadow]}>
+    <View style={[{ flex: 1, backgroundColor: tk.sf, borderRadius: 18, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18, marginRight: 0 }, cardShadow, cardEdge(tk)]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: tk.lav2 }}>
           <Text style={{ fontFamily: PF.mono, fontSize: 11, color: tk.ind }}>{String(i + 1).padStart(2, "0")}</Text>
@@ -422,7 +436,7 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
       <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: tk.sub, marginTop: 10 }}>
         {rep ? `${stickerLine(rep)} ${stickerCount(rep)}` : state === "balanced" ? tr("st.noLean") : tr("st.stillReading")}
       </Text>
-      {rep && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: rep.state === "established" ? BRAND.greenText : tk.mute, marginTop: 8 }}>{observationState(rep.state)}</Text>}
+      {rep && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: rep.state === "established" ? greenOn(tk) : tk.mute, marginTop: 8 }}>{observationState(rep.state)}</Text>}
       {quote && ev && (
         <View style={{ marginTop: 16, backgroundColor: tk.lav2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
           <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 17, lineHeight: 25, color: tk.ink }} numberOfLines={4}>“{quote}”</Text>

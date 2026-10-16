@@ -25,6 +25,14 @@ export type Reel = {
   scenes: Scene[];
 };
 
+/* A REEL IS A LIGHT PICTURE IN EVERY THEME — the static P, white cards on
+   a wash — so anything in it that would otherwise follow the theme is handed
+   a fixed colour. MosaicId draws in the theme's ink by default, which in
+   Midnight is a light ink: a pen pal's face on the reel's white discs would
+   all but vanish. FACE_INK is the ink the light themes give it (all three
+   draw #1E1B35), so in Classic, Lavender and Paper nothing changes. */
+export const FACE_INK = "#1E1B35";
+
 const RM = ReduceMotion.System;
 
 /** 0 → 1 once, after `delay` ms, over `ms` ms */

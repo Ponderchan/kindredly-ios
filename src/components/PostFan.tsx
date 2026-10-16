@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
+import { scrimColor, useTheme } from "../lib/theme";
 import { P, PF } from "../theme/post";
 import { tabBarHeight } from "./PostTabBar";
 
@@ -26,6 +27,7 @@ const LIFT = 22; // the choices' feet, above the bar
 
 export function PostFan({ onClose }: { onClose: () => void }) {
   useLang();
+  const { dark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -46,7 +48,7 @@ export function PostFan({ onClose }: { onClose: () => void }) {
   return (
     <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: barH }}>
       <Animated.View exiting={FadeOut.duration(160)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-        <Animated.View style={[dimStyle, { flex: 1, backgroundColor: "rgba(30,27,53,0.58)" }]}>
+        <Animated.View style={[dimStyle, { flex: 1, backgroundColor: scrimColor(dark, 0.58) }]}>
           <Pressable style={{ flex: 1 }} onPress={onClose} />
         </Animated.View>
       </Animated.View>

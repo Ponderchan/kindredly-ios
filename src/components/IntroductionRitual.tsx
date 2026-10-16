@@ -198,9 +198,11 @@ function Window({ x, y, label, count, roof }: { x: number; y: number; label: str
       ) : (
         <View style={{ height: 14 }} />
       )}
+      {/* the frame is the page's outline; the cross bars are drawn on the fixed warm pane, so
+          they keep the brand ink (ln in the light themes; Midnight's ln is 1.4:1 on the cream) */}
       <View style={{ width: WIN, height: WIN, borderWidth: 1.5, borderColor: tk.ln, backgroundColor: "#FFF8DE", alignItems: "center", justifyContent: "center" }}>
-        <View style={{ position: "absolute", width: 1.5, height: WIN, backgroundColor: tk.ln }} />
-        <View style={{ position: "absolute", width: WIN, height: 1.5, backgroundColor: tk.ln }} />
+        <View style={{ position: "absolute", width: 1.5, height: WIN, backgroundColor: BRAND.inkOnBrand }} />
+        <View style={{ position: "absolute", width: WIN, height: 1.5, backgroundColor: BRAND.inkOnBrand }} />
       </View>
       {!roof && <View style={{ width: WIN + 10, height: 3, backgroundColor: tk.ln, marginTop: -1 }} />}
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 5 }}>

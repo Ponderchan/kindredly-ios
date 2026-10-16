@@ -3,7 +3,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { P as STATIC_P, PF } from "../theme/post";
-import { useTheme } from "../lib/theme";
+import { scrimColor, useTheme } from "../lib/theme";
+import { dangerInk } from "../screens/settings/settings-model";
 import { useWrenName } from "../lib/wren-name";
 import { useReportFlow, type ReportContext, type ReportFlow, type ReportTarget } from "../lib/report-flow";
 import { LeaveSheet } from "./LeaveSheet";
@@ -34,7 +35,10 @@ import "../data/strings-step5-platform"; // rp.menu.a11y
    is the ⋯ plus that sheet, for the React Native screens. The card wears
    the theme: the 10a menu card (sf, a 2pt ln outline, a hard 3/3 ln
    shadow), rows in the theme's ink, block in the postal red. The ⋯ is a
-   button VoiceOver can name (rp.menu.a11y). */
+   button VoiceOver can name (rp.menu.a11y).
+
+   Midnight (7.1): the dim is black (scrimColor), and block's word takes
+   Settings' red for a dark ground. */
 
 /** Draws a report flow's stages: the three choices, the one-line answer,
     the block question. Render it once per screen, anywhere — it is a
@@ -44,8 +48,11 @@ export function ReportSheet({ flow, top }: { flow: ReportFlow; top?: number }) {
   useLang();
   const wren = useWrenName();
   const insets = useSafeAreaInsets();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const { stage, busy } = flow;
+  /* Block's word: the postal red is 4.2:1 on Midnight's card, so there it takes Settings' exits'
+     red (dangerInk, 5.5:1; 4.7:1 pressed). The ban glyph keeps the postmark red. */
+  const red = dark ? dangerInk(tk.ink, STATIC_P.post) : STATIC_P.post;
 
   const Row = ({ label, icon, tone = "ink", onPress }: { label: string; icon: "flag" | "ban" | "none"; tone?: "ink" | "red"; onPress: () => void }) => (
     <Pressable
@@ -68,13 +75,13 @@ export function ReportSheet({ flow, top }: { flow: ReportFlow; top?: number }) {
           </Svg>
         )}
       </View>
-      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? STATIC_P.post : tk.ink }}>{label}</Text>
+      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? red : tk.ink }}>{label}</Text>
     </Pressable>
   );
 
   return (
     <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={flow.close}>
-      <Pressable onPress={flow.close} accessible={false} style={{ flex: 1, backgroundColor: "rgba(30,27,53,0.14)" }}>
+      <Pressable onPress={flow.close} accessible={false} style={{ flex: 1, backgroundColor: scrimColor(dark, 0.14) }}>
         {stage !== null && stage !== "block" && (
           <View
             accessibilityViewIsModal

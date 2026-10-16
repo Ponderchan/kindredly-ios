@@ -4,10 +4,16 @@ import { SvgXml } from "react-native-svg";
 import { getAvatar } from "../data/avatar-lib";
 import { getFace } from "../data/aura-avatar-lib";
 import { StrangerAvatar } from "./StrangerAvatar";
+import { useTheme } from "../lib/theme";
 
 /* Your face on Kindredly — a photo you chose, one of the fifty portraits,
    or (for accounts that chose one before 2026-09-16) one of the thirty
-   hand-drawn faces, which stay renderable. Falls back to the glyph. */
+   hand-drawn faces, which stay renderable. Falls back to the glyph.
+
+   While a photo or a portrait loads, its disc is a pale placeholder; on
+   Midnight that is soft2 instead, so a loading row doesn't flash a light
+   disc on the dark page (7.1). The legacy faces' white never shows: each
+   file paints its own rounded field over the whole clip. */
 export function AvatarImage({
   id,
   photoUri,
@@ -21,12 +27,13 @@ export function AvatarImage({
   size?: number;
   round?: boolean;
 }) {
+  const { t: tk, dark } = useTheme();
   const radius = round ? size / 2 : size * 0.3;
   if (photoUri) {
     return (
       <Image
         source={{ uri: photoUri }}
-        style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#EDEDEA" }}
+        style={{ width: size, height: size, borderRadius: radius, backgroundColor: dark ? tk.soft2 : "#EDEDEA" }}
         contentFit="cover"
       />
     );
@@ -39,7 +46,7 @@ export function AvatarImage({
        that one is drawn a touch larger than the clip so the rim falls outside */
     const over = face.legacy ? Math.ceil(size * 0.05) : 0;
     return (
-      <View style={{ width: size, height: size, borderRadius: radius, overflow: "hidden", backgroundColor: "#EFEDFA" }}>
+      <View style={{ width: size, height: size, borderRadius: radius, overflow: "hidden", backgroundColor: dark ? tk.soft2 : "#EFEDFA" }}>
         <Image source={face.src} style={{ width: size + over * 2, height: size + over * 2, marginLeft: -over, marginTop: -over }} contentFit="cover" />
       </View>
     );

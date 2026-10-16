@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "../lib/auth";
+import { useTheme } from "../lib/theme";
 import { P, PF } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
 
@@ -15,6 +16,7 @@ import { t, useLang } from "../lib/i18n";
    they can simply try again. */
 export default function AuthCallback() {
   useLang();
+  const { t: tk, dark } = useTheme();
   const { ready, isGuest, refresh } = useAuth();
   const [waited, setWaited] = useState(false);
 
@@ -28,9 +30,12 @@ export default function AuthCallback() {
 
   if (ready && !isGuest) return <Redirect href="/" />;
   if (waited) return <Redirect href="/" />;
+  /* the light themes keep the wash this page has always had; Midnight paints
+     its own page, or the hop from Safari back into a dark app flashed
+     lavender (under a light status bar it couldn't carry) */
   return (
-    <View style={{ flex: 1, backgroundColor: P.penWash, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 1.4, color: P.ink60 }}>{t("cb.line")}</Text>
+    <View style={{ flex: 1, backgroundColor: dark ? tk.bg : P.penWash, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 1.4, color: dark ? tk.sub : P.ink60 }}>{t("cb.line")}</Text>
     </View>
   );
 }

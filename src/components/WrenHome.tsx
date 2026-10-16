@@ -48,7 +48,17 @@ const WB = WHEREABOUTS_META;
    what is drawn on it — her bubble, the PLAY sticker, the DAY chip, the
    status band on its bottom edge — keeps fixed colours in every theme, and
    its dark type is the 10a ink, fixed (type on the lime sticker is always
-   dark). Only the page under the band follows the theme. */
+   dark). Only the page under the band follows the theme.
+
+   On Midnight (7.1) the page's cards get an edge of their own: their sf
+   face is 1.2:1 on the courier page's lav2 ground (1.1:1 on bg), so the
+   keepsake tiles and the slips wear a 1pt mute outline (4.6:1 on lav2,
+   5.9:1 on bg; faint was 2.3:1, under the 3:1 bar, and is the disabled
+   colour), and the fact pills the ln outline. The two cells keep their 2pt
+   ring so nothing moves: mute while shut, and the open one the ind ring on
+   the lav fill (ind and mute are 1.1:1 apart, so the fill says which is
+   open too), its small labels in sub there (6.5:1 on lav; mute is 3.9).
+   The light themes draw exactly what they drew. */
 const COVER_INK = THEMES.classic.ink;
 
 export function WrenHome({
@@ -432,7 +442,7 @@ export function WrenHome({
                 const def = keepsake(k.id);
                 if (!def) return null;
                 return (
-                  <Pressable key={k.id} onPress={() => onOpenKeepsake(k.id)} style={({ pressed }) => ({ flex: 1, backgroundColor: T.sf, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
+                  <Pressable key={k.id} onPress={() => onOpenKeepsake(k.id)} style={({ pressed }) => ({ flex: 1, backgroundColor: T.sf, borderRadius: 14, borderWidth: T.dark ? 1 : 0, borderColor: T.mute, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
                     <Image source={def.icon} style={{ width: 40, height: 40 }} resizeMode="contain" />
                     <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 8, textAlign: "center" }}>{tr(`ks.name.${def.id}`)}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>{k.evidence}</Text>
@@ -482,15 +492,19 @@ const COVER_H = 300;
 
 
 /* a counted fact as a sticker label: the card face (white in Classic), the
-   band's ink as the edge and the mark, the number in bold */
+   band's ink as the edge and the mark, the number in bold. On Midnight the
+   band colours are 1.3–2.2:1 on the card face, so the edge is ln (11.5:1)
+   and the mark sub (8.7:1) */
 function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | "next"; text: string; tone: string }) {
   const P = useP();
   const T = useTheme().t;
+  const edge = T.dark ? T.ln : tone;
+  const mark = T.dark ? T.sub : tone;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: T.sf, borderRadius: 999, borderWidth: 1.5, borderColor: tone, paddingLeft: 10, paddingRight: 13, paddingVertical: 6 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: T.sf, borderRadius: 999, borderWidth: 1.5, borderColor: edge, paddingLeft: 10, paddingRight: 13, paddingVertical: 6 }}>
       {/* a kindred wears the kindred face (round 3a), as everywhere else */}
       {icon === "kindred" ? <StateGlyph kind="kindreds" size={16} /> : (
-      <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={mark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {icon === "letter" && (
           <>
             <Rect x={3} y={5.5} width={18} height={13} rx={2} />
@@ -514,15 +528,18 @@ function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | 
 function Cell({ label, value, count, swatch, on, onPress }: { label: string; value: string; count: string; swatch: string; on: boolean; onPress: () => void }) {
   const P = useP();
   const T = useTheme().t;
+  // Midnight: the open cell on the lav fill, where mute is too faint for its small labels (see above)
+  const lit = on && T.dark;
+  const small = lit ? P.ink60 : P.ink40;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, backgroundColor: T.sf, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : "transparent", opacity: pressed ? 0.85 : 1 })}>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, backgroundColor: lit ? T.lav : T.sf, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : T.dark ? T.mute : "transparent", opacity: pressed ? 0.85 : 1 })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: swatch }} />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40 }}>{label}</Text>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: small }}>{label}</Text>
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 6 }}>
         <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: P.ink }}>{value}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, color: P.ink40 }}>{count}</Text>
+        <Text style={{ fontFamily: PF.mono, fontSize: 10, color: small }}>{count}</Text>
       </View>
     </Pressable>
   );
@@ -561,7 +578,7 @@ function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadS
     : [tr("wren.slip.nothing"), tr("wren.slip.write")];
 
   return (
-    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
+    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: T.dark ? T.mute : P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
         <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.slip")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
@@ -602,7 +619,7 @@ function FlightLog({ state, carried, threads, driving, wren }: { state: Whereabo
   const T = useTheme().t;
   const { rows, line } = flightLog(state, carried, threads, driving);
   return (
-    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
+    <View style={{ marginBottom: 16, borderWidth: 1, borderColor: T.dark ? T.mute : P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
         <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.log")}</Text>
         <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>

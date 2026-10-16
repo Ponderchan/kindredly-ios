@@ -2,7 +2,7 @@ import { memo, useEffect, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import Animated, { Easing, Extrapolation, ReduceMotion, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Line, Path } from "react-native-svg";
-import { Finger, Rise, useOnce, type Reel } from "./kit";
+import { FACE_INK, Finger, Rise, useOnce, type Reel } from "./kit";
 import { WrenBird } from "../WrenBird";
 import { EnvelopeArt } from "../EnvelopeArt";
 import { MosaicId } from "../MosaicId";
@@ -44,12 +44,13 @@ const EACH = 5;
 const developAt = (theirs: number) => 0.15 + 0.85 * (Math.min(theirs, EACH) / EACH);
 const LINE = "rgba(17,17,19,0.14)";
 
-/* a pen pal's face as the list draws it: their mosaic on a round disc */
+/* a pen pal's face as the list draws it: their mosaic on a round disc (in
+   the reel's fixed ink — the disc stays white in Midnight too; see kit) */
 function PalFace({ d, develop, bg = "#FFFFFF" }: { d: number; develop: number; bg?: string }) {
   const cell = d * 0.086;
   return (
     <View style={{ width: d, height: d, borderRadius: d / 2, backgroundColor: bg, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-      <MosaicId seed={SEED} cell={cell} gap={cell * 0.27} develop={develop} />
+      <MosaicId seed={SEED} cell={cell} gap={cell * 0.27} develop={develop} color={FACE_INK} />
     </View>
   );
 }
@@ -279,7 +280,7 @@ function Orbit({ s }: { s: number }) {
           Kindreds chips use as their mark; the round face comes with names */}
       <Animated.View style={[{ position: "absolute", left: 0, top: 0 }, face]}>
         <View style={{ width: f, height: f, borderRadius: f * 0.22, borderWidth: 1.5, borderColor: P.pen, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-          <MosaicId seed={SEED} cell={f * 0.095} gap={f * 0.026} develop={developAt(k)} />
+          <MosaicId seed={SEED} cell={f * 0.095} gap={f * 0.026} develop={developAt(k)} color={FACE_INK} />
         </View>
       </Animated.View>
     </View>

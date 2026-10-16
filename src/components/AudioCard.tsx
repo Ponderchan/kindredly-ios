@@ -2,6 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { F } from "../theme/tokens";
 import { PF } from "../theme/post";
+import { BRAND, MOOD10A, type MoodKey } from "../theme/themes";
 import { useP, useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
 import { t, useLang } from "../lib/i18n";
@@ -19,6 +20,20 @@ import "../data/strings-step5-platform"; // vo.play, vo.pause
    colour. A `tint` the caller passes is content (a journal page's mood
    colour) and is kept as given, with the white glyph it was drawn with.
 
+   MIDNIGHT: A MOOD TINT SITS ON ITS OWN FILL (7.1). There lav2 is #242150:
+   Tired, Low and Calm came out 1.9–3.0:1 on it, a dark slab inside the day
+   page's pale mood frame. So on a dark theme a tint that is one of the 10a
+   mood inks draws on that mood's fill (MOOD10A; or the caller's tintFill),
+   a fixed light object like the mood tiles: the disc and the bars keep the
+   ink as given (the gold stays Happy's ink, owner 2026-10-16), the lit bars
+   at full strength, and the time takes the ink walked 35% toward the brand
+   ink (moodTime), 4.7–8.4:1 on the four fills where the inks themselves
+   are 2.7–6.2. Happy goes the other way: its gold was 4.5:1 on lav2 and is
+   2.7:1 on its own fill, so on a fill the disc is ringed in the time ink
+   (Happy's #825F2E 4.7:1, the others 6.2–8.4); its lit bars stay 2.7:1,
+   and the time beside them carries where the voice is. The light themes
+   keep the lav2 panel exactly as before.
+
    VoiceOver hears the button by name — "Play the voice letter" / "Pause"
    (vo.play / vo.pause; a journal page passes its own, jt.play / jt.pause) —
    with the time as its value, not the ▶ glyph.
@@ -31,9 +46,28 @@ import "../data/strings-step5-platform"; // vo.play, vo.pause
 
 const BARS = [12, 18, 24, 16, 20, 26, 14, 22, 18, 24, 20, 14, 22, 16, 24, 18];
 
+/** the 10a mood fill whose ink is `ink`, or null for a tint that isn't a mood ink */
+const moodFillOf = (ink: string): string | null => {
+  const k = (Object.keys(MOOD10A) as MoodKey[]).find((m) => MOOD10A[m][1].toLowerCase() === ink.toLowerCase());
+  return k ? MOOD10A[k][0] : null;
+};
+
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+/** the time's ink on a mood fill: the mood ink walked 35% toward the brand ink (see above) */
+function moodTime(hex: string): string {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+  const a = rgb(hex);
+  const b = rgb(BRAND.inkOnBrand);
+  return "#" + a.map((c, i) => Math.round(c * 0.65 + b[i] * 0.35).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
 export type AudioCardLook = {
   compact?: boolean;
   tint?: string;
+  /** Midnight only: the ground under `tint` (default: the mood's own fill when the tint is a
+      10a mood ink; "transparent" when the row already sits on that fill). The light themes
+      keep the lav2 panel. */
+  tintFill?: string;
   system?: boolean;
   /** VoiceOver name of the button while stopped (default vo.play) */
   playLabel?: string;
@@ -50,6 +84,7 @@ export function AudioCardView({
   onToggle,
   compact = false,
   tint,
+  tintFill,
   system = false,
   playLabel,
   pauseLabel,
@@ -63,7 +98,7 @@ export function AudioCardView({
 }) {
   useLang();
   const P = useP();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const total = durationS || 0;
   const pos = positionS || 0;
   const pct = total > 0 ? Math.min(1, pos / total) : 0;
@@ -71,6 +106,9 @@ export function AudioCardView({
   const ink = system ? P.pen : tint ?? tk.ind;
   // white on a caller's mood colour, as drawn; the page colour on ind
   const glyph = !system && tint ? "#FFFFFF" : tk.bg;
+  // Midnight: a mood tint's own fill under the row (see above); null keeps the lav2 panel
+  const fill = dark && !system && tint ? (tintFill ?? moodFillOf(tint)) : null;
+  const timeInk = system ? P.ink60 : fill ? moodTime(ink) : ink;
   const time = playing || pos > 0 ? fmt(pos) : fmt(total);
 
   return (
@@ -81,7 +119,7 @@ export function AudioCardView({
         gap: 12,
         padding: system ? 0 : compact ? 10 : 14,
         borderRadius: system ? 0 : 14,
-        backgroundColor: system ? "transparent" : tk.lav2,
+        backgroundColor: system ? "transparent" : (fill ?? tk.lav2),
       }}
     >
       <Pressable
@@ -94,6 +132,8 @@ export function AudioCardView({
           height: compact ? 36 : 44,
           borderRadius: system ? 0 : 22,
           backgroundColor: ink,
+          // Midnight on a mood fill: the edge Happy's gold lacks there (see above)
+          ...(fill ? { borderWidth: 1.5, borderColor: timeInk } : null),
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -113,13 +153,13 @@ export function AudioCardView({
                 height: compact ? h * 0.75 : h,
                 borderRadius: system ? 0 : 2,
                 backgroundColor: system ? (lit ? P.pen : P.ink12) : ink,
-                opacity: system ? 1 : lit ? 0.9 : 0.3,
+                opacity: system ? 1 : lit ? (fill ? 1 : 0.9) : 0.3,
               }}
             />
           );
         })}
       </View>
-      <Text accessibilityElementsHidden style={{ fontFamily: system ? PF.mono : F.sansBold, fontSize: 12, color: system ? P.ink60 : ink }}>
+      <Text accessibilityElementsHidden style={{ fontFamily: system ? PF.mono : F.sansBold, fontSize: 12, color: timeInk }}>
         {time}
       </Text>
     </View>

@@ -2,7 +2,7 @@ import { memo, useEffect, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
-import { BigType, Finger, useLoop, useOnce, type Reel } from "./kit";
+import { BigType, FACE_INK, Finger, useLoop, useOnce, type Reel } from "./kit";
 import { WrenBird } from "../WrenBird";
 import { EnvelopeArt } from "../EnvelopeArt";
 import { StampTile } from "../StampTile";
@@ -464,7 +464,8 @@ function DeskTile({ u, cx, seed, you = false, dropAt, tilt = 0 }: { u: number; c
       <View style={{ position: "absolute", left: 0, top: 0, width: T, height: T, borderRadius: radius, backgroundColor: "#FFFFFF", borderWidth: you ? 2 : 1.5, borderColor: you ? P.pen : P.ink12 }} />
       <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: T, height: T, borderRadius: radius, borderWidth: 2, borderColor: P.pen }, lit]} />
       <View style={{ position: "absolute", left: 0, top: 0, width: T, height: T, alignItems: "center", justifyContent: "center" }}>
-        <MosaicId seed={seed} cell={2 * u} gap={0.55 * u} develop={you ? 1 : 0.3} />
+        {/* the reel's fixed ink: the tile is white in every theme (kit) */}
+        <MosaicId seed={seed} cell={2 * u} gap={0.55 * u} develop={you ? 1 : 0.3} color={FACE_INK} />
       </View>
       {has && (
         <Animated.View style={[{ position: "absolute", left: (T - 13 * u) / 2, top: -7.5 * u }, env]}>

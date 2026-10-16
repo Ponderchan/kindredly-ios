@@ -5,9 +5,11 @@ import { LaunchAnimation } from "../components/LaunchAnimation";
 
 /* Entry gate. The native splash covers the font load; the launch piece
    covers the session check — the egg, the hatch, the flight, the mark —
-   on the same lavender the splash shows, so nothing flashes. It plays
-   once per cold start and holds on the wordmark until the session is
-   known; only then, and only after the mark has landed, does it leave.
+   on the same lavender the splash shows, so nothing flashes (a night
+   launch for Midnight is drafted, not decided — components/LaunchAnimation).
+   It plays once per cold start and holds on the wordmark until the
+   session is known; only then, and only after the mark has landed, does
+   it leave.
    Not signed in OR not onboarded → the story. Otherwise → the app. */
 export default function Index() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle } from "react-native-reanimated";
-import { Finger, Rise, useLoop, useOnce, type Reel } from "../guide-reel/kit";
+import { FACE_INK, Finger, Rise, useLoop, useOnce, type Reel } from "../guide-reel/kit";
 import { WrenBird } from "../WrenBird";
 import { MosaicId } from "../MosaicId";
 import { P, PF } from "../../theme/post";
@@ -33,11 +33,13 @@ const sentence = (x: string) => {
   return low.charAt(0).toLocaleUpperCase(localeTag()) + low.slice(1);
 };
 
+/* a pen pal's face on its pale disc, in the reel's fixed ink — the disc
+   stays pale in Midnight too (guide-reel/kit, FACE_INK) */
 function Face({ d, seed, ring }: { d: number; seed: string; ring?: boolean }) {
   const cell = d * 0.086;
   return (
     <View style={{ width: d, height: d, borderRadius: d / 2, backgroundColor: "#F1F0F8", alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: ring ? 2 : 0, borderColor: "#FFFFFF" }}>
-      <MosaicId seed={seed} cell={cell} gap={cell * 0.27} develop={0.6} />
+      <MosaicId seed={seed} cell={cell} gap={cell * 0.27} develop={0.6} color={FACE_INK} />
     </View>
   );
 }

@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Appearance, useColorScheme } from "react-native";
+import Constants from "expo-constants";
+import * as SystemUI from "expo-system-ui";
 import { DEFAULT_LETTER_FONT, P, letterFamily, letterFontKey, type LetterFace, type LetterFontKey } from "../theme/post";
 import {
   DEFAULT_PREFS,
@@ -38,9 +40,18 @@ import {
    fixed light colours, and a dark ground under them would show every one as
    a white slab. Turning it on is the release step once the screens have
    moved (with app.json userInterfaceStyle "automatic" in the same build,
-   or the system never reports dark at all). Don't offer Midnight in
-   Settings while it is off. */
+   or the system never reports dark at all — and the splash's dark variant,
+   expo-splash-screen "dark": { "backgroundColor": "#0F0E1C", "image":
+   "./assets/splash-ground.png" }, in that build too, since the launch turns
+   night on a dark phone: components/LaunchAnimation). Don't offer Midnight
+   in Settings while it is off. */
 export const DARK_READY = false;
+
+/** The dim behind a sheet, a popover or a modal card. The light themes keep the 10a navy at
+    `a`; on a dark ground navy comes out lighter than the page (#141224 over Midnight's
+    #0F0E1C), so Midnight dims with black, a little stronger — the same step the Swift kit takes
+    (KDim.composer .3 → .45, the Notes calendar scrim .18 → .35). */
+export const scrimColor = (dark: boolean, a = 0.3): string => (dark ? `rgba(0,0,0,${Math.min(0.6, +(a + 0.15).toFixed(2))})` : `rgba(30,27,53,${a})`);
 
 const KEY = "kindredly_theme"; // { pick, matchSystem } as JSON
 
@@ -111,6 +122,10 @@ const ThemeCtx = createContext<Theme>({
    draws dark in the frames before the provider's first effect. Today
    app.json pins the app light and this changes nothing. */
 if (!DARK_READY) Appearance.setColorScheme("light");
+
+/* app.json's backgroundColor: the native root view's colour in the light
+   themes (see the provider) */
+const ROOT_DAY = Constants.expoConfig?.backgroundColor ?? P.penWash;
 
 /* ── the dev theme switch ───────────────────────────────────────────────────
    DEV ONLY. Forces one theme on the whole app, Midnight included and
@@ -217,6 +232,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     Appearance.setColorScheme(scheme);
   }, [scheme]);
+
+  /* AND THE WINDOW UNDER EVERYTHING (step 7.1). Below React sits the native
+     root view and the window, painted app.json's backgroundColor (the
+     launch lavender) by expo-system-ui. They show wherever React doesn't
+     cover the screen — behind a page-sheet modal as it rises, in a reload's
+     frames — and app.json can't give that colour a dark variant, so
+     Midnight paints them its ground here. The light themes set app.json's
+     own colour back, the one they always had: expo-system-ui keeps the last
+     colour set on the phone and starts the next launch on it, so a light
+     launch has to undo a Midnight one. */
+  const rootGround = t.dark ? t.bg : ROOT_DAY;
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(rootGround).catch((e) => console.warn("[theme] the root view's colour wasn't set:", e));
+  }, [rootGround]);
 
   const value = useMemo<Theme>(
     () => ({ key, t, dark: t.dark, pick: prefs.pick, matchSystem: prefs.matchSystem, setPick, setMatchSystem, letterFont, setLetterFont }),

@@ -35,13 +35,20 @@ import "../data/strings-step5-notes";
    MoodTrayFlat is the old tray, all thirty at once (names now localized).
    The composer keeps it for when the "notes" surface is switched off
    remotely: sealing needs a mood, so a fault in the new picker must never
-   be able to stop every new page. */
+   be able to stop every new page.
+
+   Midnight (7.1): a chosen face's name is in its group's fill, not its ink
+   — the inks are 2.2–5.2:1 on the dark tray, the fills 13–14:1 (the onDark
+   rule of notes-glyphs' CalendarGlyph). The fill and the other names' sub
+   are both near-white, though, and the ln ring is 1.1–1.2:1 on the pastel
+   tiles, so the chosen face's tile also lifts off the offset ln block the
+   open group block wears (11.5:1 on the tray; FaceTile). */
 export const MOOD_TRAY_H = 296;
 
 export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | null; onPick: (id: MoodId, close: boolean) => void; onClose: () => void }) {
   useLang();
   const P = useP();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const [open, setOpen] = useState<MoodGroup | null>(selected ? moodGroup(selected) : null);
   // a mood stored from elsewhere (the dev page, a reset) opens its group
   useEffect(() => {
@@ -113,14 +120,10 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
                 accessibilityState={{ selected: on }}
                 style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 12, opacity: pressed ? 0.6 : 1 })}
               >
-                {/* the face on its group tile (48/r14, face 30); the chosen one wears the
-                    blocks' 2pt ink ring */}
-                <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.fill, borderWidth: on ? 2 : 0, borderColor: tk.ln }}>
-                  <MoodFace group={open} icon={`mood-${id}`} size={30} />
-                </View>
+                <FaceTile group={open} id={id} on={on} />
                 {/* two lines, shrinking a little before cutting: a name like "CON EL CORAZÓN
                     ROTO" or "SELBSTGEFÄLLIG" is wider than the 20% column */}
-                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? c.ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? (dark ? c.fill : c.ink) : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                   {name.toLocaleUpperCase(localeTag())}
                 </Text>
               </Pressable>
@@ -134,11 +137,27 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
   );
 }
 
+/* the face on its group tile (48/r14, face 30); the chosen one wears the
+   blocks' 2pt ink ring, and on Midnight, where that ring vanishes into the
+   pastel, the open block's offset ln block too (see above) */
+function FaceTile({ group, id, on }: { group: MoodGroup; id: FaceId; on: boolean }) {
+  const { t: tk, dark } = useTheme();
+  const lift = on && dark;
+  return (
+    <View style={{ width: 48, height: 48 }}>
+      {lift && <View style={{ position: "absolute", left: 2, top: 2, right: -2, bottom: -2, borderRadius: 14, backgroundColor: tk.ln }} />}
+      <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: moodColors(group).fill, borderWidth: on ? 2 : 0, borderColor: tk.ln, transform: lift ? [{ translateX: -1 }, { translateY: -1 }] : undefined }}>
+        <MoodFace group={group} icon={`mood-${id}`} size={30} />
+      </View>
+    </View>
+  );
+}
+
 /** The old tray: all thirty faces, five to a row (the remote fallback; see above). */
 export function MoodTrayFlat({ selected, onPick }: { selected: MoodId | null; onPick: (id: MoodId) => void }) {
   useLang();
   const P = useP();
-  const tk = useTheme().t;
+  const { t: tk, dark } = useTheme();
   return (
     <View style={{ height: MOOD_TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 16, paddingBottom: 20, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
@@ -147,10 +166,8 @@ export function MoodTrayFlat({ selected, onPick }: { selected: MoodId | null; on
           const name = moodName(id);
           return (
             <Pressable key={id} onPress={() => onPick(id)} accessibilityRole="button" accessibilityLabel={name} accessibilityState={{ selected: on }} style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 14, opacity: pressed ? 0.6 : 1 })}>
-              <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: moodColors(moodGroup(id)).fill, borderWidth: on ? 2 : 0, borderColor: tk.ln }}>
-                <MoodFace group={moodGroup(id)} icon={`mood-${id}`} size={30} />
-              </View>
-              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? moodColors(moodGroup(id)).ink : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
+              <FaceTile group={moodGroup(id)} id={id} on={on} />
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? moodColors(moodGroup(id))[dark ? "fill" : "ink"] : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                 {name.toLocaleUpperCase(localeTag())}
               </Text>
             </Pressable>

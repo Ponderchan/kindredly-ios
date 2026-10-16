@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppState, InteractionManager, LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
@@ -12,6 +13,7 @@ import { ensurePushObject, lineKey, lineText, rememberMorningQuestion, replanLoc
 import { leaveSpark } from "../lib/journal-handoff";
 import { syncActivities } from "../lib/activities";
 import { BirdSnapshots } from "../components/BirdSnapshots";
+import { launchInks } from "../components/LaunchAnimation";
 import * as Notifications from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import { EntitlementProvider } from "../lib/entitlement";
@@ -210,11 +212,16 @@ function TextScript() {
 LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 
 /* THE LAUNCH'S OWN GROUND. The launch piece (app/index → LaunchAnimation)
-   is drawn on the splash's lavender, an object with its own colour like
-   the postmark — not a theme surface — so the entry route keeps it under
-   its first frame, and the splash never blinks to the theme's page on the
-   way in. */
-const LAUNCH_GROUND = { contentStyle: { backgroundColor: P.penWash } };
+   is drawn on the splash's colour — not a theme surface — so the entry
+   route keeps that colour under its first frame, and the splash never
+   blinks to the theme's page on the way in. In every light theme it is the
+   splash's lavender. A night launch for Midnight is drafted but not
+   decided (the owner's call; see LaunchAnimation); until it is, only the
+   dev theme switch reaches it. The piece and this ground take their colour
+   from one place (launchInks, read in ThemedStack's launchGround), so the
+   two can't part. Only this ground's first frame shows — the piece covers
+   it after that — so it can follow the live theme while the piece keeps
+   the one it started on. */
 
 /* A SCREEN ARRIVES ON ITS OWN COLOUR. The stack paints every incoming page
    on its contentStyle until the page's first render — so a lavender page
@@ -229,24 +236,36 @@ const LAUNCH_GROUND = { contentStyle: { backgroundColor: P.penWash } };
    ground here, from the same source the page reads, until it moves to
    tk.bg (then its line goes). courier keeps the accent's palest wash on
    purpose (useP().penWash, the theme's lav2; see app/courier.tsx), and
-   aura-card is not themed yet (the fixed P.penWash). Neither belongs to a
-   step-5 slice, so without these lines both would slide in on a white
-   slab in Classic for good. A page a step-5 slice is still to retheme
-   (aura, kindred/[id], my-letters, my-kindreds, keepsakes, drafts,
-   blocked, settings) gets no line: it moves to tk.bg with its slice, and
-   any that keeps another ground adds its own line here, the same way. */
+   aura-card keeps the fixed P.penWash in the light themes and takes tk.bg
+   in Midnight (see app/aura-card.tsx). Neither belongs to a step-5 slice,
+   so without these lines both would slide in on a white slab in Classic
+   for good. A page a step-5 slice is still to retheme (aura, kindred/[id],
+   my-letters, my-kindreds, keepsakes, drafts, blocked, settings) gets no
+   line: it moves to tk.bg with its slice, and any that keeps another
+   ground adds its own line here, the same way.
+
+   THE STATUS BAR FOLLOWS THE THEME (step 7.1). Nothing drew one, so the
+   bar took the plist's default, which follows the window: dark text in
+   the light themes. Midnight's ground needs light text, so it is said
+   here; the light themes say "dark", the text the default already gave
+   them. It is mounted before the stack, so it sits at the bottom of React
+   Native's status-bar stack: a page on a fixed light ground (the launch's
+   lavender, a daylight sky) mounts its own <StatusBar style="dark" /> and
+   wins while it is up. */
 function ThemedStack() {
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const pal = useP();
+  const launchGround = useMemo(() => ({ contentStyle: { backgroundColor: launchInks(dark, tk).bg } }), [dark, tk]);
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <StatusBar style={dark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: tk.bg },
         }}
       >
-        <Stack.Screen name="index" options={LAUNCH_GROUND} />
+        <Stack.Screen name="index" options={launchGround} />
         {/* the two doors out of the launch fade in over its last frame */}
         <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
         <Stack.Screen name="(tabs)" options={{ animation: "fade", animationDuration: 450 }} />
@@ -263,7 +282,7 @@ function ThemedStack() {
         <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
         {/* the two pages that still paint their own ground (see above) */}
         <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash } }} />
-        <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: P.penWash } }} />
+        <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: dark ? tk.bg : P.penWash } }} />
       </Stack>
     </View>
   );
@@ -287,29 +306,40 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: P.paper }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <EntitlementProvider>
-            {/* the 10a theme (lib/theme): every screen sits inside it, and
-                the stack paints its ground (ThemedStack) */}
-            <ThemeProvider>
-            <WrenSkinProvider>
-            <WrenStageProvider>
-            <FingerprintOnLaunch />
-            <MoodPronoun />
-            <TextScript />
-            <LocalLinesOnLaunch />
-            <StallProbe />
-              <BirdSnapshots />
-            <KnockRouting />
-            <ThemedStack />
-            </WrenStageProvider>
-            </WrenSkinProvider>
-            </ThemeProvider>
-          </EntitlementProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    /* the 10a theme (lib/theme): everything sits inside it — the root view
+       too, so its ground can follow (RootGround) — and the stack paints the
+       pages' ground (ThemedStack). It reads nothing from the providers
+       below it. */
+    <ThemeProvider>
+      <RootGround>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <EntitlementProvider>
+              <WrenSkinProvider>
+              <WrenStageProvider>
+              <FingerprintOnLaunch />
+              <MoodPronoun />
+              <TextScript />
+              <LocalLinesOnLaunch />
+              <StallProbe />
+                <BirdSnapshots />
+              <KnockRouting />
+              <ThemedStack />
+              </WrenStageProvider>
+              </WrenSkinProvider>
+            </EntitlementProvider>
+          </AuthProvider>
+        </SafeAreaProvider>
+      </RootGround>
+    </ThemeProvider>
   );
+}
+
+/* THE ROOT VIEW'S GROUND. The stack covers it in normal use, so it shows
+   only in edge frames (a remount, a transition that leaves a gap) — white
+   in the light themes, as it always was; in Midnight a white frame would
+   flash, so there it is the theme's ground. */
+function RootGround({ children }: { children: ReactNode }) {
+  const { t: tk, dark } = useTheme();
+  return <GestureHandlerRootView style={{ flex: 1, backgroundColor: dark ? tk.bg : P.paper }}>{children}</GestureHandlerRootView>;
 }

@@ -8,6 +8,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { P, PF } from "../theme/post";
+import { useTheme } from "../lib/theme";
 import { AuraTicket, W14, dear } from "../components/AuraCard";
 import { ShareIcon } from "../components/Icons";
 import { WrenBird } from "../components/WrenBird";
@@ -19,10 +20,26 @@ import { t, useLang } from "../lib/i18n";
    The card on the light ground, then two acts: share it, or save it to
    your photos. Both leave with the card as an IMAGE — the title, the
    scene, the sticker names — never a line from a letter. The text that
-   rides along with a share is the card's own words. */
+   rides along with a share is the card's own words.
+
+   The card is a fixed object: the white ticket and the 6pt of lavender
+   captured around it are the picture, so they are the same in every theme
+   and so is the PNG. The page around it is chrome. The light themes keep
+   the sheet as drawn (the lavender page, the navy Share key, the white
+   Save key); in Midnight a lavender page would be a daylight slab in a
+   dark app — with the status bar's light text over it — so there the
+   chrome takes the theme: the page, an ink Share key, an sf Save key in
+   an ln edge, mute captions (5.86:1 on bg). The header and the Save
+   label are tk.ink in every theme: in the light ones that is W14.ink.
+   (The stack slides it in on the same ground: app/_layout, P.penWash in
+   the light themes and tk.bg in Midnight.) */
 
 export default function AuraShareCard() {
   useLang();
+  const { t: tk, dark } = useTheme();
+  const ui = dark
+    ? { page: tk.bg, shareKey: tk.ink, shareInk: tk.bg, saveKey: tk.sf, saveEdge: tk.ln, note: tk.mute }
+    : { page: P.penWash, shareKey: W14.navy, shareInk: "#FFFFFF", saveKey: "#FFFFFF", saveEdge: "#DCD9F0", note: W14.grey };
   const router = useRouter();
   const wren = useWrenName();
   const { user, profile, handle } = useAuth();
@@ -82,12 +99,12 @@ export default function AuraShareCard() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: ui.page }} edges={["top"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
         <Pressable onPress={done} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: W14.ink }}>‹</Text>
+          <Text style={{ fontFamily: PF.letter, fontSize: 24, color: tk.ink }}>‹</Text>
         </Pressable>
-        <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.4, color: W14.ink }}>{t("ac.shareYourAura")}</Text>
+        <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.4, color: tk.ink }}>{t("ac.shareYourAura")}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -95,26 +112,27 @@ export default function AuraShareCard() {
         <Animated.View entering={FadeIn.duration(420)} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 14, paddingBottom: 34, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
             {/* the card is captured from this view alone: the buttons and the
-                note below are not in the picture */}
+                note below are not in the picture. Its lavender stays in every
+                theme (see above) — in Midnight it is the picture's own mat */}
             <View ref={card} collapsable={false} style={{ backgroundColor: P.penWash, padding: 6 }}>
               <AuraTicket aura={aura} seed={user?.id || "you"} avatarId={(profile?.avatarId as string) || null} who={handle || "me"} />
             </View>
 
             <View style={{ marginTop: "auto", paddingTop: 22, gap: 10 }}>
-              <Pressable onPress={share} disabled={!!busy} style={({ pressed }) => ({ backgroundColor: W14.navy, borderRadius: 12, paddingVertical: 17, alignItems: "center", opacity: pressed || busy ? 0.85 : 1 })}>
+              <Pressable onPress={share} disabled={!!busy} style={({ pressed }) => ({ backgroundColor: ui.shareKey, borderRadius: 12, paddingVertical: 17, alignItems: "center", opacity: pressed || busy ? 0.85 : 1 })}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: "#FFFFFF" }}>{busy === "share" ? t("ac.working") : t("ac.shareCard")}</Text>
-                  {busy !== "share" && <ShareIcon size={18} color="#FFFFFF" />}
+                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: ui.shareInk }}>{busy === "share" ? t("ac.working") : t("ac.shareCard")}</Text>
+                  {busy !== "share" && <ShareIcon size={18} color={ui.shareInk} />}
                 </View>
               </Pressable>
-              <Pressable onPress={save} disabled={!!busy} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: "#DCD9F0", borderRadius: 12, paddingVertical: 15, alignItems: "center", backgroundColor: "#FFFFFF", opacity: pressed || busy ? 0.85 : 1 })}>
-                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: W14.ink }}>{busy === "save" ? t("ac.working") : t("ac.saveImage")}</Text>
+              <Pressable onPress={save} disabled={!!busy} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: ui.saveEdge, borderRadius: 12, paddingVertical: 15, alignItems: "center", backgroundColor: ui.saveKey, opacity: pressed || busy ? 0.85 : 1 })}>
+                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: tk.ink }}>{busy === "save" ? t("ac.working") : t("ac.saveImage")}</Text>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
                 <WrenBird size={22} mood="content" />
-                <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: W14.grey }}>{t("ac.readingFrom", { name: wren })}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: ui.note }}>{t("ac.readingFrom", { name: wren })}</Text>
               </View>
-              <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: W14.grey, textAlign: "center" }}>{t("ac.onlyCard")}</Text>
+              <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: ui.note, textAlign: "center" }}>{t("ac.onlyCard")}</Text>
             </View>
           </ScrollView>
         </Animated.View>

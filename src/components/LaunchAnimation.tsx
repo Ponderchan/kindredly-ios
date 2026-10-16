@@ -5,8 +5,11 @@ import Constants from "expo-constants";
 import * as Application from "expo-application";
 import Animated, { Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
+import { StatusBar } from "expo-status-bar";
 import { PF } from "../theme/post";
 import { t } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
+import type { ThemeTokens } from "../theme/themes";
 
 /* THE LAUNCH — the egg hatches into the mark (owner, 2026-09-24: logo C,
    launch 2c, "按照你的最强能力").
@@ -35,23 +38,48 @@ import { t } from "../lib/i18n";
 
    Everything moves on the UI thread (one clock, derived per layer), so a
    JS thread busy with the session and the first screen can't drop frames.
-   Drawn on #ECECFE, the native splash's colour, so nothing flashes.
+   Drawn on the native splash's colour (#ECECFE), so nothing flashes.
    (Pivots are given in points: React Native's transformOrigin string
    parser misreads a decimal percentage such as "79.6%".)
 
-   THE SAME IN EVERY THEME (10a). The native splash can't follow the theme
-   — its colour is baked into the binary, and the saved theme isn't read
-   until JS runs — so the piece that continues it doesn't either: the
-   lavender ground, the mark's indigo and gold, and the word and the line
-   under it in fixed dark inks, which is what keeps them legible on that
-   ground in a dark theme. The first screen fades in over it in the
-   theme's own colours. */
+   THE SAME IN EVERY THEME (10a), as designed. The native splash can't
+   follow the theme — its colour is baked into the binary, and the saved
+   theme isn't read until JS runs — so the piece that continues it doesn't
+   either: the lavender ground, the mark's indigo and gold, and the word
+   and the line under it in fixed dark inks, which is what keeps them
+   legible on that ground in a dark theme. The first screen fades in over
+   it in the theme's own colours.
 
-const BG = "#ECECFE";
-const INK = "#3A34D6";
+   THE NIGHT SET (step 7.1; the owner's rule for the release: what is best for
+   the user). On a dark phone the launch turns night, so a cold start at
+   night doesn't light the room lavender: Midnight's ground, the mark in
+   tk.ink — the pale lavender the dark app icon draws it in (15.4:1) — the
+   word in ink and the line under it in sub (9.6:1); the gold dot stays gold
+   and the cracks are still cut in the ground's colour. The splash's dark
+   variant (expo-splash-screen "dark": Midnight's bg) goes into app.json in
+   the binary that turns DARK_READY on and userInterfaceStyle "automatic" —
+   one without the other is a lavender splash then night, or night then
+   lavender, at every cold start on a dark phone (lib/theme's release note).
+   Until then only the dev theme switch can play it (DARK_READY off keeps
+   the theme light). Which set plays is decided once, at mount, by the
+   theme the app starts on — before the saved pick is read, that is Match
+   system (the default) and the phone's scheme, the rule the splash
+   follows. A saved pick read a moment later doesn't change it, so the
+   piece never switches grounds half-way; the first screen brings the
+   theme. */
+
 const GOLD = "#D8A63F";
-const WORD = "#1E1B35";
-const MUTE = "#55506E";
+type Inks = { bg: string; ink: string; word: string; mute: string; night: boolean };
+/* by day: the fixed set, whatever the light theme */
+const DAY: Inks = { bg: "#ECECFE", ink: "#3A34D6", word: "#1E1B35", mute: "#55506E", night: false };
+
+/** The launch's colours for a theme: the fixed day set in every light
+    theme, Midnight's own tokens in Midnight (drafted, awaiting the owner —
+    above). The entry route's stack ground (app/_layout) reads its bg from
+    here too, so the two can't part. */
+export function launchInks(dark: boolean, tk: ThemeTokens): Inks {
+  return dark ? { bg: tk.bg, ink: tk.ink, word: tk.ink, mute: tk.sub, night: true } : DAY;
+}
 
 /* the mark, on its own 1024 grid (logos/c-mark.svg) */
 const ARC_L = "M394.6 767.2 C300 707 262 620 262 514 C262 360 346 244 451.5 209.5";
@@ -112,6 +140,9 @@ const version = () => `${Constants.expoConfig?.version ?? "0"}+${Application.nat
 export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDone: () => void; force?: Mode }) {
   const reduce = useReducedMotion();
   const [mode, setMode] = useState<Mode | null>(force ?? null);
+  // the ground the app starts on, kept for the whole piece (see above)
+  const { dark, t: tk } = useTheme();
+  const [inks] = useState(() => launchInks(dark, tk));
 
   /* first launch, or the first after an update, gets the hatch */
   useEffect(() => {
@@ -136,12 +167,20 @@ export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDo
 
   /* the piece mounts only once it knows how to play, so every animated
      style's first frame is the right one (a style first computed with no
-     mode drew the wordmark at full opacity for a frame before the hatch) */
-  if (!mode) return <View style={{ flex: 1, backgroundColor: BG }} />;
-  return <Piece mode={mode} ready={ready} onDone={onDone} />;
+     mode drew the wordmark at full opacity for a frame before the hatch).
+     The status bar's text follows the piece's ground, not the theme's: the
+     lavender keeps dark text when the saved pick turns out to be Midnight.
+     Mounted after the root's (app/_layout), so it wins while the piece is up */
+  return (
+    <>
+      <StatusBar style={inks.night ? "light" : "dark"} />
+      {mode ? <Piece mode={mode} ready={ready} onDone={onDone} inks={inks} /> : <View style={{ flex: 1, backgroundColor: inks.bg }} />}
+    </>
+  );
 }
 
-function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: () => void }) {
+function Piece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean; onDone: () => void; inks: Inks }) {
+  const { bg: BG, ink: INK, word: WORD, mute: MUTE } = inks;
   const { width: sw, height: sh } = useWindowDimensions();
   const [canLeave, setCanLeave] = useState(false);
   const leaving = useRef(false);
@@ -239,7 +278,7 @@ function Piece({ mode, ready, onDone }: { mode: Mode; ready: boolean; onDone: ()
 
   const box = { position: "absolute" as const, left: 0, top: 0, width: MARK, height: MARK };
   return (
-    /* the lavender stays; only what is on it fades — fading the ground too
+    /* the ground stays; only what is on it fades — fading the ground too
        passed through the white of the route underneath */
     <View style={{ flex: 1, backgroundColor: BG }}>
     <View style={{ flex: 1 }}>
