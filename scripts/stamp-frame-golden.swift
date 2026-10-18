@@ -154,8 +154,8 @@ enum StampFrameGolden {
     ok("strokeU: 4.31 at 50, 7.5 at XS 20, 5 at S 25",
        KStampFrame.strokeU(for: 50) == 4.31 && abs(KStampFrame.strokeU(for: 20) - 7.5) < 1e-9 && abs(KStampFrame.strokeU(for: 25) - 5) < 1e-9)
     ok("the ladder: 25 placements, every one 5:6", KStampLadder.all.count == 25 && KStampLadder.all.allSatisfy { $0.h == KStampFrame.height($0.w) })
-    ok("Today card 50×60 by the letter; compose corner 40×48 at 8°; tray 30; Me 80",
-       KStampLadder.todayCard.w == 50 && KStampLadder.todayCard.tilt == .letter
+    ok("Today card 40×48 by the letter; compose corner 40×48 at 8°; tray 30; Me 80",
+       KStampLadder.todayCard.w == 40 && KStampLadder.todayCard.tilt == .letter
          && KStampLadder.composeCorner.w == 40 && KStampLadder.composeCorner.degrees == 8
          && KStampLadder.trayTile.w == 30 && KStampLadder.meYourStamps.w == 80 && KStampLadder.readerHead.w == 60)
     ok("only delivered mail at M and up tilts by the letter",

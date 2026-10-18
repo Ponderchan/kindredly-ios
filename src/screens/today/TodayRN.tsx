@@ -50,7 +50,7 @@ import { AudioCardView } from "../../components/AudioCard";
 import { SignalChip } from "../../components/SignalChip";
 import { WrenBird, type WrenMood } from "../../components/WrenBird";
 import { LangPair } from "../../components/LangPair";
-import { InkPanel, REPLY_BAR, ReplyBar, StickerBox, TopicTag, type ReplyBarHandle } from "../../components/10a";
+import { InkPanel, LineIcon, REPLY_BAR, ReplyBar, StickerBox, TopicTag, type ReplyBarHandle } from "../../components/10a";
 import { barBottomGap } from "../../components/NativeTabBar";
 import {
   BAND,
@@ -1061,7 +1061,8 @@ function StatusCard({ kind, strings }: { kind: "loading" | "offline"; strings: T
 
 /* THE STAMP THEY PASTED (stamps v2, owner 2026-10-18): top-right of the
    card head, where the 34 box with the 28 art used to be, at the ladder's
-   todayCard, 50×60 — delivered mail, so it tilts by the letter's id (the
+   todayCard, 40×48 (it was 50×60 until the owner found it outweighed the
+   letter) — delivered mail, so it tilts by the letter's id (the
    same tilt the sender's phone and the web give it). No box round it: a
    stamp is never framed twice. No postmark (the owner took it off). */
 const CARD_STAMP = STAMP_LADDER.todayCard;
@@ -1133,15 +1134,17 @@ function CardFace({
           <Stamp id={card.stampId} width={CARD_STAMP.w} delivered letterId={card.id} />
           {/* THE POOL IS WHERE REPORT MATTERS MOST: always reachable */}
           {card.menu.length > 0 && (
+            // three dots in sub, no ring (the owner, 2026-10-18: the 34 circle beside the stamp was
+            // heavy for what it is), laid out at the dots' 22 with a 44 target round them (KLetterCard)
             <Pressable
               onPress={onMenu}
               disabled={still}
-              hitSlop={6}
+              hitSlop={11}
               accessibilityRole="button"
               accessibilityLabel={s.more}
-              style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: tk.ln, alignItems: "center", justifyContent: "center" }}
+              style={{ width: 22, height: 44, alignItems: "center", justifyContent: "center" }}
             >
-              <Text style={{ fontSize: 11, fontWeight: "700", color: tk.ink }}>···</Text>
+              <LineIcon name="more" size={22} color={tk.sub} />
             </Pressable>
           )}
         </View>

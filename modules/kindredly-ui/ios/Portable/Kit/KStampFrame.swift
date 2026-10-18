@@ -381,7 +381,7 @@ public enum KStampLadder {
   /// the kindred page's "began under": tilt from the thread's opening letter id
   public static let kindredBeganUnder = KStampPlacement("kindredBeganUnder", 40, .letter)
   /// the Today card, top-right of the header (owner confirmed 2026-10-18): tilt by the letter
-  public static let todayCard = KStampPlacement("todayCard", 50, .letter)
+  public static let todayCard = KStampPlacement("todayCard", 40, .letter)
   /// the reader head: tilt by the letter
   public static let readerHead = KStampPlacement("readerHead", 60, .letter)
   /// the Settings First Class banner: Gold frame, Wren in the window, +3°

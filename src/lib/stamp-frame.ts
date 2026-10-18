@@ -309,8 +309,9 @@ export const STAMP_LADDER = Object.freeze({
   draftsRow: at(30),
   /** the kindred page's "began under": tilt from the thread's opening letter id */
   kindredBeganUnder: at(40, "letter"),
-  /** the Today card, top-right of the 60 header (owner confirmed 2026-10-18): tilt by the letter */
-  todayCard: at(50, "letter"),
+  /** the Today card, top-right of the header: 40×48, tilted by the letter (owner, 2026-10-18: 50×60
+      stood taller than the face and the ⋯ beside it and outweighed the letter) */
+  todayCard: at(40, "letter"),
   /** the reader head (iOS + web): tilt by the letter, optional date ring */
   readerHead: at(60, "letter"),
   /** the Settings First Class banner: Gold frame, Wren in the window, +3° */

@@ -12,14 +12,17 @@ import SwiftUI
 
  - the docket row, 10 apart: the writer's FACE v1 (KMosaic 28, cell 4.8, gap 1, ink; a deleted
    account is the veil in faint), the postmark in mono 500 12 at .08em in sub, THE STAMP THEY
-   PASTED, and the ⋯ in a 34 circle that opens TS's menu (Report / Block / Bring back the last
+   PASTED, and the ⋯ that opens TS's menu (three dots in sub, no ring: the owner, 2026-10-18,
+   found the 34 circle beside the stamp heavy for what it is; still always there, on a 44 target,
+   since Report and Block must be one tap away) (Report / Block / Bring back the last
    letter; only Bring back on an unsigned letter: a SwiftUI Menu, inside the one Host).
    The stamp (stamps v2, owner 2026-10-18; TodayRN's CardFace draws the same): where the 34 box
-   with the art inside used to be, KStamp at the ladder's todayCard, 50×60, with no box round it
+   with the art inside used to be, KStamp at the ladder's todayCard, 40×48, with no box round it
    (a stamp is never framed twice). It is delivered mail, so it tilts by the letter's id (the
    same tilt the sender's phone and the web give it; each card is its own view: the deck gives it
    the letter's id). No postmark: the owner took it off on 2026-10-18. The row is as tall as the
-   stamp, 60, so the letter below has 26pt less than it had beside the 34 box, as in React Native;
+   stamp, 48 (it was 50×60 until the owner found it outweighed the letter), so the letter below
+   has 14pt less than it had beside the 34 box, as in React Native;
  - the letter, filling what is left, in the reader's Letter font at its tier (telegram 30/40
    centred, 21/33, 18/29), padded 0 10, centred in its space. While the reader writes back
    (`compact`) it is set at no more than 20 (the prototype's 29 → 20), its tier's leading scaled
@@ -59,9 +62,10 @@ final class KLetterCardActions {
 
 struct KLetterCard: View, Equatable {
   static let mosaicCell: CGFloat = 4.8
-  /// the ⋯ circle (the stamp's old box was the same 34)
-  static let stampBox: CGFloat = 34
-  /// the stamp they pasted: the ladder's todayCard, 50 × 60
+  /// the ⋯: the dots' drawing, and the target round it (44 square, laid out as the dots alone)
+  static let moreGlyph: CGFloat = 22
+  static let moreTarget: CGFloat = 44
+  /// the stamp they pasted: the ladder's todayCard, 40 × 48
   static let stampWidth: CGFloat = KStampLadder.todayCard.w
   static let monoLabel = KTextStyle.monoReply
   /// the postmark, SEP.23 · NO.7273 (design Prompt 2: mono 12 at .08em in the sub colour)
@@ -142,15 +146,13 @@ struct KLetterCard: View, Equatable {
             }
           }
         } label: {
-          KLineIcon(.more, size: 18, lineWidth: 3.2, color: theme.ink)
-            .frame(width: Self.stampBox, height: Self.stampBox)
-            .overlay(Circle().strokeBorder(theme.ln, lineWidth: 2))
-            .contentShape(Circle())
-            .padding(5)
+          KLineIcon(.more, size: Self.moreGlyph, lineWidth: 3.2, color: theme.sub)
+            .frame(width: Self.moreTarget, height: Self.moreTarget)
             .contentShape(Rectangle())
         }
         .menuIndicator(.hidden)
-        .padding(-5)
+        // the row lays out the dots alone; the rest of the target reaches into the gap and the margin
+        .padding(.horizontal, -(Self.moreTarget - Self.moreGlyph) / 2)
         .accessibilityLabel(labels.more)
       }
     }

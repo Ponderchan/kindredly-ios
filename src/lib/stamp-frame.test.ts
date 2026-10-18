@@ -4,7 +4,7 @@
    the window, the six series grounds, the colours (half-up mixing, pinned on the one stamp where
    it matters), the keyline and rim, the tilt (FNV-1a 32 of the letter id, checked against a
    byte-wise FNV-1a written here) and the ladder (every size 5:6, each in the tier
-   the spec names, the Today card 50×60 and the compose corner 40×48 at 8° as the owner confirmed
+   the spec names, the Today card 40×48 and the compose corner 40×48 at 8° as the owner confirmed
    on 2026-10-18).
    design/stamps-v2/golden.json carries the same goldens for the Swift side (KStampShape must
    produce these strings exactly); this test fails when the two disagree, and
@@ -170,7 +170,7 @@ ok("the goldens cover all four tilts", new Set(GOLDEN_TILT.map(([, d]) => d)).si
 
 const L = F.STAMP_LADDER;
 ok("every placement is 5:6", Object.values(L).every((p) => p.h === F.stampHeight(p.w) && p.w * 6 === p.h * 5));
-ok("Today card: 50×60, tilt from the letter (owner, 2026-10-18)", same(L.todayCard, { w: 50, h: 60, tilt: "letter" }));
+ok("Today card: 40×48, tilt from the letter (owner, 2026-10-18; was 50×60)", same(L.todayCard, { w: 40, h: 48, tilt: "letter" }));
 ok("compose corner: 40×48 at the App Store page's 8° (owner, 2026-10-18)", same(L.composeCorner, { w: 40, h: 48, tilt: 8 }));
 const TIER_OF: Partial<Record<keyof typeof L, Tier>> = {
   introEnvelope: "chip", liveActivityIsland: "xs", liveActivityLock: "s", routeStop: "xs", chosenPill: "xs", composeKey: "xs",
