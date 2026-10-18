@@ -177,6 +177,7 @@ strings(
     // was la.out.repliedHead (the Live Activity, on the lock screen): still never a name there, and now without a gendered
     // noun ("Ein Fremder" was masculine). Sentence, at most about 32 characters
     "id.la.out.repliedHead": "A stranger wrote back.",
+    "id.writeBackTo": "write back to {name}…",
   },
   /* ── es ── */
   {
@@ -226,6 +227,7 @@ strings(
     "id.th.goesStraight": "ESTO LE LLEGA DIRECTO",
     "id.th.replyGoesStraight": "ESTA RESPUESTA LE LLEGA DIRECTO",
     "id.la.out.repliedHead": "Alguien te contestó.",
+    "id.writeBackTo": "responde a {name}…",
   },
   /* ── pt ── */
   {
@@ -275,6 +277,7 @@ strings(
     "id.th.goesStraight": "ISTO VAI DIRETO PRA ESSA PESSOA",
     "id.th.replyGoesStraight": "ESTA RESPOSTA VAI DIRETO PRA ESSA PESSOA",
     "id.la.out.repliedHead": "Alguém te respondeu.",
+    "id.writeBackTo": "responda a {name}…",
   },
   /* ── id ── */
   {
@@ -324,6 +327,7 @@ strings(
     "id.th.goesStraight": "INI LANGSUNG KE DIA",
     "id.th.replyGoesStraight": "BALASAN INI LANGSUNG KE DIA",
     "id.la.out.repliedHead": "Seseorang membalas.",
+    "id.writeBackTo": "balas surat {name}…",
   },
   /* ── fr ── */
   {
@@ -373,6 +377,7 @@ strings(
     "id.th.goesStraight": "ÇA VA DIRECTEMENT CHEZ EUX",
     "id.th.replyGoesStraight": "CETTE RÉPONSE VA DIRECTEMENT CHEZ EUX",
     "id.la.out.repliedHead": "Quelqu'un t'a répondu.",
+    "id.writeBackTo": "réponds à {name}…",
   },
   /* ── de ── */
   {
@@ -422,6 +427,7 @@ strings(
     "id.th.goesStraight": "DAS GEHT DIREKT ZU IHNEN",
     "id.th.replyGoesStraight": "DIESE ANTWORT GEHT DIREKT ZU IHNEN",
     "id.la.out.repliedHead": "Jemand hat dir geantwortet.",
+    "id.writeBackTo": "schreib {name} zurück…",
   },
   /* ── it ── */
   {
@@ -471,6 +477,7 @@ strings(
     "id.th.goesStraight": "QUESTO VA DRITTO A LORO",
     "id.th.replyGoesStraight": "QUESTA RISPOSTA VA DRITTA A LORO",
     "id.la.out.repliedHead": "Qualcuno ti ha risposto.",
+    "id.writeBackTo": "rispondi a {name}…",
   },
   /* ── ja ── */
   {
@@ -520,6 +527,7 @@ strings(
     "id.th.goesStraight": "これは相手にまっすぐ届きます",
     "id.th.replyGoesStraight": "この返事は相手にまっすぐ届きます",
     "id.la.out.repliedHead": "誰かが返事をくれました。",
+    "id.writeBackTo": "{name}さんに返事を書く…",
   },
   /* ── ko ── */
   {
@@ -569,5 +577,6 @@ strings(
     "id.th.goesStraight": "이건 상대에게 곧장 가요",
     "id.th.replyGoesStraight": "이 답장은 상대에게 곧장 가요",
     "id.la.out.repliedHead": "누군가 답장했어요.",
+    "id.writeBackTo": "{name}에게 답장 쓰기…",
   },
 );

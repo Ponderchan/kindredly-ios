@@ -679,8 +679,11 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     durationLabel,
     capsule,
     menu: cardMenu(letter, fmt.t, o),
-    // the field names the writer as the header does (who.name); until the reader's language has that line, its own "write back…"
-    replyPlaceholder: letter.author && (fmt.has?.("ld.writeBackTo") ?? true) ? fmt.t("ld.writeBackTo", { name: who.name }) : fmt.t("ld.writeBackPh"),
+    /* the field names the writer as the header does (who.name). Switch on: id.writeBackTo, in all nine.
+       Switch off: exactly as before — "write back to No. 7273…" where the language has ld.writeBackTo
+       (English only), else its own "write back…" (the identity copy lives under id.*, so translating it
+       never changed a switch-off screen) */
+    replyPlaceholder: !letter.author ? fmt.t("ld.writeBackPh") : fmt.who?.identity ? fmt.t("id.writeBackTo", { name: who.name }) : (fmt.has?.("ld.writeBackTo") ?? true) ? fmt.t("ld.writeBackTo", { name: who.name }) : fmt.t("ld.writeBackPh"),
     a11yLabel: [...head, topic, why, words].filter(Boolean).join(". "),
     demo: letter.id.startsWith("demo"),
   };

@@ -174,12 +174,11 @@ export function replyHint(text: string, revealed: boolean, t: TFn, identity = fa
 }
 
 /** The reply strip's placeholder: their name once traded, else "write back to them" — or, with the
-    switch on (`who`), "write back to Sunday Kite…", as the desk addresses it, in a language that has
-    that line (`has`, i18n hasString: ld.writeBackTo is English-only for now; elsewhere the reader's
-    own "write back to them" stays, as on the desk). */
+    switch on (`who`), "write back to Sunday Kite…" (id.writeBackTo, in all nine), as the desk
+    addresses it. With the switch off nothing here changed. `has` is kept for callers. */
 export function replyPlaceholder(d: ThreadDetail | null, t: TFn, who?: WhoBook, has?: (key: string) => boolean): string {
   if (d?.revealed && !d.gone) return t("th.sayTo", { name: d.otherName || t("cm.kindred") });
-  if (who?.identity && d && !isUnsigned(d) && (has?.("ld.writeBackTo") ?? true)) return t("ld.writeBackTo", { name: who.name(d.other) });
+  if (who?.identity && d && !isUnsigned(d)) return t("id.writeBackTo", { name: who.name(d.other) });
   return t("th.writeBackThem");
 }
 

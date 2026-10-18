@@ -147,13 +147,15 @@ async function writer(): Promise<string | null> {
   return null;
 }
 
-/** current writer's pen name (handle) for thread name-reveal. */
+/** current writer's pen name (handle) for thread name-reveal: the pen name alone, never the
+    account's legal name (full_name / name, filled by Apple and Google); "" when there is none, and
+    signThread then refuses rather than sending an empty name. */
 async function currentHandle(): Promise<string> {
   if (!supabase) return "";
   try {
     const { data } = await supabase.auth.getSession(); // the metadata is on the local session
     const m: any = data.session?.user?.user_metadata || {};
-    return m.handle || m.full_name || m.name || "";
+    return typeof m.handle === "string" ? m.handle.trim() : "";
   } catch {
     return "";
   }
@@ -1168,7 +1170,10 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
     if (!(t.a === me ? t.b : t.a)) return setFail("gone");
     const iamA = t.a === me;
     const theirs = iamA ? t.b_name : t.a_name;
-    const patch: Record<string, unknown> = { [iamA ? "a_name" : "b_name"]: await currentHandle() };
+    // never an empty name: the screens ask for a pen name before they sign (useLettersModel)
+    const name = await currentHandle();
+    if (!name) return null;
+    const patch: Record<string, unknown> = { [iamA ? "a_name" : "b_name"]: name };
     const face = await currentFace();
     if (face) patch[iamA ? "a_face" : "b_face"] = face;
     if (theirs) patch.revealed = true;

@@ -14,6 +14,8 @@ import { refreshFingerprint } from "../../lib/aura";
 import { noteWrote } from "../../lib/local-push";
 import { threadState } from "../../lib/thread-state";
 import { useAuth } from "../../lib/auth";
+import { checkField } from "../edit-profile/edit-profile-model";
+import { isReservedName } from "../../lib/wren-name";
 import { useWrenName } from "../../lib/wren-name";
 import { alertFail } from "../../lib/fail";
 import { useSlow } from "../../components/ui";
@@ -245,11 +247,43 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     [openLetter],
   );
 
+  /* SEND THEM YOUR NAME WITH NO PEN NAME YET. The new onboarding no longer asks for one (it is
+     chosen at the first trade; the Phase 2 signing sheet will add the drawn signature), and the
+     pen name never falls back to the account's legal name any more (lib/auth). So the first trade
+     asks for it right here, with the same rules as Edit profile's field (checkField), saves it to
+     the profile, and only then shows the usual confirmation, which names it. iOS's own text
+     prompt keeps it in place, in the chat, in the reader's language. */
+  const askPenNameThenSign = useCallback(() => {
+    Alert.prompt(
+      t("set.penPrompt.title"),
+      t("set.penPrompt.body"),
+      [
+        { text: t("ml.cancel"), style: "cancel" },
+        {
+          text: t("ep.save"),
+          onPress: async (raw?: string) => {
+            const r = checkField("pen", raw ?? "", "", isReservedName);
+            if (!r.save) return;
+            const res = await auth.saveProfile({ handle: r.value });
+            if ("error" in res) {
+              Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
+              return;
+            }
+            ui.thenModal(() => setAskSign(true));
+          },
+        },
+      ],
+      "plain-text",
+    );
+  }, [auth, ui]);
+
   const onDock = useCallback(
     (action: string) => {
-      if (action === "sign") ui.thenModal(() => setAskSign(true));
+      if (action !== "sign") return;
+      if (!isDemo && !auth.handle.trim()) ui.thenModal(askPenNameThenSign);
+      else ui.thenModal(() => setAskSign(true));
     },
-    [ui],
+    [ui, auth.handle, isDemo, askPenNameThenSign],
   );
 
   const goBack = useCallback(() => ui.thenModal(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router]);

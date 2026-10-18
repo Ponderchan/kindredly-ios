@@ -708,9 +708,8 @@ export type LettersDockInput = {
   name: string;
   /** the identity switch: before names, the reply bar is addressed to the courier name (as the desk's is) */
   identity?: boolean;
-  /** i18n hasString: whether the reader's language has its own words for a key. "write back to {name}"
-      (ld.writeBackTo) is English-only for now, so a reader in another language keeps their own "write
-      back…" rather than an English line (today-cards does the same); absent = assume it has */
+  /** i18n hasString (kept for callers; the reply bar no longer needs it: with the switch on it says
+      id.writeBackTo, which every language has, and with it off it says ld.writeBackPh as before) */
   has?: (key: string) => boolean;
   revealed: boolean;
   gone: boolean;
@@ -758,8 +757,8 @@ export function buildLettersDock(i: LettersDockInput): KChatDock {
     // the desk; after, a person you talk to
     placeholder: i.revealed
       ? t("th.sayTo", { name: i.name })
-      : i.identity && !i.gone && !i.missing && i.name && (i.has?.("ld.writeBackTo") ?? true)
-        ? t("ld.writeBackTo", { name: i.name })
+      : i.identity && !i.gone && !i.missing && i.name
+        ? t("id.writeBackTo", { name: i.name })
         : t("ld.writeBackPh"),
     sendLabel: t("ld.send"),
     hint: lettersHint(i),
