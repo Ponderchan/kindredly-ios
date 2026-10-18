@@ -47,6 +47,20 @@ struct KWrenLetter: View {
   static let stampBird: CGFloat = 32
   /// the line sizes, tried in order until the letter fits (20 is the design's)
   static let lineSizes: [CGFloat] = [20, 18, 16]
+
+  /// One layout ViewThatFits may choose: a line size, with or without the bag. Its own id, so the
+  /// with-bag and the without-bag tries at the same size are two children, not one id twice
+  /// (iOS 26.5's ViewThatFits traps on a repeated child id: two ForEach over lineSizes with
+  /// `id: \.self` both said 20.0, and the app died as the card was first measured, even off
+  /// screen inside a view snapshot, 2026-10-18).
+  struct Try: Identifiable, Sendable {
+    let size: CGFloat
+    let bag: Bool
+    var id: String { "\(bag ? "bag" : "nobag"):\(size)" }
+  }
+
+  /// every size with the bag, then every size without it
+  static let tries: [Try] = lineSizes.map { Try(size: $0, bag: true) } + lineSizes.map { Try(size: $0, bag: false) }
   /// the bag's margins: above, either side, below
   static let bagTop: CGFloat = 14
   static let bagSide: CGFloat = 56
@@ -118,11 +132,8 @@ struct KWrenLetter: View {
     // 18, 16; then 16 truncating. Each is measured at its ideal height, the bag's room at its 120
     // (+ margins), so the one chosen always leaves the bag at least that.
     ViewThatFits(in: .vertical) {
-      ForEach(Self.lineSizes, id: \.self) { size in
-        layout(size: size, fixed: true, bag: true)
-      }
-      ForEach(Self.lineSizes, id: \.self) { size in
-        layout(size: size, fixed: true, bag: false)
+      ForEach(Self.tries) { t in
+        layout(size: t.size, fixed: true, bag: t.bag)
       }
       layout(size: Self.lineSizes.last ?? 16, fixed: false, bag: false)
     }
