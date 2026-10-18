@@ -13,7 +13,7 @@
 //                  mix(hex, #FFFFFF, 0.55) (the riso halo of the final set, plus small accents);
 //   <g id="xs">    required: the 20×24 cut, 1–2 bold white marks;
 //   <g id="guides"> optional: the template's reference layer, stripped with everything in it.
-// The paper, perforation, window, ground, keyline, tilt and postmark are code
+// The paper, perforation, window, ground, keyline and tilt are code
 // (src/lib/stamp-frame.ts); the field colour is the stamp's frozen hex in src/data/stamps.ts.
 //
 // WHAT IT READS. Every *.svg directly in design/stamps-v2 whose name doesn't start with "_" or "."
@@ -1237,7 +1237,7 @@ export function buildTs(results) {
   L.push("   art and xs marks are #FFFFFF, soft marks softHex(hex) = mix(hex, #FFFFFF, 0.55), the field the");
   L.push("   stamp's hex (src/data/stamps.ts); strokes are 4.31u, round caps and joins, never under the");
   L.push("   tier's minimum (src/lib/stamp-frame.ts strokeU). The frame (paper, bites, ground, keyline,");
-  L.push("   tilt, postmark) is src/lib/stamp-frame.ts.");
+  L.push("   tilt) is src/lib/stamp-frame.ts.");
   L.push("     art   from S up, clipped to the window; drawn last, over the soft plate (where the two");
   L.push("           touch, the white stays on top, as the file previews it);");
   L.push("     soft  from S up, under the art; at S leave out the paths with dropAtS (tint accents under 10u);");
@@ -1275,7 +1275,7 @@ export function buildWebJs(results) {
   L.push("   art and xs marks are #FFFFFF, soft marks softHex(hex) = mix(hex, #FFFFFF, 0.55), the field the");
   L.push("   stamp's hex (app/system.js STAMPS); strokes are 4.31u, round caps and joins, never under the");
   L.push("   tier's minimum (app/engine/stamp-frame.js strokeU). The frame (paper, bites, ground, keyline,");
-  L.push("   tilt, postmark) is app/engine/stamp-frame.js, a line-for-line port of the app's");
+  L.push("   tilt) is app/engine/stamp-frame.js, a line-for-line port of the app's");
   L.push("   src/lib/stamp-frame.ts; app/engine/stamp-svg.js draws frame and marks together (stampSVG for");
   L.push("   the DOM, StampTile in app/engine/wren-react.jsx for React).");
   L.push("     art   from S up, clipped to the window; drawn last, over the soft plate (where the two");

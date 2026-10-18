@@ -7,14 +7,14 @@ import SwiftUI
  KStamp, the Swift twin of React Native's components/Stamp.tsx, and it draws exactly what that
  draws. Every one of the 36 mood stamps SwiftUI shows goes through here, at a width taken from
  the ladder (KStampLadder, Kit/KStampFrame.swift), and nothing about it is decided here: the
- tier, the perforated paper, the window, the series ground, the colours, the keyline, the tilt
- and the postmark are Kit/KStampFrame.swift's (the port of lib/stamp-frame), and the drawing is
+ tier, the perforated paper, the window, the series ground, the colours, the keyline and the
+ tilt are Kit/KStampFrame.swift's (the port of lib/stamp-frame), and the drawing is
  Kit/KStampArtData.swift's (generated from src/data/stamp-art-v2.ts by
  scripts/gen-stamp-art-swift.mjs). This file only lays them on top of each other in the right
  order, so React Native, the web and SwiftUI, reading the same data, draw the same stamp.
 
      KStamp(id: card.stampId, width: KStampLadder.todayCard.w, dark: theme.isDark,
-            delivered: true, letterId: card.id, postmark: fits, drawIn: true)   // the Today card
+            delivered: true, letterId: card.id)                                  // the Today card
      KStamp(id: item.id, width: KStampLadder.trayTile.w, dark: theme.isDark)    // a tray tile
      KStampSlot(width: 40, fill: theme.lav2, stroke: theme.ind)                 // the empty corner
 
@@ -35,7 +35,7 @@ import SwiftUI
 
  `dark` is the surface under it, which SwiftUI here has no environment for (a Host doesn't set
  the colour scheme from the app's theme): placements pass theme.isDark, and a picture with its
- own light ground passes false. It decides the paper, the keyline or rim, and the postmark's ink.
+ own light ground passes false. It decides the paper and the keyline or rim.
 
  THE FALLBACK CHAIN. A known id with no marks (a drawing not delivered, or one the generator or
  the importer refused) is the template: the paper, the window in its own hex and, from M, its
@@ -46,18 +46,12 @@ import SwiftUI
 
  DELIVERED MAIL. `delivered` (with the letter's id) is for a stamp that came to you on someone's
  letter: the Today card, the reader, a kindred's "began under". From M up it tilts by the
- letter's id ([−3, −1.5, +1.5, +3]°, FNV-1a, the same on every platform, so sender and reader see
- one tilt) and carries the postmark: four wavy 1pt lines, 1.3 W long, overprinting the stamp's
- left 20% at its lower edge. The postmark doesn't tilt with the stamp, is drawn over it (and over
- whatever came before it in its stack, which is why a placement keeps it clear of text), and is
- never shortened: a placement whose text beside the stamp would reach the band passes
- `postmark: false` (KStampFrame.postmarkFitsCentred works it out for a centred row). `drawIn`
- draws it in left to right when it first appears (180ms; still with Reduce Motion). Below M, and
- for your own and unsent stamps (trays, grids, lists), a stamp is flat: 0°, no postmark.
+ letter's id ([−2, −1, +1, +2]°, FNV-1a, the same on every platform, so sender and reader see one
+ tilt). No postmark: the owner took the wavy lines off on 2026-10-18. Below M, and for your own
+ and unsent stamps (trays, grids, lists), a stamp is flat: 0°.
 
- THE BOX IT TAKES. Exactly width × 1.2 width (the dot: the dot). The keyline's outer half, the
- tilt's corners and the postmark (which starts 1.1 W left of the stamp) all draw outside that box
- without moving the layout, so a placement sizes its row by the stamp alone; nothing here clips.
+ THE BOX IT TAKES. Exactly width × 1.2 width (the dot: the dot). The keyline's outer half and the
+ tilt's corners draw outside that box without moving the layout, so a placement sizes its row by the stamp alone; nothing here clips.
 
  THE COST. Each stamp's path data is read once (KSVGPath), the first time that id is drawn, and
  the plan for a size (which marks, in which colours, at which stroke) is kept per id, tier and
@@ -82,8 +76,6 @@ public struct KStamp: View {
   private let dark: Bool
   private let delivered: Bool
   private let letterId: String?
-  private let postmark: Bool
-  private let drawIn: Bool
   private let fallbackHex: String?
   private let accessibilityLabel: String?
 
@@ -91,13 +83,9 @@ public struct KStamp: View {
   ///   - id: the mood id (stamps.ts, letters.stamp); unknown: the template in fallbackHex or #8B7FE8
   ///   - width: the rendered width in pt, from KStampLadder; the height is always 1.2 × width
   ///   - dark: the surface under it is dark (theme.isDark): Midnight's paper, no keyline, the rim
-  ///     at chip and XS, the postmark's dark ink
-  ///   - delivered: a stamp that came on someone's letter: from M up it tilts by `letterId` and
-  ///     is postmarked
+  ///     at chip and XS
+  ///   - delivered: a stamp that came on someone's letter: from M up it tilts by `letterId`
   ///   - letterId: the delivered letter's id, the tilt's seed (no id, no tilt)
-  ///   - postmark: false leaves the postmark off a delivered stamp (the text beside it would
-  ///     reach the band); it is never drawn shortened
-  ///   - drawIn: draw the postmark in, left to right, when the stamp first appears
   ///   - fallbackHex: TS's colour for an id this binary's table doesn't know ("#RRGGBB")
   ///   - accessibilityLabel: the stamp's name, to make it an image VoiceOver reads
   public init(
@@ -106,8 +94,6 @@ public struct KStamp: View {
     dark: Bool,
     delivered: Bool = false,
     letterId: String? = nil,
-    postmark: Bool = true,
-    drawIn: Bool = false,
     fallbackHex: String? = nil,
     accessibilityLabel: String? = nil
   ) {
@@ -116,8 +102,6 @@ public struct KStamp: View {
     self.dark = dark
     self.delivered = delivered
     self.letterId = letterId
-    self.postmark = postmark
-    self.drawIn = drawIn
     self.fallbackHex = fallbackHex
     self.accessibilityLabel = accessibilityLabel
   }
@@ -142,11 +126,6 @@ public struct KStamp: View {
         .equatable()
         .rotationEffect(.degrees(deg))
         .frame(width: width, height: KStampFrame.height(width))
-        .overlay(alignment: .topLeading) {
-          // no postmark: the owner took the wavy lines off on 2026-10-18 (too faint, beside the
-          // stamp rather than on it, crowding the card's head). `postmark` / `drawIn` are no longer
-          // drawn; they go with their callers once the chat pass lands.
-        }
     }
   }
 
@@ -175,53 +154,6 @@ struct KStampFace: View, Equatable {
     }
     .frame(width: width + 2 * pad, height: KStampFrame.height(width) + 2 * pad)
     .padding(-pad)
-  }
-}
-
-/*
- The postmark, in the card's points relative to the stamp's unrotated top-left (KStampFrame
- postmark), on its own Canvas that starts 1.1 W left of the stamp. The draw-in reveals it through
- a mask that widens left to right (an ease-out, as React Native's Easing.out(quad)); with Reduce
- Motion, or without drawIn, it is simply there.
- */
-struct KStampPostmark: View {
-  let width: CGFloat
-  let dark: Bool
-  let drawIn: Bool
-
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @State private var revealed = false
-
-  var body: some View {
-    let g = KStampPostmarkLines.lines(width: width)
-    let pad = KStamp.padPt
-    let left = CGFloat(g.geometry.x0) - pad
-    let top = CGFloat(g.geometry.top) - pad
-    let w = CGFloat(g.geometry.x1 - g.geometry.x0) + 2 * pad
-    let h = CGFloat(g.geometry.bottom - g.geometry.top) + 2 * pad
-    let ink = KStampFrame.postmarkInk(dark: dark)
-    let animate = drawIn && !reduceMotion
-    let shown: CGFloat = animate && !revealed ? 0 : 1
-    Canvas { context, _ in
-      var c = context
-      c.translateBy(x: -left, y: -top)
-      let shading = GraphicsContext.Shading.color(KStampFrame.color(ink.rgb, opacity: ink.opacity))
-      for line in g.paths {
-        c.stroke(line, with: shading, lineWidth: g.geometry.strokePt)
-      }
-    }
-    .frame(width: w, height: h)
-    .mask(alignment: .leading) {
-      Rectangle().frame(width: w * shown)
-    }
-    .offset(x: left, y: top)
-    .allowsHitTesting(false)
-    .onAppear {
-      guard animate, !revealed else { return }
-      withAnimation(.timingCurve(0.5, 1, 0.89, 1, duration: KStampFrame.Postmark.drawInMs / 1000)) {
-        revealed = true
-      }
-    }
   }
 }
 
@@ -419,34 +351,6 @@ final class KStampPlan: @unchecked Sendable {
     )
     read[entry.id] = r
     return r
-  }
-}
-
-/// A postmark's geometry and its four lines as paths, kept per width.
-final class KStampPostmarkLines: @unchecked Sendable {
-  let geometry: KStampFrame.PostmarkGeometry
-  let paths: [Path]
-
-  private init(width: CGFloat) {
-    geometry = KStampFrame.postmark(width: width)
-    paths = geometry.points.map { points in
-      var p = Path()
-      p.addLines(points)
-      return p
-    }
-  }
-
-  private static let lock = NSLock()
-  private static var kept: [CGFloat: KStampPostmarkLines] = [:]
-
-  static func lines(width: CGFloat) -> KStampPostmarkLines {
-    lock.lock()
-    defer { lock.unlock() }
-    if let g = kept[width] { return g }
-    let g = KStampPostmarkLines(width: width)
-    if kept.count >= 64 { kept.removeAll() }
-    kept[width] = g
-    return g
   }
 }
 

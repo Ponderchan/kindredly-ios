@@ -7,10 +7,10 @@ import SwiftUI
  set on 2026-10-18). A line-for-line port of src/lib/stamp-frame.ts, which React Native's
  components/Stamp and the web's stampSVG read too: everything about a stamp that is not its
  drawing. The tier a rendered width falls in, the perforated 5:6 paper, the 4:5 window, the
- series ground, the colours, the keyline and the rim, the tilt, the postmark and the ladder of
- sizes. The drawing itself is Kit/KStampArtData.swift (generated from src/data/stamp-art-v2.ts by
- scripts/gen-stamp-art-swift.mjs), and Kit/KStampArt.swift (KStamp) lays the two on top of each
- other. Nothing here draws a view; KStampShape, at the end, is the paper as a SwiftUI Shape.
+ series ground, the colours, the keyline and the rim, the tilt and the ladder of sizes (no
+ postmark: the owner took it off on 2026-10-18). The drawing itself is Kit/KStampArtData.swift
+ (generated from src/data/stamp-art-v2.ts by scripts/gen-stamp-art-swift.mjs), and
+ Kit/KStampArt.swift (KStamp) lays the two on top of each other. Nothing here draws a view; KStampShape, at the end, is the paper as a SwiftUI Shape.
 
  One implementation for every renderer (spec §2.11), so the numbers are the TypeScript's,
  computed in the same order, and the strings come out the same: silhouetteData(_:) writes the
@@ -64,7 +64,7 @@ public struct KStampTierSpec: Equatable, Sendable {
   public let minStrokePt: CGFloat
   /// the light-theme keyline width (0: none), ln at keylineOpacity, centred on the edge
   public let keylinePt: CGFloat
-  /// delivered mail at this size may tilt and carry the postmark (M and up)
+  /// delivered mail at this size may tilt by its letter (M and up)
   public let delivered: Bool
 }
 
@@ -211,9 +211,9 @@ public enum KStampFrame {
   public static let white: UInt32 = 0xFFFFFF
   /// the last fallback (spec §2.11): the template in this tint with no motif
   public static let fallbackRGB: UInt32 = 0x8B7FE8
-  /// ln in Classic, Lavender and Paper: the keyline and the postmark on light themes
+  /// ln in Classic, Lavender and Paper: the keyline on light themes
   public static let inkLight: UInt32 = 0x1E1B35
-  /// ln in Midnight: the postmark on dark
+  /// ln in Midnight
   public static let inkDark: UInt32 = 0xD4D0EA
   public static let paperLight: UInt32 = 0xFFFFFF
   /// Midnight's paper: cool, from its own ink family, deliberately not cream
@@ -311,131 +311,16 @@ public enum KStampFrame {
     return h
   }
 
-  /// A delivered letter's stamp tilt in degrees: [−3, −1.5, +1.5, +3][FNV-1a-32(letterId) mod 4],
+  /// A delivered letter's stamp tilt in degrees: [−2, −1, +1, +2][FNV-1a-32(letterId) mod 4],
   /// the same on iOS, RN and the web, so sender and reader see one tilt.
   public static func tilt(letterId: String) -> Double {
     tilts[Int(fnv1a(letterId) % 4)]
   }
 
-  // MARK: postmark (spec §2.7): delivered mail at M and up
-
-  public enum Postmark {
-    public static let lines = 4
-    public static let strokePt: CGFloat = 1
-    public static let amplitudePt = 1.2
-    public static let wavelengthPt = 10.0
-    /// between the lines' axes
-    public static let gapPt = 3.6
-    /// the band's length, × W
-    public static let lengthRatio = 1.3
-    /// its right end overprints the stamp's left 20%
-    public static let overprintRatio = 0.2
-    /// the band's lowest trough (centre-line) sits at 0.95 H
-    public static let bottomRatio = 0.95
-    /// it is drawn only while the name-and-meta block is no taller than 0.72 H
-    public static let textMaxRatio = 0.72
-    /// draw-in, left to right, on a card's first view (static with Reduce Motion)
-    public static let drawInMs = 180.0
-    public static let opacityLight = 0.28
-    public static let opacityDark = 0.3
-    /// the lines sample the sine every this many pt
-    public static let stepPt = 0.5
-  }
-
-  /// stamp-frame PostmarkGeometry: in the card's points, relative to the stamp's UNROTATED
-  /// top-left (the postmark does not tilt with the stamp); every number to 2 decimals.
-  public struct PostmarkGeometry: Equatable, Sendable {
-    /// the lines' ends (x0 < 0: the band starts left of the stamp)
-    public let x0: Double
-    public let x1: Double
-    /// the band's centre-line extent, crest of the first line to trough of the last
-    public let top: Double
-    public let bottom: Double
-    /// each line's axis (rest) y
-    public let axes: [Double]
-    /// each line's points (a polyline every Postmark.stepPt), already rounded as the paths write them
-    public let points: [[CGPoint]]
-    /// each line as SVG path data, exactly as stamp-frame.ts postmark().paths writes it
-    public let paths: [String]
-    public let strokePt: CGFloat
-    /// the tallest name-and-meta block (pt, from the stamp's top) that leaves the band clear of
-    /// text: 0.72 H, or the band's ink top when that is higher. Taller: no postmark at all.
-    public let maxTextBlockPt: Double
-  }
-
-  /// to 2 decimals as Math.round(n * 100) / 100 rounds (half up), -0 as 0
-  static func r2(_ n: Double) -> Double {
-    let r = (n * 100 + 0.5).rounded(.down) / 100
-    return r == 0 ? 0 : r
-  }
-
-  /// a number as JavaScript's String() writes it, for the 2-decimal values here
+  /// a number as JavaScript's String() writes it (the gallery's captions print the tilt this way)
   static func js(_ n: Double) -> String {
     if n == n.rounded(), abs(n) < 1e15 { return String(Int64(n)) }
     return "\(n)"
-  }
-
-  /// The postmark for a stamp drawn `width` pt wide (stamp-frame postmark(width)): four 1pt sine
-  /// lines (amplitude 1.2pt, wavelength 10pt, axes 3.6pt apart), 1.3 W long, the right end at
-  /// 0.2 W so it overprints the stamp's left 20%, the band's bottom at 0.95 H.
-  public static func postmark(width: CGFloat) -> PostmarkGeometry {
-    let w = Double(width)
-    let hgt = w * 6 / 5
-    let x1 = Postmark.overprintRatio * w
-    let x0 = x1 - Postmark.lengthRatio * w
-    let bottom = Postmark.bottomRatio * hgt
-    let top = bottom - Double(Postmark.lines - 1) * Postmark.gapPt - 2 * Postmark.amplitudePt
-    let axes = (0..<Postmark.lines).map { top + Postmark.amplitudePt + Double($0) * Postmark.gapPt }
-    let n = max(1, Int(((x1 - x0) / Postmark.stepPt - 1e-9).rounded(.up)))
-    var points: [[CGPoint]] = []
-    var paths: [String] = []
-    for axis in axes {
-      var line: [CGPoint] = []
-      var d = ""
-      for i in 0...n {
-        let x = i == n ? x1 : x0 + Double(i) * Postmark.stepPt
-        let y = axis + Postmark.amplitudePt * sin((2 * Double.pi * (x - x0)) / Postmark.wavelengthPt)
-        let rx = r2(x)
-        let ry = r2(y)
-        line.append(CGPoint(x: rx, y: ry))
-        d += "\(i > 0 ? "L" : "M")\(js(rx)),\(js(ry))"
-      }
-      points.append(line)
-      paths.append(d)
-    }
-    let inkTop = top - Double(Postmark.strokePt) / 2
-    return PostmarkGeometry(
-      x0: r2(x0),
-      x1: r2(x1),
-      top: r2(top),
-      bottom: r2(bottom),
-      axes: axes.map(r2),
-      points: points,
-      paths: paths,
-      strokePt: Postmark.strokePt,
-      maxTextBlockPt: r2(min(Postmark.textMaxRatio * hgt, inkTop))
-    )
-  }
-
-  /// the postmark's colour: ln at 28% on light themes, Midnight's ln at 30%
-  public static func postmarkInk(dark: Bool) -> (rgb: UInt32, opacity: Double) {
-    dark ? (inkDark, Postmark.opacityDark) : (inkLight, Postmark.opacityLight)
-  }
-
-  /**
-   Whether a delivered stamp's postmark may be drawn beside a text block when the two are centred
-   in one row (components/Stamp postmarkFitsCentred): the block's bottom, measured from the
-   stamp's top, must stay within postmark(width).maxTextBlockPt (0.72 H, 43.2pt at the 50×60
-   card). `textHeight` is the block's measured height; 0 (not laid out yet) answers false, so the
-   band never flashes over text that turns out to be tall.
-   */
-  public static func postmarkFitsCentred(width: CGFloat, textHeight: CGFloat) -> Bool {
-    guard textHeight > 0 else { return false }
-    let h = height(width)
-    let row = max(h, textHeight)
-    let stampTop = (row - h) / 2
-    let textBottom = (row + textHeight) / 2
-    return Double(textBottom - stampTop) <= postmark(width: width).maxTextBlockPt
   }
 }
 
@@ -455,14 +340,12 @@ public struct KStampPlacement: Equatable, Sendable {
   public let w: CGFloat
   public let h: CGFloat
   public let tilt: KStampTiltRule
-  public let postmark: Bool
 
-  init(_ name: String, _ w: CGFloat, _ tilt: KStampTiltRule = .fixed(0), postmark: Bool = false) {
+  init(_ name: String, _ w: CGFloat, _ tilt: KStampTiltRule = .fixed(0)) {
     self.name = name
     self.w = w
     self.h = KStampFrame.height(w)
     self.tilt = tilt
-    self.postmark = postmark
   }
 
   /// the fixed angle, 0 for a letter's tilt or the scatter (those are worked out where drawn)
@@ -494,17 +377,17 @@ public enum KStampLadder {
   public static let myLettersRow = KStampPlacement("myLettersRow", 25)
   /// Drafts: S, 0°
   public static let draftsRow = KStampPlacement("draftsRow", 30)
-  /// the kindred page's "began under": tilt from the thread's opening letter id, postmark
-  public static let kindredBeganUnder = KStampPlacement("kindredBeganUnder", 40, .letter, postmark: true)
-  /// the Today card, top-right of the header (owner confirmed 2026-10-18): tilt + wavy postmark
-  public static let todayCard = KStampPlacement("todayCard", 50, .letter, postmark: true)
-  /// the reader head: tilt, postmark
-  public static let readerHead = KStampPlacement("readerHead", 60, .letter, postmark: true)
+  /// the kindred page's "began under": tilt from the thread's opening letter id
+  public static let kindredBeganUnder = KStampPlacement("kindredBeganUnder", 40, .letter)
+  /// the Today card, top-right of the header (owner confirmed 2026-10-18): tilt by the letter
+  public static let todayCard = KStampPlacement("todayCard", 50, .letter)
+  /// the reader head: tilt by the letter
+  public static let readerHead = KStampPlacement("readerHead", 60, .letter)
   /// the Settings First Class banner: Gold frame, Wren in the window, +3°
   public static let firstClassBanner = KStampPlacement("firstClassBanner", 60, .fixed(3))
   /// the First Class card "1ST": the Gold frame, +3°
   public static let firstClassCard = KStampPlacement("firstClassCard", 80, .fixed(3))
-  /// Me › Your stamps (3 columns): the stamp is the cell; 0°, no postmark
+  /// Me › Your stamps (3 columns): the stamp is the cell; 0°
   public static let meYourStamps = KStampPlacement("meYourStamps", 80)
   /// long-press preview / stamp detail
   public static let preview = KStampPlacement("preview", 120)

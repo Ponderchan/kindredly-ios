@@ -6,7 +6,7 @@
    art and xs marks are #FFFFFF, soft marks softHex(hex) = mix(hex, #FFFFFF, 0.55), the field the
    stamp's hex (src/data/stamps.ts); strokes are 4.31u, round caps and joins, never under the
    tier's minimum (src/lib/stamp-frame.ts strokeU). The frame (paper, bites, ground, keyline,
-   tilt, postmark) is src/lib/stamp-frame.ts.
+   tilt) is src/lib/stamp-frame.ts.
      art   from S up, clipped to the window; drawn last, over the soft plate (where the two
            touch, the white stays on top, as the file previews it);
      soft  from S up, under the art; at S leave out the paths with dropAtS (tint accents under 10u);

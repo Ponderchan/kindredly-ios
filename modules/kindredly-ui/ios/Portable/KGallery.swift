@@ -23,7 +23,7 @@ import SwiftUI
  laid out as the dev page kindredly:///dev/step5-stamp-art lays out React Native's
  components/Stamp above it, so a screenshot of each half compares sheet for sheet: the LADDER
  (one stamp of each category, so all six series grounds show, at every tier from the dot to L,
- flat; then delivered at 40 to 120, tilted by the golden letter ids and postmarked), on Classic
+ flat; then delivered at 40 to 120, tilted by the golden letter ids), on Classic
  and on Midnight whatever theme the gallery is in; every PLACEMENT of KStampLadder at its own
  size and rule in this theme (the compose corner empty and filled); the FALLBACK chain; and ALL
  36 at the tray's 40×48 on both surfaces.
@@ -711,15 +711,14 @@ public struct KGallery: View {
         ScrollView(.horizontal, showsIndicators: false) {
           HStack(alignment: .bottom, spacing: 0) {
             ForEach(Array(Self.stampMailWidths.enumerated()), id: \.offset) { c, w in
-              // the postmark starts 1.1 W left of the stamp: leave it that room
               KStamp(id: id, width: w, dark: sheet.isDark, delivered: true, letterId: Self.stampLetterIds[(r + c) % Self.stampLetterIds.count])
-                .padding(.leading, 1.1 * w + 8)
+                .padding(.leading, 18)
             }
           }
           .padding(.vertical, 6)
         }
       }
-      stampCaption("\(mail) · TILT BY LETTER ID, POSTMARK", sheet)
+      stampCaption("\(mail) · TILT BY LETTER ID", sheet)
     }
     .padding(12)
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -744,7 +743,6 @@ public struct KGallery: View {
             KStamp(id: id, width: p.w, dark: theme.isDark, delivered: p.tilt == .letter, letterId: letter)
               .rotationEffect(.degrees(p.degrees))
           }
-          .padding(.leading, p.postmark ? 1.1 * p.w + 4 : 0)
         }
       }
     }
@@ -752,7 +750,7 @@ public struct KGallery: View {
 
   private static func rule(_ p: KStampPlacement, letter: String) -> String {
     switch p.tilt {
-    case .letter: return "TILT \(KStampFrame.js(KStampFrame.tilt(letterId: letter)))° (LETTER) · POSTMARK"
+    case .letter: return "TILT \(KStampFrame.js(KStampFrame.tilt(letterId: letter)))° (LETTER)"
     case .scatter: return "SCATTER (WEB), FLAT HERE"
     case let .fixed(d): return d == 0 ? "FLAT" : "\(KStampFrame.js(d))°"
     }

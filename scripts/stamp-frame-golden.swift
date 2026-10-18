@@ -14,12 +14,13 @@
    its perforated silhouette string against the golden path, character for character (stamp-spec
    §2.11: every renderer must produce the same strings); KStampShape's drawn path (the string read
    by KSVGPath) on the box, its bites and notches; the tier table; the tilt (FNV-1a 32 of the
-   letter id); the colour mixing (half up). Then, from the TS test's own numbers, the postmark at
-   the card and at 40, the keyline and rim, the stroke floor and the ladder entries the Swift
-   placements use. Every line prints ok/FAIL and the exit status is non-zero if any fail.
+   letter id); the colour mixing (half up). Then, from the TS test's own numbers, the keyline and
+   rim, the stroke floor and the ladder entries the Swift placements use (no postmark: the owner
+   took it off on 2026-10-18). Every line prints ok/FAIL and the exit status is non-zero if any
+   fail.
 
-   `--dump` after the golden file also prints, as JSON, the postmark paths and the ladder this
-   file computes, to compare with stamp-frame.ts's postmark() output for the same widths. */
+   `--dump` after the golden file also prints, as JSON, the ladder this file computes, to compare
+   with stamp-frame.ts's STAMP_LADDER. */
 
 import Foundation
 import SwiftUI
@@ -143,21 +144,6 @@ enum StampFrameGolden {
     ok("paper: white, Midnight #ECE9F4", KStampFrame.paperRGB(dark: false) == 0xFFFFFF && KStampFrame.paperRGB(dark: true) == 0xECE9F4)
 
     // ── from the TS test's own numbers (src/lib/stamp-frame.test.ts) ──
-    let pm = KStampFrame.postmark(width: 50)
-    ok("postmark at the card: x −55 to 10", pm.x0 == -55 && pm.x1 == 10)
-    ok("postmark at the card: the band is 43.8–57 of 60", pm.top == 43.8 && pm.bottom == 57)
-    ok("postmark: four lines 3.6pt apart", pm.axes == [45, 48.6, 52.2, 55.8] && pm.paths.count == 4 && pm.points.count == 4)
-    ok("postmark at the card: text may reach 43.2pt", pm.maxTextBlockPt == 43.2)
-    ok("postmark: each line runs from x0 to x1, numbers to 2 decimals",
-       pm.paths.enumerated().allSatisfy { j, d in
-         d.hasPrefix("M-55,\(KStampFrame.js(pm.axes[j]))L") && d.hasSuffix("L10,\(KStampFrame.js(pm.axes[j]))") && d.range(of: #"\.\d{3}"#, options: .regularExpression) == nil
-       })
-    let ys = pm.points.flatMap { $0.map(\.y) }
-    ok("postmark: the crests and troughs touch the band's edges", ys.min() == 43.8 && ys.max() == 57)
-    let pm40 = KStampFrame.postmark(width: 40)
-    ok("postmark at 40: the band 32.4–45.6, text above its ink (31.9)", pm40.top == 32.4 && pm40.bottom == 45.6 && pm40.maxTextBlockPt == 31.9)
-    ok("postmarkFitsCentred: a 16pt line beside the card's stamp fits, a 34pt one doesn't, an unmeasured one doesn't",
-       KStampFrame.postmarkFitsCentred(width: 50, textHeight: 16) && !KStampFrame.postmarkFitsCentred(width: 50, textHeight: 34) && !KStampFrame.postmarkFitsCentred(width: 50, textHeight: 0))
     ok("keyline light: S 0.75, M 1, L 1.25, XL 1.5pt at 40%",
        [KStampTier.s, .m, .l, .xl].map { KStampFrame.edge(dark: false, tier: $0)?.widthPt ?? 0 } == [0.75, 1, 1.25, 1.5]
          && KStampFrame.edge(dark: false, tier: .m)?.opacity == 0.4 && KStampFrame.edge(dark: false, tier: .m)?.rgb == 0x1E1B35)
@@ -168,19 +154,15 @@ enum StampFrameGolden {
     ok("strokeU: 4.31 at 50, 7.5 at XS 20, 5 at S 25",
        KStampFrame.strokeU(for: 50) == 4.31 && abs(KStampFrame.strokeU(for: 20) - 7.5) < 1e-9 && abs(KStampFrame.strokeU(for: 25) - 5) < 1e-9)
     ok("the ladder: 25 placements, every one 5:6", KStampLadder.all.count == 25 && KStampLadder.all.allSatisfy { $0.h == KStampFrame.height($0.w) })
-    ok("Today card 50×60 by the letter with the postmark; compose corner 40×48 at 8°; tray 40; Me 80",
-       KStampLadder.todayCard.w == 50 && KStampLadder.todayCard.tilt == .letter && KStampLadder.todayCard.postmark
-         && KStampLadder.composeCorner.w == 40 && KStampLadder.composeCorner.degrees == 8 && !KStampLadder.composeCorner.postmark
+    ok("Today card 50×60 by the letter; compose corner 40×48 at 8°; tray 40; Me 80",
+       KStampLadder.todayCard.w == 50 && KStampLadder.todayCard.tilt == .letter
+         && KStampLadder.composeCorner.w == 40 && KStampLadder.composeCorner.degrees == 8
          && KStampLadder.trayTile.w == 40 && KStampLadder.meYourStamps.w == 80 && KStampLadder.readerHead.w == 60)
-    ok("only delivered mail at M and up tilts by the letter and carries the postmark",
-       KStampLadder.all.allSatisfy { ($0.tilt == .letter) == $0.postmark && (!$0.postmark || KStampFrame.spec(for: $0.w).delivered) })
+    ok("only delivered mail at M and up tilts by the letter",
+       KStampLadder.all.allSatisfy { $0.tilt != .letter || KStampFrame.spec(for: $0.w).delivered })
 
     if args.contains("--dump") {
       var dump: [String: Any] = [:]
-      for w in [40.0, 50, 60, 80, 120] {
-        let g = KStampFrame.postmark(width: CGFloat(w))
-        dump["postmark\(Int(w))"] = ["x0": g.x0, "x1": g.x1, "top": g.top, "bottom": g.bottom, "axes": g.axes, "paths": g.paths, "maxTextBlockPt": g.maxTextBlockPt]
-      }
       dump["ladder"] = KStampLadder.all.map { p -> [String: Any] in
         let tilt: Any
         switch p.tilt {
@@ -188,7 +170,7 @@ enum StampFrameGolden {
         case .letter: tilt = "letter"
         case .scatter: tilt = "scatter"
         }
-        return ["name": p.name, "w": p.w, "h": p.h, "tilt": tilt, "postmark": p.postmark]
+        return ["name": p.name, "w": p.w, "h": p.h, "tilt": tilt]
       }
       if let out = try? JSONSerialization.data(withJSONObject: dump, options: [.sortedKeys]), let text = String(data: out, encoding: .utf8) {
         print("DUMP " + text)

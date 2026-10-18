@@ -17,13 +17,9 @@ import SwiftUI
    The stamp (stamps v2, owner 2026-10-18; TodayRN's CardFace draws the same): where the 34 box
    with the art inside used to be, KStamp at the ladder's todayCard, 50×60, with no box round it
    (a stamp is never framed twice). It is delivered mail, so it tilts by the letter's id (the
-   same tilt the sender's phone and the web give it) and carries the wavy postmark, which draws
-   in when the card first appears (each card is its own view: the deck gives it the letter's id).
-   The postmark runs 55pt left of the stamp along its lower edge, under the when-and-who line,
-   so it is drawn only while that line, centred in the row, ends above 0.72 of the stamp's height
-   (43pt; KStampFrame.postmarkFitsCentred on the line's measured height): a large Dynamic Type
-   size leaves it off rather than letting it cross the text. The row is as tall as the stamp,
-   60, so the letter below has 26pt less than it had beside the 34 box, as in React Native;
+   same tilt the sender's phone and the web give it; each card is its own view: the deck gives it
+   the letter's id). No postmark: the owner took it off on 2026-10-18. The row is as tall as the
+   stamp, 60, so the letter below has 26pt less than it had beside the 34 box, as in React Native;
  - the letter, filling what is left, in the reader's Letter font at its tier (telegram 30/40
    centred, 21/33, 18/29), padded 0 10, centred in its space. While the reader writes back
    (`compact`) it is set at no more than 20 (the prototype's 29 → 20), its tier's leading scaled
@@ -80,9 +76,6 @@ struct KLetterCard: View, Equatable {
   let voice: KTodayVoice
   let actions: KLetterCardActions
 
-  /// the when-and-who line's height, for the postmark's room beside the stamp (0 until laid out)
-  @State private var metaHeight: CGFloat = 0
-
   static func == (a: KLetterCard, b: KLetterCard) -> Bool {
     a.card == b.card && a.theme == b.theme && a.labels == b.labels && a.compact == b.compact
   }
@@ -126,9 +119,6 @@ struct KLetterCard: View, Equatable {
         .foregroundStyle(theme.sub)
         .lineLimit(1)
         .minimumScaleFactor(0.75)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-          if abs(height - metaHeight) > 0.5 { metaHeight = height }
-        }
         .frame(maxWidth: .infinity, alignment: .leading)
       KStamp(
         id: card.stampId,
@@ -136,8 +126,6 @@ struct KLetterCard: View, Equatable {
         dark: theme.isDark,
         delivered: true,
         letterId: card.id,
-        postmark: KStampFrame.postmarkFitsCentred(width: Self.stampWidth, textHeight: metaHeight),
-        drawIn: true,
         fallbackHex: card.stampHex.isEmpty ? nil : card.stampHex
       )
       if !card.menu.isEmpty {
