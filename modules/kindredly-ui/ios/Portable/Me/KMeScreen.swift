@@ -148,7 +148,7 @@ public struct KMeStampCell: Identifiable, Equatable, Sendable {
   /// the day you last used it, "OCT 12"; "" for none
   public let date: String
   public let a11yLabel: String
-  /// its colour, for the tile a stamp without art falls back to; "" for none
+  /// its colour, for the template KStamp draws an id this binary's table doesn't know in; "" for none
   public let hex: String
 
   public init(id: String, date: String, a11yLabel: String, hex: String) {

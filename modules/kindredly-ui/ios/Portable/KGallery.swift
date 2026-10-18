@@ -19,10 +19,14 @@ import SwiftUI
  send keys and round tools, the back bar, the bottom fade, the scroll chrome, the First Class
  cards, the notices, the selectable tiles and the switch, and the long-press menu.
 
- STAMPS comes last (step 5, batch 1): one stamp at every size, the art framed as the screens
- frame it, then all 36 in each of the four themes whatever theme the gallery is in, so the
- sheets can be compared with each other and, on the dev page kindredly:///dev/step5-stamp-art,
- with StampTile's React Native drawing of the same sheets laid out the same way right below.
+ STAMPS comes last: stamps v2 (the set the owner approved on 2026-10-18) as KStamp draws them,
+ laid out as the dev page kindredly:///dev/step5-stamp-art lays out React Native's
+ components/Stamp above it, so a screenshot of each half compares sheet for sheet: the LADDER
+ (one stamp of each category, so all six series grounds show, at every tier from the dot to L,
+ flat; then delivered at 40 to 120, tilted by the golden letter ids and postmarked), on Classic
+ and on Midnight whatever theme the gallery is in; every PLACEMENT of KStampLadder at its own
+ size and rule in this theme (the compose corner empty and filled); the FALLBACK chain; and ALL
+ 36 at the tray's 40×48 on both surfaces.
 
  It is as tall as its content and as wide as it is offered, so it sits in a Host that matches
  its contents vertically. It doesn't scroll by itself; the page around it does.
@@ -81,7 +85,7 @@ public struct KGallery: View {
         section("LONG-PRESS MENU") { menu }
       }
       Group {
-        section("STAMPS · ALL \(KStampArt.ids.count) · FOUR THEMES") { stamps }
+        section("STAMPS V2 · KSTAMP · ALL \(KStampArt.ids.count)") { stamps }
       }
     }
     .padding(.horizontal, 16)
@@ -637,54 +641,144 @@ public struct KGallery: View {
 
   // ══ step 5, batch 1 ══
 
-  /// the sizes the stamp is checked at: the tray's names aside, 16 is the smallest a screen
-  /// might use and 96 shows the curves and the perforation up close
-  private static let stampSizes: [CGFloat] = [16, 22, 28, 40, 64, 96]
+  // ── KStamp (stamps v2): the dev page's sheets, drawn in Swift. The page that wraps this,
+  // dev/step5-stamp-art, draws React Native's components/Stamp in the same sheets above it ──
 
-  // ── KStampArt: one stamp at every size; the art framed as the screens frame it (the specs'
-  // sizes: the Today card's box H:33, the compose slot H:136, a picked tray tile); the tinted
-  // tile an id without art gets; then every stamp in each theme. The page that wraps this,
-  // dev/step5-stamp-art, draws StampTile's React Native version of each row right below ──
+  /// one stamp from each category, in category order: confessions, almosts, late nights, small
+  /// things, becoming, missing
+  private static let stampSample = ["never-told", "crush", "cant-sleep", "made-my-day", "growing", "seasons"]
+  /// every tier, flat: the dot (9), chip 15, XS 20, S 25 and 30, M 40, 50 and 60, L 80 and 120
+  private static let stampFlatWidths: [CGFloat] = [9, 15, 20, 25, 30, 40, 50, 60, 80, 120]
+  /// delivered mail: M and L
+  private static let stampMailWidths: [CGFloat] = [40, 50, 60, 80, 120]
+  /// lib/stamp-frame.test's golden letter ids: −3, −1.5, +1.5, +3
+  private static let stampLetterIds = [
+    "00000000-0000-4000-8000-000090000000",
+    "00000000-0000-0000-0000-000000000000",
+    "3f2b8c1e-6a4d-4e2f-9b7a-1c5d8e0f2a61",
+    "e8b1f6c3-2d47-4a95-b06e-3c9a5d1f7b24",
+  ]
+
   private var stamps: some View {
     VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .bottom, spacing: 10) {
-        ForEach(Self.stampSizes, id: \.self) { side in
-          KStampArt(id: "never-told", size: side)
-        }
+      stampHead("LADDER · FLAT, THEN DELIVERED · CLASSIC AND MIDNIGHT")
+      stampLadderSheet(.classic)
+      stampLadderSheet(.midnight)
+      stampHead("PLACEMENTS · KSTAMPLADDER · THIS THEME")
+        .padding(.top, 12)
+      stampPlacements
+      stampHead("FALLBACK · UNKNOWN ID AT 20, 40, 80 · THE DOT AT 9")
+      HStack(alignment: .bottom, spacing: 14) {
+        KStamp(id: "no-such-stamp", width: 20, dark: theme.isDark)
+        KStamp(id: "no-such-stamp", width: 40, dark: theme.isDark)
+        KStamp(id: "no-such-stamp", width: 80, dark: theme.isDark)
+        KStamp(id: "no-such-stamp", width: 9, dark: theme.isDark)
+        KStamp(id: "growing", width: 9, dark: theme.isDark)
       }
-      caption("NEVER-TOLD · 16 · 22 · 28 · 40 · 64 · 96")
-      HStack(alignment: .center, spacing: 14) {
-        // the Today card's box: 34, corners of 10, a 2pt ln border on sf, the art inset 2
-        KStampArt(id: "made-my-day", size: 30)
-          .frame(width: 34, height: 34)
-          .background(RoundedRectangle(cornerRadius: 10, style: .circular).fill(theme.sf))
-          .overlay(RoundedRectangle(cornerRadius: 10, style: .circular).strokeBorder(theme.ln, lineWidth: 2))
-        // the compose slot with a stamp chosen: the art at 28, no tilt
-        KStampArt(id: "crush", size: 28)
-        // a tray tile, picked: 40 inside a 2pt ind ring 2 away, corners of 7 (ComposeTray)
-        KStampArt(id: "cant-sleep", size: 40)
-          .padding(4)
-          .overlay(RoundedRectangle(cornerRadius: 7, style: .circular).strokeBorder(theme.ind, lineWidth: 2))
-        // ids with no art: the tinted tile in TS's colour, then in StampTile's own
-        KStampArt(id: "no-such-stamp", size: 40, fallbackHex: "#1E948A")
-        KStampArt(id: "no-such-stamp", size: 40)
-      }
-      caption("CARD BOX · SLOT 28 · TRAY PICKED · TILE (HEX) · TILE")
-      caption("ROWS · CONFESSIONS · ALMOSTS · LATE NIGHTS · SMALL THINGS · BECOMING · MISSING")
-      ForEach(KTheme.all, id: \.key) { sheet in
-        stampSheet(sheet)
-      }
+      stampHead("ALL \(KStampArt.ids.count) · TRAY 40×48 · A ROW PER CATEGORY")
+        .padding(.top, 12)
+      stampSheet(.classic)
+      stampSheet(.midnight)
       caption(
         KStampArt.unread.isEmpty
-          ? "ALL \(KStampArt.ids.count) DRAWN FROM THEIR ART"
-          : "TINTED TILE, ART UNREAD · " + KStampArt.unread.joined(separator: " · ").uppercased()
+          ? "ALL \(KStampArt.ids.count) DRAWN FROM THEIR MARKS"
+          : "TEMPLATE, NO MARKS · " + KStampArt.unread.joined(separator: " · ").uppercased()
       )
     }
   }
 
-  /// Every stamp in one theme: six to a row (a row is a category, in stamps.ts order), spread
-  /// edge to edge on the theme's tray colour (soft), in a panel of its page colour. The stamps
-  /// themselves don't change from sheet to sheet; only their ground does.
+  /// One surface: the sample stamps at every flat width, then delivered, each row scrolling
+  /// sideways (the dev page's LadderSheet).
+  private func stampLadderSheet(_ sheet: KTheme) -> some View {
+    let flat = Self.stampFlatWidths.map { "\(Int($0)) \(KStampFrame.tier(for: $0).rawValue.uppercased())" }.joined(separator: " · ")
+    let mail = Self.stampMailWidths.map { "\(Int($0))×\(Int(KStampFrame.height($0)))" }.joined(separator: " · ")
+    return VStack(alignment: .leading, spacing: 10) {
+      Text("\(sheet.name.uppercased()) · FLAT").kText(.monoSection).foregroundStyle(sheet.mute)
+      ForEach(Self.stampSample, id: \.self) { id in
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(alignment: .bottom, spacing: 10) {
+            ForEach(Self.stampFlatWidths, id: \.self) { w in
+              KStamp(id: id, width: w, dark: sheet.isDark)
+            }
+          }
+          .padding(.vertical, 4)
+        }
+      }
+      stampCaption(flat, sheet)
+      Text("\(sheet.name.uppercased()) · DELIVERED").kText(.monoSection).foregroundStyle(sheet.mute)
+        .padding(.top, 6)
+      ForEach(Array(Self.stampSample.enumerated()), id: \.offset) { r, id in
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(alignment: .bottom, spacing: 0) {
+            ForEach(Array(Self.stampMailWidths.enumerated()), id: \.offset) { c, w in
+              // the postmark starts 1.1 W left of the stamp: leave it that room
+              KStamp(id: id, width: w, dark: sheet.isDark, delivered: true, letterId: Self.stampLetterIds[(r + c) % Self.stampLetterIds.count])
+                .padding(.leading, 1.1 * w + 8)
+            }
+          }
+          .padding(.vertical, 6)
+        }
+      }
+      stampCaption("\(mail) · TILT BY LETTER ID, POSTMARK", sheet)
+    }
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(sheet.bg))
+    .overlay(RoundedRectangle(cornerRadius: 18, style: .circular).strokeBorder(sheet.line, lineWidth: 1))
+  }
+
+  /// Every named placement at its own size and rule, in this theme (the dev page's Placements).
+  private var stampPlacements: some View {
+    let ids = KStampArt.ids
+    return VStack(alignment: .leading, spacing: 14) {
+      ForEach(Array(KStampLadder.all.enumerated()), id: \.offset) { i, p in
+        let id = ids.isEmpty ? "" : ids[(i * 7) % ids.count]
+        let letter = Self.stampLetterIds[i % Self.stampLetterIds.count]
+        VStack(alignment: .leading, spacing: 6) {
+          stampCaption("\(p.name.uppercased()) · \(Int(p.w))×\(Int(p.h)) · \(KStampFrame.tier(for: p.w).rawValue.uppercased()) · \(Self.rule(p, letter: letter))", theme)
+          HStack(alignment: .center, spacing: 18) {
+            if p.name == KStampLadder.composeCorner.name {
+              KStampSlot(width: p.w, fill: theme.lav2, stroke: theme.ind)
+                .rotationEffect(.degrees(p.degrees))
+            }
+            KStamp(id: id, width: p.w, dark: theme.isDark, delivered: p.tilt == .letter, letterId: letter)
+              .rotationEffect(.degrees(p.degrees))
+          }
+          .padding(.leading, p.postmark ? 1.1 * p.w + 4 : 0)
+        }
+      }
+    }
+  }
+
+  private static func rule(_ p: KStampPlacement, letter: String) -> String {
+    switch p.tilt {
+    case .letter: return "TILT \(KStampFrame.js(KStampFrame.tilt(letterId: letter)))° (LETTER) · POSTMARK"
+    case .scatter: return "SCATTER (WEB), FLAT HERE"
+    case let .fixed(d): return d == 0 ? "FLAT" : "\(KStampFrame.js(d))°"
+    }
+  }
+
+  /// a sub-head of the STAMPS section, as the dev page's Head (mono 600 10 at .14em, mute), on
+  /// as many lines as it takes rather than shrunk
+  private func stampHead(_ text: String) -> some View {
+    Text(text)
+      .kText(.monoSection)
+      .foregroundStyle(theme.mute)
+      .fixedSize(horizontal: false, vertical: true)
+      .accessibilityAddTraits(.isHeader)
+  }
+
+  private func stampCaption(_ text: String, _ sheet: KTheme) -> some View {
+    Text(text)
+      .kText(.monoCaption)
+      .foregroundStyle(sheet.mute)
+      .lineLimit(2)
+      .fixedSize(horizontal: false, vertical: true)
+  }
+
+  /// Every stamp on one surface at the tray's 40×48: six to a row (a row is a category, in
+  /// stamps.ts order), spread edge to edge on the theme's tray colour (soft), in a panel of its
+  /// page colour (the dev page's AllSheet).
   private func stampSheet(_ sheet: KTheme) -> some View {
     let ids = KStampArt.ids
     let rows = stride(from: 0, to: ids.count, by: 6).map { Array(ids[$0..<min($0 + 6, ids.count)]) }
@@ -697,7 +791,7 @@ public struct KGallery: View {
           HStack(spacing: 0) {
             ForEach(rows[r].indices, id: \.self) { c in
               if c > 0 { Spacer(minLength: 0) }
-              KStampArt(id: rows[r][c], size: 40)
+              KStamp(id: rows[r][c], width: KStampLadder.trayTile.w, dark: sheet.isDark)
             }
           }
         }

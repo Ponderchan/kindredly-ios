@@ -9,9 +9,12 @@ import SwiftUI
  From the top, on the theme's page colour, 22 in from the sides unless said:
  - the top row, 20 in and 8 under the status bar: the ✕ in IBM Plex Mono 17 in its 42 box (the
    guarded way out: there is no edge swipe), TO A STRANGER in Plex Mono 600 12 at 1.6, centred in
-   what is left, and the stamp corner tilted 8°: a 44 square with corners of 5 in 3 of room,
-   a 1.5 dashed ind edge on lav2 while empty, the stamp's own art once chosen (a tap opens the
-   stamps);
+   what is left, and the stamp corner tilted 8° in its 50pt of room (a tap opens the stamps).
+   Stamps v2 (owner, 2026-10-18): what sits in it is the stamp itself at the ladder's
+   composeCorner, 40×48, your own stamp so flat (no letter tilt, no postmark); before one is
+   chosen, that same perforated silhouette drawn dashed in ind on lav2 (KStampSlot), where the
+   44 dashed square used to be, so choosing a stamp fills the outline it was promised. The
+   toolbar's round stamp key and the #name pill are untouched (ComposeRN does the same);
  - Wren's row, 14 down: Wren bare in a 46 frame (a React Native island drawing her at 38: her
    skin, her mood, her breathing are hers to draw) and, 10 from her, her line in Fraunces italic
    14 on 20, sub;
@@ -496,9 +499,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         actions.onTray(.stamps)
       } label: {
         stampCorner
-          .padding(3)
+          .frame(width: Self.cornerBox, height: Self.cornerBox)
           .contentShape(Rectangle())
-          .rotationEffect(.degrees(8))
+          .rotationEffect(.degrees(KStampLadder.composeCorner.degrees))
       }
       .buttonStyle(KAsIsButtonStyle())
       .accessibilityLabel(content.stamp?.accessibilityLabel ?? content.strings.stampLabel)
@@ -506,19 +509,17 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
 
-  /// the 44 corner where the stamp goes: dashed ind on lav2 while empty, the stamp's art once chosen
+  /// the corner's tap target, as it was: the old 44 tile and its 3pt of room (ComposeRN CORNER_BOX)
+  static var cornerBox: CGFloat { 50 }
+
+  /// the corner where the stamp goes, at the ladder's composeCorner (40×48): its dashed outline,
+  /// ind on lav2, while empty; the stamp once chosen
   @ViewBuilder private var stampCorner: some View {
+    let width = KStampLadder.composeCorner.w
     if let stamp = content.stamp {
-      KStampArt(id: stamp.id, size: 44, fallbackCorner: 5)
+      KStamp(id: stamp.id, width: width, dark: theme.isDark)
     } else {
-      RoundedRectangle(cornerRadius: 5, style: .circular)
-        .fill(theme.lav2)
-        .overlay {
-          // React Native's dashed border: dashes and gaps of three widths
-          RoundedRectangle(cornerRadius: 5, style: .circular)
-            .strokeBorder(theme.ind, style: StrokeStyle(lineWidth: 1.5, dash: [4.5, 4.5]))
-        }
-        .frame(width: 44, height: 44)
+      KStampSlot(width: width, fill: theme.lav2, stroke: theme.ind)
     }
   }
 

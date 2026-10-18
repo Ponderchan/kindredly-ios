@@ -139,7 +139,7 @@ function StampArtPage() {
 
         <View onLayout={mark("swift")} style={{ paddingTop: 24, gap: 12 }}>
           <View style={{ paddingHorizontal: 16 }}>
-            <Head>SWIFT · KGALLERY (STILL THE V1 ART UNTIL KSTAMP)</Head>
+            <Head>SWIFT · KGALLERY (KSTAMP)</Head>
           </View>
           {native ? (
             <KGalleryHost theme={key} />

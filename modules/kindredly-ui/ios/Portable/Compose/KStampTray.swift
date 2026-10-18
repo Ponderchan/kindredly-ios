@@ -6,12 +6,17 @@ import SwiftUI
  THE STAMP TRAY (ComposeTray.tsx StampTray, drawn the 10a way): where the keyboard was, 296
  above the home indicator, on soft with a 1pt line along its top. It scrolls: FOR THIS LETTER
  (stamps read off the letter itself), RECENTLY USED, then the six categories of six — each under
- its head in mono 600 10 at .14em in mute, six to a row. A tile is the stamp's own art at 40
- (KStampArt: stamps keep their colours in every theme), ringed 2pt in ind with corners of 7
- when it is the one on the envelope, its name under it in mono 9 in its channel ink (worked out
- by TS against this tray's soft, so a deep stamp's name still reads on Midnight's dark tray), on
- up to two centred lines (NEVER TOLD ANYONE, HAT MEINEN TAG GERETTET, MI HA FATTO LA GIORNATA
- don't fit one line of 58 even at .8; a row of the grid grows to its tallest name). The tiles
+ its head in mono 600 10 at .14em in mute, six to a row. A tile is the stamp itself at the
+ ladder's trayTile, 40×48 (stamps v2, 2026-10-18: KStamp, your own stamp so flat, and nothing
+ framed round it, since a stamp is never put inside another tile's border; stamps keep their
+ colours in every theme, only the paper turns Midnight's), and the one on the envelope keeps the
+ selection it always had, the 2pt ind ring with corners of 7, 2 out from the stamp's edge; its
+ name under it in mono 9 in its channel ink (worked out by TS against this tray's soft, so a
+ deep stamp's name still reads on Midnight's dark tray), on up to two centred lines (never told
+ anyone, hat meinen tag gerettet, mi ha fatto la giornata don't fit one line of 58 even at .8; a
+ row of the grid grows to its tallest name). The names are drawn exactly as TS sends them: lower
+ case since the owner's call of 2026-10-18 (useComposeState traySections), so nothing here
+ upper-cases them or sets a textCase; the section heads stay in capitals, also as sent. The tiles
  stop growing at accessibility1, as the + tray's cells do.
  A tap picks it (TS closes the tray and notes it as recently used).
 
@@ -23,7 +28,8 @@ import SwiftUI
  */
 struct KStampTray: View {
   static let columns = 6
-  static let tile: CGFloat = 40
+  /// the tile's stamp width (the ladder's trayTile: 40 × 48)
+  static let tile: CGFloat = KStampLadder.trayTile.w
 
   let theme: KTheme
   let sections: [KComposeStampSection]
@@ -72,7 +78,8 @@ struct KStampTray: View {
       onPick(item.id)
     } label: {
       VStack(spacing: 2) {
-        KStampArt(id: item.id, size: Self.tile, fallbackCorner: 5)
+        KStamp(id: item.id, width: Self.tile, dark: theme.isDark)
+          // the ring: 2 of room and its own 2pt, as ComposeTray's padding 2 + borderWidth 2
           .padding(4)
           .overlay {
             RoundedRectangle(cornerRadius: 7, style: .circular)

@@ -9,12 +9,19 @@ import SwiftUI
  composer sheet shares, is not retuned):
 
  - the docket row, 10 apart: the writer's FACE v1 (KMosaic 28, cell 4.8, gap 1, ink; a deleted
-   account is the veil in faint), the postmark in mono 500 12 at .08em in sub, the stamp in a 34
-   box (corners of 10, a 2pt ln outline, sf; the letter's REAL stamp art inside, whose own
-   perforated frame stands in for the design's dashed one and mood glyph: stamps are content and
-   keep their colours), and the ⋯ in a 34 circle that opens TS's menu (Report / Block / Bring
-   back the last letter; only Bring back on an unsigned letter: a SwiftUI Menu, inside the one
-   Host);
+   account is the veil in faint), the postmark in mono 500 12 at .08em in sub, THE STAMP THEY
+   PASTED, and the ⋯ in a 34 circle that opens TS's menu (Report / Block / Bring back the last
+   letter; only Bring back on an unsigned letter: a SwiftUI Menu, inside the one Host).
+   The stamp (stamps v2, owner 2026-10-18; TodayRN's CardFace draws the same): where the 34 box
+   with the art inside used to be, KStamp at the ladder's todayCard, 50×60, with no box round it
+   (a stamp is never framed twice). It is delivered mail, so it tilts by the letter's id (the
+   same tilt the sender's phone and the web give it) and carries the wavy postmark, which draws
+   in when the card first appears (each card is its own view: the deck gives it the letter's id).
+   The postmark runs 55pt left of the stamp along its lower edge, under the when-and-who line,
+   so it is drawn only while that line, centred in the row, ends above 0.72 of the stamp's height
+   (43pt; KStampFrame.postmarkFitsCentred on the line's measured height): a large Dynamic Type
+   size leaves it off rather than letting it cross the text. The row is as tall as the stamp,
+   60, so the letter below has 26pt less than it had beside the 34 box, as in React Native;
  - the letter, filling what is left, in the reader's Letter font at its tier (telegram 30/40
    centred, 21/33, 18/29), padded 0 10, centred in its space. A letter that doesn't fit is
    FOLDED, never scrolled in place (one swipe means one thing on this page): its height is
@@ -51,7 +58,10 @@ final class KLetterCardActions {
 
 struct KLetterCard: View, Equatable {
   static let mosaicCell: CGFloat = 4.8
+  /// the ⋯ circle (the stamp's old box was the same 34)
   static let stampBox: CGFloat = 34
+  /// the stamp they pasted: the ladder's todayCard, 50 × 60
+  static let stampWidth: CGFloat = KStampLadder.todayCard.w
   static let monoLabel = KTextStyle.monoReply
   /// the postmark, SEP.23 · NO.7273 (design Prompt 2: mono 12 at .08em in the sub colour)
   static let postmarkStyle = KTextStyle.mono(12, .medium, tracking: 0.08)
@@ -61,6 +71,9 @@ struct KLetterCard: View, Equatable {
   let labels: KTodayLabels
   let voice: KTodayVoice
   let actions: KLetterCardActions
+
+  /// the when-and-who line's height, for the postmark's room beside the stamp (0 until laid out)
+  @State private var metaHeight: CGFloat = 0
 
   static func == (a: KLetterCard, b: KLetterCard) -> Bool {
     a.card == b.card && a.theme == b.theme && a.labels == b.labels
@@ -105,12 +118,20 @@ struct KLetterCard: View, Equatable {
         .foregroundStyle(theme.sub)
         .lineLimit(1)
         .minimumScaleFactor(0.75)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+          if abs(height - metaHeight) > 0.5 { metaHeight = height }
+        }
         .frame(maxWidth: .infinity, alignment: .leading)
-      KStampArt(id: card.stampId, size: Self.stampBox - 6, fallbackHex: card.stampHex.isEmpty ? nil : card.stampHex)
-        .frame(width: Self.stampBox, height: Self.stampBox)
-        .background(RoundedRectangle(cornerRadius: 10, style: .circular).fill(theme.sf))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .circular))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .circular).strokeBorder(theme.ln, lineWidth: 2))
+      KStamp(
+        id: card.stampId,
+        width: Self.stampWidth,
+        dark: theme.isDark,
+        delivered: true,
+        letterId: card.id,
+        postmark: KStampFrame.postmarkFitsCentred(width: Self.stampWidth, textHeight: metaHeight),
+        drawIn: true,
+        fallbackHex: card.stampHex.isEmpty ? nil : card.stampHex
+      )
       if !card.menu.isEmpty {
         Menu {
           ForEach(card.menu) { item in

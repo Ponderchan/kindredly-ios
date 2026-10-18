@@ -4,15 +4,18 @@ import SwiftUI
 
 /*
  ART DRAWN FROM SVG: a picture made in the design set and kept as a flat list of SVG shapes on a
- square grid, drawn by SwiftUI from the very path data React Native hands react-native-svg. Two
- sets are drawn this way, each from a generated table (both generators share
- scripts/art-path.mjs, the reader that checks every path the way KSVGPath reads it):
-   - the stamps (Kit/KStampArt.swift; Kit/KStampArtData.swift from src/data/stamp-art.ts by
-     scripts/gen-stamp-art-swift.mjs), drawn AS BAKED: each shape in its own colours and widths;
-   - the mood icons (Kit/KMoodArt.swift; Kit/KMoodArtData.swift from src/data/mood-line-art.ts
-     by scripts/gen-mood-art-swift.mjs, itself imported from the owner's SVG files by
-     scripts/import-mood-art.mjs), drawn AS A TEMPLATE: one-colour line faces in a placeholder
-     ink, painted at draw time (below).
+ square grid, drawn by SwiftUI from the very path data React Native hands react-native-svg. The
+ mood icons are drawn this way (Kit/KMoodArt.swift; Kit/KMoodArtData.swift from
+ src/data/mood-line-art.ts by scripts/gen-mood-art-swift.mjs, itself imported from the owner's
+ SVG files by scripts/import-mood-art.mjs), AS A TEMPLATE: one-colour line faces in a
+ placeholder ink, painted at draw time (below). Their generator shares scripts/art-path.mjs, the
+ reader that checks every path the way KSVGPath reads it.
+
+ The stamps were the other set, drawn AS BAKED (each shape in its own colours and widths) from
+ the 64-grid stamp-art.ts, until stamps v2 (2026-10-18): their marks now carry no paint at all and
+ sit on a 5:6 box, so they have their own small types (KStampMark, KStampArtEntry) and their own
+ renderer (KStamp in Kit/KStampArt.swift, over the frame in Kit/KStampFrame.swift). Nothing about
+ a stamp goes through KArtPath any more; KArt's baked draw stays for any art kept the old way.
 
  KArtPath is one shape: its path data `d` on the art's grid, read by the module's SVG reader
  (KSVGPath in Kit/KLineGlyph.swift: M L H V C S Q T A Z, absolute and relative, arcs as cubic
@@ -22,13 +25,12 @@ import SwiftUI
    - width, cap, join and dash in grid units, so they scale with the art as stroke-width does
      with the viewBox; a width of 0 strokes nothing (CoreGraphics would draw a hairline);
    - the miter limit is SVG's 4, not CoreGraphics' 10.
- There is no opacity and no transform. The generators refuse art that needs either (a stamp is
- drawn as its tinted tile instead, a mood icon falls back to its group's icon), so nothing reaches
- this file to be drawn half right.
+ There is no opacity and no transform. The generator refuses art that needs either (a mood icon
+ falls back to its group's icon), so nothing reaches this file to be drawn half right.
 
  KArt is a whole picture: the paths read once into SwiftUI paths, then drawn into a
  GraphicsContext scaled from the grid to the box it's given (centred, if the box isn't square)
- and clipped to the grid, as an SVG viewport clips. Draw it in a Canvas, as KStampArt does:
+ and clipped to the grid, as an SVG viewport clips. Draw it in a Canvas:
 
      Canvas { context, box in art.draw(in: context, size: box) }
 
@@ -37,8 +39,7 @@ import SwiftUI
  `tint`, whatever colour the table holds, and every stroke width is multiplied by `strokeScale`
  (the dash pattern stays as drawn). KMoodArt uses it to paint a mood icon in its group's face ink
  and to give one 2-unit master the size's optical step (2.4 / 2.0 / 1.75: a scale of 1.2 / 1 /
- 0.875). MoodFace does the same in React Native (ArtShapes's tint and strokeScale). The stamps
- never use it: their colours are content.
+ 0.875). MoodFace does the same in React Native (ArtShapes's tint and strokeScale).
  */
 
 /// One SVG shape of a piece of art: its path data on the art's grid, and how it is painted.
