@@ -132,7 +132,8 @@ ok("badges: 1–9, then 9+", kit.badgeCount(1) === "1" && kit.badgeCount(9) === 
   ok("reply bar: one line centred in the resting height", kit.REPLY_BAR_PAD * 2 + r.lineHeight + 2 * r.border === r.minHeight);
   ok("reply bar: four lines at most, about 110 tall", kit.REPLY_BAR_MAX >= 105 && kit.REPLY_BAR_MAX <= 115);
   const k = kit.KINDRED_BAR;
-  ok("kindreds bar: a 56 row of 52 keys 10 apart, 40 keys in the capsule", k.rowHeight === 56 && k.key === 52 && k.gap === 10 && k.capsuleKey === 40);
+  ok("kindreds bar: a 48 row, 26 icons on 44 targets, a 40 capsule", k.rowHeight === 48 && k.target === 44 && k.icon === 26 && k.capsule === 40);
+  ok("kindreds bar: one line centred in the capsule", kit.KINDRED_BAR_PAD * 2 + k.lineHeight === k.capsule);
   ok("kindreds bar: grows to five lines", kit.KINDRED_BAR_MAX === 5 * k.lineHeight + 2 * kit.KINDRED_BAR_PAD);
   const c = THEMES.classic;
   const n = THEMES.midnight;

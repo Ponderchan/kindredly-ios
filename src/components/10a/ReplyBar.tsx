@@ -190,17 +190,40 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
     corners of `radius` (the reply bar: 36 and 10), or a circle (the Kindreds bar's 40); lav while
     pressed. It gives its field the keyboard — React Native can't switch it to the emoji keyboard as
     the Swift key does (see the header) — so the keyboard's globe is the way to the emoji. */
-export function EmojiKey({ label, onPress, side = REPLY_BAR.emojiKey, radius = REPLY_BAR.emojiRadius, circle = false }: { label: string; onPress: () => void; side?: number; radius?: number; circle?: boolean }) {
+export function EmojiKey({
+  label,
+  onPress,
+  side = REPLY_BAR.emojiKey,
+  radius = REPLY_BAR.emojiRadius,
+  circle = false,
+  iconSize = 22,
+  ground,
+}: {
+  label: string;
+  onPress: () => void;
+  side?: number;
+  radius?: number;
+  circle?: boolean;
+  /** the face, in points (the Kindreds bar's 26) */
+  iconSize?: number;
+  /** the pressed lav ground's side when it is drawn smaller than the target (the Kindreds bar: 38 on 44) */
+  ground?: number;
+}) {
   const { t: tk } = useTheme();
+  const g = ground ?? side;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      hitSlop={4}
-      style={({ pressed }) => ({ width: side, height: side, borderRadius: circle ? side / 2 : radius, backgroundColor: pressed ? tk.lav : "transparent", alignItems: "center", justifyContent: "center" })}
+      hitSlop={ground ? 0 : 4}
+      style={{ width: side, height: side, alignItems: "center", justifyContent: "center" }}
     >
-      <LineIcon name="emoji" size={22} color={tk.ink} />
+      {({ pressed }) => (
+        <View style={{ width: g, height: g, borderRadius: circle ? g / 2 : radius, backgroundColor: pressed ? tk.lav : "transparent", alignItems: "center", justifyContent: "center" }}>
+          <LineIcon name="emoji" size={iconSize} color={tk.ink} />
+        </View>
+      )}
     </Pressable>
   );
 }

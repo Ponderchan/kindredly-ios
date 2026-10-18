@@ -59,8 +59,9 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
      - the Kindreds bar (components/10a KindredBar, uncontrolled — the
        words live in the field and are seeded only by the model: a clear
        after a send, the words back after a failure, an idea used): the
-       ideas key, the capsule with the field, the emoji key and the send
-       disc (Return sends too), the +; 16 from either edge, 12 over the
+       ideas key, the capsule with only the field, the emoji key, the +
+       (ringless line icons, the owner's rework that evening; the
+       keyboard's send key sends); its icons on the 16 gutter, 12 over the
        keyboard or the tray. The ideas key took the Wren tool's place (it
        seeded the question mode: Ask something in the tray still does);
      - the ideas bubble 8 above the bar (IdeasBubble): one sentence from
@@ -371,17 +372,15 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
                   style={{ marginHorizontal: 4, marginBottom: 8 }}
                 />
               )}
-              {/* THE BAR (chat composers B): the ideas key, the capsule, the +. The + opens the
-                  things to LEAVE (a note, a question, a moment, a song), not to attach. */}
+              {/* THE BAR (chat composers B): the ideas key, the capsule, the emoji key, the +. The
+                  + opens the things to LEAVE (a note, a question, a moment, a song), not to attach. */}
               <KindredBar
                 ref={bar}
                 placeholder={dock.placeholder}
                 autocapitalize={dock.autocapitalize}
-                canSend={m.composer.canSend}
                 onSend={onBarSend}
                 onChangeText={m.setText}
                 initialText={m.text}
-                sendLabel={dock.sendLabel}
                 emojiLabel={dock.emojiLabel}
                 ideasLabel={dock.ideasLabel}
                 plusLabel={dock.plusLabel}
@@ -394,7 +393,9 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
                 onCloseTray={tray.close}
                 // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
                 onFocus={onFieldFocus}
-                style={{ marginHorizontal: 4 }}
+                // the icons 17 from either edge, in line with the 16 gutter: the dock's 12 less 4
+                // puts the 44 targets 8 from it, and a 26 icon sits 9 inside its target
+                style={{ marginHorizontal: -4 }}
               />
             </>
           )}

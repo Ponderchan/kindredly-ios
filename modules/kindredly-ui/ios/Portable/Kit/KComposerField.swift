@@ -29,7 +29,7 @@ import UIKit
    marked) goes to onSubmit with the words, and the newline never goes in. A correction pending
    at the Return is applied by UIKit first, as an edit of its own, so the corrected words are
    the ones sent. An IME's Return only commits its composition; a paste with newlines in it is
-   kept as pasted. The return key says "send". Without returnSends Return is a new line (Today:
+   kept as pasted. The return key says "send", dim while the field is empty. Without returnSends Return is a new line (Today:
    a reply is a letter, and letters keep their paragraphs). onSubmit decides whether the words
    go, as with KField.
  - FOCUS by controller, after mount: a focus asked for before the text view is in a window is
@@ -328,6 +328,8 @@ private struct KComposerTextView: UIViewRepresentable {
     view.keyboardAppearance = theme.isDark ? .dark : .light
     view.autocapitalizationType = autocapitalize ? .sentences : .none
     view.returnKeyType = returnSends ? .send : .default
+    // a send key with nothing to send stays dim (the Kindreds bar has no send key of its own)
+    view.enablesReturnKeyAutomatically = returnSends
     view.accessibilityLabel = label
     view.maxLines = maxLines
     view.onEscape = onEscape

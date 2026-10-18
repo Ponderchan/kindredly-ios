@@ -177,9 +177,10 @@ public struct KReplyBar: View {
 /*
  THE EMOJI KEY of both chat bars (Prompt 5, decision 4): it switches its field's keyboard to the
  system emoji keyboard, and back on a second press (controller.toggleEmojiKeyboard; only a
- KComposerField honours it). The I1 face (22) in ink on a square of `side` with corners of
- `cornerRadius` (the reply bar: 36 and 10), or a circle (circle: true; the Kindreds bar's 40);
- its ground is lav while the emoji keyboard is up, and clear otherwise. VoiceOver reads it as a
+ KComposerField honours it). The I1 face in ink (22; the Kindreds bar's 26) on a target of `side`:
+ a square with corners of `cornerRadius` (the reply bar: 36 and 10), or a circle (circle: true).
+ Its ground is lav while the emoji keyboard is up, and clear otherwise; it fills the target unless
+ `ground` draws it smaller (the Kindreds bar: a 38 disc on a 44 target). VoiceOver reads it as a
  button, selected while the emoji keyboard is up.
  */
 public struct KEmojiKey: View {
@@ -189,6 +190,8 @@ public struct KEmojiKey: View {
   private let side: CGFloat
   private let cornerRadius: CGFloat
   private let circle: Bool
+  private let iconSize: CGFloat
+  private let ground: CGFloat?
 
   /// - Parameters:
   ///   - controller: the field whose keyboard it switches
@@ -196,17 +199,23 @@ public struct KEmojiKey: View {
   ///   - side: the key's square (or circle) in points
   ///   - cornerRadius: the square's corners (ignored for a circle)
   ///   - circle: a round key instead of a rounded square
-  public init(theme: KTheme, controller: KFieldController, label: String, side: CGFloat = 36, cornerRadius: CGFloat = 10, circle: Bool = false) {
+  ///   - iconSize: the face, in points
+  ///   - ground: the lav ground's side when it is drawn smaller than the target; nil fills it
+  public init(theme: KTheme, controller: KFieldController, label: String, side: CGFloat = 36, cornerRadius: CGFloat = 10, circle: Bool = false, iconSize: CGFloat = 22, ground: CGFloat? = nil) {
     self.theme = theme
     self._controller = ObservedObject(wrappedValue: controller)
     self.label = label
     self.side = side
     self.cornerRadius = cornerRadius
     self.circle = circle
+    self.iconSize = iconSize
+    self.ground = ground
   }
 
+  private var groundSide: CGFloat { ground ?? side }
+
   private var shape: RoundedRectangle {
-    RoundedRectangle(cornerRadius: circle ? side / 2 : cornerRadius, style: .circular)
+    RoundedRectangle(cornerRadius: circle ? groundSide / 2 : cornerRadius, style: .circular)
   }
 
   public var body: some View {
@@ -214,10 +223,11 @@ public struct KEmojiKey: View {
     SwiftUI.Button {
       controller.toggleEmojiKeyboard()
     } label: {
-      KLineIcon(.emoji, size: 22, lineWidth: 1.9, color: theme.ink)
-        .frame(width: side, height: side)
+      KLineIcon(.emoji, size: iconSize, lineWidth: 1.9, color: theme.ink)
+        .frame(width: groundSide, height: groundSide)
         .background(shape.fill(on ? theme.lav : Color.clear))
-        .contentShape(shape)
+        .frame(width: side, height: side)
+        .contentShape(circle ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: cornerRadius, style: .circular)))
     }
     .buttonStyle(KFloatPressStyle())
     .accessibilityLabel(label)

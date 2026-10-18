@@ -133,25 +133,27 @@ export const REPLY_BAR_PAD = (REPLY_BAR.minHeight - 2 * REPLY_BAR.border - REPLY
 /** the tallest the reply bar's field grows: four lines and its padding (113, the prototype's ~110) */
 export const REPLY_BAR_MAX = REPLY_BAR.maxLines * REPLY_BAR.lineHeight + 2 * REPLY_BAR_PAD;
 
-/** The Kindreds bar: one row 56 tall, its three parts 10 apart — the ideas
-    key and the + key 52 circles with a 2 ln outline on sf, between them the
-    capsule (52 at one line, corners 26, padding 0 6 0 16) with the field
-    (system 16, one line growing to five, then scrolling), the emoji key and
-    the send disc, both 40 circles. */
+/** The Kindreds bar as the owner reworked it (2026-10-18 evening): one row
+    48 tall — the ideas key, the capsule, the emoji key and the +. The keys
+    are ringless line icons (26) on 44 targets, a lav disc (38) behind one
+    whose panel is up; the capsule is 40 at one line (corners 20, padding
+    0 14, 4 from the keys) with only the field in it (system 16, one line
+    growing to five, then scrolling). No send disc: the keyboard sends. */
 export const KINDRED_BAR = {
-  rowHeight: 56,
-  key: 52,
-  capsuleKey: 40,
-  gap: 10,
-  padLeft: 16,
-  padRight: 6,
+  rowHeight: 48,
+  target: 44,
+  icon: 26,
+  disc: 38,
+  capsule: 40,
+  capsulePad: 14,
+  gap: 4,
   fontSize: 16,
   lineHeight: 21,
   maxLines: 5,
 } as const;
 
-/** the capsule's field padding: one line centred in the 52 capsule */
-export const KINDRED_BAR_PAD = (KINDRED_BAR.key - KINDRED_BAR.lineHeight) / 2;
+/** the capsule's field padding: one line centred in the 40 capsule */
+export const KINDRED_BAR_PAD = (KINDRED_BAR.capsule - KINDRED_BAR.lineHeight) / 2;
 /** the tallest the capsule's field grows: five lines and its padding */
 export const KINDRED_BAR_MAX = KINDRED_BAR.maxLines * KINDRED_BAR.lineHeight + 2 * KINDRED_BAR_PAD;
 

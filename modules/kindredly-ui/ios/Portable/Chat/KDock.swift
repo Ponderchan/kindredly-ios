@@ -22,16 +22,18 @@ import SwiftUI
     above the bar while it is open
  8. the composer row — or, in its place, the gone line or the expired card (InkCard .me,
     REKINDLE):
-    - a room (chat composers B, 2026-10-18): the Kindreds bar (Chat/KKindredBar.swift: the ideas
-      key, the capsule with the field, the emoji key and the send key, the +; Return sends, as
-      it did), in place of the 10a strip and its Wren tool. The ideas key replaces the Wren tool
-      (which seeded the question mode: Ask something in the + tray still does);
+    - a room (chat composers B, 2026-10-18; the owner's rework that evening): the Kindreds bar
+      (Chat/KKindredBar.swift: the ideas key, the capsule with only the field, the emoji key, the
+      +; ringless line icons, and the keyboard's send key sends: Return sends, as it did), in
+      place of the 10a strip and its Wren tool. The ideas key replaces the Wren tool (which seeded
+      the question mode: Ask something in the + tray still does);
     - the pen-pal chat (chat composers A2, 2026-10-18): the reply bar (Kit/KReplyBar.swift, on a
       KComposerField: the reply arrow, the field, the emoji key, the send disc; Return sends, as
       it did). No ideas, no +, as before. While the keyboard is up its hint stands over it:
       LETTER 4 OF 5, LETTER 5 OF 5 · ONE MORE AND NAMES on your fifth, the band's line once your
       five are in (TS words it: dock.hint).
-    Both rest at the bottom 16 from either edge and ride the keyboard (or the + tray) 12 above it.
+    Both rest at the bottom 16 from either edge (the Kindreds bar's icons; their targets reach 8
+    from it) and ride the keyboard (or the + tray) 12 above it.
 
  THE THREE PANELS (Prompt 3) shut each other, and this dock is where: the ideas bubble lets go of
  the keyboard and shuts the tray; the + lets go of the keyboard (and with it the emoji keyboard)
@@ -459,8 +461,6 @@ struct KChatDockView: View {
       controller: driver.body,
       placeholder: dock.placeholder,
       autocapitalize: dock.autocapitalize,
-      canSend: driver.canSend,
-      sendLabel: dock.sendLabel,
       emojiLabel: dock.emojiLabel,
       ideasLabel: dock.ideasLabel,
       plusLabel: dock.plusLabel,
@@ -478,11 +478,11 @@ struct KChatDockView: View {
         // the keyboard takes the tray's place and the bubble's (the emoji key gives it too)
         if focused { shutPanels() }
         actions.onFocus(focused)
-      },
-      onSend: { send() }
+      }
     )
-    // 16 from either edge (the dock's 12 and 4 more)
-    .padding(.horizontal, 4)
+    // the icons 17 from either edge, in line with the 16 gutter: the dock's 12 less 4 puts the
+    // 44 targets 8 from it, and a 26 icon sits 9 inside its target
+    .padding(.horizontal, -4)
   }
 
   /// The keyboard came up: the tray and the bubble go (Prompt 3: the panels shut each other).

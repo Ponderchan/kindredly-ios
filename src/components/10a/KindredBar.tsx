@@ -1,66 +1,64 @@
 import { forwardRef, useEffect } from "react";
-import { Pressable, Text, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
-import Animated, { Easing, Extrapolation, FadeIn, FadeOut, interpolate, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { Pressable, View, Text, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { GlyphInput } from "../GlyphInput";
 import { useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
 import { PF } from "../../theme/post";
 import { LineIcon } from "./LineIcon";
-import { EmojiKey, SendDisc } from "./ReplyBar";
+import { EmojiKey } from "./ReplyBar";
 import { useComposerField, type ComposerFieldHandle } from "./useComposerField";
 import { KINDRED_BAR, KINDRED_BAR_MAX, KINDRED_BAR_PAD, capsuleFill, openKeyFill } from "./kit";
 
-/* THE KINDREDS BAR (chat composers, Prompt 3; the owner's final, 2026-10-18;
-   KKindredBar's React Native twin): a room's composer, once names are
-   traded (RoomRN). Before names the pen-pal chat writes in the reply bar
-   (ReplyBar), which only sends words; here there is more to leave, so the
-   bar has a key either side.
+/* THE KINDREDS BAR (chat composers, Prompt 3, as the owner reworked it on
+   the evening of 2026-10-18 after a chat app's recording; KKindredBar's
+   React Native twin): a room's composer, once names are traded (RoomRN).
+   Before names the pen-pal chat writes in the reply bar (ReplyBar), which
+   only sends words; here there is more to leave, so the bar has a key on
+   the left and two on the right.
 
-     ( ✦ )  ( leave something here…     ☺  (✈) )  ( + )    one row 56 tall, 16 from
-      52                52 tall                     52      either edge, 10 apart;
-                                                            no voice anywhere
-   · THE IDEAS KEY (left): a 52 circle, a 2 ln outline on sf, the I1
-     sparkle 24 in ink. Open, its ground fills with ink and the sparkle
-     turns lime (#D8F04A), on a .2s ease; it opens the ideas bubble above
-     the bar (IdeasBubble, below). VoiceOver: a button, selected while the
-     bubble is up, whose escape closes it.
-   · THE CAPSULE: 52 tall at one line, corners of 26, on soft (Midnight:
-     soft2, kit capsuleFill), padding 0 6 0 16. In it the field (system 16,
-     the placeholder "leave something here…" in mute; one line growing to
-     five, then it scrolls inside, as the room's field did; uncontrolled,
-     useComposerField), the emoji key (EmojiKey, a 40 circle: it gives the
-     field the keyboard — React Native can't ask for the emoji keyboard the
-     Swift key switches to, see ReplyBar) and, only while there are words,
-     the send disc (SendDisc: a 40 circle in ind with the white plane 16;
-     the off ground while the words can't go yet). A tap on the capsule's
-     own ground gives the field the keyboard.
-   · THE + KEY (right): a 52 circle, a 2 ln outline on sf, the plus 16 long
-     at 2.4. Open, it turns 45° into an ×, its ground fills with ink and the
-     plus turns white, on a springy .35s cubic-bezier(.3,1.3,.4,1) (a plain
-     .2s ease under Reduce Motion). It opens the + tray (LeaveATrace's
-     PlayTray).
-   · MIDNIGHT'S INK IS PALE, so the two open keys and the bubble take the
-     theme's lav there instead (kit openKeyFill), which keeps the lime and
-     the white legible.
+      ✦    ( leave something here…          )    ☺    +     one row 48 tall; line
+     44                40 tall                   44   44    icons 26 with no ring on
+                                                            44 targets; no send key
+   · SEND IS THE KEYBOARD'S: a room always sent on Return, so the send disc
+     left the capsule. The return key says "send" and stays dim while the
+     field is empty (enablesReturnKeyAutomatically); words that can't go yet
+     go to the model, which refuses them and says why in the status line.
+     The Today and pen-pal reply bars keep their paper plane.
+   · THE IDEAS KEY (left): the I1 sparkle at 26 in ink. It opens the ideas
+     bubble above the bar (IdeasBubble, below). VoiceOver: a button,
+     selected while the bubble is up, whose escape closes it.
+   · THE CAPSULE: 40 tall at one line, corners of 20, on soft (Midnight:
+     soft2, kit capsuleFill), padding 0 14, 4 from the keys, nothing in it
+     but the field (system 16, the placeholder "leave something here…" in
+     mute; one line growing to five, then it scrolls inside; uncontrolled,
+     useComposerField). A tap on its own ground gives the field the keyboard.
+   · THE EMOJI KEY (beside the +: the owner moved it out of the field): it
+     gives the field the keyboard — React Native can't ask for the emoji
+     keyboard the Swift key switches to (see ReplyBar).
+   · THE + KEY: the plus 18 long at 2. Open, it turns 45° into an × on a
+     springy .35s cubic-bezier(.3,1.3,.4,1) (a plain .2s ease under Reduce
+     Motion), and opens the + tray (LeaveATrace's PlayTray).
+   · ONE "ON" FOR THE KEYS: a lav disc (38) behind the icon while its panel
+     is up; the icons stay in ink, which reads on lav on every theme.
+   · THE ICONS SIT ON THE GUTTER: the screen pulls the bar 4 past its 12, so
+     a target starts 8 from the edge and its icon 17 (RoomRN).
    · THE THREE PANELS SHUT EACH OTHER (the bubble, the keyboard, the tray):
      the screen decides (RoomRN), this bar only reports the presses and the
      field's focus.
-   · The keys stay on the bottom line, centred on the resting row, as the
-     field grows. VoiceOver's escape on a key closes what it opened. */
+   · The keys stay on the bottom line, centred on the capsule's resting row,
+     as the field grows. VoiceOver's escape on a key closes what it opened. */
 
 export type KindredBarHandle = ComposerFieldHandle;
 
 export type KindredBarProps = {
   placeholder: string;
   autocapitalize: boolean;
-  /** the words as typed may go (the send disc's ground) */
-  canSend: boolean;
-  /** exactly what was typed (Return and the disc); return false to keep it in the field */
+  /** exactly what was typed (the keyboard's send); return false to keep it in the field */
   onSend: (value: string) => boolean | void;
   onChangeText?: (value: string) => void;
   /** the text the field starts with (read once, at mount) */
   initialText?: string;
-  sendLabel: string;
   emojiLabel: string;
   ideasLabel: string;
   plusLabel: string;
@@ -80,17 +78,15 @@ export type KindredBarProps = {
 /** the + turning: .35s cubic-bezier(.3,1.3,.4,1), a springy overshoot (KChatMotion.plusTurn) */
 const PLUS_TURN = { duration: 350, easing: Easing.bezier(0.3, 1.3, 0.4, 1) };
 const REDUCED = { duration: 200, easing: Easing.inOut(Easing.ease) };
-const KEY_FILL = { duration: 200, easing: Easing.out(Easing.ease) };
+const DISC = { duration: 200, easing: Easing.out(Easing.ease) };
 
 export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function KindredBar(
   {
     placeholder,
     autocapitalize,
-    canSend,
     onSend,
     onChangeText,
     initialText,
-    sendLabel,
     emojiLabel,
     ideasLabel,
     plusLabel,
@@ -111,38 +107,39 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
   const { t: tk } = useTheme();
   const reduce = useReducedMotion();
   const f = useComposerField(ref, initialText, onChangeText);
-  const { key, capsuleKey, gap, rowHeight, padLeft, padRight, fontSize, lineHeight } = KINDRED_BAR;
+  const { target, icon, disc, capsule, capsulePad, gap, rowHeight, fontSize, lineHeight } = KINDRED_BAR;
 
-  /* Return and the disc: the words as typed. Every caller's model empties the field itself (before
+  /* the keyboard's send: the words as typed. Every caller's model empties the field itself (before
      its first await) and leaves the words alone when it refuses, so the bar never clears on its own
      unless the caller says so by returning nothing */
   const send = () => {
-    if (!f.hasWords || !canSend) return;
+    if (!f.hasWords) return;
     const kept = onSend(f.text.current) === false;
     if (!kept) f.clear();
   };
 
-  /* the keys' grounds: the ideas key on a plain .2s ease, the + with its turn */
+  /* the lav discs fade on a .2s ease; the + turns on its springy curve */
   const ideasP = useSharedValue(ideasOpen ? 1 : 0);
   const plusP = useSharedValue(trayOpen ? 1 : 0);
+  const plusDisc = useSharedValue(trayOpen ? 1 : 0);
   useEffect(() => {
-    ideasP.value = withTiming(ideasOpen ? 1 : 0, reduce ? REDUCED : KEY_FILL);
+    ideasP.value = withTiming(ideasOpen ? 1 : 0, reduce ? REDUCED : DISC);
   }, [ideasOpen, reduce, ideasP]);
   useEffect(() => {
     plusP.value = withTiming(trayOpen ? 1 : 0, reduce ? REDUCED : PLUS_TURN);
-  }, [trayOpen, reduce, plusP]);
-  const open = openKeyFill(tk);
-  const ideasStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(ideasP.value, [0, 1], [tk.sf, open]) }));
-  const plusStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(interpolate(plusP.value, [0, 1], [0, 1], Extrapolation.CLAMP), [0, 1], [tk.sf, open]),
-  }));
+    plusDisc.value = withTiming(trayOpen ? 1 : 0, reduce ? REDUCED : DISC);
+  }, [trayOpen, reduce, plusP, plusDisc]);
+  const ideasDisc = useAnimatedStyle(() => ({ opacity: ideasP.value }));
+  const plusDiscStyle = useAnimatedStyle(() => ({ opacity: plusDisc.value }));
   const plusTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${plusP.value * 45}deg` }] }));
 
-  const round = { width: key, height: key, borderRadius: key / 2, borderWidth: 2, borderColor: tk.ln, alignItems: "center" as const, justifyContent: "center" as const };
-  const rest = { height: key, justifyContent: "center" as const };
+  const keyBox = { width: target, height: target, alignItems: "center" as const, justifyContent: "center" as const };
+  const lavDisc = { position: "absolute" as const, width: disc, height: disc, borderRadius: disc / 2, backgroundColor: tk.lav };
+  // a key's place on the bottom line: centred on the capsule's one-line row as the field grows
+  const onRestingRow = { marginBottom: (capsule - target) / 2 };
 
   return (
-    <View style={[{ flexDirection: "row", alignItems: "flex-end", gap, paddingVertical: (rowHeight - key) / 2 }, style]}>
+    <View style={[{ flexDirection: "row", alignItems: "flex-end", paddingVertical: (rowHeight - capsule) / 2 }, style]}>
       {/* the ideas key */}
       <Pressable
         onPress={onIdeas}
@@ -150,18 +147,17 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
         accessibilityRole="button"
         accessibilityLabel={ideasLabel}
         accessibilityState={{ selected: ideasOpen }}
-        style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
+        style={({ pressed }) => [keyBox, onRestingRow, { transform: [{ scale: pressed ? 0.94 : 1 }] }]}
       >
-        <Animated.View style={[round, ideasStyle]}>
-          <LineIcon name="sparkle" size={24} color={ideasOpen ? BRAND.lime : tk.ink} />
-        </Animated.View>
+        <Animated.View style={[lavDisc, ideasDisc]} />
+        <LineIcon name="sparkle" size={icon} color={tk.ink} />
       </Pressable>
 
-      {/* the capsule: its own ground takes a tap to the field */}
+      {/* the capsule: only the field; its own ground takes a tap to the field */}
       <Pressable
         onPress={() => f.input.current?.focus()}
         accessible={false}
-        style={{ flex: 1, minHeight: key, borderRadius: key / 2, backgroundColor: capsuleFill(tk), paddingLeft: padLeft, paddingRight: padRight, flexDirection: "row", alignItems: "flex-end", gap: 6 }}
+        style={{ flex: 1, minHeight: capsule, marginHorizontal: gap, borderRadius: capsule / 2, backgroundColor: capsuleFill(tk), paddingHorizontal: capsulePad }}
       >
         <GlyphInput
           key={f.seed.n}
@@ -175,6 +171,7 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
           placeholderTextColor={tk.mute}
           multiline
           returnKeyType="send"
+          enablesReturnKeyAutomatically
           submitBehavior="submit"
           onSubmitEditing={send}
           autoCapitalize={autocapitalize ? "sentences" : "none"}
@@ -183,7 +180,6 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
           onBlur={onBlur}
           keyboardAppearance={tk.dark ? "dark" : "light"}
           style={{
-            flex: 1,
             ...f.box(lineHeight, KINDRED_BAR_MAX, KINDRED_BAR_PAD),
             paddingTop: KINDRED_BAR_PAD,
             paddingBottom: KINDRED_BAR_PAD,
@@ -193,15 +189,12 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
             color: tk.ink,
           }}
         />
-        <View style={rest}>
-          <EmojiKey label={emojiLabel} onPress={() => f.input.current?.focus()} side={capsuleKey} circle />
-        </View>
-        {f.hasWords && (
-          <Animated.View style={rest} entering={reduce ? FadeIn.duration(200) : discIn} exiting={FadeOut.duration(150)}>
-            <SendDisc state={canSend ? "enabled" : "disabled"} label={sendLabel} onPress={send} diameter={capsuleKey} fill={tk.ind} />
-          </Animated.View>
-        )}
       </Pressable>
+
+      {/* the emoji key, beside the + */}
+      <View style={onRestingRow}>
+        <EmojiKey label={emojiLabel} onPress={() => f.input.current?.focus()} side={target} circle iconSize={icon} ground={disc} />
+      </View>
 
       {/* the + key */}
       <Pressable
@@ -209,27 +202,17 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
         onAccessibilityEscape={trayOpen ? onCloseTray : undefined}
         accessibilityRole="button"
         accessibilityLabel={trayOpen ? plusCloseLabel : plusLabel}
-        style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
+        style={({ pressed }) => [keyBox, onRestingRow, { transform: [{ scale: pressed ? 0.94 : 1 }] }]}
       >
-        <Animated.View style={[round, plusStyle]}>
-          <Animated.View style={plusTurn}>
-            <LineIcon name="plus" size={22} stroke={2.4} color={trayOpen ? "#FFFFFF" : tk.ink} />
-          </Animated.View>
+        <Animated.View style={[lavDisc, plusDiscStyle]} />
+        {/* 18 long at 2 (LineIcon's plus is 16 of its 22 box) */}
+        <Animated.View style={plusTurn}>
+          <LineIcon name="plus" size={(18 * 22) / 16} stroke={(2 * 16) / 18} color={tk.ink} />
         </Animated.View>
       </Pressable>
     </View>
   );
 });
-
-/** the send disc coming in: from .6 and clear, .2s */
-const DISC_EASE = Easing.out(Easing.ease);
-function discIn() {
-  "worklet";
-  return {
-    initialValues: { opacity: 0, transform: [{ scale: 0.6 }] },
-    animations: { opacity: withTiming(1, { duration: 200, easing: DISC_EASE }), transform: [{ scale: withTiming(1, { duration: 200, easing: DISC_EASE }) }] },
-  };
-}
 
 /** kpopin (Prompts 4 and 6; KChatPopIn): up 10, from .96, from clear, on CSS's default ease — the
     bubble takes .3s, the tray's cards .35s. A Reanimated entering animation; under Reduce Motion
