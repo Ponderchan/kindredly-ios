@@ -52,7 +52,7 @@ import "../../data/strings-step5-notes";
      remembered one and nothing crossfades on launch;
    - the calendar: open or not, the month on show (opens on this month,
      pages between the earliest month with a page and this one), its
-     MonthVM, and the button's six squares. A blur leaves both as they were,
+     MonthVM, and the button's three squares. A blur leaves both as they were,
      so the fallback's calendar mode comes back from a pushed page (or
      another tab) on the month being browsed; the SwiftUI overlay closes
      itself on blur in NotesNative, since it never waits behind a page;

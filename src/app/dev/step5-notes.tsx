@@ -44,7 +44,11 @@ import "../../data/strings-step5-notes";
    - DATA: the demo pages · one page · empty (the empty state; with ON it
      shows the evening off row) · many (360 pages: the render window, the
      date chip, the calendar's paging back a year) · legacy (old mood ids,
-     an unknown and a missing mood: the Calm colour without a name);
+     an unknown and a missing mood: the Calm colour without a name) · rules
+     (the owner's card layouts, 2026-10-18: one page per rule card of his
+     prototype's 1b — the three text sizes, one to nine pictures, words with
+     pictures, a voice note with and without words — plus a short CJK line
+     and a video, to compare side by side);
    - EVENING: none / the card / the off row (answers move between them);
    - ONCE: her first-visit line;
    - PICKER: the composer's new mood picker (four blocks, then the faces);
@@ -60,9 +64,10 @@ import "../../data/strings-step5-notes";
    line, the evening rows. What would leave the page says where it would
    go instead, unless PUSH is on. The panel's words are English: a dev page. */
 
-type Data = "demo" | "one" | "empty" | "many" | "legacy";
+type Data = "demo" | "rules" | "one" | "empty" | "many" | "legacy";
 const DATA: { key: Data; label: string }[] = [
   { key: "demo", label: "DEMO" },
+  { key: "rules", label: "RULES" },
   { key: "one", label: "ONE PAGE" },
   { key: "empty", label: "EMPTY" },
   { key: "many", label: "MANY" },
@@ -92,6 +97,31 @@ function manyPages(films: { landscape: string | null }): JournalEntry[] {
     else if (kind === "video" && films.landscape) out.push({ ...base, type: "video", mediaUri: films.landscape, dur: 2 });
     else out.push({ ...base, type: "text", body: base.body || "ok." });
   }
+  return out;
+}
+
+/** The owner's 1b rule cards as pages (his prototype's words), newest first, plus a short CJK line and a video. */
+function rulePages(films: { landscape: string | null }): JournalEntry[] {
+  const pics = (n: number, seed: string) => Array.from({ length: n }, (_, i) => `https://picsum.photos/seed/kn-${seed}-${i}/${i % 2 ? "700/900" : "900/700"}`);
+  const photo = (id: string, h: number, n: number, mood: MoodId, body = ""): JournalEntry => ({ id: `demo-rule-${id}`, date: ago(h * H), type: "photo", body, mood, media: pics(n, id), mediaUri: pics(n, id)[0] });
+  const text = (id: string, h: number, mood: MoodId, body: string): JournalEntry => ({ id: `demo-rule-${id}`, date: ago(h * H), type: "text", body, mood });
+  const out: JournalEntry[] = [
+    text("short", 1, "content", "Found a four-leaf clover. Left it."),
+    text("mid", 2, "sleepy", "Three cups of coffee and still nothing on the page. Closed the laptop, listened to the neighbour practice scales. Tomorrow."),
+    text("long", 3, "content", "Grandma’s letters are all folded twice. I started doing it too without deciding to. Some habits you don’t choose, they just move in. I wonder which of mine someone will catch themselves doing in forty years, and whether they’ll know where it came from."),
+    photo("p1", 4, 1, "cheerful"),
+    photo("p2", 5, 2, "cheerful"),
+    photo("p3", 6, 3, "cheerful"),
+    photo("p4", 7, 4, "cheerful"),
+    photo("p9", 8, 9, "cheerful"),
+    photo("t1", 9, 1, "cheerful", "Walked the long way home on purpose. The whole block smells like bread."),
+    photo("t3", 10, 3, "content", "Sunday, finally."),
+    photo("t7", 11, 7, "sleepy", "Moved the last boxes today. The flat echoes in a way I didn’t expect and the light comes in from the wrong side now."),
+    { id: "demo-rule-v1", date: ago(12 * H), type: "voice", body: "Didn’t feel like typing. Just wanted to say it out loud once.", mood: "nervous", mediaUri: "https://download.samplelib.com/mp3/sample-6s.mp3", dur: 31 },
+    { id: "demo-rule-v0", date: ago(13 * H), type: "voice", body: "", mood: "nervous", mediaUri: "https://download.samplelib.com/mp3/sample-6s.mp3", dur: 134 },
+    text("zh", 14, "content", "今天终于晴了。"),
+  ];
+  if (films.landscape) out.push({ id: "demo-rule-video", date: ago(15 * H), type: "video", body: "The sea, for nine seconds.", mood: "cheerful", mediaUri: films.landscape, dur: 9 });
   return out;
 }
 
@@ -138,6 +168,8 @@ function NotesLab() {
     const demo = demoJournal({ store: false }).map((e) => (e.id === "demo-j-video" && films.landscape ? { ...e, mediaUri: films.landscape, dur: 2 } : e));
     const portrait: JournalEntry[] = films.portrait ? [{ id: "demo-j-video-portrait", date: ago(30 * H), type: "video", body: "held upright: the triangle points up", mood: "nervous", mediaUri: films.portrait, dur: 2 }] : [];
     switch (data) {
+      case "rules":
+        return rulePages(films);
       case "one":
         return [{ id: "demo-j-one", date: ago(2 * H), type: "text", body: "The first page. Short, and enough.", mood: "content" }];
       case "empty":

@@ -118,22 +118,26 @@ export function ViewIcon({ view, size = 16, color }: { view: NotesView; size?: n
   return <Line d={VIEW_PATH[view]} size={size} color={color} width={2} />;
 }
 
-/** The calendar button's drawing: the page and its rings, with the six little squares of the
-    month's latest days in their groups' ink (empty ones in `empty`) — or in their groups' pale fill
+/** The calendar button's drawing: the page and its rings, with the three little squares of the
+    month's latest days (one row, inside the page below its header line, measured on the drawing's
+    24 grid so they scale with it — the six in two rows used to spill over the outline) in their groups' ink (empty ones in `empty`) — or in their groups' pale fill
     when `onDark` (the squares sit on a dark ground: Midnight's page, or a light theme's filled key),
     where the inks (Tired #3A34D6, Low #3B6E9B) would read as empty slots. KNotesCalendarButton
     makes the same choice. */
 export function CalendarGlyph({ groups, color, empty, onDark = false, size = 20 }: { groups: readonly MoodGroup[]; color: string; empty: string; onDark?: boolean; size?: number }) {
-  const s = size / 20;
+  // the 24 grid: the page is x 3–21, y 5–21 with its header line at 9.5; the row sits centred below it
+  const s = size / 24;
+  const sq = 3.12;
+  const gap = 1.68;
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
         <Rect x={3} y={5} width={18} height={16} rx={3} />
         <Path d="M3 9.5h18 M8 3v3.5 M16 3v3.5" />
       </Svg>
-      <View style={{ position: "absolute", left: 5 * s, top: 11 * s, width: (3 * 3.4 + 2 * 1.4) * s, flexDirection: "row", flexWrap: "wrap", gap: 1.4 * s }}>
-        {Array.from({ length: 6 }, (_, i) => (
-          <View key={i} style={{ width: 3.4 * s, height: 3.4 * s, borderRadius: 1 * s, backgroundColor: groups[i] ? moodColors(groups[i])[onDark ? "fill" : "ink"] : empty }} />
+      <View style={{ position: "absolute", left: (12 - (3 * sq + 2 * gap) / 2) * s, top: (15.25 - sq / 2) * s, flexDirection: "row", gap: gap * s }}>
+        {Array.from({ length: 3 }, (_, i) => (
+          <View key={i} style={{ width: sq * s, height: sq * s, borderRadius: 0.9 * s, backgroundColor: groups[i] ? moodColors(groups[i])[onDark ? "fill" : "ink"] : empty }} />
         ))}
       </View>
     </View>

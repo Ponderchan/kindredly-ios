@@ -232,8 +232,10 @@ struct KNotesViewButton: View {
   }
 }
 
-/// The calendar button: 34 round, the calendar drawing with the month's six latest days in their
-/// groups' ink (empty slots in line), lav while the overlay is open (H:50, H:181, H:347). On a dark
+/// The calendar button: 34 round, the calendar drawing with the month's three latest days in their
+/// groups' ink (empty slots in line) in one row inside the page, measured on the drawing's 24 grid
+/// so they scale with it (six in two rows, placed in points, spilled over the outline; the owner's
+/// card layouts draw three, 2026-10-18), lav while the overlay is open (H:50, H:181, H:347). On a dark
 /// theme the squares take their groups' pale fill instead: the button's face is dark there (sf, or
 /// lav while open), and Tired's and Low's inks (#3A34D6, #3B6E9B) sank into it like empty slots.
 struct KNotesCalendarButton: View {
@@ -247,11 +249,9 @@ struct KNotesCalendarButton: View {
     SwiftUI.Button(action: action) {
       ZStack(alignment: .topLeading) {
         KLineIcon(.calendar, size: 20, lineWidth: 1.8, color: theme.ink)
-        VStack(alignment: .leading, spacing: 1.4) {
-          HStack(spacing: 1.4) { square(0); square(1); square(2) }
-          HStack(spacing: 1.4) { square(3); square(4); square(5) }
-        }
-        .offset(x: 5, y: 11)
+        // the 24 grid: the page is x 3–21, y 5–21, its header line at 9.5; the row centred below it
+        HStack(spacing: Self.gap * Self.unit) { square(0); square(1); square(2) }
+          .offset(x: (12 - (3 * Self.square + 2 * Self.gap) / 2) * Self.unit, y: (15.25 - Self.square / 2) * Self.unit)
       }
       .frame(width: 20, height: 20)
       .frame(width: 34, height: 34)
@@ -265,10 +265,15 @@ struct KNotesCalendarButton: View {
     .accessibilityAddTraits(open ? .isSelected : [])
   }
 
+  /// points per unit of the drawing's 24 grid at 20pt, and the squares' size and gap in units
+  private static let unit: CGFloat = 20 / 24
+  private static let square: CGFloat = 3.12
+  private static let gap: CGFloat = 1.68
+
   private func square(_ i: Int) -> some View {
-    RoundedRectangle(cornerRadius: 1, style: .circular)
+    RoundedRectangle(cornerRadius: 0.9 * Self.unit, style: .circular)
       .fill(i < groups.count ? (theme.isDark ? groups[i].mood.fill : groups[i].mood.ink) : theme.line)
-      .frame(width: 3.4, height: 3.4)
+      .frame(width: Self.square * Self.unit, height: Self.square * Self.unit)
   }
 }
 

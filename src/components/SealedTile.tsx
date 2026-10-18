@@ -4,25 +4,35 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { PF } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import { useTheme } from "../lib/theme";
-import { playbackProgress, type VoicePlayback } from "../lib/voice-playback";
+import { fmt } from "../lib/format";
+import { playbackPosition, playbackProgress, type VoicePlayback } from "../lib/voice-playback";
 import { MoodChip, PlayMark, TypeIcon } from "../screens/notes/notes-glyphs";
-import { isAxFontScale, waveHeight, type NoteVM, type NotesView } from "../screens/notes/notes-model";
+import { NOTE_BARS, isAxFontScale, noteBar, photoTiles, type NoteVM, type NotesView } from "../screens/notes/notes-model";
 
 /* ONE NOTE — the React Native twin of Swift's KNoteCard (10a step 5), for
    the Notes fallback. It draws a NoteVM (screens/notes/notes-model), so
    every word on it is the one the SwiftUI card shows.
 
-   The 10a card (H:55, H:344): the theme's card face, a 1.5 ln outline, no
-   shadow, corners 22 (16 in List). Along the top, the group's colour with
-   its line face (36 on a Card, 28 in Grid and List) and the date in mono —
-   "OCT 14 · 21:37 · Sleepy" on a Card, "OCT 14" in Grid (owner question
-   9), "OCT 14 · Sleepy" in List — and the type icon in ind. Then what it
-   holds: the cover (160 tall, 96 in Grid, +N for the rest), a video's
-   frame with its length, or a voice note's waveform with a small play
-   mark of our own (owner question 10) on the screen's ONE player; then
-   the words — whole on a Card, five lines in Grid, one line in List.
-   Pressed, it dips a point. VoiceOver hears one button with the whole
-   label, and Play / Pause as actions on a voice note.
+   THE CARD (the owner's card layouts, 2026-10-18): one paper for every
+   page — the theme's card face, a 1.5 outline in the soft line colour (not
+   the ink: a diary has one weight and doesn't compete with the letter
+   cards; List's rows wear it too), no shadow, corners 22 — and one head row: the mood square (36,
+   the group's colour and its face), the date and time in mono 11
+   ("OCT 16 · 08:12"), and the kind's icon alone in mute (the owner took
+   the words "TEXT", "3 PHOTOS" off it on 2026-10-18). Then the body, always in this order: the words, the voice
+   bar, the pictures (you read what you wrote before you see what you
+   took). The words come in notes-model's three sizes (textTier): a short
+   line at 24/1.3, 41–140 at 17/1.45,
+   longer at 15/1.5 cut to six lines (the card opens the page for the rest).
+   The pictures follow photoTiles: never a 3×3, at most four tiles, the
+   first always the big one, the rest as +N on the last. The voice bar is
+   48 tall on soft: the ink play disc, 44 bars (noteBar) that light as it
+   plays, the length — the time left while it plays; tapping the bar plays
+   in place, tapping anywhere else opens the page. Grid keeps the same
+   order at Grid's sizes (chip 28, "OCT 14", words 15 in five lines, the
+   pictures at 0.6 of the height, five and more as the 2×2). Pressed, it
+   dips a point. VoiceOver hears one button with the whole label, and Play
+   / Pause as actions on a voice note.
 
    LIST is one row: the colour, the label, the one line, the type icon.
    The label gives way before the words: it is capped (LIST_LABEL_MAX, by
@@ -85,7 +95,8 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
       style={({ pressed }) => ({
         backgroundColor: tk.sf,
         borderWidth: 1.5,
-        borderColor: tk.ln,
+        // one weight for the whole diary, List rows included (owner, 2026-10-18)
+        borderColor: tk.line,
         borderRadius: list ? 16 : 22,
         flexDirection: listRow ? "row" : "column",
         alignItems: listRow ? "center" : "stretch",
@@ -103,25 +114,40 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
       {/* in a List row it shrinks (the label to an ellipsis) before the words do */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 }}>
         <MoodChip group={note.group} icon={note.icon} size={chip.size} radius={chip.radius} face={chip.face} />
-        <Text numberOfLines={1} style={{ flexShrink: 1, maxWidth: listRow ? LIST_LABEL_MAX * fontScale : undefined, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }}>
+        <Text
+          numberOfLines={1}
+          style={
+            list || grid
+              ? { flexShrink: 1, maxWidth: listRow ? LIST_LABEL_MAX * fontScale : undefined, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }
+              : { flex: 1, fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.1, color: tk.sub }
+          }
+        >
           {label}
         </Text>
-        {!listRow && (
+        {grid && (
           <>
             <View style={{ flex: 1 }} />
             <TypeIcon kind={note.kind} color={tk.ind} />
           </>
         )}
+        {/* the kind's icon alone, right-aligned (the owner took the words off it) */}
+        {!list && !grid && <TypeIcon kind={note.kind} size={16} color={tk.mute} />}
       </View>
 
-      {!list && note.kind === "photo" && !!note.photo && (
-        <View style={{ height: grid ? 96 : 160, borderRadius: 12, overflow: "hidden", backgroundColor: tk.soft2 }}>
-          <Image source={{ uri: note.photo }} style={{ width: "100%", height: "100%" }} resizeMode="cover" accessibilityIgnoresInvertColors />
-          {note.photoMore > 0 && <Badge text={`+${note.photoMore}`} />}
-        </View>
-      )}
+      {/* the body, top to bottom: the words, the voice bar, the pictures */}
+      {list ? (
+        <Text numberOfLines={1} style={listRow ? { flex: 1, minWidth: LIST_LINE_MIN, fontSize: 15, lineHeight: 22.5, color: tk.ink } : { fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
+          {note.listLine}
+        </Text>
+      ) : note.textTier !== "none" ? (
+        <Words note={note} grid={grid} />
+      ) : null}
+
+      {!list && voice && <VoiceBar note={note} playback={mine} onToggle={() => onToggleVoice(note.id)} />}
+
+      {!list && note.kind === "photo" && note.photos.length > 0 && <PhotoGrid note={note} grid={grid} />}
       {!list && note.kind === "video" && !!note.video && (
-        <View style={{ height: grid ? 96 : 160, borderRadius: 12, overflow: "hidden", backgroundColor: tk.soft2 }}>
+        <View style={{ height: grid ? 132 : 220, borderRadius: 14, overflow: "hidden", backgroundColor: tk.soft2 }}>
           <VideoTile uri={note.video} />
           <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
             <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: ON_PICTURE_SOFT, alignItems: "center", justifyContent: "center" }}>
@@ -131,17 +157,6 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
           {!!note.duration && <Badge text={note.duration} />}
         </View>
       )}
-      {!list && voice && <VoiceRow note={note} playback={mine} onToggle={() => onToggleVoice(note.id)} />}
-
-      {list ? (
-        <Text numberOfLines={1} style={listRow ? { flex: 1, minWidth: LIST_LINE_MIN, fontSize: 15, lineHeight: 22.5, color: tk.ink } : { fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
-          {note.listLine}
-        </Text>
-      ) : note.body ? (
-        <Text numberOfLines={grid ? 5 : undefined} style={{ fontSize: grid ? 15 : 17, lineHeight: grid ? 22.5 : 25.5, color: tk.ink }}>
-          {note.body}
-        </Text>
-      ) : null}
 
       {listRow && (
         <View style={{ flexShrink: 0 }}>
@@ -171,13 +186,77 @@ function VideoTile({ uri }: { uri: string }) {
   return <VideoView player={player} style={{ width: "100%", height: "100%" }} contentFit="cover" nativeControls={false} pointerEvents="none" />;
 }
 
-/* A voice note: our small play mark, the seeded bars (4 wide, 3 apart,
-   6–34 tall in a 36 box, as many as fit), the length. At rest the bars are
-   ind at .8; while it plays, the played part is ind and the rest .3. The
-   bars move on locally from the player's last transition. */
-function VoiceRow({ note, playback, onToggle }: { note: NoteVM; playback: VoicePlayback | null; onToggle: () => void }) {
+/* The words in their size (notes-model textTier): a short line at 24/1.3,
+   41–140 at 17/1.45, longer at 15/1.5 cut to six lines, all in the system
+   face — serif is for someone else's letter (owner, 2026-10-18). Grid keeps
+   its 15 in five. */
+function Words({ note, grid }: { note: NoteVM; grid: boolean }) {
   const { t: tk } = useTheme();
-  const [w, setW] = useState(0);
+  if (grid) return <Text numberOfLines={5} style={{ fontSize: 15, lineHeight: 22.5, color: tk.ink }}>{note.body.trim()}</Text>;
+  const style =
+    note.textTier === "short"
+      ? { fontSize: 24, lineHeight: 31 }
+      : note.textTier === "mid"
+        ? { fontSize: 17, lineHeight: 24.5 }
+        : { fontSize: 15, lineHeight: 22.5 };
+  return (
+    <Text numberOfLines={note.textTier === "long" ? 6 : undefined} style={{ ...style, color: tk.ink }}>
+      {note.body.trim()}
+    </Text>
+  );
+}
+
+/* The pictures (notes-model photoTiles): 1 a tile; 2 side by side; 3 a big
+   tile left (2fr) and two small; 4 a 2×2; 5+ the big tile and three small,
+   the last under +N. Tiles 4 apart, the block's corners 14. Grid draws them
+   at 0.6 of the height, five and more as the 2×2. The first picture is
+   always the big tile (owner, 2026-10-18). */
+function PhotoGrid({ note, grid }: { note: NoteVM; grid: boolean }) {
+  const { t: tk } = useTheme();
+  const block = photoTiles(note.photoCount, grid);
+  if (!block) return null;
+  const p = note.photos;
+  const tile = (i: number, more = 0) => (
+    <View key={i} style={{ flex: 1, backgroundColor: tk.soft2, overflow: "hidden" }}>
+      {!!p[i] && <Image source={{ uri: p[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" accessibilityIgnoresInvertColors />}
+      {more > 0 && (
+        <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: ON_PICTURE_SOFT, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontFamily: PF.monoSemi, fontSize: 15, color: BRAND.paperWhite }}>+{more}</Text>
+        </View>
+      )}
+    </View>
+  );
+  const col = (children: React.ReactNode, flex = 1) => <View style={{ flex, gap: 4 }}>{children}</View>;
+  const row = (children: React.ReactNode, flex = 1) => <View style={{ flex, flexDirection: "row", gap: 4 }}>{children}</View>;
+  const more = note.photoMore;
+  let inner: React.ReactNode;
+  switch (block.tier) {
+    case 1:
+      inner = tile(0);
+      break;
+    case 2:
+      inner = row([tile(0), tile(1)]);
+      break;
+    case 3:
+      inner = row([<View key="big" style={{ flex: 2 }}>{tile(0)}</View>, <View key="side" style={{ flex: 1, gap: 4 }}>{[tile(1), tile(2)]}</View>]);
+      break;
+    case 4:
+      inner = col([<View key="r1" style={{ flex: 1, flexDirection: "row", gap: 4 }}>{[tile(0), tile(1)]}</View>, <View key="r2" style={{ flex: 1, flexDirection: "row", gap: 4 }}>{[tile(2), tile(3, more)]}</View>]);
+      break;
+    default:
+      inner = row([<View key="big" style={{ flex: 2 }}>{tile(0)}</View>, <View key="side" style={{ flex: 1, gap: 4 }}>{[tile(1), tile(2), tile(3, more)]}</View>]);
+  }
+  return <View style={{ height: block.height, borderRadius: 14, overflow: "hidden" }}>{inner}</View>;
+}
+
+/* The voice bar: 48 tall on soft, corners 14. The ink play disc (32) with a
+   white triangle, two bars while it plays; 44 bars 2.5 wide, 2 apart, 4–13
+   tall from the page's seed (noteBar), ink at .55 and full ink where it has
+   played; the length, or the time left while it plays. The whole bar plays
+   in place (the card's other taps open the page). VoiceOver plays it with
+   the card's action instead, so the bar itself is hidden from it. */
+function VoiceBar({ note, playback, onToggle }: { note: NoteVM; playback: VoicePlayback | null; onToggle: () => void }) {
+  const { t: tk } = useTheme();
   const playing = !!playback?.playing;
   const [, tick] = useState(0);
   useEffect(() => {
@@ -185,26 +264,26 @@ function VoiceRow({ note, playback, onToggle }: { note: NoteVM; playback: VoiceP
     const id = setInterval(() => tick((n) => n + 1), 100);
     return () => clearInterval(id);
   }, [playing]);
-  const progress = playback ? playbackProgress(playback) : 0;
-  const count = w > 0 ? Math.max(1, Math.floor((w + 3) / 7)) : 0;
+  const started = !!playback && (playing || playback.positionS > 0);
+  const progress = started ? playbackProgress(playback) : 0;
+  const left = started && playback ? Math.max(0, Math.ceil(playback.durationS - playbackPosition(playback))) : 0;
+  const time = started && playback && playback.durationS > 0 ? fmt(left) : note.duration;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-      <Pressable
-        onPress={onToggle}
-        hitSlop={9}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        style={({ pressed }) => ({ width: 26, height: 26, borderRadius: 13, backgroundColor: tk.lav, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
-      >
-        <PlayMark playing={playing} size={12} color={tk.ind} />
-      </Pressable>
-      <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ flex: 1, height: 36, flexDirection: "row", alignItems: "center", gap: 3, overflow: "hidden" }}>
-        {Array.from({ length: count }, (_, i) => {
-          const lit = playback && (playing || playback.positionS > 0) ? i / count < progress : null;
-          return <View key={i} style={{ width: 4, height: waveHeight(note.waveSeed, i), borderRadius: 2, backgroundColor: tk.ind, opacity: lit === null ? 0.8 : lit ? 1 : 0.3 }} />;
-        })}
+    <Pressable
+      onPress={onToggle}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={({ pressed }) => ({ height: 48, borderRadius: 14, backgroundColor: tk.soft, flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 8, paddingRight: 12, opacity: pressed ? 0.75 : 1 })}
+    >
+      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: tk.ink, alignItems: "center", justifyContent: "center" }}>
+        <PlayMark playing={playing} size={14} color={tk.bg} />
       </View>
-      {!!note.duration && <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.1, color: tk.sub }}>{note.duration}</Text>}
-    </View>
+      <View style={{ flex: 1, height: 22, flexDirection: "row", alignItems: "center", gap: 2, overflow: "hidden" }}>
+        {Array.from({ length: NOTE_BARS }, (_, i) => (
+          <View key={i} style={{ width: 2.5, height: noteBar(note.waveSeed, i), borderRadius: 2, backgroundColor: tk.ink, opacity: started && i / NOTE_BARS < progress ? 1 : 0.55 }} />
+        ))}
+      </View>
+      {!!time && <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.9, color: tk.sub }}>{time}</Text>}
+    </Pressable>
   );
 }

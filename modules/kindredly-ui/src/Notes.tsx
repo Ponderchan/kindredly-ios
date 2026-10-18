@@ -38,8 +38,11 @@ export type KNotesNote = {
       (Kit/KMoodArtData.swift) on the group's tile; a key with no drawing yet ("" included) draws the
       group's icon. */
   icon: string;
-  /** Card: "OCT 14 · 21:37 · Sleepy" */
+  /** Card's head row: "OCT 14 · 21:37" (no mood name: the square says it) */
   label: string;
+  /** the words' size (notes-model textTier): "none", "short" (24), "mid" (17), "long" (15, six
+      lines); all in the system face */
+  textTier: "none" | "short" | "mid" | "long";
   /** Grid and the date chip: "OCT 14" */
   shortLabel: string;
   /** List: "OCT 14 · Sleepy" */
@@ -47,9 +50,14 @@ export type KNotesNote = {
   body: string;
   /** List's one line */
   listLine: string;
-  /** a photo note's cover; null for none */
+  /** a photo note's cover (the detail page's choice); null for none. The cards draw `photos` */
   photo: KImageRefProps | null;
-  /** +N */
+  /** the pictures the card shows: the first four in the order taken (the first is the big tile);
+      [] off photo notes */
+  photos: KImageRefProps[];
+  /** how many pictures the note holds (notes-model photoTiles picks the layout from it) */
+  photoCount: number;
+  /** the +N on the last tile: the pictures past the four shown; 0 under five */
   photoMore: number;
   /** a video note's local file (Swift makes the frame: kind "videoPoster"); null for none */
   video: KImageRefProps | null;
@@ -153,7 +161,7 @@ export type KNotesViewProps = CommonViewModifierProps &
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
-type NativeNote = Omit<KNotesNote, "photo" | "video"> & { photo: NativeImage; video: NativeImage };
+type NativeNote = Omit<KNotesNote, "photo" | "photos" | "video"> & { photo: NativeImage; photos: NativeImage[]; video: NativeImage };
 
 type NativeKNotesViewProps = Omit<
   KNotesViewProps,
@@ -201,7 +209,7 @@ export function nativeImage(ref: KImageRefProps | null | undefined, kind?: "imag
 
 /** Notes as the Swift records want them (no nulls: a record field can't take one). */
 export function nativeNotes(notes: KNotesNote[]): NativeNote[] {
-  return notes.map((n) => ({ ...n, photo: nativeImage(n.photo), video: nativeImage(n.video, "videoPoster") }));
+  return notes.map((n) => ({ ...n, photo: nativeImage(n.photo), photos: n.photos.map((p) => nativeImage(p)), video: nativeImage(n.video, "videoPoster") }));
 }
 
 // the view's JS name is the Swift struct's name (ios/Adapters/KNotesView.swift)

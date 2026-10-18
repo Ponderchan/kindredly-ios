@@ -3,35 +3,64 @@
 import SwiftUI
 
 /*
- ONE NOTE (10a, H:55 and H:344-345), in the three layouts the Notes header's button cycles:
+ ONE NOTE (10a, H:55 and H:344-345), in the three layouts the Notes header's button cycles. Card
+ and Grid are the owner's card layouts of 2026-10-18 (SealedTile.tsx, the React Native twin, draws
+ the same):
 
-   Card   ┌─────────────────────────────────────────┐   one column; nothing is clamped
-          │ [☺] OCT 14 · 21:37 · Sleepy          ▤  │   the chip 36, the date with the face's name
-          │ ┌─────────────────────────────────────┐ │   a photo or a video's frame, 160 tall
-          │ └─────────────────────────────────────┘ │   (+N for the rest, the length on a video)
-          │ The words, system 17 at 1.5, whole.     │
+   Card   ┌─────────────────────────────────────────┐   one column
+          │ [☺] OCT 16 · 08:12                    ▭ │   the head row: mood square 36, the date and
+          │ Sunday, finally.                        │   time, the kind's icon alone (16, mute)
+          │ ┌──────────────┬──────┐                 │   then the body, always in this order:
+          │ │              ├──────┤                 │   the words, the voice bar, the pictures
+          │ └──────────────┴──────┘                 │   (or a video's frame)
           └─────────────────────────────────────────┘
-   Grid   two to a row, equal heights; chip 28, "OCT 14" only (owner question 9), picture 96, five lines
+   Grid   two to a row, equal heights; chip 28, "OCT 14" only (owner question 9) and the type icon,
+          then the same body at Grid's sizes: the words at 15 in five lines, the pictures at 0.6 of
+          the height (five and more as the 2×2), a video's frame 132
    List   a row: chip 28 · "OCT 14 · Sleepy" · the one line · the type icon (the label, capped,
           truncates before the line does; stacked at accessibility sizes — KNoteListRow)
 
- Every word is TS's (screens/notes/notes-model): the three labels, the one line ("Voice note · 0:35"
- on a voice note with no words), the length, the VoiceOver label. The material is the theme's card
- face with a 1.5 ln outline and no shadow, corners 22 (16 in List).
+ THE PAPER. One for every note: the theme's card face, a 1.5 outline in the soft line colour (not
+ the ink: a diary has one weight and doesn't compete with the letter cards; List's rows wear it
+ too, owner 2026-10-18), no shadow, corners 22 (16 in List), padding 14 16 16 (Grid 12 12 14), 12
+ between the parts (Grid 10).
+
+ THE WORDS come in TS's three sizes (notes-model textTier, weighed the composer's way, CJK as two):
+ a short line (up to 40) at 24 on 31, 41 to 140 at 17 on 24.5, longer at 15 on 22.5 cut to six lines (the card opens
+ the page for the rest). All in the system face: serif is
+ for someone else's letter, a page of your own is in the face you wrote it in (owner, 2026-10-18;
+ the card had set short lines in EB Garamond). A voice note's own words sit above its bar, where the mock puts a
+ transcript (the app has no transcription).
+
+ THE PICTURES (notes-model photoTiles; KNotePhotos): never a 3×3, at most four tiles 4 apart in a
+ block with corners of 14, each filled and cropped; the first picture is always the big tile (owner,
+ 2026-10-18). One: a tile 220 tall. Two: side by side, 160. Three: the big tile on the left (2fr)
+ over both rows, two small on the right, 220. Four: a 2×2, 220. Five and more: the big tile over
+ three rows and three small, 240, the last under the dark ink at .55 with "+N" (the pictures past
+ the four shown) in Plex Mono 600 15, white. A video is one tile at the one-picture size with its
+ frame, the play disc and its length.
+
+ THE VOICE BAR (KNoteVoiceBar): 48 tall on soft, corners 14: the ink play disc (32, the page
+ colour's triangle, two bars while it plays), 44 bars 2.5 wide and 2 apart, 4 to 13 tall from the
+ note's seed (noteBar: the same numbers as TS's notes-model noteBar), ink at .55 and full ink for
+ the part played, and the length in Plex Mono 500 11, the time left while it plays. The whole bar is
+ a button that plays in place; the rest of the card opens the note. Swift never plays audio: the
+ screen's one player is TS's, which reports only its transitions (KNotesDriver.playback); the bars
+ and the time move on locally in a TimelineView in between.
 
  TAPS. The card is a plain view with a tap that opens the note — not a Button, because a voice note
- holds a real button of its own (the small play mark, owner question 10, our own: the mock draws no
- control), and a button inside a button fights over the touch. VoiceOver hears the card as one
- button with TS's whole label, opening on a double tap, and Play / Pause as a named action on a
- voice note (the play mark itself is hidden from it).
+ holds a real button of its own (the bar), and a button inside a button fights over the touch.
+ VoiceOver hears the card as one button with TS's whole label, opening on a double tap, and Play /
+ Pause as a named action on a voice note (the bar itself is hidden from it).
 
- THE VOICE ROW. Bars 4 wide, 3 apart, corners 2, 6-34 tall from the note's seed (waveHeight, the
- same numbers as TS's notes-model waveHeight), as many as fit the width, in a 36 box. At rest they
- are ind at .8; while this note plays (or is paused part-way) the played part is ind and the rest
- .3. Swift never plays audio: the screen's one player is TS's, which reports only its transitions
- (KNotesDriver.playback); the bars move on locally in a TimelineView in between.
+ THE HEAD ROW is the mood square, the label and the kind's icon, right-aligned: 16 in mute on a
+ Card (the owner took the words "TEXT", "3 PHOTOS" off it on 2026-10-18; a new Notes icon set is
+ to come), 18 in ind in Grid and List.
 
- PICTURES come through KImage (KImageStore in the app: ImageIO downsampling to the block's pixels,
+ Every word is TS's (screens/notes/notes-model): the labels, the one line ("Voice note ·
+ 0:35" on a voice note with no words), the length, the VoiceOver label.
+
+ PICTURES come through KImage (KImageStore in the app: ImageIO downsampling to each tile's pixels,
  upright camera photos, HEIC named .jpg; a video's frame made by AVAssetImageGenerator from the
  local file). The block keeps its height while they load.
 
@@ -55,6 +84,18 @@ public enum KNoteKind: String, Sendable {
     case .video: return .video
     }
   }
+}
+
+/// The words' size on a card (TS notes-model textTier). The raw value is TS's.
+public enum KNoteTextTier: String, Sendable {
+  /// no words
+  case empty = "none"
+  /// up to 40: a line at 24
+  case short
+  /// 41 to 140: the system face at 17
+  case mid
+  /// more: 15, cut to six lines
+  case long
 }
 
 /// The three ways the notes lie (the header's button cycles them). The raw value is TS's.
@@ -81,8 +122,10 @@ public struct KNote: Identifiable, Equatable, Sendable {
   /// the mood icon's art key (src/data/moods.ts moodArtKey): "mood-sleepy", "mood-group-low" for a
   /// page that chose only a group; "" draws the group's icon (KMoodChip)
   public let icon: String
-  /// Card: "OCT 14 · 21:37 · Sleepy"
+  /// Card's head row: "OCT 16 · 08:12" (the mood square says the mood)
   public let label: String
+  /// the words' size
+  public let textTier: KNoteTextTier
   /// Grid and the date chip: "OCT 14"
   public let shortLabel: String
   /// List: "OCT 14 · Sleepy"
@@ -90,9 +133,14 @@ public struct KNote: Identifiable, Equatable, Sendable {
   public let body: String
   /// List's one line: the first line of the words, or what the note holds
   public let listLine: String
-  /// a photo note's cover
+  /// a photo note's cover, the detail page's choice (the cards draw `photos`)
   public let photo: KImageRef?
-  /// how many more photos than the cover (+N)
+  /// the pictures a card shows: the first four in the order taken, the first the big tile (nil for
+  /// one whose file is gone: its tile stays, empty)
+  public let photos: [KImageRef?]
+  /// how many pictures the note holds (KNotePhotos picks the layout from it)
+  public let photoCount: Int
+  /// the +N on the last tile: the pictures past the four shown (5 → +1, 9 → +5); 0 under five
   public let photoMore: Int
   /// a video note's frame (a .videoPoster ref to the local file)
   public let video: KImageRef?
@@ -104,17 +152,20 @@ public struct KNote: Identifiable, Equatable, Sendable {
   /// VoiceOver: the long date, the time, the face's name, what it is, the start of the words
   public let a11yLabel: String
 
-  public init(id: String, kind: KNoteKind, group: KMoodGroup, icon: String = "", label: String, shortLabel: String, listLabel: String, body: String, listLine: String, photo: KImageRef?, photoMore: Int, video: KImageRef?, duration: String, playable: Bool, waveSeed: UInt32, a11yLabel: String) {
+  public init(id: String, kind: KNoteKind, group: KMoodGroup, icon: String = "", label: String, textTier: KNoteTextTier, shortLabel: String, listLabel: String, body: String, listLine: String, photo: KImageRef?, photos: [KImageRef?] = [], photoCount: Int = 0, photoMore: Int, video: KImageRef?, duration: String, playable: Bool, waveSeed: UInt32, a11yLabel: String) {
     self.id = id
     self.kind = kind
     self.group = group
     self.icon = icon
     self.label = label
+    self.textTier = textTier
     self.shortLabel = shortLabel
     self.listLabel = listLabel
     self.body = body
     self.listLine = listLine
     self.photo = photo
+    self.photos = photos
+    self.photoCount = max(0, photoCount)
     self.photoMore = max(0, photoMore)
     self.video = video
     self.duration = duration
@@ -131,6 +182,9 @@ public struct KNote: Identifiable, Equatable, Sendable {
     case .list: return listLabel
     }
   }
+
+  /// The words as a card shows them (TS draws body.trim()).
+  var words: String { body.trimmingCharacters(in: .whitespacesAndNewlines) }
 }
 
 /// What the screen's one player is doing with one note, as TS reports it on each transition.
@@ -149,8 +203,13 @@ public struct KNotesPlayback: Equatable, Sendable {
 }
 
 public struct KNoteCard: View, Equatable {
+  /// Grid's and List's date: mono 600 11 at .12em
   static let label = KTextStyle.mono(11, .semibold, tracking: 0.12)
-  static let cardBody = KTextStyle.system(17, lineHeight: 1.5)
+  /// Card's date: mono 500 11 at .1em
+  static let cardLabel = KTextStyle.mono(11, .medium, tracking: 0.1)
+  /// the words: short (the system face when it holds CJK), mid, long; Grid and List at 15
+  static let shortBody = KTextStyle.system(24, lineHeight: 31.0 / 24.0)
+  static let midBody = KTextStyle.system(17, lineHeight: 24.5 / 17.0)
   static let smallBody = KTextStyle.system(15, lineHeight: 1.5)
 
   let theme: KTheme
@@ -192,10 +251,13 @@ public struct KNoteCard: View, Equatable {
 
   public var body: some View {
     content
+      // React Native counts the 1.5 outline inside the card's padding box
       .padding(padding)
+      .padding(1.5)
       .frame(maxWidth: .infinity, maxHeight: layout == .grid ? .infinity : nil, alignment: .topLeading)
       .background { shape.fill(theme.sf) }
-      .overlay { shape.strokeBorder(theme.ln, lineWidth: 1.5) }
+      // one weight for the whole diary: the soft line on Card, Grid and List (owner, 2026-10-18)
+      .overlay { shape.strokeBorder(theme.line, lineWidth: 1.5) }
       .contentShape(shape)
       .onTapGesture { actions.onOpen(note.id) }
       .accessibilityElement(children: .ignore)
@@ -212,52 +274,186 @@ public struct KNoteCard: View, Equatable {
       KNoteListRow(theme: theme, note: note)
     case .card, .grid:
       VStack(alignment: .leading, spacing: layout == .grid ? 10 : 12) {
-        HStack(alignment: .center, spacing: 10) {
-          KMoodChip(group: note.group, icon: note.icon, metrics: layout == .grid ? .compact : .card)
-          labelText
-          Spacer(minLength: 0)
-          KLineIcon(note.kind.glyph, size: 18, lineWidth: 2, color: theme.ind)
+        head
+        // the body, top to bottom: the words, the voice bar, the pictures (or a video's frame)
+        if note.textTier != .empty && !note.words.isEmpty {
+          words
+        }
+        if voice {
+          KNoteVoiceBar(theme: theme, note: note, driver: driver) { actions.onToggleVoice(note.id) }
         }
         media
-        if !note.body.isEmpty {
-          Text(note.body)
-            .kText(layout == .grid ? Self.smallBody : Self.cardBody)
-            .foregroundStyle(theme.ink)
-            .lineLimit(layout == .grid ? 5 : nil)
-            .multilineTextAlignment(.leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
       }
     }
   }
 
-  private var labelText: some View {
-    Text(note.label(for: layout))
-      .kText(Self.label)
-      .foregroundStyle(theme.sub)
-      .lineLimit(1)
-      .truncationMode(.tail)
+  /// the mood square, the date, and the kind's icon (Card: 16 in mute; Grid: 18 in ind)
+  private var head: some View {
+    HStack(alignment: .center, spacing: 10) {
+      KMoodChip(group: note.group, icon: note.icon, metrics: layout == .grid ? .compact : .card)
+      if layout == .grid {
+        Text(note.shortLabel)
+          .kText(Self.label)
+          .foregroundStyle(theme.sub)
+          .lineLimit(1)
+          .truncationMode(.tail)
+        Spacer(minLength: 0)
+        KLineIcon(note.kind.glyph, size: 18, lineWidth: 2, color: theme.ind)
+      } else {
+        Text(note.label)
+          .kText(Self.cardLabel)
+          .foregroundStyle(theme.sub)
+          .lineLimit(1)
+          .truncationMode(.tail)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        KLineIcon(note.kind.glyph, size: 16, lineWidth: 2, color: theme.mute)
+      }
+    }
+  }
+
+  /// The words in their size (see THE WORDS); Grid keeps 15 in five lines.
+  @ViewBuilder
+  private var words: some View {
+    let text = Text(note.words)
+    Group {
+      if layout == .grid {
+        text
+          .kText(Self.smallBody)
+          .lineLimit(5)
+      } else {
+        switch note.textTier {
+        case .short:
+          text.kText(Self.shortBody)
+        case .mid:
+          text.kText(Self.midBody)
+        case .long, .empty:
+          text
+            .kText(Self.smallBody)
+            .lineLimit(6)
+        }
+      }
+    }
+    .foregroundStyle(theme.ink)
+    .truncationMode(.tail)
+    .multilineTextAlignment(.leading)
+    .fixedSize(horizontal: false, vertical: true)
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   @ViewBuilder
   private var media: some View {
-    let height: CGFloat = layout == .grid ? 96 : 160
     switch note.kind {
     case .photo:
-      if let photo = note.photo {
-        KNotePicture(theme: theme, ref: photo, height: height, badge: note.photoMore > 0 ? "+\(note.photoMore)" : "", playMark: false)
+      if !note.photos.isEmpty, let block = KNotePhotos.Block(count: note.photoCount, grid: layout == .grid) {
+        KNotePhotos(theme: theme, photos: note.photos, more: note.photoMore, block: block)
       }
     case .video:
       if let video = note.video {
-        KNotePicture(theme: theme, ref: video, height: height, badge: note.duration, playMark: true)
+        KNotePicture(theme: theme, ref: video, height: layout == .grid ? 132 : 220, badge: note.duration, playMark: true)
       }
-    case .voice:
-      if note.playable {
-        KNoteVoiceRow(theme: theme, note: note, driver: driver) { actions.onToggleVoice(note.id) }
-      }
-    case .text:
+    case .voice, .text:
       EmptyView()
+    }
+  }
+}
+
+/// The picture block (see THE PICTURES): the tiles laid out the way TS's photoTiles and the
+/// prototype's CSS grid lay them (columns 2fr 1fr, rows of equal height, 4 apart), each tile
+/// filled and cropped at its own size.
+struct KNotePhotos: View {
+  /// the dark ink over the last tile, and +N on it
+  static let moreFill = KBrand.inkOnBrand.opacity(0.55)
+  static let moreText = KTextStyle.mono(15, .semibold)
+  static let gap: CGFloat = 4
+
+  /// TS's photoTiles: the tier (5 is the big tile and three small) and the block's height.
+  struct Block: Equatable {
+    let tier: Int
+    let height: CGFloat
+
+    /// nil for no pictures; Grid scales every height by 0.6 and draws five and more as the 2×2
+    init?(count n: Int, grid: Bool) {
+      guard n > 0 else { return nil }
+      tier = n >= 5 ? (grid ? 4 : 5) : n
+      let base: CGFloat = tier == 2 ? 160 : tier == 5 ? 240 : 220
+      height = grid ? (base * 0.6).rounded() : base
+    }
+  }
+
+  let theme: KTheme
+  let photos: [KImageRef?]
+  let more: Int
+  let block: Block
+
+  var body: some View {
+    Color.clear
+      .frame(maxWidth: .infinity)
+      .frame(height: block.height)
+      .overlay(alignment: .topLeading) {
+        GeometryReader { geo in
+          let rects = Self.rects(tier: block.tier, size: geo.size)
+          ForEach(Array(rects.enumerated()), id: \.offset) { index, rect in
+            tile(index, size: rect.size, more: index == rects.count - 1 ? more : 0)
+              .offset(x: rect.minX, y: rect.minY)
+          }
+        }
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 14, style: .circular))
+      .accessibilityHidden(true)
+  }
+
+  private func tile(_ index: Int, size: CGSize, more: Int) -> some View {
+    let ref = index < photos.count ? photos[index] : nil
+    return KImage(ref, size: size, placeholder: theme.soft2)
+      .frame(width: size.width, height: size.height)
+      .clipped()
+      .overlay {
+        if more > 0 {
+          ZStack {
+            Self.moreFill
+            Text(verbatim: "+\(more)")
+              .kText(Self.moreText)
+              .foregroundStyle(KBrand.paperWhite)
+              .lineLimit(1)
+          }
+        }
+      }
+  }
+
+  /// Each tile's frame in a block of `size`: 1 one; 2 two columns; 3 the big tile (2fr) over two
+  /// rows and two small (1fr); 4 a 2×2; 5 the big tile over three rows and three small.
+  static func rects(tier: Int, size: CGSize) -> [CGRect] {
+    let w = size.width, h = size.height, g = gap
+    let half = (w - g) / 2
+    let big = (w - g) * 2 / 3, small = (w - g) / 3
+    switch tier {
+    case 1:
+      return [CGRect(x: 0, y: 0, width: w, height: h)]
+    case 2:
+      return [CGRect(x: 0, y: 0, width: half, height: h), CGRect(x: half + g, y: 0, width: half, height: h)]
+    case 3:
+      let row = (h - g) / 2
+      return [
+        CGRect(x: 0, y: 0, width: big, height: h),
+        CGRect(x: big + g, y: 0, width: small, height: row),
+        CGRect(x: big + g, y: row + g, width: small, height: row),
+      ]
+    case 4:
+      let row = (h - g) / 2
+      return [
+        CGRect(x: 0, y: 0, width: half, height: row),
+        CGRect(x: half + g, y: 0, width: half, height: row),
+        CGRect(x: 0, y: row + g, width: half, height: row),
+        CGRect(x: half + g, y: row + g, width: half, height: row),
+      ]
+    default:
+      let row = (h - 2 * g) / 3
+      return [
+        CGRect(x: 0, y: 0, width: big, height: h),
+        CGRect(x: big + g, y: 0, width: small, height: row),
+        CGRect(x: big + g, y: row + g, width: small, height: row),
+        CGRect(x: big + g, y: 2 * (row + g), width: small, height: row),
+      ]
     }
   }
 }
@@ -354,8 +550,8 @@ struct KCapWidth: Layout {
   }
 }
 
-/// A photo's cover or a video's frame: full width, `height` tall, corners 12, filled and clipped;
-/// a badge at the bottom right (+N, a length) and, on a video, the play mark in the middle.
+/// A video's frame: full width, `height` tall, corners 14, filled and clipped; the play mark in the
+/// middle and its length at the bottom right.
 struct KNotePicture: View {
   /// the badges sit on the picture in the same dark ink in every theme
   static let badgeFill = KBrand.inkOnBrand.opacity(0.72)
@@ -377,7 +573,7 @@ struct KNotePicture: View {
           KImage(ref, size: geo.size, placeholder: theme.soft2)
         }
       }
-      .clipShape(RoundedRectangle(cornerRadius: 12, style: .circular))
+      .clipShape(RoundedRectangle(cornerRadius: 14, style: .circular))
       .overlay {
         if playMark {
           KLineIcon(.play, size: 14, lineWidth: 0, color: KBrand.paperWhite)
@@ -401,84 +597,107 @@ struct KNotePicture: View {
   }
 }
 
-/// A voice note's row: the small play mark (a real button, hidden from VoiceOver: the card carries
-/// Play / Pause), the bars, the length. Observes the driver, so a playback change redraws only the
-/// voice rows.
-struct KNoteVoiceRow: View {
+/// A voice note's bar (see THE VOICE BAR): one button, hidden from VoiceOver (the card carries
+/// Play / Pause). Observes the driver, so a playback change redraws only the voice bars.
+struct KNoteVoiceBar: View {
+  /// the length, and the time left while it plays: mono 500 11 at .08em
+  static let timeStyle = KTextStyle.mono(11, .medium, tracking: 0.9 / 11)
+
   let theme: KTheme
   let note: KNote
   @ObservedObject var driver: KNotesDriver
   let onToggle: () -> Void
 
-  /// the mark's 26 disc, inside a 44 target that takes nothing from the row's layout
-  static let disc: CGFloat = 26
-  static let slop: CGFloat = 9
-
   var body: some View {
     let mine = driver.playback?.key == note.id ? driver.playback : nil
-    let playing = (mine?.playback.playing ?? false) && !(mine?.failed ?? false)
-    HStack(alignment: .center, spacing: 12) {
-      SwiftUI.Button(action: onToggle) {
-        KLineIcon(playing ? .pause : .play, size: 12, lineWidth: 0, color: theme.ind)
-          .frame(width: Self.disc, height: Self.disc)
-          .background(Circle().fill(theme.lav))
-          .padding(Self.slop)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(KFadePressStyle())
-      .padding(-Self.slop)
-      .accessibilityHidden(true)
-
+    let failed = mine?.failed ?? false
+    let playing = (mine?.playback.playing ?? false) && !failed
+    SwiftUI.Button(action: onToggle) {
       TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !playing)) { context in
-        let active = mine.map { $0.playback.playing || $0.playback.positionS > 0 } ?? false
-        KVoiceWave(seed: note.waveSeed, progress: active ? mine?.playback.progress(at: context.date) : nil, color: theme.ind)
-      }
-
-      if !note.duration.isEmpty {
-        Text(note.duration)
-          .kText(.monoAction)
-          .foregroundStyle(theme.sub)
-          .lineLimit(1)
-          .fixedSize()
+        let playback = failed ? nil : mine?.playback
+        let started = playback.map { $0.playing || $0.positionS > 0 } ?? false
+        let progress = started ? (playback?.progress(at: context.date) ?? 0) : 0
+        HStack(alignment: .center, spacing: 12) {
+          KLineIcon(playing ? .pause : .play, size: 14, lineWidth: 0, color: theme.bg)
+            .frame(width: 32, height: 32)
+            .background(Circle().fill(theme.ink))
+          KNoteBars(seed: note.waveSeed, progress: started ? progress : nil, color: theme.ink)
+          let time = Self.timeText(note: note, playback: playback, started: started, at: context.date)
+          if !time.isEmpty {
+            Text(time)
+              .kText(Self.timeStyle)
+              .foregroundStyle(theme.sub)
+              .lineLimit(1)
+              .fixedSize()
+          }
+        }
+        .padding(.leading, 8)
+        .padding(.trailing, 12)
+        .frame(maxWidth: .infinity)
+        .frame(height: 48)
+        .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.soft))
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .circular))
       }
     }
+    .buttonStyle(KNoteBarPressStyle())
+    .accessibilityHidden(true)
+  }
+
+  /// The length; the time left while it plays or is paused part-way (TS: fmt(ceil(left))).
+  static func timeText(note: KNote, playback: KPlayback?, started: Bool, at now: Date) -> String {
+    guard started, let playback, playback.durationS > 0 else { return note.duration }
+    return KVoiceCard.clock(max(0, playback.durationS - playback.position(at: now)).rounded(.up))
   }
 }
 
-/// The seeded bars, drawn in one Canvas.
-struct KVoiceWave: View {
+/// React Native's pressed bar: .75 while held.
+private struct KNoteBarPressStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label.opacity(configuration.isPressed ? 0.75 : 1)
+  }
+}
+
+/// The voice bar's 44 seeded bars, drawn in one Canvas: 2.5 wide, 2 apart, from the left, in a strip
+/// 22 tall that clips them when it is narrow.
+struct KNoteBars: View {
+  static let count = 44
+  static let width: CGFloat = 2.5
+  static let gap: CGFloat = 2
+
   let seed: UInt32
   /// 0...1 while this note plays or is paused part-way; nil at rest
   let progress: Double?
   let color: Color
 
-  /// Bar `i`'s height (6...34) from the seed: the same arithmetic as TS's notes-model waveHeight,
-  /// so both renderers draw the same bars (seed 12345 gives 32, 29, 18, 18, 28).
-  static func height(seed: UInt32, index i: Int) -> CGFloat {
+  /// Bar `i`'s height (6...34) from the seed: the same arithmetic as TS's notes-model waveHeight
+  /// (seed 12345 gives 32, 29, 18, 18, 28).
+  static func waveHeight(seed: UInt32, index i: Int) -> Int {
     var x = seed &+ (UInt32(truncatingIfNeeded: i + 1) &* 0x9e37_79b1)
     x = (x ^ (x >> 16)) &* 0x85eb_ca6b
     x = (x ^ (x >> 13)) &* 0xc2b2_ae35
     x = x ^ (x >> 16)
-    return 6 + CGFloat(x % 29)
+    return 6 + Int(x % 29)
+  }
+
+  /// Bar `i`'s height on a card (4...13): TS's notes-model noteBar, waveHeight folded into the
+  /// owner's 4–13 (seed 12345 gives 10, 7, 6, 6, 6).
+  static func height(seed: UInt32, index i: Int) -> CGFloat {
+    CGFloat(4 + (waveHeight(seed: seed, index: i) - 6) % 10)
   }
 
   var body: some View {
     Canvas { context, size in
-      let count = max(1, Int((size.width + 3) / 7))
-      for i in 0..<count {
+      for i in 0..<Self.count {
+        let x = CGFloat(i) * (Self.width + Self.gap)
+        if x >= size.width { break }
         let h = min(size.height, Self.height(seed: seed, index: i))
-        let rect = CGRect(x: CGFloat(i) * 7, y: (size.height - h) / 2, width: 4, height: h)
-        let opacity: Double
-        if let progress {
-          opacity = Double(i) / Double(count) < progress ? 1 : 0.3
-        } else {
-          opacity = 0.8
-        }
-        context.fill(Path(roundedRect: rect, cornerRadius: 2, style: .circular), with: .color(color.opacity(opacity)))
+        let rect = CGRect(x: x, y: (size.height - h) / 2, width: Self.width, height: h)
+        let played = progress.map { Double(i) / Double(Self.count) < $0 } ?? false
+        context.fill(Path(roundedRect: rect, cornerRadius: min(2, Self.width / 2), style: .circular), with: .color(color.opacity(played ? 1 : 0.55)))
       }
     }
     .frame(maxWidth: .infinity)
-    .frame(height: 36)
+    .frame(height: 22)
     .clipped()
     .accessibilityHidden(true)
   }

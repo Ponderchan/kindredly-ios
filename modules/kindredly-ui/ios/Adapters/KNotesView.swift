@@ -17,12 +17,16 @@ import ExpoUI
  Props, beyond KScreenProps (insets.top = the status bar the screen draws its strip for,
  insets.tabBarRoom = the floating bar the bottom fade and the last note clear):
  - strings: KNotesStringsRecord (every word that isn't on a note; weekdays as an array)
- - notes: [{ id, kind, group, icon, label, shortLabel, listLabel, body, listLine, photo,
-   photoMore, video, duration, playable, waveSeed, a11y }] — the window TS sends (60, then 60
-   more), newest first; icon is the mood icon's art key (moods.ts moodArtKey: "mood-sleepy",
-   "mood-group-low"; KMoodChip draws the group's icon for one it has no drawing for, "" included);
-   photo and video are image refs ({ uri, key, kind }; uri "" for none; video's kind is
-   "videoPoster"). Converted once per rev.
+ - notes: [{ id, kind, group, icon, label, textTier, shortLabel, listLabel, body,
+   listLine, photo, photos, photoCount, photoMore, video, duration, playable, waveSeed, a11y }] —
+   the window TS sends (60, then 60 more), newest first; icon is the mood icon's art key (moods.ts
+   moodArtKey: "mood-sleepy", "mood-group-low"; KMoodChip draws the group's icon for one it has no
+   drawing for, "" included); label is Card's "OCT 16 · 08:12", textTier none | short | mid | long
+   the words' size (the owner's card layouts, 2026-10-18; all in the system face); photo (the detail page's cover), each of photos (the first four in the
+   order taken) and video are image refs ({ uri, key, kind }; uri "" for none; video's kind is
+   "videoPoster"); photoCount is how many pictures the note holds and photoMore the +N past the four
+   shown. A bundle from before the card layouts (no textTier, no photos) still draws: its words as
+   mid, its cover as the one picture. Converted once per rev.
  - hasMore: more notes lie past the window
  - empty: no notes at all (the empty state)
  - view: card | grid | list
@@ -66,12 +70,21 @@ struct KNoteRecord: Record {
   @Field var group: String = "calm"
   /// the mood icon's art key ("mood-sleepy", "mood-group-low"); "" from a bundle that sends none
   @Field var icon: String = ""
+  /// Card: "OCT 16 · 08:12"
   @Field var label: String = ""
+  /// none | short | mid | long; "" from a bundle that sends none
+  @Field var textTier: String = ""
   @Field var shortLabel: String = ""
   @Field var listLabel: String = ""
   @Field var body: String = ""
   @Field var listLine: String = ""
+  /// the detail page's cover
   @Field var photo: KImageRefRecord = KImageRefRecord()
+  /// the pictures the card shows, the first four in the order taken
+  @Field var photos: [KImageRefRecord] = []
+  /// how many pictures the note holds
+  @Field var photoCount: Int = 0
+  /// the +N on the last tile: the pictures past the four shown
   @Field var photoMore: Int = 0
   /// a video note's file, kind "videoPoster"
   @Field var video: KImageRefRecord = KImageRefRecord()
@@ -83,18 +96,25 @@ struct KNoteRecord: Record {
 
   var note: KNote {
     let video = KImageRef(uri: self.video.uri, key: self.video.key, kind: .videoPoster)
+    let cover = photo.ref
+    // a bundle from before the card layouts sends no photos: its cover is the one picture
+    let legacy = photos.isEmpty && photoCount == 0 && cover != nil
+    let hasWords = !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     return KNote(
       id: id,
       kind: KNoteKind(rawValue: kind) ?? .text,
       group: KMoodGroup.from(group),
       icon: icon,
       label: label,
+      textTier: KNoteTextTier(rawValue: textTier) ?? (hasWords ? .mid : .empty),
       shortLabel: shortLabel,
       listLabel: listLabel,
       body: body,
       listLine: listLine,
-      photo: photo.ref,
-      photoMore: photoMore,
+      photo: cover,
+      photos: legacy ? [cover] : photos.map(\.ref),
+      photoCount: legacy ? 1 : photoCount,
+      photoMore: legacy ? 0 : photoMore,
       video: video,
       duration: duration,
       playable: playable,

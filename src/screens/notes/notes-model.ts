@@ -1,6 +1,7 @@
 import type { JournalEntry, JournalType } from "../../lib/journal";
 import { MOOD_GROUPS, moodArtKey, moodGroup, resolveMood, type MoodGroup, type MoodId } from "../../data/moods";
 import { hashStr } from "../../lib/mosaic";
+import { weightedCount } from "../../lib/weighted-count";
 
 /* THE NOTES TAB, AS DATA (10a step 5). Pure: no React, no React Native,
    no i18n — every word and date comes in through `fmt`, so
@@ -17,18 +18,35 @@ import { hashStr } from "../../lib/mosaic";
      faces; a page that chose only a group is in that group; an unknown or
      missing mood is Calm), its icon's art key (moods moodArtKey: the face,
      or the group's own icon for a group alone and for no readable mood)
-     and, after the date, the mood's name (moods moodLabel: the face's own,
-     or the group's for a group alone) — in Card ("OCT 14 · 21:37 · Sleepy",
-     "OCT 14 · 21:37 · Low") and List ("OCT 14 · Sleepy"), not in Grid
-     ("OCT 14": owner question 9), always for VoiceOver, and never when no
-     mood was ever stored;
+     and the mood's name (moods moodLabel: the face's own, or the group's
+     for a group alone) — after the date in List ("OCT 14 · Sleepy"), never
+     in Card ("OCT 14 · 21:37": the mood square says it, the owner's card
+     layouts of 2026-10-18) or Grid ("OCT 14": owner question 9), always for
+     VoiceOver, and never when no mood was ever stored;
    - its one line for List: the first line of its words, or what it holds
      ("Voice note · 0:35", "3 pictures", "a video");
-   - its media: the cover of a photo page (the picture coverIndex names, the
-     one the detail page's "make it the cover" picks; +N for the rest), the file of
-     a video (a poster is made from it) or a voice page (played by the one
+   - its media: a photo page's pictures in the order they were taken (the
+     first is always the big tile — owner, 2026-10-18; the cover the detail
+     page's "make it the cover" picks stays the detail page's), the file of a
+     video (a poster is made from it) or a voice page (played by the one
      player), each only on the page type that has it — on a voice or video
      page mediaUri is the recording, never a picture.
+
+   THE CARD (the owner's Notes card layouts, 2026-10-18). Every card is the
+   same paper and the same head row — the mood square, "OCT 16 · 08:12",
+   and the kind's icon alone (the owner took the words off it: no "TEXT",
+   "3 PHOTOS"; the icon says it) — and only the body changes with what the
+   page holds, top to bottom: the words, then the voice bar, then the
+   pictures. The words come in three sizes by length (textTier, counted the
+   composer's way, CJK as two — the owner's "Chinese ÷ 2"): up to 40 a line
+   at 24, 41–140 at 17, longer at 15 cut to six lines, all in the system
+   face (serif is for someone else's letter; owner, 2026-10-18). A voice
+   page's own words sit above its bar where the mock puts a transcript (the
+   app has no transcription). The pictures never make a 3×3: one fills the
+   width, two sit side by side, three are one big and two small, four a
+   2×2, five or more one big and three small with the rest as +N on the last
+   (photoTiles; photoMore). The voice bar draws NOTE_BARS bars from the
+   page's seed (noteBar).
 
    THE CALENDAR. One month at a time (buildMonth), paged between the
    earliest month with a page — at most 120 months back, so a bogus old
@@ -119,9 +137,11 @@ export type NoteVM = {
   mood: MoodId;
   /** the icon's art key (moods moodArtKey): "mood-sleepy", "mood-group-low"; Swift draws it */
   icon: string;
-  /** Card: "OCT 14 · 21:37 · Sleepy", "OCT 14 · 21:37 · Low" for a group alone (no name when no
-      mood was ever stored) */
+  /** Card's head row: "OCT 14 · 21:37" (the mood square says the mood; its name is List's and
+      VoiceOver's) */
   label: string;
+  /** the words' size: none (no words), short (≤ 40, a line), mid (41–140), long (> 140, six lines) */
+  textTier: TextTier;
   /** Grid and the floating date chip: "OCT 14" */
   shortLabel: string;
   /** List: "OCT 14 · Sleepy" */
@@ -132,9 +152,15 @@ export type NoteVM = {
   /** listLine is the page's own words, not a summary of its media (both renderers draw either in
       ink, as the mock does; kept so a caller can tell them apart) */
   listLineIsWords: boolean;
-  /** a photo page's cover; null on every other kind */
+  /** a photo page's cover, the detail page's choice; null on every other kind (the cards draw
+      `photos`, first first) */
   photo: string | null;
-  /** how many more photos than the cover (+N) */
+  /** a photo page's pictures as the card shows them: the first four in the order taken (the first
+      is the big tile); [] on every other kind */
+  photos: string[];
+  /** how many pictures the page holds */
+  photoCount: number;
+  /** the +N on the last tile: the pictures past the four shown (5 → +1, 9 → +5); 0 under five */
   photoMore: number;
   /** a video page's file (Swift makes the poster from it) */
   video: string | null;
@@ -151,6 +177,37 @@ export type NoteVM = {
   /** a dev sample page */
   sample: boolean;
 };
+
+/** The words' size on a card (see THE CARD). */
+export type TextTier = "none" | "short" | "mid" | "long";
+
+/** the most a page's words weigh and still read as one large line */
+export const SHORT_MAX = 40;
+/** the most they weigh and still show whole at 17 */
+export const MID_MAX = 140;
+
+/** A page's words' size, weighed the composer's way (weightedCount: CJK and emoji 2, a link 23). */
+export function textTierOf(body: string | null | undefined): TextTier {
+  const s = (body || "").trim();
+  if (!s) return "none";
+  const w = weightedCount(s);
+  return w <= SHORT_MAX ? "short" : w <= MID_MAX ? "mid" : "long";
+}
+
+/** the pictures a card shows at most; the rest ride as +N on the last */
+export const PHOTO_TILES = 4;
+
+/** The card's picture block for n pictures, as both renderers lay it out (the owner's five
+    tiers): 1 one tile 220 tall; 2 side by side 160; 3 a big tile over two rows on the left (2fr)
+    and two small (1fr) 220; 4 a 2×2 220; 5+ the big tile over three rows and three small, 240,
+    the last small one under +N. Grid (two to a row) scales every height by 0.6 and draws 5+ as the
+    2×2 with +N on its last tile. null for no pictures. */
+export function photoTiles(n: number, grid = false): { tier: 1 | 2 | 3 | 4 | 5; height: number } | null {
+  if (n <= 0) return null;
+  const tier = (n >= 5 ? (grid ? 4 : 5) : n) as 1 | 2 | 3 | 4 | 5;
+  const base = tier === 2 ? 160 : tier === 5 ? 240 : 220;
+  return { tier, height: grid ? Math.round(base * 0.6) : base };
+}
 
 /** How many characters of the words VoiceOver reads on a card before the page is opened. */
 export const A11Y_WORDS = 120;
@@ -236,6 +293,7 @@ export function buildNote(e: JournalEntry, fmt: NotesFormat): NoteVM {
   const time = fmt.time(e.date);
   const withName = (s: string) => (name ? `${s} · ${name}` : s);
   const photos = photosOf(e);
+  const tier = textTierOf(e.body);
   const { line, words } = listLineOf(e, fmt);
   const dur = e.type === "voice" || e.type === "video" ? Math.max(0, e.dur || 0) : 0;
   const parts = [fmt.longDate(e.date), time, name, kindWords(e, fmt), a11yWords(e.body)].filter((p) => p.length > 0);
@@ -245,14 +303,17 @@ export function buildNote(e: JournalEntry, fmt: NotesFormat): NoteVM {
     group: moodGroup(e.mood),
     mood: resolveMood(e.mood),
     icon: moodArtKey(e.mood),
-    label: withName(`${day} · ${time}`),
+    label: `${day} · ${time}`,
+    textTier: tier,
     shortLabel: day,
     listLabel: withName(day),
     body: e.body || "",
     listLine: line,
     listLineIsWords: words,
     photo: coverOf(e),
-    photoMore: Math.max(0, photos.length - 1),
+    photos: photos.slice(0, PHOTO_TILES),
+    photoCount: photos.length,
+    photoMore: Math.max(0, photos.length - PHOTO_TILES),
     video: e.type === "video" && e.mediaUri ? e.mediaUri : null,
     voice: e.type === "voice" && e.mediaUri ? e.mediaUri : null,
     durationS: dur,
@@ -280,6 +341,16 @@ export function waveHeight(seed: number, i: number): number {
   x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35) >>> 0;
   x = (x ^ (x >>> 16)) >>> 0;
   return 6 + (x % 29);
+}
+
+/** how many bars a card's voice bar draws (the owner's 44) */
+export const NOTE_BARS = 44;
+
+/** The height (4…13) of bar `i` of a card's voice bar: waveHeight's numbers folded into the
+    owner's 4–13 (KNoteCard.swift computes the same; the test pins a few). Seeded, not sampled: the
+    app keeps no amplitudes for a recording. */
+export function noteBar(seed: number, i: number): number {
+  return 4 + ((waveHeight(seed, i) - 6) % 10);
 }
 
 /* ── the calendar ──────────────────────────────────────────────────────── */
@@ -438,9 +509,12 @@ export function buildMonth(entries: readonly JournalEntry[], ym: YearMonth, now:
   };
 }
 
-/** The calendar button's six little squares: the group of each of this month's latest six days
-    with pages (the day's newest page), oldest to newest. Fewer than six leaves the rest empty. */
-export function recentGroups(entries: readonly JournalEntry[], now: Date, max = 6): MoodGroup[] {
+/** The calendar button's little squares: the group of each of this month's latest three days with
+    pages (the day's newest page), oldest to newest; fewer leave the rest empty. Three in one row,
+    as the owner's card layouts draw the key (2026-10-18): six in two rows spilled out of the
+    drawing at 20pt. */
+export const RECENT_SQUARES = 3;
+export function recentGroups(entries: readonly JournalEntry[], now: Date, max = RECENT_SQUARES): MoodGroup[] {
   const prefix = ymKey(ymOf(now)) + "-";
   const todayKey = dayKey(now);
   const days: { key: string; group: MoodGroup }[] = [];
