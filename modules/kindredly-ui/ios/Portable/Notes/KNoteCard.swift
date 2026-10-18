@@ -78,10 +78,10 @@ public enum KNoteKind: String, Sendable {
   /// The mock's type icon (H:157; video is ours, in the same hand).
   public var glyph: KLineGlyph {
     switch self {
-    case .text: return .text
-    case .photo: return .photo
-    case .voice: return .mic
-    case .video: return .video
+    case .text: return .noteText
+    case .photo: return .notePhoto
+    case .voice: return .noteVoice
+    case .video: return .noteVideo
     }
   }
 }
@@ -107,9 +107,9 @@ public enum KNoteLayout: String, CaseIterable, Sendable {
   /// The view button's icon (H:346).
   public var glyph: KLineGlyph {
     switch self {
-    case .card: return .card
-    case .grid: return .grid
-    case .list: return .list
+    case .card: return .noteCard
+    case .grid: return .noteGrid
+    case .list: return .noteList
     }
   }
 }

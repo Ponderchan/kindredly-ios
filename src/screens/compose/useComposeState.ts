@@ -202,7 +202,9 @@ export function traySections(p: { suggested: string[]; recent: string[]; tk: The
       const st = getStamp(id);
       if (!st) return null;
       const name = sname(st.name);
-      return { id, name: name.toUpperCase(), inkHex: channelColors(st.color, p.tk.soft).ink, a11yLabel: name };
+      // the name under a stamp in lower case, as its #name pill and the letter's tag say it (owner,
+      // 2026-10-18); the set titles stay in capitals as the tray's headings
+      return { id, name: name.toLowerCase(), inkHex: channelColors(st.color, p.tk.soft).ink, a11yLabel: name };
     },
   });
 }

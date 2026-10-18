@@ -266,7 +266,8 @@ export function StampTray({
       .map((id) => {
         const st = getStamp(id);
         const name = sname(st?.name);
-        return { id, name: name.toUpperCase(), inkHex: channelColors(st?.color, tk.soft).ink, a11yLabel: name };
+        // lower case, as the #name pill says it (owner, 2026-10-18); the set titles stay in capitals
+        return { id, name: name.toLowerCase(), inkHex: channelColors(st?.color, tk.soft).ink, a11yLabel: name };
       });
   return (
     <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>

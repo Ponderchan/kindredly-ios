@@ -46,7 +46,7 @@ struct KNotesEmpty: View {
         .padding(.bottom, 34)
       HStack(spacing: 2) {
         key(glyph: .pen, label: strings.textKeyUpper, a11y: strings.textKey, tint: palette.keyText) { actions.onCompose("text") }
-        key(glyph: .mic, label: strings.voiceKeyUpper, a11y: strings.voiceKey, tint: palette.keyVoice) { actions.onCompose("voice") }
+        key(glyph: .noteVoice, label: strings.voiceKeyUpper, a11y: strings.voiceKey, tint: palette.keyVoice) { actions.onCompose("voice") }
       }
     }
     .padding(.horizontal, 26)

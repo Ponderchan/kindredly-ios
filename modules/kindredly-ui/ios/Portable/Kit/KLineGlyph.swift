@@ -73,6 +73,24 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   /// three bulleted lines: the List view
   case list
 
+  // Notes' own set (the owner's pick, 2026-10-18; .claude/notes-icons/final): desk objects in the 10a hand
+  /// a dog-eared page with a handwritten line (the text type)
+  case noteText
+  /// an instant photo, tilted, with a hill and a sun (the photo type)
+  case notePhoto
+  /// a desk microphone (the voice type)
+  case noteVoice
+  /// a cine camera (the video type)
+  case noteVideo
+  /// two stacked cards, the 10a hard shadow behind: the Card view
+  case noteCard
+  /// four rounded tiles: the Grid view
+  case noteGrid
+  /// three lines with square bullets: the List view
+  case noteList
+  /// a desk calendar, its header solid, with room for three mood squares (KNotesCalendarButton draws them)
+  case noteCalendar
+
   // ── Me, Settings and Edit profile (H:71, 72, 81, 91) ──
   /// the pencil (Edit profile, write back)
   case pen
@@ -271,6 +289,14 @@ enum KLineGlyphTable {
     case .card: return Drawing(stroke: [.d("M4 5h16v6H4z M4 13h16v6H4z")])
     case .grid: return Drawing(stroke: [.d("M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z")])
     case .list: return Drawing(stroke: [.d("M8 6h12 M8 12h12 M8 18h12 M4 6h.01 M4 12h.01 M4 18h.01")])
+    case .noteText: return Drawing(stroke: [.d("M13 3H7.5A2.5 2.5 0 0 0 5 5.5V18.5A2.5 2.5 0 0 0 7.5 21H16.5A2.5 2.5 0 0 0 19 18.5V9Z"), .d("M13 3V7A2 2 0 0 0 15 9H19"), .d("M8.5 12.8Q10.25 11.4 12 12.8T15.5 12.8"), .d("M8.5 16.8H13")])
+    case .notePhoto: return Drawing(stroke: [.d("M4.76 6.34Q4.45 3.86 6.93 3.55L14.87 2.58Q17.35 2.27 17.66 4.76L19.24 17.66Q19.55 20.14 17.07 20.45L9.13 21.42Q6.65 21.73 6.34 19.24Z")], fill: [.d("M8.72 14.42Q8.27 14.47 8.22 14.03L8.13 13.33Q8.08 12.88 8.27 12.48L9.73 9.44Q9.92 9.03 10.24 9.35L12.24 11.31Q12.56 11.63 12.88 11.32L13.68 10.55Q14 10.24 14.37 10.5L15.61 11.36Q15.98 11.61 16.04 12.06L16.16 13.05Q16.21 13.5 15.77 13.55Z"), .d("M15.17 7.12A1.15 1.15 0 1 1 12.87 7.12A1.15 1.15 0 1 1 15.17 7.12Z")])
+    case .noteVoice: return Drawing(stroke: [.d("M12 2.9A3.6 3.6 0 0 1 15.6 6.5V9.8A3.6 3.6 0 0 1 8.4 9.8V6.5A3.6 3.6 0 0 1 12 2.9Z"), .d("M8.4 7.9H15.6"), .d("M5.5 10.4A6.5 6.5 0 0 0 18.5 10.4"), .d("M12 16.9V19")], fill: [.d("M8.3 21.7Q8.3 19 12 19Q15.7 19 15.7 21.7Z")])
+    case .noteVideo: return Drawing(stroke: [.d("M5.15 10H13.75A2.2 2.2 0 0 1 15.95 12.2V18.3A2.2 2.2 0 0 1 13.75 20.5H5.15A2.2 2.2 0 0 1 2.95 18.3V12.2A2.2 2.2 0 0 1 5.15 10Z"), .d("M9.35 6A2.6 2.6 0 1 1 4.15 6A2.6 2.6 0 1 1 9.35 6Z"), .d("M14.85 6.6A2 2 0 1 1 10.85 6.6A2 2 0 1 1 14.85 6.6Z"), .d("M15.95 13.6L21.05 11V19.5L15.95 16.9")])
+    case .noteCard: return Drawing(stroke: [.d("M6 4.5H15A2.5 2.5 0 0 1 17.5 7V14A2.5 2.5 0 0 1 15 16.5H6A2.5 2.5 0 0 1 3.5 14V7A2.5 2.5 0 0 1 6 4.5Z"), .d("M17 6.5A2.5 2.5 0 0 1 19.5 9V16A2.5 2.5 0 0 1 17 18.5H8A2.5 2.5 0 0 1 5.5 16")], fill: [.d("M7.4 7.5H8.85A0.9 0.9 0 0 1 9.75 8.4V9.85A0.9 0.9 0 0 1 8.85 10.75H7.4A0.9 0.9 0 0 1 6.5 9.85V8.4A0.9 0.9 0 0 1 7.4 7.5Z")])
+    case .noteGrid: return Drawing(stroke: [.d("M5.75 4H8.25A1.75 1.75 0 0 1 10 5.75V8.25A1.75 1.75 0 0 1 8.25 10H5.75A1.75 1.75 0 0 1 4 8.25V5.75A1.75 1.75 0 0 1 5.75 4Z"), .d("M15.75 4H18.25A1.75 1.75 0 0 1 20 5.75V8.25A1.75 1.75 0 0 1 18.25 10H15.75A1.75 1.75 0 0 1 14 8.25V5.75A1.75 1.75 0 0 1 15.75 4Z"), .d("M5.75 14H8.25A1.75 1.75 0 0 1 10 15.75V18.25A1.75 1.75 0 0 1 8.25 20H5.75A1.75 1.75 0 0 1 4 18.25V15.75A1.75 1.75 0 0 1 5.75 14Z"), .d("M15.75 14H18.25A1.75 1.75 0 0 1 20 15.75V18.25A1.75 1.75 0 0 1 18.25 20H15.75A1.75 1.75 0 0 1 14 18.25V15.75A1.75 1.75 0 0 1 15.75 14Z")])
+    case .noteList: return Drawing(stroke: [.d("M10.5 6H20.5"), .d("M10.5 12H18"), .d("M10.5 18H19.25")], fill: [.d("M4.2 4.2H5.8A1 1 0 0 1 6.8 5.2V6.8A1 1 0 0 1 5.8 7.8H4.2A1 1 0 0 1 3.2 6.8V5.2A1 1 0 0 1 4.2 4.2Z"), .d("M4.2 10.2H5.8A1 1 0 0 1 6.8 11.2V12.8A1 1 0 0 1 5.8 13.8H4.2A1 1 0 0 1 3.2 12.8V11.2A1 1 0 0 1 4.2 10.2Z"), .d("M4.2 16.2H5.8A1 1 0 0 1 6.8 17.2V18.8A1 1 0 0 1 5.8 19.8H4.2A1 1 0 0 1 3.2 18.8V17.2A1 1 0 0 1 4.2 16.2Z")])
+    case .noteCalendar: return Drawing(stroke: [.d("M6 5H18A3 3 0 0 1 21 8V17.5A3 3 0 0 1 18 20.5H6A3 3 0 0 1 3 17.5V8A3 3 0 0 1 6 5Z"), .d("M8 2.5V6M16 2.5V6")], fill: [.d("M6 5H18A3 3 0 0 1 21 8V10H3V8A3 3 0 0 1 6 5Z")])
 
     case .pen: return Drawing(stroke: [.d("M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z")])
     case .sliders:

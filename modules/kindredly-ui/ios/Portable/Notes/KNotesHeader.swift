@@ -248,10 +248,10 @@ struct KNotesCalendarButton: View {
   var body: some View {
     SwiftUI.Button(action: action) {
       ZStack(alignment: .topLeading) {
-        KLineIcon(.calendar, size: 20, lineWidth: 1.8, color: theme.ink)
-        // the 24 grid: the page is x 3–21, y 5–21, its header line at 9.5; the row centred below it
+        KLineIcon(.noteCalendar, size: 20, lineWidth: 1.8, color: theme.ink)
+        // the drawing's own three slots on its 24 grid (x 5 / 10.2 / 15.4, y 13), filled with the moods
         HStack(spacing: Self.gap * Self.unit) { square(0); square(1); square(2) }
-          .offset(x: (12 - (3 * Self.square + 2 * Self.gap) / 2) * Self.unit, y: (15.25 - Self.square / 2) * Self.unit)
+          .offset(x: 5 * Self.unit, y: 13 * Self.unit)
       }
       .frame(width: 20, height: 20)
       .frame(width: 34, height: 34)
@@ -267,11 +267,11 @@ struct KNotesCalendarButton: View {
 
   /// points per unit of the drawing's 24 grid at 20pt, and the squares' size and gap in units
   private static let unit: CGFloat = 20 / 24
-  private static let square: CGFloat = 3.12
-  private static let gap: CGFloat = 1.68
+  private static let square: CGFloat = 3.6
+  private static let gap: CGFloat = 1.6
 
   private func square(_ i: Int) -> some View {
-    RoundedRectangle(cornerRadius: 0.9 * Self.unit, style: .circular)
+    RoundedRectangle(cornerRadius: 1 * Self.unit, style: .circular)
       .fill(i < groups.count ? (theme.isDark ? groups[i].mood.fill : groups[i].mood.ink) : theme.line)
       .frame(width: Self.square * Self.unit, height: Self.square * Self.unit)
   }
