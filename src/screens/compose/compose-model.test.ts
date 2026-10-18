@@ -219,6 +219,17 @@ ok("sections: a repeated id once", sections[0].items.length === 2);
 ok("sections: an emptied section isn't sent", !sections.some((s) => s.title === "RECENT" || s.title === "TWO"));
 ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
 
+/* ── the tray's names: one line wherever it fits (owner, 2026-10-18) ── */
+{
+  const room = 62; // a wide phone's column less its 3 + 3
+  ok("tray name: a short name, one line at 9", JSON.stringify(M.trayNameFit("crush", room)) === JSON.stringify({ size: 9, lines: 1 }));
+  ok("tray name: 11 glyphs fit at 9 (11 × 5.4 + 10 × .2 = 61.4)", M.trayNameFit("can't sleep", room).size === 9 && M.trayNameFit("can't sleep", room).lines === 1);
+  ok("tray name: off my chest (12) drops to 8 rather than wrap", JSON.stringify(M.trayNameFit("off my chest", room)) === JSON.stringify({ size: 8, lines: 1 }));
+  ok("tray name: never told anyone wraps to two lines at 9, never cut", JSON.stringify(M.trayNameFit("never told anyone", room)) === JSON.stringify({ size: 9, lines: 2 }));
+  ok("tray name: a CJK glyph is a whole em (6 at 9 fit, 7 don't at 9 but do at 8)",
+    M.trayNameFit("眠れない夜だ", room).size === 9 && M.trayNameFit("眠れない夜だよ", room).size === 8 && M.trayNameFit("眠れない夜だよね", room).lines === 2);
+}
+
 if (fails) {
   console.log(`\n${fails} FAILED`);
   process.exit(1);

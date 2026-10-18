@@ -33,7 +33,7 @@ import { PF } from "../../theme/post";
      The landing wall's scatter is the web's and is drawn flat here.
    - FALLBACK: an id this build doesn't know (the template in #8B7FE8) at XS, M and L, and the
      dot.
-   - ALL 36: every stamp at the tray's 40×48 on both surfaces, six to a row, a row per category.
+   - ALL 36: every stamp at the tray's 30×36 on both surfaces, six to a row, a row per category.
    - SWIFT: the module's gallery (KGalleryHost) after all of it. Until the Swift renderer step
      its STAMPS section still draws the v1 art (KStampArt); it is kept here so the two can be
      compared once KStamp lands. A binary without KindredlyUI says so instead.
@@ -131,7 +131,7 @@ function StampArtPage() {
         </View>
 
         <View onLayout={mark("all")} style={{ paddingHorizontal: 16, paddingTop: 24, gap: 12 }}>
-          <Head>ALL {STAMPS.length} · TRAY 40×48 · A ROW PER CATEGORY</Head>
+          <Head>ALL {STAMPS.length} · TRAY 30×36 · A ROW PER CATEGORY</Head>
           {SURFACES.map((k) => (
             <AllSheet key={k} theme={k} />
           ))}

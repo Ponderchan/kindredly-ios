@@ -297,3 +297,27 @@ export function stampSections(p: {
   }
   return out;
 }
+
+/* A TRAY NAME'S SIZE (the owner, 2026-10-18: most names on one line). The tray's names are set in
+   the mono, whose every Latin glyph is 0.6 em wide (a CJK or other wide glyph a whole em), so
+   whether a name fits its column is arithmetic, not a measurement: one line at 9 if it fits, else
+   one line at 8, else two lines at 9 — never cut short. The SwiftUI tray asks the same question of
+   the real text (ViewThatFits in KStampTray); this is React Native's answer. `room` is the
+   column's width in pt. */
+export const TRAY_NAME_SIZES = [9, 8] as const;
+const TRAY_NAME_TRACKING = 0.2;
+const wideGlyph = (cp: number): boolean =>
+  (cp >= 0x1100 && cp <= 0x115f) || (cp >= 0x2e80 && cp <= 0xa4cf) || (cp >= 0xac00 && cp <= 0xd7a3) || (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0xfe30 && cp <= 0xfe4f) || (cp >= 0xff00 && cp <= 0xff60) || (cp >= 0xffe0 && cp <= 0xffe6);
+export function trayNameWidth(name: string, size: number): number {
+  let ems = 0;
+  let glyphs = 0;
+  for (const ch of name) {
+    ems += wideGlyph(ch.codePointAt(0) ?? 0) ? 1 : 0.6;
+    glyphs++;
+  }
+  return ems * size + Math.max(0, glyphs - 1) * TRAY_NAME_TRACKING;
+}
+export function trayNameFit(name: string, room: number): { size: number; lines: 1 | 2 } {
+  for (const size of TRAY_NAME_SIZES) if (trayNameWidth(name, size) <= room) return { size, lines: 1 };
+  return { size: TRAY_NAME_SIZES[0], lines: 2 };
+}

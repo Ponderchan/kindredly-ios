@@ -300,8 +300,9 @@ export const STAMP_LADDER = Object.freeze({
   /** the compose page's stamp corner: 40×48 at the App Store page's 8° (owner, 2026-10-18: the
       compose page keeps its App Store look; this replaces the spec's 0° top slot) */
   composeCorner: at(40, 8),
-  /** the stamp tray tile (iOS KStampTray, web Write): M, 6 columns */
-  trayTile: at(40),
+  /** the stamp tray tile (iOS KStampTray, web Write): S, 30×36, 6 columns (owner, 2026-10-18:
+      the App Store tray's size; 40×48 was too big for a picker of 36) */
+  trayTile: at(30),
   /** My letters rows (iOS + web): S, 0° */
   myLettersRow: at(25),
   /** Drafts (iOS + web): S, 0° */

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, ScrollView, Text, View } from "react-native";
+import { Animated, Easing, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
@@ -8,6 +8,7 @@ import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
 import { Stamp } from "./Stamp";
 import { STAMP_LADDER } from "../lib/stamp-frame";
+import { trayNameFit } from "../screens/compose/compose-model";
 
 /* THE TWO ROUND KEYS UNDER THE LETTER, AND WHAT THEY OPEN.
    ────────────────────────────────────────────────────────────────────────
@@ -208,10 +209,13 @@ export type TraySection = { title: string; items: TrayStamp[] };
    against the tray it sits on (channelColors), so a deep stamp's name still
    reads on Midnight's dark tray.
 
-   Each tile is the stamp itself at the ladder's trayTile, 40×48 (stamps
-   v2, 2026-10-18): your own stamp, so flat, and nothing framed round it —
-   a stamp is never put inside another tile's border. The picked one keeps
-   the selection it always had, the pen ring 2pt out from its edge. */
+   Each tile is the stamp itself at the ladder's trayTile, 30×36 (the
+   owner, 2026-10-18: the App Store tray's size; 40×48 read too big for a
+   picker of 36): your own stamp, so flat, and nothing framed round it — a
+   stamp is never put inside another tile's border. The picked one keeps
+   the selection it always had, the pen ring 2pt out from its edge. Its
+   name sits on one line wherever it fits (at 9, else 8; compose-model
+   trayNameFit), and only a name that fits neither wraps to two lines. */
 const TILE = STAMP_LADDER.trayTile;
 
 export function StampTray({
@@ -229,8 +233,12 @@ export function StampTray({
 }) {
   const P = useP();
   const { t: tk } = useTheme();
+  // a name's room: the column (the tray's width less its two 10 gutters, over six) less 3 either
+  // side, so two neighbours' names never read as one (can't sleep made my day)
+  const room = (useWindowDimensions().width - 20) / COLS - 6;
   const tile = (it: TrayStamp, sectionKey: string) => {
     const on = selected === it.id;
+    const fit = trayNameFit(it.name, room);
     return (
       <Pressable
         key={`${sectionKey}:${it.id}`}
@@ -244,9 +252,9 @@ export function StampTray({
         <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
           <Stamp id={it.id} width={TILE.w} />
         </View>
-        {/* its name, in its own ink — a stamp is a word as much as a picture; two lines, as
-            NEVER TOLD ANYONE and MI HA FATTO LA GIORNATA need */}
-        <Text numberOfLines={2} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: 58, textAlign: "center" }}>
+        {/* its name, in its own ink — a stamp is a word as much as a picture; one line where it
+            fits, two only for the long ones (never told anyone, mi ha fatto la giornata) */}
+        <Text numberOfLines={fit.lines} style={{ fontFamily: PF.monoMed, fontSize: fit.size, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: room, textAlign: "center" }}>
           {it.name}
         </Text>
       </Pressable>

@@ -174,7 +174,7 @@ ok("Today card: 50×60, tilt from the letter (owner, 2026-10-18)", same(L.todayC
 ok("compose corner: 40×48 at the App Store page's 8° (owner, 2026-10-18)", same(L.composeCorner, { w: 40, h: 48, tilt: 8 }));
 const TIER_OF: Partial<Record<keyof typeof L, Tier>> = {
   introEnvelope: "chip", liveActivityIsland: "xs", liveActivityLock: "s", routeStop: "xs", chosenPill: "xs", composeKey: "xs",
-  composeCorner: "m", trayTile: "m", myLettersRow: "s", draftsRow: "s", kindredBeganUnder: "m", todayCard: "m", readerHead: "m",
+  composeCorner: "m", trayTile: "s", myLettersRow: "s", draftsRow: "s", kindredBeganUnder: "m", todayCard: "m", readerHead: "m",
   firstClassBanner: "m", firstClassCard: "l", meYourStamps: "l", preview: "l", shareCard: "xl", landingWall: "l",
   spokeInline: "m", spokeFeature: "l", guideReelSmall: "s", guideReelMedium: "m", guideReelLarge: "m",
 };

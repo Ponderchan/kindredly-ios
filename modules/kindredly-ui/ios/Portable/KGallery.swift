@@ -26,7 +26,7 @@ import SwiftUI
  flat; then delivered at 40 to 120, tilted by the golden letter ids), on Classic
  and on Midnight whatever theme the gallery is in; every PLACEMENT of KStampLadder at its own
  size and rule in this theme (the compose corner empty and filled); the FALLBACK chain; and ALL
- 36 at the tray's 40×48 on both surfaces.
+ 36 at the tray's 30×36 on both surfaces.
 
  It is as tall as its content and as wide as it is offered, so it sits in a Host that matches
  its contents vertically. It doesn't scroll by itself; the page around it does.
@@ -675,7 +675,7 @@ public struct KGallery: View {
         KStamp(id: "no-such-stamp", width: 9, dark: theme.isDark)
         KStamp(id: "growing", width: 9, dark: theme.isDark)
       }
-      stampHead("ALL \(KStampArt.ids.count) · TRAY 40×48 · A ROW PER CATEGORY")
+      stampHead("ALL \(KStampArt.ids.count) · TRAY 30×36 · A ROW PER CATEGORY")
         .padding(.top, 12)
       stampSheet(.classic)
       stampSheet(.midnight)
@@ -774,7 +774,7 @@ public struct KGallery: View {
       .fixedSize(horizontal: false, vertical: true)
   }
 
-  /// Every stamp on one surface at the tray's 40×48: six to a row (a row is a category, in
+  /// Every stamp on one surface at the tray's 30×36: six to a row (a row is a category, in
   /// stamps.ts order), spread edge to edge on the theme's tray colour (soft), in a panel of its
   /// page colour (the dev page's AllSheet).
   private func stampSheet(_ sheet: KTheme) -> some View {

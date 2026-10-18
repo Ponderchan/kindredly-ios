@@ -371,8 +371,9 @@ public enum KStampLadder {
   public static let composeKey = KStampPlacement("composeKey", 20)
   /// the compose page's stamp corner: 40×48 at the App Store page's 8° (owner, 2026-10-18)
   public static let composeCorner = KStampPlacement("composeCorner", 40, .fixed(8))
-  /// the stamp tray tile (KStampTray, web Write): M, 6 columns
-  public static let trayTile = KStampPlacement("trayTile", 40)
+  /// the stamp tray tile (KStampTray, web Write): S, 30×36, 6 columns (owner, 2026-10-18: the
+  /// App Store tray's size; 40×48 was too big for a picker of 36)
+  public static let trayTile = KStampPlacement("trayTile", 30)
   /// My letters rows: S, 0°
   public static let myLettersRow = KStampPlacement("myLettersRow", 25)
   /// Drafts: S, 0°
