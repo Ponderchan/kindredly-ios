@@ -4,10 +4,15 @@ import SwiftUI
 
 /*
  TODAY'S SHARED TYPES (Today 3d × 25b, build contract §3.0). What TS sends (KTodayContent and the
- pieces in it), the live state the small views each observe (the dock, the voice, the deck, the
- drag), where the desk's taps go (KTodayActions) and the motion every Today piece times itself by
- (KTodayMotion). The deck, the band, Wren, the done flow and the desk all code against exactly
- these; nothing here draws.
+ pieces in it), the live state the small views each observe (the dock, the reply's room, the voice,
+ the deck, the drag), where the desk's taps go (KTodayActions) and the motion every Today piece
+ times itself by (KTodayMotion). The deck, the band, Wren, the done flow and the desk all code
+ against exactly these; nothing here draws.
+
+ The reply's room (KReplyStage, the chat composers' A1, owner 2026-10-18) is what the desk reads
+ of reply mode: the dock keeps the field and TS's composer to itself, so typing never redraws the
+ desk, and hands the desk only whether the reader is writing back, the keyboard and the bar's
+ height, which is all it needs to fade the band and shrink the card.
  */
 
 // MARK: - What TS sends
@@ -103,6 +108,8 @@ public struct KTodayLabels: Equatable, Sendable {
   public var send = ""
   /// "write back…": the field's placeholder when the shown card has none of its own
   public var placeholder = ""
+  /// VoiceOver: the reply bar's emoji key ("Emoji keyboard")
+  public var emoji = ""
   /// the offline cold start's card
   public var offlineTitle = ""
   public var offlineBody = ""
@@ -251,25 +258,30 @@ public struct KTodayComposer: Equatable, Sendable {
 // MARK: - Live state (each read only by the small views that need it)
 
 /// The dock's state: the field, what TS says about it, focus and the keyboard. Read by the dock alone,
-/// so a keystroke never redraws the cards.
+/// so a keystroke never redraws the cards; what the desk needs of it is in `stage`.
 public final class KTodayDock: ObservableObject {
   /// the reply field; the adapter blurs it before the view goes (FocusableView)
   public let reply = KFieldController()
+  /// what the desk reads of the reply (reply mode, the keyboard, the bar's height): its own object,
+  /// so TS's composer, per keystroke, never redraws the desk
+  public let stage = KReplyStage()
   @Published public private(set) var composer = KTodayComposer()
   @Published public private(set) var focused = false
   /// a send was pressed and TS hasn't answered it yet: the dock stays hidden (Wren carries it: KWireWren)
   @Published private(set) var awaitingSend = false
-  /// focused with no software keyboard (a hardware one): the strip sits on the band's line instead
-  @Published private(set) var hardwareKeyboard = false
   /// the dock layer's height (it respects the keyboard) and the desk layer's (it doesn't)
-  @Published var respectingHeight: CGFloat = 0
-  @Published var fullHeight: CGFloat = 0
+  @Published var respectingHeight: CGFloat = 0 {
+    didSet { stage.setKeyboard(keyboardInset) }
+  }
+  @Published var fullHeight: CGFloat = 0 {
+    didSet { stage.setKeyboard(keyboardInset) }
+  }
   private(set) var pressSerial = 0
-  private var focusSerial = 0
 
   public init() {}
 
-  /// the keyboard's overlap at the bottom of the Host (0 while it is down)
+  /// the keyboard's overlap at the bottom of the Host (0 while it is down, and with a hardware
+  /// keyboard, which has none)
   var keyboardInset: CGFloat { max(0, fullHeight - respectingHeight) }
 
   /// TS's composer command.
@@ -294,21 +306,44 @@ public final class KTodayDock: ObservableObject {
     return pressSerial
   }
 
+  /// The field took or let go of the keyboard: reply mode starts or ends with it (stage.open).
   func setFocused(_ now: Bool) {
     guard now != focused else { return }
     focused = now
-    focusSerial += 1
-    if !now {
-      hardwareKeyboard = false
-      return
-    }
-    // a software keyboard is up within its animation; no inset by then means a hardware one
-    let serial = focusSerial
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-      guard let self, self.focused, self.focusSerial == serial else { return }
-      let hardware = self.keyboardInset < 40
-      if hardware != self.hardwareKeyboard { self.hardwareKeyboard = hardware }
-    }
+    stage.setOpen(now)
+  }
+}
+
+/*
+ THE REPLY'S ROOM ON THE DESK (the chat composers' A1, owner 2026-10-18). Reply mode is the field
+ having the keyboard (`open`): the desk then fades the band out, shrinks the card to make room
+ and sets its letter at the compact size, while the dock raises the bar 12 over the keyboard
+ (KTodayGeometry.replyCardHeight says how tall the card can be). Written by the dock (focus, the
+ keyboard measured from the two layers' heights, the hint and bar measured as drawn); observed by
+ the desk alone. These change only when the keyboard comes or goes, the bar grows or loses a
+ line, or the hint wraps: never per keystroke.
+ */
+public final class KReplyStage: ObservableObject {
+  /// the reply field has the keyboard (a software one or a hardware one): reply mode
+  @Published public private(set) var open = false
+  /// the software keyboard's overlap at the Host's bottom; 0 while it is down or with a hardware keyboard
+  @Published public private(set) var keyboard: CGFloat = 0
+  /// the hint and the bar together, as tall as they are drawn (the bar grows to four lines, the
+  /// hint wraps to two); the bar's hard shadow hangs outside it
+  @Published public private(set) var strip: CGFloat = 0
+
+  public init() {}
+
+  func setOpen(_ now: Bool) {
+    if open != now { open = now }
+  }
+
+  func setKeyboard(_ inset: CGFloat) {
+    if abs(keyboard - inset) > 0.5 { keyboard = inset }
+  }
+
+  func setStrip(_ height: CGFloat) {
+    if abs(strip - height) > 0.5 { strip = height }
   }
 }
 

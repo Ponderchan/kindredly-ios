@@ -102,6 +102,8 @@ export type KTodayStrings = {
   pause: string;
   send: string;
   placeholder: string;
+  /** VoiceOver: the reply bar's emoji key */
+  emoji: string;
   offlineTitle: string;
   offlineBody: string;
   loadingA11y: string;

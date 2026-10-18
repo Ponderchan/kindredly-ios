@@ -33,8 +33,12 @@ import SwiftUI
  left) and what VoiceOver says. Its states:
  - hidden (a send in flight, the reader open, the + open): everything fades out and takes no
    touches (bandFade);
- - typing (the reply field has the keyboard): the whole band slides down 160 (bandSlide; a fade
-   under Reduce Motion), as the tab bar goes under the keyboard;
+ - typing (the reply field has the keyboard, or a send it let go of awaits TS): the same, the
+   whole band at opacity 0 with no touches (bandFade), and nothing moves (the chat composers' A1,
+   owner 2026-10-18: the prototype's opacity 0 + pointer-events none; it used to slide down 160
+   under the keyboard). The tab bar slides away meanwhile, the card shrinks and the reply bar
+   rises (KTodayDesk), and the band fades back in once the keyboard goes and TS has answered a
+   send;
  - done (flow.bandShown false): the buttons and their labels fade and drop 12;
  - not enabled (loading, offline): the buttons at .4 with no touches, nothing in NEXT's disc.
  Taps are also refused while a card is moving (deck.animating: no re-entry) and while typing.
@@ -143,7 +147,7 @@ struct KControlBand: View {
   }
 
   var body: some View {
-    let typing = deck.typing
+    let away = hidden || deck.typing
     let height = KBandLayout.height
     GeometryReader { geo in
       let W = geo.size.width
@@ -151,14 +155,11 @@ struct KControlBand: View {
         .frame(width: W, height: height, alignment: .topLeading)
     }
     .frame(height: height)
-    // the keyboard: down 160 with the tab bar; a fade under Reduce Motion
-    .offset(y: typing && !reduceMotion ? 160 : 0)
-    .opacity(typing && reduceMotion ? 0 : 1)
-    .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: typing)
-    .opacity(hidden ? 0 : 1)
-    .animation(KTodayMotion.bandFade, value: hidden)
-    .allowsHitTesting(!hidden)
-    .accessibilityHidden(hidden)
+    // stepped aside (hidden) or writing back (typing): out of sight and out of reach, in place
+    .opacity(away ? 0 : 1)
+    .animation(KTodayMotion.bandFade, value: away)
+    .allowsHitTesting(!away)
+    .accessibilityHidden(away)
   }
 
   // ── the two buttons ──

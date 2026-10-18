@@ -3,7 +3,8 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Redirect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
+import { Host } from "@expo/ui/swift-ui";
+import { KTabBar, isKindredlyUIViewAvailable, type KTabBarTab } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { PF } from "../../theme/post";
@@ -11,7 +12,8 @@ import { POOL_CACHE_KEY } from "../../lib/db";
 import { deskDay } from "../../lib/day";
 import { unsealDay } from "../../lib/flags";
 import { endAllActivities } from "../../lib/activities";
-import { TabBarSpace, nativeTabBarRoom } from "../../components/NativeTabBar";
+import { TabBarSpace, nativeTabBarReady, nativeTabBarRoom, nativeTabBarSpace } from "../../components/NativeTabBar";
+import { TabBarAway } from "../../lib/screen-insets";
 import { restartRealDay, useTodayCore, type TodayModel } from "../../screens/today/useTodayDesk";
 import { TodayNative } from "../../screens/today/TodayNative";
 import { TodayRN } from "../../screens/today/TodayRN";
@@ -40,7 +42,10 @@ import "../../data/strings-today3d";
    her Live Activity, so nothing here touches the account signed in.
 
    The panel at the bottom (HIDE for a clean screenshot: the desk then
-   leaves the floating tab bar's room, as on the tab; a dot brings it back):
+   leaves the floating tab bar's room, as on the tab, and a stand-in Swift
+   tab bar sits in it — no navigation, its taps do nothing — so writing back
+   shows the bar sliding away and coming back as on the tab, the chat
+   composers' A1; a dot brings the panel back):
    - THEME: the dev theme override (Classic / Midnight / Lavender / Paper,
      OFF = the normal theme), never saved;
    - SWIFT / RN: which renderer (SWIFT needs a dev client built with
@@ -106,6 +111,8 @@ function TodayLab() {
   const [reply, setReply] = useState<DemoReply>("ok");
   const [panel, setPanel] = useState(true);
   const [round, setRound] = useState(0); // RESET: a new fixture deals the day again
+  // the stand-in tab bar, sent away by the desk while it writes back (TabBarAway, as the tabs layout does)
+  const [barAway, setBarAway] = useState(false);
 
   // the day: a mode, dealt again by RESET. A new object deals again (useDemoSource), so only a mode or RESET makes one
   const day = useMemo<DemoDay>(
@@ -175,6 +182,7 @@ function TodayLab() {
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <TabBarAway.Provider value={setBarAway}>
       <TabBarSpace.Provider value={room}>
         <View style={{ flex: 1 }}>
           {/* REOPENED remounts the renderer once the fixture's desk is done, so it opens into a finished desk (at rest) rather than watching it finish */}
@@ -182,6 +190,8 @@ function TodayLab() {
           <TodayOverlays model={model} />
         </View>
       </TabBarSpace.Provider>
+      </TabBarAway.Provider>
+      {!panel && nativeTabBarReady() && <StandInTabBar away={barAway} />}
 
       {panel ? (
         <View style={{ borderTopWidth: 1, borderTopColor: tk.line, backgroundColor: tk.sf, paddingTop: 8, paddingBottom: Math.max(safe.bottom, 8), gap: 6 }}>
@@ -216,6 +226,40 @@ function TodayLab() {
       ) : (
         <Pressable onPress={() => setPanel(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Show the dev panel" style={{ position: "absolute", left: 10, bottom: Math.max(safe.bottom, 10), width: 14, height: 14, borderRadius: 7, backgroundColor: tk.ind, opacity: 0.5 }} />
       )}
+    </View>
+  );
+}
+
+/* the tab bar's look in the room the desk leaves for it (HIDE): the Swift
+   bar as NativeTabBar holds it, Today selected, sent away while the desk
+   writes back. Its taps go nowhere (a dev page has no tabs). */
+const STAND_IN_TABS: KTabBarTab[] = [
+  { glyph: "today", label: "Today" },
+  { glyph: "notes", label: "Notes" },
+  { glyph: "kindreds", label: "Kindreds" },
+  { glyph: "me", label: "Me" },
+];
+
+function StandInTabBar({ away }: { away: boolean }) {
+  const { key: theme, dark } = useTheme();
+  const safe = useSafeAreaInsets();
+  return (
+    <View pointerEvents={away ? "none" : "box-none"} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: nativeTabBarSpace(safe.bottom) }}>
+      <Host style={{ flex: 1 }} pointerEvents="box-none" ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
+        <KTabBar
+          theme={theme}
+          tabs={STAND_IN_TABS}
+          activeIndex={0}
+          panelOpen={false}
+          safeAreaBottom={safe.bottom}
+          plusLabel="Post"
+          closeLabel="Close"
+          panelTitle=""
+          panelCards={[]}
+          panelStyle="pop"
+          barHidden={away}
+        />
+      </Host>
     </View>
   );
 }

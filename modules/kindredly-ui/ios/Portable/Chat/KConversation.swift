@@ -4,9 +4,19 @@ import SwiftUI
 
 /*
  THE CONVERSATION (10a step 5, batch 1): the whole screen of a room with a kindred and of a
- pen-pal chat below the React Native header, in the screen's ONE Host. src/app/room/[id].tsx
- and src/app/chat/[id].tsx draw it through Adapters/KConversationView.swift; the rows are
- KChatRows.swift, the dock KDock.swift, the tray KTraceTray.swift.
+ pen-pal chat, in the screen's ONE Host. src/app/room/[id].tsx and src/app/chat/[id].tsx draw it
+ through Adapters/KConversationView.swift; the rows are KChatRows.swift, the dock KDock.swift
+ (its bars Kit/KReplyBar.swift and KKindredBar.swift), the + tray KTraceTray.swift.
+
+ THE HEADER (chat composers, 2026-10-18): the pen-pal chat before names (A2) and the kindreds
+ chat (B) draw their own (KChatHeader.swift), the first thing in the stack, padded down by the
+ status bar's room (topInset), with the list, the dock and the tray under it. A pen-pal chat
+ already revealed keeps a React Native header above the Host (header nil).
+
+ THE + TRAY (B) comes up under the dock, which rides 12 above it; while it is open a dim lies
+ over the list (KChatTrayScrim) and a tap on it closes the tray. The tray draws under the dock
+ (zIndex), so its soft shadow shows only in the gap above it, as the prototype's does, and the
+ dock is see-through meanwhile (the page under both is the same colour).
 
  LAYOUT (spike-results.md, binding):
  - The dock sits UNDER the list in a VStack, never in a safeAreaInset (iOS 18 counts an inset
@@ -38,12 +48,20 @@ import SwiftUI
    (Verify on a device: the spike measured ~45pt with the top anchor.)
  - Near the top (600pt) asks for older items once per arrival at the top; the end of a window
    that slid away from the newest asks for newer ones.
+ - THE GUTTERS (16) pad each row, never the LazyVStack: the stack spans the scroll view's full
+   width. Padded around the stack, every height change of the list (the keyboard rising, the
+   ideas bubble, the + tray) left it scrolled 16 to the left until the next drag: re-anchoring
+   the bottom after a size change put the scroll target layout's leading edge at the viewport's,
+   and the padding had moved that edge 16 in (measured 2026-10-18 on the iPhone 17 Pro simulator,
+   iOS 26.5: contentOffset.x 16 with a 402 content in a 402 container). Content margins instead
+   of padding shift it the same way (to the margin's 0).
  - A quote jump scrolls the item to the centre and lights it (.5 for 1.4s) and gives it
    VoiceOver's focus once the scroll has settled (lit alone is only visual); an item outside the
    window is jumped to as soon as the owner's wider window arrives.
  - A drag dismisses the keyboard interactively; a tap on the list's empty space puts it away too
-   (it used to: React Native's default). Only empty space: the tap target sits behind the rows,
-   so ANSWER TO OPEN, a quote, the voice disc and every menu keep the keyboard where it is.
+   (it used to: React Native's default), and closes the ideas bubble. Only empty space: the tap
+   target sits behind the rows, so ANSWER TO OPEN, a quote, the voice disc and every menu keep
+   the keyboard (and the bubble) where they are.
  */
 public struct KConversation: View {
   private let theme: KTheme
@@ -55,6 +73,8 @@ public struct KConversation: View {
   private let strings: KChatStrings
   private let birds: KChatBirds
   private let bottomInset: CGFloat
+  private let header: KChatHeaderModel?
+  private let topInset: CGFloat
   private let driver: KConversationDriver
   private let actions: KConversationActions
 
@@ -76,6 +96,8 @@ public struct KConversation: View {
   ///   - strings: the words the rows share
   ///   - birds: Wren's three dock snapshots
   ///   - bottomInset: the home indicator's inset (the Host ignores it)
+  ///   - header: the pen-pal chat's own header, or nil (the React Native one stands above)
+  ///   - topInset: the status bar's room over the header (the Host ignores it)
   ///   - driver: the fields, the live state, scroll requests (lives as long as the screen)
   ///   - actions: where everything the conversation hears goes
   public init(
@@ -88,6 +110,8 @@ public struct KConversation: View {
     strings: KChatStrings,
     birds: KChatBirds,
     bottomInset: CGFloat,
+    header: KChatHeaderModel? = nil,
+    topInset: CGFloat = 0,
     driver: KConversationDriver,
     actions: KConversationActions
   ) {
@@ -100,6 +124,8 @@ public struct KConversation: View {
     self.strings = strings
     self.birds = birds
     self.bottomInset = bottomInset
+    self.header = header
+    self.topInset = topInset
     self.driver = driver
     self.actions = actions
   }
@@ -112,9 +138,14 @@ public struct KConversation: View {
   public var body: some View {
     GeometryReader { geo in
       VStack(spacing: 0) {
+        if let header {
+          KChatHeader(theme: theme, model: header, topInset: topInset, actions: actions)
+        }
         list(width: max(0, geo.size.width - 2 * Self.gutter))
+          .overlay { KChatTrayScrim(theme: theme, driver: driver) }
         KChatDockView(theme: theme, variant: variant, dock: dock, birds: birds, bottomInset: bottomInset, surfaceHeight: geo.size.height, driver: driver, actions: actions)
-        KChatTray(theme: theme, traces: dock.traces, bottomInset: bottomInset, driver: driver, actions: actions)
+        KChatTray(theme: theme, traces: dock.traces, title: dock.trayTitle, bottomInset: bottomInset, driver: driver, actions: actions)
+          .zIndex(-1)
       }
       .background { keyboardProbe }
     }
@@ -168,10 +199,11 @@ public struct KConversation: View {
             voFocus: $voFocus
           )
           .equatable()
+          // the gutters on each row, never around the stack (see THE GUTTERS above)
+          .padding(.horizontal, Self.gutter)
         }
       }
       .scrollTargetLayout()
-      .padding(.horizontal, Self.gutter)
       .padding(.top, 12)
       .padding(.bottom, 12)
       // behind the rows, gutters and gaps: a tap on empty space, never on a row's controls
@@ -186,12 +218,14 @@ public struct KConversation: View {
     .background { dismissTarget }
   }
 
-  /// Empty space that puts the keyboard away when tapped.
+  /// Empty space that puts the keyboard away when tapped, and the ideas bubble ("or elsewhere":
+  /// Prompt 4).
   private var dismissTarget: some View {
     Color.clear
       .contentShape(Rectangle())
       .onTapGesture {
         if driver.body.isFocused || driver.prompt.isFocused { driver.blurAll() }
+        if driver.ideasOpen { withAnimation(.easeOut(duration: 0.2)) { driver.ideasOpen = false } }
       }
       .accessibilityHidden(true)
   }

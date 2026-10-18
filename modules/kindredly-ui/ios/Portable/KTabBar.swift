@@ -186,7 +186,8 @@ public struct KTabBar: View {
   ///   - plusTurn: the curve the + turns to an × on: the 10a sheet's (KMotion.plusTurn) unless the
   ///     holder says otherwise; the publish entry passes KMotion.plusTurnPublish
   ///   - hidden: the bar slides 160 down out of sight (the new reader's publish sheet takes its
-  ///     place), on the publish turn's curve; with Reduce Motion it fades instead
+  ///     place, or Today's reply has the keyboard: KTabStage barHidden), on the publish turn's
+  ///     curve; with Reduce Motion it fades instead
   ///   - onSelect: a tab was tapped, with its index; selected or not
   ///   - onPlus: the + (or ×) was tapped
   public init(

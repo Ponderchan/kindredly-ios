@@ -225,6 +225,22 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("letters carry their time", items[1].timeLabel !== "" && items[0].timeLabel === "");
   ok("letters have no day rules (the label carries the day)", items.every((i) => i.dayLabel === ""));
   ok("letters menus never reply or take back", items.every((i) => !i.menu.some((a) => a.key === "reply" || a.key === "takeBack")));
+  ok("the React Native blocks have no head line", items.every((i) => i.head === ""));
+
+  // the SwiftUI cards (chat composers A2)
+  const cards = B.buildLetterItems(conv, { ...roomCtx(d, { name: "No. 4481" }), time, cards: true });
+  ok("cards: same rows, same keys", cards.length === items.length && cards.every((c, i) => c.key === items[i].key));
+  ok("cards: no label line", cards.every((c) => c.speakerLabel === ""));
+  ok("cards: the opening is where it began", cards[0].head === "KD.WHEREBEGAN · NO. 4481");
+  const own = (mine: boolean) => cards.filter((c, i) => i > 0 && conv[i].mine === mine);
+  ok("cards: mine count 1, 2, 3… from the first after the opening", own(true).every((c, k) => c.head === `CH.CARD.HEAD(N=${k + 1},WHO=UI.YOU)`));
+  ok("cards: theirs count on their own", own(false).every((c, k) => c.head === `CH.CARD.HEAD(N=${k + 1},WHO=NO. 4481)`));
+  ok("cards: the last of five each way is LETTER 5", own(true).length === 5 && own(true)[4].head.includes("N=5") && own(false)[4].head.includes("N=5"));
+  const days = cards.filter((c) => c.dayLabel !== "").map((c) => c.dayLabel);
+  ok("cards: a day rule on the first letter of each day, never twice", days.length > 0 && new Set(days).size === days.length && cards[0].dayLabel === "");
+  ok("cards: the time stays at the foot", cards.slice(1).every((c, i) => c.timeLabel === items[i + 1].timeLabel));
+  const cw = B.windowItems(cards, 4, cards.length, "letters");
+  ok("cards: a window's first letter says its day", cw[0].dayLabel !== "" && cw[0].speakerLabel === "");
 }
 
 /* ── the render window ── */
@@ -303,7 +319,15 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("I went first: waiting", B.buildLettersDock({ ...letters, myCount: 5, iSigned: true, theirSigned: true }).signDoor === "waiting");
   ok("no door on a gone thread", B.buildLettersDock({ ...letters, myCount: 5, gone: true }).signDoor === "none");
   ok("no door once revealed", B.buildLettersDock({ ...letters, myCount: 7, revealed: true }).signDoor === "none");
-  ok("letters placeholder before and after names", B.buildLettersDock(letters).placeholder === "ch.ph" && B.buildLettersDock({ ...letters, revealed: true, name: "Mira" }).placeholder === "th.sayTo(name=Mira)");
+  ok("letters placeholder before and after names: write back…, then a person", B.buildLettersDock(letters).placeholder === "ld.writeBackPh" && B.buildLettersDock({ ...letters, revealed: true, name: "Mira" }).placeholder === "th.sayTo(name=Mira)");
+  ok("the reply bar's emoji key is named", B.buildLettersDock(letters).emojiLabel === "cmp.emoji" && B.buildRoomDock(base).emojiLabel === "cmp.emoji");
+  // the reply bar's hint (A2): the letter being written
+  const hint = (over: Partial<import("./build-items").LettersDockInput>) => B.buildLettersDock({ ...letters, locale: "en-US", ...over }).hint;
+  ok("hint: the letter you are writing is your count + 1", hint({ myCount: 0 }) === "CH.HINT.LETTER(N=1)" && hint({ myCount: 2 }) === "CH.HINT.LETTER(N=3)");
+  ok("hint: your fifth says one more and names", hint({ myCount: 4 }) === "CH.HINT.NAMES(N=5)");
+  ok("hint: your five in, it says what still moves names, never a sixth of five", hint({ myCount: 5, otherCount: 3 }) === "CH.BAND.YOUDONE(N=2)" && hint({ myCount: 6, otherCount: 5 }) === "CH.BAND.NAMES");
+  ok("hint: none once revealed, gone or missing", hint({ revealed: true }) === "" && hint({ gone: true }) === "" && hint({ missing: true }) === "");
+  ok("a room has no reply-bar hint", B.buildRoomDock(base).hint === "");
   ok("letters: no tools, no tray", B.buildLettersDock(letters).wrenToolLabel === "" && B.buildLettersDock(letters).traces.length === 0);
   const lMissing = B.buildLettersDock({ ...letters, myCount: 5, missing: true });
   ok("letters missing: closed in place, no door", lMissing.terminal === "gone" && lMissing.goneText === "fail.closed.body" && lMissing.signDoor === "none");
@@ -333,6 +357,113 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("slow beats offline", B.lettersComposer({ t, text: "x", sending: true, slow: true, offline: true }).status === "net.slow");
   const l = B.lettersComposer({ t, text: "dear stranger", sending: false, slow: false });
   ok("a letter goes and clears itself", l.canSend && l.clearOnSend && l.status === "");
+}
+
+/* ── the pen-pal header (A2) ── */
+{
+  const st = (kind: import("../../lib/thread-state").ThreadStateKind, toneKey: "ind" | "brass" | "mute" = "mute") => ({ kind, toneKey, label: `state.${kind}` });
+  const base: import("./build-items").LettersHeaderInput = {
+    t,
+    locale: "en-US",
+    name: "No. 4481",
+    other: "user-4481",
+    myCount: 3,
+    otherCount: 2,
+    theirSigned: false,
+    state: st("theirTurn"),
+    canOpenPage: false,
+    canReport: true,
+  };
+  const h = B.lettersHeader(base);
+  ok("header: their letter owed is theirs, counted on theirs", h.sub === "CH.HEAD.THEIRS(N=3)" && h.tone === "mute");
+  ok("header: your letter owed is yours, counted on yours", B.lettersHeader({ ...base, state: st("yourTurn", "ind"), myCount: 2, otherCount: 3 }).sub === "CH.HEAD.YOURS(N=3)");
+  ok("header: the dots are the exchanges both ways", h.dots === 2 && B.lettersHeader({ ...base, myCount: 7, otherCount: 9 }).dots === 5);
+  ok("header: once their five are in, the band's line", B.lettersHeader({ ...base, myCount: 3, otherCount: 5 }).sub === "CH.BAND.THEYDONE(N=2)");
+  ok("header: past the letters, the state in its tone", B.lettersHeader({ ...base, myCount: 5, otherCount: 5, state: st("theyWentFirst", "brass") }).sub === "STATE.THEYWENTFIRST" && B.lettersHeader({ ...base, state: st("theyWentFirst", "brass") }).tone === "brass");
+  ok("header: a gone pen pal wears the veil and says so", (() => { const g = B.lettersHeader({ ...base, other: null, state: st("gone") }); return g.veil && g.mask === 0 && g.frame === "none" && g.sub === "STATE.GONE"; })());
+  ok("header: the face is FACE v1 with their letters' develop", h.mask > 0 && !h.veil && h.frame === "none");
+  ok("header: a face that came through is framed, brass once they went first", B.lettersHeader({ ...base, otherCount: 5 }).frame === "line" && B.lettersHeader({ ...base, otherCount: 5, theirSigned: true }).frame === "brass");
+  ok("header: VoiceOver hears name, line and dots as one", h.a11yLabel === "No. 4481, CH.HEAD.THEIRS(N=3), mk.ofFive(n=2)");
+  ok("header: the ⋯ only with someone to report; back is named", h.moreLabel === "rp.menu.a11y" && B.lettersHeader({ ...base, canReport: false }).moreLabel === "" && h.backLabel === "a11y.back");
+  ok("header: loading says nothing under the name", B.lettersHeader({ ...base, state: null }).sub === "");
+  ok("header: the pen-pal chat's is not the room's, and draws no picture face", !h.room && h.face.kind === "placeholder");
+}
+
+/* ── the kindreds chat (chat composers B) ── */
+{
+  const portrait = { kind: "image" as const, uri: "file:///f-cloud.png", key: "a:f-cloud", overscan: 0.05, mask: 0 };
+  const rh = B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "kindred since October 8", face: portrait, canReport: true });
+  ok("room header: the round face and no dots", rh.room && rh.face === portrait && rh.dots === 0 && !rh.veil);
+  ok("room header: the line under the name in capitals, in mute", rh.sub === "KINDRED SINCE OCTOBER 8" && rh.tone === "mute");
+  ok("room header: VoiceOver hears name and line; the page opens", rh.a11yLabel === "Mira, KINDRED SINCE OCTOBER 8" && rh.canOpenPage);
+  ok("room header: the ⋯ only with someone to report; back is named", rh.moreLabel === "rp.menu.a11y" && rh.backLabel === "a11y.back" && B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: false }).moreLabel === "");
+  ok("room header: no line, no line", B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true }).a11yLabel === "Mira");
+
+  const base: import("./build-items").RoomDockInput = { t, locale: "en-US", wren: "Wren", name: "Mira", closing: false, daysLeft: 9, mode: null, replyTo: null, notice: null, gone: false, expired: false, quietDays: 0 };
+  const dock = B.buildRoomDock(base);
+  ok("Kindreds bar: the ideas key is named, so Swift draws the Kindreds bar", dock.ideasLabel === "rm.ideas.a11y");
+  ok("Kindreds bar: the bubble's words in capitals, the tray's title as written", dock.ideaLabel === "RM.IDEA.LABEL" && dock.ideaAnother === "RM.IDEA.ANOTHER" && dock.ideaUse === "RM.IDEA.USE" && dock.trayTitle === "rm.tray.title");
+  ok("Kindreds bar: the emoji key is named", dock.emojiLabel === "cmp.emoji");
+  ok(
+    "the + tray: the four, with the I1 icons and their mood fills",
+    dock.traces.map((x) => `${x.key}:${x.glyph}:${x.tint}`).join() === "note:foldNote:calm,ask:askSomething:tired,moment:tinyMoment:low,song:leaveSong:happy" &&
+      dock.traces[0].title === "rm.note.t" &&
+      dock.traces[3].subtitle === "rm.song.s",
+  );
+  ok("the pen-pal chat has no Kindreds bar", B.buildLettersDock({ t, name: "No. 1", revealed: false, gone: false, myCount: 1, iSigned: false, theirSigned: false }).ideasLabel === "");
+}
+
+/* ── the ideas (B, Prompt 4) ── */
+{
+  const cats = ["confessions", "almosts", "latenights", "small", "becoming", "missing"];
+  // six prompts in each of the six categories, as data/stamps has them
+  const prompts = cats.flatMap((cat) => Array.from({ length: 6 }, (_, k) => ({ cat, text: `${cat} ${k}` })));
+  const a = B.ideaOrder(prompts, [], "room-a");
+  ok("ideas: every sentence once", a.length === 36 && new Set(a).size === 36);
+  ok("ideas: the same room, the same order", B.ideaOrder(prompts, [], "room-a").join("|") === a.join("|"));
+  ok("ideas: another room, another order", B.ideaOrder(prompts, [], "room-b").join("|") !== a.join("|"));
+  ok("ideas: shuffled, not the stamps' own order", a.join("|") !== prompts.map((p) => p.text).join("|"));
+  const theirs = B.ideaOrder(prompts, ["missing", "small"], "room-a");
+  ok("ideas: theirs first", theirs.slice(0, 12).every((x) => x.startsWith("missing") || x.startsWith("small")) && theirs.slice(12).every((x) => !x.startsWith("missing") && !x.startsWith("small")));
+  ok("ideas: theirs are shuffled among themselves", theirs.slice(0, 12).some((x, k) => k > 0 && x.split(" ")[0] !== theirs[k - 1].split(" ")[0]));
+  ok("ideas: the rest keep the room's order", theirs.slice(12).join("|") === a.filter((x) => !x.startsWith("missing") && !x.startsWith("small")).join("|"));
+  ok("ideas: a sentence twice (two stamps alike in a language) is offered once; blank ones never", B.ideaOrder([...prompts, { cat: "small", text: "small 0 " }, { cat: "small", text: "  " }], [], "x").length === 36);
+
+  const catOf = (id: string) => (({ "never-told": "confessions", crush: "almosts", homesick: "missing", "old-friend": "missing", "tiny-win": "small" }) as Record<string, string>)[id];
+  ok("their categories: by how many letters call one up", B.theirCategories({ openingStamp: null, heard: [["homesick", "old-friend"], ["homesick"], ["tiny-win"]], catOf }).join() === "missing,small");
+  ok("their categories: one vote per letter, however many of its stamps", B.theirCategories({ openingStamp: null, heard: [["homesick", "old-friend"], ["tiny-win"], ["tiny-win"]], catOf }).join() === "small,missing");
+  ok("their categories: the stamp they chose leads", B.theirCategories({ openingStamp: "crush", heard: [["homesick"], ["homesick"]], catOf }).join() === "almosts,missing");
+  ok("their categories: ties go to the one heard first", B.theirCategories({ openingStamp: null, heard: [["tiny-win"], ["homesick"]], catOf }).join() === "small,missing");
+  ok("their categories: three at most", B.theirCategories({ openingStamp: "crush", heard: [["homesick"], ["tiny-win"], ["never-told"]], catOf }).length === 3);
+  ok("their categories: unknown stamps and silence count for nothing", B.theirCategories({ openingStamp: "nope", heard: [[], ["nope"]], catOf }).length === 0);
+
+  // the walk: no repeat until the pool is used, whatever the order does under it
+  const walkOf = (order: string[], steps: number, start = B.IDEA_WALK_START) => {
+    const shown: string[] = [];
+    let w = start;
+    for (let k = 0; k < steps; k++) {
+      shown.push(B.ideaNow(order, w));
+      w = B.ideaPassed(order, w);
+    }
+    return { shown, walk: w };
+  };
+  const first = walkOf(a, 36);
+  ok("walk: the room's order, every sentence once before any comes round", first.shown.join("|") === a.join("|"));
+  const second = walkOf(a, 36, first.walk);
+  ok("walk: then it starts over, every sentence once more", new Set(second.shown).size === 36);
+  ok("walk: a new walk never opens on the sentence that closed the last", second.shown[0] !== first.shown[35]);
+  // their categories move halfway (a new letter of theirs tips the count): the order changes
+  const half = walkOf(a, 10);
+  const moved = B.ideaOrder(prompts, ["latenights"], "room-a");
+  const rest = walkOf(moved, 26, half.walk);
+  ok("walk: an order that moves under it offers none of the ten again before the other 26", rest.shown.every((x) => !half.shown.includes(x)) && new Set([...half.shown, ...rest.shown]).size === 36);
+  const lateLeft = 6 - half.shown.filter((x) => x.startsWith("latenights")).length;
+  ok("walk: and what's left comes in the new order, theirs first", lateLeft > 0 && rest.shown.slice(0, lateLeft).every((x) => x.startsWith("latenights")) && !rest.shown[lateLeft].startsWith("latenights"));
+  ok("walk: nothing to offer, nothing offered", B.ideaNow([], B.IDEA_WALK_START) === "" && B.ideaPassed([], B.IDEA_WALK_START) === B.IDEA_WALK_START);
+  ok("walk: one sentence is always that one", walkOf(["only"], 3).shown.join() === "only,only,only");
+
+  ok("USE IT: alone in an empty field", B.withIdea("", "What did your street smell like?") === "What did your street smell like?" && B.withIdea("  \n", "Q?") === "Q?");
+  ok("USE IT: after the reader's own words, never over them", B.withIdea("hey you ", "Q?") === "hey you Q?" && B.withIdea("hi", "Q?") === "hi Q?");
 }
 
 /* ── band, road, clock ── */

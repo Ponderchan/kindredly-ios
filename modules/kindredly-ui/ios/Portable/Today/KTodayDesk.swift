@@ -24,14 +24,50 @@ import SwiftUI
  THE BAND is the owner's 2026-10-16 pick ("image 2" of his option sheet; the only band since
  2026-10-18): two discs on the page ground with Wren standing between them.
 
+ WRITING BACK (the chat composers' A1, owner 2026-10-18: "the chat after tapping REPLY follows
+ the prototype"). At rest there is no reply bar on Today, only the band and the tab bar. REPLY (or
+ the card's VoiceOver "Write back") gives the field the keyboard, and that is reply mode
+ (KReplyStage.open):
+
+   TODAY
+   ┌ card, shrunk ────────────────────────────────────────────┐  the card's top stays; its foot
+   │ ▦ SEP.23 · NO.7273                           [stamp] (⋯) │  comes up to 14 over the hint, so
+   │   the letter at the compact size, folded (UNFOLD ↓)       │  it shrinks by the keyboard and the
+   │ #made my day                                ES→EN read it │  bar (548 → 272 in the prototype;
+   └───────────────────────────────────────────────────────────┘  replyCardHeight from the real ones)
+      REPLY AND A THREAD OPENS                                     the hint, 6 over the bar
+   ┌ ↩  write back to No. 7273…                    ☺   (✈) ┐       the reply bar (KReplyDock), up
+   └────────────────────────────────────────────────────────┘       from the bottom to 12 over the
+   ═══════════════════════════ keyboard ═══════════════════════════ keyboard
+
+ - the band (NEXT, the arc, REPLY) and Wren on it fade to nothing and take no touches (they don't
+   slide: the prototype's opacity 0 + pointer-events none);
+ - the tab bar slides 160 down out of sight over .35s: it is another Host, so TS does it, from the
+   field's focus (onReplyFocus → useTabBarAway → NativeTabBar's barHidden);
+ - the card shrinks with the keyboard (bandSlide) and its letter drops to the compact size (the
+   telegram's 30 to 20, the prototype's 29 → 20; KCardText.compact), folding with UNFOLD ↓ when it
+   still doesn't fit, never overflowing. Never under replyCardMin: the letter's head and two lines
+   stay readable on an iPhone SE;
+ - the bar rises from below the screen to 12 over the keyboard, its hint 6 over it.
+ The keyboard's done, a tap on the dimmed desk (the dock's scrim), VoiceOver's escape or a send
+ all end it the same way: the field lets go, and everything goes back (the bar down and away, the
+ card back to its height, the band in, the tab bar up). A send keeps all it did before: deck.typing
+ holds until TS answers it, so the band stays out while Wren takes the letter off her spot, and
+ then the card passes. With a hardware keyboard (no keyboard inset) it is still reply mode: the
+ band stays out and the tab bar away, and the bar sits on the tab bar's own line over the bottom
+ safe area (KTabBarMetrics.bottomGap); the card shrinks only if the bar would reach it. Under
+ Reduce Motion the bar and the band fade instead of moving.
+
  LAYOUT. Two layers in one ZStack, so the keyboard moves only what it should:
  - the desk (the radial ground, the card slot, the plate, the band, the window, Wren) ignores the
-   keyboard's safe area, so typing never resizes the card;
+   keyboard's safe area, so the keyboard never pushes it: the card's shrinking is the desk's own,
+   from the measured keyboard (KReplyStage);
  - the dock (the scrim and the reply strip) is a layer that respects it (the Host ignores only the
    container safe area: ignoreSafeArea "container"), so the strip rides the keyboard in its own
    transaction. Never a .safeAreaInset: iOS 18 reports one twice (spike pattern 1).
  The keyboard's height is measured, not assumed (spike pattern 5): the desk layer's height (which
- ignores the keyboard) less the dock layer's (which respects it). Only the dock reads it.
+ ignores the keyboard) less the dock layer's (which respects it). The dock reads it, and hands it
+ to the desk through KReplyStage with the strip's measured height.
 
  THE DAY'S END. The desk starts the flow: the deck's last pass (optimistic; TS has to confirm
  within 1.5 s or the flow resets and the deck snaps back to TS's first card), the shown card
@@ -49,7 +85,8 @@ import SwiftUI
 
 /// The desk's numbers from the Host's height: src/screens/today/today-cards.ts deskGeometry, the same
 /// formula (change them together). 393 × 852, status bar 54, tab bar room 98 → card top 110, card
-/// 560, band top 684. Never a card under 360.
+/// 560, band top 684. Never a card under 360 at rest; while replying the card shrinks to make room
+/// for the keyboard and the bar (replyCardHeight, never under replyCardMin).
 public struct KTodayGeometry: Equatable, Sendable {
   /// the plate band, fixed in layout
   public static let band: CGFloat = 52
@@ -76,6 +113,31 @@ public struct KTodayGeometry: Equatable, Sendable {
     cardHeight = max(Self.cardMin, (hostHeight - cardTop - Self.cardAir - Self.controlHeight - (tabBarRoom + Self.controlLift)).rounded())
     controlTop = cardTop + cardHeight + Self.cardAir
   }
+
+  // ── writing back (A1): src/screens/today/today-cards.ts replyCardHeight, the same formula ──
+
+  /// the reply bar's air over the keyboard (Prompt 2: 12)
+  public static let replyGap: CGFloat = 12
+  /// the shortest the card shrinks to while replying: the docket, two lines of the letter folded
+  /// with UNFOLD under them, and the foot (an iPhone SE's keyboard leaves about 230)
+  public static let replyCardMin: CGFloat = 200
+
+  /// Where the reply bar's foot sits while replying, up from the Host's bottom: 12 over the
+  /// software keyboard, or on the tab bar's own line (`bottomGap`, the tab bar being away) when
+  /// there is none, with a hardware keyboard; never lower than that line.
+  public static func replyBarBottom(keyboard: CGFloat, bottomGap: CGFloat) -> CGFloat {
+    max(keyboard + replyGap, bottomGap)
+  }
+
+  /// The card's height while replying: its top stays, its foot comes up to cardAir over the top
+  /// of the strip (the hint and the bar, `strip` tall, standing on replyBarBottom), never under
+  /// replyCardMin. nil when the card needn't shrink (a hardware keyboard's bar under its foot).
+  public func replyCardHeight(hostHeight: CGFloat, keyboard: CGFloat, strip: CGFloat, bottomGap: CGFloat) -> CGFloat? {
+    let stripTop = hostHeight - Self.replyBarBottom(keyboard: keyboard, bottomGap: bottomGap) - strip
+    let fit = (stripTop - Self.cardAir - cardTop).rounded(.down)
+    guard fit < cardHeight else { return nil }
+    return max(Self.replyCardMin, fit)
+  }
 }
 
 // MARK: - The desk
@@ -93,7 +155,10 @@ public struct KTodayDesk: View {
   private let content: KTodayContent
   private let topInset: CGFloat
   private let tabBarRoom: CGFloat
+  private let bottomInset: CGFloat
   private let dock: KTodayDock
+  /// reply mode, the keyboard and the bar's height (the dock writes it; the card shrinks by it)
+  @ObservedObject private var stage: KReplyStage
   private let voice: KTodayVoice
   @ObservedObject private var deck: KDeckState
   /// written by the deck, read per frame by the plate and Wren only: never observed here
@@ -110,11 +175,14 @@ public struct KTodayDesk: View {
   /// - Parameters:
   ///   - topInset: the status bar (the Host ignores the container safe area)
   ///   - tabBarRoom: the floating tab bar's room (useTabBarSpace()); the band sits 2 above it
+  ///   - bottomInset: the home indicator's inset: with a hardware keyboard the reply bar sits on
+  ///     the tab bar's own line over it (KTabBarMetrics.bottomGap), the tab bar being away
   public init(
     theme: KTheme,
     content: KTodayContent,
     topInset: CGFloat,
     tabBarRoom: CGFloat,
+    bottomInset: CGFloat = 0,
     dock: KTodayDock,
     voice: KTodayVoice,
     deck: KDeckState,
@@ -126,7 +194,9 @@ public struct KTodayDesk: View {
     self.content = content
     self.topInset = topInset
     self.tabBarRoom = tabBarRoom
+    self.bottomInset = bottomInset
     self.dock = dock
+    self._stage = ObservedObject(wrappedValue: dock.stage)
     self.voice = voice
     self._deck = ObservedObject(wrappedValue: deck)
     self.motion = motion
@@ -148,14 +218,27 @@ public struct KTodayDesk: View {
     return content.labels.placeholder
   }
 
+  /// with no software keyboard, the reply bar's foot: the tab bar's own line (it is away)
+  private var bottomGap: CGFloat { KTabBarMetrics.bottomGap(safeAreaBottom: bottomInset) }
+
+  /// The card slot's height now: shrunk while replying (reply mode, and the bar would otherwise
+  /// reach the card), else the geometry's. The second value says it is shrunk: the letter is
+  /// set at the compact size.
+  private func cardHeight(_ g: KTodayGeometry, hostHeight: CGFloat) -> (CGFloat, compact: Bool) {
+    guard stage.open,
+          let h = g.replyCardHeight(hostHeight: hostHeight, keyboard: stage.keyboard, strip: stage.strip, bottomGap: bottomGap)
+    else { return (g.cardHeight, false) }
+    return (h, true)
+  }
+
   public var body: some View {
     let _ = remember()
     ZStack(alignment: .bottom) {
-      // the desk: never moves for the keyboard
+      // the desk: never moves for the keyboard (the card shrinks for it, from KReplyStage)
       GeometryReader { geo in
         let W = geo.size.width
         let geometry = KTodayGeometry(hostHeight: geo.size.height, safeTop: topInset, tabBarRoom: tabBarRoom)
-        desk(width: W, geometry: geometry)
+        desk(width: W, geometry: geometry, card: cardHeight(geometry, hostHeight: geo.size.height))
           .frame(width: W, height: geo.size.height, alignment: .topLeading)
           .onChange(of: geo.size.height, initial: true) { _, height in
             if abs(dock.fullHeight - height) > 0.5 { dock.fullHeight = height }
@@ -169,7 +252,7 @@ public struct KTodayDesk: View {
         theme: theme,
         labels: content.labels,
         placeholder: placeholder,
-        restingBottom: tabBarRoom + KTodayGeometry.controlLift,
+        bottomGap: bottomGap,
         dock: dock,
         deck: deck,
         actions: actions
@@ -187,10 +270,12 @@ public struct KTodayDesk: View {
     }
   }
 
-  /// The desk layer, back to front, in the Host's coordinates.
-  private func desk(width W: CGFloat, geometry g: KTodayGeometry) -> some View {
+  /// The desk layer, back to front, in the Host's coordinates. `card` is the slot's height now
+  /// (shrunk while replying) and whether the letter is set at the compact size.
+  private func desk(width W: CGFloat, geometry g: KTodayGeometry, card: (CGFloat, compact: Bool)) -> some View {
     let plus = content.plus
     let windowShown = flow.windowShown && plus == .closed
+    let (slotHeight, compact) = card
     return ZStack(alignment: .topLeading) {
       // 1. the page and its faint radial ground (the glass needs something behind it)
       KTodayGround(theme: theme)
@@ -198,12 +283,14 @@ public struct KTodayDesk: View {
         .frame(maxHeight: .infinity)
 
       // 2. the card slot: the deck, and Wren's letter over it in done (neither clips: the
-      // letter's chip and the bag's label hang outside the card)
+      // letter's chip and the bag's label hang outside the card). While replying it shrinks with
+      // the keyboard, its top where it was (the slot is placed by its top), and grows back after.
       ZStack {
         KCardDeck(
           theme: theme,
           content: content,
-          height: g.cardHeight,
+          height: slotHeight,
+          compact: compact,
           enabled: deckEnabled,
           deck: deck,
           motion: motion,
@@ -213,7 +300,10 @@ public struct KTodayDesk: View {
         )
         KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow)
       }
-      .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: g.cardHeight)
+      .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: slotHeight)
+      // the keyboard's own length, so the card and the bar move together; a short ease under
+      // Reduce Motion (a change of size, not a slide)
+      .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: slotHeight)
       // the + panel: the card steps back a little
       .scaleEffect(plus == .sheet ? 0.98 : plus == .pop ? 0.97 : 1)
       .offset(y: plus == .sheet ? -10 : 0)

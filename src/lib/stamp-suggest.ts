@@ -37,17 +37,30 @@ const BY_MOOD: Record<string, string[]> = {
   listen: ["off-chest", "never-told", "pretending"],
 };
 
-/** six stamp ids for a letter, strongest reading first */
-export function suggestStamps(text: string, n = 6): string[] {
+/** The stamps the writing itself calls up, strongest reading first, with no starters to fill
+    the gaps: its themes' stamps, then its mood's. Nothing for a text under 20 characters (too
+    little to read). The room's ideas use it to hear which categories the other person writes in
+    (build-items theirCategories). */
+export function stampsHeard(text: string): string[] {
   const out: string[] = [];
   const add = (ids: string[]) => {
-    for (const id of ids) if (!out.includes(id) && out.length < n) out.push(id);
+    for (const id of ids) if (!out.includes(id)) out.push(id);
   };
   const t = (text || "").trim();
   if (t.length >= 20) {
     for (const th of detectThemes(t).themes) add(BY_THEME[th.theme] ?? []);
     add(BY_MOOD[readMood(t)] ?? []);
   }
+  return out;
+}
+
+/** six stamp ids for a letter, strongest reading first */
+export function suggestStamps(text: string, n = 6): string[] {
+  const out: string[] = [];
+  const add = (ids: string[]) => {
+    for (const id of ids) if (!out.includes(id) && out.length < n) out.push(id);
+  };
+  add(stampsHeard(text));
   add(STARTER_STAMPS);
   return out;
 }

@@ -22,11 +22,17 @@ import type { A11yNode } from "./useChatListRN";
      Classic, where soft barely leaves the page); corners 18 and 5 on the
      tail; padding 10 14; at most 84%; system 16. A reply carries its quote
      (a 2pt rule, the speaker in mono 10, two lines, "taken back" in italic).
-   · a pen-pal letter: the label line when the writer or the day changes, a
-     light-outline block (sf, 1.5 ln, corners 16; mine lav2 with a lav
-     line), padding 12 14, hugging its words up to 86%, in the reader's
-     Letter font (owner question 1: pen-pal letters are letters being
-     read), the 24-hour time at its foot; a tap opens the reader.
+   · a pen-pal letter, as the chat composers' A2 draws it (owner,
+     2026-10-18): a card with a 2 ln outline, corners 18, padding 14 16;
+     theirs on sf across the whole width, mine on soft (soft2 on Midnight)
+     set 40 in from the left. Inside, the head line in mono 500 10 at .14em
+     (LETTER 3 · NO. 5422 in mute, LETTER 3 · YOU in ind; the opening WHERE
+     IT BEGAN · NO. 5422), the words in the reader's Letter font at 19 on
+     1.35 (owner question 1: pen-pal letters are letters being read;
+     Newsreader by default, never a fixed Garamond), and the 24-hour time at
+     its foot on the right. The day is a day rule above the card when it
+     changes (build-items cards: true). A tap opens the reader; the menu,
+     its lift and VoiceOver's frame are the card.
    · a moment (70% square, corners 16, soft2 until it loads), a song (the
      light-outline card, ♪ in ind, title, host, ›) and the shelf link under
      the last one, a fold (sealed on soft with a line, opened on sf with a
@@ -361,97 +367,116 @@ function RoomVoice({ item, env }: { item: KChatItem; env: RowEnv }) {
   );
 }
 
-/* ── a pen-pal letter ────────────────────────────────────────────────── */
+/* ── a pen-pal letter (chat composers A2, owner 2026-10-18) ─────────────── */
 
-export function LetterRowRN({ item, lit, env, onLayout }: { item: KChatItem; lit: boolean; env: RowEnv; onLayout: (e: LayoutChangeEvent) => void }) {
+/** a letter card's ground: theirs sf, mine soft (soft2 on Midnight, where soft is sf) */
+const cardFill = (tk: { sf: string; soft: string; soft2: string; dark: boolean }, mine: boolean) => (mine ? (tk.dark ? tk.soft2 : tk.soft) : tk.sf);
+/** mine stand this far in from the left (A2) */
+const MINE_INDENT = 40;
+
+export function LetterRowRN({ item, first = false, lit, env, onLayout }: { item: KChatItem; first?: boolean; lit: boolean; env: RowEnv; onLayout: (e: LayoutChangeEvent) => void }) {
   const { t: tk } = useTheme();
   const letterFace = useLetterFamily();
-  const max = Math.round(env.width * 0.86);
   const acts = menuActions(item.menu, item.key, env.onItemAction);
   const open = () => item.tappable && env.onItemPress(item.key, "body");
+  // theirs take the list's whole width, mine all but 40
+  const cardW = env.width - (item.mine ? MINE_INDENT : 0);
+  /* the card's face: a 2 ln outline, corners 18, padding 14 16 (the outline inside it) */
   const frame = {
-    maxWidth: max,
+    width: cardW,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: item.mine ? tk.lav : tk.ln,
-    backgroundColor: item.mine ? tk.lav2 : tk.sf,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: tk.ln,
+    backgroundColor: cardFill(tk, item.mine),
+    gap: 8,
   } as const;
-  const time = !!item.timeLabel && (
-    <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute, alignSelf: "flex-end", marginTop: 6 }}>{item.timeLabel}</Text>
+  /* the card's inside: its width less the padding and the outline. The words are hosted by
+     MessageMenu (RNHostView matchContents sizes from its children, laid out unbounded), so they
+     need this width to wrap and to put the time at the right */
+  const inner = cardW - 2 * frame.paddingHorizontal - 2 * frame.borderWidth;
+  const head = !!item.head && (
+    <Text numberOfLines={1} importantForAccessibility="no" accessibilityElementsHidden style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: item.mine ? tk.ind : tk.mute }}>
+      {item.head}
+    </Text>
   );
-  /* the voice block's inside: the frame's width less its padding and outline. The caption is
-     hosted by MessageMenu (RNHostView matchContents sizes from its children, laid out unbounded),
-     so it needs this width to wrap and to put the time at the right */
-  const inner = max - 2 * frame.paddingHorizontal - 2 * frame.borderWidth;
+  const time = !!item.timeLabel && <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute, alignSelf: "flex-end" }}>{item.timeLabel}</Text>;
 
   return (
-    <View onLayout={onLayout} style={{ alignItems: item.mine ? "flex-end" : "flex-start", marginBottom: 10, opacity: lit ? 0.5 : 1 }}>
-      {!!item.speakerLabel && (
-        <Text importantForAccessibility="no" accessibilityElementsHidden style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1, color: tk.mute, marginBottom: 6, marginHorizontal: 2 }}>
-          {item.speakerLabel}
-        </Text>
-      )}
-      {item.kind === "voice" ? (
-        /* the opening, spoken: the card is its own control; the caption is the letter — a tap opens
-           the reader, a long press its menu */
-        <View style={[frame, { width: max, gap: 6 }]}>
-          {!item.body && !item.timeLabel && (
-            /* no caption: the letter is still there for VoiceOver — whose and which day, its menu,
-               the tap that opens the reader (SwiftUI's labelled group) — and a tap on the frame
-               around the card opens it too; behind the card, which stays its own control */
-            <Pressable
-              ref={env.a11yRef(item.key)}
-              onPress={open}
-              accessibilityRole={item.tappable ? "button" : undefined}
-              accessibilityLabel={item.a11yLabel}
-              {...a11yActions(acts)}
-              style={StyleSheet.absoluteFill}
-            />
-          )}
-          <VoiceOpeningCard voice={env.voice} />
-          {(!!item.body || !!item.timeLabel) && (
-            <Pressable
-              ref={env.a11yRef(item.key)}
-              onPress={open}
-              onLongPress={NOOP}
-              delayLongPress={350}
-              accessibilityRole={item.tappable ? "button" : undefined}
-              accessibilityLabel={item.a11yLabel}
-              {...a11yActions(acts)}
-            >
-              <MessageMenu actions={acts} radius={8}>
-                <View style={{ width: inner }}>
-                  {!!item.body && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, lineHeight: 18, color: tk.sub }}>{item.body}</Text>}
-                  {time}
-                </View>
-              </MessageMenu>
-            </Pressable>
-          )}
-        </View>
-      ) : item.kind === "recalled" ? (
-        <RecallNote item={item} env={env} />
-      ) : (
-        <Pressable
-          ref={env.a11yRef(item.key)}
-          onPress={open}
-          /* a long-press is the letter's menu, so lifting the finger must not also open it */
-          onLongPress={NOOP}
-          delayLongPress={350}
-          accessibilityRole={item.tappable ? "button" : undefined}
-          accessibilityLabel={item.a11yLabel}
-          {...a11yActions(acts)}
-        >
-          <MessageMenu actions={acts} radius={16}>
-            <View style={frame}>
-              <Text style={[{ fontSize: 15.5, lineHeight: 23, color: tk.ink }, letterFace]}>{item.body}</Text>
-              {time}
-            </View>
-          </MessageMenu>
-        </Pressable>
-      )}
-      <TranslationLine item={item} maxWidth={max} translating={env.strings.translating} />
+    <View onLayout={onLayout} style={{ opacity: lit ? 0.5 : 1 }}>
+      {!!item.dayLabel && <DayRule label={item.dayLabel} first={first} />}
+      <View style={{ marginLeft: item.mine ? MINE_INDENT : 0, marginBottom: 10 }}>
+        {!item.head && !!item.speakerLabel && (
+          // a letter with no head line (a builder without the cards): its old label above it
+          <Text importantForAccessibility="no" accessibilityElementsHidden style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1, color: tk.mute, marginBottom: 6, marginHorizontal: 2 }}>
+            {item.speakerLabel}
+          </Text>
+        )}
+        {item.kind === "voice" ? (
+          /* the opening, spoken: the card is its own control; the caption is the letter — a tap opens
+             the reader, a long press its menu */
+          <View style={frame}>
+            {!item.body && !item.timeLabel && (
+              /* no caption: the letter is still there for VoiceOver — whose and which day, its menu,
+                 the tap that opens the reader (SwiftUI's labelled group) — and a tap on the frame
+                 around the card opens it too; behind the card, which stays its own control */
+              <Pressable
+                ref={env.a11yRef(item.key)}
+                onPress={open}
+                accessibilityRole={item.tappable ? "button" : undefined}
+                accessibilityLabel={item.a11yLabel}
+                {...a11yActions(acts)}
+                style={StyleSheet.absoluteFill}
+              />
+            )}
+            {head}
+            <VoiceOpeningCard voice={env.voice} />
+            {(!!item.body || !!item.timeLabel) && (
+              <Pressable
+                ref={env.a11yRef(item.key)}
+                onPress={open}
+                onLongPress={NOOP}
+                delayLongPress={350}
+                accessibilityRole={item.tappable ? "button" : undefined}
+                accessibilityLabel={item.a11yLabel}
+                {...a11yActions(acts)}
+              >
+                <MessageMenu actions={acts} radius={8}>
+                  {/* the card's own face under the lifted copy (Midnight only, as in SwiftUI) */}
+                  <View style={{ width: inner, gap: 6, backgroundColor: tk.dark ? cardFill(tk, item.mine) : "transparent" }}>
+                    {!!item.body && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, lineHeight: 18, color: tk.sub }}>{item.body}</Text>}
+                    {time}
+                  </View>
+                </MessageMenu>
+              </Pressable>
+            )}
+          </View>
+        ) : item.kind === "recalled" ? (
+          <RecallNote item={item} env={env} />
+        ) : (
+          <Pressable
+            ref={env.a11yRef(item.key)}
+            onPress={open}
+            /* a long-press is the letter's menu, so lifting the finger must not also open it */
+            onLongPress={NOOP}
+            delayLongPress={350}
+            accessibilityRole={item.tappable ? "button" : undefined}
+            accessibilityLabel={item.a11yLabel}
+            {...a11yActions(acts)}
+          >
+            {/* the menu, its lift and VoiceOver's frame are the card */}
+            <MessageMenu actions={acts} radius={18}>
+              <View style={frame}>
+                {head}
+                <Text style={[{ fontSize: 19, lineHeight: 25.65, color: tk.ink }, letterFace]}>{item.body}</Text>
+                {time}
+              </View>
+            </MessageMenu>
+          </Pressable>
+        )}
+        <TranslationLine item={item} maxWidth={cardW} translating={env.strings.translating} />
+      </View>
     </View>
   );
 }

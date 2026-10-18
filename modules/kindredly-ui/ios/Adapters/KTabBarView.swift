@@ -35,6 +35,8 @@ import ExpoUI
    ({ uri, key, kind }, an empty uri for none yet)
  - pop: { letterLabel, noteLabel, letterA11y, noteA11y, letterLeft }: the two buttons' labels and what
    VoiceOver says for each
+ - barHidden: the bar slides 160 down out of sight and reach (a fade under Reduce Motion): Today's
+   reply (the chat composers' A1, owner 2026-10-18), while the reader writes back on the keyboard
  Every string arrives translated; nothing in Swift holds a word.
 
  Events, with what nativeEvent carries:
@@ -108,6 +110,8 @@ final class KTabBarViewProps: UIBaseViewProps {
   @Field var panelStyle: String = "cards"
   @Field var sheet: KTabBarSheetRecord = KTabBarSheetRecord()
   @Field var pop: KTabBarPopRecord = KTabBarPopRecord()
+  /// Today's reply has the screen's foot: the bar steps away
+  @Field var barHidden: Bool = false
 
   var onTabPress = EventDispatcher()
   var onPlusPress = EventDispatcher()
@@ -149,6 +153,7 @@ struct KTabBarView: ExpoSwiftUI.View {
       style: KPublishStyle(rawValue: props.panelStyle) ?? .cards,
       sheet: sheetModel,
       pop: popModel,
+      barHidden: props.barHidden,
       onSelect: { props.onTabPress(["index": $0]) },
       onPlus: { props.onPlusPress() },
       onPanelAction: { props.onPanelAction(["key": $0]) },

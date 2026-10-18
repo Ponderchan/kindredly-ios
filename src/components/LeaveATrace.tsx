@@ -1,12 +1,16 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
-import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, SlideInDown, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PF } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
 import { StickerBox } from "./10a/StickerBox";
+import { LineIcon, type LineIconName } from "./10a/LineIcon";
+import { popIn } from "./10a/KindredBar";
+import { PLAY_TRAY, playCardFill, playTrayHeight } from "./10a/kit";
+import type { KChatTrace } from "../../modules/kindredly-ui/src/Conversation";
 
 /* THE "+" IS NOT AN ATTACHMENT BUTTON.
    ────────────────────────────────────────────────────────────────────────
@@ -24,7 +28,11 @@ import { StickerBox } from "./10a/StickerBox";
 
    10a (step 5): every colour is the theme's — the tray was a fixed
    #F3F2FA with white cells, a white slab in Midnight inside the themed
-   Wren desk (spec bug 11). */
+   Wren desk (spec bug 11).
+
+   Three forms live here: the sheet (LeaveATrace), the 10a tray of cards
+   (TraceTray: Wren's desk), and the chat composers' + tray (PlayTray: a
+   room's four plays on their mood fills, owner 2026-10-18). */
 
 export type TraceKind = "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea";
 
@@ -250,6 +258,139 @@ export function TraceTray({
         ))}
       </ScrollView>
     </View>
+  );
+}
+
+/* THE + TRAY (chat composers, Prompt 6; the owner's final, 2026-10-18;
+   KChatTray's React Native twin): a room's Kindreds bar opens it under the
+   bar, which rides 12 above it. Four small things to leave. (Wren's desk
+   keeps TraceTray above: what you hand the makers is not this.)
+
+     ╭──────────────────────────────────────────╮   a sheet on sf, corners 28 28 0 0, a soft
+     │                  ▬▬▬▬                    │   shadow up over the gap (Midnight: black,
+     │  Leave something small                   │   and a 1pt line edge: no shadow shows on
+     │ ┌─────────────────┐ ┌─────────────────┐  │   its page); padding 12 16 0; the handle
+     │ │ ▤  Fold a note  │ │ ?  Ask something│  │   40 × 6 in line, 10 above the title (system
+     │ └─────────────────┘ └─────────────────┘  │   13 in mute, 4 in, as written), 10 above
+     │ ┌─────────────────┐ ┌─────────────────┐  │   the grid
+     │ │ ◘  Tiny moment  │ │ ♫  Leave a song │  │
+     │ └─────────────────┘ └─────────────────┘  │
+     ╰──────────────────────────────────────────╯
+
+   · 270 tall over the iPhone's 34 home inset (kit playTrayHeight: 236 above
+     the inset, the inset or 14 below the grid); larger type scrolls inside.
+   · THE CARDS, two by two, 10 apart: at least 84 tall (both in a row one
+     height), a 2 ln outline, corners 18, padding 0 14, 12 between the I1
+     icon (26 at 1.9, in ink) and the words: the trace's title in system 600
+     15 (sentence case, Prompt 7) and its line in system 11 on 1.3 in sub.
+     Each on its mood's fill (build-items roomTraces: calm Fold a note,
+     tired Ask something, low Tiny moment, happy Leave a song), and on
+     Midnight the mood's ink mixed 30% into sf (kit playCardFill). Pressed,
+     a card goes a little smaller.
+   · The four cards pop in together (kpopin, .35s); under Reduce Motion they
+     are simply there. How the tray itself rises and goes is the screen's
+     (RoomRN: useKeyboardTray, in the keyboard's place).
+   · A card runs its flow (onPick); the screen closes the tray. VoiceOver's
+     escape on a card closes it (the screen wraps it). */
+export function PlayTray({
+  traces,
+  title,
+  onPick,
+  bottomInset = 0,
+}: {
+  traces: KChatTrace[];
+  /** "Leave something small", drawn as written; "" for none */
+  title: string;
+  onPick: (key: string) => void;
+  /** the home indicator's inset, kept clear under the cards */
+  bottomInset?: number;
+}) {
+  useLang();
+  const { t: tk, dark } = useTheme();
+  const reduce = useReducedMotion();
+  const rows: KChatTrace[][] = [];
+  for (let i = 0; i < traces.length; i += 2) rows.push(traces.slice(i, i + 2));
+  return (
+    <View
+      style={{
+        height: playTrayHeight(bottomInset),
+        backgroundColor: tk.sf,
+        borderTopLeftRadius: PLAY_TRAY.radius,
+        borderTopRightRadius: PLAY_TRAY.radius,
+        // Midnight's edge, as KFloat's: sf is barely off the page there
+        borderWidth: dark ? 1 : 0,
+        borderBottomWidth: 0,
+        borderColor: tk.line,
+        paddingTop: 12,
+        paddingHorizontal: 16,
+        // the soft shadow up over the gap (0 -10 30 -12 rgba(30,27,53,.35)); black on Midnight
+        shadowColor: dark ? "#000000" : "#1E1B35",
+        shadowOpacity: dark ? 0.6 : 0.35,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -8 },
+      }}
+    >
+      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ alignSelf: "center", width: 40, height: 6, borderRadius: 3, backgroundColor: tk.line, marginBottom: 10 }} />
+      <ScrollView bounces={false} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: PLAY_TRAY.gap, paddingBottom: Math.max(14, bottomInset) }}>
+        {!!title && (
+          <Text accessibilityRole="header" style={{ fontSize: 13, color: tk.mute, marginLeft: 4 }}>
+            {title}
+          </Text>
+        )}
+        {rows.map((row) => (
+          <View key={row[0].key} style={{ flexDirection: "row", gap: PLAY_TRAY.gap }}>
+            {row.map((tr) => (
+              <Animated.View key={tr.key} entering={reduce ? undefined : CARD_IN} style={{ flex: 1 }}>
+                <PlayCard trace={tr} onPick={onPick} />
+              </Animated.View>
+            ))}
+            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+const CARD_IN = popIn(350);
+const I1_PLAYS = new Set<KChatTrace["glyph"]>(["foldNote", "askSomething", "tinyMoment", "leaveSong"]);
+
+function PlayCard({ trace, onPick }: { trace: KChatTrace; onPick: (key: string) => void }) {
+  const { t: tk } = useTheme();
+  const old = !I1_PLAYS.has(trace.glyph);
+  return (
+    <Pressable
+      onPress={() => onPick(trace.key)}
+      accessibilityRole="button"
+      accessibilityLabel={trace.subtitle ? `${trace.title}, ${trace.subtitle}` : trace.title}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: PLAY_TRAY.card,
+        borderWidth: 2,
+        borderColor: tk.ln,
+        borderRadius: 18,
+        backgroundColor: playCardFill(tk, trace.tint),
+        // padding 0 14 inside the 2 outline; a little top and bottom keeps a long translation off it
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+      })}
+    >
+      {old ? <TraceIcon kind={trace.glyph as TraceKind} color={tk.ink} size={26} stroke={1.9 * (26 / 24)} /> : <LineIcon name={trace.glyph as LineIconName} size={26} color={tk.ink} />}
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text numberOfLines={2} style={{ fontSize: 15, fontWeight: "600", color: tk.ink }}>
+          {trace.title}
+        </Text>
+        {!!trace.subtitle && (
+          <Text numberOfLines={3} style={{ fontSize: 11, lineHeight: 14.3, color: tk.sub }}>
+            {trace.subtitle}
+          </Text>
+        )}
+      </View>
+    </Pressable>
   );
 }
 

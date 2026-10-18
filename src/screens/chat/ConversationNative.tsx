@@ -3,12 +3,14 @@ import { AppState, Linking, Modal, Pressable, ScrollView, Text, View } from "rea
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { KConversationView, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
-import type { KChatCommands, KChatDockAction, KChatItem, KChatPart, KChatStrings } from "../../../modules/kindredly-ui/src/Conversation";
+import type { KChatCommands, KChatDockAction, KChatFace, KChatHeader, KChatItem, KChatPart, KChatStrings } from "../../../modules/kindredly-ui/src/Conversation";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { Introduction } from "../../components/Introduction";
 import { RoomIntroduction } from "./RoomIntroduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
+import { ReportSheet } from "../../components/ReportMenu";
+import { useReportFlow } from "../../lib/report-flow";
 import { WrenBird } from "../../components/WrenBird";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { scrimColor, useTheme } from "../../lib/theme";
@@ -18,6 +20,7 @@ import { archNameThird } from "../../lib/aura-copy";
 import { blurThen } from "../../lib/keyboard";
 import { localImageRef, useSignedImageRefs, useSignedUrls } from "../../lib/images";
 import { useBirdImageRef } from "../../lib/bird-images";
+import { faceRecord, threadFaceInput, useFaceSource } from "../../lib/faces";
 import { playbackCommandArgs, useVoicePlayback, type VoicePlayback } from "../../lib/voice-playback";
 import { useRenderWindow, type RenderWindow } from "../../lib/render-window";
 import type { ThreadDetail, ThreadMessage } from "../../lib/db";
@@ -31,19 +34,30 @@ import {
   buildRoomDock,
   buildRoomItems,
   indexOfKey,
+  lettersHeader,
+  NO_FACE,
+  roomHeader,
   windowItems,
   type ComposerFacts,
 } from "./build-items";
 import { useRoomModel, type ChatUi } from "./useRoomModel";
 import { useLettersModel } from "./useLettersModel";
 import { ChatHeader } from "./ChatHeader";
-import { ReachBand } from "./ReachBand";
 
 /* THE CONVERSATION IN SWIFTUI (10a step 5): the room (RoomNative) and the
-   pen-pal chat (LettersNative), each a React Native header (ChatHeader, and
-   the reach band before names) over ONE Host holding KConversationView,
-   with the React Native modals beside it (the lightbox, the songs shelf,
-   the sign sheet, the introduction).
+   pen-pal chat (LettersNative) in ONE Host holding KConversationView, with
+   the React Native modals beside it (the lightbox, the songs shelf, the
+   sign sheet, the introduction, the report card). Both draw their header in
+   Swift now (chat composers, 2026-10-18), its ⋯ opening ReportSheet:
+   · the pen-pal chat before names (A2): the face, No. 5422, LETTER 3 OF 5 ·
+     THEIRS, five dots; they say what the reach band said (with the reply
+     bar's hint), so the band is not drawn there. A pen-pal chat that is
+     already revealed keeps the React Native ChatHeader;
+   · the room (B): the kindred's portrait, their name, KINDRED SINCE …. The
+     React Native header's lore button and "Wren found you two" line are not
+     in the owner's B (lore stays a row in Settings).
+   The room's Kindreds bar offers ideas (the Sparkle): useRoomModel holds
+   their order and the sentence shown, sent to Swift as the idea command.
 
    The model hooks (useRoomModel, useLettersModel) hold every rule and every
    send; the pure builders (build-items) word every row and the dock. This
@@ -54,8 +68,8 @@ import { ReachBand } from "./ReachBand";
    · the commands for everything that changes often: composer (canSend, the
      status line, clearOnSend), setText / focus / blur, scrollTo (an own
      send, a reply begun, a quote jump that widens the window first, a new
-     line followed only while at the bottom), playback, all reseeded when
-     the view (re)attaches;
+     line followed only while at the bottom), playback, the room's idea, all
+     reseeded when the view (re)attaches;
    · the one voice player for the voice opening, its link signed (known
      bug 2), moment photos signed and keyed by their storage path, Wren's
      dock snapshots;
@@ -240,15 +254,33 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
     [m.wren, m.name, m.closing, m.daysLeft, m.mode, m.replyTo, m.notice, detail?.gone, m.status, m.expired, m.quietDays, lang],
   );
   const strings = useChatStrings();
-  const toolBird = useBirdImageRef("curious24");
+  // the Kindreds bar has the ideas key where the Wren tool stood: no tool snapshot to capture
   const noticeBird = useBirdImageRef("mini");
   const expiredBird = useBirdImageRef("think20");
-  const insets = useMemo(() => ({ top: 0, bottom: safe.bottom, tabBarRoom: 0 }), [safe.bottom]);
+
+  /* the header (B): the kindred's face as their Kindreds row draws it (their chosen portrait, the
+     glyph when they gave none, the veil once gone), the soft disc while the thread loads */
+  const faceSource = useFaceSource(threadFaceInput({ other: detail?.other, otherFace: detail?.otherFace, revealed: true, theirs: detail?.otherCount ?? 0, gone: detail?.gone }));
+  const face: KChatFace = detail ? faceRecord(faceSource) : NO_FACE;
+  const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  const subtitle = detail?.revealedAt ? t("rm.kindredSince", { date: dLong(detail.revealedAt).toUpperCase() }) : archNameThird(m.read?.archetype?.id);
+  const header = useMemo<KChatHeader>(
+    () => roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody }),
+    // face is a fresh record each render; its fields are what change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang],
+  );
+  const headerTop = topInset ?? safe.top;
+  const insets = useMemo(() => ({ top: headerTop, bottom: safe.bottom, tabBarRoom: 0 }), [headerTop, safe.bottom]);
 
   const sendComposer = useCallback((args: KChatCommands["composer"]) => commands.send("composer", args), [commands]);
   const sendScroll = useCallback((args: KChatCommands["scrollTo"]) => commands.send("scrollTo", args), [commands]);
   useComposerCommand(sendComposer, m.composer);
   useFollowNewLines(built, sendScroll);
+  // the ideas bubble's sentence, whenever it moves on (and on every attach: reseed)
+  useEffect(() => {
+    commands.send("idea", { text: m.idea });
+  }, [commands, m.idea]);
 
   const voiceState = useRef<VoicePlayback | null>(null);
   const voice = useVoicePlayback({
@@ -258,7 +290,8 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
     },
   });
 
-  /* what a remounted view must be told again: the words, the prompt, the composer, the voice */
+  /* what a remounted view must be told again: the words, the prompt, the composer, the voice,
+     the idea */
   live.current.win = win;
   live.current.built = built;
   live.current.reseed = () => {
@@ -266,6 +299,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
     commands.send("setText", { target: "prompt", value: m.mode?.kind === "question" ? m.mode.prompt : "" });
     commands.send("composer", { canSend: m.composer.canSend, status: m.composer.status, statusAlarm: m.composer.statusAlarm, clearOnSend: m.composer.clearOnSend });
     commands.send("playback", voiceArgs(voiceState.current));
+    commands.send("idea", { text: m.idea });
   };
 
   useVoiceLinkArrived(opening.url, () => commands.send("playback", voiceArgs(voiceState.current)));
@@ -282,28 +316,19 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
     if (part === "voice") onVoice(key);
     else m.onItemPress(key, part);
   };
+  /* the dock's presses, and the Swift header's: each of those leaves the screen or covers it, so
+     the keyboard goes first (goBack and openPage let go of it themselves) */
+  const onDock = (action: KChatDockAction) => {
+    if (action === "back") m.goBack();
+    else if (action === "page") m.openPage();
+    else if (action === "more") ui.thenModal(() => report.openMenu());
+    else m.onDock(action);
+  };
 
-  const subtitle = detail?.revealedAt ? t("rm.kindredSince", { date: dLong(detail.revealedAt).toUpperCase() }) : archNameThird(m.read?.archetype?.id);
   const { t: tk } = useTheme();
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
-      <ChatHeader
-        variant="room"
-        detail={detail}
-        name={m.name}
-        subtitle={subtitle}
-        wren={m.wren}
-        threadId={id}
-        snapshot={m.theirLatest}
-        canOpenPage
-        topInset={topInset}
-        onBack={m.goBack}
-        onOpenPage={m.openPage}
-        onLore={m.openLore}
-        onBlocked={m.onBlocked}
-        onBeforeSheet={() => commands.send("blur", {})}
-      />
       <SurfaceHost field>
         <KConversationView
           ref={commands.ref}
@@ -316,8 +341,8 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
           hasOlder={win.hasMore}
           hasNewer={win.hasBack}
           dock={dock}
+          header={header}
           strings={strings}
-          toolBird={toolBird}
           noticeBird={noticeBird}
           expiredBird={expiredBird}
           onChatReachTop={win.grow}
@@ -327,15 +352,14 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
           onChatText={m.setText}
           onChatPromptText={m.onPromptText}
           onChatSend={(value, prompt, cleared) => void m.onSend(value, prompt, cleared)}
-          onChatTool={(tool) => {
-            if (tool === "wren") m.seedQuestion();
-          }}
           onChatTrace={m.onTrace}
-          onChatDock={(action: KChatDockAction) => m.onDock(action)}
+          onChatDock={onDock}
           onChatVoice={onVoice}
         />
       </SurfaceHost>
 
+      {/* the Swift header's ⋯: the card drops just under it */}
+      <ReportSheet flow={report} top={headerTop + 62} />
       <PhotoLightbox photo={m.photoFull} onClose={() => m.setPhotoFull(null)} />
       <SongShelf open={m.shelf} onClose={() => m.setShelf(false)} songs={m.songs} songSays={m.songSays} name={m.name} />
       <RoomIntroduction m={m} />
@@ -421,6 +445,8 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
         keyOf: m.keyOf,
         photoOf: () => null,
         voice: opening.voice,
+        // the A2 cards: a head line in each, the day as a day rule
+        cards: true,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [m.conv, m.menuCtx, m.name, m.keyOf, opening.voice, lang],
@@ -437,14 +463,42 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
         gone: !!detail?.gone,
         missing: m.status === "missing",
         myCount: detail?.myCount ?? 0,
+        otherCount: detail?.otherCount ?? 0,
         iSigned: !!detail?.iSigned,
         theirSigned: !!detail?.theirSigned,
+        locale: m.locale,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.iSigned, detail?.theirSigned, lang],
+    [m.name, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.otherCount, detail?.iSigned, detail?.theirSigned, lang],
   );
+
+  /* the Swift header (A2) while names aren't traded (and while the thread loads); a revealed
+     thread seen here keeps the React Native one */
+  const swiftHeader = !detail?.revealed;
+  const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  const header = useMemo<KChatHeader | null>(
+    () =>
+      swiftHeader
+        ? lettersHeader({
+            t,
+            locale: m.locale,
+            name: m.name,
+            other: detail?.other || null,
+            myCount: detail?.myCount ?? 0,
+            otherCount: detail?.otherCount ?? 0,
+            theirSigned: !!detail?.theirSigned,
+            state: m.state,
+            canOpenPage: m.canOpenPage,
+            canReport: !report.nobody,
+          })
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [swiftHeader, m.name, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
+  );
+  const headerTop = topInset ?? safe.top;
   const strings = useChatStrings();
-  const insets = useMemo(() => ({ top: 0, bottom: safe.bottom, tabBarRoom: 0 }), [safe.bottom]);
+  // the Swift header sits under the status bar's room; under ChatHeader the Host starts below it
+  const insets = useMemo(() => ({ top: swiftHeader ? headerTop : 0, bottom: safe.bottom, tabBarRoom: 0 }), [swiftHeader, headerTop, safe.bottom]);
 
   const sendComposer = useCallback((args: KChatCommands["composer"]) => commands.send("composer", args), [commands]);
   const sendScroll = useCallback((args: KChatCommands["scrollTo"]) => commands.send("scrollTo", args), [commands]);
@@ -458,6 +512,15 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
       commands.send("playback", voiceArgs(s));
     },
   });
+
+  /* the dock's presses, and the Swift header's: each of those leaves the screen or covers it, so
+     the keyboard goes first (goBack and openPage let go of it themselves) */
+  const onDock = (action: KChatDockAction) => {
+    if (action === "back") m.goBack();
+    else if (action === "page") m.openPage();
+    else if (action === "more") ui.thenModal(() => report.openMenu());
+    else m.onDock(action);
+  };
 
   live.current.win = win;
   live.current.built = built;
@@ -479,22 +542,23 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
-      <ChatHeader
-        variant="letters"
-        detail={detail}
-        name={m.name}
-        state={m.state}
-        wren={m.wren}
-        threadId={id}
-        snapshot={m.theirLatest}
-        canOpenPage={m.canOpenPage}
-        topInset={topInset}
-        onBack={m.goBack}
-        onOpenPage={m.openPage}
-        onBlocked={m.onBlocked}
-        onBeforeSheet={() => commands.send("blur", {})}
-      />
-      {detail && !detail.revealed && !detail.gone ? <ReachBand myCount={detail.myCount} otherCount={detail.otherCount} other={detail.other || null} /> : null}
+      {swiftHeader ? null : (
+        <ChatHeader
+          variant="letters"
+          detail={detail}
+          name={m.name}
+          state={m.state}
+          wren={m.wren}
+          threadId={id}
+          snapshot={m.theirLatest}
+          canOpenPage={m.canOpenPage}
+          topInset={topInset}
+          onBack={m.goBack}
+          onOpenPage={m.openPage}
+          onBlocked={m.onBlocked}
+          onBeforeSheet={() => commands.send("blur", {})}
+        />
+      )}
       <SurfaceHost field>
         <KConversationView
           ref={commands.ref}
@@ -507,6 +571,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
           hasOlder={win.hasMore}
           hasNewer={win.hasBack}
           dock={dock}
+          header={header}
           strings={strings}
           onChatReachTop={win.grow}
           onChatReachBottom={win.back}
@@ -517,11 +582,13 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
           onChatItemAction={m.onItemAction}
           onChatText={m.setText}
           onChatSend={(value, prompt, cleared) => void m.onSend(value, prompt, cleared)}
-          onChatDock={(action: KChatDockAction) => m.onDock(action)}
+          onChatDock={onDock}
           onChatVoice={onVoice}
         />
       </SurfaceHost>
 
+      {/* the Swift header's ⋯: the card drops just under it */}
+      {swiftHeader ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
       <LeaveSheet
         open={m.askSign}
         modal

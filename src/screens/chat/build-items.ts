@@ -2,8 +2,10 @@ import type { MessageQuote, ThreadDetail, ThreadMessage } from "../../lib/db";
 import type { Fold } from "../../lib/folds";
 import type { TFn } from "../../lib/format";
 import type { KImageRefProps, KMenuAction } from "../../../modules/kindredly-ui/src/types";
-import type { KChatDock, KChatFoldHalf, KChatItem, KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
+import type { KChatDock, KChatFace, KChatFoldHalf, KChatHeader, KChatItem, KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
+import type { ThreadStateKind, ThreadToneKey } from "../../lib/thread-state";
 import { foldOver } from "../../lib/thread-detail-core";
+import { developFor, mosaicMask } from "../../lib/mosaic";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { parseSongUrl } from "../../lib/song";
 
@@ -25,9 +27,22 @@ import { parseSongUrl } from "../../lib/song";
      that is gone, missing or expired — readable, not actionable (owner)
    · the dock: closing soon, Wren's notice, the sign door, the reply quote,
      the mode box, the gone line, the expired door, the placeholder, the
-     trace tray
+     trace tray, and the pen-pal reply bar's hint
    · the composer: whether the words may go, the status line (over the
      limit, a slow network), and whether the field may clear itself at once
+   · the pen-pal chat's own header (chat composers A2, 2026-10-18): its
+     name, the line under it, the face and the five dots; and the kindreds
+     chat's (B): the kindred's round face, the name, KINDRED SINCE
+   · the room's ideas (the Kindreds bar's Sparkle, B): the order the 36
+     stamps' prompts are offered in, theirs first, shuffled per room
+
+   THE PEN-PAL CARDS (A2): the pen-pal chat draws each letter as a card
+   with a head line (LETTER 3 · NO. 5422 / LETTER 3 · YOU) and moves the
+   day into a day rule, as a room has (buildLetterItems cards: true), in
+   SwiftUI and in the React Native fallback alike. Letters are
+   counted per writer from the first after the opening — the five each way
+   that trade names never count the opening (0012 counts messages) — and
+   the opening is WHERE IT BEGAN.
 
    Every word comes from the caller's t() and every date from its own
    formatters, so `node src/screens/chat/build-items.test.ts` runs without
@@ -262,6 +277,7 @@ const blank = (key: string, kind: KChatItem["kind"], mine: boolean): KChatItem =
   dayLabel: "",
   gap: 0,
   speakerLabel: "",
+  head: "",
   timeLabel: "",
   body: "",
   a11yLabel: "",
@@ -428,13 +444,32 @@ export function buildRoomItems(stream: readonly StreamItem[], c: RoomItemsCtx): 
 export type LetterItemsCtx = ItemsCtx & {
   /** a message's 24-hour time ("14:05") */
   time: (iso: string) => string;
+  /** the A2 cards (SwiftUI and the React Native fallback): every letter carries its head line, and
+      the day is a day rule above the first letter of a day instead of a part of the label line,
+      which goes */
+  cards?: boolean;
 };
 
-/** The pen-pal chat's letter blocks: a label when the writer or the day changes, the time at the
-    foot; a tap opens the reader. A revealed thread seen here (right after the second signature,
-    or from a stale link) shows a line taken back as its note, and everything else as its words. */
+/** A letter card's head line (A2), in capitals: LETTER 3 · NO. 5422 / LETTER 3 · YOU, the opening
+    WHERE IT BEGAN · NO. 5422. `n` is the writer's own count, the opening not counted. */
+export function letterHead(m: ThreadMessage, n: number, c: Pick<LetterItemsCtx, "t" | "locale" | "name">): string {
+  const who = m.mine ? c.t("ui.you") : c.name;
+  const head = isOpening(m) ? `${c.t("kd.whereBegan")} · ${who}` : c.t("ch.card.head", { n, who });
+  return head.toLocaleUpperCase(c.locale);
+}
+
+/** The pen-pal chat's letters: a label when the writer or the day changes, the time at the foot
+    (the older blocks); or, with cards, the head line in every card and a day rule when the day
+    changes (the A2 cards both renderers draw). A tap opens the reader. A revealed thread seen here (right
+    after the second signature, or from a stale link) shows a line taken back as its note, and
+    everything else as its words. */
 export function buildLetterItems(conv: readonly ThreadMessage[], c: LetterItemsCtx): BuiltItem[] {
   const out: BuiltItem[] = [];
+  const cards = !!c.cards;
+  // each writer's own count, the opening not among them (the five each way are messages)
+  let mineN = 0;
+  let theirsN = 0;
+  let lastDay = "";
   for (let i = 0; i < conv.length; i++) {
     const m = conv[i];
     const prev = conv[i - 1];
@@ -442,20 +477,27 @@ export function buildLetterItems(conv: readonly ThreadMessage[], c: LetterItemsC
     const day = m.date ? c.day(m.date) : "";
     const prevDay = prev?.date ? c.day(prev.date) : "";
     const who = m.mine ? c.t("ui.you") : c.name.toLocaleUpperCase(c.locale);
-    const ownLabel = day ? `${who} · ${day}` : who;
-    const showLabel = !prev || prev.mine !== m.mine || day !== prevDay;
+    const ownLabel = cards ? "" : day ? `${who} · ${day}` : who;
+    const showLabel = !cards && (!prev || prev.mine !== m.mine || day !== prevDay);
     const speaker = m.mine ? c.t("mm.you") : c.name;
+    const n = isOpening(m) ? 0 : m.mine ? ++mineN : ++theirsN;
+    // cards: the day rule above the first letter of each day (the opening has no date)
+    const dayLabel = cards && !!day && day !== lastDay ? day : "";
+    if (day) lastDay = day;
+    const head = cards ? letterHead(m, n, c) : "";
 
     if (m.recalledAt) {
       const body = m.mine ? c.t("rm.recall.mine") : c.t("rm.recall.theirs", { name: c.name });
-      out.push({ ...blank(key, "recalled", m.mine), body, a11yLabel: join(body, day), ownDay: day, ownLabel });
+      out.push({ ...blank(key, "recalled", m.mine), dayLabel, body, a11yLabel: join(body, day), ownDay: day, ownLabel });
       continue;
     }
     if (isOpening(m) && c.voice) {
       // the opening letter, spoken: its caption opens the reader and has the letter's menu
       out.push({
         ...blank(key, "voice", m.mine),
+        dayLabel,
         speakerLabel: showLabel ? ownLabel : "",
+        head,
         body: m.body,
         a11yLabel: join(speaker, m.body, day),
         tappable: true,
@@ -470,7 +512,9 @@ export function buildLetterItems(conv: readonly ThreadMessage[], c: LetterItemsC
     }
     out.push({
       ...blank(key, "letter", m.mine),
+      dayLabel,
       speakerLabel: showLabel ? ownLabel : "",
+      head,
       timeLabel: m.date ? c.time(m.date) : "",
       body: m.body,
       a11yLabel: join(speaker, m.body, day),
@@ -494,6 +538,8 @@ export function windowItems(built: readonly BuiltItem[], start: number, end: num
       const first: KChatItem = { ...item, gap: 0 };
       if (variant === "room" && !first.dayLabel && ownDay && first.kind !== "voice") first.dayLabel = ownDay;
       if (variant === "letters" && !first.speakerLabel && (first.kind === "letter" || first.kind === "voice")) first.speakerLabel = ownLabel;
+      // the cards: the window's first letter says its day, as a room's first row does
+      if (variant === "letters" && first.head && !first.dayLabel && ownDay) first.dayLabel = ownDay;
       out.push(first);
     } else {
       out.push(item);
@@ -537,6 +583,13 @@ const NO_DOCK: KChatDock = {
   plusLabel: "",
   plusCloseLabel: "",
   traces: [],
+  hint: "",
+  emojiLabel: "",
+  ideasLabel: "",
+  ideaLabel: "",
+  ideaAnother: "",
+  ideaUse: "",
+  trayTitle: "",
 };
 
 export type RoomDockInput = {
@@ -558,13 +611,14 @@ export type RoomDockInput = {
   quietDays: number;
 };
 
-/** The room's four traces (a fold, a question, a moment, a song). */
+/** The room's four traces (a fold, a question, a moment, a song), as the + tray draws them
+    (chat composers B, Prompt 6): the I1 icon and the card's mood fill for each. */
 export function roomTraces(t: TFn): KChatTrace[] {
   return [
-    { key: "note", title: t("rm.note.t"), subtitle: t("rm.note.s"), glyph: "note" },
-    { key: "ask", title: t("rm.ask.t"), subtitle: t("rm.ask.s"), glyph: "ask" },
-    { key: "moment", title: t("rm.moment.t"), subtitle: t("rm.moment.s"), glyph: "moment" },
-    { key: "song", title: t("rm.song.t"), subtitle: t("rm.song.s"), glyph: "song" },
+    { key: "note", title: t("rm.note.t"), subtitle: t("rm.note.s"), glyph: "foldNote", tint: "calm" },
+    { key: "ask", title: t("rm.ask.t"), subtitle: t("rm.ask.s"), glyph: "askSomething", tint: "tired" },
+    { key: "moment", title: t("rm.moment.t"), subtitle: t("rm.moment.s"), glyph: "tinyMoment", tint: "low" },
+    { key: "song", title: t("rm.song.t"), subtitle: t("rm.song.s"), glyph: "leaveSong", tint: "happy" },
   ];
 }
 
@@ -626,10 +680,17 @@ export function buildRoomDock(i: RoomDockInput): KChatDock {
     placeholder: roomPlaceholder(i.mode, t),
     sendLabel: t("ld.send"),
     autocapitalize: i.mode?.kind !== "song",
+    // the React Native room's Wren tool; the SwiftUI room has the ideas key in its place (B)
     wrenToolLabel: t("rm.seed.a11y", { wren: i.wren }),
     plusLabel: t("lat.title"),
     plusCloseLabel: t("wren.trackClose"),
     traces: terminal === "none" ? roomTraces(t) : [],
+    emojiLabel: t("cmp.emoji"),
+    ideasLabel: t("rm.ideas.a11y"),
+    ideaLabel: t("rm.idea.label").toLocaleUpperCase(i.locale),
+    ideaAnother: t("rm.idea.another").toLocaleUpperCase(i.locale),
+    ideaUse: t("rm.idea.use").toLocaleUpperCase(i.locale),
+    trayTitle: t("rm.tray.title"),
   };
 }
 
@@ -641,8 +702,12 @@ export type LettersDockInput = {
   /** the server says this reader has no such thread: closed in place */
   missing?: boolean;
   myCount: number;
+  /** their letters (the reply bar's hint says what moves names once your five are in) */
+  otherCount?: number;
   iSigned: boolean;
   theirSigned: boolean;
+  /** the reader's locale, for the hint's capitals */
+  locale?: string;
 };
 
 /** The sign door's state: from the fifth letter, until names are traded; never on a gone thread. */
@@ -650,6 +715,18 @@ export function signDoorOf(i: Pick<LettersDockInput, "revealed" | "gone" | "miss
   if (i.revealed || i.gone || i.missing || i.myCount < REVEAL) return "none";
   if (i.iSigned) return "waiting";
   return i.theirSigned ? "theirsFirst" : "offer";
+}
+
+/** The pen-pal reply bar's hint (A2), over the bar while the keyboard is up: the letter being
+    written, LETTER {n} OF 5 with n your own count + 1, and on your fifth LETTER 5 OF 5 · ONE MORE
+    AND NAMES. Once your five are in, more from you won't move anything, so it says what will (the
+    band's line: the one thing a counter must never invite is filler). In capitals, in the
+    reader's locale; "" once names are traded or nothing can be written. */
+export function lettersHint(i: Pick<LettersDockInput, "t" | "revealed" | "gone" | "missing" | "myCount" | "otherCount" | "locale">): string {
+  if (i.revealed || i.gone || i.missing) return "";
+  if (i.myCount >= REVEAL) return bandFacts(i.myCount, i.otherCount ?? 0, i.t).line.toLocaleUpperCase(i.locale);
+  const n = i.myCount + 1;
+  return (n === REVEAL ? i.t("ch.hint.names", { n }) : i.t("ch.hint.letter", { n })).toLocaleUpperCase(i.locale);
 }
 
 /** Everything above and in place of the pen-pal chat's composer. */
@@ -662,9 +739,11 @@ export function buildLettersDock(i: LettersDockInput): KChatDock {
     signLabel: signDoor === "waiting" ? t("ch.wentFirst") : signDoor === "theirsFirst" ? t("ch.theyFirst") : signDoor === "offer" ? t("ch.sendYours") : "",
     terminal: i.gone || i.missing ? "gone" : "none",
     goneText: i.gone ? t("ch.gone") : t("fail.closed.body"),
-    // before names it is a letter you compose; after, a person you talk to
-    placeholder: i.revealed ? t("th.sayTo", { name: i.name }) : t("ch.ph"),
+    // before names you write back (the reply bar's own words, A2); after, a person you talk to
+    placeholder: i.revealed ? t("th.sayTo", { name: i.name }) : t("ld.writeBackPh"),
     sendLabel: t("ld.send"),
+    hint: lettersHint(i),
+    emojiLabel: t("cmp.emoji"),
   };
 }
 
@@ -744,6 +823,244 @@ export function bandFacts(myCount: number, otherCount: number, t: TFn): BandFact
   const b = REVEAL - them;
   const line = !a && !b ? t("ch.band.names") : !a ? t("ch.band.youDone", { n: b }) : !b ? t("ch.band.theyDone", { n: a }) : t("ch.band.both", { a, b });
   return { me, them, line, named: !a && !b };
+}
+
+/* ── the pen-pal header (A2) ───────────────────────────────────────────── */
+
+export type LettersHeaderInput = {
+  t: TFn;
+  locale: string;
+  /** their pen-pal name ("No. 5422") */
+  name: string;
+  /** their user id; null for a deleted account (the veil) */
+  other: string | null;
+  myCount: number;
+  otherCount: number;
+  theirSigned: boolean;
+  /** lib/thread-state's state for the thread (the Kindreds rows' rule), null while loading */
+  state: { label: string; toneKey: ThreadToneKey; kind: ThreadStateKind } | null;
+  /** the face and name open their page (only once you know their voice) */
+  canOpenPage: boolean;
+  /** someone is on the other side to report (ReportMenu's own rule) */
+  canReport: boolean;
+};
+
+/** No face to draw: the soft2 disc alone. */
+export const NO_FACE: KChatFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0 };
+
+/** The pen-pal chat's header (A2): the name, the line under it, FACE v1 and its frame, the dots.
+    The line says whose letter is owed and which of the five it is — LETTER {k} OF 5 · THEIRS when
+    their letter is owed (k their count + 1), · YOURS when yours is, by the Kindreds rows' turn
+    rule; once that writer's five are in, the band's line (what still moves names); past the
+    letters (names may be traded, or their account is gone) the state's own words in its tone.
+    The dots are the exchanges that went both ways (the Kindreds rows' n/5). */
+export function lettersHeader(i: LettersHeaderInput): KChatHeader {
+  const { t } = i;
+  const kind = i.state?.kind ?? null;
+  const band = () => bandFacts(i.myCount, i.otherCount, t).line;
+  let sub = "";
+  let tone: KChatHeader["tone"] = "mute";
+  if (kind === "yourTurn") sub = i.myCount >= REVEAL ? band() : t("ch.head.yours", { n: i.myCount + 1 });
+  else if (kind === "theirTurn") sub = i.otherCount >= REVEAL ? band() : t("ch.head.theirs", { n: i.otherCount + 1 });
+  else if (i.state) {
+    sub = i.state.label;
+    tone = i.state.toneKey;
+  }
+  sub = sub.toLocaleUpperCase(i.locale);
+  const seed = i.other || null;
+  const dots = Math.min(i.myCount, i.otherCount, REVEAL);
+  return {
+    room: false,
+    face: NO_FACE,
+    name: i.name,
+    sub,
+    tone,
+    mask: seed ? mosaicMask(seed, developFor(i.otherCount)) : 0,
+    veil: !seed,
+    // CorrespondentFace: a face that has come through is framed; brass once they went first
+    frame: !seed || i.otherCount < REVEAL ? "none" : i.theirSigned ? "brass" : "line",
+    dots,
+    a11yLabel: join(i.name, sub, t("mk.ofFive", { n: dots })),
+    canOpenPage: i.canOpenPage,
+    backLabel: t("a11y.back"),
+    moreLabel: i.canReport ? t("rp.menu.a11y") : "",
+  };
+}
+
+/* ── the kindreds header (B) ───────────────────────────────────────────── */
+
+export type RoomHeaderInput = {
+  t: TFn;
+  locale: string;
+  /** their name, traded */
+  name: string;
+  /** the line under it as the room has always worded it: KINDRED SINCE {the day names were
+      traded}, else how they write (ChatHeader's subtitle); "" for none. Drawn in capitals */
+  sub: string;
+  /** the kindred's face as lib/faces resolves it (their chosen portrait, the glyph, the veil) */
+  face: KChatFace;
+  /** someone is on the other side to report (ReportMenu's own rule) */
+  canReport: boolean;
+};
+
+/** The kindreds chat's header (chat composers B): ‹, the kindred's round face 44 across, the name,
+    the line under it in mute capitals, ⋯. No dots: the five are behind them. The face and name
+    open their page. */
+export function roomHeader(i: RoomHeaderInput): KChatHeader {
+  const { t } = i;
+  const sub = i.sub.toLocaleUpperCase(i.locale);
+  return {
+    room: true,
+    face: i.face,
+    name: i.name,
+    sub,
+    tone: "mute",
+    mask: 0,
+    veil: false,
+    frame: "none",
+    dots: 0,
+    a11yLabel: join(i.name, sub),
+    canOpenPage: true,
+    backLabel: t("a11y.back"),
+    moreLabel: i.canReport ? t("rp.menu.a11y") : "",
+  };
+}
+
+/* ── the ideas (B, Prompt 4) ───────────────────────────────────────────── */
+
+/* THE IDEAS BUBBLE'S SENTENCES. There is no server pool of openers (the
+   spec's): the room offers the 36 stamps' prompts (data/stamps, already in
+   nine languages), in an order of its own. Prompts from the categories the
+   OTHER person writes in come first — their opening letter's stamp, and the
+   stamps their letters and lines call up (lib/stamp-suggest stampsHeard) —
+   then the rest; each part shuffled by the room's id, so every room has its
+   own order and the same room the same one. useRoomModel walks it, one
+   sentence at a time, and wraps only once every sentence has been offered.
+
+   THE WALK REMEMBERS WHAT IT OFFERED, not where it stood (IdeaWalk). The
+   order is not fixed for the life of a room: their categories move when a
+   new letter of theirs tips the count, and the reader can change language.
+   A position in the order would then point into a different order, and
+   sentences already offered would come round again before the rest had
+   been (the owner's rule: no repeat until the pool is used). So the walk
+   keeps the sentences it moved past, offers the first in the order now
+   that isn't among them, and starts over once every one has been; a new
+   walk never opens on the sentence that closed the last one. A language
+   change starts a fresh walk in the new words (the old ones aren't in it). */
+
+/** One prompt the bubble can offer: its stamp's category and its words in the reader's language. */
+export type IdeaPrompt = { cat: string; text: string };
+
+/** The strongest categories counted as "theirs" (three of the six: half). */
+export const THEIR_CATEGORIES = 3;
+
+/** FNV-1a over the string's UTF-16 units: a room id as a seed. */
+function hash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/** mulberry32: a small seeded generator in [0, 1), the same sequence for the same seed. */
+function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let x = a;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The categories the other person writes in, strongest first, at most `max`: their opening
+    letter's stamp leads (the one they chose themselves); then each category by how many of their
+    letters and lines call up one of its stamps (`heard`: the stamp ids each one calls up), ties to
+    the one heard first. */
+export function theirCategories(i: {
+  openingStamp: string | null;
+  heard: readonly (readonly string[])[];
+  catOf: (stampId: string) => string | null | undefined;
+  max?: number;
+}): string[] {
+  const max = i.max ?? THEIR_CATEGORIES;
+  const score = new Map<string, number>();
+  for (const ids of i.heard) {
+    // one vote per letter for each category it calls up
+    const cats = new Set<string>();
+    for (const id of ids) {
+      const cat = i.catOf(id);
+      if (cat) cats.add(cat);
+    }
+    for (const cat of cats) score.set(cat, (score.get(cat) ?? 0) + 1);
+  }
+  // Map keeps the order heard; a stable sort keeps it among equals
+  const ranked = [...score.entries()].sort((a, b) => b[1] - a[1]).map(([cat]) => cat);
+  const opening = i.openingStamp ? i.catOf(i.openingStamp) ?? null : null;
+  const out = opening ? [opening, ...ranked.filter((c) => c !== opening)] : ranked;
+  return out.slice(0, Math.max(0, max));
+}
+
+/** The order the ideas bubble offers its sentences in: each sentence once (blank ones dropped),
+    shuffled by `seed` (the room's id), those whose category is one of `theirCats` first. */
+export function ideaOrder(prompts: readonly IdeaPrompt[], theirCats: readonly string[], seed: string): string[] {
+  const seen = new Set<string>();
+  const pool: IdeaPrompt[] = [];
+  for (const p of prompts) {
+    const text = p.text.trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    pool.push({ cat: p.cat, text });
+  }
+  const rand = seeded(hash32(seed));
+  for (let k = pool.length - 1; k > 0; k--) {
+    const j = Math.floor(rand() * (k + 1));
+    [pool[k], pool[j]] = [pool[j], pool[k]];
+  }
+  const theirs = new Set(theirCats);
+  return [...pool.filter((p) => theirs.has(p.cat)), ...pool.filter((p) => !theirs.has(p.cat))].map((p) => p.text);
+}
+
+/** Where a room's ideas stand: the sentences moved past since the walk began (↻ ANOTHER or USE
+    IT), and the one that closed the previous walk ("" for none), which a new walk doesn't open
+    on. */
+export type IdeaWalk = { readonly seen: ReadonlySet<string>; readonly last: string };
+
+/** A walk that has offered nothing yet. */
+export const IDEA_WALK_START: IdeaWalk = { seen: new Set(), last: "" };
+
+/** The sentence the bubble offers now: the first in `order` the walk hasn't moved past (and not
+    the one that closed the previous walk, while another is left); "" for an empty order. */
+export function ideaNow(order: readonly string[], walk: IdeaWalk): string {
+  let fallback = "";
+  for (const s of order) {
+    if (walk.seen.has(s)) continue;
+    if (s !== walk.last) return s;
+    fallback = s;
+  }
+  return fallback || (order[0] ?? "");
+}
+
+/** The walk once the sentence it offers now has been moved past: that sentence joins the seen,
+    and once every sentence of `order` has been seen a new walk begins, remembering it as the last
+    so the next isn't the same one. */
+export function ideaPassed(order: readonly string[], walk: IdeaWalk): IdeaWalk {
+  const now = ideaNow(order, walk);
+  if (!now) return walk;
+  const seen = new Set(walk.seen);
+  seen.add(now);
+  if (order.every((s) => seen.has(s))) return { seen: new Set(), last: now };
+  return { seen, last: walk.last };
+}
+
+/** The words USE IT leaves in the field: the sentence alone in an empty field; after the
+    reader's own words, a space and then the sentence (nothing typed is ever thrown away). */
+export function withIdea(current: string, idea: string): string {
+  const typed = current.replace(/\s+$/u, "");
+  return typed ? `${typed} ${idea}` : idea;
 }
 
 /** The road to the name: the first five letters each way, in the order they left. */

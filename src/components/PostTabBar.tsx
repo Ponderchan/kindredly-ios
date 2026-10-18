@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
-import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import { P, PF } from "../theme/post";
@@ -21,7 +21,18 @@ import { t, useLang } from "../lib/i18n";
    read as Me twice), one person for Me — no words under them, and in the
    middle a plain round + in the app's one action colour. Pressing it doesn't leave the page: the + turns into
    an × and two choices rise out of it (PostFan). Active is pen blue with a
-   wash behind the stroke; the rest are quiet ink. */
+   wash behind the stroke; the rest are quiet ink.
+
+   AWAY (Today's reply: the chat composers' A1, owner 2026-10-18), as the
+   Swift bar does it (NativeTabBar barHidden): while the reader writes back
+   to a letter on Today, the keyboard and the reply bar have the foot of the
+   screen, so Today asks the layout to send the bar away (useTabBarAway, the
+   layout's `away`). It slides 160 down out of sight over .35s (a fade under
+   Reduce Motion), takes no touches and is hidden from VoiceOver, and comes
+   back when the reply ends. Honoured only while Today is the tab on screen,
+   so a navigation that leaves Today mid-reply never takes the bar from
+   another tab. With a software keyboard it is under the keyboard anyway;
+   with a hardware one Today's reply bar stands where the bar was. */
 
 export const BAR = 54;
 /* 30, not 27: the prototype's bar (owner, 2026-09-23) draws its glyphs about
@@ -98,13 +109,23 @@ export function Me({ color, active, size = ICON, wash = WASH }: IconProps) {
   );
 }
 
-export function PostTabBar({ state, navigation, onPost, open = false, waiting = 0 }: any) {
+export function PostTabBar({ state, navigation, onPost, open = false, waiting = 0, away = false }: any) {
   useLang(); // the navigator renders this bar, not a screen — subscribe here or the labels go stale
   const insets = useSafeAreaInsets();
   const { t: tk, dark } = useTheme();
+  const reduce = useReducedMotion();
   const c = barColors(dark, tk);
   const pen = c.pen; // a string for the worklet below, so its inputs compare by value
   const current: string = state.routes[state.index]?.name ?? "letters";
+  // only Today writes back over this bar's ground; anywhere else the bar stays
+  const hidden = !!away && current === "letters";
+
+  /* AWAY: 160 down over .35s, or a fade where it stands under Reduce Motion (see the header) */
+  const gone = useSharedValue(hidden ? 1 : 0);
+  useEffect(() => {
+    gone.value = withTiming(hidden ? 1 : 0, reduce ? { duration: 200, easing: Easing.inOut(Easing.ease) } : { duration: 350, easing: Easing.inOut(Easing.ease) });
+  }, [hidden, reduce, gone]);
+  const stepAway = useAnimatedStyle(() => (reduce ? { opacity: 1 - gone.value } : { transform: [{ translateY: 160 * gone.value }] }));
 
   const go = (name: string) => {
     const route = state.routes.find((r: any) => r.name === name);
@@ -145,17 +166,23 @@ export function PostTabBar({ state, navigation, onPost, open = false, waiting = 
   };
 
   return (
-    <View
-      style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: c.bar,
-        borderTopWidth: 1,
-        borderTopColor: c.rule,
-        paddingBottom: Math.max(insets.bottom, 8),
-      }}
+    <Animated.View
+      pointerEvents={hidden ? "none" : "auto"}
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
+      style={[
+        {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: c.bar,
+          borderTopWidth: 1,
+          borderTopColor: c.rule,
+          paddingBottom: Math.max(insets.bottom, 8),
+        },
+        stepAway,
+      ]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 6 }}>
         <Window name="letters" label={t("tab.today")} Icon={Envelope} />
@@ -173,6 +200,6 @@ export function PostTabBar({ state, navigation, onPost, open = false, waiting = 
         <Window name="kindreds" label={t("tab.kindreds")} Icon={Kindreds} count={waiting} />
         <Window name="me" label={t("tab.me")} Icon={Me} />
       </View>
-    </View>
+    </Animated.View>
   );
 }

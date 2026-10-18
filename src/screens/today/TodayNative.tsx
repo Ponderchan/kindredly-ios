@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { useNavigation } from "expo-router";
 import { useKCommands, useRev } from "../../../modules/kindredly-ui";
@@ -13,7 +13,7 @@ import {
 } from "../../../modules/kindredly-ui/src/Today";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
-import { useScreenInsets } from "../../lib/screen-insets";
+import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
 import { playbackCommandArgs } from "../../lib/voice-playback";
 import type { CardVM } from "./today-cards";
 import { useTodayBirds } from "./today-birds";
@@ -45,7 +45,14 @@ import type { TodayModel } from "./useTodayDesk";
      sends;
    - events back to the model: a pass, bring back, REPLY opening the field,
      the window (her game, through the router), the reply's edits and sends,
-     a card's actions.
+     a card's actions;
+   - and the field's focus to the tab bar: writing back (the chat composers'
+     A1, owner 2026-10-18) is the field having the keyboard, and while it
+     does the floating tab bar slides away (useTabBarAway), since the
+     keyboard and the reply bar have the foot of the screen. The rest of
+     that moment is Swift's own: the band fades, the card shrinks, the bar
+     rises (KTodayDesk). The keyboard's done, a tap on the dimmed desk or a
+     send let go of the field, and the bar comes back.
    No islands: Wren is Swift's, drawn from her pictures. A reply in the air
    is hers to carry too: she takes the letter off the band and comes back
    (KWireWren), so there is no React Native fly-by over this Host (the old
@@ -96,6 +103,10 @@ export function TodayNative({ model }: { model: TodayModel }) {
   const insets = useScreenInsets();
   const navigation = useNavigation();
   const { view, act } = model;
+
+  // writing back: the field has the keyboard, so the tab bar steps away (another Host)
+  const [replying, setReplying] = useState(false);
+  useTabBarAway(replying);
 
   // the bound letter's draft, read at the moment the field needs it
   const boundId = view.reply.letterId;
@@ -161,6 +172,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
     pause: s.pause,
     send: s.send,
     placeholder: s.placeholder,
+    emoji: s.emoji,
     offlineTitle: s.offlineTitle,
     offlineBody: s.offlineBody,
     loadingA11y: s.loadingA11y,
@@ -200,6 +212,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
           onWindow={act.window}
           onReplyChange={act.changeDraft}
           onReplySend={act.send}
+          onReplyFocus={setReplying}
           onCardAction={act.cardAction}
         />
       </SurfaceHost>

@@ -1,21 +1,22 @@
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { View, type StyleProp, type TextInput, type TextInputProps, type ViewStyle } from "react-native";
+import { forwardRef, type ReactNode } from "react";
+import { View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { GlyphInput } from "../GlyphInput";
 import { useTheme } from "../../lib/theme";
-import { fieldBox } from "../../lib/field";
 import { SendKey } from "./SendKey";
 import { StickerBox } from "./StickerBox";
+import { useComposerField, type ComposerFieldHandle } from "./useComposerField";
 import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKeyState, sendTakesPress, type SendStyle } from "./kit";
 
 /* THE REPLY STRIP (10a, H:124; KReplyStrip's React Native twin).
    ────────────────────────────────────────────────────────────────────────
-   Where a reply is written, in the screens that stay React Native (the
-   reader, Wren's desk if it moves) and in the room, chat and Today
-   fallbacks: an sf face with a 2.5 ln outline, corners 26, a hard 4/4
-   shadow, at least 54 tall, padding 0 8 0 20. The field is the system face
-   at 17 (writing inputs stay system, H:124), placeholder in mute, the caret
-   in ind (GlyphInput), and it grows to five lines. The send key sits at the
-   right end, centred on the resting height as the strip grows (SendKey).
+   Where a reply is written in the screens that stay React Native (the
+   chat's reader, Today's letter reader, Wren's desk if it moves): an sf face with a 2.5 ln outline,
+   corners 26, a hard 4/4 shadow, at least 54 tall, padding 0 8 0 20. The
+   field is the system face at 17 (writing inputs stay system, H:124),
+   placeholder in mute, the caret in ind (GlyphInput), and it grows to five
+   lines. The send key sits at the right end, centred on the resting height
+   as the strip grows (SendKey). The Today, chat and room fallbacks moved to
+   the chat composers' bars (ReplyBar, KindredBar; owner, 2026-10-18).
 
    THE FIELD IS UNCONTROLLED, as the Swift KField is: its text lives in the
    native view and is never echoed back from React, which is what keeps a
@@ -24,25 +25,8 @@ import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKey
    was typed in onSend(value). To put text in — a draft resumed, a send
    that failed and must give the words back, a reader closing — call
    setText on the handle; that is the only way text goes in after mount.
-
-   HOW TEXT GOES IN (React Native 0.86, Fabric). The TextInput's native
-   `text` prop is not a one-off: every time it changes, the shadow node
-   writes it into the field's state (BaseTextInputShadowNode
-   updateStateIfNeeded) and the native view puts it over what is shown
-   whenever no keystroke is in flight (RCTTextInputComponentView
-   updateState). So that prop — defaultValue here, on every render — must
-   change exactly when text is put in and never drift back by itself
-   (handing `value` for one render and then dropping it wiped the words a
-   frame later). It lives in `seed.text`: initialText once, at mount, and
-   after that only what setText and clear say. When setText must put in
-   the very text the prop already carries (the person typed over it) a
-   prop that doesn't change can't do it: "" goes in by the field's own
-   clear(), anything else by a fresh field (`seed.n` is its key) that
-   takes the keyboard if the old one had it (onBlur then onFocus may fire
-   around the swap). A device check belongs to
-   the 0b spike: setText after typing, setText of the same draft after
-   editing it, and setText after a send has cleared the field — each must
-   stay on screen, with the send key matching what is shown.
+   How it goes in, under Fabric, is useComposerField's (shared with the two
+   bars, so the three can't drift apart).
 
    SENDING. The key and, with returnSends (the default, as in every chat),
    the keyboard's Return both send. Return then never inserts a newline,
@@ -56,18 +40,7 @@ import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKey
    mock's round tools (Wren, +): centred on the strip's resting height and
    staying at the bottom as it grows. */
 
-export type ReplyStripHandle = {
-  /** put text in the field (draft resume, restore after a failed send); keeps focus */
-  setText(value: string): void;
-  /** empty it */
-  clear(): void;
-  focus(): void;
-  blur(): void;
-  /** what is in the field right now */
-  getText(): string;
-  /** whether the field has the keyboard */
-  isFocused(): boolean;
-};
+export type ReplyStripHandle = ComposerFieldHandle;
 
 export type ReplyStripProps = {
   /** already translated ("write back…") */
@@ -103,7 +76,7 @@ export type ReplyStripProps = {
   onFocus?: () => void;
   onBlur?: () => void;
   /** anything else the TextInput should get (autoCapitalize, autoCorrect, testID…) */
-  inputProps?: Omit<TextInputProps, "value" | "defaultValue" | "onChangeText" | "placeholder" | "multiline" | "onSubmitEditing" | "submitBehavior" | "returnKeyType" | "style" | "editable" | "autoFocus" | "maxLength" | "onFocus" | "onBlur">;
+  inputProps?: Omit<TextInputProps, "value" | "defaultValue" | "onChangeText" | "onScroll" | "onContentSizeChange" | "placeholder" | "multiline" | "onSubmitEditing" | "submitBehavior" | "returnKeyType" | "style" | "editable" | "autoFocus" | "maxLength" | "onFocus" | "onBlur">;
   /** the outer row: margins */
   style?: StyleProp<ViewStyle>;
 };
@@ -133,67 +106,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
   ref,
 ) {
   const { t: tk } = useTheme();
-  const input = useRef<TextInput>(null);
-  /* the field's native `text` prop (see HOW TEXT GOES IN): `text` changes
-     only in setText and clear; `n` is the field's key, bumped to put in the
-     text the prop already carries; `focus` is whether that fresh field
-     takes the keyboard */
-  const [seed, setSeed] = useState(() => ({ text: initialText ?? "", n: 0, focus: false }));
-  /* the prop as last committed: Fabric puts setText's text in only when
-     the next commit carries something different */
-  const committed = useRef(seed.text);
-  useLayoutEffect(() => {
-    committed.current = seed.text;
-  }, [seed.text]);
-  /* what the field holds (every edit, setText and clear) */
-  const text = useRef(seed.text);
-  const [empty, setEmpty] = useState(text.current.length === 0);
-  const [hasWords, setHasWords] = useState(text.current.trim().length > 0);
-
-  const latest = useRef(onChangeText);
-  latest.current = onChangeText;
-  const note = (v: string) => {
-    text.current = v;
-    setEmpty(v.length === 0);
-    setHasWords(v.trim().length > 0);
-    latest.current?.(v);
-  };
-
-  const clear = () => {
-    input.current?.clear();
-    /* the prop follows, so it never holds text the field no longer shows
-       (a later setText of those words is then a change Fabric applies) */
-    setSeed((s) => (s.text === "" ? s : { ...s, text: "" }));
-    note("");
-  };
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      setText(value: string) {
-        const shown = text.current;
-        /* a different prop goes in on the next commit; the same one as
-           committed also cancels any other text set since */
-        setSeed((s) => (s.text === value ? s : { ...s, text: value }));
-        if (value === committed.current && value !== shown) {
-          if (value === "") input.current?.clear();
-          else {
-            const focus = input.current?.isFocused() ?? false;
-            setSeed((s) => ({ text: value, n: s.n + 1, focus }));
-          }
-        }
-        note(value);
-      },
-      clear,
-      focus: () => input.current?.focus(),
-      blur: () => input.current?.blur(),
-      getText: () => text.current,
-      isFocused: () => input.current?.isFocused() ?? false,
-    }),
-    // note, clear and setText only touch refs and state setters
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  const { input, seed, note, clear, text, hasWords, box, onScroll, onContentSizeChange } = useComposerField(ref, initialText, onChangeText);
 
   const state = sendKeyState({ hasWords, canSend, held });
   const send = () => {
@@ -224,6 +137,8 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
           {...inputProps}
           defaultValue={seed.text}
           onChangeText={note}
+          onScroll={onScroll}
+          onContentSizeChange={onContentSizeChange}
           placeholder={placeholder}
           placeholderTextColor={tk.mute}
           multiline
@@ -237,7 +152,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
           onBlur={onBlur}
           style={{
             flex: 1,
-            ...fieldBox(empty ? "" : "x", lineHeight, REPLY_FIELD_MAX, REPLY_FIELD_PAD),
+            ...box(lineHeight, REPLY_FIELD_MAX, REPLY_FIELD_PAD),
             paddingTop: REPLY_FIELD_PAD,
             paddingBottom: REPLY_FIELD_PAD,
             paddingHorizontal: 0,

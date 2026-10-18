@@ -7,8 +7,10 @@ import { SEND_STYLE, sendTakesPress, type SendState, type SendStyle } from "./ki
 
 /* THE ONE SEND KEY (10a; KSendKey's React Native twin).
    ────────────────────────────────────────────────────────────────────────
-   Every reply in the app ends in this key — Today's strip, a room, a pen
-   pal's chat, the reader. Three states (kit.ts sendKeyState):
+   Every 10a reply strip ends in this key — the chat's reader, Today's
+   letter reader, Wren's desk. (The chat composers' two bars — the Today
+   reply, a pen pal's chat, a room — end in their round SendDisc instead,
+   ReplyBar.tsx; owner, 2026-10-18.) Three states (kit.ts sendKeyState):
 
      disabled  SEND in faint on a soft2 pill, mono 600 11 at .12em, padding
                9 14, corners 18 (H:124). Not pressable; VoiceOver hears a

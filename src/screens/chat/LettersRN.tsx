@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, ScrollView, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,13 +9,16 @@ import { blurThen } from "../../lib/keyboard";
 import { useRenderWindow } from "../../lib/render-window";
 import { Introduction } from "../../components/Introduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
-import { ReplyStrip, type ReplyStripHandle } from "../../components/10a";
-import "../../data/strings-step5-platform"; // vo.play, vo.pause
-import { buildLetterItems, buildLettersDock, windowItems } from "./build-items";
+import { ReportSheet } from "../../components/ReportMenu";
+import { useReportFlow } from "../../lib/report-flow";
+import { BAR_ABOVE_KEYBOARD, REPLY_BAR, ReplyBar, type ReplyBarHandle } from "../../components/10a";
+import "../../data/strings-step5-platform"; // vo.play, vo.pause, cmp.emoji
+import type { KChatHeader } from "../../../modules/kindredly-ui/src/Conversation";
+import { buildLetterItems, buildLettersDock, lettersHeader, windowItems } from "./build-items";
 import { useLettersModel } from "./useLettersModel";
 import type { ChatUi } from "./useRoomModel";
 import { ChatHeader } from "./ChatHeader";
-import { ReachBand } from "./ReachBand";
+import { ConversationHeaderRN } from "./ConversationHeaderRN";
 import { LetterRowRN, type RowEnv } from "./ChatRowsRN";
 import { DockAbove, GoneLine } from "./ChatDockRN";
 import { useChatListRN } from "./useChatListRN";
@@ -33,20 +36,26 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
    one voice player for a voice opening (known bug 2) — and draws the same
    10a look on the theme:
 
-   · the shared React Native header (ChatHeader: the face developing with
-     THEIR letters, a square mosaic for a pen pal and the veil for a gone
-     one, the state in its tone — ACCOUNT CLOSED for a gone pen pal, never
-     a turn that can't be taken) and the reach band under it (both sides'
-     five cells and the one line of who still owes what; none once their
-     account is gone);
-   · light-outline letter blocks in the reader's Letter font, a tap opening
-     the reader on THAT letter, a long press its menu (copy; theirs
-     translate and report — a posted letter is posted: no take back, no
-     quoting);
+   · the chat composers' A2 (owner's final, 2026-10-18), as the SwiftUI
+     chat draws it: before names, the header with the face developing with
+     THEIR letters (FACE v1, the veil for a gone pen pal), No. 5422, LETTER
+     3 OF 5 · THEIRS (whose letter is owed; past the letters the state in
+     its tone, ACCOUNT CLOSED for a gone one) and the five dots, its ⋯
+     opening the report card (ConversationHeaderRN on build-items
+     lettersHeader). They say what the reach band said, with the reply
+     bar's hint, so the band is not drawn any more. A revealed thread seen
+     here keeps the older ChatHeader;
+   · the letter cards (head line, the words in the reader's Letter font,
+     the time; the day as a day rule), a tap opening the reader on THAT
+     letter, a long press its menu (copy; theirs translate and report — a
+     posted letter is posted: no take back, no quoting);
    · the dock: the sign door above the status line, the slow note in the
-     dock instead of a toast under the keyboard (spec bug 8), the 10a reply
-     strip with the plane key and Return-to-send, or the gone line where it
-     was.
+     dock instead of a toast under the keyboard (spec bug 8), the reply bar
+     (ReplyBar: the reply arrow, the field, the emoji key, the send disc;
+     Return sends) 16 from either edge and 12 over the keyboard, with its
+     hint over it while it has the keyboard (LETTER 4 OF 5, LETTER 5 OF 5 ·
+     ONE MORE AND NAMES, build-items lettersHint) — or the gone line where
+     it was.
 
    The correspondence, seen from Kindreds: a slow chat. The other person's
    face develops in the header with every letter THEY send. Two lenses on
@@ -66,7 +75,9 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
   const keyboard = useKeyboardRN();
   const lang = getLang();
 
-  const strip = useRef<ReplyStripHandle>(null);
+  const bar = useRef<ReplyBarHandle>(null);
+  /* the bar has the keyboard: its hint shows */
+  const [focused, setFocused] = useState(false);
   const listRef = useRef<{ requestEnd: (animated: boolean, delayMs: number) => void; jumpTo: (key: string) => void } | null>(null);
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
   useEffect(
@@ -83,12 +94,12 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
         if (target !== "body") return;
         const timer = setTimeout(() => {
           timers.current.delete(timer);
-          strip.current?.focus();
+          bar.current?.focus();
         }, delayMs);
         timers.current.add(timer);
       },
       seedText: (target, value) => {
-        if (target === "body") strip.current?.setText(value);
+        if (target === "body") bar.current?.setText(value);
       },
       scrollToEnd: (animated, delayMs) => listRef.current?.requestEnd(animated, delayMs),
       jumpTo: (key) => listRef.current?.jumpTo(key),
@@ -111,6 +122,8 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
         keyOf: m.keyOf,
         photoOf: () => null,
         voice: opening.voice,
+        // the A2 cards: a head line in each, the day as a day rule
+        cards: true,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [m.conv, m.menuCtx, m.name, m.keyOf, opening.voice, lang],
@@ -129,16 +142,43 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
         gone: !!detail?.gone,
         missing: m.status === "missing",
         myCount: detail?.myCount ?? 0,
+        otherCount: detail?.otherCount ?? 0,
         iSigned: !!detail?.iSigned,
         theirSigned: !!detail?.theirSigned,
+        locale: m.locale,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.iSigned, detail?.theirSigned, lang],
+    [m.name, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.otherCount, detail?.iSigned, detail?.theirSigned, lang],
   );
+
+  /* the A2 header while names aren't traded (and while the thread loads); a revealed thread seen
+     here keeps ChatHeader. Its ⋯ starts the report flow, whose card drops just under it */
+  const a2 = !detail?.revealed;
+  const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  const header = useMemo<KChatHeader | null>(
+    () =>
+      a2
+        ? lettersHeader({
+            t,
+            locale: m.locale,
+            name: m.name,
+            other: detail?.other || null,
+            myCount: detail?.myCount ?? 0,
+            otherCount: detail?.otherCount ?? 0,
+            theirSigned: !!detail?.theirSigned,
+            state: m.state,
+            canOpenPage: m.canOpenPage,
+            canReport: !report.nobody,
+          })
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [a2, m.name, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
+  );
+  const headerTop = props.topInset ?? insets.top;
   const open = dock.terminal === "none";
   // the correspondence closed with the keyboard up (their account went, a block): let go
   useEffect(() => {
-    if (!open) strip.current?.blur();
+    if (!open) bar.current?.blur();
   }, [open]);
 
   const env: RowEnv = {
@@ -152,47 +192,56 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
     a11yRef: list.a11yRef,
   };
 
-  /** the strip's send: exactly the words it held. The React Native strip never empties itself
-      (it returns false): the model empties the field synchronously when it takes the letter —
-      before its first await — puts the words back if the letter didn't go, and leaves them alone
-      when it refuses (no thread loaded yet, offline with nothing kept, one already going). A
-      self-clear would run after a synchronous refusal had put them back, and wipe them: the letter
-      lost with no word said (Swift's field clears first and gets them back after; the strip's order
-      is the other way round). */
-  const onStripSend = (value: string): boolean => {
+  /** the bar's send: exactly the words it held. The React Native bar never empties itself (it
+      returns false): the model empties the field synchronously when it takes the letter — before
+      its first await — puts the words back if the letter didn't go, and leaves them alone when it
+      refuses (no thread loaded yet, offline with nothing kept, one already going). A self-clear
+      would run after a synchronous refusal had put them back, and wipe them: the letter lost with
+      no word said (Swift's field clears first and gets them back after; the bar's order is the
+      other way round). */
+  const onBarSend = (value: string): boolean => {
     void m.onSend(value, undefined, false);
     return false;
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
-      <ChatHeader
-        variant="letters"
-        detail={detail}
-        name={m.name}
-        state={m.state}
-        wren={m.wren}
-        threadId={id}
-        snapshot={m.theirLatest}
-        canOpenPage={m.canOpenPage}
-        topInset={props.topInset}
-        onBack={m.goBack}
-        onOpenPage={m.openPage}
-        onBlocked={m.onBlocked}
-        onBeforeSheet={() => strip.current?.blur()}
-      />
-      {/* THE ONE THRESHOLD, SAID ON THE PAGE — both sides of it (owner, 2026-10-10); none once
-          names are traded or their account is gone (spec bug 6) */}
-      {detail && !detail.revealed && !detail.gone ? <ReachBand myCount={detail.myCount} otherCount={detail.otherCount} other={detail.other || null} /> : null}
+      {header ? (
+        <ConversationHeaderRN
+          model={header}
+          topInset={headerTop}
+          onBack={m.goBack}
+          onPage={m.openPage}
+          // the keyboard goes first, then the card drops from the ⋯
+          onMore={() => ui.thenModal(() => report.openMenu())}
+        />
+      ) : (
+        <ChatHeader
+          variant="letters"
+          detail={detail}
+          name={m.name}
+          state={m.state}
+          wren={m.wren}
+          threadId={id}
+          snapshot={m.theirLatest}
+          canOpenPage={m.canOpenPage}
+          topInset={props.topInset}
+          onBack={m.goBack}
+          onOpenPage={m.openPage}
+          onBlocked={m.onBlocked}
+          onBeforeSheet={() => bar.current?.blur()}
+        />
+      )}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView {...list.listProps} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
-          {items.map((item) => (
-            <LetterRowRN key={item.key} item={item} lit={list.lit === item.key} env={env} onLayout={list.rowLayout(item.key)} />
+          {items.map((item, i) => (
+            <LetterRowRN key={item.key} item={item} first={i === 0} lit={list.lit === item.key} env={env} onLayout={list.rowLayout(item.key)} />
           ))}
         </ScrollView>
 
-        <View style={{ paddingHorizontal: 12, paddingBottom: keyboard.up ? 10 : Math.max(10, insets.bottom), backgroundColor: tk.bg }}>
+        {/* the bar rides the keyboard 12 above it; the home indicator's inset (at least 10) below it at rest */}
+        <View style={{ paddingHorizontal: 12, paddingBottom: keyboard.up ? BAR_ABOVE_KEYBOARD : Math.max(10, insets.bottom), backgroundColor: tk.bg }}>
           <DockAbove dock={dock} status={m.composer.status} statusAlarm={m.composer.statusAlarm} onDock={m.onDock} />
           {/* write — unless there is no longer anyone at the other end. 0009 nulls their side when
               an account is deleted; the correspondence stays open to read and stops being somewhere
@@ -200,21 +249,30 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
           {dock.terminal !== "none" ? (
             <GoneLine text={dock.goneText} />
           ) : (
-            <ReplyStrip
-              ref={strip}
-              /* before names it is a letter you are composing; after, a person you are talking to */
+            <ReplyBar
+              ref={bar}
+              /* before names you write back; after, a person you are talking to */
               placeholder={dock.placeholder}
+              hint={dock.hint}
+              showsHint={focused}
               canSend={m.composer.canSend}
-              onSend={onStripSend}
+              onSend={onBarSend}
               onChangeText={m.setText}
               initialText={m.text}
               sendLabel={dock.sendLabel}
-              style={{ paddingRight: 4, paddingBottom: 4 }}
+              emojiLabel={dock.emojiLabel}
+              inputProps={{ autoCapitalize: dock.autocapitalize ? "sentences" : "none" }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              // 16 from either edge (the dock's 12 and 4 more); the bar's hard shadow hangs 2 right and below
+              style={{ marginHorizontal: 4, marginBottom: REPLY_BAR.shadow }}
             />
           )}
         </View>
       </KeyboardAvoidingView>
 
+      {/* the A2 header's ⋯: the card drops just under it */}
+      {header ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
       <LeaveSheet
         open={m.askSign}
         modal

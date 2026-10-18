@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { KChatDock, KChatDockAction } from "../../../modules/kindredly-ui/src/Conversation";
@@ -30,13 +30,15 @@ import { MONO, PF } from "../../theme/post";
      6. the mode box, with the question's prompt field (uncontrolled, as
         the reply strip is: its words are seeded only by the model)
 
-   then the composer row (the screens draw it: the round tools beside the
-   10a reply strip), or in its place the gone line or the expired card.
-   1-6 scroll inside at most 40% of the screen (KChatCappedHeight), so at
-   the largest type the composer can't be pushed under the keyboard.
-   VoiceOver's escape (two-finger Z) closes only what is open, as in KDock:
-   the reply quote from inside it, the mode box from its field or ×, the
-   tray from the + (RoundTool onEscape) or a card; otherwise it goes back. */
+   then the composer row (the screens draw it: the chat composers' bars,
+   owner 2026-10-18 — a room's Kindreds bar with its ideas bubble, the
+   pen-pal chat's reply bar; components/10a), or in its place the gone line
+   or the expired card. 1-6 scroll inside at most 40% of the screen
+   (KChatCappedHeight), so at the largest type the composer can't be pushed
+   under the keyboard. VoiceOver's escape (two-finger Z) closes only what is
+   open, as in KDock: the reply quote from inside it, the mode box from its
+   field or ×, the tray from the + or a card, the ideas bubble from its key
+   or itself; otherwise it goes back. */
 
 /** a × in mute with a 44pt target that doesn't push its row taller */
 export function DockClose({ label, onPress }: { label: string; onPress: () => void }) {
@@ -52,25 +54,6 @@ export function DockClose({ label, onPress }: { label: string; onPress: () => vo
       <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={tk.mute} strokeWidth={2.4} strokeLinecap="round">
         <Path d="M6 6l12 12M18 6L6 18" />
       </Svg>
-    </Pressable>
-  );
-}
-
-/** a 40 round tool beside the strip (KRoundTool): 1.5 ln outline, no fill. `onEscape` is
-    VoiceOver's escape while the tool has something open to close (the + and its tray); without
-    it, escape goes on up to the stack's back (KChatEscape). */
-export function RoundTool({ label, onPress, onEscape, children }: { label: string; onPress: () => void; onEscape?: () => void; children: ReactNode }) {
-  const { t: tk } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      onAccessibilityEscape={onEscape}
-      hitSlop={4}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: tk.ln, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
-    >
-      {children}
     </Pressable>
   );
 }

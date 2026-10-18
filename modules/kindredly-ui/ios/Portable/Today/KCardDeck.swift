@@ -6,7 +6,10 @@ import SwiftUI
  THE DECK (Today 3d × 25b, design Prompts 1 and 4): one letter in the slot under the plate, the
  slot the desk places at x 16…W−16, y cardTop, `height` tall (KTodayGeometry). It replaces the
  old scrolling stack: there is no previous letter and no page under the reader's thumb, only the
- card on screen and the one that comes after it.
+ card on screen and the one that comes after it. While the reader writes back (the chat
+ composers' A1, owner 2026-10-18) the desk gives it a shorter `height` (replyCardHeight: room
+ for the keyboard and the reply bar) and `compact`, and the card on screen sets its letter at the
+ compact size (KCardText), folding what still doesn't fit; both go back when the keyboard does.
 
  WHAT IT DRAWS, by TS's phase:
  - .loading: KTodayStatusCard(.loading), an empty .me card face VoiceOver hears as loadingA11y;
@@ -24,7 +27,7 @@ import SwiftUI
  springs back with springBack. Whether a gesture counts is decided on its FIRST move and kept to
  its end (box.armed): it is dead when the desk says the deck isn't enabled (typing, the + panel, a
  send, the reader, a transition, the done flow) and in the .4 s after the keyboard lets go, while
- the band slides back (keyboardQuiet); a drag the deck turns off under (the keyboard rising, the +
+ the card grows back and the band fades in (keyboardQuiet); a drag the deck turns off under (the keyboard rising, the +
  opening, the card leaving) springs back there and its release does nothing.
 
  NOTHING BUT A FINGER PASSES A CARD (round 3: on the dev page two letters passed by themselves while
@@ -101,6 +104,8 @@ struct KCardDeck: View {
   let theme: KTheme
   let content: KTodayContent
   let height: CGFloat
+  /// the reader is writing back and the slot has shrunk: the letter at the compact size
+  let compact: Bool
   let enabled: Bool
   @ObservedObject var deck: KDeckState
   /// written, never observed: per-frame values are for the plate and Wren
@@ -138,7 +143,8 @@ struct KCardDeck: View {
   static let fadeOut = Animation.timingCurve(0.4, 0, 0.7, 1, duration: 0.24)
   /// how far up a release must reach for p = 1
   static let passDistance: CGFloat = 110
-  /// no drag counts for this long after the keyboard lets go (the band's slide back is .35)
+  /// no drag counts for this long after the keyboard lets go (the card grows back and the band
+  /// fades in over .35)
   static let keyboardQuiet = 0.4
   /// a pass TS hasn't confirmed by then is dropped (TS wins)
   static let confirmWait = 1.5
@@ -147,6 +153,7 @@ struct KCardDeck: View {
     theme: KTheme,
     content: KTodayContent,
     height: CGFloat,
+    compact: Bool = false,
     enabled: Bool,
     deck: KDeckState,
     motion: KDeckMotion,
@@ -157,6 +164,7 @@ struct KCardDeck: View {
     self.theme = theme
     self.content = content
     self.height = height
+    self.compact = compact
     self.enabled = enabled
     self.deck = deck
     self.motion = motion
@@ -198,7 +206,7 @@ struct KCardDeck: View {
         KTodayStatusCard(.offline, theme: theme, labels: content.labels)
           .transition(.opacity)
       } else if let model {
-        KLetterCard(theme: theme, card: model, labels: content.labels, voice: voice, actions: cardActions)
+        KLetterCard(theme: theme, card: model, labels: content.labels, compact: compact, voice: voice, actions: cardActions)
           .equatable()
           .modifier(KFreshUnfold(active: content.freshUnfold && model.id == box.freshId))
           .frame(height: height)
@@ -236,7 +244,7 @@ struct KCardDeck: View {
       }
     }
     .onChange(of: deck.typing) { _, typing in
-      // the keyboard let go: no drag counts while the band slides back
+      // the keyboard let go: no drag counts while the card grows back and the band fades in
       if !typing { box.quietUntil = Date().addingTimeInterval(Self.keyboardQuiet) }
     }
     .onChange(of: height) { _, _ in

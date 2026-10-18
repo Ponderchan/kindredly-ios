@@ -12,11 +12,14 @@ import SwiftUI
  - KChatItem: one row of the list, by kind (a room line, a pen-pal letter block, a moment, a
    song, a fold, a line taken back, the voice opening).
  - KChatDock: everything above and in place of the composer (the closing line, Wren's notice,
-   the sign door, the reply quote, the mode box, the strip or the gone line or the expired card)
-   and the trace tray's four choices.
+   the sign door, the reply quote, the mode box, the composer bar or the gone line or the expired
+   card) and the + tray's four choices; for the pen-pal chat the reply bar's hint, for a room the
+   Kindreds bar's words (the ideas key, its bubble, the tray's title).
+ - KChatHeaderModel: the conversation's own header (chat composers, 2026-10-18), drawn by
+   KChatHeader above the list: the pen-pal chat's (A2) and the kindreds chat's (B).
  - KConversationDriver: the live channel (the two fields' controllers, canSend and the status
-   line, playback, scroll requests, the keyboard's height, the tray). Things that change often
-   travel through it, never through the items.
+   line, playback, scroll requests, the keyboard's height, the tray, the ideas bubble and its
+   sentence). Things that change often travel through it, never through the items.
  - KConversationActions: one object holding every event the surface reports.
  */
 
@@ -157,8 +160,11 @@ public struct KChatItem: Identifiable, Equatable, Sendable {
   public let dayLabel: String
   /// the space above the row (below its day rule), in points
   public let gap: CGFloat
-  /// letters: "YOU · OCT 14" above the block, "" for none
+  /// letters (the React Native fallback): "YOU · OCT 14" above the block, "" for none
   public let speakerLabel: String
+  /// letters (the SwiftUI cards, A2): the head line inside the card, "LETTER 3 · NO. 5422" or
+  /// "LETTER 3 · YOU" (the opening: "WHERE IT BEGAN · NO. 5422"), already in capitals; "" for none
+  public let head: String
   /// letters: the 24-hour time at the block's foot, "" for none
   public let timeLabel: String
   /// the words (a recalled line: its note; the voice opening: its caption)
@@ -193,6 +199,7 @@ public struct KChatItem: Identifiable, Equatable, Sendable {
     dayLabel: String = "",
     gap: CGFloat = 0,
     speakerLabel: String = "",
+    head: String = "",
     timeLabel: String = "",
     body: String = "",
     a11yLabel: String = "",
@@ -215,6 +222,7 @@ public struct KChatItem: Identifiable, Equatable, Sendable {
     self.dayLabel = dayLabel
     self.gap = gap
     self.speakerLabel = speakerLabel
+    self.head = head
     self.timeLabel = timeLabel
     self.body = body
     self.a11yLabel = a11yLabel
@@ -311,20 +319,45 @@ public struct KChatMode: Equatable, Sendable {
   }
 }
 
-/// One card of the room's trace tray.
+/// A + tray card's ground (chat composers B, Prompt 6): a 10a mood's fill, or the theme's sf.
+public enum KChatTraceTint: String, Sendable {
+  /// #DDEFD6: Fold a note
+  case calm
+  /// #E4E2F4: Ask something
+  case tired
+  /// #CFE3F5: Tiny moment
+  case low
+  /// #F6E7C6: Leave a song
+  case happy
+  case none
+
+  var mood: KMood? {
+    switch self {
+    case .calm: return .calm
+    case .tired: return .tired
+    case .low: return .low
+    case .happy: return .happy
+    case .none: return nil
+    }
+  }
+}
+
+/// One card of the room's + tray.
 public struct KChatTrace: Identifiable, Equatable, Sendable {
   public let key: String
   public let title: String
   public let subtitle: String
   public let glyph: KLineGlyph
+  public let tint: KChatTraceTint
 
   public var id: String { key }
 
-  public init(key: String, title: String, subtitle: String, glyph: KLineGlyph) {
+  public init(key: String, title: String, subtitle: String, glyph: KLineGlyph, tint: KChatTraceTint = .none) {
     self.key = key
     self.title = title
     self.subtitle = subtitle
     self.glyph = glyph
+    self.tint = tint
   }
 }
 
@@ -354,23 +387,41 @@ public struct KChatDock: Equatable, Sendable {
   public var sendLabel = ""
   /// sentences; false in song mode (a link)
   public var autocapitalize = true
-  /// the Wren tool's VoiceOver name; "" for no tools (the pen-pal chat)
+  /// the React Native room's Wren tool, for VoiceOver (the Kindreds bar has the ideas key in its
+  /// place, and doesn't read this); "" in the pen-pal chat
   public var wrenToolLabel = ""
   /// the +'s VoiceOver name, closed and open
   public var plusLabel = ""
   public var plusCloseLabel = ""
-  /// the trace tray; [] for none
+  /// the + tray; [] for none
   public var traces: [KChatTrace] = []
+  /// the Kindreds bar's ideas key, for VoiceOver; "" for no Kindreds bar (the pen-pal chat)
+  public var ideasLabel = ""
+  /// the ideas bubble: AN IDEA, ANOTHER and USE IT, already in capitals (the ↻ and the → are
+  /// drawn here)
+  public var ideaLabel = ""
+  public var ideaAnother = ""
+  public var ideaUse = ""
+  /// over the + tray's cards: "Leave something small", as written
+  public var trayTitle = ""
+  /// the pen-pal chat's reply bar hint, over the bar while the keyboard is up: "LETTER 4 OF 5",
+  /// "LETTER 5 OF 5 · ONE MORE AND NAMES", once your five are in the band's line; already in
+  /// capitals, "" for none
+  public var hint = ""
+  /// the reply bar's emoji key, for VoiceOver
+  public var emojiLabel = ""
 
   public init() {}
 
-  /// whether the composer row has the room's two round tools
-  public var hasTools: Bool { !wrenToolLabel.isEmpty }
+  /// whether the composer is the Kindreds bar (a room: the ideas key, the capsule, the +), not
+  /// the reply bar (the pen-pal chat)
+  public var hasTools: Bool { !ideasLabel.isEmpty }
 }
 
 /// The dock's three snapshots of Wren (nil until captured: the SF Symbol bird stands in).
 public struct KChatBirds: Equatable, Sendable {
-  /// the Wren tool, 24pt
+  /// the Wren tool, 24pt: drawn by nothing since the Kindreds bar put the ideas key in its place
+  /// (chat composers B); kept so an older owner that still sends it decodes
   public var tool: KImageRef?
   /// the notice, 20pt
   public var notice: KImageRef?
@@ -382,6 +433,57 @@ public struct KChatBirds: Equatable, Sendable {
     self.notice = notice
     self.expired = expired
   }
+}
+
+/// The colour the pen-pal header's line under the name wears (lib/thread-state's tone key).
+public enum KChatTone: String, Sendable {
+  /// the theme's mute: LETTER 3 OF 5 · THEIRS, ACCOUNT CLOSED, YOU WENT FIRST
+  case mute
+  /// the theme's ind
+  case ind
+  /// the seal's brass: SWAP NAMES?, THEY WENT FIRST (wax gold on Midnight)
+  case brass
+}
+
+/// The frame around a pen pal's face once it has come through (components/CorrespondentFace):
+/// none while it develops, a quiet line when their five are in, brass when they also went first.
+public enum KChatFaceFrame: String, Sendable {
+  case none
+  case line
+  case brass
+}
+
+/// The conversation's own header, worded by TS: the pen-pal chat's (chat composers A2,
+/// build-items lettersHeader) or the kindreds chat's (B, roomHeader).
+public struct KChatHeaderModel: Equatable, Sendable {
+  /// the kindreds chat's: `face` round, 44 across, and no dots; false for the pen-pal chat's
+  /// FACE v1 (mask, veil, frame) and its five dots
+  public var room = false
+  /// room: the kindred's face as TS resolved it (their portrait, the glyph, the veil)
+  public var face: KFaceSource = .placeholder
+  /// "No. 5422"
+  public var name = ""
+  /// the line under it, already in capitals: "LETTER 3 OF 5 · THEIRS", or the state when it is
+  /// past the letters (SWAP NAMES?, ACCOUNT CLOSED, …); "" for none
+  public var sub = ""
+  public var tone: KChatTone = .mute
+  /// FACE v1, bit row × 5 + column (TS mosaicMask with their letters' develop)
+  public var mask = 0
+  /// a deleted account (or not loaded yet): the veil in faint
+  public var veil = true
+  public var frame: KChatFaceFrame = .none
+  /// the five dots: how many exchanges went both ways, 0…5
+  public var dots = 0
+  /// VoiceOver: the face, the name, the line and the dots, as one
+  public var a11yLabel = ""
+  /// the face and name open their page (only once you know their voice)
+  public var canOpenPage = false
+  /// VoiceOver: the back chevron
+  public var backLabel = ""
+  /// VoiceOver: the ⋯ (Report or block); "" hides it (nobody to report)
+  public var moreLabel = ""
+
+  public init() {}
 }
 
 /// Where a scroll request goes.
@@ -438,8 +540,14 @@ public final class KConversationDriver: ObservableObject {
   private var risePeak: CGFloat = 0
   /// below this an overlap is a hardware keyboard's shortcut bar, not a keyboard (an SE's is 216)
   static let softwareKeyboardMin: CGFloat = 200
-  /// the room's trace tray is open (Swift owns it; the + toggles it)
+  /// the room's + tray is open (Swift owns it; the + toggles it)
   @Published public var trayOpen = false
+  /// the room's ideas bubble is open (Swift owns it; the ideas key toggles it). Never with the
+  /// tray, never with the keyboard (Prompt 3: the three panels shut each other)
+  @Published public var ideasOpen = false
+  /// the sentence the ideas bubble offers now (TS's idea command: TS keeps the order and where
+  /// the reader is in it)
+  @Published public var idea = ""
 
   @Published public private(set) var scrollRequest: ScrollRequest?
   private var serial = 0
@@ -500,7 +608,7 @@ public final class KConversationActions {
   /// a card of the trace tray was chosen
   public var onTrace: (String) -> Void = { _ in }
   /// something in the dock was pressed: replyClose, modeClose, noticeClose, closingLink,
-  /// rekindle, sign
+  /// rekindle, sign; or in the pen-pal header: back, page (the face and name), more (the ⋯)
   public var onDock: (String) -> Void = { _ in }
   /// the voice card's disc on an item
   public var onVoiceToggle: (String) -> Void = { _ in }
@@ -508,14 +616,26 @@ public final class KConversationActions {
   public init() {}
 }
 
-/// The kit's motion, beside KMotion's: the trace tray rising (the composer sheet's curve,
-/// .45s cubic-bezier(.25,1.25,.45,1), H:129) and the lit row after a quote jump.
+/// The kit's motion, beside KMotion's (chat composers B, 2026-10-18): the + tray rising, the +
+/// turning, the ideas bubble and the tray's cards popping in, and the lit row after a quote jump.
 public enum KChatMotion {
-  public static let panelRise = Animation.timingCurve(0.25, 1.25, 0.45, 1, duration: 0.45)
-  /// The tray opening or closing: the rise, or under Reduce Motion a plain ease with no overshoot
-  /// (the list and the dock reflow inside the same transaction, so the curve moves them too).
+  /// the + tray's rise: height 0 → 270, .45s cubic-bezier(.3,1,.3,1) (Prompt 6), no overshoot
+  public static let panelRise = Animation.timingCurve(0.3, 1, 0.3, 1, duration: 0.45)
+  /// The tray opening or closing: the rise, or under Reduce Motion a plain ease (the list and the
+  /// dock reflow inside the same transaction, so the curve moves them too; the tray itself only
+  /// fades then).
   public static func tray(reduceMotion: Bool) -> Animation {
     reduceMotion ? .easeOut(duration: 0.2) : panelRise
+  }
+  /// The Kindreds bar's + turning 45° and filling: .35s cubic-bezier(.3,1.3,.4,1), a springy
+  /// overshoot (Prompt 3; KMotion.plusTurn's sibling); a plain ease under Reduce Motion.
+  public static func plusTurn(reduceMotion: Bool) -> Animation {
+    reduceMotion ? .easeInOut(duration: 0.2) : .timingCurve(0.3, 1.3, 0.4, 1, duration: 0.35)
+  }
+  /// kpopin (Prompts 4 and 6): translateY 10 → 0, scale .96 → 1, opacity 0 → 1 on CSS's default
+  /// ease; the bubble takes .3s, the tray's cards .35s.
+  public static func popIn(_ duration: Double) -> Animation {
+    .timingCurve(0.25, 0.1, 0.25, 1, duration: duration)
   }
   /// how long a quoted line stays lit after a jump to it
   public static let litSeconds: Double = 1.4

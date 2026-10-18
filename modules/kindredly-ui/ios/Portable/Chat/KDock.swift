@@ -18,12 +18,28 @@ import SwiftUI
     only while no mode is set
  6. the mode box (lav2, 1.5 ind outline, corners 16, padding 12): its title, ×, and the question's
     prompt field (ask) or the prompt being answered
- 7. the composer row: the room's Wren tool and + beside the 10a reply strip (KReplyStrip on the
-    body KField, Return sends, the send key per owner question 3) — or, in its place, the gone
-    line or the expired card (InkCard .me, REKINDLE)
+ 7. a room's ideas bubble (chat composers B, Prompt 4: Chat/KKindredBar.swift KIdeasBubble), 8
+    above the bar while it is open
+ 8. the composer row — or, in its place, the gone line or the expired card (InkCard .me,
+    REKINDLE):
+    - a room (chat composers B, 2026-10-18): the Kindreds bar (Chat/KKindredBar.swift: the ideas
+      key, the capsule with the field, the emoji key and the send key, the +; Return sends, as
+      it did), in place of the 10a strip and its Wren tool. The ideas key replaces the Wren tool
+      (which seeded the question mode: Ask something in the + tray still does);
+    - the pen-pal chat (chat composers A2, 2026-10-18): the reply bar (Kit/KReplyBar.swift, on a
+      KComposerField: the reply arrow, the field, the emoji key, the send disc; Return sends, as
+      it did). No ideas, no +, as before. While the keyboard is up its hint stands over it:
+      LETTER 4 OF 5, LETTER 5 OF 5 · ONE MORE AND NAMES on your fifth, the band's line once your
+      five are in (TS words it: dock.hint).
+    Both rest at the bottom 16 from either edge and ride the keyboard (or the + tray) 12 above it.
 
- Inset 12 (the gone line 26). Bottom padding: 10 above the keyboard or the tray, the home
- indicator's inset (at least 10) when both are down.
+ THE THREE PANELS (Prompt 3) shut each other, and this dock is where: the ideas bubble lets go of
+ the keyboard and shuts the tray; the + lets go of the keyboard (and with it the emoji keyboard)
+ and shuts the bubble; the field taking the keyboard (the emoji key gives it the keyboard if it
+ hasn't it) shuts both. A tap on the list's empty space shuts the bubble too (KConversation).
+
+ Inset 12 (the gone line 26; the bars 16). Bottom padding: 12 above the keyboard or the tray, the
+ home indicator's inset (at least 10) when both are down.
 
  ACCESSIBILITY SIZES. 1-6 sit in a scroll view at most 40% of the surface tall (KChatCappedHeight:
  its content's height up to that), so at AX5 on an SE the dock can't push the composer under the
@@ -31,11 +47,13 @@ import SwiftUI
  ordinary sizes) and the round tools stop growing at xxxLarge, as KTabBar's fixed bar does.
 
  VOICEOVER'S ESCAPE (two-finger Z) closes only what is open: the reply quote, the mode box (from
- its prompt field or its x), the tray from the + (the tray's own cards close it too, KChatTray).
- Everywhere else it falls through to the stack's back.
+ its prompt field or its x), the tray from the + (the tray's own cards close it too, KChatTray),
+ the ideas bubble from the ideas key or from the bubble. Everywhere else it falls through to the
+ stack's back.
 
- THE TRAY rises on KChatMotion.tray: the composer sheet's curve, a plain ease under Reduce Motion
- (the list and the dock reflow inside the same transaction, so no overshoot moves them either).
+ THE TRAY rises on KChatMotion.tray: .45s cubic-bezier(.3,1,.3,1), a plain ease under Reduce
+ Motion (the list and the dock reflow inside the same transaction). The bubble pops in on
+ KChatMotion.popIn(.3), the dock growing under the same curve; a fade under Reduce Motion.
 
  NEVER REMOVE A FOCUSED FIELD (the expo focus/unmount crash). Both fields stay mounted for the
  life of the dock: the composer row is collapsed and disabled under the gone line or the expired
@@ -57,8 +75,9 @@ struct KChatDockView: View {
 
   /// the terminal state drawn: it follows dock.terminal a runloop after the fields let go
   @State private var shownTerminal: KChatTerminal
+  /// the composer has the keyboard (the reply bar's hint shows)
+  @State private var bodyFocused = false
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @Environment(\.dynamicTypeSize) private var typeSize
 
   init(theme: KTheme, variant: KChatVariant, dock: KChatDock, birds: KChatBirds, bottomInset: CGFloat, surfaceHeight: CGFloat, driver: KConversationDriver, actions: KConversationActions) {
     self.theme = theme
@@ -79,8 +98,15 @@ struct KChatDockView: View {
 
   private var trayAnimation: Animation { KChatMotion.tray(reduceMotion: reduceMotion) }
 
+  private var ideasAnimation: Animation { reduceMotion ? .easeOut(duration: 0.2) : KChatMotion.popIn(0.3) }
+
   private var bottomPadding: CGFloat {
-    driver.keyboardHeight > 0 || driver.trayOpen ? 10 : max(10, bottomInset)
+    // both bars ride the keyboard or the tray 12 above it (Prompts 2 and 3)
+    driver.keyboardHeight > 0 || driver.trayOpen ? 12 : max(10, bottomInset)
+  }
+
+  private var showsIdeas: Bool {
+    dock.hasTools && driver.ideasOpen && shownTerminal == .none && !driver.idea.isEmpty
   }
 
   var body: some View {
@@ -108,6 +134,22 @@ struct KChatDockView: View {
       case .none:
         EmptyView()
       }
+      if showsIdeas {
+        KIdeasBubble(
+          theme: theme,
+          label: dock.ideaLabel,
+          idea: driver.idea,
+          another: dock.ideaAnother,
+          use: dock.ideaUse,
+          onAnother: { actions.onDock("ideaNext") },
+          onUse: useIdea,
+          onClose: closeIdeas
+        )
+        // 16 from either edge (the dock's 12 and 4 more), 8 above the bar
+        .padding(.horizontal, 4)
+        .padding(.bottom, 8)
+        .transition(reduceMotion ? .opacity : .kChatPopIn)
+      }
       composerRow
         .frame(maxHeight: composerHidden ? 0 : nil, alignment: .top)
         .clipped()
@@ -118,7 +160,8 @@ struct KChatDockView: View {
     }
     .padding(.horizontal, 12)
     .padding(.bottom, bottomPadding)
-    .background(theme.bg)
+    // see-through over the + tray, so the tray's shadow shows in the gap above it (KConversation)
+    .background(driver.trayOpen ? Color.clear : theme.bg)
     .onChange(of: dock.terminal) { _, now in
       swapTerminal(to: now)
     }
@@ -170,6 +213,7 @@ struct KChatDockView: View {
       return
     }
     if driver.trayOpen { driver.trayOpen = false }
+    if driver.ideasOpen { driver.ideasOpen = false }
     if driver.body.isFocused || driver.prompt.isFocused {
       driver.blurAll()
       DispatchQueue.main.async { shownTerminal = now }
@@ -343,7 +387,7 @@ struct KChatDockView: View {
         returnSends: false,
         onChange: { actions.onPromptText($0) },
         onFocus: { focused in
-          if focused, driver.trayOpen { driver.trayOpen = false }
+          if focused { shutPanels() }
         }
       )
       .frame(maxHeight: showsPrompt ? nil : 0, alignment: .top)
@@ -373,72 +417,111 @@ struct KChatDockView: View {
 
   // MARK: 7. composer, gone, expired
 
+  @ViewBuilder
   private var composerRow: some View {
-    let field = KField(
+    if dock.hasTools {
+      roomComposer
+    } else {
+      letterComposer
+    }
+  }
+
+  /// The pen-pal chat's reply bar (A2): only words and emoji leave it.
+  private var letterComposer: some View {
+    KReplyBar(
       theme: theme,
       controller: driver.body,
       placeholder: dock.placeholder,
-      // at accessibility sizes a line is ~63pt: three, then it scrolls inside
-      lines: typeSize.isAccessibilitySize ? 1...3 : 1...5,
+      hint: dock.hint,
+      showsHint: bodyFocused,
+      sendState: driver.canSend ? .enabled : .disabled,
+      sendLabel: dock.sendLabel,
+      emojiLabel: dock.emojiLabel,
       returnSends: true,
       autocapitalize: dock.autocapitalize,
       onChange: { actions.onText($0) },
       onSubmit: { send($0) },
       onFocus: { focused in
-        // the tray takes the keyboard's place, and gives it back
-        if focused, driver.trayOpen { driver.trayOpen = false }
+        if bodyFocused != focused { bodyFocused = focused }
         actions.onFocus(focused)
-      }
-    )
-    return KReplyStrip(
-      theme: theme,
-      field: field,
-      sendState: driver.canSend ? .enabled : .disabled,
-      sendLabel: dock.sendLabel,
-      leading: {
-        if dock.hasTools {
-          KRoundTool(theme: theme, glyph: .image(birds.tool), accessibilityLabel: dock.wrenToolLabel) {
-            actions.onTool("wren")
-          }
-          .overlay {
-            if birds.tool == nil {
-              SwiftUI.Image(systemName: "bird")
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(theme.ink)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-            }
-          }
-          .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        }
-      },
-      trailing: {
-        if dock.hasTools {
-          KRoundTool(theme: theme, glyph: .plus(open: driver.trayOpen), accessibilityLabel: driver.trayOpen ? dock.plusCloseLabel : dock.plusLabel) {
-            togglePlus()
-          }
-          .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-          // escape on the + closes the tray it opened; with the tray shut it goes back as usual
-          .modifier(KChatEscape(enabled: driver.trayOpen) {
-            withAnimation(trayAnimation) { driver.trayOpen = false }
-          })
-        }
       },
       onSend: { send() }
     )
-    // the strip's hard shadow hangs 4 to the right when nothing stands beside it
-    .padding(.trailing, dock.hasTools ? 0 : KReplyStrip<EmptyView, EmptyView>.shadowOffset)
-    .padding(.bottom, KReplyStrip<EmptyView, EmptyView>.shadowOffset)
+    // 16 from either edge (the dock's 12 and 4 more); the bar's hard shadow hangs 2 right and below
+    .padding(.horizontal, 4)
+    .padding(.bottom, KReplyBar.shadowOffset)
+  }
+
+  /// A room's Kindreds bar (B): the ideas key, the capsule, the +.
+  private var roomComposer: some View {
+    KKindredBar(
+      theme: theme,
+      controller: driver.body,
+      placeholder: dock.placeholder,
+      autocapitalize: dock.autocapitalize,
+      canSend: driver.canSend,
+      sendLabel: dock.sendLabel,
+      emojiLabel: dock.emojiLabel,
+      ideasLabel: dock.ideasLabel,
+      plusLabel: dock.plusLabel,
+      plusCloseLabel: dock.plusCloseLabel,
+      ideasOpen: driver.ideasOpen,
+      trayOpen: driver.trayOpen,
+      onIdeas: toggleIdeas,
+      onPlus: togglePlus,
+      onCloseIdeas: closeIdeas,
+      onCloseTray: { withAnimation(trayAnimation) { driver.trayOpen = false } },
+      onEscapeOut: { actions.onDock("back") },
+      onChange: { actions.onText($0) },
+      onSubmit: { send($0) },
+      onFocus: { focused in
+        // the keyboard takes the tray's place and the bubble's (the emoji key gives it too)
+        if focused { shutPanels() }
+        actions.onFocus(focused)
+      },
+      onSend: { send() }
+    )
+    // 16 from either edge (the dock's 12 and 4 more)
+    .padding(.horizontal, 4)
+  }
+
+  /// The keyboard came up: the tray and the bubble go (Prompt 3: the panels shut each other).
+  private func shutPanels() {
+    if driver.trayOpen { withAnimation(trayAnimation) { driver.trayOpen = false } }
+    if driver.ideasOpen { closeIdeas() }
   }
 
   private func togglePlus() {
     if driver.trayOpen {
       withAnimation(trayAnimation) { driver.trayOpen = false }
     } else {
-      // choosing something to leave is not something you do mid-sentence
+      // choosing something to leave is not something you do mid-sentence; the bubble goes too
       driver.blurAll()
+      if driver.ideasOpen { closeIdeas() }
       withAnimation(trayAnimation) { driver.trayOpen = true }
     }
+  }
+
+  /// The ideas key: the bubble, which lets go of the keyboard and shuts the tray (Prompt 3), or
+  /// closes it.
+  private func toggleIdeas() {
+    if driver.ideasOpen {
+      closeIdeas()
+      return
+    }
+    driver.blurAll()
+    if driver.trayOpen { withAnimation(trayAnimation) { driver.trayOpen = false } }
+    withAnimation(ideasAnimation) { driver.ideasOpen = true }
+  }
+
+  private func closeIdeas() {
+    withAnimation(.easeOut(duration: 0.2)) { driver.ideasOpen = false }
+  }
+
+  /// USE IT: the bubble goes at once; TS puts the sentence in the field and gives it the keyboard.
+  private func useIdea() {
+    closeIdeas()
+    actions.onDock("ideaUse")
   }
 
   private var expiredCard: some View {

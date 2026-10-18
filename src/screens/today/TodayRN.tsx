@@ -10,6 +10,7 @@ import {
   Text,
   View,
   useWindowDimensions,
+  type KeyboardEvent,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -37,8 +38,9 @@ import { MONO, PF } from "../../theme/post";
 import { BRAND, THEMES, type ThemeKey } from "../../theme/themes";
 import { letterFamily, useLetterFamily, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
-import { useScreenInsets } from "../../lib/screen-insets";
+import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
 import { dismissKeyboard } from "../../lib/keyboard";
+import { localeTag } from "../../lib/format";
 import { playbackPosition } from "../../lib/voice-playback";
 import type { PoolLetter } from "../../lib/db";
 import { MosaicId } from "../../components/MosaicId";
@@ -48,8 +50,22 @@ import { AudioCardView } from "../../components/AudioCard";
 import { SignalChip } from "../../components/SignalChip";
 import { WrenBird, type WrenMood } from "../../components/WrenBird";
 import { LangPair } from "../../components/LangPair";
-import { InkPanel, ReplyStrip, StickerBox, TopicTag, type ReplyStripHandle } from "../../components/10a";
-import { BAND, CONTROL_H, CONTROL_LIFT, deskGeometry, langPair, overflows, type CardVM, type DeskPhase, type WindowVM, type WrenLetterVM } from "./today-cards";
+import { InkPanel, REPLY_BAR, ReplyBar, StickerBox, TopicTag, type ReplyBarHandle } from "../../components/10a";
+import { barBottomGap } from "../../components/NativeTabBar";
+import {
+  BAND,
+  CONTROL_H,
+  REPLY_GAP,
+  deskGeometry,
+  langPair,
+  overflows,
+  replyBody,
+  replyCardHeight,
+  type CardVM,
+  type DeskPhase,
+  type WindowVM,
+  type WrenLetterVM,
+} from "./today-cards";
 import type { TodayModel, TodayStrings } from "./useTodayDesk";
 import "../../data/strings-today3d";
 
@@ -81,10 +97,38 @@ import "../../data/strings-today3d";
      delighted for a moment), and takes each reply off the band herself:
      up and out with a small envelope, back onto her spot 2.5 s later (the
      send's only bird). Reduce Motion: the faces change, nothing moves.
-   - REPLY raises the 10a reply strip on the keyboard, bound to the card on
-     screen (each letter keeps its own words; Return is a new line), with
-     the hint above it; the band steps down, a scrim dims the desk and a
-     tap on it puts the keyboard away.
+   - WRITING BACK (the chat composers' A1, owner 2026-10-18: "the chat
+     after tapping REPLY follows the prototype"; KTodayDesk's moment, drawn
+     the same way). At rest there is no reply bar on Today, only the band
+     and the tab bar. REPLY (or the card's VoiceOver "Write back") gives the
+     field the keyboard, and that is reply mode:
+       · the band (NEXT, REPLY) and Wren on it fade to nothing in place and
+         take no touches (the prototype's opacity 0 + pointer-events none;
+         they used to slide down 160 under the keyboard);
+       · the tab bar slides away (useTabBarAway: another view, the layout
+         moves it — the Swift bar or PostTabBar);
+       · the card shrinks with the keyboard, its top where it was, its foot
+         CARD_AIR over the hint (today-cards replyCardHeight, from the
+         keyboard's overlap and the hint and bar as drawn: 548 → 272 in the
+         prototype, never under REPLY_CARD_MIN), and its letter drops to the
+         compact size at once (replyBody: the telegram's 30 → 20), folding
+         with UNFOLD ↓ when it still doesn't fit;
+       · the reply bar (components/10a ReplyBar — the reply arrow, the
+         field, the emoji key, the send disc — the same object as the
+         pen-pal chat's) rises from just under the screen's edge to 12 over
+         the keyboard, its hint (in capitals) 6 over it; it is bound to the
+         card on screen (each letter keeps its own words; Return is a new
+         line);
+       · a scrim dims the desk.
+     The keyboard's done, a tap on the scrim, VoiceOver's escape or a send
+     end it the same way: the field lets go and everything goes back (the
+     bar down and away, the card back to its height, the band in, the tab
+     bar up). After a send the band stays out while the letter goes (the
+     model's hideBand), as Wren takes it off her spot. With a hardware
+     keyboard (no overlap) it is still reply mode: the bar sits on the tab
+     bar's own line (barBottomGap), and the card shrinks only if the bar
+     would reach it. Reduce Motion: the bar and the band fade where they
+     stand, the card's change of size is a short ease.
    - done: the buttons go, Wren fades from the ground into her window, and
      her letter comes up in the card's place (her counted note, the closed
      bag with when it opens, the countdown). The window offers a lap of her
@@ -112,7 +156,10 @@ const CARD_OUT_FADE: WithTimingConfig = { duration: 240, easing: Easing.bezier(0
 const CARD_IN: WithTimingConfig = { duration: 340, easing: Easing.bezier(0.3, 1, 0.3, 1) };
 const SPRING_BACK: WithTimingConfig = { duration: 300, easing: Easing.bezier(0.3, 1, 0.3, 1) };
 const BAND_FADE: WithTimingConfig = { duration: 300, easing: Easing.out(Easing.ease) };
+/** the keyboard's own length, for what moves with it while writing back: the card's height, the reply bar rising */
 const BAND_SLIDE: WithTimingConfig = { duration: 350, easing: Easing.inOut(Easing.ease) };
+/** the reply bar coming into sight and going (its slide is BAND_SLIDE) */
+const BAR_FADE: WithTimingConfig = { duration: 200, easing: Easing.out(Easing.ease) };
 const BAND_DROP: WithTimingConfig = { duration: 350, easing: Easing.inOut(Easing.ease) };
 const WINDOW_IN: WithTimingConfig = { duration: 450, easing: Easing.out(Easing.ease) };
 const STEP_BACK: WithTimingConfig = { duration: 400, easing: Easing.bezier(0.3, 1, 0.3, 1) };
@@ -396,7 +443,7 @@ export function TodayRN({ model }: { model: TodayModel }) {
   const win = useWindowDimensions();
   const navigation = useNavigation();
   const reduce = useReducedMotion();
-  const strip = useRef<ReplyStripHandle>(null);
+  const strip = useRef<ReplyBarHandle>(null);
   const cardEl = useRef<View | null>(null);
 
   /* the Host's size: the root's own layout (the dev page gives it less than the window) */
@@ -405,18 +452,32 @@ export function TodayRN({ model }: { model: TodayModel }) {
   const H = size?.h ?? win.height;
   const geo = deskGeometry({ hostH: H, safeTop: insets.top, tabBarRoom: insets.tabBarRoom });
 
-  /* ── the keyboard ── */
+  /* ── the keyboard ──
+     `kb` is the software keyboard's overlap at the root's bottom (0 while it is down, and with a
+     hardware keyboard, which has none): reckoned as the bar's KeyboardAvoidingView reckons it (its
+     frame's foot less the keyboard's top; the root starts at the window's top on the tab and on the
+     dev page), so the card shrinks by exactly what lifts the bar. */
   const [typing, setTyping] = useState(false);
-  const [kbOpen, setKbOpen] = useState(false);
+  const [kb, setKb] = useState(0);
+  const hostH = useRef(H);
+  hostH.current = H;
   useEffect(() => {
-    const s = Keyboard.addListener("keyboardWillShow", () => setKbOpen(true));
-    const h = Keyboard.addListener("keyboardWillHide", () => setKbOpen(false));
+    const at = (e: KeyboardEvent) => {
+      const top = e.endCoordinates.screenY;
+      // a screenY of 0 is Prefer Cross-Fade Transitions' report: the avoiding view adds nothing then either
+      setKb(top > 0 ? Math.max(0, Math.round(hostH.current - top)) : 0);
+    };
+    const s = Keyboard.addListener("keyboardWillShow", at);
+    const c = Keyboard.addListener("keyboardWillChangeFrame", at);
+    const h = Keyboard.addListener("keyboardWillHide", () => setKb(0));
     // a blur that never arrived (the field unmounted as it let go) still ends the writing
     const d = Keyboard.addListener("keyboardDidHide", () => {
+      setKb(0);
       if (!strip.current?.isFocused()) setTyping(false);
     });
     return () => {
       s.remove();
+      c.remove();
       h.remove();
       d.remove();
     };
@@ -527,6 +588,8 @@ export function TodayRN({ model }: { model: TodayModel }) {
   /* writing: the field has the keyboard, and is still there (a send, the day's end or the letter leaving takes it away) */
   const stripShown = !!current && !view.sending && view.phase === "reading";
   const writing = typing && stripShown;
+  // writing back is reply mode: the tab bar steps away (another view: the layout moves it) and comes back with the band
+  useTabBarAway(writing);
   const face: Face =
     flow.face ?? (errand.away ? "fly" : hopping || writing ? "delight" : unfoldLean || dragCurious || passCurious ? "curious" : view.wren.rest);
   const perchFly = view.wren.stage != null && view.wren.stage !== "wren";
@@ -683,6 +746,36 @@ export function TodayRN({ model }: { model: TodayModel }) {
     setTyping(false);
   }, [stripKey, stripShown]);
 
+  /* ── reply mode's room (KReplyStage in Swift) ──
+     The hint and the bar as drawn (the bar grows to four lines, the hint wraps to two; the bar's
+     hard shadow hangs outside), measured; until then one line of hint over the resting bar. */
+  const [stripH, setStripH] = useState<number>(REPLY_BAR.minHeight + REPLY_BAR.hintGap + 13);
+  // with no software keyboard (a hardware one) the bar stands on the tab bar's own line: it is away
+  const bottomGap = barBottomGap(insets.bottom);
+  // 12 over the software keyboard (the avoiding view stands the bar on it); on the tab bar's line with none
+  const barGap = Math.max(REPLY_GAP, bottomGap - kb);
+  // the card's height while writing back, or null when it needn't shrink (a hardware keyboard's bar under its foot)
+  const replyH = writing ? replyCardHeight(geo, { hostH: H, keyboard: kb, strip: stripH, bottomGap }) : null;
+  // the letter at the compact size: only while the card is shrunk (it comes and goes at once, as in Swift)
+  const compact = replyH != null;
+  const slotTarget = replyH ?? geo.cardH;
+  /* the slot's height: the keyboard's length while it is the reply that changes it (shrinking, and
+     growing back once the field lets go), a short ease under Reduce Motion; anything else (the
+     root's first measure, a rotation) at once */
+  const slotH = useSharedValue(slotTarget);
+  const wasWriting = useRef(writing);
+  useEffect(() => {
+    const animate = writing || wasWriting.current;
+    wasWriting.current = writing;
+    slotH.value = animate ? withTiming(slotTarget, reduce ? REDUCED : BAND_SLIDE) : slotTarget;
+  }, [slotTarget, writing, reduce, slotH]);
+  /* the bar: up from just under the screen's edge with the keyboard (its own height, its gap and the
+     hard shadow's 2 beyond the edge), down and away with it; a fade alone under Reduce Motion */
+  const barY = useTo(writing || reduce ? 0 : stripH + barGap + REPLY_BAR.shadow + 8, BAND_SLIDE);
+  const barO = useTo(writing ? 1 : 0, reduce ? REDUCED : BAR_FADE);
+  const barStyle = useAnimatedStyle(() => ({ opacity: barO.value, transform: [{ translateY: barY.value }] }));
+  const slotHeight = useAnimatedStyle(() => ({ height: slotH.value }));
+
   const scrim = dark ? "rgba(0,0,0,0.35)" : "rgba(30,27,53,0.18)";
   const ground = groundCentre(W);
 
@@ -690,8 +783,8 @@ export function TodayRN({ model }: { model: TodayModel }) {
     <View style={{ flex: 1, backgroundColor: tk.bg }} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       <Ground w={W} h={H} color={groundBase(themeKey)} />
 
-      {/* the card slot */}
-      <Animated.View style={[{ position: "absolute", left: 16, right: 16, top: geo.cardTop, height: geo.cardH }, slotStyle]}>
+      {/* the card slot: placed by its top, so while writing back it shrinks from its foot */}
+      <Animated.View style={[{ position: "absolute", left: 16, right: 16, top: geo.cardTop }, slotHeight, slotStyle]}>
         {(view.phase === "loading" || view.phase === "offline") && !deck.leaving && <StatusCard kind={view.phase} strings={view.strings} />}
         {view.phase === "reading" && shown && (
           <GestureDetector gesture={pan}>
@@ -700,6 +793,7 @@ export function TodayRN({ model }: { model: TodayModel }) {
                 card={shown}
                 letter={view.feed.find((l) => l.id === shown.id) ?? null}
                 model={model}
+                compact={compact}
                 onAction={(name) => cardActionByName(shown.id, name)}
                 onMenu={() => openMenu(shown)}
                 cardRef={(el) => {
@@ -771,26 +865,37 @@ export function TodayRN({ model }: { model: TodayModel }) {
         </Animated.View>
       )}
 
-      {/* the reply strip, bound to the letter on screen: always mounted for it, shown on the keyboard */}
+      {/* the reply bar, bound to the letter on screen: always mounted for it (the field must be there to
+          take the keyboard), waiting under the screen's edge, risen on the keyboard while writing back */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <View style={{ flex: 1 }} pointerEvents="box-none" />
         {current && stripShown ? (
-          <View
+          <Animated.View
             collapsable={false}
             pointerEvents={writing ? "auto" : "none"}
             accessibilityElementsHidden={!writing}
             importantForAccessibility={writing ? "auto" : "no-hide-descendants"}
             // VoiceOver's escape (the two-finger scrub) puts the keyboard away without sending
             onAccessibilityEscape={writing ? putAway : undefined}
-            style={{ opacity: writing ? 1 : 0, paddingHorizontal: 16, marginBottom: kbOpen ? 12 : insets.tabBarRoom + CONTROL_LIFT }}
+            // the hint and the bar as drawn: the card's room, and how far under the edge the bar waits
+            onLayout={(e) => {
+              const h = Math.round(e.nativeEvent.layout.height);
+              setStripH((was) => (Math.abs(was - h) > 0.5 ? h : was));
+            }}
+            style={[{ paddingHorizontal: 16, marginBottom: barGap }, barStyle]}
           >
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.4, color: replyState.hintWarn ? BRAND.postRed : tk.sub, marginLeft: 6, marginBottom: 6 }}>{replyState.hint}</Text>
-            <ReplyStrip
+            <ReplyBar
               // each letter keeps its own words; a draft written in the reader comes back with it
               key={stripKey}
               ref={strip}
               placeholder={shown?.id === current.id && shown.replyPlaceholder ? shown.replyPlaceholder : view.strings.placeholder}
+              // in capitals, as the prototype sets it (the headwind line is lower case elsewhere); the
+              // bar only shows with the keyboard, so its hint is up whenever it is
+              hint={replyState.hint.toLocaleUpperCase(localeTag())}
+              hintWarn={replyState.hintWarn}
+              showsHint
               sendLabel={view.strings.send}
+              emojiLabel={view.strings.emoji}
               initialText={model.draftFor(current.id)}
               canSend={replyState.ok && !view.sending}
               held={replyState.pouchFull}
@@ -803,9 +908,10 @@ export function TodayRN({ model }: { model: TodayModel }) {
                 act.send(current.id, v);
                 return false;
               }}
-              style={{ marginRight: 4 }}
+              // the bar's hard shadow hangs 2 to the right
+              style={{ marginRight: REPLY_BAR.shadow }}
             />
-          </View>
+          </Animated.View>
         ) : null}
       </KeyboardAvoidingView>
     </View>
@@ -972,10 +1078,13 @@ function CardFace({
   onMenu,
   cardRef,
   still = false,
+  compact = false,
 }: {
   card: CardVM;
   letter: PoolLetter | null;
   model: TodayModel;
+  /** writing back and the slot has shrunk for the keyboard: the letter at the compact size (replyBody) */
+  compact?: boolean;
   /** a VoiceOver action or a tap on the card, by name (reply, next, translate, unfold, voice, report, block, bringBack) */
   onAction?: (name: string) => void;
   onMenu?: () => void;
@@ -995,9 +1104,13 @@ function CardFace({
   const [textH, setTextH] = useState(0);
   // the when-and-who line's height, for the postmark's room beside the stamp
   const [metaH, setMetaH] = useState(0);
+  /* the letter's tier, or while writing back no more than 20, its leading scaled with it (30/40 →
+     20/26.7; the long letter's 18/29 keeps its own): the shrunk card still shows its head and a few
+     lines, folded as below (KCardText.compact) */
+  const body = compact ? replyBody({ size: card.bodySize, line: card.bodyLine }) : { size: card.bodySize, line: card.bodyLine };
   // the slot's gutters (32), the card's padding (32) and the body's (8)
-  const folded = !card.isVoice && overflows({ text: card.body, size: card.bodySize, line: card.bodyLine, width: win.width - 72, frameH, textH });
-  const text = { fontSize: card.bodySize, lineHeight: card.bodyLine, color: tk.ink, textAlign: card.bodyCenter ? ("center" as const) : ("auto" as const) };
+  const folded = !card.isVoice && overflows({ text: card.body, size: body.size, line: body.line, width: win.width - 72, frameH, textH });
+  const text = { fontSize: body.size, lineHeight: body.line, color: tk.ink, textAlign: card.bodyCenter ? ("center" as const) : ("auto" as const) };
   const act = (name: string) => onAction?.(name);
 
   return (
@@ -1041,15 +1154,30 @@ function CardFace({
 
         {/* A CARD IS ALWAYS ONE SCREEN: a long letter folds, never scrolls in place */}
         <View style={{ flex: 1, overflow: "hidden", justifyContent: folded ? "flex-start" : "center", paddingHorizontal: 4, paddingVertical: 10 }} onLayout={(ev) => setFrameH(ev.nativeEvent.layout.height - 20)}>
-          {card.isVoice ? <VoiceBlockRN card={card} letter={letter} model={model} italic={italic} still={still} /> : <Text style={[text, face]}>{card.body}</Text>}
+          {/* a folded letter is laid out at its whole length, from the top, and the frame clips it:
+              in the frame's flow Yoga would measure it at most the frame's height (overflow hidden),
+              and TextKit then cuts the last line mid-word ("coffee wh"), plainest in the card shrunk
+              for the reply. Out of the flow (as its twin is) nothing limits it */}
+          {card.isVoice ? (
+            <VoiceBlockRN card={card} letter={letter} model={model} italic={italic} still={still} />
+          ) : (
+            <Text style={[text, face, folded ? { position: "absolute", left: 4, right: 4, top: 10 } : null]}>{card.body}</Text>
+          )}
           {/* the twin — unconstrained, invisible, measured once per text */}
           {!card.isVoice && (
             <Text pointerEvents="none" onLayout={(ev) => setTextH(ev.nativeEvent.layout.height)} style={[text, face, { position: "absolute", left: 4, right: 4, top: 10, opacity: 0, zIndex: -1 }]}>
               {card.body}
             </Text>
           )}
-          {/* A LONG LETTER FADES into its own page colour */}
-          {folded && <LinearGradient pointerEvents="none" colors={[`${tk.sf}00`, tk.sf]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 64 }} />}
+          {/* A LONG LETTER FADES into its own page colour: 64, or half the letter's room when that is
+              less (the card shrunk for the keyboard on an iPhone SE): the last lines, never the first */}
+          {folded && (
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${tk.sf}00`, tk.sf]}
+              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: frameH > 0 ? Math.min(64, frameH / 2) : 64 }}
+            />
+          )}
         </View>
         {folded && (
           <Pressable disabled={still} onPress={() => act("unfold")} hitSlop={10} style={({ pressed }) => ({ alignSelf: "center", paddingVertical: 6, paddingHorizontal: 12, marginTop: 2, opacity: pressed ? 0.6 : 1 })}>
@@ -1133,6 +1261,8 @@ function BandRN({
   ready: boolean;
   /** a send in flight, the reader open, the + panel: the whole band steps aside */
   hidden: boolean;
+  /** writing back (the chat composers' A1): the same, in place — opacity 0, no touches; it used to
+      slide down 160 under the keyboard */
   typing: boolean;
   flow: Flow;
   reduce: boolean;
@@ -1142,12 +1272,13 @@ function BandRN({
 }) {
   const { t: tk } = useTheme();
 
-  const bandO = useTo(hidden ? 0 : 1, BAND_FADE);
-  const bandY = useTo(typing ? 160 : 0, BAND_SLIDE);
+  // stepped aside (hidden) or writing back (typing): out of sight and out of reach, where it stands
+  const away = hidden || typing;
+  const bandO = useTo(away ? 0 : 1, BAND_FADE);
   const btnO = useTo(flow.band ? 1 : 0, reduce ? REDUCED : BAND_FADE);
   const btnY = useTo(flow.band ? 0 : 12, reduce ? REDUCED : BAND_DROP);
 
-  const bandMotion = useAnimatedStyle(() => ({ opacity: bandO.value, transform: [{ translateY: bandY.value }] }));
+  const bandMotion = useAnimatedStyle(() => ({ opacity: bandO.value }));
   const btnStyle = useAnimatedStyle(() => ({ opacity: btnO.value, transform: [{ translateY: btnY.value }] }));
 
   const nx = nextX(width);
@@ -1159,7 +1290,12 @@ function BandRN({
   const label = { fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.6 };
 
   return (
-    <Animated.View pointerEvents={hidden ? "none" : "box-none"} style={[{ position: "absolute", left: 0, right: 0, top, height: CONTROL_H }, bandMotion]}>
+    <Animated.View
+      pointerEvents={away ? "none" : "box-none"}
+      accessibilityElementsHidden={away}
+      importantForAccessibility={away ? "no-hide-descendants" : "auto"}
+      style={[{ position: "absolute", left: 0, right: 0, top, height: CONTROL_H }, bandMotion]}
+    >
       <Animated.View pointerEvents={live ? "box-none" : "none"} style={[StyleSheet.absoluteFill, btnStyle]}>
         <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0.4 }]}>
           {/* NEXT: the letters left today, on glass */}
@@ -1256,8 +1392,10 @@ function WrenFace({ face, size, wilt, perchFly }: { face: Face; size: number; wi
 }
 
 /**
- * Her standing between the buttons, at 36: down 160 with the band while you
- * write, gone (a fade) when the band is. The lean follows the pull (toward
+ * Her standing between the buttons, at 36: gone (a fade, in place) when the
+ * band is and while you write back (the chat composers' A1; not while she is
+ * away: a reply she takes off comes into sight on her spot as she lifts off
+ * with it, while the band is still out). The lean follows the pull (toward
  * a card pulled up, −16° × p and up to 1.1; back from one pulled down, +8°
  * × the pull; all the way while a letter unfolds), from her feet; a tap
  * hops her 8 up and back; an errand carries her off past the top right and
@@ -1305,8 +1443,8 @@ function GroundWren({
   a11y: string;
   name: string;
 }) {
-  const o = useTo(shown ? 1 : 0, BAND_FADE);
-  const ty = useTo(typing ? 160 : 0, BAND_SLIDE);
+  // out with the band while the reader writes back, in place (the band's own fade; she used to slide down 160 with it)
+  const o = useTo(shown && !typing ? 1 : 0, BAND_FADE);
   // the unfold's lean is hers, not the finger's: under Reduce Motion only her face changes
   const lean = useTo(leanFull && !reduce ? 1 : 0, LEAN_BACK);
   const away = useTo(errand.gone ? 0 : 1, REDUCED);
@@ -1330,7 +1468,7 @@ function GroundWren({
       opacity: o.value * away.value,
       transform: [
         { translateX: outX * k * k },
-        { translateY: ty.value + outY * k + hy.value },
+        { translateY: outY * k + hy.value },
         { rotate: `${-16 * p + 8 * q}deg` },
         { scale: 1 + 0.1 * p },
       ],

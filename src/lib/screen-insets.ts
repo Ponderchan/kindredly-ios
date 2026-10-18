@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TabBarSpace } from "../components/NativeTabBar";
 
@@ -44,4 +44,30 @@ export const PlusSheetOpen = createContext(false);
     Always false outside the tabs. */
 export function usePlusSheetOpen(): boolean {
   return useContext(PlusSheetOpen);
+}
+
+/* THE TAB BAR STEPPING AWAY (Today's reply: the chat composers' A1,
+   owner 2026-10-18). While the reader writes back to a letter on Today,
+   the keyboard and the reply bar have the foot of the screen, so the
+   floating tab bar slides 160 down out of sight (NativeTabBar barHidden,
+   .35s; a fade under Reduce Motion) and comes back up when the reply
+   ends — the keyboard's done, a tap on the dimmed desk, a send. The bar is
+   another Host, so the screen can't move it itself: the tabs layout
+   provides its setter here and a screen asks with useTabBarAway (TodayNative
+   from the Swift field's focus, TodayRN from its own). Both bars honour it —
+   the Swift bar and PostTabBar, the remote switch's fallback (160 down over
+   .35s, a fade under Reduce Motion) — and only while Today is the tab on
+   screen (each bar checks), so a navigation that leaves Today mid-reply
+   never strands the other tabs without their bar. */
+export const TabBarAway = createContext<((away: boolean) => void) | null>(null);
+
+/** Ask the tab bar to step away while `away` is true (and come back when
+    it isn't, or when the screen goes). A no-op outside the tabs. */
+export function useTabBarAway(away: boolean): void {
+  const setAway = useContext(TabBarAway);
+  useEffect(() => {
+    setAway?.(away);
+  }, [setAway, away]);
+  // the screen going (unmount, a renderer switch) always gives the bar back
+  useEffect(() => () => setAway?.(false), [setAway]);
 }

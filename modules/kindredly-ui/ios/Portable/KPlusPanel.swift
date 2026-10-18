@@ -716,7 +716,10 @@ struct KPublishPop: View {
    With Reduce Motion on it only fades;
  - pop: the returning reader's two buttons, under the bar so they come out from behind the +;
  - the bar (KTabBarMetrics.bottomGap above the bottom edge), over the dim so the × stays live
-   and undimmed. With the sheet open it slides down out of sight;
+   and undimmed. With the sheet open it slides down out of sight; and while the holder says
+   barHidden (Today's reply, the chat composers' A1, owner 2026-10-18: the reader writing back
+   to a letter has the keyboard and the reply bar where the tab bar was) it does the same, 160
+   down out of sight and reach over .35s, and comes back up when the reply ends;
  - sheet: the new reader's sheet, pinned to the bottom edge over everything.
 
  The sheets, the buttons and the dim are always there, only transparent and untouchable while
@@ -747,6 +750,7 @@ public struct KTabStage: View {
   private let style: KPublishStyle
   private let sheet: KPublishSheetModel
   private let pop: KPublishPopModel
+  private let barHidden: Bool
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   private let onPanelAction: (String) -> Void
@@ -761,6 +765,8 @@ public struct KTabStage: View {
   ///   - style: what the + opens (cards by default, as before the publish entry)
   ///   - sheet: the new reader's sheet, for the sheet style
   ///   - pop: the returning reader's buttons, for the pop style
+  ///   - barHidden: the bar steps away (slides 160 down out of sight; a fade under Reduce
+  ///     Motion), whatever the + is doing: Today's reply has the bottom of the screen
   ///   - onPanelAction: a choice was tapped, with its key: a card's or the header link's
   ///     (cards), or KPublishAction.letter / .note (sheet and pop)
   ///   - onDismiss: the dim was tapped, VoiceOver's escape, or the sheet was dragged down; the
@@ -779,6 +785,7 @@ public struct KTabStage: View {
     style: KPublishStyle = .cards,
     sheet: KPublishSheetModel = .init(),
     pop: KPublishPopModel = .init(),
+    barHidden: Bool = false,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void,
     onPanelAction: @escaping (String) -> Void,
@@ -797,6 +804,7 @@ public struct KTabStage: View {
     self.style = style
     self.sheet = sheet
     self.pop = pop
+    self.barHidden = barHidden
     self.onSelect = onSelect
     self.onPlus = onPlus
     self.onPanelAction = onPanelAction
@@ -859,8 +867,8 @@ public struct KTabStage: View {
           closeLabel: closeLabel,
           // the publish entry turns its + on the design's own curve; the 10a sheet keeps its own
           plusTurn: style == .cards ? KMotion.plusTurn : KMotion.plusTurnPublish,
-          // the new reader's sheet takes the bar's place
-          hidden: style == .sheet && open,
+          // the new reader's sheet takes the bar's place; Today's reply has the screen's foot
+          hidden: (style == .sheet && open) || barHidden,
           onSelect: onSelect,
           onPlus: onPlus
         )

@@ -4,7 +4,9 @@ import SwiftUI
 
 /*
  ONE LETTER ON THE DESK (Today 3d × 25b, design Prompts 1–2), at the height the deck's slot gives
- it (KTodayGeometry.cardHeight: 548 on a 393 × 852 phone, never under 360). Inside the InkCard
+ it (KTodayGeometry.cardHeight: 548 on a 393 × 852 phone, never under 360; shorter while the
+ reader writes back, the chat composers' A1, owner 2026-10-18: replyCardHeight, room for the
+ keyboard and the reply bar, 272 in the prototype). Inside the InkCard
  (.me: sf, a 2.5 ln outline, corners of 24, a hard 5/5 shadow, padding 16; .today, which the
  composer sheet shares, is not retuned):
 
@@ -23,12 +25,15 @@ import SwiftUI
    size leaves it off rather than letting it cross the text. The row is as tall as the stamp,
    60, so the letter below has 26pt less than it had beside the 34 box, as in React Native;
  - the letter, filling what is left, in the reader's Letter font at its tier (telegram 30/40
-   centred, 21/33, 18/29), padded 0 10, centred in its space. A letter that doesn't fit is
+   centred, 21/33, 18/29), padded 0 10, centred in its space. While the reader writes back
+   (`compact`) it is set at no more than 20 (the prototype's 29 → 20), its tier's leading scaled
+   with it (30/40 → 20/26.7, 21/33 → 20/31.4; the long letter's 18/29 stays), so the shrunk card
+   still shows the letter's head and a few lines, folded as below. A letter that doesn't fit is
    FOLDED, never scrolled in place (one swipe means one thing on this page): its height is
    measured from a twin with no height limit, the page shows what fits from the top, a 64pt
-   gradient from sf at nothing to sf dissolves the last lines (the old one was hardcoded white:
-   a band on Midnight and Paper), and UNFOLD ↓ opens the reader. A translation swaps the text in
-   place, a .25s crossfade;
+   gradient (half the room when that is less, as in the shrunk card) from sf at nothing to sf
+   dissolves the last lines (the old one was hardcoded white: a band on Midnight and Paper), and
+   UNFOLD ↓ opens the reader. A translation swaps the text in place, a .25s crossfade;
  - a voice letter instead: VOICE LETTER, the voice card (the 44 disc, sixteen bars, the time)
    drawn from TS's one player, and the writer's caption in the italic serif under it. Until its
    link is signed it shows itself unavailable; the caption is never drawn as the letter;
@@ -69,6 +74,9 @@ struct KLetterCard: View, Equatable {
   let theme: KTheme
   let card: KLetterCardModel
   let labels: KTodayLabels
+  /// the reader is writing back and the card has shrunk for the keyboard: the letter at the
+  /// compact size (KCardText)
+  let compact: Bool
   let voice: KTodayVoice
   let actions: KLetterCardActions
 
@@ -76,7 +84,7 @@ struct KLetterCard: View, Equatable {
   @State private var metaHeight: CGFloat = 0
 
   static func == (a: KLetterCard, b: KLetterCard) -> Bool {
-    a.card == b.card && a.theme == b.theme && a.labels == b.labels
+    a.card == b.card && a.theme == b.theme && a.labels == b.labels && a.compact == b.compact
   }
 
   var body: some View {
@@ -88,7 +96,7 @@ struct KLetterCard: View, Equatable {
             actions.onAction(card.id, "voice")
           }
         } else {
-          KCardText(theme: theme, card: card, unfold: labels.unfold) {
+          KCardText(theme: theme, card: card, compact: compact, unfold: labels.unfold) {
             actions.onAction(card.id, "unfold")
           }
         }
@@ -258,11 +266,27 @@ struct KLetterCardAccessibilityActions: ViewModifier {
 struct KCardText: View {
   /// a folded letter's air under the docket
   static let foldGap: CGFloat = 10
+  /// the compact size while writing back: the prototype's 29 → 20 (the telegram's 30 here)
+  static let compactSize: CGFloat = 20
 
   let theme: KTheme
   let card: KLetterCardModel
+  /// writing back: the letter at no more than compactSize
+  let compact: Bool
   let unfold: String
   let onUnfold: () -> Void
+
+  /// the letter's size now: its tier's, or the compact one while writing back (a tier already at
+  /// or under it, the long letter's 18, keeps its own)
+  private var size: CGFloat {
+    compact && card.bodySize > Self.compactSize ? Self.compactSize : card.bodySize
+  }
+
+  /// its line height, scaled with it so the tier keeps its own leading (30/40 → 20/26.7, the
+  /// prototype's 1.3; 21/33 → 20/31.4)
+  private var line: CGFloat {
+    card.bodySize > 0 ? card.bodyLine * size / card.bodySize : card.bodyLine
+  }
 
   @State private var frameHeight: CGFloat = 0
   @State private var textHeight: CGFloat = 0
@@ -275,6 +299,10 @@ struct KCardText: View {
       ZStack {
         letter
           .fixedSize(horizontal: false, vertical: true)
+          // the compact size comes and goes at once, as the prototype's font-size does (only the
+          // card's height moves): carried by the card's animation, SwiftUI crossfades two
+          // layouts of the letter at different sizes and places, a double image for .35s
+          .animation(nil, value: compact)
           .id(card.body)
           .transition(.opacity)
       }
@@ -296,8 +324,10 @@ struct KCardText: View {
       }
       .overlay(alignment: .bottom) {
         if folded {
+          // 64, or half the letter's room when that is less (the card shrunk for the keyboard on
+          // an iPhone SE leaves ~55): the fade takes the last lines, never the first one
           LinearGradient(colors: [theme.sf.opacity(0), theme.sf], startPoint: .top, endPoint: .bottom)
-            .frame(height: 64)
+            .frame(height: min(64, frameHeight / 2))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
@@ -322,7 +352,7 @@ struct KCardText: View {
 
   private var letter: some View {
     Text(card.body)
-      .kText(.letterRead(card.bodySize, lineHeight: card.bodySize > 0 ? card.bodyLine / card.bodySize : nil, place: .todayCard))
+      .kText(.letterRead(size, lineHeight: size > 0 ? line / size : nil, place: .todayCard))
       .foregroundStyle(theme.ink)
       .multilineTextAlignment(card.bodyCenter ? .center : .leading)
       .frame(maxWidth: .infinity, alignment: card.bodyCenter ? .center : .leading)

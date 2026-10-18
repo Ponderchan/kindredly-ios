@@ -457,6 +457,23 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("geometry: an iPhone SE's card stays a letter (360 or more)", se.cardH >= 360 && se.cardTop === 76 && se.controlTop === se.cardTop + se.cardH + 14);
   const tiny = M.deskGeometry({ hostH: 500, safeTop: 20, tabBarRoom: 84 });
   ok("geometry: the card never goes under 360", tiny.cardH === 360);
+
+  /* writing back (A1): the card's top stays, its foot comes up to 14 over the hint */
+  const kb = M.replyCardHeight(big, { hostH: 852, keyboard: 336, strip: 73, bottomGap: 30 });
+  ok("reply: 393×852 with a 336 keyboard and a one-line bar shrinks the card (560 → 307)", kb === 852 - 348 - 73 - 14 - 110 && kb === 307);
+  ok("reply: the bar's foot is 12 over the keyboard, the hint 14 under the card's foot", kb !== null && big.cardTop + kb + 14 + 73 + 12 + 336 === 852);
+  const grown = M.replyCardHeight(big, { hostH: 852, keyboard: 336, strip: 130, bottomGap: 30 });
+  ok("reply: a bar grown to four lines takes more of the card", grown !== null && kb !== null && grown < kb);
+  ok("reply: a hardware keyboard (no inset) leaves the card as it is", M.replyCardHeight(big, { hostH: 852, keyboard: 0, strip: 73, bottomGap: 30 }) === null);
+  const seKb = M.replyCardHeight(se, { hostH: 667, keyboard: 260, strip: 73, bottomGap: 16 });
+  ok("reply: an iPhone SE's card keeps its head and two lines (200 or more)", seKb !== null && seKb >= 200);
+  ok("reply: never under 200", M.replyCardHeight(se, { hostH: 667, keyboard: 400, strip: 130, bottomGap: 16 }) === 200);
+  const tele = M.replyBody({ size: 30, line: 40 });
+  ok("reply: the telegram drops to 20, its leading with it", tele.size === 20 && Math.abs(tele.line - 80 / 3) < 0.001);
+  const letter = M.replyBody({ size: 21, line: 33 });
+  ok("reply: a letter's 21/33 goes to 20 at its own leading", letter.size === 20 && Math.abs(letter.line - 660 / 21) < 0.001);
+  const long = M.replyBody({ size: 18, line: 29 });
+  ok("reply: the long letter's 18/29 stays", long.size === 18 && long.line === 29);
 }
 
 console.log(fails ? `\n${fails} failed` : "\nall passed");

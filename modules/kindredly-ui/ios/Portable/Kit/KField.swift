@@ -56,6 +56,12 @@ import SwiftUI
  ExpoSwiftUI.FocusableView, and its forceResignFirstResponder() calls blur() on each of its
  controllers and then resigns the first responder app-wide (UIKit is the adapter's business; this
  file stays SwiftUI).
+
+ THE CHAT COMPOSERS' FIELD (2026-10-18) is not this one: the reply bar and the Kindreds bar write
+ in a KComposerField (Kit/KComposerField.swift), a UITextView that can switch to the system emoji
+ keyboard, which a SwiftUI TextField can't. It takes the same KFieldController and keeps every
+ rule above; the controller's emoji members (setEmojiKeyboard, emojiKeyboard) are for it alone,
+ and a KField ignores them.
  */
 
 /// The handle on one KField: seed its text, focus it, blur it, and read what it holds.
@@ -78,14 +84,28 @@ public final class KFieldController: ObservableObject {
   /// Whether the field has the keyboard right now, kept up to date by the field.
   public internal(set) var isFocused = false
 
+  /// A switch of the keyboard to the system emoji keyboard (on) or back (off), waiting to be
+  /// applied by a KComposerField.
+  struct EmojiRequest: Equatable {
+    let on: Bool
+    let serial: Int
+  }
+
   @Published private(set) var textRequest: TextRequest?
   @Published private(set) var focusRequest: FocusRequest?
+  @Published private(set) var emojiRequest: EmojiRequest?
+  /// Whether the field's keyboard is the system emoji keyboard right now, kept up to date by a
+  /// KComposerField (from the keyboard itself, so ABC on the emoji keyboard turns it off too).
+  /// The emoji key draws its "on" fill from it. Always false for a KField.
+  @Published public internal(set) var emojiKeyboard = false
   private var serial = 0
   /// The serial of the last setText a field applied (or found spent when it appeared). Kept
   /// here, not in the field, so a field rebuilt with this controller doesn't apply it again.
   var appliedTextSerial = 0
   /// The serial of the last focus or blur a field applied, kept here for the same reason.
   var appliedFocusSerial = 0
+  /// The serial of the last emoji switch a field applied, kept here for the same reason.
+  var appliedEmojiSerial = 0
 
   /// - Parameter text: the words the field starts with
   public init(text: String = "") {
@@ -115,6 +135,19 @@ public final class KFieldController: ObservableObject {
   public func blur() {
     serial += 1
     focusRequest = FocusRequest(focused: false, serial: serial)
+  }
+
+  /// Switches a KComposerField's keyboard to the system emoji keyboard (on) or back to the
+  /// reader's own keyboard (off). A field without the keyboard takes it, already on the emoji
+  /// keyboard. A KField ignores it.
+  public func setEmojiKeyboard(_ on: Bool) {
+    serial += 1
+    emojiRequest = EmojiRequest(on: on, serial: serial)
+  }
+
+  /// The emoji key: the emoji keyboard if it isn't showing, the reader's own if it is.
+  public func toggleEmojiKeyboard() {
+    setEmojiKeyboard(!emojiKeyboard)
   }
 
   /// the field reporting the reader's edit

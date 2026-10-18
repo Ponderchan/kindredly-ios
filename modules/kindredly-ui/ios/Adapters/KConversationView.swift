@@ -6,26 +6,35 @@ import ExpoUI
 /*
  A ROOM WITH A KINDRED AND A PEN-PAL CHAT, as React Native sees them (10a step 5, batch 1): one
  view for both, <KConversationView … /> on the JS side (modules/kindredly-ui/src/Conversation.tsx),
- drawn by src/screens/chat/ConversationNative.tsx under the React Native header. This file turns
- props into Portable values and the surface's actions into events; the surface itself is
- Portable/Chat/KConversation.swift (rows KChatRows, dock KDock, tray KTraceTray, values
- KChatModel).
+ drawn by src/screens/chat/ConversationNative.tsx with its own header (chat composers,
+ 2026-10-18: header, below; a pen-pal chat already revealed keeps a React Native one above).
+ This file turns props into Portable values and the surface's actions into events; the surface
+ itself is Portable/Chat/KConversation.swift (rows KChatRows, dock KDock with its bars KReplyBar
+ and KKindredBar, tray KTraceTray, values KChatModel).
 
  Built as every step-5 screen is (KScreenProps.swift): the props subclass KScreenProps (theme,
  letterFont, insets, rev, commands), the view is registered with ExpoUIView and the "command"
  AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host> — one Host for
- the whole screen, never one per row. It holds two KFields (the composer and the question's
- prompt), so it is an ExpoSwiftUI.FocusableView: the virtual view resigns them before the view
- is taken off screen (the expo focus/unmount crash's guard; the TS side also blurs on unmount).
+ the whole screen, never one per row. It holds two fields (the composer, a KComposerField in both
+ bars, and the question's prompt, a KField), so it is an
+ ExpoSwiftUI.FocusableView: the virtual view resigns them before the view is taken off screen
+ (the expo focus/unmount crash's guard; the TS side also blurs on unmount).
 
  Props, beyond KScreenProps:
  - variant: "room" | "letters"
  - items: [KChatItemRecord], the render window, oldest first; converted once per rev
  - hasOlder, hasNewer: the window has items before it / has slid away from the newest
- - dock: KChatDockRecord (small; converted on each body run)
+ - dock: KChatDockRecord (small; converted on each body run); hint is the pen-pal reply bar's,
+   emojiLabel both bars', ideasLabel … trayTitle the Kindreds bar's (B; ideasLabel "" for none)
+ - header: KChatHeaderRecord, the conversation's own header (the pen-pal chat's, A2; the
+   kindreds chat's, room: true, B, with the face flattened: faceKind image | mosaic | veil |
+   placeholder, faceUri, faceKey, faceOverscan, faceMask); show: false (the default) draws none,
+   and a React Native header stands above
  - strings: KChatStringsRecord
- - toolBird, noticeBird, expiredBird: Wren's dock snapshots (KImageRefRecord, uri "" for none)
- - insets.bottom: the home indicator's inset (the Host ignores it)
+ - toolBird, noticeBird, expiredBird: Wren's dock snapshots (KImageRefRecord, uri "" for none);
+   toolBird is drawn by nothing since the Kindreds bar (B) and is no longer sent
+ - insets.bottom: the home indicator's inset (the Host ignores it); insets.top: the status bar's
+   room over the conversation's own header (0 under a React Native header)
 
  Commands (KCommandBus), everything that changes often:
  - setText  { target: "body" | "prompt", value }   seed, clear after a send, restore after a failure
@@ -35,6 +44,7 @@ import ExpoUI
  - playback { key, playing, positionS, durationS, at, failed }
  - composer { canSend, status, statusAlarm, clearOnSend }
  - tray     { open }
+ - idea     { text }                                the sentence the room's ideas bubble offers
  - reset    { }
 
  Events, with what nativeEvent carries (named onChat… so none clashes with React Native's own):
@@ -44,9 +54,11 @@ import ExpoUI
  - onChatText { value }, onChatPromptText { value }
  - onChatSend { value, prompt, cleared }
  - onChatFocus { focused }
- - onChatTool { tool }                      "wren"
+ - onChatTool { tool }                      "wren" (nothing sends it since the Kindreds bar; kept for the type)
  - onChatTrace { key }
- - onChatDock { action }                    replyClose | modeClose | noticeClose | closingLink | rekindle | sign
+ - onChatDock { action }                    replyClose | modeClose | noticeClose | closingLink | rekindle | sign,
+                                            ideaNext | ideaUse (the ideas bubble),
+                                            and the header's back | page | more
  - onChatVoice { key }
 
  Unknown enum strings fall back (theme to Classic in KScreenProps, a kind to line, a glyph to
@@ -90,6 +102,8 @@ struct KChatItemRecord: Record {
   @Field var dayLabel: String = ""
   @Field var gap: Double = 0
   @Field var speakerLabel: String = ""
+  /// letters: the card's head line, "LETTER 3 · NO. 5422"
+  @Field var head: String = ""
   @Field var timeLabel: String = ""
   @Field var body: String = ""
   @Field var a11yLabel: String = ""
@@ -125,6 +139,7 @@ struct KChatItemRecord: Record {
       dayLabel: dayLabel,
       gap: CGFloat(max(0, gap)),
       speakerLabel: speakerLabel,
+      head: head,
       timeLabel: timeLabel,
       body: body,
       a11yLabel: a11yLabel,
@@ -153,16 +168,19 @@ struct KChatItemRecord: Record {
   }
 }
 
-/// One card of the trace tray.
+/// One card of the + tray.
 struct KChatTraceRecord: Record {
   @Field var key: String = ""
   @Field var title: String = ""
   @Field var subtitle: String = ""
-  /// a KLineGlyph name: note | ask | moment | song | photo | bug | idea
+  /// a KLineGlyph name: foldNote | askSomething | tinyMoment | leaveSong (the I1 four), or note |
+  /// ask | moment | song | photo | bug | idea
   @Field var glyph: String = "note"
+  /// calm | tired | low | happy | none
+  @Field var tint: String = "none"
 
   var trace: KChatTrace {
-    KChatTrace(key: key, title: title, subtitle: subtitle, glyph: KLineGlyph(rawValue: glyph) ?? .note)
+    KChatTrace(key: key, title: title, subtitle: subtitle, glyph: KLineGlyph(rawValue: glyph) ?? .note, tint: KChatTraceTint(rawValue: tint) ?? .none)
   }
 }
 
@@ -199,6 +217,16 @@ struct KChatDockRecord: Record {
   @Field var plusLabel: String = ""
   @Field var plusCloseLabel: String = ""
   @Field var traces: [KChatTraceRecord] = []
+  /// the pen-pal reply bar's hint (already in capitals) and the bars' emoji key's VoiceOver name
+  @Field var hint: String = ""
+  @Field var emojiLabel: String = ""
+  /// the Kindreds bar (B): the ideas key's VoiceOver name ("" for no Kindreds bar), the bubble's
+  /// three words in capitals, the + tray's title
+  @Field var ideasLabel: String = ""
+  @Field var ideaLabel: String = ""
+  @Field var ideaAnother: String = ""
+  @Field var ideaUse: String = ""
+  @Field var trayTitle: String = ""
 
   var chatDock: KChatDock {
     var d = KChatDock()
@@ -227,7 +255,64 @@ struct KChatDockRecord: Record {
     d.plusLabel = plusLabel
     d.plusCloseLabel = plusCloseLabel
     d.traces = traces.map(\.trace)
+    d.hint = hint
+    d.emojiLabel = emojiLabel
+    d.ideasLabel = ideasLabel
+    d.ideaLabel = ideaLabel
+    d.ideaAnother = ideaAnother
+    d.ideaUse = ideaUse
+    d.trayTitle = trayTitle
     return d
+  }
+}
+
+/// The conversation's own header (build-items lettersHeader, roomHeader). show: false draws none.
+struct KChatHeaderRecord: Record {
+  @Field var show: Bool = false
+  /// the kindreds chat's (B): the round face below, no dots
+  @Field var room: Bool = false
+  /// image | mosaic | veil | placeholder (lib/faces faceRecord, flattened)
+  @Field var faceKind: String = "placeholder"
+  @Field var faceUri: String = ""
+  @Field var faceKey: String = ""
+  @Field var faceOverscan: Double = 0
+  @Field var faceMask: Int = 0
+  @Field var name: String = ""
+  @Field var sub: String = ""
+  /// mute | ind | brass
+  @Field var tone: String = "mute"
+  @Field var mask: Int = 0
+  @Field var veil: Bool = true
+  /// none | line | brass
+  @Field var frame: String = "none"
+  @Field var dots: Int = 0
+  @Field var a11yLabel: String = ""
+  @Field var canOpenPage: Bool = false
+  @Field var backLabel: String = ""
+  @Field var moreLabel: String = ""
+
+  func header(theme: KTheme) -> KChatHeaderModel? {
+    guard show else { return nil }
+    var h = KChatHeaderModel()
+    h.room = room
+    switch faceKind {
+    case "image": h.face = .image(faceUri.isEmpty ? nil : KImageRef(uri: faceUri, key: faceKey), overscan: CGFloat(faceOverscan))
+    case "mosaic": h.face = .mosaic(mask: faceMask, tint: theme.ink)
+    case "veil": h.face = .veil
+    default: h.face = .placeholder
+    }
+    h.name = name
+    h.sub = sub
+    h.tone = KChatTone(rawValue: tone) ?? .mute
+    h.mask = mask
+    h.veil = veil
+    h.frame = KChatFaceFrame(rawValue: frame) ?? .none
+    h.dots = min(5, max(0, dots))
+    h.a11yLabel = a11yLabel
+    h.canOpenPage = canOpenPage
+    h.backLabel = backLabel
+    h.moreLabel = moreLabel
+    return h
   }
 }
 
@@ -266,6 +351,7 @@ final class KConversationViewProps: KScreenProps {
   @Field var hasOlder: Bool = false
   @Field var hasNewer: Bool = false
   @Field var dock: KChatDockRecord = KChatDockRecord()
+  @Field var header: KChatHeaderRecord = KChatHeaderRecord()
   @Field var strings: KChatStringsRecord = KChatStringsRecord()
   @Field var toolBird: KImageRefRecord = KImageRefRecord()
   @Field var noticeBird: KImageRefRecord = KImageRefRecord()
@@ -328,7 +414,9 @@ final class KConversationViewProps: KScreenProps {
       // a composer collapsed under the gone line or the expired card never takes the keyboard
       guard dock.terminal == "none" else { return }
       let target = field(args.kString("target"))
+      // the keyboard takes the tray's place and the ideas bubble's (the panels shut each other)
       if driver.trayOpen { driver.trayOpen = false }
+      if driver.ideasOpen { driver.ideasOpen = false }
       target.focus()
     case KCommandName.blur:
       driver.blurAll()
@@ -362,8 +450,14 @@ final class KConversationViewProps: KScreenProps {
       driver.clearOnSend = args.kBool("clearOnSend") ?? false
     case "tray":
       let open = args.kBool("open") ?? false
-      if open { driver.blurAll() }
+      if open {
+        driver.blurAll()
+        if driver.ideasOpen { driver.ideasOpen = false }
+      }
       if driver.trayOpen != open { driver.trayOpen = open }
+    case "idea":
+      let text = args.kString("text") ?? ""
+      if driver.idea != text { driver.idea = text }
     case KCommandName.reset:
       driver.blurAll()
       driver.body.clear()
@@ -373,6 +467,8 @@ final class KConversationViewProps: KScreenProps {
       driver.statusAlarm = false
       driver.clearOnSend = false
       driver.trayOpen = false
+      driver.ideasOpen = false
+      driver.idea = ""
       driver.playback = nil
       driver.playbackKey = ""
     default:
@@ -398,6 +494,8 @@ struct KConversationView: ExpoSwiftUI.View {
       strings: props.strings.chatStrings,
       birds: KChatBirds(tool: props.toolBird.ref, notice: props.noticeBird.ref, expired: props.expiredBird.ref),
       bottomInset: props.insets.bottom,
+      header: props.header.header(theme: props.kTheme),
+      topInset: props.insets.top,
       driver: props.driver,
       actions: props.actions
     )

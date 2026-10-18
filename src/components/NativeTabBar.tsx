@@ -71,6 +71,18 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
    goes under the keyboard, as PostTabBar does. Its color scheme follows the
    theme, so anything system-drawn inside is dark in Midnight.
 
+   AWAY (Today's reply: the chat composers' A1, owner 2026-10-18). While
+   the reader writes back to a letter on Today, the keyboard and the reply
+   bar have the foot of the screen, so Today sends the bar away
+   (useTabBarAway, through the layout's `away`): it slides 160 down out of
+   sight over .35s (barHidden; a fade under Reduce Motion) and comes back
+   up when the reply ends. Honoured only while Today is the tab on screen,
+   so a navigation that leaves Today mid-reply never takes the bar from
+   another tab. While away the strip takes no touches at all (pointerEvents
+   none): with a hardware keyboard Today's reply bar sits right where the
+   bar was, and must not be under a hosting view that might swallow its
+   taps.
+
    No haptics: PostTabBar and PostFan have none, so neither does this.
 
    Words: the tab names (tab.*), the +'s name (pc.post, the post chooser's
@@ -169,6 +181,8 @@ export function nativeTabBarReady(): boolean {
 type Props = BarProps & {
   /** the + is open (the layout's `choosing`) */
   open: boolean;
+  /** Today's reply sent the bar away (the layout's `barAway`, from useTabBarAway) */
+  away?: boolean;
   /** the + was pressed: toggle it */
   onPost: () => void;
   /** close it */
@@ -177,12 +191,14 @@ type Props = BarProps & {
   waiting: number;
 };
 
-export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting }: Props) {
+export function NativeTabBar({ state, navigation, open, away = false, onPost, onClose, waiting }: Props) {
   const lang = useLang(); // the navigator renders this bar, not a screen — subscribe here or the words go stale
   const { key: theme, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const current: string = state.routes[state.index]?.name ?? "letters";
+  // only Today writes back on this bar's ground; anywhere else the bar stays
+  const hidden = away && current === "letters";
 
   /* full screen while open, and for PANEL_OUT_MS after it closes. Decided
      during render, not in an effect, so the frame it starts closing in is
@@ -274,7 +290,7 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
   const strip = nativeTabBarSpace(insets.bottom);
   return (
     <View
-      pointerEvents="box-none"
+      pointerEvents={hidden ? "none" : "box-none"}
       style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
     >
       <Host style={{ flex: 1 }} pointerEvents="box-none" ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
@@ -291,6 +307,7 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
           panelStyle={panelStyle}
           sheet={sheet}
           pop={pop}
+          barHidden={hidden}
           onTabPress={onTabPress}
           onPlusPress={onPost}
           onPanelAction={onPanelAction}

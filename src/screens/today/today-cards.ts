@@ -791,3 +791,41 @@ export function deskGeometry({ hostH, safeTop, tabBarRoom }: { hostH: number; sa
   const cardH = Math.max(CARD_MIN, Math.round(hostH - cardTop - CARD_AIR - CONTROL_H - (tabBarRoom + CONTROL_LIFT)));
   return { cardTop, cardH, controlTop: cardTop + cardH + CARD_AIR };
 }
+
+/* ── writing back (the chat composers' A1, owner 2026-10-18; KTodayGeometry.replyCardHeight
+   and KCardText.compact in Swift: change them together) ──
+   While the reader writes back, the band fades, the tab bar slides away and the card shrinks
+   to make room: its top stays, its foot comes up to CARD_AIR over the hint, which stands 6 over
+   the reply bar, which stands REPLY_GAP over the keyboard (or on the tab bar's own line with a
+   hardware keyboard). The prototype's 548 → 272 on an 852 phone, from the real keyboard and the
+   bar as drawn. */
+
+/** the reply bar's air over the keyboard */
+export const REPLY_GAP = 12;
+/** the shortest the card shrinks to while replying: the docket, two lines folded with UNFOLD, the foot */
+export const REPLY_CARD_MIN = 200;
+/** the letter's size while replying: the prototype's 29 → 20 */
+export const REPLY_BODY_SIZE = 20;
+
+/**
+ * The card's height while replying, or null when it needn't shrink (a
+ * hardware keyboard's bar under its foot). `keyboard` is its overlap at the
+ * Host's bottom (0 for none), `strip` the hint and the bar as drawn, and
+ * `bottomGap` the tab bar's own line (barBottomGap) where the bar sits with
+ * no software keyboard.
+ */
+export function replyCardHeight(
+  geometry: DeskGeometry,
+  { hostH, keyboard, strip, bottomGap }: { hostH: number; keyboard: number; strip: number; bottomGap: number },
+): number | null {
+  const barBottom = Math.max(keyboard + REPLY_GAP, bottomGap);
+  const fit = Math.floor(hostH - barBottom - strip - CARD_AIR - geometry.cardTop);
+  if (fit >= geometry.cardH) return null;
+  return Math.max(REPLY_CARD_MIN, fit);
+}
+
+/** The letter's tier while replying: no more than REPLY_BODY_SIZE, its leading scaled with it (a tier already at or under it keeps its own). */
+export function replyBody({ size, line }: { size: number; line: number }): { size: number; line: number } {
+  if (size <= REPLY_BODY_SIZE) return { size, line };
+  return { size: REPLY_BODY_SIZE, line: (line * REPLY_BODY_SIZE) / size };
+}

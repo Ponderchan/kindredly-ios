@@ -13,14 +13,17 @@ import ExpoUI
  Built as every step-5 screen is (KScreenProps.swift): the props subclass KScreenProps (theme,
  letterFont, insets, rev, commands), the view is registered with ExpoUIView and the "command"
  AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host>: one Host for the
- whole screen, never one per card. It holds a KField, so it is an ExpoSwiftUI.FocusableView: the
+ whole screen, never one per card. It holds a field (the reply bar's KComposerField, a UITextView
+ since the chat composers' emoji key, 2026-10-18), so it is an ExpoSwiftUI.FocusableView: the
  virtual view resigns it before the view is taken off screen (the expo focus/unmount crash's guard;
  TS also blurs it on unmount). It has no children and no islands: Wren is drawn here, from her own
  BirdSnapshots pictures (birds).
 
  Props, beyond KScreenProps (insets: top = the status bar the desk draws its strip for,
- tabBarRoom = the floating bar's room, the band sits 2 above it):
- - strings: the plate's title and every fixed word of the cards, the band and the dock
+ tabBarRoom = the floating bar's room, the band sits 2 above it, bottom = the home indicator, over
+ which the reply bar sits with a hardware keyboard while the tab bar is away):
+ - strings: the plate's title and every fixed word of the cards, the band and the dock (emoji:
+   the reply bar's emoji key, for VoiceOver)
  - phase: loading | offline | reading | done (anything else is loading)
  - left, leftA11y: NEXT's number and what VoiceOver says for it
  - cards: the letters not passed yet, the one on screen first (KTodayCardRecord), converted once per rev
@@ -48,7 +51,8 @@ import ExpoUI
  - onTodayWindow {}                         the window, while she can play
  - onTodayReplyChange { letterId, text }    the reader's edit
  - onTodayReplySend { letterId, text, serial }   the send key (enabled or dimmed)
- - onTodayReplyFocus { focused }
+ - onTodayReplyFocus { focused }        reply mode (the chat composers' A1, owner 2026-10-18): TS
+                                        slides the tab bar away while it is true (another Host)
  - onTodayCardAction { letterId, action }   unfold | translate | report | block | voice
 
  Unknown enum strings fall back rather than fail (a capsule kind this binary doesn't know draws
@@ -146,6 +150,8 @@ struct KTodayStringsRecord: Record {
   @Field var pause: String = ""
   @Field var send: String = ""
   @Field var placeholder: String = ""
+  /// the reply bar's emoji key, for VoiceOver
+  @Field var emoji: String = ""
   @Field var offlineTitle: String = ""
   @Field var offlineBody: String = ""
   @Field var loadingA11y: String = ""
@@ -165,6 +171,7 @@ struct KTodayStringsRecord: Record {
     l.pause = pause
     l.send = send
     l.placeholder = placeholder
+    l.emoji = emoji
     l.offlineTitle = offlineTitle
     l.offlineBody = offlineBody
     l.loadingA11y = loadingA11y
@@ -403,6 +410,7 @@ struct KTodayView: ExpoSwiftUI.View {
       content: content,
       topInset: props.insets.top,
       tabBarRoom: props.insets.tabBarRoom,
+      bottomInset: props.insets.bottom,
       dock: props.dock,
       voice: props.voice,
       deck: props.deck,

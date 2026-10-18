@@ -10,7 +10,9 @@ import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHan
    Everything it shows is worded and dated in TS (src/screens/chat/build-items.ts); Swift draws
    and reports.
 
-   It is a whole screen below the React Native header: put it alone in one @expo/ui <Host
+   It is a whole screen below its header, which it draws itself (`header`: the pen-pal chat
+   before names, chat composers A2, and the kindreds chat, B; a pen-pal chat already revealed
+   keeps a React Native header above it instead): put it alone in one @expo/ui <Host
    style={{flex:1}} ignoreSafeArea="container"> (SurfaceHost field in src/components/
    NativeSurface.tsx: the keyboard's safe area must still apply, so the dock rides it), and only
    after isKindredlyUIViewAvailable("KConversationView") and the screen's NativeSurface switch
@@ -23,8 +25,9 @@ import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHan
    PROPS vs COMMANDS. `items` (memoised, with a rev from useRev) and `dock` change when the
    conversation does; everything that changes as the reader types or listens goes through
    commands: composer (canSend, the status line, clearOnSend), setText, focus, blur, scrollTo,
-   playback, tray. Every prop change re-sends the whole props map (the 0b bench: 29 ms for an
-   80-row change, 2.7 ms for a command). */
+   playback, tray, idea (the sentence the room's ideas bubble offers: ANOTHER moves it on, so it
+   goes as a command, never as a prop). Every prop change re-sends the whole props map (the 0b
+   bench: 29 ms for an 80-row change, 2.7 ms for a command). */
 
 /** What a row draws. */
 export type KChatItemKind = "line" | "letter" | "photo" | "song" | "fold" | "recalled" | "voice";
@@ -32,8 +35,21 @@ export type KChatItemKind = "line" | "letter" | "photo" | "song" | "fold" | "rec
 export type KChatTranslation = "none" | "busy" | "shown";
 /** Which part of a row was tapped (onChatItemPress). */
 export type KChatPart = "body" | "photo" | "song" | "quote" | "fold" | "shelf" | "voice";
-/** What was pressed in the dock (onChatDock). */
-export type KChatDockAction = "replyClose" | "modeClose" | "noticeClose" | "closingLink" | "rekindle" | "sign";
+/** What was pressed in the dock (onChatDock), or in the Swift header: back, page (the face and
+    name), more (the ⋯). The room's ideas bubble: ideaNext (↻ ANOTHER), ideaUse (USE IT →; Swift
+    has already closed the bubble, the owner puts the sentence in the field and focuses it). */
+export type KChatDockAction =
+  | "replyClose"
+  | "modeClose"
+  | "noticeClose"
+  | "closingLink"
+  | "rekindle"
+  | "sign"
+  | "back"
+  | "page"
+  | "more"
+  | "ideaNext"
+  | "ideaUse";
 
 /** One opened half of a fold: a line with its own menu. */
 export type KChatFoldHalf = {
@@ -58,8 +74,10 @@ export type KChatItem = {
   dayLabel: string;
   /** points above the row, below its day rule */
   gap: number;
-  /** letters: "YOU · OCT 14" above the block; "" for none */
+  /** letters (the React Native fallback): "YOU · OCT 14" above the block; "" for none */
   speakerLabel: string;
+  /** letters (the SwiftUI cards): the head line inside the card, "LETTER 3 · NO. 5422"; "" for none */
+  head: string;
   /** letters: the 24-hour time at the block's foot; "" for none */
   timeLabel: string;
   /** the words; a recalled line's note; the voice opening's caption */
@@ -92,13 +110,17 @@ export type KChatItem = {
   } | null;
 };
 
-/** One card of the room's trace tray. */
+/** One card of the room's + tray (chat composers B, Prompt 6). */
 export type KChatTrace = {
   key: string;
   title: string;
   subtitle: string;
-  /** a KLineGlyph: note | ask | moment | song | photo | bug | idea */
-  glyph: "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea";
+  /** a KLineGlyph: the I1 four (foldNote | askSomething | tinyMoment | leaveSong), or one of the
+      older line set (note | ask | moment | song | photo | bug | idea) */
+  glyph: "foldNote" | "askSomething" | "tinyMoment" | "leaveSong" | "note" | "ask" | "moment" | "song" | "photo" | "bug" | "idea";
+  /** the card's ground: a 10a mood's fill (calm #DDEFD6, tired #E4E2F4, low #CFE3F5, happy
+      #F6E7C6; Swift darkens it in Midnight), or none for the theme's sf */
+  tint: "calm" | "tired" | "low" | "happy" | "none";
 };
 
 /** Everything above and in place of the composer. "" means none for every text. */
@@ -120,11 +142,56 @@ export type KChatDock = {
   placeholder: string;
   sendLabel: string;
   autocapitalize: boolean;
-  /** the Wren tool's VoiceOver name; "" for no round tools (the pen-pal chat) */
+  /** the Wren tool's VoiceOver name (the React Native room's; the SwiftUI room has the ideas key
+      in its place); "" for no round tools (the pen-pal chat) */
   wrenToolLabel: string;
   plusLabel: string;
   plusCloseLabel: string;
   traces: KChatTrace[];
+  /** the Kindreds bar (chat composers B): the ideas key's VoiceOver name, "" for no Kindreds bar
+      (the pen-pal chat's reply bar); the bubble's AN IDEA, ANOTHER and USE IT (already in
+      capitals, Swift adds the ↻ and the →); the + tray's title ("Leave something small") */
+  ideasLabel: string;
+  ideaLabel: string;
+  ideaAnother: string;
+  ideaUse: string;
+  trayTitle: string;
+  /** the pen-pal reply bar's hint over the bar while the keyboard is up, already in capitals; "" for none */
+  hint: string;
+  /** the reply bar's emoji key, for VoiceOver */
+  emojiLabel: string;
+};
+
+/** A face as Swift's KFace takes it (lib/faces faceRecord): fields a kind doesn't use are "" or 0. */
+export type KChatFace = { kind: "image" | "mosaic" | "veil" | "placeholder"; uri: string; key: string; overscan: number; mask: number };
+
+/** The conversation's own header: the pen-pal chat's (chat composers A2; build-items
+    lettersHeader) or the kindreds chat's (B; build-items roomHeader). */
+export type KChatHeader = {
+  /** the kindreds chat's: the kindred's round face (`face`) 44 across, no dots; false for the
+      pen-pal chat's FACE v1 (`mask`, `veil`, `frame`) and its five dots */
+  room: boolean;
+  /** room: the face, as lib/faces resolves it */
+  face: KChatFace;
+  /** "No. 5422" */
+  name: string;
+  /** the line under it, already in capitals: "LETTER 3 OF 5 · THEIRS", or the state past the letters */
+  sub: string;
+  tone: "mute" | "ind" | "brass";
+  /** FACE v1 (lib/mosaic mosaicMask with their letters' develop) */
+  mask: number;
+  /** a deleted account, or not loaded: the veil */
+  veil: boolean;
+  /** none while the face develops; line when their five are in; brass when they also went first */
+  frame: "none" | "line" | "brass";
+  /** exchanges that went both ways, 0..5 */
+  dots: number;
+  /** VoiceOver: the face, the name, the line and the dots, as one */
+  a11yLabel: string;
+  canOpenPage: boolean;
+  backLabel: string;
+  /** "" hides the ⋯ (nobody to report) */
+  moreLabel: string;
 };
 
 /** The words the rows share. */
@@ -146,6 +213,9 @@ export type KChatCommands = KStandardCommands & {
       so the next press can reach voice-playback, which loads it again (known bug 2). */
   playback: KStandardCommands["playback"] & { failed?: boolean };
   tray: { open: boolean };
+  /** the sentence the room's ideas bubble shows now (useRoomModel's ideas: their order and where
+      the reader is in it live in TS); sent when it changes and on every attach */
+  idea: { text: string };
 };
 
 export type KConversationViewProps = CommonViewModifierProps &
@@ -157,6 +227,9 @@ export type KConversationViewProps = CommonViewModifierProps &
     hasNewer: boolean;
     /** memoised */
     dock: KChatDock;
+    /** the conversation's own header (memoised): the pen-pal chat's or the kindreds chat's; null
+        or absent: none (a React Native one stands above) */
+    header?: KChatHeader | null;
     strings: KChatStrings;
     toolBird?: KImageRefProps | null;
     noticeBird?: KImageRefProps | null;
@@ -191,6 +264,7 @@ type NativeItem = {
   dayLabel: string;
   gap: number;
   speakerLabel: string;
+  head: string;
   timeLabel: string;
   body: string;
   a11yLabel: string;
@@ -246,10 +320,38 @@ type NativeDock = {
   plusLabel: string;
   plusCloseLabel: string;
   traces: KChatTrace[];
+  hint: string;
+  emojiLabel: string;
+  ideasLabel: string;
+  ideaLabel: string;
+  ideaAnother: string;
+  ideaUse: string;
+  trayTitle: string;
 };
+type NativeHeader = Omit<KChatHeader, "face"> & { show: boolean; faceKind: KChatFace["kind"]; faceUri: string; faceKey: string; faceOverscan: number; faceMask: number };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
+const NO_HEADER: NativeHeader = {
+  show: false,
+  room: false,
+  faceKind: "placeholder",
+  faceUri: "",
+  faceKey: "",
+  faceOverscan: 0,
+  faceMask: 0,
+  name: "",
+  sub: "",
+  tone: "mute",
+  mask: 0,
+  veil: true,
+  frame: "none",
+  dots: 0,
+  a11yLabel: "",
+  canOpenPage: false,
+  backLabel: "",
+  moreLabel: "",
+};
 
 const image = (ref: KImageRefProps | null | undefined): NativeImage =>
   ref && ref.uri ? { uri: ref.uri, key: ref.key, kind: ref.kind ?? "image" } : NO_IMAGE;
@@ -266,6 +368,7 @@ export function nativeChatItems(items: KChatItem[]): NativeItem[] {
     dayLabel: it.dayLabel,
     gap: it.gap,
     speakerLabel: it.speakerLabel,
+    head: it.head ?? "",
     timeLabel: it.timeLabel,
     body: it.body,
     a11yLabel: it.a11yLabel,
@@ -332,8 +435,22 @@ export function nativeChatDock(d: KChatDock): NativeDock {
     wrenToolLabel: d.wrenToolLabel,
     plusLabel: d.plusLabel,
     plusCloseLabel: d.plusCloseLabel,
-    traces: d.traces.map((t) => ({ key: t.key, title: t.title, subtitle: t.subtitle, glyph: t.glyph })),
+    traces: d.traces.map((t) => ({ key: t.key, title: t.title, subtitle: t.subtitle, glyph: t.glyph, tint: t.tint ?? "none" })),
+    hint: d.hint ?? "",
+    emojiLabel: d.emojiLabel ?? "",
+    ideasLabel: d.ideasLabel ?? "",
+    ideaLabel: d.ideaLabel ?? "",
+    ideaAnother: d.ideaAnother ?? "",
+    ideaUse: d.ideaUse ?? "",
+    trayTitle: d.trayTitle ?? "",
   };
+}
+
+/** The header as Swift's record (the face flattened): show false for none. */
+export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeader {
+  if (!h) return NO_HEADER;
+  const { face, ...rest } = h;
+  return { ...rest, show: true, faceKind: face.kind, faceUri: face.uri, faceKey: face.key, faceOverscan: face.overscan, faceMask: face.mask };
 }
 
 type NativeKConversationViewProps = Omit<
@@ -343,6 +460,7 @@ type NativeKConversationViewProps = Omit<
   | "rev"
   | "items"
   | "dock"
+  | "header"
   | "toolBird"
   | "noticeBird"
   | "expiredBird"
@@ -362,6 +480,7 @@ type NativeKConversationViewProps = Omit<
     ref?: Ref<KScreenHandle>;
     items: NativeItem[];
     dock: NativeDock;
+    header: NativeHeader;
     toolBird: NativeImage;
     noticeBird: NativeImage;
     expiredBird: NativeImage;
@@ -392,6 +511,7 @@ export const KConversationView = forwardRef<KScreenHandle, KConversationViewProp
     rev,
     items,
     dock,
+    header,
     toolBird,
     noticeBird,
     expiredBird,
@@ -412,6 +532,7 @@ export const KConversationView = forwardRef<KScreenHandle, KConversationViewProp
 ) {
   const sentItems = useMemo(() => nativeChatItems(items), [items]);
   const sentDock = useMemo(() => nativeChatDock(dock), [dock]);
+  const sentHeader = useMemo(() => nativeChatHeader(header), [header]);
   const tool = useMemo(() => image(toolBird), [toolBird]);
   const notice = useMemo(() => image(noticeBird), [noticeBird]);
   const expired = useMemo(() => image(expiredBird), [expiredBird]);
@@ -428,6 +549,7 @@ export const KConversationView = forwardRef<KScreenHandle, KConversationViewProp
       rev={rev ?? 0}
       items={sentItems}
       dock={sentDock}
+      header={sentHeader}
       toolBird={tool}
       noticeBird={notice}
       expiredBird={expired}

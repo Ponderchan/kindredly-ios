@@ -9,7 +9,7 @@ import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
 import { useNativeSurface } from "../../lib/surfaces";
 import { useTheme } from "../../lib/theme";
-import { PlusSheetOpen } from "../../lib/screen-insets";
+import { PlusSheetOpen, TabBarAway } from "../../lib/screen-insets";
 import { PostFan } from "../../components/PostFan";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
@@ -34,9 +34,19 @@ import { PostFan } from "../../components/PostFan";
    so a tab's first frame is never another colour), and the layout tells
    its screens whether the + sheet is open (PlusSheetOpen, read with
    usePlusSheetOpen from lib/screen-insets) so Today can step its write-back
-   pill out of the sheet's way. */
+   pill out of the sheet's way.
+
+   And a screen can send the bar away (TabBarAway, asked with
+   useTabBarAway from lib/screen-insets): Today does while the reader
+   writes back to a letter (the chat composers' A1, owner 2026-10-18), so
+   the keyboard and the reply bar have the foot of the screen; the bar
+   slides down out of sight and comes back when the reply ends. Both bars
+   honour it, the Swift one and PostTabBar, and both only while Today is
+   the tab on screen. */
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
+  // a screen sent the bar away (Today's reply); setBarAway is stable, so the context never churns
+  const [barAway, setBarAway] = useState(false);
   const waiting = useWaiting();
   const { user } = useAuth();
   const { t: tk } = useTheme();
@@ -54,13 +64,14 @@ export default function TabsLayout() {
   return (
     <TabBarSpace.Provider value={native ? nativeTabBarRoom(insets.bottom) : tabBarHeight(insets.bottom)}>
     <PlusSheetOpen.Provider value={choosing}>
+    <TabBarAway.Provider value={setBarAway}>
     <View style={{ flex: 1 }}>
       <Tabs
         tabBar={(props) =>
           native ? (
-            <NativeTabBar {...props} open={choosing} onPost={() => setChoosing((c) => !c)} onClose={() => setChoosing(false)} waiting={waiting} />
+            <NativeTabBar {...props} open={choosing} away={barAway} onPost={() => setChoosing((c) => !c)} onClose={() => setChoosing(false)} waiting={waiting} />
           ) : (
-            <PostTabBar {...props} onPost={() => setChoosing((c) => !c)} open={choosing} waiting={waiting} />
+            <PostTabBar {...props} onPost={() => setChoosing((c) => !c)} open={choosing} away={barAway} waiting={waiting} />
           )
         }
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: tk.bg } }}
@@ -73,6 +84,7 @@ export default function TabsLayout() {
 
       {!native && choosing && <PostFan onClose={() => setChoosing(false)} />}
     </View>
+    </TabBarAway.Provider>
     </PlusSheetOpen.Provider>
     </TabBarSpace.Provider>
   );

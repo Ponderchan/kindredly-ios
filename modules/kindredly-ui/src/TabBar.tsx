@@ -23,6 +23,10 @@ import type { KImageRefProps } from "./types";
    Today), and the two round buttons popping from behind the + (Today). Both report "letter" or
    "note" through onPanelAction. Which one opens is NativeTabBar's choice, by tab.
 
+   barHidden sends the bar away, 160 down out of sight and reach over .35s (a fade under Reduce
+   Motion), whatever the + is doing: Today's reply (the chat composers' A1, owner 2026-10-18),
+   while the keyboard and the reply bar have the foot of the screen.
+
    iOS only, and only in a binary that has this view: check isKindredlyUIViewAvailable("KTabBarView")
    first (a binary built before the view existed has the module but not the view). */
 
@@ -107,6 +111,7 @@ type NativeTabBarProps = CommonViewModifierProps & {
   panelStyle: KTabBarPanelStyle;
   sheet: NativeSheet;
   pop: KTabBarPop;
+  barHidden: boolean;
   onTabPress?: (e: { nativeEvent: { index: number } }) => void;
   onPlusPress?: () => void;
   onPanelAction?: (e: { nativeEvent: { key: string } }) => void;
@@ -141,6 +146,8 @@ export type KTabBarProps = CommonViewModifierProps & {
   sheet?: KTabBarSheet;
   /** the returning reader's two buttons, for panelStyle "pop" */
   pop?: KTabBarPop;
+  /** the bar steps away (slides down out of sight): Today's reply has the foot of the screen. false by default */
+  barHidden?: boolean;
   /** a tab was tapped, selected or not */
   onTabPress?: (index: number) => void;
   /** the + (or ×) was tapped */
@@ -152,7 +159,7 @@ export type KTabBarProps = CommonViewModifierProps & {
 };
 
 /** The bare SwiftUI tab bar and sheet. Only inside an @expo/ui <Host>; see NativeTabBar in the app. */
-export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, onTabPress, onPlusPress, onPanelAction, onPanelDismiss, ...rest }: KTabBarProps) {
+export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, barHidden, onTabPress, onPlusPress, onPanelAction, onPanelDismiss, ...rest }: KTabBarProps) {
   return (
     <NativeTabBarView
       modifiers={modifiers}
@@ -165,6 +172,8 @@ export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, on
       panelStyle={panelStyle ?? "cards"}
       sheet={nativeSheet(sheet)}
       pop={pop ?? EMPTY_POP}
+      // always sent, so Swift never sees it go missing
+      barHidden={barHidden ?? false}
       onTabPress={onTabPress ? (e) => onTabPress(e.nativeEvent.index) : undefined}
       onPlusPress={onPlusPress}
       onPanelAction={onPanelAction ? (e) => onPanelAction(e.nativeEvent.key) : undefined}

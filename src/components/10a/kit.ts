@@ -1,6 +1,6 @@
 import type { TextStyle, ViewStyle } from "react-native";
 import { MONO, channelColors } from "../../theme/post";
-import type { ThemeTokens } from "../../theme/themes";
+import { MOOD10A, type MoodKey, type ThemeTokens } from "../../theme/themes";
 
 /* THE 10a TWINS' RECIPES (10a step 5, React Native).
    ────────────────────────────────────────────────────────────────────────
@@ -13,7 +13,8 @@ import type { ThemeTokens } from "../../theme/themes";
    screen that needs a number reads the same one the component uses.
 
    Nothing here imports React or React Native at runtime (the `import type`
-   above is erased), and every colour comes from the theme passed in
+   above is erased; the theme table it reads is plain JSON), and every
+   colour comes from the theme passed in
    (useTheme().t — `tk` in files that also use i18n's t). Refs like H:124
    are lines of the 10a mock (.claude/mock/k10/Kindredly 10 Final.dc.html). */
 
@@ -94,6 +95,120 @@ export const sendTakesPress = (state: SendState): boolean => state !== "disabled
 /** whether a strip clears itself after a press — only a send that went,
     never the dimmed tap that only explains */
 export const sendClearsField = (state: SendState): boolean => state === "enabled";
+
+/* ── the chat composers' two bars (owner's final, 2026-10-18) ────────── */
+
+/* The reply bar (Prompt 1; KReplyBar's twin, ReplyBar.tsx) is where a
+   letter is written back: the Today reply and the pen-pal chat before names.
+   The Kindreds bar (Prompt 3; KKindredBar's twin, KindredBar.tsx) is a
+   room's, once names are traded. Their numbers are here once, so a screen
+   that needs one (how far the bar sits from the keyboard, how tall the tray
+   is) reads the same number the bar draws with. */
+
+/** The reply bar: 54 at one line, corners 16, sf, a 2 ln outline and a hard
+    2/2 ln shadow; padding 0 8 0 14 inside the outline, its four parts 6
+    apart; the reply arrow 20, the field system 16 growing to four lines
+    (about 110) and then scrolling, the emoji key a 36 square with corners
+    10, the send disc 36; the hint 6 in and 6 above the bar. */
+export const REPLY_BAR = {
+  minHeight: 54,
+  radius: 16,
+  border: 2,
+  shadow: 2,
+  padLeft: 14,
+  padRight: 8,
+  gap: 6,
+  arrow: 20,
+  fontSize: 16,
+  lineHeight: 21,
+  maxLines: 4,
+  emojiKey: 36,
+  emojiRadius: 10,
+  disc: 36,
+  hintGap: 6,
+} as const;
+
+/** the reply bar's field padding: one line sits centred in the 54 resting height */
+export const REPLY_BAR_PAD = (REPLY_BAR.minHeight - 2 * REPLY_BAR.border - REPLY_BAR.lineHeight) / 2;
+/** the tallest the reply bar's field grows: four lines and its padding (113, the prototype's ~110) */
+export const REPLY_BAR_MAX = REPLY_BAR.maxLines * REPLY_BAR.lineHeight + 2 * REPLY_BAR_PAD;
+
+/** The Kindreds bar: one row 56 tall, its three parts 10 apart — the ideas
+    key and the + key 52 circles with a 2 ln outline on sf, between them the
+    capsule (52 at one line, corners 26, padding 0 6 0 16) with the field
+    (system 16, one line growing to five, then scrolling), the emoji key and
+    the send disc, both 40 circles. */
+export const KINDRED_BAR = {
+  rowHeight: 56,
+  key: 52,
+  capsuleKey: 40,
+  gap: 10,
+  padLeft: 16,
+  padRight: 6,
+  fontSize: 16,
+  lineHeight: 21,
+  maxLines: 5,
+} as const;
+
+/** the capsule's field padding: one line centred in the 52 capsule */
+export const KINDRED_BAR_PAD = (KINDRED_BAR.key - KINDRED_BAR.lineHeight) / 2;
+/** the tallest the capsule's field grows: five lines and its padding */
+export const KINDRED_BAR_MAX = KINDRED_BAR.maxLines * KINDRED_BAR.lineHeight + 2 * KINDRED_BAR_PAD;
+
+/** both bars ride the keyboard (or the + tray) this far above it */
+export const BAR_ABOVE_KEYBOARD = 12;
+
+/** the send disc's ground while it can't send, on the light themes (Prompt 1) */
+export const SEND_DISC_OFF = "#C9C6D6";
+
+/** The send disc of both bars (KSendDisc): enabled on `fill` (the theme's
+    ink unless the bar gives another — the Kindreds bar's ind) with the line
+    plane in white; disabled on #C9C6D6 (Midnight: its faint, so it doesn't
+    glow on the dark bar); dimmed is the enabled disc at .35, still pressed.
+    On Midnight the plane is the page's dark, which is what reads on its pale
+    ink and ind. */
+export function sendDiscLook(tk: ThemeTokens, state: SendState, fill?: string): { ground: string; plane: string; opacity: number } {
+  const ground = state === "disabled" ? (tk.dark ? tk.faint : SEND_DISC_OFF) : fill ?? tk.ink;
+  return { ground, plane: tk.dark ? tk.bg : "#FFFFFF", opacity: state === "dimmed" ? 0.35 : 1 };
+}
+
+/** An open key's ground on the Kindreds bar (the ideas key, the +) and the
+    ideas bubble's: ink, or Midnight's lav — its ink is pale, and lime or
+    white on near-white would vanish (KKindredBar.openFill). */
+export const openKeyFill = (tk: ThemeTokens): string => (tk.dark ? tk.lav : tk.ink);
+
+/** the capsule's ground: soft, or soft2 on Midnight (its soft is its sf, and the round keys' sf
+    would melt into it) */
+export const capsuleFill = (tk: ThemeTokens): string => (tk.dark ? tk.soft2 : tk.soft);
+
+/* ── the + tray (chat composers B, Prompt 6; KChatTray's twin) ────────── */
+
+/** The tray: 236 above the home inset (12, the handle 6, 10, the title, 10,
+    two rows of cards) and the inset or 14 below the grid — 270 over an
+    iPhone's 34; corners 28 28 0 0; cards at least 84 tall, 10 apart. */
+export const PLAY_TRAY = { rest: 236, radius: 28, card: 84, gap: 10 } as const;
+
+/** the tray's height for a home inset */
+export const playTrayHeight = (bottomInset: number): number => PLAY_TRAY.rest + Math.max(14, bottomInset);
+
+/** a + (b − a)·t per channel, as #RRGGBB (half up, as Swift's mix); `a` when either can't be read */
+function mixRgb(a: string, b: string, t: number): string {
+  const x = rgb(a);
+  const y = rgb(b);
+  if (!x || !y) return a;
+  return "#" + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).toUpperCase().padStart(2, "0")).join("");
+}
+
+/** A play card's ground: its mood's fill (calm Fold a note, tired Ask
+    something, low Tiny moment, happy Leave a song). The fills are pale in
+    every theme and Midnight's ink is pale too, so there it is the mood's
+    own ink mixed 30% into the theme's sf: four dark tints under the theme's
+    ink and sub. "none" is the theme's sf. */
+export function playCardFill(tk: ThemeTokens, tint: MoodKey | "none"): string {
+  if (tint === "none") return tk.sf;
+  const [fill, ink] = MOOD10A[tint];
+  return tk.dark ? mixRgb(tk.sf, ink, 0.3) : fill;
+}
 
 /* ── contrast ────────────────────────────────────────────────────────── */
 

@@ -45,6 +45,7 @@ import { PALETTE, daylight } from "../../components/CourierCard";
 import type { WrenStage } from "../../components/WrenBird";
 import "../../data/strings-step5-today";
 import "../../data/strings-today3d";
+import "../../data/strings-step5-platform"; // cmp.emoji
 import * as C from "./today-cards";
 
 /* THE TODAY TAB'S MODEL (10a step 5; Today 3d × 25b, 2026-10-16):
@@ -542,6 +543,8 @@ export type TodayStrings = {
   pause: string;
   send: string;
   placeholder: string;
+  /** VoiceOver: the reply bar's emoji key (the system emoji keyboard and back) */
+  emoji: string;
   offlineTitle: string;
   offlineBody: string;
   loadingA11y: string;
@@ -1329,6 +1332,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       pause: t("vo.pause"),
       send: t("ld.send"),
       placeholder: t("ld.writeBackPh"),
+      emoji: t("cmp.emoji"),
       offlineTitle: t("net.offline.title"),
       offlineBody: t("ld.offlineDesk"),
       loadingA11y: t("ld.loading.a11y"),

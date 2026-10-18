@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView, Text, View, useWindowDimensions, type TextInput } from "react-native";
+import { KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent, type TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
@@ -12,17 +12,20 @@ import { useRenderWindow } from "../../lib/render-window";
 import type { ThreadMessage } from "../../lib/db";
 import type { SharedSong } from "../../lib/shared-songs";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
-import { TraceTray, traceTrayHeight, type TraceKind } from "../../components/LeaveATrace";
-import { PlusGlyph } from "../../components/ComposeTray";
+import { PlayTray, type TraceKind } from "../../components/LeaveATrace";
 import { WrenBird } from "../../components/WrenBird";
-import { ReplyStrip, type ReplyStripHandle } from "../../components/10a";
-import "../../data/strings-step5-platform"; // vo.play, vo.pause
-import { buildRoomDock, buildRoomItems, windowItems } from "./build-items";
+import { AvatarImage } from "../../components/AvatarImage";
+import { MosaicId } from "../../components/MosaicId";
+import { ReportSheet } from "../../components/ReportMenu";
+import { useReportFlow } from "../../lib/report-flow";
+import { BAR_ABOVE_KEYBOARD, IdeasBubble, KindredBar, type KindredBarHandle } from "../../components/10a";
+import "../../data/strings-step5-platform"; // vo.play, vo.pause, cmp.emoji
+import { NO_FACE, buildRoomDock, buildRoomItems, roomHeader, windowItems } from "./build-items";
 import { useRoomModel, type ChatUi } from "./useRoomModel";
 import { RoomIntroduction } from "./RoomIntroduction";
-import { ChatHeader } from "./ChatHeader";
+import { ConversationHeaderRN } from "./ConversationHeaderRN";
 import { RoomRowRN, type RowEnv } from "./ChatRowsRN";
-import { DockAbove, ExpiredCard, GoneLine, RoundTool } from "./ChatDockRN";
+import { DockAbove, ExpiredCard, GoneLine } from "./ChatDockRN";
 import { useChatListRN } from "./useChatListRN";
 import { useKeyboardRN, useKeyboardTray } from "./useKeyboardRN";
 import { useOpeningVoiceRN } from "./VoiceOpeningRN";
@@ -46,15 +49,35 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
      (the end only while you are at it, through the keyboard, the tray and
      a growing composer too) and the same quote jump (useChatListRN);
    · the one voice player for the voice opening (known bug 2);
-   · the 10a reply strip (components/10a ReplyStrip, uncontrolled — the
-     words live in the field and are seeded only by the model: a clear
-     after a send, the words back after a failure), with the plane key and
-     Return-to-send, between the Wren tool and the +;
-   · the 10a look on the theme (ChatRowsRN, ChatDockRN, the shared React
-     Native ChatHeader with its 36pt back chevron and round kindred face),
-     the trace tray in the keyboard's place (LeaveATrace's 10a cards; the
-     two swap in one commit and the tray rises with the keyboard's timing
-     or fades under Reduce Motion — useKeyboardTray).
+   · the chat composers' B (owner's final, 2026-10-18), as the SwiftUI room
+     draws it:
+     - the header (ConversationHeaderRN on build-items roomHeader): ‹, the
+       kindred's round face 44 across, their name, KINDRED SINCE … in mute
+       capitals, the ⋯ opening the report card. The older header's lore
+       button and "Wren found you two" line are not in the owner's B (lore
+       stays a row in Settings);
+     - the Kindreds bar (components/10a KindredBar, uncontrolled — the
+       words live in the field and are seeded only by the model: a clear
+       after a send, the words back after a failure, an idea used): the
+       ideas key, the capsule with the field, the emoji key and the send
+       disc (Return sends too), the +; 16 from either edge, 12 over the
+       keyboard or the tray. The ideas key took the Wren tool's place (it
+       seeded the question mode: Ask something in the tray still does);
+     - the ideas bubble 8 above the bar (IdeasBubble): one sentence from
+       the model's ideas (useRoomModel: the 36 stamps' prompts, theirs
+       first, in the room's order), ↻ ANOTHER moving on, USE IT → putting
+       it in the field as plain words and giving it the keyboard;
+     - the + tray in the keyboard's place (LeaveATrace's PlayTray: the four
+       plays on their mood fills, 270 over the home inset), a dim over the
+       list while it is open (a tap on it closes the tray); the two swap in
+       one commit and the tray rises with the keyboard's timing or fades
+       under Reduce Motion (useKeyboardTray);
+     - THE THREE PANELS SHUT EACH OTHER (Prompt 3): the ideas key lets go
+       of the keyboard and shuts the tray, the + lets go of the keyboard
+       and shuts the bubble, the field taking the keyboard shuts both, and
+       a tap on the list shuts the bubble;
+   · the 10a look on the theme for everything else (ChatRowsRN,
+     ChatDockRN).
 
    Room-specific rules that live in the model and are only drawn here: no
    bubbles' speaker labels and no minute times (the sides say who; the day
@@ -76,7 +99,9 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
   const keyboard = useKeyboardRN();
   const lang = getLang();
 
-  const strip = useRef<ReplyStripHandle>(null);
+  const bar = useRef<KindredBarHandle>(null);
+  /* the ideas bubble is up (the screen's own: only the reader sees it) */
+  const [ideasOpen, setIdeasOpen] = useState(false);
   const promptRef = useRef<TextInput>(null);
   const [promptSeed, setPromptSeed] = useState({ text: "", n: 0 });
   /* the list's own moves, reached by the model's ui through a ref filled below (the list needs the
@@ -97,13 +122,13 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
       focus: (target, delayMs) => {
         const timer = setTimeout(() => {
           timers.current.delete(timer);
-          if (target === "body") strip.current?.focus();
+          if (target === "body") bar.current?.focus();
           else promptRef.current?.focus();
         }, delayMs);
         timers.current.add(timer);
       },
       seedText: (target, value) => {
-        if (target === "body") strip.current?.setText(value);
+        if (target === "body") bar.current?.setText(value);
         else setPromptSeed((s) => ({ text: value, n: s.n + 1 }));
       },
       scrollToEnd: (animated, delayMs) => listRef.current?.requestEnd(animated, delayMs),
@@ -176,12 +201,13 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
   );
   const open = dock.terminal === "none";
 
-  /* the room closed (gone, missing, expired) with the keyboard up: let go, and fold the tray */
+  /* the room closed (gone, missing, expired) with the keyboard up: let go, and fold the tray and the bubble */
   const { setTracing } = m;
   useEffect(() => {
     if (open) return;
-    strip.current?.blur();
+    bar.current?.blur();
     setTracing(false);
+    setIdeasOpen(false);
   }, [open, setTracing]);
 
   const onPart = (key: string, part: Parameters<typeof m.onItemPress>[1]) => {
@@ -199,119 +225,190 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
     a11yRef: list.a11yRef,
   };
 
-  /** the strip's send: exactly the words it held. The React Native strip never empties itself
-      (it returns false): the model empties the field synchronously when it takes a plain line —
-      before its first await — and only once a fold, a song or a bare song link went, and leaves
-      the words alone when it refuses. A self-clear would run after a synchronous refusal had put
-      them back, and wipe them (Swift's field clears first and gets them back after; the strip's
-      order is the other way round). */
-  const onStripSend = (value: string): boolean => {
+  /** the bar's send: exactly the words it held. The React Native bar never empties itself (it
+      returns false): the model empties the field synchronously when it takes a plain line — before
+      its first await — and only once a fold, a song or a bare song link went, and leaves the words
+      alone when it refuses. A self-clear would run after a synchronous refusal had put them back,
+      and wipe them (Swift's field clears first and gets them back after; the bar's order is the
+      other way round). */
+  const onBarSend = (value: string): boolean => {
     void m.onSend(value, undefined, false);
     return false;
   };
 
-  /* the trace tray in the keyboard's place: drawn only while the keyboard is down, so the two swap
-     in one commit (useKeyboardTray); the list is followed again once the tray's motion settled */
+  /* the + tray in the keyboard's place: drawn only while the keyboard is down, so the two swap in
+     one commit (useKeyboardTray); the list is followed again once the tray's motion settled */
   const tray = useKeyboardTray(keyboard, m.tracing, m.setTracing, list.settleAfter);
-  // choosing something to leave is not something you do mid-sentence: the tray takes the keyboard's place
-  const togglePlus = () =>
-    tray.toggle(() => {
-      strip.current?.blur();
-      promptRef.current?.blur();
-    });
+  const letGo = () => {
+    bar.current?.blur();
+    promptRef.current?.blur();
+  };
+  /* THE THREE PANELS (Prompt 3). The +: choosing something to leave is not something you do
+     mid-sentence, so the tray takes the keyboard's place; the bubble goes too */
+  const togglePlus = () => {
+    setIdeasOpen(false);
+    tray.toggle(letGo);
+  };
+  /** the ideas key: the bubble, which lets go of the keyboard and shuts the tray, or shuts it */
+  const toggleIdeas = () => {
+    if (ideasOpen) {
+      setIdeasOpen(false);
+      return;
+    }
+    letGo();
+    tray.close();
+    setIdeasOpen(true);
+  };
+  /** a field took the keyboard: the tray (on the keyboard's rise) and the bubble go */
+  const onFieldFocus = () => {
+    tray.onFieldFocus();
+    setIdeasOpen(false);
+  };
+  /** USE IT: the bubble goes at once; the model puts the sentence in the field and focuses it */
+  const useIdea = () => {
+    setIdeasOpen(false);
+    m.takeIdea();
+  };
   /** a card: a note, a question or a song hand the keyboard to the field (the tray stays until it
       is up); the moment opens the picker, the tray going down as it does */
-  const onPick = (k: TraceKind) => {
+  const onPick = (key: string) => {
+    const k = key as TraceKind;
     if (k === "moment") tray.close();
     else tray.handOff();
     m.onTrace(k);
   };
+  /* a tap on the list (not a drag) shuts the bubble: "tap elsewhere" (Prompt 4) */
+  const touchAt = useRef<{ x: number; y: number } | null>(null);
+  const listTouch = ideasOpen
+    ? {
+        onTouchStart: (e: GestureResponderEvent) => {
+          touchAt.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+        },
+        onTouchEnd: (e: GestureResponderEvent) => {
+          const at = touchAt.current;
+          touchAt.current = null;
+          if (at && Math.abs(e.nativeEvent.pageX - at.x) < 10 && Math.abs(e.nativeEvent.pageY - at.y) < 10) setIdeasOpen(false);
+        },
+      }
+    : {};
 
+  /* the header (B): their name, KINDRED SINCE … (or how they write), their round face; its ⋯
+     starts the report flow, whose card drops just under it */
   const subtitle = detail?.revealedAt ? t("rm.kindredSince", { date: dLong(detail.revealedAt).toUpperCase() }) : archNameThird(m.read?.archetype?.id);
+  const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  const header = useMemo(
+    // the face is drawn here (roomFace), not from the Swift record
+    () => roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face: NO_FACE, canReport: !report.nobody }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [m.name, subtitle, report.nobody, lang],
+  );
+  const headerTop = props.topInset ?? insets.top;
+  /* their face as their Kindreds row draws it: their portrait, the glyph when they gave none, the
+     veil once their account is gone; the soft disc while the thread loads */
+  const roomFace = !detail ? (
+    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tk.soft2 }} />
+  ) : detail.gone || !detail.other ? (
+    <MosaicId seed={null} cell={5.5} gap={1.5} />
+  ) : (
+    <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={44} />
+  );
+
   const trayOpen = tray.shown && open && dock.traces.length > 0;
+  const showsIdeas = ideasOpen && open && !!dock.ideasLabel && !!m.idea;
+  /* the dim over the list while the tray is up: rgba(30,27,53,.18), Midnight black at .35 */
+  const dim = tk.dark ? "rgba(0,0,0,0.35)" : "rgba(30,27,53,0.18)";
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       {/* their mark, always — you are in their room */}
-      <ChatHeader
-        variant="room"
-        detail={detail}
-        name={m.name}
-        subtitle={subtitle}
-        wren={m.wren}
-        threadId={id}
-        snapshot={m.theirLatest}
-        canOpenPage
-        topInset={props.topInset}
+      <ConversationHeaderRN
+        model={header}
+        roomFace={roomFace}
+        topInset={headerTop}
         onBack={m.goBack}
-        onOpenPage={m.openPage}
-        onLore={m.openLore}
-        onBlocked={m.onBlocked}
-        onBeforeSheet={() => strip.current?.blur()}
+        onPage={m.openPage}
+        // the keyboard goes first, then the card drops from the ⋯
+        onMore={() => ui.thenModal(() => report.openMenu())}
       />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <ScrollView {...list.listProps} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
-          {items.map((item, i) => (
-            <RoomRowRN key={item.key} item={item} first={i === 0} lit={list.lit === item.key} env={env} onLayout={list.rowLayout(item.key)} />
-          ))}
-        </ScrollView>
+        <View style={{ flex: 1 }} {...listTouch}>
+          <ScrollView {...list.listProps} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
+            {items.map((item, i) => (
+              <RoomRowRN key={item.key} item={item} first={i === 0} lit={list.lit === item.key} env={env} onLayout={list.rowLayout(item.key)} />
+            ))}
+          </ScrollView>
+          {trayOpen && (
+            // the dim fades with the tray's own motion (useKeyboardTray's layout animation)
+            <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: dim }]} onPress={tray.close} accessible={false} importantForAccessibility="no" />
+          )}
+        </View>
 
-        <View style={{ paddingHorizontal: 12, paddingBottom: keyboard.up || trayOpen ? 10 : Math.max(10, insets.bottom), backgroundColor: tk.bg }}>
+        <View style={{ paddingHorizontal: 12, paddingBottom: keyboard.up || trayOpen ? BAR_ABOVE_KEYBOARD : Math.max(10, insets.bottom), backgroundColor: tk.bg }}>
           <DockAbove
             dock={dock}
             status={m.composer.status}
             statusAlarm={m.composer.statusAlarm}
             onDock={m.onDock}
-            prompt={{ seed: promptSeed, ref: promptRef, onChange: m.onPromptText, onFocus: tray.onFieldFocus }}
+            prompt={{ seed: promptSeed, ref: promptRef, onChange: m.onPromptText, onFocus: onFieldFocus }}
           />
           {dock.terminal === "gone" ? (
             <GoneLine text={dock.goneText} />
           ) : dock.terminal === "expired" ? (
             <ExpiredCard dock={dock} onDock={m.onDock} />
           ) : (
-            /* THE BAR (owner, 2026-09-20; 10a H:124): the courier on the left — she brings a
-               question when asked — the reply strip with its plane key (Return sends too), the + on
-               the right. The + opens the things to LEAVE (a note, a question, a moment, a song), not
-               to attach. */
-            <ReplyStrip
-              ref={strip}
-              placeholder={dock.placeholder}
-              canSend={m.composer.canSend}
-              onSend={onStripSend}
-              onChangeText={m.setText}
-              initialText={m.text}
-              // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
-              onFocus={tray.onFieldFocus}
-              sendLabel={dock.sendLabel}
-              inputProps={{ autoCapitalize: dock.autocapitalize ? "sentences" : "none" }}
-              leading={
-                <RoundTool label={dock.wrenToolLabel} onPress={m.seedQuestion}>
-                  <WrenBird size={24} mood="curious" />
-                </RoundTool>
-              }
-              trailing={
-                <RoundTool label={m.tracing ? dock.plusCloseLabel : dock.plusLabel} onPress={togglePlus} onEscape={trayOpen ? tray.close : undefined}>
-                  <PlusGlyph size={24} open={m.tracing} color={m.tracing ? tk.ind : tk.ink} />
-                </RoundTool>
-              }
-              style={{ paddingBottom: 4 }}
-            />
+            <>
+              {showsIdeas && (
+                <IdeasBubble
+                  label={dock.ideaLabel}
+                  idea={m.idea}
+                  another={dock.ideaAnother}
+                  use={dock.ideaUse}
+                  onAnother={m.nextIdea}
+                  onUse={useIdea}
+                  onClose={() => setIdeasOpen(false)}
+                  // 16 from either edge (the dock's 12 and 4 more), 8 above the bar
+                  style={{ marginHorizontal: 4, marginBottom: 8 }}
+                />
+              )}
+              {/* THE BAR (chat composers B): the ideas key, the capsule, the +. The + opens the
+                  things to LEAVE (a note, a question, a moment, a song), not to attach. */}
+              <KindredBar
+                ref={bar}
+                placeholder={dock.placeholder}
+                autocapitalize={dock.autocapitalize}
+                canSend={m.composer.canSend}
+                onSend={onBarSend}
+                onChangeText={m.setText}
+                initialText={m.text}
+                sendLabel={dock.sendLabel}
+                emojiLabel={dock.emojiLabel}
+                ideasLabel={dock.ideasLabel}
+                plusLabel={dock.plusLabel}
+                plusCloseLabel={dock.plusCloseLabel}
+                ideasOpen={showsIdeas}
+                trayOpen={m.tracing}
+                onIdeas={toggleIdeas}
+                onPlus={togglePlus}
+                onCloseIdeas={() => setIdeasOpen(false)}
+                onCloseTray={tray.close}
+                // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
+                onFocus={onFieldFocus}
+                style={{ marginHorizontal: 4 }}
+              />
+            </>
           )}
         </View>
         {trayOpen && (
-          // VoiceOver's escape from a card closes the tray (KTraceTray)
+          // VoiceOver's escape from a card closes the tray (KChatTray)
           <View onAccessibilityEscape={tray.close}>
-            <TraceTray
-              actions={dock.traces.map((tr) => ({ id: tr.key as TraceKind, title: tr.title, sub: tr.subtitle }))}
-              onPick={onPick}
-              height={traceTrayHeight(keyboard.lastHeight, insets.bottom)}
-              bottomInset={insets.bottom}
-            />
+            <PlayTray traces={dock.traces} title={dock.trayTitle} onPick={onPick} bottomInset={insets.bottom} />
           </View>
         )}
       </KeyboardAvoidingView>
 
+      {/* the header's ⋯: the card drops just under it */}
+      <ReportSheet flow={report} top={headerTop + 62} />
       <PhotoLightbox photo={m.photoFull} onClose={() => m.setPhotoFull(null)} />
       <RoomIntroduction m={m} />
       <SongShelfRN open={m.shelf} onClose={() => m.setShelf(false)} songs={m.songs} songSays={m.songSays} name={m.name} />

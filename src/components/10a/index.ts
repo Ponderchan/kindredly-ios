@@ -9,6 +9,10 @@
    src/components/10a/kit.test.ts`.
 
      ReplyStrip        the keyboard-state reply strip (H:124), uncontrolled, with SendKey
+     ReplyBar          the chat composers' reply bar (Today reply, pen-pal chat), with
+                       EmojiKey and SendDisc
+     KindredBar        the chat composers' Kindreds bar (a room), with IdeasBubble
+     LineIcon          the chat composers' I1 line icons
      SendKey           the one send key: disabled / enabled (plane) / dimmed
      SecondaryHeader   a pushed page's header (H:90): chevron, mono title, right slot
      TranslateCapsule  "ES→EN  Read it in yours" (H:42)
@@ -18,6 +22,10 @@
      StickerBox        the outline + hard shadow material the others are made of */
 
 export { ReplyStrip, type ReplyStripHandle, type ReplyStripProps } from "./ReplyStrip";
+export { ReplyBar, EmojiKey, SendDisc, type ReplyBarHandle, type ReplyBarProps } from "./ReplyBar";
+export { KindredBar, IdeasBubble, popIn, type KindredBarHandle, type KindredBarProps } from "./KindredBar";
+export { LineIcon, type LineIconName } from "./LineIcon";
+export { type ComposerFieldHandle } from "./useComposerField";
 export { SendKey } from "./SendKey";
 export { SecondaryHeader } from "./SecondaryHeader";
 export { TranslateCapsule } from "./TranslateCapsule";
@@ -26,14 +34,21 @@ export { InkPanel } from "./InkPanel";
 export { BottomFade } from "./BottomFade";
 export { StickerBox } from "./StickerBox";
 export {
+  BAR_ABOVE_KEYBOARD,
   BOTTOM_FADE,
   INK_PANEL,
+  KINDRED_BAR,
+  PLAY_TRAY,
+  REPLY_BAR,
   REPLY_STRIP,
   ROW_METRICS,
   SEND_STYLE,
   TOPIC_TAG_SIZE,
   badgeCount,
   contrastRatio,
+  openKeyFill,
+  playCardFill,
+  playTrayHeight,
   sendKeyState,
   translateCode,
   type InkPanelVariant,

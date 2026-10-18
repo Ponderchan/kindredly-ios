@@ -24,7 +24,8 @@ import { noteWrote } from "../../lib/local-push";
 import { readCorrespondent, type CorrespondentRead } from "../../lib/correspondent";
 import { noticeThings, type Notice } from "../../lib/notice";
 import { noticeAboutUs, type KindredNotice } from "../../lib/kindred-read";
-import { STAMPS, sname } from "../../data/stamps";
+import { STAMPS, getStamp, sname } from "../../data/stamps";
+import { stampsHeard } from "../../lib/stamp-suggest";
 import { useWrenName } from "../../lib/wren-name";
 import { alertFail } from "../../lib/fail";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
@@ -33,10 +34,14 @@ import type { LightboxPhoto } from "../../components/PhotoLightbox";
 import type { TraceAction, TraceKind } from "../../components/LeaveATrace";
 import type { KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
 import {
+  IDEA_WALK_START,
   ROOM_CEREMONY_DAYS,
   conversation,
   foldKey,
   halfKey,
+  ideaNow,
+  ideaOrder,
+  ideaPassed,
   isBareSong,
   lastWordAt,
   messageKey,
@@ -45,7 +50,10 @@ import {
   roomComposer,
   roomFolds,
   roomStream,
+  theirCategories,
+  withIdea,
   type ComposerFacts,
+  type IdeaWalk,
   type MenuCtx,
   type RoomMode,
   type StreamItem,
@@ -62,7 +70,9 @@ import "../../data/strings-step5-chat";
    folds, songs, a bare song link, the day's moment), the long-press
    actions, translations, take back, keep, report, Wren's notice, closing
    soon and the expired door, the shelf, the lightbox and the first
-   signer's ceremony. Both renderers sit on it — the SwiftUI conversation
+   signer's ceremony, and the ideas the Kindreds bar's Sparkle offers
+   (chat composers B: which sentence, in the room's order, where the reader
+   is in it). Both renderers sit on it — the SwiftUI conversation
    (ConversationNative) and the React Native fallback (RoomRN) — and tell
    it how to reach their own field and list through a ChatUi.
 
@@ -236,6 +246,18 @@ function serverIdsOf(detail: ThreadDetail | null, isPending: (m: ThreadMessage) 
   for (const m of detail?.messages ?? []) if (m.id && !isPending(m)) ids.add(m.id);
   return ids;
 }
+
+/* ── the ideas (the Kindreds bar's Sparkle) ────────────────────────────── */
+
+/* where the reader is in each room's ideas, for the app's life: leaving a
+   room and coming back goes on from the next sentence, never from the first
+   again (a fresh launch starts the room's order over). A walk keeps the
+   sentences it moved past, not a position (build-items IdeaWalk), so their
+   categories moving under it never brings one round early. */
+const ideaWalks = new Map<string, IdeaWalk>();
+
+/** how many of their latest letters and lines are read for the categories they write in */
+const IDEA_READ = 24;
 
 /* ── demo rooms (dev) ──────────────────────────────────────────────────── */
 
@@ -427,6 +449,63 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   const canWrite = !detail?.gone && status !== "missing" && !expired;
   const canWriteRef = useRef(canWrite);
   canWriteRef.current = canWrite;
+
+  /* THE IDEAS (chat composers B, owner's lead 2026-10-18). No server pool: the 36 stamps'
+     prompts in the reader's language, those from the categories THEY write in first (their
+     opening letter's stamp, and what their latest letters and lines call up, read after the
+     transition like useCorrespondentRead), shuffled by the room's id (build-items ideaOrder).
+     ↻ ANOTHER moves on; USE IT puts the sentence in the field as plain words (after any the
+     reader typed) and gives it the keyboard, and moves on too, so a sentence comes round again
+     only once the whole order has been offered, even when their categories move the order
+     under the walk (build-items ideaNow / ideaPassed). Only the reader sees any of it. */
+  const [theirCats, setTheirCats] = useState<string[]>([]);
+  useEffect(() => {
+    if (!detail) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      const theirs = detail.messages
+        .filter((m) => !m.mine && !m.recalledAt && m.body !== TAKEN_BACK && (!m.kind || m.kind === "text"))
+        .slice(-IDEA_READ)
+        .map((m) => m.body);
+      if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
+      const cats = theirCategories({
+        openingStamp: detail.openingFromMe ? null : detail.stamp || null,
+        heard: theirs.map(stampsHeard),
+        catOf: (stampId) => getStamp(stampId)?.cat,
+      });
+      setTheirCats((cur) => (cur.join() === cats.join() ? cur : cats));
+    });
+    return () => task.cancel();
+  }, [detail]);
+  const ideas = useMemo(
+    () => ideaOrder(STAMPS.map((st) => ({ cat: st.cat, text: sname(st.prompt) })), theirCats, id ?? ""),
+    // the prompts are read in the reader's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [theirCats, id, getLang()],
+  );
+  // the walk lives in ideaWalks (it outlives the screen); this only redraws when it moves
+  const [, setIdeaMoves] = useState(0);
+  const walkKey = id ?? "";
+  const idea = ideaNow(ideas, ideaWalks.get(walkKey) ?? IDEA_WALK_START);
+  const ideaRef = useRef(idea);
+  ideaRef.current = idea;
+  const ideasRef = useRef(ideas);
+  ideasRef.current = ideas;
+  /** ↻ ANOTHER: the next sentence in the room's order not offered yet. Read from the map each time,
+      so two quick taps move two sentences on, never the same one twice */
+  const nextIdea = useCallback(() => {
+    ideaWalks.set(walkKey, ideaPassed(ideasRef.current, ideaWalks.get(walkKey) ?? IDEA_WALK_START));
+    setIdeaMoves((n) => n + 1);
+  }, [walkKey]);
+  /** USE IT: the sentence into the field (a song's link it can't be, so song mode lets go), the
+      keyboard to the field, and the next sentence ready */
+  const takeIdea = useCallback(() => {
+    const sentence = ideaRef.current;
+    if (!sentence || !canWriteRef.current) return;
+    if (modeRef.current?.kind === "song") setMode(null);
+    putText(withIdea(textRef.current, sentence));
+    nextIdea();
+    ui.focus("body", 60);
+  }, [putText, nextIdea, setMode, ui]);
 
   const nowMs = useTakeBackClock(detail?.messages, skew.current);
   const menuCtx: MenuCtx = useMemo(
@@ -820,8 +899,10 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
       else if (action === "noticeClose") dismissNotice();
       else if (action === "closingLink") ui.thenModal(() => router.push("/paywall?src=closing"));
       else if (action === "rekindle") ui.thenModal(() => router.push("/paywall?src=rekindle"));
+      else if (action === "ideaNext") nextIdea();
+      else if (action === "ideaUse") takeIdea();
     },
-    [setMode, dismissNotice, ui, router],
+    [setMode, dismissNotice, ui, router, nextIdea, takeIdea],
   );
 
   const goBack = useCallback(() => ui.thenModal(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router]);
@@ -883,6 +964,9 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     sendMoment,
     onTrace,
     seedQuestion,
+    idea,
+    nextIdea,
+    takeIdea,
     onPromptText,
     startReply,
     reportLine,

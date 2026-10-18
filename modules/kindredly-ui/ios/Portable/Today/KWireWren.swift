@@ -58,7 +58,10 @@ import SwiftUI
  alone. The drag's lean stays, up or down: it is the finger's, as the card's following it is.
 
  She hides (opacity, bandFade) when the desk says (the + open) and while the reader is open, and
- slides down 160 with the band while the reader types (not while she is away).
+ fades out with the band while the reader writes back (the chat composers' A1, owner 2026-10-18:
+ the band goes to opacity 0 in place, she is part of it; she used to slide down 160 with it).
+ Not while she is away: a reply she takes off comes into sight on her spot as she lifts off with
+ it, while the band is still out (deck.typing holds until TS answers the send).
 
  THE ARRIVAL BUBBLE (owner question 7): on her first day her line from TS sits in a speech bubble
  just over her head while the first three letters are up. It shows only while she is on the band,
@@ -168,12 +171,9 @@ struct KWireWren: View {
     let rest = KBandLayout.flightPlace(width, 0)
     ZStack(alignment: .topLeading) {
       bird(tappable: onBand && !ending && !typing && !away && !hide)
-        // down 160 with the band while the reader types; a fade under Reduce Motion
-        .offset(y: down && !reduceMotion ? 160 : 0)
-        .opacity(down && reduceMotion ? 0 : 1)
-        .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: down)
-        .opacity(hide ? 0 : 1)
-        .animation(KTodayMotion.bandFade, value: hide)
+        // out with the band while the reader writes back, in place (the band's own fade)
+        .opacity(down || hide ? 0 : 1)
+        .animation(KTodayMotion.bandFade, value: down || hide)
 
       KArrivalBubble(
         theme: theme,

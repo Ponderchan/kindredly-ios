@@ -138,12 +138,12 @@ function ChatLab() {
       <View key={screenKey} style={{ flex: 1 }}>
         {fx.variant === "room" ? (
           rn ? (
-            <RoomRN id={fx.id} expired={fx.expired} closing={fx.closing} />
+            <RoomRN id={fx.id} expired={fx.expired} closing={fx.closing} topInset={0} />
           ) : (
             <RoomNative id={fx.id} expiredParam={fx.expired} closingParam={fx.closing} topInset={0} />
           )
         ) : rn ? (
-          <LettersRN id={fx.id} />
+          <LettersRN id={fx.id} topInset={0} />
         ) : (
           <LettersNative id={fx.id} topInset={0} />
         )}

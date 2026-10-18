@@ -125,5 +125,27 @@ ok("badges: 1–9, then 9+", kit.badgeCount(1) === "1" && kit.badgeCount(9) === 
   ok("…and × still closes the preview", !kit.notifyBannerShows({ ...base, perm: "granted", preview: true, closedAt: now - 1000 }));
 }
 
+/* ── the chat composers' bars and the + tray (2026-10-18) ── */
+{
+  const r = kit.REPLY_BAR;
+  ok("reply bar: 54, corners 16, a 2 outline, a 2/2 shadow, padding 0 8 0 14, 6 apart", r.minHeight === 54 && r.radius === 16 && r.border === 2 && r.shadow === 2 && r.padRight === 8 && r.padLeft === 14 && r.gap === 6);
+  ok("reply bar: one line centred in the resting height", kit.REPLY_BAR_PAD * 2 + r.lineHeight + 2 * r.border === r.minHeight);
+  ok("reply bar: four lines at most, about 110 tall", kit.REPLY_BAR_MAX >= 105 && kit.REPLY_BAR_MAX <= 115);
+  const k = kit.KINDRED_BAR;
+  ok("kindreds bar: a 56 row of 52 keys 10 apart, 40 keys in the capsule", k.rowHeight === 56 && k.key === 52 && k.gap === 10 && k.capsuleKey === 40);
+  ok("kindreds bar: grows to five lines", kit.KINDRED_BAR_MAX === 5 * k.lineHeight + 2 * kit.KINDRED_BAR_PAD);
+  const c = THEMES.classic;
+  const n = THEMES.midnight;
+  ok("send disc: ink when it can send, #C9C6D6 when it can't, on the light themes", kit.sendDiscLook(c, "enabled").ground === c.ink && kit.sendDiscLook(c, "disabled").ground === "#C9C6D6");
+  ok("send disc: the Kindreds bar's own fill", kit.sendDiscLook(c, "enabled", c.ind).ground === c.ind);
+  ok("send disc: dimmed is the enabled disc at .35", kit.sendDiscLook(c, "dimmed").ground === c.ink && kit.sendDiscLook(c, "dimmed").opacity === 0.35);
+  ok("send disc: Midnight's off is its faint, the plane its page", kit.sendDiscLook(n, "disabled").ground === n.faint && kit.sendDiscLook(n, "enabled").plane === n.bg);
+  ok("open keys: ink, Midnight's lav", kit.openKeyFill(c) === c.ink && kit.openKeyFill(n) === n.lav);
+  ok("the + tray: 270 over a 34 home inset, 250 with none", kit.playTrayHeight(34) === 270 && kit.playTrayHeight(0) === 250);
+  ok("play cards: the mood fills on a light theme", kit.playCardFill(c, "calm") === "#DDEFD6" && kit.playCardFill(c, "happy") === "#F6E7C6");
+  ok("play cards: Midnight mixes the mood's ink into sf, a dark tint", kit.contrastRatio(kit.playCardFill(n, "tired"), n.ink) >= 4.5 && kit.playCardFill(n, "tired") !== n.sf);
+  ok("play cards: none is sf", kit.playCardFill(c, "none") === c.sf);
+}
+
 console.log(fails ? fails + " failed" : "all ok");
 if (fails) process.exit(1);

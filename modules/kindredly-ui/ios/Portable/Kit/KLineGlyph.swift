@@ -161,6 +161,27 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   /// the paper plane on the send key (ChatField's SendPlane), solid
   case plane
 
+  // ── the chat composers' set, I1 (owner's pick, 2026-10-18: Chat Icons.dc.html, "描边 · 重画") ──
+  // One 24 grid, one weight: drawn at stroke 1.9 with round caps and joins, in ink (ind or lime
+  // when on). The 18-22pt icons of the bars are always strokes, never solids (Prompt 7).
+  /// the reply bar's mark, left of the field: an arrow turning back (the plane's opposite: one
+  /// goes out, one comes in)
+  case replyArrow
+  /// the emoji key: a round face, smiling
+  case emoji
+  /// the paper plane drawn as a line (the reply bar's and the Kindreds bar's send disc)
+  case planeLine
+  /// the ideas key on the Kindreds bar: a four-point sparkle and a small one
+  case sparkle
+  /// the + tray's four plays: Fold a note (a page folding at the corner)
+  case foldNote
+  /// Ask something (a speech bubble with a question mark)
+  case askSomething
+  /// Tiny moment (a camera)
+  case tinyMoment
+  /// Leave a song (two beamed notes)
+  case leaveSong
+
   /// The drawing in grid units: the part that is stroked and the part that is always filled.
   var parts: KLineParts {
     KLineGlyphTable.parts[self] ?? KLineParts(stroke: Path(), fill: Path())
@@ -346,6 +367,16 @@ enum KLineGlyphTable {
 
     case .plane:
       return Drawing(fill: [.d("M3.4 2.6a1 1 0 0 0-1.3 1.2l2.3 7.2a1 1 0 0 0 .8.7l8.3 1.3-8.3 1.3a1 1 0 0 0-.8.7l-2.3 7.2a1 1 0 0 0 1.3 1.2l18-8.4a1 1 0 0 0 0-1.8z")])
+
+    // the chat composers' I1 set, as Chat Icons.dc.html writes it (its `O` table and its Sparkle)
+    case .replyArrow: return Drawing(stroke: [.d("M9 7 4 12l5 5 M4 12h9a6 6 0 0 1 6 6v1")])
+    case .emoji: return Drawing(stroke: [.d("M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M8.5 13.5c.8 1.6 2 2.4 3.5 2.4s2.7-.8 3.5-2.4 M9.2 9v1.2 M14.8 9v1.2")])
+    case .planeLine: return Drawing(stroke: [.d("M21 3 3.5 10.2l7 2.6L13 20l8-17z M10.5 12.8 21 3")])
+    case .sparkle: return Drawing(stroke: [.d("M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z M19 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z")])
+    case .foldNote: return Drawing(stroke: [.d("M6 3h8l5 5v13H6z M14 3v5h5 M14 8l-5.5 5.5 M9 17h6")])
+    case .askSomething: return Drawing(stroke: [.d("M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9.5L5 20z M10.3 9.3a1.8 1.8 0 0 1 3.2 1.1c0 1.2-1.5 1.4-1.5 2.6 M12 15.3h.01")])
+    case .tinyMoment: return Drawing(stroke: [.d("M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20V19H4z M12 16.5a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z")])
+    case .leaveSong: return Drawing(stroke: [.d("M9 17.5V5.5l10-2.2v12 M9 9.3l10-2.2 M9 17.5a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z M19 15.3a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z")])
     }
   }
 
