@@ -143,9 +143,9 @@ public struct KStamp: View {
         .rotationEffect(.degrees(deg))
         .frame(width: width, height: KStampFrame.height(width))
         .overlay(alignment: .topLeading) {
-          if mail && postmark {
-            KStampPostmark(width: width, dark: dark, drawIn: drawIn)
-          }
+          // no postmark: the owner took the wavy lines off on 2026-10-18 (too faint, beside the
+          // stamp rather than on it, crowding the card's head). `postmark` / `drawIn` are no longer
+          // drawn; they go with their callers once the chat pass lands.
         }
     }
   }

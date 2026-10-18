@@ -61,11 +61,11 @@ const GOLDEN_TIER_FOR: [number, Tier][] = [
 
 // letter id → degrees; the four values each appear
 const GOLDEN_TILT: [string, number][] = [
-  ["00000000-0000-4000-8000-000090000000", -3],
-  ["00000000-0000-0000-0000-000000000000", -1.5],
-  ["3f2b8c1e-6a4d-4e2f-9b7a-1c5d8e0f2a61", 1.5],
-  ["e8b1f6c3-2d47-4a95-b06e-3c9a5d1f7b24", 3],
-  ["9c41e2b7-0f5a-4d83-b6e1-7a2c9d4f0e36", 3],
+  ["00000000-0000-4000-8000-000090000000", -2],
+  ["00000000-0000-0000-0000-000000000000", -1],
+  ["3f2b8c1e-6a4d-4e2f-9b7a-1c5d8e0f2a61", 1],
+  ["e8b1f6c3-2d47-4a95-b06e-3c9a5d1f7b24", 2],
+  ["9c41e2b7-0f5a-4d83-b6e1-7a2c9d4f0e36", 2],
 ];
 
 // hex → [softHex, groundHex]; outside's green channel is the one exact half (125 + 130 × 0.55 = 196.5)
@@ -163,7 +163,7 @@ const fnv1a = (s: string) => {
 };
 ok("hashStr is FNV-1a 32 (the published vectors: 'a', 'foobar')", hashStr("a") === 0xe40c292c && hashStr("foobar") === 0xbf9cf968);
 for (const [id, deg] of GOLDEN_TILT) ok(`tilt(${id}) = ${deg}`, F.tilt(id) === deg && F.STAMP_TILTS[fnv1a(id) % 4] === deg);
-ok("the four tilts, in order", same(F.STAMP_TILTS, [-3, -1.5, 1.5, 3]));
+ok("the four tilts, in order", same(F.STAMP_TILTS, [-2, -1, 1, 2]));
 ok("the goldens cover all four tilts", new Set(GOLDEN_TILT.map(([, d]) => d)).size === 4);
 
 /* ── postmark ────────────────────────────────────────────────────────── */
@@ -212,7 +212,7 @@ const goldenJson = {
     "Stamp v2 frame goldens (stamp-spec §2). silhouette[tier].path is the perforated 5:6 paper on the 0 0 100 120 box, " +
     "exactly as src/lib/stamp-frame.ts silhouettePath(width) writes it (build.py silhouette(nx, ny): 3 decimals, the straight " +
     "edges' 100 and 120 bare); Swift's KStampShape must produce the same strings. tierFor: [width pt, tier]. tilt: [letter id, " +
-    "degrees] = [-3, -1.5, 1.5, 3][FNV-1a 32 of the id mod 4]. colour: [hex, softHex = mix(hex, white, 0.55), groundHex = " +
+    "degrees] = [-2, -1, 1, 2][FNV-1a 32 of the id mod 4] (owner, 2026-10-18; was ±3 / ±1.5). colour: [hex, softHex = mix(hex, white, 0.55), groundHex = " +
     "mix(hex, white, 0.20)], channels rounded half up. Checked by src/lib/stamp-frame.test.ts; rewritten by it with --write-golden.",
   box: [0, 0, 100, 120],
   silhouette: GOLDEN_SILHOUETTE,

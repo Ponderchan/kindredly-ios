@@ -1,5 +1,5 @@
 {
- "about": "Stamp v2 frame goldens (stamp-spec §2). silhouette[tier].path is the perforated 5:6 paper on the 0 0 100 120 box, exactly as src/lib/stamp-frame.ts silhouettePath(width) writes it (build.py silhouette(nx, ny): 3 decimals, the straight edges' 100 and 120 bare); Swift's KStampShape must produce the same strings. tierFor: [width pt, tier]. tilt: [letter id, degrees] = [-3, -1.5, 1.5, 3][FNV-1a 32 of the id mod 4]. colour: [hex, softHex = mix(hex, white, 0.55), groundHex = mix(hex, white, 0.20)], channels rounded half up. Checked by src/lib/stamp-frame.test.ts; rewritten by it with --write-golden.",
+ "about": "Stamp v2 frame goldens (stamp-spec §2). silhouette[tier].path is the perforated 5:6 paper on the 0 0 100 120 box, exactly as src/lib/stamp-frame.ts silhouettePath(width) writes it (build.py silhouette(nx, ny): 3 decimals, the straight edges' 100 and 120 bare); Swift's KStampShape must produce the same strings. tierFor: [width pt, tier]. tilt: [letter id, degrees] = [-2, -1, 1, 2][FNV-1a 32 of the id mod 4] (owner, 2026-10-18; was ±3 / ±1.5). colour: [hex, softHex = mix(hex, white, 0.55), groundHex = mix(hex, white, 0.20)], channels rounded half up. Checked by src/lib/stamp-frame.test.ts; rewritten by it with --write-golden.",
  "box": [
   0,
   0,
@@ -127,23 +127,23 @@
  "tilt": [
   [
    "00000000-0000-4000-8000-000090000000",
-   -3
+   -2
   ],
   [
    "00000000-0000-0000-0000-000000000000",
-   -1.5
+   -1
   ],
   [
    "3f2b8c1e-6a4d-4e2f-9b7a-1c5d8e0f2a61",
-   1.5
+   1
   ],
   [
    "e8b1f6c3-2d47-4a95-b06e-3c9a5d1f7b24",
-   3
+   2
   ],
   [
    "9c41e2b7-0f5a-4d83-b6e1-7a2c9d4f0e36",
-   3
+   2
   ]
  ],
  "colour": [

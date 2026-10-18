@@ -259,9 +259,10 @@ export function keyline(themeDark: boolean, tier: StampTier): StampEdge | null {
 
 /* ── tilt (spec §2.7): delivered mail at M and up only ───────────────── */
 
-export const STAMP_TILTS: readonly number[] = Object.freeze([-3, -1.5, 1.5, 3]);
+export const STAMP_TILTS: readonly number[] = Object.freeze([-2, -1, 1, 2]);
 
-/** A delivered letter's stamp tilt in degrees: [−3, −1.5, +1.5, +3][FNV-1a-32(letterId) mod 4],
+/** A delivered letter's stamp tilt in degrees: [−2, −1, +1, +2][FNV-1a-32(letterId) mod 4] (the
+    owner's 2026-10-18 call: ±3 stood the stamp crooked beside the card's ⋯; it was ±3 / ±1.5),
     the same on iOS, RN and the web, so sender and reader see one tilt. (hashStr hashes UTF-16
     code units and gives 0 for an empty id; letter ids are ASCII uuids, where that equals the
     FNV-1a of the UTF-8 bytes.) Your own and unsent stamps, trays, grids, lists, XS and S: 0. */

@@ -297,7 +297,7 @@ public enum KStampFrame {
 
   // MARK: tilt (spec §2.7): delivered mail at M and up only
 
-  public static let tilts: [Double] = [-3, -1.5, 1.5, 3]
+  public static let tilts: [Double] = [-2, -1, 1, 2]   // owner, 2026-10-18 (was ±3 / ±1.5)
 
   /// FNV-1a 32 over the string's UTF-16 code units, as lib/mosaic hashStr (0 for ""). Letter ids
   /// are ASCII uuids, where that equals the FNV-1a of the UTF-8 bytes.

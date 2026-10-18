@@ -266,7 +266,9 @@ export const Stamp = memo(function Stamp({ id, width, delivered = false, letterI
       <View style={{ position: "absolute", left: 0, top: 0, width: plan.width, height: plan.height, transform: deg ? [{ rotate: `${deg}deg` }] : undefined }}>
         <StampFace plan={plan} dark={isDark} />
       </View>
-      {mail && withPostmark ? <Postmark width={plan.width} dark={isDark} drawIn={drawIn} /> : null}
+      {/* no postmark: the owner took the wavy lines off on 2026-10-18 (too faint, beside the stamp
+          rather than on it, crowding the card's head). `postmark` / `drawIn` are no longer drawn;
+          they go with their callers once the chat pass lands. */}
     </View>
   );
 });
