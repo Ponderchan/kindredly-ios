@@ -8,7 +8,8 @@ import { AvatarImage } from "./AvatarImage";
 import { COLS, MosaicId, inkedCells } from "./MosaicId";
 import { WrenGlyph } from "./GlyphInput";
 import { StickerChip } from "./AuraCard";
-import { StampTile } from "./StampTile";
+import { Stamp } from "./Stamp";
+import { STAMP_DOT_PT } from "../lib/stamp-frame";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
 import { dShort } from "../lib/format";
@@ -214,7 +215,15 @@ function Window({ x, y, label, count, roof }: { x: number; y: number; label: str
 }
 
 /* one letter crossing: the courier carries it over the arc, the envelope
-   spins a little, and on landing the day stamps on and both fade */
+   spins a little, and on landing the day stamps on and both fade.
+
+   The stamp in its corner (stamps v2, 2026-10-18). The ladder offers this
+   envelope the chip, 15×18, or — if the envelope can't take 18 tall — a
+   6pt dot of the stamp's colour. It can't: the envelope is 34×22 with a
+   1.2pt edge, 19.6pt inside, so a chip would fill its whole height and
+   half its width, sit under the date as it stamps on, and stop reading as
+   an envelope with a stamp on it. So it wears the dot, in the corner where
+   the 9pt square was. */
 function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: number; y: number; at: number; date?: string | null; stamp?: string | null; mine: boolean }) {
   const P = useP();
   const tk = useTheme().t;
@@ -253,7 +262,7 @@ function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: nu
       </View>
       <View style={{ width: 34, height: 22, borderRadius: 3, backgroundColor: P.sheet, borderWidth: 1.2, borderColor: mine ? P.ink40 : tk.ln, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: 1, backgroundColor: P.ink12 }} />
-        {stamp ? <View style={{ position: "absolute", right: 2, top: 2 }}><StampTile id={stamp} w={9} r={1} /></View> : null}
+        {stamp ? <Stamp id={stamp} width={STAMP_DOT_PT} style={{ position: "absolute", right: 3, top: 3 }} /> : null}
         <Animated.View style={[{ paddingHorizontal: 3, paddingVertical: 1, borderWidth: 1, borderColor: P.pen, borderRadius: 2, backgroundColor: P.sheet }, stampStyle]}>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 6.5, letterSpacing: 0.4, color: P.pen }}>{date ? dShort(date).toUpperCase() : "—"}</Text>
         </Animated.View>

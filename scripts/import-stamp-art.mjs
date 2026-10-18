@@ -1,5 +1,9 @@
 // node scripts/import-stamp-art.mjs            check the stamps in design/stamps-v2, write src/data/stamp-art-v2.ts
 // node scripts/import-stamp-art.mjs --check    exit 1 if stamp-art-v2.ts is out of date with the SVG files
+// node scripts/import-stamp-art.mjs --web "<web repo>/app/stamp-art-v2.js"
+//                                              also write the web's copy (an ES module, same shape)
+// node scripts/import-stamp-art.mjs --check --web "<web repo>/app/stamp-art-v2.js"
+//                                              exit 1 if either file is out of date
 //
 // THE STAMPS v2 IMPORTER (stamp-spec §2–§3; the owner approved the 36-stamp set on 2026-10-18).
 // Each stamp is one SVG on the 100 × 120 box (5:6) holding white marks in three layers:
@@ -53,10 +57,21 @@
 // renderer paints art and xs white and soft in softHex(hex). src/data/stamp-art.ts (STAMP_ART, the
 // 64-grid set StampTile and scripts/gen-stamp-art-swift.mjs draw today) is not touched.
 //
+// AND, WITH --web <path>, THE WEB'S COPY (stamp-spec §3: the app and the web regenerate together).
+// The web (~/Desktop/claude 项目/kindredly, a separate repo with no TypeScript) imports
+// app/stamp-art-v2.js: the same STAMP_ART_V2, the same marks in the same order, as a plain ES
+// module with the shape in JSDoc instead of types. It is written beside stamp-art-v2.ts from the
+// same results in the same run, so the two can never disagree about a drawing; --check compares
+// both. Without --web nothing about this script's output changes (stamp-art-v2.ts stays byte for
+// byte what it was). The path is the caller's, resolved against the working directory; a --web
+// with nothing after it stops before anything is written, rather than writing to a file named
+// after the next flag.
+//
 // Exit status: 0 when every delivered file is imported; 1 when a file was rejected or a file no
 // stamp is named after is present (the rest are still written), or, with --check, when
-// stamp-art-v2.ts is out of date. Missing files never fail the run.
+// stamp-art-v2.ts (or, with --web, the web's copy) is out of date. Missing files never fail the run.
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { PATH_CHARS, parsePath, shapeData, toArtPath } from "./art-path.mjs";
 import { parseXml, readColour } from "./import-mood-art.mjs";
@@ -1183,11 +1198,36 @@ function wrapList(lead, names, width = 100, indent = "   ") {
   return lines;
 }
 
-/** src/data/stamp-art-v2.ts for a set of results. */
-export function buildTs(results) {
+/* The two outputs share these: the head comment's tally of what was imported, and one line per
+   stamp ("id": { art, soft, xs },) in stamps.ts order. Both files are built from them, so the
+   app's stamp-art-v2.ts and the web's stamp-art-v2.js carry the same marks character for
+   character. */
+
+/** "Imported: n of 36 — …", "Not delivered yet: …", "Rejected by the checks: …" (head comment lines). */
+function importTally(results) {
   const ok = results.filter((r) => r.status === "ok");
   const missing = results.filter((r) => r.status === "missing").map((r) => r.stamp.id);
   const rejected = results.filter((r) => r.status === "rejected").map((r) => r.stamp.id);
+  const L = [];
+  if (ok.length) L.push(...wrapList(`Imported: ${ok.length} of ${results.length} —`, ok.map((r) => r.stamp.id)));
+  else L.push(`   Imported: none of ${results.length}.`);
+  if (missing.length) L.push(...wrapList(`Not delivered yet: ${missing.length} —`, missing));
+  else L.push("   Not delivered yet: none.");
+  if (rejected.length) L.push(...wrapList(`Rejected by the checks (run the importer for its report): ${rejected.length} —`, rejected));
+  else L.push("   Rejected by the checks: none.");
+  return L;
+}
+
+/** one `  "id": {"art":[…],"soft":[…],"xs":[…]},` line per stamp; no marks for a missing or rejected one */
+function artLines(results) {
+  return results.map((r) => {
+    const a = r.status === "ok" ? r.check.art : { art: [], soft: [], xs: [] };
+    return `  ${JSON.stringify(r.stamp.id)}: ${JSON.stringify({ art: a.art, soft: a.soft, xs: a.xs })},`;
+  });
+}
+
+/** src/data/stamp-art-v2.ts for a set of results. */
+export function buildTs(results) {
   const L = [];
   L.push("/* AUTO-GENERATED from design/stamps-v2 by scripts/import-stamp-art.mjs — do not edit.");
   L.push("   After the drawings change, run: node scripts/import-stamp-art.mjs");
@@ -1205,12 +1245,7 @@ export function buildTs(results) {
   L.push("   A stamp with no marks here (not delivered, or rejected by the checks) is drawn as the template");
   L.push("   in its own hex with no motif (stamp-spec §2.11's fallback chain).");
   L.push("");
-  if (ok.length) L.push(...wrapList(`Imported: ${ok.length} of ${results.length} —`, ok.map((r) => r.stamp.id)));
-  else L.push(`   Imported: none of ${results.length}.`);
-  if (missing.length) L.push(...wrapList(`Not delivered yet: ${missing.length} —`, missing));
-  else L.push("   Not delivered yet: none.");
-  if (rejected.length) L.push(...wrapList(`Rejected by the checks (run the importer for its report): ${rejected.length} —`, rejected));
-  else L.push("   Rejected by the checks: none.");
+  L.push(...importTally(results));
   L[L.length - 1] += " */";
   L.push("");
   L.push("export type StampId =");
@@ -1220,10 +1255,45 @@ export function buildTs(results) {
   L.push("export type StampArtV2 = { art: ArtPath[]; soft: ArtPath[]; xs: ArtPath[] };");
   L.push("");
   L.push("export const STAMP_ART_V2: Record<StampId, StampArtV2> = {");
-  for (const r of results) {
-    const a = r.status === "ok" ? r.check.art : { art: [], soft: [], xs: [] };
-    L.push(`  ${JSON.stringify(r.stamp.id)}: ${JSON.stringify({ art: a.art, soft: a.soft, xs: a.xs })},`);
-  }
+  L.push(...artLines(results));
+  L.push("};");
+  return L.join("\n") + "\n";
+}
+
+/** The web's app/stamp-art-v2.js for a set of results: the same STAMP_ART_V2 as buildTs, as a plain
+    ES module (the web has no TypeScript; the shape is JSDoc). Its head names the web's own files. */
+export function buildWebJs(results) {
+  const L = [];
+  L.push("/* AUTO-GENERATED from kindredly-ios design/stamps-v2 by kindredly-ios scripts/import-stamp-art.mjs");
+  L.push("   — do not edit. After the drawings change, run in kindredly-ios:");
+  L.push('     node scripts/import-stamp-art.mjs --web "<this repo>/app/stamp-art-v2.js"');
+  L.push("   (it writes the app's src/data/stamp-art-v2.ts in the same run, from the same results, so the");
+  L.push("   app and the web always carry the same marks).");
+  L.push("");
+  L.push("   Stamps v2 (the owner-approved set, 2026-10-18): each stamp's white marks on the 100 × 120 box");
+  L.push("   (5:6), inside the safe area x 18–82 y 18–102 of the window x 10–90 y 10–110. No colour here:");
+  L.push("   art and xs marks are #FFFFFF, soft marks softHex(hex) = mix(hex, #FFFFFF, 0.55), the field the");
+  L.push("   stamp's hex (app/system.js STAMPS); strokes are 4.31u, round caps and joins, never under the");
+  L.push("   tier's minimum (app/engine/stamp-frame.js strokeU). The frame (paper, bites, ground, keyline,");
+  L.push("   tilt, postmark) is app/engine/stamp-frame.js, a line-for-line port of the app's");
+  L.push("   src/lib/stamp-frame.ts; app/engine/stamp-svg.js draws frame and marks together (stampSVG for");
+  L.push("   the DOM, StampTile in app/engine/wren-react.jsx for React).");
+  L.push("     art   from S up, clipped to the window; drawn last, over the soft plate (where the two");
+  L.push("           touch, the white stays on top, as the file previews it);");
+  L.push("     soft  from S up, under the art; at S leave out the paths with dropAtS (tint accents under 10u);");
+  L.push("     xs    the 20×24 cut, alone, over the whole silhouette (XS only).");
+  L.push("   A stamp with no marks here (not delivered, or rejected by the checks) is drawn as the template");
+  L.push("   in its own hex with no motif (stamp-spec §2.11's fallback chain).");
+  L.push("");
+  L.push(...importTally(results));
+  L[L.length - 1] += " */";
+  L.push("");
+  L.push('/** @typedef {{ d: string, kind: "fill" | "stroke", dropAtS?: true }} ArtPath */');
+  L.push("/** @typedef {{ art: ArtPath[], soft: ArtPath[], xs: ArtPath[] }} StampArtV2 */");
+  L.push("");
+  L.push("/** @type {Record<string, StampArtV2>} */");
+  L.push("export const STAMP_ART_V2 = {");
+  L.push(...artLines(results));
   L.push("};");
   return L.join("\n") + "\n";
 }
@@ -1279,6 +1349,18 @@ export function formatReport({ results, unexpected }) {
 
 function main() {
   const CHECK = process.argv.includes("--check");
+  /* --web <path>: the web's copy too. The path must follow the flag and not be another flag; an
+     empty one stops here, before anything is read or written. */
+  const webAt = process.argv.indexOf("--web");
+  let WEB = null;
+  if (webAt >= 0) {
+    const p = process.argv[webAt + 1];
+    if (!p || !p.trim() || p.startsWith("--")) {
+      console.error('import-stamp-art: --web needs the path of the web\'s module, e.g. --web "<web repo>/app/stamp-art-v2.js"');
+      process.exit(1);
+    }
+    WEB = resolve(p);
+  }
   let set;
   try {
     set = importSet(readFolder(DIR), readStamps(readFileSync(STAMPS, "utf8")));
@@ -1286,6 +1368,7 @@ function main() {
     console.error(`import-stamp-art: ${e.message}`);
     process.exit(1);
   }
+  const web = WEB ? buildWebJs(set.results) : null;
   const report = formatReport(set);
   const bad = set.results.some((r) => r.status === "rejected") || set.unexpected.length > 0;
   if (CHECK) {
@@ -1301,13 +1384,29 @@ function main() {
       console.error("\nimport-stamp-art: stamp-art-v2.ts is out of date with design/stamps-v2; run node scripts/import-stamp-art.mjs");
       process.exit(1);
     }
+    if (WEB) {
+      let onWeb = null;
+      try {
+        onWeb = readFileSync(WEB, "utf8");
+      } catch {
+        onWeb = null;
+      }
+      if (onWeb !== web) {
+        console.error(`import-stamp-art: ${WEB} is ${onWeb === null ? "missing" : "out of date with design/stamps-v2"}; run node scripts/import-stamp-art.mjs --web "${WEB}"`);
+        process.exit(1);
+      }
+    }
     if (bad) console.warn(report + "\n");
-    console.log(`stamp-art-v2.ts is up to date (${set.results.filter((r) => r.status === "ok").length} of ${set.results.length} stamps)`);
+    console.log(`stamp-art-v2.ts${WEB ? " and the web's copy are" : " is"} up to date (${set.results.filter((r) => r.status === "ok").length} of ${set.results.length} stamps)`);
     return;
   }
   console.log(report);
   writeFileSync(OUT, set.ts);
   console.log(`\nwrote ${OUT.pathname}`);
+  if (WEB) {
+    writeFileSync(WEB, web);
+    console.log(`wrote ${WEB}`);
+  }
   if (bad) process.exit(1);
 }
 

@@ -6,7 +6,8 @@ import { t } from "../lib/i18n";
 import { MONO, P as STATIC_P, PF, channelColors } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
-import { StampTile } from "./StampTile";
+import { Stamp } from "./Stamp";
+import { STAMP_LADDER } from "../lib/stamp-frame";
 
 /* THE TWO ROUND KEYS UNDER THE LETTER, AND WHAT THEY OPEN.
    ────────────────────────────────────────────────────────────────────────
@@ -205,7 +206,14 @@ export type TraySection = { title: string; items: TrayStamp[] };
    from `suggested` and `recent`, as it always has. Names are mono 9 and
    heads mono 10 (the 10a 9/10/11 rule), and a name's ink is worked out
    against the tray it sits on (channelColors), so a deep stamp's name still
-   reads on Midnight's dark tray. */
+   reads on Midnight's dark tray.
+
+   Each tile is the stamp itself at the ladder's trayTile, 40×48 (stamps
+   v2, 2026-10-18): your own stamp, so flat, and nothing framed round it —
+   a stamp is never put inside another tile's border. The picked one keeps
+   the selection it always had, the pen ring 2pt out from its edge. */
+const TILE = STAMP_LADDER.trayTile;
+
 export function StampTray({
   selected,
   suggested = [],
@@ -234,7 +242,7 @@ export function StampTray({
         style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingTop: 6, paddingBottom: 4, opacity: pressed ? 0.6 : 1 })}
       >
         <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
-          <StampTile id={it.id} w={40} r={5} />
+          <Stamp id={it.id} width={TILE.w} />
         </View>
         {/* its name, in its own ink — a stamp is a word as much as a picture; two lines, as
             NEVER TOLD ANYONE and MI HA FATTO LA GIORNATA need */}

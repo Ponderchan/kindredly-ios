@@ -1015,11 +1015,12 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     (letterId: string): C.ReplyState => {
       const l = feedRef.current.find((x) => x.id === letterId);
       const isDemo = demoRef.current || !!l?.author?.startsWith("demo-");
-      return C.replyState({ text: draftsRef.current[letterId] ?? "", flights: flightsRef.current, demo: isDemo, forceFull, sending: sendingRef.current }, t);
+      // slow: the send has outlasted a send, and the hint says the headwind
+      return C.replyState({ text: draftsRef.current[letterId] ?? "", flights: flightsRef.current, demo: isDemo, forceFull, sending: sendingRef.current, slow }, t);
     },
     // drafts, flights and sending are read at the moment; the renderers call it while they render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [forceFull, lang, drafts, flights, sending],
+    [forceFull, lang, drafts, flights, sending, slow],
   );
   const replyNow = useMemo(() => (current ? replyFor(current.id) : C.replyState({ text: "", flights, demo, forceFull }, t)), [current, replyFor, flights, demo, forceFull]); // eslint-disable-line react-hooks/exhaustive-deps
 

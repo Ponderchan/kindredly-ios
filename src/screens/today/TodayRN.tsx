@@ -42,7 +42,8 @@ import { dismissKeyboard } from "../../lib/keyboard";
 import { playbackPosition } from "../../lib/voice-playback";
 import type { PoolLetter } from "../../lib/db";
 import { MosaicId } from "../../components/MosaicId";
-import { StampTile } from "../../components/StampTile";
+import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
+import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AudioCardView } from "../../components/AudioCard";
 import { SignalChip } from "../../components/SignalChip";
 import { WrenBird, type WrenMood } from "../../components/WrenBird";
@@ -952,6 +953,17 @@ function StatusCard({ kind, strings }: { kind: "loading" | "offline"; strings: T
 
 /* ── one letter, the card ── */
 
+/* THE STAMP THEY PASTED (stamps v2, owner 2026-10-18): top-right of the
+   card head, where the 34 box with the 28 art used to be, at the ladder's
+   todayCard, 50×60 — delivered mail, so it tilts by the letter's id (the
+   same tilt the sender's phone and the web give it) and carries the wavy
+   postmark, which draws in on the card's first view. No box round it: a
+   stamp is never framed twice. The postmark runs 55pt left of the stamp
+   along its lower edge, under the when-and-who line, so it is drawn only
+   while that line ends above 0.72 of the stamp's height (43pt): a large
+   Dynamic Type size leaves it off rather than letting it cross the text. */
+const CARD_STAMP = STAMP_LADDER.todayCard;
+
 function CardFace({
   card,
   letter,
@@ -981,6 +993,8 @@ function CardFace({
   const playing = model.voice.state?.key === card.id && !!model.voice.state?.playing;
   const [frameH, setFrameH] = useState(0);
   const [textH, setTextH] = useState(0);
+  // the when-and-who line's height, for the postmark's room beside the stamp
+  const [metaH, setMetaH] = useState(0);
   // the slot's gutters (32), the card's padding (32) and the body's (8)
   const folded = !card.isVoice && overflows({ text: card.body, size: card.bodySize, line: card.bodyLine, width: win.width - 72, frameH, textH });
   const text = { fontSize: card.bodySize, lineHeight: card.bodyLine, color: tk.ink, textAlign: card.bodyCenter ? ("center" as const) : ("auto" as const) };
@@ -1006,12 +1020,10 @@ function CardFace({
         {/* the docket: their face, when and who on the left, the stamp they pasted, the ⋯ */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <MosaicId seed={letter?.author ?? null} cell={4.8} gap={1} />
-          <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
+          <Text numberOfLines={1} onLayout={(ev) => setMetaH(ev.nativeEvent.layout.height)} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
             {card.postmark}
           </Text>
-          <View style={{ width: 34, height: 34, borderRadius: 10, borderWidth: 2, borderColor: tk.ln, backgroundColor: tk.sf, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
-            <StampTile id={card.stampId} w={28} r={0} />
-          </View>
+          <Stamp id={card.stampId} width={CARD_STAMP.w} delivered letterId={card.id} postmark={postmarkFitsCentred(CARD_STAMP.w, metaH)} drawIn={!still} />
           {/* THE POOL IS WHERE REPORT MATTERS MOST: always reachable */}
           {card.menu.length > 0 && (
             <Pressable

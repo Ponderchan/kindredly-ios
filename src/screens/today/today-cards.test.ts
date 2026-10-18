@@ -433,6 +433,9 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("reply: ?full=1 pretends the pouch is full", forced.sendState === "dimmed");
   const over = M.replyState({ text: "x".repeat(1003), flights: 0, demo: false }, t);
   ok("reply: over the limit is disabled, in red, with the count", over.sendState === "disabled" && over.hintWarn && over.hint === "ui.overLimit(n=3)");
+  const slowSend = M.replyState({ text: "hello", flights: 0, demo: false, sending: true, slow: true }, t);
+  ok("reply: a send that outlasts a send says the headwind (net.slow), key still disabled", slowSend.hint === "net.slow" && slowSend.sendState === "disabled");
+  ok("reply: slow alone (nothing sending) changes nothing", M.replyState({ text: "hello", flights: 0, demo: false, slow: true }, t).hint === "ld.threadOpensTwo");
   const sending = M.replyState({ text: "hello", flights: 0, demo: false, sending: true }, t);
   ok("reply: nothing sends twice while a send is in flight", sending.sendState === "disabled");
   ok("reply: the draft's first line", M.draftPreview("  first line\nsecond") === "first line" && M.draftPreview("") === "");

@@ -33,7 +33,11 @@ import { paint, swiftHex as hex, swiftPath, toArtPath } from "./art-path.mjs";
 
 export const ART = new URL("../src/data/stamp-art.ts", import.meta.url);
 export const LIST = new URL("../src/data/stamps.ts", import.meta.url);
-export const TILE = new URL("../src/components/StampTile.tsx", import.meta.url);
+// The colour an id with no stamp is drawn in. It used to be read off StampTile's own fallback
+// line; since stamps v2 (2026-10-18) StampTile is a thin wrapper over components/Stamp and that
+// colour lives in one place for every renderer, lib/stamp-frame's STAMP_FALLBACK_HEX (spec
+// §2.11). It is the same #8B7FE8, so the Swift table this writes is unchanged.
+export const FALLBACK = new URL("../src/lib/stamp-frame.ts", import.meta.url);
 export const OUT = new URL("../modules/kindredly-ui/ios/Portable/Kit/KStampArtData.swift", import.meta.url);
 
 /** The grid stamp-art.ts draws on (StampTile: viewBox="0 0 64 64"). */
@@ -73,10 +77,10 @@ export function readStamps(text) {
   return { cats, stamps };
 }
 
-/** The colour StampTile gives an id it has no stamp for. */
+/** The colour a stamp id this build doesn't know is drawn in (StampTile → Stamp → stamp-frame). */
 export function readUnknownTint(text) {
-  const m = /const col = s \? s\.color : "(#[0-9A-Fa-f]{6})"/.exec(text);
-  if (!m) throw new Error("StampTile.tsx: no fallback colour (`const col = s ? s.color : \"#…\"`)");
+  const m = /export const STAMP_FALLBACK_HEX = "(#[0-9A-Fa-f]{6})"/.exec(text);
+  if (!m) throw new Error("stamp-frame.ts: no fallback colour (`export const STAMP_FALLBACK_HEX = \"#…\"`)");
   return m[1];
 }
 
@@ -84,7 +88,7 @@ export function readSources() {
   return {
     art: readArt(readFileSync(ART, "utf8")),
     ...readStamps(readFileSync(LIST, "utf8")),
-    unknownTint: readUnknownTint(readFileSync(TILE, "utf8")),
+    unknownTint: readUnknownTint(readFileSync(FALLBACK, "utf8")),
   };
 }
 

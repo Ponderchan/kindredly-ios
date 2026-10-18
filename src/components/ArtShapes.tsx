@@ -1,7 +1,8 @@
 import { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 
 /* Renders a flat shape list (from a codegen'd design SVG) inside an <Svg>.
-   Shared by StampTile, MoodIcon and MoodFace. Keys mirror the compiled attribute set.
+   Shared by MoodIcon and MoodFace (and StampTile's v1 stamps until stamps v2, 2026-10-18, when
+   every stamp moved to components/Stamp). Keys mirror the compiled attribute set.
 
    Drawn as given by default: each shape's own fill, stroke and width (the stamps and the old
    self-coloured moods keep their colours in every theme). The mood line art

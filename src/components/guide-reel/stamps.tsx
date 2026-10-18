@@ -3,11 +3,12 @@ import { Text, View } from "react-native";
 import Animated, { Easing, ReduceMotion, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { BigType, Finger, Pop, Rise, useLoop, useOnce, useStep, type Reel } from "./kit";
-import { StampTile } from "../StampTile";
+import { GUIDE_REEL_WIDTHS, Stamp, snapStampWidth } from "../Stamp";
 import { StampGlyph } from "../ComposeTray";
 import { EnvelopeArt } from "../EnvelopeArt";
 import { STAMPS, getStamp, sname } from "../../data/stamps";
 import { OPENING_MIN } from "../../lib/weighted-count";
+import { stampHeight } from "../../lib/stamp-frame";
 import { P, PF, channelInk, channelWash } from "../../theme/post";
 import { t } from "../../lib/i18n";
 
@@ -17,7 +18,15 @@ import { t } from "../../lib/i18n";
    one picked; all thirty-six riffling in; the picked one landing on the
    envelope, the key now LET IT TRAVEL; the title. Stamps cut from your own
    photos are not built yet, so they are not in here. The ground is the
-   stamp tray's own pale lavender. */
+   stamp tray's own pale lavender.
+
+   THE STAMPS ARE THE REAL ONES (stamps v2, 2026-10-18): <Stamp/>, 5:6,
+   at the three widths a guide reel may use — 30×36, 40×48 or 60×72 —
+   whichever is nearest the size the scene asks for at this square's size
+   (snapStampWidth over GUIDE_REEL_WIDTHS), and laid out by that real
+   width and height. The reel is a light picture in every theme, so they
+   are drawn as on a light surface (dark={false}), and flat: these are
+   stamps in an album, not stamps that came in the post. */
 
 const RM = ReduceMotion.System;
 const BG = "#F3F2FA"; // the stamp tray's ground (ComposeTray)
@@ -148,11 +157,12 @@ function FanStamp({ id, i, s, w, cy, fan, pick }: { id: string; i: number; s: nu
   const stamp = getStamp(id);
   const pad = w * 0.07;
   const box = w * 1.15;
+  const h = stampHeight(w);
   return (
-    <Animated.View style={[{ position: "absolute", left: s / 2 - box / 2, top: cy - w / 2 - pad, width: box, alignItems: "center", zIndex: chosen ? 2 : 1 }, st]}>
+    <Animated.View style={[{ position: "absolute", left: s / 2 - box / 2, top: cy - h / 2 - pad, width: box, alignItems: "center", zIndex: chosen ? 2 : 1 }, st]}>
       <View style={{ padding: pad }}>
         {chosen && <Animated.View style={[{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, borderWidth: Math.max(2, w * 0.035), borderColor: P.pen, borderRadius: w * 0.13 }, ring]} />}
-        <StampTile id={id} w={w} r={w * 0.12} />
+        <Stamp id={id} width={w} dark={false} />
       </View>
       {/* two lines: de "Hat meinen Tag gerettet" won't fit one at this size */}
       <Animated.Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={[{ width: box, marginTop: s * 0.006, textAlign: "center", fontFamily: PF.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: channelInk(stamp?.color) }, name]}>
@@ -165,7 +175,7 @@ function FanStamp({ id, i, s, w, cy, fan, pick }: { id: string; i: number; s: nu
 function Suggest({ s }: { s: number }) {
   const fan = useOnce(720, 250, Easing.out(Easing.back(1.3)));
   const pick = useOnce(260, PICK_AT);
-  const w = s * 0.25;
+  const w = snapStampWidth(s * 0.25, GUIDE_REEL_WIDTHS);
   const cy = s * 0.5;
   return (
     <View style={{ width: s, height: s }}>
@@ -193,7 +203,7 @@ function GridTile({ id, r, c, x, y, tile, s }: { id: string; r: number; c: numbe
   }));
   return (
     <Animated.View style={[{ position: "absolute", left: x, top: y }, st]}>
-      <StampTile id={id} w={tile} r={tile * 0.12} />
+      <Stamp id={id} width={tile} dark={false} />
     </Animated.View>
   );
 }
@@ -201,7 +211,9 @@ function GridTile({ id, r, c, x, y, tile, s }: { id: string; r: number; c: numbe
 function All({ s }: { s: number }) {
   const G = s * 0.76;
   const cell = G / 6;
-  const tile = cell * 0.82;
+  // the reel width nearest 0.82 of a cell whose 1.2× height still leaves the rows apart
+  const tile = snapStampWidth(cell * 0.82, GUIDE_REEL_WIDTHS, (cell * 0.92) / 1.2);
+  const tileH = stampHeight(tile);
   const top = s * 0.16;
   const left = (s - G) / 2;
   const badge = s * 0.3;
@@ -211,7 +223,7 @@ function All({ s }: { s: number }) {
       {ids.map((id, k) => {
         const r = Math.floor(k / 6);
         const c = k % 6;
-        return <GridTile key={id} id={id} r={r} c={c} x={left + c * cell + (cell - tile) / 2} y={top + r * cell + (cell - tile) / 2} tile={tile} s={s} />;
+        return <GridTile key={id} id={id} r={r} c={c} x={left + c * cell + (cell - tile) / 2} y={top + r * cell + (cell - tileH) / 2} tile={tile} s={s} />;
       })}
       {/* how many there are */}
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: top + G / 2 - badge / 2, alignItems: "center" }}>
@@ -231,7 +243,8 @@ function Land({ s }: { s: number }) {
   const eh = ew * 0.72;
   const ex = (s - ew) / 2;
   const ey = s * 0.15;
-  const sw = ew * 0.22;
+  const sw = snapStampWidth(ew * 0.22, GUIDE_REEL_WIDTHS);
+  const sh = stampHeight(sw);
   const LAND = 930;
   const drop = useOnce(480, LAND - 480, Easing.in(Easing.quad));
   const thud = useOnce(320, LAND, Easing.out(Easing.quad));
@@ -258,9 +271,9 @@ function Land({ s }: { s: number }) {
           <EnvelopeArt w={ew} sealed={false} />
         </Rise>
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: sx - sw * 0.15, top: sy - sw * 0.15, width: sw * 1.3, height: sw * 1.3, borderRadius: sw * 0.2, borderWidth: Math.max(2, s * 0.008), borderColor: P.pen }, ring]} />
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: sx - sw * 0.15, top: sy - sw * 0.15, width: sw * 1.3, height: sh + sw * 0.3, borderRadius: sw * 0.2, borderWidth: Math.max(2, s * 0.008), borderColor: P.pen }, ring]} />
       <Animated.View style={[{ position: "absolute", left: sx, top: sy }, stampSt]}>
-        <StampTile id={CHOSEN} w={sw} r={sw * 0.12} />
+        <Stamp id={CHOSEN} width={sw} dark={false} />
       </Animated.View>
       {/* the bar after: the stamp's own pill, and the key in solid ink */}
       <View style={{ position: "absolute", left: ex, top: rowTop, width: ew }}>
@@ -301,7 +314,7 @@ function Title({ s }: { s: number }) {
   const accent = words.length > 1 ? [words.length - 1] : [];
   const longest = Math.max(...words.map((w) => w.length));
   const fit = /[぀-ヿ㐀-鿿가-힯]/.test(title) ? 1 : Math.min(1, 11.5 / longest);
-  const sw = s * 0.2;
+  const sw = snapStampWidth(s * 0.2, GUIDE_REEL_WIDTHS);
   return (
     <View style={{ width: s, height: s }}>
       {fit >= 1 ? (
@@ -317,7 +330,7 @@ function Title({ s }: { s: number }) {
       )}
       <View style={{ position: "absolute", right: s * 0.09, bottom: s * 0.08, transform: [{ rotate: "8deg" }] }}>
         <Pop delay={650}>
-          <StampTile id={CHOSEN} w={sw} r={sw * 0.12} />
+          <Stamp id={CHOSEN} width={sw} dark={false} />
         </Pop>
       </View>
     </View>

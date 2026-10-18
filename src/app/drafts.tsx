@@ -6,7 +6,8 @@ import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { MONO, PF } from "../theme/post";
-import { StampTile } from "../components/StampTile";
+import { Stamp } from "../components/Stamp";
+import { STAMP_LADDER } from "../lib/stamp-frame";
 import { getStamp } from "../data/stamps";
 import { dLong } from "../lib/format";
 import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
@@ -30,7 +31,13 @@ import "../data/strings-step5-kitrn"; // a11y.back
    the dates mute — with the mono labels at 9 / 10 / 11. No 10a drawing
    exists for it, so its shape stays. Each card says what it is to
    VoiceOver (its date and its first words) and offers throwing it away as
-   an action, not only as a long press. */
+   an action, not only as a long press.
+
+   The stamp a draft was given sits top-right at the ladder's draftsRow,
+   30×36 (stamps v2, 2026-10-18), flat: it hasn't gone anywhere yet, so no
+   tilt (it used to lean −4°) and no postmark. */
+const DRAFT_STAMP = STAMP_LADDER.draftsRow;
+
 export default function DraftsScreen() {
   useLang();
   const router = useRouter();
@@ -120,11 +127,7 @@ export default function DraftsScreen() {
               >
                 <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
                   <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute }}>{date}</Text>
-                  {st ? (
-                    <View style={{ transform: [{ rotate: "-4deg" }] }}>
-                      <StampTile id={d.stamp} w={34} r={4} />
-                    </View>
-                  ) : null}
+                  {st ? <Stamp id={d.stamp} width={DRAFT_STAMP.w} /> : null}
                 </View>
                 <Text numberOfLines={4} style={{ fontSize: 17, lineHeight: 25, color: tk.ink, marginTop: 12 }}>
                   {words}

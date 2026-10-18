@@ -5,12 +5,13 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { BigType, FACE_INK, Finger, useLoop, useOnce, type Reel } from "./kit";
 import { WrenBird } from "../WrenBird";
 import { EnvelopeArt } from "../EnvelopeArt";
-import { StampTile } from "../StampTile";
+import { GUIDE_REEL_WIDTHS, Stamp, snapStampWidth } from "../Stamp";
 import { MosaicId } from "../MosaicId";
 import { Seal } from "../Seal";
 import { Envelope, Kindreds, Me, Notes } from "../PostTabBar";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { OPENING_MIN } from "../../lib/weighted-count";
+import { stampHeight } from "../../lib/stamp-frame";
 import { P, PF } from "../../theme/post";
 import { t, useLang } from "../../lib/i18n";
 
@@ -295,14 +296,21 @@ const PICKED = "made-my-day";
 const TRAY = [STARTER_STAMPS[0], PICKED, STARTER_STAMPS[2], STARTER_STAMPS[4]];
 const TRAY_X = [20, 40, 60, 80]; // stamp centres, in u
 const TRAY_Y = 85;
-const ST = 16; // a stamp's side, in u
+/* a stamp's width as the scene asks for it, in u. The stamp drawn is the
+   real 5:6 one (stamps v2) at the guide-reel width nearest to it — 30, 40
+   or 60pt — never wider than 18u, so the tray's stamps 20u apart keep a
+   gap; everything below is laid out by that real width and height, in pt */
+const ST = 16;
+const ST_MAX = 18;
 const EX = 12; // the envelope's box, in u
 const EY = 13;
 const EW = 76;
 const EH = EW * 0.72;
 /* where things sit on EnvelopeArt (its viewBox is 212 × 152, scaled by width):
-   the body's top-right corner is (200, 6), the seal's centre (102, 74) */
-const STAMP_AT = { x: EW * (200 / 212) - 2.5 - ST, y: EW * (6 / 212) + 2.5 };
+   the body's top-right corner is (200, 6), the seal's centre (102, 74); the
+   stamp's corner is 2.5u in from the body's (its x needs the stamp's width) */
+const STAMP_RIGHT = EW * (200 / 212) - 2.5;
+const STAMP_TOP = EW * (6 / 212) + 2.5;
 const SEAL_AT = { x: EW * (102 / 212), y: EW * (74 / 212) };
 const SEAL = 21;
 
@@ -317,6 +325,9 @@ const StampScene = memo(function StampScene({ s }: { s: number }) {
   useLang();
   const still = useReducedMotion();
   const u = s / 100;
+  const sw = snapStampWidth(ST * u, GUIDE_REEL_WIDTHS, ST_MAX * u); // pt
+  const sh = stampHeight(sw);
+  const stampAt = { x: STAMP_RIGHT * u - sw, y: STAMP_TOP * u }; // pt, on the envelope
   const enter = useOnce(320, 0, E_OUT);
   const trayIn = useOnce(340, 0, E_OUT);
   const f1out = useOnce(160, T_PICK_STAMP + 220, E_QUAD);
@@ -328,10 +339,10 @@ const StampScene = memo(function StampScene({ s }: { s: number }) {
   const lift = useOnce(480, T_GONE, E_IN);
   const go = still ? 0 : 1; // with less motion the scene rests on the sealed envelope, not on an empty square
 
-  const sx0 = (TRAY_X[1] - ST / 2) * u;
-  const sy0 = (TRAY_Y - ST / 2) * u;
-  const sx1 = (EX + STAMP_AT.x) * u;
-  const sy1 = (EY + STAMP_AT.y) * u;
+  const sx0 = TRAY_X[1] * u - sw / 2;
+  const sy0 = TRAY_Y * u - sh / 2;
+  const sx1 = EX * u + stampAt.x;
+  const sy1 = EY * u + stampAt.y;
 
   const group = useAnimatedStyle(() => ({
     opacity: enter.value * (1 - go * lift.value),
@@ -363,8 +374,8 @@ const StampScene = memo(function StampScene({ s }: { s: number }) {
       {/* the envelope, its stamp once landed, the seal */}
       <Animated.View style={[{ position: "absolute", left: EX * u, top: EY * u, width: EW * u, height: EH * u }, group]}>
         <EnvelopeArt w={EW * u} sealed={false} />
-        <Animated.View style={[{ position: "absolute", left: STAMP_AT.x * u, top: STAMP_AT.y * u, transform: [{ rotate: "8deg" }] }, landed]}>
-          <StampTile id={PICKED} w={ST * u} r={1.2 * u} />
+        <Animated.View style={[{ position: "absolute", left: stampAt.x, top: stampAt.y, transform: [{ rotate: "8deg" }] }, landed]}>
+          <Stamp id={PICKED} width={sw} dark={false} />
         </Animated.View>
         <Animated.View style={[{ position: "absolute", left: (SEAL_AT.x - SEAL / 2) * u, top: (SEAL_AT.y - SEAL / 2) * u, width: SEAL * u, height: SEAL * u, borderRadius: (SEAL / 2) * u, borderWidth: 2, borderColor: P.pen }, ringSt]} />
         <Animated.View style={[{ position: "absolute", left: (SEAL_AT.x - SEAL / 2) * u, top: (SEAL_AT.y - SEAL / 2) * u }, seal]}>
@@ -376,8 +387,8 @@ const StampScene = memo(function StampScene({ s }: { s: number }) {
       <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 72 * u, height: 30 * u, backgroundColor: "#F3F2FA", borderTopWidth: 1, borderTopColor: P.ink12 }, tray]}>
         {TRAY.map((id, i) =>
           i === 1 ? null : (
-            <View key={id} style={{ position: "absolute", left: (TRAY_X[i] - ST / 2) * u, top: (TRAY_Y - 72 - ST / 2) * u }}>
-              <StampTile id={id} w={ST * u} r={1.2 * u} />
+            <View key={id} style={{ position: "absolute", left: TRAY_X[i] * u - sw / 2, top: (TRAY_Y - 72) * u - sh / 2 }}>
+              <Stamp id={id} width={sw} dark={false} />
             </View>
           ),
         )}
@@ -385,7 +396,7 @@ const StampScene = memo(function StampScene({ s }: { s: number }) {
 
       {/* the picked one, on its way from the tray to the corner */}
       <Animated.View style={[{ position: "absolute", left: sx0, top: sy0 }, flying]}>
-        <StampTile id={PICKED} w={ST * u} r={1.2 * u} />
+        <Stamp id={PICKED} width={sw} dark={false} />
       </Animated.View>
 
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: s, height: s }, f1St]}>

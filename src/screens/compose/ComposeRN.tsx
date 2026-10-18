@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput,
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { GlyphInput } from "../../components/GlyphInput";
-import { StampTile } from "../../components/StampTile";
+import { Stamp, StampSlot } from "../../components/Stamp";
 import { KeyDot, MoreTray, Nudge, PlusGlyph, RoundKey, StampKeyGlyph, StampTray } from "../../components/ComposeTray";
 import { WrenBird } from "../../components/WrenBird";
 import { Recorder } from "../../components/Recorder";
@@ -13,6 +13,7 @@ import { t } from "../../lib/i18n";
 import { useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
+import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { stampVM, type ComposeState } from "./useComposeState";
 import { countBrand } from "./compose-model";
 
@@ -42,7 +43,21 @@ import { countBrand } from "./compose-model";
    — a resumed draft with a question keeps the caret in the letter;
    VoiceOver's escape closes an open tray, then asks to leave as the × does
    (the gesture would otherwise pop the page past the leave guard); the
-   count near the ceiling takes compose-model's brass (countBrand). */
+   count near the ceiling takes compose-model's brass (countBrand).
+
+   THE STAMP CORNER (stamps v2, owner 2026-10-18). It keeps its App Store
+   place, its 8° and its 50pt hit area; what sits in it is now the stamp
+   itself at the ladder's composeCorner, 40×48 — your own stamp, so flat:
+   no letter tilt, no postmark. Before one is chosen it is the same
+   perforated silhouette drawn dashed in ind on lav2 (StampSlot), where the
+   44 dashed square used to be, so choosing a stamp fills the outline it
+   was promised. The toolbar's round stamp key and the #name pill stay
+   exactly as they are. */
+const CORNER = STAMP_LADDER.composeCorner;
+const CORNER_DEG = typeof CORNER.tilt === "number" ? CORNER.tilt : 0;
+/** the corner's tap target, as it was: the old 44 tile and its 3pt of padding */
+const CORNER_BOX = 50;
+
 export function ComposeRN({ state }: { state: ComposeState }) {
   const { t: tk } = useTheme();
   const { act } = state;
@@ -93,14 +108,14 @@ export function ComposeRN({ state }: { state: ComposeState }) {
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={chosen ? t("cp.stampChosen.a11y", { name: chosen.name }) : t("cp.stamp.a11y")}
-            style={{ transform: [{ rotate: "8deg" }] }}
+            style={{ transform: [{ rotate: `${CORNER_DEG}deg` }] }}
           >
-            <View style={{ padding: 3 }}>
+            <View style={{ width: CORNER_BOX, height: CORNER_BOX, alignItems: "center", justifyContent: "center" }}>
               {state.sel ? (
-                <StampTile id={state.sel} w={44} r={5} />
+                <Stamp id={state.sel} width={CORNER.w} />
               ) : (
-                /* the corner where the stamp goes, still empty */
-                <View style={{ width: 44, height: 44, borderWidth: 1.5, borderStyle: "dashed", borderColor: tk.ind, borderRadius: 5, backgroundColor: tk.lav2 }} />
+                /* the corner where the stamp goes, still empty: its outline */
+                <StampSlot width={CORNER.w} fill={tk.lav2} stroke={tk.ind} />
               )}
             </View>
           </Pressable>

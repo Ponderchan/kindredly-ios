@@ -13,7 +13,8 @@ import { CofounderMark } from "../../components/CofounderMark";
 import { CourierCard } from "../../components/CourierCard";
 import { AuraCard } from "../../components/AuraCard";
 import { FirstClassStub } from "../../components/FirstClassStub";
-import { StampTile } from "../../components/StampTile";
+import { Stamp } from "../../components/Stamp";
+import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { InkPanel } from "../../components/10a/InkPanel";
 import { StickerBox } from "../../components/10a/StickerBox";
 import { BottomFade } from "../../components/10a/BottomFade";
@@ -239,10 +240,21 @@ function KeepsakesBlockRN({ keepsakes, tk, onBlock, onTile }: { keepsakes: Keeps
   );
 }
 
-/* ── the stamps you've used (owner's placeholder, H:81) ── */
+/* ── the stamps you've used (owner's placeholder, H:81) ──
+   Stamps v2 (2026-10-18): the stamp IS the cell. Each one stands at the
+   ladder's meYourStamps, 80×96, centred in its third of the card, with the
+   day you first used it under it in mono 9 (sub) — no dotted frame round
+   it any more, which made a perforated stamp look perforated twice, and
+   no "n of 36": the count beside the title says how many you've used.
+   Your own stamps, so flat. A phone too narrow for three 80s side by side
+   (320pt) steps down the ladder to 60×72 rather than off it. */
+const ME_STAMP = STAMP_LADDER.meYourStamps;
+const ME_STAMP_NARROW = STAMP_LADDER.readerHead.w;
+
 function StampsCardRN({ stamps, tk, cardW, onEmpty }: { stamps: StampsVM; tk: ThemeTokens; cardW: number; onEmpty: () => void }) {
   const inner = cardW - 2 * (16 + 2.5);
   const cellW = Math.floor((inner - 2 * 12) / 3);
+  const stampW = cellW >= ME_STAMP.w ? ME_STAMP.w : ME_STAMP_NARROW;
   return (
     <InkPanel variant="me" contentStyle={{ gap: 12 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -261,15 +273,13 @@ function StampsCardRN({ stamps, tk, cardW, onEmpty }: { stamps: StampsVM; tk: Th
       ) : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
           {stamps.cells.map((c) => (
-            <View key={c.id} accessible accessibilityRole="image" accessibilityLabel={c.a11y} style={{ width: cellW, aspectRatio: 4 / 5, borderWidth: 3, borderStyle: "dotted", borderColor: tk.ln, borderRadius: 4, padding: 4, backgroundColor: tk.sf }}>
-              <View style={{ flex: 1, borderRadius: 2, backgroundColor: tk.soft2, alignItems: "center", justifyContent: "center" }}>
-                <StampTile id={c.id} w={Math.round(cellW * 0.56)} />
-                {!!c.date && (
-                  <Text numberOfLines={1} style={{ position: "absolute", left: 5, bottom: 4, right: 4, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.9, color: tk.sub }}>
-                    {c.date}
-                  </Text>
-                )}
-              </View>
+            <View key={c.id} accessible accessibilityRole="image" accessibilityLabel={c.a11y} style={{ width: cellW, alignItems: "center", gap: 6 }}>
+              <Stamp id={c.id} width={stampW} />
+              {!!c.date && (
+                <Text numberOfLines={1} style={{ maxWidth: cellW, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.9, color: tk.sub }}>
+                  {c.date}
+                </Text>
+              )}
             </View>
           ))}
         </View>

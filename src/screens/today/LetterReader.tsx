@@ -7,7 +7,8 @@ import { useLetterFamily, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { sinceShort } from "../../lib/format";
 import { MosaicId } from "../../components/MosaicId";
-import { StampTile } from "../../components/StampTile";
+import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
+import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { InkPanel, ReplyStrip } from "../../components/10a";
@@ -37,7 +38,15 @@ import type { TodayModel } from "./useTodayDesk";
    presented over this one), and the reader stays.
 
    10a dress, from the theme: the page colour, the ink panel (corners 28, a
-   hard 6/6 shadow), mono 11 for what the machine says. */
+   hard 6/6 shadow), mono 11 for what the machine says.
+
+   THE STAMP in the docket is the reader head's (stamps v2, 2026-10-18):
+   60×72, delivered, so it tilts by the letter's id exactly as it did on
+   the card and carries the postmark — left off whenever the when-and-who
+   line beside it wraps far enough down to meet the band (it is never
+   shortened). No box round it any more. */
+const READER_STAMP = STAMP_LADDER.readerHead;
+
 export function LetterReader({ model }: { model: TodayModel }) {
   useLang();
   const { t: tk } = useTheme();
@@ -48,6 +57,8 @@ export function LetterReader({ model }: { model: TodayModel }) {
   const letter = id ? view.feed.find((l) => l.id === id) ?? null : null;
   const card = id ? view.cards.find((c) => c.id === id) ?? null : null;
   const [writing, setWriting] = useState(false);
+  // the when-and-who line's height, for the postmark's room beside the stamp
+  const [metaH, setMetaH] = useState(0);
   useEffect(() => {
     if (!id) setWriting(false);
   }, [id]);
@@ -71,10 +82,10 @@ export function LetterReader({ model }: { model: TodayModel }) {
             {/* the same docket the card carries, so the letter keeps its face */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 22 }}>
               <MosaicId seed={letter.author} cell={4.8} gap={1} />
-              <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>{card.postmark}</Text>
-              <View style={{ width: 34, height: 34, borderRadius: 10, borderWidth: 2, borderColor: tk.ln, backgroundColor: tk.sf, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
-                <StampTile id={letter.stamp} w={28} r={0} />
-              </View>
+              <Text onLayout={(ev) => setMetaH(ev.nativeEvent.layout.height)} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>
+                {card.postmark}
+              </Text>
+              <Stamp id={letter.stamp} width={READER_STAMP.w} delivered letterId={letter.id} postmark={postmarkFitsCentred(READER_STAMP.w, metaH)} />
             </View>
 
             <Text style={[{ fontSize: 19, lineHeight: 31, color: tk.ink }, face]}>{card.isVoice ? card.caption : card.body}</Text>

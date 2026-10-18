@@ -23,7 +23,8 @@ import { noteWrote } from "../../lib/local-push";
 import { getStamp, sname } from "../../data/stamps";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
-import { StampTile } from "../../components/StampTile";
+import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
+import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { ReportSheet } from "../../components/ReportMenu";
 import { InkPanel, ReplyStrip, SecondaryHeader, TopicTag, TranslateCapsule, type ReplyStripHandle } from "../../components/10a";
 import "../../data/strings-step5-platform"; // rp.menu.a11y, vo.play, vo.pause
@@ -64,7 +65,7 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
      corners 28, a hard 6/6 shadow): the head row — their face (a round
      portrait for a kindred, the mosaic developing for a pen pal, the veil
      for a deleted account), the postmark and the thread's state in its
-     tone, the stamp at 34, and the ··· (34pt circle) that opens Report /
+     tone, the stamp (the reader head's 60×72, below), and the ··· (34pt circle) that opens Report /
      Block, always reachable while someone is behind the letter (owner);
      the words in the reader's Letter font at the letter tiers (a telegram
      centred); the topic tag and the translate capsule; a 2pt rule; the
@@ -86,6 +87,18 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
    reply refreshes the writing fingerprint and the local-push plan, as the
    chat's does (critic). The send stays plain: it goes, then the thread
    reloads (no new animation — owner kept the fly-by for Today). */
+
+/* THE STAMP IN THE HEAD (stamps v2, 2026-10-18) is the reader head's,
+   60×72, the size the Today reader gives the same letter. The stamp is the
+   correspondence's, so every letter here wears it, but whose letter it is
+   decides how: theirs came to you, so it is delivered — tilted by that
+   letter's id (a reply's own id; the opening's is the pool letter's,
+   threads.letter, so it leans as it did on the Today card; the thread's id
+   when neither is known) and postmarked; your own is flat, no postmark.
+   The postmark runs under the postmark-and-state lines, so it is drawn
+   only while they end above 0.72 of the stamp's height: at accessibility
+   sizes, where they wrap, it is left off. It used to be a 34 tile at 3°. */
+const HEAD_STAMP = STAMP_LADDER.readerHead;
 
 /** Their language for the capsule: a non-Latin script by its own name, else the Latin guess;
     null when neither is confident (the capsule shows its words alone). */
@@ -118,6 +131,8 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   const heroKey = hero ? letterLinkKey(hero) || `i:${heroIdx}` : "";
   const earlier = conv.filter((_, k) => k !== heroIdx);
   const [expanded, setExpanded] = useState(false);
+  // the head's words (postmark and state), for the postmark's room beside the stamp
+  const [headTextH, setHeadTextH] = useState(0);
 
   const fmt: ReaderFormat = useMemo(
     () => ({ t, locale: localeTag(), postmark, penPal: (other: string) => penPalName(other, { upper: true, compact: true }) }),
@@ -254,7 +269,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 {/* the head: who, when, the stamp it travelled under, and the ··· */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <View style={{ minWidth: 28, alignItems: "center" }}>{face}</View>
-                  <View style={{ flex: 1, gap: 2 }}>
+                  <View onLayout={(e) => setHeadTextH(e.nativeEvent.layout.height)} style={{ flex: 1, gap: 2 }}>
                     <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { color: tk.sub }]}>
                       {/* the number is what you call someone WITHOUT a name; once they have one it
                           replaces the number — printing both says the reveal only half happened */}
@@ -267,9 +282,13 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                     )}
                   </View>
                   {stamp && (
-                    <View style={{ transform: [{ rotate: "3deg" }] }}>
-                      <StampTile id={detail.stamp} w={34} r={4} />
-                    </View>
+                    <Stamp
+                      id={detail.stamp}
+                      width={HEAD_STAMP.w}
+                      delivered={!hero.mine}
+                      letterId={hero.id || detail.letterId || id || null}
+                      postmark={postmarkFitsCentred(HEAD_STAMP.w, headTextH)}
+                    />
                   )}
                   {!flow.nobody && (
                     <Pressable

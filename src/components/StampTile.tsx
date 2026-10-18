@@ -1,29 +1,20 @@
-import { View } from "react-native";
-import Svg from "react-native-svg";
-import { ArtShapes } from "./ArtShapes";
-import { STAMP_ART } from "../data/stamp-art";
-import { getStamp } from "../data/stamps";
-import { shadow } from "../theme/tokens";
+import type { StyleProp, ViewStyle } from "react-native";
+import { Stamp, snapStampWidth } from "./Stamp";
 
-/* A stamp tile — the designed postage sticker (dashed frame + tinted paper +
-   themed motif), rendered from the design set (viewBox 64). Falls back to a
-   plain colored tile if an id has no art yet. Square, self-framed. */
+/* THE OLD NAME, KEPT (stamps v2, 2026-10-18). StampTile was the square
+   v1 sticker — the dashed frame, the tinted paper and the motif on a 64
+   grid, with a faint card shadow. Every stamp is now the one component,
+   ./Stamp, drawn from lib/stamp-frame and data/stamp-art-v2; this stays
+   so a screen that still says <StampTile id w /> keeps rendering while
+   the call sites move onto <Stamp/> with a width from the ladder.
 
-export function StampTile({ id, w = 40, r = 8 }: { id?: string; w?: number; r?: number }) {
-  const art = id ? STAMP_ART[`stamp-${id}`] : null;
-  if (art) {
-    return (
-      <View style={[{ width: w, height: w }, shadow.card]}>
-        <Svg width={w} height={w} viewBox="0 0 64 64">
-          <ArtShapes list={art} />
-        </Svg>
-      </View>
-    );
-  }
-  // fallback for a stamp with no art (shouldn't happen for the 36 real ids)
-  const s = getStamp(id);
-  const col = s ? s.color : "#8B7FE8";
-  return (
-    <View style={[{ width: w, height: w, borderRadius: r, backgroundColor: `${col}22`, borderWidth: 1.5, borderColor: col }, shadow.card]} />
-  );
+   A square `w` means a stamp `w` wide and 1.2 × `w` tall, snapped to the
+   nearest ladder width (28 → 30, 34 → 30, 44 → 40; under 15 there is no
+   stamp, only the 6pt dot), so an old size still lands on a size the
+   spec allows. `r`, the old corner radius, is accepted and ignored: a
+   perforated stamp has no corners to round. No shadow (spec §2.3), and
+   always flat: a delivered stamp is a <Stamp delivered letterId/>. */
+
+export function StampTile({ id, w = 40, style }: { id?: string | null; w?: number; r?: number; style?: StyleProp<ViewStyle> }) {
+  return <Stamp id={id} width={snapStampWidth(w)} style={style} />;
 }

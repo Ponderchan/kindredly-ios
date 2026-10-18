@@ -6,7 +6,8 @@ import { useRouter } from "expo-router";
 import { MONO, PF } from "../theme/post";
 import { useLetterFamily, useTheme } from "../lib/theme";
 import { BRAND, type ThemeTokens } from "../theme/themes";
-import { StampTile } from "../components/StampTile";
+import { Stamp } from "../components/Stamp";
+import { STAMP_LADDER } from "../lib/stamp-frame";
 import { AvatarImage } from "../components/AvatarImage";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { t, useLang } from "../lib/i18n";
@@ -250,7 +251,8 @@ function LetterCard({ c, tk, letterFace, onOpen }: { c: Card; tk: ThemeTokens; l
               </View>
             </View>
           </View>
-          {!!c.stamp && <StampTile id={c.stamp} w={28} r={6} />}
+          {/* your own letter's stamp: the ladder's myLettersRow, 25×30, flat */}
+          {!!c.stamp && <Stamp id={c.stamp} width={STAMP_LADDER.myLettersRow.w} />}
         </View>
         <Text style={[{ fontSize: 14.5, lineHeight: 20, color: tk.ink, marginTop: 10 }, letterFace]} numberOfLines={5}>
           {c.body}

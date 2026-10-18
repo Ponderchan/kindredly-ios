@@ -716,11 +716,14 @@ export type ReplyState = {
  * The send key and the hint. Empty or not 2..1000 (or a send in flight):
  * disabled. Fine but the pouch is full: dimmed, still tappable, so the
  * sheet can say why (owner: "a full pouch dims the plane before the tap,
- * not after"). Otherwise enabled. The hint: over the limit (red), five in
- * flight, a thread opens with the words, or the resting line.
+ * not after"). Otherwise enabled. The hint: a send taking longer than a
+ * send takes says so ("a headwind — she's still flying", net.slow: the line
+ * the fly-by carried before the band took the send over), then over the
+ * limit (red), five in flight, a thread opens with the words, or the
+ * resting line.
  */
 export function replyState(
-  { text, flights, demo, forceFull = false, sending = false }: { text: string; flights: number; demo: boolean; forceFull?: boolean; sending?: boolean },
+  { text, flights, demo, forceFull = false, sending = false, slow = false }: { text: string; flights: number; demo: boolean; forceFull?: boolean; sending?: boolean; slow?: boolean },
   t: TFn,
 ): ReplyState {
   // weighed as it is sent: trimmed
@@ -729,7 +732,16 @@ export function replyState(
   const pouchFull = forceFull || (!demo && flights >= MAX_IN_FLIGHT);
   const over = w - LETTER_MAX;
   const sendState: SendState = !ok || sending ? "disabled" : pouchFull ? "dimmed" : "enabled";
-  const hint = over > 0 ? t("ui.overLimit", { n: String(over) }) : pouchFull ? t("ld.flightFull") : ok ? t("ld.threadOpensTwo") : t("ld.replyThreadOpens");
+  const hint =
+    sending && slow
+      ? t("net.slow")
+      : over > 0
+        ? t("ui.overLimit", { n: String(over) })
+        : pouchFull
+          ? t("ld.flightFull")
+          : ok
+            ? t("ld.threadOpensTwo")
+            : t("ld.replyThreadOpens");
   return { ok, sendState, hint, hintWarn: over > 0, pouchFull };
 }
 

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, type Href } from "expo-router";
@@ -13,10 +13,11 @@ import { useThreadDetail } from "../../lib/thread-detail";
 import { readCorrespondent, resonance, type ResonanceRow } from "../../lib/correspondent";
 import type { DimScore } from "../../lib/hatch-engine";
 import { getStamp, sname } from "../../data/stamps";
+import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
-import { StampTile } from "../../components/StampTile";
+import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
 import { InkPanel, SecondaryHeader } from "../../components/10a";
 import { isVoiceLetter, largeType, readerLetters } from "./reader";
 import { canTalk, faceKind, lettersValue, openingLetter, pageTitle, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
@@ -221,12 +222,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
               last
               value={
                 st ? (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub }}>{sname(st.name)}</Text>
-                    <View style={{ transform: [{ rotate: "-4deg" }] }}>
-                      <StampTile id={detail.stamp} w={30} r={4} />
-                    </View>
-                  </View>
+                  <BeganUnder name={sname(st.name)} stamp={detail.stamp} letterId={detail.letterId || id || null} />
                 ) : (
                   "—"
                 )
@@ -268,6 +264,30 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
 function SoftGroup({ children }: { children: ReactNode }) {
   const { t: tk } = useTheme();
   return <View style={{ borderRadius: 16, backgroundColor: tk.soft, padding: 16 }}>{children}</View>;
+}
+
+/* THE STAMP IT BEGAN UNDER (stamps v2, 2026-10-18): its name, then the
+   stamp at the ladder's kindredBeganUnder, 40×48, delivered — it came on
+   the letter that opened the correspondence, so it tilts by that letter's
+   id (threads.letter, the pool letter's own id: the same tilt the Today
+   card gave it) and carries the postmark. A thread older than 0020 has no
+   letter id; it tilts by the thread's id instead, stable all the same.
+   The postmark runs under the name, so it is drawn only while the name
+   ends above 0.72 of the stamp's height: a name that wraps, or a large
+   type size, leaves it off rather than crossing the words. */
+const BEGAN = STAMP_LADDER.kindredBeganUnder;
+
+function BeganUnder({ name, stamp, letterId }: { name: string; stamp: string; letterId: string | null }) {
+  const { t: tk } = useTheme();
+  const [nameH, setNameH] = useState(0);
+  return (
+    <View style={{ flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Text onLayout={(e) => setNameH(e.nativeEvent.layout.height)} style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub }}>
+        {name}
+      </Text>
+      <Stamp id={stamp} width={BEGAN.w} delivered letterId={letterId} postmark={postmarkFitsCentred(BEGAN.w, nameH)} />
+    </View>
+  );
 }
 
 /** a fact as a grouped row (H:101): the label in the system face, the value quiet on the right;

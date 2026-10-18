@@ -1,44 +1,55 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, View, type TextStyle } from "react-native";
 import { Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { KGalleryHost, isKindredlyUIViewAvailable, type KThemeKey } from "../../../modules/kindredly-ui";
-import { StampTile } from "../../components/StampTile";
-import { STAMPS, STAMP_CATEGORIES } from "../../data/stamps";
+import { Stamp, StampSlot } from "../../components/Stamp";
+import { STAMPS } from "../../data/stamps";
+import { STAMP_LADDER, stampHeight, tierFor, tilt, type StampPlacement, type StampPlacementName } from "../../lib/stamp-frame";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import THEMES from "../../theme/themes.json";
 import { PF } from "../../theme/post";
 
-/* dev only — STAMP ART IN SWIFT (step 5, batch 1). kindredly:///dev/step5-stamp-art
+/* dev only — STAMPS V2 IN REACT NATIVE (the set the owner approved on 2026-10-18).
+   kindredly:///dev/step5-stamp-art
 
-   The 36 stamps as SwiftUI draws them (KStampArt, from Kit/KStampArtData.swift, which
-   scripts/gen-stamp-art-swift.mjs generates from src/data/stamp-art.ts) next to StampTile's
-   React Native drawing of the same art, to compare before the Today card, compose and Me
-   start drawing stamps in Swift. No network, no account: everything here is the bundled art.
+   Every stamp here is components/Stamp, drawn from lib/stamp-frame (the paper, the bites, the
+   window, the ground, the colours, the keyline, the tilt, the postmark, the ladder) and
+   data/stamp-art-v2 (the drawings), to check them on a device before the Swift renderer (KStamp)
+   draws the same thing. No network, no account: everything is bundled.
 
    From the top:
-   - THEME: the dev theme switch (lib/theme setDevThemeOverride), as in ui-lab. The gallery and
-     this page follow it; the four theme sheets below don't need it, they draw every theme.
-   - SWIFT STAMPS ↓ / REACT NATIVE ↓ jump to the two halves of the comparison.
-   - the gallery (KGalleryHost, one Host), whose last section is STAMPS: one stamp at 16 to 96,
-     the art framed as the screens frame it (the Today card's 34 box, the compose slot's 28, a
-     picked tray tile), the tinted tile an id without art gets (in a passed hex, then in
-     StampTile's own colour), then all 36 in each theme on its tray colour, six to a row, a row
-     per category.
-   - right under it, REACT NATIVE: the same rows drawn by StampTile, laid out the same way
-     (sizes, gaps, grounds), so a screenshot of each half compares sheet for sheet. StampTile
-     adds its faint shadow.card; KStampArt leaves shadows to its caller.
+   - THEME: the dev theme switch (lib/theme setDevThemeOverride), as in ui-lab. The PLACEMENTS
+     section follows it; the LADDER and ALL 36 sheets don't need it, each draws one light
+     surface (Classic) and Midnight side by side, whatever the app's theme.
+   - LADDER: one stamp from each category (so all six series grounds show) at every tier: the
+     dot (9), chip 15, XS 20, S 25 and 30, M 40, 50 and 60, L 80 and 120 — flat. Then delivered
+     at 40, 50, 60, 80 and 120, each tilted by a sample letter id (the four tilts, −3 to +3°, in
+     turn; the ids are the golden ones in lib/stamp-frame.test) and postmarked: the band starts
+     1.1 W left of the stamp, so those cells leave the room. Each row scrolls sideways.
+   - PLACEMENTS: every entry of STAMP_LADDER at its own size, with its rule (a fixed angle,
+     the letter's tilt and the postmark, or flat), named as the code names it. The compose
+     corner shows both states: the empty dashed outline (ind on lav2) and a stamp in it, at 8°.
+     The landing wall's scatter is the web's and is drawn flat here.
+   - FALLBACK: an id this build doesn't know (the template in #8B7FE8) at XS, M and L, and the
+     dot.
+   - ALL 36: every stamp at the tray's 40×48 on both surfaces, six to a row, a row per category.
+   - SWIFT: the module's gallery (KGalleryHost) after all of it. Until the Swift renderer step
+     its STAMPS section still draws the v1 art (KStampArt); it is kept here so the two can be
+     compared once KStamp lands. A binary without KindredlyUI says so instead.
 
-   Measured before this page existed (macOS, the same Swift): every path reads the same in the
-   module's KSVGPath as in the generator's reader, and the 36 drawn at 256 differ from a browser's
-   drawing of the SVG on 0.2% of pixels, all of them antialiasing at the perforation's edges.
+   The words are English, typed here: a dev page. */
 
-   A binary built before the stamp files were added shows a gallery that ends at LONG-PRESS MENU
-   (pod install, then rebuild the dev client). The words are English, typed here: a dev page. */
-
-const KEYS = Object.keys(THEMES.themes) as KThemeKey[];
-const SIZES = [16, 22, 28, 40, 64, 96];
+// one stamp from each category, in category order: confessions, almosts, late nights, small
+// things, becoming, missing
+const SAMPLE = ["never-told", "crush", "cant-sleep", "made-my-day", "growing", "seasons"];
+const FLAT_WIDTHS = [9, 15, 20, 25, 30, 40, 50, 60, 80, 120];
+const MAIL_WIDTHS = [40, 50, 60, 80, 120];
+// lib/stamp-frame.test's golden letter ids: −3, −1.5, +1.5, +3
+const LETTER_IDS = ["00000000-0000-4000-8000-000090000000", "00000000-0000-0000-0000-000000000000", "3f2b8c1e-6a4d-4e2f-9b7a-1c5d8e0f2a61", "e8b1f6c3-2d47-4a95-b06e-3c9a5d1f7b24"];
 const ROWS = Array.from({ length: Math.ceil(STAMPS.length / 6) }, (_, r) => STAMPS.slice(r * 6, r * 6 + 6).map((s) => s.id));
+const KEYS = Object.keys(THEMES.themes) as KThemeKey[];
+const SURFACES: KThemeKey[] = ["classic", "midnight"];
 
 // KType's monoSection (600 10 .14em) and monoCaption (500 10 .06em), as the gallery sets them
 const section: TextStyle = { fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4 };
@@ -53,11 +64,11 @@ function StampArtPage() {
   const { key, t: tk } = useTheme();
   const forced = useDevThemeOverride();
   const scroll = useRef<ScrollView>(null);
-  // where the React Native half starts and how tall it is: the Swift section above it is laid
-  // out the same way, so it starts that height (less this block's 16 on top) plus the gallery's
-  // 28 of bottom padding higher
-  const [rn, setRn] = useState({ y: 0, h: 0 });
-  const swiftTop = Math.max(0, rn.y - (rn.h - 16) - 28);
+  const [at, setAt] = useState<Record<string, number>>({});
+  const mark = (name: string) => (e: { nativeEvent: { layout: { y: number } } }) => {
+    const y = e.nativeEvent.layout.y;
+    setAt((m) => (m[name] === y ? m : { ...m, [name]: y }));
+  };
   const native = isKindredlyUIViewAvailable("KGalleryView");
   const choices: { label: string; value: KThemeKey | null }[] = [...KEYS.map((k) => ({ label: THEMES.themes[k].name, value: k })), { label: "Off", value: null }];
 
@@ -80,85 +91,153 @@ function StampArtPage() {
       <Text style={{ fontSize: 13, fontWeight: "600", color: on ? tk.sf : tk.ink }}>{label}</Text>
     </Pressable>
   );
+  const jump = (label: string, name: string) => chip(label, false, () => scroll.current?.scrollTo({ y: at[name] ?? 0, animated: true }));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text style={[section, { fontSize: 10.5, letterSpacing: 1.3, color: tk.ind, margin: 16, marginBottom: 6 }]}>STEP 5 · STAMP ART</Text>
+        <Text style={[section, { fontSize: 10.5, letterSpacing: 1.3, color: tk.ind, margin: 16, marginBottom: 6 }]}>STEP 5 · STAMPS V2</Text>
         <Text style={[section, { color: tk.mute, marginHorizontal: 16, marginBottom: 8 }]}>
           THEME · {forced ? "FORCED" : "NORMAL"} · {THEMES.themes[key].name.toUpperCase()}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 12 }}>
           {choices.map(({ label, value }) => chip(label, forced === value, () => setDevThemeOverride(value)))}
         </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 12 }}>
-          {chip("SWIFT STAMPS ↓", false, () => scroll.current?.scrollTo({ y: swiftTop, animated: true }))}
-          {chip("REACT NATIVE ↓", false, () => scroll.current?.scrollTo({ y: rn.y, animated: true }))}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 16 }}>
+          {jump("LADDER ↓", "ladder")}
+          {jump("PLACEMENTS ↓", "placements")}
+          {jump("ALL 36 ↓", "all")}
+          {jump("SWIFT ↓", "swift")}
         </View>
-        <Text style={{ fontSize: 15, lineHeight: 22, color: tk.ink, marginHorizontal: 16, marginBottom: 12 }}>
-          {native
-            ? "The gallery's last section, STAMPS, is SwiftUI (KStampArt). The same rows drawn by React Native's StampTile follow right under it."
-            : "KindredlyUI is not in this build. Run pod install (or prebuild), then rebuild the dev client. StampTile's half is below."}
-        </Text>
 
-        {native ? <KGalleryHost theme={key} /> : null}
+        <View onLayout={mark("ladder")} style={{ paddingHorizontal: 16, gap: 12 }}>
+          <Head>LADDER · FLAT, THEN DELIVERED · CLASSIC AND MIDNIGHT</Head>
+          {SURFACES.map((k) => (
+            <LadderSheet key={k} theme={k} />
+          ))}
+        </View>
 
-        <View onLayout={(e) => setRn({ y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height })} style={{ backgroundColor: tk.bg, paddingHorizontal: 16, paddingTop: 16 }}>
-          <ReactNativeStamps />
+        <View onLayout={mark("placements")} style={{ paddingHorizontal: 16, paddingTop: 24, gap: 12 }}>
+          <Head>PLACEMENTS · STAMP_LADDER · THIS THEME</Head>
+          <Placements />
+          <Head>FALLBACK · UNKNOWN ID AT 20, 40, 80 · THE DOT AT 9</Head>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 14 }}>
+            <Stamp id="no-such-stamp" width={20} />
+            <Stamp id="no-such-stamp" width={40} />
+            <Stamp id="no-such-stamp" width={80} />
+            <Stamp id="no-such-stamp" width={9} />
+            <Stamp id="growing" width={9} />
+          </View>
+        </View>
+
+        <View onLayout={mark("all")} style={{ paddingHorizontal: 16, paddingTop: 24, gap: 12 }}>
+          <Head>ALL {STAMPS.length} · TRAY 40×48 · A ROW PER CATEGORY</Head>
+          {SURFACES.map((k) => (
+            <AllSheet key={k} theme={k} />
+          ))}
+        </View>
+
+        <View onLayout={mark("swift")} style={{ paddingTop: 24, gap: 12 }}>
+          <View style={{ paddingHorizontal: 16 }}>
+            <Head>SWIFT · KGALLERY (STILL THE V1 ART UNTIL KSTAMP)</Head>
+          </View>
+          {native ? (
+            <KGalleryHost theme={key} />
+          ) : (
+            <Text style={{ fontSize: 15, lineHeight: 22, color: tk.ink, marginHorizontal: 16 }}>KindredlyUI is not in this build. Run pod install (or prebuild), then rebuild the dev client.</Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-/* The gallery's STAMPS section again, drawn by StampTile: the same rows, sizes and grounds. */
-function ReactNativeStamps() {
+function Head({ children }: { children: ReactNode }) {
   const { t: tk } = useTheme();
-  const caption = (text: string) => (
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[captionStyle, { color: tk.mute }]}>
-      {text}
+  return (
+    <Text style={[section, { color: tk.mute }]} accessibilityRole="header">
+      {children}
     </Text>
   );
+}
+
+function Caption({ children, color }: { children: ReactNode; color: string }) {
   return (
-    <View style={{ gap: 10 }}>
-      <Text style={[section, { color: tk.mute }]} accessibilityRole="header">
-        REACT NATIVE · STAMPTILE · ALL {STAMPS.length} · FOUR THEMES
-      </Text>
-      <View style={{ gap: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10 }}>
-          {SIZES.map((s) => (
-            <StampTile key={s} id="never-told" w={s} />
+    <Text numberOfLines={2} style={[captionStyle, { color }]}>
+      {children}
+    </Text>
+  );
+}
+
+/* One surface: the sample stamps at every flat width, then delivered. */
+function LadderSheet({ theme }: { theme: KThemeKey }) {
+  const kt = THEMES.themes[theme];
+  return (
+    <View style={{ padding: 12, borderRadius: 18, borderWidth: 1, borderColor: kt.line, backgroundColor: kt.bg, gap: 10 }}>
+      <Text style={[section, { color: kt.mute }]}>{kt.name.toUpperCase()} · FLAT</Text>
+      {SAMPLE.map((id) => (
+        <ScrollView key={id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: "flex-end", gap: 10, paddingVertical: 4 }}>
+          {FLAT_WIDTHS.map((w) => (
+            <Stamp key={w} id={id} width={w} dark={kt.dark} />
           ))}
-        </View>
-        {caption("NEVER-TOLD · 16 · 22 · 28 · 40 · 64 · 96")}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          {/* the Today card's box: 34, corners of 10, a 2pt ln border on sf, the art inset 2 */}
-          <View style={{ width: 34, height: 34, borderRadius: 10, borderWidth: 2, borderColor: tk.ln, backgroundColor: tk.sf, alignItems: "center", justifyContent: "center" }}>
-            <StampTile id="made-my-day" w={30} r={0} />
-          </View>
-          <StampTile id="crush" w={28} />
-          {/* a tray tile, picked (ComposeTray) */}
-          <View style={{ padding: 2, borderWidth: 2, borderColor: tk.ind, borderRadius: 7 }}>
-            <StampTile id="cant-sleep" w={40} r={5} />
-          </View>
-          {/* StampTile's fallback in a stamp's colour (it takes no hex, so drawn here as it would) */}
-          <View style={{ width: 40, height: 40, borderRadius: 5, backgroundColor: "#1E948A22", borderWidth: 1.5, borderColor: "#1E948A" }} />
-          <StampTile id="no-such-stamp" w={40} r={5} />
-        </View>
-        {caption("CARD BOX · SLOT 28 · TRAY PICKED · TILE (HEX) · TILE")}
-        {caption("ROWS · " + STAMP_CATEGORIES.map((c) => c.name.en.toUpperCase()).join(" · "))}
-        {KEYS.map((k) => (
-          <Sheet key={k} theme={k} />
-        ))}
-        {caption(`ALL ${STAMPS.length} FROM STAMP-ART.TS`)}
-      </View>
+        </ScrollView>
+      ))}
+      <Caption color={kt.mute}>{FLAT_WIDTHS.map((w) => `${w} ${tierFor(w).toUpperCase()}`).join(" · ")}</Caption>
+      <Text style={[section, { color: kt.mute, marginTop: 6 }]}>{kt.name.toUpperCase()} · DELIVERED</Text>
+      {SAMPLE.map((id, r) => (
+        <ScrollView key={id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: "flex-end", paddingVertical: 6 }}>
+          {MAIL_WIDTHS.map((w, c) => {
+            const letter = LETTER_IDS[(r + c) % LETTER_IDS.length];
+            return (
+              // the postmark starts 1.1 W left of the stamp: leave it that room
+              <View key={w} style={{ marginLeft: 1.1 * w + 8 }}>
+                <Stamp id={id} width={w} delivered letterId={letter} dark={kt.dark} />
+              </View>
+            );
+          })}
+        </ScrollView>
+      ))}
+      <Caption color={kt.mute}>{MAIL_WIDTHS.map((w) => `${w}×${stampHeight(w)}`).join(" · ")} · TILT BY LETTER ID, POSTMARK</Caption>
     </View>
   );
 }
 
-/* Every stamp in one theme, as KGallery's stampSheet lays it out. */
-function Sheet({ theme }: { theme: KThemeKey }) {
+/* Every named placement at its own size and rule, on this theme. */
+function Placements() {
+  const { t: tk } = useTheme();
+  const entries = Object.entries(STAMP_LADDER) as [StampPlacementName, StampPlacement][];
+  return (
+    <View style={{ gap: 14 }}>
+      {entries.map(([name, p], i) => {
+        const id = STAMPS[(i * 7) % STAMPS.length].id;
+        const letter = LETTER_IDS[i % LETTER_IDS.length];
+        const rule = p.tilt === "letter" ? `TILT ${tilt(letter)}° (LETTER) · POSTMARK` : typeof p.tilt === "number" && p.tilt ? `${p.tilt}°` : p.tilt === "scatter" ? "SCATTER (WEB), FLAT HERE" : "FLAT";
+        return (
+          <View key={name} style={{ gap: 6 }}>
+            <Caption color={tk.mute}>
+              {name.toUpperCase()} · {p.w}×{p.h} · {tierFor(p.w).toUpperCase()} · {rule}
+            </Caption>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingLeft: p.postmark ? 1.1 * p.w + 4 : 0 }}>
+              {name === "composeCorner" && (
+                <View style={{ transform: [{ rotate: `${p.tilt}deg` }] }}>
+                  <StampSlot width={p.w} fill={tk.lav2} stroke={tk.ind} />
+                </View>
+              )}
+              <View style={{ transform: typeof p.tilt === "number" && p.tilt ? [{ rotate: `${p.tilt}deg` }] : undefined }}>
+                <Stamp id={id} width={p.w} delivered={p.tilt === "letter"} letterId={letter} />
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/* Every stamp at the tray's size on one surface, six to a row (a row is a category). */
+function AllSheet({ theme }: { theme: KThemeKey }) {
   const kt = THEMES.themes[theme];
+  const w = STAMP_LADDER.trayTile.w;
   return (
     <View style={{ padding: 12, borderRadius: 18, borderWidth: 1, borderColor: kt.line, backgroundColor: kt.bg, gap: 8 }}>
       <Text style={[section, { color: kt.mute }]}>{kt.name.toUpperCase()}</Text>
@@ -166,7 +245,7 @@ function Sheet({ theme }: { theme: KThemeKey }) {
         {ROWS.map((row, r) => (
           <View key={r} style={{ flexDirection: "row", justifyContent: "space-between" }}>
             {row.map((id) => (
-              <StampTile key={id} id={id} w={40} r={5} />
+              <Stamp key={id} id={id} width={w} dark={kt.dark} />
             ))}
           </View>
         ))}

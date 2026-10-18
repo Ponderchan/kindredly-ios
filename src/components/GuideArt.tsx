@@ -4,12 +4,13 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepe
 import Svg, { Line, Path, Rect } from "react-native-svg";
 import { WrenBird, type WrenAccessory } from "./WrenBird";
 import { EnvelopeArt } from "./EnvelopeArt";
-import { StampTile } from "./StampTile";
+import { Stamp } from "./Stamp";
 import { MosaicId } from "./MosaicId";
 import { Seal } from "./Seal";
 import { STAMPS, STARTER_STAMPS } from "../data/stamps";
 import { P, PF } from "../theme/post";
 import { t as tr } from "../lib/i18n";
+import { STAMP_LADDER } from "../lib/stamp-frame";
 import type { GuideArtKey } from "../data/guides";
 
 /* THE MOVING PICTURES IN A GUIDE — built from the product's own parts.
@@ -20,7 +21,15 @@ import type { GuideArtKey } from "../data/guides";
    the reader's language and the coat their courier wears, and means a
    guide can never look like a different product than the one it explains.
    Each loop is a few seconds long and repeats; nothing here is a step the
-   reader has to wait for. */
+   reader has to wait for.
+
+   The stamps are the real 5:6 ones (stamps v2, 2026-10-18), on the three
+   widths a guide may use: 30×36, 40×48, 60×72 (the old 26, 38/44 and 58
+   snap to them). These pictures are light in every theme, so the stamps
+   are drawn as on a light surface (dark={false}), flat. */
+const REEL_S = STAMP_LADDER.guideReelSmall.w;
+const REEL_M = STAMP_LADDER.guideReelMedium.w;
+const REEL_L = STAMP_LADDER.guideReelLarge.w;
 
 export const ART_H = 150;
 
@@ -96,7 +105,7 @@ function EnvelopeStamp() {
       <View>
         <EnvelopeArt w={170} sealed={false} />
         <Animated.View style={[{ position: "absolute", right: 8, top: 4 }, stamp]}>
-          <StampTile id="made-my-day" w={38} r={6} />
+          <Stamp id="made-my-day" width={REEL_M} dark={false} />
         </Animated.View>
       </View>
     </Frame>
@@ -291,11 +300,11 @@ function StampsRiffle() {
     <Frame>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <View style={{ opacity: 0.45, transform: [{ scale: 0.8 }] }}>
-          <StampTile id={pick(0)} w={44} r={7} />
+          <Stamp id={pick(0)} width={REEL_M} dark={false} />
         </View>
-        <StampTile id={pick(1)} w={58} r={9} />
+        <Stamp id={pick(1)} width={REEL_L} dark={false} />
         <View style={{ opacity: 0.45, transform: [{ scale: 0.8 }] }}>
-          <StampTile id={pick(2)} w={44} r={7} />
+          <Stamp id={pick(2)} width={REEL_M} dark={false} />
         </View>
       </View>
     </Frame>
@@ -306,10 +315,11 @@ function StampsGrid() {
   const ids = STAMPS.slice(0, 18).map((s) => s.id);
   return (
     <Frame>
-      <View style={{ width: 6 * 30, flexDirection: "row", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
+      {/* six to a row: six stamps and the five gaps between them */}
+      <View style={{ width: 6 * REEL_S + 5 * 4, flexDirection: "row", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
         {ids.map((id, i) => (
           <View key={id} style={{ opacity: (i * 7) % 5 === 0 ? 1 : 0.7 }}>
-            <StampTile id={id} w={26} r={5} />
+            <Stamp id={id} width={REEL_S} dark={false} />
           </View>
         ))}
       </View>
