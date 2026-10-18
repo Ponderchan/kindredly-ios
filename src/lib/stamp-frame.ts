@@ -3,7 +3,8 @@
    the 36-stamp set on 2026-10-18). Everything about a stamp that is not
    its drawing: the tier a rendered width falls in, the perforated 5:6
    paper, the 4:5 window, the series ground, the colours, the keyline,
-   the tilt, the postmark and the ladder of sizes. The drawing itself is
+   the tilt and the ladder of sizes (no postmark: the owner took it off
+   on 2026-10-18). The drawing itself is
    src/data/stamp-art-v2.ts (scripts/import-stamp-art.mjs).
 
    One implementation for every renderer (spec §2.11): RN <Stamp/>, the
@@ -73,7 +74,7 @@ export interface StampTierSpec {
   minStrokePt: number;
   /** the light-theme keyline width (0: none), ln at STAMP_KEYLINE_OPACITY, centred on the edge */
   keylinePt: number;
-  /** delivered mail at this size may tilt and carry the postmark (M and up) */
+  /** delivered mail at this size may tilt by its letter (M and up) */
   delivered: boolean;
 }
 
@@ -201,9 +202,9 @@ export function groundPath(category: string): string {
 export const STAMP_WHITE = "#FFFFFF";
 /** the last fallback (spec §2.11): the template in this tint with no motif */
 export const STAMP_FALLBACK_HEX = "#8B7FE8";
-/** ln in Classic, Lavender and Paper: the keyline and the postmark on light themes */
+/** ln in Classic, Lavender and Paper: the keyline on light themes */
 export const STAMP_INK_LIGHT = "#1E1B35";
-/** ln in Midnight: the postmark on dark */
+/** ln in Midnight */
 export const STAMP_INK_DARK = "#D4D0EA";
 export const STAMP_PAPER_LIGHT = "#FFFFFF";
 /** Midnight's paper: cool, from its own ink family, deliberately not cream */
@@ -268,99 +269,6 @@ export const STAMP_TILTS: readonly number[] = Object.freeze([-2, -1, 1, 2]);
     FNV-1a of the UTF-8 bytes.) Your own and unsent stamps, trays, grids, lists, XS and S: 0. */
 export const tilt = (letterId: string): number => STAMP_TILTS[hashStr(letterId) % 4];
 
-/* ── postmark (spec §2.7): delivered mail at M and up ────────────────── */
-
-export const POSTMARK = Object.freeze({
-  lines: 4,
-  strokePt: 1,
-  amplitudePt: 1.2,
-  wavelengthPt: 10,
-  /** between the lines' axes */
-  gapPt: 3.6,
-  /** the band's length, × W */
-  lengthRatio: 1.3,
-  /** its right end overprints the stamp's left 20% */
-  overprintRatio: 0.2,
-  /** the band's lowest trough (centre-line) sits at 0.95 H: at the 50×60 card the band is 0.73–0.95 H */
-  bottomRatio: 0.95,
-  /** it is drawn only while the name-and-meta block is no taller than 0.72 H (43pt on the card) */
-  textMaxRatio: 0.72,
-  /** draw-in, left to right, on a card's first view (static with Reduce Motion) */
-  drawInMs: 180,
-  opacityLight: 0.28,
-  opacityDark: 0.3,
-  /** the paths below sample the sine every this many pt */
-  stepPt: 0.5,
-});
-
-export interface PostmarkGeometry {
-  /** the lines' ends, pt from the stamp's left edge (x0 < 0: the band starts left of the stamp) */
-  x0: number;
-  x1: number;
-  /** the band's centre-line extent, pt from the stamp's top: crest of the first line to trough of
-      the last (add strokePt / 2 for the ink) */
-  top: number;
-  bottom: number;
-  /** each line's axis (rest) y, pt from the stamp's top (every number here to 2 decimals) */
-  axes: number[];
-  /** each line as SVG path data in the same point space (a polyline every POSTMARK.stepPt) */
-  paths: string[];
-  strokePt: number;
-  /** the tallest name-and-meta block (pt, from the stamp's top) that leaves the band clear of
-      text: 0.72 H, or the band's ink top when that is higher. Taller: no postmark at all (it is
-      never shortened). */
-  maxTextBlockPt: number;
-}
-
-/** to 2 decimals, -0 as 0 */
-const r2 = (n: number): number => {
-  const r = Math.round(n * 100) / 100;
-  return Object.is(r, -0) ? 0 : r;
-};
-const f2 = (n: number): string => String(r2(n));
-
-/**
- * The postmark for a stamp drawn `width` pt wide (H = 1.2 W): four 1pt sine lines (amplitude
- * 1.2pt, wavelength 10pt, axes 3.6pt apart), 1.3 W long, the right end at 0.2 W so it overprints
- * the stamp's left 20%, the band's bottom at 0.95 H. Coordinates are the card's, relative to the
- * stamp's UNROTATED top-left: the postmark does not tilt with the stamp. Layer it over the stamp
- * and under all text, in postmarkInk(). Only for delivered mail at M and up (tierSpec.delivered).
- */
-export function postmark(width: number): PostmarkGeometry {
-  const P = POSTMARK;
-  const H = stampHeight(width);
-  const x1 = P.overprintRatio * width;
-  const x0 = x1 - P.lengthRatio * width;
-  const bottom = P.bottomRatio * H;
-  const top = bottom - (P.lines - 1) * P.gapPt - 2 * P.amplitudePt;
-  const axes = Array.from({ length: P.lines }, (_, j) => top + P.amplitudePt + j * P.gapPt);
-  const n = Math.max(1, Math.ceil((x1 - x0) / P.stepPt - 1e-9));
-  const paths = axes.map((axis) => {
-    const pts: string[] = [];
-    for (let i = 0; i <= n; i++) {
-      const x = i === n ? x1 : x0 + i * P.stepPt;
-      const y = axis + P.amplitudePt * Math.sin((2 * Math.PI * (x - x0)) / P.wavelengthPt);
-      pts.push(`${i ? "L" : "M"}${f2(x)},${f2(y)}`);
-    }
-    return pts.join("");
-  });
-  const inkTop = top - P.strokePt / 2;
-  return {
-    x0: r2(x0),
-    x1: r2(x1),
-    top: r2(top),
-    bottom: r2(bottom),
-    axes: axes.map(r2),
-    paths,
-    strokePt: P.strokePt,
-    maxTextBlockPt: r2(Math.min(P.textMaxRatio * H, inkTop)),
-  };
-}
-
-/** the postmark's colour: ln at 28% on light themes, Midnight's ln at 30% */
-export const postmarkInk = (themeDark: boolean): { color: string; opacity: number } =>
-  themeDark ? { color: STAMP_INK_DARK, opacity: POSTMARK.opacityDark } : { color: STAMP_INK_LIGHT, opacity: POSTMARK.opacityLight };
-
 /* ── the ladder (spec §2.8): placements pass a width from here only ──── */
 
 /** 0 or a fixed angle (degrees); "letter": tilt(letterId) of the delivered letter; "scatter":
@@ -372,10 +280,9 @@ export interface StampPlacement {
   w: number;
   h: number;
   tilt: StampTiltRule;
-  postmark: boolean;
 }
 
-const at = (w: number, tilt: StampTiltRule = 0, postmark = false): StampPlacement => Object.freeze({ w, h: stampHeight(w), tilt, postmark });
+const at = (w: number, tilt: StampTiltRule = 0): StampPlacement => Object.freeze({ w, h: stampHeight(w), tilt });
 
 export const STAMP_LADDER = Object.freeze({
   /** the Introduction envelope corner (the 10-letter road): chip; a STAMP_DOT_PT dot if 18 tall won't fit */
@@ -399,17 +306,17 @@ export const STAMP_LADDER = Object.freeze({
   myLettersRow: at(25),
   /** Drafts (iOS + web): S, 0° */
   draftsRow: at(30),
-  /** the kindred page's "began under": tilt from the thread's opening letter id, postmark */
-  kindredBeganUnder: at(40, "letter", true),
-  /** the Today card, top-right of the 60 header (owner confirmed 2026-10-18): tilt + wavy postmark */
-  todayCard: at(50, "letter", true),
-  /** the reader head (iOS + web): tilt, postmark, optional date ring */
-  readerHead: at(60, "letter", true),
+  /** the kindred page's "began under": tilt from the thread's opening letter id */
+  kindredBeganUnder: at(40, "letter"),
+  /** the Today card, top-right of the 60 header (owner confirmed 2026-10-18): tilt by the letter */
+  todayCard: at(50, "letter"),
+  /** the reader head (iOS + web): tilt by the letter, optional date ring */
+  readerHead: at(60, "letter"),
   /** the Settings First Class banner: Gold frame, Wren in the window, +3° */
   firstClassBanner: at(60, 3),
   /** the First Class card "1ST": the Gold frame, +3°; "1ST / MEMBER" goes under it, never on it */
   firstClassCard: at(80, 3),
-  /** Me › Your stamps (3 columns): the stamp is the cell; 0°, no postmark */
+  /** Me › Your stamps (3 columns): the stamp is the cell; 0° */
   meYourStamps: at(80),
   /** long-press preview / stamp detail */
   preview: at(120),

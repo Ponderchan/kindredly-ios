@@ -1,12 +1,10 @@
-import { memo, useEffect, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 import { STAMP_ART_V2, type ArtPath, type StampId } from "../data/stamp-art-v2";
 import { getStamp } from "../data/stamps";
 import { useTheme } from "../lib/theme";
 import {
-  POSTMARK,
   STAMP_DOT_PT,
   STAMP_FALLBACK_HEX,
   STAMP_LADDER,
@@ -16,8 +14,6 @@ import {
   groundPath,
   keyline,
   paperHex,
-  postmark,
-  postmarkInk,
   silhouetteForTier,
   softHex,
   stampHeight,
@@ -25,7 +21,6 @@ import {
   tierFor,
   tierSpec,
   tilt,
-  type PostmarkGeometry,
   type StampTier,
   type StampTierSpec,
 } from "../lib/stamp-frame";
@@ -36,7 +31,7 @@ import {
    draws goes through here, at a width taken from the ladder
    (lib/stamp-frame STAMP_LADDER), and nothing about it is decided here:
    the tier, the perforated paper, the window, the series ground, the
-   colours, the keyline, the tilt and the postmark are lib/stamp-frame's,
+   colours, the keyline and the tilt are lib/stamp-frame's,
    and the drawing is data/stamp-art-v2's. This file only lays them on top
    of each other in the right order, so the Swift KStamp and the web's
    stampSVG, reading the same two files, draw the same stamp.
@@ -71,21 +66,14 @@ import {
    DELIVERED MAIL. `delivered` (with the letter's id) is for a stamp that
    came to you on someone's letter — the Today card, the reader, a
    kindred's "began under". From M up it tilts by the letter's id
-   ([−3, −1.5, +1.5, +3]°, FNV-1a, the same on every platform, so sender
-   and reader see one tilt) and carries the postmark: four wavy 1pt lines,
-   1.3 W long, overprinting the stamp's left 20% at its lower edge. The
-   postmark doesn't tilt with the stamp, is drawn over it and under every
-   text, and is never shortened: a placement whose name-and-meta block
-   beside the stamp would reach the band passes `postmark={false}`
-   (postmarkFitsCentred works it out for a centred row). `drawIn` draws it
-   in left to right on the first view (180ms; still with Reduce Motion).
-   Below M, and for your own and unsent stamps (trays, grids, lists), a
-   stamp is flat: 0°, no postmark.
+   ([−2, −1, +1, +2]°, FNV-1a, the same on every platform, so sender and
+   reader see one tilt). No postmark: the owner took the wavy lines off on
+   2026-10-18. Below M, and for your own and unsent stamps (trays, grids,
+   lists), a stamp is flat: 0°.
 
    THE BOX IT TAKES. Exactly width × 1.2 width (the dot: the dot). The
-   keyline's outer half, the tilt's corners and the postmark (which starts
-   1.1 W left of the stamp) all draw outside that box without moving the
-   layout, so a placement sizes its row by the stamp alone and leaves
+   keyline's outer half and the tilt's corners draw outside that box
+   without moving the layout, so a placement sizes its row by the stamp alone and leaves
    overflow visible (React Native's default on iOS).
 
    THE COST. The path work — which marks, in which colours, at which
@@ -167,17 +155,6 @@ function planFor(id: string | null | undefined, width: number): StampPlan {
   return plan;
 }
 
-const POSTMARKS = new Map<number, PostmarkGeometry>();
-function postmarkFor(width: number): PostmarkGeometry {
-  let g = POSTMARKS.get(width);
-  if (!g) {
-    g = postmark(width);
-    if (POSTMARKS.size >= 64) POSTMARKS.clear();
-    POSTMARKS.set(width, g);
-  }
-  return g;
-}
-
 /* ── layout helpers for placements ── */
 
 /** Every width the ladder names, narrowest first (15 … 250). */
@@ -208,22 +185,6 @@ export function snapStampWidth(w: number, widths: readonly number[] = STAMP_LADD
   return best;
 }
 
-/**
- * Whether a delivered stamp's postmark may be drawn beside a text block when the two are centred
- * in one row (alignItems "center"): the block's bottom, measured from the stamp's top, must stay
- * within postmark(width).maxTextBlockPt (0.72 H, 43.2pt at the 50×60 card). `textH` is the
- * block's measured height; 0 (not laid out yet) answers false, so the band never flashes over
- * text that turns out to be tall — it appears (and draws in) once the room is known.
- */
-export function postmarkFitsCentred(width: number, textH: number): boolean {
-  if (!(textH > 0)) return false;
-  const H = stampHeight(width);
-  const row = Math.max(H, textH);
-  const stampTop = (row - H) / 2;
-  const textBottom = (row + textH) / 2;
-  return textBottom - stampTop <= postmarkFor(width).maxTextBlockPt;
-}
-
 /* ── the component ── */
 
 export interface StampProps {
@@ -231,15 +192,10 @@ export interface StampProps {
   id?: string | null;
   /** the rendered width in pt, from STAMP_LADDER; the height is always 1.2 × width */
   width: number;
-  /** a stamp that came on someone's letter: from M up it tilts by `letterId` and is postmarked */
+  /** a stamp that came on someone's letter: from M up it tilts by `letterId` */
   delivered?: boolean;
   /** the delivered letter's id: the tilt's seed (no id, no tilt) */
   letterId?: string | null;
-  /** false leaves the postmark off a delivered stamp — when the text beside it would reach the
-      band (postmarkFitsCentred). It is never drawn shortened. */
-  postmark?: boolean;
-  /** draw the postmark in, left to right, when the stamp first appears (a card's first view) */
-  drawIn?: boolean;
   /** the surface under it is dark: Midnight's paper, no keyline, the rim at chip and XS.
       Defaults to the theme's; a picture with its own light ground (a guide reel) passes false. */
   dark?: boolean;
@@ -248,9 +204,8 @@ export interface StampProps {
 
 /** room round the box for the keyline's or the rim's outer half (at most 0.75pt) */
 const PAD_PT = 1;
-const DRAW_IN_EASE = Easing.out(Easing.quad);
 
-export const Stamp = memo(function Stamp({ id, width, delivered = false, letterId, postmark: withPostmark = true, drawIn = false, dark, style }: StampProps) {
+export const Stamp = memo(function Stamp({ id, width, delivered = false, letterId, dark, style }: StampProps) {
   const theme = useTheme();
   const isDark = dark ?? theme.dark;
   const plan = useMemo(() => planFor(id, width), [id, width]);
@@ -266,9 +221,6 @@ export const Stamp = memo(function Stamp({ id, width, delivered = false, letterI
       <View style={{ position: "absolute", left: 0, top: 0, width: plan.width, height: plan.height, transform: deg ? [{ rotate: `${deg}deg` }] : undefined }}>
         <StampFace plan={plan} dark={isDark} />
       </View>
-      {/* no postmark: the owner took the wavy lines off on 2026-10-18 (too faint, beside the stamp
-          rather than on it, crowding the card's head). `postmark` / `drawIn` are no longer drawn;
-          they go with their callers once the chat pass lands. */}
     </View>
   );
 });
@@ -318,35 +270,6 @@ const StampFace = memo(function StampFace({ plan, dark }: { plan: StampPlan; dar
     </Svg>
   );
 });
-
-/* The postmark, in the card's points relative to the stamp's unrotated top-left (lib/stamp-frame
-   postmark), on its own Svg that starts 1.1 W left of the stamp. The draw-in reveals it through a
-   clip that widens left to right; with Reduce Motion, or without drawIn, it is simply there. */
-function Postmark({ width, dark, drawIn }: { width: number; dark: boolean; drawIn: boolean }) {
-  const g = postmarkFor(width);
-  const ink = postmarkInk(dark);
-  const reduce = useReducedMotion();
-  const animate = drawIn && !reduce;
-  const left = g.x0 - PAD_PT;
-  const top = g.top - PAD_PT;
-  const w = g.x1 - g.x0 + 2 * PAD_PT;
-  const h = g.bottom - g.top + 2 * PAD_PT;
-  const p = useSharedValue(animate ? 0 : 1);
-  useEffect(() => {
-    if (animate) p.value = withTiming(1, { duration: POSTMARK.drawInMs, easing: DRAW_IN_EASE });
-    else p.value = 1;
-  }, [animate, p]);
-  const reveal = useAnimatedStyle(() => ({ width: w * p.value }));
-  return (
-    <Animated.View pointerEvents="none" style={[{ position: "absolute", left, top, height: h, overflow: "hidden" }, reveal]}>
-      <Svg width={w} height={h} viewBox={`${left} ${top} ${w} ${h}`}>
-        {g.paths.map((d, i) => (
-          <Path key={i} d={d} fill="none" stroke={ink.color} strokeOpacity={ink.opacity} strokeWidth={g.strokePt} />
-        ))}
-      </Svg>
-    </Animated.View>
-  );
-}
 
 /* ── the empty corner ── */
 

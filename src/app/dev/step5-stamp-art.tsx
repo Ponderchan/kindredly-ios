@@ -14,7 +14,7 @@ import { PF } from "../../theme/post";
    kindredly:///dev/step5-stamp-art
 
    Every stamp here is components/Stamp, drawn from lib/stamp-frame (the paper, the bites, the
-   window, the ground, the colours, the keyline, the tilt, the postmark, the ladder) and
+   window, the ground, the colours, the keyline, the tilt, the ladder) and
    data/stamp-art-v2 (the drawings), to check them on a device before the Swift renderer (KStamp)
    draws the same thing. No network, no account: everything is bundled.
 
@@ -24,11 +24,11 @@ import { PF } from "../../theme/post";
      surface (Classic) and Midnight side by side, whatever the app's theme.
    - LADDER: one stamp from each category (so all six series grounds show) at every tier: the
      dot (9), chip 15, XS 20, S 25 and 30, M 40, 50 and 60, L 80 and 120 — flat. Then delivered
-     at 40, 50, 60, 80 and 120, each tilted by a sample letter id (the four tilts, −3 to +3°, in
-     turn; the ids are the golden ones in lib/stamp-frame.test) and postmarked: the band starts
-     1.1 W left of the stamp, so those cells leave the room. Each row scrolls sideways.
+     at 40, 50, 60, 80 and 120, each tilted by a sample letter id (the four tilts, −2 to +2°, in
+     turn; the ids are the golden ones in lib/stamp-frame.test). No postmark (the owner took it
+     off on 2026-10-18). Each row scrolls sideways.
    - PLACEMENTS: every entry of STAMP_LADDER at its own size, with its rule (a fixed angle,
-     the letter's tilt and the postmark, or flat), named as the code names it. The compose
+     the letter's tilt, or flat), named as the code names it. The compose
      corner shows both states: the empty dashed outline (ind on lav2) and a stamp in it, at 8°.
      The landing wall's scatter is the web's and is drawn flat here.
    - FALLBACK: an id this build doesn't know (the template in #8B7FE8) at XS, M and L, and the
@@ -189,15 +189,14 @@ function LadderSheet({ theme }: { theme: KThemeKey }) {
           {MAIL_WIDTHS.map((w, c) => {
             const letter = LETTER_IDS[(r + c) % LETTER_IDS.length];
             return (
-              // the postmark starts 1.1 W left of the stamp: leave it that room
-              <View key={w} style={{ marginLeft: 1.1 * w + 8 }}>
+              <View key={w} style={{ marginLeft: 18 }}>
                 <Stamp id={id} width={w} delivered letterId={letter} dark={kt.dark} />
               </View>
             );
           })}
         </ScrollView>
       ))}
-      <Caption color={kt.mute}>{MAIL_WIDTHS.map((w) => `${w}×${stampHeight(w)}`).join(" · ")} · TILT BY LETTER ID, POSTMARK</Caption>
+      <Caption color={kt.mute}>{MAIL_WIDTHS.map((w) => `${w}×${stampHeight(w)}`).join(" · ")} · TILT BY LETTER ID</Caption>
     </View>
   );
 }
@@ -211,13 +210,13 @@ function Placements() {
       {entries.map(([name, p], i) => {
         const id = STAMPS[(i * 7) % STAMPS.length].id;
         const letter = LETTER_IDS[i % LETTER_IDS.length];
-        const rule = p.tilt === "letter" ? `TILT ${tilt(letter)}° (LETTER) · POSTMARK` : typeof p.tilt === "number" && p.tilt ? `${p.tilt}°` : p.tilt === "scatter" ? "SCATTER (WEB), FLAT HERE" : "FLAT";
+        const rule = p.tilt === "letter" ? `TILT ${tilt(letter)}° (LETTER)` : typeof p.tilt === "number" && p.tilt ? `${p.tilt}°` : p.tilt === "scatter" ? "SCATTER (WEB), FLAT HERE" : "FLAT";
         return (
           <View key={name} style={{ gap: 6 }}>
             <Caption color={tk.mute}>
               {name.toUpperCase()} · {p.w}×{p.h} · {tierFor(p.w).toUpperCase()} · {rule}
             </Caption>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingLeft: p.postmark ? 1.1 * p.w + 4 : 0 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingLeft: 0 }}>
               {name === "composeCorner" && (
                 <View style={{ transform: [{ rotate: `${p.tilt}deg` }] }}>
                   <StampSlot width={p.w} fill={tk.lav2} stroke={tk.ind} />

@@ -17,7 +17,7 @@ import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
-import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
+import { Stamp } from "../../components/Stamp";
 import { InkPanel, SecondaryHeader } from "../../components/10a";
 import { isVoiceLetter, largeType, readerLetters } from "./reader";
 import { canTalk, faceKind, lettersValue, openingLetter, pageTitle, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
@@ -270,22 +270,18 @@ function SoftGroup({ children }: { children: ReactNode }) {
    stamp at the ladder's kindredBeganUnder, 40×48, delivered — it came on
    the letter that opened the correspondence, so it tilts by that letter's
    id (threads.letter, the pool letter's own id: the same tilt the Today
-   card gave it) and carries the postmark. A thread older than 0020 has no
-   letter id; it tilts by the thread's id instead, stable all the same.
-   The postmark runs under the name, so it is drawn only while the name
-   ends above 0.72 of the stamp's height: a name that wraps, or a large
-   type size, leaves it off rather than crossing the words. */
+   card gave it). A thread older than 0020 has no letter id; it tilts by
+   the thread's id instead, stable all the same. */
 const BEGAN = STAMP_LADDER.kindredBeganUnder;
 
 function BeganUnder({ name, stamp, letterId }: { name: string; stamp: string; letterId: string | null }) {
   const { t: tk } = useTheme();
-  const [nameH, setNameH] = useState(0);
   return (
     <View style={{ flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Text onLayout={(e) => setNameH(e.nativeEvent.layout.height)} style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub }}>
+      <Text style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub }}>
         {name}
       </Text>
-      <Stamp id={stamp} width={BEGAN.w} delivered letterId={letterId} postmark={postmarkFitsCentred(BEGAN.w, nameH)} />
+      <Stamp id={stamp} width={BEGAN.w} delivered letterId={letterId} />
     </View>
   );
 }

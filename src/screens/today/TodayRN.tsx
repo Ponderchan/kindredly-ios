@@ -44,7 +44,7 @@ import { localeTag } from "../../lib/format";
 import { playbackPosition } from "../../lib/voice-playback";
 import type { PoolLetter } from "../../lib/db";
 import { MosaicId } from "../../components/MosaicId";
-import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
+import { Stamp } from "../../components/Stamp";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AudioCardView } from "../../components/AudioCard";
 import { SignalChip } from "../../components/SignalChip";
@@ -1062,12 +1062,8 @@ function StatusCard({ kind, strings }: { kind: "loading" | "offline"; strings: T
 /* THE STAMP THEY PASTED (stamps v2, owner 2026-10-18): top-right of the
    card head, where the 34 box with the 28 art used to be, at the ladder's
    todayCard, 50×60 — delivered mail, so it tilts by the letter's id (the
-   same tilt the sender's phone and the web give it) and carries the wavy
-   postmark, which draws in on the card's first view. No box round it: a
-   stamp is never framed twice. The postmark runs 55pt left of the stamp
-   along its lower edge, under the when-and-who line, so it is drawn only
-   while that line ends above 0.72 of the stamp's height (43pt): a large
-   Dynamic Type size leaves it off rather than letting it cross the text. */
+   same tilt the sender's phone and the web give it). No box round it: a
+   stamp is never framed twice. No postmark (the owner took it off). */
 const CARD_STAMP = STAMP_LADDER.todayCard;
 
 function CardFace({
@@ -1102,8 +1098,6 @@ function CardFace({
   const playing = model.voice.state?.key === card.id && !!model.voice.state?.playing;
   const [frameH, setFrameH] = useState(0);
   const [textH, setTextH] = useState(0);
-  // the when-and-who line's height, for the postmark's room beside the stamp
-  const [metaH, setMetaH] = useState(0);
   /* the letter's tier, or while writing back no more than 20, its leading scaled with it (30/40 →
      20/26.7; the long letter's 18/29 keeps its own): the shrunk card still shows its head and a few
      lines, folded as below (KCardText.compact) */
@@ -1133,10 +1127,10 @@ function CardFace({
         {/* the docket: their face, when and who on the left, the stamp they pasted, the ⋯ */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <MosaicId seed={letter?.author ?? null} cell={4.8} gap={1} />
-          <Text numberOfLines={1} onLayout={(ev) => setMetaH(ev.nativeEvent.layout.height)} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
+          <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
             {card.postmark}
           </Text>
-          <Stamp id={card.stampId} width={CARD_STAMP.w} delivered letterId={card.id} postmark={postmarkFitsCentred(CARD_STAMP.w, metaH)} drawIn={!still} />
+          <Stamp id={card.stampId} width={CARD_STAMP.w} delivered letterId={card.id} />
           {/* THE POOL IS WHERE REPORT MATTERS MOST: always reachable */}
           {card.menu.length > 0 && (
             <Pressable

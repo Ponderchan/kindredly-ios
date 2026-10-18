@@ -3,7 +3,7 @@
    silhouette(), produced independently by the kit's Python, so a drift in the port fails here),
    the window, the six series grounds, the colours (half-up mixing, pinned on the one stamp where
    it matters), the keyline and rim, the tilt (FNV-1a 32 of the letter id, checked against a
-   byte-wise FNV-1a written here), the postmark and the ladder (every size 5:6, each in the tier
+   byte-wise FNV-1a written here) and the ladder (every size 5:6, each in the tier
    the spec names, the Today card 50×60 and the compose corner 40×48 at 8° as the owner confirmed
    on 2026-10-18).
    design/stamps-v2/golden.json carries the same goldens for the Swift side (KStampShape must
@@ -89,7 +89,7 @@ ok("paper from S up; the field is the stamp at chip and XS", same(F.STAMP_TIERS.
 ok("the motif: none, none, the xs cut, then the art", same(F.STAMP_TIERS.map((s) => s.motif), ["none", "none", "xs", "art", "art", "art", "art"]));
 ok("grounds from M up", same(F.STAMP_TIERS.map((s) => s.ground), [false, false, false, false, true, true, true]));
 ok("soft: none below S, S drops its small marks, M up keeps all", same(F.STAMP_TIERS.map((s) => s.soft), ["none", "none", "none", "s", "all", "all", "all"]));
-ok("tilt and postmark only from M up", same(F.STAMP_TIERS.map((s) => s.delivered), [false, false, false, false, true, true, true]));
+ok("tilt by the letter only from M up", same(F.STAMP_TIERS.map((s) => s.delivered), [false, false, false, false, true, true, true]));
 ok("strokeU: 4.31u where the floor doesn't bind (50 wide)", F.strokeU(50) === 4.31);
 ok("strokeU: XS 20 wide never under 1.5pt (7.5u)", Math.abs(F.strokeU(20) - 7.5) < 1e-9);
 ok("strokeU: S 25 wide never under 1.25pt (5u)", Math.abs(F.strokeU(25) - 5) < 1e-9);
@@ -166,31 +166,12 @@ for (const [id, deg] of GOLDEN_TILT) ok(`tilt(${id}) = ${deg}`, F.tilt(id) === d
 ok("the four tilts, in order", same(F.STAMP_TILTS, [-2, -1, 1, 2]));
 ok("the goldens cover all four tilts", new Set(GOLDEN_TILT.map(([, d]) => d)).size === 4);
 
-/* ── postmark ────────────────────────────────────────────────────────── */
-
-const pm = F.postmark(50);
-ok("postmark at the card: 1.3 W long, right end over the stamp's left 20% (x −55 to 10)", pm.x0 === -55 && pm.x1 === 10);
-ok("postmark at the card: the band is 0.73–0.95 H (43.8–57 of 60)", pm.top === 43.8 && pm.bottom === 57);
-ok("postmark: four lines 3.6pt apart, amplitude 1.2", same(pm.axes, [45, 48.6, 52.2, 55.8]) && pm.paths.length === 4);
-ok("postmark: 1pt lines", pm.strokePt === 1 && F.POSTMARK.strokePt === 1);
-ok("postmark at the card: text may reach 0.72 H (43.2pt), just above the band's ink (43.3)", pm.maxTextBlockPt === 43.2);
-ok("postmark: each line runs from x0 to x1, numbers to 2 decimals",
-  pm.paths.every((d, j) => d.startsWith(`M-55,${pm.axes[j]}L`) && d.endsWith(`L10,${pm.axes[j]}`) && !/\.\d{3}/.test(d)));
-ok("postmark: the crests and troughs touch the band's edges", (() => {
-  const ys = pm.paths.flatMap((d) => [...d.matchAll(/,(-?[\d.]+)/g)].map((m) => Number(m[1])));
-  return Math.min(...ys) === 43.8 && Math.max(...ys) === 57;
-})());
-const pm40 = F.postmark(40);
-ok("postmark at 40: the band keeps its points, so text must stay above its ink (31.9)", pm40.top === 32.4 && pm40.bottom === 45.6 && pm40.maxTextBlockPt === 31.9);
-ok("postmark ink: ln 28% light, Midnight ln 30%", same(F.postmarkInk(false), { color: "#1E1B35", opacity: 0.28 }) && same(F.postmarkInk(true), { color: "#D4D0EA", opacity: 0.3 }));
-ok("postmark draws in over 180ms", F.POSTMARK.drawInMs === 180);
-
 /* ── the ladder ──────────────────────────────────────────────────────── */
 
 const L = F.STAMP_LADDER;
 ok("every placement is 5:6", Object.values(L).every((p) => p.h === F.stampHeight(p.w) && p.w * 6 === p.h * 5));
-ok("Today card: 50×60, tilt from the letter, postmark (owner, 2026-10-18)", same(L.todayCard, { w: 50, h: 60, tilt: "letter", postmark: true }));
-ok("compose corner: 40×48 at the App Store page's 8°, no postmark (owner, 2026-10-18)", same(L.composeCorner, { w: 40, h: 48, tilt: 8, postmark: false }));
+ok("Today card: 50×60, tilt from the letter (owner, 2026-10-18)", same(L.todayCard, { w: 50, h: 60, tilt: "letter" }));
+ok("compose corner: 40×48 at the App Store page's 8° (owner, 2026-10-18)", same(L.composeCorner, { w: 40, h: 48, tilt: 8 }));
 const TIER_OF: Partial<Record<keyof typeof L, Tier>> = {
   introEnvelope: "chip", liveActivityIsland: "xs", liveActivityLock: "s", routeStop: "xs", chosenPill: "xs", composeKey: "xs",
   composeCorner: "m", trayTile: "m", myLettersRow: "s", draftsRow: "s", kindredBeganUnder: "m", todayCard: "m", readerHead: "m",
@@ -198,10 +179,11 @@ const TIER_OF: Partial<Record<keyof typeof L, Tier>> = {
   spokeInline: "m", spokeFeature: "l", guideReelSmall: "s", guideReelMedium: "m", guideReelLarge: "m",
 };
 ok("each placement falls in the tier the spec names", Object.entries(TIER_OF).every(([k, t]) => F.tierFor(L[k as keyof typeof L].w) === t));
-ok("only delivered mail at M and up tilts by the letter and carries the postmark",
-  Object.values(L).every((p) => (p.tilt === "letter") === p.postmark && (!p.postmark || F.tierSpecFor(p.w).delivered)));
+ok("only delivered mail at M and up tilts by the letter",
+  Object.values(L).every((p) => p.tilt !== "letter" || F.tierSpecFor(p.w).delivered));
+ok("no placement carries a postmark (owner, 2026-10-18)", Object.values(L).every((p) => !("postmark" in p)) && !("postmark" in F));
 ok("First Class: +3°", L.firstClassBanner.tilt === 3 && L.firstClassCard.tilt === 3);
-ok("own stamps, trays, grids and lists: 0°", [L.trayTile, L.myLettersRow, L.draftsRow, L.meYourStamps, L.chosenPill, L.composeKey].every((p) => p.tilt === 0 && !p.postmark));
+ok("own stamps, trays, grids and lists: 0°", [L.trayTile, L.myLettersRow, L.draftsRow, L.meYourStamps, L.chosenPill, L.composeKey].every((p) => p.tilt === 0));
 ok("the store master: 1000 × 1200 px", same(F.STAMP_STORE_MASTER_PX, { w: 1000, h: 1200 }));
 
 /* ── design/stamps-v2/golden.json: the same goldens for Swift ────────── */

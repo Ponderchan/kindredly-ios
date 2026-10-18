@@ -23,7 +23,7 @@ import { noteWrote } from "../../lib/local-push";
 import { getStamp, sname } from "../../data/stamps";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
-import { Stamp, postmarkFitsCentred } from "../../components/Stamp";
+import { Stamp } from "../../components/Stamp";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { ReportSheet } from "../../components/ReportMenu";
 import { InkPanel, ReplyStrip, SecondaryHeader, TopicTag, TranslateCapsule, type ReplyStripHandle } from "../../components/10a";
@@ -94,10 +94,8 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
    decides how: theirs came to you, so it is delivered — tilted by that
    letter's id (a reply's own id; the opening's is the pool letter's,
    threads.letter, so it leans as it did on the Today card; the thread's id
-   when neither is known) and postmarked; your own is flat, no postmark.
-   The postmark runs under the postmark-and-state lines, so it is drawn
-   only while they end above 0.72 of the stamp's height: at accessibility
-   sizes, where they wrap, it is left off. It used to be a 34 tile at 3°. */
+   when neither is known); your own is flat. No postmark (the owner took
+   it off on 2026-10-18). It used to be a 34 tile at 3°. */
 const HEAD_STAMP = STAMP_LADDER.readerHead;
 
 /** Their language for the capsule: a non-Latin script by its own name, else the Latin guess;
@@ -131,8 +129,6 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   const heroKey = hero ? letterLinkKey(hero) || `i:${heroIdx}` : "";
   const earlier = conv.filter((_, k) => k !== heroIdx);
   const [expanded, setExpanded] = useState(false);
-  // the head's words (postmark and state), for the postmark's room beside the stamp
-  const [headTextH, setHeadTextH] = useState(0);
 
   const fmt: ReaderFormat = useMemo(
     () => ({ t, locale: localeTag(), postmark, penPal: (other: string) => penPalName(other, { upper: true, compact: true }) }),
@@ -269,7 +265,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 {/* the head: who, when, the stamp it travelled under, and the ··· */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <View style={{ minWidth: 28, alignItems: "center" }}>{face}</View>
-                  <View onLayout={(e) => setHeadTextH(e.nativeEvent.layout.height)} style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flex: 1, gap: 2 }}>
                     <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { color: tk.sub }]}>
                       {/* the number is what you call someone WITHOUT a name; once they have one it
                           replaces the number — printing both says the reveal only half happened */}
@@ -287,7 +283,6 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                       width={HEAD_STAMP.w}
                       delivered={!hero.mine}
                       letterId={hero.id || detail.letterId || id || null}
-                      postmark={postmarkFitsCentred(HEAD_STAMP.w, headTextH)}
                     />
                   )}
                   {!flow.nobody && (
