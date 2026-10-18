@@ -197,6 +197,11 @@ export default function Onboarding() {
   const [youPro, setYouPro] = useState<PronounId | null>(null);
   const nowY = new Date().getFullYear();
   const [dob, setDob] = useState({ m: 7, d: 12, y: nowY - 20 });
+  /* THE GATE IS ANSWERED, NOT PASSED BY DEFAULT. The wheel rests on a date
+     twenty years back, so NEXT used to pass the 18+ check without a touch
+     (found 2026-10-18). The age and the key wait until a wheel has turned (or
+     a birthday was already set this run), and say nothing about 18 before. */
+  const [dobTouched, setDobTouched] = useState(false);
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [eggVar, setEggVar] = useState(0);
   const [birdName, setBirdName] = useState("");
@@ -380,6 +385,8 @@ export default function Onboarding() {
   const nd = new Date();
   if (nd.getMonth() < dob.m || (nd.getMonth() === dob.m && nd.getDate() < dob.d)) age -= 1;
   const ageOk = age >= 18;
+  // a wheel turned, or the birthday was already set earlier in this run
+  const dobAnswered = dobTouched || dobSet;
   const dobStr = `${dob.y}-${String(dob.m + 1).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`;
 
   const line = note.trim();
@@ -823,9 +830,9 @@ export default function Onboarding() {
           <Head plain={t("ob.cakeday.plain", { name: handle || t("ob.hey") })} em={t("ob.cakeday.em")} sub={t("ob.cakeday.sub")} />
           <Animated.View entering={FadeInDown.delay(120).duration(420)} style={{ paddingHorizontal: 18, marginTop: 16 }}>
             <View style={[card, bevel(4, 4), { flexDirection: "row", overflow: "hidden" }]}>
-              <Wheel items={monthsShort()} value={dob.m} onChange={(i) => setDob((d) => ({ ...d, m: i }))} />
-              <Wheel items={days} value={dob.d - 1} onChange={(i) => setDob((d) => ({ ...d, d: i + 1 }))} />
-              <Wheel items={years} value={yi} onChange={(i) => setDob((d) => ({ ...d, y: years[i] }))} />
+              <Wheel items={monthsShort()} value={dob.m} onChange={(i) => { setDobTouched(true); setDob((d) => ({ ...d, m: i })); }} />
+              <Wheel items={days} value={dob.d - 1} onChange={(i) => { setDobTouched(true); setDob((d) => ({ ...d, d: i + 1 })); }} />
+              <Wheel items={years} value={yi} onChange={(i) => { setDobTouched(true); setDob((d) => ({ ...d, y: years[i] })); }} />
               {/* the selection band, ruled once across the three columns in the divider colour */}
               <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 88, height: 2, backgroundColor: tk.line }} />
               <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 132, height: 2, backgroundColor: tk.line }} />
@@ -834,19 +841,21 @@ export default function Onboarding() {
             {/* the age, live — one pill that turns when the answer does. The
                 under-18 state is a warning, which 10a has no token for: its
                 pink, its postmark red and its brown type are a fixed set */}
-            <View style={{ alignItems: "center", marginTop: 16 }}>
-              <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? Y.panel : "#FBE7E1", borderColor: ageOk ? Y.ln : Y.warn, shadowColor: ageOk ? Y.ln : Y.warn, paddingHorizontal: 16, paddingVertical: 8 }]}>
-                <Text style={[mono(10.5, "b"), { color: ageOk ? Y.ink : "#8E3B2A", letterSpacing: 1 }]}>
-                  {ageOk ? t("ob.ageIs", { n: String(age) }) + " ✓" : t("ob.age.under", { n: String(age) })}
-                </Text>
+            {dobAnswered && (
+              <View style={{ alignItems: "center", marginTop: 16 }}>
+                <View style={[tag, bevel(2.5, 2.5), { backgroundColor: ageOk ? Y.panel : "#FBE7E1", borderColor: ageOk ? Y.ln : Y.warn, shadowColor: ageOk ? Y.ln : Y.warn, paddingHorizontal: 16, paddingVertical: 8 }]}>
+                  <Text style={[mono(10.5, "b"), { color: ageOk ? Y.ink : "#8E3B2A", letterSpacing: 1 }]}>
+                    {ageOk ? t("ob.ageIs", { n: String(age) }) + " ✓" : t("ob.age.under", { n: String(age) })}
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
           </Animated.View>
         </ScrollView>
         {!cakeLate && <EggDock status={eggStatus} style={breathe} kick={kick} />}
         <Foot
-          label={ageOk ? `${t("ob.next")} ›` : t("ob.age.only")}
-          on={ageOk}
+          label={!dobAnswered || ageOk ? `${t("ob.next")} ›` : t("ob.age.only")}
+          on={dobAnswered && ageOk}
           onPress={() => {
             setDobSet(true);
             go(cakeLate ? "dress" : "avatar");
