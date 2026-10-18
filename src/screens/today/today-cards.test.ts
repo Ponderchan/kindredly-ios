@@ -1,9 +1,11 @@
 /* Behaviour lock for the Today tab's model (screens/today/today-cards): the
    saved day (read, phase, pass / bring back / answer / drop, seen, freeze,
-   done, the relaunch), how a load deals, her counted letter and the window,
-   the card both renderers draw, the reply's send key and hint, what a
-   refused reply does, and the desk's geometry (the same numbers Swift's
-   KTodayGeometry uses). Also lib/day's morning (pure).
+   done, the relaunch), left as the desk's own intersection, the seal held
+   against the desk, how a load deals, her counted letter and the window,
+   how Wren rests on the band (her night hours, her hunger), the card both
+   renderers draw, the reply's send key and hint, what a refused reply
+   does, and the desk's geometry (the same numbers Swift's KTodayGeometry
+   uses). Also lib/day's morning (pure).
    Not wired to a runner; run by hand from the repo root with plain node (it
    strips the types itself from Node 22.18 / 23.6 on):
      node src/screens/today/today-cards.test.ts
@@ -68,17 +70,20 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   const cur = [L({ id: "a" }), L({ id: "b" }), L({ id: "c" })];
   const fresh = [L({ id: "d" }), L({ id: "a" })];
   const fullPage = Array.from({ length: M.POOL_PAGE }, (_, i) => L({ id: "p" + i }));
-  const kept = M.keepDesk(cur, fullPage, fresh);
+  const kept = M.keepDesk(cur, fullPage, false, fresh);
   ok("keepDesk: a full page can't say a letter is gone — the desk keeps its order", ids(kept) === "a,b,c,d");
   const short = [L({ id: "a" }), L({ id: "c" }), L({ id: "d" })];
-  ok("keepDesk: a short page (the whole pool) drops what the server no longer has", ids(M.keepDesk(cur, short, fresh)) === "a,c,d");
+  ok("keepDesk: the whole pool drops what the server no longer has", ids(M.keepDesk(cur, short, true, fresh)) === "a,c,d");
+  // the 2026-10-18 bug: a full page the phone filtered (own, kindreds, blocked) is short but not whole
+  ok("keepDesk: a filtered page shorter than a page still can't say a letter is gone", ids(M.keepDesk(cur, short, false, fresh)) === "a,b,c,d");
+  ok("keepDesk frozen: a filtered page prunes nothing", M.keepDesk(cur, short, false, fresh, true) === cur);
   const many = Array.from({ length: 20 }, (_, i) => L({ id: "n" + i }));
-  ok("keepDesk: new letters join at the end, up to the fifteen", M.keepDesk(cur, fullPage, many).length === 15);
+  ok("keepDesk: new letters join at the end, up to the fifteen", M.keepDesk(cur, fullPage, false, many).length === 15);
   const big = Array.from({ length: 16 }, (_, i) => L({ id: "k" + i }));
-  ok("keepDesk: a desk already past fifteen isn't cut", M.keepDesk(big, fullPage, many).length === 16);
-  ok("keepDesk frozen: nothing joins, even with room", ids(M.keepDesk(cur, fullPage, many, true)) === "a,b,c");
-  ok("keepDesk frozen: a withdrawn letter still leaves (short page)", ids(M.keepDesk(cur, short, fresh, true)) === "a,c");
-  ok("keepDesk frozen: nothing pruned keeps the same array", M.keepDesk(cur, fullPage, many, true) === cur);
+  ok("keepDesk: a desk already past fifteen isn't cut", M.keepDesk(big, fullPage, false, many).length === 16);
+  ok("keepDesk frozen: nothing joins, even with room", ids(M.keepDesk(cur, fullPage, false, many, true)) === "a,b,c");
+  ok("keepDesk frozen: a withdrawn letter still leaves (whole pool)", ids(M.keepDesk(cur, short, true, fresh, true)) === "a,c");
+  ok("keepDesk frozen: nothing pruned keeps the same array", M.keepDesk(cur, fullPage, false, many, true) === cur);
 }
 
 /* ── the saved day: what AsyncStorage holds ── */
@@ -112,6 +117,28 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("phase: everything passed → done", M.deskPhase({ loaded: true, offline: false, desk: letters, passed: ["a", "b", "c"] }) === "done");
   ok("phase: a quiet day (loaded, nothing dealt) → done", M.deskPhase({ loaded: true, offline: false, desk: [], passed: [] }) === "done");
   ok("phase: left and current come from the desk, never 15 minus the passed", M.unpassed(letters, ["b"]).length === 2 && M.unpassed(letters, ["a"])[0].id === "b");
+  /* left is the intersection of the desk and the passed list: an id in
+     passed that isn't on the desk (a dev fixture's id, a letter blocked
+     after it was passed) never lowers NEXT's number or moves the letter on
+     screen */
+  ok("left: a passed id not on the desk doesn't move it", M.unpassed(letters, ["b", "step5-t1"]).length === 2 && M.unpassed(letters, ["b", "step5-t1"])[0].id === "a");
+  ok("left: passed ids none of which are on the desk leave the whole desk", M.unpassed(letters, ["zz", "yy"]).length === 3 && M.deskPhase({ loaded: true, offline: false, desk: letters, passed: ["zz", "yy"] }) === "reading");
+}
+
+/* ── the seal: the flag held against the desk ── */
+{
+  ok("seal: nothing is decided before the load (a placeholder desk is reading, but isn't the day yet)", M.sealVerdict({ loaded: false, phase: "reading", flagged: true }) === "wait" && M.sealVerdict({ loaded: false, phase: "loading", flagged: true }) === "wait" && M.sealVerdict({ loaded: false, phase: "offline", flagged: false }) === "wait");
+  ok("seal: a flag over a desk that is reading is stale (done is the only sealer, and it is final)", M.sealVerdict({ loaded: true, phase: "reading", flagged: true }) === "stale");
+  ok("seal: reading without a flag is simply open", M.sealVerdict({ loaded: true, phase: "reading", flagged: false }) === "open");
+  ok("seal: a finished desk with its flag is sealed (a relaunch never seals again)", M.sealVerdict({ loaded: true, phase: "done", flagged: true }) === "sealed");
+  ok("seal: a finished desk without its flag is left alone (done may be sealing this moment)", M.sealVerdict({ loaded: true, phase: "done", flagged: false }) === "keep");
+  // the recovery, end to end on the record: a legacy { day, desk } under an old flag fills, reads, and may close again
+  const legacy = M.readDayRecord(JSON.stringify({ day: TODAY, desk: desk3() }), TODAY);
+  const legacyPhase = legacy ? M.deskPhase({ loaded: true, offline: false, desk: legacy.rec.desk, passed: legacy.rec.passed }) : "loading";
+  ok("seal: a legacy record of today under an old flag is reading, so the flag goes", legacyPhase === "reading" && M.sealVerdict({ loaded: true, phase: legacyPhase, flagged: true }) === "stale");
+  // the phase never comes from the flag: a finished record is done with or without it, a reading one is reading with or without it
+  const finished = M.markDone({ ...recOf(), passed: ["a", "b", "c"] }, 1);
+  ok("seal: the phase is the record's, never the flag's", M.deskPhase({ loaded: true, offline: false, desk: finished.desk, passed: finished.passed }) === "done" && M.deskPhase({ loaded: true, offline: false, desk: desk3(), passed: ["a"] }) === "reading");
 }
 
 /* ── pass, bring back, answer, drop ── */
@@ -214,6 +241,14 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("her letter: no reply and nobody waiting leave their lines out", L2.join("|") === "wl.count.N(n=4)|wl.next(t=8:00)|wl.invite");
   const f = M.wrenLetterFacts({ rec: recOf({ passed: ["a", "b"], answered: ["z"] }), waiting: 3, canPlay: true });
   ok("her letter: the count is passed + answered, replies are the answered", f.count === 3 && f.replied === 1 && f.waiting === 3);
+  // "That's 15" is only ever fifteen letters passed or answered: the desk's size and the seen list never count
+  const fifteen = Array.from({ length: 15 }, (_, i) => L({ id: "f" + i }));
+  const two = M.wrenLetterFacts({ rec: { ...M.emptyDay(TODAY), desk: fifteen, passed: ["f0", "f1"], seen: ["f0", "f1", "f2", "f3"] }, waiting: 0, canPlay: true });
+  ok("her letter: the count is what went past (2 of a 15 desk), not the desk and not the seen", two.count === 2 && two.replied === 0);
+  const allGone = fifteen.reduce((r, l) => M.passLetter(r, l.id), { ...M.emptyDay(TODAY), desk: fifteen });
+  ok("her letter: fifteen passed counts fifteen", M.wrenLetterFacts({ rec: allGone, waiting: 2, canPlay: true }).count === 15);
+  const mixed = M.answerLetter(M.passLetter(M.passLetter({ ...M.emptyDay(TODAY), desk: fifteen }, "f0"), "f1"), "f2");
+  ok("her letter: two passed and one answered count three, one of them a reply", M.wrenLetterFacts({ rec: mixed, waiting: 0, canPlay: true }).count === 3 && M.wrenLetterFacts({ rec: mixed, waiting: 0, canPlay: true }).replied === 1);
 
   ok("countdown: minutes padded", M.countdownLabel({ h: 8, m: 6 }, t) === "ld.countdown(h=8,m=06)" && M.countdownLabel({ h: 0, m: 45 }, t) === "ld.countdown(h=0,m=45)");
 
@@ -251,6 +286,19 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("night hours: 21:00 to 07:59", D.isNightHour(21) && D.isNightHour(0) && D.isNightHour(7) && !D.isNightHour(8) && !D.isNightHour(20));
 }
 
+/* ── Wren at rest on the band: her night hours, her hunger ── */
+{
+  ok("rest: by day she rests content", M.wrenRest({ hour: 14, wilt: false }).face === "idle");
+  ok("rest: 20:59 is still day", M.wrenRest({ hour: 20, wilt: false }).face === "idle");
+  ok("rest: from 21:00 she rests sleepy", M.wrenRest({ hour: 21, wilt: false }).face === "sleepy");
+  ok("rest: past midnight she's still sleepy", M.wrenRest({ hour: 0, wilt: false }).face === "sleepy" && M.wrenRest({ hour: 3, wilt: false }).face === "sleepy");
+  ok("rest: 07:59 is still night (her morning is 8)", M.wrenRest({ hour: 7, wilt: false }).face === "sleepy");
+  ok("rest: at 8 she's awake (the desk's morning)", M.wrenRest({ hour: D.MORNING_HOUR, wilt: false }).face === "idle");
+  ok("rest: starving, she wears her wilted pictures", M.wrenRest({ hour: 14, wilt: true }).wilt === true && M.wrenRest({ hour: 14, wilt: true }).face === "idle");
+  ok("rest: starving at night: sleepy AND wilted", (() => { const r = M.wrenRest({ hour: 23, wilt: true }); return r.face === "sleepy" && r.wilt; })());
+  ok("rest: fed, she's back in her colours", M.wrenRest({ hour: 14, wilt: false }).wilt === false);
+}
+
 /* ── the arrival ── */
 {
   ok("arrival: settles once three letters have been passed", !M.arrivalSettled(2) && M.arrivalSettled(3) && M.ARRIVAL_LETTERS === 3);
@@ -264,6 +312,11 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   const c = M.buildCard({ letter: L({ id: "a" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
   ok("card: docket is postmark · NO.xxxx", c.postmark === "PM09 · NO.8007");
   ok("card: the face is the author's FACE v1 mask", c.mask === mosaicMask("author-a", 1) && !c.ghost);
+  // the who slot (identity-plan §9 + addendum, Phase 0): the final shape, with today's data
+  ok("card: who is the pen pal's number in title case until the names switch", c.who.name === "No. 8007");
+  ok("card: no mark and no sign until the switch", c.who.mark === null && c.who.markLabel === "" && c.who.sign === null && c.who.signLabel === "");
+  ok("card: the face slot holds the FACE v1 mosaic", c.who.face.kind === "mosaic" && c.who.face.mask === mosaicMask("author-a", 1));
+  ok("card: when is the postmark's date alone", c.when === "PM09");
   ok("card: the topic tag is the stamp's name in lowercase with a #", c.topic === "#tiny win");
   ok("card: a short letter is a telegram (30/40, centred)", c.bodySize === 30 && c.bodyLine === 40 && c.bodyCenter);
   ok("card: the menu is Report then Block (destructive)", c.menu.map((m) => m.key).join() === "report,block" && c.menu[1].destructive === true);
@@ -288,6 +341,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
 
   const ghost = M.buildCard({ letter: L({ id: "g", author: null }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
   ok("card: a deleted account is UNSIGNED, the veil, and has nothing to report", ghost.postmark === "PM09 · ld.unsigned" && ghost.mask === VEIL_MASK && ghost.ghost && ghost.menu.length === 0);
+  ok("card: who for a deleted account is UNSIGNED behind the veil", ghost.who.name === "ld.unsigned" && ghost.who.face.kind === "veil" && ghost.who.mark === null && ghost.who.sign === null);
   ok("card: an unsigned letter's field just says write back", ghost.replyPlaceholder === "ld.writeBackPh");
 
   const unknown = M.buildCard({ letter: L({ id: "u", stamp: "nope" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
@@ -395,7 +449,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
 /* ── the geometry ── */
 {
   const big = M.deskGeometry({ hostH: 852, safeTop: 54, tabBarRoom: 98 });
-  ok("geometry: 393×852 (top 54, room 98) is the design exactly: 110 / 548 / 672", big.cardTop === 110 && big.cardH === 548 && big.controlTop === 672);
+  ok("geometry: 393×852 (top 54, room 98), the band 68: 110 / 560 / 684", big.cardTop === 110 && big.cardH === 560 && big.controlTop === 684);
   const se = M.deskGeometry({ hostH: 667, safeTop: 20, tabBarRoom: 84 });
   ok("geometry: an iPhone SE's card stays a letter (360 or more)", se.cardH >= 360 && se.cardTop === 76 && se.controlTop === se.cardTop + se.cardH + 14);
   const tiny = M.deskGeometry({ hostH: 500, safeTop: 20, tabBarRoom: 84 });

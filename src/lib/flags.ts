@@ -46,7 +46,13 @@ export async function unsetFlag(name: string): Promise<void> {
    when the last letter left the desk and her DayClosed Live Activity went
    up, so a relaunch into a finished desk never starts it again. Only the
    newest day matters, so sealing a day drops the older ones (a key a day
-   used to pile up here for good). */
+   used to pile up here for good).
+
+   The flag is a note about the desk, not the desk itself: the put-away day
+   record (screens/today) says whether the desk is done. A flag can outlive
+   its desk — the old blind's pull over a legacy record that fills again, a
+   day started over on the phone — and Today then lifts it (sealVerdict in
+   today-cards), so the day can close once more. */
 const SEALED = "sealed:";
 export const sealedFlag = (day: string): string => SEALED + day;
 
@@ -54,6 +60,9 @@ export const sealedFlag = (day: string): string => SEALED + day;
 export async function isSealed(day: string): Promise<boolean> {
   return !!(await getFlags())[sealedFlag(day)];
 }
+
+/** lift this desk day's seal: its desk is reading again, so the flag was stale */
+export const unsealDay = (day: string): Promise<void> => unsetFlag(sealedFlag(day));
 
 /** seal this desk day, and forget the days before it */
 export async function sealDay(day: string): Promise<void> {

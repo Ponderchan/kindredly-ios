@@ -322,8 +322,18 @@ export interface PoolLetter {
    reads it; onboarding primes it) */
 export const POOL_CACHE_KEY = "kindredly_pool_cache";
 export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLetter[] | null> {
+  const page = await fetchPoolPage(limit, authors);
+  return page ? page.letters : null;
+}
+
+/** fetchPool, and whether that page is the server's whole pool: fewer rows came back than were
+    asked for. Read from the rows the server sent, BEFORE the viewer's own, their kindreds' and
+    blocked writers' letters are taken out below — the filtered list is nearly always shorter than
+    a page, and Today read that as "the whole pool" and dropped every desk letter that had only
+    aged past the newest page (2026-10-18: the count fell with nothing passed). */
+export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ letters: PoolLetter[]; whole: boolean } | null> {
   if (!supabaseReady) return null;
-  if (authors && !authors.length) return [];
+  if (authors && !authors.length) return { letters: [], whole: true };
   const me = await uid();
   try {
     let q = supabase!
@@ -385,9 +395,11 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
        a normal-looking card in Today whose SEND lit up and whose every reply
        came back "Couldn't send. Try again." — advice that could never work.
        Filtered in the query as well, so ghosts don't eat the page budget. */
-    return (data as PoolLetter[]).filter(
-      (r) => r.author && r.author !== me && !known.has(r.author),
-    );
+    const rows = data as PoolLetter[];
+    return {
+      letters: rows.filter((r) => r.author && r.author !== me && !known.has(r.author)),
+      whole: rows.length < limit,
+    };
   } catch {
     return null;
   }

@@ -8,7 +8,7 @@ import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { useBirdImageRef } from "../lib/bird-images";
 import { useWrenName } from "../lib/wren-name";
-import { useLettersLeft, usePublishStage } from "../lib/use-publish-stage";
+import { useLettersLeft } from "../lib/use-publish-stage";
 import { tabBarHeight } from "./PostTabBar";
 import "../data/strings-today3d"; // pub.* (the publish entry's words)
 
@@ -31,18 +31,20 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
    composer). The React Native fan stayed open over the new tab.
 
    THE + IS THE PUBLISH ENTRY (Today 3d × 25b, design Prompt 8), and it
-   opens by who is pressing it (lib/publish-stage): a new reader — their
-   first week, or Wren still a chick — gets a bottom sheet, Wren asking
-   which one tonight, with a letter row (and, for the free plan, the real
-   letters left today) and a diary-note row, while the bar slides away; a
-   returning reader gets two round buttons, LETTER and NOTE, popping from
-   behind the +. Neither is new writing UI: the letter goes to the letter
+   opens by the tab it is pressed on (owner, 2026-10-18; it used to go by
+   the reader's first week): on Today, where the reader is reading, two
+   round buttons, LETTER and NOTE, pop from behind the + just above the
+   letter's band, light enough not to cover the letter; on every other tab
+   a bottom sheet, Wren asking who this one is for, with a letter row and a
+   diary-note row, while the bar slides away. Both show the free plan's
+   real letters left today (under LETTER, or on the letter row). Neither is new writing UI: the letter goes to the letter
    composer (/compose), the note to the diary composer (/journal-pick),
    PostFan's own two destinations, in PostFan's order — push first, close
    after the slide, so the composer slides in over what the + opened.
-   Today reads the same stage and the same open flag (usePlusSheetOpen,
-   which the tabs layout provides) to fade its band and window and step its
-   card back; nothing crosses between the two Hosts.
+   Today reads the same open flag (usePlusSheetOpen, which the tabs layout
+   provides) to fade its band and window and step its card back; nothing
+   crosses between the two Hosts. The style is held from the press to the
+   end of the closing (see panelStyle below).
 
    The 10a cards ("stranger" / "yourself") stay wired, so a binary or a lab
    that still asks for them goes where they always went.
@@ -182,13 +184,6 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
   const router = useRouter();
   const current: string = state.routes[state.index]?.name ?? "letters";
 
-  // what the + opens: the new reader's sheet or the returning reader's two buttons
-  const panelStyle: PanelStyle = usePublishStage() === "new" ? "sheet" : "pop";
-  const wren = useWrenName();
-  const bird = useBirdImageRef("content");
-  // the free plan's count, asked as the sheet opens (the buttons show none)
-  const left = useLettersLeft(open && panelStyle === "sheet");
-
   /* full screen while open, and for PANEL_OUT_MS after it closes. Decided
      during render, not in an effect, so the frame it starts closing in is
      already a full-screen one; each close restarts the wait. */
@@ -204,6 +199,26 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
     return () => clearTimeout(id);
   }, [closedAt]);
   const full = open || closedAt > 0;
+
+  /* what the + opens: the two buttons on Today, the sheet on the other tabs —
+     HELD for the life of an opening, so a tab tapped while it is open (which
+     closes it) can't swap the closing sheet for the buttons under the finger.
+     The style follows the tab only while the Host is the strip; from the
+     press until the closing is over (full) it stays what it was. Adjusted
+     during render, as `full` is. */
+  const stageNow: PanelStyle = current === "letters" ? "pop" : "sheet";
+  const [panelStyle, setPanelStyle] = useState(stageNow);
+  if (!full && panelStyle !== stageNow) setPanelStyle(stageNow);
+  const wren = useWrenName();
+  const bird = useBirdImageRef("content");
+  // the free plan's count, asked as the + opens (both styles show it)
+  const left = useLettersLeft(open);
+
+  // dev: one line in Metro per change, next to Today's own (useTodayDesk), so when the + seems
+  // to do nothing it shows which side moved — the bar's open state, or the screen's
+  useEffect(() => {
+    if (__DEV__) console.log(`[tabbar] open=${open} style=${panelStyle} full=${full}`);
+  }, [open, panelStyle, full]);
 
   // the navigator's own semantics, exactly as PostTabBar has them
   const go = (name: string) => {
@@ -246,14 +261,14 @@ export function NativeTabBar({ state, navigation, open, onPost, onClose, waiting
       letterLeft: left == null ? "" : t("pub.left", { n: left }),
       noteTitle: t("pub.note"),
       noteSub: t("pub.noteSub"),
-      footnote: t("pub.foot"),
+      footnote: "",
       bird,
     }),
     [lang, wren, left, bird],
   );
   const pop = useMemo<PublishPop>(
-    () => ({ letterLabel: t("pub.popLetter"), noteLabel: t("pub.popNote"), letterA11y: t("pub.letter"), noteA11y: t("pub.note") }),
-    [lang],
+    () => ({ letterLabel: t("pub.popLetter"), noteLabel: t("pub.popNote"), letterA11y: t("pub.letter"), noteA11y: t("pub.note"), letterLeft: left == null ? "" : t("pub.left", { n: left }) }),
+    [lang, left],
   );
 
   const strip = nativeTabBarSpace(insets.bottom);

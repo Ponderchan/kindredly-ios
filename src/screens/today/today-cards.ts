@@ -5,7 +5,7 @@ import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { VEIL_MASK, mosaicMask } from "../../lib/mosaic";
 import { DAY_LETTERS, MAX_IN_FLIGHT, rationPool } from "../../lib/ration";
-import { MORNING_HOUR, untilMorning } from "../../lib/day";
+import { MORNING_HOUR, isNightHour, untilMorning } from "../../lib/day";
 import { channelColors } from "../../theme/post";
 
 /* THE TODAY TAB, AS DATA (10a step 5; Today 3d × 25b, 2026-10-16). Pure: no
@@ -28,8 +28,14 @@ import { channelColors } from "../../theme/post";
    - her counted letter when the desk is done (W33: every number on it is a
      count the phone holds; a zero gets its own sentence) and the window to
      her game, with its sky by the hour;
-   - the card: docket (postmark · the pen pal's number in the reader's
-     language, or UNSIGNED, the FACE v1 mask or the veil), the stamp and its
+   - Wren at rest on the band: sleepy in her night hours, wilted while
+     she's starving;
+   - the seal: what the day's sealed flag means against the desk (a flag
+     over a desk that is reading again is stale, and goes);
+   - the card: who wrote it (the `who` slot: the pen pal's number in the
+     reader's language until the names switch, or UNSIGNED, no mark and no
+     sign yet, the FACE v1 mask or the veil) and when; docket (postmark ·
+     number, the header as drawn today), the stamp and its
      topic tag in the stamp's channel colours worked out on the card's own
      face, the body in its tier, the voice block, ONE capsule slot
      (translation wins over the signal, owner), the ⋯ menu (Report / Block
@@ -244,6 +250,31 @@ export function markDone(rec: DayRecord, now: number): DayRecord {
   return { ...rec, doneAt: now };
 }
 
+/* ── the seal ─────────────────────────────────────────────────────────── */
+
+/**
+ * What the day's sealed flag (lib/flags sealed:{day}) means held against
+ * the desk. The desk wins: done is the only sealer and it is final for the
+ * day (bring back is gated to reading, a frozen desk takes nothing new), so
+ * a desk that is READING cannot be a sealed day — a flag over it outlived
+ * its desk (an old blind's pull, a legacy { day, desk } record that filled
+ * again under it, a day started over) and is stale: clear it, and the day
+ * has its right to close again. Nothing is decided before the load: a
+ * placeholder desk is reading too, but it isn't the day yet.
+ * - "wait"   not loaded: leave everything as it is
+ * - "stale"  reading, flagged: clear the flag, the day is open
+ * - "open"   reading, no flag: the day is open
+ * - "sealed" not reading, flagged: the day is sealed (a relaunch into a finished desk never seals again)
+ * - "keep"   not reading, no flag: leave it (done may be sealing this moment)
+ */
+export type SealVerdict = "wait" | "stale" | "open" | "sealed" | "keep";
+
+export function sealVerdict(a: { loaded: boolean; phase: DeskPhase; flagged: boolean }): SealVerdict {
+  if (!a.loaded) return "wait";
+  if (a.phase === "reading") return a.flagged ? "stale" : "open";
+  return a.flagged ? "sealed" : "keep";
+}
+
 /* ── dealing ──────────────────────────────────────────────────────────── */
 
 /** one page of the server's newest letters (fetchPool's default) */
@@ -262,12 +293,13 @@ export function loadMode(rec: DayRecord, placeholder: boolean): LoadMode {
  * has stays where it is, and (unless the desk is frozen) the day's new ones
  * join at the end, up to the fifteen. `all` is one page of the newest
  * letters; when it is full, a letter missing from it may simply have aged
- * past it, so only a short page (the server's whole pool) can say a letter
- * is gone.
+ * past it, so only the server's whole pool (`whole`: fetchPoolPage, read
+ * from the page as sent, never from its length here — the page is filtered
+ * on the phone first) can say a letter is gone.
  */
-export function keepDesk<T extends { id: string }>(cur: readonly T[], all: readonly T[], fresh: readonly T[], frozen = false): T[] {
+export function keepDesk<T extends { id: string }>(cur: readonly T[], all: readonly T[], whole: boolean, fresh: readonly T[], frozen = false): T[] {
   const alive = new Set(all.map((l) => l.id));
-  const kept = all.length < POOL_PAGE ? cur.filter((l) => alive.has(l.id)) : [...cur];
+  const kept = whole ? cur.filter((l) => alive.has(l.id)) : [...cur];
   if (frozen) return kept.length === cur.length ? (cur as T[]) : kept;
   const seen = new Set(kept.map((l) => l.id));
   const add = fresh.filter((l) => !seen.has(l.id));
@@ -393,6 +425,26 @@ export function buildWindow({ canPlay, name, countdown, sky }: { canPlay: boolea
   return { canPlay, eyebrow: t("cod.wholePost"), line, a11yLabel: canPlay ? t("ff.title") : line, a11yHint: canPlay ? t("ff.hint") : "", sky };
 }
 
+/* ── Wren at rest on the band ─────────────────────────────────────────── */
+
+/** the face she rests in on the band: content by day, sleepy in her night hours */
+export type WrenRestFace = "idle" | "sleepy";
+export type WrenRest = { face: WrenRestFace; wilt: boolean };
+
+/**
+ * How she stands on the band when nothing is happening (owner, 2026-10-18).
+ * Her face is sleepy from 21:00 to 07:59 by the reader's own clock (lib/day
+ * isNightHour, up to MORNING_HOUR), content otherwise; every reaction (the
+ * lean, curious, delight, the hop, the errand) plays over it and comes back
+ * to it. While she's starving (lib/hunger's wilt: the courier page's grey,
+ * drooping pictures) she wears her wilted pictures, faces and all; a letter
+ * written on the phone feeds her (noteFed), and she is back in her colours.
+ * The renderers re-ask whenever the hour or her hunger changes.
+ */
+export function wrenRest({ hour, wilt }: { hour: number; wilt: boolean }): WrenRest {
+  return { face: isNightHour(hour) ? "sleepy" : "idle", wilt };
+}
+
 /* ── the arrival ──────────────────────────────────────────────────────── */
 
 /** the three letters she brought back on her first crossing */
@@ -423,14 +475,40 @@ export const DEFAULT_VOICE_CAPTION = "🎙 A voice letter";
 /** A translation's state on one card. */
 export type Translation = { text: string | null; on: boolean; busy: boolean };
 
-/** The one capsule slot at the card's foot. */
+/** The one capsule slot at the card's foot. A translation is drawn as the language pair (langPair reads `code`); `label` is what VoiceOver's translate action says, `value` the side showing. */
 export type CardCapsule =
   | { kind: "none" }
   | { kind: "translate"; code: string; label: string; enabled: boolean; value: string }
   | { kind: "signal"; label: string; glyph: "rings" | "clock" | "stickers" };
 
+/* ── who wrote it (identity-plan §9 + addendum, Phase 0: the slot in its
+   final shape now, so the names switch is a change of data, not of layout) ── */
+
+/** the twelve star signs (the addendum: the sign shows, never the date or the year); moves to its own module with the switch */
+export type Zodiac = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces";
+
+/** The writer, as the card header names them. */
+export type CardWho = {
+  /** until the switch: "No. 7273" (penPal, title case); after it: the courier's name ("Sunday Kite"); a deleted author: UNSIGNED */
+  name: string;
+  /** the she/he mark, for a writer who opted in: null until the switch */
+  mark: "she" | "he" | null;
+  /** what VoiceOver says for the mark ("she" / "ella" / "女性"); "" for none */
+  markLabel: string;
+  /** the star sign beside the mark: null until the switch, or with no birthday */
+  sign: Zodiac | null;
+  /** VoiceOver's name for the sign; "" for none */
+  signLabel: string;
+  /** the face slot: the FACE v1 mosaic until the switch (the frost after it), the veil for a deleted account */
+  face: { kind: "mosaic"; mask: number } | { kind: "veil" };
+};
+
 export type CardVM = {
   id: string;
+  /** the writer: name, mark, sign, face. `postmark` / `mask` / `ghost` below carry the same facts for the header as it is drawn today; the renderers move to `who` + `when` with the new header */
+  who: CardWho;
+  /** "SEP.23": when it was posted, the date alone */
+  when: string;
   /** "SEP.23 · NO.7273" or "SEP.23 · UNSIGNED" */
   postmark: string;
   /** FACE v1 25-bit mask, or VEIL_MASK for a ghost */
@@ -504,6 +582,20 @@ export function capsuleFor(offer: { code: string } | null, xl: Translation | nul
   return { kind: "signal", label: fmt.t("ld.both.label", { name: fmt.stickerName(signal.stickerId) }), glyph: signal.kind === "hour" ? "clock" : "stickers" };
 }
 
+/**
+ * The pair a translate capsule's code names, for the language pair both renderers draw at the
+ * foot (LangPair / KLangPair.pair, the owner's B1 brought back 2026-10-16): "ES→EN" reads left
+ * to right with the original showing (`from` lit), "EN←ES" is the same pair turned round once
+ * the letter is in yours (`to` lit). A code with neither arrow is one language, nothing to turn to.
+ */
+export function langPair(code: string): { from: string; to: string; on: boolean } {
+  const back = code.indexOf("←");
+  if (back >= 0) return { from: code.slice(back + 1), to: code.slice(0, back), on: true };
+  const fwd = code.indexOf("→");
+  if (fwd >= 0) return { from: code.slice(0, fwd), to: code.slice(fwd + 1), on: false };
+  return { from: code, to: "", on: false };
+}
+
 /** The ⋯ menu of a desk letter: Report and Block, for anyone signed; then Bring back when it is offered (the only item on an unsigned letter). */
 export function cardMenu(letter: Pick<PoolLetter, "author">, t: TFn, o: { bringBack: boolean } = { bringBack: false }): KMenuAction[] {
   const items: KMenuAction[] = letter.author
@@ -538,10 +630,24 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
      play yet (its link isn't signed), and the writer's caption. */
   const why = capsule.kind === "signal" ? capsule.label : "";
   const words = isVoice ? [fmt.t("ld.voiceLetter"), durationLabel, ready ? "" : fmt.t("ld.voice.unavailable"), caption].filter(Boolean).join(". ") : shown;
+  /* the writer: their number in title case until the names switch ("No.
+     7273"), no mark and no sign yet, the FACE v1 mosaic (identity-plan §9).
+     The switch fills the same slot with the courier's name, the mark, the
+     sign and the frost; a deleted account keeps the veil and UNSIGNED. */
+  const who: CardWho = {
+    name: letter.author ? fmt.penPal(letter.author, { upper: false, compact: false }) : fmt.t("ld.unsigned"),
+    mark: null,
+    markLabel: "",
+    sign: null,
+    signLabel: "",
+    face: letter.author ? { kind: "mosaic", mask: mosaicMask(letter.author, 1) } : { kind: "veil" },
+  };
   return {
     id: letter.id,
+    who,
+    when: fmt.postmark(letter.created_at),
     postmark: post,
-    mask: letter.author ? mosaicMask(letter.author, 1) : VEIL_MASK,
+    mask: who.face.kind === "mosaic" ? who.face.mask : VEIL_MASK,
     ghost: !letter.author,
     stampId: letter.stamp,
     stampHex: st?.color ?? "",
@@ -560,11 +666,8 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     durationLabel,
     capsule,
     menu: cardMenu(letter, fmt.t, o),
-    // the field names the pen pal; until the reader's language has that line, its own "write back…"
-    replyPlaceholder:
-      letter.author && (fmt.has?.("ld.writeBackTo") ?? true)
-        ? fmt.t("ld.writeBackTo", { name: fmt.penPal(letter.author, { upper: false, compact: false }) })
-        : fmt.t("ld.writeBackPh"),
+    // the field names the writer as the header does (who.name); until the reader's language has that line, its own "write back…"
+    replyPlaceholder: letter.author && (fmt.has?.("ld.writeBackTo") ?? true) ? fmt.t("ld.writeBackTo", { name: who.name }) : fmt.t("ld.writeBackPh"),
     a11yLabel: [post, topic, why, words].filter(Boolean).join(". "),
     demo: letter.id.startsWith("demo"),
   };
@@ -650,10 +753,10 @@ export function replyFailAction(kind: WriteFail | null | undefined, isGuest: boo
 export const BAND = 52;
 /** the card sits this far under the band */
 export const CONTENT_TOP = 4;
-/** between the card's foot and the control band (NEXT · the arc · REPLY) */
+/** between the card's foot and the control band (NEXT · Wren · REPLY) */
 export const CARD_AIR = 14;
-/** the control band's height */
-export const CONTROL_H = 80;
+/** the control band's height: NEXT, REPLY and Wren on the page ground between them (the owner's 2026-10-16 pick) */
+export const CONTROL_H = 68;
 /** the band's bottom sits this far above the tab bar's room */
 export const CONTROL_LIFT = 2;
 /** the shortest card (an iPhone SE still gets a letter, not a strip) */
@@ -668,8 +771,8 @@ export type DeskGeometry = { cardTop: number; cardH: number; controlTop: number 
  * The desk's numbers from the Host's height. The card scales with the
  * screen (owner): what is left under the band once the control band and
  * its air above the tab bar are taken out, never under 360. A 393 × 852
- * phone (top 54, room 98) gives the design exactly: card at 110, 548 tall,
- * the band at 672.
+ * phone (top 54, room 98) gives the card at 110, 560 tall, the band at
+ * 684.
  */
 export function deskGeometry({ hostH, safeTop, tabBarRoom }: { hostH: number; safeTop: number; tabBarRoom: number }): DeskGeometry {
   const cardTop = safeTop + BAND + CONTENT_TOP;

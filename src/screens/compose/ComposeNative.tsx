@@ -191,7 +191,7 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
       moodStore={moodStore}
       recUri={state.recUri}
       recDur={state.recDur}
-      islandWidth={Math.max(0, width - 36)}
+      islandWidth={Math.max(0, width - 44)}
     />
   );
 }
@@ -255,7 +255,7 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         onFieldFocus={act.fieldFocus}
       >
         {/* every island on every render, in this order (Slot.tsx) */}
-        <KIsland name="wren" style={{ width: 26, height: 26 }}>
+        <KIsland name="wren" style={{ width: 46, height: 46 }}>
           <WrenIsland store={p.moodStore} />
         </KIsland>
         <KIsland name="recorder" interactive style={{ width: p.islandWidth }}>
@@ -266,15 +266,17 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
   );
 });
 
-/* Wren in her circle: the reader's own bird (skin, accessory, stage), her
-   mood read off the letter as it is typed — a small zoom when it changes —
-   and her breathing. Swift draws the circle around her. */
+/* Wren bare, as the App Store page set her (owner, 2026-10-18): the
+   reader's own bird (skin, accessory, stage) at 38 in a 46 frame, no circle
+   behind her, her mood read off the letter as it is typed — a small zoom
+   when it changes — and her breathing, 6 up and back over 2.6s, as
+   ComposeRN's. */
 function WrenIsland({ store }: { store: ValueStore<WrenMood> }) {
   const mood = useSyncExternalStore(store.subscribe, store.get);
-  const breathe = useBreathe(2, 2600);
+  const breathe = useBreathe(6, 2600);
   return (
-    <Animated.View key={mood} entering={ZoomIn.duration(340)} style={[breathe, { width: 26, height: 26, alignItems: "center", justifyContent: "center" }]}>
-      <WrenBird size={26} mood={mood} />
+    <Animated.View key={mood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>
+      <WrenBird size={38} mood={mood} />
     </Animated.View>
   );
 }

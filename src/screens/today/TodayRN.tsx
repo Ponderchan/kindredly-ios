@@ -19,7 +19,6 @@ import Animated, {
   Keyframe,
   cancelAnimation,
   runOnJS,
-  useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -30,9 +29,10 @@ import Animated, {
   type SharedValue,
   type WithTimingConfig,
 } from "react-native-reanimated";
-import Svg, { Defs, G, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { MONO, PF } from "../../theme/post";
 import { BRAND, THEMES, type ThemeKey } from "../../theme/themes";
 import { letterFamily, useLetterFamily, useTheme } from "../../lib/theme";
@@ -45,10 +45,10 @@ import { MosaicId } from "../../components/MosaicId";
 import { StampTile } from "../../components/StampTile";
 import { AudioCardView } from "../../components/AudioCard";
 import { SignalChip } from "../../components/SignalChip";
-import { LetterInFlight } from "../../components/LetterInFlight";
 import { WrenBird, type WrenMood } from "../../components/WrenBird";
-import { InkPanel, ReplyStrip, StickerBox, TopicTag, TranslateCapsule, type ReplyStripHandle } from "../../components/10a";
-import { BAND, CONTROL_H, CONTROL_LIFT, deskGeometry, overflows, type CardVM, type DeskPhase, type WindowVM, type WrenLetterVM } from "./today-cards";
+import { LangPair } from "../../components/LangPair";
+import { InkPanel, ReplyStrip, StickerBox, TopicTag, type ReplyStripHandle } from "../../components/10a";
+import { BAND, CONTROL_H, CONTROL_LIFT, deskGeometry, langPair, overflows, type CardVM, type DeskPhase, type WindowVM, type WrenLetterVM } from "./today-cards";
 import type { TodayModel, TodayStrings } from "./useTodayDesk";
 import "../../data/strings-today3d";
 
@@ -67,21 +67,28 @@ import "../../data/strings-today3d";
      re-entry while a card moves. The title follows the pull and locks
      once a letter has been passed (the model says so: it survives a
      relaunch).
-   - the band under it: the dashed arc (react-native-svg), NEXT on a
-     translucent disc with the letters left today, REPLY on ink. Wren (her
-     own look: WrenBird reads her skin, accessory and stage) stands at the
-     arc's top and changes face: curious on a pull or a pass, delighted
-     while you write, sleepy if the day ends in her yawn hours. No
-     per-frame lean.
+   - the band under it (the owner's 2026-10-16 pick, image 2 of his option
+     sheet): NEXT on a translucent disc with the letters left today, REPLY
+     on ink, and Wren (her own look: WrenBird reads her skin, accessory and
+     stage; wilted while she's starving) standing on the page ground
+     between them at 36, her feet level with the discs' foot. She rests
+     content, or sleepy in her night hours (the model's wren.rest), and
+     reacts as the Swift desk's Wren does, more plainly: she leans toward a
+     card pulled up and back from one pulled down, leans in curious while a
+     long letter unfolds (until the reader closes), is curious after a pass
+     and delighted while you write, hops when tapped (a light haptic,
+     delighted for a moment), and takes each reply off the band herself:
+     up and out with a small envelope, back onto her spot 2.5 s later (the
+     send's only bird). Reduce Motion: the faces change, nothing moves.
    - REPLY raises the 10a reply strip on the keyboard, bound to the card on
      screen (each letter keeps its own words; Return is a new line), with
      the hint above it; the band steps down, a scrim dims the desk and a
      tap on it puts the keyboard away.
-   - done: the arc is drawn solid, the buttons go, Wren fades from the arc
-     into her window, and her letter comes up in the card's place (her
-     counted note, the closed bag with when it opens, the countdown). The
-     window offers a lap of her game when she can play, else when she's
-     back. Opening into a finished desk draws it at rest.
+   - done: the buttons go, Wren fades from the ground into her window, and
+     her letter comes up in the card's place (her counted note, the closed
+     bag with when it opens, the countdown). The window offers a lap of her
+     game when she can play, else when she's back. Opening into a finished
+     desk draws it at rest.
    - the first arrival: her line in a bubble over her head while the first
      three letters are up; the first card unfolds.
    - the + panel: the band, Wren and the window step aside, the card steps
@@ -106,8 +113,6 @@ const SPRING_BACK: WithTimingConfig = { duration: 300, easing: Easing.bezier(0.3
 const BAND_FADE: WithTimingConfig = { duration: 300, easing: Easing.out(Easing.ease) };
 const BAND_SLIDE: WithTimingConfig = { duration: 350, easing: Easing.inOut(Easing.ease) };
 const BAND_DROP: WithTimingConfig = { duration: 350, easing: Easing.inOut(Easing.ease) };
-const DASH_FADE: WithTimingConfig = { duration: 300, easing: Easing.out(Easing.ease) };
-const ARC_DRAW: WithTimingConfig = { duration: 600, easing: Easing.bezier(0.4, 0, 0.3, 1) };
 const WINDOW_IN: WithTimingConfig = { duration: 450, easing: Easing.out(Easing.ease) };
 const STEP_BACK: WithTimingConfig = { duration: 400, easing: Easing.bezier(0.3, 1, 0.3, 1) };
 const REDUCED: WithTimingConfig = { duration: REDUCED_MS, easing: Easing.inOut(Easing.ease) };
@@ -123,49 +128,49 @@ const CURIOUS_MS = 1200;
 /** VoiceOver's focus goes to the new card once it is on screen */
 const FOCUS_MS = 400;
 
+/* ── her reactions (KWireWren's numbers) ── */
+/** she takes a reply up and out of sight in this long (climbing first, speeding up) */
+const ERRAND_OUT_MS = 900;
+/** and comes back in this long after take-off */
+const ERRAND_AWAY_MS = 2500;
+/** dropping onto her spot (slowing to land) */
+const LANDING_MS = 700;
+const TAKE_OFF: WithTimingConfig = { duration: ERRAND_OUT_MS, easing: Easing.bezier(0.45, 0, 0.8, 0.6) };
+const LANDING: WithTimingConfig = { duration: LANDING_MS, easing: Easing.bezier(0.2, 0.6, 0.35, 1) };
+/** how far past the edges the errand takes her */
+const ERRAND_BEYOND = 60;
+const ERRAND_ABOVE = 80;
+/** delighted this long after a tap */
+const HOP_FACE_MS = 600;
+/** the unfold's lean waits this long for the reader before she straightens up */
+const LEAN_WAIT_MS = 1500;
+/** back from a lean */
+const LEAN_BACK: WithTimingConfig = { duration: 250, easing: Easing.out(Easing.ease) };
+
 /* ── the pull (the Swift deck's numbers) ── */
 const PULL = 110;
 const PULL_DOWN = 0.25;
 const PULL_FADE = 0.35;
 const CURIOUS_AT = 0.08;
 
-/* ── the band (KBandLayout; band-local points, origin = the band's top-left) ── */
-const DISC = 58;
+/* ── the band (KBandLayout's numbers; band-local points, origin = the band's top-left, 68 tall) ── */
+const DISC = 52;
 const LABEL_GAP = 7;
-const nextX = (w: number) => (w - 116) / 3 + 29;
+/** two discs spaced evenly across the width (122.33 / 270.67 at 393) */
+const nextX = (w: number) => (w - 2 * DISC) / 3 + DISC / 2;
 const replyX = (w: number) => w - nextX(w);
-/** the arc from above NEXT to above REPLY: "M98 30 Q196 -14 295 30" at 393 */
-function arcOf(w: number) {
-  return { x0: nextX(w) - 23.33, y0: 30, cx: w / 2 - 0.5, cy: -14, x1: replyX(w) + 23.33, y1: 30 };
-}
-function arcLength(w: number): number {
-  const a = arcOf(w);
-  let len = 0;
-  let px = a.x0;
-  let py = a.y0;
-  for (let i = 1; i <= 64; i++) {
-    const s = i / 64;
-    const x = (1 - s) * (1 - s) * a.x0 + 2 * (1 - s) * s * a.cx + s * s * a.x1;
-    const y = (1 - s) * (1 - s) * a.y0 + 2 * (1 - s) * s * a.cy + s * s * a.y1;
-    len += Math.hypot(x - px, y - py);
-    px = x;
-    py = y;
-  }
-  return len;
-}
-/** the arc is drawn this far into a taller Svg (it rises 14 above the band) */
-const ARC_PAD = 20;
-/** Wren on the arc: her centre, band-local, at 48 (design left 173, top 640) */
-const WIRE_SIZE = 48;
-const wireCentre = (w: number) => ({ x: w / 2 + 0.5, y: -8 });
-/** Wren in the window: her centre, band-local, at 34 (design 36, 702) */
-const NEST_SIZE = 34;
-const NEST = { x: 53, y: 47 };
-/** the window, under the band's top */
-const WINDOW_TOP = 14;
+/** Wren on the ground between the buttons, at 36: her feet (.9 of her frame) level with the discs' foot */
+const GROUND_SIZE = 36;
+const GROUND_Y = DISC - GROUND_SIZE * 0.4;
+const groundCentre = (w: number) => ({ x: w / 2, y: GROUND_Y });
+/** the window: 64 tall, its foot 2 above the band's */
 const WINDOW_H = 64;
-/** the arrival bubble's tail tip, band-local: its box sits 6 over her head (−38), the tail reaches down 5 */
-const BUBBLE_TIP = -33;
+const WINDOW_TOP = CONTROL_H - 2 - WINDOW_H;
+/** Wren in the window: her centre, band-local, at 34 (53 in, 33 under the window's top) */
+const NEST_SIZE = 34;
+const NEST = { x: 53, y: WINDOW_TOP + 33 };
+/** the arrival bubble's tail tip, band-local: its box sits 6 over her head, the tail reaches down 5 */
+const BUBBLE_TIP = GROUND_Y - GROUND_SIZE / 2 - 6 + 5;
 
 const NEWSREADER = letterFamily("newsreader");
 const NEWSREADER_ITALIC = letterFamily("newsreader", true);
@@ -192,28 +197,22 @@ type Flow = {
   reading: boolean;
   /** the day ended while the desk was on screen (what comes in, comes in moving) */
   playing: boolean;
-  /** the arc is drawn solid */
-  arc: boolean;
-  /** the arc, drawn, has left with the buttons (t = 900): nothing of it over the window */
-  arcAway: boolean;
   /** NEXT and REPLY are up */
   band: boolean;
   /** her letter is in the card's place */
   letter: boolean;
-  /** where she is */
-  wren: "wire" | "away" | "window";
+  /** where she is: on the ground between the buttons, in the air, in her window */
+  wren: "ground" | "away" | "window";
   window: boolean;
   /** her flap and the window's pipes run */
   looping: boolean;
   /** her face, over the desk's rules */
   face: Face | null;
 };
-const READING: Flow = { reading: true, playing: false, arc: false, arcAway: false, band: true, letter: false, wren: "wire", window: false, looping: false, face: null };
+const READING: Flow = { reading: true, playing: false, band: true, letter: false, wren: "ground", window: false, looping: false, face: null };
 const restFlow = (canPlay: boolean, reduce: boolean, playing = false): Flow => ({
   reading: false,
   playing,
-  arc: true,
-  arcAway: true,
   band: false,
   letter: true,
   wren: "window",
@@ -223,13 +222,12 @@ const restFlow = (canPlay: boolean, reduce: boolean, playing = false): Flow => (
 });
 
 /**
- * The desk becoming done while on screen plays the design's timeline
- * (t = 0 is the last card's release): her face at once (a yawn in her
- * night hours), at 300 the arc drawn and the buttons gone, her letter
- * coming up and Wren leaving the arc, at 900 the drawn arc leaving as the
- * buttons did, at 1000 the window and Wren in it,
- * at 1600 her flap when she can play. Opening in done draws it at rest;
- * leaving done (the day turned at eight) goes back to reading.
+ * The desk becoming done while on screen plays the ground band's timeline
+ * (KDayFlow; t = 0 is the last card's release): her face at once (a yawn
+ * in her night hours), at 300 the buttons gone, her letter coming up and
+ * Wren leaving the ground, at 700 the window and Wren in it, at 1300 her
+ * flap when she can play. Opening in done draws it at rest; leaving done
+ * (the day turned at eight) goes back to reading.
  */
 function useDayFlow({ phase, night, canPlay, reduce }: { phase: DeskPhase; night: boolean; canPlay: boolean; reduce: boolean }): Flow {
   const [flow, setFlow] = useState<Flow>(() => (phase === "done" ? restFlow(canPlay, reduce) : READING));
@@ -255,10 +253,9 @@ function useDayFlow({ phase, night, canPlay, reduce }: { phase: DeskPhase; night
         at(300, () => setFlow(restFlow(facts.current.canPlay, true, true)));
         return;
       }
-      at(300, () => setFlow((s) => ({ ...s, arc: true, band: false, letter: true, wren: "away", face: "fly" })));
-      at(900, () => setFlow((s) => ({ ...s, arcAway: true })));
-      at(1000, () => setFlow((s) => ({ ...s, window: true, wren: "window" })));
-      at(1600, () => {
+      at(300, () => setFlow((s) => ({ ...s, band: false, letter: true, wren: "away", face: "fly" })));
+      at(700, () => setFlow((s) => ({ ...s, window: true, wren: "window" })));
+      at(1300, () => {
         const c = facts.current.canPlay;
         setFlow((s) => ({ ...s, looping: c && !facts.current.reduce, face: c ? "fly" : "idle" }));
       });
@@ -274,6 +271,70 @@ function useDayFlow({ phase, night, canPlay, reduce }: { phase: DeskPhase; night
   }, [canPlay, reduce]);
 
   return flow;
+}
+
+/* ── she takes the letter ── */
+
+type Errand = {
+  /** out, away or coming back: the fly face, no hops, no bubble */
+  away: boolean;
+  /** the reply's envelope at her feet (on the way out) */
+  carrying: boolean;
+  /** off the band (true) or on her way back to it (false) */
+  out: boolean;
+  /** which way: up past the top right going, from past the top left coming back */
+  side: 1 | -1;
+  /** Reduce Motion: faded out with the letter */
+  gone: boolean;
+};
+const HOME: Errand = { away: false, carrying: false, out: false, side: 1, gone: false };
+
+/**
+ * Each time the model's carry moves (a reply left the phone) she takes the
+ * letter: the fly face and a small envelope, up and out past the top right,
+ * round to the other side out of sight, and 2.5 s after take-off back in
+ * from the top left onto her spot. Reduce Motion: the fly face with the
+ * envelope, a fade out, and back. Once the day is ending the flow has her
+ * (she leaves the ground with it); she is home again for the next day.
+ */
+function useErrand({ carry, reading, reduce }: { carry: number; reading: boolean; reduce: boolean }): Errand {
+  const [errand, setErrand] = useState<Errand>(HOME);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clear = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
+  useEffect(() => clear, []);
+  const facts = useRef({ reading, reduce });
+  facts.current = { reading, reduce };
+  const lastCarry = useRef(carry);
+
+  useEffect(() => {
+    const before = lastCarry.current;
+    lastCarry.current = carry;
+    if (carry <= before || !facts.current.reading) return;
+    clear();
+    const at = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
+    if (facts.current.reduce) {
+      setErrand({ ...HOME, away: true, carrying: true });
+      at(600, () => setErrand((e) => ({ ...e, gone: true })));
+      at(ERRAND_AWAY_MS, () => setErrand(HOME));
+      return;
+    }
+    setErrand({ away: true, carrying: true, out: true, side: 1, gone: false });
+    // out of sight: round to the other side, where she comes back from
+    at(ERRAND_OUT_MS, () => setErrand((e) => ({ ...e, carrying: false, side: -1 })));
+    at(ERRAND_AWAY_MS, () => setErrand((e) => ({ ...e, out: false })));
+    at(ERRAND_AWAY_MS + LANDING_MS, () => setErrand(HOME));
+  }, [carry]);
+
+  useEffect(() => {
+    if (reading) return;
+    clear();
+    setErrand(HOME);
+  }, [reading]);
+
+  return errand;
 }
 
 /* ── the deck: which card is on screen, and how it got there ── */
@@ -428,21 +489,45 @@ export function TodayRN({ model }: { model: TodayModel }) {
   }, [deck.serial, deck.focus]);
   const leaveDone = useCallback((key: number) => setDeck((d) => (d.leaving?.key === key ? { ...d, leaving: null } : d)), []);
 
-  /* ── her face ── */
+  /* ── her face and her reactions ── */
   const [dragCurious, setDragCurious] = useState(false);
   const [passCurious, setPassCurious] = useState(false);
   const curiousTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* a tap: she hops (its serial) and is delighted for a moment */
+  const [hop, setHop] = useState(0);
+  const [hopping, setHopping] = useState(false);
+  const hopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* a long letter unfolding: she leans in, curious, until the reader closes */
+  const [unfoldLean, setUnfoldLean] = useState(false);
+  const leanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
       if (curiousTimer.current) clearTimeout(curiousTimer.current);
+      if (hopTimer.current) clearTimeout(hopTimer.current);
+      if (leanTimer.current) clearTimeout(leanTimer.current);
     },
     [],
   );
+  const readerOpen = view.readerId != null;
+  const readerOpenRef = useRef(readerOpen);
+  readerOpenRef.current = readerOpen;
+  useEffect(() => {
+    // the reader closed (or the day moved on): she straightens up
+    if (!readerOpen) setUnfoldLean(false);
+  }, [readerOpen]);
+  const errand = useErrand({ carry: view.wren.carry, reading: flow.reading, reduce });
+  useEffect(() => {
+    if (!flow.reading || errand.away) {
+      setUnfoldLean(false);
+      setHopping(false);
+    }
+  }, [flow.reading, errand.away]);
   const current = view.current;
   /* writing: the field has the keyboard, and is still there (a send, the day's end or the letter leaving takes it away) */
   const stripShown = !!current && !view.sending && view.phase === "reading";
   const writing = typing && stripShown;
-  const face: Face = flow.face ?? (writing ? "delight" : dragCurious || passCurious ? "curious" : "idle");
+  const face: Face =
+    flow.face ?? (errand.away ? "fly" : hopping || writing ? "delight" : unfoldLean || dragCurious || passCurious ? "curious" : view.wren.rest);
   const perchFly = view.wren.stage != null && view.wren.stage !== "wren";
 
   const plusClosed = view.plus === "closed";
@@ -548,14 +633,25 @@ export function TodayRN({ model }: { model: TodayModel }) {
     },
     [act],
   );
+  /* UNFOLD: she leans in, curious, as the reader is asked for (never waited for); no reader after all, she straightens up */
+  const leanIn = useCallback(() => {
+    setUnfoldLean(true);
+    if (leanTimer.current) clearTimeout(leanTimer.current);
+    leanTimer.current = setTimeout(() => {
+      if (!readerOpenRef.current) setUnfoldLean(false);
+    }, LEAN_WAIT_MS);
+  }, []);
   const cardActionByName = useCallback(
     (id: string, name: string) => {
       if (name === "reply") reply();
       else if (name === "next") next();
       else if (name === "bringBack") act.bringBack();
-      else if (name === "translate" || name === "unfold" || name === "voice" || name === "report" || name === "block") act.cardAction(id, name);
+      else if (name === "translate" || name === "unfold" || name === "voice" || name === "report" || name === "block") {
+        if (name === "unfold") leanIn();
+        act.cardAction(id, name);
+      }
     },
-    [act, reply, next],
+    [act, reply, next, leanIn],
   );
 
   /* ── the card slot steps back for the + panel ── */
@@ -565,10 +661,20 @@ export function TodayRN({ model }: { model: TodayModel }) {
 
   /* ── who shows ── */
   const bandHidden = view.hideBand || !plusClosed;
-  const wireShown = flow.wren === "wire" && plusClosed && !(view.hideBand && flow.reading);
+  // she steps aside for the reader and the + panel; a reply in the air is hers to carry
+  const groundShown = flow.wren === "ground" && plusClosed && !(readerOpen && flow.reading);
   const nestShown = flow.wren === "window" && plusClosed;
   const windowShown = flow.window && plusClosed;
-  const bubbleShown = view.arrival.open && view.arrival.line !== "" && wireShown && !writing;
+  const bubbleShown = view.arrival.open && view.arrival.line !== "" && groundShown && !writing && !errand.away;
+  /* a tap on her: 8 up and back with a light haptic, delighted for a moment (not while writing, away, or once the day is ending) */
+  const tappable = groundShown && flow.reading && flow.face == null && !writing && !errand.away;
+  const onHop = useCallback(() => {
+    setHop((n) => n + 1);
+    setHopping(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (hopTimer.current) clearTimeout(hopTimer.current);
+    hopTimer.current = setTimeout(() => setHopping(false), HOP_FACE_MS);
+  }, []);
   const replyState = view.reply.state;
   const stripKey = current ? `${current.id}:${view.draftEpoch}` : "";
   useEffect(() => {
@@ -577,7 +683,7 @@ export function TodayRN({ model }: { model: TodayModel }) {
   }, [stripKey, stripShown]);
 
   const scrim = dark ? "rgba(0,0,0,0.35)" : "rgba(30,27,53,0.18)";
-  const wire = wireCentre(W);
+  const ground = groundCentre(W);
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
@@ -630,20 +736,32 @@ export function TodayRN({ model }: { model: TodayModel }) {
 
       <FlightWindowRN model={view.window} top={geo.controlTop + WINDOW_TOP} shown={windowShown} looping={flow.looping} reduce={reduce} onTap={act.window} />
 
-      {/* Wren on the arc */}
-      <WireWren x={wire.x} y={geo.controlTop + wire.y} shown={wireShown} typing={writing} face={face} wilt={view.wren.wilt} perchFly={perchFly} />
+      {/* Wren on the ground between the buttons */}
+      <GroundWren
+        x={ground.x}
+        y={geo.controlTop + ground.y}
+        width={W}
+        shown={groundShown}
+        typing={writing && !errand.away}
+        face={face}
+        wilt={view.wren.wilt}
+        perchFly={perchFly}
+        errand={errand}
+        reduce={reduce}
+        dragP={dragP}
+        dragY={dragY}
+        leanFull={unfoldLean}
+        hop={hop}
+        tappable={tappable}
+        onTap={onHop}
+        a11y={view.wren.a11y}
+        name={view.wren.name}
+      />
       {/* Wren in her window */}
       <NestWren x={NEST.x} y={geo.controlTop + NEST.y} shown={nestShown} looping={flow.looping} face={face} wilt={view.wren.wilt} perchFly={perchFly} reduce={reduce} />
 
       {/* her first-arrival line, over her head */}
       {bubbleShown && <ArrivalBubble line={view.arrival.line} bottom={H - (geo.controlTop + BUBBLE_TIP)} />}
-
-      {/* the courier carries it: in the band's place while the reply is in the air */}
-      {view.sending && (
-        <View pointerEvents="none" style={{ position: "absolute", left: 16, right: 16, top: geo.controlTop + 13 }}>
-          <LetterInFlight to={view.flyTo} slow={view.slow} />
-        </View>
-      )}
 
       {/* while you write: the desk dims, a tap on it puts the keyboard away */}
       {writing && (
@@ -927,12 +1045,13 @@ function CardFace({
           </Pressable>
         )}
 
-        {/* the stamp's topic, and the one capsule (translation wins) */}
+        {/* the stamp's topic, and the one capsule (translation wins): the language pair, the
+            owner's B1 back on the card (2026-10-16) — the lit side is the one you are reading */}
         {(card.topic !== "" || card.capsule.kind !== "none") && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, marginRight: 3 }}>
             {card.topic !== "" ? <TopicTag name={card.topic} colorHex={card.stampHex} /> : <View />}
             {card.capsule.kind === "translate" ? (
-              <TranslateCapsule code={card.capsule.code} label={card.capsule.label} busy={!card.capsule.enabled} onPress={() => act("translate")} />
+              <LangPair {...langPair(card.capsule.code)} busy={!card.capsule.enabled} onPress={() => act("translate")} />
             ) : card.capsule.kind === "signal" ? (
               <SignalChip label={card.capsule.label} glyph={card.capsule.glyph} />
             ) : null}
@@ -976,9 +1095,7 @@ function VoiceBlockRN({ card, letter, model, italic, still }: { card: CardVM; le
   );
 }
 
-/* ── the control band: the arc, NEXT on glass, REPLY on ink ── */
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+/* ── the control band: NEXT on glass, REPLY on ink (Wren between them is GroundWren's) ── */
 
 function BandRN({
   width,
@@ -1012,24 +1129,14 @@ function BandRN({
   onReply: () => void;
 }) {
   const { t: tk } = useTheme();
-  const a = arcOf(width);
-  const d = `M${a.x0} ${a.y0} Q${a.cx} ${a.cy} ${a.x1} ${a.y1}`;
-  const len = useMemo(() => arcLength(width), [width]);
 
   const bandO = useTo(hidden ? 0 : 1, BAND_FADE);
   const bandY = useTo(typing ? 160 : 0, BAND_SLIDE);
   const btnO = useTo(flow.band ? 1 : 0, reduce ? REDUCED : BAND_FADE);
   const btnY = useTo(flow.band ? 0 : 12, reduce ? REDUCED : BAND_DROP);
-  const fill = useTo(flow.arc ? 1 : 0, reduce ? REDUCED : ARC_DRAW);
-  const dash = useTo(flow.arc ? 0 : 1, reduce ? REDUCED : DASH_FADE);
-  const arcO = useTo(flow.arcAway ? 0 : 1, reduce ? REDUCED : BAND_FADE);
-  const arcY = useTo(flow.arcAway && !reduce ? 12 : 0, BAND_DROP);
 
-  const bandStyle = useAnimatedStyle(() => ({ opacity: bandO.value, transform: [{ translateY: bandY.value }] }));
+  const bandMotion = useAnimatedStyle(() => ({ opacity: bandO.value, transform: [{ translateY: bandY.value }] }));
   const btnStyle = useAnimatedStyle(() => ({ opacity: btnO.value, transform: [{ translateY: btnY.value }] }));
-  const arcStyle = useAnimatedStyle(() => ({ opacity: arcO.value, transform: [{ translateY: arcY.value }] }));
-  const dashProps = useAnimatedProps(() => ({ strokeOpacity: dash.value }));
-  const solidProps = useAnimatedProps(() => ({ strokeDashoffset: len * (1 - fill.value) }));
 
   const nx = nextX(width);
   const rx = replyX(width);
@@ -1040,17 +1147,7 @@ function BandRN({
   const label = { fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.6 };
 
   return (
-    <Animated.View pointerEvents={hidden ? "none" : "box-none"} style={[{ position: "absolute", left: 0, right: 0, top, height: CONTROL_H }, bandStyle]}>
-      {/* the arc: dashed while there are letters, drawn solid when the day is done, then gone with the buttons */}
-      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: -ARC_PAD }, arcStyle]}>
-        <Svg width={width} height={CONTROL_H + ARC_PAD}>
-          <G transform={`translate(0 ${ARC_PAD})`}>
-            <AnimatedPath d={d} fill="none" stroke={tk.ink} strokeWidth={2.5} strokeLinecap="round" strokeDasharray={[3, 6]} animatedProps={dashProps} />
-            <AnimatedPath d={d} fill="none" stroke={tk.ink} strokeWidth={2.5} strokeLinecap="round" strokeDasharray={[len, len]} animatedProps={solidProps} />
-          </G>
-        </Svg>
-      </Animated.View>
-
+    <Animated.View pointerEvents={hidden ? "none" : "box-none"} style={[{ position: "absolute", left: 0, right: 0, top, height: CONTROL_H }, bandMotion]}>
       <Animated.View pointerEvents={live ? "box-none" : "none"} style={[StyleSheet.absoluteFill, btnStyle]}>
         <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0.4 }]}>
           {/* NEXT: the letters left today, on glass */}
@@ -1129,7 +1226,7 @@ function BandRN({
   );
 }
 
-/* ── Wren: on the arc, in the window ── */
+/* ── Wren: on the ground, in the window ── */
 
 /** her own look (WrenBird reads her skin, accessory and stage), one face at a time, crossfading */
 function WrenFace({ face, size, wilt, perchFly }: { face: Face; size: number; wilt: boolean; perchFly: boolean }) {
@@ -1146,14 +1243,123 @@ function WrenFace({ face, size, wilt, perchFly }: { face: Face; size: number; wi
   );
 }
 
-function WireWren({ x, y, shown, typing, face, wilt, perchFly }: { x: number; y: number; shown: boolean; typing: boolean; face: Face; wilt: boolean; perchFly: boolean }) {
+/**
+ * Her standing between the buttons, at 36: down 160 with the band while you
+ * write, gone (a fade) when the band is. The lean follows the pull (toward
+ * a card pulled up, −16° × p and up to 1.1; back from one pulled down, +8°
+ * × the pull; all the way while a letter unfolds), from her feet; a tap
+ * hops her 8 up and back; an errand carries her off past the top right and
+ * back from the top left (climbing first, veering late), the envelope at
+ * her feet on the way out. Reduce Motion: no hop, no unfold lean, no
+ * errand flight (a fade instead); the drag's lean is the finger's, as the
+ * card's is.
+ */
+function GroundWren({
+  x,
+  y,
+  width,
+  shown,
+  typing,
+  face,
+  wilt,
+  perchFly,
+  errand,
+  reduce,
+  dragP,
+  dragY,
+  leanFull,
+  hop,
+  tappable,
+  onTap,
+  a11y,
+  name,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  shown: boolean;
+  typing: boolean;
+  face: Face;
+  wilt: boolean;
+  perchFly: boolean;
+  errand: Errand;
+  reduce: boolean;
+  dragP: SharedValue<number>;
+  dragY: SharedValue<number>;
+  leanFull: boolean;
+  hop: number;
+  tappable: boolean;
+  onTap: () => void;
+  a11y: string;
+  name: string;
+}) {
   const o = useTo(shown ? 1 : 0, BAND_FADE);
   const ty = useTo(typing ? 160 : 0, BAND_SLIDE);
-  const style = useAnimatedStyle(() => ({ opacity: o.value, transform: [{ translateY: ty.value }] }));
+  // the unfold's lean is hers, not the finger's: under Reduce Motion only her face changes
+  const lean = useTo(leanFull && !reduce ? 1 : 0, LEAN_BACK);
+  const away = useTo(errand.gone ? 0 : 1, REDUCED);
+  const ep = useSharedValue(0);
+  useEffect(() => {
+    ep.value = reduce ? 0 : withTiming(errand.out ? 1 : 0, errand.out ? TAKE_OFF : LANDING);
+  }, [errand.out, reduce, ep]);
+  const hy = useSharedValue(0);
+  useEffect(() => {
+    if (hop === 0 || reduce) return;
+    hy.value = withSequence(withTiming(-8, { duration: 140, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 160, easing: Easing.in(Easing.quad) }));
+  }, [hop, reduce, hy]);
+  // where the errand takes her, from her spot: out of sight past the edge she's flying toward
+  const outX = errand.side > 0 ? width + ERRAND_BEYOND - x : -ERRAND_BEYOND - x;
+  const outY = -ERRAND_ABOVE - y;
+  const style = useAnimatedStyle(() => {
+    const k = ep.value;
+    const p = Math.max(lean.value, dragP.value);
+    const q = Math.min(1, Math.max(0, dragY.value / (PULL * PULL_DOWN)));
+    return {
+      opacity: o.value * away.value,
+      transform: [
+        { translateX: outX * k * k },
+        { translateY: ty.value + outY * k + hy.value },
+        { rotate: `${-16 * p + 8 * q}deg` },
+        { scale: 1 + 0.1 * p },
+      ],
+    };
+  });
   return (
-    <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[{ position: "absolute", left: x - WIRE_SIZE / 2, top: y - WIRE_SIZE / 2 }, style]}>
-      <WrenFace face={face} size={WIRE_SIZE} wilt={wilt} perchFly={perchFly} />
+    <Animated.View
+      pointerEvents={tappable ? "box-none" : "none"}
+      style={[{ position: "absolute", left: x - GROUND_SIZE / 2, top: y - GROUND_SIZE / 2, transformOrigin: "50% 90%" }, style]}
+    >
+      <Pressable
+        onPress={onTap}
+        disabled={!tappable}
+        hitSlop={6}
+        accessible={tappable}
+        accessibilityElementsHidden={!tappable}
+        importantForAccessibility={tappable ? "yes" : "no-hide-descendants"}
+        accessibilityRole="button"
+        accessibilityLabel={a11y}
+        accessibilityValue={{ text: name }}
+      >
+        <WrenFace face={face} size={GROUND_SIZE} wilt={wilt} perchFly={perchFly} />
+        {/* the reply she takes off the band (LetterInFlight's envelope) */}
+        {errand.carrying && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={{ position: "absolute", left: (GROUND_SIZE - 15) / 2, top: GROUND_SIZE * 0.82 }}>
+            <Envelope />
+          </Animated.View>
+        )}
+      </Pressable>
     </Animated.View>
+  );
+}
+
+/** the little envelope she carries: 15 × 11 on the card face, a 1pt ink outline and the flap's V */
+function Envelope() {
+  const { t: tk } = useTheme();
+  return (
+    <Svg width={15} height={11} viewBox="0 0 15 11">
+      <Rect x={0.6} y={0.6} width={13.8} height={9.8} rx={1} fill={tk.sf} stroke={tk.ink} strokeWidth={1} />
+      <Path d="M0.6 1.4 L7.5 6.4 L14.4 1.4" fill="none" stroke={tk.ink} strokeWidth={1} />
+    </Svg>
   );
 }
 

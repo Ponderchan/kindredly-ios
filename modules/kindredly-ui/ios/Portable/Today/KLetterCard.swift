@@ -27,8 +27,12 @@ import SwiftUI
    link is signed it shows itself unavailable; the caption is never drawn as the letter;
  - the foot: the topic tag (the stamp's channel colours, worked out on this card's face by TS) and
    the one capsule (translation wins over the lime signal), side by side, stacked when they
-   don't fit (a long language, large text). It is the card's last row: the old rule and the
-   ↑ PASS / REPLY ↓ row are gone, because NEXT and REPLY are the control band's buttons now.
+   don't fit (a long language, large text). The translation is the LANGUAGE PAIR (KLangPair,
+   the owner's B1 brought back 2026-10-16): the ink segment with the code they wrote in, the
+   arrow, the light segment with yours, the lit side the one you are reading; TS's code
+   ("ES→EN", "EN←ES" once turned round) is read into the pair by KLangPair.pair. It is the
+   card's last row: the old rule and the ↑ PASS / REPLY ↓ row are gone, because NEXT and
+   REPLY are the control band's buttons now.
 
  VoiceOver reads the card as one element (TS's a11yLabel: the docket, the topic, why the matcher
  chose it, the letter or what the voice letter is) with its moves as actions, in this order:
@@ -76,7 +80,9 @@ struct KLetterCard: View, Equatable {
           }
         }
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      // minHeight 0: the body takes what the card leaves it and no more, so a long letter is
+      // measured against that room and folds (KCardText), instead of growing the card past its frame
+      .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
       foot
     }
     .accessibilityElement(children: .ignore)
@@ -176,7 +182,9 @@ struct KLetterCard: View, Equatable {
     case .none:
       EmptyView()
     case let .translate(code, label, enabled, value):
-      KTranslateCapsule(theme: theme, code: code, label: label, enabled: enabled, accessibilityValue: value) {
+      // the pair as TS wrote it: "ES→EN" with the original showing, "EN←ES" once it is in yours
+      let pair = KLangPair.pair(code)
+      KLangPair(theme: theme, from: pair.from, to: pair.to, on: pair.on, busy: !enabled, label: label, value: value) {
         actions.onAction(card.id, "translate")
       }
     case let .signal(label, glyph):
@@ -221,9 +229,15 @@ struct KLetterCardAccessibilityActions: ViewModifier {
 /*
  The letter itself, folded when it doesn't fit. The visible copy is set at its full height
  (fixedSize) and clipped from the top, so a folded letter shows its beginning, never an ellipsis;
- a hidden twin with no height limit says how tall it really is.
+ a hidden twin with no height limit says how tall it really is. Folded, the letter starts 10 under
+ the docket (round 3: top-aligned, it sat right against it); a letter that fits is centred in its
+ space and needs no gap. The gap is taken outside the clipped frame, so the frame it is measured
+ against shrinks with it and a folded letter can only stay folded (no back and forth).
  */
 struct KCardText: View {
+  /// a folded letter's air under the docket
+  static let foldGap: CGFloat = 10
+
   let theme: KTheme
   let card: KLetterCardModel
   let unfold: String
@@ -243,7 +257,9 @@ struct KCardText: View {
           .id(card.body)
           .transition(.opacity)
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: folded ? .top : .center)
+      // minHeight 0 lets this frame be shorter than the full-height letter inside it (a flexible
+      // frame with no minimum grows to its child), so frameHeight < textHeight and the fold shows
+      .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: folded ? .top : .center)
       .clipped()
       .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
         if abs(height - frameHeight) > 0.5 { frameHeight = height }
@@ -266,6 +282,7 @@ struct KCardText: View {
         }
       }
       .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: card.body)
+      .padding(.top, folded ? Self.foldGap : 0)
       if folded {
         SwiftUI.Button(action: onUnfold) {
           Text(unfold)

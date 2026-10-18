@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { View } from "react-native";
 import { useNavigation } from "expo-router";
 import { useKCommands, useRev } from "../../../modules/kindredly-ui";
 import {
@@ -8,14 +8,14 @@ import {
   type KTodayCommands,
   type KTodayStrings,
   type KTodayWindow,
+  type KTodayWren,
   type KTodayWrenLetter,
 } from "../../../modules/kindredly-ui/src/Today";
 import { SurfaceHost } from "../../components/NativeSurface";
-import { LetterInFlight } from "../../components/LetterInFlight";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { playbackCommandArgs } from "../../lib/voice-playback";
-import { deskGeometry, type CardVM } from "./today-cards";
+import type { CardVM } from "./today-cards";
 import { useTodayBirds } from "./today-birds";
 import type { TodayModel } from "./useTodayDesk";
 
@@ -33,8 +33,10 @@ import type { TodayModel } from "./useTodayDesk";
      (memoised apart from the drafts, with a rev, so typing never re-sends
      fifteen letters), the plate's lock, her first-arrival line, her letter
      and the window for the day's end, her five pictures (her own look, from
-     BirdSnapshots: useTodayBirds), her yawn hours, the + panel and whether
-     the band steps aside;
+     BirdSnapshots: useTodayBirds, wilted while she's starving), her yawn
+     hours, the + panel, whether the band steps aside, and Wren on the band
+     (her resting face, the serial that sends her off with a reply, the
+     reader being open, her VoiceOver name);
    - commands, for everything that changes often: the composer (the send
      key and the hint, per keystroke), the seed of the bound letter's draft
      (setText, only when the bound letter changes or the reader closes —
@@ -44,8 +46,10 @@ import type { TodayModel } from "./useTodayDesk";
    - events back to the model: a pass, bring back, REPLY opening the field,
      the window (her game, through the router), the reply's edits and sends,
      a card's actions.
-   No islands: Wren is Swift's, drawn from her pictures. The send's fly-by
-   (LetterInFlight) sits over the Host in the band's place. */
+   No islands: Wren is Swift's, drawn from her pictures. A reply in the air
+   is hers to carry too: she takes the letter off the band and comes back
+   (KWireWren), so there is no React Native fly-by over this Host (the old
+   LetterInFlight would have been a second bird). */
 
 /** One card as the Swift view takes it. */
 export function nativeCard(c: CardVM): KTodayCard {
@@ -90,10 +94,8 @@ export function TodayNative({ model }: { model: TodayModel }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
-  const { height: hostH } = useWindowDimensions();
   const navigation = useNavigation();
   const { view, act } = model;
-  const geometry = deskGeometry({ hostH, safeTop: insets.top, tabBarRoom: insets.tabBarRoom });
 
   // the bound letter's draft, read at the moment the field needs it
   const boundId = view.reply.letterId;
@@ -166,6 +168,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
   const wrenLetter = useSame<KTodayWrenLetter>(view.wrenLetter);
   const flightWindow = useSame<KTodayWindow>(view.window);
   const birds = useTodayBirds({ wilt: view.wren.wilt, stage: view.wren.stage });
+  const wren = useSame<KTodayWren>({ rest: view.wren.rest, carry: view.wren.carry, reader: view.readerId != null, a11y: view.wren.a11y, name: view.wren.name });
 
   return (
     <View style={{ flex: 1 }}>
@@ -190,6 +193,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
           night={view.night}
           plus={view.plus}
           hideBand={view.hideBand}
+          wren={wren}
           onPass={act.pass}
           onBringBack={act.bringBack}
           onReplyOpen={act.replyOpen}
@@ -199,13 +203,6 @@ export function TodayNative({ model }: { model: TodayModel }) {
           onCardAction={act.cardAction}
         />
       </SurfaceHost>
-
-      {/* the courier carries it: in the band's place while the reply is in the air */}
-      {view.sending && (
-        <View pointerEvents="none" style={{ position: "absolute", left: 16, right: 16, top: geometry.controlTop + 13 }}>
-          <LetterInFlight to={view.flyTo} slow={view.slow} />
-        </View>
-      )}
     </View>
   );
 }

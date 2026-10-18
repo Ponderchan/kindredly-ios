@@ -3,31 +3,34 @@
 import SwiftUI
 
 /*
- THE COMPOSE TOOLBAR (H:136, P:94), riding the keyboard's top, 18 from the sides, 10 apart:
+ THE COMPOSE TOOLBAR, riding the keyboard's top, 10 apart. It looks as the App Store page's did
+ (owner, 2026-10-18; compose.tsx and ComposeTray.tsx): two round keys, a keyboard's shape (owner,
+ 2026-09-20), then the wide key.
 
- - the + (KRoundTool: a 40 circle, 1.5 ln): the question and the voice letter live behind it. It
-   turns 45° into an × in ind while its tray is open, and wears an ind dot ringed in bg when
-   something rides with the letter (a question, the voice);
- - the stamp: while none is chosen, a 40 square with a 1.5 dashed ln edge and corners of 10,
-   holding the face in its own small square (H:136's 18, corners of 3); while the stamp tray is
-   open the face comes apart and a pencil lies across the square (ComposeTray's StampKeyGlyph,
-   owner 2026-09-20: the eyes fly up and out, the smile drops, the pencil arrives, .36s). Once a
-   stamp is chosen, its pill instead: 40 tall, corners of 20, a 1.5 rule in the stamp's colour on
-   its wash, "#name" in mono 600 11 in its channel ink, at most 148 wide, shrinking to .68 before
-   it would cut the word;
- - on the right, the key: its label in mono 600 11 at .14em, mute until the letter can go and
-   ind when it can (or when it wants a stamp), SEND where the label doesn't fit beside the pill
-   (the old rule measured a 170pt key; here the toolbar simply tries the long word first). When
-   neither fits on one line (PICK A MOOD STAMP and SENDING… have no short word: SCEGLI UN
-   FRANCOBOLLO DELL'UMORE at the default size on an SE, CHOISIS UN TIMBRE D'HUMEUR at XL, the
-   English at xxxLarge), the last choice takes the width it is offered: two lines, right-aligned,
-   shrinking to .75 before it would cut a word, so the + and the stamp key never leave the
-   gutter (a label with a fixed width overflowed the row, which then centred, pushing the + off
-   the left edge). While
-   the words are still short, a thin line under the label fills toward the floor in ind on a
-   line-coloured track, with no digits (owner question 5's default). PICK A MOOD STAMP brings a
-   chevron that leans toward the stamp key, again and again (-4 over .52s, back over .52s, a
-   .26s rest), still under Reduce Motion.
+ - the + (a 46 circle with a 1.5 ln ring, ComposeTray's RoundKey): the question and the voice
+   letter live behind it. Its plus (27 across, 1.8 on the 24 grid) turns 45° into an × in ind
+   while its tray is open, and the ring wears an ind dot edged in the page colour, 2 inside the
+   ring at the top right, when something rides with the letter (a question, the voice);
+ - the stamp: while none is chosen, the same round key holding the stamp glyph, a face in a
+   perforated square (ComposeTray's StampKeyGlyph at 27); while the stamp tray is open the face
+   comes apart and a pencil lies across the square (owner 2026-09-20: the eyes fly up and out,
+   the smile drops, the pencil arrives, .36s). Once a stamp is chosen, its pill instead: 46
+   tall, corners of 23, a 1.5 rule in the stamp's colour on its wash, "#name" in Plex Mono 500
+   11.5 in its channel ink, at most 148 wide, shrinking to .68 before it would cut the word;
+ - the wide key, taking the rest of the row: square corners, a 1pt edge, padding 17 and 10, its
+   label in Plex Mono 600 13 at 1.4, centred. Filling: no fill and a line-coloured edge, a lav2
+   wash rising from its left to how far the words are toward the floor, the label in mute and,
+   8 beside it, the count ("7/20", key.count) in Plex Mono 10.5 at .6 in mute. PICK A MOOD STAMP:
+   solid ind with the label in the page colour, and a chevron 10 in from its left edge that
+   leans toward the stamp key, again and again (-4 over .52s, back over .52s, a .26s rest),
+   standing still under Reduce Motion. Ready: solid ink, the label in the page colour.
+   SENDING…: as filling, without the wash. SEND where LET IT TRAVEL would be squeezed: under a
+   170 key, as the App Store page measured it (beside a long pill), and wherever the label
+   doesn't fit at its size (the toolbar tries the long word first). When neither fits on one
+   line (PICK A MOOD STAMP and SENDING… have no short word: SCEGLI UN FRANCOBOLLO DELL'UMORE at
+   the default size on an SE, CHOISIS UN TIMBRE D'HUMEUR at XL, the English at xxxLarge), the
+   last choice takes the width it is offered: two centred lines, shrinking to .75 before it
+   would cut a word, so the + and the stamp key never leave the gutter.
 
  Each key takes the keyboard away before it acts (a tray takes the keyboard's place; the key
  sends, or opens the stamps). Only the key watches the driver: a keystroke redraws it and
@@ -40,16 +43,17 @@ struct KComposeToolbar: View {
   let actions: KComposeActions
 
   var body: some View {
-    // 44pt targets around 40pt marks: 6 between targets is the mock's 10 between marks
-    HStack(spacing: 6) {
-      KRoundTool(
+    HStack(spacing: 10) {
+      KComposeRoundKey(
         theme: theme,
-        glyph: .plus(open: content.tray == .more),
         accessibilityLabel: content.tray == .more ? content.strings.closeLabel : content.strings.plusLabel,
+        selected: false,
         dot: content.plusDot
       ) {
         driver.blurAll()
         actions.onTray(.more)
+      } glyph: {
+        KComposePlusGlyph(open: content.tray == .more, color: content.tray == .more ? theme.ind : theme.ink)
       }
 
       if let stamp = content.stamp {
@@ -58,13 +62,19 @@ struct KComposeToolbar: View {
           actions.onTray(.stamps)
         }
       } else {
-        KComposeStampKey(theme: theme, open: content.tray == .stamps, accessibilityLabel: content.strings.stampLabel) {
+        KComposeRoundKey(
+          theme: theme,
+          accessibilityLabel: content.strings.stampLabel,
+          selected: content.tray == .stamps,
+          dot: false
+        ) {
           driver.blurAll()
           actions.onTray(.stamps)
+        } glyph: {
+          KStampKeyGlyph(open: content.tray == .stamps, ink: theme.ink, pencil: KBrand.waxGold)
+            .frame(width: KComposeKeySize.glyph, height: KComposeKeySize.glyph)
         }
       }
-
-      Spacer(minLength: 8)
 
       KComposeTravelKey(theme: theme, driver: driver) {
         driver.blurAll()
@@ -76,28 +86,78 @@ struct KComposeToolbar: View {
   }
 }
 
-/// The stamp key while no stamp is chosen: the dashed square and the face that turns to a pencil.
-private struct KComposeStampKey: View {
+/// React Native's pressed look on these keys: the key at .7 while held.
+private struct KComposeDimPressStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .opacity(configuration.isPressed ? 0.7 : 1)
+  }
+}
+
+/// The round keys' measures (ComposeTray RoundKey, PlusGlyph and StampKeyGlyph).
+private enum KComposeKeySize {
+  /// the circle, and the pill's height beside it
+  static let diameter: CGFloat = 46
+  /// the glyph's box
+  static let glyph: CGFloat = 27
+}
+
+/// A round key in the bar (ComposeTray RoundKey): a 46 circle, a 1.5 ln ring, no fill.
+private struct KComposeRoundKey<Glyph: View>: View {
+
   let theme: KTheme
-  let open: Bool
   let accessibilityLabel: String
+  let selected: Bool
+  let dot: Bool
   let action: () -> Void
+  let glyph: Glyph
+
+  init(theme: KTheme, accessibilityLabel: String, selected: Bool, dot: Bool, action: @escaping () -> Void, @ViewBuilder glyph: () -> Glyph) {
+    self.theme = theme
+    self.accessibilityLabel = accessibilityLabel
+    self.selected = selected
+    self.dot = dot
+    self.action = action
+    self.glyph = glyph()
+  }
 
   var body: some View {
     SwiftUI.Button(action: action) {
-      KStampKeyGlyph(open: open, ink: theme.ink, pencil: KBrand.waxGold)
-        .frame(width: 24, height: 24)
-        .frame(width: 40, height: 40)
-        .overlay {
-          RoundedRectangle(cornerRadius: 10, style: .circular)
-            .strokeBorder(theme.ln, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2.5]))
+      glyph
+        .frame(width: KComposeKeySize.diameter, height: KComposeKeySize.diameter)
+        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+        .overlay(alignment: .topTrailing) {
+          if dot {
+            // ComposeTray KeyDot: 9 across, ind edged 1.5 in the page colour, 2 inside the ring
+            Circle()
+              .fill(theme.ind)
+              .overlay(Circle().strokeBorder(theme.bg, lineWidth: 1.5))
+              .frame(width: 9, height: 9)
+              .padding(1.5 + 2)
+          }
         }
-        .frame(width: KRoundTool.target, height: KRoundTool.target)
-        .contentShape(Rectangle())
+        .contentShape(Circle())
     }
-    .buttonStyle(KFloatPressStyle())
+    .buttonStyle(KComposeDimPressStyle())
     .accessibilityLabel(accessibilityLabel)
-    .accessibilityAddTraits(open ? .isSelected : [])
+    .accessibilityAddTraits(selected ? .isSelected : [])
+  }
+}
+
+/// The plus that turns 45° into an × while its tray is open (ComposeTray PlusGlyph at 27).
+private struct KComposePlusGlyph: View {
+  let open: Bool
+  let color: Color
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    let s = KComposeKeySize.glyph
+    KStampKeyPiece(d: "M12 6v12M6 12h12")
+      .stroke(color, style: StrokeStyle(lineWidth: 1.8 * s / 24, lineCap: .round))
+      .frame(width: s, height: s)
+      .rotationEffect(.degrees(open ? 45 : 0))
+      .animation(reduceMotion ? nil : .easeOut(duration: 0.26), value: open)
+      .accessibilityHidden(true)
   }
 }
 
@@ -109,113 +169,171 @@ private struct KComposeStampPill: View {
 
   var body: some View {
     SwiftUI.Button(action: action) {
-      Text(stamp.name)
-        .kText(.mono(11, .semibold, tracking: 0.02))
-        .foregroundStyle(stamp.ink)
-        .lineLimit(1)
-        .minimumScaleFactor(0.68)
-        // the words' room inside the pill: it hugs a short name and stops a long one at 148
-        .frame(maxWidth: Self.maxWidth - 24)
-        .padding(.horizontal, 12)
-        .frame(height: 40)
-        .background(Capsule().fill(stamp.wash))
-        .overlay(Capsule().strokeBorder(stamp.line, lineWidth: 1.5))
-        .padding(.vertical, 2)
-        .contentShape(Capsule())
+      // the words' room inside the pill: it hugs a short name and stops a long one at 148,
+      // where the name shrinks instead (React Native's maxWidth; a frame would always fill it)
+      KComposeWidthCap(maxWidth: Self.maxWidth - 2 * (12 + 1.5)) {
+        Text(stamp.name)
+          .composeText(.pillName)
+          .foregroundStyle(stamp.ink)
+          .lineLimit(1)
+          .minimumScaleFactor(0.68)
+      }
+      // padding 12 inside the 1.5 rule, which React Native counts in the box (and in the 148)
+      .padding(.horizontal, 12 + 1.5)
+      .frame(height: KComposeKeySize.diameter)
+      .background(Capsule().fill(stamp.wash))
+      .overlay(Capsule().strokeBorder(stamp.line, lineWidth: 1.5))
+      .contentShape(Capsule())
     }
-    .buttonStyle(KFloatPressStyle())
+    .buttonStyle(KComposeDimPressStyle())
     // the pill keeps its width; the key takes what is left and says SEND if it must
     .layoutPriority(1)
     .accessibilityLabel(stamp.accessibilityLabel)
   }
 }
 
-/// The key on the right, watching the live state.
+/// Offers its one child at most `maxWidth` and takes the child's own size: a cap that hugs, as
+/// React Native's maxWidth does (a flexible frame takes the whole width it is offered up to its
+/// cap).
+private struct KComposeWidthCap: Layout {
+  let maxWidth: CGFloat
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    guard let child = subviews.first else { return .zero }
+    return child.sizeThatFits(ProposedViewSize(width: min(proposal.width ?? maxWidth, maxWidth), height: proposal.height))
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    subviews.first?.place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
+  }
+}
+
+/// The wide key, watching the live state.
 private struct KComposeTravelKey: View {
+  /// under this width the key says SEND (compose.tsx: keyW < 170 && narrowLabel)
+  static let narrowBelow: CGFloat = 170
+
   let theme: KTheme
   @ObservedObject var driver: KComposeDriver
   let action: () -> Void
+  /// the key's width as laid out (0 until it is)
+  @State private var width: CGFloat = 0
 
   var body: some View {
     let key = driver.live.key
+    let squeezed = width > 0 && width < Self.narrowBelow && !key.narrowLabel.isEmpty
     SwiftUI.Button(action: action) {
-      HStack(spacing: 6) {
-        if key.nudge {
-          KComposeNudge(color: theme.ind)
+      ViewThatFits(in: .horizontal) {
+        if !squeezed {
+          row(key.label, key: key, fits: true)
         }
-        ViewThatFits(in: .horizontal) {
-          label(key.label, key: key, fits: true)
-          if !key.narrowLabel.isEmpty {
-            label(key.narrowLabel, key: key, fits: true)
-          }
-          // the last choice can always fit: it wraps and shrinks into the width it is offered
-          label(key.narrowLabel.isEmpty ? key.label : key.narrowLabel, key: key, fits: false)
+        if !key.narrowLabel.isEmpty {
+          row(key.narrowLabel, key: key, fits: true)
+        }
+        // the last choice can always fit: it wraps and shrinks into the width it is offered
+        row(key.narrowLabel.isEmpty ? key.label : key.narrowLabel, key: key, fits: false)
+      }
+      // compose.tsx: padding 17 and 10 inside a 1pt border, which React Native adds to the box
+      .padding(.vertical, 17 + 1)
+      .padding(.horizontal, 10 + 1)
+      .frame(maxWidth: .infinity, minHeight: 44)
+      .background { face(key) }
+      .overlay(alignment: .leading) {
+        if key.nudge {
+          KComposeNudge(color: theme.bg)
+            .padding(.leading, 10)
         }
       }
-      .frame(minHeight: 44)
+      .overlay {
+        Rectangle().strokeBorder(edge(key), lineWidth: 1)
+      }
       .contentShape(Rectangle())
     }
     .buttonStyle(KAsIsButtonStyle())
     .disabled(!key.enabled)
     .accessibilityLabel(key.label)
-    .animation(.easeOut(duration: 0.18), value: key.tone)
+    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+  }
+
+  /// the key's fill: ink when it sends, ind when it wants a stamp, else the wash on nothing
+  @ViewBuilder private func face(_ key: KComposeKey) -> some View {
+    switch key.stage {
+    case .ready:
+      theme.ink
+    case .needStamp:
+      theme.ind
+    case .filling, .sending:
+      if key.progress >= 0 {
+        // the wash rising from the left toward the floor: inside the 1pt edge, to the whole
+        // percent (compose.tsx: width `${Math.round(progress * 100)}%`)
+        GeometryReader { geo in
+          theme.lav2
+            .frame(width: geo.size.width * (min(max(key.progress, 0), 1) * 100).rounded() / 100)
+        }
+        .padding(1)
+        .accessibilityHidden(true)
+      }
+    }
+  }
+
+  private func edge(_ key: KComposeKey) -> Color {
+    switch key.stage {
+    case .ready: return theme.ink
+    case .needStamp: return theme.ind
+    case .filling, .sending: return theme.line
+    }
+  }
+
+  private func ink(_ key: KComposeKey) -> Color {
+    switch key.stage {
+    case .ready, .needStamp: return theme.bg
+    case .filling, .sending: return theme.mute
+    }
   }
 
   /// - fits: true for a one-line label at its own width (ViewThatFits takes it only where it
   ///   fits), false for the last choice, which takes the width it is offered (two lines, .75)
-  @ViewBuilder private func label(_ text: String, key: KComposeKey, fits: Bool) -> some View {
-    if fits {
-      floorLine(
+  @ViewBuilder private func row(_ text: String, key: KComposeKey, fits: Bool) -> some View {
+    HStack(spacing: 8) {
+      if fits {
         Text(text)
-          .kText(.mono(11, .semibold, tracking: 0.14))
-          .foregroundStyle(key.tone == .ind ? theme.ind : theme.mute)
+          .kText(.mono(13, .semibold, tracking: 1.4 / 13))
+          .foregroundStyle(ink(key))
           .lineLimit(1)
-          .fixedSize(),
-        key: key
-      )
-    } else {
-      floorLine(
+          .fixedSize()
+      } else {
         Text(text)
-          .kText(.mono(11, .semibold, tracking: 0.14))
-          .foregroundStyle(key.tone == .ind ? theme.ind : theme.mute)
+          .kText(.mono(13, .semibold, tracking: 1.4 / 13))
+          .foregroundStyle(ink(key))
           .lineLimit(2)
-          .multilineTextAlignment(.trailing)
+          .multilineTextAlignment(.center)
           .minimumScaleFactor(0.75)
-          .fixedSize(horizontal: false, vertical: true),
-        key: key
-      )
-    }
-  }
-
-  private func floorLine(_ label: some View, key: KComposeKey) -> some View {
-    label
-      // the floor, as a line under the label (no digits): ind filling a line-coloured track
-      .overlay(alignment: .bottomLeading) {
-        if key.progress >= 0 {
-          GeometryReader { geo in
-            ZStack(alignment: .leading) {
-              Capsule().fill(theme.line)
-              Capsule()
-                .fill(theme.ind)
-                .frame(width: geo.size.width * min(max(key.progress, 0), 1))
-            }
-          }
-          .frame(height: 2)
-          .offset(y: 6)
-          .animation(.easeOut(duration: 0.2), value: key.progress)
-          .accessibilityHidden(true)
-        }
+          .fixedSize(horizontal: false, vertical: true)
       }
+      // the count rides in the row, beside the label, not over it
+      if !key.count.isEmpty {
+        Text(key.count)
+          .composeText(.keyCount)
+          .foregroundStyle(theme.mute)
+          .lineLimit(1)
+          .fixedSize()
+          .accessibilityHidden(true)
+      }
+    }
   }
 }
 
-/// The chevron that leans toward the stamp key while the key says PICK A MOOD STAMP.
+/// The chevron that leans toward the stamp key while the key says PICK A MOOD STAMP
+/// (ComposeTray Nudge: 14 across, 2.4 on the 24 grid).
 private struct KComposeNudge: View {
   let color: Color
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
-    let chevron = KLineIcon(.chevronLeft, size: 13, lineWidth: 2.6, color: color)
+    let chevron = KStampKeyPiece(d: "M15 5 L8 12 L15 19")
+      .stroke(color, style: StrokeStyle(lineWidth: 2.4 * 14 / 24, lineCap: .round, lineJoin: .round))
+      .frame(width: 14, height: 14)
+      .accessibilityHidden(true)
     if reduceMotion {
       chevron
     } else {
@@ -233,7 +351,9 @@ private struct KComposeNudge: View {
 
 /*
  THE FACE COMES APART, AND A PENCIL ARRIVES (ComposeTray.tsx StampKeyGlyph, owner 2026-09-20),
- on the 24 grid: closed, a face (two eyes, a smile) in a small square; open, the eyes fly up and
+ on the 24 grid: closed, a face (two eyes, a smile) in the perforated square (the glyph family's
+ mother shape, "Perf Line": 17 across with corners of 1, a 1.6 edge in dashes of 1.4 and gaps of
+ 1.6, all on the grid, so they grow with the glyph); open, the eyes fly up and
  out and shrink, the smile drops, and in their place an ink dot (a stamp being drawn) and a
  short pencil across the square's corner. Closing runs it backwards. The pencil's body is the
  brand's wax gold (the amber of ComposeTray's pencil); everything else is the caller's ink.
@@ -248,10 +368,10 @@ struct KStampKeyGlyph: View {
     GeometryReader { geo in
       let u = min(geo.size.width, geo.size.height) / 24
       ZStack {
-        // the square, always (H:136's 18 with corners of 3, centred on the grid)
-        RoundedRectangle(cornerRadius: 3 * u, style: .circular)
-          .stroke(ink, lineWidth: 1.5)
-          .frame(width: 18 * u, height: 18 * u)
+        // the perforated square, always (ComposeTray Perf: x 3.5, y 3.5, 17 across, rx 1)
+        RoundedRectangle(cornerRadius: 1 * u, style: .circular)
+          .stroke(ink, style: StrokeStyle(lineWidth: 1.6 * u, dash: [1.4 * u, 1.6 * u]))
+          .frame(width: 17 * u, height: 17 * u)
         // the face, in three pieces
         KStampKeyPiece(d: "M8.3 10.4a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0")
           .fill(ink)

@@ -41,6 +41,33 @@ export const setDevStarving = (on: boolean) => {
   if (__DEV__) devStarving = on;
 };
 
+/* FED, ON THIS PHONE. A letter or a reply written here feeds her the moment
+   it goes (lib/local-push noteWrote("letter") calls noteFed), so a screen
+   that reads her hunger from what it last fetched (Today: the threads, and
+   no aura date) doesn't keep her grey until its next fetch. In memory, for
+   this run of the app; across launches local-push's letterDay says the same
+   (lastLetterDay). Read it as hungerRead's lastWrittenAt, beside any other. */
+let fedAt = 0;
+const fedListeners = new Set<() => void>();
+
+/** a letter or a reply just went from this phone */
+export function noteFed(at: number = Date.now()): void {
+  if (at <= fedAt) return;
+  fedAt = at;
+  fedListeners.forEach((l) => l());
+}
+
+/** when she was last fed on this phone in this run (ms), 0 for not yet */
+export const lastFedAt = (): number => fedAt;
+
+/** told whenever she's fed (for useSyncExternalStore); returns the unsubscribe */
+export function onFed(listener: () => void): () => void {
+  fedListeners.add(listener);
+  return () => {
+    fedListeners.delete(listener);
+  };
+}
+
 /** a person wrote you and you have not written back (a closed account is not waiting) */
 export const waitingOnYou = (th: ThreadSummary): boolean => !th.gone && !th.lastSenderMe && (th.theirs || 0) > 0 && !!th.lastAt;
 

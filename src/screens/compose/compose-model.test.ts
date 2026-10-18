@@ -50,19 +50,20 @@ const key = (p: Partial<Parameters<typeof M.keyFor>[0]>) =>
   const k = key({ weight: 5 });
   ok("filling: LET IT TRAVEL in mute", k.stage === "filling" && k.label === "cp.travel" && k.tone === "mute");
   ok("filling: not pressable", !k.enabled);
-  ok("filling: the floor line is weight / floor, no digits anywhere", k.progress === 5 / OPENING_MIN && !/\d/.test(k.label));
+  ok("filling: the wash is weight / floor", k.progress === 5 / OPENING_MIN);
+  ok("filling: the count rides beside the label (the App Store key)", k.count === `5/${OPENING_MIN}` && !/\d/.test(k.label));
   ok("filling: SEND where it doesn't fit", k.narrowLabel === "ld.send");
   ok("filling: no nudge", !k.nudge);
 }
-ok("empty page: the floor line starts at 0", key({ weight: 0 }).progress === 0);
-ok("over the ceiling: filling with no floor line", (() => { const k = key({ weight: LETTER_MAX + 3 }); return k.stage === "filling" && k.progress === -1; })());
+ok("empty page: the wash starts at 0, the count at 0", key({ weight: 0 }).progress === 0 && key({ weight: 0 }).count === `0/${OPENING_MIN}`);
+ok("over the ceiling: filling with no floor line", (() => { const k = key({ weight: LETTER_MAX + 3 }); return k.stage === "filling" && k.progress === -1 && k.count === ""; })());
 ok("speaking and not ready: no floor line", key({ mode: "speak", weight: 0 }).progress === -1);
 {
   const k = key({ weight: OPENING_MIN, wordsReady: true });
   ok("needStamp: PICK A MOOD STAMP in ind, pressable", k.stage === "needStamp" && k.label === "cp.needStamp" && k.tone === "ind" && k.enabled);
   ok("needStamp: the nudge leans toward the stamp key", k.nudge);
   ok("needStamp: never squeezed to SEND", k.narrowLabel === "");
-  ok("needStamp: no floor line", k.progress === -1);
+  ok("needStamp: no wash, no count", k.progress === -1 && k.count === "");
 }
 ok("needStamp with the stamp tray open: no nudge", !key({ weight: OPENING_MIN, wordsReady: true, tray: "stamps" }).nudge);
 ok("needStamp with the more tray open: still nudges", key({ weight: OPENING_MIN, wordsReady: true, tray: "more" }).nudge);
@@ -70,7 +71,7 @@ ok("needStamp with the more tray open: still nudges", key({ weight: OPENING_MIN,
   const k = key({ weight: 40, wordsReady: true, hasStamp: true });
   ok("ready: LET IT TRAVEL in ind, pressable", k.stage === "ready" && k.label === "cp.travel" && k.tone === "ind" && k.enabled);
   ok("ready: SEND where it doesn't fit", k.narrowLabel === "ld.send");
-  ok("ready: no nudge, no floor line", !k.nudge && k.progress === -1);
+  ok("ready: no nudge, no wash, no count", !k.nudge && k.progress === -1 && k.count === "");
 }
 {
   const k = key({ weight: 40, wordsReady: true, hasStamp: true, busy: true });

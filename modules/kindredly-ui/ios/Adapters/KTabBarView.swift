@@ -33,7 +33,7 @@ import ExpoUI
  - sheet: { ask, letterTitle, letterSub, letterLeft, noteTitle, noteSub, footnote, bird }: the
    publish sheet's words ("" letterLeft hides the count) and the user's own Wren
    ({ uri, key, kind }, an empty uri for none yet)
- - pop: { letterLabel, noteLabel, letterA11y, noteA11y }: the two buttons' labels and what
+ - pop: { letterLabel, noteLabel, letterA11y, noteA11y, letterLeft }: the two buttons' labels and what
    VoiceOver says for each
  Every string arrives translated; nothing in Swift holds a word.
 
@@ -88,6 +88,7 @@ struct KTabBarPopRecord: Record {
   @Field var noteLabel: String = ""
   @Field var letterA11y: String = ""
   @Field var noteA11y: String = ""
+  @Field var letterLeft: String = ""
 }
 
 final class KTabBarViewProps: UIBaseViewProps {
@@ -180,6 +181,7 @@ struct KTabBarView: ExpoSwiftUI.View {
     m.noteLabel = r.noteLabel
     m.letterA11y = r.letterA11y
     m.noteA11y = r.noteA11y
+    m.letterLeft = r.letterLeft
     return m
   }
 }

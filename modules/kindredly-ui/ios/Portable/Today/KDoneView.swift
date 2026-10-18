@@ -3,29 +3,30 @@
 import SwiftUI
 
 /*
- THE END OF THE DAY ON TODAY (design 3d × 25b as revised 2026-10-16; build contract §3.7). When
- the last letter on the desk goes, Wren's evening plays as one timeline. t = 0 is the release of
- the last card; the deck runs that card's own out-animation.
+ THE END OF THE DAY ON TODAY (design 3d × 25b as revised 2026-10-16; build contract §3.7; the
+ owner's 18:05 decision on the band, and his 2026-10-18 one: the ground band only). When the last
+ letter on the desk goes, Wren's evening plays as one timeline. t = 0 is the release of the last
+ card; the deck runs that card's own out-animation.
 
    t    0  her face: sleepy in her yawn hours (21:00 to 08:00, TS's `night`), otherwise content
-      300  the arc's solid layer draws over it (600 ms) while the dashes fade (300 ms); NEXT and
-           REPLY fade and drop 12; she takes off (fly) along the arc to its REPLY end (550 ms);
-           her letter rises into the card's slot from 70 below (the new-card curve)
-      820  she dives into the window (550 ms)
-      900  the arc, drawn to the end, leaves as the buttons did: it fades and drops 12 (the
-           design's "两枚钮和弧退场"; the window would otherwise show its apex over its top edge)
-     1000  the window rises in (450 ms)
-     1600  when she can play: the flap loop and the pipes start; otherwise she settles, content
+      300  the band leaves: NEXT and REPLY fade (300 ms) and drop 12; she takes off (fly) straight
+           from her spot between them into the window, one segment (550 ms); her letter rises into
+           the card's slot from 70 below (the new-card curve)
+      700  the window rises in (450 ms)
+     1300  when she can play: the flap loop and the pipes start; otherwise she settles, content
 
- KDayFlow holds that timeline as published state, and the band (the arc, the buttons), Wren on
- the wire, the window and this slot each read the part they draw. TS decides when the day is
+ If she is away with a reply when the day ends (the last letter answered), she flies into the
+ window from wherever her errand has taken her (KWireWren folds the errand into this flight).
+
+ KDayFlow holds that timeline as published state, and the band's buttons, Wren, the window and
+ this slot each read the part they draw. TS decides when the day is
  done and says every word; the flow only times the pictures. Opening Today on a desk that is
  already done draws the final state at once (rest), with no replay; a day that turns, or a pass
  TS doesn't confirm, puts everything back to reading (reset). Every pending step carries the
  generation it was scheduled in, so a reset or a rest cancels whatever was still to come.
 
  Reduce Motion: the face changes at 0, and at 300 every final value lands at once on a 200 ms
- ease (KTodayMotion.reduced); Wren crossfades from the wire to the window (KWireWren draws that),
+ ease (KTodayMotion.reduced); Wren crossfades from the band to the window (KWireWren draws that),
  and nothing loops.
 
  CURVES. Several values change at the same instant (t = 300) on different curves, and changes an
@@ -36,7 +37,9 @@ import SwiftUI
  that disables animations, which .animation(_:value:) honours.
 
  KDoneView is the slot's done content: Wren's letter (KWrenLetter), present from 300 on. It sits
- over the deck in the card slot and takes no touches until the letter is there.
+ over the deck in the card slot and takes no touches until the window is up (t = 1000): while the
+ letter is still rising its bag passes over NEXT's disc, and the second tap of a quick double-tap
+ on NEXT (the last letter's pass) would otherwise land on the bag and show NOT YET.
  */
 
 /// One of Wren's five faces (the five BirdSnapshots captures TS sends as KTodayBirds).
@@ -51,15 +54,9 @@ public enum KWrenFace: String, Sendable {
 /// The end-of-day timeline's state (see the note at the top of KDoneView.swift). One per surface,
 /// owned by the adapter; the desk starts and resets it.
 public final class KDayFlow: ObservableObject {
-  /// the arc's solid layer, trimmed from 0 to this
-  @Published public private(set) var arcFill: CGFloat = 0
-  /// the arc's dashed layer
-  @Published public private(set) var dashOpacity: Double = 1
-  /// NEXT, REPLY and their labels
+  /// NEXT, REPLY and their labels: they leave at t = 300
   @Published public private(set) var bandShown = true
-  /// the arc as a whole: it leaves once it has been drawn (t = 900)
-  @Published public private(set) var arcShown = true
-  /// where Wren is: 0 on the wire, 1 at the arc's REPLY end, 2 in the window
+  /// where Wren is: 0 on her spot on the band, 1 in the window
   @Published public private(set) var flight: CGFloat = 0
   /// the face the timeline asks for; nil leaves her to the desk's own rules
   @Published public private(set) var faceOverride: KWrenFace? = nil
@@ -108,28 +105,26 @@ public final class KDayFlow: ObservableObject {
       return
     }
 
+    // one straight flight, the window close behind her
     after(0.3, token) { flow in
       withAnimation(KTodayMotion.flight) { flow.put(\.flight, 1) }
-      withAnimation(KTodayMotion.arcDraw) { flow.put(\.arcFill, 1) }
-      withAnimation(.easeOut(duration: 0.3)) { flow.put(\.dashOpacity, 0) }
       withAnimation(KTodayMotion.bandFade) { flow.put(\.bandShown, false) }
       withAnimation(KTodayMotion.face) { flow.put(\.faceOverride, KWrenFace.fly) }
       withAnimation(KTodayMotion.cardIn) { flow.put(\.letterShown, true) }
     }
-    after(0.82, token) { flow in
-      withAnimation(KTodayMotion.flight) { flow.put(\.flight, 2) }
-    }
-    after(0.9, token) { flow in
-      withAnimation(KTodayMotion.bandFade) { flow.put(\.arcShown, false) }
-    }
-    after(1.0, token) { flow in
+    after(0.7, token) { flow in
       withAnimation(KTodayMotion.windowIn) { flow.put(\.windowShown, true) }
     }
-    after(1.6, token) { flow in
-      withAnimation(KTodayMotion.face) { flow.put(\.faceOverride, canPlay ? KWrenFace.fly : KWrenFace.idle) }
-      flow.put(\.looping, canPlay)
-      flow.stage = .done
+    after(1.3, token) { flow in
+      flow.settle(canPlay: canPlay)
     }
+  }
+
+  /// The timeline's last step: she flaps and the pipes run when she can play, else she settles.
+  private func settle(canPlay: Bool) {
+    withAnimation(KTodayMotion.face) { put(\.faceOverride, canPlay ? KWrenFace.fly : KWrenFace.idle) }
+    put(\.looping, canPlay)
+    stage = .done
   }
 
   /// The final state at once, with no animation: Today opened on a desk that is already done.
@@ -156,10 +151,7 @@ public final class KDayFlow: ObservableObject {
     stage = .reading
     played = false
     still {
-      put(\.arcFill, 0)
-      put(\.dashOpacity, 1)
       put(\.bandShown, true)
-      put(\.arcShown, true)
       put(\.flight, 0)
       put(\.faceOverride, nil)
       put(\.letterShown, false)
@@ -172,11 +164,8 @@ public final class KDayFlow: ObservableObject {
 
   /// every final value of the day's end (the flight first: see CURVES)
   private func land(canPlay: Bool, looping loops: Bool) {
-    put(\.flight, 2)
-    put(\.arcFill, 1)
-    put(\.dashOpacity, 0)
+    put(\.flight, 1)
     put(\.bandShown, false)
-    put(\.arcShown, false)
     put(\.letterShown, true)
     put(\.windowShown, true)
     put(\.faceOverride, canPlay ? KWrenFace.fly : KWrenFace.idle)
@@ -232,7 +221,9 @@ struct KDoneView: View {
     // the letter comes in on the new-card curve (a crossfade under Reduce Motion), whatever
     // transaction the flow's step arrived in; rest and reset disable it
     .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.cardIn, value: flow.letterShown)
-    .allowsHitTesting(flow.letterShown)
+    // touches only once the window is up (true at rest, and from t = 1000 in play): the letter
+    // has landed by then, and a second tap meant for NEXT can no longer find the rising bag
+    .allowsHitTesting(flow.windowShown)
   }
 }
 

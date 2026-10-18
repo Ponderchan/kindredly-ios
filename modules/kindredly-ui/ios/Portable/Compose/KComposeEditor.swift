@@ -18,9 +18,11 @@ import SwiftUI
  - setText (a draft resumed, a remount), focus and blur come through the controller, and a
    spent one is never replayed on a rebuilt editor; a rebuilt editor starts from controller.text;
  - Return is a newline: letters keep their paragraphs. Nothing here sends.
- The writing style is system 17 (KTextStyle.input, H:136) in ink, the caret ind, the placeholder
- (the spark) mute, drawn over the empty editor where UITextView puts its first line, and read by
- VoiceOver as the editor's hint while the page is empty.
+ The writing style is the App Store page's (owner, 2026-10-18; compose.tsx PF.writing): Inter 19
+ on 30 (KComposeType.writing) in ink, the caret ind, the placeholder (the spark) in the caller's
+ colour (the old lavender on the light themes, mute on the dark ones) and the same face, drawn
+ over the empty editor where UITextView puts its first line, and read by VoiceOver as the
+ editor's hint while the page is empty.
 
  Never take it off screen while it holds the keyboard (the expo focus/unmount crash): the page
  swaps it for the caption field only from the + tray, which blurs first.
@@ -34,6 +36,7 @@ struct KComposeEditor: View {
   @ObservedObject private var controller: KFieldController
   private let theme: KTheme
   private let placeholder: String
+  private let placeholderColor: Color
   private let accessibilityLabel: String
   private let onChange: (String) -> Void
   private let onFocus: (Bool) -> Void
@@ -49,6 +52,7 @@ struct KComposeEditor: View {
     theme: KTheme,
     controller: KFieldController,
     placeholder: String,
+    placeholderColor: Color,
     accessibilityLabel: String,
     onChange: @escaping (String) -> Void,
     onFocus: @escaping (Bool) -> Void
@@ -56,6 +60,7 @@ struct KComposeEditor: View {
     self._controller = ObservedObject(wrappedValue: controller)
     self.theme = theme
     self.placeholder = placeholder
+    self.placeholderColor = placeholderColor
     self.accessibilityLabel = accessibilityLabel
     self.onChange = onChange
     self.onFocus = onFocus
@@ -65,7 +70,7 @@ struct KComposeEditor: View {
 
   var body: some View {
     TextEditor(text: $text)
-      .kText(.input)
+      .composeText(.writing)
       .foregroundStyle(theme.ink)
       .tint(theme.ind)
       .scrollContentBackground(.hidden)
@@ -76,8 +81,8 @@ struct KComposeEditor: View {
       .overlay(alignment: .topLeading) {
         if text.isEmpty {
           Text(placeholder)
-            .kText(.input)
-            .foregroundStyle(theme.mute)
+            .composeText(.writing)
+            .foregroundStyle(placeholderColor)
             .padding(.top, Self.topInset)
             .padding(.horizontal, Self.linePadding)
             .allowsHitTesting(false)

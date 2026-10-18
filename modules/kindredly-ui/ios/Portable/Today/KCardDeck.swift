@@ -15,13 +15,28 @@ import SwiftUI
  - .done: nothing, once the last card's out-animation has finished (the desk draws Wren's letter
    in the same slot).
 
- THE DRAG. One DragGesture (minimumDistance 10, so the card's own buttons and ⋯ still take taps).
- Up follows the finger; down only gives (×.25, there is no previous letter); opacity is 1 − .35p
- with p = clamp(−dy/110, 0, 1), published to KDeckMotion with `dragging` for the plate and Wren
- (nothing else observes it, so a drag frame redraws the deck, the plate and Wren only). A release
- at p ≥ 1 passes the card; anything short (or a cancelled gesture) springs back with springBack.
- It is ignored while the desk says the deck isn't enabled (typing, the + panel, a send, the
- reader, a transition, the done flow). The card follows the finger under Reduce Motion too.
+ THE DRAG. One DragGesture (minimumDistance 10, so the card's own buttons and ⋯ still take taps),
+ always attached: it is never swapped under a finger. Up follows the finger; down only gives
+ (×.25, there is no previous letter); opacity is 1 − .35p with p = clamp(−dy/110, 0, 1), published
+ to KDeckMotion with `dragging` for the plate and Wren (nothing else observes it, so a drag frame
+ redraws the deck, the plate and Wren only), and a pull down as `pull` = clamp(dy/110, 0, 1) (Wren
+ leans back from it). A release at p ≥ 1 passes the card; anything short (or a cancelled gesture)
+ springs back with springBack. Whether a gesture counts is decided on its FIRST move and kept to
+ its end (box.armed): it is dead when the desk says the deck isn't enabled (typing, the + panel, a
+ send, the reader, a transition, the done flow) and in the .4 s after the keyboard lets go, while
+ the band slides back (keyboardQuiet); a drag the deck turns off under (the keyboard rising, the +
+ opening, the card leaving) springs back there and its release does nothing.
+
+ NOTHING BUT A FINGER PASSES A CARD (round 3: on the dev page two letters passed by themselves while
+ the desk's layout changed under the card). A pass comes from exactly two places: a release at p ≥ 1 of a drag that began
+ on the card while the deck took the finger, or deck.nextRequest moving (NEXT, VoiceOver's "Next
+ letter") after this deck appeared. The drag is measured in the global space, so it is the
+ finger's travel alone: a card slot that moves or changes height under a finger (a geometry
+ change, the + panel's step back) adds nothing to it. A drag in progress when the slot's height
+ changes is over (it springs back; its release does nothing), and a release passes only the card
+ the drag began on (box.dragCard). A re-mounted deck starts with nextServed at the request count it
+ finds, so an old NEXT is never served again, and onChange never fires for a value it starts with.
+ The card follows the finger under Reduce Motion too.
 
  THE PASS (a release, NEXT, or VoiceOver's "Next letter": the last two arrive as
  deck.nextRequest). The out card is the shown one, the next is the card after it in
@@ -68,8 +83,16 @@ final class KCardDeckBox {
   var nextServed = 0
   /// bumps on every transition, appear and disappear
   var generation = 0
-  /// the finger moved the card (onChanged ran) and no release has been handled yet
+  /// a drag is in progress (onChanged ran) and no release has been handled yet
   var dragging = false
+  /// that drag began while the deck took the finger (takesFinger): it moves the card and its
+  /// release can pass. Decided on the first move and kept for the whole gesture, so a drag that
+  /// began over the keyboard, mid-transition or in the quiet after the keyboard stays dead
+  var armed = false
+  /// no drag counts before this: the band is still sliding back after the keyboard
+  var quietUntil = Date.distantPast
+  /// the card an armed drag began on: its release passes that card or nothing
+  var dragCard: String?
   /// the card the arrival's unfold belongs to (the first letter she brought back)
   var freshId: String?
 }
@@ -115,6 +138,8 @@ struct KCardDeck: View {
   static let fadeOut = Animation.timingCurve(0.4, 0, 0.7, 1, duration: 0.24)
   /// how far up a release must reach for p = 1
   static let passDistance: CGFloat = 110
+  /// no drag counts for this long after the keyboard lets go (the band's slide back is .35)
+  static let keyboardQuiet = 0.4
   /// a pass TS hasn't confirmed by then is dropped (TS wins)
   static let confirmWait = 1.5
 
@@ -189,7 +214,9 @@ struct KCardDeck: View {
     .frame(maxWidth: .infinity)
     .frame(height: height)
     .contentShape(Rectangle())
-    .gesture(drag, including: enabled ? .all : .subviews)
+    // always attached: the gate is inside the gesture (box.armed), so turning the deck off never
+    // swaps the gesture under a finger and leaves its release unanswered
+    .gesture(drag)
     // an empty slot (done, a status card) takes no touches: Wren's letter shares the slot
     .allowsHitTesting(model != nil)
     .onChange(of: content.cards.map(\.id)) { _, _ in
@@ -198,13 +225,35 @@ struct KCardDeck: View {
     .onChange(of: deck.nextRequest) { _, request in
       guard request != box.nextServed else { return }
       box.nextServed = request
-      if enabled { pass() }
+      if enabled { pass(.next) }
+    }
+    .onChange(of: enabled) { _, on in
+      // the deck turned off under a finger (the keyboard rising, the + opening, the card
+      // leaving): that drag is over, and its release does nothing
+      if !on, box.armed {
+        box.armed = false
+        springBack()
+      }
+    }
+    .onChange(of: deck.typing) { _, typing in
+      // the keyboard let go: no drag counts while the band slides back
+      if !typing { box.quietUntil = Date().addingTimeInterval(Self.keyboardQuiet) }
+    }
+    .onChange(of: height) { _, _ in
+      // the slot changed under a finger (the geometry): that drag is over, and its release does nothing
+      if box.armed {
+        box.armed = false
+        springBack()
+      }
     }
     .onChange(of: touching) { _, now in
-      // the gesture ended without onEnded (cancelled: a system gesture, the mask turning off)
-      if !now && box.dragging {
+      // the gesture ended without onEnded (cancelled: a system gesture took it)
+      if !now, box.dragging {
         box.dragging = false
-        springBack()
+        if box.armed {
+          box.armed = false
+          springBack()
+        }
       }
     }
     .onAppear { appear() }
@@ -214,44 +263,91 @@ struct KCardDeck: View {
   // ── the finger ──
 
   private var drag: some Gesture {
-    DragGesture(minimumDistance: 10)
+    // global: the translation is the finger's travel alone, never the slot moving under it
+    DragGesture(minimumDistance: 10, coordinateSpace: .global)
       .updating($touching) { _, state, _ in state = true }
       .onChanged { value in
+        if !box.dragging {
+          // the first move decides for the whole gesture
+          box.dragging = true
+          box.armed = takesFinger && showing != nil
+          box.dragCard = box.armed ? showing : nil
+        }
+        guard box.armed else { return }
         let dy = value.translation.height
         let p = Self.progress(dy)
-        box.dragging = true
+        let q = Self.pullDown(dy)
         y = dy < 0 ? dy : dy * 0.25
         alpha = 1 - 0.35 * Double(p)
         if !motion.dragging { motion.dragging = true }
         if motion.progress != p { motion.progress = p }
+        if motion.pull != q { motion.pull = q }
       }
       .onEnded { value in
         guard box.dragging else { return }
         box.dragging = false
-        if Self.progress(value.translation.height) >= 1 {
-          pass()
+        guard box.armed else { return }
+        box.armed = false
+        let dy = value.translation.height
+        // only the card the finger took: a card that changed under it isn't passed
+        if Self.progress(dy) >= 1, let card = box.dragCard, card == showing {
+          box.dragCard = nil
+          pass(.drag(dy: dy))
         } else {
+          box.dragCard = nil
           springBack()
         }
       }
+  }
+
+  /// The deck takes the finger now: the desk says so (`enabled`: reading, no keyboard, no + panel,
+  /// no send or reader, no transition, not done; typing and animating are read live as well, in
+  /// case the body hasn't caught up), and the band has finished sliding back after the keyboard.
+  private var takesFinger: Bool {
+    enabled && !deck.typing && !deck.animating && Date() >= box.quietUntil
   }
 
   static func progress(_ dy: CGFloat) -> CGFloat {
     min(max(-dy / passDistance, 0), 1)
   }
 
+  /// the damped pull down, 0…1 over the same 110 of finger travel (Wren leans back from it)
+  static func pullDown(_ dy: CGFloat) -> CGFloat {
+    min(max(dy / passDistance, 0), 1)
+  }
+
+  /// The drag is over without a pass: the plate and Wren straighten up, and the card goes back to
+  /// rest unless a transition owns its pose by now (the card left under the finger).
   private func springBack() {
     withAnimation(KTodayMotion.springBack) {
-      y = 0
-      alpha = 1
+      if !deck.animating {
+        y = 0
+        alpha = 1
+      }
       motion.dragging = false
       motion.progress = 0
+      motion.pull = 0
     }
   }
 
   // ── the pass ──
 
-  private func pass() {
+  /// What asked for the pass; the dev breadcrumb names it.
+  private enum Trigger: CustomStringConvertible {
+    /// a release at p ≥ 1, with the finger's dy
+    case drag(dy: CGFloat)
+    /// NEXT, or VoiceOver's "Next letter" (deck.nextRequest)
+    case next
+
+    var description: String {
+      switch self {
+      case .drag(let dy): return "drag dy=\(Int(dy.rounded()))"
+      case .next: return "next"
+      }
+    }
+  }
+
+  private func pass(_ trigger: Trigger) {
     // no re-entry: a transition in flight owns the pose
     guard !deck.animating else { return }
     let cards = content.cards
@@ -264,6 +360,10 @@ struct KCardDeck: View {
     }
     let out = cards[i]
     let next = i + 1 < cards.count ? cards[i + 1] : nil
+    #if DEBUG
+    // a breadcrumb for the simulator: a pass nobody meant names what asked for it
+    NSLog("[KCardDeck] pass %@ via %@ left=%ld", out.id, trigger.description, content.left)
+    #endif
     let gen = begin()
     deck.pendingLeft = max(0, content.left - 1)
     box.pending = out.id
@@ -276,6 +376,7 @@ struct KCardDeck: View {
     withAnimation(KTodayMotion.springBack) {
       motion.dragging = false
       motion.progress = 0
+      motion.pull = 0
     }
     if reduceMotion {
       withAnimation(KTodayMotion.reduced) {
@@ -460,6 +561,8 @@ struct KCardDeck: View {
     box.nextServed = deck.nextRequest
     box.pending = nil
     box.dragging = false
+    box.armed = false
+    box.dragCard = nil
     var instant = Transaction()
     instant.disablesAnimations = true
     withTransaction(instant) {
@@ -474,10 +577,13 @@ struct KCardDeck: View {
     box.generation &+= 1
     box.pending = nil
     box.dragging = false
+    box.armed = false
+    box.dragCard = nil
     if deck.pendingLeft != nil { deck.pendingLeft = nil }
     if deck.animating { deck.animating = false }
     if motion.dragging { motion.dragging = false }
     if motion.progress != 0 { motion.progress = 0 }
+    if motion.pull != 0 { motion.pull = 0 }
   }
 
   // ── plain bookkeeping, from the body ──
@@ -495,10 +601,12 @@ struct KCardDeck: View {
 
   private func bindCardActions() {
     cardActions.onReply = { [onReply] id in onReply(id) }
-    cardActions.onAction = { [actions] id, key in
+    cardActions.onAction = { [actions, deck] id, key in
       if key == "bringBack" {
         actions.onBringBack()
       } else {
+        // Wren leans toward the letter as it unfolds; the reader is asked for at once
+        if key == "unfold" { deck.emit(.unfolded) }
         actions.onCardAction(id, key)
       }
     }

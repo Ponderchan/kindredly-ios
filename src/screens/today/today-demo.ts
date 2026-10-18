@@ -16,8 +16,11 @@ import { useMemoryDay, type TodayDeps, type TodaySource } from "./useTodayDesk";
    the arrival, pass and bring back, done (her letter, the window), the
    quiet day, offline and the first load behave exactly as on the real
    desk; only the IO is pretend (TodayDeps below), the day is kept in
-   memory (never put away), and the words of the letters are written here
-   (they are other people's letters, not UI).
+   memory (never put away), the day's seal is a Set in memory (never
+   lib/flags, never her Live Activity), and the words of the letters are
+   written here (they are other people's letters, not UI). Nothing on this
+   page reaches the account signed in: not its flags, not its put-away
+   desk, not the lock screen.
 
    The letters: a telegram the matcher named (auras close), a letter in
    Spanish the matcher also named (the translate capsule wins the slot), a
@@ -65,8 +68,8 @@ const DEMO_TRANSLATIONS: Record<string, string> = {
 /** What the next reply does on the dev page. */
 export type DemoReply = "ok" | "gone" | "offline" | "suspended" | "guest";
 
-/** The day as a fixture: what is on the desk and how far the reader got. */
-export type DemoFixture = {
+/** The day as a fixture: what is on the desk and how far the reader got. A new one deals the day again. */
+export type DemoDay = {
   desk: PoolLetter[];
   /** ids already passed today (LEFT=1, DONE) */
   passed: string[];
@@ -74,35 +77,44 @@ export type DemoFixture = {
   doneAt: number | null;
   loaded: boolean;
   offline: boolean;
-  flights: number;
-  waiting: number;
   fresh: boolean;
-  /** her stage: an egg can't play */
-  stage: WrenStage | null;
-  /** she's starving: she can't play either */
-  wilt: boolean;
 };
 
-const recordOf = (fx: DemoFixture): DayRecord => ({ ...emptyDay(deskDay()), desk: fx.desk, passed: fx.passed, dealtAt: fx.desk.length ? Date.now() : null, doneAt: fx.doneAt });
+/** The world around the desk: the pouch, who's waiting, her stage, hunger and hour. Changing it leaves the desk where it is. */
+export type DemoWorld = {
+  flights: number;
+  waiting: number;
+  /** her stage: an egg can't play */
+  stage: WrenStage | null;
+  /** she's starving: her wilted pictures on the band, and she can't play either */
+  wilt: boolean;
+  /** her night hours whatever the clock says (she rests sleepy, yawns as the day ends, the window's sky is night) */
+  night: boolean;
+};
+
+const recordOf = (day: DemoDay): DayRecord => ({ ...emptyDay(deskDay()), desk: day.desk, passed: day.passed, dealtAt: day.desk.length ? Date.now() : null, doneAt: day.doneAt });
 
 /** The day as a fixture, in memory: its letters are passed, answered and blocked as the real ones are, and come back with the fixture. */
-export function useDemoSource(fx: DemoFixture): TodaySource {
-  const store = useMemoryDay(() => recordOf(fx));
+export function useDemoSource(day: DemoDay, world: DemoWorld): TodaySource {
+  const store = useMemoryDay(() => recordOf(day));
   const { reset } = store;
-  useEffect(() => reset(recordOf(fx)), [fx, reset]);
-  const [fresh, setFresh] = useState(fx.fresh);
-  useEffect(() => setFresh(fx.fresh), [fx.fresh]);
-  const reload = useCallback(() => reset(recordOf(fx)), [fx, reset]);
+  // a new day deals again (a mode, RESET); the world changing around it (PLAY, POUCH) never touches the desk or what was passed
+  useEffect(() => reset(recordOf(day)), [day, reset]);
+  const [fresh, setFresh] = useState(day.fresh);
+  useEffect(() => setFresh(day.fresh), [day.fresh]);
+  const reload = useCallback(() => reset(recordOf(day)), [day, reset]);
   const settleArrival = useCallback(() => setFresh(false), []);
   return {
     rec: store.rec,
-    loaded: fx.loaded,
-    offline: fx.offline,
-    flights: fx.flights,
-    waiting: fx.waiting,
-    stage: fx.stage,
-    wilt: fx.wilt,
-    canPlay: fx.stage !== "egg" && !fx.wilt,
+    loaded: day.loaded,
+    offline: day.offline,
+    flights: world.flights,
+    waiting: world.waiting,
+    stage: world.stage,
+    wilt: world.wilt,
+    canPlay: world.stage !== "egg" && !world.wilt,
+    // 23:00 stands in for the clock: her night hours
+    hour: world.night ? 23 : undefined,
     fresh,
     sent: true,
     settleArrival,
@@ -116,9 +128,15 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const away = (what: string) => Alert.alert("Dev page", what);
 
 /** The pretend world: replies answer as `reply()` says, translations come from the fixture, a report
-    or a block never reaches the server (a block still clears the writer's letters, through `blocked`). */
-export function demoDeps({ reply, blocked }: { reply: () => DemoReply; blocked: (author: string) => void }): TodayDeps {
+    or a block never reaches the server (a block still clears the writer's letters, through `blocked`),
+    and the day's seal lives in a Set here — lib/flags and her Live Activity in memory — so done
+    behaves as on the tab (once per day; again once the desk is reading again, as the model lifts
+    a stale seal) while the real flags, the real put-away desk and the lock screen are never touched.
+    A reply that went calls `fed` (the page's own hunger switch goes off: she perks up as she would
+    on the tab), never lib/hunger's noteFed, which would feed the real desk's Wren too. */
+export function demoDeps({ reply, blocked, fed }: { reply: () => DemoReply; blocked: (author: string) => void; fed: () => void }): TodayDeps {
   let fail: WriteFail | null = null;
+  const sealedDays = new Set<string>();
   return {
     reply: async () => {
       await wait(500);
@@ -135,11 +153,17 @@ export function demoDeps({ reply, blocked }: { reply: () => DemoReply; blocked: 
     signal: async (l) => DEMO_SIGNALS[l.id] ?? null,
     markRead: () => {},
     bump: () => {},
-    afterReply: () => {},
+    afterReply: () => fed(),
     seedDemo: () => {},
-    sealed: async () => false,
-    // in the app the day is sealed here and her DayClosed Live Activity goes up (lib/activities)
-    seal: (day, facts) => console.log(`[step5-today] the desk is done: sealed ${day}, DayClosed with ${facts.read} read, ${facts.waiting} waiting`),
+    sealed: async (day) => sealedDays.has(day),
+    // in the app the day is sealed here (lib/flags) and her DayClosed Live Activity goes up (lib/activities); here both stay in memory
+    seal: (day, facts) => {
+      sealedDays.add(day);
+      console.log(`[step5-today] the desk is done: sealed ${day} in memory; DayClosed would show ${facts.read} read, ${facts.waiting} waiting`);
+    },
+    unseal: (day) => {
+      if (sealedDays.delete(day)) console.log(`[step5-today] the desk is reading again: the seal on ${day} was stale, lifted in memory`);
+    },
     openWindow: () => away("In the app this opens her game (Courier, ?play=1)."),
     intercept: (action, letter) => {
       if (action === "report") {

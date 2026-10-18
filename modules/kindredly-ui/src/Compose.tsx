@@ -108,8 +108,10 @@ export type KComposeLive = {
     narrowLabel: string;
     tone: "mute" | "ind";
     enabled: boolean;
-    /** the floor line 0..1, -1 for none */
+    /** the wash toward the floor 0..1, -1 for none */
     progress: number;
+    /** the count beside the label while the wash shows ("7/20"), "" for none */
+    count: string;
     nudge: boolean;
   };
   /** the count near the ceiling; text "" hides it */

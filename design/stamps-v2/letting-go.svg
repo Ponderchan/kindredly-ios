@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="120" viewBox="0 0 100 120">
+  <!-- stamps v2 final · letting-go · a birdcage with its door swung open and nobody inside, one feather drifting up · from graft: the open birdcage (c-scenes), redrawn with a cut-paper base and door; the feather is the second ink -->
+  <g id="art">
+    <path d="M24,87L24,58C24,46.95,32.95,38,44,38C55.05,38,64,46.95,64,58L64,87" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M37,39.3L37,87" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M51,39.3L51,87" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M44,38L44,31.5" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M48.4,27C48.4,29.43,46.43,31.4,44,31.4C41.57,31.4,39.6,29.43,39.6,27C39.6,24.57,41.57,22.6,44,22.6C46.43,22.6,48.4,24.57,48.4,27Z" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20,89Q20,86,23,86L65,86Q68,86,68,89L68,91Q68,94,65,94L23,94Q20,94,20,91Z" fill="#FFFFFF"/>
+    <path d="M64,62L64.06,61.59L64.13,61.45L64.23,61.35L64.36,61.29L64.52,61.28L64.92,61.39L76.08,66.11L76.48,66.34L76.64,66.49L76.87,66.84L76.99,67.26L77,67.5L77,88.5L76.94,88.91L76.87,89.05L76.77,89.15L76.64,89.21L76.48,89.22L76.08,89.11L64.92,84.39L64.52,84.16L64.36,84.01L64.13,83.66L64.01,83.24L64,83ZM67.9,70L67.9,82L68.03,82.8L68.4,83.53L68.97,84.1L69.7,84.47L70.5,84.6L71.3,84.47L72.03,84.1L72.6,83.53L72.97,82.8L73.1,82L73.1,70L72.97,69.2L72.6,68.47L72.03,67.9L71.3,67.53L70.5,67.4L69.7,67.53L68.97,67.9L68.4,68.47L68.03,69.2Z" fill="#FFFFFF"/>
+  </g>
+  <g id="soft" opacity="0.55">
+    <path d="M68,89.31L68.62,89.38L69.19,89.56L69.68,89.82L69.95,90.05L70.28,90.47L70.51,90.99L70.62,91.38L70.69,92.06L70.68,94.78L70.62,95.22L70.44,95.79L70.28,96.13L70.07,96.42L69.68,96.78L69.19,97.04L68.82,97.17L68.4,97.25L67.7,97.3L25.46,97.29L24.78,97.22L24.39,97.11L24.03,96.97L23.58,96.67L23.33,96.42L23.03,95.97L22.89,95.61L22.75,95L22.71,94.54L22.7,93.99L65,94L65.7,93.95L66.12,93.87L66.49,93.74L66.98,93.48L67.37,93.12L67.67,92.67L67.87,92.12L67.98,91.48Z" fill="#FFFFFF"/>
+    <path d="M77,38.6C75.06,42.25,72.14,44.5,70.48,43.62C68.82,42.74,69.05,39.06,71,35.4C72.94,31.75,75.86,29.5,77.52,30.38C79.18,31.26,78.95,34.94,77,38.6Z" fill="#FFFFFF"/>
+  </g>
+  <g id="xs">
+    <path d="M24,87L24,58C24,46.95,32.95,38,44,38C55.05,38,64,46.95,64,58L64,87" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M44,38L44,87" fill="none" stroke="#FFFFFF" stroke-width="4.31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19,88Q19,85,22,85L66,85Q69,85,69,88L69,91Q69,94,66,94L22,94Q19,94,19,91Z" fill="#FFFFFF"/>
+    <path d="M64,61Q64,60,64.91,60.42L76.09,65.58Q77,66,77,67L77,89Q77,90,76.07,89.64L64.93,85.36Q64,85,64,84Z" fill="#FFFFFF"/>
+  </g>
+</svg>

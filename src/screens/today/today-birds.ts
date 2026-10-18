@@ -1,17 +1,18 @@
 /* HER FIVE FACES ON TODAY, FOR SWIFT.
    ────────────────────────────────────────────────────────────────────────
-   Today's Wren stands on the arc between NEXT and REPLY, reacts, sleeps,
-   and flies into the window when the desk is done. Swift draws her from
+   Today's Wren stands on the page ground between NEXT and REPLY, reacts,
+   rests sleepy in her night hours, takes each reply off the band, and
+   flies into the window when the desk is done. Swift draws her from
    five pictures of the user's own Wren (lib/bird-images, captured from the
    real WrenBird by BirdSnapshots: her skin, what she has on, her stage,
    the hatchling's shape and mark, greyed when she wilts), never a stock
    bird and never the mock's drawings:
 
-     idle     content           at rest on the arc, and in the window
-     curious  curious56         a drag past 8%, a pass
-     delight  delight           REPLY open (typing)
-     sleepy   sleepy            the last letter passed at night
-     fly      fly               the take-off along the arc into the window
+     idle     content           at rest on the band by day, and in the window
+     curious  curious56         a drag past 8%, a pass, a letter unfolding
+     delight  delight           REPLY open (typing), a tap on her
+     sleepy   sleepy            at rest in her night hours, the last letter passed at night
+     fly      fly               carrying a reply off, the flight into the window
 
    THE STAGE RULES. No new art; each stage draws what WrenBird has for it:
    - grown (or stage unknown: WrenBird draws her grown until the first

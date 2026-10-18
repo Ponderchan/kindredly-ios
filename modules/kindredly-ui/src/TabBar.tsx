@@ -19,9 +19,9 @@ import type { KImageRefProps } from "./types";
 
    WHAT THE + OPENS (panelStyle). "cards" is the 10a sheet of cards above the bar (the default, so
    ui-lab is unchanged). "sheet" and "pop" are the publish entry of Today 3d × 25b (Prompt 8): the
-   new reader's bottom sheet, where Wren asks which one tonight and the bar slides away, and the
-   returning reader's two round buttons popping from behind the +. Both report "letter" or "note"
-   through onPanelAction. Which one a reader gets is src/lib/publish-stage.ts.
+   bottom sheet, where Wren asks who this one is for and the bar slides away (every tab but
+   Today), and the two round buttons popping from behind the + (Today). Both report "letter" or
+   "note" through onPanelAction. Which one opens is NativeTabBar's choice, by tab.
 
    iOS only, and only in a binary that has this view: check isKindredlyUIViewAvailable("KTabBarView")
    first (a binary built before the view existed has the module but not the view). */
@@ -73,6 +73,8 @@ export type KTabBarPop = {
   /** what VoiceOver says for each disc */
   letterA11y: string;
   noteA11y: string;
+  /** the free plan's letters left today under LETTER ("3 LEFT"); "" hides it */
+  letterLeft: string;
 };
 
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
@@ -80,7 +82,7 @@ type NativeSheet = Omit<KTabBarSheet, "bird"> & { bird: NativeImage };
 
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
 const EMPTY_SHEET: NativeSheet = { ask: "", letterTitle: "", letterSub: "", letterLeft: "", noteTitle: "", noteSub: "", footnote: "", bird: NO_IMAGE };
-const EMPTY_POP: KTabBarPop = { letterLabel: "", noteLabel: "", letterA11y: "", noteA11y: "" };
+const EMPTY_POP: KTabBarPop = { letterLabel: "", noteLabel: "", letterA11y: "", noteA11y: "", letterLeft: "" };
 
 /** The sheet as Swift's flat record: a missing bird is an empty ref, never null (a Record @Field
     can't take one). */

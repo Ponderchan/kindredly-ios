@@ -76,8 +76,9 @@ strings(
     // characters with a long name); VoiceOver reads ff.title + ff.hint instead
     "win.fly": "Fly a lap with {name}",
 
-    // THE + PANEL, first week (or while she's a chick): her question above the two rows, in italics
-    "pub.ask": "“Which one tonight?”",
+    // THE + PANEL on every tab but Today: her question above the two rows, in italics — who the
+    // writing is for (a stranger, carried by her; or yourself), true at any hour
+    "pub.ask": "“Who's this one for?”",
     // the letter row: title, then what happens to it
     "pub.letter": "Write a letter",
     "pub.letterSub": "{name} carries it to a stranger",
@@ -86,9 +87,7 @@ strings(
     // the diary row: title, then what it holds
     "pub.note": "Diary note",
     "pub.noteSub": "Stays with you · text, voice, photo",
-    // the footnote under the two rows, tiny mono caps
-    "pub.foot": "FIRST WEEK ONLY · THEN JUST TWO BUTTONS",
-    // THE + PANEL afterwards: the labels under the two round buttons that pop up from the +
+    // THE + ON TODAY: the labels under the two round buttons that pop up from the +
     "pub.popLetter": "LETTER",
     "pub.popNote": "NOTE",
   },

@@ -15,11 +15,14 @@ import SwiftUI
    │                 the letter, in its tier, folded            │  the same slot: x 16…W−16,
    │ #made my day                                ES→EN read it │  y cardTop, cardHeight tall
    └───────────────────────────────────────────────────────────┘
-        · ˙ ˙ ˙ ˙ ˙ ˙ ˙ (Wren, on the arc) ˙ ˙ ˙ ˙ ˙ ˙ ·           the control band, 80, 14 under
-      (  3  )                                     (  ✉  )         the card (KControlBand), with Wren
-       NEXT                                        REPLY          over it (KWireWren); in done the
+      (  3  )          (Wren, on the ground)      (  ✉  )         the control band, 68, 14 under
+       NEXT                                        REPLY          the card (KControlBand), with Wren
+                                                                  over it (KWireWren); in done the
                                                                   window (KFlightWindow) in its place
    (the tab bar, its own Host, below)
+
+ THE BAND is the owner's 2026-10-16 pick ("image 2" of his option sheet; the only band since
+ 2026-10-18): two discs on the page ground with Wren standing between them.
 
  LAYOUT. Two layers in one ZStack, so the keyboard moves only what it should:
  - the desk (the radial ground, the card slot, the plate, the band, the window, Wren) ignores the
@@ -38,14 +41,15 @@ import SwiftUI
  phase that leaves done (the day turned) resets it.
 
  One Host covers the full desk, the quiet day, the first load and the offline cold start. The
- toast, the send's fly-by, the reader and the sheets are React Native, over the Host.
+ toast, the reader and the sheets are React Native, over the Host; a reply in the air is Wren's
+ to carry (KWireWren: she takes it off the band and comes back), not a React Native fly-by.
  */
 
 // MARK: - Geometry
 
 /// The desk's numbers from the Host's height: src/screens/today/today-cards.ts deskGeometry, the same
 /// formula (change them together). 393 × 852, status bar 54, tab bar room 98 → card top 110, card
-/// 548, band top 672 (the design exactly); never a card under 360.
+/// 560, band top 684. Never a card under 360.
 public struct KTodayGeometry: Equatable, Sendable {
   /// the plate band, fixed in layout
   public static let band: CGFloat = 52
@@ -53,8 +57,8 @@ public struct KTodayGeometry: Equatable, Sendable {
   public static let contentTop: CGFloat = 4
   /// from the card's foot to the band's top
   public static let cardAir: CGFloat = 14
-  /// the control band
-  public static let controlHeight: CGFloat = 80
+  /// the control band: NEXT, REPLY and Wren on the ground between them
+  public static let controlHeight: CGFloat = 68
   /// the band's bottom sits this far above the tab bar's room
   public static let controlLift: CGFloat = 2
   /// the gutter on either side of the card
@@ -228,7 +232,7 @@ public struct KTodayDesk: View {
       }
       .frame(width: W)
 
-      // 4. the control band: NEXT, REPLY and the arc
+      // 4. the control band: NEXT and REPLY
       KControlBand(
         theme: theme,
         left: content.left,
@@ -241,7 +245,7 @@ public struct KTodayDesk: View {
         onNext: { [deck] in deck.requestNext() },
         onReply: { if let id = deck.shownId { reply(id) } }
       )
-      .frame(width: W, height: KTodayGeometry.controlHeight)
+      .frame(width: W, height: KBandLayout.height)
       .offset(y: g.controlTop)
 
       // 5. the window to her game, in the band's place once the day is done
@@ -257,23 +261,23 @@ public struct KTodayDesk: View {
       .accessibilityHidden(!windowShown)
       .offset(x: KTodayGeometry.gutter, y: g.controlTop + KBandLayout.windowFrameTop)
 
-      // 6. Wren, over everything, taking no touches
+      // 6. Wren, over everything; only her own figure takes a touch (a tap: she hops), and only
+      // while she stands on the band
       KWireWren(
         theme: theme,
         birds: content.birds,
+        wren: content.wren,
         width: W,
         controlTop: g.controlTop,
-        night: content.night,
         canPlay: content.window.canPlay,
         arrivalLine: content.arrivalLine,
-        hidden: plus != .closed || (content.hideBand && flow.isReading),
+        hidden: plus != .closed,
         motion: motion,
         deck: deck,
         flow: flow
       )
       .frame(width: W)
       .frame(maxHeight: .infinity)
-      .allowsHitTesting(false)
     }
   }
 

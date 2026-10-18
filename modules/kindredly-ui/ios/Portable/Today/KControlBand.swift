@@ -3,25 +3,20 @@
 import SwiftUI
 
 /*
- THE CONTROL BAND (Today 3d × 25b, Prompt 3, the owner's 2026-10-16 revision: "3b arc × 2b glass").
- 80 tall under the card, full width, its own coordinates (origin at the band's top left; the
- design's band sits at y 672 on a 393 × 852 phone):
+ THE CONTROL BAND (Today 3d × 25b, Prompt 3; the owner's 2026-10-16 18:05 decision after the build:
+ "image 2" of his option sheet, and on 2026-10-18 the only band). 68 tall under the card, full
+ width, its own coordinates (origin at the band's top left; on a 393 × 852 phone the band sits at
+ y 684):
 
-          · ˙ ˙ ˙ ˙ ˙ ˙ (Wren, 48, on the arc's top) ˙ ˙ ˙ ˙ ˙ ·        the dashed arc,
-        ·                                                     ·      "M98 30 Q196 -14 295 30"
-      (  3  )  NEXT: frosted glass, the count          (  ✉  )  REPLY: a solid ink disc
-       NEXT                                             REPLY
+      (  3  )            (Wren, 36, on the ground)            (  ✉  )
+       NEXT                                                    REPLY
 
- - THE ARC is the road Wren flies today, from above NEXT's centre to above REPLY's. Two layers of
-   the same path in ink 2.5 with round caps: dashed [3, 6] at flow.dashOpacity, and solid, trimmed
-   0 → flow.arcFill. In done the flow draws the solid layer to the end (600ms, .4 0 .3 1) while the
-   dashes fade; once drawn (t = 900) the arc leaves as the buttons did, fading and dropping 12
-   (flow.arcShown; the design's "两枚钮和弧退场"), so nothing of it hangs over the window. Opening
-   Today on a done desk draws no arc. It also goes with the band when the band is hidden or slides
-   away for the keyboard.
+ - The two discs stand on the page ground with Wren between them (KWireWren draws her: 36, her
+   feet level with the discs' foot). Discs of 52 and a band of 68, so the band doesn't compete
+   with the letter (KTodayGeometry.controlHeight).
  - NEXT and REPLY are told apart by material, not by size: NEXT is seen through (frosted glass,
    the count inside), REPLY is pressed (solid ink, the envelope in bg, which stays legible on
-   Midnight's pale ink). Both shrink to .94 under the finger (KPressScaleStyle).
+   Midnight's pale ink). Both shrink to .94 under the finger (KPressScaleStyle, 150ms).
  - The glass (CSS: rgba(255,255,255,.45), backdrop blur 18 + saturate 170%, an inset 1px white .75
    edge, 0 6 18 -8 rgba(30,27,53,.35)) is .ultraThinMaterial, the design's own SwiftUI stand-in for
    "white .45 over blur", in the theme's colour scheme. In the light themes the material is the
@@ -36,87 +31,61 @@ import SwiftUI
 
  Every word is TS's: NEXT, REPLY, the count (deck.pendingLeft while a pass awaits TS, else TS's
  left) and what VoiceOver says. Its states:
- - hidden (a send in flight, the reader open, the + open): everything, arc too, fades out and
-   takes no touches (bandFade);
+ - hidden (a send in flight, the reader open, the + open): everything fades out and takes no
+   touches (bandFade);
  - typing (the reply field has the keyboard): the whole band slides down 160 (bandSlide; a fade
    under Reduce Motion), as the tab bar goes under the keyboard;
- - done (flow.bandShown false): the buttons and their labels fade and drop 12; once the arc is
-   drawn (flow.arcShown false) it does the same;
+ - done (flow.bandShown false): the buttons and their labels fade and drop 12;
  - not enabled (loading, offline): the buttons at .4 with no touches, nothing in NEXT's disc.
  Taps are also refused while a card is moving (deck.animating: no re-entry) and while typing.
  */
 
 /// The band's geometry, in band-local points: origin at the band's top left, W the Host's width.
-/// The design's numbers are for W = 393; the buttons keep the design's space-evenly spacing at
-/// any width, and the arc and Wren's three stops are placed from them. KWireWren and the done
-/// pieces read the same numbers.
+/// The buttons keep the design's space-evenly spacing at any width; Wren's spot and the window are
+/// placed from them. KWireWren, the desk and the done pieces read the same numbers.
 enum KBandLayout {
-  static let height: CGFloat = 80, disc: CGFloat = 58, labelGap: CGFloat = 7
+  /// the band's height (KTodayGeometry.controlHeight)
+  static let height: CGFloat = KTodayGeometry.controlHeight
+  /// NEXT's and REPLY's discs
+  static let disc: CGFloat = 52
+  static let labelGap: CGFloat = 7
+  /// the flight window: 64 tall, its foot 2 above the band's (x 16…W−16)
+  static let windowHeight: CGFloat = 64
+  /// Wren's size in the window
+  static let windowSize: CGFloat = 34
 
-  /// NEXT's centre: two 58 discs spaced evenly across W (121.33 at 393)
-  static func nextX(_ W: CGFloat) -> CGFloat { (W - 116) / 3 + 29 }
-  /// REPLY's centre (271.67 at 393)
+  /// NEXT's centre: two discs spaced evenly across W (122.33 at 393)
+  static func nextX(_ W: CGFloat) -> CGFloat { (W - 2 * disc) / 3 + disc / 2 }
+  /// REPLY's centre (270.67 at 393)
   static func replyX(_ W: CGFloat) -> CGFloat { W - nextX(W) }
 
-  /// The dashed arc: from above NEXT's centre over to above REPLY's, as a quadratic.
-  /// 98 / 196 / 295 at 393: "M98 30 Q196 -14 295 30".
-  static func arc(_ W: CGFloat) -> (start: CGPoint, control: CGPoint, end: CGPoint) {
-    (
-      CGPoint(x: nextX(W) - 23.33, y: 30),
-      CGPoint(x: W / 2 - 0.5, y: -14),
-      CGPoint(x: replyX(W) + 23.33, y: 30)
-    )
+  /// the window's frame top, band-local (its foot 2 above the band's: 2 down)
+  static let windowFrameTop: CGFloat = height - 2 - windowHeight
+  /// Wren's centre in the window's scene: 53 in, 33 under the window's top (the design's 36, 702 at 34)
+  static let window = CGPoint(x: 53, y: windowFrameTop + 33)
+
+  // ── Wren on the ground ──
+
+  /// her size standing between the buttons (the owner, 2026-10-18: 36)
+  static let wrenSize: CGFloat = 36
+  /// where her feet fall in her frame (her pictures' feet: WrenBird's 180 of 200; the lean's anchor too)
+  static let feetY: CGFloat = 0.9
+  /// Wren's centre on the ground, centred between the buttons, her feet level with the discs' foot
+  /// (W/2, 37.6 at 36)
+  static func spot(_ W: CGFloat) -> CGPoint {
+    CGPoint(x: W / 2, y: disc - wrenSize * (feetY - 0.5))
   }
 
-  /// Wren's centre on the arc's top, at 48 (the design's left 173, top 640)
-  static func wire(_ W: CGFloat) -> CGPoint { CGPoint(x: W / 2 + 0.5, y: -8) }
-  /// Wren's centre at the REPLY end of the arc, at 44 (the design's 262, 662)
-  static func arcEnd(_ W: CGFloat) -> CGPoint { CGPoint(x: replyX(W) + 12.33, y: 12) }
-  /// Wren's centre in the flight window's scene, at 34 (the design's 36, 702)
-  static let window = CGPoint(x: 53, y: 47)
-  /// the flight window's frame, band-local: 14 down, 64 tall (x 16…W−16)
-  static let windowFrameTop: CGFloat = 14, windowHeight: CGFloat = 64
+  // ── her flight ──
 
-  /// Wren's size at her three stops
-  static let wireSize: CGFloat = 48, arcEndSize: CGFloat = 44, windowSize: CGFloat = 34
-
-  /// The arc as a path.
-  static func arcPath(_ W: CGFloat) -> Path {
-    let a = arc(W)
-    var p = Path()
-    p.move(to: a.start)
-    p.addQuadCurve(to: a.end, control: a.control)
-    return p
-  }
-
-  /// The point at t (0…1) along the arc's quadratic.
-  static func arcPoint(_ W: CGFloat, _ t: CGFloat) -> CGPoint {
-    let a = arc(W)
-    let u = 1 - t
-    return CGPoint(
-      x: u * u * a.start.x + 2 * u * t * a.control.x + t * t * a.end.x,
-      y: u * u * a.start.y + 2 * u * t * a.control.y + t * t * a.end.y
-    )
-  }
-
-  /// Wren's centre and size at flight f (0 = wire, 1 = arc end, 2 = window), band-local.
-  /// 0…1 rides the arc's second half, her feet kept above it (the offset from the arc blends from
-  /// the wire's to the arc end's); 1…2 is the straight dive into the window.
+  /// Wren's centre and size at flight f (0 = her spot on the band, 1 = the window), band-local: one
+  /// straight line from her spot into the window (36 → 34).
   static func flightPlace(_ W: CGFloat, _ flight: CGFloat) -> (center: CGPoint, size: CGFloat) {
-    let f = min(max(flight, 0), 2)
-    if f <= 1 {
-      let q = arcPoint(W, 0.5 + 0.5 * f)
-      let top = arcPoint(W, 0.5), end = arcPoint(W, 1)
-      let w = wire(W), e = arcEnd(W)
-      let dx = (w.x - top.x) + ((e.x - end.x) - (w.x - top.x)) * f
-      let dy = (w.y - top.y) + ((e.y - end.y) - (w.y - top.y)) * f
-      return (CGPoint(x: q.x + dx, y: q.y + dy), wireSize + (arcEndSize - wireSize) * f)
-    }
-    let g = f - 1
-    let e = arcEnd(W)
+    let t = min(max(flight, 0), 1)
+    let g = spot(W), win = window
     return (
-      CGPoint(x: e.x + (window.x - e.x) * g, y: e.y + (window.y - e.y) * g),
-      arcEndSize + (windowSize - arcEndSize) * g
+      CGPoint(x: g.x + (win.x - g.x) * t, y: g.y + (win.y - g.y) * t),
+      wrenSize + (windowSize - wrenSize) * t
     )
   }
 }
@@ -141,7 +110,7 @@ struct KControlBand: View {
   ///   - labels: NEXT, REPLY and REPLY's VoiceOver words (labels.next, .reply, .replyA11y)
   ///   - leftA11y: what VoiceOver says for NEXT ("Next letter. 3 left today.")
   ///   - enabled: false while loading or offline: the buttons at .4, no touches, NEXT empty
-  ///   - hidden: hideBand or the + open: the band and its arc fade out, no touches
+  ///   - hidden: hideBand or the + open: the band fades out, no touches
   ///   - onNext: NEXT (the desk calls deck.requestNext())
   ///   - onReply: REPLY (the desk routes it to the shown card's reply)
   init(
@@ -175,15 +144,13 @@ struct KControlBand: View {
 
   var body: some View {
     let typing = deck.typing
+    let height = KBandLayout.height
     GeometryReader { geo in
       let W = geo.size.width
-      ZStack(alignment: .topLeading) {
-        KBandArc(theme: theme, width: W, dashOpacity: flow.dashOpacity, fill: flow.arcFill, shown: flow.arcShown)
-        buttons(W)
-      }
-      .frame(width: W, height: KBandLayout.height, alignment: .topLeading)
+      buttons(W)
+        .frame(width: W, height: height, alignment: .topLeading)
     }
-    .frame(height: KBandLayout.height)
+    .frame(height: height)
     // the keyboard: down 160 with the tab bar; a fade under Reduce Motion
     .offset(y: typing && !reduceMotion ? 160 : 0)
     .opacity(typing && reduceMotion ? 0 : 1)
@@ -197,13 +164,15 @@ struct KControlBand: View {
   // ── the two buttons ──
 
   private func buttons(_ W: CGFloat) -> some View {
+    let disc = KBandLayout.disc
     let nx = KBandLayout.nextX(W), rx = KBandLayout.replyX(W)
     // each column is centred on its disc; wide enough for a long label, never overlapping
-    let column = max(KBandLayout.disc, min(140, rx - nx - 8))
+    let column = max(disc, min(140, rx - nx - 8))
     let shown = flow.bandShown
     return ZStack(alignment: .topLeading) {
       control(
-        disc: nextDisc,
+        disc: nextDisc(disc),
+        size: disc,
         label: labels.next,
         labelColor: theme.mute,
         a11y: leftA11y,
@@ -213,7 +182,8 @@ struct KControlBand: View {
       .offset(x: nx - column / 2)
 
       control(
-        disc: replyDisc,
+        disc: replyDisc(disc),
+        size: disc,
         label: labels.reply,
         labelColor: theme.ink,
         a11y: labels.replyA11y,
@@ -225,9 +195,9 @@ struct KControlBand: View {
     // loading or offline: at .4 until the desk is there
     .opacity(enabled ? 1 : 0.4)
     .animation(KTodayMotion.bandFade, value: enabled)
-    // done: the buttons fade (.3s) and drop 12 (.35s); the arc follows once drawn (KBandArc). A
-    // fade alone under Reduce Motion. Each curve pinned here: the flow may land several values in one transaction, and
-    // its rest and reset disable animations, which .animation(_:value:) honours.
+    // done: the buttons fade (.3s) and drop 12 (.35s); a fade alone under Reduce Motion. Each
+    // curve pinned here: the flow may land several values in one transaction, and its rest and
+    // reset disable animations, which .animation(_:value:) honours.
     .opacity(shown ? 1 : 0)
     .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandFade, value: shown)
     .offset(y: shown || reduceMotion ? 0 : 12)
@@ -238,12 +208,12 @@ struct KControlBand: View {
 
   /// A disc that is the button, and its label 7 under it (a tap on the label presses too; VoiceOver
   /// hears the button's own words, so the label is hidden from it).
-  private func control<Disc: View>(disc: Disc, label: String, labelColor: Color, a11y: String, action: @escaping () -> Void) -> some View {
+  private func control<Disc: View>(disc: Disc, size: CGFloat, label: String, labelColor: Color, a11y: String, action: @escaping () -> Void) -> some View {
     let act = { if active { action() } }
     return VStack(spacing: KBandLayout.labelGap) {
       Button(action: act) {
         disc
-          .frame(width: KBandLayout.disc, height: KBandLayout.disc)
+          .frame(width: size, height: size)
           .contentShape(Circle())
       }
       .buttonStyle(KPressScaleStyle())
@@ -263,7 +233,7 @@ struct KControlBand: View {
   }
 
   /// NEXT: the glass disc with the count (nothing while loading or offline).
-  private var nextDisc: some View {
+  private func nextDisc(_ size: CGFloat) -> some View {
     ZStack {
       if enabled {
         Text(verbatim: String(deck.pendingLeft ?? left))
@@ -274,57 +244,15 @@ struct KControlBand: View {
           .padding(.horizontal, 6)
       }
     }
-    .frame(width: KBandLayout.disc, height: KBandLayout.disc)
+    .frame(width: size, height: size)
     .background { KGlassDisc(theme: theme) }
   }
 
   /// REPLY: the ink disc with the envelope in bg.
-  private var replyDisc: some View {
+  private func replyDisc(_ size: CGFloat) -> some View {
     KLineIcon(.envelope, size: 24, lineWidth: 2, color: theme.bg)
-      .frame(width: KBandLayout.disc, height: KBandLayout.disc)
+      .frame(width: size, height: size)
       .background(Circle().fill(theme.ink))
-  }
-}
-
-/// The arc, two layers of one path: the dashes (fading out in done, .3s) and the solid line the
-/// flow draws over them (600ms, .4 0 .3 1); then, drawn, the whole arc leaves as the buttons do
-/// (fades .3s, drops 12 over .35s). Each pins its own curve: the flow may land several values in
-/// one transaction, and its rest and reset disable animations, which .animation(_:value:)
-/// honours. Under Reduce Motion everything lands on the 200ms ease and nothing drops.
-private struct KBandArc: View {
-  let theme: KTheme
-  let width: CGFloat
-  let dashOpacity: Double
-  let fill: CGFloat
-  /// false once the day's end has drawn it: the arc fades and drops 12
-  let shown: Bool
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  var body: some View {
-    let path = KBandLayout.arcPath(width)
-    let style = StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
-    let drawn = min(max(fill, 0), 1)
-    ZStack {
-      path
-        .stroke(theme.ink, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round, dash: [3, 6]))
-        .opacity(dashOpacity)
-        .animation(reduceMotion ? KTodayMotion.reduced : .easeOut(duration: 0.3), value: dashOpacity)
-      path
-        .trim(from: 0, to: drawn)
-        .stroke(theme.ink, style: style)
-        .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.arcDraw, value: drawn)
-        // an empty trim shows nothing; the snap keeps a round cap from leaving a dot at the start
-        .opacity(drawn > 0.0005 ? 1 : 0)
-        .animation(nil, value: drawn)
-    }
-    .frame(width: width, height: KBandLayout.height, alignment: .topLeading)
-    // drawn, it leaves with the buttons' motion (a fade alone under Reduce Motion)
-    .opacity(shown ? 1 : 0)
-    .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandFade, value: shown)
-    .offset(y: shown || reduceMotion ? 0 : 12)
-    .animation(KTodayMotion.bandSlide, value: shown)
-    .allowsHitTesting(false)
-    .accessibilityHidden(true)
   }
 }
 

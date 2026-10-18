@@ -7,11 +7,11 @@ import SwiftUI
  WHAT THE + OPENS. Three ways (KPublishStyle), chosen by whoever holds the bar:
  - cards: the 10a composer sheet below (KPlusPanel), rising just above the tab bar over a dimmed
    screen. ui-lab keeps it;
- - sheet and pop: the publish entry of Today 3d × 25b (design Prompt 8), by the reader's stage.
-   A new reader (their first week, or Wren still a chick) gets a bottom sheet where Wren asks
-   which one tonight; a returning one gets two round buttons popping from behind the +. Both
-   are further down this file (KPublishSheet, KPublishPop), and the stage that puts any of them
-   on screen is KTabStage at the end.
+ - sheet and pop: the publish entry of Today 3d × 25b (design Prompt 8), by the tab it is pressed
+   on (owner, 2026-10-18): on Today, where the reader is reading, two round buttons pop from
+   behind the + just above the letter's band; on every other tab, a bottom sheet where Wren asks
+   who this one is for. Both are further down this file (KPublishSheet, KPublishPop), and the
+   stage that puts any of them on screen is KTabStage at the end.
 
  THE 10a CARDS (H:128-135). The sheet is drawn like an InkCard, not like a float: sf, a 2.5 ln
  outline, corners of 28 and a hard 6/6 ln shadow, padding 16 inside the outline (border-box),
@@ -255,15 +255,15 @@ public extension KMotion {
 public enum KPublishStyle: String, Sendable {
   /// the 10a composer sheet of cards over the bar (KPlusPanel); ui-lab keeps it
   case cards
-  /// the new reader's bottom sheet, Wren asking which one tonight
+  /// the bottom sheet, Wren asking who this one is for (every tab but Today)
   case sheet
-  /// the returning reader's two round buttons popping from behind the +
+  /// the two round buttons popping from behind the + (Today)
   case pop
 }
 
 /// The new reader's sheet: every word already translated.
 public struct KPublishSheetModel: Equatable, Sendable {
-  /// Wren's question, beside her ("Which one tonight?")
+  /// Wren's question, beside her ("Who's this one for?")
   public var ask = ""
   /// the letter row's title and subtitle
   public var letterTitle = ""
@@ -289,6 +289,9 @@ public struct KPublishPopModel: Equatable, Sendable {
   /// what VoiceOver says for each disc (the sheet's titles: "Write a letter", "Diary note")
   public var letterA11y = ""
   public var noteA11y = ""
+  /// the free plan's letters left today, under LETTER ("3 LEFT"); "" hides it — the same count
+  /// the sheet's letter row shows
+  public var letterLeft = ""
 
   public init() {}
 }
@@ -397,14 +400,17 @@ struct KPublishSheet: View {
       }
       .padding(.top, 18)
 
-      // the footnote, 14 below
-      Text(model.footnote)
-        .kText(.mono(9, .semibold, tracking: 0.14))
-        .foregroundStyle(theme.faint)
-        .multilineTextAlignment(.center)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity)
-        .padding(.top, 14)
+      // the footnote, 14 below, when there is one (the sheet no longer changes after a first
+      // week, so TS sends none today)
+      if !model.footnote.isEmpty {
+        Text(model.footnote)
+          .kText(.mono(9, .semibold, tracking: 0.14))
+          .foregroundStyle(theme.faint)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity)
+          .padding(.top, 14)
+      }
     }
     .padding(.horizontal, 20)
   }
@@ -617,8 +623,8 @@ struct KPublishPop: View {
       // the +'s centre, where both wait
       let plus = CGPoint(x: w / 2, y: barTop + KTabBarMetrics.height / 2)
       ZStack {
-        label(model.letterLabel, x: w / 2 - KPublishMetrics.popSide, discCentreY: plus.y - KPublishMetrics.popRise, fadeDelay: 0.15)
-        label(model.noteLabel, x: w / 2 + KPublishMetrics.popSide, discCentreY: plus.y - KPublishMetrics.popRise, fadeDelay: 0.2)
+        label(model.letterLabel, sub: model.letterLeft, x: w / 2 - KPublishMetrics.popSide, discCentreY: plus.y - KPublishMetrics.popRise, fadeDelay: 0.15)
+        label(model.noteLabel, sub: "", x: w / 2 + KPublishMetrics.popSide, discCentreY: plus.y - KPublishMetrics.popRise, fadeDelay: 0.2)
         disc(.envelope, lineWidth: 1.9, a11y: model.letterA11y, side: -1, key: KPublishAction.letter, at: plus, flyDelay: open ? 0 : 0.05)
           .accessibilityFocused($letterFocused)
         disc(.ruledCard, lineWidth: 1.9 * 24 / 28, a11y: model.noteA11y, side: 1, key: KPublishAction.note, at: plus, flyDelay: open ? 0.05 : 0)
@@ -669,17 +675,25 @@ struct KPublishPop: View {
 
   /// A disc's label, centred 10 under where the disc opens. It doesn't fly: it fades in after the
   /// disc has left (150 / 200ms), and out at once.
-  private func label(_ text: String, x: CGFloat, discCentreY: CGFloat, fadeDelay: Double) -> some View {
+  private func label(_ text: String, sub: String, x: CGFloat, discCentreY: CGFloat, fadeDelay: Double) -> some View {
     let fade = reduceMotion ? KMotion.publishReduced : KMotion.publishPopFade.delay(fadeDelay)
     return Color.clear
       .frame(width: 0, height: 0)
       .overlay(alignment: .top) {
-        Text(text)
-          .kText(.mono(10, .semibold, tracking: 0.14))
-          .foregroundStyle(theme.ink)
-          .lineLimit(1)
-          .fixedSize()
-          .dynamicTypeSize(...DynamicTypeSize.large)
+        VStack(spacing: 3) {
+          Text(text)
+            .kText(.mono(10, .semibold, tracking: 0.14))
+            .foregroundStyle(theme.ink)
+          // the letters left today under LETTER, in the sheet's letter-row style (mono 500 10, mute)
+          if !sub.isEmpty {
+            Text(sub)
+              .kText(.mono(10, .medium, tracking: 0.12))
+              .foregroundStyle(theme.mute)
+          }
+        }
+        .lineLimit(1)
+        .fixedSize()
+        .dynamicTypeSize(...DynamicTypeSize.large)
       }
       .animation(open ? fade : KMotion.publishPopFade) { $0.opacity(open ? 1 : 0) }
       .position(x: x, y: discCentreY + KPublishMetrics.popDisc / 2 + KPublishMetrics.popLabelGap)

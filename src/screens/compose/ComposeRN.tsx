@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { ZoomIn } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
 import { GlyphInput } from "../../components/GlyphInput";
 import { StampTile } from "../../components/StampTile";
 import { KeyDot, MoreTray, Nudge, PlusGlyph, RoundKey, StampKeyGlyph, StampTray } from "../../components/ComposeTray";
@@ -12,7 +11,7 @@ import { AudioCard } from "../../components/AudioCard";
 import { useBreathe } from "../../components/anim";
 import { t } from "../../lib/i18n";
 import { useTheme } from "../../lib/theme";
-import { MONO, PF, letterFamily } from "../../theme/post";
+import { MONO, PF } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
 import { stampVM, type ComposeState } from "./useComposeState";
 import { countBrand } from "./compose-model";
@@ -26,14 +25,15 @@ import { countBrand } from "./compose-model";
    writer's "N LEFT TODAY" and the cap panel at zero, the voice letter
    counted, the question shown with a resumed draft.
 
-   Its own shape stays (the sticker-zine desk: the stamp corner at the top,
-   the round keys and the wide key below), redrawn in the theme's tokens —
-   page bg, lines line, keys ln, the pen ind — and the 10a type where it
-   meets the Swift page: writing in the system face at 17, Wren's line in
-   Newsreader italic, mono labels at 9 / 10 / 11. The wide key still fills
-   toward the floor as you write, now with no digits beside it (owner
-   question 5's default: nothing near the quota reads like a count), and
-   says SEND where LET IT TRAVEL would be squeezed beside a long pill.
+   It looks as the App Store page did (owner, 2026-10-18: "the composer as
+   it was"): the sticker-zine desk — ✕, TO A STRANGER, the stamp corner
+   tilted at the top; Wren bare beside her line in Fraunces italic; the
+   letter in Inter 19/30; the two round keys and the wide key below, which
+   fills toward the floor as you write with the count beside its label
+   ("7/20", key.count), and says SEND where LET IT TRAVEL would be squeezed
+   beside a long pill. Only the colours come from the theme's tokens (page
+   bg, lines line, keys ln, the pen ind), so it still follows the four
+   themes; the light themes' placeholder is the old lavender.
    The courier's flight, the sign-up and the leave sheet are the route's,
    above whichever page draws.
 
@@ -57,7 +57,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
   const keyInk = key.stage === "ready" || key.stage === "needStamp" ? tk.bg : tk.mute;
   const brand = state.count ? countBrand(state.count.tone, tk.dark) : "mute";
   const countColor = brand === "mute" ? tk.mute : BRAND[brand];
-  const wrenFace = letterFamily("newsreader", true);
+  const placeholder = tk.dark ? tk.mute : "#B9B3D8";
 
   // the question takes the keyboard only when it is attached (never on a resumed draft)
   const askInput = useRef<TextInput>(null);
@@ -81,12 +81,10 @@ export function ComposeRN({ state }: { state: ComposeState }) {
             accessibilityLabel={t("wren.trackClose")}
             style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
           >
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <Path d="M5 5l14 14M19 5L5 19" stroke={tk.ink} strokeWidth={1.8} strokeLinecap="round" />
-            </Svg>
+            <Text style={{ fontFamily: PF.mono, fontSize: 17, color: tk.ink }}>✕</Text>
           </Pressable>
           <View style={{ flex: 1, alignItems: "center" }}>
-            <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 2, color: tk.ink }}>
+            <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: tk.ink }}>
               {t("cp.header")}
             </Text>
           </View>
@@ -115,7 +113,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
               <Animated.View key={state.wrenMood} entering={ZoomIn.duration(340)} style={[breathe, { width: 46, height: 46, alignItems: "center", justifyContent: "center" }]}>
                 <WrenBird size={38} mood={state.wrenMood} />
               </Animated.View>
-              <Text style={{ flex: 1, ...wrenFace, fontSize: 15, lineHeight: 21, color: tk.sub }}>{state.wrenLine}</Text>
+              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 14, lineHeight: 20, color: tk.sub }}>{state.wrenLine}</Text>
             </View>
             {/* the line she stands on */}
             <View style={{ borderBottomWidth: 1, borderColor: tk.line, marginTop: 12, marginBottom: 8 }} />
@@ -127,10 +125,10 @@ export function ComposeRN({ state }: { state: ComposeState }) {
                 value={state.text}
                 onChangeText={(v) => act.textChange("body", v)}
                 placeholder={state.spark}
-                placeholderTextColor={tk.mute}
+                placeholderTextColor={placeholder}
                 accessibilityLabel={t("cp.editor.a11y")}
                 multiline
-                style={{ minHeight: 340, color: tk.ink, fontSize: 17, lineHeight: 25, textAlignVertical: "top", paddingTop: 10 }}
+                style={{ minHeight: 340, color: tk.ink, fontFamily: PF.writing, fontSize: 19, lineHeight: 30, textAlignVertical: "top", paddingTop: 10 }}
               />
             ) : (
               <View style={{ paddingTop: 12, minHeight: 250 }}>
@@ -140,7 +138,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
                     <AudioCard url={state.recUri} durationS={state.recDur} compact />
                   </View>
                 )}
-                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, marginTop: 14, lineHeight: 17 }}>
+                <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: tk.mute, marginTop: 14, lineHeight: 17 }}>
                   {t("cp.voiceNote", { wren: state.wrenName })}
                 </Text>
                 <TextInput
@@ -148,18 +146,18 @@ export function ComposeRN({ state }: { state: ComposeState }) {
                   onChangeText={(v) => act.textChange("body", v)}
                   onFocus={() => act.fieldFocus("body", true)}
                   placeholder={t("cp.voiceLine.ph")}
-                  placeholderTextColor={tk.mute}
-                  style={{ color: tk.ink, fontSize: 17, marginTop: 14 }}
+                  placeholderTextColor={placeholder}
+                  style={{ color: tk.ink, fontFamily: PF.letter, fontSize: 17, marginTop: 14 }}
                 />
               </View>
             )}
 
             {state.capPanel && (
-              <View style={{ marginTop: 16, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: BRAND.creamBorder, backgroundColor: BRAND.cream }}>
-                <Text style={{ fontSize: 15, fontWeight: "600", color: BRAND.inkOnBrand }}>{state.capText}</Text>
-                <Text style={{ fontSize: 13, lineHeight: 18, color: BRAND.subOnCream, marginTop: 5 }}>{t("cp.repliesFree")}</Text>
-                <Pressable onPress={act.capLink} accessibilityRole="link" style={{ marginTop: 8, minHeight: 32, justifyContent: "center" }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.1, color: BRAND.goldText }}>{t("cp.discover")}</Text>
+              <View style={{ marginTop: 16, padding: 16, borderWidth: 1, borderColor: tk.ink }}>
+                <Text style={{ fontFamily: PF.letter, fontSize: 15, fontWeight: "600", color: tk.ink }}>{state.capText}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 13, color: tk.sub, marginTop: 5 }}>{t("cp.repliesFree")}</Text>
+                <Pressable onPress={act.capLink} accessibilityRole="link" style={{ marginTop: 10, minHeight: 32, justifyContent: "center" }}>
+                  <Text style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 1, color: tk.ind }}>{t("cp.discover")}</Text>
                 </Pressable>
               </View>
             )}
@@ -169,17 +167,17 @@ export function ComposeRN({ state }: { state: ComposeState }) {
               send and carried by drafts; turning it off takes it off */}
           {state.askOpen && state.mode === "write" && (
             <View style={{ paddingHorizontal: 22, paddingVertical: 12, borderTopWidth: 1, borderTopColor: tk.line }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute, marginBottom: 7 }}>{t("cp.askLabel")}</Text>
+              <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: tk.mute, marginBottom: 7 }}>{t("cp.askLabel")}</Text>
               <TextInput
                 ref={askInput}
                 value={state.ask}
                 onChangeText={(v) => act.textChange("ask", v)}
                 onFocus={() => act.fieldFocus("ask", true)}
                 placeholder={t("cp.askPh")}
-                placeholderTextColor={tk.mute}
+                placeholderTextColor={placeholder}
                 accessibilityLabel={t("cp.askLabel")}
                 maxLength={140}
-                style={{ fontSize: 16, color: tk.ink, paddingVertical: 4 }}
+                style={{ fontFamily: PF.letter, fontSize: 16.5, color: tk.ink, paddingVertical: 4 }}
               />
             </View>
           )}
@@ -187,8 +185,8 @@ export function ComposeRN({ state }: { state: ComposeState }) {
           {/* the small line above the keys: the count near the ceiling, and the free writer's day */}
           {(!!state.count || !!state.quota) && (
             <View style={{ paddingHorizontal: 24, flexDirection: "row", justifyContent: "flex-end", gap: 12, marginBottom: -2 }}>
-              {state.count && <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 0.4, color: countColor }}>{state.count.text}</Text>}
-              {!!state.quota && <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.9, color: tk.mute }}>{state.quota}</Text>}
+              {state.count && <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.4, color: countColor }}>{state.count.text}</Text>}
+              {!!state.quota && <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.6, color: tk.mute }}>{state.quota}</Text>}
             </View>
           )}
 
@@ -210,7 +208,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
                 accessibilityLabel={t("cp.stampChosen.a11y", { name: chosen.name })}
                 style={({ pressed }) => ({ height: 46, maxWidth: 148, borderRadius: 23, borderWidth: 1.5, borderColor: chosen.line, backgroundColor: chosen.wash, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
               >
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.2, color: chosen.ink }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 0.2, color: chosen.ink }}>
                   {chosen.tag}
                 </Text>
               </Pressable>
@@ -220,7 +218,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
               </RoundKey>
             )}
 
-            {/* THE DOOR SHOWS HOW FAR IT IS: a wash rising toward the floor, no digits */}
+            {/* THE DOOR SHOWS HOW FAR IT IS: a wash rising toward the floor, the count beside the label */}
             <Pressable
               onPress={() => act.keyPress()}
               onLayout={(e) => setKeyW(e.nativeEvent.layout.width)}
@@ -232,10 +230,12 @@ export function ComposeRN({ state }: { state: ComposeState }) {
             >
               {filling && <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round(key.progress * 100)}%`, backgroundColor: tk.lav2 }} />}
               {key.nudge && <Nudge color={tk.bg} />}
-              <View style={{ paddingVertical: 17, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.5, color: keyInk }}>
+              <View style={{ paddingVertical: 17, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: keyInk }}>
                   {narrow ? key.narrowLabel : key.label}
                 </Text>
+                {/* the count rides in the row, not over the label */}
+                {!!key.count && <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: tk.mute }}>{key.count}</Text>}
               </View>
             </Pressable>
           </View>

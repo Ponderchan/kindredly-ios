@@ -165,7 +165,7 @@ function loadArming(): Promise<void> {
       .then((raw) => {
         arming = settleArming(raw, BINARY);
         const struck = Object.keys(arming.strikes);
-        if (struck.length) console.log("[surfaces] native screens that didn't survive opening last time:", arming.strikes);
+        if (struck.length) console.log(`[surfaces] native screens that didn't survive opening last time${__DEV__ ? " (dev: logged, not applied)" : ""}:`, arming.strikes);
         if (raw != null) persistArming();
         if (struck.length) changed();
       })
@@ -304,7 +304,11 @@ export function nativeOn(key: string): boolean {
   const forced = devSurfaceOverride(key);
   if (forced === false) return false;
   if (forced === null && !surfaceOn(remote, NATIVE_DEFAULTS, key)) return false;
-  if (struckOut(arming, key)) return false;
+  // A dev client's process dies while screens open for reasons that aren't crashes (Xcode
+  // reinstalling the app, a Metro reload mid-open), and its binary string never changes between
+  // rebuilds, so two of those once sent Today back to React Native for good on the simulator
+  // (2026-10-18). In dev the strikes only log (loadArming); the gate is the release build's.
+  if (!__DEV__ && struckOut(arming, key)) return false;
   if (moduleThere === null) moduleThere = !!requireOptionalNativeModule(NATIVE_MODULE);
   return moduleThere;
 }

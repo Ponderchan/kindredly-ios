@@ -10,12 +10,13 @@ import { COUNTER_FROM, LETTER_MAX, OPENING_MIN, REPLY_MIN } from "../../lib/weig
    says, what the counts say, or what happens to the words on the way out.
 
    THE KEY HAS THREE DOORS (owner 2026-09-20, drawn the 10a way):
-   - filling: the words aren't enough yet. The label is LET IT TRAVEL in
-     mute, and under it a thin ind line fills toward the floor (owner
-     question 5's default: the floor as a line, NO DIGITS, so nothing
-     beside the quota reads like the "3/20" the owner rejected). Wren's
-     ladder line still says how far. A letter over the ceiling is filling
-     too, with no line (the count says by how much);
+   - filling: the words aren't enough yet. LET IT TRAVEL in mute on the
+     wide key, a wash rising from its left toward the floor and the count
+     beside the label ("7/20", `count`) — the App Store page's key, brought
+     back by the owner on 2026-10-18 (10a step 5 had drawn the floor as a
+     line with no digits; he wanted the composer as it was). A letter over
+     the ceiling is filling too, with no wash and no count (the count near
+     the ceiling says by how much);
    - needStamp: the words are ready and no stamp is chosen: PICK A MOOD
      STAMP in ind, a chevron nudging toward the stamp key; the key opens
      the stamps;
@@ -72,8 +73,10 @@ export type KeyVM = {
   tone: KeyTone;
   /** pressable: ready (sends) or needStamp (opens the stamps) */
   enabled: boolean;
-  /** the floor line, 0..1, or -1 for none (not filling, speaking, or over the ceiling) */
+  /** the wash toward the floor, 0..1, or -1 for none (not filling, speaking, or over the ceiling) */
   progress: number;
+  /** the count beside the label while the wash shows ("7/20"), "" otherwise */
+  count: string;
   /** the chevron leaning toward the stamp key */
   nudge: boolean;
 };
@@ -125,6 +128,7 @@ export function keyFor(
     tone: stage === "ready" || stage === "needStamp" ? "ind" : "mute",
     enabled: stage === "ready" || stage === "needStamp",
     progress: filling ? clamp01(p.weight / OPENING_MIN) : -1,
+    count: filling ? `${p.weight}/${OPENING_MIN}` : "",
     nudge: stage === "needStamp" && p.tray !== "stamps",
   };
 }

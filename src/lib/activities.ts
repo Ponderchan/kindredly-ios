@@ -86,6 +86,10 @@ const EIGHT_H = 8 * 3600 * 1000;
 const CLOSED_DAY_KEY = "kindredly_la_closed_day";
 
 export async function startDayClosed(facts: { read: number; waiting: number }): Promise<void> {
+  /* never over nothing: she counts what went past the desk, and a quiet
+     day has nothing to count. Today's done effect already holds to this;
+     here it holds for any caller. */
+  if (!(facts.read > 0)) return;
   const m = load();
   if (!m) return;
   try {

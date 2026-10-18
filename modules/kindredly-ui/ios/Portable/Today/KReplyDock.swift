@@ -34,7 +34,7 @@ import SwiftUI
  until TS catches up. Focus sets deck.typing (the band slides away, Wren is delighted, the deck
  holds still) and losing it says keyboardDown. SEND (enabled): the field lets go at once, and
  deck.typing stays on until TS answers the press (its serial comes back in the composer), so the
- band doesn't rise under TS's fly-by.
+ band doesn't rise while Wren takes the letter off it (KWireWren).
  */
 struct KReplyDock: View {
   private let theme: KTheme

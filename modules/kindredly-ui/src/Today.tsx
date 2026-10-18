@@ -69,6 +69,20 @@ export type KTodayPhase = "loading" | "offline" | "reading" | "done";
 /** The tab bar's + panel over Today. */
 export type KTodayPlus = "closed" | "sheet" | "pop";
 
+/** Wren on the band (useTodayDesk view.wren): what TS decides about her; Swift draws the reactions. */
+export type KTodayWren = {
+  /** the face she rests in: sleepy in her night hours (21:00–07:59, the reader's clock), else content (today-cards wrenRest) */
+  rest: "idle" | "sleepy";
+  /** moves each time a reply leaves the phone: she takes the letter, flies off with it and comes back to her spot */
+  carry: number;
+  /** the unfolded reader is open: she steps aside, and straightens up when it closes */
+  reader: boolean;
+  /** VoiceOver's name for her ("Your courier"); tapping her makes her hop */
+  a11y: string;
+  /** her name, VoiceOver's value */
+  name: string;
+};
+
 /** Every word on the desk that isn't on a card. */
 export type KTodayStrings = {
   title: string;
@@ -154,14 +168,16 @@ export type KTodayViewProps = CommonViewModifierProps &
     cards: KTodayCard[];
     titleLocked: boolean;
     freshUnfold: boolean;
-    /** her first-arrival line over the wire, "" for none */
+    /** her first-arrival line over her head, "" for none */
     arrivalLine: string;
     wrenLetter: KTodayWrenLetter;
     window: KTodayWindow;
     birds: KTodayBirds;
     night: boolean;
     plus: KTodayPlus;
+    /** NEXT and REPLY step aside: a send in flight, or the reader open */
     hideBand: boolean;
+    wren: KTodayWren;
     onPass?: (letterId: string) => void;
     onBringBack?: () => void;
     onReplyOpen?: (letterId: string) => void;

@@ -10,11 +10,11 @@ import { useTheme } from "../lib/theme";
    translation button — it names the two people's languages, not a
    service.
 
-   10a (step 5): the Today card now wears the mock's translate capsule
-   (components/10a TranslateCapsule, H:42), and nothing on Today draws this
-   any more. It stays for any reader that still wants the pair, painted
-   from the theme (an ink outline, the lit side ink with the page colour on
-   it), its mono at 11. */
+   10a (step 5) briefly swapped it for the mock's outline capsule (H:42);
+   the owner wanted this one back (2026-10-16), so the Today card's foot
+   draws it again — here in the RN fallback, and as its SwiftUI twin
+   Portable/Kit/KLangPair.swift. Painted from the theme (an ink outline,
+   the lit side ink with the page colour on it), its mono at 11. */
 
 export function LangPair({ from, to, on, busy, onPress }: { from: string; to: string; on: boolean; busy: boolean; onPress: () => void }) {
   const { t: tk } = useTheme();

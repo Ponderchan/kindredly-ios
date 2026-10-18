@@ -7,6 +7,7 @@ import { getWrenName } from "./wren-name";
 import { loadJournal } from "./journal";
 import { POOL_CACHE_KEY } from "./db";
 import { readBest, readWork } from "./free-flight";
+import { noteFed } from "./hunger";
 import { LOCAL_PUSH, POOL_KEYS, type LocalPool } from "../data/local-push-copy";
 import {
   ID_PREFIX,
@@ -498,12 +499,23 @@ function mutateState(change: (s: PlanState) => PlanState): Promise<void> {
   return chain;
 }
 
-/** a Notes page was sealed, or a letter / reply went out: today's line stays quiet */
+/** a Notes page was sealed, or a letter / reply went out: today's line stays quiet (and a letter feeds her: lib/hunger noteFed) */
 export async function noteWrote(kind: "notes" | "letter"): Promise<void> {
+  if (kind === "letter") noteFed();
   const day = dayOf(new Date());
   await mutateState((s) => (kind === "notes" ? { ...s, notesDay: day } : { ...s, letterDay: day }));
   await replanLocal({ force: true });
   if (kind === "notes") void checkAuraAfterWriting();
+}
+
+/** the last day (dayOf: the local date) a letter or a reply went out from this phone, or null (never, or the
+    state couldn't be read: said in the console, and taken as "not known", never as "today"). Today's hunger
+    reads it beside the threads, so an open letter feeds her too. */
+export async function lastLetterDay(): Promise<string | null> {
+  const errors: string[] = [];
+  const s = await loadState(errors);
+  if (errors.length) console.warn("[local-push] lastLetterDay:", errors.join("; "));
+  return s.letterDay;
 }
 
 /** the aura's settled lines as of now. `viewing` = the person is on the aura page itself. */

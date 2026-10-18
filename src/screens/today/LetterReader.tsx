@@ -31,8 +31,8 @@ import type { TodayModel } from "./useTodayDesk";
    model's drafts, the one source of truth), so a reply started here and
    finished on the desk is one reply; closing the reader hands the words
    back to the desk's field (the model bumps its draft epoch). Sending
-   closes the reader: the letter is answered, and the fly-by and "Reply
-   sent." play on the desk. With the pouch full, SEND explains instead, in
+   closes the reader: the letter is answered, and on the desk Wren takes
+   it off the band and "Reply sent." shows. With the pouch full, SEND explains instead, in
    a sheet drawn inside this reader (a second window-level modal can't be
    presented over this one), and the reader stays.
 
@@ -103,7 +103,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
                   onChangeText={(v) => act.changeDraft(letter.id, v)}
                   onSend={(v) => {
                     /* once it's gone the letter is answered, so the reader closes with it
-                       (the fly-by and "Reply sent." play on the desk). A full pouch only
+                       (Wren takes it and "Reply sent." shows on the desk). A full pouch only
                        explains, and the reader stays: the sheet that explains is drawn in
                        here, below */
                     if (!state.pouchFull) act.closeReader();

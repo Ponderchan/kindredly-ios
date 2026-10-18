@@ -29,7 +29,7 @@ import ExpoUI
  - setText { target: "body" | "ask", value }   a draft resumed, a seed, a remount's reseed
  - focus { target: "body" | "ask" }            the autofocus, the question just attached
  - blur {}                                      before a sheet, an Alert, a push
- - composer { wrenLine, key: { stage, label, narrowLabel, tone, enabled, progress, nudge },
+ - composer { wrenLine, key: { stage, label, narrowLabel, tone, enabled, progress, count, nudge },
               count: { text, tone } }           the live state, sent when it changes
  - reset {}                                     blurs (nothing else to put back)
 
@@ -216,6 +216,7 @@ final class KComposeViewProps: KScreenProps {
       tone: KComposeKey.Tone(rawValue: k.kString("tone") ?? "") ?? .mute,
       enabled: k.kBool("enabled") ?? false,
       progress: k.kDouble("progress") ?? -1,
+      count: k.kString("count") ?? "",
       nudge: k.kBool("nudge") ?? false
     )
     let count = KComposeCount(

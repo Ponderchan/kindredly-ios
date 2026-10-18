@@ -3,7 +3,7 @@
    (it strips the types itself from Node 22.18 / 23.6 on):
      node modules/kindredly-ui/src/commands.test.ts */
 
-import { createCommandChannel, createCommandQueue, nextRev } from "./commands.ts";
+import { createCommandChannel, createCommandQueue, isViewNotFound, nextRev } from "./commands.ts";
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => { console.log((cond ? "ok  " : "FAIL") + " " + name); if (!cond) fails++; };
@@ -13,6 +13,9 @@ const target = (calls: Call[], result: () => Promise<void> = () => Promise.resol
   command(name: string, args: Record<string, unknown>) { calls.push({ name, args }); return result(); },
 });
 const names = (calls: Call[]) => calls.map((c) => c.name).join(",");
+// a view not heard from yet gets its queue one command at a time (each after the one before
+// lands), so a check after several commands lets the promises settle first
+const settle = () => new Promise((r) => setTimeout(r, 0));
 
 // warnings are expected in a few cases below; count them instead of printing them
 let warned = 0;
@@ -28,6 +31,8 @@ console.warn = () => { warned++; };
   q.flush(null);
   ok("flush without a view keeps the queue", q.size === 2);
   q.flush(target(calls));
+  ok("flush sends the first at once, the rest after it lands", names(calls) === "focus");
+  await settle();
   ok("flush sends everything, in order", names(calls) === "focus,setText" && q.size === 0);
   ok("args arrive untouched", calls[1].args.value === "hi" && calls[1].args.target === "reply");
 }
@@ -36,7 +41,9 @@ console.warn = () => { warned++; };
   const q = createCommandQueue();
   const calls: Call[] = [];
   q.send(target(calls), "blur", {});
-  ok("a view and an empty queue → sent at once", names(calls) === "blur" && q.size === 0);
+  ok("a view and an empty queue → sent at once", names(calls) === "blur");
+  await settle();
+  ok("…and off the queue once it lands", q.size === 0);
 }
 
 {
@@ -44,6 +51,7 @@ console.warn = () => { warned++; };
   const calls: Call[] = [];
   q.send(null, "a", {});
   q.send(target(calls), "b", {});
+  await settle();
   ok("a send behind a queue goes out after it, never before", names(calls) === "a,b" && q.size === 0);
 }
 
@@ -52,6 +60,7 @@ console.warn = () => { warned++; };
   for (const n of ["1", "2", "3", "4", "5"]) q.send(null, n, {});
   const calls: Call[] = [];
   q.flush(target(calls));
+  await settle();
   ok("past the limit the oldest go first", names(calls) === "3,4,5");
 }
 
@@ -121,6 +130,7 @@ const handleRef = () => ({ current: null as FakeView | null });
   ok("no view yet → nothing sent", log.length === 0);
   const view = new FakeView("v1", log);
   ch.attach(view);
+  await settle();
   ok("attach alone sends what waited, in order (no send, flush or commit)", log.join(",") === "v1:setText=draft,v1:focus");
   ok("attach fills the RefObject", ref.current === view);
   ch.commit();
@@ -143,12 +153,14 @@ const handleRef = () => ({ current: null as FakeView | null });
   ch.attach(null);
   ch.send("focus", { target: "body" });
   ch.attach(v1);
+  await settle();
   ok("the same view attached again: its queue goes out, no reseed", log.join(",") === "v1:setText=old,reseed,v1:focus");
   // a NativeSurface swap: the old view goes, a new one comes
   ch.attach(null);
   ch.send("scrollTo", { key: "end" });
   const v2 = new FakeView("v2", log);
   ch.attach(v2);
+  await settle();
   ok("a remounted view gets what was sent meanwhile, then the reseed", log.slice(-2).join(",") === "v2:scrollTo,reseed");
 }
 
@@ -251,8 +263,75 @@ const handleRef = () => ({ current: null as FakeView | null });
   ch.send("focus", { target: "body" });
   ch.attach(new FakeView("v1", log));
   ch.send("blur", {});
+  await settle();
   ch.unmount();
   ok("every command is called as a method on the view (expo needs `this`)", warned === before && log.length === 3);
+}
+
+/* A VIEW STILL ON ITS WAY (2026-10-18): under Fabric the ref can attach before the main thread has
+   mounted the view, and expo rejects with SwiftUIViewNotFound. The queue tries the same command
+   again a frame later until one lands, keeps the order, then sends at once. */
+const NOT_FOUND = () => Object.assign(new Error("Unable to find the 'KComposeView' view with tag '512'"), { code: "ERR_SWIFT_UI_VIEW_NOT_FOUND" });
+const fast = { retryMs: 0, retries: 5, schedule: (fn: () => void) => void setTimeout(fn, 0) };
+const until = async (cond: () => boolean) => {
+  for (let i = 0; i < 50 && !cond(); i++) await settle();
+};
+
+ok("expo's not-found is recognised by message or code", isViewNotFound(NOT_FOUND()) && isViewNotFound({ code: "ERR_SWIFT_UI_VIEW_NOT_FOUND" }) && !isViewNotFound(new Error("no view")));
+
+{
+  // mounted on the third try: every command arrives once, in order, none lost
+  const q = createCommandQueue(100, fast);
+  const calls: Call[] = [];
+  let mountedAfter = 2;
+  const view = target(calls, () => (mountedAfter-- > 0 ? Promise.reject(NOT_FOUND()) : Promise.resolve()));
+  const before = warned;
+  q.send(null, "composer", { line: "Wren" });
+  q.send(null, "setText", { target: "body", value: "draft" });
+  q.send(null, "focus", { target: "body" });
+  q.flush(view);
+  await until(() => q.size === 0);
+  ok("a view not mounted yet: the head is tried again until it lands", names(calls) === "composer,composer,composer,setText,focus");
+  ok("…nothing dropped, nothing logged", q.size === 0 && warned === before);
+  q.send(view, "scrollTo", { key: "end" });
+  ok("once it answered, a send goes out at once (typing never waits)", calls.at(-1)?.name === "scrollTo");
+}
+
+{
+  // sends made while the head is retrying wait behind it
+  const q = createCommandQueue(100, fast);
+  const calls: Call[] = [];
+  let mountedAfter = 1;
+  const view = target(calls, () => (mountedAfter-- > 0 ? Promise.reject(NOT_FOUND()) : Promise.resolve()));
+  q.send(view, "composer", {});
+  q.send(view, "focus", {});
+  await until(() => q.size === 0);
+  ok("a send during the retry goes after the retried one", names(calls) === "composer,composer,focus");
+}
+
+{
+  // a view that never mounts: the queue goes after the retries, said once
+  const q = createCommandQueue(100, fast);
+  const calls: Call[] = [];
+  const before = warned;
+  const view = target(calls, () => Promise.reject(NOT_FOUND()));
+  q.send(view, "a", {});
+  q.send(view, "b", {});
+  await until(() => q.size === 0);
+  ok("a view that never mounts: tried retries + 1 times, then the queue is dropped", calls.length === 6 && q.size === 0 && warned - before === 1);
+}
+
+{
+  // another failure means the view answered: it counts as there, the rest go at once
+  const q = createCommandQueue(100, fast);
+  const calls: Call[] = [];
+  let first = true;
+  const view = target(calls, () => (first ? ((first = false), Promise.reject(new Error("bad args"))) : Promise.resolve()));
+  const before = warned;
+  q.send(view, "a", {});
+  q.send(view, "b", {});
+  await until(() => q.size === 0);
+  ok("a command that fails for another reason is logged and dropped, not retried", names(calls) === "a,b" && warned - before === 1);
 }
 
 {

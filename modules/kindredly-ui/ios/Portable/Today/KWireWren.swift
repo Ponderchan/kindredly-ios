@@ -3,49 +3,85 @@
 import SwiftUI
 
 /*
- WREN ON THE ARC (Today 3d × 25b, Prompts 3 and 6, revised 2026-10-16). The reader's own Wren,
- always: five pictures of her (idle, curious, delight, sleepy, fly) captured from her own look by
- BirdSnapshots and handed over by TS. Never the design's SVGs.
+ WREN ON THE BAND (Today 3d × 25b, Prompts 3 and 6; the owner's 2026-10-16 18:05 decision and his
+ 2026-10-18 reactions). The reader's own Wren, always: five pictures of her (idle, curious,
+ delight, sleepy, fly) captured from her own look by BirdSnapshots and handed over by TS, in her
+ wilted set while she's starving (TS picks the set: useTodayBirds). Never the design's SVGs.
 
- One overlay over the whole desk, taking no touches. She stands at the dashed arc's top (48, the
- design's left 173 / top 640, centre 16 above the arc), reacts to what the reader does, and on the
- last letter flies the road the arc drew: along it to the REPLY end, then a dive into the flight
- window (the done flow's timeline, KDayFlow, moves her; this only draws where it says).
+ One overlay over the whole desk. She stands on the page ground between NEXT and REPLY (36, her
+ feet level with the discs' foot, centred: KBandLayout.spot), reacts to what the reader does, and
+ on the last letter flies straight from her spot into the flight window (the done flow's
+ timeline, KDayFlow, moves her; this only draws where it says). Only her own figure takes a
+ touch, and only while she stands on the band.
 
- HER FACE, first that applies: the flow's (sleepy or idle as the day closes, fly in the air,
- fly or idle in the window); delight while the reader writes back (deck.typing); curious while a
- card is dragged past 8%; curious for 1.2s after a letter is passed (not the last); idle. The five
- pictures sit stacked in a 48 frame and crossfade in 200ms. A picture not captured yet shows idle
- instead; with no idle either, nothing (never the design's stand-in). A fledgling or hatchling has
- no fly art: TS sends her perch picture as fly with flyIsPerch, drawn tilted -12°.
+ HER FACE, first that applies: the flow's (sleepy or content as the day closes, fly in the air,
+ fly or content in the window); fly while she is away with a reply; delight for 600ms after a tap,
+ and while the reader writes back (deck.typing); curious while a long letter unfolds; curious
+ while a card is dragged up past 8%; curious for 1.2s after a letter is passed (not the last);
+ and otherwise her resting face, which is TS's (wren.rest: sleepy from 21:00 to 07:59 by the
+ reader's clock, else content), so every reaction comes back to it. The five pictures sit stacked
+ in her 36 frame, scaled to her place's size, and crossfade in 200ms. A picture not captured yet
+ shows her resting one instead, then idle; with neither, nothing (never the design's stand-in). A
+ fledgling or hatchling has no fly art: TS sends her perch picture as fly with flyIsPerch, drawn
+ tilted -12°.
 
- THE LEAN: as a card is dragged up she leans toward it from her feet (anchor 50% 90%): rotate
- -16° × p, scale 1 + .1 p, following the finger with no animation (p is the deck's drag progress,
- never a JS round trip); let go and she comes back in 250ms. Reduce Motion keeps it (it follows
- the finger).
+ HER REACTIONS:
+ - THE LEAN: as a card is dragged up she leans toward it from her feet (anchor 50% 90%): rotate
+   -16° × p, scale 1 + .1 p, following the finger with no animation (p is the deck's drag
+   progress, never a JS round trip); pulled DOWN (the damped drag) she leans back away from it,
+   +8° × the pull (KDeckMotion.pull), her face unchanged. Let go and she comes back in 250ms.
+ - UNFOLD: the letter's UNFOLD (a beat from the deck, as the reader is asked for, never delaying
+   it) leans her all the way toward the card with the curious face; she straightens up when the
+   reader closes (wren.reader), or after 1.5s if it never opened.
+ - THE HOP: tap her (VoiceOver: activate) and she hops 8 up and back (300ms) with a light haptic
+   (SwiftUI's sensoryFeedback .impact(weight: .light), the UIImpactFeedbackGenerator .light
+   tap, so this file stays SwiftUI-only), delighted for 600ms. Not while the reader types, while
+   she's away, or once the day is ending.
+ - SHE TAKES THE LETTER: each time TS's wren.carry moves (a reply leaving the phone) she switches
+   to fly and lifts off with a small envelope at her feet, up and out past the top right (900ms,
+   climbing first); 2.5s after take-off she comes back in from the top left, drops onto her spot
+   (700ms) and settles in her resting face. This is the send's only bird: no React Native fly-by
+   sits over the Host. If that reply was the last letter, the day's end takes over: she flies
+   into the window from wherever the errand has taken her.
+ - The pass's curious beat, delight while typing, and the day's end, as before.
 
- HER FLIGHT, flight f from the flow (0 wire, 1 arc end, 2 window), through an Animatable modifier
- on the flight curve (550ms, .4 0 .3 1, pinned here; the flow's rest and reset disable it): 0…1
- rides the arc's second half (48 → 44), 1…2 dives straight into the window (44 → 34), where she
- takes the design's small drop shadow. In the
- window she flaps while the flow loops (y 0 → -7 → 0, rotate -4° → 6° → -4°, 1.1s ease-in-out,
- repeating), only when she can play and never under Reduce Motion. Under Reduce Motion she doesn't
- fly: she fades out on the arc and in at the window.
+ HER FLIGHT, flight f from the flow (0 her spot on the band, 1 the window), through an Animatable
+ modifier on the flight curve (550ms, .4 0 .3 1, pinned here; the flow's rest and reset disable
+ it): a straight line from her spot into the window (36 → 34). The errand rides the same
+ modifier as an offset from her spot. In the window she takes the design's small drop shadow
+ and flaps while the flow loops (y 0 → -7 → 0, rotate -4° → 6° → -4°, 1.1s ease-in-out,
+ repeating), only when she can play and never under Reduce Motion.
 
- She hides (opacity, bandFade) when the desk says (the + open; a send or the reader while she is
- on the arc), and slides down 160 with the band while the reader types.
+ REDUCE MOTION: faces change, nothing moves. She doesn't fly to the window (she fades out on the
+ band and in at the window), the errand is the fly face with the envelope and then a fade out and
+ back in on her spot, the hop is the face and the haptic alone, the unfold is the curious face
+ alone. The drag's lean stays, up or down: it is the finger's, as the card's following it is.
+
+ She hides (opacity, bandFade) when the desk says (the + open) and while the reader is open, and
+ slides down 160 with the band while the reader types (not while she is away).
 
  THE ARRIVAL BUBBLE (owner question 7): on her first day her line from TS sits in a speech bubble
- just over her head while the first three letters are up. It shows only while she is on the arc,
- not hidden, and the reader isn't typing; it pops in 400ms after that, and fades when it goes.
- VoiceOver reads it as text after the card. Every word is TS's.
+ just over her head while the first three letters are up. It shows only while she is on the band,
+ not hidden or away, and the reader isn't typing; it pops in 400ms after that, and fades when it
+ goes. VoiceOver reads it as text after the card. Every word is TS's.
  */
+
+/// What Wren keeps without drawing: the generations that make a superseded delayed step a no-op,
+/// and the latest facts such a step reads (never a captured copy of the view).
+final class KWireWrenBox {
+  var errand = 0
+  var hop = 0
+  var lean = 0
+  /// TS's reader is open, as of the last body
+  var reader = false
+}
+
 struct KWireWren: View {
   private let theme: KTheme
   private let birds: KTodayBirds
+  private let wren: KTodayWren
   private let width: CGFloat
   private let controlTop: CGFloat
-  private let night: Bool
   private let canPlay: Bool
   private let arrivalLine: String
   private let hidden: Bool
@@ -54,26 +90,52 @@ struct KWireWren: View {
   @ObservedObject private var flow: KDayFlow
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var box = KWireWrenBox()
   /// the pass beat keeping her curious for 1.2s, nil once it has run out
   @State private var curiousBeat: Int?
+  /// leaning all the way toward the card while its letter unfolds, until the reader closes
+  @State private var unfoldLean = false
+  /// each tap's serial: the hop and the haptic run on it
+  @State private var hopSerial = 0
+  /// delighted for 600ms after a tap
+  @State private var hopping = false
+  /// the errand's place: 0 her spot, up to 1 gone past the top right (out), from −1 past the top
+  /// left (coming back)
+  @State private var errand: CGFloat = 0
+  /// she is on her errand (out, away, or coming back): the fly face, and the band's moves aren't hers
+  @State private var away = false
+  /// the reply's envelope at her feet, on the way out
+  @State private var carrying = false
+  /// Reduce Motion's errand: faded out with the letter
+  @State private var gone = false
+
+  /// how long she is away with a reply before she comes back in (from take-off)
+  static let errandAway = 2.5
+  /// out of sight by then (the take-off's 900ms)
+  static let errandOut = 0.9
+  /// the unfold's lean waits this long for the reader before she straightens up
+  static let leanWait = 1.5
+  /// delighted this long after a tap
+  static let hopFace = 0.6
 
   /// - Parameters:
-  ///   - birds: her five pictures (TS: useTodayBirds)
+  ///   - birds: her five pictures (TS: useTodayBirds; the wilted set while she's starving)
+  ///   - wren: TS's word on her: the face she rests in, the reply serial she carries off, the
+  ///     reader being open, what VoiceOver calls her
   ///   - width: the Host's width (the band's W)
   ///   - controlTop: the band's top in the desk's coordinates; she is placed from it
-  ///   - night: the reader's night hours (the flow already picks the yawn; kept for the pictures' sake)
   ///   - canPlay: she can play the flight game: she only flaps in the window when she can
   ///   - arrivalLine: her first-day line, "" for none
-  ///   - hidden: the desk's rule (the + open, or a send or the reader while she is on the arc)
+  ///   - hidden: the + panel is open
   ///   - motion: the deck's drag (only her figure reads it, per frame)
   ///   - deck: the beats, typing
   ///   - flow: the done flow (her face override, flight and loop)
   init(
     theme: KTheme,
     birds: KTodayBirds,
+    wren: KTodayWren,
     width: CGFloat,
     controlTop: CGFloat,
-    night: Bool,
     canPlay: Bool,
     arrivalLine: String,
     hidden: Bool,
@@ -83,9 +145,9 @@ struct KWireWren: View {
   ) {
     self.theme = theme
     self.birds = birds
+    self.wren = wren
     self.width = width
     self.controlTop = controlTop
-    self.night = night
     self.canPlay = canPlay
     self.arrivalLine = arrivalLine
     self.hidden = hidden
@@ -95,39 +157,47 @@ struct KWireWren: View {
   }
 
   var body: some View {
+    let _ = remember()
     let typing = deck.typing
-    let onWire = flow.isReading
-    let down = typing && onWire
+    let onBand = flow.isReading
+    // the day's end has her from its first beat (her face at t = 0)
+    let ending = flow.faceOverride != nil
+    let down = typing && onBand && !away
+    let hide = hidden || (wren.reader && onBand)
+    // her rest on the band: the bubble's tail points at her head
+    let rest = KBandLayout.flightPlace(width, 0)
     ZStack(alignment: .topLeading) {
-      bird
+      bird(tappable: onBand && !ending && !typing && !away && !hide)
         // down 160 with the band while the reader types; a fade under Reduce Motion
         .offset(y: down && !reduceMotion ? 160 : 0)
         .opacity(down && reduceMotion ? 0 : 1)
         .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: down)
-        .opacity(hidden ? 0 : 1)
-        .animation(KTodayMotion.bandFade, value: hidden)
-        .accessibilityHidden(true)
+        .opacity(hide ? 0 : 1)
+        .animation(KTodayMotion.bandFade, value: hide)
 
       KArrivalBubble(
         theme: theme,
         line: arrivalLine,
-        wanted: !arrivalLine.isEmpty && onWire && !hidden && !typing,
-        herX: KBandLayout.wire(width).x,
+        wanted: !arrivalLine.isEmpty && onBand && !hide && !typing && !away,
+        herX: rest.center.x,
         width: width,
-        tipY: controlTop + KBandLayout.wire(width).y - KBandLayout.wireSize / 2 - 6
+        tipY: controlTop + rest.center.y - rest.size / 2 - 6
       )
+      .allowsHitTesting(false)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .allowsHitTesting(false)
-    .onChange(of: deck.beat) { _, beat in
-      switch beat.kind {
-      case .passed(last: false):
-        curiousBeat = beat.serial
-      case .passed(last: true), .left, .broughtBack, .replyOpened:
-        curiousBeat = nil
-      case .none, .keyboardDown:
-        break
-      }
+    // the hop's light tap (UIImpactFeedbackGenerator .light underneath)
+    .sensoryFeedback(.impact(weight: .light), trigger: hopSerial)
+    .onChange(of: deck.beat) { _, beat in beatChanged(beat) }
+    .onChange(of: wren.carry) { old, now in
+      if now > old { takeOff() }
+    }
+    .onChange(of: wren.reader) { old, now in
+      // the reader closed: she straightens up (the lean's own 250ms)
+      if old, !now { unfoldLean = false }
+    }
+    .onChange(of: flow.isReading) { _, reading in
+      if !reading { dayEnds() }
     }
     .task(id: curiousBeat) {
       guard curiousBeat != nil else { return }
@@ -137,60 +207,209 @@ struct KWireWren: View {
     }
   }
 
-  /// The face before the drag is considered: the flow's, then delight while typing.
+  // ── her face ──
+
+  /// The face before the drag and her rest are considered: the flow's, the errand's, then
+  /// delight (a tap, or typing), then curious while a letter unfolds.
   private var leadingFace: KWrenFace? {
     if let f = flow.faceOverride { return f }
-    if deck.typing { return .delight }
+    if away { return .fly }
+    if hopping || deck.typing { return .delight }
+    if unfoldLean { return .curious }
     return nil
   }
 
   private func figure() -> KWrenFigure {
     KWrenFigure(
+      theme: theme,
       birds: birds,
       leading: leadingFace,
       beatCurious: curiousBeat != nil,
+      rest: wren.rest,
+      leanFull: unfoldLean,
+      carrying: carrying,
       looping: flow.looping && canPlay && !reduceMotion,
+      hop: hopSerial,
+      still: reduceMotion,
       motion: motion
     )
   }
 
-  /// Her figure where the flow says. Each curve is pinned here: the flow may land several values in
-  /// one transaction, and its rest and reset disable animations, which .animation(_:value:) honours.
+  /// Her figure as the one standing on the band: a tap (VoiceOver: activate) makes her hop. The
+  /// touch area is her frame and 6 around it, so it never reaches NEXT or REPLY.
+  private func courier(tappable: Bool) -> some View {
+    figure()
+      .contentShape(Rectangle().inset(by: -6))
+      .onTapGesture { hop() }
+      .allowsHitTesting(tappable)
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(wren.a11y)
+      .accessibilityValue(wren.name)
+      .accessibilityAddTraits(.isButton)
+      .accessibilityAction { hop() }
+      .accessibilityHidden(!tappable)
+  }
+
+  /// Her figure where the flow (and an errand) says. Each curve is pinned here: the flow may land
+  /// several values in one transaction, and its rest and reset disable animations, which
+  /// .animation(_:value:) honours.
   @ViewBuilder
-  private var bird: some View {
+  private func bird(tappable: Bool) -> some View {
     if reduceMotion {
-      // no flight: she fades out on the arc and in at the window (200ms)
-      let away = flow.flight >= 1
+      // nothing moves: she fades out on the band and in at the window (200ms), and an errand is a
+      // fade out and back in on her spot
+      let inWindow = flow.flight >= 1
       ZStack {
+        courier(tappable: tappable)
+          .modifier(KWrenPlacement(flight: 0, errand: 0, width: width, controlTop: controlTop))
+          .opacity(inWindow || gone ? 0 : 1)
         figure()
-          .modifier(KWrenPlacement(flight: 0, width: width, controlTop: controlTop))
-          .opacity(away ? 0 : 1)
-        figure()
-          .modifier(KWrenPlacement(flight: 2, width: width, controlTop: controlTop))
-          .opacity(away ? 1 : 0)
+          .modifier(KWrenPlacement(flight: 1, errand: 0, width: width, controlTop: controlTop))
+          .opacity(inWindow ? 1 : 0)
+          .allowsHitTesting(false)
+          .accessibilityHidden(true)
       }
-      .animation(KTodayMotion.reduced, value: away)
+      .animation(KTodayMotion.reduced, value: inWindow)
     } else {
-      // along the arc, then the dive: both segments on the flight curve (550ms, .4 0 .3 1)
-      figure()
-        .modifier(KWrenPlacement(flight: flow.flight, width: width, controlTop: controlTop))
+      // the flight on its curve (550ms, .4 0 .3 1): one straight segment into the window; the
+      // errand's offset goes with whatever transaction set it
+      courier(tappable: tappable)
+        .modifier(KWrenPlacement(flight: flow.flight, errand: errand, width: width, controlTop: controlTop))
         .animation(KTodayMotion.flight, value: flow.flight)
     }
   }
+
+  // ── what she does ──
+
+  private func remember() {
+    box.reader = wren.reader
+  }
+
+  private func beatChanged(_ beat: KDeckBeat) {
+    switch beat.kind {
+    case .passed(last: false):
+      curiousBeat = beat.serial
+      unfoldLean = false
+    case .passed(last: true), .left, .broughtBack, .replyOpened:
+      curiousBeat = nil
+      unfoldLean = false
+    case .unfolded:
+      // all the way toward the card, curious, while the reader opens (it isn't waited for)
+      curiousBeat = nil
+      unfoldLean = true
+      box.lean &+= 1
+      let lean = box.lean
+      // no reader after all (the letter left under the tap): she straightens up
+      later(Self.leanWait, if: { [box] in box.lean == lean && !box.reader }) { unfoldLean = false }
+    case .none, .keyboardDown:
+      break
+    }
+  }
+
+  /// A tap on her: 8 up and back with a light haptic, delighted for 600ms.
+  private func hop() {
+    guard flow.isReading, flow.faceOverride == nil, !deck.typing, !away, !hidden, !wren.reader else { return }
+    hopSerial &+= 1
+    hopping = true
+    box.hop &+= 1
+    let hop = box.hop
+    later(Self.hopFace, if: { [box] in box.hop == hop }) { hopping = false }
+  }
+
+  /// A reply left the phone: she takes the letter up and out of sight, and comes back to her spot.
+  private func takeOff() {
+    // once the day is ending the flow has her (a last reply's day's end takes over)
+    guard flow.isReading else { return }
+    box.errand &+= 1
+    let errandRun = box.errand
+    let current: () -> Bool = { [box] in box.errand == errandRun }
+    box.hop &+= 1
+    hopping = false
+    unfoldLean = false
+    curiousBeat = nil
+    away = true
+    carrying = true
+    if reduceMotion {
+      later(0.6, if: current) { withAnimation(KTodayMotion.reduced) { gone = true } }
+      later(Self.errandAway, if: current) {
+        carrying = false
+        withAnimation(KTodayMotion.reduced) {
+          gone = false
+          away = false
+        }
+      }
+      return
+    }
+    withAnimation(KTodayMotion.takeOff) { errand = 1 }
+    later(Self.errandOut, if: current) {
+      // out of sight: round to the other side, where she comes back from
+      carrying = false
+      still { errand = -1 }
+    }
+    later(Self.errandAway, if: current) {
+      withAnimation(KTodayMotion.landing) { errand = 0 }
+    }
+    later(Self.errandAway + 0.7, if: current) { away = false }
+  }
+
+  /// The day's end has begun: whatever she was doing gives way. Away with a reply, she flies into
+  /// the window from wherever she is: the errand's offset folds into the flight, on its curve.
+  private func dayEnds() {
+    box.hop &+= 1
+    hopping = false
+    unfoldLean = false
+    guard away else { return }
+    box.errand &+= 1
+    carrying = false
+    withAnimation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.flight) {
+      errand = 0
+      gone = false
+    }
+    away = false
+  }
+
+  /// runs `work` after `seconds` on the main queue, if `valid` still says so then
+  private func later(_ seconds: Double, if valid: @escaping () -> Bool, _ work: @escaping () -> Void) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+      guard valid() else { return }
+      work()
+    }
+  }
+
+  /// a change that must not animate
+  private func still(_ change: () -> Void) {
+    var transaction = Transaction(animation: nil)
+    transaction.disablesAnimations = true
+    withTransaction(transaction, change)
+  }
 }
 
-/// Her figure at 48: the five pictures crossfading, the lean (per frame, from the deck's drag) and
-/// the flap. Only this reads KDeckMotion, so a drag frame redraws her and nothing else.
+/// Her figure in her 36 frame (scaled to her place's size by KWrenPlacement): the five pictures
+/// crossfading, the reply's envelope, the lean (per frame, from the deck's drag; all the way for an
+/// unfold), the hop and the flap. Only this reads KDeckMotion, so a drag frame redraws her and
+/// nothing else.
 private struct KWrenFigure: View {
-  static let size: CGFloat = KBandLayout.wireSize
-  static let feet = UnitPoint(x: 0.5, y: 0.9)
+  static let size: CGFloat = KBandLayout.wrenSize
+  static let feet = UnitPoint(x: 0.5, y: KBandLayout.feetY)
+  /// the envelope's top, down her frame (LetterInFlight: just under her, overlapping by 6 of 34)
+  static let envelopeTop: CGFloat = 0.82
 
+  let theme: KTheme
   let birds: KTodayBirds
-  /// the flow's face or delight (typing): wins over the drag
+  /// the flow's face, the errand's, delight or the unfold's curious: wins over the drag
   let leading: KWrenFace?
   /// a letter was just passed (not the last)
   let beatCurious: Bool
+  /// TS's resting face (sleepy in her night hours)
+  let rest: KWrenFace
+  /// a letter is unfolding: the lean at full progress
+  let leanFull: Bool
+  let carrying: Bool
   let looping: Bool
+  /// the taps' serial: each one hops her
+  let hop: Int
+  /// Reduce Motion: the hop and the unfold's lean don't move her
+  let still: Bool
   @ObservedObject var motion: KDeckMotion
 
   private func ref(_ face: KWrenFace) -> KImageRef? {
@@ -204,11 +423,39 @@ private struct KWrenFigure: View {
   }
 
   var body: some View {
-    let p = min(max(motion.progress, 0), 1)
-    let wanted: KWrenFace = leading
-      ?? ((motion.dragging && p > 0.08) || beatCurious ? .curious : .idle)
-    // a picture not captured yet: idle in its place
-    let visible: KWrenFace = ref(wanted) != nil ? wanted : .idle
+    let drag: CGFloat = min(max(motion.progress, 0), 1)
+    // the unfold's lean is hers, not the finger's: under Reduce Motion only her face changes
+    let p: CGFloat = leanFull && !still ? 1 : drag
+    let q: CGFloat = min(max(motion.pull, 0), 1)
+    // toward a card pulled up (−16° × p), back from one pulled down (+8° × the pull)
+    let angle: Double = -16 * Double(p) + 8 * Double(q)
+    let grow: CGFloat = 1 + 0.1 * p
+    let curious: Bool = (motion.dragging && drag > 0.08) || beatCurious
+    let wanted: KWrenFace = leading ?? (curious ? .curious : rest)
+    // a picture not captured yet: her resting one in its place, then idle
+    let visible: KWrenFace = ref(wanted) != nil ? wanted : (ref(rest) != nil ? rest : .idle)
+    faces(visible)
+      // the lean follows the finger; let go, it comes back in 250ms
+      .animation(motion.dragging ? nil : KTodayMotion.leanBack) {
+        $0
+          .rotationEffect(.degrees(angle), anchor: Self.feet)
+          .scaleEffect(grow, anchor: Self.feet)
+      }
+      // the hop: 8 up and back, 300ms
+      .keyframeAnimator(initialValue: CGFloat(0), trigger: hop) { content, y in
+        content.offset(y: still ? 0 : y)
+      } keyframes: { _ in
+        KeyframeTrack {
+          CubicKeyframe(-8, duration: 0.14)
+          CubicKeyframe(0, duration: 0.16)
+        }
+      }
+      .modifier(KWrenFlap(active: looping))
+  }
+
+  /// The five pictures stacked in her frame, the one shown crossfading in, and the envelope at her
+  /// feet while she carries a reply.
+  private func faces(_ visible: KWrenFace) -> some View {
     ZStack {
       layer(.idle, visible)
       layer(.curious, visible)
@@ -219,13 +466,14 @@ private struct KWrenFigure: View {
     }
     .frame(width: Self.size, height: Self.size)
     .animation(KTodayMotion.face, value: visible)
-    // the lean follows the finger; let go, it comes back in 250ms
-    .animation(motion.dragging ? nil : KTodayMotion.leanBack) {
-      $0
-        .rotationEffect(.degrees(-16 * Double(p)), anchor: Self.feet)
-        .scaleEffect(1 + 0.1 * p, anchor: Self.feet)
+    .overlay(alignment: .top) {
+      if carrying {
+        KWrenEnvelope(theme: theme)
+          .offset(y: Self.size * Self.envelopeTop)
+          .transition(.opacity)
+      }
     }
-    .modifier(KWrenFlap(active: looping))
+    .animation(KTodayMotion.face, value: carrying)
   }
 
   private func layer(_ face: KWrenFace, _ visible: KWrenFace) -> some View {
@@ -234,27 +482,73 @@ private struct KWrenFigure: View {
   }
 }
 
-/// Where she is at flight f, in the desk's coordinates (the band's, moved down by controlTop),
-/// and at what size: animatable, so the flow's transaction carries her along the arc and the dive.
+/// The reply she takes off the band: LetterInFlight's little envelope, 15 × 11, corners of 1, on the
+/// card face with a 1pt ink outline and the flap's V.
+private struct KWrenEnvelope: View {
+  let theme: KTheme
+
+  var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 1).fill(theme.sf)
+      RoundedRectangle(cornerRadius: 1).strokeBorder(theme.ink, lineWidth: 1)
+      KEnvelopeFlap().stroke(theme.ink, style: StrokeStyle(lineWidth: 1, lineJoin: .round))
+    }
+    .frame(width: 15, height: 11)
+    .accessibilityHidden(true)
+  }
+}
+
+/// The flap's V across an envelope's top (LetterInFlight's "M0.6 1.4 L7.5 6.4 L14.4 1.4" in 15 × 11).
+private struct KEnvelopeFlap: Shape {
+  func path(in rect: CGRect) -> Path {
+    var p = Path()
+    p.move(to: CGPoint(x: rect.minX + rect.width * 0.04, y: rect.minY + rect.height * 0.13))
+    p.addLine(to: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.58))
+    p.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.04, y: rect.minY + rect.height * 0.13))
+    return p
+  }
+}
+
+/// Where she is at flight f and on her errand, in the desk's coordinates (the band's, moved down by
+/// controlTop), and at what size: animatable, so the flow's transaction carries her from the band
+/// into the window, and an errand's carries her off and back.
 private struct KWrenPlacement: ViewModifier, Animatable {
   var flight: CGFloat
+  /// 0 her spot; toward 1 out past the top right; from −1 back from past the top left
+  var errand: CGFloat
   let width: CGFloat
   let controlTop: CGFloat
 
-  var animatableData: CGFloat {
-    get { flight }
-    set { flight = newValue }
+  /// how far past the edges an errand takes her: out of sight with her envelope
+  static let beyond: CGFloat = 60
+  static let above: CGFloat = 80
+
+  var animatableData: AnimatablePair<CGFloat, CGFloat> {
+    get { AnimatablePair(flight, errand) }
+    set {
+      flight = newValue.first
+      errand = newValue.second
+    }
   }
 
   func body(content: Content) -> some View {
     let place = KBandLayout.flightPlace(width, flight)
+    // the errand, as an offset from her spot: she climbs first (y with k) and veers late (x with
+    // k²), so she lifts straight off the band and comes down straight onto it
+    let e = min(max(errand, -1), 1)
+    let k = abs(e)
+    let home = KBandLayout.spot(width)
+    let outX = e >= 0 ? width + Self.beyond : -Self.beyond
+    let outY = -controlTop - Self.above
+    let x = place.center.x + (outX - home.x) * k * k
+    let y = place.center.y + (outY - home.y) * k
     // the design's drop shadow (0 2 0 rgba(0,0,0,.25)) as she comes into the window
-    let shade = 0.25 * Double(min(max(flight - 1, 0), 1))
+    let shade = 0.25 * Double(min(max(flight, 0), 1))
     content
       .scaleEffect(place.size / KWrenFigure.size)
       .compositingGroup()
       .shadow(color: Color.black.opacity(shade), radius: 0, x: 0, y: 2)
-      .position(x: place.center.x, y: controlTop + place.center.y)
+      .position(x: x, y: controlTop + y)
   }
 }
 

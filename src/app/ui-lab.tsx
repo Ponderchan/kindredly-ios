@@ -3,13 +3,16 @@ import { Redirect } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Host } from "@expo/ui/swift-ui";
-import { InkCardHost, KGalleryHost, KTabBar, isKindredlyUIAvailable, isKindredlyUIViewAvailable, type KThemeKey } from "../../modules/kindredly-ui";
+import { InkCardHost, KGalleryHost, KTabBar, isKindredlyUIAvailable, isKindredlyUIViewAvailable, type KTabBarProps, type KThemeKey } from "../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../lib/theme";
 import { NATIVE_DEFAULTS, devSurfaceOverride, setDevSurfaceOverride, useNativeSurface } from "../lib/surfaces";
+import { useBirdImageRef } from "../lib/bird-images";
+import { useWrenName } from "../lib/wren-name";
 // as tr: this page's `t` is the theme's colours
 import { t as tr } from "../lib/i18n";
 import THEMES from "../theme/themes.json";
 import { PF } from "../theme/post";
+import "../data/strings-today3d"; // pub.* (the publish entry's words, for the samples' sheet and buttons)
 
 /* dev only — the 10a SwiftUI views (modules/kindredly-ui) as a native build draws them.
    kindredly:///ui-lab
@@ -26,14 +29,24 @@ import { PF } from "../theme/post";
      edge, and each theme's face, outline and hard shadow.
    - the gallery: every Portable piece (type, both InkCards, SoftGroup, Float, the buttons,
      the capsules, the Me chips) in the theme in effect, one Host for all of it.
+
    - the 10a tab bar (KTabBar, what components/NativeTabBar draws in the tabs), one per theme,
      each in a box of its theme's page: tap a tab and the lens slides and the icon pops, tap
-     the + and the composer sheet rises over the dim inside the box. Kindreds carries a count
-     of 3 (hidden while it is the tab selected). Nothing navigates from here; a card or the dim
-     just closes the sheet. A build whose module predates the bar says so.
+     the + and what it opens rises over the dim inside the box. Each sample has its own + OPENS
+     chips: CARDS (the 10a composer sheet), SHEET (the publish entry's new-reader sheet; its box
+     is taller, the sheet is 350 at least) and POP (the two round buttons), so both publish
+     openings can be seen here with no account at all — the words are the app's own, the
+     letters-left count a sample 3, Wren the reader's own picture. Kindreds carries a count of 3
+     (hidden while it is the tab selected). Nothing navigates from here; a choice or the dim
+     just closes it. A build whose module predates the bar says so.
 
    A build without the module says so instead of drawing empty boxes. */
 const KEYS = Object.keys(THEMES.themes) as KThemeKey[];
+
+/* what a sample's + can open (KTabBar panelStyle), in the chips' order */
+type PanelStyle = NonNullable<KTabBarProps["panelStyle"]>;
+const PANEL_STYLES: readonly PanelStyle[] = ["cards", "sheet", "pop"];
+
 
 export default function UiLab() {
   const { key, t } = useTheme();
@@ -85,6 +98,7 @@ export default function UiLab() {
           ))}
         </View>
 
+
         <Text style={{ fontSize: 16, lineHeight: 24, color: t.ink, marginHorizontal: 16, marginBottom: 12 }}>
           {native ? "InkCard · one per theme" : "KindredlyUI is not in this build. Run pod install (or prebuild), then rebuild the dev client."}
         </Text>
@@ -133,8 +147,11 @@ export default function UiLab() {
 }
 
 /* one theme's tab bar, live but going nowhere: the same view the tabs use, in a box tall
-   enough for the sheet (the sheet sits 12 above the bar, the bar 16 off the box's bottom with
-   no safe area here). The words are the app's own, so a change of language shows here too. */
+   enough for what the + opens (the 10a sheet sits 12 above the bar, the bar 16 off the box's
+   bottom with no safe area here; the publish sheet is 350 at least and pinned to the bottom,
+   so its box is taller). The words are the app's own, so a change of language shows here too.
+   The box clips, so the bar sliding down out of the publish sheet's way goes out of sight
+   rather than over the next sample. */
 const SAMPLE_TABS = [
   { glyph: "today", label: "tab.today" },
   { glyph: "notes", label: "tab.notes" },
@@ -146,10 +163,23 @@ function TabBarSample({ theme }: { theme: KThemeKey }) {
   const kt = THEMES.themes[theme];
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
+  // what this sample's + opens; a switch closes it first, so a new style never lands on an open one
+  const [style, setStyle] = useState<PanelStyle>("cards");
+  const wren = useWrenName();
+  const bird = useBirdImageRef("content");
+  const pick = (s: PanelStyle) => {
+    setOpen(false);
+    setStyle(s);
+  };
   return (
-    <View style={{ backgroundColor: kt.bg, paddingTop: 12 }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute, marginHorizontal: 16 }}>{kt.name.toUpperCase()}</Text>
-      <Host style={{ height: 320 }} ignoreSafeArea="all" colorScheme={kt.dark ? "dark" : "light"}>
+    <View style={{ backgroundColor: kt.bg, paddingTop: 12, overflow: "hidden" }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginHorizontal: 16 }}>
+        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute }}>{kt.name.toUpperCase()} · + OPENS</Text>
+        {PANEL_STYLES.map((s) => (
+          <LabChip key={s} label={s.toUpperCase()} on={style === s} colors={kt} onPress={() => pick(s)} />
+        ))}
+      </View>
+      <Host style={{ height: style === "sheet" ? 400 : 320 }} ignoreSafeArea="all" colorScheme={kt.dark ? "dark" : "light"}>
         <KTabBar
           theme={theme}
           tabs={SAMPLE_TABS.map((s) => ({ glyph: s.glyph, label: tr(s.label), badge: s.glyph === "kindreds" ? 3 : 0 }))}
@@ -163,6 +193,19 @@ function TabBarSample({ theme }: { theme: KThemeKey }) {
             { key: "stranger", title: tr("pc.stranger"), subtitle: tr("pc.strangerSaid"), glyph: "letter", tone: "lavender" },
             { key: "yourself", title: tr("pc.yourself"), subtitle: tr("pc.yourselfSaid"), glyph: "note", tone: "warm" },
           ]}
+          panelStyle={style}
+          // the publish entry's words as NativeTabBar sends them; the count is a sample, there is no account here
+          sheet={{
+            ask: tr("pub.ask"),
+            letterTitle: tr("pub.letter"),
+            letterSub: tr("pub.letterSub", { name: wren }),
+            letterLeft: tr("pub.left", { n: 3 }),
+            noteTitle: tr("pub.note"),
+            noteSub: tr("pub.noteSub"),
+            footnote: "",
+            bird,
+          }}
+          pop={{ letterLabel: tr("pub.popLetter"), noteLabel: tr("pub.popNote"), letterA11y: tr("pub.letter"), noteA11y: tr("pub.note"), letterLeft: tr("pub.left", { n: 3 }) }}
           onTabPress={(i) => {
             setOpen(false);
             setActive(i);
@@ -173,6 +216,29 @@ function TabBarSample({ theme }: { theme: KThemeKey }) {
         />
       </Host>
     </View>
+  );
+}
+
+/* one chip of a dev switch's row, in the colours it is given (the page's theme, or a sample's
+   own): dark while it is the choice in force */
+function LabChip({ label, on, colors, onPress }: { label: string; on: boolean; colors: { ink: string; sf: string; ln: string }; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      style={({ pressed }) => ({
+        paddingVertical: 7,
+        paddingHorizontal: 11,
+        borderRadius: 18,
+        borderWidth: 2,
+        borderColor: colors.ln,
+        backgroundColor: on ? colors.ink : colors.sf,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text style={{ fontSize: 12, fontWeight: "600", color: on ? colors.sf : colors.ink }}>{label}</Text>
+    </Pressable>
   );
 }
 

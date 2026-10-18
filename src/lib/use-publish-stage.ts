@@ -1,33 +1,20 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth";
 import { useEntitlement } from "./entitlement";
-import { useWrenStage } from "./wren-stage";
 import { FREE_PER_DAY, lettersLeftToday } from "./api";
 import { isFreeWriter } from "../screens/compose/compose-model";
-import { publishStage, type PublishStage } from "./publish-stage";
 
-/* THE PUBLISH ENTRY'S TWO READS, for React (the rule itself is publish-stage.ts).
-   ────────────────────────────────────────────────────────────────────────
-   usePublishStage: which way the + opens — the sheet for a new reader, the
-   two pop buttons for a returning one. The tab bar (NativeTabBar) opens
-   with it, and Today reads the same answer, with usePlusSheetOpen, to step
-   its band, its window and its card out of the way (useTodayDesk).
+/* THE PUBLISH ENTRY'S COUNT, for React. Which way the + opens no longer
+   depends on the reader (owner, 2026-10-18): Today opens the two round
+   buttons, every other tab the sheet (NativeTabBar). What stays here:
 
-   useLettersLeft: the "{N} LEFT" on the sheet's letter row — the real free
-   plan's open letters left today, read from the server's own count
-   (lettersLeftToday: letters_daily against FREE_PER_DAY, the cap the
-   compose page shows and bump-letters enforces). Asked each time the sheet
-   opens, so a letter sent since the last look is counted. null — the row
-   then shows no number — for First Class, a guest, a reader whose plan
-   hasn't answered yet, and whenever the count can't be read: never a
-   guess. */
-
-/** Which way the tab bar's + opens for the reader on this phone. */
-export function usePublishStage(): PublishStage {
-  const { user } = useAuth();
-  const { stage } = useWrenStage();
-  return publishStage({ createdAt: user?.created_at, now: Date.now(), wrenStage: stage });
-}
+   useLettersLeft: the "{N} LEFT" under LETTER and on the sheet's letter row
+   — the real free plan's open letters left today, read from the server's
+   own count (lettersLeftToday: letters_daily against FREE_PER_DAY, the cap
+   the compose page shows and bump-letters enforces). Asked each time the +
+   opens, so a letter sent since the last look is counted. null — no number
+   is shown — for First Class, a guest, a reader whose plan hasn't answered
+   yet, and whenever the count can't be read: never a guess. */
 
 /** The free plan's open letters left today, read each time `open` turns true; null when there is
     no count to show (First Class, a guest, the plan not known yet, or the read failed). */
@@ -50,6 +37,6 @@ export function useLettersLeft(open: boolean): number | null {
     };
   }, [open, free]);
 
-  // kept while the sheet closes, so the number doesn't vanish mid-slide
+  // kept while the + closes, so the number doesn't vanish mid-slide
   return free ? left : null;
 }

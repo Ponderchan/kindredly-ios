@@ -4,35 +4,46 @@ import SwiftUI
 
 /*
  THE COMPOSE PAGE (H:136, P:90-94): writing to a stranger, a full page that rises from the bottom.
- From the top, on the theme's page colour:
- - the top row: the × (the guarded way out: there is no edge swipe), TO A STRANGER in mono 11
-   at .18em, and the 28pt stamp slot: dashed ind on ind at 6% while empty, the stamp's own art
-   once chosen (a tap opens the stamps);
- - Wren's row: Wren herself in a 36 soft2 circle (a React Native island: her skin, her mood,
-   her breathing are hers to draw) and her line in Newsreader italic 15, sub;
- - a 1pt line, then the editor: system 17, ink, an ind caret, the spark as the placeholder. It
-   is a TextEditor (UITextView), which keeps its own caret in view as a long letter grows, so the
-   caret never slips under the toolbar the way a growing TextField in a ScrollView does. While
-   speaking, the Recorder (an island) and the line that travels with it take its place;
- - the question, when one is attached: a 1pt line, its label, a one-line field of 140;
- - the daily-cap panel (First Class cream) when the day's letters are spent, drawn only while the
-   keyboard and the trays are away: it never takes the editor's height on a small phone (on an
-   SE with the keyboard up it would leave the editor one line), and NONE LEFT TODAY stays on the
-   small line above the toolbar while the writer types;
- - the small line above the toolbar: the count near the ceiling and, for a free writer, "N LEFT
-   TODAY", right-aligned (owner question 6's default);
- - the toolbar: the + (the question and the voice letter behind it, a dot when one rides with
-   the letter), the stamp key (a dashed square with the face that breaks into a pencil) or the
-   chosen stamp's #name pill, and the key on the right (KComposeToolbar);
+ It LOOKS AS THE APP STORE PAGE DID (owner, 2026-10-18: "the composer as it was", the sticker-zine
+ desk of compose.tsx before 10a, which ComposeRN draws too); everything it does is 10a step 5's.
+ From the top, on the theme's page colour, 22 in from the sides unless said:
+ - the top row, 20 in and 8 under the status bar: the ✕ in IBM Plex Mono 17 in its 42 box (the
+   guarded way out: there is no edge swipe), TO A STRANGER in Plex Mono 600 12 at 1.6, centred in
+   what is left, and the stamp corner tilted 8°: a 44 square with corners of 5 in 3 of room,
+   a 1.5 dashed ind edge on lav2 while empty, the stamp's own art once chosen (a tap opens the
+   stamps);
+ - Wren's row, 14 down: Wren bare in a 46 frame (a React Native island drawing her at 38: her
+   skin, her mood, her breathing are hers to draw) and, 10 from her, her line in Fraunces italic
+   14 on 20, sub;
+ - a 1pt line 12 under her, then 8 down the editor: Inter 19 on 30, ink, an ind caret, the spark
+   as the placeholder in the old lavender (#B9B3D8) on the light themes and mute on the dark
+   ones. It is a TextEditor (UITextView), which keeps its own caret in view as a long letter
+   grows, so the caret never slips under the toolbar the way a growing TextField in a ScrollView
+   does. While speaking, the Recorder (an island) and the line that travels with it take its
+   place;
+ - the question, when one is attached: a 1pt line along its top, its label in Plex Mono 9.5 at
+   1.2 in mute, 7 above a one-line field of 140 in the system face at 16.5, padding 22 and 12;
+ - the daily-cap panel when the day's letters are spent: a plain box with a 1pt ink edge, its
+   line in system 600 15, why replies stay free in system 13 sub, the link in Plex Mono 500 11.5
+   at 1 in ind. It is drawn only while the keyboard and the trays are away: it never takes the
+   editor's height on a small phone (on an SE with the keyboard up it would leave the editor one
+   line), and NONE LEFT TODAY stays on the small line above the toolbar while the writer types;
+ - the small line above the toolbar, 24 in: the count near the ceiling and, for a free writer,
+   "N LEFT TODAY", in Plex Mono 11, right-aligned (owner question 6's default);
+ - the toolbar, 18 in, 10 above it and 24 below (10 over a tray): the two round keys, + and the
+   stamp (or the chosen stamp's #name pill), and the wide key that fills toward the floor with
+   the count beside its label (KComposeToolbar);
  - a tray, where the keyboard was (the stamps, or the + tray).
+ The three faces 10a's type (KType) doesn't carry, Plex Mono at 400, Inter and Fraunces italic,
+ are set here by KComposeType; the system face and Plex Mono 500 and 600 by .kText.
 
  THE KEYBOARD. The page sits in a Host that keeps the keyboard's safe area (ignoreSafeArea
  "container"), so the whole stack is shortened by the keyboard and the toolbar, the last thing in
  it, rides the keyboard's top (spike: a dock goes UNDER the content in a VStack, never in
  .safeAreaInset, which iOS 18 counts twice). Whether the keyboard is up is measured as the height
  of a reader that ignores the keyboard less the height of one that respects it (spike pattern 5:
- the safe-area reading said 0 with the keyboard up). Up, the toolbar sits 16 above it; down, it
- keeps clear of the home indicator (bottomInset, which the Host ignores).
+ the safe-area reading said 0 with the keyboard up). Up, the toolbar sits 24 above it; down, 24
+ above the home indicator (bottomInset, which the Host ignores), as the App Store page's sat.
 
  A TRAY TAKES THE KEYBOARD'S PLACE. Opening one blurs first (the tap does it at once; a tray
  that arrives from TS while a field is focused does it too), and the tray is drawn only once the
@@ -40,7 +51,7 @@ import SwiftUI
  Focusing a field closes the tray (onFieldFocus: TS owns which tray is open). Under Reduce
  Motion a tray fades in and out instead of sliding 296pt.
 
- VOICEOVER'S ESCAPE (two-finger Z) closes an open tray first, then asks to leave as the × does
+ VOICEOVER'S ESCAPE (two-finger Z) closes an open tray first, then asks to leave as the ✕ does
  (onClose, guarded by TS). Without it the gesture reached the navigation stack and popped the
  page past the leave guard, losing a recording (which can't be a draft) without a word.
 
@@ -154,18 +165,21 @@ public struct KComposeKey: Equatable, Sendable {
   public var tone: Tone
   /// pressable (ready: it sends; needStamp: it opens the stamps)
   public var enabled: Bool
-  /// the floor line, 0...1; below 0 for none
+  /// the wash rising toward the floor, 0...1; below 0 for none
   public var progress: Double
+  /// the count beside the label while the wash shows ("7/20"); "" for none
+  public var count: String
   /// the chevron leaning toward the stamp key
   public var nudge: Bool
 
-  public init(stage: Stage = .filling, label: String = "", narrowLabel: String = "", tone: Tone = .mute, enabled: Bool = false, progress: Double = -1, nudge: Bool = false) {
+  public init(stage: Stage = .filling, label: String = "", narrowLabel: String = "", tone: Tone = .mute, enabled: Bool = false, progress: Double = -1, count: String = "", nudge: Bool = false) {
     self.stage = stage
     self.label = label
     self.narrowLabel = narrowLabel
     self.tone = tone
     self.enabled = enabled
     self.progress = progress
+    self.count = count
     self.nudge = nudge
   }
 }
@@ -207,7 +221,7 @@ public struct KComposeLive: Equatable, Sendable {
 /// Every word the page shows that isn't live or in a list.
 public struct KComposeStrings: Equatable, Sendable {
   public var title = ""
-  /// "Close": the ×, and the + while its tray is open
+  /// "Close": the ✕, and the + while its tray is open
   public var closeLabel = ""
   /// VoiceOver: the empty stamp slot and the stamp key
   public var stampLabel = ""
@@ -292,7 +306,7 @@ public final class KComposeDriver: ObservableObject {
 
 /// What the page tells its owner. One object for the life of the page; set the closures once.
 public final class KComposeActions {
-  /// the × (TS asks before leaving a page with words)
+  /// the ✕ (TS asks before leaving a page with words)
   public var onClose: () -> Void = {}
   /// the reader's edits in a field (never a setText)
   public var onTextChange: (_ field: KComposeField, _ text: String) -> Void = { _, _ in }
@@ -311,8 +325,8 @@ public final class KComposeActions {
 }
 
 public struct KComposePage<Wren: View, Recorder: View>: View {
-  /// the page's side margin (H:136: padding 60px 18px 0)
-  static var gutter: CGFloat { 18 }
+  /// the page's side margin (compose.tsx: the scroll's paddingHorizontal 22)
+  static var gutter: CGFloat { 22 }
   /// the tray's height above the home indicator (ComposeTray TRAY_H)
   public static var trayHeight: CGFloat { 296 }
 
@@ -337,7 +351,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   ///     keyboard is down, and the tray grows by it
   ///   - driver: the fields' controllers and the live state
   ///   - actions: every tap and edit
-  ///   - wren: Wren, 26 × 26 (an island), set in her circle
+  ///   - wren: Wren, 46 × 46 (an island), set bare beside her line
   ///   - recorder: the Recorder and its preview (an island), placed while speaking
   public init(
     theme: KTheme,
@@ -366,26 +380,27 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   /// the cap panel, only while the keyboard and the trays are away (see the top of the file)
   private var showCap: Bool { content.capPanel && !keyboardUp && !showTray }
 
+  /// compose.tsx: paddingBottom 24 (10 over a tray), inside the safe area
   private var toolbarBottom: CGFloat {
-    if keyboardUp { return 16 }
+    if keyboardUp { return 24 }
     if showTray { return 10 }
-    return max(bottomInset, 8) + 12
+    return bottomInset + 24
   }
 
   public var body: some View {
     VStack(spacing: 0) {
       header
-        .padding(.top, topInset + 6)
-        .padding(.horizontal, Self.gutter)
+        .padding(.top, topInset + 8)
+        .padding(.horizontal, 20)
 
       wrenRow
-        .padding(.top, 18)
+        .padding(.top, 14)
         .padding(.horizontal, Self.gutter)
 
       Rectangle()
         .fill(theme.line)
         .frame(height: 1)
-        .padding(.top, 18)
+        .padding(.top, 12)
         .padding(.horizontal, Self.gutter)
         .accessibilityHidden(true)
 
@@ -397,17 +412,18 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       }
 
       if showCap {
-        KCapPanel(text: content.strings.capText, sub: content.strings.capSub, link: content.strings.capLink, onLink: actions.onCapLink)
+        KCapPanel(theme: theme, text: content.strings.capText, sub: content.strings.capSub, link: content.strings.capLink, onLink: actions.onCapLink)
           .padding(.horizontal, Self.gutter)
-          .padding(.top, 10)
+          .padding(.top, 16)
+          .padding(.bottom, 14)
           .transition(.opacity)
       }
 
       KComposeNoteLine(theme: theme, driver: driver, quota: content.quota)
-        .padding(.horizontal, Self.gutter + 4)
+        .padding(.horizontal, 24)
 
       KComposeToolbar(theme: theme, content: content, driver: driver, actions: actions)
-        .padding(.horizontal, Self.gutter)
+        .padding(.horizontal, 18)
         .padding(.top, 10)
         .padding(.bottom, toolbarBottom)
         .animation(.easeOut(duration: 0.25), value: keyboardUp)
@@ -451,56 +467,58 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
   // ── the top row ──
 
+  /// compose.tsx's row: the ✕ in its 42 box, the title centred in what is left, the stamp
+  /// corner (50 with its room) tilted 8°
   private var header: some View {
-    ZStack {
+    HStack(spacing: 0) {
+      SwiftUI.Button(action: actions.onClose) {
+        Text(verbatim: "✕")
+          .composeText(.close)
+          .foregroundStyle(theme.ink)
+          .frame(width: 42, height: 42)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(KAsIsButtonStyle())
+      .accessibilityLabel(content.strings.closeLabel)
+
       Text(content.strings.title)
-        .kText(.monoWide)
+        .kText(.mono(12, .semibold, tracking: 1.6 / 12))
         .foregroundStyle(theme.ink)
         .lineLimit(1)
+        // the longer languages (A UN EXTRAÑO, AN EINEN FREMDEN) shrink before they would run
+        // under the ✕ or the stamp corner
         .minimumScaleFactor(0.8)
-        // centred on the page, never under the × or the stamp slot (A UN EXTRAÑO, AN EINEN FREMDEN)
-        .padding(.horizontal, 48)
+        .frame(maxWidth: .infinity)
         .accessibilityAddTraits(.isHeader)
-      HStack(spacing: 0) {
-        SwiftUI.Button(action: actions.onClose) {
-          // the system × at 400, 24 (H:136; KTextStyle.close)
-          Text(verbatim: "×")
-            .kText(.close)
-            .foregroundStyle(theme.ink)
-            .frame(width: 44, height: 44, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KFloatPressStyle())
-        .accessibilityLabel(content.strings.closeLabel)
-        Spacer(minLength: 0)
-        SwiftUI.Button {
-          driver.blurAll()
-          actions.onTray(.stamps)
-        } label: {
-          stampSlot
-            .frame(width: 44, height: 44, alignment: .trailing)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KFloatPressStyle())
-        .accessibilityLabel(content.stamp?.accessibilityLabel ?? content.strings.stampLabel)
+
+      SwiftUI.Button {
+        driver.blurAll()
+        actions.onTray(.stamps)
+      } label: {
+        stampCorner
+          .padding(3)
+          .contentShape(Rectangle())
+          .rotationEffect(.degrees(8))
       }
+      .buttonStyle(KAsIsButtonStyle())
+      .accessibilityLabel(content.stamp?.accessibilityLabel ?? content.strings.stampLabel)
     }
-    .frame(height: 44)
     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
 
-  /// the 28pt slot: dashed ind on a 6% wash while empty, the stamp's art once chosen (no tilt)
-  @ViewBuilder private var stampSlot: some View {
+  /// the 44 corner where the stamp goes: dashed ind on lav2 while empty, the stamp's art once chosen
+  @ViewBuilder private var stampCorner: some View {
     if let stamp = content.stamp {
-      KStampArt(id: stamp.id, size: 28, fallbackCorner: 6)
+      KStampArt(id: stamp.id, size: 44, fallbackCorner: 5)
     } else {
-      RoundedRectangle(cornerRadius: 6, style: .circular)
-        .fill(theme.ind.opacity(0.06))
+      RoundedRectangle(cornerRadius: 5, style: .circular)
+        .fill(theme.lav2)
         .overlay {
-          RoundedRectangle(cornerRadius: 6, style: .circular)
-            .strokeBorder(theme.ind, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2.5]))
+          // React Native's dashed border: dashes and gaps of three widths
+          RoundedRectangle(cornerRadius: 5, style: .circular)
+            .strokeBorder(theme.ind, style: StrokeStyle(lineWidth: 1.5, dash: [4.5, 4.5]))
         }
-        .frame(width: 28, height: 28)
+        .frame(width: 44, height: 44)
     }
   }
 
@@ -508,15 +526,16 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
   private var wrenRow: some View {
     HStack(spacing: 10) {
-      ZStack {
-        Circle().fill(theme.soft2)
-        wren
-          .frame(width: 26, height: 26)
-      }
-      .frame(width: 36, height: 36)
-      .accessibilityHidden(true)
+      wren
+        .frame(width: 46, height: 46)
+        .accessibilityHidden(true)
       KComposeWrenLine(theme: theme, driver: driver)
     }
+  }
+
+  /// the placeholders' colour: the old lavender on the light themes, mute on the dark ones
+  private var placeholderColor: Color {
+    theme.isDark ? theme.mute : KComposeType.placeholderLight
   }
 
   // ── the page: the editor, or the recorder and its line ──
@@ -528,36 +547,40 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         theme: theme,
         controller: driver.body,
         placeholder: content.strings.placeholder,
+        placeholderColor: placeholderColor,
         accessibilityLabel: content.strings.editorLabel,
         onChange: { actions.onTextChange(.body, $0) },
         onFocus: { actions.onFieldFocus(.body, $0) }
       )
       // UITextView pads its lines 5 in from each side: the words start at the gutter
       .padding(.horizontal, Self.gutter - KComposeEditor.linePadding)
-      .padding(.top, 10)
+      // compose.tsx: 8 under the line and the field's own 10, less UITextView's 8
+      .padding(.top, 8 + 10 - KComposeEditor.topInset)
     case .speak:
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
           recorder
             .frame(maxWidth: .infinity, alignment: .leading)
           Text(content.strings.voiceNote)
-            .kText(KTextStyle(face: .monoMedium, size: 10, tracking: 0.06, lineHeight: 1.7))
+            .composeText(.voiceNote)
             .foregroundStyle(theme.mute)
             .fixedSize(horizontal: false, vertical: true)
           KField(
-            theme: theme,
             controller: driver.body,
             placeholder: content.strings.captionPlaceholder,
             axis: .vertical,
             lines: 1...4,
             returnSends: false,
+            tint: theme.ind,
+            textColor: theme.ink,
+            placeholderColor: placeholderColor,
             onChange: { actions.onTextChange(.body, $0) },
             onFocus: { actions.onFieldFocus(.body, $0) }
           )
         }
         .padding(.horizontal, Self.gutter)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
+        .padding(.top, 8 + 12)
+        .padding(.bottom, 14)
       }
       .scrollDismissesKeyboard(.interactively)
       .scrollIndicators(.hidden)
@@ -569,25 +592,33 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   private var askField: some View {
     VStack(alignment: .leading, spacing: 7) {
       Text(content.strings.askLabel)
-        .kText(.monoSection)
+        .composeText(.askLabel)
         .foregroundStyle(theme.mute)
         .accessibilityHidden(true)
       KField(
-        theme: theme,
         controller: driver.ask,
         placeholder: content.strings.askPlaceholder,
-        style: .system(16),
+        style: .system(16.5),
         axis: .horizontal,
         lines: nil,
         returnSends: false,
         maxLength: KComposeAsk.maxLength,
+        tint: theme.ind,
+        textColor: theme.ink,
+        placeholderColor: placeholderColor,
         accessibilityLabel: content.strings.askLabel,
         onChange: { actions.onTextChange(.ask, $0) },
         onFocus: { actions.onFieldFocus(.ask, $0) }
       )
+      // compose.tsx: paddingVertical 4; SwiftUI's one-line field stands 1.7 taller over its
+      // words than React Native's, so less above keeps them where they were (measured)
+      .padding(.top, 4 - 1.7)
+      .padding(.bottom, 4)
     }
-    .padding(.horizontal, Self.gutter + 4)
-    .padding(.vertical, 12)
+    .padding(.horizontal, Self.gutter)
+    // padding 12 under its 1pt top border, which React Native adds to the box
+    .padding(.top, 12 + 1)
+    .padding(.bottom, 12)
     .frame(maxWidth: .infinity, alignment: .leading)
     .overlay(alignment: .top) {
       Rectangle().fill(theme.line).frame(height: 1)
@@ -627,6 +658,111 @@ enum KComposeAsk {
   static let maxLength = 140
 }
 
+/*
+ THE APP STORE PAGE'S TYPE (src/theme/post PF; owner, 2026-10-18). Three of its faces aren't
+ among 10a's (KType): IBM Plex Mono at 400 (the ✕, the small mono lines, the count beside the
+ key's label), Inter (where you write: PF.writing) and Fraunces italic (Wren's line:
+ PF.serifItalic); and it sets Plex Mono 500 at 11.5 (the pill, the cap panel's link). All are
+ embedded in the app by PostScript name (assets/fonts, app.json expo-font, UIAppFonts) and found
+ by that name, so Fraunces-Italic comes out italic without asking for the trait (React Native
+ picks a face by family and style, so it needs fontStyle "italic" as well). They are set at a
+ fixed size scaled by the text style's Dynamic Type factor, not by Font.custom(_:size:relativeTo:),
+ which rounds a fractional size up to the whole point (9.5, 10.5 and 11.5 came out 10, 11 and
+ 12, 4% wide); the factor is read as @ScaledMetric's 100, since a size read straight from it is
+ rounded to the pixel (9.5 came out 9.67).
+ CJK falls through to the system face, as it does in React Native.
+ Sizes, letter spacing and line heights are compose.tsx's, in points, and scale with Dynamic
+ Type as React Native's text does: the line height as KTextModifier does it, the room React
+ Native adds over the face's own line (hhea: Plex Mono 1.3, Inter 1.21, Fraunces 1.233) between
+ the lines and half of it above and below, as its Text centres a line in its height; except
+ where you write, where React Native's TextInput puts all of it above each line (leadingAbove),
+ so the first line sits as low as it did.
+ */
+struct KComposeType: Equatable {
+  enum Face: String {
+    case mono = "IBMPlexMono-Regular"
+    case monoMedium = "IBMPlexMono-Medium"
+    case writing = "Inter-Regular"
+    case wren = "Fraunces-Italic"
+
+    /// the face's own line height, a multiple of its size (hhea ascender + descender)
+    var natural: CGFloat {
+      switch self {
+      case .mono, .monoMedium: return 1.3
+      case .writing: return 1.21
+      case .wren: return 1.233
+      }
+    }
+  }
+
+  let face: Face
+  let size: CGFloat
+  /// letter spacing in points (React Native's letterSpacing)
+  var tracking: CGFloat = 0
+  /// line height in points (React Native's lineHeight); nil for the face's own
+  var lineHeight: CGFloat?
+  /// the extra line height goes above the first line, as React Native's TextInput sets it
+  /// (its Text centres the line instead)
+  var leadingAbove = false
+
+  /// the text style its Dynamic Type scaling follows
+  var textStyle: Font.TextStyle { KType.textStyle(near: size) }
+
+  /// the ✕
+  static let close = KComposeType(face: .mono, size: 17)
+  /// Wren's line
+  static let wrenLine = KComposeType(face: .wren, size: 14, lineHeight: 20)
+  /// the letter as it is written
+  static let writing = KComposeType(face: .writing, size: 19, lineHeight: 30, leadingAbove: true)
+  /// the note under the Recorder
+  static let voiceNote = KComposeType(face: .mono, size: 10, tracking: 0.6, lineHeight: 17)
+  /// the question's label
+  static let askLabel = KComposeType(face: .mono, size: 9.5, tracking: 1.2)
+  /// the count near the ceiling, the letters left today
+  static let countLine = KComposeType(face: .mono, size: 11, tracking: 0.4)
+  static let quotaLine = KComposeType(face: .mono, size: 11, tracking: 0.6)
+  /// the count beside the key's label ("7/20")
+  static let keyCount = KComposeType(face: .mono, size: 10.5, tracking: 0.6)
+  /// the chosen stamp's #name in its pill
+  static let pillName = KComposeType(face: .monoMedium, size: 11.5, tracking: 0.2)
+  /// the cap panel's link to First Class
+  static let capLink = KComposeType(face: .monoMedium, size: 11.5, tracking: 1)
+
+  /// the placeholders' lavender on the light themes (compose.tsx; the dark themes use mute)
+  static let placeholderLight = Color(hex: "#B9B3D8")
+}
+
+/// Sets a KComposeType: the face, its letter spacing and its line height, scaled with Dynamic Type.
+struct KComposeTypeModifier: ViewModifier {
+  let type: KComposeType
+  /// 100 at the reader's Dynamic Type setting: the text style's factor, in percent
+  @ScaledMetric private var percent: CGFloat
+
+  init(_ type: KComposeType) {
+    self.type = type
+    _percent = ScaledMetric(wrappedValue: 100, relativeTo: type.textStyle)
+  }
+
+  func body(content: Content) -> some View {
+    let scale = percent / 100
+    let size = type.size * scale
+    let leading = type.lineHeight.map { max(0, $0 * scale - type.face.natural * size) } ?? 0
+    return content
+      .font(.custom(type.face.rawValue, fixedSize: size))
+      .tracking(type.tracking * scale)
+      .lineSpacing(leading)
+      .padding(.top, type.leadingAbove ? leading : leading / 2)
+      .padding(.bottom, type.leadingAbove ? 0 : leading / 2)
+  }
+}
+
+extension View {
+  /// Sets text in one of the App Store page's faces: Text("✕").composeText(.close).
+  func composeText(_ type: KComposeType) -> some View {
+    modifier(KComposeTypeModifier(type))
+  }
+}
+
 /// Wren's line, watching the live state. Never cut short: her once-per-language hello runs to
 /// about 150 characters in French and about 70 full-width ones in Japanese and Korean, more than
 /// three lines in this column; the editor below takes whatever room is left. The row stops
@@ -637,7 +773,7 @@ private struct KComposeWrenLine: View {
 
   var body: some View {
     Text(driver.live.wrenLine)
-      .kText(.letterAside)
+      .composeText(.wrenLine)
       .foregroundStyle(theme.sub)
       .fixedSize(horizontal: false, vertical: true)
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -646,7 +782,7 @@ private struct KComposeWrenLine: View {
 }
 
 /// The small line above the toolbar: the count near the ceiling, and the free writer's letters
-/// left today, right-aligned. Nothing at all when neither shows.
+/// left today, right-aligned in Plex Mono 11. Nothing at all when neither shows.
 private struct KComposeNoteLine: View {
   let theme: KTheme
   @ObservedObject var driver: KComposeDriver
@@ -659,19 +795,20 @@ private struct KComposeNoteLine: View {
         Spacer(minLength: 0)
         if !count.text.isEmpty {
           Text(count.text)
-            .kText(.mono(11, .medium, tracking: 0.04))
+            .composeText(.countLine)
             .foregroundStyle(color(count.tone))
             .lineLimit(1)
         }
         if !quota.isEmpty {
           Text(quota)
-            .kText(.mono(11, .semibold, tracking: 0.08))
+            .composeText(.quotaLine)
             .foregroundStyle(theme.mute)
             .lineLimit(1)
         }
       }
       .minimumScaleFactor(0.8)
-      .padding(.top, 8)
+      // compose.tsx: marginBottom -2, so the toolbar's 10 reads as 8 under it
+      .padding(.bottom, -2)
       .dynamicTypeSize(...DynamicTypeSize.accessibility1)
       .accessibilityElement(children: .combine)
     }

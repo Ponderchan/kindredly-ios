@@ -25,10 +25,14 @@ import ExpoUI
  - left, leftA11y: NEXT's number and what VoiceOver says for it
  - cards: the letters not passed yet, the one on screen first (KTodayCardRecord), converted once per rev
  - titleLocked: the plate stays small (a letter passed today, or the day done)
- - freshUnfold, arrivalLine: her first arrival (the first card unfolds; her line over the wire)
+ - freshUnfold, arrivalLine: her first arrival (the first card unfolds; her line over her head)
  - wrenLetter: her counted note in done; window: the window to her game, its sky by the hour
  - birds: her five pictures { idle, curious, delight, sleepy, fly, flyIsPerch } (an empty uri = none)
- - night: her yawn hours; plus: closed | sheet | pop (anything else is closed); hideBand
+ - night: her yawn hours; plus: closed | sheet | pop (anything else is closed); hideBand (NEXT and
+   REPLY step aside: a send in flight, or the reader open)
+ - wren: Wren on the band { rest: idle | sleepy (anything else is idle), carry (moves as each reply
+   leaves: she takes the letter and comes back), reader (the reader is open), a11y, name }. Her
+   hop's haptic is SwiftUI's sensoryFeedback in Portable (KWireWren), so nothing here for it
 
  Commands (KCommandBus):
  - setText { target: "reply", value }   seed the reply field (the bound letter's draft)
@@ -249,6 +253,27 @@ struct KTodayWindowRecord: Record {
   }
 }
 
+/// Wren on the band (useTodayDesk view.wren): her resting face, the reply she carries off, the
+/// reader being open, her VoiceOver words.
+struct KTodayWrenRecord: Record {
+  /// idle | sleepy
+  @Field var rest: String = "idle"
+  @Field var carry: Int = 0
+  @Field var reader: Bool = false
+  @Field var a11y: String = ""
+  @Field var name: String = ""
+
+  var wren: KTodayWren {
+    var w = KTodayWren()
+    w.rest = rest == KWrenFace.sleepy.rawValue ? .sleepy : .idle
+    w.carry = carry
+    w.reader = reader
+    w.a11y = a11y
+    w.name = name
+    return w
+  }
+}
+
 /// Her five pictures (today-birds useTodayBirds); an empty uri is a picture not captured yet.
 struct KTodayBirdsRecord: Record {
   @Field var idle: KImageRefRecord = KImageRefRecord()
@@ -285,6 +310,7 @@ final class KTodayViewProps: KScreenProps {
   @Field var night: Bool = false
   @Field var plus: String = "closed"
   @Field var hideBand: Bool = false
+  @Field var wren: KTodayWrenRecord = KTodayWrenRecord()
 
   var onTodayPass = EventDispatcher()
   var onTodayBringBack = EventDispatcher()
@@ -371,6 +397,7 @@ struct KTodayView: ExpoSwiftUI.View {
     content.night = props.night
     content.plus = KTodayPlus(rawValue: props.plus) ?? .closed
     content.hideBand = props.hideBand
+    content.wren = props.wren.wren
     return KTodayDesk(
       theme: props.kTheme,
       content: content,

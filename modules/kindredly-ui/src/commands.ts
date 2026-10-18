@@ -28,6 +28,18 @@ import type { KCommandMap, KScreenHandle, KStandardCommands } from "./types";
    (expo-modules-core NativeViewManagerAdapter.native.tsx:149-151), so the queue can go out from
    the ref callback itself. The Swift side then keeps each command until its SwiftUI view
    listens. Between the two, nothing sent early is lost and the order holds.
+
+   THE NATIVE VIEW CAN STILL BE ON ITS WAY. Under Fabric the JS commit (and so the ref callback)
+   can run before the main thread has mounted the view; expo then finds no view for the tag and
+   the call rejects with SwiftUIViewNotFound ("Unable to find the 'K…View' view with tag 'N'",
+   expo-modules-core DynamicSwiftUIViewType.swift). Every command a fresh page sent at attach was
+   lost that way (2026-10-18: a new compose page came up with no Wren line, no key label, no
+   caret and no draft until the first keystroke; Today's attach commands too). So a view that
+   hasn't answered yet gets the queue ONE COMMAND AT A TIME: each waits for the one before, a
+   not-found waits a frame (ATTACH_RETRY_MS) and tries the same command again, up to
+   ATTACH_RETRIES, and the first command that lands marks the view as there. From then on every
+   command goes out at once, as before, so typing never waits on a round trip. Commands sent
+   meanwhile queue behind, in order.
    A view handed the bare RefObject still gets its queue, but only after the owner's next commit.
    Under NativeSurface that may come late, with a stale setText landing on what was typed since.
 
@@ -39,6 +51,21 @@ import type { KCommandMap, KScreenHandle, KStandardCommands } from "./types";
 
 /** How many commands wait for a view that doesn't exist yet; the oldest go first past this. */
 export const COMMAND_QUEUE_LIMIT = 100;
+
+/** How long a command waits before trying a view that wasn't mounted yet again (about two frames). */
+export const ATTACH_RETRY_MS = 32;
+/** How many times it tries (about two seconds); then the view isn't coming, and the queue goes. */
+export const ATTACH_RETRIES = 60;
+
+/** expo's answer for a view whose tag isn't mounted on the main thread yet. */
+export function isViewNotFound(e: unknown): boolean {
+  const o = (e ?? {}) as { message?: unknown; code?: unknown };
+  const text = `${String(o.code ?? "")} ${String(o.message ?? e)}`;
+  return /view with tag|ViewNotFound|VIEW_NOT_FOUND/i.test(text);
+}
+
+/** How the queue retries; the test passes its own. */
+export type KQueueTiming = { retryMs?: number; retries?: number; schedule?: (fn: () => void, ms: number) => void };
 
 export type KQueuedCommand = { name: string; args: Record<string, unknown> };
 
@@ -76,28 +103,102 @@ function deliver(target: KScreenHandle, command: KQueuedCommand) {
   }
 }
 
-export function createCommandQueue(limit = COMMAND_QUEUE_LIMIT): KCommandQueue {
+/** One try at one command, for a view not heard from yet: "ok" (it landed), "notFound" (the view
+    isn't mounted yet: try again), or "failed" (logged and dropped). `reached`: a view answered, so
+    it is mounted. */
+function attempt(target: KScreenHandle, command: KQueuedCommand, done: (outcome: "ok" | "notFound" | "failed", reached: boolean) => void) {
+  if (typeof target.command !== "function") {
+    console.warn(`[kindredly-ui] this view has no command(); dropped "${command.name}"`);
+    done("failed", false);
+    return;
+  }
+  let call: Promise<unknown>;
+  try {
+    // as a method: expo finds the native view from `this`
+    call = target.command(command.name, command.args);
+  } catch (e) {
+    console.warn(`[kindredly-ui] command "${command.name}" threw:`, e);
+    done("failed", false);
+    return;
+  }
+  Promise.resolve(call).then(
+    () => done("ok", true),
+    (e: unknown) => {
+      if (isViewNotFound(e)) return done("notFound", false);
+      console.warn(`[kindredly-ui] command "${command.name}" failed:`, e);
+      done("failed", true);
+    },
+  );
+}
+
+export function createCommandQueue(limit = COMMAND_QUEUE_LIMIT, timing: KQueueTiming = {}): KCommandQueue {
+  const retryMs = timing.retryMs ?? ATTACH_RETRY_MS;
+  const retries = timing.retries ?? ATTACH_RETRIES;
+  const schedule = timing.schedule ?? ((fn: () => void, ms: number) => void setTimeout(fn, ms));
   let queue: KQueuedCommand[] = [];
+  // the last view handed in (null: none right now); a retry goes to whichever view is current
+  let latest: KScreenHandle | null = null;
+  // a view that has answered a command: it is mounted, so commands go to it at once
+  let confirmed: KScreenHandle | null = null;
+  // one command is out to a view not heard from yet, or waiting to try it again
+  let busy = false;
+  let tries = 0;
+
+  const drain = () => {
+    const target = latest;
+    if (busy || !target || queue.length === 0) return;
+    if (target === confirmed) {
+      const pending = queue;
+      queue = [];
+      for (const command of pending) deliver(target, command);
+      return;
+    }
+    // a view not heard from yet: one at a time, the head staying queued until it lands
+    busy = true;
+    const head = queue[0];
+    attempt(target, head, (outcome, reached) => {
+      if (reached) confirmed = target;
+      if (outcome === "notFound" && tries < retries) {
+        tries++;
+        schedule(() => {
+          busy = false;
+          drain();
+        }, retryMs);
+        return;
+      }
+      busy = false;
+      tries = 0;
+      if (outcome === "notFound") {
+        // the view never came: what waited for it goes, said once
+        console.warn(`[kindredly-ui] the view never mounted; dropped ${queue.length} command(s) from "${head.name}"`);
+        queue = [];
+        return;
+      }
+      if (queue[0] === head) queue.shift();
+      drain();
+    });
+  };
+
   const flush = (target: KScreenHandle | null | undefined) => {
-    if (!target || queue.length === 0) return;
-    const pending = queue;
-    queue = [];
-    for (const command of pending) deliver(target, command);
+    latest = target ?? null;
+    drain();
   };
   return {
     send(target, name, args) {
       const command = { name, args };
-      if (target && queue.length === 0) {
+      latest = target ?? null;
+      if (target && target === confirmed && queue.length === 0 && !busy) {
         deliver(target, command);
         return;
       }
       queue.push(command);
       if (queue.length > limit) queue.splice(0, queue.length - limit);
-      flush(target);
+      drain();
     },
     flush,
     clear() {
       queue = [];
+      tries = 0;
     },
     get size() {
       return queue.length;

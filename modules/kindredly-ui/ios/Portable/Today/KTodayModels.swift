@@ -182,6 +182,22 @@ public struct KTodayBirds: Equatable, Sendable {
   public init() {}
 }
 
+/// Wren on the band, as TS decides it (useTodayDesk view.wren); KWireWren draws her reactions.
+public struct KTodayWren: Equatable, Sendable {
+  /// the face she rests in: .sleepy in her night hours (21:00–07:59, the reader's clock), else .idle
+  public var rest: KWrenFace = .idle
+  /// moves each time a reply leaves the phone: she takes the letter off the band and comes back
+  public var carry = 0
+  /// the unfolded reader is open: she steps aside, and straightens up when it closes
+  public var reader = false
+  /// VoiceOver's name for her ("Your courier")
+  public var a11y = ""
+  /// her name, VoiceOver's value
+  public var name = ""
+
+  public init() {}
+}
+
 /// Everything the desk shows, from TS.
 public struct KTodayContent: Equatable, Sendable {
   /// "TODAY"
@@ -197,7 +213,7 @@ public struct KTodayContent: Equatable, Sendable {
   public var titleLocked = false
   /// the first card unfolds as it arrives (her first arrival)
   public var freshUnfold = false
-  /// her first-arrival line over the wire, "" for none
+  /// her first-arrival line over her head, "" for none
   public var arrivalLine = ""
   public var wrenLetter = KWrenLetterModel()
   public var window = KFlightWindowModel()
@@ -206,8 +222,10 @@ public struct KTodayContent: Equatable, Sendable {
   public var night = false
   /// the + panel over the tab
   public var plus: KTodayPlus = .closed
-  /// the band and Wren step aside: a send in flight, or the reader open
+  /// NEXT and REPLY step aside: a send in flight, or the reader open (Wren only for the reader:
+  /// a reply in the air is hers to carry, wren.carry)
   public var hideBand = false
+  public var wren = KTodayWren()
   public var labels = KTodayLabels()
 
   public init() {}
@@ -239,7 +257,7 @@ public final class KTodayDock: ObservableObject {
   public let reply = KFieldController()
   @Published public private(set) var composer = KTodayComposer()
   @Published public private(set) var focused = false
-  /// a send was pressed and TS hasn't answered it yet: the dock stays hidden (the fly-by is TS's)
+  /// a send was pressed and TS hasn't answered it yet: the dock stays hidden (Wren carries it: KWireWren)
   @Published private(set) var awaitingSend = false
   /// focused with no software keyboard (a hardware one): the strip sits on the band's line instead
   @Published private(set) var hardwareKeyboard = false
@@ -342,6 +360,8 @@ public struct KDeckBeat: Equatable, Sendable {
     case broughtBack
     case replyOpened
     case keyboardDown
+    /// the shown letter's UNFOLD (or its VoiceOver action): the reader is about to open
+    case unfolded
   }
 
   public let kind: Kind
@@ -352,6 +372,8 @@ public struct KDeckBeat: Equatable, Sendable {
 public final class KDeckMotion: ObservableObject {
   /// clamp(−dy/110, 0, 1); back to 0 with KTodayMotion.springBack
   @Published public internal(set) var progress: CGFloat = 0
+  /// the card pulled down instead (the damped drag): clamp(dy/110, 0, 1); Wren leans back from it
+  @Published public internal(set) var pull: CGFloat = 0
   @Published public internal(set) var dragging = false
   public init() {}
 }
@@ -388,8 +410,11 @@ enum KTodayMotion {
   static let leanBack = Animation.easeOut(duration: 0.25)
   static let bandSlide = Animation.easeInOut(duration: 0.35)
   static let bandFade = Animation.easeOut(duration: 0.30)
-  static let arcDraw = Animation.timingCurve(0.4, 0, 0.3, 1, duration: 0.60)
   static let flight = Animation.timingCurve(0.4, 0, 0.3, 1, duration: 0.55)
+  /// Wren taking a reply off the band: up and out of sight, speeding up
+  static let takeOff = Animation.timingCurve(0.45, 0, 0.8, 0.6, duration: 0.90)
+  /// and back onto her spot, slowing to land
+  static let landing = Animation.timingCurve(0.2, 0.6, 0.35, 1, duration: 0.70)
   static let windowIn = Animation.easeOut(duration: 0.45)
   static let stepBack = Animation.timingCurve(0.3, 1, 0.3, 1, duration: 0.40)
   static let reduced = Animation.easeInOut(duration: 0.20)
