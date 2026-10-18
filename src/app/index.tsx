@@ -5,7 +5,7 @@ import { LaunchAnimation } from "../components/LaunchAnimation";
 
 /* Entry gate. The native splash covers the font load; the launch piece
    covers the session check — the egg, the hatch, the flight, the mark —
-   on the same lavender the splash shows, so nothing flashes (a night
+   on the same Post Blue the splash shows, so nothing flashes (a night
    launch for Midnight is drafted, not decided — components/LaunchAnimation).
    It plays once per cold start and holds on the wordmark until the
    session is known; only then, and only after the mark has landed, does
@@ -18,7 +18,7 @@ export default function Index() {
   const onDone = useCallback(() => setDone(true), []);
   /* the launch stays on screen, on its last frame, while the next screen
      fades in over it — a Redirect here unmounted it first and left a frame
-     of bare lavender before the page arrived.
+     of bare ground before the page arrived.
      isGuest, not !session: with anonymous auth a guest HAS a session, and
      `!session` here would have waved them straight past onboarding into an
      app they had never set up. */

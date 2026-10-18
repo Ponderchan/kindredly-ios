@@ -32,7 +32,22 @@ export type AuthResult =
   /* mode says which verify path the emailed code belongs to: "otp" for a
      plain sign-in, "attach" when an anonymous account is claiming an email —
      Supabase files those under different OTP types. */
-  | { sent: true; mode?: "otp" | "attach" };
+  | { sent: true; mode?: "otp" | "attach" }
+  /* THE ADDRESS IS ALREADY SOMEONE'S ACCOUNT (the new onboarding's screen 11,
+     storyboard §6). A guest linking Apple / Google / an email that already
+     owns a Kindredly account can't be linked onto the guest's user id; only
+     a caller that asked for it (`{ onExists: "ask" }`) gets this answer, and
+     then asks "That's already an account. Switch to it?" — switchAccount()
+     is the yes. Every other caller keeps the behaviour it always had. */
+  | { exists: true; provider: AuthProvider };
+
+/** The three ways to give replies an address. */
+export type AuthProvider = "apple" | "google" | "email";
+
+/** What a sign-in does when the identity already belongs to another account
+    (only a guest linking can hit it): "ask" returns { exists } for the caller
+    to ask about; left out, each provider does what it always did. */
+export type LinkOpts = { onExists?: "ask" };
 
 interface AuthValue {
   ready: boolean; // initial session check complete
@@ -51,10 +66,14 @@ interface AuthValue {
   isGuest: boolean;
   appleAvailable: boolean;
   signInAnonymously: () => Promise<AuthResult>;
-  signInWithApple: () => Promise<AuthResult>;
-  signInWithGoogle: () => Promise<AuthResult>;
-  signInWithEmail: (email: string, name?: string) => Promise<AuthResult>;
+  signInWithApple: (opts?: LinkOpts) => Promise<AuthResult>;
+  signInWithGoogle: (opts?: LinkOpts) => Promise<AuthResult>;
+  signInWithEmail: (email: string, name?: string, opts?: LinkOpts) => Promise<AuthResult>;
   verifyEmailCode: (email: string, token: string, mode: "otp" | "attach") => Promise<AuthResult>;
+  /** "Switch to it?" → yes: sign in to the account that already owns this
+      identity, leaving the guest's anonymous user behind (nothing of it was
+      posted). Email answers { sent, mode: "otp" }; verifyEmailCode finishes it. */
+  switchAccount: (provider: AuthProvider, email?: string) => Promise<AuthResult>;
   saveProfile: (p: Record<string, any>) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<AuthResult>;
@@ -101,6 +120,51 @@ function exchangeOnce(code: string): Promise<{ error: string | null }> {
 
 const LOCAL_PROFILE_KEY = "kindredly_profile_local";
 
+/* "THAT'S ALREADY AN ACCOUNT." How Supabase says a link can't happen because
+   the identity or the email belongs to another user: an error code on a
+   thrown/returned AuthError (identity_already_exists for Apple's id token and
+   Google's link, email_exists for updateUser's email), or, on Google's link,
+   the same code in the redirect's query or fragment. The message is the
+   fallback for an older server that sends no code. */
+const EXISTS_CODES = new Set(["identity_already_exists", "email_exists", "user_already_exists"]);
+function alreadyAnAccount(e: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!e) return false;
+  if (e.code && EXISTS_CODES.has(e.code)) return true;
+  return /already (been )?(registered|linked|exists)|identity is already linked/i.test(e.message ?? "");
+}
+
+/** The parameters of an OAuth redirect, from its query AND its fragment (errors can come in either). */
+function callbackParams(url: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    const q = Linking.parse(url).queryParams ?? {};
+    for (const [k, v] of Object.entries(q)) if (typeof v === "string") out[k] = v;
+  } catch {
+    /* a malformed URL has no parameters */
+  }
+  const hash = url.indexOf("#");
+  if (hash >= 0) {
+    for (const part of url.slice(hash + 1).split("&")) {
+      const [k, v = ""] = part.split("=");
+      if (k && !(k in out)) {
+        try {
+          out[k] = decodeURIComponent(v.replace(/\+/g, " "));
+        } catch {
+          out[k] = v;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/* The last Apple identity token, for "Switch to it?" right after a link that
+   found the Apple ID already had an account: signing in with the same token
+   spares a second Apple sheet. Apple's tokens live ten minutes; five is the
+   margin. In memory only. */
+let lastAppleToken: { token: string; at: number } | null = null;
+const APPLE_TOKEN_REUSE_MS = 5 * 60_000;
+
 /* THE PHONE'S OWN SETTINGS OUTLIVE AN ACCOUNT. Deleting the account scrubs its keys and the
    legacy bare ones — but these bare keys are the phone's, not anyone's account's: the theme, the
    Letter font, the language, the remote switch's table and its crash breadcrumb. Scrubbed, the
@@ -112,6 +176,7 @@ const DEVICE_PREFS: ReadonlySet<string> = new Set([
   "kindredly_lang", // lib/i18n
   "kindredly_surfaces", // lib/surfaces: the remote switch's table
   "kindredly_native_arming", // lib/surfaces: the crash breadcrumb (the binary's, not the account's)
+  "kindredly_ob2_minor", // screens/onboarding/device-block: the under-18 answer is the phone's, and outlives any account
 ]);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -144,7 +209,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ...((user?.user_metadata as Record<string, any>) || {}),
     ...localProfile,
   } as Record<string, any>;
-  const handle: string = profile.handle || profile.full_name || profile.name || "";
+  /* THE PEN NAME IS ONLY EVER THE PEN NAME. It used to fall back to user_metadata.full_name /
+     name, which Apple and Google fill with the person's legal name: anyone who never typed a pen
+     name (the new onboarding no longer asks for one; it is chosen at the first trade) would have
+     shown it on Me and SENT it to a pen pal when trading names (identity plan, mismatch 2). With
+     no pen name it is "": Me says "You", and signing asks for one first (useLettersModel). */
+  const handle: string = profile.handle || "";
   const onboarded = !!profile.onboarded;
   // no session at all, or one that belongs to nobody yet
   const isGuest = !session || user?.is_anonymous === true;
@@ -273,7 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signInWithApple = useCallback(async (): Promise<AuthResult> => {
+  const signInWithApple = useCallback(async (opts?: LinkOpts): Promise<AuthResult> => {
     if (!supabase) return { error: "Auth not configured." };
     try {
       const cred = await AppleAuthentication.signInAsync({
@@ -284,6 +354,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (!cred.identityToken)
         return { error: t("auth.err.apple") };
+      lastAppleToken = { token: cred.identityToken, at: Date.now() };
       /* UPGRADING A GHOST KEEPS THE GHOST'S ROW. For an anonymous session
          this LINKS the Apple identity onto the same user id — the letters,
          threads and fingerprint written while just looking stay theirs.
@@ -294,6 +365,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = anon
         ? await supabase.auth.linkIdentity({ provider: "apple", token: cred.identityToken })
         : await supabase.auth.signInWithIdToken({ provider: "apple", token: cred.identityToken });
+      /* the Apple ID already has its own account: the caller that asked
+         (onboarding's screen 11) asks "Switch to it?"; everyone else sees
+         the error, as before */
+      if (error && anon && opts?.onExists === "ask" && alreadyAnAccount(error)) return { exists: true, provider: "apple" };
       if (error) return { error: error.message };
       if (anon) await refresh();
       // Apple only returns the name on the FIRST authorization — capture it.
@@ -315,34 +390,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refresh]);
 
-  const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
+  /* GOOGLE IN THE BROWSER: open Supabase's authorize URL, come back on the
+     app's redirect, exchange the code (once — exchangeOnce). An error on the
+     way back (the redirect's error / error_code) comes back as { error, code }
+     so the caller can tell "already an account" from a real failure. */
+  const googleRoundTrip = useCallback(async (url: string): Promise<AuthResult | { error: string; code: string }> => {
+    const res = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+    if (res.type === "cancel" || res.type === "dismiss") return { cancelled: true };
+    if (res.type === "success" && res.url) {
+      const q = callbackParams(res.url);
+      if (q.error || q.error_code) return { error: q.error_description || q.error || t("auth.err.google"), code: q.error_code || q.error || "" };
+      if (q.code) {
+        const { error: e2 } = await exchangeOnce(q.code);
+        if (e2) return { error: e2 };
+        return { ok: true };
+      }
+    }
+    return { error: t("auth.err.google") };
+  }, []);
+
+  /* a plain Google sign-in: the account that owns this Google identity (made
+     on the spot if there is none) */
+  const googleSignIn = useCallback(async (): Promise<AuthResult> => {
+    if (!supabase) return { error: "Auth not configured." };
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error || !data?.url) return { error: error?.message || "Could not start Google sign-in." };
+    const r = await googleRoundTrip(data.url);
+    return "code" in r ? { error: r.error } : r;
+  }, [googleRoundTrip]);
+
+  /* UPGRADING A GHOST WITH GOOGLE KEEPS THE GHOST'S ROW, as Apple already
+     did. A guest who tapped Google used to run a fresh OAuth sign-in: a new
+     account, and the guest's letter, threads and bird orphaned on the old
+     anonymous user (storyboard §13.3, found 2026-10-18). For an anonymous
+     session this now LINKS the Google identity onto the same user id
+     (linkIdentity: the browser round trip, the code exchanged for the same
+     user, no longer anonymous), and the adopt effect above moves the
+     guest's bucket as it does for Apple. Needs "Allow manual linking" ON in
+     Supabase, which Apple's link already relies on.
+
+     When that Google identity already has its own account the link can't
+     happen: a caller that asked (`onExists: "ask"`, onboarding's screen 11)
+     gets { exists } and asks "Switch to it?"; every other caller gets what
+     a guest always got here — signed in to that account. */
+  const signInWithGoogle = useCallback(async (opts?: LinkOpts): Promise<AuthResult> => {
     if (!supabase) return { error: "Auth not configured." };
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const anon = (await supabase.auth.getUser()).data.user?.is_anonymous === true;
+      if (!anon) return await googleSignIn();
+      const { data, error } = await supabase.auth.linkIdentity({
         provider: "google",
         options: { redirectTo, skipBrowserRedirect: true },
       });
-      if (error || !data?.url)
-        return { error: error?.message || "Could not start Google sign-in." };
-      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      if (res.type === "cancel" || res.type === "dismiss")
-        return { cancelled: true };
-      if (res.type === "success" && res.url) {
-        const code = (Linking.parse(res.url).queryParams?.code as string) || "";
-        if (code) {
-          const { error: e2 } = await exchangeOnce(code);
-          if (e2) return { error: e2 };
-          return { ok: true };
-        }
+      if (error && alreadyAnAccount(error)) return opts?.onExists === "ask" ? { exists: true, provider: "google" } : await googleSignIn();
+      if (error || !data?.url) return { error: error?.message || "Could not start Google sign-in." };
+      const r = await googleRoundTrip(data.url);
+      if ("code" in r) {
+        if (!alreadyAnAccount({ code: r.code, message: r.error })) return { error: r.error };
+        return opts?.onExists === "ask" ? { exists: true, provider: "google" } : await googleSignIn();
       }
-      return { error: t("auth.err.google") };
+      if ("ok" in r) await refresh();
+      return r;
     } catch (e: any) {
       return { error: e?.message || "Google sign-in failed." };
     }
-  }, []);
+  }, [googleRoundTrip, googleSignIn, refresh]);
 
   const signInWithEmail = useCallback(
-    async (email: string, name?: string): Promise<AuthResult> => {
+    async (email: string, name?: string, opts?: LinkOpts): Promise<AuthResult> => {
       if (!supabase) return { error: "Auth not configured." };
       try {
         /* Same principle as Apple: an anonymous user doesn't sign in with
@@ -356,6 +474,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             { email, data: name ? { full_name: name } : undefined },
             { emailRedirectTo: redirectTo },
           );
+          /* the email is already another account's: onboarding's screen 11
+             asks "Switch to it?"; everyone else sees the error, as before */
+          if (error && opts?.onExists === "ask" && alreadyAnAccount(error)) return { exists: true, provider: "email" };
           if (error) return { error: error.message };
           return { sent: true, mode: "attach" };
         }
@@ -395,6 +516,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [refresh],
+  );
+
+  /* "THAT'S ALREADY AN ACCOUNT. SWITCH TO IT?" → yes (storyboard §6, screen
+     11's edge). A plain sign-in to the account that owns the identity: the
+     new session simply replaces the anonymous one (no sign-out first, so a
+     cancelled sheet leaves the guest exactly where they were). The guest's
+     anonymous user stays behind with nothing posted; an account that never
+     finished onboarding adopts the guest's bucket (the adopt effect), one
+     that did keeps its own bird. Apple reuses the token the failed link just
+     got, while it is fresh, so the person isn't shown the Apple sheet twice. */
+  const switchAccount = useCallback(
+    async (provider: AuthProvider, email?: string): Promise<AuthResult> => {
+      if (!supabase) return { error: "Auth not configured." };
+      try {
+        if (provider === "google") return await googleSignIn();
+        if (provider === "email") {
+          if (!email) return { error: t("ob.email.bad") };
+          const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo, shouldCreateUser: false } });
+          if (error) return { error: error.message };
+          return { sent: true, mode: "otp" };
+        }
+        let token = lastAppleToken && Date.now() - lastAppleToken.at < APPLE_TOKEN_REUSE_MS ? lastAppleToken.token : null;
+        if (!token) {
+          const cred = await AppleAuthentication.signInAsync({ requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL] });
+          if (!cred.identityToken) return { error: t("auth.err.apple") };
+          token = cred.identityToken;
+          lastAppleToken = { token, at: Date.now() };
+        }
+        const { error } = await supabase.auth.signInWithIdToken({ provider: "apple", token });
+        if (error) return { error: error.message };
+        lastAppleToken = null;
+        await refresh();
+        return { ok: true };
+      } catch (e: any) {
+        if (e?.code === "ERR_REQUEST_CANCELED") return { cancelled: true };
+        return { error: e?.message || "Sign-in failed." };
+      }
+    },
+    [googleSignIn, refresh],
   );
 
   /* SAVING THE PROFILE. Local first — edits stick immediately, with or without a session —
@@ -536,6 +696,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signInWithEmail,
     verifyEmailCode,
+    switchAccount,
     saveProfile,
     deleteAccount,
     signOut,

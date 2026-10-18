@@ -7,6 +7,7 @@ import { SignUpSheet } from "../../components/SignUpSheet";
 import { ReportSheet } from "../../components/ReportMenu";
 import { deskGeometry } from "./today-cards";
 import { LetterReader } from "./LetterReader";
+import { TodayWardrobeSlip } from "./WardrobeSlip";
 import type { TodayModel } from "./useTodayDesk";
 
 /* WHAT SITS OVER THE DESK, WHOEVER DRAWS IT (10a step 5). The same React
@@ -21,9 +22,11 @@ import type { TodayModel } from "./useTodayDesk";
    - the guest sheet a reply raises, which sends THAT letter once signed in;
    - the report card and the block question (lib/report-flow), the card
      dropping where a card's ⋯ sits (56 under the card's top);
-   - the unfolded letter (LetterReader).
+   - the unfolded letter (LetterReader);
+   - the new onboarding's first-arrival wardrobe slip ("Otis wants a look
+     →", WardrobeSlip), only while its flag is up, under the reader.
    Every one is raised through blurThen in the model, so a Swift field lets
-   go before it appears. */
+   go before it appears (the slip raises nothing until it is tapped). */
 export function TodayOverlays({ model }: { model: TodayModel }) {
   useLang();
   const insets = useScreenInsets();
@@ -53,6 +56,8 @@ export function TodayOverlays({ model }: { model: TodayModel }) {
 
       {/* the card drops beside a card's ⋯: under the plate and the docket */}
       <ReportSheet flow={model.report} top={cardTop + 56} />
+
+      <TodayWardrobeSlip model={model} />
 
       <LetterReader model={model} />
     </>

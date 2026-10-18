@@ -9,8 +9,21 @@
    ground is the accent's palest wash (useP's penWash, the console's ground),
    type is ink, sub and mute, every line on the chart and every outline is
    ln, and the letter and envelopes are card faces. The stops' pale gold and
-   their postmark squares, and her, keep their own colours. */
-import React, { useEffect, useMemo, useRef, useState } from "react";
+   their postmark squares, and her, keep their own colours.
+
+   THE NEW ONBOARDING'S FLIGHT (screens 12 and 13, storyboard 2026-10-18)
+   asks for a few things more, all optional, so a caller that passes none of
+   them (the old run, the preview) gets exactly the flight above:
+   · colors: the run's own day colours (Shell grid paper, ink lines), since
+     the new run doesn't wear the theme;
+   · head: the title block (Inter, "Otis's first flight." over YOUR LETTER,
+     IN THE POST) in place of the serif one;
+   · envelope (+ envelopeSize): YOUR envelope front — frost window, courier
+     name, marks, stamp — in place of the plain one she carries out;
+   · line: one personal line under the chart, over TAP TO SKIP;
+   · still: the landed chart alone, dimmed, nothing moving and nothing
+     called — the ground screen 13 asks its question over. */
+import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
@@ -42,12 +55,70 @@ const pathD = SEGS.map((s, i) => (i === 0 ? `M${s[0][0]} ${s[0][1]} ` : "") + `C
 /* the flight window on the clock, in seconds */
 const FLY0 = 0.8, FLY1 = 2.6;
 
-export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, onDone }: { her: string; opener: string; stops: PoolLetter[]; form?: HatchlingForm; mark?: string | null; skin?: WrenSkin; accessory?: WrenAccessory; onDone: () => void }) {
-  const P = useP();
-  const tk = useTheme().t;
+/** The flight's colours, when the caller's ground isn't the theme's (the new onboarding's Shell). */
+export type FlightColors = {
+  /** the ground under the chart */
+  ground: string;
+  /** type, the chart's lines, every outline */
+  ink: string;
+  /** the quieter type (the stops' words, the chart's label) */
+  sub: string;
+  /** the faintest type (TAP TO SKIP, the chart's footnote) */
+  faint: string;
+  /** the letter's and the envelopes' face */
+  card: string;
+  /** the trail, the envelopes' stamp squares */
+  accent: string;
+};
+
+export function FirstFlight({
+  her,
+  opener,
+  stops,
+  form,
+  mark,
+  skin,
+  accessory,
+  onDone,
+  colors,
+  head,
+  envelope,
+  envelopeSize,
+  line,
+  skipLabel,
+  still = false,
+}: {
+  her: string;
+  opener: string;
+  stops: PoolLetter[];
+  form?: HatchlingForm;
+  mark?: string | null;
+  skin?: WrenSkin;
+  accessory?: WrenAccessory;
+  onDone: () => void;
+  /** the run's own colours instead of the theme's */
+  colors?: FlightColors;
+  /** the title block, in place of the serif "{name}'s first flight." */
+  head?: ReactNode;
+  /** the envelope she carries out, in place of the plain one */
+  envelope?: ReactNode;
+  /** its box on the 390 × 844 chart (default 120 × 80) */
+  envelopeSize?: { w: number; h: number };
+  /** one line under the chart, over TAP TO SKIP */
+  line?: ReactNode;
+  skipLabel?: string;
+  /** the landed chart alone, dimmed: no bird, no letter, no title, no clock, onDone never called */
+  still?: boolean;
+}) {
+  const themeP = useP();
+  const themeT = useTheme().t;
+  /* the run's colours, where it passes them, laid over the theme's names so the drawing below reads one set */
+  const P = colors ? { ...themeP, penWash: colors.ground, ink: colors.ink, ink60: colors.sub, ink40: colors.faint, pen: colors.accent, post: colors.accent } : themeP;
+  const tk = colors ? { ...themeT, ln: colors.ink, sf: colors.card } : themeT;
   const { width, height } = useWindowDimensions();
   const k = Math.min(width / W, height / H);
-  const clock = useSharedValue(0);
+  const clock = useSharedValue(still ? TOTAL : 0);
+  const env = envelopeSize ?? { w: 120, h: 80 };
   const done = useRef(false);
   const pose: WrenPose = "perch"; // no hatchling has a fly symbol — the chick herself flies, tilted
   const [mood, setMood] = useState<WrenMood>("curious");
@@ -73,6 +144,7 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
   }, []);
 
   useEffect(() => {
+    if (still) return; // the landed chart: nothing plays, nothing is called
     let alive = true;
     AccessibilityInfo.isReduceMotionEnabled().then((r) => {
       if (!alive) return;
@@ -100,8 +172,9 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
   });
   /* the envelope appears where the letter folded, then rides under her */
   const envT = [0, FLY0 - 0.001, ...pts.map((p) => p.at), 2.85, TOTAL];
-  const envX = [135, 135, ...pts.map((p) => p.x - 20), 90, 90];
-  const envY = [330, 330, ...pts.map((p) => p.y + 22), 420, 420];
+  /* (a bigger envelope keeps its centre where the plain one's was) */
+  const envX = [135, 135, ...pts.map((p) => p.x - 20), 90, 90].map((x) => x + (120 - env.w) / 2);
+  const envY = [330, 330, ...pts.map((p) => p.y + 22), 420, 420].map((y) => y + (80 - env.h) / 2);
   const envStyle = useAnimatedStyle(() => ({
     opacity: interpolate(clock.value, [0.3, 0.55, 2.5, 2.65], [0, 1, 1, 0], Extrapolation.CLAMP),
     transform: [
@@ -135,7 +208,7 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
   const stampOf = (l?: PoolLetter) => (l?.stamp ? "#" + String(l.stamp).replace(/-/g, " ") : "");
 
   return (
-    <Pressable onPress={finish} style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: P.penWash, alignItems: "center", justifyContent: "center" }}>
+    <Pressable onPress={still ? undefined : finish} disabled={still} style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: P.penWash, alignItems: "center", justifyContent: "center" }}>
       <View style={{ width: W, height: H, transform: [{ scale: k }] }}>
         {/* the chart */}
         <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: W, height: H }, chartStyle]} pointerEvents="none">
@@ -162,25 +235,39 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
           <Text style={{ position: "absolute", left: 20, top: 756, fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{t("ff.chart")}</Text>
         </Animated.View>
         {/* the trail she leaves */}
-        {pts.map((p, i) => <TrailDot key={i} clock={clock} at={p.at} x={p.x} y={p.y} />)}
+        {pts.map((p, i) => <TrailDot key={i} clock={clock} at={p.at} x={p.x} y={p.y} color={colors?.accent} />)}
 
         {/* the title of the moment, stepping back once she's gone */}
+        {!still && (
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 96, alignItems: "center" }, titleStyle]} pointerEvents="none">
-          <Text style={{ fontFamily: PF.serif, fontSize: 30, color: P.ink, textAlign: "center" }}>
-            {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
-          </Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink60, marginTop: 10 }}>{t("ob.flight.sub")}</Text>
+          {head ?? (
+            <>
+              <Text style={{ fontFamily: PF.serif, fontSize: 30, color: P.ink, textAlign: "center" }}>
+                {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
+              </Text>
+              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink60, marginTop: 10 }}>{t("ob.flight.sub")}</Text>
+            </>
+          )}
         </Animated.View>
+        )}
 
+        {!still && (
+        <>
         {/* 1 · the letter, folding */}
         <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
           <Text numberOfLines={3} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
           <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
         </Animated.View>
-        <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln }, envStyle]} pointerEvents="none">
-          <Svg width={117} height={77} viewBox="0 0 117 77"><Path d="M0 0 L58.5 42 L117 0" fill="none" stroke={tk.ln} strokeWidth={1.5} /></Svg>
-          <View style={{ position: "absolute", right: 9, top: 7, width: 20, height: 18, backgroundColor: P.pen }} />
-        </Animated.View>
+        {envelope ? (
+          <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: env.w, height: env.h }, envStyle]} pointerEvents="none">
+            {envelope}
+          </Animated.View>
+        ) : (
+          <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln }, envStyle]} pointerEvents="none">
+            <Svg width={117} height={77} viewBox="0 0 117 77"><Path d="M0 0 L58.5 42 L117 0" fill="none" stroke={tk.ln} strokeWidth={1.5} /></Svg>
+            <View style={{ position: "absolute", right: 9, top: 7, width: 20, height: 18, backgroundColor: P.pen }} />
+          </Animated.View>
+        )}
 
         {/* 3 · what she brings back */}
         <Animated.View style={[{ position: "absolute", left: 70, top: 440, width: 250, height: 120 }, trayStyle]} pointerEvents="none">
@@ -197,14 +284,18 @@ export function FirstFlight({ her, opener, stops, form, mark, skin, accessory, o
           <WrenBird size={90} mood={mood} pose={pose} stage="hatch" form={form} mark={mark} skin={skin} accessory={accessory} />
         </Animated.View>
 
-        <Text style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{t("ff.skip")}</Text>
+        {!!line && <View pointerEvents="none" style={{ position: "absolute", left: 24, right: 24, bottom: 98, alignItems: "center" }}>{line}</View>}
+        <Text style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{skipLabel ?? t("ff.skip")}</Text>
+        </>
+        )}
       </View>
     </Pressable>
   );
 }
 
-function TrailDot({ clock, at, x, y }: { clock: SharedValue<number>; at: number; x: number; y: number }) {
-  const P = useP();
+function TrailDot({ clock, at, x, y, color }: { clock: SharedValue<number>; at: number; x: number; y: number; color?: string }) {
+  const themeP = useP();
+  const P = color ? { ...themeP, pen: color } : themeP;
   const style = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, [at - 0.02, at, 2.9, 3.05], [0, 0.7, 0.7, 0.3], Extrapolation.CLAMP) }));
   return <Animated.View style={[{ position: "absolute", left: x - 2.2, top: y - 2.2, width: 4.4, height: 4.4, borderRadius: 2.2, backgroundColor: P.pen }, style]} pointerEvents="none" />;
 }

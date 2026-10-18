@@ -26,7 +26,23 @@
    static Y as Y_ART, and the burst (the dark, the flash, the gold glow and
    dust, the words while they fly) is a picture of light, so its colours are
    fixed too. Only the shadow on the ground answers a dark theme
-   (EggShell's eggShadow). */
+   (EggShell's eggShadow).
+
+   THE NEW ONBOARDING'S HATCH (screen 9, storyboard 2026-10-18) asks a few
+   things of the same stage, all optional, so every caller that passes none
+   of them (the old run, the previews) gets exactly the stage above:
+   · burst="flood": no dark and no cream flash at the burst — the screen
+     floods with Shell from the crack instead, and that flood is the
+     screen's (parts/flood), drawn under this stage so the shards fly over
+     it. `onBurst` says where the crack is, in window points, the moment
+     the shell goes (with Reduce Motion too: the born tableau still bursts).
+     Your words fly in `chrome` ink, since cream words on Shell vanish.
+   · chrome: the ink, accent, panel and line for what is drawn around the
+     bird (the words, the first word's bubble, the chirp's mark), when the
+     ground under the stage is not the console's.
+   · footer: the copy under the stage, in place of the HATCHING… readout.
+   · tapHelps: a tap on the whole egg brings the next knock closer ("three
+     knocks, a tap helps"). */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
@@ -157,6 +173,11 @@ export function HatchStage({
   onBorn,
   onWord,
   celebrate = 0,
+  burst: burstMode = "dark",
+  onBurst,
+  chrome,
+  footer,
+  tapHelps = false,
 }: {
   shell: number;
   fed: string[];
@@ -168,8 +189,22 @@ export function HatchStage({
   header: ReactNode; // the copy above the egg — the parent owns the words
   onBorn: () => void;
   celebrate?: number; // bump it and she hops (the key was pressed)
+  /** "dark" (the default): the dark and the flash at the burst; "flood": neither — the caller floods the screen from the crack */
+  burst?: "dark" | "flood";
+  /** the crack, in window points, the moment the shell goes */
+  onBurst?: (at: { x: number; y: number }) => void;
+  /** the colours drawn around the bird (words, bubble, mark) when the ground isn't the console's */
+  chrome?: { ink: string; accent: string; panel: string; line: string };
+  /** the copy under the stage, in place of the HATCHING… readout */
+  footer?: ReactNode;
+  /** a tap on the whole egg brings the next knock closer */
+  tapHelps?: boolean;
 }) {
   const { Y, mono, dark } = useEggOS();
+  const flood = burstMode === "flood";
+  const stageRef = useRef<View>(null);
+  const onBurstRef = useRef(onBurst);
+  onBurstRef.current = onBurst;
   const reduce = useReducedMotion();
   const sh = EGG_SHELLS[shell] ?? EGG_SHELLS[0];
   const [, bump] = useState(0);
@@ -246,9 +281,16 @@ export function HatchStage({
   const burstNow = () => {
     a.burst = 0;
     a.wob = 1;
-    a.flash = 1;
+    a.flash = flood ? 0 : 1;
     a.shake = 1;
     knock(true);
+    /* where the crack is, for a screen that floods from it: the egg's centre on the stage, in window points */
+    if (onBurstRef.current) {
+      const node = stageRef.current;
+      if (node)
+        node.measureInWindow((x, y) => onBurstRef.current?.({ x: x + sx(CX), y: y + sy(CY) }));
+      else onBurstRef.current({ x: 0, y: 0 });
+    }
     const ws = tokens(fed);
     a.words = ws.map((w, i) => {
       const an = -Math.PI * (0.15 + 0.7 * (i / Math.max(1, ws.length - 1))) + (Math.random() - 0.5) * 0.4;
@@ -419,7 +461,7 @@ export function HatchStage({
   const glowOp = phase === "crack" ? 0.12 + lit * 0.48 : Math.max(0, 0.6 - a.burst * 0.5);
   const shakeX = Math.sin(a.t * 90) * a.shake * 4;
   const shakeY = Math.cos(a.t * 70) * a.shake * 3;
-  const darkOp = a.burst >= 0 && a.burst < 1.6 ? clamp(a.burst / 0.2, 0, 1) : 0;
+  const darkOp = !flood && a.burst >= 0 && a.burst < 1.6 ? clamp(a.burst / 0.2, 0, 1) : 0;
   const scale = 0.9 + a.rise * 0.28;
   const size = Math.round(148 * (scale / 1.18));
   const bx = sx(CX);
@@ -454,7 +496,7 @@ export function HatchStage({
       {a.flash > 0 && <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "#FFF6E3", opacity: dark ? a.flash * FLASH_NIGHT : a.flash }} />}
 
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: W, height: H, transform: [{ translateX: shakeX }, { translateY: shakeY }] }}>
+        <View ref={stageRef} collapsable={false} style={{ width: W, height: H, transform: [{ translateX: shakeX }, { translateY: shakeY }] }}>
           {/* behind her: ground, glow, the egg while it's whole, the nest, dust */}
           <Svg width={W} height={H} style={{ position: "absolute", left: 0, top: 0 }}>
             <Defs>
@@ -482,6 +524,20 @@ export function HatchStage({
             </G>
           </Svg>
 
+          {/* a tap helps it out (tapHelps): the next knock comes sooner, and the egg answers the finger */}
+          {tapHelps && phase === "crack" && (
+            <Pressable
+              onPress={() => {
+                a.ct += 0.45;
+                a.pop = 0.6;
+                knock();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t("ob2.hatch.tap")}
+              style={{ position: "absolute", left: sx(CX - 80), top: sy(CY - 100), width: K * 160, height: K * 200 }}
+            />
+          )}
+
           {/* the nest answers a tap: she looks down at it */}
           <Pressable disabled={!born} onPress={() => react("curious")} style={{ position: "absolute", left: 30, width: 260, top: sy(CY - 20), height: K * 64 }} />
 
@@ -489,7 +545,7 @@ export function HatchStage({
           {a.burst >= 0 && (
             <Animated.View style={[birdStyle, { position: "absolute", left: bx - size / 2, top: by - size * 0.62, width: size, height: size }]}>
               <HatchlingRig size={size} mood={face} form={form} mark={sh.mark} skin={skin} idle={a.re ? undefined : idle} />
-              <Animated.Text style={[sparkStyle, { position: "absolute", top: 2, left: "18%", fontSize: 19, color: a.re === "love" ? "#F2887E" : a.re === "chirp" ? Y.blue : Y.brass }]}>
+              <Animated.Text style={[sparkStyle, { position: "absolute", top: 2, left: "18%", fontSize: 19, color: a.re === "love" ? "#F2887E" : a.re === "chirp" ? chrome?.accent ?? Y.blue : chrome?.ink ?? Y.brass }]}>
                 {a.re ? MARK[a.re] : ""}
               </Animated.Text>
               <Pressable disabled={!born} onPress={() => react("love")} style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: "44%" }} />
@@ -515,7 +571,7 @@ export function HatchStage({
             if (op <= 0) return null;
             return (
               <View key={`w${i}`} pointerEvents="none" style={{ position: "absolute", left: sx(CX + w.x) - 70, top: sy(CY + w.y) - 10, width: 140, alignItems: "center", opacity: op, transform: [{ rotate: `${w.rot}deg` }] }}>
-                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: w.sz * K + 2, color: a.burst < 1.6 ? (i % 3 === 0 ? "#FFD98A" : "#FFF6E3") : i % 3 === 0 ? Y.blue : Y.ink }}>
+                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: w.sz * K + 2, color: chrome && flood ? (i % 3 === 0 ? chrome.accent : chrome.ink) : a.burst < 1.6 ? (i % 3 === 0 ? "#FFD98A" : "#FFF6E3") : i % 3 === 0 ? chrome?.accent ?? Y.blue : chrome?.ink ?? Y.ink }}>
                   {w.w}
                 </Text>
               </View>
@@ -526,16 +582,17 @@ export function HatchStage({
           {/* the one word she says first */}
           {qs > 0 && !!a.quote && (
             <View pointerEvents="none" style={{ position: "absolute", left: sx(CX + 80) - 90, top: sy(CY - 92 - a.rise * 20) - 18, width: 180, alignItems: "center", opacity: qs, transform: [{ scale: qs * qb }] }}>
-              <View style={{ backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ln, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
-                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 15, color: Y.ink }}>{`“${a.quote}…”`}</Text>
+              <View style={{ backgroundColor: chrome?.panel ?? Y.panel, borderWidth: 2, borderColor: chrome?.line ?? Y.ln, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 15, color: chrome?.ink ?? Y.ink }}>{`“${a.quote}…”`}</Text>
               </View>
-              <View style={{ width: 10, height: 10, backgroundColor: Y.panel, borderRightWidth: 2, borderBottomWidth: 2, borderColor: Y.ln, marginTop: -6, marginLeft: -76, transform: [{ rotate: "45deg" }] }} />
+              <View style={{ width: 10, height: 10, backgroundColor: chrome?.panel ?? Y.panel, borderRightWidth: 2, borderBottomWidth: 2, borderColor: chrome?.line ?? Y.ln, marginTop: -6, marginLeft: -76, transform: [{ rotate: "45deg" }] }} />
             </View>
           )}
         </View>
       </View>
 
-      {/* the readout under the stage */}
+      {/* the readout under the stage (or the caller's own copy there) */}
+      {footer !== undefined ? footer : (
       <View style={{ height: 30, alignItems: "center", justifyContent: "center" }}>
         {phase !== "born" ? (
           <Text style={[mono(10.5, "b"), { color: Y.dim, letterSpacing: 1.4 }]}>
@@ -550,6 +607,7 @@ export function HatchStage({
           <Text style={[mono(10.5, "b"), { color: Y.dim, letterSpacing: 1.4 }]}>{t("ob.hatch.tap")}</Text>
         )}
       </View>
+      )}
     </View>
   );
 }

@@ -9,6 +9,10 @@ export const ARRIVAL_FRESH = "arrival_fresh";
 /** the opener cleared the floor and went to the pool (unset: it stayed on the phone) */
 export const ARRIVAL_SENT = "arrival_sent";
 export const ARRIVAL_AT_KEY = "kindredly_arrival_at";
+/** the new onboarding's first arrival: Today shows the bird's "Otis wants a look →" slip
+    (the wardrobe and First Class moved out of the run, storyboard §6 → Today). Set by the
+    run as it ends; Today clears it once the slip is opened or dismissed. */
+export const WARDROBE_SLIP = "wardrobe_slip";
 
 export async function getFlags(): Promise<Record<string, boolean>> {
   try {

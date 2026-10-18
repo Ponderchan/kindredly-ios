@@ -214,9 +214,11 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
    is drawn on the splash's colour — not a theme surface — so the entry
    route keeps that colour under its first frame, and the splash never
    blinks to the theme's page on the way in. In every light theme it is the
-   splash's lavender. A night launch for Midnight is drafted but not
+   splash's ground. A night launch for Midnight is drafted but not
    decided (the owner's call; see LaunchAnimation); until it is, only the
-   dev theme switch reaches it. The piece and this ground take their colour
+   dev theme switch reaches it. (Since 2026-10-19 the splash and the launch
+   are the app icon's Post Blue, #5B55FF, not lavender: the new
+   onboarding's storyboard §3.) The piece and this ground take their colour
    from one place (launchInks, read in ThemedStack's launchGround), so the
    two can't part. Only this ground's first frame shows — the piece covers
    it after that — so it can follow the live theme while the piece keeps

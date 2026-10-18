@@ -21,6 +21,11 @@ export type EventName =
   // the funnel that decides whether this product works at all
   | "onboard_step"
   | "onboard_done"
+  /* the new onboarding (screens/onboarding, identity switch on): every screen
+     arrived at ({ step, i }), and the first letter posted — counted apart from
+     the old run's, so the two funnels can be compared */
+  | "ob2_step"
+  | "ob2_done"
   | "letter_sent"
   | "reply_sent"
   | "reply_received"

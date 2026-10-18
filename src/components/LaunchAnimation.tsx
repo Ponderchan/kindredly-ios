@@ -38,17 +38,40 @@ import type { ThemeTokens } from "../theme/themes";
 
    Everything moves on the UI thread (one clock, derived per layer), so a
    JS thread busy with the session and the first screen can't drop frames.
-   Drawn on the native splash's colour (#ECECFE), so nothing flashes.
+   Drawn on the native splash's colour (Post Blue #5B55FF since 2026-10-19,
+   see below), so nothing flashes.
    (Pivots are given in points: React Native's transformOrigin string
    parser misreads a decimal percentage such as "79.6%".)
 
    THE SAME IN EVERY THEME (10a), as designed. The native splash can't
    follow the theme — its colour is baked into the binary, and the saved
    theme isn't read until JS runs — so the piece that continues it doesn't
-   either: the lavender ground, the mark's indigo and gold, and the word
-   and the line under it in fixed dark inks, which is what keeps them
-   legible on that ground in a dark theme. The first screen fades in over
-   it in the theme's own colours.
+   either: one fixed ground and fixed inks in every light theme. The first
+   screen fades in over it in the theme's own colours.
+
+   POST BLUE AND WHITE (the new onboarding's storyboard §3–§4, owner
+   2026-10-18: "启动屏换图标蓝"). The ground was lavender (#ECECFE) with the
+   mark in indigo, so every cold start zoomed a blue icon into a lavender
+   splash — a seam. Now the ground is the icon's own blue, sampled from
+   assets/icon.png (#5B55FF), and the mark, the word and the line under it
+   are pure white (5.0:1; no faded white for small type on this blue): the
+   dot still settles from gold to ink, and ink is white, so the last frame
+   IS the app icon. The cracks are still cut in the ground's colour. The
+   native splash (ios/…/SplashScreenBackground.colorset, the storyboard's
+   named colour, Info.plist's RCTRootViewBackgroundColor and app.json) was
+   changed by hand to match, in the same change. The status bar's text is
+   light on it (StatusBar below).
+
+   THE HAND-OFF TO THE NEW ONBOARDING. Its first screen mounts with this
+   piece's last frame — the same pixels — and opens out of it: the mark
+   comes down onto the first card and becomes its stamp. So the geometry is
+   exported (launchGeometry: the mark's place and size, the word's and the
+   line's tops, in window points), the finished mark is a component of its
+   own (LaunchMarkArt), the whole last frame is one too (LaunchFrame, for
+   any frame drawn before the next screen is ready), and the piece leaves a
+   note as it hands over (takeLaunchHandoff: how it played, once, read by
+   that screen). The old onboarding and Today simply fade in over it, as
+   before.
 
    THE NIGHT SET (step 7.1; the owner's rule for the release: what is best for
    the user). On a dark phone the launch turns night, so a cold start at
@@ -69,9 +92,13 @@ import type { ThemeTokens } from "../theme/themes";
    theme. */
 
 const GOLD = "#D8A63F";
+/** The app icon's blue (assets/icon.png), the native splash's and the launch's ground by day. */
+export const POST_BLUE = "#5B55FF";
 type Inks = { bg: string; ink: string; word: string; mute: string; night: boolean };
-/* by day: the fixed set, whatever the light theme */
-const DAY: Inks = { bg: "#ECECFE", ink: "#3A34D6", word: "#1E1B35", mute: "#55506E", night: false };
+/* by day: the fixed set, whatever the light theme — white on the icon's blue,
+   so the last frame is the icon itself (the lavender set was
+   { bg #ECECFE, ink #3A34D6, word #1E1B35, mute #55506E }) */
+const DAY: Inks = { bg: POST_BLUE, ink: "#FFFFFF", word: "#FFFFFF", mute: "#FFFFFF", night: false };
 
 /** The launch's colours for a theme: the fixed day set in every light
     theme, Midnight's own tokens in Midnight (drafted, awaiting the owner —
@@ -102,7 +129,8 @@ const SKIP_FROM = 1.35;
    fade (owner, 2026-09-26: "启动页那里没有动画效果") */
 const SHORT_FROM = 0.98;
 const SEEN_KEY = "kindredly_launch_seen";
-type Mode = "full" | "short" | "still";
+export type LaunchMode = "full" | "short" | "still";
+type Mode = LaunchMode;
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -168,13 +196,14 @@ export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDo
   /* the piece mounts only once it knows how to play, so every animated
      style's first frame is the right one (a style first computed with no
      mode drew the wordmark at full opacity for a frame before the hatch).
-     The status bar's text follows the piece's ground, not the theme's: the
-     lavender keeps dark text when the saved pick turns out to be Midnight.
-     The root sets no style (app/_layout leaves the bar to iOS), so this one
-     holds while the piece is up */
+     The status bar's text follows the piece's ground, not the theme's: both
+     grounds are dark now (Post Blue by day, Midnight's at night), so it is
+     light on both, whatever the saved pick turns out to be. The root sets no
+     style (app/_layout leaves the bar to iOS), so this one holds while the
+     piece is up */
   return (
     <>
-      <StatusBar style={inks.night ? "light" : "dark"} />
+      <StatusBar style="light" />
       {mode ? <Piece mode={mode} ready={ready} onDone={onDone} inks={inks} /> : <View style={{ flex: 1, backgroundColor: inks.bg }} />}
     </>
   );
@@ -221,17 +250,19 @@ function Piece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean; onDo
   useEffect(() => {
     if (!canLeave || !ready || leaving.current) return;
     leaving.current = true;
+    landed = { mode, at: Date.now() }; // the note the new onboarding's first screen reads (takeLaunchHandoff)
     onDone();
-  }, [canLeave, ready, onDone]);
+  }, [canLeave, ready, onDone, mode]);
 
   const skip = () => {
     if (mode === "full" && time.value >= SKIP_FROM) setCanLeave(true);
   };
 
   /* ── the layers, each derived from the one clock ── */
-  const MARK = Math.min(sw * 0.38, 156);
+  const geo = launchGeometry(sw, sh);
+  const MARK = geo.mark.size;
   const k = MARK / 1024;
-  const markTop = sh * 0.4 - MARK / 2;
+  const markTop = geo.mark.y;
 
   const whole = useAnimatedStyle(() => {
     const tt = time.value;
@@ -313,16 +344,110 @@ function Piece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean; onDo
           )}
         </Animated.View>
 
-        {/* the wordmark, then the line under it — the app's nine languages */}
-        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: markTop + MARK + 30, alignItems: "center" }, word]}>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 40, lineHeight: 46, letterSpacing: -1.4, color: WORD }}>kindredly</Text>
+        {/* the wordmark, then the line under it — the app's nine languages. The wordmark is a
+            logo, not a line of reading: it keeps its size at every text size (allowFontScaling
+            off), so the line under it, placed a fixed 88pt below the mark, never runs into it,
+            and the new onboarding's first screen (which draws the same word in a fixed box and
+            glides it down) starts from exactly these pixels whatever the phone's text size */}
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, top: geo.wordTop, alignItems: "center" }, word]}>
+          <Text allowFontScaling={false} style={WORD_TYPE(WORD)}>kindredly</Text>
         </Animated.View>
-        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 24, right: 24, top: markTop + MARK + 88, alignItems: "center" }, tag]}>
-          <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 18, lineHeight: 24, color: MUTE, textAlign: "center" }}>{t("launch.tag")}</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color: INK, marginTop: 10, textAlign: "center" }}>{t("launch.sub")}</Text>
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 24, right: 24, top: geo.tagTop, alignItems: "center" }, tag]}>
+          <Text style={TAG_TYPE(MUTE)}>{t("launch.tag")}</Text>
+          <Text style={SUB_TYPE(INK)}>{t("launch.sub")}</Text>
         </Animated.View>
       </Pressable>
     </View>
     </View>
   );
+}
+
+/* ── THE HAND-OFF (the new onboarding's screen 1 continues this frame) ── */
+
+/** Where the finished frame's pieces sit, in window points (the piece fills the window, no safe area). */
+export type LaunchGeometry = {
+  /** the mark's box: left, top and side, the side min(38% of the width, 156) */
+  mark: { x: number; y: number; size: number };
+  /** the top of the "kindredly" wordmark's line box */
+  wordTop: number;
+  /** the top of the line under it (launch.tag, then launch.sub) */
+  tagTop: number;
+};
+
+/** The finished frame's layout for a window: the mark centred 40% down, the word 30pt under it, the line 88pt under it. */
+export function launchGeometry(sw: number, sh: number): LaunchGeometry {
+  const size = Math.min(sw * 0.38, 156);
+  const y = sh * 0.4 - size / 2;
+  return { mark: { x: (sw - size) / 2, y, size }, wordTop: y + size + 30, tagTop: y + size + 88 };
+}
+
+/* the type of the word and the line, shared by the piece and the still frame */
+const WORD_TYPE = (color: string) => ({ fontFamily: PF.letter, fontWeight: "800" as const, fontSize: 40, lineHeight: 46, letterSpacing: -1.4, color });
+const TAG_TYPE = (color: string) => ({ fontFamily: PF.letterSerif, fontStyle: "italic" as const, fontSize: 18, lineHeight: 24, color, textAlign: "center" as const });
+const SUB_TYPE = (color: string) => ({ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color, marginTop: 10, textAlign: "center" as const });
+
+/** The finished mark — two commas and the dot — at `size`, in one colour (white on Post Blue: the icon). */
+export function LaunchMarkArt({ size, color = "#FFFFFF", dot }: { size: number; color?: string; dot?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 1024 1024">
+      <Path d={ARC_L} fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" />
+      <Path d={ARC_R} fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" />
+      <Circle cx={394.6} cy={767.2} r={HEAD} fill={color} />
+      <Circle cx={629.4} cy={237.5} r={HEAD} fill={color} />
+      <Circle cx={512} cy={520} r={44} fill={dot ?? color} />
+    </Svg>
+  );
+}
+
+/**
+ * The piece's last frame, still: the ground, the mark, the word and the line,
+ * pixel for pixel where the piece leaves them (day inks; Midnight's on a dark
+ * start, as the piece decides). For a route that must show something before
+ * its own first frame is ready, so the hand-off never blinks.
+ */
+export function LaunchFrame({ word = true, tag = true }: { word?: boolean; tag?: boolean }) {
+  const { width: sw, height: sh } = useWindowDimensions();
+  const { dark, t: tk } = useTheme();
+  const [inks] = useState(() => launchInks(dark, tk));
+  const g = launchGeometry(sw, sh);
+  return (
+    <View style={{ flex: 1, backgroundColor: inks.bg }}>
+      <StatusBar style="light" />
+      <View pointerEvents="none" style={{ position: "absolute", left: g.mark.x, top: g.mark.y }}>
+        <LaunchMarkArt size={g.mark.size} color={inks.ink} />
+      </View>
+      {word && (
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: g.wordTop, alignItems: "center" }}>
+          <Text allowFontScaling={false} style={WORD_TYPE(inks.word)}>kindredly</Text>
+        </View>
+      )}
+      {tag && (
+        <View pointerEvents="none" style={{ position: "absolute", left: 24, right: 24, top: g.tagTop, alignItems: "center" }}>
+          <Text style={TAG_TYPE(inks.mute)}>{t("launch.tag")}</Text>
+          <Text style={SUB_TYPE(inks.ink)}>{t("launch.sub")}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** How the launch played as it handed over, for the screen that continues it. */
+export type LaunchHandoff = { mode: LaunchMode; at: number };
+let landed: LaunchHandoff | null = null;
+
+/**
+ * The note the launch left as it handed over (how it played, and when), ONCE:
+ * the first caller gets it and it is gone, so a later visit to the same screen
+ * (back from 2, a dev jump) opens at rest instead of replaying the landing.
+ * Older than five seconds counts as none (the route took too long to be the
+ * next frame). DEV: `devLaunchHandoff` puts one back, to replay the landing.
+ */
+export function takeLaunchHandoff(now = Date.now()): LaunchHandoff | null {
+  const h = landed;
+  landed = null;
+  return h && now - h.at < 5000 ? h : null;
+}
+/** DEV ONLY: leave a hand-off note as if the launch had just played in `mode` (the dev entry's "from launch" chip). */
+export function devLaunchHandoff(mode: LaunchMode = "full"): void {
+  if (__DEV__) landed = { mode, at: Date.now() };
 }

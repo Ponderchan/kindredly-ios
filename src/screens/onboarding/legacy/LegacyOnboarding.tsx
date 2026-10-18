@@ -17,44 +17,51 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { getLang, t, useLang } from "../lib/i18n";
-import { openPrivacy, openTerms } from "../lib/legal";
-import { monthsShort } from "../lib/format";
+import { getLang, t, useLang } from "../../../lib/i18n";
+import { openPrivacy, openTerms } from "../../../lib/legal";
+import { monthsShort } from "../../../lib/format";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
-import { F2, Y as Y_ART } from "../theme/y2k";
-import { FIXED_INK, useEggOS, type EggPalette, type EggSkin } from "../lib/egg-os";
-import { Wheel } from "../components/Wheel";
-import { useAuth } from "../lib/auth";
-import { fetchPool, POOL_CACHE_KEY, publishLetter, upsertFingerprint, type PoolLetter } from "../lib/db";
-import { FirstFlight } from "../components/FirstFlight";
+import { F2, Y as Y_ART } from "../../../theme/y2k";
+import { FIXED_INK, useEggOS, type EggPalette, type EggSkin } from "../../../lib/egg-os";
+import { Wheel } from "../../../components/Wheel";
+import { useAuth } from "../../../lib/auth";
+import { fetchPool, POOL_CACHE_KEY, publishLetter, upsertFingerprint, type PoolLetter } from "../../../lib/db";
+import { FirstFlight } from "../../../components/FirstFlight";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, setFlag, unsetFlag, TODAY_RITUAL } from "../lib/flags";
-import { rationPool } from "../lib/ration";
-import { signatureVector, voiceSignature } from "../lib/signature";
-import { WardrobeRack } from "../components/WardrobeRack";
-import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin } from "../components/WrenBird";
-import { wrenStageDirty } from "../lib/wren-stage";
-import { EGG_SHELLS, EggShell } from "../components/EggShell";
-import { HATCH_READ_S, HatchStage } from "../components/HatchStage";
-import { HatchlingRig, useChickIdle } from "../components/HatchlingRig";
-import { FeedEgg } from "../components/FeedEgg";
-import { AvatarImage } from "../components/AvatarImage";
-import { FACES } from "../data/aura-avatar-lib";
-import { readMood } from "../lib/wren-read";
-import { ACCESSORY_META, bumpStageFloor, skinUnlocked } from "../lib/wren-style";
-import { useWrenSkinControl } from "../lib/wren-skin";
-import { useEntitlement } from "../lib/entitlement";
-import { PaywallBody } from "./paywall";
-import { EMPTY_STATS } from "../lib/stats";
-import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../lib/hatchling-form";
-import { hatch, saveArchetype, type DimScore, starterStamp } from "../lib/hatch-engine";
-import { NAME_IDEAS, isReservedName, saveWrenEgg, saveWrenName } from "../lib/wren-name";
-import { track } from "../lib/track";
-import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../lib/pronouns";
-import { OPENING_MIN, weightedCount } from "../lib/weighted-count";
-import { MOOD_IDS, moodGroup, moodName, moodTone, type MoodId } from "../data/moods";
-import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
-import { dangerInk } from "../screens/settings/settings-model";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, setFlag, unsetFlag, TODAY_RITUAL } from "../../../lib/flags";
+import { rationPool } from "../../../lib/ration";
+import { signatureVector, voiceSignature } from "../../../lib/signature";
+import { WardrobeRack } from "../../../components/WardrobeRack";
+import { WrenBird, type WrenAccessory, type WrenMood, type WrenSkin } from "../../../components/WrenBird";
+import { wrenStageDirty } from "../../../lib/wren-stage";
+import { EGG_SHELLS, EggShell } from "../../../components/EggShell";
+import { HATCH_READ_S, HatchStage } from "../../../components/HatchStage";
+import { HatchlingRig, useChickIdle } from "../../../components/HatchlingRig";
+import { FeedEgg } from "../../../components/FeedEgg";
+import { AvatarImage } from "../../../components/AvatarImage";
+import { FACES } from "../../../data/aura-avatar-lib";
+import { readMood } from "../../../lib/wren-read";
+import { ACCESSORY_META, bumpStageFloor, skinUnlocked } from "../../../lib/wren-style";
+import { useWrenSkinControl } from "../../../lib/wren-skin";
+import { useEntitlement } from "../../../lib/entitlement";
+import { PaywallBody } from "../../../app/paywall";
+import { EMPTY_STATS } from "../../../lib/stats";
+import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../../../lib/hatchling-form";
+import { hatch, saveArchetype, type DimScore, starterStamp } from "../../../lib/hatch-engine";
+import { NAME_IDEAS, isReservedName, saveWrenEgg, saveWrenName } from "../../../lib/wren-name";
+import { track } from "../../../lib/track";
+import { PRONOUNS, type PronounId, pronoun, saveWrenPronoun, saveYourPronoun } from "../../../lib/pronouns";
+import { OPENING_MIN, weightedCount } from "../../../lib/weighted-count";
+import { MOOD_IDS, moodGroup, moodName, moodTone, type MoodId } from "../../../data/moods";
+import { MoodFace, moodColors } from "../../notes/notes-glyphs";
+import { dangerInk } from "../../settings/settings-model";
+
+/* MOVED, NOT REWRITTEN (2026-10-19). This was src/app/onboarding.tsx. It is
+   the onboarding for the identity switch OFF, exactly as it shipped; the
+   route (app/onboarding) now picks between it and the new run
+   (screens/onboarding/Onboarding2) once, at mount, by the switch. Only the
+   import paths changed with the move. When the new run has shipped with the
+   switch and the switch has stayed on, this file goes. */
 
 /* Onboarding — EGG OS.
    ────────────────────────────────────────────────────────────────────────

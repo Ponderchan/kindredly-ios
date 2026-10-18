@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
-import { LaunchAnimation } from "../components/LaunchAnimation";
+import { LaunchAnimation, POST_BLUE } from "../components/LaunchAnimation";
 import { PF } from "../theme/post";
 
 /* dev only — the launch, replayed without restarting the app.
-   kindredly:///launch-preview?mode=full|short|still */
+   kindredly:///launch-preview?mode=full|short|still[&hold=1]
+   hold=1 starts HOLDING (the session "not known yet"), so the piece rests on
+   its last frame — the frame the new onboarding's screen 1 continues. */
 export default function LaunchPreview() {
   const router = useRouter();
-  const { mode: m } = useLocalSearchParams<{ mode?: string }>();
+  const { mode: m, hold } = useLocalSearchParams<{ mode?: string; hold?: string }>();
   const [mode, setMode] = useState<"full" | "short" | "still">(m === "short" || m === "still" ? m : "full");
   const [run, setRun] = useState(0);
-  const [ready, setReady] = useState(true);
+  const [ready, setReady] = useState(hold !== "1");
   const [done, setDone] = useState(false);
   if (!__DEV__) return <Redirect href="/" />;
   const again = (next: typeof mode) => {
@@ -20,7 +22,7 @@ export default function LaunchPreview() {
     setRun((n) => n + 1);
   };
   return (
-    <View style={{ flex: 1, backgroundColor: "#ECECFE" }}>
+    <View style={{ flex: 1, backgroundColor: POST_BLUE /* the splash's ground (was the lavender #ECECFE) */ }}>
       {!done && <LaunchAnimation key={`${mode}-${run}`} force={mode} ready={ready} onDone={() => setDone(true)} />}
       <View style={{ position: "absolute", left: 16, right: 16, bottom: 40, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {(["full", "short", "still"] as const).map((x) => (
