@@ -93,5 +93,18 @@ ok("title: A KINDRED / A VOICE YOU KNOW", K.pageTitle(base, t) === "kd.kindred" 
 ok("letters: n — mine · theirs", K.lettersValue(base, t) === "kd.lettersVal(n=5,mine=2,theirs=3)");
 ok("who began", K.whoBegan(base, "Mira", t, "en-US") === "kd.theyFirst(name=MIRA)" && K.whoBegan({ openingFromMe: true }, "Mira", t, "en-US") === "kd.youFirst");
 
+/* ── the identity switch ── */
+{
+  const pal = { revealed: false, gone: false, other: "u-1" };
+  const kin = { revealed: true, gone: false, other: "u-2" };
+  const ghost = { revealed: true, gone: true, other: "u-3" };
+  ok("identity off: who began is today's words", K.whoBegan(base, "Mira", t, "en-US", false) === K.whoBegan(base, "Mira", t, "en-US"));
+  ok("identity on: who began agrees with no name", K.whoBegan(base, "Sunday Kite", t, "en-US", true) === "id.kd.theyFirst(name=SUNDAY KITE)" && K.whoBegan({ openingFromMe: true }, "x", t, "en-US", true) === "kd.youFirst");
+  ok("identity off: the page's face is faceKind exactly", [pal, kin, ghost].every((d) => K.pageFace(d, false) === K.faceKind(d)));
+  ok("identity on: a pen pal you know the voice of is their frosted window", K.pageFace(pal, true) === "frost" && K.pageFace(kin, true) === "round" && K.pageFace(ghost, true) === "veil");
+  ok("identity off: THE FACE YOU WATCHED ARRIVE under a kindred with someone behind them", K.showsArrivalMosaic(kin, false) && !K.showsArrivalMosaic(ghost, false) && !K.showsArrivalMosaic(pal, false));
+  ok("identity on: no mosaic block — no face arrived, the frost did", !K.showsArrivalMosaic(kin, true));
+}
+
 console.log(fails ? `\n${fails} FAILED` : "\nall ok");
 if (fails) process.exit(1);

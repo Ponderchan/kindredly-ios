@@ -16,6 +16,12 @@ import SwiftUI
    face is drawn on the orbit itself. The mock's 7 x 7 square stood for its squares; the real
    orbit draws faces (owner), and nothing on the 10a page is a dot (critic-kindreds).
 
+ WITH THE IDENTITY SWITCH ON (identity-plan §6, the build plan's orbit rule), TS sends `frost`, a
+ fixed sample window that is nobody's (kindreds-model LEGEND_FROST_SEED), and the two marks that
+ mean "a stranger" follow the orbit: penPal becomes a small frosted square (KFrost, base, lights
+ and hairline at these sizes) instead of the half-filled grid, and turn the same little window
+ with the 1.5pt ind ring a your-turn window wears on the orbit. kindred and rings don't change.
+
  Decorative: label the chip or the legend line that holds it.
  */
 public struct KLegendGlyph: View {
@@ -35,14 +41,18 @@ public struct KLegendGlyph: View {
   private let theme: KTheme
   private let kind: Kind
   private let size: CGFloat
+  private let frost: KFrostSpec?
 
   /// - Parameters:
   ///   - kind: which mark
   ///   - size: the chips' marks are 18 (the mock's); the legend's 12
-  public init(theme: KTheme, kind: Kind, size: CGFloat = 18) {
+  ///   - frost: identity switch on: the sample window penPal and turn are drawn as; nil keeps the
+  ///     mosaic marks
+  public init(theme: KTheme, kind: Kind, size: CGFloat = 18, frost: KFrostSpec? = nil) {
     self.theme = theme
     self.kind = kind
     self.size = size
+    self.frost = frost
   }
 
   public var body: some View {
@@ -53,6 +63,33 @@ public struct KLegendGlyph: View {
 
   @ViewBuilder
   private var mark: some View {
+    if let frost, kind == .penPal || kind == .turn {
+      window(frost, ring: kind == .turn)
+    } else {
+      mosaicMark
+    }
+  }
+
+  /// The sample window (identity switch on); `ring`: inset by the your-turn ring, 1.5 of ind 1pt
+  /// clear of the window (KOrbitGeometry), as the orbit draws it.
+  @ViewBuilder
+  private func window(_ frost: KFrostSpec, ring: Bool) -> some View {
+    if ring {
+      let out = KOrbitGeometry.turnGap + KOrbitGeometry.turnRing
+      let side = max(1, size - 2 * out)
+      KFrost(theme: theme, spec: frost, size: side)
+        .frame(width: size, height: size)
+        .overlay {
+          RoundedRectangle(cornerRadius: frost.radius(side: side) + out, style: .circular)
+            .strokeBorder(theme.ind, lineWidth: KOrbitGeometry.turnRing)
+        }
+    } else {
+      KFrost(theme: theme, spec: frost, size: size)
+    }
+  }
+
+  @ViewBuilder
+  private var mosaicMark: some View {
     let u = size / 18
     switch kind {
     case .kindred:

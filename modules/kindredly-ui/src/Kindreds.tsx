@@ -2,7 +2,7 @@ import { requireNativeView } from "expo";
 import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
-import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark, type KMenuAction, type KScreenBaseProps, type KScreenHandle, type KSign, type KStandardCommands } from "./types";
 
 /* THE KINDREDS TAB, drawn by SwiftUI (ios/Portable/Kindreds/KKindredsScreen.swift, adapter
    ios/Adapters/KKindredsView.swift), for src/screens/kindreds/KindredsNative.tsx. Every word,
@@ -18,18 +18,29 @@ import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHan
 
    insets.top is the status bar (Swift draws the page colour under it and pins the band below
    it); insets.tabBarRoom is the floating bar's room (the last row clears it, plus 72 for the
-   bottom fade). Pass chips, orbit and items memoised, with a rev from useRev: Swift converts
-   them once per rev, and every prop change re-sends the whole props map (KCommandBus.swift). */
+   bottom fade). Pass chips, orbit, items and legendFrost memoised, with a rev from useRev over
+   all four: Swift converts them once per rev, and every prop change re-sends the whole props map
+   (KCommandBus.swift).
+
+   THE IDENTITY SWITCH (identity Phase 1) is data here, never a different screen: a pen pal's
+   face "frost" with its window, a row's ♀/♂ mark, star sign and "was No. 4481", a folded or
+   orbiting face's frost, and legendFrost (the PEN PALS mark's sample window). TS decides all of
+   it (src/lib/stranger-who through kindreds-model); off, every one of them is empty and the tab
+   is exactly what it was. A frost goes to Swift as NO_FROST when there is none (a record field
+   can't take null): nativeFrost below. */
 
 /** A face as Swift's KFace takes it (lib/faces faceRecord, plus the mosaic's ink). "bird" is
     Wren's official bird: a transparent snapshot (uri/key, "" while it is on its way) set at 62% on
     a soft2 disc, as OfficialBird draws it, rather than filling the circle like a portrait. */
 export type KKindredsFace = {
-  kind: "image" | "mosaic" | "veil" | "placeholder" | "bird";
+  /** "tile": a closed account's face while the identity switch is on (a flat veil square) */
+  kind: "image" | "mosaic" | "frost" | "veil" | "tile" | "placeholder" | "bird";
   uri: string;
   key: string;
   overscan: number;
   mask: number;
+  /** kind "frost" (a pen pal, identity on): the frosted window's spec (src/lib/faces faceRecord) */
+  frost?: KFrost | null;
   /** a mosaic's ink: the theme's ink, or ind */
   tint: "ink" | "ind";
 };
@@ -44,6 +55,12 @@ export type KKindredsRow = {
   /** the official mark (Wren) */
   faceBadge: boolean;
   name: string;
+  /** a pen pal's ♀/♂ mark after the name (identity switch on; an ink glyph in sub); null for none */
+  mark: KMark;
+  /** their star sign after the mark; null for none */
+  sign: KSign;
+  /** "was No. 4481" on the second line, for fourteen days after the switch; "" for none */
+  was: string;
   /** the name in sub (a quiet room, a closed account) */
   nameDim: boolean;
   /** "2/5"; "" */
@@ -65,7 +82,8 @@ export type KKindredsRow = {
   actions: KMenuAction[];
 };
 
-export type KKindredsFoldFace = { id: string; mask: number; a11yLabel: string };
+/** One folded face: the mosaic (`mask`), or with the identity switch on the window (`frost`). */
+export type KKindredsFoldFace = { id: string; mask: number; frost: KFrost | null; a11yLabel: string };
 export type KKindredsFold = { faces: KKindredsFoldFace[]; more: string; label: string; a11yLabel: string };
 
 export type KKindredsItemType =
@@ -104,7 +122,8 @@ export type KKindredsChip = {
   a11yLabel: string;
 };
 
-export type KKindredsOrbitItem = { id: string; mask: number; ring: number; a0: number; dir: number; period: number; turn: boolean };
+/** One stranger on the orbit: the mosaic (`mask`), or with the identity switch on their window (`frost`, never developing). */
+export type KKindredsOrbitItem = { id: string; mask: number; frost: KFrost | null; ring: number; a0: number; dir: number; period: number; turn: boolean };
 
 export type KKindredsStrings = {
   title: string;
@@ -137,6 +156,8 @@ export type KKindredsViewProps = CommonViewModifierProps &
     chips: KKindredsChip[];
     orbit: KKindredsOrbitItem[];
     items: KKindredsItem[];
+    /** identity switch on: the PEN PALS chip mark's and the your-turn legend's sample window (kindreds-model legendFrost); null off */
+    legendFrost?: KFrost | null;
     onRowPress?: (id: string) => void;
     onRowAction?: (id: string, key: string) => void;
     onWrenPress?: () => void;
@@ -155,9 +176,17 @@ export type KKindredsViewProps = CommonViewModifierProps &
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
 
-type NativeRow = Omit<KKindredsRow, "actions"> & { actions: { key: string; title: string; icon: string; destructive: boolean }[] };
+type NativeFace = Omit<KKindredsFace, "frost"> & { frost: KFrost };
+type NativeRow = Omit<KKindredsRow, "face" | "mark" | "sign" | "actions"> & {
+  face: NativeFace;
+  mark: string;
+  sign: string;
+  actions: { key: string; title: string; icon: string; destructive: boolean }[];
+};
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
-type NativeItem = { id: string; type: string; text: string; text2: string; image: NativeImage; row: NativeRow; fold: KKindredsFold };
+type NativeFold = Omit<KKindredsFold, "faces"> & { faces: (Omit<KKindredsFoldFace, "frost"> & { frost: KFrost })[] };
+type NativeItem = { id: string; type: string; text: string; text2: string; image: NativeImage; row: NativeRow; fold: NativeFold };
+type NativeOrbit = Omit<KKindredsOrbitItem, "frost"> & { frost: KFrost };
 
 type NativeKKindredsViewProps = Omit<
   KKindredsViewProps,
@@ -165,6 +194,8 @@ type NativeKKindredsViewProps = Omit<
   | "insets"
   | "rev"
   | "items"
+  | "orbit"
+  | "legendFrost"
   | "onRowPress"
   | "onRowAction"
   | "onWrenPress"
@@ -181,6 +212,8 @@ type NativeKKindredsViewProps = Omit<
   Required<Pick<KKindredsViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     items: NativeItem[];
+    orbit: NativeOrbit[];
+    legendFrost: KFrost;
     onKindredsRowPress?: Ev<{ id: string }>;
     onKindredsRowAction?: Ev<{ id: string; key: string }>;
     onKindredsWrenPress?: Ev<Record<string, never>>;
@@ -197,12 +230,15 @@ type NativeKKindredsViewProps = Omit<
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
-const NO_FACE: KKindredsFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, tint: "ink" };
+const NO_FACE: NativeFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, frost: nativeFrost(null), tint: "ink" };
 const NO_ROW: NativeRow = {
   id: "",
   face: NO_FACE,
   faceBadge: false,
   name: "",
+  mark: "",
+  sign: "",
+  was: "",
   nameDim: false,
   progress: "",
   time: "",
@@ -215,10 +251,11 @@ const NO_ROW: NativeRow = {
   a11yLabel: "",
   actions: [],
 };
-const NO_FOLD: KKindredsFold = { faces: [], more: "", label: "", a11yLabel: "" };
+const NO_FOLD: NativeFold = { faces: [], more: "", label: "", a11yLabel: "" };
 
 /* Items as the Swift records want them: every field present (a Swift @Field record can't take
-   null or undefined), every menu item's destructive flag spelled out. */
+   null or undefined): every menu item's destructive flag spelled out, a face's and a folded
+   face's frost NO_FROST when there is none, no mark or sign as "". */
 export function nativeKindredsItems(items: KKindredsItem[]): NativeItem[] {
   return items.map((it) => ({
     id: it.id,
@@ -226,17 +263,31 @@ export function nativeKindredsItems(items: KKindredsItem[]): NativeItem[] {
     text: it.text ?? "",
     text2: it.text2 ?? "",
     image: it.image ? { uri: it.image.uri, key: it.image.key, kind: it.image.kind ?? "image" } : NO_IMAGE,
-    row: it.row ? { ...it.row, actions: it.row.actions.map((a) => ({ key: a.key, title: a.title, icon: a.icon, destructive: a.destructive ?? false })) } : NO_ROW,
-    fold: it.fold ?? NO_FOLD,
+    row: it.row
+      ? {
+          ...it.row,
+          face: { ...it.row.face, frost: nativeFrost(it.row.face.kind === "frost" ? it.row.face.frost : null) },
+          mark: it.row.mark ?? "",
+          sign: it.row.sign ?? "",
+          was: it.row.was ?? "",
+          actions: it.row.actions.map((a) => ({ key: a.key, title: a.title, icon: a.icon, destructive: a.destructive ?? false })),
+        }
+      : NO_ROW,
+    fold: it.fold ? { ...it.fold, faces: it.fold.faces.map((f) => ({ id: f.id, mask: f.mask, frost: nativeFrost(f.frost), a11yLabel: f.a11yLabel })) } : NO_FOLD,
   }));
+}
+
+/** The orbit as the Swift records want it: each frost NO_FROST when there is none. */
+export function nativeKindredsOrbit(orbit: KKindredsOrbitItem[]): NativeOrbit[] {
+  return orbit.map((o) => ({ ...o, frost: nativeFrost(o.frost) }));
 }
 
 // the view's JS name is the Swift struct's name (ios/Adapters/KKindredsView.swift)
 const NativeKKindredsView = requireNativeView<NativeKKindredsViewProps>("KindredlyUI", "KKindredsView");
 
 /** The bare SwiftUI screen. Only inside an @expo/ui <Host>; its ref takes commands. Pass
-    `items`, `chips` and `orbit` memoised with a rev from useRev: the converted copy follows the
-    array's identity, so a render that changes nothing else doesn't resend them. */
+    `items`, `chips`, `orbit` and `legendFrost` memoised with a rev from useRev: the converted copy
+    follows the source's identity, so a render that changes nothing else doesn't resend them. */
 export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(function KKindredsView(
   {
     modifiers,
@@ -244,6 +295,8 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
     insets,
     rev,
     items,
+    orbit,
+    legendFrost,
     onRowPress,
     onRowAction,
     onWrenPress,
@@ -261,6 +314,8 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
   ref,
 ) {
   const sent = useMemo(() => nativeKindredsItems(items), [items]);
+  const sentOrbit = useMemo(() => nativeKindredsOrbit(orbit), [orbit]);
+  const sentLegend = useMemo(() => nativeFrost(legendFrost), [legendFrost]);
   return (
     <NativeKKindredsView
       ref={ref}
@@ -273,6 +328,8 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
       insets={insets ?? NO_INSETS}
       rev={rev ?? 0}
       items={sent}
+      orbit={sentOrbit}
+      legendFrost={sentLegend}
       onKindredsRowPress={onRowPress ? (e) => onRowPress(e.nativeEvent.id) : undefined}
       onKindredsRowAction={onRowAction ? (e) => onRowAction(e.nativeEvent.id, e.nativeEvent.key) : undefined}
       onKindredsWrenPress={onWrenPress ? () => onWrenPress() : undefined}

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { localeTag, penPalName, time24 } from "../../lib/format";
+import { localeTag, time24 } from "../../lib/format";
+import { developFor } from "../../lib/mosaic";
+import { useWhoBook } from "../../lib/who";
 import { reportContent, sendThreadMessage, signThread, theirLatest, type ThreadMessage } from "../../lib/db";
 import { chatSeenRule, useThreadDetail } from "../../lib/thread-detail";
 import { copyText } from "../../lib/clipboard";
@@ -82,9 +84,17 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
   const read = useCorrespondentRead(detail);
   const { ceremony, setCeremony, road, kindredNotice } = useCeremony(id, detail, status, { recentOnly: false });
 
-  /* a deleted correspondent has no number to show: every one of them would otherwise collapse
-     onto the same No. (penPalName reads ld.unsigned for them) */
-  const name = detail?.revealed ? detail.otherName || t("cm.kindred") : detail ? penPalName(detail.other) : "…";
+  /* WHO THEY ARE before names (lib/who): switch off, their No. and the mosaic as far as their
+     letters have carried it; on, the courier name the reader's list gives them, the frost, and
+     their ♀/♂ and star sign once the identity client answers. A deleted correspondent has no
+     number to show: every one of them would otherwise collapse onto the same No. (the book
+     reads ld.unsigned for them, either way) */
+  const book = useWhoBook({ uids: detail && !detail.revealed ? [detail.other] : [] });
+  const pal = useMemo(
+    () => (detail && !detail.revealed ? book.who(detail.other, { develop: developFor(detail.otherCount) }) : null),
+    [book, detail],
+  );
+  const name = detail?.revealed ? detail.otherName || t("cm.kindred") : pal ? pal.name : "…";
   /* the same sentence the list row shows — and ACCOUNT CLOSED for a gone pen pal, never a turn
      that can't be taken (spec bug 6) */
   const state = useMemo(
@@ -258,6 +268,10 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     status,
     reload,
     name,
+    /** the pen pal as the book gives them (name, mark, sign, face, spoken); null once names are traded or before the thread loads */
+    who: pal,
+    /** the identity switch (the reply bar is addressed to the courier name when on) */
+    identity: book.identity,
     wren,
     auth,
     read,

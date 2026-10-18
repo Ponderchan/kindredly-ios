@@ -13,7 +13,11 @@ import SwiftUI
 
  - The row sits 22 in from the edges (H:63-65), on the page colour, so the copy iOS lifts into
    its long-press menu isn't see-through (.kMenu preview .rect).
- - name: dim rows (a quiet room, a closed account) draw it in sub.
+ - name: dim rows (a quiet room, a closed account) draw it in sub. A pen pal with the identity
+   switch on is their courier name, with the ♀/♂ mark 6pt after it and the star sign 4pt after
+   that (KWhoMarks: ink glyphs in sub, at 14 beside the 17pt name), when TS sends them.
+ - was: for fourteen days after the switch, a pen pal from before it says "was No. 4481" on the
+   second line, after the tags and before the words, in mute (TS words it and decides when).
  - progress: a pen pal's "2/5", letters each way (the five-each rule); "" for none.
  - time: always mute (the owner keeps blue for the kindred number and YOUR TURN); "" hides it.
  - tags lead the preview, each in its own tone (ind YOUR TURN, mute THEIR TURN, brass SWAP
@@ -30,8 +34,10 @@ import SwiftUI
    AX3-AX5). The standard sizes keep the one line drawn above.
 
  Faces are drawn by KFace (52, round): a portrait or snapshot, a mosaic inked in the theme's ink
- (or ind), the veil, or the soft2 placeholder while a picture is on its way. Wren's official bird
- is the one face drawn here instead (.bird): her transparent snapshot at 62% on a soft2 disc, as
+ (or ind), the veil, or the soft2 placeholder while a picture is on its way. With the identity
+ switch on a pen pal is their frosted window instead (KFrost, 52 SQUARE with corners of 13: a
+ stranger is a square, a kindred a circle), and a closed account the flat veil tile.
+ Wren's official bird is the one face drawn here instead (.bird): her transparent snapshot at 62% on a soft2 disc, as
  OfficialBird (WrenDesk.tsx) draws her in the React Native list and H:65 shows, never stretched
  over the whole circle as a portrait would be.
  */
@@ -76,8 +82,12 @@ public enum KPersonFace: Equatable, Sendable {
   case image(KImageRef?, overscan: CGFloat)
   /// a pen pal's FACE v1 mask; `turn` inks it in ind instead of ink
   case mosaic(mask: Int, turn: Bool)
+  /// a pen pal with the identity switch on: their frosted window (square)
+  case frost(KFrostSpec)
   /// a deleted account
   case veil
+  /// a deleted account with the identity switch on: the flat veil tile (square)
+  case frostVeil
   case placeholder
   /// Wren's official bird: a transparent snapshot set at 62% on a soft2 disc (nil: the disc alone
   /// while it is on its way). KPersonRow draws it (KPersonBirdFace); KFace has no such source.
@@ -87,7 +97,9 @@ public enum KPersonFace: Equatable, Sendable {
     switch self {
     case let .image(ref, overscan): return .image(ref, overscan: overscan)
     case let .mosaic(mask, turn): return .mosaic(mask: mask, tint: turn ? theme.ind : theme.ink)
+    case let .frost(spec): return .frost(spec)
     case .veil: return .veil
+    case .frostVeil: return .frostVeil
     case .placeholder, .bird: return .placeholder
     }
   }
@@ -131,6 +143,12 @@ public struct KPersonRowModel: Identifiable, Equatable, Sendable {
   /// the official mark on the face (Wren)
   public let faceBadge: Bool
   public let name: String
+  /// the she/he mark after a pen pal's name (identity switch on); nil for none
+  public let mark: KLineGlyph?
+  /// the star sign after the mark; nil for none
+  public let sign: KLineGlyph?
+  /// "was No. 4481" on the second line (fourteen days after the switch); "" for none
+  public let was: String
   /// the name in sub (a closed account)
   public let nameDim: Bool
   /// "2/5"; "" for none
@@ -156,6 +174,9 @@ public struct KPersonRowModel: Identifiable, Equatable, Sendable {
     face: KPersonFace,
     faceBadge: Bool = false,
     name: String,
+    mark: KLineGlyph? = nil,
+    sign: KLineGlyph? = nil,
+    was: String = "",
     nameDim: Bool = false,
     progress: String = "",
     time: String = "",
@@ -172,6 +193,9 @@ public struct KPersonRowModel: Identifiable, Equatable, Sendable {
     self.face = face
     self.faceBadge = faceBadge
     self.name = name
+    self.mark = mark
+    self.sign = sign
+    self.was = was
     self.nameDim = nameDim
     self.progress = progress
     self.time = time
@@ -192,6 +216,8 @@ public struct KPersonRow: View, Equatable {
   public static let gap: CGFloat = 14
   public static let inset: CGFloat = 22
   static let name = KTextStyle.system(17, .semibold)
+  /// the mark and the sign beside the 17pt name (KWhoMarks)
+  static let markSize: CGFloat = 14
   static let time = KTextStyle.system(13)
   static let progress = KTextStyle.mono(11, .medium)
   static let preview = KTextStyle.system(15, lineHeight: 20.0 / 15.0)
@@ -255,6 +281,10 @@ public struct KPersonRow: View, Equatable {
       .foregroundStyle(row.nameDim ? theme.sub : theme.ink)
   }
 
+  private var marks: KWhoMarks {
+    KWhoMarks(mark: row.mark, sign: row.sign, size: Self.markSize, color: theme.sub)
+  }
+
   private var progressText: some View {
     Text(row.progress)
       .kText(Self.progress)
@@ -273,9 +303,12 @@ public struct KPersonRow: View, Equatable {
   private var header: some View {
     if typeSize.isAccessibilitySize {
       VStack(alignment: .leading, spacing: 2) {
-        nameText
-          .lineLimit(2)
-          .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+          nameText
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+          marks
+        }
         if !row.progress.isEmpty || !row.time.isEmpty {
           HStack(alignment: .firstTextBaseline, spacing: 8) {
             if !row.progress.isEmpty {
@@ -289,9 +322,13 @@ public struct KPersonRow: View, Equatable {
       }
     } else {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
-        nameText
-          .lineLimit(1)
-          .layoutPriority(1)
+        // the mark and the sign stay with the name (a long name gives way, never the glyphs)
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+          nameText
+            .lineLimit(1)
+          marks
+        }
+        .layoutPriority(1)
         if !row.progress.isEmpty {
           progressText
             .lineLimit(1)
@@ -328,7 +365,7 @@ public struct KPersonRow: View, Equatable {
     }
   }
 
-  /// The tags, "You: " and the words as one run of text, each part in its own colour.
+  /// The tags, "was No. 4481", "You: " and the words as one run of text, each part in its own colour.
   private var previewText: Text {
     var text = Text(verbatim: "")
     for tag in row.tags {
@@ -336,6 +373,10 @@ public struct KPersonRow: View, Equatable {
         .font(.system(size: tagSize, weight: .semibold))
         .tracking(0.3)
         .foregroundColor(tag.color(theme))
+    }
+    if !row.was.isEmpty {
+      // "was No. 4481": the number they wore before the courier named them, quiet
+      text = text + Text(verbatim: row.was + "  ").foregroundColor(theme.mute)
     }
     if !row.youPrefix.isEmpty {
       text = text + Text(verbatim: row.youPrefix).foregroundColor(theme.ink)

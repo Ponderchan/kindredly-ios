@@ -15,6 +15,7 @@ import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
 import { playbackCommandArgs } from "../../lib/voice-playback";
+import { useIdentityOn } from "../../lib/identity";
 import type { CardVM } from "./today-cards";
 import { useTodayBirds } from "./today-birds";
 import type { TodayModel } from "./useTodayDesk";
@@ -31,7 +32,10 @@ import type { TodayModel } from "./useTodayDesk";
    Native fallback draws) into the Swift props and commands:
    - props, which change rarely: the phase, NEXT's number, the cards
      (memoised apart from the drafts, with a rev, so typing never re-sends
-     fifteen letters), the plate's lock, her first-arrival line, her letter
+     fifteen letters; each header from the card's `who` and `when` once the
+     identity switch is on — courier names, frosted windows, ♀/♂ and star
+     signs — and from its old postmark line while it is off, so off is the
+     header exactly as it was), the plate's lock, her first-arrival line, her letter
      and the window for the day's end, her five pictures (her own look, from
      BirdSnapshots: useTodayBirds, wilted while she's starving), her yawn
      hours, the + panel, whether the band steps aside, and Wren on the band
@@ -58,13 +62,25 @@ import type { TodayModel } from "./useTodayDesk";
    (KWireWren), so there is no React Native fly-by over this Host (the old
    LetterInFlight would have been a second bird). */
 
-/** One card as the Swift view takes it. */
-export function nativeCard(c: CardVM): KTodayCard {
+/** One card as the Swift view takes it. With the identity switch on the header is drawn from `who`
+    and `when` (the identity-plan §9 header: the face slot, the name with its mark and sign, the date
+    under it; a deleted account wears the flat veil tile). Switch off, `postmark` carries the docket
+    line as it always read ("SEP.23 · NO.7273") and Swift draws the old header, the mosaic (or its
+    veil) beside it: off is every surface exactly as it was. */
+export function nativeCard(c: CardVM, identity: boolean): KTodayCard {
+  const face = c.who.face;
   return {
     id: c.id,
-    postmark: c.postmark,
-    mask: c.mask,
-    ghost: c.ghost,
+    who: {
+      name: c.who.name,
+      mark: c.who.mark,
+      sign: c.who.sign,
+      face: face.kind === "veil" ? (identity ? "tile" : "veil") : face.kind,
+      mask: face.kind === "mosaic" ? face.mask : 0,
+      frost: face.kind === "frost" ? face.spec : null,
+    },
+    when: c.when,
+    postmark: identity ? "" : c.postmark,
     stampId: c.stampId,
     stampHex: c.stampHex,
     stampName: c.stampName,
@@ -154,7 +170,9 @@ export function TodayNative({ model }: { model: TodayModel }) {
   }, [navigation, commands]);
 
   /* ── props ── */
-  const cards = useMemo(() => view.cards.map(nativeCard), [view.cards]);
+  // the identity switch, as the cards' book read it (lib/identity): which header Swift draws, and the deleted writer's veil
+  const identity = useIdentityOn();
+  const cards = useMemo(() => view.cards.map((c) => nativeCard(c, identity)), [view.cards, identity]);
   const rev = useRev(cards);
   const s = view.strings;
   const strings = useSame<KTodayStrings>({

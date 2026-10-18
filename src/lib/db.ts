@@ -4,6 +4,7 @@
    user's user_metadata (the web read it from a localStorage session mirror). */
 
 import { supabase, supabaseReady } from "./supabase";
+import { forgetMarks } from "./identity";
 import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
 import { t } from "./i18n";
@@ -648,6 +649,11 @@ export interface ThreadSummary {
   fromMyLetter?: boolean;
   /** when both names were sealed (0020) — the date on a Kindred's card */
   revealedAt?: number | null;
+  /** when the thread was opened (threads.created_at, epoch ms): the reader's list
+      is ordered by it, oldest first, to give each stranger a courier name that
+      never repeats within the list (lib/stranger-name). Missing in a list kept
+      from before it was fetched: sorts as the oldest, then by id. */
+  createdAt?: number | null;
 }
 /* THE LAST GOOD LIST, KEPT. Kindreds is a tab; it should open like one.
    Every fetch writes its result here (memory + the account's own storage),
@@ -656,11 +662,30 @@ export interface ThreadSummary {
 const THREADS_CACHE_KEY = "kindredly_threads_cache";
 let threadsMem: ThreadSummary[] | null = null;
 let threadsFetchedAt = 0;
+/* WHO ELSE FOLLOWS THE KEPT LIST. The courier names (lib/who) are worked
+   out from the reader's whole list, oldest thread first, so a screen that
+   holds no list of its own (a chat, the reader, the blocked list) follows
+   this one: told whenever the kept copy changes (read from storage, a
+   fresh fetch, a thread forgotten). */
+const threadsListeners = new Set<() => void>();
+function setThreadsMem(list: ThreadSummary[] | null): void {
+  threadsMem = list;
+  threadsListeners.forEach((f) => f());
+}
+/** The kept list as it stands in memory, without waiting (null = not read yet this run). */
+export const keptThreads = (): ThreadSummary[] | null => threadsMem;
+/** Told whenever the kept list changes; returns the unsubscribe (for useSyncExternalStore). */
+export function subscribeKeptThreads(f: () => void): () => void {
+  threadsListeners.add(f);
+  return () => {
+    threadsListeners.delete(f);
+  };
+}
 export async function readThreadsCache(): Promise<ThreadSummary[] | null> {
   if (threadsMem) return threadsMem;
   try {
     const raw = await scoped.getItem(THREADS_CACHE_KEY);
-    if (raw) threadsMem = JSON.parse(raw) as ThreadSummary[];
+    if (raw && !threadsMem) setThreadsMem(JSON.parse(raw) as ThreadSummary[]);
   } catch {
     /* no cache is just a cold start */
   }
@@ -704,7 +729,7 @@ export function fetchThreadsResult(): Promise<ThreadsResult> {
   const run = (async (): Promise<ThreadsResult> => {
     const r = await fetchThreadsUncached();
     if (r.status === "ok" && gen === threadsGen) {
-      threadsMem = r.threads;
+      setThreadsMem(r.threads);
       threadsFetchedAt = Date.now();
       void scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(r.threads)).catch(() => {});
     }
@@ -730,7 +755,7 @@ export async function forgetThread(threadId: string): Promise<void> {
   threadsGen++;
   const list = (await readThreadsCache())?.filter((x) => x.id !== threadId);
   if (!list) return;
-  threadsMem = list;
+  setThreadsMem(list);
   threadsFetchedAt = 0;
   await scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(list)).catch(() => {});
 }
@@ -744,7 +769,7 @@ async function fetchThreadsUncached(): Promise<ThreadsResult> {
     let { data, error, status } = await supabase!
       .from("threads")
       .select(
-        "id,a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at",
+        "id,a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at,created_at",
       )
       .or(`a.eq.${me},b.eq.${me}`)
       .order("last_at", { ascending: false });
@@ -753,7 +778,7 @@ async function fetchThreadsUncached(): Promise<ThreadsResult> {
       const retry = await supabase!
         .from("threads")
         .select(
-          "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,last_sender,last_body,last_at",
+          "id,a,b,stamp,revealed,a_count,b_count,a_name,b_name,opening,last_sender,last_body,last_at,created_at",
         )
         .or(`a.eq.${me},b.eq.${me}`)
         .order("last_at", { ascending: false });
@@ -812,6 +837,7 @@ async function fetchThreadsUncached(): Promise<ThreadsResult> {
         revealedAt: r.revealed_at ? Date.parse(r.revealed_at) : null,
         lastSenderMe: r.last_sender === me,
         lastAt: r.last_at ? Date.parse(r.last_at) : Date.now(),
+        createdAt: r.created_at ? Date.parse(r.created_at) : null,
       } as ThreadSummary;
     });
     return { status: "ok", threads };
@@ -1294,7 +1320,9 @@ export async function unblockUser(targetUser: string): Promise<true | null> {
   if (!me) return null;
   try {
     const { error } = await supabase!.from("blocks").delete().eq("blocker", me).eq("blocked", targetUser);
-    return error ? noteFail(error) : true;
+    if (error) return noteFail(error);
+    forgetMarks(targetUser); // their ♀/♂ and sign are asked again, now that marks_for may answer (lib/identity)
+    return true;
   } catch (e) {
     return noteFail(e);
   }
@@ -1311,7 +1339,9 @@ export async function blockUser(targetUser: string): Promise<true | null> {
     const { error } = await supabase!
       .from("blocks")
       .upsert({ blocker: me, blocked: targetUser }, { onConflict: "blocker,blocked" });
-    return error ? noteFail(error) : true;
+    if (error) return noteFail(error);
+    forgetMarks(targetUser); // marks_for stops answering for a blocked pair; drop what this session kept (lib/identity)
+    return true;
   } catch (e) {
     return noteFail(e);
   }

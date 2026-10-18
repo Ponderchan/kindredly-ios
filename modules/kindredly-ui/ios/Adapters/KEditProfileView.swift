@@ -23,6 +23,9 @@ import ExpoUI
  - rows: { pen, pronoun, birthday, courier } as { label, value }; pronounOptions [{ id, label }];
    pronounSelected
  - note: { present, title, body, see, keep, faces: [image] }
+ - letters: ON YOUR LETTERS, the identity switch's two switches { present, header, markShown,
+   markLabel, markNote, markOn, signLabel, signNote, signOn }; present false (the switch off)
+   draws no group, and markShown false (they / unset) no mark row
  The records are converted once per rev (useRev in TS).
 
  Children: one <KIsland name="avatar"> (112 × 112): AvatarImage, which draws every kind of face
@@ -37,6 +40,8 @@ import ExpoUI
  - onEditFace { id }            a face in the strip
  - onEditPen {}                 the Pen name row
  - onEditPronoun { id }         a pronoun from the menu (she | he | they)
+ - onEditShowMark { on }        ON YOUR LETTERS: the ♀/♂ switch asks for this value (TS saves it)
+ - onEditShowSign { on }        ON YOUR LETTERS: the star sign's switch asks for this value
  - onEditCourierName {}         the courier's Name row
  - onEditNoteSee {}             the new-faces note: See new faces (TS puts the note away; Swift
                                 scrolls to the strip once the note-less props arrive)
@@ -105,6 +110,29 @@ struct KEditNoteRecord: Record {
   }
 }
 
+/// ON YOUR LETTERS (identity switch on); present false draws no group.
+struct KEditLettersRecord: Record {
+  @Field var present: Bool = false
+  @Field var header: String = ""
+  /// false: no mark row (they / unset)
+  @Field var markShown: Bool = false
+  @Field var markLabel: String = ""
+  @Field var markNote: String = ""
+  @Field var markOn: Bool = false
+  @Field var signLabel: String = ""
+  @Field var signNote: String = ""
+  @Field var signOn: Bool = true
+
+  var letters: KEditLetters? {
+    guard present else { return nil }
+    var l = KEditLetters()
+    l.header = header
+    l.mark = markShown ? KEditToggle(label: markLabel, note: markNote, on: markOn) : nil
+    l.sign = KEditToggle(label: signLabel, note: signNote, on: signOn)
+    return l
+  }
+}
+
 final class KEditProfileViewProps: KScreenProps {
   @Field var strings: KEditProfileStringsRecord = KEditProfileStringsRecord()
   @Field var faces: [KEditFaceRecord] = []
@@ -113,6 +141,7 @@ final class KEditProfileViewProps: KScreenProps {
   @Field var pronounOptions: [KEditPronounOptionRecord] = []
   @Field var pronounSelected: String = ""
   @Field var note: KEditNoteRecord = KEditNoteRecord()
+  @Field var letters: KEditLettersRecord = KEditLettersRecord()
 
   var onEditBack = EventDispatcher()
   var onEditPhoto = EventDispatcher()
@@ -120,6 +149,8 @@ final class KEditProfileViewProps: KScreenProps {
   var onEditFace = EventDispatcher()
   var onEditPen = EventDispatcher()
   var onEditPronoun = EventDispatcher()
+  var onEditShowMark = EventDispatcher()
+  var onEditShowSign = EventDispatcher()
   var onEditCourierName = EventDispatcher()
   var onEditNoteSee = EventDispatcher()
   var onEditNoteKeep = EventDispatcher()
@@ -136,6 +167,8 @@ final class KEditProfileViewProps: KScreenProps {
     a.onFace = { [weak self] id in self?.onEditFace(["id": id]) }
     a.onPen = { [weak self] in self?.onEditPen() }
     a.onPronoun = { [weak self] id in self?.onEditPronoun(["id": id]) }
+    a.onShowMark = { [weak self] on in self?.onEditShowMark(["on": on]) }
+    a.onShowSign = { [weak self] on in self?.onEditShowSign(["on": on]) }
     a.onCourierName = { [weak self] in self?.onEditCourierName() }
     a.onNoteSee = { [weak self] in self?.onEditNoteSee() }
     a.onNoteKeep = { [weak self] in self?.onEditNoteKeep() }
@@ -167,6 +200,7 @@ final class KEditProfileViewProps: KScreenProps {
       c.pronounOptions = pronounOptions.filter { !$0.id.isEmpty }.map { KEditPronounOption(id: $0.id, label: $0.label) }
       c.pronounSelected = pronounSelected
       c.birthday = rows.birthday.row
+      c.letters = letters.letters
       c.courierHeader = strings.courierHeader
       c.courier = rows.courier.row
       c.footer = strings.footer

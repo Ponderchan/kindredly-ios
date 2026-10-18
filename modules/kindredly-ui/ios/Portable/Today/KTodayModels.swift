@@ -42,15 +42,50 @@ public enum KCardCapsule: Equatable, Sendable {
   case signal(label: String, glyph: KAurasClose.Glyph)
 }
 
+/// Who wrote a desk letter, as the card's header draws it (identity-plan §9: today-cards CardWho,
+/// from src/lib/stranger-who). The identity switch decides what TS sends, never Swift: off, the
+/// writer's number ("No. 7273") and their FACE v1 mosaic, no mark, no sign; on, the courier's
+/// name for them ("Sunday Kite"), their frosted window, and the ♀/♂ mark and star sign they show.
+/// A deleted account is UNSIGNED behind a veil either way.
+public struct KCardWho: Equatable, Sendable {
+  /// What the 40 square face slot holds.
+  public enum Face: Equatable, Sendable {
+    /// switch off: FACE v1 (bit row × 5 + column), 28 across, centred in the slot
+    case mosaic(Int)
+    /// switch on: the frosted window, filling the slot
+    case frost(KFrostSpec)
+    /// a deleted account, switch off: the mosaic veil in faint
+    case veil
+    /// a deleted account, switch on: the flat veil tile
+    case frostVeil
+  }
+
+  /// "No. 7273", "Sunday Kite", UNSIGNED: one line, never truncated (the 165pt gate)
+  public var name = ""
+  /// the she/he mark after the name; nil for none
+  public var mark: KLineGlyph?
+  /// the star sign after the mark; nil for none
+  public var sign: KLineGlyph?
+  public var face: Face = .veil
+
+  public init(name: String = "", mark: KLineGlyph? = nil, sign: KLineGlyph? = nil, face: Face = .veil) {
+    self.name = name
+    self.mark = mark
+    self.sign = sign
+    self.face = face
+  }
+}
+
 /// One desk letter, every word already set by TS (today-cards buildCard).
 public struct KLetterCardModel: Identifiable, Equatable, Sendable {
   public var id = ""
-  /// "SEP.23 · NO.7273"
+  /// who wrote it: the face slot, the name, the mark and the sign (KCardWho)
+  public var who = KCardWho()
+  /// the identity switch off: the docket line as it always read, "SEP.23 · NO.7273", which the
+  /// card draws beside the mosaic in place of the §9 header; "" with the switch on (TS decides)
   public var postmark = ""
-  /// FACE v1, bit row × 5 + column
-  public var mask = 0
-  /// a deleted account: the veil in faint
-  public var ghost = false
+  /// "SEP.23": when it was posted, the date alone, under the name
+  public var when = ""
   public var stampId = ""
   public var stampHex = ""
   /// VoiceOver's name for the stamp ("" hides it)
@@ -75,7 +110,8 @@ public struct KLetterCardModel: Identifiable, Equatable, Sendable {
   /// Bring back, or nothing, on an unsigned letter
   public var menu: [KMenuItem] = []
   public var a11yLabel = ""
-  /// the reply field's placeholder for this letter: "write back to No. 7273…" ("write back…" unsigned)
+  /// the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to
+  /// Sunday Kite…"), or "write back…" unsigned
   public var replyPlaceholder = ""
 
   public init() {}

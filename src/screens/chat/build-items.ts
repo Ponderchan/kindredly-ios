@@ -6,6 +6,7 @@ import type { KChatDock, KChatFace, KChatFoldHalf, KChatHeader, KChatItem, KChat
 import type { ThreadStateKind, ThreadToneKey } from "../../lib/thread-state";
 import { foldOver } from "../../lib/thread-detail-core";
 import { developFor, mosaicMask } from "../../lib/mosaic";
+import type { StrangerWho } from "../../lib/stranger-who";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { parseSongUrl } from "../../lib/song";
 
@@ -36,8 +37,15 @@ import { parseSongUrl } from "../../lib/song";
    · the room's ideas (the Kindreds bar's Sparkle, B): the order the 36
      stamps' prompts are offered in, theirs first, shuffled per room
 
+   WHO THE PEN PAL IS (identity Phase 1) comes in resolved, from the
+   screen's book (lib/stranger-who, lib/who useWhoBook): `name` is their
+   "No. 5422" or, with the switch on, the courier name; the header takes
+   the whole `who` for the frost, the ♀/♂ mark and the star sign. With no
+   `who` (the switch off) the header is exactly what it was.
+
    THE PEN-PAL CARDS (A2): the pen-pal chat draws each letter as a card
-   with a head line (LETTER 3 · NO. 5422 / LETTER 3 · YOU) and moves the
+   with a head line (LETTER 3 · NO. 5422 / LETTER 3 · YOU; with the switch
+   on LETTER 3 · SUNDAY KITE) and moves the
    day into a day rule, as a room has (buildLetterItems cards: true), in
    SwiftUI and in the React Native fallback alike. Letters are
    counted per writer from the first after the opening — the five each way
@@ -248,7 +256,7 @@ export type ItemsCtx = MenuCtx & {
   locale: string;
   /** a message's day as a label ("OCT 14"), for day rules and VoiceOver */
   day: (iso: string) => string;
-  /** their display name: the revealed name, or "No. 4481" */
+  /** their display name: the revealed name, or "No. 4481" (switch on, the courier name: lib/stranger-who) */
   name: string;
   /** a message's stable key (the client key of a send, else messageKey) */
   keyOf: (m: ThreadMessage) => string;
@@ -696,7 +704,14 @@ export function buildRoomDock(i: RoomDockInput): KChatDock {
 
 export type LettersDockInput = {
   t: TFn;
+  /** the revealed name, or the pen pal's name as the book gives it ("No. 4481"; switch on, the courier name) */
   name: string;
+  /** the identity switch: before names, the reply bar is addressed to the courier name (as the desk's is) */
+  identity?: boolean;
+  /** i18n hasString: whether the reader's language has its own words for a key. "write back to {name}"
+      (ld.writeBackTo) is English-only for now, so a reader in another language keeps their own "write
+      back…" rather than an English line (today-cards does the same); absent = assume it has */
+  has?: (key: string) => boolean;
   revealed: boolean;
   gone: boolean;
   /** the server says this reader has no such thread: closed in place */
@@ -739,8 +754,13 @@ export function buildLettersDock(i: LettersDockInput): KChatDock {
     signLabel: signDoor === "waiting" ? t("ch.wentFirst") : signDoor === "theirsFirst" ? t("ch.theyFirst") : signDoor === "offer" ? t("ch.sendYours") : "",
     terminal: i.gone || i.missing ? "gone" : "none",
     goneText: i.gone ? t("ch.gone") : t("fail.closed.body"),
-    // before names you write back (the reply bar's own words, A2); after, a person you talk to
-    placeholder: i.revealed ? t("th.sayTo", { name: i.name }) : t("ld.writeBackPh"),
+    // before names you write back (the reply bar's own words, A2) — to the courier name once the switch is on, as on
+    // the desk; after, a person you talk to
+    placeholder: i.revealed
+      ? t("th.sayTo", { name: i.name })
+      : i.identity && !i.gone && !i.missing && i.name && (i.has?.("ld.writeBackTo") ?? true)
+        ? t("ld.writeBackTo", { name: i.name })
+        : t("ld.writeBackPh"),
     sendLabel: t("ld.send"),
     hint: lettersHint(i),
     emojiLabel: t("cmp.emoji"),
@@ -830,8 +850,11 @@ export function bandFacts(myCount: number, otherCount: number, t: TFn): BandFact
 export type LettersHeaderInput = {
   t: TFn;
   locale: string;
-  /** their pen-pal name ("No. 5422") */
+  /** their pen-pal name ("No. 5422"; switch on, the courier name) */
   name: string;
+  /** who they are, from the screen's book (lib/stranger-who): with the switch on it brings the frost,
+      the mark, the sign and VoiceOver's words. Absent, or the switch off: today's header exactly */
+  who?: StrangerWho | null;
   /** their user id; null for a deleted account (the veil) */
   other: string | null;
   myCount: number;
@@ -869,6 +892,8 @@ export function lettersHeader(i: LettersHeaderInput): KChatHeader {
   sub = sub.toLocaleUpperCase(i.locale);
   const seed = i.other || null;
   const dots = Math.min(i.myCount, i.otherCount, REVEAL);
+  // switch on: the frosted window in the face slot (it never develops), the mark and the sign after the name
+  const frost = seed && i.who?.face.kind === "frost" ? i.who.face.spec : null;
   return {
     room: false,
     face: NO_FACE,
@@ -876,11 +901,15 @@ export function lettersHeader(i: LettersHeaderInput): KChatHeader {
     sub,
     tone,
     mask: seed ? mosaicMask(seed, developFor(i.otherCount)) : 0,
+    frost,
+    mark: seed ? i.who?.mark ?? null : null,
+    sign: seed ? i.who?.sign ?? null : null,
     veil: !seed,
     // CorrespondentFace: a face that has come through is framed; brass once they went first
     frame: !seed || i.otherCount < REVEAL ? "none" : i.theirSigned ? "brass" : "line",
     dots,
-    a11yLabel: join(i.name, sub, t("mk.ofFive", { n: dots })),
+    // VoiceOver: "Sunday Kite, she, Gemini" with the switch on (the name alone off), the line, the dots
+    a11yLabel: join(seed && i.who ? i.who.spoken : i.name, sub, t("mk.ofFive", { n: dots })),
     canOpenPage: i.canOpenPage,
     backLabel: t("a11y.back"),
     moreLabel: i.canReport ? t("rp.menu.a11y") : "",
@@ -916,6 +945,10 @@ export function roomHeader(i: RoomHeaderInput): KChatHeader {
     sub,
     tone: "mute",
     mask: 0,
+    // a kindred: no window, no mark, no sign (the face and the name say enough)
+    frost: null,
+    mark: null,
+    sign: null,
     veil: false,
     frame: "none",
     dots: 0,

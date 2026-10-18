@@ -4,6 +4,7 @@ import type { WriteFail } from "../../lib/thread-detail-core";
 import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { VEIL_MASK, mosaicMask } from "../../lib/mosaic";
+import { whoBook, type StrangerWho, type WhoBook } from "../../lib/stranger-who";
 import { DAY_LETTERS, MAX_IN_FLIGHT, rationPool } from "../../lib/ration";
 import { MORNING_HOUR, isNightHour, untilMorning } from "../../lib/day";
 import { channelColors } from "../../theme/post";
@@ -32,10 +33,13 @@ import { channelColors } from "../../theme/post";
      she's starving;
    - the seal: what the day's sealed flag means against the desk (a flag
      over a desk that is reading again is stale, and goes);
-   - the card: who wrote it (the `who` slot: the pen pal's number in the
-     reader's language until the names switch, or UNSIGNED, no mark and no
-     sign yet, the FACE v1 mask or the veil) and when; docket (postmark ·
-     number, the header as drawn today), the stamp and its
+   - the card: who wrote it (the `who` slot, from lib/stranger-who's book:
+     switch off, the pen pal's number in the reader's language, no mark,
+     no sign, the FACE v1 mask; switch on, the courier name, the ♀/♂ mark
+     and the star sign once the identity client answers, the frosted
+     window; UNSIGNED and the veil for a deleted account either way) and
+     when; docket (postmark · number, the header as drawn today; the
+     courier name in capitals once the switch is on), the stamp and its
      topic tag in the stamp's channel colours worked out on the card's own
      face, the body in its tier, the voice block, ONE capsule slot
      (translation wins over the signal, owner), the ⋯ menu (Report / Block
@@ -61,6 +65,9 @@ export type TodayFormat = {
   postNo: (uid: string) => number;
   /** format.penPalName: "No. 7273" / "NO.7273" / "N.º7273", in the reader's language */
   penPal: (uid: string, o: { upper: boolean; compact: boolean }) => string;
+  /** who strangers are (lib/who useWhoBook: the identity switch, the courier names, the marks,
+      the frost). Absent = the switch off, built from `penPal`: exactly the header as it was */
+  who?: WhoBook;
   /** m:ss (format.fmt) */
   clock: (seconds: number) => string;
   /** format.clockTime of today at hour:00, in the reader's clock: "8:00 AM", "8:00" */
@@ -481,37 +488,43 @@ export type CardCapsule =
   | { kind: "translate"; code: string; label: string; enabled: boolean; value: string }
   | { kind: "signal"; label: string; glyph: "rings" | "clock" | "stickers" };
 
-/* ── who wrote it (identity-plan §9 + addendum, Phase 0: the slot in its
-   final shape now, so the names switch is a change of data, not of layout) ── */
+/* ── who wrote it (identity-plan §9 + addendum: the slot in its final shape,
+   so the names switch is a change of data, not of layout) ── */
 
-/** the twelve star signs (the addendum: the sign shows, never the date or the year); moves to its own module with the switch */
-export type Zodiac = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces";
+export type { Zodiac } from "../../lib/zodiac";
 
-/** The writer, as the card header names them. */
-export type CardWho = {
-  /** until the switch: "No. 7273" (penPal, title case); after it: the courier's name ("Sunday Kite"); a deleted author: UNSIGNED */
-  name: string;
-  /** the she/he mark, for a writer who opted in: null until the switch */
-  mark: "she" | "he" | null;
-  /** what VoiceOver says for the mark ("she" / "ella" / "女性"); "" for none */
-  markLabel: string;
-  /** the star sign beside the mark: null until the switch, or with no birthday */
-  sign: Zodiac | null;
-  /** VoiceOver's name for the sign; "" for none */
-  signLabel: string;
-  /** the face slot: the FACE v1 mosaic until the switch (the frost after it), the veil for a deleted account */
-  face: { kind: "mosaic"; mask: number } | { kind: "veil" };
-};
+/**
+ * The writer, as the card header names them (lib/stranger-who StrangerWho):
+ * - name: switch off "No. 7273" (penPal, title case); on, the courier's name ("Sunday Kite"); a deleted author UNSIGNED
+ * - mark / markLabel: the she/he mark (an ink glyph in sub, 6pt after the name) and its VoiceOver word; null / "" when off or none
+ * - sign / signLabel: the star sign (a line glyph 4pt after the mark) and its name; null / "" when off, none or opted out
+ * - face: the FACE v1 mosaic (off), the frosted window (on: { kind: "frost", spec }), the veil (a deleted account)
+ * - spoken: VoiceOver's words for the writer ("Sunday Kite, she, Gemini"; off, the name)
+ */
+export type CardWho = StrangerWho;
+
+/** The book a builder uses: the caller's, or (none given) the switch off, from its penPal and t. */
+export function bookOf(fmt: Pick<TodayFormat, "t" | "penPal" | "who">): WhoBook {
+  return (
+    fmt.who ??
+    whoBook({
+      identity: false,
+      t: fmt.t,
+      lang: "en",
+      penPal: (uid, o) => (uid ? fmt.penPal(uid, { upper: !!o.upper, compact: !!o.compact }) : fmt.t("ld.unsigned")),
+    })
+  );
+}
 
 export type CardVM = {
   id: string;
-  /** the writer: name, mark, sign, face. `postmark` / `mask` / `ghost` below carry the same facts for the header as it is drawn today; the renderers move to `who` + `when` with the new header */
+  /** the writer: name, mark, sign, face, spoken. `postmark` / `mask` / `ghost` below carry the header as it is drawn today; the renderers move to `who` + `when` with the new header (and must, before the switch goes on: only `who` has the frost, the mark and the sign) */
   who: CardWho;
   /** "SEP.23": when it was posted, the date alone */
   when: string;
-  /** "SEP.23 · NO.7273" or "SEP.23 · UNSIGNED" */
+  /** "SEP.23 · NO.7273" or "SEP.23 · UNSIGNED"; switch on, "SEP.23 · SUNDAY KITE" */
   postmark: string;
-  /** FACE v1 25-bit mask, or VEIL_MASK for a ghost */
+  /** FACE v1 25-bit mask (fully in), or VEIL_MASK for a ghost — today's header, either way (the frost is who.face) */
   mask: number;
   /** the author deleted their account: the veil, in faint */
   ghost: boolean;
@@ -540,9 +553,9 @@ export type CardVM = {
   capsule: CardCapsule;
   /** the ⋯ menu: Report / Block (signed letters), then Bring back (the card on screen, after a pass); [] for none */
   menu: KMenuAction[];
-  /** the reply field's placeholder for this letter: "write back to No. 7273…", or "write back…" unsigned */
+  /** the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to Sunday Kite…"), or "write back…" unsigned */
   replyPlaceholder: string;
-  /** what VoiceOver reads for the whole card */
+  /** what VoiceOver reads for the whole card: off, "SEP.23 · NO.7273. #topic. …"; on, "Sunday Kite, she, Gemini. SEP.23. #topic. …" */
   a11yLabel: string;
   /** a dev sample (demo-): skips the counters, the read receipt and the pouch */
   demo: boolean;
@@ -557,9 +570,9 @@ export type CardInput = {
   voiceReady: boolean;
 };
 
-/** The docket line: when it was posted and who by (the pen pal's number, "NO.7273" / "N.º7273"), or UNSIGNED. */
-export function docket(letter: Pick<PoolLetter, "created_at" | "author">, fmt: Pick<TodayFormat, "postmark" | "penPal" | "t">): string {
-  return `${fmt.postmark(letter.created_at)} · ${letter.author ? fmt.penPal(letter.author, { upper: true, compact: true }) : fmt.t("ld.unsigned")}`;
+/** The docket line: when it was posted and who by (the pen pal's number, "NO.7273" / "N.º7273"; switch on, the courier name in capitals), or UNSIGNED. */
+export function docket(letter: Pick<PoolLetter, "created_at" | "author">, fmt: Pick<TodayFormat, "postmark" | "penPal" | "t" | "who">): string {
+  return `${fmt.postmark(letter.created_at)} · ${letter.author ? bookOf(fmt).name(letter.author, { upper: true, compact: true }) : fmt.t("ld.unsigned")}`;
 }
 
 /** The capsule slot: translation wins (owner), else the signal, else nothing. */
@@ -622,32 +635,32 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
   const ready = isVoice && voiceReady;
   const durationLabel = letter.duration_s && letter.duration_s > 0 ? fmt.clock(letter.duration_s) : "";
   const capsule: CardCapsule = isVoice ? (signal ? capsuleFor(null, null, signal, fmt) : { kind: "none" }) : capsuleFor(offer, xl, signal, fmt);
+  /* the writer (identity-plan §9): switch off, their number in title case
+     ("No. 7273"), no mark, no sign, the FACE v1 mosaic fully in; switch on,
+     the courier's name, the mark and the sign as the identity client
+     answered (none until it does), the frosted window. A deleted account
+     is UNSIGNED behind the veil either way. */
+  const book = bookOf(fmt);
+  const who: CardWho = book.who(letter.author || null, { develop: 1 });
+  const when = fmt.postmark(letter.created_at);
   /* WHAT VOICEOVER HEARS is everything the eye gets from the card, since it
-     reads the card as one element (its children are ignored): the docket,
-     the topic, why the matcher chose it (the lime capsule, beside the topic
-     at the foot; a translate capsule is an action instead), then the letter
-     — or, for a voice letter, that it is one, how long it is, that it can't
-     play yet (its link isn't signed), and the writer's caption. */
+     reads the card as one element (its children are ignored): who wrote it
+     and when (off, the docket as it always read, "SEP.23 · NO.7273"; on,
+     "{name}, {mark}, {sign}. {when}." — the plan's header label, never the
+     number), the topic, why the matcher chose it (the lime capsule, beside
+     the topic at the foot; a translate capsule is an action instead), then
+     the letter — or, for a voice letter, that it is one, how long it is,
+     that it can't play yet (its link isn't signed), and the writer's
+     caption. */
   const why = capsule.kind === "signal" ? capsule.label : "";
   const words = isVoice ? [fmt.t("ld.voiceLetter"), durationLabel, ready ? "" : fmt.t("ld.voice.unavailable"), caption].filter(Boolean).join(". ") : shown;
-  /* the writer: their number in title case until the names switch ("No.
-     7273"), no mark and no sign yet, the FACE v1 mosaic (identity-plan §9).
-     The switch fills the same slot with the courier's name, the mark, the
-     sign and the frost; a deleted account keeps the veil and UNSIGNED. */
-  const who: CardWho = {
-    name: letter.author ? fmt.penPal(letter.author, { upper: false, compact: false }) : fmt.t("ld.unsigned"),
-    mark: null,
-    markLabel: "",
-    sign: null,
-    signLabel: "",
-    face: letter.author ? { kind: "mosaic", mask: mosaicMask(letter.author, 1) } : { kind: "veil" },
-  };
+  const head = book.identity ? [who.spoken, when] : [post];
   return {
     id: letter.id,
     who,
-    when: fmt.postmark(letter.created_at),
+    when,
     postmark: post,
-    mask: who.face.kind === "mosaic" ? who.face.mask : VEIL_MASK,
+    mask: letter.author ? mosaicMask(letter.author, 1) : VEIL_MASK,
     ghost: !letter.author,
     stampId: letter.stamp,
     stampHex: st?.color ?? "",
@@ -668,7 +681,7 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     menu: cardMenu(letter, fmt.t, o),
     // the field names the writer as the header does (who.name); until the reader's language has that line, its own "write back…"
     replyPlaceholder: letter.author && (fmt.has?.("ld.writeBackTo") ?? true) ? fmt.t("ld.writeBackTo", { name: who.name }) : fmt.t("ld.writeBackPh"),
-    a11yLabel: [post, topic, why, words].filter(Boolean).join(". "),
+    a11yLabel: [...head, topic, why, words].filter(Boolean).join(". "),
     demo: letter.id.startsWith("demo"),
   };
 }

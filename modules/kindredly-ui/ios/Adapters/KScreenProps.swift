@@ -42,6 +42,10 @@ import os
  - KImageRefRecord      { uri, key, kind }  -> `.ref` is the Portable KImageRef (or nil)
  - KMenuActionRecord    { key, title, icon, destructive }, the TS KMenuAction; map it onto
                          kit-portable's KMenuItem for .kMenu
+ - KFrostRecord         a stranger's frosted window (identity Phase 1), the TS KFrost / the app's
+                         src/lib/frost FrostSpec field for field -> `.spec` is the Portable
+                         KFrostSpec, or nil for none: TS sends NO_FROST (v 0) where it has no
+                         window, since a record field can't take null
  */
 
 /// The screen's safe-area and tab-bar room, as TS measures them (useScreenInsets()).
@@ -80,6 +84,88 @@ struct KMenuActionRecord: Record {
   /// an SF Symbol name, e.g. "flag"
   @Field var icon: String = ""
   @Field var destructive: Bool = false
+}
+
+/// One light of a frosted window (src/lib/frost FrostBlob): a radial gradient at (x, y), radius
+/// r, in units of the window's side; `color` is "#RRGGBB".
+struct KFrostBlobRecord: Record {
+  @Field var tone: String = ""
+  @Field var color: String = ""
+  @Field var x: Double = 0.5
+  @Field var y: Double = 0.5
+  @Field var r: Double = 0.6
+  @Field var alpha: Double = 0.9
+}
+
+struct KFrostHeadRecord: Record {
+  @Field var x: Double = 0.5
+  @Field var y: Double = 0.4
+  @Field var r: Double = 0.235
+  @Field var solid: Double = 0.62
+}
+
+struct KFrostShouldersRecord: Record {
+  @Field var x: Double = 0.5
+  @Field var y: Double = 1.04
+  @Field var rx: Double = 0.52
+  @Field var ry: Double = 0.36
+  @Field var solid: Double = 0.55
+}
+
+struct KFrostSilhouetteRecord: Record {
+  @Field var alpha: Double = 0.22
+  @Field var head: KFrostHeadRecord = KFrostHeadRecord()
+  @Field var shoulders: KFrostShouldersRecord = KFrostShouldersRecord()
+}
+
+struct KFrostSheenRecord: Record {
+  @Field var alpha: Double = 0.18
+  @Field var to: Double = 0.55
+}
+
+struct KFrostHairlineRecord: Record {
+  @Field var alpha: Double = 0.35
+  @Field var width: Double = 1
+}
+
+/// A stranger's frosted window as TS worked it out (src/lib/frost FrostSpec, FROST v1). v 0 is
+/// TS's NO_FROST: no window (the switch is off, or there is nobody), so `spec` is nil. Swift
+/// never hashes: every colour and position is TS's, read here as they came.
+struct KFrostRecord: Record {
+  /// FROST version; 0 = none
+  @Field var v: Int = 0
+  @Field var dark: Bool = false
+  @Field var tone: String = ""
+  /// "#RRGGBB"
+  @Field var base: String = ""
+  @Field var blobs: [KFrostBlobRecord] = []
+  @Field var silhouette: KFrostSilhouetteRecord = KFrostSilhouetteRecord()
+  @Field var sheen: KFrostSheenRecord = KFrostSheenRecord()
+  @Field var hairline: KFrostHairlineRecord = KFrostHairlineRecord()
+  @Field var corner: Double = 0.25
+  @Field var edge: Double = 1.5
+
+  /// The Portable window; nil for none (v 0, or no base colour to draw it in).
+  var spec: KFrostSpec? {
+    guard v > 0, base.hasPrefix("#") else { return nil }
+    let s = silhouette
+    return KFrostSpec(
+      dark: dark,
+      base: Color(hex: base),
+      lights: blobs.filter { $0.color.hasPrefix("#") }.map {
+        KFrostSpec.Light(color: Color(hex: $0.color), x: CGFloat($0.x), y: CGFloat($0.y), r: CGFloat($0.r), alpha: $0.alpha)
+      },
+      silhouetteAlpha: s.alpha,
+      head: KFrostSpec.Head(x: CGFloat(s.head.x), y: CGFloat(s.head.y), r: CGFloat(s.head.r), solid: CGFloat(s.head.solid)),
+      shoulders: KFrostSpec.Shoulders(x: CGFloat(s.shoulders.x), y: CGFloat(s.shoulders.y), rx: CGFloat(s.shoulders.rx), ry: CGFloat(s.shoulders.ry), solid: CGFloat(s.shoulders.solid)),
+      sheenAlpha: sheen.alpha,
+      sheenTo: CGFloat(sheen.to),
+      hairlineAlpha: hairline.alpha,
+      hairlineWidth: CGFloat(hairline.width),
+      corner: CGFloat(corner),
+      edge: CGFloat(edge)
+    )
+  }
 }
 
 /// The base of every step-5 screen view's props (see the note at the top of the file).

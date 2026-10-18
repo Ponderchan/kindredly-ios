@@ -14,6 +14,7 @@ import { unsealDay } from "../../lib/flags";
 import { endAllActivities } from "../../lib/activities";
 import { TabBarSpace, nativeTabBarReady, nativeTabBarRoom, nativeTabBarSpace } from "../../components/NativeTabBar";
 import { TabBarAway } from "../../lib/screen-insets";
+import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 import { restartRealDay, useTodayCore, type TodayModel } from "../../screens/today/useTodayDesk";
 import { TodayNative } from "../../screens/today/TodayNative";
 import { TodayRN } from "../../screens/today/TodayRN";
@@ -49,7 +50,11 @@ import "../../data/strings-today3d";
    - THEME: the dev theme override (Classic / Midnight / Lavender / Paper,
      OFF = the normal theme), never saved;
    - SWIFT / RN: which renderer (SWIFT needs a dev client built with
-     KTodayView, after pod install);
+     KTodayView, after pod install); NAMES: the identity switch previewed on
+     for this run of the app, never saved (lib/identity
+     setDevIdentityPreview): the writers' courier names, frosted windows and
+     made-up ♀/♂ and star signs (the five demo writers are pinned to show
+     she, he and none);
    - DESK · LEFT=1 (one letter left: pass it to see the desk finish) ·
      DONE (the desk finishes while you watch: the flow plays) · REOPENED
      (opening into a finished desk: everything at rest, the Host remounted)
@@ -142,6 +147,8 @@ function TodayLab() {
   // a reply that goes feeds her: HUNGRY goes off (setHungry is stable)
   const deps = useMemo(() => demoDeps({ reply: () => replyRef.current, blocked: (a) => blockedRef.current(a), fed: () => setHungry(false) }), []);
   const model: TodayModel = useTodayCore(source, deps);
+  // NAMES: the identity switch previewed on for this run (never saved): the five writers' courier names, frost, ♀/♂ and signs
+  const names = useIdentityOn();
   blockedRef.current = model.act.blocked;
 
   /* RESET REAL DAY: the owner's own desk on this phone starts today over.
@@ -204,6 +211,7 @@ function TodayLab() {
           <Row>
             <Chip label="SWIFT" on={swift && swiftAvailable} onPress={() => (swiftAvailable ? setSwift(true) : Alert.alert("Dev page", "This dev client was built before KTodayView: pod install, then rebuild it."))} />
             <Chip label="RN" on={!swift || !swiftAvailable} onPress={() => setSwift(false)} />
+            <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
             {MODES.map((m) => (
               <Chip key={m.key} label={m.label} on={mode === m.key} onPress={() => setMode(m.key)} />
             ))}

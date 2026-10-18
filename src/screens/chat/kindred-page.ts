@@ -22,7 +22,12 @@ import { isOpening } from "./build-items";
      as a pen-pal mosaic here while their Kindreds row is round);
    · TALK TO is gone too when the server calls the thread missing, and
      "where it began" shows the opening or nothing — never the first reply
-     in its place. */
+     in its place;
+   · identity Phase 1 (the switch on): a pen pal you know the voice of is
+     their frosted window, never a developing mosaic (pageFace), and a
+     kindred's card loses THE FACE YOU WATCHED ARRIVE — there was no face
+     arriving, only the frost (plan §1 5a). WHO BEGAN reads id.kd.theyFirst,
+     whose words never agree with the name. Switch off: all as before. */
 
 /** Each side's writing: the bodies they wrote, the opening on its side, nothing taken back. */
 export function writingOf(d: ThreadDetail): { mine: string[]; theirs: string[] } {
@@ -55,6 +60,17 @@ export function faceKind(d: Pick<ThreadDetail, "revealed" | "gone" | "other">): 
   return d.revealed ? "round" : "mosaic";
 }
 
+/** faceKind with the identity switch: a pen pal is their frosted window once it is on (the renderer
+    draws WhoBook.frost(d.other)); off, exactly faceKind. */
+export function pageFace(d: Pick<ThreadDetail, "revealed" | "gone" | "other">, identity: boolean): "round" | "veil" | "mosaic" | "frost" {
+  const k = faceKind(d);
+  return identity && k === "mosaic" ? "frost" : k;
+}
+
+/** The small mosaic under a kindred's name, THE FACE YOU WATCHED ARRIVE: only for a kindred with
+    someone behind them, and never with the identity switch on (no face arrived, the frost did). */
+export const showsArrivalMosaic = (d: Pick<ThreadDetail, "revealed" | "gone" | "other">, identity: boolean): boolean => !identity && faceKind(d) === "round";
+
 /** The page's title: A KINDRED once names are traded, A VOICE YOU KNOW before. */
 export const pageTitle = (d: Pick<ThreadDetail, "revealed">, t: TFn): string => (d.revealed ? t("kd.kindred") : t("kd.voiceKnown"));
 
@@ -63,9 +79,10 @@ export function lettersValue(d: Pick<ThreadDetail, "myCount" | "otherCount">, t:
   return t("kd.lettersVal", { n: d.myCount + d.otherCount, mine: d.myCount, theirs: d.otherCount });
 }
 
-/** Who wrote the opening: YOU WROTE FIRST, or {NAME} WROTE FIRST. */
-export function whoBegan(d: Pick<ThreadDetail, "openingFromMe">, name: string, t: TFn, locale: string): string {
-  return d.openingFromMe ? t("kd.youFirst") : t("kd.theyFirst", { name: name.toLocaleUpperCase(locale) });
+/** Who wrote the opening: YOU WROTE FIRST, or {NAME} WROTE FIRST (switch on: id.kd.theyFirst, written
+    so that no verb agrees with the name). */
+export function whoBegan(d: Pick<ThreadDetail, "openingFromMe">, name: string, t: TFn, locale: string, identity = false): string {
+  return d.openingFromMe ? t("kd.youFirst") : t(identity ? "id.kd.theyFirst" : "kd.theyFirst", { name: name.toLocaleUpperCase(locale) });
 }
 
 /** TALK TO is a door only while someone is behind it: none for a deleted account, and none for a

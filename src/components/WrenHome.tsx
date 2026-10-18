@@ -1,6 +1,8 @@
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { hungerRead } from "../lib/hunger";
 import { dShort, noteDay, postNo } from "../lib/format";
+import { useWhoBook } from "../lib/who";
+import type { WhoBook } from "../lib/stranger-who";
 import { Image } from "react-native";
 import { keepsake } from "../data/keepsakes";
 import { CofounderMark } from "./CofounderMark";
@@ -122,7 +124,8 @@ export function WrenHome({
   const [carried, setCarried] = useState<{ at: string }[]>([]);
   const [carriedIn, setCarriedIn] = useState(false); // null vs zero — see whereabouts()
   const where = whereabouts(threads, carriedIn ? carried.length : null);
-  const hungry = hungerRead({ threads, lastWrittenAt });   // someone waiting, or days with nothing to carry (lib/hunger)
+  const book = useWhoBook({ threads });   // a pen pal named as every screen names them: the number, or (switch on) the courier name
+  const hungry = hungerRead({ threads, lastWrittenAt, book });   // someone waiting, or days with nothing to carry (lib/hunger)
   const hatch = useHatchSkin();   // the coat she hatched in on /aura: hers
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
@@ -362,7 +365,7 @@ export function WrenHome({
               </Text>
             ) : drivingT ? (
               <Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 2 }} numberOfLines={1}>
-                {drivingT.revealed && drivingT.otherName ? drivingT.otherName : `No. ${postNo(drivingT.other)}`} · {dShort(drivingT.lastAt)}
+                {slipName(drivingT, book)} · {dShort(drivingT.lastAt)}
               </Text>
             ) : null}
           </View>
@@ -558,11 +561,17 @@ function drivingThread(threads: ThreadSummary[], state: string): ThreadSummary |
   return null;
 }
 
+/** Who her slips name: a kindred's pen name, else the pen pal's "No. 4481" — or, with the identity switch on, the courier name (lib/stranger-who). */
+function slipName(th: ThreadSummary, book: WhoBook): string {
+  return book.identity ? book.threadName(th) : th.revealed && th.otherName ? th.otherName : `No. ${postNo(th.other)}`;
+}
+
 function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadSummary[]; state: string; wren: string; onOpenThread: (t: ThreadSummary) => void }) {
   const P = useP();
   const T = useTheme().t;
+  const book = useWhoBook({ threads });
   const t = drivingThread(threads, state);
-  const who = t ? (t.revealed && t.otherName ? t.otherName : `No. ${postNo(t.other)}`) : null;
+  const who = t ? slipName(t, book) : null;
   const rows: string[] = t
     ? state === "delivery"
       ? [

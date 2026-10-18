@@ -4,9 +4,9 @@ import SwiftUI
 
 /*
  THE ONE FACE VIEW, for every person in a Swift surface: a kindred's portrait or photo, a pen
- pal's FACE v1 mosaic, the veil of a deleted account, or a soft placeholder while a picture is
- on its way. What a person looks like is decided in TypeScript (src/lib/faces.ts, faceSource);
- this draws the answer.
+ pal's FACE v1 mosaic (or, with the identity switch on, their frosted window), the veil of a
+ deleted account, or a soft placeholder while a picture is on its way. What a person looks like
+ is decided in TypeScript (src/lib/faces.ts, faceSource); this draws the answer.
 
      KFace(theme: t, source: .image(ref, overscan: 0.05), size: 52)               // a kindred
      KFace(theme: t, source: .mosaic(mask: m, tint: t.ink), size: 52)              // a pen pal
@@ -19,6 +19,11 @@ import SwiftUI
 
  NOT ROUND: the bare mosaic filling its frame, as the Today card's docket and the reader's
  header set it (no disc); a picture there is a rounded square.
+
+ THE FROSTED WINDOW (identity Phase 1) is always a square with corners at 25% of its side
+ (KFrost), round or not: the owner's 10-10 rule makes a stranger a square and a kindred a circle,
+ and the square turning round when names are traded is a cue that doesn't need colour. Its veil
+ (.frostVeil, a deleted account while the switch is on) is the same square as a flat soft tile.
 
  - dim: the face at .45, for a closed or quiet row; the official badge never dims.
  - badge: the official mark (KOfficialBadge) at the bottom right, 1pt outside the circle, its
@@ -35,8 +40,12 @@ public enum KFaceSource: Equatable, Sendable {
   case image(KImageRef?, overscan: CGFloat = 0)
   /// a pen pal's FACE v1 mosaic (KMosaic): the 25-bit mask from TS, in this ink
   case mosaic(mask: Int, tint: Color)
+  /// a pen pal with the identity switch on: their frosted window (KFrost), always square
+  case frost(KFrostSpec)
   /// a deleted account: every cell, in faint
   case veil
+  /// a deleted account with the identity switch on: a flat veil tile, square (KFrostVeil)
+  case frostVeil
   /// nothing to show yet: the soft2 disc alone
   case placeholder
 }
@@ -106,8 +115,12 @@ public struct KFace: View {
         .clipShape(shape)
     case let .mosaic(mask, tint):
       mosaic(mask: mask, color: tint, veil: false)
+    case let .frost(spec):
+      KFrost(theme: theme, spec: spec, size: size)
     case .veil:
       mosaic(mask: KMosaic.fullMask, color: theme.faint, veil: true)
+    case .frostVeil:
+      KFrostVeil(theme: theme, size: size)
     case .placeholder:
       shape.fill(theme.soft2)
     }

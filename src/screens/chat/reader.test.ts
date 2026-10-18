@@ -3,19 +3,25 @@
    with plain node (it strips the types itself from Node 22.18 / 23.6 on):
      node src/screens/chat/reader.test.ts
    reader imports its pure neighbours the way Metro wants them (no extension), so a load hook adds
-   ".ts" to an extensionless relative import, in this process only. Every line prints ok/FAIL and
-   the process exits non-zero if any fail. */
+   ".ts" to an extensionless relative import, in this process only — and reads theme/themes.json
+   (through components/10a/kit) as JSON, which Node otherwise refuses without an import
+   attribute. Every line prints ok/FAIL and the process exits non-zero if any fail. */
 
 import { registerHooks } from "node:module";
 
 registerHooks({
   resolve(specifier, context, next) {
     if (/^\.\.?\//.test(specifier) && !/\.[a-z]+$/i.test(specifier)) return next(specifier + ".ts", context);
+    if (specifier.endsWith(".json")) return { ...next(specifier, { ...context, importAttributes: { type: "json" } }), importAttributes: { type: "json" } };
     return next(specifier, context);
   },
 });
 
 const R = await import("./reader.ts");
+const { whoBook } = await import("../../lib/stranger-who.ts");
+const { strangerName } = await import("../../lib/stranger-name.ts");
+const { frostSpec } = await import("../../lib/frost.ts");
+const { developFor, mosaicMask } = await import("../../lib/mosaic.ts");
 const { demoDetail } = await import("../../data/demo.ts");
 
 type Detail = import("../../lib/db").ThreadDetail;
@@ -129,6 +135,34 @@ ok("a telegram is centred, a long letter is not", R.heroTier("hello").center && 
 ok("the default size keeps one-line rows", !R.largeType(1));
 ok("xxxLarge still does", !R.largeType(1.35));
 ok("accessibility sizes wrap", R.largeType(1.6) && R.largeType(3.1));
+
+/* ── who wrote it: the identity switch (lib/stranger-who's book in ReaderFormat.who) ── */
+{
+  const penPal = (u: string | null | undefined, o: { upper?: boolean; compact?: boolean }) => (u ? (o.upper ? `NO.${u.length}` : `No. ${u.length}`) : "ld.unsigned");
+  const offBook = whoBook({ identity: false, t, lang: "en", penPal, marks: () => ({ mark: "she", sign: "leo" }) });
+  const offF = { ...fmt, who: offBook };
+  const conv = R.readerLetters(north);
+  ok("identity off: the label, the postmark and the signatures are today's", R.correspondentLabel(north, offF) === R.correspondentLabel(north, fmt) && conv.every((m) => R.postmarkLine(m, north, offF) === R.postmarkLine(m, north, fmt)));
+  ok("identity off: the placeholder and the hint are today's", R.replyPlaceholder(north, t, offBook) === "th.writeBackThem" && R.replyHint("hi", false, t, false).text === "th.replyGoesStraight");
+  const offWho = R.correspondentWho(north, offF);
+  ok("identity off: the header's face is the mosaic developing with their letters", !!offWho && offWho.face.kind === "mosaic" && offWho.face.mask === mosaicMask(north.other, developFor(north.otherCount)) && offWho.mark === null);
+
+  const onBook = whoBook({ identity: true, t, lang: "en", penPal, marks: (u) => (u === north.other ? { mark: "she", sign: "leo" } : { mark: null, sign: null }) });
+  const onF = { ...fmt, who: onBook };
+  const courier = strangerName(north.other, { lang: "en", unsigned: "" });
+  ok("identity on: a pen pal is the courier name in capitals", R.correspondentLabel(north, onF) === courier.toLocaleUpperCase());
+  ok("identity on: their letters are signed with it, mine YOU", conv.every((m) => R.signatureOf(m, north, onF) === (m.mine ? "ui.you" : courier.toLocaleUpperCase())));
+  const w = R.correspondentWho(north, onF)!;
+  ok("identity on: the header has the frost, the mark and the sign", w.face.kind === "frost" && JSON.stringify(w.face.spec) === JSON.stringify(frostSpec(north.other, false)) && w.mark === "she" && w.sign === "leo" && w.spoken === `${courier}, id.mark.she, zd.leo`);
+  ok("identity on: the reply bar is addressed to the courier name", R.replyPlaceholder(north, t, onBook) === `ld.writeBackTo(name=${courier})`);
+  ok("identity on, a language without ld.writeBackTo: its own write back to them", R.replyPlaceholder(north, t, onBook, (k) => k !== "ld.writeBackTo") === "th.writeBackThem" && R.replyPlaceholder(north, t, onBook, () => true) === `ld.writeBackTo(name=${courier})`);
+  ok("identity on: the hint never gives the person a gender", R.replyHint("hi", false, t, true).text === "id.th.replyGoesStraight" && R.replyHint("hi", true, t, true).text === "id.th.goesStraight");
+  ok("identity on: over the limit is still red, either way", R.replyHint("x".repeat(1003), false, t, true).alarm);
+  ok("identity on: a kindred keeps their name; no who for the header", R.correspondentLabel(mira, onF) === (mira.otherName || "").toUpperCase() && R.correspondentWho(mira, onF) === null && R.replyPlaceholder(mira, t, onBook) === `th.sayTo(name=${mira.otherName})`);
+  ok("identity on: a ghost is UNSIGNED behind the veil, and the bar isn't addressed", R.correspondentLabel(gone, onF) === "ld.unsigned" && R.correspondentWho(gone, onF)!.face.kind === "veil" && R.replyPlaceholder(gone, t, onBook) === "th.writeBackThem");
+  ok("identity on: a gone kindred is UNSIGNED behind the veil too", R.correspondentWho(goneKindred, onF)!.name === "ld.unsigned" && R.correspondentWho(goneKindred, onF)!.face.kind === "veil");
+  ok("no book: no who", R.correspondentWho(north, fmt) === null);
+}
 
 console.log(fails ? `\n${fails} FAILED` : "\nall ok");
 if (fails) process.exit(1);

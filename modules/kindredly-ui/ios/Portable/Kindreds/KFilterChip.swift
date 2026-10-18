@@ -12,7 +12,8 @@ import SwiftUI
    KSticker notes), so the drawn padding adds the border.
  - Optional mark before the words (KLegendGlyph kindred / penPal, 18), the count after them at
    14.5 and .55, and a 6pt ind dot after that when someone in an unselected group is waiting on
-   you (kindreds.tsx's group dot, kept).
+   you (kindreds.tsx's group dot, kept). With the identity switch on the penPal mark is a small
+   frosted square (`frost`, TS's sample window), as the plan's §6 asks.
  - Changes state over .25s (H: transition all .25s).
  - VoiceOver: one button with the label TS gives ("Kindreds, 3") and the selected trait.
 
@@ -40,6 +41,7 @@ public struct KFilterChip: View {
   private let selected: Bool
   private let dot: Bool
   private let a11yLabel: String
+  private let frost: KFrostSpec?
   private let action: () -> Void
 
   /// - Parameters:
@@ -49,7 +51,8 @@ public struct KFilterChip: View {
   ///   - selected: the group being shown
   ///   - dot: someone in this group is waiting on you (drawn only while not selected)
   ///   - a11yLabel: what VoiceOver reads ("Pen pals, 21")
-  public init(theme: KTheme, label: String, count: String = "", glyph: Glyph = .none, selected: Bool, dot: Bool = false, a11yLabel: String, action: @escaping () -> Void) {
+  ///   - frost: identity switch on: the sample window the penPal mark is drawn as; nil keeps the grid
+  public init(theme: KTheme, label: String, count: String = "", glyph: Glyph = .none, selected: Bool, dot: Bool = false, a11yLabel: String, frost: KFrostSpec? = nil, action: @escaping () -> Void) {
     self.theme = theme
     self.label = label
     self.count = count
@@ -57,6 +60,7 @@ public struct KFilterChip: View {
     self.selected = selected
     self.dot = dot
     self.a11yLabel = a11yLabel
+    self.frost = frost
     self.action = action
   }
 
@@ -67,7 +71,7 @@ public struct KFilterChip: View {
         switch glyph {
         case .none: EmptyView()
         case .kindred: KLegendGlyph(theme: theme, kind: .kindred)
-        case .penPal: KLegendGlyph(theme: theme, kind: .penPal)
+        case .penPal: KLegendGlyph(theme: theme, kind: .penPal, frost: frost)
         }
         Text(label)
           .kText(Self.label)

@@ -3,6 +3,8 @@ import { Alert } from "react-native";
 import { useFocusEffect, useGlobalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { listWhen, localeTag, penPalName } from "../../lib/format";
+import { useWhoBook } from "../../lib/who";
+import type { WhoBook } from "../../lib/stranger-who";
 import { markRoomSeen, markRoomUnread, readRoomSeen } from "../../lib/room-seen";
 import {
   blockUser,
@@ -114,13 +116,14 @@ export type KindredsModel = {
    at ALL, unfiltered */
 const session: { tab: ListTab; show: Show } = { tab: "all", show: null };
 
-/** The model's words: i18n's t and the reader's locale. */
-export function kindredsFormat(): KindredsFormat {
+/** The model's words: i18n's t and the reader's locale, and who strangers are (lib/who useWhoBook; none = the switch off). */
+export function kindredsFormat(who?: WhoBook): KindredsFormat {
   const tag = localeTag();
   return {
     t,
     when: (at) => listWhen(at),
     penPal: (other) => penPalName(other),
+    who,
     // a group name as a sentence says it ("Pen pals", "Seelenverwandte")
     sentence: (s) => {
       const low = s.toLocaleLowerCase(tag);
@@ -234,6 +237,12 @@ export function useKindredsModel(): KindredsModel {
   const listVisible = effState !== "loading" && !(listed(source).length === 0 && (effState === "ready" || effState === "none"));
   const onceShowing = useWrenOnce("kindreds", listVisible);
 
+  /* who the pen pals are (lib/who): the courier names from this very list (demo rows
+     included), the frost, and the ♀/♂ and star sign of the pen pals on it — switch off,
+     the numbers and mosaics exactly as before */
+  const strangers = useMemo(() => source.filter((th) => !th.revealed && !th.gone).map((th) => th.other), [source]);
+  const who = useWhoBook({ threads: source, uids: strangers });
+
   const view = useMemo(
     () =>
       buildKindredsView(
@@ -250,11 +259,11 @@ export function useKindredsModel(): KindredsModel {
           notice: notify.show,
           wrenLine: onceShowing ? speakAs(t("kindreds.said"), courier) : null,
         },
-        kindredsFormat(),
+        kindredsFormat(who),
       ),
     // lang: every word is the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [source, effLedger, premium, settled, tab, show, effState, desk.unread, desk.lastLine, desk.lastAt, notify.show, onceShowing, courier, lang],
+    [source, effLedger, premium, settled, tab, show, effState, desk.unread, desk.lastLine, desk.lastAt, notify.show, onceShowing, courier, lang, who],
   );
 
   // the tab bar's number, from the count the title shows

@@ -1,5 +1,6 @@
 /* THE SHARED SHAPES OF THE STEP-5 SWIFT SCREENS, as the JS side sees them. Types only, plus one
-   constant list, so the pure builders and their node tests can import it without React Native.
+   constant list and the frosted window's two small helpers (NO_FROST, nativeFrost), so the pure
+   builders and their node tests can import it without React Native.
 
    The Swift side of each lives in ios/Adapters: KScreenProps.swift (the base props and the
    records), KCommandBus.swift (the commands), KSlotView.swift (the slots). */
@@ -23,6 +24,67 @@ export type KInsets = {
   /** on a tab screen, the floating tab bar's room (useTabBarSpace()); 0 on a pushed screen */
   tabBarRoom: number;
 };
+
+/* A STRANGER'S FROSTED WINDOW AND MARKS (identity Phase 1), as Swift receives them. TS works out
+   every colour and position (src/lib/frost FROST v1, through src/lib/stranger-who); Swift only
+   draws the gradients (KFrost) and the glyphs (KLineGlyph "she" / "he" / the twelve signs). The
+   same shape as src/lib/frost's FrostSpec, written out here so the module needs nothing from the
+   app: positions and radii are in units of the window's side. */
+export type KFrostBlob = { tone: string; color: string; x: number; y: number; r: number; alpha: number };
+export type KFrost = {
+  v: number;
+  dark: boolean;
+  tone: string;
+  base: string;
+  blobs: readonly KFrostBlob[];
+  silhouette: {
+    alpha: number;
+    head: { x: number; y: number; r: number; solid: number };
+    shoulders: { x: number; y: number; rx: number; ry: number; solid: number };
+  };
+  sheen: { alpha: number; to: number };
+  hairline: { alpha: number; width: number };
+  corner: number;
+  edge: number;
+};
+/** No window: what a Swift record gets where TS has none (the switch off, nobody there). A
+    @Field record can't take null, so the frost is always sent and v 0 means none
+    (KFrostRecord.spec is nil for it). */
+export const NO_FROST: KFrost = Object.freeze({
+  v: 0,
+  dark: false,
+  tone: "",
+  base: "",
+  blobs: [],
+  silhouette: { alpha: 0, head: { x: 0.5, y: 0.4, r: 0.235, solid: 0.62 }, shoulders: { x: 0.5, y: 1.04, rx: 0.52, ry: 0.36, solid: 0.55 } },
+  sheen: { alpha: 0, to: 0.55 },
+  hairline: { alpha: 0, width: 1 },
+  corner: 0.25,
+  edge: 1.5,
+}) as KFrost;
+
+/** A window as the Swift record takes it: the spec itself, or NO_FROST for none. Only the
+    fields the record reads go (a FrostSpec's blobs are copied to plain objects). */
+export function nativeFrost(f: KFrost | null | undefined): KFrost {
+  if (!f || !f.v || !f.base) return NO_FROST;
+  return {
+    v: f.v,
+    dark: f.dark,
+    tone: f.tone,
+    base: f.base,
+    blobs: f.blobs.map((b) => ({ tone: b.tone, color: b.color, x: b.x, y: b.y, r: b.r, alpha: b.alpha })),
+    silhouette: { alpha: f.silhouette.alpha, head: { ...f.silhouette.head }, shoulders: { ...f.silhouette.shoulders } },
+    sheen: { alpha: f.sheen.alpha, to: f.sheen.to },
+    hairline: { alpha: f.hairline.alpha, width: f.hairline.width },
+    corner: f.corner,
+    edge: f.edge,
+  };
+}
+
+/** The she/he mark beside a stranger's courier name (an ink glyph in sub), or none. */
+export type KMark = "she" | "he" | null;
+/** The star sign's glyph name beside the mark (src/lib/zodiac Zodiac), or none. */
+export type KSign = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces" | null;
 
 /** One context-menu item, built in TS with today's rules and handed to Swift's .kMenu. The key
     comes back in the screen's action event. */

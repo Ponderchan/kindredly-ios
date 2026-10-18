@@ -4,6 +4,7 @@ import {
   KEditProfileView,
   type KEditProfileCommands,
   type KEditProfileFace,
+  type KEditProfileLetters,
   type KEditProfileNote,
   type KEditProfileRows,
   type KEditProfileStrings,
@@ -27,7 +28,10 @@ import type { EditProfileModel } from "./useEditProfileModel";
    the React Native fallback draws) into the Swift records: the portraits as
    files (useAssetImageRefs over the pool: expo-asset, keyed by content),
    every record kept by content so a focus that reads the same page again
-   doesn't re-send it, one rev over all of them. */
+   doesn't re-send it, one rev over all of them. With the identity switch
+   on the view also carries ON YOUR LETTERS (`letters`: the ♀/♂ switch and
+   the star sign's), sent as its own record, and the two switches' taps go
+   to the model, which saves them to the account at once. */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -85,8 +89,9 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
   const pronounOptions = useSameContent(view.pronoun.options);
   const pronounSelected = view.pronoun.selected;
   const selectedFace = view.selectedFace;
+  const letters = useSameContent<KEditProfileLetters | null>(view.letters);
   // over every record AND the small values: Swift converts the whole page once per rev
-  const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace);
+  const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace, letters);
 
   return (
     <SurfaceHost>
@@ -103,12 +108,15 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
         pronounOptions={pronounOptions}
         pronounSelected={pronounSelected}
         note={note}
+        letters={letters}
         onBack={act.back}
         onPhoto={act.photo}
         onRandom={act.random}
         onFace={act.face}
         onPen={act.pen}
         onPronoun={act.pronoun}
+        onShowMark={act.showMark}
+        onShowSign={act.showSign}
         onCourierName={act.courierName}
         onNoteSee={act.noteSee}
         onNoteKeep={act.noteKeep}

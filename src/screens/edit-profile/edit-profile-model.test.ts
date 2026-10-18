@@ -6,8 +6,12 @@
    has, empty never saved), the birthday read as a calendar date, the rows
    (birthday shown, never edited; no courier pronoun row), and the save
    queue (merged, each save handed over at once in call order, never
-   behind another's network trip, flushed on leaving) — the rules both
-   renderers draw.
+   behind another's network trip, flushed on leaving), and identity Phase
+   1: ON YOUR LETTERS only with the switch on (the mark's switch for she /
+   he only, the sign's always; the account's values read as 0034 reads
+   them), the identity words for the hint and the footer, and the one-time
+   note (who sees it, its words and preview, what Done saves) — the rules
+   both renderers draw.
    Not wired to a runner; run by hand from the repo root with plain node (it
    strips the types itself from Node 22.18 / 23.6 on):
      node src/screens/edit-profile/edit-profile-model.test.ts
@@ -28,6 +32,13 @@ import {
   createSaveQueue,
   facePool,
   fieldKind,
+  identityNote,
+  identityNoteSave,
+  lettersView,
+  markOffered,
+  showIdentityNote,
+  showsMark,
+  showsSign,
   randomFace,
   resolvePronoun,
   showNewFacesNote,
@@ -137,6 +148,47 @@ const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
   ok("no note unless asked", v.note === null);
   const note = buildEditView(facts({ newFacesNote: true }), fmt).note;
   ok("the note: its words and three new faces", note?.title === "ep.newFaces.title" && note.see === "ep.newFaces.see" && note.keep === "ep.newFaces.keep" && note.faceIds.length === 3);
+}
+
+/* ── what strangers see (identity Phase 1) ── */
+{
+  const off = buildEditView(facts({ letters: { identity: false, showMark: true, showSign: true, sign: "scorpio" } }), fmt);
+  ok("switch off: no ON YOUR LETTERS, the page as it was", off.letters === null && off.avatarHint === "ep.avatarNote" && off.footer === "ep.privateNote");
+  ok("no letters facts at all: the page as it was", buildEditView(facts(), fmt).letters === null);
+  const on = buildEditView(facts({ letters: { identity: true, showMark: undefined, showSign: undefined, sign: "scorpio" } }), fmt);
+  ok("switch on: the group and its header", on.letters?.header === "ep.id.section");
+  ok("switch on: the identity words for the hint and the footer", on.avatarHint === "id.ep.avatarNote" && on.footer === "id.ep.privateNote");
+  ok("she: the ♀ switch, off until answered (0034: only a real true shows)", on.letters?.mark?.label === "ep.id.mark.she" && on.letters.mark.note === "ep.id.markNote" && on.letters.mark.on === false);
+  ok("the sign: on by default, the sign named under it", on.letters?.sign.label === "ep.id.sign" && on.letters.sign.on === true && on.letters.sign.note === "ep.id.signNote{sign:zd.scorpio}");
+  const he = buildEditView(facts({ pronoun: "he", letters: { identity: true, showMark: true, showSign: false, sign: null } }), fmt);
+  ok("he: the ♂ switch, as the account holds it", he.letters?.mark?.label === "ep.id.mark.he" && he.letters.mark.on === true);
+  ok("the sign turned off stays off; no birthday says so", he.letters?.sign.on === false && he.letters.sign.note === "ep.id.signNone");
+  const they = buildEditView(facts({ pronoun: "they", letters: { identity: true, showMark: true, showSign: true, sign: "leo" } }), fmt);
+  ok("they: no mark switch at all (they have no mark)", they.letters?.mark === null && they.letters.sign.on === true);
+  ok("the mark is offered to she and he only", markOffered("she") && markOffered("he") && !markOffered("they"));
+  ok("showMark: only a real true (\"true\", 1, unset are off)", showsMark(true) && !showsMark("true") && !showsMark(1) && !showsMark(undefined) && !showsMark(false));
+  ok("showSign: anything but false (unset is on)", showsSign(undefined) && showsSign(true) && showsSign(null) && !showsSign(false));
+  ok("lettersView is the page's group", JSON.stringify(lettersView("she", { showMark: true, showSign: false, sign: "leo" }, t)) === JSON.stringify({ header: "ep.id.section", mark: { label: "ep.id.mark.she", note: "ep.id.markNote", on: true }, sign: { label: "ep.id.sign", note: "ep.id.signNote{sign:zd.leo}", on: false } }));
+}
+
+/* ── the one-time note (identity Phase 1) ── */
+{
+  const base = { identity: true, session: true, onboarded: true, showMark: undefined as unknown, showSign: undefined as unknown, seen: false };
+  ok("the note: switch on, signed in, onboarded, never answered, not seen here", showIdentityNote(base));
+  ok("never with the switch off", !showIdentityNote({ ...base, identity: false }));
+  ok("never without a session, or before onboarding is done", !showIdentityNote({ ...base, session: false }) && !showIdentityNote({ ...base, onboarded: false }));
+  ok("never twice on this phone", !showIdentityNote({ ...base, seen: true }));
+  ok("never once the account holds an answer (either value)", !showIdentityNote({ ...base, showMark: false }) && !showIdentityNote({ ...base, showSign: true }));
+  const n = identityNote({ pronoun: "she", showMark: undefined, showSign: undefined, sign: "gemini", previewName: "Sunday Kite" }, t);
+  ok("the note's words", n.title === "id.note.title" && n.body === "id.note.body" && n.foot === "id.note.foot" && n.done === "id.note.done" && n.previewLabel === "id.preview");
+  ok("both switches inside it: the mark's off, the sign's on", n.letters.mark?.on === false && n.letters.sign.on === true);
+  ok("the preview says what a stranger sees: the name and the sign (no mark until it is on)", n.previewName === "Sunday Kite" && n.previewA11y === "id.preview.a11y{who:Sunday Kite, zd.gemini}");
+  const n2 = identityNote({ pronoun: "she", showMark: true, showSign: false, sign: "gemini", previewName: "Sunday Kite" }, t);
+  ok("the preview follows the switches", n2.previewA11y === "id.preview.a11y{who:Sunday Kite, id.mark.she}");
+  const nt = identityNote({ pronoun: "they", showMark: true, showSign: true, sign: null, previewName: "Rainy Thimble" }, t);
+  ok("they: the body without the mark, no mark switch, no sign without a birthday", nt.body === "id.note.bodyThey" && nt.letters.mark === null && nt.previewA11y === "id.preview.a11y{who:Rainy Thimble}");
+  ok("Done saves both values (so it never comes back)", JSON.stringify(identityNoteSave("she", false, true)) === JSON.stringify({ showMark: false, showSign: true }));
+  ok("Done never saves a mark on for they", identityNoteSave("they", true, false).showMark === false);
 }
 
 /* ── the save queue ── */

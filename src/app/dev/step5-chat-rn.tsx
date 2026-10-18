@@ -9,6 +9,7 @@ import { RoomRN } from "../../screens/chat/RoomRN";
 import { LettersRN } from "../../screens/chat/LettersRN";
 import { ReaderScreen } from "../../screens/chat/ReaderScreen";
 import { KindredPage } from "../../screens/chat/KindredPage";
+import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 
 /* dev only — THE CHAT GROUP IN REACT NATIVE ON DEMO FIXTURES (10a step 5, slice chat-rn).
    kindredly:///dev/step5-chat-rn
@@ -35,7 +36,11 @@ import { KindredPage } from "../../screens/chat/KindredPage";
               TO), a voice opening
 
    THEME cycles the dev theme override through Classic, Midnight, Lavender
-   and Paper (and off). DESK → opens Wren's desk itself (kindredly:///room/
+   and Paper (and off). NAMES previews the identity switch on for this run
+   of the app, never saved (lib/identity setDevIdentityPreview): a pen
+   pal's courier name, frosted window and made-up ♀/♂ and star sign in the
+   chat header, the reader's head and the reply strip, the frost on a
+   voice-you-know page, and the arrival mosaic gone from a kindred's. DESK → opens Wren's desk itself (kindredly:///room/
    wren) under the same override: it reads her live posts as the app does
    (demo posts when the read fails), so it isn't embedded here. The words
    are the app's own (t()); the only English typed here is this page's
@@ -106,6 +111,8 @@ function ChatRNLab() {
   const forced = useDevThemeOverride();
   const [index, setIndex] = useState(0);
   const fx = FIXTURES[index];
+  // NAMES: the identity switch previewed on for this run (never saved)
+  const names = useIdentityOn();
 
   const keys = THEME_KEYS as ThemeKey[];
   const themeIndex = forced ? keys.indexOf(forced) : -1;
@@ -125,6 +132,7 @@ function ChatRNLab() {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 6 }}>
           <Chip label={`THEME ${forced ? THEMES[key].name.toUpperCase() : "OFF"}`} onPress={nextTheme} />
+          <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
           {FIXTURES.map((f, i) => (
             <Chip key={`${i}:${f.kind}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
           ))}

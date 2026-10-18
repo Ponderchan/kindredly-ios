@@ -6,6 +6,9 @@ import { useLetterFamily, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { localeTag, sinceShort } from "../../lib/format";
 import { MosaicId } from "../../components/MosaicId";
+import { WhoFaceView } from "../../components/Frost";
+import { WhoName } from "../../components/WhoName";
+import { useIdentityOn } from "../../lib/identity";
 import { Stamp } from "../../components/Stamp";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { LetterInFlight } from "../../components/LetterInFlight";
@@ -43,7 +46,15 @@ import type { TodayModel } from "./useTodayDesk";
 
    THE STAMP in the docket is the reader head's (stamps v2, 2026-10-18):
    delivered, so it tilts by the letter's id exactly as it did on the card.
-   No box round it, and no postmark (the owner took it off). */
+   No box round it, and no postmark (the owner took it off).
+
+   WHO WROTE IT follows the card (identity Phase 1): with the identity
+   switch off the docket is today's, the mosaic beside "SEP.23 · NO.7273";
+   with it on it is the card's new head — their frosted window in the 40pt
+   slot (the veil tile for a deleted account), the courier name in 600 17
+   with the ♀/♂ mark and the star sign after it in sub, the date alone in
+   mono under it — read from the card's own `who`, so the letter keeps the
+   face and the name it had a moment ago on the desk. */
 const READER_STAMP = STAMP_LADDER.readerHead;
 
 export function LetterReader({ model }: { model: TodayModel }) {
@@ -56,6 +67,8 @@ export function LetterReader({ model }: { model: TodayModel }) {
   const letter = id ? view.feed.find((l) => l.id === id) ?? null : null;
   const card = id ? view.cards.find((c) => c.id === id) ?? null : null;
   const [writing, setWriting] = useState(false);
+  // the identity switch (the table's row, or the dev preview): the docket in its new shape
+  const identity = useIdentityOn();
   /* THE SHEET'S TOP, for the keyboard. A page sheet starts below the status bar, and the
      KeyboardAvoidingView reckons the keyboard from its own frame, which is the sheet's, against
      the keyboard's screen y: without the sheet's offset it lifted the bar that much too little
@@ -96,8 +109,22 @@ export function LetterReader({ model }: { model: TodayModel }) {
           <InkPanel variant="today" style={{ marginRight: 6, marginBottom: 6 }}>
             {/* the same docket the card carries, so the letter keeps its face */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 22 }}>
-              <MosaicId seed={letter.author} cell={4.8} gap={1} />
-              <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>{card.postmark}</Text>
+              {identity ? (
+                <View accessible accessibilityLabel={`${card.who.spoken}. ${card.when}`} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <WhoFaceView face={card.who.face} size={40} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <WhoName name={card.who.name} marks={card.who} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} />
+                    <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 0.88, color: tk.sub }}>
+                      {card.when}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <MosaicId seed={letter.author} cell={4.8} gap={1} />
+                  <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>{card.postmark}</Text>
+                </>
+              )}
               <Stamp id={letter.stamp} width={READER_STAMP.w} delivered letterId={letter.id} />
             </View>
 

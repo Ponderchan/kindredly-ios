@@ -3,6 +3,10 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { KChatHeader } from "../../../modules/kindredly-ui/src/Conversation";
 import { LineIcon } from "../../components/10a/LineIcon";
+import { Frost, VeilTile } from "../../components/Frost";
+import { useIdentityOn } from "../../lib/identity";
+import { WhoName } from "../../components/WhoName";
+import type { FrostSpec } from "../../lib/frost";
 import { useTheme } from "../../lib/theme";
 import { COLS, ROWS, VEIL_MASK, maskHas } from "../../lib/mosaic";
 import { BRAND } from "../../theme/themes";
@@ -30,8 +34,17 @@ import { PF } from "../../theme/post";
      quiet line; brass once they went first — Midnight's brass is the wax
      gold) closing it to 36. A kindred: the screen draws their round face,
      44 across (`roomFace`: AvatarImage, or the veil once gone).
-   · THE NAME in system 600 18 on one line; under it mono 500 10 at .12em on
-     one line, in mute (or the state's tone past the letters).
+     With the identity switch on (identity Phase 1) the record carries the
+     pen pal's frosted window instead (`frost`, lib/frost through
+     lib/stranger-who): drawn at 34 in the same slot (components/Frost), 32
+     inside the same frame once it is framed, so the slot never changes
+     size. It never develops; the frame and the dots still tell the story.
+     A deleted account is then the flat veil tile (components/Frost).
+   · THE NAME in system 600 18 on one line (the courier name once the switch
+     is on, with the record's ♀/♂ mark 6pt after it and the star sign 4pt
+     after that, ink glyphs in sub: components/WhoName); under it mono 500
+     10 at .12em on one line, in mute (or the state's tone past the
+     letters).
    · THE DOTS (the pen pal only): five, 8 across with a 1.5 ln outline, 4
      apart; one filled for each exchange that went both ways. VoiceOver
      hears them in the name's element.
@@ -68,12 +81,18 @@ export function ConversationHeaderRN({
       {model.room ? (
         <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>{roomFace}</View>
       ) : (
-        <PenPalFace mask={model.mask} veil={model.veil} frame={model.frame === "none" ? null : model.frame === "brass" ? brass : tk.line} />
+        <PenPalFace mask={model.mask} veil={model.veil} frost={model.room ? null : (model.frost as FrostSpec | null)} frame={model.frame === "none" ? null : model.frame === "brass" ? brass : tk.line} />
       )}
       <View style={{ flex: 1, gap: 3 }}>
-        <Text numberOfLines={1} maxFontSizeMultiplier={2.2} style={{ fontSize: 18, fontWeight: "600", color: tk.ink }}>
-          {model.name}
-        </Text>
+        <WhoName
+          name={model.name}
+          marks={{ mark: model.room ? null : model.mark, sign: model.room ? null : model.sign }}
+          style={{ fontSize: 18, fontWeight: "600", color: tk.ink }}
+          glyph={14}
+          // one line as ever; a courier name with its glyphs may take a second rather than be cut
+          numberOfLines={model.frost && !model.room ? 2 : 1}
+          maxFontSizeMultiplier={2.2}
+        />
         {!!model.sub && (
           <Text numberOfLines={1} maxFontSizeMultiplier={2.2} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: subColor }}>
             {model.sub}
@@ -135,12 +154,33 @@ export function ConversationHeaderRN({
   );
 }
 
-/* the pen pal's face in its 44 × 36 slot: 5.2 cells 1.3 apart (31 across), framed to 36 */
+/* the pen pal's face in its 44 × 36 slot: 5.2 cells 1.3 apart (31 across), framed to 36 — or,
+   switch on, their frosted window at 34 (32 inside the frame, 1 clear of it, so the frame still
+   closes at 36) */
 const CELL = 5.2;
 const GAP = 1.3;
 
-function PenPalFace({ mask, veil, frame }: { mask: number; veil: boolean; frame: string | null }) {
+function PenPalFace({ mask, veil, frame, frost }: { mask: number; veil: boolean; frame: string | null; frost: FrostSpec | null }) {
   const { t: tk } = useTheme();
+  // a deleted account with the switch on: the flat veil tile, the same for every ghost (plan §1 1b)
+  const identity = useIdentityOn();
+  if (veil && identity) {
+    return (
+      <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center" }}>
+        <VeilTile size={34} />
+      </View>
+    );
+  }
+  if (frost && !veil) {
+    const side = frame ? 32 : 34;
+    return (
+      <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ padding: frame ? 1 : 0, borderWidth: frame ? 1 : 0, borderColor: frame ?? "transparent", borderRadius: frame ? 36 * frost.corner : 0 }}>
+          <Frost spec={frost} size={side} />
+        </View>
+      </View>
+    );
+  }
   const m = veil ? VEIL_MASK : mask;
   const ink = veil ? tk.faint : tk.ink;
   return (

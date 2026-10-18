@@ -18,9 +18,18 @@ import SwiftUI
    Pen name                    maynaa  ›   opens the one-field page
    Pronouns                  she / her  ›   a menu: she / he / they, saved at once
    Birthday                1 November 1991  shown, never edited: no chevron, no button
-   Strangers never see it — only a kindred…  ep.privateNote
+   ON YOUR LETTERS                          identity switch on only (identity Phase 1):
+   Show ♀ on your letters            (●)    the mark's switch, she / he only, its note under it
+   Star sign on your letters         (●)    the sign's switch, your sign named under it
+   Strangers never see it — only a kindred…  ep.privateNote (id.ep.privateNote with the switch on)
    YOUR COURIER
    Name                            Pip  ›   opens the one-field page (no pronoun row: owner q.13)
+
+ ON YOUR LETTERS (identity-plan §4 and its zodiac addendum) is drawn only when TS sends it, which
+ is only while the identity switch is on; off, the page is exactly what it was. Each switch is a
+ SoftToggleRow, CONTROLLED: it shows the value the account holds and asks TS for the other one
+ (onShowMark / onShowSign), which saves it to the account at once, as a pronoun is saved. The mark's
+ row is not sent for they or unset (they have no mark). Nothing here decides who may be marked.
 
  LAYOUT. The Host ignores every safe area, so the page draws its own strip under the status bar,
  and the header sits under it, outside the scroll view (sticky, H:90). One ScrollView over a
@@ -57,6 +66,29 @@ public struct KEditPronounOption: Identifiable, Equatable, Sendable {
     self.id = id
     self.label = label
   }
+}
+
+/// One switch of ON YOUR LETTERS: its label, the note under it, the value the account holds.
+public struct KEditToggle: Equatable, Sendable {
+  public var label = ""
+  public var note = ""
+  public var on = false
+
+  public init(label: String = "", note: String = "", on: Bool = false) {
+    self.label = label
+    self.note = note
+    self.on = on
+  }
+}
+
+/// ON YOUR LETTERS (identity switch on): the mark's switch (nil for they / unset) and the sign's.
+public struct KEditLetters: Equatable, Sendable {
+  /// "ON YOUR LETTERS"
+  public var header = ""
+  public var mark: KEditToggle?
+  public var sign = KEditToggle()
+
+  public init() {}
 }
 
 /// The one-time note for a legacy portrait.
@@ -96,6 +128,8 @@ public struct KEditProfileContent: Equatable, Sendable {
   public var pronounOptions: [KEditPronounOption] = []
   public var pronounSelected = ""
   public var birthday = KEditRow()
+  /// ON YOUR LETTERS, between YOU and the footer; nil while the identity switch is off
+  public var letters: KEditLetters?
   /// YOUR COURIER
   public var courierHeader = ""
   public var courier = KEditRow()
@@ -118,6 +152,10 @@ public final class KEditProfileActions {
   public var onPen: () -> Void = {}
   /// a pronoun from the menu: she | he | they
   public var onPronoun: (String) -> Void = { _ in }
+  /// ON YOUR LETTERS: the mark's switch asks for this value
+  public var onShowMark: (Bool) -> Void = { _ in }
+  /// ON YOUR LETTERS: the sign's switch asks for this value
+  public var onShowSign: (Bool) -> Void = { _ in }
   /// the courier's Name row
   public var onCourierName: () -> Void = {}
   /// the note's two buttons
@@ -235,6 +273,9 @@ public struct KEditProfileScreen<Avatar: View>: View {
             .id(Self.facesID)
             .padding(.top, 4)
             youGroup
+            if let letters = content.letters {
+              lettersGroup(letters)
+            }
             Text(content.footer)
               .kText(KTextStyle.letter(13, italic: true, lineHeight: 1.5))
               .foregroundStyle(theme.mute)
@@ -367,6 +408,20 @@ public struct KEditProfileScreen<Avatar: View>: View {
       .buttonStyle(KFadePressStyle())
       // shown, never edited: no chevron, and no button for VoiceOver to press
       SoftPlainRow(theme: theme, label: content.birthday.label, value: content.birthday.value, chevron: false, divider: false)
+    }
+  }
+
+  // ── ON YOUR LETTERS (identity switch on) ──────────────────────────────
+  private func lettersGroup(_ letters: KEditLetters) -> some View {
+    SoftGroupSection(theme: theme, header: letters.header, headerInset: Self.headerInset) {
+      if let mark = letters.mark {
+        SoftToggleRow(theme: theme, systemImage: nil, label: mark.label, subtitle: mark.note, isOn: mark.on) { on in
+          actions.onShowMark(on)
+        }
+      }
+      SoftToggleRow(theme: theme, systemImage: nil, label: letters.sign.label, subtitle: letters.sign.note, isOn: letters.sign.on, divider: false) { on in
+        actions.onShowSign(on)
+      }
     }
   }
 

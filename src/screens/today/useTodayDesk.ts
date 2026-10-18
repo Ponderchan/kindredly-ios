@@ -8,6 +8,7 @@ import { useTheme } from "../../lib/theme";
 import { getLang, hasString, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { guessLatin } from "../../lib/lang-guess";
 import { clockTime, fmt as clock, penPalName, postNo, postmark } from "../../lib/format";
+import { useWhoBook } from "../../lib/who";
 import { getStamp, sname } from "../../data/stamps";
 import { stickerName } from "../../lib/sticker-copy";
 import { POOL_CACHE_KEY, fetchMatches, fetchPool, fetchPoolPage, fetchThreads, lastWriteFail, markLetterRead, replyToLetter, type PoolLetter, type ThreadSummary } from "../../lib/db";
@@ -958,6 +959,11 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   voiceUrlRef.current = voiceUrl;
 
   /* ── the cards ── */
+  /* who wrote each letter (lib/who): switch off, the number and the mosaic exactly as before;
+     on, the courier name the reader's list gives them, the frost, and the ♀/♂ and star sign of
+     the writers on the desk, asked once and drawn when they land */
+  const authors = useMemo(() => feed.map((l) => l.author), [feed]);
+  const who = useWhoBook({ uids: authors });
   const fmt = useMemo<C.TodayFormat>(
     () => ({
       t,
@@ -965,6 +971,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       postmark: (iso) => postmark(iso),
       postNo: (uid) => postNo(uid),
       penPal: (uid, o) => penPalName(uid, { upper: o.upper, compact: o.compact }),
+      who,
       clock: (s) => clock(s),
       clockHour: (h) => {
         const d = new Date();
@@ -980,7 +987,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     }),
     // lang: the words and the dates follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lang],
+    [lang, who],
   );
   const bringBackNow = C.canBringBack(rec) && phase === "reading";
   const cards = useMemo(
@@ -1386,7 +1393,8 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     draftEpoch,
     answeredSerial,
     readerId: openReaderId,
-    flyTo: sendingTo?.author ? penPalName(sendingTo.author, { upper: true, compact: true }) : null,
+    // never on the lock screen: this is the in-app fly-by's "to" (the Live Activity keeps its generic words)
+    flyTo: sendingTo?.author ? who.name(sendingTo.author, { upper: true, compact: true }) : null,
     strings,
 
     // legacy

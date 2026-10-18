@@ -28,8 +28,16 @@
      "post:"+uid            → No. 1000–9999               (format.postNo)
      "av:"+seed             → legacy glyph avatar          (format.avatarFor)
      "aura-av:"+uid+":"+dim → the portrait first offered  (aura-avatar-lib)
+     "frost:"+uid           → a stranger's frosted window  (lib/frost, FROST v1)
+     "name:"+salt+":"+uid   → a stranger's courier name    (lib/default-name nameIdx;
+                                                            the salt from lib/stranger-name)
+     "devmarks:"+uid        → the dev pages' made-up ♀/♂ and star sign
+                                                           (lib/identity-core devMarksFixture;
+                                                            never in a release build)
 
    Claiming a new channel = add a new prefix, list it here. Never reuse.
+   (The web's app/engine/faces-core hashStr is the same function, and its
+   frost.js / names-core.js claim the same two prefixes for the same jobs.)
 
    THE SHAPE · 5×5 cells, right half mirrors the left → 15 independent
    bits (h's low bits, row-major over the left half + centre column).

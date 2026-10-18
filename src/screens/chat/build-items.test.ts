@@ -16,6 +16,10 @@ registerHooks({
 });
 
 const B = await import("./build-items.ts");
+const { whoBook } = await import("../../lib/stranger-who.ts");
+const { strangerName } = await import("../../lib/stranger-name.ts");
+const { frostSpec } = await import("../../lib/frost.ts");
+const { developFor, mosaicMask } = await import("../../lib/mosaic.ts");
 const { DEMO_DETAILS, DEMO_FOLDS, demoDetail, demoFolds } = await import("../../data/demo.ts");
 
 type Msg = import("../../lib/db").ThreadMessage;
@@ -241,6 +245,10 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("cards: the time stays at the foot", cards.slice(1).every((c, i) => c.timeLabel === items[i + 1].timeLabel));
   const cw = B.windowItems(cards, 4, cards.length, "letters");
   ok("cards: a window's first letter says its day", cw[0].dayLabel !== "" && cw[0].speakerLabel === "");
+  // identity on: the card heads name the courier name (the hook passes who.name), in capitals
+  const named = B.buildLetterItems(conv, { ...roomCtx(d, { name: "Sunday Kite" }), time, cards: true });
+  ok("identity on: the opening is WHERE IT BEGAN · the courier name", named[0].head === "KD.WHEREBEGAN · SUNDAY KITE");
+  ok("identity on: their letters are LETTER n · the courier name", named.filter((c, i) => i > 0 && !conv[i].mine).every((c, k) => c.head === `CH.CARD.HEAD(N=${k + 1},WHO=SUNDAY KITE)`));
 }
 
 /* ── the render window ── */
@@ -320,6 +328,10 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("no door on a gone thread", B.buildLettersDock({ ...letters, myCount: 5, gone: true }).signDoor === "none");
   ok("no door once revealed", B.buildLettersDock({ ...letters, myCount: 7, revealed: true }).signDoor === "none");
   ok("letters placeholder before and after names: write back…, then a person", B.buildLettersDock(letters).placeholder === "ld.writeBackPh" && B.buildLettersDock({ ...letters, revealed: true, name: "Mira" }).placeholder === "th.sayTo(name=Mira)");
+  ok("identity off: the letters dock is exactly today's", JSON.stringify(B.buildLettersDock({ ...letters, identity: false })) === JSON.stringify(B.buildLettersDock(letters)));
+  ok("identity on: the reply bar is addressed to the courier name, as the desk's is", B.buildLettersDock({ ...letters, identity: true, name: "Sunday Kite" }).placeholder === "ld.writeBackTo(name=Sunday Kite)");
+  ok("identity on, a language without ld.writeBackTo: its own write back, never the English line", B.buildLettersDock({ ...letters, identity: true, name: "Dedal de lluvia", has: (k) => k !== "ld.writeBackTo" }).placeholder === "ld.writeBackPh" && B.buildLettersDock({ ...letters, identity: true, name: "Sunday Kite", has: () => true }).placeholder === "ld.writeBackTo(name=Sunday Kite)");
+  ok("identity on: a gone or missing thread just says write back; names traded, a person", B.buildLettersDock({ ...letters, identity: true, name: "ld.unsigned", gone: true }).placeholder === "ld.writeBackPh" && B.buildLettersDock({ ...letters, identity: true, missing: true }).placeholder === "ld.writeBackPh" && B.buildLettersDock({ ...letters, identity: true, revealed: true, name: "Mira" }).placeholder === "th.sayTo(name=Mira)");
   ok("the reply bar's emoji key is named", B.buildLettersDock(letters).emojiLabel === "cmp.emoji" && B.buildRoomDock(base).emojiLabel === "cmp.emoji");
   // the reply bar's hint (A2): the letter being written
   const hint = (over: Partial<import("./build-items").LettersDockInput>) => B.buildLettersDock({ ...letters, locale: "en-US", ...over }).hint;
@@ -387,6 +399,26 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("header: the ⋯ only with someone to report; back is named", h.moreLabel === "rp.menu.a11y" && B.lettersHeader({ ...base, canReport: false }).moreLabel === "" && h.backLabel === "a11y.back");
   ok("header: loading says nothing under the name", B.lettersHeader({ ...base, state: null }).sub === "");
   ok("header: the pen-pal chat's is not the room's, and draws no picture face", !h.room && h.face.kind === "placeholder");
+
+  /* who they are, from the shared book (lib/stranger-who). SWITCH OFF: today's header, exactly */
+  const penPal = (u: string | null | undefined, o: { upper?: boolean; compact?: boolean }) => (u ? (o.upper ? "NO. 4481" : "No. 4481") : "ld.unsigned");
+  const offBook = whoBook({ identity: false, t, lang: "en", penPal, marks: () => ({ mark: "he", sign: "leo" }) });
+  const offWho = offBook.who("user-4481", { develop: developFor(2) });
+  ok("identity off: the header with the book's who is exactly the header without", JSON.stringify(B.lettersHeader({ ...base, who: offWho })) === JSON.stringify(h));
+  ok("identity off: no frost, no mark, no sign", h.frost === null && h.mark === null && h.sign === null && offWho.face.kind === "mosaic" && offWho.face.mask === h.mask);
+  /* SWITCH ON */
+  const onBook = whoBook({ identity: true, t, lang: "en", penPal, marks: (u) => (u === "user-4481" ? { mark: "he", sign: "leo" } : { mark: null, sign: null }) });
+  const onWho = onBook.who("user-4481", { develop: developFor(2) });
+  const courier = strangerName("user-4481", { lang: "en", unsigned: "" });
+  const hOn = B.lettersHeader({ ...base, name: onWho.name, who: onWho });
+  ok("identity on: the header names the courier name", hOn.name === courier && onWho.name === courier);
+  ok("identity on: the frosted window in the face slot, the mark and the sign after the name", JSON.stringify(hOn.frost) === JSON.stringify(frostSpec("user-4481", false)) && hOn.mark === "he" && hOn.sign === "leo");
+  ok("identity on: VoiceOver hears name, mark and sign, the line, the dots", hOn.a11yLabel === `${courier}, id.mark.he, zd.leo, CH.HEAD.THEIRS(N=3), mk.ofFive(n=2)`);
+  ok("identity on: the line, the dots and the frame don't change", hOn.sub === h.sub && hOn.dots === h.dots && hOn.frame === h.frame && hOn.tone === h.tone);
+  const gOn = B.lettersHeader({ ...base, other: null, name: onBook.name(null), who: onBook.who(null), state: st("gone") });
+  ok("identity on: a gone pen pal is UNSIGNED behind the veil, no frost, no mark", gOn.veil && gOn.frost === null && gOn.mark === null && gOn.sign === null && gOn.name === "ld.unsigned");
+  ok("identity on: the room's header has no window and no mark", (() => { const r = B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true }); return r.frost === null && r.mark === null && r.sign === null; })());
+  ok("identity: mosaicMask is still today's face for the off header", h.mask === mosaicMask("user-4481", developFor(2)));
 }
 
 /* ── the kindreds chat (chat composers B) ── */

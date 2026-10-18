@@ -15,6 +15,23 @@
    saves. A face or a photo applies at once; the account hears about it
    once the picks stop (createSaveQueue below), and a pronoun at once.
 
+   WITH THE IDENTITY SWITCH ON (identity Phase 1: identity-plan §4 and its
+   zodiac addendum) the page gains ON YOUR LETTERS between YOU and its
+   footer: "Show ♀ / ♂ on your letters" (only for she and he: they and
+   unset have no mark, so no switch) and "Star sign on your letters", each
+   saving user_metadata showMark / showSign at once, the way a pronoun is
+   saved (web 0034's marks_for reads them: the mark only for a real true,
+   the sign unless false). The avatar's hint and the footer take their
+   true-again words (id.ep.avatarNote, id.ep.privateNote). Switch off, the
+   page is exactly what it was: no group, the old words.
+
+   THE ONE-TIME NOTE (identityNote below), for someone who was here before
+   the switch: shown once, over the tabs, with both switches inside it (the
+   mark's starts off for an existing she/he user, whose pronoun was given
+   as "only used in how the app talks about you"; the sign's starts on),
+   a live preview of how a stranger sees them, and one Done. Either way the
+   two values are saved, so it never comes back on any phone.
+
    Both renderers draw exactly this view (EditProfileNative in SwiftUI,
    EditProfileRN as the remote switch's fallback); the hook
    (useEditProfileModel) reads the account and the phone and does the work.
@@ -121,6 +138,8 @@ export type EditFacts = {
   /** user_metadata.dob, "YYYY-MM-DD"; null for none */
   dob: string | null;
   pronoun: PronounId;
+  /** what strangers may see (identity Phase 1); absent = the switch off, the page as it was */
+  letters?: LettersFacts;
   wren: string;
   /** the portrait or old face worn; null for none (a photo, or never picked) */
   avatarId: string | null;
@@ -150,6 +169,12 @@ export type NewFacesNoteVM = {
   faceIds: string[];
 };
 
+/** One switch on the page or in the note: its words and the value the account holds. */
+export type LetterToggleVM = { label: string; note: string; on: boolean };
+
+/** ON YOUR LETTERS: the mark's switch (null for they / unset) and the sign's. */
+export type LettersVM = { header: string; mark: LetterToggleVM | null; sign: LetterToggleVM };
+
 export type EditView = {
   title: string;
   backLabel: string;
@@ -166,6 +191,8 @@ export type EditView = {
   pen: EditRowVM;
   pronoun: EditRowVM & { options: PronounOptionVM[]; selected: PronounId };
   birthday: EditRowVM;
+  /** identity switch on: ON YOUR LETTERS, between YOU and the footer; null while it is off */
+  letters: LettersVM | null;
   courierHeader: string;
   courier: EditRowVM;
   footer: string;
@@ -183,16 +210,109 @@ export function birthdayValue(dob: string | null | undefined, fmt: Pick<EditForm
   return fmt.birthday(y, m, d);
 }
 
+/* ── what strangers see beside your courier name (identity Phase 1) ─────── */
+
+/** What the page and the note know about the two switches. */
+export type LettersFacts = {
+  /** the identity switch (lib/identity useIdentityOn) */
+  identity: boolean;
+  /** user_metadata.showMark as stored (true / false / missing) */
+  showMark: unknown;
+  /** user_metadata.showSign as stored */
+  showSign: unknown;
+  /** your own star sign from your birthday (lib/zodiac zodiacFromDob); null with no birthday */
+  sign: string | null;
+};
+
+/** The mark is offered to she and he only: they and unset have no mark, so no switch. */
+export const markOffered = (p: PronounId): boolean => p === "she" || p === "he";
+/** The mark shows only for a real true (0034: unset is "not answered yet", hidden). */
+export const showsMark = (v: unknown): boolean => v === true;
+/** The sign shows unless it was turned off (0034: on by default). */
+export const showsSign = (v: unknown): boolean => v !== false;
+/* lib/zodiac zodiacKey, written out: this file imports nothing at runtime */
+const signKey = (sign: string): string => "zd." + sign;
+
+/** The two switches as the page and the note word them: the mark's for she / he only. */
+export function lettersView(pronoun: PronounId, f: Pick<LettersFacts, "showMark" | "showSign" | "sign">, t: TFn): LettersVM {
+  return {
+    header: t("ep.id.section"),
+    mark: markOffered(pronoun) ? { label: t(pronoun === "she" ? "ep.id.mark.she" : "ep.id.mark.he"), note: t("ep.id.markNote"), on: showsMark(f.showMark) } : null,
+    sign: { label: t("ep.id.sign"), note: f.sign ? t("ep.id.signNote", { sign: t(signKey(f.sign)) }) : t("ep.id.signNone"), on: showsSign(f.showSign) },
+  };
+}
+
+/** The one-time note's flag (lib/flags): this phone has shown it (the account's two values say it everywhere else). */
+export const IDENTITY_NOTE_FLAG = "identity_note_seen";
+
+/**
+ * The one-time note for someone who was here before the switch: the switch is on, there is a
+ * session and they finished onboarding, neither switch was ever saved on their account (the new
+ * onboarding will save both for a new user; until it ships, a new user gets this note too), and
+ * this phone hasn't shown it.
+ */
+export function showIdentityNote(f: { identity: boolean; session: boolean; onboarded: boolean; showMark: unknown; showSign: unknown; seen: boolean }): boolean {
+  if (!f.identity || !f.session || !f.onboarded || f.seen) return false;
+  return typeof f.showMark !== "boolean" && typeof f.showSign !== "boolean";
+}
+
+export type IdentityNoteVM = {
+  title: string;
+  body: string;
+  /** YOU, TO A STRANGER: over the live preview */
+  previewLabel: string;
+  /** the preview's courier name for you, as a stranger's courier in your language would give it */
+  previewName: string;
+  /** VoiceOver: the preview as one element */
+  previewA11y: string;
+  letters: LettersVM;
+  foot: string;
+  done: string;
+};
+
+/** The note's words, the preview and its two switches (the mark's for she / he only). */
+export function identityNote(
+  f: { pronoun: PronounId; showMark: unknown; showSign: unknown; sign: string | null; previewName: string },
+  t: TFn,
+): IdentityNoteVM {
+  const letters = lettersView(f.pronoun, f, t);
+  const spoken = [
+    f.previewName,
+    letters.mark?.on ? t(`id.mark.${f.pronoun}`) : "",
+    letters.sign.on && f.sign ? t(signKey(f.sign)) : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+  return {
+    title: t("id.note.title"),
+    body: t(markOffered(f.pronoun) ? "id.note.body" : "id.note.bodyThey"),
+    previewLabel: t("id.preview"),
+    previewName: f.previewName,
+    previewA11y: t("id.preview.a11y", { who: spoken }),
+    letters,
+    foot: t("id.note.foot"),
+    done: t("id.note.done"),
+  };
+}
+
+/** What Done saves: both values, always, so the note never comes back on any phone. The mark is
+    never saved on for they / unset. */
+export function identityNoteSave(pronoun: PronounId, showMark: boolean, showSign: boolean): { showMark: boolean; showSign: boolean } {
+  return { showMark: markOffered(pronoun) && showMark, showSign };
+}
+
 export function buildEditView(f: EditFacts, fmt: EditFormat): EditView {
   const { t } = fmt;
   const total = f.pool.length;
+  const on = !!f.letters?.identity;
   return {
     title: t("ep.title"),
     backLabel: t("a11y.back"),
     cameraLabel: t("ep.cameraA11y"),
     photoLabel: t("ep.choosePhoto"),
     randomLabel: t("ep.random"),
-    avatarHint: t("ep.avatarNote"),
+    // switch on: the true-again words (strangers see a window, never your face; a kindred the one you had at signing)
+    avatarHint: t(on ? "id.ep.avatarNote" : "ep.avatarNote"),
     facesHeader: t("ep.faces"),
     faces: f.pool.map((face, i) => ({ id: face.id, a11y: t("ep.faceA11y", { n: i + 1, total }) })),
     selectedFace: f.photo || !f.avatarId ? "" : f.avatarId,
@@ -214,9 +334,10 @@ export function buildEditView(f: EditFacts, fmt: EditFormat): EditView {
       selected: f.pronoun,
     },
     birthday: { label: t("ep.birthday"), value: birthdayValue(f.dob, fmt) },
+    letters: on && f.letters ? lettersView(f.pronoun, f.letters, t) : null,
     courierHeader: t("me.sec.courier"),
     courier: { label: t("ep.name"), value: f.wren },
-    footer: t("ep.privateNote"),
+    footer: t(on ? "id.ep.privateNote" : "ep.privateNote"),
   };
 }
 

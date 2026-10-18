@@ -6,6 +6,8 @@ import { clockTime } from "./format";
 import { getWrenName } from "./wren-name";
 import { supabase, supabaseReady } from "./supabase";
 import { STAMPS } from "../data/stamps";
+import { identityOn } from "./identity";
+import "../data/strings-identity";
 import { snapshotBird, type BirdPose } from "../components/BirdSnapshots";
 
 /* HER, ON THE LOCK SCREEN.
@@ -163,7 +165,8 @@ function outStatic(wren: string, bird: string, birdBack: string, mini: string, s
     reads1: t("la.out.reads1"),
     readsN: t("la.out.readsN"),
     looking: t("la.out.looking"),
-    repliedHead: t("la.out.repliedHead"),
+    // still never a name on the lock screen; with the identity switch on, the words without a gendered noun (de "Ein Fremder")
+    repliedHead: t(identityOn() ? "id.la.out.repliedHead" : "la.out.repliedHead"),
     repliedLine: t("la.out.repliedLine"),
   };
 }

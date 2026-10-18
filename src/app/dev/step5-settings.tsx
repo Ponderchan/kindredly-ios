@@ -12,7 +12,15 @@ import { buildSettingsView, dangerInk, type SettingsFacts } from "../../screens/
 import { versionFacts, type SettingsActions, type SettingsModel } from "../../screens/settings/useSettingsModel";
 import { SettingsNative } from "../../screens/settings/SettingsNative";
 import { SettingsRN } from "../../screens/settings/SettingsRN";
-import { buildEditView, facePool, randomFace, type PronounId } from "../../screens/edit-profile/edit-profile-model";
+import { buildEditView, facePool, identityNote, randomFace, type PronounId } from "../../screens/edit-profile/edit-profile-model";
+import { IdentityNoteSheet } from "../../screens/edit-profile/IdentityNote";
+import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
+import { frostSpec } from "../../lib/frost";
+import { strangerName } from "../../lib/stranger-name";
+import { zodiacFromDob } from "../../lib/zodiac";
+import { postmark } from "../../lib/format";
+import { getLang } from "../../lib/i18n";
+import "../../data/strings-identity";
 import type { EditActions, EditProfileModel } from "../../screens/edit-profile/useEditProfileModel";
 import { EditProfileNative } from "../../screens/edit-profile/EditProfileNative";
 import { EditProfileRN } from "../../screens/edit-profile/EditProfileRN";
@@ -46,7 +54,13 @@ import "../../data/strings-step5-me";
      NAME, NO DOB;
    - Edit: FACE (a portrait / a legacy portrait: the new-faces note / an
      old drawn face / none: the mosaic / a photo-less fallback), PRONOUN
-     (the pool follows it), NOTE (force the note), NO NAME, NO DOB.
+     (the pool follows it), NOTE (force the note), NO NAME, NO DOB;
+     NAMES (the identity switch previewed on for this run of the app, never
+     saved, lib/identity setDevIdentityPreview: ON YOUR LETTERS appears,
+     its two switches this page's own state, and the hint and the footer
+     take their identity words), ID NOTE (the one-time note's sheet,
+     IdentityNoteSheet, on this page's own state: nothing is saved, Done
+     only closes it).
    The panel's words are English: a dev page. */
 
 type Page = "settings" | "edit";
@@ -93,6 +107,11 @@ function SettingsLab() {
   const [pronoun, setPronoun] = useState<PronounId>("she");
   const [forceNote, setForceNote] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
+  // identity Phase 1: the switch previewed (NAMES), the two values as this page holds them, the note's sheet
+  const names = useIdentityOn();
+  const [showMark, setShowMark] = useState<boolean | null>(null);
+  const [showSign, setShowSign] = useState<boolean | null>(null);
+  const [idNote, setIdNote] = useState(false);
 
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this ${where}.`), []);
   const wren = "Pip";
@@ -164,6 +183,7 @@ function SettingsLab() {
         photo: false,
         pool,
         newFacesNote: forceNote || (picked == null && faceMode === "legacy"),
+        letters: { identity: names, showMark: showMark ?? undefined, showSign: showSign ?? undefined, sign: zodiacFromDob(dob) },
       },
       { t, birthday: (y, m, d) => new Intl.DateTimeFormat(undefined, { year: "numeric", month: "long", day: "numeric" }).format(new Date(y, m - 1, d)) },
     );
@@ -174,6 +194,8 @@ function SettingsLab() {
       face: (id) => getFace(id) && setPicked(id),
       pen: () => away("opens /me/edit-field?f=pen"),
       pronoun: (id) => setPronoun(id as PronounId),
+      showMark: (on) => setShowMark(on),
+      showSign: (on) => setShowSign(on),
       courierName: () => away("opens /me/edit-field?f=courier"),
       noteSee: () => setForceNote(false),
       noteKeep: () => setForceNote(false),
@@ -181,7 +203,19 @@ function SettingsLab() {
     return { view: v, pool, avatar: { id: avatarId, photo: null, seed: "dev-step5-settings" }, act };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [faceMode, picked, pronoun, forceNote, handle, dob, away, lang]);
+  }, [faceMode, picked, pronoun, forceNote, handle, dob, away, lang, names, showMark, showSign]);
+
+  // the one-time note's sheet on this page's state (ID NOTE): the same view the tabs' note draws
+  const idNoteView = useMemo(
+    () =>
+      identityNote(
+        { pronoun, showMark: showMark ?? undefined, showSign: showSign ?? undefined, sign: zodiacFromDob(dob), previewName: strangerName("dev-step5-settings", { lang: getLang(), unsigned: "" }) },
+        t,
+      ),
+    // lang: the words follow the reader's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pronoun, showMark, showSign, dob, lang],
+  );
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   const useSwift = swift && swiftAvailable;
@@ -240,6 +274,8 @@ function SettingsLab() {
               <Chip label="NOTE" on={forceNote} onPress={() => setForceNote((v) => !v)} />
               <Chip label="NO NAME" on={noName} onPress={() => setNoName((v) => !v)} />
               <Chip label="NO DOB" on={noDob} onPress={() => setNoDob((v) => !v)} />
+              <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
+              <Chip label="ID NOTE" on={idNote} onPress={() => setIdNote(true)} />
             </Row>
           )}
           <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
@@ -248,6 +284,18 @@ function SettingsLab() {
         </View>
       ) : (
         <Pressable onPress={() => setPanel(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Show the dev panel" style={{ position: "absolute", left: 10, bottom: Math.max(safe.bottom, 10), width: 14, height: 14, borderRadius: 7, backgroundColor: tk.ind, opacity: 0.5 }} />
+      )}
+      {idNote && (
+        <IdentityNoteSheet
+          note={idNoteView}
+          frost={frostSpec("dev-step5-settings", THEMES[themeKey].dark)}
+          pronoun={pronoun}
+          sign={zodiacFromDob(dob)}
+          when={postmark(new Date())}
+          onMark={(on) => setShowMark(on)}
+          onSign={(on) => setShowSign(on)}
+          onDone={() => setIdNote(false)}
+        />
       )}
     </View>
   );

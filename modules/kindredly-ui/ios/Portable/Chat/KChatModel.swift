@@ -461,7 +461,7 @@ public struct KChatHeaderModel: Equatable, Sendable {
   public var room = false
   /// room: the kindred's face as TS resolved it (their portrait, the glyph, the veil)
   public var face: KFaceSource = .placeholder
-  /// "No. 5422"
+  /// "No. 5422" (identity switch on: the courier name, "Sunday Kite")
   public var name = ""
   /// the line under it, already in capitals: "LETTER 3 OF 5 · THEIRS", or the state when it is
   /// past the letters (SWAP NAMES?, ACCOUNT CLOSED, …); "" for none
@@ -469,8 +469,18 @@ public struct KChatHeaderModel: Equatable, Sendable {
   public var tone: KChatTone = .mute
   /// FACE v1, bit row × 5 + column (TS mosaicMask with their letters' develop)
   public var mask = 0
+  /// identity switch on: the pen pal's frosted window, drawn in the face slot instead of the
+  /// mosaic (it never develops; the frame and the dots stay); nil while the switch is off
+  public var frost: KFrostSpec?
+  /// identity switch on: the ♀/♂ mark after the name (an ink glyph in sub); nil for none
+  public var mark: KLineGlyph?
+  /// identity switch on: the star sign after the mark; nil for none
+  public var sign: KLineGlyph?
   /// a deleted account (or not loaded yet): the veil in faint
   public var veil = true
+  /// the identity switch is on: the veil is the flat veil tile (a square, like the windows)
+  /// rather than the mosaic's
+  public var veilTile = false
   public var frame: KChatFaceFrame = .none
   /// the five dots: how many exchanges went both ways, 0…5
   public var dots = 0

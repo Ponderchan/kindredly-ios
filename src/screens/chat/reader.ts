@@ -3,6 +3,8 @@ import type { TFn } from "../../lib/format";
 import type { ThreadDetailStatus } from "../../lib/thread-detail-core";
 import { LETTER_MAX, REPLY_MIN, letterTier, weightedCount } from "../../lib/weighted-count";
 import { translateCode } from "../../components/10a/kit";
+import { developFor } from "../../lib/mosaic";
+import type { StrangerWho, WhoBook } from "../../lib/stranger-who";
 import { OPENING_KEY, conversation, isOpening } from "./build-items";
 
 /* THE ONE-LETTER READER'S RULES, WITHOUT REACT (10a step 5, slice chat-rn).
@@ -30,6 +32,14 @@ import { OPENING_KEY, conversation, isOpening } from "./build-items";
    · The hero is the letter that was tapped: ?m=<message id | "opening">,
      with ?i= (an index) kept for older links, else their latest, else the
      newest.
+
+   WHO WROTE IT (identity Phase 1): a pen pal is named by the screen's book
+   (lib/stranger-who, ReaderFormat.who). Switch off, or no book: their
+   number, exactly as before. Switch on: the courier name in the postmark
+   and on each letter's signature, the frost, the ♀/♂ mark and the star
+   sign beside the name in the header (correspondentWho), the reply bar
+   addressed to the courier name, and the reply hint in its new words
+   (no gendered pronoun for the person).
 
    Also: translate is offered only on their words in another language
    (critic: it was offered on my own letters and on English to English),
@@ -74,14 +84,25 @@ export type ReaderFormat = {
   postmark: (iso: string) => string;
   /** a pen pal's number for an id, upper-case and compact ("NO.7273"; lib/format penPalName) */
   penPal: (other: string) => string;
+  /** who strangers are (lib/who useWhoBook); absent or switched off = the number, as before */
+  who?: WhoBook;
 };
 
 /** What they are called here: their name once traded, UNSIGNED for a deleted account, else
-    their number. Upper-case: it is set in mono. */
+    their number (switch on, the courier name). Upper-case: it is set in mono. */
 export function correspondentLabel(d: ThreadDetail, f: ReaderFormat): string {
   if (d.revealed && !d.gone) return (d.otherName || f.t("cm.kindred")).toLocaleUpperCase(f.locale);
   if (isUnsigned(d)) return f.t("ld.unsigned");
-  return f.penPal(d.other);
+  return f.who?.identity ? f.who.name(d.other, { upper: true, compact: true }) : f.penPal(d.other);
+}
+
+/** The pen pal in the header, as the book gives them (the face slot, the name, the mark and the
+    sign, VoiceOver's words): null once names are traded (a kindred's own face and name), and null
+    without a book. A deleted account is UNSIGNED behind the veil. Switch off, the mosaic develops
+    with their letters, as the header always drew it. */
+export function correspondentWho(d: ThreadDetail | null, f: Pick<ReaderFormat, "who">): StrangerWho | null {
+  if (!d || !f.who || (d.revealed && !d.gone)) return null;
+  return f.who.who(isUnsigned(d) ? null : d.other, { develop: developFor(d.otherCount) });
 }
 
 /** Who signed a letter: YOU, or them as correspondentLabel says. */
@@ -143,16 +164,22 @@ export function replyCanSend(text: string, sending: boolean): boolean {
   return w >= REPLY_MIN && w <= LETTER_MAX && !sending;
 }
 
-/** The hint under the reply strip (H:125): over the limit in red, else where the reply goes. */
-export function replyHint(text: string, revealed: boolean, t: TFn): { text: string; alarm: boolean } {
+/** The hint under the reply strip (H:125): over the limit in red, else where the reply goes (switch
+    on: the id.th.* words, which never give the person a gender — pt said "PARA ELA"). */
+export function replyHint(text: string, revealed: boolean, t: TFn, identity = false): { text: string; alarm: boolean } {
   const over = weightedCount(text) - LETTER_MAX;
   if (over > 0) return { text: t("th.over", { n: over }), alarm: true };
-  return { text: revealed ? t("th.goesStraight") : t("th.replyGoesStraight"), alarm: false };
+  const key = revealed ? "th.goesStraight" : "th.replyGoesStraight";
+  return { text: t(identity ? "id." + key : key), alarm: false };
 }
 
-/** The reply strip's placeholder: their name once traded, else "write back to them". */
-export function replyPlaceholder(d: ThreadDetail | null, t: TFn): string {
+/** The reply strip's placeholder: their name once traded, else "write back to them" — or, with the
+    switch on (`who`), "write back to Sunday Kite…", as the desk addresses it, in a language that has
+    that line (`has`, i18n hasString: ld.writeBackTo is English-only for now; elsewhere the reader's
+    own "write back to them" stays, as on the desk). */
+export function replyPlaceholder(d: ThreadDetail | null, t: TFn, who?: WhoBook, has?: (key: string) => boolean): string {
   if (d?.revealed && !d.gone) return t("th.sayTo", { name: d.otherName || t("cm.kindred") });
+  if (who?.identity && d && !isUnsigned(d) && (has?.("ld.writeBackTo") ?? true)) return t("ld.writeBackTo", { name: who.name(d.other) });
   return t("th.writeBackThem");
 }
 

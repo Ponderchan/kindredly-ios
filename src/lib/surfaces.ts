@@ -320,6 +320,20 @@ const subscribe = (f: () => void) => {
   };
 };
 
+/* A SWITCH THAT ISN'T A SCREEN. The same table carries feature switches
+   too — the first is 'identity' (lib/identity: courier names, frosted
+   windows, the ♀/♂ mark and the star sign). They ride the same request,
+   the same throttle and the same cache on this phone; only the reading
+   differs: the table's answer or OFF (lib/identity-core identitySwitch),
+   with no NATIVE_DEFAULTS, no module check and no crash breadcrumb, since
+   nothing native is being chosen. */
+/** The table's answers as last fetched (or cached on this phone); null = nothing known yet. */
+export function remoteSurfaces(): SurfaceMap | null {
+  return remote;
+}
+/** Called when a fresher answer lands (or a dev override changes); returns the unsubscribe. */
+export const subscribeSurfaces = subscribe;
+
 /** true = draw `key` in SwiftUI. Starts from the answer in memory and
     follows it when a fresher one lands; never waits on the network. */
 export function useNativeSurface(key: string): boolean {

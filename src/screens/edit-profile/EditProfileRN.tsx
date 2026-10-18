@@ -9,7 +9,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { BottomFade, SecondaryHeader } from "../../components/10a";
 import { BOTTOM_FADE } from "../../components/10a/kit";
-import { SoftPlainRowRN, SoftSection } from "../settings/SoftRN";
+import { SoftPlainRowRN, SoftSection, SoftSwitchRow } from "../settings/SoftRN";
 import type { EditProfileModel } from "./useEditProfileModel";
 
 /* EDIT PROFILE IN REACT NATIVE — the remote switch's fallback (10a step 5),
@@ -19,8 +19,10 @@ import type { EditProfileModel } from "./useEditProfileModel";
    header, the avatar block with the camera button (its menu: the system's
    action sheet, Choose a photo / Random face), the one-time note, the face
    strip, YOU (pen name, pronouns as an action sheet, the birthday shown
-   only), ep.privateNote, YOUR COURIER (her name). Clears the floating tab
-   bar, under the bottom fade. */
+   only), with the identity switch on ON YOUR LETTERS (the ♀/♂ switch for
+   she / he, the star sign's), ep.privateNote (id.ep.privateNote with the
+   switch on), YOUR COURIER (her name). Clears the floating tab bar, under
+   the bottom fade. */
 
 /* the hints are Newsreader italic whatever the Letter font (they are not letters) */
 const HINT = letterFamily("newsreader", true);
@@ -167,6 +169,14 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
           <SoftPlainRowRN label={view.pronoun.label} value={view.pronoun.value} onPress={pronounMenu} />
           <SoftPlainRowRN label={view.birthday.label} value={view.birthday.value} chevron={false} last />
         </SoftSection>
+
+        {/* ON YOUR LETTERS (identity switch on): each switch saves to the account at once */}
+        {view.letters && (
+          <SoftSection header={view.letters.header} headerInset={EDIT_HEADER_INSET}>
+            {view.letters.mark && <SoftSwitchRow label={view.letters.mark.label} sub={view.letters.mark.note} on={view.letters.mark.on} onChange={act.showMark} />}
+            <SoftSwitchRow label={view.letters.sign.label} sub={view.letters.sign.note} on={view.letters.sign.on} onChange={act.showSign} last />
+          </SoftSection>
+        )}
         {/* H:94: the page's 12 plus the footer's own 4 (the Swift page the same) */}
         <Text style={[{ fontSize: 13, lineHeight: 19.5, color: tk.mute, textAlign: "center", paddingHorizontal: 20, marginTop: 4 }, HINT]}>{view.footer}</Text>
 

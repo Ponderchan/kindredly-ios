@@ -12,7 +12,7 @@ import { LeaveSheet } from "../../components/LeaveSheet";
 import { ReportSheet } from "../../components/ReportMenu";
 import { useReportFlow } from "../../lib/report-flow";
 import { WrenBird } from "../../components/WrenBird";
-import { getLang, t, useLang } from "../../lib/i18n";
+import { getLang, hasString, t, useLang } from "../../lib/i18n";
 import { scrimColor, useTheme } from "../../lib/theme";
 import { PF } from "../../theme/post";
 import { dLong, dShort, fmt } from "../../lib/format";
@@ -51,8 +51,12 @@ import { ChatHeader } from "./ChatHeader";
    Swift now (chat composers, 2026-10-18), its ⋯ opening ReportSheet:
    · the pen-pal chat before names (A2): the face, No. 5422, LETTER 3 OF 5 ·
      THEIRS, five dots; they say what the reach band said (with the reply
-     bar's hint), so the band is not drawn there. A pen-pal chat that is
-     already revealed keeps the React Native ChatHeader;
+     bar's hint), so the band is not drawn there. With the identity switch
+     on the same header carries the frosted window, the courier name and
+     the ♀/♂ mark and star sign (lettersHeader, from the screen's book), and
+     a deleted pen pal's veil becomes the flat veil tile (identity). A
+     pen-pal chat that is already revealed keeps the React Native
+     ChatHeader;
    · the room (B): the kindred's portrait, their name, KINDRED SINCE …. The
      React Native header's lore button and "Wren found you two" line are not
      in the owner's B (lore stays a row in Settings).
@@ -459,6 +463,8 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
       buildLettersDock({
         t,
         name: m.name,
+        identity: m.identity,
+        has: hasString,
         revealed: !!detail?.revealed,
         gone: !!detail?.gone,
         missing: m.status === "missing",
@@ -469,7 +475,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
         locale: m.locale,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.otherCount, detail?.iSigned, detail?.theirSigned, lang],
+    [m.name, m.identity, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.otherCount, detail?.iSigned, detail?.theirSigned, lang],
   );
 
   /* the Swift header (A2) while names aren't traded (and while the thread loads); a revealed
@@ -479,21 +485,26 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   const header = useMemo<KChatHeader | null>(
     () =>
       swiftHeader
-        ? lettersHeader({
-            t,
-            locale: m.locale,
-            name: m.name,
-            other: detail?.other || null,
-            myCount: detail?.myCount ?? 0,
-            otherCount: detail?.otherCount ?? 0,
-            theirSigned: !!detail?.theirSigned,
-            state: m.state,
-            canOpenPage: m.canOpenPage,
-            canReport: !report.nobody,
-          })
+        ? {
+            ...lettersHeader({
+              t,
+              locale: m.locale,
+              name: m.name,
+              who: m.who,
+              other: detail?.other || null,
+              myCount: detail?.myCount ?? 0,
+              otherCount: detail?.otherCount ?? 0,
+              theirSigned: !!detail?.theirSigned,
+              state: m.state,
+              canOpenPage: m.canOpenPage,
+              canReport: !report.nobody,
+            }),
+            // the identity switch: a deleted pen pal's veil is the flat veil tile, square like the windows
+            identity: m.identity,
+          }
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [swiftHeader, m.name, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
+    [swiftHeader, m.name, m.who, m.identity, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
   );
   const headerTop = topInset ?? safe.top;
   const strings = useChatStrings();

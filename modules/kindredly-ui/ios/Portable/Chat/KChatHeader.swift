@@ -33,6 +33,14 @@ import SwiftUI
    the letters the state in its tone (SWAP NAMES?, THEY WENT FIRST in brass; ACCOUNT CLOSED).
    TS words it all (build-items lettersHeader). Face and name are one button that opens their
    page once you know their voice (canOpenPage), and otherwise one element.
+ - WITH THE IDENTITY SWITCH ON (identity Phase 1) the same slot and the same metrics hold the
+   new identity, as data: the frosted window (KFrost) takes the mosaic's exact place, 31.2
+   square inside the 36 the frame closes (corners of a quarter, the frame's corners following
+   them), never developing; the courier name ("Sunday Kite") takes the number's, with the ♀/♂
+   mark 6pt after it and the star sign 4pt after that (KWhoMarks at 14, ink glyphs in sub). The
+   glyphs never give way: a name too long for the room left beside the dots is the one that is
+   cut, and VoiceOver hears it whole (TS's label, "Sunday Kite, she, Gemini, …"). A deleted
+   account is the flat veil tile instead of the mosaic's veil.
  - THE DOTS: five, 8 across with a 1.5 ln outline, 4 apart; one filled (ln) for each exchange
    that went both ways. VoiceOver hears them in the name's element.
  - ··· Report or block (TS opens ReportSheet: it rises from here), 22 in ink, in a 44 target;
@@ -50,6 +58,8 @@ struct KChatHeader: View {
   let actions: KConversationActions
 
   static let height: CGFloat = 72
+  /// the mark and the sign beside the 18pt name (KWhoMarks: 0.8 × the name)
+  static let markSize: CGFloat = 14
 
   private var subColor: Color {
     switch model.tone {
@@ -116,13 +126,16 @@ struct KChatHeader: View {
         KFace(theme: theme, source: model.face, size: 44)
           .accessibilityHidden(true)
       } else {
-        KChatHeaderFace(theme: theme, mask: model.mask, veil: model.veil, frame: model.frame)
+        KChatHeaderFace(theme: theme, mask: model.mask, frost: model.frost, veil: model.veil, veilTile: model.veilTile, frame: model.frame)
       }
       VStack(alignment: .leading, spacing: 3) {
-        Text(model.name)
-          .kText(.system(18, .semibold))
-          .foregroundStyle(theme.ink)
-          .lineLimit(1)
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+          Text(model.name)
+            .kText(.system(18, .semibold))
+            .foregroundStyle(theme.ink)
+            .lineLimit(1)
+          KWhoMarks(mark: model.mark, sign: model.sign, size: Self.markSize, color: theme.sub)
+        }
         if !model.sub.isEmpty {
           Text(model.sub)
             .kText(.mono(10, .medium, tracking: 0.12))
@@ -164,15 +177,26 @@ struct KChatHeader: View {
 }
 
 /// A pen pal's face in the header's 44 × 36 slot: FACE v1 (31 square), framed to 36 once it has
-/// come through (CorrespondentFace's rule), the veil for no one.
+/// come through (CorrespondentFace's rule), the veil for no one. With the identity switch on, the
+/// frosted window in the same 31.2 square (the frame's corners rounding with it) and the flat
+/// veil tile for no one.
 struct KChatHeaderFace: View {
   let theme: KTheme
   let mask: Int
+  let frost: KFrostSpec?
   let veil: Bool
+  let veilTile: Bool
   let frame: KChatFaceFrame
 
   static let cell: CGFloat = 5.2
   static let gap: CGFloat = 1.3
+  /// the room between the face and the frame's 36 square
+  static let pad: CGFloat = 2.4
+  /// the frame's square
+  static let framed: CGFloat = 36
+
+  /// a window (or its tile) is drawn instead of the mosaic: its square has rounded corners
+  private var rounded: Bool { (!veil && frost != nil) || (veil && veilTile) }
 
   private var frameColor: Color? {
     switch frame {
@@ -183,18 +207,27 @@ struct KChatHeaderFace: View {
   }
 
   var body: some View {
+    let side = Self.framed - 2 * Self.pad
     Group {
-      if veil {
+      if veil && veilTile {
+        KFrostVeil(theme: theme, size: side)
+      } else if veil {
         KMosaic.veil(theme: theme, cell: Self.cell, gap: Self.gap)
+      } else if let frost {
+        KFrost(theme: theme, spec: frost, size: side)
       } else {
         KMosaic(mask: mask, cell: Self.cell, gap: Self.gap, color: theme.ink)
       }
     }
     // the frame's 1pt line inside a 36 square, 1.4 clear of the face
-    .padding(2.4)
+    .padding(Self.pad)
     .overlay {
       if let frameColor {
-        Rectangle().strokeBorder(frameColor, lineWidth: 1)
+        if rounded {
+          RoundedRectangle(cornerRadius: Self.framed * 0.25, style: .circular).strokeBorder(frameColor, lineWidth: 1)
+        } else {
+          Rectangle().strokeBorder(frameColor, lineWidth: 1)
+        }
       }
     }
     .frame(width: 44, height: 36)

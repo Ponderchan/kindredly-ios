@@ -50,6 +50,12 @@ import SwiftUI
  SCROLL REQUESTS (TS commands through the driver): top, and list, the title's tap ("2 LETTERS
  TO ANSWER" shows only those): the band folds and the list scrolls to where the band pins, so
  the first row sits right under it rather than behind it.
+
+ THE IDENTITY SWITCH (identity Phase 1) changes data here, never the layout: a pen pal's row, a
+ folded face and an orbit face carry their frosted window (KFrost, square) with the courier name
+ and its ♀/♂ mark and star sign (KPersonRow, KFoldRow, KOrbit), and `legendFrost` turns the PEN
+ PALS chip's mark and the your-turn legend into the small frosted square (KLegendGlyph). All of
+ it is empty while the switch is off, and the tab draws the mosaics and numbers it always drew.
  */
 
 /// One chip under the band.
@@ -126,6 +132,9 @@ public struct KKindredsContent: Equatable, Sendable {
   public var legendCloser: String = ""
   public var legendTurn: String = ""
   public var orbitChipLabel: String = ""
+  /// identity switch on: the sample window the PEN PALS chip mark and the your-turn legend are
+  /// drawn as (nobody's: TS's fixed seed); nil keeps the mosaic marks
+  public var legendFrost: KFrostSpec?
   /// the tab is focused: the orbit may drift
   public var active = true
   public var chips: [KKindredsChip] = []
@@ -660,6 +669,7 @@ struct KKindredsBand: View {
           orbit: content.orbit,
           legendCloser: content.legendCloser,
           legendTurn: content.legendTurn,
+          legendFrost: content.legendFrost,
           open: open,
           active: content.active,
           chrome: chrome,
@@ -696,7 +706,8 @@ struct KKindredsBand: View {
             glyph: chip.glyph,
             selected: chip.selected,
             dot: chip.dot,
-            a11yLabel: chip.a11yLabel
+            a11yLabel: chip.a11yLabel,
+            frost: content.legendFrost
           ) {
             actions.onChip(chip.key)
           }
@@ -729,6 +740,8 @@ struct KKindredsOrbitBlock: View {
   let orbit: [KOrbitItem]
   let legendCloser: String
   let legendTurn: String
+  /// identity switch on: the your-turn mark is the sample window with its ind ring
+  let legendFrost: KFrostSpec?
   let open: Bool
   let active: Bool
   @ObservedObject var chrome: KScrollModel
@@ -767,7 +780,8 @@ struct KKindredsOrbitBlock: View {
 
   private func item(_ kind: KLegendGlyph.Kind, _ text: String) -> some View {
     HStack(alignment: .center, spacing: 5) {
-      KLegendGlyph(theme: theme, kind: kind, size: kind == .rings ? 14 : 9)
+      // the your-turn window wears its ring, so it gets 12 to the mosaic's 9
+      KLegendGlyph(theme: theme, kind: kind, size: kind == .rings ? 14 : (legendFrost != nil ? 12 : 9), frost: legendFrost)
       Text(text)
         .kText(Self.legend)
         .foregroundStyle(theme.sub)

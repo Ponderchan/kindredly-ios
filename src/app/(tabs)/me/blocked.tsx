@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
@@ -6,11 +6,15 @@ import { t, useLang } from "../../../lib/i18n";
 import { MONO, PF } from "../../../theme/post";
 import { useTheme } from "../../../lib/theme";
 import { MosaicId } from "../../../components/MosaicId";
+import { WhoFaceView } from "../../../components/Frost";
+import { WhoGlyphs } from "../../../components/WhoName";
 import { SecondaryHeader } from "../../../components/10a";
 import { useTabBarSpace } from "../../../components/NativeTabBar";
 import { useWrenName } from "../../../lib/wren-name";
 import { dLong, postNo } from "../../../lib/format";
 import { fetchBlocks, unblockUser, type BlockRow } from "../../../lib/db";
+import { useWhoBook } from "../../../lib/who";
+import { blockedRows } from "../../../screens/settings/blocked-model";
 import "../../../data/strings-step5-settings";
 
 /* Blocked & reported — the settings row that used to be a dead label.
@@ -21,9 +25,14 @@ import "../../../data/strings-step5-settings";
    and the screen a reviewer goes looking for when they check that an
    anonymous-UGC app really lets people manage who can reach them.
 
-   A blocked writer appears exactly as the reader knew them: the mosaic
-   derived from their uuid, the same one that sat on their letters. No name,
-   because there never was one.
+   A blocked writer appears exactly as the reader knew them (screens/settings
+   blocked-model, from the same book of who strangers are as every other
+   screen): before names, the mosaic derived from their uuid, the same one
+   that sat on their letters, beside their number — there was never a name;
+   once the identity switch is on, the name their courier gave them on the
+   reader's desk, beside their frosted window at 40 (who.face, drawn by
+   components/Frost), with the ♀/♂ mark and star sign after the name if
+   any (marks_for answers nothing across a block, so in practice none).
 
    Reports are shown as an explanation, not a list — a report is a signal
    handed to the bird, not a case file the reporter owns. What matters to
@@ -79,6 +88,13 @@ export default function BlockedScreen() {
     ]);
 
   const count = load === "ok" ? String(rows.length).padStart(2, "0") : "··";
+  // who each of them was (lib/who): switch off, NO. 4481 and the mosaic; on, the courier name and the frost
+  const who = useWhoBook({ uids: rows.map((b) => b.blocked) });
+  const shown = useMemo(
+    () => blockedRows(rows, { t, who, postNo, day: (iso) => dLong(iso), upper: (s) => s.toUpperCase() }),
+    // useLang re-renders on a language change; t() and dLong read it fresh
+    [rows, who],
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: safe.top }}>
@@ -103,18 +119,22 @@ export default function BlockedScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }} showsVerticalScrollIndicator={false}>
-          {rows.map((b) => (
-            <View key={b.blocked} style={{ backgroundColor: tk.soft, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center" }}>
-              <MosaicId seed={b.blocked} cell={7} />
+          {shown.map((b, i) => (
+            <View key={b.id} style={{ backgroundColor: tk.soft, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center" }}>
+              {who.identity ? <WhoFaceView face={b.who.face} size={40} /> : <MosaicId seed={b.who.face.kind === "veil" ? null : b.id} cell={7} />}
               <View style={{ flex: 1, paddingLeft: 14 }}>
-                {/* face AND number, always the pair — faces alone collide
-                    (~25k of them); the pair space is ~300M. Without the
-                    number, a twin face here reads as "they're back". */}
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1, color: tk.ink }}>NO. {postNo(b.blocked)}</Text>
-                <Text style={{ fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute, marginTop: 3 }}>{t("bl.blockedOn", { day: dLong(b.created_at).toUpperCase() })}</Text>
+                {/* face AND name, always the pair — faces alone collide
+                    (~25k mosaics, 12 frost tones); the pair space is far
+                    larger. Without the name, a twin face here reads as
+                    "they're back". */}
+                <View accessible accessibilityLabel={b.who.spoken} style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1, color: tk.ink }}>{b.who.name}</Text>
+                  <WhoGlyphs mark={b.who.mark} sign={b.who.sign} size={11} />
+                </View>
+                <Text style={{ fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute, marginTop: 3 }}>{b.since}</Text>
                 <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, color: tk.sub, marginTop: 3 }}>{t("bl.noReach")}</Text>
               </View>
-              <Pressable onPress={() => unblock(b)} hitSlop={10} accessibilityRole="button" style={{ paddingVertical: 6, paddingLeft: 10 }}>
+              <Pressable onPress={() => unblock(rows[i])} hitSlop={10} accessibilityRole="button" style={{ paddingVertical: 6, paddingLeft: 10 }}>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.2, color: tk.ind }}>{t("bl.unblock")}</Text>
               </Pressable>
             </View>

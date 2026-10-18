@@ -5,6 +5,8 @@ import { THREAD_STATE, threadStateKind, type ThreadStateKind } from "../../lib/t
 import { unreadOf } from "../../lib/room-seen";
 import { closingSoon, daysLeft, isExpired, quietDays } from "../../lib/kindred-expiry";
 import { EACH_WAY, developFor, hashStr, mosaicMask } from "../../lib/mosaic";
+import { NO_WHO_MARKS, whoBook, type WhoBook, type WhoMarks } from "../../lib/stranger-who";
+import type { FrostSpec } from "../../lib/frost";
 
 /* THE KINDREDS TAB, AS DATA (10a step 5). Pure: no React, no React
    Native, no i18n — every word comes in through `fmt`, so
@@ -35,6 +37,20 @@ import { EACH_WAY, developFor, hashStr, mosaicMask } from "../../lib/mosaic";
    (`settled`): a First Class member's rooms used to flash as Expired on a
    cold start. CLOSES IN n DAYS waits the same way, and the Plush count
    (named kindreds) is 0 until then.
+
+   WHO A PEN PAL IS (identity Phase 1) comes from one place, the book in
+   `fmt.who` (lib/stranger-who, built by lib/who useWhoBook). Switch off —
+   or no book — every row, the fold and the orbit are exactly what they
+   were: "No. 4481", the mosaic developing with their letters. Switch on: a
+   pen pal is the courier name the reader's list gives them, with their
+   ♀/♂ and star sign once the identity client answers; their face is the
+   frosted window everywhere (rows, the fold, the orbit), the same window
+   on every ring — it never develops; the ring itself is the progress —
+   and VoiceOver opens the row with "Pen pal". A thread from before the
+   switch says "was No. 4481" for its first fourteen days on this device.
+   The legend's PEN PALS glyph becomes a small frosted square
+   (legendFrost). Kindreds keep their names and faces; nobody is ever
+   sorted, hidden or chosen by a mark or a sign.
 
    LOAD STATES. loading (nothing yet) · ready (a list, kept or fresh) ·
    none (a real answer with nothing in it: no session, a guest — the empty
@@ -85,6 +101,8 @@ export type KindredsFormat = {
   when: (at: number | string) => string;
   /** a pen pal's name, "No. 4481" (format penPalName; a closed account reads ld.unsigned) */
   penPal: (other: string | null | undefined) => string;
+  /** who strangers are (lib/who useWhoBook). Absent = the switch off, built from `penPal`: exactly the list as it was */
+  who?: WhoBook;
   /** a label as a chip says it: "Pen pals", "Seelenverwandte" (sentence case in the locale) */
   sentence: (s: string) => string;
   /** upper case in the locale */
@@ -95,13 +113,16 @@ export type TagTone = "ind" | "mute" | "post" | "brass";
 export type RowTag = { text: string; tone: TagTone };
 export type MenuKey = "rekindle" | "read" | "unread" | "page" | "report" | "block";
 
-export type RowVM = {
+export type RowVM = WhoMarks & {
   id: string;
   kind: "kindred" | "penpal" | "wren";
-  /** null for Wren (her picture is the official bird) */
+  /** null for Wren (her picture is the official bird); a pen pal's carries `frost` once the switch is on */
   face: FaceInput | null;
   faceBadge: boolean;
+  /** a pen pal: "No. 4481", or (switch on) the courier name, followed by the mark and the sign (WhoMarks: null / "" for a kindred, Wren, or none) */
   name: string;
+  /** switch on, a pen pal from before the switch, for 14 days: "was No. 4481" on the row's second line, ahead of the preview; "" otherwise */
+  was: string;
   nameDim: boolean;
   /** "2/5"; "" */
   progress: string;
@@ -121,7 +142,8 @@ export type RowVM = {
   opens: "room" | "chat" | "wren";
 };
 
-export type FoldFaceVM = { id: string; seed: string; develop: number; mask: number; a11yLabel: string };
+/** One little face on the folded row: the developing mosaic (`mask`), or with the switch on the frosted window (`frost`, never developing). */
+export type FoldFaceVM = { id: string; seed: string; develop: number; mask: number; frost: FrostSpec | null; a11yLabel: string };
 export type FoldVM = { faces: FoldFaceVM[]; more: string; label: string; a11yLabel: string };
 
 export type ItemVM =
@@ -154,7 +176,10 @@ export type OrbitVM = {
   id: string;
   seed: string;
   develop: number;
+  /** the mosaic as far as their letters have carried it (switch off) */
   mask: number;
+  /** switch on: their frosted window instead (base + lights + hairline at these sizes, lib/frost frostLayers), the same on every ring; null when off */
+  frost: FrostSpec | null;
   /** THEIR letters, 0..5 (0 waits outside the rings) */
   ring: number;
   /** letters each way, 0..5 (the folded React Native line's place) */
@@ -163,7 +188,7 @@ export type OrbitVM = {
   dir: 1 | -1;
   /** seconds per circuit */
   period: number;
-  /** it is your turn: inked in ind */
+  /** it is your turn: the mosaic inked in ind (off), a 1.5pt ind ring round the window (on) */
   turn: boolean;
 };
 
@@ -175,6 +200,10 @@ export type KindredsView = {
   legendCloser: string;
   legendTurn: string;
   orbitChipLabel: string;
+  /** the identity switch the view was built with (the orbit draws windows, the legend a frosted square) */
+  identity: boolean;
+  /** switch on: the PEN PALS legend glyph's small frosted square (a fixed sample window, nobody's); null when off */
+  legendFrost: FrostSpec | null;
   chips: ChipVM[];
   orbit: OrbitVM[];
   items: ItemVM[];
@@ -254,12 +283,22 @@ const MENU: Record<MenuKey, { label: string; icon: string; destructive?: boolean
 export const badgeText = (n: number): string => (n > 9 ? "9+" : String(Math.max(0, Math.floor(n))));
 
 /** A thread's correspondent as a face (lib/faces threadFaceInput, kept in step: faces.ts
-    imports React Native, which a node test can't load). */
-export function faceInputOf(th: ThreadSummary): FaceInput {
-  return th.revealed
-    ? { role: "kindred", seed: th.other, avatarId: th.otherFace ?? null, gone: !!th.gone }
-    : { role: "penpal", seed: th.other, develop: developFor(th.theirs, false), gone: !!th.gone };
+    imports React Native, which a node test can't load). With the switch on (`book`), a pen
+    pal's input carries their frosted window; off, it is exactly what it was. */
+export function faceInputOf(th: ThreadSummary, book?: WhoBook): FaceInput {
+  if (th.revealed) return { role: "kindred", seed: th.other, avatarId: th.otherFace ?? null, gone: !!th.gone };
+  const pal: FaceInput = { role: "penpal", seed: th.other, develop: developFor(th.theirs, false), gone: !!th.gone };
+  const frost = book && !th.gone ? book.frost(th.other) : null;
+  return frost ? { ...pal, frost } : pal;
 }
+
+/** The book a builder uses: the caller's, or (none given) the switch off, from its penPal and t. */
+export function bookOf(fmt: Pick<KindredsFormat, "t" | "penPal" | "who">): WhoBook {
+  return fmt.who ?? whoBook({ identity: false, t: fmt.t, lang: "en", penPal: (uid) => fmt.penPal(uid) });
+}
+
+/** The legend glyph's sample window: a fixed seed on the frost channel, never a person's. */
+export const LEGEND_FROST_SEED = "kindredly:legend";
 
 /** Everything that decides who is where. */
 export type Classified = {
@@ -338,7 +377,7 @@ export function classify(f: Pick<KindredsFacts, "threads" | "ledger" | "premium"
 }
 
 /** The strangers on the orbit (pen pals still on their way, not closed), in a stable order. */
-export function orbitItems(live: readonly ThreadSummary[], ledger: Readonly<Record<string, number>>): OrbitVM[] {
+export function orbitItems(live: readonly ThreadSummary[], ledger: Readonly<Record<string, number>>, book?: WhoBook): OrbitVM[] {
   const coming = live.filter((t) => !t.revealed && !t.gone && !!t.other).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const n = Math.max(coming.length, 1);
   return coming.map((t, i) => {
@@ -349,6 +388,7 @@ export function orbitItems(live: readonly ThreadSummary[], ledger: Readonly<Reco
       seed: t.other,
       develop,
       mask: mosaicMask(t.other, develop),
+      frost: book ? book.frost(t.other) : null,
       ring: Math.min(Math.max(0, t.theirs), EACH_WAY),
       each: Math.min(t.mine, t.theirs, EACH_WAY),
       // spread round the ring by the stable order, jittered by ±22° so neighbours never move in lockstep
@@ -367,12 +407,17 @@ export function rowFor(
   fmt: KindredsFormat,
 ): RowVM {
   const { t } = fmt;
+  const book = bookOf(fmt);
   const kind = stateKind(th);
   const st = THREAD_STATE[kind];
   const kindred = th.revealed;
   const gone = !!th.gone;
   const quiet = ctx.quiet;
-  const name = kindred ? th.otherName || t("kd.aKindred") : fmt.penPal(gone ? null : th.other);
+  // a pen pal as the book says (off: penPal exactly; on: the courier name, mark and sign); a kindred by the name they gave
+  const pal = kindred ? null : book.who(gone ? null : th.other);
+  const name = pal ? pal.name : th.otherName || t("kd.aKindred");
+  const marks: WhoMarks = pal ? { mark: pal.mark, markLabel: pal.markLabel, sign: pal.sign, signLabel: pal.signLabel } : NO_WHO_MARKS;
+  const was = pal ? book.was(th) : "";
   const left = ctx.closing ? daysLeft(th.lastAt) : 0;
   const closes = ctx.closing ? (left <= 1 ? t("kd.closesDay") : t("kd.closesIn", { n: left })) : null;
   // the brass moment: five letters each way, names may be traded
@@ -394,7 +439,10 @@ export function rowFor(
   }
 
   const a11yLabel = [
-    name,
+    // switch on, a pen pal is said as one: "Pen pal, Sunday Kite, she, Gemini, was No. 4481" (off: the name alone, as ever)
+    pal && book.identity ? t("id.vo.penPal") : null,
+    pal ? pal.spoken : name,
+    was || null,
     closes,
     milestone ?? turn?.label ?? null,
     progress ? t("mk.ofFive", { n: each }) : null,
@@ -408,9 +456,11 @@ export function rowFor(
   return {
     id: th.id,
     kind: kindred ? "kindred" : "penpal",
-    face: faceInputOf(th),
+    face: faceInputOf(th, book),
     faceBadge: false,
     name,
+    ...marks,
+    was,
     // a quiet room's name is muted as well as a closed account's (inventory 38: "dim rows: face
     // at .45, name muted, no time")
     nameDim: quiet || gone,
@@ -443,6 +493,8 @@ export function wrenRow(desk: DeskFacts, wrenName: string, fmt: KindredsFormat):
     face: null,
     faceBadge: true,
     name: wrenName,
+    ...NO_WHO_MARKS,
+    was: "",
     nameDim: false,
     progress: "",
     time,
@@ -460,12 +512,13 @@ export function wrenRow(desk: DeskFacts, wrenName: string, fmt: KindredsFormat):
 
 /** The folded THEIR TURN row. */
 export function foldFor(folded: readonly ThreadSummary[], fmt: KindredsFormat): FoldVM {
+  const book = bookOf(fmt);
   const label = `${fmt.sentence(fmt.t("state.waitingThem"))} · ${folded.length}`;
   const shown = folded.slice(0, FOLD_FACES);
   return {
     faces: shown.map((th) => {
       const develop = developFor(th.theirs, false);
-      return { id: th.id, seed: th.other, develop, mask: mosaicMask(th.other, develop), a11yLabel: fmt.penPal(th.other) };
+      return { id: th.id, seed: th.other, develop, mask: mosaicMask(th.other, develop), frost: book.frost(th.other), a11yLabel: book.who(th.other).spoken };
     }),
     more: folded.length > shown.length ? `+${folded.length - shown.length}` : "",
     label,
@@ -474,7 +527,10 @@ export function foldFor(folded: readonly ThreadSummary[], fmt: KindredsFormat): 
 }
 
 /** The whole screen, as both renderers draw it. */
-export function buildKindredsView(f: KindredsFacts, fmt: KindredsFormat): KindredsView {
+export function buildKindredsView(f: KindredsFacts, fmt0: KindredsFormat): KindredsView {
+  // one book for the whole view (the caller's, or the switch off), handed to every row
+  const book = bookOf(fmt0);
+  const fmt: KindredsFormat = fmt0.who ? fmt0 : { ...fmt0, who: book };
   const { t } = fmt;
   const c = classify(f);
   const yourFilter = f.show === "your";
@@ -528,8 +584,10 @@ export function buildKindredsView(f: KindredsFacts, fmt: KindredsFormat): Kindre
     // state.yourTurn is in all nine languages already ("TE TOCA", "あなたの番"), said as a sentence
     legendTurn: fmt.sentence(t("state.yourTurn")),
     orbitChipLabel: t("kd.orbit"),
+    identity: book.identity,
+    legendFrost: book.frost(LEGEND_FROST_SEED),
     chips,
-    orbit: orbitItems(c.live, f.ledger),
+    orbit: orbitItems(c.live, f.ledger, book),
     items,
     waiting: c.waiting,
     named: c.named,

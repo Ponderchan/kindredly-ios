@@ -26,7 +26,9 @@ import ExpoUI
    the reply bar's emoji key, for VoiceOver)
  - phase: loading | offline | reading | done (anything else is loading)
  - left, leftA11y: NEXT's number and what VoiceOver says for it
- - cards: the letters not passed yet, the one on screen first (KTodayCardRecord), converted once per rev
+ - cards: the letters not passed yet, the one on screen first (KTodayCardRecord: who wrote it,
+   KTodayWhoRecord, with the frosted window as a KFrostRecord, when, and the switch-off postmark
+   line that keeps the old docket while the identity switch is off), converted once per rev
  - titleLocked: the plate stays small (a letter passed today, or the day done)
  - freshUnfold, arrivalLine: her first arrival (the first card unfolds; her line over her head)
  - wrenLetter: her counted note in done; window: the window to her game, its sky by the hour
@@ -80,11 +82,40 @@ struct KTodayCapsuleRecord: Record {
   }
 }
 
+/// Who wrote a card (today-cards CardWho, flattened by Today.tsx nativeTodayCards): the name, the
+/// mark and the sign ("" for none), and the face slot: mosaic (mask) | frost (frost) | veil | tile
+/// (the identity switch's veil, a flat veil tile). Unknown strings draw nothing for a glyph and
+/// the veil for a face.
+struct KTodayWhoRecord: Record {
+  @Field var name: String = ""
+  /// she | he | ""
+  @Field var mark: String = ""
+  /// aries … pisces | ""
+  @Field var sign: String = ""
+  /// mosaic | frost | veil | tile
+  @Field var face: String = "veil"
+  @Field var mask: Int = 0
+  @Field var frost: KFrostRecord = KFrostRecord()
+
+  var who: KCardWho {
+    let slot: KCardWho.Face
+    switch face {
+    case "mosaic": slot = .mosaic(mask)
+    case "frost": slot = frost.spec.map { .frost($0) } ?? .frostVeil
+    case "tile": slot = .frostVeil
+    default: slot = .veil
+    }
+    return KCardWho(name: name, mark: KLineGlyph.mark(mark), sign: KLineGlyph.sign(sign), face: slot)
+  }
+}
+
 struct KTodayCardRecord: Record {
   @Field var id: String = ""
+  @Field var who: KTodayWhoRecord = KTodayWhoRecord()
+  /// "SEP.23", the date alone
+  @Field var when: String = ""
+  /// the switch-off docket line ("SEP.23 · NO.7273"); "" with the identity switch on
   @Field var postmark: String = ""
-  @Field var mask: Int = 0
-  @Field var ghost: Bool = false
   @Field var stampId: String = ""
   @Field var stampHex: String = ""
   @Field var stampName: String = ""
@@ -108,9 +139,9 @@ struct KTodayCardRecord: Record {
   var model: KLetterCardModel {
     var m = KLetterCardModel()
     m.id = id
+    m.who = who.who
+    m.when = when
     m.postmark = postmark
-    m.mask = mask
-    m.ghost = ghost
     m.stampId = stampId
     m.stampHex = stampHex
     m.stampName = stampName

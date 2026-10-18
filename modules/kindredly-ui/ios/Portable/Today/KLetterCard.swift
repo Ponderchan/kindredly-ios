@@ -10,12 +10,26 @@ import SwiftUI
  (.me: sf, a 2.5 ln outline, corners of 24, a hard 5/5 shadow, padding 16; .today, which the
  composer sheet shares, is not retuned):
 
- - the docket row, 10 apart: the writer's FACE v1 (KMosaic 28, cell 4.8, gap 1, ink; a deleted
-   account is the veil in faint), the postmark in mono 500 12 at .08em in sub, THE STAMP THEY
-   PASTED, and the ⋯ that opens TS's menu (three dots in sub, no ring: the owner, 2026-10-18,
-   found the 34 circle beside the stamp heavy for what it is; still always there, on a 44 target,
-   since Report and Block must be one tap away) (Report / Block / Bring back the last
-   letter; only Bring back on an unsigned letter: a SwiftUI Menu, inside the one Host).
+ - the docket row, 10 apart:
+   · WHO, with the identity switch OFF (TS sends the old postmark line, card.postmark): exactly
+     the header as it was before identity Phase 1 — the writer's FACE v1 (KMosaic 28, cell 4.8,
+     gap 1, ink; a deleted account is the veil in faint) and the postmark "SEP.23 · NO.7273" in
+     mono 500 12 at .08em in sub. Off means every surface as it was (the build plan's gate), so
+     the §9 layout below waits for the switch rather than arriving early with the old data in it;
+   · WHO, with the switch ON (identity-plan §9; TS sends no postmark line): a 40 square face slot
+     (corners of 10) holding their frosted window (KFrost), or the flat veil tile for a deleted
+     account (KFrostVeil). Beside it, two lines: the courier name in system 600 17 on ONE line,
+     never truncated and never shrunk (TS's names pass a 165pt gate at this size), with the ♀/♂
+     mark 6pt after it and the star sign 4pt after that (KWhoMarks, ink glyphs in sub); under it
+     the date alone ("SEP.23") in mono 500 11 at .08em in sub. When the name and its glyphs
+     don't fit beside the stamp (a long Spanish or Portuguese name on a 375 or 393 phone: 165 +
+     38 against 179 or 197), the glyphs move to the date's line instead, so the name still never
+     loses a letter; at the largest text sizes the name may take two lines;
+   · THE STAMP THEY PASTED (below);
+   · the ⋯ that opens TS's menu (three dots in sub, no ring: the owner, 2026-10-18, found the 34
+     circle beside the stamp heavy for what it is; still always there, on a 44 target, since
+     Report and Block must be one tap away) (Report / Block / Bring back the last letter; only
+     Bring back on an unsigned letter: a SwiftUI Menu, inside the one Host).
    The stamp (stamps v2, owner 2026-10-18; TodayRN's CardFace draws the same): where the 34 box
    with the art inside used to be, KStamp at the ladder's todayCard, 40×48, with no box round it
    (a stamp is never framed twice). It is delivered mail, so it tilts by the letter's id (the
@@ -45,8 +59,9 @@ import SwiftUI
    card's last row: the old rule and the ↑ PASS / REPLY ↓ row are gone, because NEXT and
    REPLY are the control band's buttons now.
 
- VoiceOver reads the card as one element (TS's a11yLabel: the docket, the topic, why the matcher
- chose it, the letter or what the voice letter is) with its moves as actions, in this order:
+ VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
+ NO.7273" with the switch off, "Sunday Kite, she, Gemini. SEP.23" with it on — the topic, why the
+ matcher chose it, the letter or what the voice letter is) with its moves as actions, in this order:
  write back, translate or show the original, unfold or play/pause (as the press would do now),
  every menu item (report, block, bring back), and next letter. Every move names the card it came
  from, so the desk can refuse a reply to a card that is no longer the one shown.
@@ -62,14 +77,28 @@ final class KLetterCardActions {
 
 struct KLetterCard: View, Equatable {
   static let mosaicCell: CGFloat = 4.8
+  /// the face slot: 40 square, corners of 10 (a quarter of it, as the frosted window's)
+  static let faceSlot: CGFloat = 40
+  static let faceCorner: CGFloat = 10
+  /// the slot's edge round a mosaic in it
+  static let faceEdge: CGFloat = 2
   /// the ⋯: the dots' drawing, and the target round it (44 square, laid out as the dots alone)
   static let moreGlyph: CGFloat = 22
   static let moreTarget: CGFloat = 44
   /// the stamp they pasted: the ladder's todayCard, 40 × 48
   static let stampWidth: CGFloat = KStampLadder.todayCard.w
   static let monoLabel = KTextStyle.monoReply
-  /// the postmark, SEP.23 · NO.7273 (design Prompt 2: mono 12 at .08em in the sub colour)
+  /// the switch-off postmark, SEP.23 · NO.7273 (design Prompt 2: mono 12 at .08em in the sub colour)
   static let postmarkStyle = KTextStyle.mono(12, .medium, tracking: 0.08)
+  /// the writer's name: system 600 17, one line
+  static let nameStyle = KTextStyle.system(17, .semibold)
+  /// the date under it, SEP.23 (mono 500 11 at .08em in the sub colour)
+  static let whenStyle = KTextStyle.mono(11, .medium, tracking: 0.08)
+  /// the mark and the sign: 0.8 × the name (KWhoMarks); a little smaller beside the date
+  static let markSize: CGFloat = 14
+  static let markSizeOnDate: CGFloat = 12
+  /// between the name's line and the date's
+  static let whoGap: CGFloat = 1
 
   let theme: KTheme
   let card: KLetterCardModel
@@ -111,19 +140,28 @@ struct KLetterCard: View, Equatable {
   // ── the docket row ──
   private var docket: some View {
     HStack(alignment: .center, spacing: 10) {
-      Group {
-        if card.ghost {
-          KMosaic.veil(theme: theme, cell: Self.mosaicCell, gap: 1)
-        } else {
-          KMosaic(mask: card.mask, cell: Self.mosaicCell, gap: 1, color: theme.ink)
+      if card.postmark.isEmpty {
+        // the identity switch on: the §9 header (TS sends no postmark line)
+        KCardFaceSlot(theme: theme, face: card.who.face)
+        whoLines
+          .frame(maxWidth: .infinity, alignment: .leading)
+      } else {
+        // the switch off: the docket exactly as it was before identity Phase 1 — the writer's
+        // FACE v1 (the veil in faint for a deleted account) and the postmark, SEP.23 · NO.7273
+        Group {
+          if case let .mosaic(mask) = card.who.face {
+            KMosaic(mask: mask, cell: Self.mosaicCell, gap: 1, color: theme.ink)
+          } else {
+            KMosaic.veil(theme: theme, cell: Self.mosaicCell, gap: 1)
+          }
         }
+        Text(card.postmark)
+          .kText(Self.postmarkStyle)
+          .foregroundStyle(theme.sub)
+          .lineLimit(1)
+          .minimumScaleFactor(0.75)
+          .frame(maxWidth: .infinity, alignment: .leading)
       }
-      Text(card.postmark)
-        .kText(Self.postmarkStyle)
-        .foregroundStyle(theme.sub)
-        .lineLimit(1)
-        .minimumScaleFactor(0.75)
-        .frame(maxWidth: .infinity, alignment: .leading)
       KStamp(
         id: card.stampId,
         width: Self.stampWidth,
@@ -157,6 +195,54 @@ struct KLetterCard: View, Equatable {
       }
     }
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+
+  /// The name (with its mark and sign) over the date. The first layout that fits wins: all on the
+  /// name's line; the glyphs on the date's line (a long name in a narrow card); the name on two
+  /// lines (the largest text sizes). The name itself is never truncated or shrunk.
+  private var whoLines: some View {
+    let who = card.who
+    return ViewThatFits(in: .horizontal) {
+      VStack(alignment: .leading, spacing: Self.whoGap) {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+          nameText.lineLimit(1).fixedSize()
+          KWhoMarks(mark: who.mark, sign: who.sign, size: Self.markSize, color: theme.sub)
+        }
+        whenText
+      }
+      VStack(alignment: .leading, spacing: Self.whoGap) {
+        nameText.lineLimit(1).fixedSize()
+        whenLine
+      }
+      VStack(alignment: .leading, spacing: Self.whoGap) {
+        nameText
+          .lineLimit(2)
+          .fixedSize(horizontal: false, vertical: true)
+        whenLine
+      }
+    }
+  }
+
+  /// the name; each layout sets its own line limit (a limit set here would win over theirs)
+  private var nameText: some View {
+    Text(card.who.name)
+      .kText(Self.nameStyle)
+      .foregroundStyle(theme.ink)
+  }
+
+  private var whenText: some View {
+    Text(card.when)
+      .kText(Self.whenStyle)
+      .foregroundStyle(theme.sub)
+      .lineLimit(1)
+  }
+
+  /// the date with the mark and the sign after it (the fallback layouts)
+  private var whenLine: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 0) {
+      whenText.fixedSize()
+      KWhoMarks(mark: card.who.mark, sign: card.who.sign, size: Self.markSizeOnDate, color: theme.sub)
+    }
   }
 
   // ── the foot: the topic tag and the one capsule ──
@@ -242,6 +328,39 @@ struct KLetterCardAccessibilityActions: ViewModifier {
       // "Next letter": the same pass as NEXT (the deck serves deck.requestNext())
       SwiftUI.Button(labels.nextA11y) { actions.onNext(card.id) }
     }
+  }
+}
+
+/// The docket's 40 square face slot (identity-plan §9), drawn while the identity switch is on:
+/// the frosted window filling it, or the flat veil tile for a deleted account. It can also hold
+/// the mosaic at 28 in a 2pt ln edge (or the mosaic veil), §9's switch-off slot, though the
+/// switch-off docket draws the old header instead. Decorative: the card's one VoiceOver label
+/// names the writer.
+struct KCardFaceSlot: View {
+  let theme: KTheme
+  let face: KCardWho.Face
+
+  var body: some View {
+    let side = KLetterCard.faceSlot
+    let edge = RoundedRectangle(cornerRadius: KLetterCard.faceCorner, style: .circular)
+    Group {
+      switch face {
+      case let .mosaic(mask):
+        KMosaic(mask: mask, cell: KLetterCard.mosaicCell, gap: 1, color: theme.ink)
+          .frame(width: side, height: side)
+          .overlay(edge.strokeBorder(theme.ln, lineWidth: KLetterCard.faceEdge))
+      case .veil:
+        KMosaic.veil(theme: theme, cell: KLetterCard.mosaicCell, gap: 1)
+          .frame(width: side, height: side)
+          .overlay(edge.strokeBorder(theme.ln, lineWidth: KLetterCard.faceEdge))
+      case let .frost(spec):
+        KFrost(theme: theme, spec: spec, size: side)
+      case .frostVeil:
+        KFrostVeil(theme: theme, size: side)
+      }
+    }
+    .frame(width: side, height: side)
+    .accessibilityHidden(true)
   }
 }
 

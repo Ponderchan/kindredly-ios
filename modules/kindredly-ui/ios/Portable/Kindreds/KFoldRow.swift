@@ -10,7 +10,9 @@ import SwiftUI
 
  - Up to six faces at 34, overlapping by 8, each with a 2pt ring in the page colour and the
    earlier ones on top; each face is its own button (it opens that correspondence) with
-   VoiceOver's "No. 4481".
+   VoiceOver's "No. 4481". With the identity switch on each face is that pen pal's frosted window
+   (KFrost: a 34 square with corners of 8.5, its ring following the corners), the same window as
+   on their row and in the orbit, never developing; VoiceOver hears "Sunday Kite, she, Gemini".
  - "+n" (13/600 mute) for the rest, the label (13/600 mute) and a chevron in mute: one button
    that shows PEN PALS, labelled by TS.
  - 22 in from the edges, a 1pt line under it like every row (H:65), no rule above (the row
@@ -20,14 +22,17 @@ import SwiftUI
 /// One folded face.
 public struct KFoldFace: Identifiable, Equatable, Sendable {
   public let id: String
-  /// FACE v1 cells, developed
+  /// FACE v1 cells, developed (switch off)
   public let mask: Int
-  /// what VoiceOver calls it ("No. 4481")
+  /// the frosted window instead (identity switch on); nil draws the mosaic
+  public let frost: KFrostSpec?
+  /// what VoiceOver calls it ("No. 4481"; switch on, "Sunday Kite, she, Gemini")
   public let a11yLabel: String
 
-  public init(id: String, mask: Int, a11yLabel: String) {
+  public init(id: String, mask: Int, frost: KFrostSpec? = nil, a11yLabel: String) {
     self.id = id
     self.mask = mask
+    self.frost = frost
     self.a11yLabel = a11yLabel
   }
 }
@@ -85,9 +90,16 @@ public struct KFoldRow: View, Equatable {
           SwiftUI.Button {
             onFace(face.id)
           } label: {
-            KFace(theme: theme, source: .mosaic(mask: face.mask, tint: theme.ink), size: Self.face)
-              .overlay(Circle().strokeBorder(theme.bg, lineWidth: Self.ring))
-              .contentShape(Circle())
+            if let frost = face.frost {
+              let square = RoundedRectangle(cornerRadius: Self.face * 0.25, style: .circular)
+              KFace(theme: theme, source: .frost(frost), size: Self.face)
+                .overlay(square.strokeBorder(theme.bg, lineWidth: Self.ring))
+                .contentShape(square)
+            } else {
+              KFace(theme: theme, source: .mosaic(mask: face.mask, tint: theme.ink), size: Self.face)
+                .overlay(Circle().strokeBorder(theme.bg, lineWidth: Self.ring))
+                .contentShape(Circle())
+            }
           }
           .buttonStyle(KFadePressStyle())
           .zIndex(Double(fold.faces.count - index))

@@ -6,6 +6,8 @@ import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { speakAs } from "../../lib/wren-name";
+import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
+import { useWhoBook } from "../../lib/who";
 import { OFFICIAL_NAME } from "../../lib/wren-desk";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { PF } from "../../theme/post";
@@ -42,7 +44,10 @@ import "../../data/strings-step5-kindreds";
      (the React Native empty state);
    - FC (First Class: nothing expires), WAIT (the entitlement hasn't
      answered: no Expired flash), NOTICE (the notifications bar), ONCE (her
-     line).
+     line), NAMES (the identity switch previewed on for this run of the
+     app, never saved: courier names, frosted windows on the rows, the fold
+     and the orbit, made-up ♀/♂ and star signs, "was No." — lib/identity
+     setDevIdentityPreview).
    The screen's own controls work on the demo: chips, the title's count
    (ALL + your turn + the scroll to the list), CLEAR, the fold, the band
    (Orbit chip, pull, push up), mark read / unread (a local ledger), block
@@ -95,6 +100,10 @@ function KindredsLab() {
   }, [data, gone]);
   const loadState: LoadState = data === "offline" ? "failed" : data === "empty" ? "none" : "ready";
   const desk = DEMO_WREN_POSTS[DEMO_WREN_POSTS.length - 1];
+  // who the demo pen pals are, as the tab asks it (lib/who): the NAMES chip previews the switch on
+  const names = useIdentityOn();
+  const strangers = useMemo(() => threads.filter((th) => !th.revealed && !th.gone).map((th) => th.other), [threads]);
+  const who = useWhoBook({ threads, uids: strangers });
 
   const view = useMemo(
     () =>
@@ -113,11 +122,11 @@ function KindredsLab() {
           wrenLine: once ? speakAs(t("kindreds.said"), OFFICIAL_NAME) : null,
           demoMenus: true,
         },
-        kindredsFormat(),
+        kindredsFormat(who),
       ),
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [threads, ledger, premium, unsettled, tab, show, loadState, notice, once, lang],
+    [threads, ledger, premium, unsettled, tab, show, loadState, notice, once, lang, who],
   );
 
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
@@ -200,6 +209,7 @@ function KindredsLab() {
             <Chip label="WAIT" on={unsettled} onPress={() => setUnsettled((v) => !v)} />
             <Chip label="NOTICE" on={notice} onPress={() => setNotice((v) => !v)} />
             <Chip label="ONCE" on={once} onPress={() => setOnce((v) => !v)} />
+            <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
             <Chip label="RESET ROWS" onPress={() => { setGone(new Set()); setLedger(DEMO_ROOM_SEEN); setTab("all"); setShow(null); }} />
           </Row>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>

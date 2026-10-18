@@ -2,7 +2,7 @@ import { requireNativeView } from "expo";
 import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
-import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark, type KMenuAction, type KScreenBaseProps, type KScreenHandle, type KSign, type KStandardCommands } from "./types";
 
 /* A ROOM WITH A KINDRED AND A PEN-PAL CHAT, drawn by SwiftUI (10a step 5, batch 1): one view for
    both (ios/Adapters/KConversationView.swift → ios/Portable/Chat/KConversation.swift), for
@@ -163,7 +163,15 @@ export type KChatDock = {
 };
 
 /** A face as Swift's KFace takes it (lib/faces faceRecord): fields a kind doesn't use are "" or 0. */
-export type KChatFace = { kind: "image" | "mosaic" | "veil" | "placeholder"; uri: string; key: string; overscan: number; mask: number };
+export type KChatFace = {
+  kind: "image" | "mosaic" | "frost" | "veil" | "placeholder";
+  uri: string;
+  key: string;
+  overscan: number;
+  mask: number;
+  /** kind "frost": the frosted window's spec (src/lib/faces faceRecord) */
+  frost?: KFrost | null;
+};
 
 /** The conversation's own header: the pen-pal chat's (chat composers A2; build-items
     lettersHeader) or the kindreds chat's (B; build-items roomHeader). */
@@ -180,8 +188,18 @@ export type KChatHeader = {
   tone: "mute" | "ind" | "brass";
   /** FACE v1 (lib/mosaic mosaicMask with their letters' develop) */
   mask: number;
+  /** identity on: the pen pal's frosted window, drawn in the face slot instead of `mask` (never
+      develops; the frame and the dots stay); null while the switch is off, and for the room */
+  frost: KFrost | null;
+  /** identity on: the ♀/♂ mark after the name (an ink glyph in sub, 6pt after it); null for none */
+  mark: KMark;
+  /** identity on: the star sign's glyph after the mark (4pt after it, or where it would be); null for none */
+  sign: KSign;
   /** a deleted account, or not loaded: the veil */
   veil: boolean;
+  /** the identity switch is on: the veil is drawn as the flat veil tile (a square, like the
+      windows), not the mosaic's veil. The screen sets it (useLettersModel identity); absent = off */
+  identity?: boolean;
   /** none while the face develops; line when their five are in; brass when they also went first */
   frame: "none" | "line" | "brass";
   /** exchanges that went both ways, 0..5 */
@@ -328,7 +346,20 @@ type NativeDock = {
   ideaUse: string;
   trayTitle: string;
 };
-type NativeHeader = Omit<KChatHeader, "face"> & { show: boolean; faceKind: KChatFace["kind"]; faceUri: string; faceKey: string; faceOverscan: number; faceMask: number };
+/* the header as Swift's record: the face flattened, no mark or sign as "", no window as NO_FROST
+   (a @Field record can't take null) */
+type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity"> & {
+  show: boolean;
+  faceKind: KChatFace["kind"];
+  faceUri: string;
+  faceKey: string;
+  faceOverscan: number;
+  faceMask: number;
+  frost: KFrost;
+  mark: string;
+  sign: string;
+  identity: boolean;
+};
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
@@ -344,7 +375,11 @@ const NO_HEADER: NativeHeader = {
   sub: "",
   tone: "mute",
   mask: 0,
+  frost: nativeFrost(null),
+  mark: "",
+  sign: "",
   veil: true,
+  identity: false,
   frame: "none",
   dots: 0,
   a11yLabel: "",
@@ -449,8 +484,20 @@ export function nativeChatDock(d: KChatDock): NativeDock {
 /** The header as Swift's record (the face flattened): show false for none. */
 export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeader {
   if (!h) return NO_HEADER;
-  const { face, ...rest } = h;
-  return { ...rest, show: true, faceKind: face.kind, faceUri: face.uri, faceKey: face.key, faceOverscan: face.overscan, faceMask: face.mask };
+  const { face, frost, mark, sign, identity, ...rest } = h;
+  return {
+    ...rest,
+    show: true,
+    faceKind: face.kind,
+    faceUri: face.uri,
+    faceKey: face.key,
+    faceOverscan: face.overscan,
+    faceMask: face.mask,
+    frost: nativeFrost(frost),
+    mark: mark ?? "",
+    sign: sign ?? "",
+    identity: !!identity,
+  };
 }
 
 type NativeKConversationViewProps = Omit<

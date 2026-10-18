@@ -10,6 +10,9 @@
                   the clip); a legacy SVG face or the glyph, captured to a
                   tmp PNG by components/FaceSnapshots
      mosaic       a pen pal: the FACE v1 25-bit mask (lib/mosaic)
+     frost        a pen pal once the identity switch is on: their frosted
+                  window (lib/frost FROST v1; the spec rides in `frost`,
+                  worked out here in TS, so Swift never hashes)
      veil         no one — a deleted account
      placeholder  a picture still on its way: draw the soft2 disc so the
                   row never changes height
@@ -20,7 +23,9 @@
    if their face survived on the thread (otherFace), and otherwise wears
    the veil: the one neutral face, the same for every ghost, because it
    claims nothing. Strangers never see a portrait or a photo: a pen pal is
-   always a mosaic.
+   always a mosaic — or, with the identity switch on, a frosted window,
+   which never develops (the caller passes the spec in FaceInput.frost,
+   from lib/stranger-who; switch off, nothing here changes).
 
    The legacy SVG faces and glyphs have fixed colours, so a theme change
    needs no recapture; a purged tmp file does, and gets one. */
@@ -31,6 +36,7 @@ import { getFace } from "../data/aura-avatar-lib";
 import { getAvatar } from "../data/avatar-lib";
 import { assetImageRef, fileExists, resolvedAssetRef, snapshotCacheKey } from "./images";
 import { developFor, mosaicMask } from "./mosaic";
+import type { FrostSpec } from "./frost";
 
 /** Whose face: a kindred (names traded; drawn round) or a pen pal (a mosaic; drawn square). */
 export type FaceRole = "kindred" | "penpal";
@@ -46,6 +52,8 @@ export type FaceInput = {
   photoUri?: string | null;
   /** pen pals: how far the face has come into view, 0..1 (lib/mosaic developFor). Default 1 */
   develop?: number;
+  /** pen pals with the identity switch on: their frosted window (lib/stranger-who WhoBook.frost), drawn instead of the mosaic */
+  frost?: FrostSpec | null;
   /** the account is closed (0009) */
   gone?: boolean;
 };
@@ -54,22 +62,26 @@ export type FaceInput = {
 export type FaceSource =
   | { kind: "image"; uri: string; key: string; overscan: number }
   | { kind: "mosaic"; mask: number }
+  | { kind: "frost"; spec: FrostSpec; key: string }
   | { kind: "veil" }
   | { kind: "placeholder" };
 
 /** A FaceSource flattened for a Swift @Field record (a record can't be a union):
-    fields a kind doesn't use are "" or 0. KFace's adapter switches on `kind`. */
-export type FaceRecord = { kind: FaceSource["kind"]; uri: string; key: string; overscan: number; mask: number };
+    fields a kind doesn't use are "", 0 or null. KFace's adapter switches on `kind`;
+    a frost's spec is `frost` (and `key` names it, "frost:<uid>[:dark]"). */
+export type FaceRecord = { kind: FaceSource["kind"]; uri: string; key: string; overscan: number; mask: number; frost: FrostSpec | null };
 
 /** Flatten a FaceSource for a Swift record. */
 export function faceRecord(s: FaceSource): FaceRecord {
   switch (s.kind) {
     case "image":
-      return { kind: "image", uri: s.uri, key: s.key, overscan: s.overscan, mask: 0 };
+      return { kind: "image", uri: s.uri, key: s.key, overscan: s.overscan, mask: 0, frost: null };
     case "mosaic":
-      return { kind: "mosaic", uri: "", key: "", overscan: 0, mask: s.mask };
+      return { kind: "mosaic", uri: "", key: "", overscan: 0, mask: s.mask, frost: null };
+    case "frost":
+      return { kind: "frost", uri: "", key: s.key, overscan: 0, mask: 0, frost: s.spec };
     default:
-      return { kind: s.kind, uri: "", key: "", overscan: 0, mask: 0 };
+      return { kind: s.kind, uri: "", key: "", overscan: 0, mask: 0, frost: null };
   }
 }
 
@@ -82,6 +94,7 @@ export type FacePlan =
   | { kind: "portrait"; id: string; mod: number; overscan: number }
   | { kind: "snapshot"; snap: FaceSnapKey }
   | { kind: "mosaic"; mask: number }
+  | { kind: "frost"; spec: FrostSpec; key: string }
   | { kind: "veil" };
 
 /** The six legacy portraits carry an ink rim at the file's edge; drawn this much larger per side, it falls outside the clip (AvatarImage). */
@@ -107,6 +120,7 @@ function memoMask(seed: string, develop: number): number {
 export function facePlan(f: FaceInput): FacePlan {
   if (f.role === "penpal") {
     if (f.gone || !f.seed) return { kind: "veil" };
+    if (f.frost) return { kind: "frost", spec: f.frost, key: `frost:${f.seed}${f.frost.dark ? ":dark" : ""}` };
     return { kind: "mosaic", mask: memoMask(f.seed, f.develop ?? 1) };
   }
   if (f.photoUri) return { kind: "photo", uri: f.photoUri };
@@ -118,12 +132,16 @@ export function facePlan(f: FaceInput): FacePlan {
 }
 
 /** A thread's correspondent as a face: a kindred once names are traded (their otherFace,
-    round), else a pen pal whose mosaic develops with THEIR letters. Takes a ThreadSummary
-    or anything shaped like one. */
-export function threadFaceInput(th: { other: string | null | undefined; otherFace?: string | null; revealed: boolean; theirs: number; gone?: boolean }): FaceInput {
-  return th.revealed
-    ? { role: "kindred", seed: th.other, avatarId: th.otherFace ?? null, gone: !!th.gone }
-    : { role: "penpal", seed: th.other, develop: developFor(th.theirs, false), gone: !!th.gone };
+    round), else a pen pal whose mosaic develops with THEIR letters — or, with the identity
+    switch on, their frosted window (`frost`: WhoBook.frost(th.other); null or absent keeps
+    the mosaic). Takes a ThreadSummary or anything shaped like one. */
+export function threadFaceInput(
+  th: { other: string | null | undefined; otherFace?: string | null; revealed: boolean; theirs: number; gone?: boolean },
+  frost: FrostSpec | null = null,
+): FaceInput {
+  if (th.revealed) return { role: "kindred", seed: th.other, avatarId: th.otherFace ?? null, gone: !!th.gone };
+  const pal: FaceInput = { role: "penpal", seed: th.other, develop: developFor(th.theirs, false), gone: !!th.gone };
+  return frost ? { ...pal, frost } : pal;
 }
 
 /* ── the snapshot store (FaceSnapshots draws what is pending here) ─────── */
@@ -207,18 +225,32 @@ export function faceSource(f: FaceInput): FaceSource {
     }
     case "mosaic":
       return { kind: "mosaic", mask: p.mask };
+    case "frost":
+      return { kind: "frost", spec: p.spec, key: p.key };
     case "veil":
       return { kind: "veil" };
   }
 }
 
 const planSig = (p: FacePlan): string =>
-  p.kind === "photo" ? "p:" + p.uri : p.kind === "portrait" ? "a:" + p.id : p.kind === "snapshot" ? "s:" + p.snap : p.kind === "mosaic" ? "m:" + p.mask : "v";
+  p.kind === "photo"
+    ? "p:" + p.uri
+    : p.kind === "portrait"
+      ? "a:" + p.id
+      : p.kind === "snapshot"
+        ? "s:" + p.snap
+        : p.kind === "mosaic"
+          ? "m:" + p.mask
+          : p.kind === "frost"
+            ? "f:" + p.key
+            : "v";
 
 const sameSource = (a: FaceSource | undefined, b: FaceSource): boolean => {
   if (!a || a.kind !== b.kind) return false;
   if (a.kind === "image" && b.kind === "image") return a.uri === b.uri && a.key === b.key && a.overscan === b.overscan;
   if (a.kind === "mosaic" && b.kind === "mosaic") return a.mask === b.mask;
+  // a frost is FROST v1 of one uid in one theme: the key says both
+  if (a.kind === "frost" && b.kind === "frost") return a.key === b.key;
   return true;
 };
 
@@ -270,7 +302,7 @@ export function useFaceSources<K extends string>(inputs: Readonly<Record<K, Face
 
 /** One face (a header, a card). See useFaceSources. */
 export function useFaceSource(input: FaceInput): FaceSource {
-  const { role, seed, avatarId, photoUri, develop, gone } = input;
-  const inputs = useMemo(() => ({ face: { role, seed, avatarId, photoUri, develop, gone } }), [role, seed, avatarId, photoUri, develop, gone]);
+  const { role, seed, avatarId, photoUri, develop, gone, frost } = input;
+  const inputs = useMemo(() => ({ face: { role, seed, avatarId, photoUri, develop, gone, frost } }), [role, seed, avatarId, photoUri, develop, gone, frost]);
   return useFaceSources(inputs).face;
 }

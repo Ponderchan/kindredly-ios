@@ -11,6 +11,7 @@ import { useNativeSurface } from "../../lib/surfaces";
 import { useTheme } from "../../lib/theme";
 import { PlusSheetOpen, TabBarAway } from "../../lib/screen-insets";
 import { PostFan } from "../../components/PostFan";
+import { IdentityNote } from "../../screens/edit-profile/IdentityNote";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
@@ -42,7 +43,13 @@ import { PostFan } from "../../components/PostFan";
    the keyboard and the reply bar have the foot of the screen; the bar
    slides down out of sight and comes back when the reply ends. Both bars
    honour it, the Swift one and PostTabBar, and both only while Today is
-   the tab on screen. */
+   the tab on screen.
+
+   Identity Phase 1: the one-time note for people who were here before the
+   identity switch (IdentityNote: what strangers see now, with the ♀/♂ and
+   star sign switches inside it) is mounted here once, over every tab; it
+   draws nothing unless the table's switch is on and the account has never
+   answered. */
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
   // a screen sent the bar away (Today's reply); setBarAway is stable, so the context never churns
@@ -83,6 +90,7 @@ export default function TabsLayout() {
       </Tabs>
 
       {!native && choosing && <PostFan onClose={() => setChoosing(false)} />}
+      <IdentityNote />
     </View>
     </TabBarAway.Provider>
     </PlusSheetOpen.Provider>

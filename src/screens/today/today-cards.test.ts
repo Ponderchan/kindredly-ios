@@ -3,7 +3,9 @@
    done, the relaunch), left as the desk's own intersection, the seal held
    against the desk, how a load deals, her counted letter and the window,
    how Wren rests on the band (her night hours, her hunger), the card both
-   renderers draw, the reply's send key and hint, what a refused reply
+   renderers draw (its who slot with the identity switch off — exactly
+   today's — and on: the courier name, the frost, the mark and the sign,
+   VoiceOver's "{name}, {mark}. {when}."), the reply's send key and hint, what a refused reply
    does, and the desk's geometry (the same numbers Swift's KTodayGeometry
    uses). Also lib/day's morning (pure).
    Not wired to a runner; run by hand from the repo root with plain node (it
@@ -25,6 +27,9 @@ registerHooks({
 const M = await import("./today-cards.ts");
 const D = await import("../../lib/day.ts");
 const { VEIL_MASK, mosaicMask } = await import("../../lib/mosaic.ts");
+const { whoBook } = await import("../../lib/stranger-who.ts");
+const { strangerName } = await import("../../lib/stranger-name.ts");
+const { frostSpec } = await import("../../lib/frost.ts");
 type Letter = import("../../lib/db").PoolLetter;
 
 let fails = 0;
@@ -343,6 +348,37 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("card: a deleted account is UNSIGNED, the veil, and has nothing to report", ghost.postmark === "PM09 · ld.unsigned" && ghost.mask === VEIL_MASK && ghost.ghost && ghost.menu.length === 0);
   ok("card: who for a deleted account is UNSIGNED behind the veil", ghost.who.name === "ld.unsigned" && ghost.who.face.kind === "veil" && ghost.who.mark === null && ghost.who.sign === null);
   ok("card: an unsigned letter's field just says write back", ghost.replyPlaceholder === "ld.writeBackPh");
+
+  /* the who slot from the shared book (lib/stranger-who). SWITCH OFF: a book made with the switch
+     off gives exactly the card without one — every field, every character */
+  const offBook = whoBook({ identity: false, t, lang: "en", penPal: (u, o) => (u ? fmt.penPal(u, { upper: !!o.upper, compact: !!o.compact }) : t("ld.unsigned")), marks: () => ({ mark: "she", sign: "leo" }), dark: true });
+  const withOff = (letter: Letter) => M.buildCard({ letter, offer: null, signal: { kind: "close" } as never, voiceReady: false }, "#FFFFFF", { ...fmt, who: offBook });
+  const without = (letter: Letter) => M.buildCard({ letter, offer: null, signal: { kind: "close" } as never, voiceReady: false }, "#FFFFFF", fmt);
+  ok("identity off: a card is exactly today's (signed)", JSON.stringify(withOff(L({ id: "a" }))) === JSON.stringify(without(L({ id: "a" }))));
+  ok("identity off: a card is exactly today's (unsigned)", JSON.stringify(withOff(L({ id: "g", author: null }))) === JSON.stringify(without(L({ id: "g", author: null }))));
+  ok("identity off: the docket keeps the number", M.docket(L({ id: "a" }), { ...fmt, who: offBook }) === "PM09 · NO.8007");
+  ok("identity off: who.spoken is the number alone", c.who.spoken === "No. 8007");
+
+  /* SWITCH ON: the courier name, the frost, the mark and the sign once answered */
+  const UID = "author-a";
+  const courier = strangerName(UID, { lang: "en", unsigned: "ld.unsigned" });
+  const onBook = (marks: boolean) =>
+    whoBook({ identity: true, t, lang: "en", penPal: (u, o) => (u ? fmt.penPal(u, { upper: !!o.upper, compact: !!o.compact }) : t("ld.unsigned")), marks: marks ? () => ({ mark: "she", sign: "gemini" }) : null, dark: false });
+  const on = M.buildCard({ letter: L({ id: "a" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", { ...fmt, who: onBook(true) });
+  ok("identity on: who is the courier name in title case, never a number", on.who.name === courier && !on.who.name.includes("No."));
+  ok("identity on: the face slot is their frosted window (FROST v1)", on.who.face.kind === "frost" && JSON.stringify(on.who.face.spec) === JSON.stringify(frostSpec(UID, false)));
+  ok("identity on: the mark and the sign with their VoiceOver words", on.who.mark === "she" && on.who.markLabel === "id.mark.she" && on.who.sign === "gemini" && on.who.signLabel === "zd.gemini");
+  ok("identity on: VoiceOver opens with name, mark and sign, then when — no number", on.a11yLabel === `${courier}, id.mark.she, zd.gemini. PM09. #tiny win. I fixed the wobbly chair today.` && !on.a11yLabel.includes("NO."));
+  ok("identity on: the reply field names the courier name", on.replyPlaceholder === `ld.writeBackTo(name=${courier})`);
+  ok("identity on: the legacy docket carries the courier name in capitals", on.postmark === `PM09 · ${courier.toLocaleUpperCase()}`);
+  ok("identity on: the legacy mask stays today's mosaic (only who has the frost)", on.mask === mosaicMask(UID, 1) && !on.ghost);
+  ok("identity on: when is still the date alone", on.when === "PM09");
+  const early = M.buildCard({ letter: L({ id: "a" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", { ...fmt, who: onBook(false) });
+  ok("identity on: before the marks arrive, no mark and no sign, and nothing else differs", early.who.mark === null && early.who.sign === null && early.who.name === on.who.name && JSON.stringify(early.who.face) === JSON.stringify(on.who.face));
+  ok("identity on: before the marks arrive, VoiceOver says the name alone", early.a11yLabel.startsWith(`${courier}. PM09. `));
+  const onGhost = M.buildCard({ letter: L({ id: "g", author: null }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", { ...fmt, who: onBook(true) });
+  ok("identity on: a deleted account is still UNSIGNED behind the veil, no mark, no sign", onGhost.who.name === "ld.unsigned" && onGhost.who.face.kind === "veil" && onGhost.who.mark === null && onGhost.who.sign === null && onGhost.replyPlaceholder === "ld.writeBackPh");
+  ok("identity on: an unsigned card is read as UNSIGNED, then when", onGhost.a11yLabel.startsWith("ld.unsigned. PM09. "));
 
   const unknown = M.buildCard({ letter: L({ id: "u", stamp: "nope" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
   ok("card: a stamp stamps.ts doesn't list has no tag and no VoiceOver name", unknown.topic === "" && unknown.stampName === "");

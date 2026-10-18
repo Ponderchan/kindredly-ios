@@ -20,7 +20,35 @@ import Svg, { Circle, Path } from "react-native-svg";
      tinyMoment    Tiny moment,
      leaveSong     Leave a song
      chevronLeft   the conversation header's back (22 at 2.2)
-     more          the header's ⋯, three filled dots */
+     more          the header's ⋯, three filled dots
+
+   THE MARKS AFTER A STRANGER'S NAME (identity Phase 1, identity-plan §4, §9
+   and its addendum; KLineGlyph's she … pisces in SwiftUI, from the same
+   paths). The same 24 grid, drawn for stroke 2 (pass stroke={2}) with round
+   caps, one ink and no solids, so they hold at 14pt in Classic and Midnight.
+   The she/he mark sits 6pt after the name at 0.8 × its size, the star sign
+   4pt after that (or where the mark would be) at 14 beside a 17pt name; the
+   mark is in sub and never tinted, so nothing about it reads as pink or
+   blue, and the sign shares its ink. Clean line drawings that keep each
+   sign's familiar form, not the Unicode symbols copied: ♈–♓ and ♀ ♂ stay
+   the fallback in plain text only. The names are the strings the models
+   already carry (CardWho.mark "she" / "he", CardWho.sign's Zodiac ids), so
+   a renderer passes them straight through as `name`.
+
+     she           ♀ a round over a short cross
+     he            ♂ a round with an arrow leaving it up and to the right
+     aries         ♈ a stem that splits into two horns curling out and down
+     taurus        ♉ a round head under a crescent of horns
+     gemini        ♊ two pillars between two bowed bars
+     cancer        ♋ two curls, one sweeping over the top, its twin under
+     leo           ♌ a small round, the mane rising in one loop, a flick
+     virgo         ♍ an m whose last leg runs on, crossed by a loop
+     libra         ♎ an open arch on one line, a second line under it
+     scorpio       ♏ an m whose last leg runs off right as an arrow
+     sagittarius   ♐ the archer's arrow, crossed on its shaft
+     capricorn     ♑ a V with a hooked arm, the other falling into a loop
+     aquarius      ♒ two zigzags, one wave over another
+     pisces        ♓ two fish back to back, ) and (, tied by a line */
 
 export type LineIconName =
   | "replyArrow"
@@ -33,7 +61,21 @@ export type LineIconName =
   | "tinyMoment"
   | "leaveSong"
   | "chevronLeft"
-  | "more";
+  | "more"
+  | "she"
+  | "he"
+  | "aries"
+  | "taurus"
+  | "gemini"
+  | "cancer"
+  | "leo"
+  | "virgo"
+  | "libra"
+  | "scorpio"
+  | "sagittarius"
+  | "capricorn"
+  | "aquarius"
+  | "pisces";
 
 const PATHS: Record<Exclude<LineIconName, "more" | "plus">, string> = {
   replyArrow: "M9 7 4 12l5 5 M4 12h9a6 6 0 0 1 6 6v1",
@@ -45,9 +87,24 @@ const PATHS: Record<Exclude<LineIconName, "more" | "plus">, string> = {
   tinyMoment: "M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20V19H4z M12 16.5a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z",
   leaveSong: "M9 17.5V5.5l10-2.2v12 M9 9.3l10-2.2 M9 17.5a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z M19 15.3a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z",
   chevronLeft: "M15 5l-7 7 7 7",
+  // the identity marks (drawn for stroke 2; each one's stroked extent centred on 12,12)
+  she: "M16.5 8.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12 13.25v6.25 M9 16.5h6",
+  he: "M14.25 14.25a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12.93 11.07 18.75 5.25 M13.5 5.25h5.25v5.25",
+  aries: "M12 19.5V8.5 M12 8.5A4 4 0 1 0 4.24 9.87 M12 8.5A4 4 0 1 1 19.76 9.87",
+  taurus: "M12 19.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z M5 4.5c.5 4 3.5 6 7 6s6.5-2 7-6",
+  gemini: "M5 5q7 2.5 14 0 M5 19q7-2.5 14 0 M9 6v12 M15 6v12",
+  cancer: "M10.25 9a2.75 2.75 0 1 1-5.5 0 2.75 2.75 0 0 1 5.5 0z M7.5 6.25C12 5.5 17.5 5.75 20 9.5 M19.25 15a2.75 2.75 0 1 1-5.5 0 2.75 2.75 0 0 1 5.5 0z M16.5 17.75C12 18.5 6.5 18.25 4 14.5",
+  leo: "M10.25 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M9.85 14.5C8.75 11 8.75 4.5 13.75 4.5s5 4.5 3.5 7S14.75 16.5 15.25 18s3 2 4.5.5",
+  virgo: "M3.75 6c1-.8 2-.3 2 1V16 M5.75 7a2.5 2.5 0 0 1 5 0V16 M10.75 7a2.5 2.5 0 0 1 5 0V20 M15.75 9.5c2.8 0 4.5 1.7 4.5 3.8 0 2.4-2.3 3.9-6.8 4.9",
+  libra: "M4 18.25h16 M4 13.75h5.17A4.5 4.5 0 1 1 14.83 13.75H20",
+  scorpio: "M3.5 6c1-.8 2-.3 2 1v9 M5.5 7a2.25 2.25 0 0 1 4.5 0v9 M10 7a2.25 2.25 0 0 1 4.5 0V14.75c0 1.6 1.2 2.75 2.75 2.75H20.5 M18.3 15.3l2.2 2.2-2.2 2.2",
+  sagittarius: "M5 19 19 5 M12.5 5H19v6.5 M7.5 11.5l5 5",
+  capricorn: "M3.75 5.75c1.3-.6 2.6 0 3.1 1.4L9.75 16.25l3-10.5c.5 4 1.8 6.5 4.3 6.5a3.1 3.1 0 0 1 0 6.2c-2.2 0-3.5-1.6-3.5-3.3 0-1.3.7-2.3 1.6-2.9",
+  aquarius: "M4 10l4-3 4 3 4-3 4 3 M4 17l4-3 4 3 4-3 4 3",
+  pisces: "M6 4.5c4 3.5 4 11.5 0 15 M18 4.5c-4 3.5-4 11.5 0 15 M5 12h14",
 };
 
-/** One I1 icon, `size` points square, its line `stroke` grid units wide (1.9 by default). */
+/** One icon of the set, `size` points square, its line `stroke` grid units wide (1.9 by default; the identity marks are drawn for 2). */
 export function LineIcon({ name, size, color, stroke = 1.9 }: { name: LineIconName; size: number; color: string; stroke?: number }) {
   if (name === "more") {
     return (

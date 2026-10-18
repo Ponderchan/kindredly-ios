@@ -12,6 +12,9 @@ import { TabHeader } from "../../components/TabHeader";
 import { KindredsSky } from "../../components/KindredsSky";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
+import { Frost, VeilTile } from "../../components/Frost";
+import { WhoGlyphs } from "../../components/WhoName";
+import type { FrostSpec } from "../../lib/frost";
 import { OfficialBird } from "../../components/WrenDesk";
 import { WrenBird } from "../../components/WrenBird";
 import { NoticeBar } from "../../components/NotifyBanner";
@@ -37,7 +40,23 @@ import type { KindredsActions, KindredsModel } from "./useKindredsModel";
    settles at the top), and folded again on every visit. It draws the same
    orbit items as the Swift orbit (stable places, your-turn faces in ind).
    Rows keep MessageMenu's Host per row for the long-press menu — fine for a
-   fallback. */
+   fallback.
+
+   WHO A PEN PAL IS (identity Phase 1) is the model's (kindreds-model, from
+   lib/stranger-who's book); with the switch off every row, the fold and the
+   sky are exactly as before. With it on (view.identity):
+   · a pen pal's row face is their frosted window at the row's 52, square
+     with corners at 25% (components/Frost), never developing; a closed
+     pen pal's is the flat veil tile;
+   · the name carries the ♀/♂ mark 6pt after it and the star sign 4pt after
+     that, ink glyphs in sub (components/WhoName), before the n/5;
+   · a pen pal from before the switch says "was No. 4481" on the second
+     line, after the row's tags and ahead of their words, for its fourteen
+     days;
+   · the folded row's little faces are frosted squares, never developing;
+   · the PEN PALS chip's glyph is a small frosted square (view.legendFrost,
+     a fixed sample window, nobody's), and the sky draws windows too
+     (OrbitMap, KindredsSky). */
 
 type Tk = ThemeTokens;
 
@@ -141,13 +160,14 @@ export function KindredsRN({ model }: { model: KindredsModel }) {
           label={view.orbitChipLabel}
           legendCloser={view.legendCloser}
           legendTurn={view.legendTurn}
+          legendFrost={view.legendFrost}
         />
 
         <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)}>
-          <Chips chips={view.chips} onPress={act.chip} tk={tk} />
+          <Chips chips={view.chips} onPress={act.chip} tk={tk} legendFrost={view.legendFrost} />
           <View style={{ marginTop: 8 }}>
             {view.items.map((it) => (
-              <Item key={it.id} item={it} act={act} tk={tk} />
+              <Item key={it.id} item={it} act={act} tk={tk} identity={view.identity} />
             ))}
           </View>
         </View>
@@ -160,7 +180,7 @@ export function KindredsRN({ model }: { model: KindredsModel }) {
 /* CHIPS: the three groups, the chosen one on lav with ind type, the rest
    sf with a line border (H:62 with the owner's 16.5), scrolling sideways
    when a language runs long. */
-function Chips({ chips, onPress, tk }: { chips: ChipVM[]; onPress: (key: string) => void; tk: Tk }) {
+function Chips({ chips, onPress, tk, legendFrost }: { chips: ChipVM[]; onPress: (key: string) => void; tk: Tk; legendFrost: FrostSpec | null }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 2 }} accessibilityRole="tablist">
       {chips.map((c) => {
@@ -187,7 +207,7 @@ function Chips({ chips, onPress, tk }: { chips: ChipVM[]; onPress: (key: string)
             })}
           >
             {c.glyph === "kindred" && <KindredGlyph />}
-            {c.glyph === "penPal" && <PenPalGlyph color={tk.ind} />}
+            {c.glyph === "penPal" && (legendFrost ? <Frost spec={legendFrost} size={18} /> : <PenPalGlyph color={tk.ind} />)}
             <Text numberOfLines={1} style={{ fontSize: 16.5, fontWeight: "500", color: ink }}>
               {c.label}
             </Text>
@@ -201,7 +221,8 @@ function Chips({ chips, onPress, tk }: { chips: ChipVM[]; onPress: (key: string)
 }
 
 /* the two groups' marks (H:62): a kindred's face on the courier's green (a
-   fixed object colour, themes.json brand), a pen pal's checker in ind */
+   fixed object colour, themes.json brand), a pen pal's checker in ind —
+   with the identity switch on, a small frosted square instead (Chips) */
 function KindredGlyph() {
   return (
     <View style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: BRAND.greenText, alignItems: "center", justifyContent: "center" }}>
@@ -221,7 +242,7 @@ function PenPalGlyph({ color }: { color: string }) {
   );
 }
 
-const Item = memo(function Item({ item, act, tk }: { item: ItemVM; act: KindredsActions; tk: Tk }) {
+const Item = memo(function Item({ item, act, tk, identity }: { item: ItemVM; act: KindredsActions; tk: Tk; identity: boolean }) {
   switch (item.type) {
     case "wrenLine":
       return <WrenLine text={item.text} onTap={act.wrenLine} tk={tk} />;
@@ -241,9 +262,9 @@ const Item = memo(function Item({ item, act, tk }: { item: ItemVM; act: Kindreds
         </View>
       );
     case "wren":
-      return <Row row={item.row} onOpen={act.openWren} onAction={act.rowAction} />;
+      return <Row row={item.row} onOpen={act.openWren} onAction={act.rowAction} identity={identity} />;
     case "row":
-      return <Row row={item.row} onOpen={() => act.openRow(item.row.id)} onAction={act.rowAction} />;
+      return <Row row={item.row} onOpen={() => act.openRow(item.row.id)} onAction={act.rowAction} identity={identity} />;
     case "fold":
       return <Fold fold={item.fold} onFace={act.openFoldFace} onAll={act.openFold} tk={tk} />;
     case "emptyLine":
@@ -296,7 +317,7 @@ const TONE = (tk: Tk): Record<TagTone, string> => ({ ind: tk.ind, mute: tk.mute,
    the row's tags and "You: ", the badge or Rekindle ›, the hairline under
    the words. Long-pressed, the row is lifted into iOS's menu (MessageMenu);
    a row with a menu doesn't fade under the finger (owner 10-11). */
-function Row({ row, onOpen, onAction }: { row: RowVM; onOpen: () => void; onAction: (id: string, key: string) => void }) {
+function Row({ row, onOpen, onAction, identity }: { row: RowVM; onOpen: () => void; onAction: (id: string, key: string) => void; identity: boolean }) {
   const s = useRowStyle();
   /* MessageMenu hosts the row in its own native view, which sizes to its
      content: without an explicit width the row grows past the screen and the
@@ -319,13 +340,15 @@ function Row({ row, onOpen, onAction }: { row: RowVM; onOpen: () => void; onActi
       <MessageMenu actions={actions} radius={0}>
         <View style={[s.row, { width }]}>
           <View style={{ opacity: row.dim ? 0.45 : 1 }}>
-            <Face row={row} />
+            <Face row={row} identity={identity} />
           </View>
           <View style={[s.text, s.hairline]}>
             <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
               <Text numberOfLines={1} style={[s.name, { flexShrink: 1 }, row.nameDim && { color: s.colors.sub }]}>
                 {row.name}
               </Text>
+              {/* the ♀/♂ mark and the star sign (switch on): 6pt after the name, so 2 less than the row's 8 */}
+              <WhoGlyphs mark={row.mark} sign={row.sign} size={14} lead={-2} />
               {!!row.progress && <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: s.colors.sub }}>{row.progress}</Text>}
               <View style={{ flex: 1 }} />
               {!!row.time && <Text style={s.time}>{row.time}</Text>}
@@ -337,6 +360,8 @@ function Row({ row, onOpen, onAction }: { row: RowVM; onOpen: () => void; onActi
                     {g.text}{"  "}
                   </Text>
                 ))}
+                {/* a pen pal from before the switch, for its fourteen days: the number they wore */}
+                {!!row.was && <Text style={{ color: s.colors.mute }}>{row.was} · </Text>}
                 {!!row.youPrefix && <Text style={s.you}>{row.youPrefix}</Text>}
                 {row.preview}
               </Text>
@@ -358,14 +383,19 @@ const NOOP = () => {};
 
 /* a face as the row draws it: Wren's official bird; a kindred's portrait,
    legacy face or glyph (a closed kindred with no face left wears the veil);
-   a pen pal's mosaic on the soft disc, developed by their letters */
-function Face({ row }: { row: RowVM }) {
+   a pen pal's mosaic on the soft disc, developed by their letters — or,
+   with the identity switch on, their frosted window, square, at the row's
+   52 (the flat veil tile once their account is closed) */
+function Face({ row, identity }: { row: RowVM; identity: boolean }) {
   const s = useRowStyle();
   if (row.kind === "wren") return <OfficialBird size={s.face} ground={s.colors.ground} />;
   const f = row.face;
   if (!f) return <View style={s.disc} />;
   if (f.role === "kindred" && (f.avatarId || (!f.gone && f.seed))) {
     return <AvatarImage id={f.avatarId ?? null} seed={f.seed ?? "anon"} size={s.face} />;
+  }
+  if (f.role === "penpal" && identity) {
+    return f.frost && !f.gone && f.seed ? <Frost spec={f.frost} size={s.face} /> : <VeilTile size={s.face} />;
   }
   return (
     <View style={s.disc}>
@@ -375,7 +405,9 @@ function Face({ row }: { row: RowVM }) {
 }
 
 /* the pen pals whose turn is theirs, as one row: up to six faces, how many
-   more, and the way to all of them */
+   more, and the way to all of them. With the identity switch on each face
+   is a frosted square (30, on a 2pt rim of the page so the overlap reads),
+   the same window as on the row and never developing */
 const FOLD_FACE = 34;
 function Fold({ fold, onFace, onAll, tk }: { fold: FoldVM; onFace: (id: string) => void; onAll: () => void; tk: Tk }) {
   return (
@@ -391,9 +423,15 @@ function Fold({ fold, onFace, onAll, tk }: { fold: FoldVM; onFace: (id: string) 
               accessibilityLabel={f.a11yLabel}
               style={{ marginLeft: i > 0 ? -8 : 0, zIndex: fold.faces.length - i }}
             >
-              <View style={{ width: FOLD_FACE, height: FOLD_FACE, borderRadius: FOLD_FACE / 2, borderWidth: 2, borderColor: tk.bg, backgroundColor: tk.soft2, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                <MosaicId seed={f.seed} cell={2.9} gap={0.8} develop={f.develop} />
-              </View>
+              {f.frost ? (
+                <View style={{ width: FOLD_FACE, height: FOLD_FACE, borderRadius: FOLD_FACE * f.frost.corner, padding: 2, backgroundColor: tk.bg }}>
+                  <Frost spec={f.frost} size={FOLD_FACE - 4} />
+                </View>
+              ) : (
+                <View style={{ width: FOLD_FACE, height: FOLD_FACE, borderRadius: FOLD_FACE / 2, borderWidth: 2, borderColor: tk.bg, backgroundColor: tk.soft2, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  <MosaicId seed={f.seed} cell={2.9} gap={0.8} develop={f.develop} />
+                </View>
+              )}
             </Pressable>
           ))}
           {!!fold.more && <Text style={{ marginLeft: 6, fontSize: 13, fontWeight: "600", color: tk.mute }}>{fold.more}</Text>}

@@ -1,6 +1,8 @@
 /* Behaviour lock for the Kindreds tab's model (screens/kindreds/kindreds-model):
    who is listed, the owner's order, the fold, the quiet group, closed
-   accounts, the empty lines, the row words and menus, the orbit — the rules
+   accounts, the empty lines, the row words and menus, the orbit, and who a
+   pen pal is with the identity switch off (exactly today's) and on (the
+   courier name, the mark and the sign, the frost, "was No.") — the rules
    both renderers draw, so a remote flip between SwiftUI and React Native
    never changes what the reader sees.
    Not wired to a runner; run by hand from the repo root with plain node (it
@@ -32,6 +34,9 @@ registerHooks({
 });
 
 const M = await import("./kindreds-model.ts");
+const { whoBook } = await import("../../lib/stranger-who.ts");
+const { strangerName, strangerNamer } = await import("../../lib/stranger-name.ts");
+const { frostSpec } = await import("../../lib/frost.ts");
 const { DEMO_THREADS, DEMO_STATE_THREADS, DEMO_ROOM_SEEN } = await import("../../data/demo.ts");
 type Thread = import("../../lib/db").ThreadSummary;
 type Facts = import("./kindreds-model").KindredsFacts;
@@ -359,6 +364,91 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   const f = M.faceInputs(v);
   ok("faces: one per thread row, keyed by id; Wren has none", Object.keys(f).sort().join() === "k,p" && f.k.role === "kindred" && f.k.avatarId === "f-cloud" && f.p.role === "penpal");
   ok("a pen pal's face develops with THEIR letters", f.p.develop === 0.15 + 0.85 * (2 / 5));
+}
+
+/* ── the identity switch (lib/stranger-who's book in fmt.who) ── */
+{
+  const DEMO = [...DEMO_THREADS, ...DEMO_STATE_THREADS];
+  const theirs = Array.from({ length: 8 }, (_, i) => th({ id: `w${i}`, lastSenderMe: true, mine: 2, theirs: 1 }));
+  const mixed = [
+    th({ id: "k", revealed: true, otherName: "Mara", theirs: 2 }),
+    th({ id: "p", theirs: 2, mine: 2 }),
+    th({ id: "o3", theirs: 3, mine: 2 }),
+    th({ id: "o1", theirs: 0, mine: 1, lastSenderMe: true }),
+    th({ id: "g", gone: true, other: null as unknown as string }),
+    ...theirs,
+  ];
+  const penPal = (u: string | null | undefined) => fmt.penPal(u);
+
+  /* SWITCH OFF: a book made with the switch off gives exactly the view without one */
+  const offBook = whoBook({ identity: false, t: fmt.t, lang: "en", penPal, marks: () => ({ mark: "he", sign: "leo" }), dark: true, firstOnAt: now - DAY });
+  for (const [label, ts, over] of [
+    ["mixed", mixed, {}],
+    ["demo", DEMO, { ledger: DEMO_ROOM_SEEN, demoMenus: true }],
+    ["pen pals tab", mixed, { tab: "penpals" as const }],
+    ["your turn", mixed, { show: "your" as const }],
+  ] as const) {
+    const a = M.buildKindredsView(base(ts as Thread[], over as Partial<Facts>), fmt);
+    const b = M.buildKindredsView(base(ts as Thread[], over as Partial<Facts>), { ...fmt, who: offBook });
+    ok(`identity off (${label}): the view is exactly today's`, JSON.stringify(a) === JSON.stringify(b));
+  }
+  const off = M.buildKindredsView(base(mixed), fmt);
+  ok("identity off: no marks, no 'was', no frost anywhere", (() => {
+    const rows = off.items.flatMap((i) => (i.type === "row" || i.type === "wren" ? [i.row] : []));
+    const fold = off.items.find((i) => i.type === "fold");
+    return (
+      rows.every((r) => r.mark === null && r.sign === null && r.markLabel === "" && r.signLabel === "" && r.was === "" && !r.face?.frost) &&
+      off.orbit.every((o) => o.frost === null) &&
+      !!fold && fold.type === "fold" && fold.fold.faces.every((f) => f.frost === null) &&
+      off.legendFrost === null && off.identity === false
+    );
+  })());
+
+  /* SWITCH ON */
+  const since = now - 2 * DAY;
+  const marks = (u: string) => (u === "u-p" ? { mark: "she" as const, sign: "gemini" as const } : u === "u-o3" ? { mark: null, sign: "leo" as const } : { mark: null, sign: null });
+  const namer = strangerNamer(mixed.map((x) => ({ id: x.id, createdAt: x.createdAt ?? null, other: x.gone ? null : x.other })), "en");
+  const onBook = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, namer, marks, dark: false, firstOnAt: since });
+  const on = M.buildKindredsView(base(mixed), { ...fmt, who: onBook });
+  const p = rowOf(on, "p")!;
+  const name = namer.name("u-p", { unsigned: "ld.unsigned" });
+  ok("identity on: a pen pal is the courier name from the reader's list", p.name === name && name === strangerName("u-p", { lang: "en", unsigned: "" }) && !p.name.startsWith("No."));
+  ok("identity on: the mark and the sign on the row", p.mark === "she" && p.markLabel === "id.mark.she" && p.sign === "gemini" && p.signLabel === "zd.gemini");
+  ok("identity on: a sign alone, no mark", rowOf(on, "o3")!.mark === null && rowOf(on, "o3")!.sign === "leo");
+  ok("identity on: the row's face is their frosted window (FROST v1), never developing", p.face?.role === "penpal" && JSON.stringify(p.face.frost) === JSON.stringify(frostSpec("u-p", false)));
+  ok("identity on: a thread from before the switch says was No. for its first 14 days", p.was === "id.was(no=No. u-p)");
+  ok("identity on: VoiceOver says Pen pal, the name, mark, sign, was, then the state", p.a11yLabel === `id.vo.penPal, ${name}, id.mark.she, zd.gemini, id.was(no=No. u-p), state.yourTurn, mk.ofFive(n=2), ${p.time}`);
+  const fresh = M.buildKindredsView(base([th({ id: "n", createdAt: now - DAY })]), { ...fmt, who: onBook });
+  ok("identity on: a thread opened after the switch never had a number", rowOf(fresh, "n")!.was === "");
+  const later = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, namer, marks, firstOnAt: now - 15 * DAY });
+  ok("identity on: after fourteen days the old number is gone", rowOf(M.buildKindredsView(base(mixed), { ...fmt, who: later }), "p")!.was === "");
+  const k = rowOf(on, "k")!;
+  ok("identity on: a kindred keeps their name and face, no mark, no sign, no was", k.name === "Mara" && k.mark === null && k.sign === null && k.was === "" && k.face?.role === "kindred" && !k.face.frost);
+  const g = rowOf(on, "g")!;
+  ok("identity on: a closed pen pal is UNSIGNED behind the veil", g.name === "ld.unsigned" && g.face?.gone === true && !g.face.frost && g.mark === null);
+  const w = on.items.find((i) => i.type === "wren");
+  ok("identity on: Wren's row has no mark", !!w && w.type === "wren" && w.row.mark === null && w.row.sign === null && w.row.was === "");
+  ok("identity on: the orbit draws frosted windows", on.orbit.length === 11 && on.orbit.every((o) => o.frost !== null && JSON.stringify(o.frost) === JSON.stringify(frostSpec(o.seed, false))));
+  ok("identity on: the window is the same on every ring (it never develops; the ring is the progress)", (() => {
+    const moved = mixed.map((x) => (x.id === "o1" ? { ...x, theirs: 4 } : x));
+    const a = on.orbit.find((o) => o.id === "o1")!;
+    const b = M.buildKindredsView(base(moved), { ...fmt, who: onBook }).orbit.find((o) => o.id === "o1")!;
+    return a.ring !== b.ring && JSON.stringify(a.frost) === JSON.stringify(b.frost);
+  })());
+  ok("identity on: the orbit's places and turns don't move with the switch", JSON.stringify(on.orbit.map((o) => [o.id, o.ring, o.a0, o.dir, o.period, o.turn])) === JSON.stringify(off.orbit.map((o) => [o.id, o.ring, o.a0, o.dir, o.period, o.turn])));
+  const fold = on.items.find((i) => i.type === "fold");
+  ok("identity on: the folded row's faces are frost, named by the courier", !!fold && fold.type === "fold" && fold.fold.faces.every((f) => f.frost !== null && f.a11yLabel === namer.name(f.seed, { unsigned: "" })));
+  ok("identity on: the legend's PEN PALS glyph is a frosted square (a sample window, nobody's)", on.identity === true && JSON.stringify(on.legendFrost) === JSON.stringify(frostSpec(M.LEGEND_FROST_SEED, false)));
+  ok("identity on: who is listed, the order and the counts don't change", JSON.stringify(ids(on.items)) === JSON.stringify(ids(off.items)) && on.status === off.status && JSON.stringify(on.chips) === JSON.stringify(off.chips));
+  ok("identity on: the faces for the native list carry the frost", (() => {
+    const f = M.faceInputs(on);
+    return !!f.p.frost && !f.k.frost;
+  })());
+  ok("identity on, Midnight: the dark tones", (() => {
+    const dark = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, dark: true });
+    const v = M.buildKindredsView(base(mixed), { ...fmt, who: dark });
+    return JSON.stringify(rowOf(v, "p")!.face?.frost) === JSON.stringify(frostSpec("u-p", true)) && JSON.stringify(v.legendFrost) === JSON.stringify(frostSpec(M.LEGEND_FROST_SEED, true));
+  })());
 }
 
 console.log(fails ? `\n${fails} FAILED` : "\nall passed");

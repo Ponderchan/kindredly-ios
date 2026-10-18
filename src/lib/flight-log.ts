@@ -2,6 +2,7 @@ import { t } from "./i18n";
 import { postNo } from "./format";
 import type { ThreadSummary } from "./db";
 import type { WhereaboutsRead } from "./whereabouts";
+import type { WhoBook } from "./stranger-who";
 import { threadState } from "./thread-state";
 
 /* THE FLIGHT LOG — the courier's own diary, one entry at a time.
@@ -9,7 +10,9 @@ import { threadState } from "./thread-state";
    First person, lowercase, a little proud, a little tired, counts things.
    Every line is a fixed template filled with facts already on the phone:
    the hour your last letter left, who wrote back (their name if they
-   signed, else their number), how many letters passed your desk today,
+   signed, else their number — or, once the identity switch is on, the
+   name your courier gave them: LogFacts.book), how many letters passed
+   your desk today,
    how long you were gone. Nothing is generated; when there is no fact,
    she says the neutral line for the state. The entry carries the time of
    the event it is about — a diary without a clock is not a diary. */
@@ -32,6 +35,8 @@ export interface LogFacts {
   seenToday: number;
   daylight: Daylight;
   now?: number;
+  /** who strangers are (lib/who useWhoBook); absent or off = "No. 4481" */
+  book?: WhoBook | null;
 }
 
 const DAY = 864e5;
@@ -39,10 +44,12 @@ const hhmm = (ms: number) => {
   const d = new Date(ms);
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
-const who = (th: ThreadSummary) => (th.revealed && th.otherName ? th.otherName : `No. ${postNo(th.other)}`);
+const numbered = (th: ThreadSummary) => (th.revealed && th.otherName ? th.otherName : `No. ${postNo(th.other)}`);
 
 export function flightLog(f: LogFacts): LogEntry {
   const now = f.now ?? Date.now();
+  // the switch on: the book's name (a kindred's pen name, else the courier name); off, the number as it always read
+  const who = (th: ThreadSummary) => (f.book?.identity ? f.book.threadName(th) : numbered(th));
   const last = f.lastWrittenAt ? Date.parse(f.lastWrittenAt) : NaN;
   const gapDays = Number.isNaN(last) ? null : Math.floor((now - last) / DAY);
   const night = f.daylight === "night";

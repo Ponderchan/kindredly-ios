@@ -1,5 +1,6 @@
 import { t, getLang, type Lang } from "./i18n";
 import { hashStr } from "./mosaic";
+import { strangerName, type StrangerNamer } from "./stranger-name";
 
 /** A t()-shaped function. The date and name helpers below take one (and a
     locale) as optional parameters, so a pure builder can hand them its own
@@ -107,6 +108,34 @@ export function penPalName(other: string | null | undefined, opts: { upper?: boo
   if (!other) return tr("ld.unsigned");
   const s = tr("pw.stub.no") + (opts.compact ? "" : " ") + postNo(other);
   return opts.upper ? s.toLocaleUpperCase(opts.locale ?? localeTag()) : s;
+}
+
+/* A STRANGER'S LABEL, EITHER WAY (identity Phase 1). Every place that
+   called penPalName() can call this instead and pass the switch: off, it
+   is penPalName exactly ("No. 4481", the same options); on, it is the
+   courier name the reader's courier gave them (lib/stranger-name). Pass
+   the reader's list as `namer` (strangerNamer(threads, lang), built once
+   where the threads are loaded) wherever it is known — on a desk letter
+   too, so a rare exact repeat is resolved the way it will be when the
+   thread opens. Without one the name is the plain salt-0 name, which is
+   right for everyone but that rare repeat. A deleted account reads
+   t("ld.unsigned") both ways. `compact` only shapes the No. ("NO.4481"). */
+/**
+ * A pen pal's label before names: the courier name when `identity` is on
+ * (lib/identity identityOn / useIdentityOn), today's penPalName when off.
+ * @param opts.identity the identity switch, as the caller read it
+ * @param opts.namer    the reader's list (strangerNamer(threads, lang)); without it, salt 0
+ * @param opts.lang     the reader's language for the courier name; defaults to getLang()
+ */
+export function strangerLabel(
+  other: string | null | undefined,
+  opts: { identity: boolean; namer?: StrangerNamer | null; lang?: Lang; upper?: boolean; compact?: boolean; t?: TFn; locale?: string },
+): string {
+  if (!opts.identity) return penPalName(other, opts);
+  const tr = opts.t ?? t;
+  const name = { unsigned: tr("ld.unsigned"), upper: opts.upper, locale: opts.locale ?? localeTag() };
+  if (opts.namer) return opts.namer.name(other, name);
+  return strangerName(other, { ...name, lang: opts.lang ?? getLang() });
 }
 
 /* ── step 5 date labels ─────────────────────────────────────────────────

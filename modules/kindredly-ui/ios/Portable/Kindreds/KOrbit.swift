@@ -29,14 +29,26 @@ import SwiftUI
 
  Faces that arrive fade in over .32s, a little after each other (OrbitMap.tsx's arrival).
 
+ WITH THE IDENTITY SWITCH ON (the owner, 2026-10-18 night: "轨道那里也要同步"), each stranger is
+ their frosted window instead (KFrostPainter, the same FROST v1 spec TS sends for their row and
+ their chat, so a person is one colour everywhere), a rounded square with corners at 25% of its
+ side, at the same lane sizes. At 9-12 units the window is far under 20pt, so it draws the base,
+ the lights and the hairline only (the one size rule). It NEVER develops: the window is the same
+ on every ring, and the ring itself is the progress. Your turn is a 1.5pt ind ring round the
+ window (instead of the mosaic inked in ind). Reduce Transparency draws the windows flat,
+ Increase Contrast gives them their ink edge, as KFrost does anywhere. The centre cell, the
+ rings, the drift and the arrival fade are unchanged; switch off is exactly the mosaic above.
+
  VoiceOver doesn't see the drawing; the legend and the Orbit chip's hint say what it means.
  */
 
 /// One stranger on the orbit, as TS computes it.
 public struct KOrbitItem: Identifiable, Equatable, Sendable {
   public let id: String
-  /// their FACE v1 cells (bit row * 5 + column), developed
+  /// their FACE v1 cells (bit row * 5 + column), developed (switch off)
   public let mask: Int
+  /// their frosted window instead (identity switch on): never develops; nil draws the mosaic
+  public let frost: KFrostSpec?
   /// how many letters they have sent you, 0 ... 5 (0 waits in the void)
   public let ring: Int
   /// where they start, in radians, from TS's stable order
@@ -45,12 +57,13 @@ public struct KOrbitItem: Identifiable, Equatable, Sendable {
   public let dir: Double
   /// seconds per full circuit
   public let period: Double
-  /// it is your turn to write to them: inked in ind
+  /// it is your turn to write to them: inked in ind (a window: a 1.5pt ind ring round it)
   public let turn: Bool
 
-  public init(id: String, mask: Int, ring: Int, a0: Double, dir: Double, period: Double, turn: Bool) {
+  public init(id: String, mask: Int, frost: KFrostSpec? = nil, ring: Int, a0: Double, dir: Double, period: Double, turn: Bool) {
     self.id = id
     self.mask = mask
+    self.frost = frost
     self.ring = ring
     self.a0 = a0
     self.dir = dir >= 0 ? 1 : -1
@@ -74,6 +87,9 @@ public enum KOrbitGeometry {
   public static let you: CGFloat = 10
   /// the room between cells, as a fraction of a cell
   public static let gapRatio: CGFloat = 0.32
+  /// your turn round a window: a ring this wide (pt), this far clear of the window's edge
+  public static let turnRing: CGFloat = 1.5
+  public static let turnGap: CGFloat = 1
 
   /// the ring of someone who has sent you `letters`
   public static func radius(letters: Int) -> CGFloat {
@@ -92,6 +108,8 @@ public struct KOrbit: View, Equatable {
   private let active: Bool
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @Environment(\.colorSchemeContrast) private var contrast
   @State private var arrivals = KOrbitArrivals()
 
   /// - Parameters:
@@ -154,14 +172,40 @@ public struct KOrbit: View, Equatable {
       let x = cx + r * s * CGFloat(cos(angle))
       let y = cy + r * squash * s * CGFloat(sin(angle))
       let side = KOrbitGeometry.faceSide(letters: item.ring) * s
-      let cell = side / (5 + 4 * KOrbitGeometry.gapRatio)
-      let gap = cell * KOrbitGeometry.gapRatio
-      let shape = KMosaicShape(mask: item.mask, cell: cell, gap: gap)
-        .path(in: CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side))
+      let box = CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
       let opacity = running ? arrivals.opacity(item.id, order: order, at: date) : 1
       guard opacity > 0 else { continue }
+      if let frost = item.frost {
+        drawWindow(frost, in: box, turn: item.turn, opacity: opacity, context: gc)
+        continue
+      }
+      let cell = side / (5 + 4 * KOrbitGeometry.gapRatio)
+      let gap = cell * KOrbitGeometry.gapRatio
+      let shape = KMosaicShape(mask: item.mask, cell: cell, gap: gap).path(in: box)
       gc.fill(shape, with: .color((item.turn ? theme.ind : theme.ink).opacity(opacity)))
     }
+  }
+
+  /// A stranger's frosted window on the orbit (identity switch on): base, lights and hairline at
+  /// these sizes, and the 1.5pt ind ring round it when it is your turn.
+  private func drawWindow(_ frost: KFrostSpec, in box: CGRect, turn: Bool, opacity: Double, context gc: GraphicsContext) {
+    KFrostPainter.draw(
+      frost,
+      in: box,
+      context: gc,
+      flat: reduceTransparency,
+      detail: box.width >= KFrostSpec.detailMinPt,
+      edge: contrast == .increased ? theme.ink : nil,
+      opacity: opacity
+    )
+    guard turn else { return }
+    let out = KOrbitGeometry.turnGap + KOrbitGeometry.turnRing / 2
+    let ring = box.insetBy(dx: -out, dy: -out)
+    gc.stroke(
+      Path(roundedRect: ring, cornerRadius: frost.radius(side: box.width) + out, style: .circular),
+      with: .color(theme.ind.opacity(opacity)),
+      lineWidth: KOrbitGeometry.turnRing
+    )
   }
 }
 

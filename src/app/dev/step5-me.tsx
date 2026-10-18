@@ -10,6 +10,7 @@ import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { storeAura } from "../../lib/dev-store";
 import { whereabouts } from "../../lib/whereabouts";
 import { flightLog } from "../../lib/flight-log";
+import { useWhoBook } from "../../lib/who";
 import type { Aura } from "../../lib/aura";
 import type { UsedStamp } from "../../lib/aura";
 import type { Minted } from "../../lib/keepsakes";
@@ -131,13 +132,15 @@ function MeLab() {
   const [panel, setPanel] = useState(true);
 
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
+  // the diary names a pen pal as the tab does (lib/who): the number, or the courier name with the switch on
+  const book = useWhoBook({ threads: DEMO_THREADS });
 
   const model = useMemo<MeModel>(() => {
     const threads = DEMO_THREADS;
     const aura = demoAura(auraMode);
     const where = whereabouts(threads, 12);
     const lastWrittenAt = aura?.lastWrittenAt ?? null;
-    const entry = flightLog({ where, threads, lastWrittenAt, seenToday: 3, daylight: daylight() });
+    const entry = flightLog({ where, threads, lastWrittenAt, seenToday: 3, daylight: daylight(), book });
     const hunger = hungry
       ? { tier: "hungry" as const, mood: "sleepy" as const, word: "HUNGRY", line: "nothing to carry for four days. i'm getting light.", sub: "one letter would do it", wilt: false }
       : null;
@@ -182,7 +185,7 @@ function MeLab() {
     };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang]);
+  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book]);
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   const useSwift = swift && swiftAvailable;

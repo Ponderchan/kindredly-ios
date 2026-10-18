@@ -11,6 +11,7 @@ import type { WhereaboutsRead } from "../lib/whereabouts";
 import { WHEREABOUTS_META } from "../lib/whereabouts";
 import { W14, cardShadow } from "./AuraCard";
 import { agoLabel, flightLog, type LogEntry } from "../lib/flight-log";
+import { useWhoBook } from "../lib/who";
 import type { ThreadSummary } from "../lib/db";
 
 /* THE SVG LOOPS RUN ON THE UI THREAD (stall probe, 2026-09-20). They were
@@ -217,8 +218,10 @@ export function CourierCard({
   const light = daylight(hour);
   const P = PALETTE[light];
   const GREEN = { ink: P.ink };
+  // a pen pal named as every screen names them (lib/who): the number, or the courier name once the switch is on
+  const book = useWhoBook({ threads });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const entry = useMemo(() => entryProp ?? flightLog({ where, threads, lastWrittenAt, seenToday, daylight: light }), [entryProp, where, threads, lastWrittenAt, seenToday, light, lang]);
+  const entry = useMemo(() => entryProp ?? flightLog({ where, threads, lastWrittenAt, seenToday, daylight: light, book }), [entryProp, where, threads, lastWrittenAt, seenToday, light, lang, book]);
 
   /* ── motion, by state ──
      flying: she bobs and the route marches under her;

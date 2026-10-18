@@ -3,11 +3,12 @@ import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, View, useWind
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn } from "react-native-reanimated";
 import { useRouter } from "expo-router";
-import { getLang, sourceTag, t, useLang } from "../../lib/i18n";
+import { getLang, hasString, sourceTag, t, useLang } from "../../lib/i18n";
 import { useLetterFamily, useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
 import { localeTag, penPalName, postmark } from "../../lib/format";
+import { useWhoBook } from "../../lib/who";
 import { developFor } from "../../lib/mosaic";
 import { sendThreadMessage, theirLatest } from "../../lib/db";
 import { chatSeenRule, useThreadDetail } from "../../lib/thread-detail";
@@ -23,6 +24,8 @@ import { noteWrote } from "../../lib/local-push";
 import { getStamp, sname } from "../../data/stamps";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
+import { WhoFaceView } from "../../components/Frost";
+import { WhoName } from "../../components/WhoName";
 import { Stamp } from "../../components/Stamp";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { ReportSheet } from "../../components/ReportMenu";
@@ -32,11 +35,13 @@ import {
   canWriteHere,
   capsuleCode,
   closedLine,
+  correspondentWho,
   heroIndex,
   heroTier,
   isUnsigned,
   largeType,
   isVoiceLetter,
+  letterDate,
   letterLinkKey,
   offersTranslate,
   postmarkLine,
@@ -66,7 +71,13 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
      portrait for a kindred, the mosaic developing for a pen pal, the veil
      for a deleted account), the postmark and the thread's state in its
      tone, the stamp (the reader head's 60×72, below), and the ··· (34pt circle) that opens Report /
-     Block, always reachable while someone is behind the letter (owner);
+     Block, always reachable while someone is behind the letter (owner) —
+     with the identity switch on (identity Phase 1), a pen pal's head is
+     their frosted window at 34 (never developing; the flat veil tile for a
+     deleted account), the courier name in 600 17 with the ♀/♂ mark and the
+     star sign after it in sub (reader correspondentWho), and under it the
+     letter's date (· YOU on your own) and the state, so the name is said
+     once and the postmark keeps the date;
      the words in the reader's Letter font at the letter tiers (a telegram
      centred); the topic tag and the translate capsule; a 2pt rule; the
      thread toggle and REPLY ↓;
@@ -130,11 +141,14 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   const earlier = conv.filter((_, k) => k !== heroIdx);
   const [expanded, setExpanded] = useState(false);
 
+  /* who wrote it (lib/who): switch off, their number; on, the courier name, and their ♀/♂ and
+     star sign asked for (reader correspondentWho) */
+  const who = useWhoBook({ uids: detail && !detail.revealed ? [detail.other] : [] });
   const fmt: ReaderFormat = useMemo(
-    () => ({ t, locale: localeTag(), postmark, penPal: (other: string) => penPalName(other, { upper: true, compact: true }) }),
+    () => ({ t, locale: localeTag(), postmark, penPal: (other: string) => penPalName(other, { upper: true, compact: true }), who }),
     // a language change re-renders (useLang); the locale and t() are read fresh with it
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getLang()],
+    [getLang(), who],
   );
   const state = detail
     ? threadState({
@@ -199,7 +213,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   const [sending, setSending] = useState(false);
   const canWrite = canWriteHere(detail, status);
   const closed = closedLine(detail, status, t);
-  const hint = replyHint(text, !!detail?.revealed, t);
+  const hint = replyHint(text, !!detail?.revealed, t, who.identity);
   const onSend = (value: string): boolean => {
     const body = value.trim();
     if (!id || !detail || sending || !canWrite || !replyCanSend(value, false)) return false;
@@ -230,7 +244,11 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
 
   const goBack = () => blurThen(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds")), undefined, { delayMs: 0 });
 
-  const face = !detail ? null : isUnsigned(detail) ? (
+  // switch on, a pen pal (or no one) as the book gives them; null off, and for a kindred
+  const pal = who.identity ? correspondentWho(detail, fmt) : null;
+  const face = !detail ? null : pal ? (
+    <WhoFaceView face={pal.face} size={34} />
+  ) : isUnsigned(detail) ? (
     <MosaicId seed={null} cell={4} gap={1} />
   ) : detail.revealed ? (
     <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={28} />
@@ -239,6 +257,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   );
 
   const mono = (size: number, spacing: number) => ({ fontFamily: PF.monoSemi, fontSize: size, letterSpacing: size * spacing });
+  const heroDate = hero && detail ? letterDate(hero, detail, fmt) : "";
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: topInset ?? insets.top }}>
@@ -265,12 +284,24 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 {/* the head: who, when, the stamp it travelled under, and the ··· */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <View style={{ minWidth: 28, alignItems: "center" }}>{face}</View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { color: tk.sub }]}>
-                      {/* the number is what you call someone WITHOUT a name; once they have one it
-                          replaces the number — printing both says the reveal only half happened */}
-                      {postmarkLine(hero, detail, fmt)}
-                    </Text>
+                  <View style={{ flex: 1, gap: 2 }} accessible={!!pal} accessibilityLabel={pal ? [pal.spoken, heroDate, hero.mine ? t("ui.you") : "", state?.label ?? ""].filter(Boolean).join(". ") : undefined}>
+                    {pal ? (
+                      <>
+                        <WhoName name={pal.name} marks={pal} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} numberOfLines={big ? 0 : 2} />
+                        {/* the postmark keeps the date; the name above is said once (YOU on your own letter) */}
+                        {!!(heroDate || hero.mine) && (
+                          <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { fontFamily: PF.monoMed, color: tk.sub }]}>
+                            {[heroDate, hero.mine ? t("ui.you") : ""].filter(Boolean).join(" · ")}
+                          </Text>
+                        )}
+                      </>
+                    ) : (
+                      <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { color: tk.sub }]}>
+                        {/* the number is what you call someone WITHOUT a name; once they have one it
+                            replaces the number — printing both says the reveal only half happened */}
+                        {postmarkLine(hero, detail, fmt)}
+                      </Text>
+                    )}
                     {!!state && (
                       <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.label, 0.1), { color: tone }]}>
                         {state.label}
@@ -389,7 +420,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
             <>
               <ReplyStrip
                 ref={strip}
-                placeholder={replyPlaceholder(detail, t)}
+                placeholder={replyPlaceholder(detail, t, who, hasString)}
                 canSend={replyCanSend(text, sending)}
                 onSend={onSend}
                 onChangeText={setText}

@@ -1,0 +1,3463 @@
+{
+ "v": 1,
+ "about": "FROST v1 (kindredly-ios src/lib/frost.ts, web app/engine/frost.js): frostSpec(uid, dark) for 32 ids on a light and a dark theme, and null for a missing id. Written once by scripts/gen-identity-vectors.mjs; both test suites must reproduce every spec exactly.",
+ "missing": null,
+ "cases": [
+  {
+   "uid": "00000000-0000-4000-8000-000000000000",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "ice",
+    "base": "#CBDDE3",
+    "blobs": [
+     {
+      "tone": "fog",
+      "color": "#D6D4DE",
+      "x": 0.26,
+      "y": 0.32,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "slate",
+      "color": "#B8BFD1",
+      "x": 0.7,
+      "y": 0.78,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "00000000-0000-4000-8000-000000000000",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "ice",
+    "base": "#3F5666",
+    "blobs": [
+     {
+      "tone": "fog",
+      "color": "#5A5860",
+      "x": 0.26,
+      "y": 0.32,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "slate",
+      "color": "#37485C",
+      "x": 0.7,
+      "y": 0.78,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "7f3c2a10-4b5e-4d21-9c8a-1e2f3a4b5c6d",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "slate",
+    "base": "#B8BFD1",
+    "blobs": [
+     {
+      "tone": "butter",
+      "color": "#EAE4B0",
+      "x": 0.24,
+      "y": 0.74,
+      "r": 0.7214,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.74,
+      "y": 0.32,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "7f3c2a10-4b5e-4d21-9c8a-1e2f3a4b5c6d",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "slate",
+    "base": "#37485C",
+    "blobs": [
+     {
+      "tone": "butter",
+      "color": "#6E6438",
+      "x": 0.24,
+      "y": 0.74,
+      "r": 0.7214,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.74,
+      "y": 0.32,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "step5-a1",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "fog",
+    "base": "#D6D4DE",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.18,
+      "y": 0.24,
+      "r": 0.6071,
+      "alpha": 0.9
+     },
+     {
+      "tone": "plum",
+      "color": "#C9AFD0",
+      "x": 0.82,
+      "y": 0.7,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "step5-a1",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "fog",
+    "base": "#5A5860",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.18,
+      "y": 0.24,
+      "r": 0.6071,
+      "alpha": 0.9
+     },
+     {
+      "tone": "plum",
+      "color": "#5D3B5C",
+      "x": 0.82,
+      "y": 0.7,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "demo-mira",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lilac",
+    "base": "#D9C6E8",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#BFE6D2",
+      "x": 0.22,
+      "y": 0.8,
+      "r": 0.6929,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#9CC9CC",
+      "x": 0.74,
+      "y": 0.22,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "demo-mira",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lilac",
+    "base": "#5A4870",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#3C6650",
+      "x": 0.22,
+      "y": 0.8,
+      "r": 0.6929,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#2F585C",
+      "x": 0.74,
+      "y": 0.22,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "008c4420-8908-4ba0-a579-eb4c41480fcb",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lavender",
+    "base": "#C9C2EC",
+    "blobs": [
+     {
+      "tone": "periwinkle",
+      "color": "#B4BCEA",
+      "x": 0.22,
+      "y": 0.28,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#9CC9CC",
+      "x": 0.76,
+      "y": 0.7,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "008c4420-8908-4ba0-a579-eb4c41480fcb",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lavender",
+    "base": "#4A4478",
+    "blobs": [
+     {
+      "tone": "periwinkle",
+      "color": "#3F4A7A",
+      "x": 0.22,
+      "y": 0.28,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#2F585C",
+      "x": 0.76,
+      "y": 0.7,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "25bfca24-439f-4786-a4f2-afc33a7ad90f",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "slate",
+    "base": "#B8BFD1",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.2,
+      "y": 0.76,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lavender",
+      "color": "#C9C2EC",
+      "x": 0.78,
+      "y": 0.2,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "25bfca24-439f-4786-a4f2-afc33a7ad90f",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "slate",
+    "base": "#37485C",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.2,
+      "y": 0.76,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lavender",
+      "color": "#4A4478",
+      "x": 0.78,
+      "y": 0.2,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "65315ca0-9a0a-48d3-ad90-370ea3248e20",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "ice",
+    "base": "#CBDDE3",
+    "blobs": [
+     {
+      "tone": "slate",
+      "color": "#B8BFD1",
+      "x": 0.32,
+      "y": 0.28,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.7,
+      "y": 0.74,
+      "r": 0.75,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "65315ca0-9a0a-48d3-ad90-370ea3248e20",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "ice",
+    "base": "#3F5666",
+    "blobs": [
+     {
+      "tone": "slate",
+      "color": "#37485C",
+      "x": 0.32,
+      "y": 0.28,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.7,
+      "y": 0.74,
+      "r": 0.75,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "48fa92ea-4e5c-4a2a-a845-20ce67796807",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lilac",
+    "base": "#D9C6E8",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#CBDDE3",
+      "x": 0.78,
+      "y": 0.3,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "butter",
+      "color": "#EAE4B0",
+      "x": 0.28,
+      "y": 0.72,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "48fa92ea-4e5c-4a2a-a845-20ce67796807",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lilac",
+    "base": "#5A4870",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#3F5666",
+      "x": 0.78,
+      "y": 0.3,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "butter",
+      "color": "#6E6438",
+      "x": 0.28,
+      "y": 0.72,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "fa41484e-ba54-419f-a337-a44053806830",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "plum",
+    "base": "#C9AFD0",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.78,
+      "y": 0.28,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "periwinkle",
+      "color": "#B4BCEA",
+      "x": 0.28,
+      "y": 0.72,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "fa41484e-ba54-419f-a337-a44053806830",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "plum",
+    "base": "#5D3B5C",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.78,
+      "y": 0.28,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "periwinkle",
+      "color": "#3F4A7A",
+      "x": 0.28,
+      "y": 0.72,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "22b6f5d9-7db8-4905-a8bc-822be5352f2a",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "mint",
+    "base": "#BFE6D2",
+    "blobs": [
+     {
+      "tone": "butter",
+      "color": "#EAE4B0",
+      "x": 0.3,
+      "y": 0.76,
+      "r": 0.6071,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#D9C6E8",
+      "x": 0.8,
+      "y": 0.28,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "22b6f5d9-7db8-4905-a8bc-822be5352f2a",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "mint",
+    "base": "#3C6650",
+    "blobs": [
+     {
+      "tone": "butter",
+      "color": "#6E6438",
+      "x": 0.3,
+      "y": 0.76,
+      "r": 0.6071,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#5A4870",
+      "x": 0.8,
+      "y": 0.28,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "54acbc27-a62f-4bde-a84d-6f1672d688d0",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "teal",
+    "base": "#9CC9CC",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#CBDDE3",
+      "x": 0.22,
+      "y": 0.72,
+      "r": 0.6929,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.78,
+      "y": 0.3,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "54acbc27-a62f-4bde-a84d-6f1672d688d0",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "teal",
+    "base": "#2F585C",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#3F5666",
+      "x": 0.22,
+      "y": 0.72,
+      "r": 0.6929,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.78,
+      "y": 0.3,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "3682b93f-5508-4afb-aa51-40c15f2b0fa5",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "sage",
+    "base": "#C4D3B8",
+    "blobs": [
+     {
+      "tone": "butter",
+      "color": "#EAE4B0",
+      "x": 0.18,
+      "y": 0.78,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#9CC9CC",
+      "x": 0.68,
+      "y": 0.32,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "3682b93f-5508-4afb-aa51-40c15f2b0fa5",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "sage",
+    "base": "#4A5A3E",
+    "blobs": [
+     {
+      "tone": "butter",
+      "color": "#6E6438",
+      "x": 0.18,
+      "y": 0.78,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#2F585C",
+      "x": 0.68,
+      "y": 0.32,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "26d3ddd2-f05f-47ec-afd0-06bc157c0669",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "mint",
+    "base": "#BFE6D2",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#C9C2EC",
+      "x": 0.28,
+      "y": 0.82,
+      "r": 0.6929,
+      "alpha": 0.9
+     },
+     {
+      "tone": "plum",
+      "color": "#C9AFD0",
+      "x": 0.74,
+      "y": 0.26,
+      "r": 0.5786,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "26d3ddd2-f05f-47ec-afd0-06bc157c0669",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "mint",
+    "base": "#3C6650",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#4A4478",
+      "x": 0.28,
+      "y": 0.82,
+      "r": 0.6929,
+      "alpha": 0.9
+     },
+     {
+      "tone": "plum",
+      "color": "#5D3B5C",
+      "x": 0.74,
+      "y": 0.26,
+      "r": 0.5786,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "0b22a6fc-a05c-48bf-a87e-5184b19f3151",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "periwinkle",
+    "base": "#B4BCEA",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.74,
+      "y": 0.74,
+      "r": 0.5786,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#D9C6E8",
+      "x": 0.28,
+      "y": 0.24,
+      "r": 0.6929,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "0b22a6fc-a05c-48bf-a87e-5184b19f3151",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "periwinkle",
+    "base": "#3F4A7A",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.74,
+      "y": 0.74,
+      "r": 0.5786,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#5A4870",
+      "x": 0.28,
+      "y": 0.24,
+      "r": 0.6929,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "df374dc0-e765-4a28-a02a-994f719198d0",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "fog",
+    "base": "#D6D4DE",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#BFE6D2",
+      "x": 0.2,
+      "y": 0.26,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.7,
+      "y": 0.78,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "df374dc0-e765-4a28-a02a-994f719198d0",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "fog",
+    "base": "#5A5860",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#3C6650",
+      "x": 0.2,
+      "y": 0.26,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.7,
+      "y": 0.78,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "3819aa3b-a687-4e5f-abeb-d1bfaaafb9a1",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lavender",
+    "base": "#C9C2EC",
+    "blobs": [
+     {
+      "tone": "lilac",
+      "color": "#D9C6E8",
+      "x": 0.74,
+      "y": 0.72,
+      "r": 0.7214,
+      "alpha": 0.9
+     },
+     {
+      "tone": "ice",
+      "color": "#CBDDE3",
+      "x": 0.28,
+      "y": 0.24,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "3819aa3b-a687-4e5f-abeb-d1bfaaafb9a1",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lavender",
+    "base": "#4A4478",
+    "blobs": [
+     {
+      "tone": "lilac",
+      "color": "#5A4870",
+      "x": 0.74,
+      "y": 0.72,
+      "r": 0.7214,
+      "alpha": 0.9
+     },
+     {
+      "tone": "ice",
+      "color": "#3F5666",
+      "x": 0.28,
+      "y": 0.24,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "ab9b2513-281d-4486-a74b-f1164fb424fa",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "slate",
+    "base": "#B8BFD1",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.74,
+      "y": 0.68,
+      "r": 0.7214,
+      "alpha": 0.9
+     },
+     {
+      "tone": "mint",
+      "color": "#BFE6D2",
+      "x": 0.18,
+      "y": 0.24,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "ab9b2513-281d-4486-a74b-f1164fb424fa",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "slate",
+    "base": "#37485C",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.74,
+      "y": 0.68,
+      "r": 0.7214,
+      "alpha": 0.9
+     },
+     {
+      "tone": "mint",
+      "color": "#3C6650",
+      "x": 0.18,
+      "y": 0.24,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "43d0622d-bd29-4573-a8e0-502412ca9dda",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lavender",
+    "base": "#C9C2EC",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.2,
+      "y": 0.78,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "butter",
+      "color": "#EAE4B0",
+      "x": 0.8,
+      "y": 0.24,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "43d0622d-bd29-4573-a8e0-502412ca9dda",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lavender",
+    "base": "#4A4478",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.2,
+      "y": 0.78,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "butter",
+      "color": "#6E6438",
+      "x": 0.8,
+      "y": 0.24,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "7be1560e-7537-48b0-aff3-189422f00587",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "seaglass",
+    "base": "#A9D8CF",
+    "blobs": [
+     {
+      "tone": "slate",
+      "color": "#B8BFD1",
+      "x": 0.28,
+      "y": 0.18,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "fog",
+      "color": "#D6D4DE",
+      "x": 0.78,
+      "y": 0.82,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "7be1560e-7537-48b0-aff3-189422f00587",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "seaglass",
+    "base": "#35605A",
+    "blobs": [
+     {
+      "tone": "slate",
+      "color": "#37485C",
+      "x": 0.28,
+      "y": 0.18,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "fog",
+      "color": "#5A5860",
+      "x": 0.78,
+      "y": 0.82,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "b26541b5-502e-4667-a621-82dcd70b1f8a",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "ice",
+    "base": "#CBDDE3",
+    "blobs": [
+     {
+      "tone": "teal",
+      "color": "#9CC9CC",
+      "x": 0.74,
+      "y": 0.26,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#D9C6E8",
+      "x": 0.28,
+      "y": 0.7,
+      "r": 0.75,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "b26541b5-502e-4667-a621-82dcd70b1f8a",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "ice",
+    "base": "#3F5666",
+    "blobs": [
+     {
+      "tone": "teal",
+      "color": "#2F585C",
+      "x": 0.74,
+      "y": 0.26,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#5A4870",
+      "x": 0.28,
+      "y": 0.7,
+      "r": 0.75,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "d337268b-cb2d-4d93-ac3d-58836431b4ae",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lilac",
+    "base": "#D9C6E8",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#BFE6D2",
+      "x": 0.3,
+      "y": 0.3,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "fog",
+      "color": "#D6D4DE",
+      "x": 0.78,
+      "y": 0.8,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "d337268b-cb2d-4d93-ac3d-58836431b4ae",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lilac",
+    "base": "#5A4870",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#3C6650",
+      "x": 0.3,
+      "y": 0.3,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "fog",
+      "color": "#5A5860",
+      "x": 0.78,
+      "y": 0.8,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "933dbba1-ad78-4f1d-a464-568706817cb8",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "fog",
+    "base": "#D6D4DE",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.2,
+      "y": 0.72,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.68,
+      "y": 0.18,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "933dbba1-ad78-4f1d-a464-568706817cb8",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "fog",
+    "base": "#5A5860",
+    "blobs": [
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.2,
+      "y": 0.72,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.68,
+      "y": 0.18,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "d112fd38-5802-4de1-a6a3-790ff3216a19",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "ice",
+    "base": "#CBDDE3",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#C9C2EC",
+      "x": 0.82,
+      "y": 0.74,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.28,
+      "y": 0.2,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "d112fd38-5802-4de1-a6a3-790ff3216a19",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "ice",
+    "base": "#3F5666",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#4A4478",
+      "x": 0.82,
+      "y": 0.74,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.28,
+      "y": 0.2,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "113ec819-cf8c-48c0-ae3c-2e04506f2535",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "sage",
+    "base": "#C4D3B8",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#CBDDE3",
+      "x": 0.3,
+      "y": 0.82,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#D9C6E8",
+      "x": 0.68,
+      "y": 0.26,
+      "r": 0.75,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "113ec819-cf8c-48c0-ae3c-2e04506f2535",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "sage",
+    "base": "#4A5A3E",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#3F5666",
+      "x": 0.3,
+      "y": 0.82,
+      "r": 0.6357,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#5A4870",
+      "x": 0.68,
+      "y": 0.26,
+      "r": 0.75,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "8a446b41-e2a5-4549-a977-dee39642295b",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lilac",
+    "base": "#D9C6E8",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#C4D3B8",
+      "x": 0.82,
+      "y": 0.72,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "periwinkle",
+      "color": "#B4BCEA",
+      "x": 0.18,
+      "y": 0.28,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "8a446b41-e2a5-4549-a977-dee39642295b",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lilac",
+    "base": "#5A4870",
+    "blobs": [
+     {
+      "tone": "sage",
+      "color": "#4A5A3E",
+      "x": 0.82,
+      "y": 0.72,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "periwinkle",
+      "color": "#3F4A7A",
+      "x": 0.18,
+      "y": 0.28,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "59a59091-9d4f-4690-abc9-ec3c8edac119",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "butter",
+    "base": "#EAE4B0",
+    "blobs": [
+     {
+      "tone": "plum",
+      "color": "#C9AFD0",
+      "x": 0.32,
+      "y": 0.72,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#9CC9CC",
+      "x": 0.72,
+      "y": 0.22,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "59a59091-9d4f-4690-abc9-ec3c8edac119",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "butter",
+    "base": "#6E6438",
+    "blobs": [
+     {
+      "tone": "plum",
+      "color": "#5D3B5C",
+      "x": 0.32,
+      "y": 0.72,
+      "r": 0.6643,
+      "alpha": 0.9
+     },
+     {
+      "tone": "teal",
+      "color": "#2F585C",
+      "x": 0.72,
+      "y": 0.22,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "08adf075-62c2-4c9e-a345-981530d8ffcb",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "plum",
+    "base": "#C9AFD0",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#C9C2EC",
+      "x": 0.2,
+      "y": 0.7,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "butter",
+      "color": "#EAE4B0",
+      "x": 0.74,
+      "y": 0.28,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "08adf075-62c2-4c9e-a345-981530d8ffcb",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "plum",
+    "base": "#5D3B5C",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#4A4478",
+      "x": 0.2,
+      "y": 0.7,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "butter",
+      "color": "#6E6438",
+      "x": 0.74,
+      "y": 0.28,
+      "r": 0.6643,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "2cc2a5b9-76c2-4d82-a0d5-e56f48b3835c",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "sage",
+    "base": "#C4D3B8",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#C9C2EC",
+      "x": 0.3,
+      "y": 0.28,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.68,
+      "y": 0.78,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "2cc2a5b9-76c2-4d82-a0d5-e56f48b3835c",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "sage",
+    "base": "#4A5A3E",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#4A4478",
+      "x": 0.3,
+      "y": 0.28,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.68,
+      "y": 0.78,
+      "r": 0.7214,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "8a9337d7-615d-48f5-aaca-244d93675206",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lilac",
+    "base": "#D9C6E8",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#BFE6D2",
+      "x": 0.8,
+      "y": 0.26,
+      "r": 0.5786,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.2,
+      "y": 0.74,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "8a9337d7-615d-48f5-aaca-244d93675206",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lilac",
+    "base": "#5A4870",
+    "blobs": [
+     {
+      "tone": "mint",
+      "color": "#3C6650",
+      "x": 0.8,
+      "y": 0.26,
+      "r": 0.5786,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.2,
+      "y": 0.74,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "0e47035d-2bb6-4e27-a558-5ed1ddb3c996",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "fog",
+    "base": "#D6D4DE",
+    "blobs": [
+     {
+      "tone": "teal",
+      "color": "#9CC9CC",
+      "x": 0.26,
+      "y": 0.18,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "slate",
+      "color": "#B8BFD1",
+      "x": 0.74,
+      "y": 0.7,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "0e47035d-2bb6-4e27-a558-5ed1ddb3c996",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "fog",
+    "base": "#5A5860",
+    "blobs": [
+     {
+      "tone": "teal",
+      "color": "#2F585C",
+      "x": 0.26,
+      "y": 0.18,
+      "r": 0.55,
+      "alpha": 0.9
+     },
+     {
+      "tone": "slate",
+      "color": "#37485C",
+      "x": 0.74,
+      "y": 0.7,
+      "r": 0.6071,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "8abbca5b-8dea-4fb4-a63d-0df20168f63b",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "fog",
+    "base": "#D6D4DE",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#C9C2EC",
+      "x": 0.7,
+      "y": 0.72,
+      "r": 0.5786,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#A9D8CF",
+      "x": 0.24,
+      "y": 0.32,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "8abbca5b-8dea-4fb4-a63d-0df20168f63b",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "fog",
+    "base": "#5A5860",
+    "blobs": [
+     {
+      "tone": "lavender",
+      "color": "#4A4478",
+      "x": 0.7,
+      "y": 0.72,
+      "r": 0.5786,
+      "alpha": 0.9
+     },
+     {
+      "tone": "seaglass",
+      "color": "#35605A",
+      "x": 0.24,
+      "y": 0.32,
+      "r": 0.6357,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "1639508c-b931-4cac-ab55-efdc35cf45d9",
+   "dark": false,
+   "spec": {
+    "v": 1,
+    "dark": false,
+    "tone": "lavender",
+    "base": "#C9C2EC",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#CBDDE3",
+      "x": 0.22,
+      "y": 0.28,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#D9C6E8",
+      "x": 0.7,
+      "y": 0.76,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.22,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  },
+  {
+   "uid": "1639508c-b931-4cac-ab55-efdc35cf45d9",
+   "dark": true,
+   "spec": {
+    "v": 1,
+    "dark": true,
+    "tone": "lavender",
+    "base": "#4A4478",
+    "blobs": [
+     {
+      "tone": "ice",
+      "color": "#3F5666",
+      "x": 0.22,
+      "y": 0.28,
+      "r": 0.75,
+      "alpha": 0.9
+     },
+     {
+      "tone": "lilac",
+      "color": "#5A4870",
+      "x": 0.7,
+      "y": 0.76,
+      "r": 0.55,
+      "alpha": 0.9
+     }
+    ],
+    "silhouette": {
+     "alpha": 0.13,
+     "head": {
+      "x": 0.5,
+      "y": 0.4,
+      "r": 0.235,
+      "solid": 0.62
+     },
+     "shoulders": {
+      "x": 0.5,
+      "y": 1.04,
+      "rx": 0.52,
+      "ry": 0.36,
+      "solid": 0.55
+     }
+    },
+    "sheen": {
+     "alpha": 0.18,
+     "to": 0.55
+    },
+    "hairline": {
+     "alpha": 0.35,
+     "width": 1
+    },
+    "corner": 0.25,
+    "edge": 1.5
+   }
+  }
+ ]
+}

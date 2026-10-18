@@ -2,6 +2,7 @@ import { t } from "./i18n";
 import { postNo } from "./format";
 import type { ThreadSummary } from "./db";
 import type { WrenMood } from "../components/WrenBird";
+import type { WhoBook } from "./stranger-who";
 
 /* HUNGER — the courier lives on letters (owner, 2026-09-22; the web's
    zine/hunger.jsx, ported line for line so both shelves say the same thing).
@@ -16,7 +17,11 @@ import type { WrenMood } from "../components/WrenBird";
       14 days  sleepy  STARVING  "{n} days. i'm going grey out here"
    A person outranks the bag; under three days she says nothing; a
    correspondent who closed their account is not waiting. Fixed templates
-   around counted facts, never generated, never a scold. */
+   around counted facts, never generated, never a scold.
+
+   {who} is a kindred's pen name, else the pen pal's "No. 4481" — or, once
+   the identity switch is on, the courier name (pass the screen's book,
+   lib/who useWhoBook; without one, or switched off, the number as ever). */
 
 export type HungerTier = "owed" | "owed-long" | "peckish" | "hungry" | "wilting";
 export interface HungerRead {
@@ -34,6 +39,8 @@ export interface HungerRead {
 
 const DAY = 864e5;
 const who = (th: ThreadSummary) => (th.revealed && th.otherName ? th.otherName : "No. " + postNo(th.other));
+/** {who} in her line: the book's name with the switch on (lib/stranger-who threadName), else the number as it always read */
+const whoIn = (th: ThreadSummary, book: WhoBook | null | undefined) => (book?.identity ? book.threadName(th) : who(th));
 
 let devStarving = false;
 /** dev only: read her as starving whatever the dates (app/wilt-preview) */
@@ -78,7 +85,18 @@ export function lastWroteAt(threads: ThreadSummary[], lastWrittenAt: string | nu
   return last;
 }
 
-export function hungerRead({ threads, lastWrittenAt, now = Date.now() }: { threads: ThreadSummary[]; lastWrittenAt: string | number | null; now?: number }): HungerRead | null {
+export function hungerRead({
+  threads,
+  lastWrittenAt,
+  now = Date.now(),
+  book,
+}: {
+  threads: ThreadSummary[];
+  lastWrittenAt: string | number | null;
+  now?: number;
+  /** who strangers are (lib/who useWhoBook); absent or off = "No. 4481" */
+  book?: WhoBook | null;
+}): HungerRead | null {
   if (devStarving && __DEV__) return { tier: "wilting", mood: "sleepy", word: t("hg.starving"), line: t("hg.starvingLine", { n: 16 }), sub: t("hg.starvingSub"), wilt: true };
   const waiting = threads
     .filter(waitingOnYou)
@@ -86,7 +104,7 @@ export function hungerRead({ threads, lastWrittenAt, now = Date.now() }: { threa
     .filter((w) => w.days >= 2)
     .sort((a, b) => b.days - a.days)[0];
   if (waiting) {
-    const w = who(waiting.th), n = waiting.days;
+    const w = whoIn(waiting.th, book), n = waiting.days;
     if (n >= 5) return { tier: "owed-long", mood: "worry", word: t("hg.waiting"), line: t("hg.owedLong", { who: w, n }), sub: t("hg.owedLongSub"), wilt: false, thread: waiting.th.id };
     return { tier: "owed", mood: "listen", word: t("hg.waiting"), line: t("hg.owed", { who: w, n }), sub: t("hg.owedSub"), wilt: false, thread: waiting.th.id };
   }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, ScrollView, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { getLang, t, useLang } from "../../lib/i18n";
+import { getLang, hasString, t, useLang } from "../../lib/i18n";
 import { useTheme } from "../../lib/theme";
 import { archNameThird } from "../../lib/aura-copy";
 import { blurThen } from "../../lib/keyboard";
@@ -43,8 +43,13 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
      its tone, ACCOUNT CLOSED for a gone one) and the five dots, its ⋯
      opening the report card (ConversationHeaderRN on build-items
      lettersHeader). They say what the reach band said, with the reply
-     bar's hint, so the band is not drawn any more. A revealed thread seen
-     here keeps the older ChatHeader;
+     bar's hint, so the band is not drawn any more. With the identity
+     switch on (identity Phase 1) the same header shows their frosted
+     window instead, never developing, and the courier name with the ♀/♂
+     mark and the star sign after it; the letter cards' heads read LETTER 3
+     · SUNDAY KITE and the reply bar writes back to that name (the model's
+     `who`, lib/who). A revealed thread seen here keeps the older
+     ChatHeader;
    · the letter cards (head line, the words in the reader's Letter font,
      the time; the day as a day rule), a tap opening the reader on THAT
      letter, a long press its menu (copy; theirs translate and report — a
@@ -138,6 +143,8 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
       buildLettersDock({
         t,
         name: m.name,
+        identity: m.identity,
+        has: hasString,
         revealed: !!detail?.revealed,
         gone: !!detail?.gone,
         missing: m.status === "missing",
@@ -148,7 +155,7 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
         locale: m.locale,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.otherCount, detail?.iSigned, detail?.theirSigned, lang],
+    [m.name, m.identity, detail?.revealed, detail?.gone, m.status, detail?.myCount, detail?.otherCount, detail?.iSigned, detail?.theirSigned, lang],
   );
 
   /* the A2 header while names aren't traded (and while the thread loads); a revealed thread seen
@@ -162,6 +169,7 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
             t,
             locale: m.locale,
             name: m.name,
+            who: m.who,
             other: detail?.other || null,
             myCount: detail?.myCount ?? 0,
             otherCount: detail?.otherCount ?? 0,
@@ -172,7 +180,7 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
           })
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [a2, m.name, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
+    [a2, m.name, m.who, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
   );
   const headerTop = props.topInset ?? insets.top;
   const open = dock.terminal === "none";

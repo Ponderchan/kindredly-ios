@@ -9,6 +9,8 @@ import { localeTag } from "../../lib/format";
 import { t, useLang } from "../../lib/i18n";
 import { readYourPronoun, saveYourPronoun } from "../../lib/pronouns";
 import { useWrenName } from "../../lib/wren-name";
+import { useIdentityOn } from "../../lib/identity";
+import { zodiacFromDob } from "../../lib/zodiac";
 import { FACES, getFace, type AuraAvatarDef } from "../../data/aura-avatar-lib";
 import {
   NEW_FACES_FLAG,
@@ -25,6 +27,7 @@ import {
   type SaveQueue,
 } from "./edit-profile-model";
 import "../../data/strings-step5-settings";
+import "../../data/strings-identity";
 
 /* EDIT PROFILE'S LOGIC, for both renderers (10a step 5). The page is its
    own now (owner), pushed in the Me tab's stack, and each field saves on
@@ -46,6 +49,13 @@ import "../../data/strings-step5-settings";
      reads user_metadata.pronoun, web 0021), and the pool changes with it.
    - Pen name and the courier's name: the one-field page (/me/edit-field),
      where going back saves. Whatever waits is sent first.
+   - With the identity switch on (lib/identity), ON YOUR LETTERS: the
+     ♀/♂ switch (she and he only) and the star sign's, each saved at once
+     to the account as showMark / showSign, the way the pronoun is (web
+     0034's marks_for reads them there, so a change reaches every stranger
+     within the half hour their phones keep an answer). Your sign is worked
+     out here from your birthday (lib/zodiac) only to name it under the
+     switch; strangers get it from the server, never the date.
    - The new-faces note (owner question 12): only for a legacy portrait,
      once; either button, or any face change, puts it away for good.
    - Every save goes through ONE queue, handed to the latest
@@ -65,6 +75,9 @@ export type EditActions = {
   face: (id: string) => void;
   pen: () => void;
   pronoun: (id: string) => void;
+  /** ON YOUR LETTERS: the ♀/♂ switch and the star sign's (identity switch on) */
+  showMark: (on: boolean) => void;
+  showSign: (on: boolean) => void;
   courierName: () => void;
   noteSee: () => void;
   noteKeep: () => void;
@@ -161,11 +174,20 @@ export function useEditProfileModel(): EditProfileModel {
 
   const fmt = useMemo<EditFormat>(() => ({ t, birthday: birthdayFormat }), []);
   const dob = typeof profile?.dob === "string" ? (profile.dob as string) : null;
+  // what strangers may see (identity Phase 1): the switch, and the two values as the account holds them
+  const identity = useIdentityOn();
+  const showMark: unknown = profile?.showMark;
+  const showSign: unknown = profile?.showSign;
+  const sign = useMemo(() => zodiacFromDob(dob), [dob]);
   const view = useMemo(
-    () => buildEditView({ handle, dob, pronoun, wren, avatarId, photo: !!photo, pool, newFacesNote: noteShows }, fmt),
+    () =>
+      buildEditView(
+        { handle, dob, pronoun, wren, avatarId, photo: !!photo, pool, newFacesNote: noteShows, letters: { identity, showMark, showSign, sign } },
+        fmt,
+      ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, pronoun, wren, avatarId, photo, pool, noteShows, fmt, lang],
+    [handle, dob, pronoun, wren, avatarId, photo, pool, noteShows, fmt, lang, identity, showMark, showSign, sign],
   );
 
   const putNoteAway = useCallback(() => {
@@ -236,6 +258,13 @@ export function useEditProfileModel(): EditProfileModel {
         void saveYourPronoun(id);
         // the matcher reads the account's copy: it goes now, with anything that waited
         void q.now({ pronoun: id });
+      },
+      // saved at once, like the pronoun: strangers' marks_for reads the account's copy (0034)
+      showMark: (on) => {
+        void q.now({ showMark: !!on });
+      },
+      showSign: (on) => {
+        void q.now({ showSign: !!on });
       },
       courierName: () => {
         void q.flush();

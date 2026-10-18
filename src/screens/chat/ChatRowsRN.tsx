@@ -27,7 +27,8 @@ import type { A11yNode } from "./useChatListRN";
      theirs on sf across the whole width, mine on soft (soft2 on Midnight)
      set 40 in from the left. Inside, the head line in mono 500 10 at .14em
      (LETTER 3 · NO. 5422 in mute, LETTER 3 · YOU in ind; the opening WHERE
-     IT BEGAN · NO. 5422), the words in the reader's Letter font at 19 on
+     IT BEGAN · NO. 5422; with the identity switch on the courier name,
+     LETTER 3 · SUNDAY KITE, from build-items), the words in the reader's Letter font at 19 on
      1.35 (owner question 1: pen-pal letters are letters being read;
      Newsreader by default, never a fixed Garamond), and the 24-hour time at
      its foot on the right. The day is a day rule above the card when it

@@ -2,7 +2,7 @@ import { requireNativeView } from "expo";
 import { forwardRef, memo, useMemo, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
-import type { KImageRefProps, KInsets, KMenuAction, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark, type KMenuAction, type KScreenBaseProps, type KScreenHandle, type KSign, type KStandardCommands } from "./types";
 
 /* THE TODAY TAB, drawn by SwiftUI (ios/Portable/Today/KTodayDesk.swift, adapter
    ios/Adapters/KTodayView.swift), for src/screens/today/TodayNative.tsx. Every word, date, count,
@@ -35,12 +35,35 @@ export type KTodayCapsule = {
   glyph?: "rings" | "clock" | "stickers";
 };
 
+/** Who wrote a desk letter, as the card's header draws it (today-cards CardWho; identity-plan §9).
+    The identity switch decides it in TS: off, "No. 7273", the FACE v1 mosaic, no mark, no sign;
+    on, the courier name, the frosted window, the ♀/♂ mark and the star sign. A deleted account is
+    UNSIGNED behind the veil: the mosaic veil off, a flat veil tile on ("tile"). */
+export type KTodayWho = {
+  /** one line, never truncated: "No. 7273", "Sunday Kite", UNSIGNED */
+  name: string;
+  /** the she/he mark after the name (an ink glyph in sub, 6pt after it); null for none */
+  mark: KMark;
+  /** the star sign after the mark (4pt after it, or where it would be); null for none */
+  sign: KSign;
+  /** the face: the mosaic (off, drawn by the old docket beside `postmark`), the frosted window
+      (on, filling the 40 square slot), the veil (off), the tile (on) */
+  face: "mosaic" | "frost" | "veil" | "tile";
+  /** face "mosaic": FACE v1, bit row × 5 + column */
+  mask: number;
+  /** face "frost": the window (src/lib/frost FrostSpec); null otherwise */
+  frost: KFrost | null;
+};
+
 /** One desk letter (today-cards CardVM, without what Swift doesn't draw). */
 export type KTodayCard = {
   id: string;
+  who: KTodayWho;
+  /** "SEP.23": the date alone, under the name */
+  when: string;
+  /** the identity switch off: the docket line as it always read ("SEP.23 · NO.7273"), which Swift
+      draws beside the mosaic in place of the §9 header; "" with the switch on */
   postmark: string;
-  mask: number;
-  ghost: boolean;
   stampId: string;
   stampHex: string;
   stampName: string;
@@ -59,7 +82,7 @@ export type KTodayCard = {
   capsule: KTodayCapsule;
   menu: KMenuAction[];
   a11yLabel: string;
-  /** the reply field's placeholder for this letter: "write back to No. 7273…" */
+  /** the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to Sunday Kite…") */
   replyPlaceholder: string;
 };
 
@@ -193,7 +216,13 @@ export type KTodayViewProps = CommonViewModifierProps &
 type Ev<T> = (e: { nativeEvent: T }) => void;
 
 type NativeCapsule = Required<KTodayCapsule>;
-type NativeCard = Omit<KTodayCard, "capsule" | "menu"> & { capsule: NativeCapsule; menu: { key: string; title: string; icon: string; destructive: boolean }[] };
+/** Who, as the Swift record wants it: "" for no mark or sign, NO_FROST for no window (a @Field can't take null). */
+type NativeWho = { name: string; mark: string; sign: string; face: KTodayWho["face"]; mask: number; frost: KFrost };
+type NativeCard = Omit<KTodayCard, "who" | "capsule" | "menu"> & {
+  who: NativeWho;
+  capsule: NativeCapsule;
+  menu: { key: string; title: string; icon: string; destructive: boolean }[];
+};
 type NativeImageRef = Required<KImageRefProps>;
 type NativeBirds = { idle: NativeImageRef; curious: NativeImageRef; delight: NativeImageRef; sleepy: NativeImageRef; fly: NativeImageRef; flyIsPerch: boolean };
 
@@ -220,6 +249,14 @@ const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 export function nativeTodayCards(cards: readonly KTodayCard[]): NativeCard[] {
   return cards.map((c) => ({
     ...c,
+    who: {
+      name: c.who.name,
+      mark: c.who.mark ?? "",
+      sign: c.who.sign ?? "",
+      face: c.who.face,
+      mask: c.who.mask,
+      frost: nativeFrost(c.who.face === "frost" ? c.who.frost : null),
+    },
     capsule: {
       kind: c.capsule.kind,
       code: c.capsule.code ?? "",

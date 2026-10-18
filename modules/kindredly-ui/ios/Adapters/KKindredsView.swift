@@ -20,10 +20,16 @@ import ExpoUI
  - statusActive: letters are waiting, so the status is ind and a button
  - active: the tab is focused (the orbit drifts only then)
  - chips: [{ key, label, count, glyph: none | kindred | penPal, selected, dot, a11yLabel }]
- - orbit: [{ id, mask, ring, a0, dir, period, turn }]
+ - orbit: [{ id, mask, frost, ring, a0, dir, period, turn }]
  - items: [{ id, type, text, text2, image, row, fold }], type one of wrenLine | notice | line |
    showing | wren | row | fold | emptyLine | hintKindreds | hintPenpals | groupHeader; `row` and
    `fold` are always sent (empty when unused, a record field can't be null).
+ - legendFrost: the sample window the PEN PALS chip mark and the your-turn legend are drawn as.
+ THE IDENTITY SWITCH (identity Phase 1) reaches this file as data only: a pen pal's face kind
+ "frost" with its window (KFrostRecord; "tile" is a closed account's flat veil tile), a row's
+ mark / sign ("" for none) and "was No. 4481", a folded face's and an orbit face's frost, and
+ legendFrost. Every frost is TS's NO_FROST (v 0, `spec` nil) while the switch is off, and then
+ every surface draws exactly what it drew before.
  chips, orbit and items are converted once per rev (useRev in TS).
 
  Commands (KCommandBus): scrollTo { key: "top" | "list", animated }, and reset {}, which TS no
@@ -53,12 +59,16 @@ import ExpoUI
 
 /// A face as TS sends it (faces.ts faceRecord, plus the mosaic's ink).
 struct KKindredsFaceRecord: Record {
-  /// image | mosaic | veil | placeholder | bird (Wren's official bird, set on a soft2 disc)
+  /// image | mosaic | frost | veil | tile | placeholder | bird (Wren's official bird, set on a
+  /// soft2 disc). frost: a pen pal's window (identity switch on); tile: a closed account's flat
+  /// veil tile while the switch is on
   @Field var kind: String = "placeholder"
   @Field var uri: String = ""
   @Field var key: String = ""
   @Field var overscan: Double = 0
   @Field var mask: Int = 0
+  /// kind frost: the window (NO_FROST otherwise)
+  @Field var frost: KFrostRecord = KFrostRecord()
   /// ink | ind (a mosaic for someone whose turn it is to be written to)
   @Field var tint: String = "ink"
 
@@ -66,6 +76,8 @@ struct KKindredsFaceRecord: Record {
     switch kind {
     case "image": return .image(KImageRef(uri: uri, key: key), overscan: CGFloat(overscan))
     case "mosaic": return .mosaic(mask: mask, turn: tint == "ind")
+    case "frost": return frost.spec.map { .frost($0) } ?? .frostVeil
+    case "tile": return .frostVeil
     case "veil": return .veil
     case "bird": return .bird(KImageRef(uri: uri, key: key))
     default: return .placeholder
@@ -88,6 +100,12 @@ struct KKindredsRowRecord: Record {
   @Field var face: KKindredsFaceRecord = KKindredsFaceRecord()
   @Field var faceBadge: Bool = false
   @Field var name: String = ""
+  /// she | he | "" (identity switch on, a pen pal who shows it)
+  @Field var mark: String = ""
+  /// aries … pisces | ""
+  @Field var sign: String = ""
+  /// "was No. 4481" | ""
+  @Field var was: String = ""
   @Field var nameDim: Bool = false
   @Field var progress: String = ""
   @Field var time: String = ""
@@ -106,6 +124,9 @@ struct KKindredsRowRecord: Record {
       face: face.face,
       faceBadge: faceBadge,
       name: name,
+      mark: KLineGlyph.mark(mark),
+      sign: KLineGlyph.sign(sign),
+      was: was,
       nameDim: nameDim,
       progress: progress,
       time: time,
@@ -124,6 +145,8 @@ struct KKindredsRowRecord: Record {
 struct KKindredsFoldFaceRecord: Record {
   @Field var id: String = ""
   @Field var mask: Int = 0
+  /// identity switch on: the pen pal's window (NO_FROST off)
+  @Field var frost: KFrostRecord = KFrostRecord()
   @Field var a11yLabel: String = ""
 }
 
@@ -136,7 +159,7 @@ struct KKindredsFoldRecord: Record {
   func fold(id: String) -> KFoldModel {
     KFoldModel(
       id: id,
-      faces: faces.map { KFoldFace(id: $0.id, mask: $0.mask, a11yLabel: $0.a11yLabel) },
+      faces: faces.map { KFoldFace(id: $0.id, mask: $0.mask, frost: $0.frost.spec, a11yLabel: $0.a11yLabel) },
       more: more,
       label: label,
       a11yLabel: a11yLabel
@@ -191,6 +214,8 @@ struct KKindredsChipRecord: Record {
 struct KKindredsOrbitRecord: Record {
   @Field var id: String = ""
   @Field var mask: Int = 0
+  /// identity switch on: the stranger's window, the same on every ring (NO_FROST off)
+  @Field var frost: KFrostRecord = KFrostRecord()
   @Field var ring: Int = 0
   @Field var a0: Double = 0
   @Field var dir: Double = 1
@@ -198,7 +223,7 @@ struct KKindredsOrbitRecord: Record {
   @Field var turn: Bool = false
 
   var item: KOrbitItem {
-    KOrbitItem(id: id, mask: mask, ring: ring, a0: a0, dir: dir, period: period, turn: turn)
+    KOrbitItem(id: id, mask: mask, frost: frost.spec, ring: ring, a0: a0, dir: dir, period: period, turn: turn)
   }
 }
 
@@ -219,6 +244,8 @@ final class KKindredsViewProps: KScreenProps {
   @Field var chips: [KKindredsChipRecord] = []
   @Field var orbit: [KKindredsOrbitRecord] = []
   @Field var items: [KKindredsItemRecord] = []
+  /// identity switch on: the PEN PALS mark's and the your-turn legend's sample window (NO_FROST off)
+  @Field var legendFrost: KFrostRecord = KFrostRecord()
 
   var onKindredsRowPress = EventDispatcher()
   var onKindredsRowAction = EventDispatcher()
@@ -290,6 +317,7 @@ struct KKindredsView: ExpoSwiftUI.View {
     content.legendCloser = props.strings.legendCloser
     content.legendTurn = props.strings.legendTurn
     content.orbitChipLabel = props.strings.orbitChipLabel
+    content.legendFrost = props.cached("legendFrost") { props.legendFrost.spec }
     content.active = props.active
     content.chips = props.cached("chips") { props.chips.map(\.chip) }
     content.orbit = props.cached("orbit") { props.orbit.map(\.item) }

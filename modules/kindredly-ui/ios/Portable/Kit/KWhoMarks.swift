@@ -1,0 +1,114 @@
+// Portable: this file imports SwiftUI only, so the 1.1.0 pure-Swift app can take it as is.
+
+import SwiftUI
+
+/*
+ THE MARKS AFTER A STRANGER'S NAME (identity Phase 1: identity-plan §4, §9 and its zodiac
+ addendum, with the owner's 2026-10-18 decisions): the she/he mark, then the star sign.
+
+   Sunday Kite ♀ ♊        the mark 6pt after the name, the sign 4pt after the mark (or 6pt after
+                          the name, where the mark would be, when there is no mark)
+
+ - Both are KLineGlyph line drawings (she, he and the twelve signs, drawn for stroke 2 on the 24
+   grid), never the Unicode symbols, at about 0.8 × the name's size (14 beside a 17pt name).
+ - Both are in the theme's sub, the ink of the line under the name, and NEVER tinted: no pink, no
+   blue, no coloured disc. Nothing about them says more than the word the writer chose.
+ - They sit on the name's baseline like a capital: the glyph's ink ends at about 0.84 of its frame,
+   so that point is given to the first-text-baseline guide, and an HStack aligned on
+   .firstTextBaseline lines them up with the name in any font size.
+ - They grow with Dynamic Type as the name beside them does (`size` is the default text size's,
+   scaled like body text), so at the large sizes they never shrink to specks beside the name.
+ - Decorative: VoiceOver hears the mark and the sign in the row's or the card's own label, which
+   TS words ("Sunday Kite, she, Gemini").
+
+ WHO MAY BE MARKED is TS's business, never Swift's: the identity switch, the person's own
+ showMark / showSign, they and unset (no mark), blocks (no answer). A mark or a sign that arrives
+ is drawn; one that doesn't (nil) leaves no gap. Nothing may sort or filter by either.
+
+ KLineGlyph.mark / .sign read TS's strings ("she", "gemini") strictly: anything else is no glyph,
+ so a junk value can never draw some other icon in a mark's place.
+ */
+
+public extension KLineGlyph {
+  /// The she/he mark for TS's string ("she" | "he"); nil for anything else, including "".
+  static func mark(_ raw: String) -> KLineGlyph? {
+    switch raw {
+    case "she": return .she
+    case "he": return .he
+    default: return nil
+    }
+  }
+
+  /// The star sign's glyph for TS's Zodiac string ("aries" … "pisces"); nil for anything else.
+  static func sign(_ raw: String) -> KLineGlyph? {
+    switch raw {
+    case "aries": return .aries
+    case "taurus": return .taurus
+    case "gemini": return .gemini
+    case "cancer": return .cancer
+    case "leo": return .leo
+    case "virgo": return .virgo
+    case "libra": return .libra
+    case "scorpio": return .scorpio
+    case "sagittarius": return .sagittarius
+    case "capricorn": return .capricorn
+    case "aquarius": return .aquarius
+    case "pisces": return .pisces
+    default: return nil
+    }
+  }
+}
+
+/// The mark and the sign after a name: put it in an HStack(alignment: .firstTextBaseline, spacing: 0)
+/// right after the name's Text. Draws nothing (and takes no room) when both are nil.
+public struct KWhoMarks: View {
+  /// the gap after the name, and between the two (identity-plan §4, the addendum)
+  public static let afterName: CGFloat = 6
+  public static let between: CGFloat = 4
+  /// where the glyph's ink sits on its frame: its bottom on the name's baseline
+  static let baseline: CGFloat = 0.84
+
+  private let mark: KLineGlyph?
+  private let sign: KLineGlyph?
+  private let size: CGFloat
+  private let color: Color
+
+  /// Dynamic Type's factor for body text (1 at the default size), so the glyphs grow with the name
+  @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+
+  /// - Parameters:
+  ///   - size: each glyph's frame at the default text size (14 beside a 17pt name: 0.8 × the name,
+  ///     rounded); it scales with Dynamic Type
+  ///   - color: the theme's sub
+  public init(mark: KLineGlyph?, sign: KLineGlyph?, size: CGFloat, color: Color) {
+    self.mark = mark
+    self.sign = sign
+    self.size = size
+    self.color = color
+  }
+
+  /// True when there is something to draw.
+  public var isEmpty: Bool { mark == nil && sign == nil }
+
+  public var body: some View {
+    if !isEmpty {
+      HStack(spacing: 0) {
+        if let mark {
+          glyph(mark).padding(.leading, Self.afterName)
+        }
+        if let sign {
+          glyph(sign).padding(.leading, mark == nil ? Self.afterName : Self.between)
+        }
+      }
+      .fixedSize()
+      .alignmentGuide(.firstTextBaseline) { $0.height * Self.baseline }
+      .alignmentGuide(.lastTextBaseline) { $0.height * Self.baseline }
+      .accessibilityHidden(true)
+    }
+  }
+
+  private func glyph(_ g: KLineGlyph) -> some View {
+    // drawn for stroke 2 on the 24 grid (KLineGlyph's identity cases)
+    KLineIcon(g, size: (size * scale).rounded(), lineWidth: 2, color: color)
+  }
+}

@@ -44,6 +44,9 @@ import { localeTag } from "../../lib/format";
 import { playbackPosition } from "../../lib/voice-playback";
 import type { PoolLetter } from "../../lib/db";
 import { MosaicId } from "../../components/MosaicId";
+import { WhoFaceView } from "../../components/Frost";
+import { WhoName } from "../../components/WhoName";
+import { useIdentityOn } from "../../lib/identity";
 import { Stamp } from "../../components/Stamp";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AudioCardView } from "../../components/AudioCard";
@@ -1067,6 +1070,29 @@ function StatusCard({ kind, strings }: { kind: "loading" | "offline"; strings: T
    stamp is never framed twice. No postmark (the owner took it off). */
 const CARD_STAMP = STAMP_LADDER.todayCard;
 
+/* WHO WROTE IT (identity Phase 1; identity-plan §9 with the owner's
+   2026-10-18 changes; KLetterCard's docket in SwiftUI). The card's `who`
+   (lib/stranger-who, through today-cards) decides everything; this only
+   lays it out, and only once the identity switch is on:
+
+     ▢  Sunday Kite ♀ ♊                 [stamp]  ···
+        SEP.23
+
+   · the 40pt square face slot (corners at 25%): their frosted window
+     (components/Frost), or for a deleted account the flat veil tile;
+   · the courier name in system 600 17 on one line (the 165pt render gate
+     means it fits; on the narrowest phones the glyphs wrap to a second
+     line rather than the name being cut), the ♀/♂ mark 6pt after it and
+     the star sign 4pt after that, both ink glyphs in sub
+     (components/WhoName); under it the date alone in mono 500 11 in sub;
+   · the stamp at the ladder's todayCard (40×48), no postmark; the ⋯ as
+     three plain dots in sub on a 44 target, no circle.
+   VoiceOver reads the card as one element, so the a11yLabel already opens
+   "Sunday Kite, she, Gemini. SEP.23." and the row's parts are not read.
+   Switch off, the docket below it is exactly today's: the mosaic and the
+   postmark "SEP.23 · NO.7273". */
+const WHO_FACE = 40;
+
 function CardFace({
   card,
   letter,
@@ -1095,6 +1121,8 @@ function CardFace({
   const italic = useLetterFamily(true);
   const s = model.view.strings;
   const win = useWindowDimensions();
+  // the identity switch (the table's row, or the dev preview): the header in its new shape
+  const identity = useIdentityOn();
   // the voice action says what a press does now: pause while this letter plays
   const playing = model.voice.state?.key === card.id && !!model.voice.state?.playing;
   const [frameH, setFrameH] = useState(0);
@@ -1127,10 +1155,24 @@ function CardFace({
       >
         {/* the docket: their face, when and who on the left, the stamp they pasted, the ⋯ */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <MosaicId seed={letter?.author ?? null} cell={4.8} gap={1} />
-          <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
-            {card.postmark}
-          </Text>
+          {identity ? (
+            <>
+              <WhoFaceView face={card.who.face} size={WHO_FACE} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <WhoName name={card.who.name} marks={card.who} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} />
+                <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 0.88, color: tk.sub }}>
+                  {card.when}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <MosaicId seed={letter?.author ?? null} cell={4.8} gap={1} />
+              <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
+                {card.postmark}
+              </Text>
+            </>
+          )}
           <Stamp id={card.stampId} width={CARD_STAMP.w} delivered letterId={card.id} />
           {/* THE POOL IS WHERE REPORT MATTERS MOST: always reachable */}
           {card.menu.length > 0 && (

@@ -1,0 +1,1394 @@
+{
+ "v": 1,
+ "about": "Courier names (kindredly-ios src/lib/stranger-name.ts + default-name.ts, web app/engine/names-core.js). single: defaultName(uid, lang, salt). lists: strangerNamer(threads, lang) names and salts for each thread in input order (UNSIGNED for a missing side). desk: a stranger not in the list, named as the newest pen pal. Made from the lists file whose sha256 is listsSha256. Written once by scripts/gen-identity-vectors.mjs.",
+ "listsSha256": "537a70f2c1f2ce177c529833bbfbf36648d023e433fffaa5481cd81d69149224",
+ "single": [
+  {
+   "uid": "00000000-0000-4000-8000-000000000000",
+   "lang": "en",
+   "salt": 0,
+   "name": "Rainy Mixtape"
+  },
+  {
+   "uid": "00f787df-f18f-4af0-a6ed-6323028f6d2e",
+   "lang": "es",
+   "salt": 0,
+   "name": "Helecho del andén"
+  },
+  {
+   "uid": "0f937cfe-619d-4bfa-a00e-da8e769f9fee",
+   "lang": "pt",
+   "salt": 0,
+   "name": "Ganzá da laje"
+  },
+  {
+   "uid": "893cbc2f-c993-4681-a4ed-dce081ad567d",
+   "lang": "id",
+   "salt": 0,
+   "name": "Mug Warung"
+  },
+  {
+   "uid": "d2bcd28b-555f-432e-a4bc-c4661d67fe95",
+   "lang": "fr",
+   "salt": 0,
+   "name": "Pétale d’ondée"
+  },
+  {
+   "uid": "32e52fe4-7425-4f80-a0fa-a4cee59a77ce",
+   "lang": "de",
+   "salt": 0,
+   "name": "Inselprisma"
+  },
+  {
+   "uid": "ef25fe31-4c9d-481f-ae20-135bc49212ff",
+   "lang": "it",
+   "salt": 0,
+   "name": "Cornice di zefiro"
+  },
+  {
+   "uid": "c02cc972-7956-4fea-aeee-ebb3df549b7b",
+   "lang": "ja",
+   "salt": 0,
+   "name": "秋雨の書見台"
+  },
+  {
+   "uid": "6ae5c202-8618-4506-a20d-59a5f7a00d61",
+   "lang": "ko",
+   "salt": 0,
+   "name": "처마 클로버"
+  },
+  {
+   "uid": "95c26ee8-dbff-437c-a366-a55eaa0e73f5",
+   "lang": "en",
+   "salt": 1,
+   "name": "Sunday Spool"
+  },
+  {
+   "uid": "e79a05d9-430f-428b-aeb5-b9a418e76da4",
+   "lang": "es",
+   "salt": 1,
+   "name": "Gerbera de visita"
+  },
+  {
+   "uid": "181765a4-60d0-4f3a-a4dc-bc1d14c7ce3a",
+   "lang": "pt",
+   "salt": 1,
+   "name": "Cantil de verão"
+  },
+  {
+   "uid": "7492f5ca-6f5f-49f3-aeb0-21e78b06c063",
+   "lang": "id",
+   "salt": 1,
+   "name": "Weker Taman"
+  },
+  {
+   "uid": "8ae8522a-9507-4a1a-ad0f-6cc2232b3c4d",
+   "lang": "fr",
+   "salt": 1,
+   "name": "Molette d’ondée"
+  },
+  {
+   "uid": "e31d46f9-338a-486a-a9e9-fa1fc80c60d7",
+   "lang": "de",
+   "salt": 1,
+   "name": "Sternenlineal"
+  },
+  {
+   "uid": "72809cd6-4257-468a-a575-407005255a44",
+   "lang": "it",
+   "salt": 1,
+   "name": "Cerino di calura"
+  },
+  {
+   "uid": "25e5cba7-0ebd-4023-aa0e-4d0be4fa0303",
+   "lang": "ja",
+   "salt": 1,
+   "name": "立春のタイル"
+  },
+  {
+   "uid": "ece40a52-d861-4594-abd4-ff878d10ca94",
+   "lang": "ko",
+   "salt": 1,
+   "name": "숲길 클립"
+  },
+  {
+   "uid": "2848d62c-6324-41b5-a8f3-bf8d2a074375",
+   "lang": "en",
+   "salt": 2,
+   "name": "Balcony Album"
+  },
+  {
+   "uid": "25b271af-1b73-4b79-af34-f339d50ffa92",
+   "lang": "es",
+   "salt": 2,
+   "name": "Ocarina de asueto"
+  },
+  {
+   "uid": "436c1c70-dcad-4061-a23a-5735ee38b4a1",
+   "lang": "pt",
+   "salt": 2,
+   "name": "Moeda do teatro"
+  },
+  {
+   "uid": "d37f56e7-0dd6-4d94-a90c-3b15ee565d32",
+   "lang": "id",
+   "salt": 2,
+   "name": "Kresek Kios"
+  },
+  {
+   "uid": "8a4cec01-ee54-44fa-ae9f-12426b03bb66",
+   "lang": "fr",
+   "salt": 2,
+   "name": "Fanion de frimas"
+  },
+  {
+   "uid": "da24c18c-00b9-4f88-a53c-97b4831bfd2b",
+   "lang": "de",
+   "salt": 2,
+   "name": "Wochenkanne"
+  },
+  {
+   "uid": "dc424eca-26f3-4938-aeb3-8228f61101b9",
+   "lang": "it",
+   "salt": 2,
+   "name": "Rubrica di casa"
+  },
+  {
+   "uid": "5784a3b6-bdb2-46c3-af7b-ea2aedcd45f1",
+   "lang": "ja",
+   "salt": 2,
+   "name": "薄暮の風景画"
+  },
+  {
+   "uid": "9b0c4b94-5da6-464a-a359-9ac3601e2edb",
+   "lang": "ko",
+   "salt": 2,
+   "name": "초저녁 키링"
+  },
+  {
+   "uid": "51c74b98-ae36-40b1-a8bd-4076465a9f15",
+   "lang": "en",
+   "salt": 3,
+   "name": "Cinema Gazette"
+  },
+  {
+   "uid": "d7f639e6-0994-4a4b-ab4a-7de9df92856c",
+   "lang": "es",
+   "salt": 3,
+   "name": "Doblón del balcón"
+  },
+  {
+   "uid": "10fa28fe-e95d-47ca-ae17-ffc01d2a70c1",
+   "lang": "pt",
+   "salt": 3,
+   "name": "Aldrava do térreo"
+  },
+  {
+   "uid": "408fe359-2077-428b-a02e-182355612366",
+   "lang": "id",
+   "salt": 3,
+   "name": "Jangkar Panen"
+  },
+  {
+   "uid": "b534cebb-b094-4b01-ae11-f3af7183ae7c",
+   "lang": "fr",
+   "salt": 3,
+   "name": "Radio du phare"
+  },
+  {
+   "uid": "2408bd5e-47cf-4952-a967-94a86dfcbbe3",
+   "lang": "de",
+   "salt": 3,
+   "name": "Laubenplatine"
+  },
+  {
+   "uid": "8830597f-e0e0-47be-aa2c-2fd99357abdc",
+   "lang": "it",
+   "salt": 3,
+   "name": "Mixtape di marzo"
+  },
+  {
+   "uid": "78f7b9e4-76a4-4cd7-a378-417b997778f9",
+   "lang": "ja",
+   "salt": 3,
+   "name": "月曜のレシート"
+  },
+  {
+   "uid": "e55ac6fe-0d2e-41de-affb-a451f064d1fa",
+   "lang": "ko",
+   "salt": 3,
+   "name": "골목 스탠드"
+  },
+  {
+   "uid": "ec092357-c417-4811-a5b3-af034b160a5c",
+   "lang": "en",
+   "salt": 0,
+   "name": "Wharf Tulip"
+  },
+  {
+   "uid": "6fcc87c6-19b3-486d-a507-e64ed7ddaa18",
+   "lang": "es",
+   "salt": 0,
+   "name": "Orquídea del taxi"
+  },
+  {
+   "uid": "87a9d65d-1127-406d-ad1e-00a7690c5d55",
+   "lang": "pt",
+   "salt": 0,
+   "name": "Mola de agosto"
+  },
+  {
+   "uid": "c38f2207-de35-412b-a6d7-277fdbc25cf9",
+   "lang": "id",
+   "salt": 0,
+   "name": "Kabel Salju"
+  },
+  {
+   "uid": "ddefbf23-6b72-46f6-a911-411178e5afb0",
+   "lang": "fr",
+   "salt": 0,
+   "name": "Phono d’orage"
+  },
+  {
+   "uid": "15c48903-1871-43ba-aafa-2a5a3b7bcb98",
+   "lang": "de",
+   "salt": 0,
+   "name": "Lichtmagnet"
+  },
+  {
+   "uid": "e5b3bb31-c86f-4525-a4bc-dd765f96c616",
+   "lang": "it",
+   "salt": 0,
+   "name": "Bussola di mattino"
+  },
+  {
+   "uid": "fc4d3afa-3958-4e12-a8b8-cb8eca184b75",
+   "lang": "ja",
+   "salt": 0,
+   "name": "雪空の星図"
+  },
+  {
+   "uid": "22a06a2f-d356-4e4a-a989-f93be6e83932",
+   "lang": "ko",
+   "salt": 0,
+   "name": "사진관 팩스"
+  },
+  {
+   "uid": "c6724b35-6d81-417b-aabd-5736d09429a6",
+   "lang": "en",
+   "salt": 1,
+   "name": "Terrace Sampler"
+  },
+  {
+   "uid": "9cb38059-7ba2-417a-a399-407cb4b20bb9",
+   "lang": "es",
+   "salt": 1,
+   "name": "Arpa de nube"
+  },
+  {
+   "uid": "ccef05a9-a71c-4c0e-a1bb-9773541d43e1",
+   "lang": "pt",
+   "salt": 1,
+   "name": "Pôster de garoa"
+  },
+  {
+   "uid": "5c0010f1-9ddd-41a9-a668-5c76b36ac96d",
+   "lang": "id",
+   "salt": 1,
+   "name": "Sukulen Kedai"
+  },
+  {
+   "uid": "a1889ab9-e923-4da2-ab7d-39af76783b63",
+   "lang": "fr",
+   "salt": 1,
+   "name": "Pivoine du jardin"
+  },
+  {
+   "uid": "b0aae595-6f1e-4462-a3b2-abed9b3d09cc",
+   "lang": "de",
+   "salt": 1,
+   "name": "Julispindel"
+  },
+  {
+   "uid": "cab1b239-622b-4dbc-a6dc-87aa3f16c95b",
+   "lang": "it",
+   "salt": 1,
+   "name": "Matita di baia"
+  },
+  {
+   "uid": "68d82348-fa93-4024-ae19-a1e36cbc42e5",
+   "lang": "ja",
+   "salt": 1,
+   "name": "雨音の鉄瓶"
+  },
+  {
+   "uid": "cc01b490-a8ea-4200-a44a-c327999232ad",
+   "lang": "ko",
+   "salt": 1,
+   "name": "책방 사진첩"
+  },
+  {
+   "uid": "664c78df-c3aa-4716-a4ec-b0872c76f431",
+   "lang": "en",
+   "salt": 0,
+   "name": "Sunday Receipt",
+   "blockedRaw": [
+    26,
+    87
+   ]
+  },
+  {
+   "uid": "ced4db33-e3e0-438c-a5ad-74b2ddeeceee",
+   "lang": "es",
+   "salt": 0,
+   "name": "Arandela de asueto",
+   "blockedRaw": [
+    35,
+    83
+   ]
+  },
+  {
+   "uid": "6c319642-81c6-4193-ae1a-00e1ed969735",
+   "lang": "pt",
+   "salt": 0,
+   "name": "Caneca da manhã",
+   "blockedRaw": [
+    21,
+    5
+   ]
+  },
+  {
+   "uid": "f0d09c9d-8b2a-419d-a434-969e2573143d",
+   "lang": "id",
+   "salt": 0,
+   "name": "Tustel Warung",
+   "blockedRaw": [
+    41,
+    60
+   ]
+  },
+  {
+   "uid": "a3eeb6b5-d23d-4848-ac12-48c2c2f00305",
+   "lang": "fr",
+   "salt": 0,
+   "name": "Soucoupe d’été",
+   "blockedRaw": [
+    6,
+    83
+   ]
+  },
+  {
+   "uid": "3579322f-74a7-4a3a-ae20-6421434ac54c",
+   "lang": "de",
+   "salt": 0,
+   "name": "Schneemetronom",
+   "blockedRaw": [
+    14,
+    95
+   ]
+  },
+  {
+   "uid": "dba2e72a-6fbb-420c-a65f-37983c443204",
+   "lang": "it",
+   "salt": 0,
+   "name": "Ciottolo d’albergo",
+   "blockedRaw": [
+    60,
+    70
+   ]
+  },
+  {
+   "uid": "48e7b7d3-7dac-417a-ac44-9cfd4fd195e9",
+   "lang": "ja",
+   "salt": 0,
+   "name": "早春の扇子",
+   "blockedRaw": [
+    27,
+    31
+   ]
+  },
+  {
+   "uid": "cc0b2d2d-9c75-434f-a892-a2b682182c42",
+   "lang": "ko",
+   "salt": 0,
+   "name": "꽃집 책갈피",
+   "blockedRaw": [
+    44,
+    2
+   ]
+  },
+  {
+   "uid": "00ffc79d-f98f-4869-a0d4-80932a955dfe",
+   "lang": "en",
+   "salt": 1,
+   "name": "Balcony Ladle"
+  },
+  {
+   "uid": "e7a6ffa7-3212-4f72-a526-93b96a556081",
+   "lang": "fr",
+   "salt": 2,
+   "name": "Kalimba d’octobre"
+  },
+  {
+   "uid": "9406ef26-75a3-46b3-ac4e-33d622120517",
+   "lang": "ko",
+   "salt": 3,
+   "name": "봄 인화지"
+  },
+  {
+   "uid": "c8c61dbe-654a-4f41-ac13-5c9039ed2e1b",
+   "lang": "id",
+   "salt": 4,
+   "name": "Teropong Panen"
+  },
+  {
+   "uid": "467e9b03-36c8-4ffe-a94e-f3b843ba8220",
+   "lang": "ja",
+   "salt": 5,
+   "name": "初雪の天球儀"
+  },
+  {
+   "uid": "0774a9f2-db1e-4875-a6b2-0513f7af0723",
+   "lang": "pt",
+   "salt": 6,
+   "name": "Papiro do coreto"
+  },
+  {
+   "uid": "08025e50-3ac7-4b7c-a01c-c7dbdb002bcb",
+   "lang": "it",
+   "salt": 7,
+   "name": "Ditale di calura"
+  },
+  {
+   "uid": "8c819717-7206-444c-a1e2-f5fe2bfc20b7",
+   "lang": "es",
+   "salt": 8,
+   "name": "Quinqué de nube"
+  },
+  {
+   "uid": "de352ca4-0f93-475c-a8d1-eb3a53428b1a",
+   "lang": "de",
+   "salt": 9,
+   "name": "Winterkleinod"
+  },
+  {
+   "uid": "55ac252e-f038-4138-a7f4-6e2750760113",
+   "lang": "en",
+   "salt": 10,
+   "name": "Porch Almanac"
+  },
+  {
+   "uid": "282b0e69-7527-45d9-a0f9-5974cee1d5b9",
+   "lang": "fr",
+   "salt": 11,
+   "name": "Bibelot d’octobre"
+  },
+  {
+   "uid": "29cb6e48-c44b-4203-a7c6-4052c9e134b2",
+   "lang": "ko",
+   "salt": 12,
+   "name": "한낮 디퓨저"
+  },
+  {
+   "uid": "d55697f6-f2a2-4bd7-ad1b-7ec69b7618a9",
+   "lang": "id",
+   "salt": 13,
+   "name": "Saklar Pasar"
+  },
+  {
+   "uid": "dd282b28-d1e5-4c2b-a36e-0764a94fdbed",
+   "lang": "ja",
+   "salt": 14,
+   "name": "春先の切符"
+  },
+  {
+   "uid": "32c61d0b-dd87-451c-ad5a-174e56ca6f78",
+   "lang": "pt",
+   "salt": 15,
+   "name": "Bonsai do táxi"
+  },
+  {
+   "uid": "6ff16bff-135b-4f17-aa1b-d6466aba7935",
+   "lang": "it",
+   "salt": 1,
+   "name": "Matita di giorno"
+  },
+  {
+   "uid": "e267de1f-2d22-469b-a05c-78b85baf0a7d",
+   "lang": "es",
+   "salt": 2,
+   "name": "Ópalo del tren"
+  },
+  {
+   "uid": "d106eec1-9707-4f9e-a1ce-30f8380dc8c9",
+   "lang": "de",
+   "salt": 3,
+   "name": "Abendgamepad"
+  }
+ ],
+ "lists": [
+  {
+   "lang": "en",
+   "threads": [
+    {
+     "id": "th-000",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0110c802-1a00-44f8-a998-8cc982c82e8b"
+    },
+    {
+     "id": "th-919",
+     "createdAt": "2026-09-08T10:00:01.000Z",
+     "other": "a4768ead-c1c1-4a57-a96e-84d07d7ce488"
+    },
+    {
+     "id": "th-838",
+     "createdAt": "2026-09-15T10:00:02.000Z",
+     "other": "e30ba54d-63eb-4194-aaeb-14e827c6120d"
+    },
+    {
+     "id": "th-757",
+     "createdAt": "2026-09-22T10:00:03.000Z",
+     "other": "a95d4368-2738-4304-a240-b89e5a140840"
+    },
+    {
+     "id": "th-676",
+     "createdAt": null,
+     "other": "612dfb71-1635-48e1-af73-ec29517e06d8"
+    },
+    {
+     "id": "th-595",
+     "createdAt": "2026-09-06T10:00:05.000Z",
+     "other": "3d01b8ec-499b-40c5-ac7f-8b381f549289"
+    },
+    {
+     "id": "th-514",
+     "createdAt": "2026-09-13T10:00:06.000Z",
+     "other": "06538c10-8de7-4fbf-ac84-9b03f4d556bd"
+    },
+    {
+     "id": "th-433",
+     "createdAt": "2026-09-20T10:00:07.000Z",
+     "other": "a94cb6b4-ccdf-4ae9-ad35-503ac2ce0403"
+    },
+    {
+     "id": "th-352",
+     "createdAt": "2026-09-27T10:00:08.000Z",
+     "other": "9b20d76f-b863-4de6-ab2e-d2d44b272da0"
+    },
+    {
+     "id": "th-271",
+     "createdAt": "2026-09-04T10:00:00.000Z",
+     "other": "f6f6e19e-7263-4e68-acfb-3855bfa97bbb"
+    },
+    {
+     "id": "th-190",
+     "createdAt": "2026-09-04T10:00:00.000Z",
+     "other": "2b4e09d1-a4ff-4c51-a410-debd3c945cdf"
+    },
+    {
+     "id": "th-109",
+     "createdAt": "2026-09-18T10:00:11.000Z",
+     "other": "36a5774a-91c3-490c-ae4c-b6aac8031af1"
+    },
+    {
+     "id": "th-028",
+     "createdAt": "2026-09-25T10:00:12.000Z",
+     "other": null
+    },
+    {
+     "id": "th-947",
+     "createdAt": "2026-09-02T10:00:13.000Z",
+     "other": "f42cbddf-117a-4d9a-a849-bc3e871bf767"
+    },
+    {
+     "id": "th-866",
+     "createdAt": "2026-09-09T10:00:14.000Z",
+     "other": "1b3628fb-1b0d-4a9c-a082-88a5494e101f"
+    },
+    {
+     "id": "th-785",
+     "createdAt": "2026-09-16T10:00:15.000Z",
+     "other": "44d59bef-02a8-44a2-a5e1-d40ce4a65b98"
+    },
+    {
+     "id": "th-704",
+     "createdAt": "2026-09-23T10:00:16.000Z",
+     "other": "5d83463c-9ddf-4f2a-a924-262b524ec034"
+    },
+    {
+     "id": "th-623",
+     "createdAt": "2026-09-30T10:00:17.000Z",
+     "other": "afb8ffbc-b9ab-4a5a-a3a4-bfb27bc3e986"
+    },
+    {
+     "id": "th-542",
+     "createdAt": "2026-09-07T10:00:18.000Z",
+     "other": "463298b3-b1ba-4082-a8e5-f4cb796fe73c"
+    },
+    {
+     "id": "th-461",
+     "createdAt": "2026-09-14T10:00:19.000Z",
+     "other": "9421ee93-9788-428d-a4f8-2e13df15ebdb"
+    },
+    {
+     "id": "th-380",
+     "createdAt": "2026-09-21T10:00:20.000Z",
+     "other": "4c9267a4-0cba-48c8-ab99-0ab1eb06cdf7"
+    },
+    {
+     "id": "th-299",
+     "createdAt": "2026-09-28T10:00:21.000Z",
+     "other": "220dd9e7-bf1f-4cdc-aabb-986609ac7327"
+    },
+    {
+     "id": "th-218",
+     "createdAt": "2026-09-05T10:00:22.000Z",
+     "other": "e1ee61ec-97ad-49e6-ae2c-71994f1c5726"
+    },
+    {
+     "id": "th-137",
+     "createdAt": "2026-09-12T10:00:23.000Z",
+     "other": "7f1a78a2-31ca-49e1-ad80-3e4e8a2d0e60"
+    },
+    {
+     "id": "th-056",
+     "createdAt": "2026-09-19T10:00:24.000Z",
+     "other": "7dc9c352-f1d7-47e9-ad92-4f54110a63d3"
+    },
+    {
+     "id": "th-975",
+     "createdAt": "2026-09-26T10:00:25.000Z",
+     "other": "675c4402-1452-4e66-a8e1-53251169d001"
+    },
+    {
+     "id": "th-894",
+     "createdAt": "2026-09-03T10:00:26.000Z",
+     "other": "2f9dca29-4dcc-442f-adb9-4e4b512aa9ae"
+    },
+    {
+     "id": "th-813",
+     "createdAt": "2026-09-10T10:00:27.000Z",
+     "other": "d287be41-8cbe-499e-a460-dd983baa874f"
+    },
+    {
+     "id": "th-732",
+     "createdAt": "2026-09-17T10:00:28.000Z",
+     "other": "a26a37ee-7667-498b-ae70-3334ffef35e0"
+    },
+    {
+     "id": "th-651",
+     "createdAt": "2026-09-24T10:00:29.000Z",
+     "other": "655db735-a4d4-4259-a7f3-a69ea16c24d0"
+    }
+   ],
+   "names": [
+    "Midweek Jar",
+    "Attic Curio",
+    "Wintry Laptop",
+    "Cove Lamp",
+    "Arcade Inkwell",
+    "Rainy Peony",
+    "Wharf Bead",
+    "Tuesday Earbud",
+    "Seaside Zither",
+    "Jetty Album",
+    "Garage Pennant",
+    "January Pulley",
+    "UNSIGNED",
+    "Studio Bead",
+    "Meadow Radio",
+    "Orchard Candle",
+    "Sunday Handset",
+    "Matinee Barcode",
+    "Leafy Frame",
+    "Garden Pennant",
+    "Pantry Spindle",
+    "Veranda Beacon",
+    "Leafy Gamepad",
+    "Orchard Sampler",
+    "Weekday Trinket",
+    "Tuesday Keycap",
+    "Wharf Trinket",
+    "Market Spatula",
+    "Orchard Eraser",
+    "Hallway Docket"
+   ],
+   "salts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    null,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "lang": "ja",
+   "threads": [
+    {
+     "id": "th-000",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0110c802-1a00-44f8-a998-8cc982c82e8b"
+    },
+    {
+     "id": "th-919",
+     "createdAt": "2026-09-08T10:00:01.000Z",
+     "other": "a4768ead-c1c1-4a57-a96e-84d07d7ce488"
+    },
+    {
+     "id": "th-838",
+     "createdAt": "2026-09-15T10:00:02.000Z",
+     "other": "e30ba54d-63eb-4194-aaeb-14e827c6120d"
+    },
+    {
+     "id": "th-757",
+     "createdAt": "2026-09-22T10:00:03.000Z",
+     "other": "a95d4368-2738-4304-a240-b89e5a140840"
+    },
+    {
+     "id": "th-676",
+     "createdAt": null,
+     "other": "612dfb71-1635-48e1-af73-ec29517e06d8"
+    },
+    {
+     "id": "th-595",
+     "createdAt": "2026-09-06T10:00:05.000Z",
+     "other": "3d01b8ec-499b-40c5-ac7f-8b381f549289"
+    },
+    {
+     "id": "th-514",
+     "createdAt": "2026-09-13T10:00:06.000Z",
+     "other": "06538c10-8de7-4fbf-ac84-9b03f4d556bd"
+    },
+    {
+     "id": "th-433",
+     "createdAt": "2026-09-20T10:00:07.000Z",
+     "other": "a94cb6b4-ccdf-4ae9-ad35-503ac2ce0403"
+    },
+    {
+     "id": "th-352",
+     "createdAt": "2026-09-27T10:00:08.000Z",
+     "other": "9b20d76f-b863-4de6-ab2e-d2d44b272da0"
+    },
+    {
+     "id": "th-271",
+     "createdAt": "2026-09-04T10:00:00.000Z",
+     "other": "f6f6e19e-7263-4e68-acfb-3855bfa97bbb"
+    },
+    {
+     "id": "th-190",
+     "createdAt": "2026-09-04T10:00:00.000Z",
+     "other": "2b4e09d1-a4ff-4c51-a410-debd3c945cdf"
+    },
+    {
+     "id": "th-109",
+     "createdAt": "2026-09-18T10:00:11.000Z",
+     "other": "36a5774a-91c3-490c-ae4c-b6aac8031af1"
+    },
+    {
+     "id": "th-028",
+     "createdAt": "2026-09-25T10:00:12.000Z",
+     "other": null
+    },
+    {
+     "id": "th-947",
+     "createdAt": "2026-09-02T10:00:13.000Z",
+     "other": "f42cbddf-117a-4d9a-a849-bc3e871bf767"
+    },
+    {
+     "id": "th-866",
+     "createdAt": "2026-09-09T10:00:14.000Z",
+     "other": "1b3628fb-1b0d-4a9c-a082-88a5494e101f"
+    },
+    {
+     "id": "th-785",
+     "createdAt": "2026-09-16T10:00:15.000Z",
+     "other": "44d59bef-02a8-44a2-a5e1-d40ce4a65b98"
+    },
+    {
+     "id": "th-704",
+     "createdAt": "2026-09-23T10:00:16.000Z",
+     "other": "5d83463c-9ddf-4f2a-a924-262b524ec034"
+    },
+    {
+     "id": "th-623",
+     "createdAt": "2026-09-30T10:00:17.000Z",
+     "other": "afb8ffbc-b9ab-4a5a-a3a4-bfb27bc3e986"
+    },
+    {
+     "id": "th-542",
+     "createdAt": "2026-09-07T10:00:18.000Z",
+     "other": "463298b3-b1ba-4082-a8e5-f4cb796fe73c"
+    },
+    {
+     "id": "th-461",
+     "createdAt": "2026-09-14T10:00:19.000Z",
+     "other": "9421ee93-9788-428d-a4f8-2e13df15ebdb"
+    },
+    {
+     "id": "th-380",
+     "createdAt": "2026-09-21T10:00:20.000Z",
+     "other": "4c9267a4-0cba-48c8-ab99-0ab1eb06cdf7"
+    },
+    {
+     "id": "th-299",
+     "createdAt": "2026-09-28T10:00:21.000Z",
+     "other": "220dd9e7-bf1f-4cdc-aabb-986609ac7327"
+    },
+    {
+     "id": "th-218",
+     "createdAt": "2026-09-05T10:00:22.000Z",
+     "other": "e1ee61ec-97ad-49e6-ae2c-71994f1c5726"
+    },
+    {
+     "id": "th-137",
+     "createdAt": "2026-09-12T10:00:23.000Z",
+     "other": "7f1a78a2-31ca-49e1-ad80-3e4e8a2d0e60"
+    },
+    {
+     "id": "th-056",
+     "createdAt": "2026-09-19T10:00:24.000Z",
+     "other": "7dc9c352-f1d7-47e9-ad92-4f54110a63d3"
+    },
+    {
+     "id": "th-975",
+     "createdAt": "2026-09-26T10:00:25.000Z",
+     "other": "675c4402-1452-4e66-a8e1-53251169d001"
+    },
+    {
+     "id": "th-894",
+     "createdAt": "2026-09-03T10:00:26.000Z",
+     "other": "2f9dca29-4dcc-442f-adb9-4e4b512aa9ae"
+    },
+    {
+     "id": "th-813",
+     "createdAt": "2026-09-10T10:00:27.000Z",
+     "other": "d287be41-8cbe-499e-a460-dd983baa874f"
+    },
+    {
+     "id": "th-732",
+     "createdAt": "2026-09-17T10:00:28.000Z",
+     "other": "a26a37ee-7667-498b-ae70-3334ffef35e0"
+    },
+    {
+     "id": "th-651",
+     "createdAt": "2026-09-24T10:00:29.000Z",
+     "other": "655db735-a4d4-4259-a7f3-a69ea16c24d0"
+    }
+   ],
+   "names": [
+    "早春の鉱石",
+    "冬至のポトス",
+    "終電の方眼紙",
+    "満月の望遠鏡",
+    "夕凪の置時計",
+    "雨音の磁石",
+    "薄暮の図録",
+    "春のリモコン",
+    "月夜のルーター",
+    "雪空のイーゼル",
+    "秋雨の箸置き",
+    "残暑の湯たんぽ",
+    "UNSIGNED",
+    "初雪の図録",
+    "新月の切り絵",
+    "満月の地球儀",
+    "冬のパンフ",
+    "休日の定期券",
+    "夜中のじょうろ",
+    "秋空の箸置き",
+    "雨の水彩画",
+    "立春の和綴じ本",
+    "夜中の時刻表",
+    "満月の茶筒",
+    "晩春の写真立て",
+    "春の保証書",
+    "薄暮の写真立て",
+    "夏至のカセット",
+    "満月の古地図",
+    "小雨の巻尺"
+   ],
+   "salts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    null,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "lang": "de",
+   "threads": [
+    {
+     "id": "th-000",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0110c802-1a00-44f8-a998-8cc982c82e8b"
+    },
+    {
+     "id": "th-919",
+     "createdAt": "2026-09-08T10:00:01.000Z",
+     "other": "a4768ead-c1c1-4a57-a96e-84d07d7ce488"
+    },
+    {
+     "id": "th-838",
+     "createdAt": "2026-09-15T10:00:02.000Z",
+     "other": "e30ba54d-63eb-4194-aaeb-14e827c6120d"
+    },
+    {
+     "id": "th-757",
+     "createdAt": "2026-09-22T10:00:03.000Z",
+     "other": "a95d4368-2738-4304-a240-b89e5a140840"
+    },
+    {
+     "id": "th-676",
+     "createdAt": null,
+     "other": "612dfb71-1635-48e1-af73-ec29517e06d8"
+    },
+    {
+     "id": "th-595",
+     "createdAt": "2026-09-06T10:00:05.000Z",
+     "other": "3d01b8ec-499b-40c5-ac7f-8b381f549289"
+    },
+    {
+     "id": "th-514",
+     "createdAt": "2026-09-13T10:00:06.000Z",
+     "other": "06538c10-8de7-4fbf-ac84-9b03f4d556bd"
+    },
+    {
+     "id": "th-433",
+     "createdAt": "2026-09-20T10:00:07.000Z",
+     "other": "a94cb6b4-ccdf-4ae9-ad35-503ac2ce0403"
+    },
+    {
+     "id": "th-352",
+     "createdAt": "2026-09-27T10:00:08.000Z",
+     "other": "9b20d76f-b863-4de6-ab2e-d2d44b272da0"
+    },
+    {
+     "id": "th-271",
+     "createdAt": "2026-09-04T10:00:00.000Z",
+     "other": "f6f6e19e-7263-4e68-acfb-3855bfa97bbb"
+    },
+    {
+     "id": "th-190",
+     "createdAt": "2026-09-04T10:00:00.000Z",
+     "other": "2b4e09d1-a4ff-4c51-a410-debd3c945cdf"
+    },
+    {
+     "id": "th-109",
+     "createdAt": "2026-09-18T10:00:11.000Z",
+     "other": "36a5774a-91c3-490c-ae4c-b6aac8031af1"
+    },
+    {
+     "id": "th-028",
+     "createdAt": "2026-09-25T10:00:12.000Z",
+     "other": null
+    },
+    {
+     "id": "th-947",
+     "createdAt": "2026-09-02T10:00:13.000Z",
+     "other": "f42cbddf-117a-4d9a-a849-bc3e871bf767"
+    },
+    {
+     "id": "th-866",
+     "createdAt": "2026-09-09T10:00:14.000Z",
+     "other": "1b3628fb-1b0d-4a9c-a082-88a5494e101f"
+    },
+    {
+     "id": "th-785",
+     "createdAt": "2026-09-16T10:00:15.000Z",
+     "other": "44d59bef-02a8-44a2-a5e1-d40ce4a65b98"
+    },
+    {
+     "id": "th-704",
+     "createdAt": "2026-09-23T10:00:16.000Z",
+     "other": "5d83463c-9ddf-4f2a-a924-262b524ec034"
+    },
+    {
+     "id": "th-623",
+     "createdAt": "2026-09-30T10:00:17.000Z",
+     "other": "afb8ffbc-b9ab-4a5a-a3a4-bfb27bc3e986"
+    },
+    {
+     "id": "th-542",
+     "createdAt": "2026-09-07T10:00:18.000Z",
+     "other": "463298b3-b1ba-4082-a8e5-f4cb796fe73c"
+    },
+    {
+     "id": "th-461",
+     "createdAt": "2026-09-14T10:00:19.000Z",
+     "other": "9421ee93-9788-428d-a4f8-2e13df15ebdb"
+    },
+    {
+     "id": "th-380",
+     "createdAt": "2026-09-21T10:00:20.000Z",
+     "other": "4c9267a4-0cba-48c8-ab99-0ab1eb06cdf7"
+    },
+    {
+     "id": "th-299",
+     "createdAt": "2026-09-28T10:00:21.000Z",
+     "other": "220dd9e7-bf1f-4cdc-aabb-986609ac7327"
+    },
+    {
+     "id": "th-218",
+     "createdAt": "2026-09-05T10:00:22.000Z",
+     "other": "e1ee61ec-97ad-49e6-ae2c-71994f1c5726"
+    },
+    {
+     "id": "th-137",
+     "createdAt": "2026-09-12T10:00:23.000Z",
+     "other": "7f1a78a2-31ca-49e1-ad80-3e4e8a2d0e60"
+    },
+    {
+     "id": "th-056",
+     "createdAt": "2026-09-19T10:00:24.000Z",
+     "other": "7dc9c352-f1d7-47e9-ad92-4f54110a63d3"
+    },
+    {
+     "id": "th-975",
+     "createdAt": "2026-09-26T10:00:25.000Z",
+     "other": "675c4402-1452-4e66-a8e1-53251169d001"
+    },
+    {
+     "id": "th-894",
+     "createdAt": "2026-09-03T10:00:26.000Z",
+     "other": "2f9dca29-4dcc-442f-adb9-4e4b512aa9ae"
+    },
+    {
+     "id": "th-813",
+     "createdAt": "2026-09-10T10:00:27.000Z",
+     "other": "d287be41-8cbe-499e-a460-dd983baa874f"
+    },
+    {
+     "id": "th-732",
+     "createdAt": "2026-09-17T10:00:28.000Z",
+     "other": "a26a37ee-7667-498b-ae70-3334ffef35e0"
+    },
+    {
+     "id": "th-651",
+     "createdAt": "2026-09-24T10:00:29.000Z",
+     "other": "655db735-a4d4-4259-a7f3-a69ea16c24d0"
+    }
+   ],
+   "names": [
+    "Wochenbonsai",
+    "Kioskdistel",
+    "Pfadaquarell",
+    "Teichknauf",
+    "Waldschalter",
+    "Graupelposter",
+    "Auenhülle",
+    "Dunstlexikon",
+    "Seemixtape",
+    "Strandvase",
+    "Erkerrechner",
+    "Deichspindel",
+    "UNSIGNED",
+    "Laubenhülle",
+    "Zeltdiode",
+    "Hüttenbecher",
+    "Wochensouvenir",
+    "Kaminpuzzle",
+    "Frostlampion",
+    "Hügelrechner",
+    "Gassenmappe",
+    "Marktkassette",
+    "Frostgamepad",
+    "Hüttentrommel",
+    "Hafenbeleg",
+    "Dunstalbum",
+    "Auenbeleg",
+    "Uferplakette",
+    "Hüttentrichter",
+    "Treppentonband"
+   ],
+   "salts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    null,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "lang": "en",
+   "shared": "Spring Inkjet",
+   "threads": [
+    {
+     "id": "z-late",
+     "createdAt": "2026-09-06T10:00:00.000Z",
+     "other": "7092d11c-7c99-4e52-a4f7-3d40389a703f"
+    },
+    {
+     "id": "a-mid",
+     "createdAt": "2026-09-03T10:00:00.000Z",
+     "other": "02b97481-a901-4ebf-ab16-3ec6a9d99442"
+    },
+    {
+     "id": "m-early",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "95fc72e8-6f8e-42db-a9d5-3ac01ed91a7f"
+    },
+    {
+     "id": "b-gone",
+     "createdAt": "2026-09-02T10:00:00.000Z",
+     "other": null
+    }
+   ],
+   "names": [
+    "Dusk Amp",
+    "Patio Amp",
+    "Spring Inkjet",
+    "UNSIGNED"
+   ],
+   "salts": [
+    1,
+    0,
+    0,
+    null
+   ]
+  },
+  {
+   "lang": "ja",
+   "shared": "夏場の充電器",
+   "threads": [
+    {
+     "id": "z-late",
+     "createdAt": "2026-09-06T10:00:00.000Z",
+     "other": "7bbf84ac-ee62-4f68-aa09-077de170d124"
+    },
+    {
+     "id": "a-mid",
+     "createdAt": "2026-09-03T10:00:00.000Z",
+     "other": "02a59466-b508-40c9-a079-94efc626e94d"
+    },
+    {
+     "id": "m-early",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "f5ccde5c-aeea-4310-a5b4-086217be182b"
+    },
+    {
+     "id": "b-gone",
+     "createdAt": "2026-09-02T10:00:00.000Z",
+     "other": null
+    }
+   ],
+   "names": [
+    "立冬のチラシ",
+    "春先の古本",
+    "夏場の充電器",
+    "UNSIGNED"
+   ],
+   "salts": [
+    1,
+    0,
+    0,
+    null
+   ]
+  },
+  {
+   "lang": "ko",
+   "shared": "정류장 컵홀더",
+   "threads": [
+    {
+     "id": "z-late",
+     "createdAt": "2026-09-06T10:00:00.000Z",
+     "other": "03b977a6-84f9-42fe-a5ed-5dd1889df481"
+    },
+    {
+     "id": "a-mid",
+     "createdAt": "2026-09-03T10:00:00.000Z",
+     "other": "02a1b447-b100-4915-a15c-1a16d1f7c522"
+    },
+    {
+     "id": "m-early",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0f57b95f-f7f8-43cc-aaa7-f85294b1f258"
+    },
+    {
+     "id": "b-gone",
+     "createdAt": "2026-09-02T10:00:00.000Z",
+     "other": null
+    }
+   ],
+   "names": [
+    "실바람 자수틀",
+    "책방 벽시계",
+    "정류장 컵홀더",
+    "UNSIGNED"
+   ],
+   "salts": [
+    1,
+    0,
+    0,
+    null
+   ]
+  },
+  {
+   "lang": "es",
+   "shared": "Bastidor de antaño",
+   "threads": [
+    {
+     "id": "z-late",
+     "createdAt": "2026-09-06T10:00:00.000Z",
+     "other": "8e06929e-d6fa-4fc3-a0bf-259c1344596c"
+    },
+    {
+     "id": "a-mid",
+     "createdAt": "2026-09-03T10:00:00.000Z",
+     "other": "02add424-bd08-4250-a640-775fee3cd99d"
+    },
+    {
+     "id": "m-early",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0121498e-2a03-4bad-ad05-40f95870151a"
+    },
+    {
+     "id": "b-gone",
+     "createdAt": "2026-09-02T10:00:00.000Z",
+     "other": null
+    }
+   ],
+   "names": [
+    "Bulbo de gira",
+    "Farol de viaje",
+    "Bastidor de antaño",
+    "UNSIGNED"
+   ],
+   "salts": [
+    1,
+    0,
+    0,
+    null
+   ]
+  }
+ ],
+ "desk": [
+  {
+   "lang": "en",
+   "threads": [
+    {
+     "id": "only",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "95fc72e8-6f8e-42db-a9d5-3ac01ed91a7f"
+    }
+   ],
+   "uid": "7092d11c-7c99-4e52-a4f7-3d40389a703f",
+   "salt": 1,
+   "name": "Dusk Amp"
+  },
+  {
+   "lang": "ja",
+   "threads": [
+    {
+     "id": "only",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "f5ccde5c-aeea-4310-a5b4-086217be182b"
+    }
+   ],
+   "uid": "7bbf84ac-ee62-4f68-aa09-077de170d124",
+   "salt": 1,
+   "name": "立冬のチラシ"
+  },
+  {
+   "lang": "ko",
+   "threads": [
+    {
+     "id": "only",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0f57b95f-f7f8-43cc-aaa7-f85294b1f258"
+    }
+   ],
+   "uid": "03b977a6-84f9-42fe-a5ed-5dd1889df481",
+   "salt": 1,
+   "name": "실바람 자수틀"
+  },
+  {
+   "lang": "es",
+   "threads": [
+    {
+     "id": "only",
+     "createdAt": "2026-09-01T10:00:00.000Z",
+     "other": "0121498e-2a03-4bad-ad05-40f95870151a"
+    }
+   ],
+   "uid": "8e06929e-d6fa-4fc3-a0bf-259c1344596c",
+   "salt": 1,
+   "name": "Bulbo de gira"
+  }
+ ]
+}

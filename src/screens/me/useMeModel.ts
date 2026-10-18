@@ -18,6 +18,7 @@ import { fetchCarried, recordStageDate, whereabouts, type WhereaboutsRead } from
 import { hungerRead, type HungerRead } from "../../lib/hunger";
 import { isDayOff, noteWork, useFlightBest } from "../../lib/free-flight";
 import { flightLog, type LogEntry } from "../../lib/flight-log";
+import { useWhoBook } from "../../lib/who";
 import { getCounters, seenToday } from "../../lib/usage-counters";
 import { loadJournal } from "../../lib/journal";
 import { loadShelf, mint, unseen, type Minted } from "../../lib/keepsakes";
@@ -287,8 +288,10 @@ export function useMeModel(): MeModel {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const where = useMemo(() => whereabouts(threads, sent), [threads, sent, lang]);
   const lastWrittenAt = aura?.lastWrittenAt ?? null;
+  // her lines name a pen pal as every screen does (lib/who): their number, or the courier name once the switch is on
+  const book = useWhoBook({ threads });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hunger = useMemo(() => hungerRead({ threads, lastWrittenAt }), [threads, lastWrittenAt, lang]);
+  const hunger = useMemo(() => hungerRead({ threads, lastWrittenAt, book }), [threads, lastWrittenAt, lang, book]);
   const dayOff = isDayOff({ state: where.state, hunger, stage: stageFloor });
   const best = flightBest?.gates ?? 0;
   /* her day-off push is planned days ahead (lib/local-push): put away what
@@ -304,10 +307,10 @@ export function useMeModel(): MeModel {
   /* the diary line: the card shows it and VoiceOver reads it, from one read */
   const light = daylight();
   const entry = useMemo(
-    () => flightLog({ where, threads, lastWrittenAt, seenToday: seenTodayN, daylight: light }),
+    () => flightLog({ where, threads, lastWrittenAt, seenToday: seenTodayN, daylight: light, book }),
     // lang: the diary is written in the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [where, threads, lastWrittenAt, seenTodayN, light, lang],
+    [where, threads, lastWrittenAt, seenTodayN, light, lang, book],
   );
 
   /* pressing Me again while on it: the stack pops to its root by itself

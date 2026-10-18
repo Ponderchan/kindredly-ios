@@ -18,6 +18,8 @@ import { useIsFocused } from "expo-router";
 import { PF } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { MosaicId } from "./MosaicId";
+import { Frost } from "./Frost";
+import type { FrostSpec } from "../lib/frost";
 import type { OrbitVM } from "../screens/kindreds/kindreds-model";
 import { t, useLang } from "../lib/i18n";
 
@@ -35,6 +37,18 @@ import { t, useLang } from "../lib/i18n";
    ind when it is your turn to write to them (10a: the face says it, the
    old corner marks went). SVG carries only the rings; faces are real views
    laid over it so they render crisp.
+
+   WITH THE IDENTITY SWITCH ON (identity Phase 1; the owner's "轨道那里也要
+   同步", 2026-10-18) every marker is that pen pal's frosted window instead
+   (the model's `frost`: the same FROST v1 window they wear on the desk, the
+   row and the chat), square with corners at 25%, at the face's 17.6 —
+   under lib/frost's detail size, so base, lights and hairline only. It
+   never develops: the same window on every ring, and the ring itself is
+   the progress. Your turn is a 1.5pt ind ring round the window
+   (components/Frost `ring`) instead of the mosaic inked in ind. Folded, a
+   window shrinks to the same tick as a face. You, the rings, the drift and
+   the arrival fade are unchanged; switch off, all of it is exactly as it
+   was.
 
    PROPORTION. Rings are ELLIPSES (ry ≈ .78 rx) as wide as the screen
    allows, measured now (useWindowDimensions) rather than once at module
@@ -126,6 +140,8 @@ export function OrbitMap({ items, empty, flat, line = true }: { items: OrbitVM[]
             key={o.id}
             seed={o.seed}
             develop={o.develop}
+            frost={o.frost}
+            turn={o.turn}
             rx={rx}
             ry={rx * SQUASH}
             a0={o.a0}
@@ -157,6 +173,8 @@ const WOBBLE_TURNS = 22; // to-and-fros per full circuit of its ring: one every 
 function OrbitingFace({
   seed,
   develop,
+  frost,
+  turn: yours,
   rx,
   ry,
   a0,
@@ -172,6 +190,10 @@ function OrbitingFace({
 }: {
   seed: string;
   develop: number;
+  /** switch on: their frosted window, drawn instead of the mosaic (never developing) */
+  frost: FrostSpec | null;
+  /** it is your turn: the window wears the ind ring (the mosaic is inked in `ink` instead) */
+  turn: boolean;
   rx: number;
   ry: number;
   a0: number;
@@ -224,7 +246,7 @@ function OrbitingFace({
       <Animated.View entering={FadeIn.duration(320).delay(60 + order * 30)}>
         <Animated.View style={body}>
           <Animated.View style={face}>
-            <MosaicId seed={seed} cell={2.8} gap={0.9} develop={develop} color={ink} />
+            {frost ? <Frost spec={frost} size={FACE} ring={yours ? ink : null} /> : <MosaicId seed={seed} cell={2.8} gap={0.9} develop={develop} color={ink} />}
           </Animated.View>
           <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: FACE, height: FACE, backgroundColor: ink }, tick]} />
         </Animated.View>

@@ -9,6 +9,7 @@ import { PF } from "../../theme/post";
 import { LettersNative, RoomNative } from "../../screens/chat/ConversationNative";
 import { RoomRN } from "../../screens/chat/RoomRN";
 import { LettersRN } from "../../screens/chat/LettersRN";
+import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 
 /* dev only — THE CONVERSATION KIT ON DEMO FIXTURES (10a step 5, slice chat-kit).
    kindredly:///dev/step5-chat
@@ -48,7 +49,10 @@ import { LettersRN } from "../../screens/chat/LettersRN";
 
    THEME cycles the dev theme override through Classic, Midnight, Lavender
    and Paper (and off); RN shows the React Native fallback on the same
-   fixture, for a side-by-side. The words are the app's own (t()); the only
+   fixture, for a side-by-side; NAMES previews the identity switch on for
+   this run of the app, never saved (lib/identity setDevIdentityPreview):
+   a pen pal's courier name, frosted window, made-up ♀/♂ and star sign in
+   the header, their letters' heads and the reply bar. The words are the app's own (t()); the only
    English typed here is this page's chips. A binary built before
    KConversationView says so and shows the fallback. */
 
@@ -108,6 +112,8 @@ function ChatLab() {
   const [index, setIndex] = useState(0);
   const [rn, setRn] = useState(!available);
   const fx = FIXTURES[index];
+  // NAMES: the identity switch previewed on for this run (never saved): the pen pal's courier name, frost, ♀/♂ and sign
+  const names = useIdentityOn();
 
   const keys = THEME_KEYS as ThemeKey[];
   const themeIndex = forced ? keys.indexOf(forced) : -1;
@@ -125,6 +131,7 @@ function ChatLab() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 6 }}>
           <Chip label={`THEME ${forced ? THEMES[key].name.toUpperCase() : "OFF"}`} onPress={nextTheme} />
           <Chip label={rn ? "RN" : "SWIFT"} on={rn} onPress={() => available && setRn((v) => !v)} />
+          <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
           {FIXTURES.map((f, i) => (
             <Chip key={`${i}:${f.variant}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
           ))}

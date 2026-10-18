@@ -28,7 +28,9 @@ import ExpoUI
    emojiLabel both bars', ideasLabel … trayTitle the Kindreds bar's (B; ideasLabel "" for none)
  - header: KChatHeaderRecord, the conversation's own header (the pen-pal chat's, A2; the
    kindreds chat's, room: true, B, with the face flattened: faceKind image | mosaic | veil |
-   placeholder, faceUri, faceKey, faceOverscan, faceMask); show: false (the default) draws none,
+   placeholder, faceUri, faceKey, faceOverscan, faceMask; with the identity switch on the pen
+   pal's frost, mark and sign, "" / NO_FROST for none, and identity, which turns the veil into
+   the flat veil tile); show: false (the default) draws none,
    and a React Native header stands above
  - strings: KChatStringsRecord
  - toolBird, noticeBird, expiredBird: Wren's dock snapshots (KImageRefRecord, uri "" for none);
@@ -282,7 +284,15 @@ struct KChatHeaderRecord: Record {
   /// mute | ind | brass
   @Field var tone: String = "mute"
   @Field var mask: Int = 0
+  /// identity switch on: the pen pal's frosted window (NO_FROST off, and for the room)
+  @Field var frost: KFrostRecord = KFrostRecord()
+  /// identity switch on: she | he | "" after the name
+  @Field var mark: String = ""
+  /// identity switch on: aries … pisces | "" after the mark
+  @Field var sign: String = ""
   @Field var veil: Bool = true
+  /// the identity switch is on: the veil is the flat veil tile
+  @Field var identity: Bool = false
   /// none | line | brass
   @Field var frame: String = "none"
   @Field var dots: Int = 0
@@ -305,7 +315,11 @@ struct KChatHeaderRecord: Record {
     h.sub = sub
     h.tone = KChatTone(rawValue: tone) ?? .mute
     h.mask = mask
+    h.frost = frost.spec
+    h.mark = KLineGlyph.mark(mark)
+    h.sign = KLineGlyph.sign(sign)
     h.veil = veil
+    h.veilTile = identity
     h.frame = KChatFaceFrame(rawValue: frame) ?? .none
     h.dots = min(5, max(0, dots))
     h.a11yLabel = a11yLabel

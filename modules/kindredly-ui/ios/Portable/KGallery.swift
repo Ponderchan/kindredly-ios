@@ -391,7 +391,44 @@ public struct KGallery: View {
         KOfficialBadge(theme: theme, size: 18, ground: theme.bg)
       }
       caption("52 · 52 your turn · veil · badge · dim | 34 · docket 28 · veil · badge 18")
+      // identity Phase 1: a frosted window at the sizes the app draws, its veil, the marks
+      let frost = Self.sampleFrost(dark: theme.isDark)
+      HStack(alignment: .center, spacing: 14) {
+        KFace(theme: theme, source: .frost(frost), size: 52)
+        KFrost(theme: theme, spec: frost, size: 40)
+        KFrost(theme: theme, spec: frost, size: 31.2)
+        KFrost(theme: theme, spec: frost, size: 18)
+        KFrost(theme: theme, spec: frost, size: 12)
+        KFace(theme: theme, source: .frostVeil, size: 40)
+      }
+      HStack(alignment: .firstTextBaseline, spacing: 0) {
+        Text(verbatim: "Sunday Kite").kText(.system(17, .semibold)).foregroundStyle(theme.ink)
+        KWhoMarks(mark: .she, sign: .gemini, size: 14, color: theme.sub)
+        Text(verbatim: "   Hafenlaterne").kText(.system(17, .semibold)).foregroundStyle(theme.ink)
+        KWhoMarks(mark: nil, sign: .capricorn, size: 14, color: theme.sub)
+      }
+      caption("frost 52 · 40 card · 31.2 chat · 18 chip · 12 orbit (no silhouette under 20) · veil tile | name ♀ sign · sign alone")
     }
+  }
+
+  /// A fixed sample window for the gallery (TS works out every real one; this is nobody's): FROST
+  /// v1's lavender with periwinkle and sage lights, in both themes' tones.
+  static func sampleFrost(dark: Bool) -> KFrostSpec {
+    KFrostSpec(
+      dark: dark,
+      base: Color(hex: dark ? "#4A4478" : "#C9C2EC"),
+      lights: [
+        .init(color: Color(hex: dark ? "#3F4A7A" : "#B4BCEA"), x: 0.26, y: 0.32, r: 0.6643, alpha: 0.9),
+        .init(color: Color(hex: dark ? "#4A5A3E" : "#C4D3B8"), x: 0.7, y: 0.78, r: 0.7214, alpha: 0.9),
+      ],
+      silhouetteAlpha: dark ? 0.13 : 0.22,
+      head: .init(x: 0.5, y: 0.4, r: 0.235, solid: 0.62),
+      shoulders: .init(x: 0.5, y: 1.04, rx: 0.52, ry: 0.36, solid: 0.55),
+      sheenAlpha: 0.18,
+      sheenTo: 0.55,
+      hairlineAlpha: 0.35,
+      hairlineWidth: 1
+    )
   }
 
   // ── KVoiceCard: tap to play; it runs on by itself from where it was told ──

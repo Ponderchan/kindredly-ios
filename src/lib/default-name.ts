@@ -27,8 +27,15 @@
    moves its postmark to (p+1) mod 64 until the pair is allowed. The keepsake
    never moves, so keepsake uniqueness survives the shift.
 
-   Channel "name:"+salt+":"+uid → default-name indices. (mosaic.ts keeps the
-   registry of hash channels; list it there when this is wired.) */
+   Channel "name:"+salt+":"+uid → default-name indices (listed in mosaic.ts's
+   registry of hash channels).
+
+   WHICH SALT A READER USES is lib/stranger-name's job, not this file's: the
+   identity plan (§3.2) settled on salt 0 for everyone and 1…15 only on an
+   exact repeat of a whole name in one reader's list, so a stranger keeps the
+   name the desk gave them when the thread opens. defaultNamesFor() below is
+   the strategy's wider keepsake-avoiding rule; it is kept and tested, but the
+   screens name strangers through stranger-name. */
 
 import type { Lang } from "./i18n";
 import { hashStr } from "./mosaic";

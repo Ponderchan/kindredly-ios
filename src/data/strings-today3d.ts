@@ -32,7 +32,10 @@ strings(
     "ld.left.a11y.1": "Next letter. One left today.",
     "ld.left.a11y": "Next letter. {n} left today.",
     // the reply field's placeholder for a signed letter; {name} is the pen pal's number in the reader's language
-    // (penPalName: "No. 7273", "N.º 7273", "Nr. 7273"); lowercase, like ld.writeBackPh, which stays for unsigned letters
+    // (penPalName: "No. 7273", "N.º 7273", "Nr. 7273") — or, once the identity switch is on, the courier name your
+    // courier gave them ("Sunday Kite", "Dedal de lluvia", "雨のランタン": no article or agreement with it; ko: no
+    // particle after it, or one chosen from its last syllable); lowercase, like ld.writeBackPh, which stays for
+    // unsigned letters. Also the pen-pal chat's and the reader's reply bar with the switch on
     "ld.writeBackTo": "write back to {name}…",
     // the card's ⋯ menu and its VoiceOver action: restore the letter just passed (one step only; offered while it is still on the desk)
     "ld.bringBack": "Bring back the last letter",

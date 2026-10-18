@@ -5,6 +5,8 @@ import Svg, { Ellipse, Path, Rect } from "react-native-svg";
 import { MONO, PF } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { OrbitMap, orbitBox } from "./OrbitMap";
+import { Frost } from "./Frost";
+import type { FrostSpec } from "../lib/frost";
 import type { OrbitVM } from "../screens/kindreds/kindreds-model";
 
 /* THE SKY, FOLDED ONTO ITS HORIZON — the Kindreds tab's React Native sky
@@ -27,7 +29,12 @@ import type { OrbitVM } from "../screens/kindreds/kindreds-model";
    legend says "closer = more letters" and "your turn" beside a small face
    inked in ind, as the faces whose turn is yours are drawn. CLOSEST TO YOU
    is gone with the 10a band (owner question 4's default: every pen-pal row
-   says its n/5 instead), and so is the grab handle. */
+   says its n/5 instead), and so is the grab handle.
+
+   With the identity switch on the orbit draws frosted windows (OrbitMap),
+   and "your turn" in the legend is what it looks like there: a small
+   frosted square (the model's legendFrost, a fixed sample window, nobody's)
+   in its 1.5pt ind ring. Switch off, the legend's inked face as before. */
 
 const LINE_Y = 11; // where the horizon runs through this box
 const GAP = 10; // from the line to the orbit, open
@@ -46,6 +53,7 @@ export function KindredsSky({
   label,
   legendCloser,
   legendTurn,
+  legendFrost = null,
 }: {
   items: OrbitVM[];
   open: boolean;
@@ -54,6 +62,8 @@ export function KindredsSky({
   label: string;
   legendCloser: string;
   legendTurn: string;
+  /** switch on: the legend's sample window (kindreds-model legendFrost); null draws the inked face */
+  legendFrost?: FrostSpec | null;
 }) {
   const { t: tk } = useTheme();
   const { width: winW } = useWindowDimensions();
@@ -97,7 +107,7 @@ export function KindredsSky({
           style={[{ position: "absolute", left: 0, right: 0, top: LINE_Y + GAP + box.H, paddingHorizontal: 22, paddingBottom: 12, gap: 7 }, foot]}
         >
           <Legend mark={<RingsMark color={tk.sub} />} text={legendCloser} color={tk.sub} />
-          <Legend mark={<TurnMark color={tk.ind} />} text={legendTurn} color={tk.sub} />
+          <Legend mark={legendFrost ? <Frost spec={legendFrost} size={11} ring={tk.ind} /> : <TurnMark color={tk.ind} />} text={legendTurn} color={tk.sub} />
         </Animated.View>
 
         {/* a round button at the line's right end, its chevron turning over as the orbit opens */}

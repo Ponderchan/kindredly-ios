@@ -9,6 +9,7 @@ import { archDescThird, archName, dimLabel, dimLineThird, dimSealedThird } from 
 import { dLong, localeTag } from "../../lib/format";
 import { developFor } from "../../lib/mosaic";
 import { theirLatest } from "../../lib/db";
+import { useIdentityOn } from "../../lib/identity";
 import { useThreadDetail } from "../../lib/thread-detail";
 import { readCorrespondent, resonance, type ResonanceRow } from "../../lib/correspondent";
 import type { DimScore } from "../../lib/hatch-engine";
@@ -16,11 +17,13 @@ import { getStamp, sname } from "../../data/stamps";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
+import { Frost, VeilTile } from "../../components/Frost";
+import { useWhoBook } from "../../lib/who";
 import { ReportMenu } from "../../components/ReportMenu";
 import { Stamp } from "../../components/Stamp";
 import { InkPanel, SecondaryHeader } from "../../components/10a";
 import { isVoiceLetter, largeType, readerLetters } from "./reader";
-import { canTalk, faceKind, lettersValue, openingLetter, pageTitle, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
+import { canTalk, faceKind, lettersValue, openingLetter, pageFace, pageTitle, showsArrivalMosaic, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
 import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
 
 /* A KINDRED'S PAGE — the room behind the name (10a step 5, slice chat-rn).
@@ -54,7 +57,15 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
    (spec bug 12); a block lands on Kindreds, never back in the blocked
    room; a kindred is drawn round, face or not, and a deleted account wears
    the veil with no TALK TO. Looking at the page doesn't mark their lines
-   read — that is entering the room (owner, 10-15). */
+   read — that is entering the room (owner, 10-15).
+
+   With the identity switch on (identity Phase 1) THE FACE YOU WATCHED
+   ARRIVE goes: no face arrived, the frost did (kindred-page
+   showsArrivalMosaic), and WHO BEGAN takes words that agree with no name.
+   A pen pal you know the voice of is then their frosted window at 56
+   (kindred-page pageFace; the spec from the screen's book, lib/who), the
+   same window as on their row and in the chat and never developing, and a
+   deleted account the flat veil tile. */
 
 export function KindredPage({ id, topInset }: { id?: string; topInset?: number }) {
   useLang();
@@ -67,6 +78,9 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   const { detail, status } = useThreadDetail(id, { folds: false });
   const voice = useOpeningVoiceRN(detail, isDemo);
   const lang = getLang();
+  const identity = useIdentityOn();
+  // the book only for the frost (no names or marks are drawn on this page)
+  const book = useWhoBook();
 
   const name = detail?.otherName || t("cm.kindred");
   /* THE READ, and it arrives BEFORE the name: what ten letters have earned you is a read of how
@@ -92,6 +106,8 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   };
 
   const kind = detail ? faceKind(detail) : "veil";
+  // switch on, a pen pal's frosted window (null off, for a kindred, and for no one)
+  const frost = detail && pageFace(detail, identity) === "frost" ? book.frost(detail.other) : null;
   const label = { fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute } as const;
 
   return (
@@ -132,6 +148,10 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
               {kind === "round" ? (
                 <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={64} />
+              ) : identity && kind === "veil" ? (
+                <VeilTile size={56} />
+              ) : frost ? (
+                <Frost spec={frost} size={56} />
               ) : kind === "veil" ? (
                 <MosaicId seed={null} cell={9} gap={2.4} />
               ) : (
@@ -143,7 +163,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
                     <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: tk.ink }}>
                       {name}
                     </Text>
-                    {kind !== "veil" && (
+                    {showsArrivalMosaic(detail, identity) && (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7 }}>
                         <MosaicId seed={detail.other} cell={3} gap={1} />
                         <Text style={{ ...label, flexShrink: 1 }}>{t("kd.faceArrive")}</Text>
@@ -240,7 +260,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
                   {opening.body}
                 </Text>
               )}
-              <Text style={label}>{whoBegan(detail, name, t, locale)}</Text>
+              <Text style={label}>{whoBegan(detail, name, t, locale, identity)}</Text>
             </InkPanel>
           )}
 
