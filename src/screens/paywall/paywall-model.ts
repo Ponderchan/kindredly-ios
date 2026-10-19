@@ -349,6 +349,8 @@ export function buildPaywallView(facts: PaywallFacts, fmt: PaywallFormat): Paywa
         { title: t("pw.cf.number"), sub: t("pw.cf.numberSub", { n: COFOUNDERS_TOTAL }) },
         // FC2 (owner decision 2): the stamp avatar replaces "a gold ring on Wren"
         { title: t("fc2.cf.stamp"), sub: t("fc2.cf.stampSub") },
+        // Stamp Press (owner, 2026-10-19): every stamp a cofounder makes has the gold gear edge
+        { title: t("cs2.pw.cfGold"), sub: t("cs2.pw.cfGoldSub") },
         { title: t("pw.cf.first"), sub: t("pw.cf.firstSub") },
         { title: t("pw.cf.letter"), sub: speak(t("pw.cf.letterSub")) },
       ],

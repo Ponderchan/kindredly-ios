@@ -15,7 +15,8 @@
       "deploymentTarget": "18.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "NSCameraUsageDescription": "Kindredly uses your camera to make a stamp from a moment you photograph. Nothing is saved until you choose to keep it."
       },
       "appleTeamId": "SSSB423982",
       "icon": {
@@ -70,7 +71,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Kindredly opens your photo library so you can add a photo or video to a private journal page.",
-          "cameraPermission": false
+          "cameraPermission": "Kindredly uses your camera to make a stamp from a moment you photograph. Nothing is saved until you choose to keep it."
         }
       ],
       [

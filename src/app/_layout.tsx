@@ -294,6 +294,9 @@ function ThemedStack() {
         <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+        {/* STAMP PRESS: the camera and then the edit page cover everything, the tab bar too; the ×
+            (and Retake) are the ways out, never a stray swipe mid-press */}
+        <Stack.Screen name="stamp-press" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         {/* the reader fills the screen — the letter opens where you are,
             it doesn't slide in from the side or pop up as a card */}
         <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />

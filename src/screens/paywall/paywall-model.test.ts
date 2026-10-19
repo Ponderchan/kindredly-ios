@@ -56,7 +56,7 @@ ok("annual with trial: note, CTA, then line", a.note === "M4.PW.NOTEANNUAL{P:$3.
 ok("monthly with trial", m.note === "M4.PW.NOTEMONTHLY · M4.TRIAL.DAYS{N:7}" && m.ctaNote === "M4.PW.THENMONTH{PRICE:$6.99}" && m.badge === "");
 ok("lifetime: founding and seats left", l.note === "M4.PW.NOTEFOUNDING{N:100} · M4.PW.NOTELEFT{LEFT:53}" && l.cta === "m4.pw.ctaCofounder{price:$129.99}");
 ok("benefit rows as given, glyph by id", v.benefits.map((b) => b.glyph).join() === "rooms,report");
-ok("no badge without a number", v.cofounder.badge === "" && v.cofounder.perks.length === 4);
+ok("no badge without a number", v.cofounder.badge === "" && v.cofounder.perks.length === 5);
 const noTrial = buildPaywallView({ ...base, fares: inelig }, fmt);
 ok("no trial: the plain subscribe line, nothing FREE", noTrial.fares[0].cta === "fc.board · $39.99 m4.pw.perYear" && noTrial.fares[0].ctaNote === "M4.PW.RENEWSYEAR" && !JSON.stringify(noTrial.fares).includes("trial"));
 const noSeats = buildPaywallView({ ...base, seatsLeft: null }, fmt);
@@ -67,6 +67,7 @@ const cf = buildPaywallView({ ...base, premium: true, cofounderNo: 47 }, fmt);
 ok("cofounder: the real number, padded", cf.cofounder.badge === "m4.pw.cfBadge{n:047}" && cf.member.cofounder && cf.member.premium);
 ok("member: manage", cf.member.cta === "fc.manage" && cf.strings.title === "fc.paidHead");
 ok("cofounder perk: the stamp avatar, not the ring", cf.cofounder.perks[1].title === "fc2.cf.stamp" && cf.cofounder.perks[1].sub === "fc2.cf.stampSub" && !JSON.stringify(cf.cofounder).includes("pw.cf.ring"));
+ok("cofounder perk: the gold-edged stamps line, after the avatar", cf.cofounder.perks[2].title === "cs2.pw.cfGold" && cf.cofounder.perks[2].sub === "cs2.pw.cfGoldSub");
 ok("head: replaces the title for a non-member only", buildPaywallView({ ...base, head: "Keep it" }, fmt).strings.title === "Keep it" && buildPaywallView({ ...base, head: "Keep it", premium: true }, fmt).strings.title === "fc.paidHead");
 ok("pad3", pad3(7) === "007" && pad3(123) === "123");
 ok("trialLabel none", trialLabel(null, t) === "");

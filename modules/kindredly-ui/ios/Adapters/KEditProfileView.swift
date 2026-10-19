@@ -238,3 +238,198 @@ struct KEditProfileView: ExpoSwiftUI.View {
     }
   }
 }
+
+// MARK: - STAMP PRESS · THE EDIT PAGE as React Native sees it (build agent B "edit", 2026-10-19)
+
+/*
+ <KStampEditView … /> on the JS side (modules/kindredly-ui/src/StampEdit.tsx), drawn by
+ src/screens/stamp-edit/StampEditNative.tsx in one full-screen Host (field: the #topic is a text
+ field), on the root route src/app/stamp-edit.tsx. Appended to this file because a new adapter
+ file needs a pod install; the screen itself is Portable/Profile/KFaceStrip.swift
+ KStampEditScreen. Registered in KindredlyUIModule.swift with the "command" AsyncFunction like
+ every screen (no command is used yet).
+
+ Props, beyond KScreenProps (insets: top = the status bar, bottom = the home indicator):
+ - strings: every word, resolved (KStampEditStringsRecord; the card and reject words follow the phase)
+ - categories [{ id, hex "#RRGGBB", name }], filters [{ id, name, locked }], filterEditable
+ - gold (a Cofounder: the gold edge on cream), editing (an edit of an approved stamp)
+ - phase: editing | checking | rejected | approved | unavailable | quota | cap | problem;
+   rejectField: image | topic
+ - seed (bump to put the page back to the values below), photo (file:// of the 4:5 crop; "" =
+   the dev stand-in scene), topic, category, filter
+
+ Events, with what nativeEvent carries:
+ - onStampEditRetake {}                     Retake / Try another photo
+ - onStampEditSubmit { image, original, topic, category, filter }   image = the filtered
+                                            576 × 720 JPEG (file://), original = the unfiltered
+                                            1152 × 1440 crop (file://, or "")
+ - onStampEditUpgrade {}                    Keep it with First Class →
+ - onStampEditReset {}                      the reader started fixing a rejection
+ - onStampEditFlown {}                      the approved stamp has flown: leave the page
+ - onStampEditCardPrimary {} / onStampEditCardSecondary {}   the status card's buttons
+ - onStampEditExportFailed {}               no picture could be made
+ */
+
+struct KStampEditStringsRecord: Record {
+  @Field var title: String = ""
+  @Field var retake: String = ""
+  @Field var eyebrow: String = ""
+  @Field var cardMeta: String = ""
+  @Field var firstLine: String = ""
+  @Field var topicPlaceholder: String = ""
+  @Field var topicLabel: String = ""
+  @Field var aurasClose: String = ""
+  @Field var colourLabel: String = ""
+  @Field var filterLabel: String = ""
+  @Field var submit: String = ""
+  @Field var checking: String = ""
+  @Field var keepFC: String = ""
+  @Field var fcRibbon: String = ""
+  @Field var fcBadge: String = ""
+  @Field var lockedHint: String = ""
+  @Field var freeLine: String = ""
+  @Field var yours: String = ""
+  @Field var stampLabel: String = ""
+  @Field var holdHint: String = ""
+  @Field var selected: String = ""
+  @Field var rejectBody: String = ""
+  @Field var rejectRetry: String = ""
+  @Field var rejectRename: String = ""
+  @Field var cardTitle: String = ""
+  @Field var cardBody: String = ""
+  @Field var cardPrimary: String = ""
+  @Field var cardSecondary: String = ""
+  @Field var announce: String = ""
+}
+
+struct KStampEditCategoryRecord: Record {
+  @Field var id: String = ""
+  /// "#RRGGBB"
+  @Field var hex: String = ""
+  @Field var name: String = ""
+}
+
+struct KStampEditFilterRecord: Record {
+  @Field var id: String = ""
+  @Field var name: String = ""
+  @Field var locked: Bool = false
+}
+
+final class KStampEditViewProps: KScreenProps {
+  @Field var strings: KStampEditStringsRecord = KStampEditStringsRecord()
+  @Field var categories: [KStampEditCategoryRecord] = []
+  @Field var filters: [KStampEditFilterRecord] = []
+  @Field var filterEditable: Bool = true
+  @Field var gold: Bool = false
+  @Field var editing: Bool = false
+  @Field var phase: String = "editing"
+  @Field var rejectField: String = "image"
+  @Field var seed: Int = 0
+  @Field var photo: String = ""
+  @Field var topic: String = ""
+  @Field var category: String = "small"
+  @Field var filter: String = "original"
+
+  var onStampEditRetake = EventDispatcher()
+  var onStampEditSubmit = EventDispatcher()
+  var onStampEditUpgrade = EventDispatcher()
+  var onStampEditReset = EventDispatcher()
+  var onStampEditFlown = EventDispatcher()
+  var onStampEditCardPrimary = EventDispatcher()
+  var onStampEditCardSecondary = EventDispatcher()
+  var onStampEditExportFailed = EventDispatcher()
+
+  /// The page's taps, made once: each closure reaches this props object's events.
+  private(set) lazy var actions: KStampEditActions = {
+    let a = KStampEditActions()
+    a.onRetake = { [weak self] in self?.onStampEditRetake() }
+    a.onSubmit = { [weak self] image, original, topic, category, filter in
+      self?.onStampEditSubmit(["image": image, "original": original, "topic": topic, "category": category, "filter": filter])
+    }
+    a.onUpgrade = { [weak self] in self?.onStampEditUpgrade() }
+    a.onReset = { [weak self] in self?.onStampEditReset() }
+    a.onFlown = { [weak self] in self?.onStampEditFlown() }
+    a.onCardPrimary = { [weak self] in self?.onStampEditCardPrimary() }
+    a.onCardSecondary = { [weak self] in self?.onStampEditCardSecondary() }
+    a.onExportFailed = { [weak self] in self?.onStampEditExportFailed() }
+    return a
+  }()
+
+  var content: KStampEditContent {
+    var c = KStampEditContent()
+    let s = strings
+    c.title = s.title
+    c.retake = s.retake
+    c.eyebrow = s.eyebrow
+    c.cardMeta = s.cardMeta
+    c.firstLine = s.firstLine
+    c.topicPlaceholder = s.topicPlaceholder
+    c.topicLabel = s.topicLabel
+    c.aurasClose = s.aurasClose
+    c.colourLabel = s.colourLabel
+    c.filterLabel = s.filterLabel
+    c.submit = s.submit
+    c.checking = s.checking
+    c.keepFC = s.keepFC
+    c.fcRibbon = s.fcRibbon
+    c.fcBadge = s.fcBadge
+    c.lockedHint = s.lockedHint
+    c.freeLine = s.freeLine
+    c.yours = s.yours
+    c.stampLabel = s.stampLabel
+    c.holdHint = s.holdHint
+    c.selected = s.selected
+    c.rejectBody = s.rejectBody
+    c.rejectRetry = s.rejectRetry
+    c.rejectRename = s.rejectRename
+    c.cardTitle = s.cardTitle
+    c.cardBody = s.cardBody
+    c.cardPrimary = s.cardPrimary
+    c.cardSecondary = s.cardSecondary
+    c.announce = s.announce
+    var seenIds = Set<String>()
+    c.categories = categories.compactMap { r in
+      guard !r.id.isEmpty, seenIds.insert(r.id).inserted, let rgb = KStampFrame.rgb(hex: r.hex) else { return nil }
+      return KStampEditCategory(id: r.id, rgb: rgb, name: r.name)
+    }
+    var seenFilters = Set<String>()
+    c.filters = filters.compactMap { r in
+      guard KPressFilter(rawValue: r.id) != nil, seenFilters.insert(r.id).inserted else { return nil }
+      return KStampEditFilterItem(id: r.id, name: r.name, locked: r.locked)
+    }
+    c.filterEditable = filterEditable
+    c.gold = gold
+    c.editing = editing
+    c.phase = KStampEditPhase(rawValue: phase) ?? .editing
+    c.rejectField = rejectField
+    return c
+  }
+
+  var seedValue: KStampEditSeed {
+    var v = KStampEditSeed()
+    v.seed = seed
+    v.photo = photo
+    v.topic = topic
+    v.category = category
+    v.filter = filter
+    return v
+  }
+}
+
+struct KStampEditView: ExpoSwiftUI.View {
+  @ObservedObject var props: KStampEditViewProps
+
+  var body: some View {
+    let insets = props.insets
+    return KStampEditScreen(
+      theme: props.kTheme,
+      content: props.content,
+      seed: props.seedValue,
+      topInset: insets.top,
+      bottomInset: max(insets.bottom, 12) + 12,
+      actions: props.actions
+    )
+    .kScreenEnvironment(props)
+    .onKCommand(props.commands) { _, _ in }
+  }
+}

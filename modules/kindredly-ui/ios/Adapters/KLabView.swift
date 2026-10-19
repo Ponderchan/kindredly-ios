@@ -242,3 +242,132 @@ extension KLabView: ExpoSwiftUI.FocusableView {
     reply.blur()
   }
 }
+
+// MARK: - STAMP PRESS (custom stamps, build agent A, 2026-10-19)
+
+/*
+ THE STAMP PRESS CAMERA as React Native sees it: <KStampPressView … /> on the JS side
+ (modules/kindredly-ui/src/StampPress.tsx), drawn by src/screens/stamp-press/StampPressNative.tsx
+ in one full-screen Host from the /stamp-press route (a full-screen modal). Appended here rather
+ than in a file of its own so the module needs no pod install. The page itself is
+ KStampPressCamera at the end of Portable/Kit/KLab.swift.
+
+ Props, beyond KScreenProps (insets: top = the status bar, bottom = the home indicator):
+ - strings: every word (KStampPressStringsRecord, the Portable KStampPressStrings field for field)
+
+ Events, with what nativeEvent carries:
+ - onSpClose {}                         the ×
+ - onSpPressed { uri, width, height, source }
+     the pressed photo: a file:// JPEG in Caches/stamp-press/, 960 × 1200, upright, no EXIF;
+     source "camera" | "library". Files there older than a day are swept on the next press.
+ - onSpError { message }                the photo could not be written (never silent)
+ */
+
+struct KStampPressStringsRecord: Record {
+  @Field var title: String = ""
+  @Field var hint: String = ""
+  @Field var upload: String = ""
+  @Field var zoom: String = ""
+  @Field var close: String = ""
+  @Field var flashOn: String = ""
+  @Field var flashOff: String = ""
+  @Field var zoomA11y: String = ""
+  @Field var shutter: String = ""
+  @Field var viewfinder: String = ""
+  @Field var choosePhoto: String = ""
+  @Field var permission: String = ""
+  @Field var allow: String = ""
+  @Field var openSettings: String = ""
+  @Field var instead: String = ""
+  @Field var cropHint: String = ""
+  @Field var cropA11y: String = ""
+  @Field var useThis: String = ""
+  @Field var back: String = ""
+  @Field var noCamera: String = ""
+  @Field var failed: String = ""
+  @Field var pressed: String = ""
+
+  /// the Portable strings; a field TS left empty keeps the English
+  var portable: KStampPressStrings {
+    var s = KStampPressStrings()
+    func put(_ v: String, _ k: WritableKeyPath<KStampPressStrings, String>) { if !v.isEmpty { s[keyPath: k] = v } }
+    put(title, \.title)
+    put(hint, \.hint)
+    put(upload, \.upload)
+    put(zoom, \.zoom)
+    put(close, \.close)
+    put(flashOn, \.flashOn)
+    put(flashOff, \.flashOff)
+    put(zoomA11y, \.zoomA11y)
+    put(shutter, \.shutter)
+    put(viewfinder, \.viewfinder)
+    put(choosePhoto, \.choosePhoto)
+    put(permission, \.permission)
+    put(allow, \.allow)
+    put(openSettings, \.openSettings)
+    put(instead, \.instead)
+    put(cropHint, \.cropHint)
+    put(cropA11y, \.cropA11y)
+    put(useThis, \.useThis)
+    put(back, \.back)
+    put(noCamera, \.noCamera)
+    put(failed, \.failed)
+    put(pressed, \.pressed)
+    return s
+  }
+}
+
+final class KStampPressViewProps: KScreenProps {
+  @Field var strings: KStampPressStringsRecord = KStampPressStringsRecord()
+
+  var onSpClose = EventDispatcher()
+  var onSpPressed = EventDispatcher()
+  var onSpError = EventDispatcher()
+
+  /// Writes the pressed photo where TS can read it and says where.
+  func deliver(_ photo: KPressedPhoto) {
+    let fm = FileManager.default
+    guard let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+      onSpError(["message": "no caches directory"])
+      return
+    }
+    let dir = caches.appendingPathComponent("stamp-press", isDirectory: true)
+    try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    // yesterday's presses that never became stamps
+    if let old = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) {
+      let dayAgo = Date().addingTimeInterval(-86_400)
+      for url in old {
+        let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        if let date, date < dayAgo { try? fm.removeItem(at: url) }
+      }
+    }
+    let url = dir.appendingPathComponent(UUID().uuidString.lowercased() + ".jpg")
+    do {
+      try photo.jpeg.write(to: url, options: .atomic)
+    } catch {
+      onSpError(["message": "could not write the pressed photo: \(error.localizedDescription)"])
+      return
+    }
+    onSpPressed([
+      "uri": url.absoluteString,
+      "width": Int(photo.image.size.width),
+      "height": Int(photo.image.size.height),
+      "source": photo.source.rawValue,
+    ])
+  }
+}
+
+struct KStampPressView: ExpoSwiftUI.View {
+  @ObservedObject var props: KStampPressViewProps
+
+  var body: some View {
+    KStampPressCamera(
+      strings: props.strings.portable,
+      topInset: props.insets.top,
+      bottomInset: props.insets.bottom,
+      onClose: { props.onSpClose() },
+      onPressed: { photo in props.deliver(photo) }
+    )
+    .kScreenEnvironment(props)
+  }
+}

@@ -1,6 +1,11 @@
-// Portable: this file imports SwiftUI only, so the 1.1.0 pure-Swift app can take it as is.
+// Portable: this file imports SwiftUI and Apple's camera and photo frameworks only (no Expo), so
+// the 1.1.0 pure-Swift app can take it as is. The Stamp Press camera lives at the end of this file
+// (MARK: STAMP PRESS) so the module needed no pod install; give it a file of its own at the next one.
 
 import SwiftUI
+import AVFoundation
+import Photos
+import PhotosUI
 
 /*
  THE STEP-5 SPIKE LAB (batch 0b, dev only). src/app/dev/step5-lab.tsx draws it through
@@ -540,5 +545,1154 @@ private struct KLabSwitch: View {
     }
     .toggleStyle(KToggleStyle(theme: theme))
     .onChange(of: on) { _, now in onToggle(now) }
+  }
+}
+
+// MARK: - STAMP PRESS · THE CAMERA (custom stamps, build agent A, 2026-10-19)
+
+/*
+ THE STAMP PRESS, V1 LIVE VIEWFINDER (the owner's final design: .claude/mock/stamp-press,
+ CLAUDE-CODE-PROMPTS-STAMP-PRESS.md Prompt 3, with .claude/custom-stamps/PROMPTS.md Prompt 2 for
+ the permission card and the crop page). React Native shows it through Adapters/KLabView.swift
+ (KStampPressView, the /stamp-press route); the edit page that follows is not drawn here.
+
+ One full-screen page, the tab bar hidden. The camera fills the screen (no darkroom colour on a
+ phone with a camera: the ground is the picture). Over it, one big stamp: our v3 gear frame
+ (a rounded rect with big half-circle bites, 3 across the top and bottom and 4 down each side),
+ 5:6, its white paper round a 4:5 window 10u from the paper's edge (on the 100 × 120 box: x 10–90,
+ y 10–110). The window draws the mask: one even-odd path, the whole screen and more less the
+ window, at rgba(20,18,42,.58), which moves with the stamp, so it can never sit out of line.
+ Four lime corner marks inside the window say "what's in here is the stamp".
+
+ Controls: × and the flash at the top; UPLOAD (the system photo picker, then the crop page),
+ the lime shutter and ZOOM 1× / 2× at the bottom. No flip camera (owner).
+
+ THE PRESS: t0 a white flash in the window (80ms) and a medium tap; t80 the picture freezes and
+ the corner marks fold away; t500 the whole stamp slides down out of the slot under it, to .72 and
+ -4° (.5s cubic-bezier(.3,1.2,.4,1)); t1000 the pressed photo goes to onPressed. Reduce Motion:
+ the flash is a .1s fade, nothing slides, the page fades and hands over at t500.
+
+ THE PHOTO (KPressedPhoto): the window's part of the picture, upright, 960 × 1200 (4:5, the long
+ side 1200), drawn afresh into a new bitmap and encoded as JPEG, so no EXIF or location survives.
+ The original never leaves this view. The camera's picture and the screen are both mapped by
+ aspect-fill, the preview layer's own gravity (KStampPressGeometry.cropRect).
+
+ ACCESS: not asked yet → our own card first (a blank stamp, "Your camera makes the stamp…",
+ Allow camera, which brings up the system prompt, and Choose a photo instead); refused → the same
+ card with Open Settings. No camera at all (the Simulator): a drawn stand-in scene fills the
+ screen and the shutter presses that, so the whole flow can be walked without a lens.
+
+ VoiceOver: the window is one element ("Camera view, the stamp's window"); the shutter is
+ "Press the stamp"; UPLOAD is "Choose a photo"; the result is announced. The control row keeps
+ its size at every Dynamic Type setting (icon buttons); the hint stops growing at xxLarge (≈1.35×).
+ */
+
+/// What the press made: the window's part of the picture, upright, 960 × 1200, no metadata.
+public struct KPressedPhoto: Equatable {
+  public enum Source: String, Sendable { case camera, library }
+  /// the photo, 960 × 1200 at scale 1
+  public let image: UIImage
+  /// the same photo as JPEG (quality 0.9), with no EXIF
+  public let jpeg: Data
+  public let source: Source
+
+  public init(image: UIImage, jpeg: Data, source: Source) {
+    self.image = image
+    self.jpeg = jpeg
+    self.source = source
+  }
+}
+
+/// Every word the press shows, already in the reader's language (src/data/strings-stamps2.ts,
+/// the camera block). English here only so a preview has something to draw.
+public struct KStampPressStrings: Equatable, Sendable {
+  public var title = "STAMP PRESS"
+  public var hint = "POINT AT THE MOMENT"
+  public var upload = "UPLOAD"
+  public var zoom = "ZOOM"
+  public var close = "Close"
+  public var flashOn = "Flash, on"
+  public var flashOff = "Flash, off"
+  public var shutter = "Press the stamp"
+  public var viewfinder = "Camera view, the stamp's window"
+  public var choosePhoto = "Choose a photo"
+  /// "{n}" is 1 or 2
+  public var zoomA11y = "Zoom, {n}×"
+  public var permission = "Your camera makes the stamp. Nothing is saved until you choose to keep it."
+  public var allow = "Allow camera"
+  public var openSettings = "Open Settings"
+  public var instead = "Choose a photo instead"
+  /// a phone with no back camera
+  public var noCamera = "No camera here. Choose a photo instead."
+  public var cropHint = "DRAG TO MOVE · PINCH TO ZOOM"
+  public var cropA11y = "The photo in the stamp's window. Drag to move it, pinch to zoom."
+  public var useThis = "Use this"
+  public var back = "Back"
+  public var failed = "That didn't come through. Try again."
+  public var pressed = "Pressed. Now name it."
+
+  public init() {}
+}
+
+/// The numbers of the press: the stamp's frame and window, and how a picture maps onto them.
+/// Pure, so the arithmetic can be checked away from a camera.
+public enum KStampPressGeometry {
+  /// 5:6
+  public static func height(_ width: CGFloat) -> CGFloat { width * 1.2 }
+
+  /// The 4:5 window in a stamp of this width: 10u in from the paper on the 100 × 120 box.
+  public static func window(width w: CGFloat) -> CGRect {
+    CGRect(x: w * 0.1, y: w * 0.1, width: w * 0.8, height: w)
+  }
+
+  /// The gear frame in `rect` (any 5:6 rect): a rounded rect, corner 7% of the width, with
+  /// half-circle bites of 5% of the width centred on the edge, at 25 / 50 / 75% across the top and
+  /// bottom and 20 / 40 / 60 / 80% down each side (the prototype's clip path, which is our v3
+  /// frame's 3 + 4).
+  public static func gear(in rect: CGRect) -> Path {
+    let w = rect.width
+    let h = rect.height
+    guard w > 0, h > 0 else { return Path() }
+    let body = Path(roundedRect: rect, cornerRadius: w * 0.07, style: .circular)
+    let r = w * 0.05
+    var bites = Path()
+    for fx in [0.25, 0.5, 0.75] as [CGFloat] {
+      for y in [rect.minY, rect.maxY] {
+        bites.addEllipse(in: CGRect(x: rect.minX + w * fx - r, y: y - r, width: 2 * r, height: 2 * r))
+      }
+    }
+    for fy in [0.2, 0.4, 0.6, 0.8] as [CGFloat] {
+      for x in [rect.minX, rect.maxX] {
+        bites.addEllipse(in: CGRect(x: x - r, y: rect.minY + h * fy - r, width: 2 * r, height: 2 * r))
+      }
+    }
+    return body.subtracting(bites)
+  }
+
+  /// The stamp's width on a screen: the screen less 64, no taller than the room left for it, and
+  /// never under 220 (an SE gives 311 × 373).
+  public static func stampWidth(screen: CGSize, room: CGFloat) -> CGFloat {
+    let byWidth = screen.width - 64
+    let byHeight = room / 1.2
+    return max(220, min(byWidth, byHeight))
+  }
+
+  /**
+   The part of a picture of `imageSize` that shows in `window` (in the view's points) when the
+   picture fills a view of `viewSize` by aspect-fill, centred (AVLayerVideoGravity
+   .resizeAspectFill). In the picture's pixels, clamped to the picture.
+   */
+  public static func cropRect(imageSize: CGSize, viewSize: CGSize, window: CGRect) -> CGRect {
+    guard imageSize.width > 0, imageSize.height > 0, viewSize.width > 0, viewSize.height > 0 else { return .zero }
+    let s = max(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
+    let ox = (viewSize.width - imageSize.width * s) / 2
+    let oy = (viewSize.height - imageSize.height * s) / 2
+    let r = CGRect(x: (window.minX - ox) / s, y: (window.minY - oy) / s, width: window.width / s, height: window.height / s)
+    return r.intersection(CGRect(origin: .zero, size: imageSize))
+  }
+
+  /// The output: 960 × 1200.
+  public static let output = CGSize(width: 960, height: 1200)
+
+  /// The part `crop` (pixels of an upright image) drawn into a new 960 × 1200 bitmap, JPEG 0.9.
+  /// A fresh bitmap carries no EXIF and no location.
+  public static func render(_ image: UIImage, crop: CGRect, source: KPressedPhoto.Source) -> KPressedPhoto? {
+    guard crop.width > 1, crop.height > 1 else { return nil }
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = true
+    let out = output
+    let k = out.width / crop.width
+    let ky = out.height / crop.height
+    let img = UIGraphicsImageRenderer(size: out, format: format).image { _ in
+      UIColor.white.setFill()
+      UIRectFill(CGRect(origin: .zero, size: out))
+      image.draw(in: CGRect(x: -crop.minX * k, y: -crop.minY * ky, width: image.size.width * k, height: image.size.height * ky))
+    }
+    guard let data = img.jpegData(compressionQuality: 0.9) else { return nil }
+    return KPressedPhoto(image: img, jpeg: data, source: source)
+  }
+
+  /// An upright copy at scale 1 (the camera's JPEG comes rotated by its EXIF orientation).
+  public static func upright(_ image: UIImage) -> UIImage {
+    if image.imageOrientation == .up, image.scale == 1 { return image }
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = true
+    let size = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+    return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+      image.draw(in: CGRect(origin: .zero, size: size))
+    }
+  }
+}
+
+/// The paper of the stamp, with the window cut out of it (so the picture shows through).
+struct KPressPaper: Shape {
+  /// drawn in the rect inset by this much (the white paper sits 2.5 inside the ink edge)
+  var inset: CGFloat = 0
+  var hole = true
+
+  func path(in rect: CGRect) -> Path {
+    let gear = KStampPressGeometry.gear(in: rect.insetBy(dx: inset, dy: inset * 1.2))
+    guard hole else { return gear }
+    let win = KStampPressGeometry.window(width: rect.width).offsetBy(dx: rect.minX, dy: rect.minY)
+    return gear.subtracting(Path(win))
+  }
+}
+
+/// The mask: everything but the window, `reach` points past the stamp on every side.
+struct KPressMask: Shape {
+  var reach: CGFloat = 2400
+
+  func path(in rect: CGRect) -> Path {
+    var p = Path(rect.insetBy(dx: -reach, dy: -reach))
+    let win = KStampPressGeometry.window(width: rect.width).offsetBy(dx: rect.minX, dy: rect.minY)
+    p.addRoundedRect(in: win, cornerSize: CGSize(width: 2, height: 2))
+    return p
+  }
+}
+
+/// The camera: one back wide camera, one photo output, run on a queue of its own.
+final class KPressCamera: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
+  /// standIn: the Simulator (a drawn scene to press); noLens: a real phone with no back camera
+  enum Access: Equatable { case unknown, ask, denied, live, standIn, noLens }
+
+  @Published var access: Access = .unknown
+  @Published var hasFlash = false
+
+  let session = AVCaptureSession()
+  private let queue = DispatchQueue(label: "app.kindredly.stamp-press")
+  private let output = AVCapturePhotoOutput()
+  private var device: AVCaptureDevice?
+  private var configured = false
+  private var pending: ((UIImage?) -> Void)?
+  /// the preview's layer, to freeze the picture at the press (set by KPressPreview)
+  weak var previewLayer: AVCaptureVideoPreviewLayer?
+
+  static var lens: AVCaptureDevice? {
+    AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+  }
+
+  /// Reads the permission and starts the camera when it may.
+  func refresh() {
+    let lens = Self.lens
+    switch AVCaptureDevice.authorizationStatus(for: .video) {
+    case .authorized:
+      if lens == nil {
+        #if targetEnvironment(simulator)
+        access = .standIn
+        #else
+        access = .noLens
+        #endif
+      } else {
+        access = .live
+        start()
+      }
+    case .notDetermined:
+      access = .ask
+    default:
+      access = .denied
+    }
+  }
+
+  /// The system prompt (from the card's Allow camera).
+  func ask() {
+    AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+      DispatchQueue.main.async {
+        guard let self else { return }
+        if granted { self.refresh() } else { self.access = .denied }
+      }
+    }
+  }
+
+  func start() {
+    queue.async { [weak self] in
+      guard let self else { return }
+      if !self.configured { self.configure() }
+      if self.configured, !self.session.isRunning { self.session.startRunning() }
+    }
+  }
+
+  func stop() {
+    queue.async { [weak self] in
+      guard let self, self.session.isRunning else { return }
+      self.session.stopRunning()
+    }
+  }
+
+  private func configure() {
+    guard let lens = Self.lens, let input = try? AVCaptureDeviceInput(device: lens) else { return }
+    session.beginConfiguration()
+    session.sessionPreset = .photo
+    if session.canAddInput(input) { session.addInput(input) }
+    if session.canAddOutput(output) { session.addOutput(output) }
+    output.maxPhotoQualityPrioritization = .balanced
+    session.commitConfiguration()
+    device = lens
+    configured = true
+    let flash = lens.hasFlash
+    DispatchQueue.main.async { [weak self] in self?.hasFlash = flash }
+  }
+
+  /// 1× or 2× (2× or the lens's most, whichever is less), eased.
+  func zoom(two: Bool) {
+    queue.async { [weak self] in
+      guard let d = self?.device, (try? d.lockForConfiguration()) != nil else { return }
+      let f = two ? min(2, d.maxAvailableVideoZoomFactor) : 1
+      d.ramp(toVideoZoomFactor: f, withRate: 8)
+      d.unlockForConfiguration()
+    }
+  }
+
+  /// Holds the picture still on screen (the preview stops taking frames).
+  func freeze() {
+    previewLayer?.connection?.isEnabled = false
+  }
+
+  func thaw() {
+    previewLayer?.connection?.isEnabled = true
+  }
+
+  /// Takes the photo; `done` gets it upright on the main queue, or nil.
+  func capture(flash: Bool, done: @escaping (UIImage?) -> Void) {
+    queue.async { [weak self] in
+      guard let self, self.configured, self.session.isRunning else {
+        DispatchQueue.main.async { done(nil) }
+        return
+      }
+      let settings = AVCapturePhotoSettings()
+      if flash, self.output.supportedFlashModes.contains(.on) { settings.flashMode = .on }
+      self.pending = done
+      self.output.capturePhoto(with: settings, delegate: self)
+    }
+  }
+
+  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    var image: UIImage?
+    if error == nil, let data = photo.fileDataRepresentation(), let raw = UIImage(data: data) {
+      image = KStampPressGeometry.upright(raw)
+    }
+    let done = pending
+    pending = nil
+    DispatchQueue.main.async { done?(image) }
+  }
+}
+
+/// The live picture, filling its frame by aspect-fill.
+final class KPressPreviewView: UIView {
+  override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+  var previewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+}
+
+struct KPressPreview: UIViewRepresentable {
+  let camera: KPressCamera
+
+  func makeUIView(context: Context) -> KPressPreviewView {
+    let v = KPressPreviewView()
+    v.backgroundColor = .black
+    v.previewLayer.session = camera.session
+    v.previewLayer.videoGravity = .resizeAspectFill
+    camera.previewLayer = v.previewLayer
+    return v
+  }
+
+  func updateUIView(_ uiView: KPressPreviewView, context: Context) {}
+}
+
+/// What the screen shows where there is no camera (the Simulator): a drawn morning, so the
+/// viewfinder, the press and the crop can all be tried. It fills its frame, as the camera does.
+struct KPressStandIn: View {
+  /// the Simulator only, never a reader: not translated
+  let label = "SIMULATOR · NO CAMERA"
+
+  var body: some View {
+    GeometryReader { g in
+      let w = g.size.width
+      let h = g.size.height
+      ZStack {
+        LinearGradient(colors: [Color(hex: "#9EC5E8"), Color(hex: "#F6D9C6")], startPoint: .top, endPoint: .bottom)
+        Circle().fill(Color(hex: "#FFD66B")).frame(width: w * 0.32, height: w * 0.32).position(x: w * 0.66, y: h * 0.4)
+        Path { p in
+          p.move(to: CGPoint(x: 0, y: h * 0.62))
+          p.addQuadCurve(to: CGPoint(x: w, y: h * 0.58), control: CGPoint(x: w * 0.45, y: h * 0.46))
+          p.addLine(to: CGPoint(x: w, y: h))
+          p.addLine(to: CGPoint(x: 0, y: h))
+          p.closeSubpath()
+        }
+        .fill(Color(hex: "#7DB387"))
+        Path { p in
+          p.move(to: CGPoint(x: 0, y: h * 0.74))
+          p.addQuadCurve(to: CGPoint(x: w, y: h * 0.7), control: CGPoint(x: w * 0.6, y: h * 0.62))
+          p.addLine(to: CGPoint(x: w, y: h))
+          p.addLine(to: CGPoint(x: 0, y: h))
+          p.closeSubpath()
+        }
+        .fill(Color(hex: "#4E8A5C"))
+        Text(label)
+          .font(.system(size: 10, weight: .semibold, design: .monospaced))
+          .tracking(1.4)
+          .foregroundStyle(Color.white.opacity(0.85))
+          .position(x: w / 2, y: h * 0.88)
+      }
+    }
+    .accessibilityHidden(true)
+  }
+}
+
+/// The system photo picker, shown over whatever is on top (the press sits in a React Native
+/// modal, so a SwiftUI sheet would have no controller of its own to present from).
+final class KPressPickerPresenter: NSObject, PHPickerViewControllerDelegate {
+  private var done: ((UIImage?) -> Void)?
+  private static var current: KPressPickerPresenter?
+
+  static func present(_ done: @escaping (UIImage?) -> Void) {
+    var config = PHPickerConfiguration()
+    config.filter = .images
+    config.selectionLimit = 1
+    config.preferredAssetRepresentationMode = .current
+    let picker = PHPickerViewController(configuration: config)
+    let me = KPressPickerPresenter()
+    me.done = done
+    current = me
+    picker.delegate = me
+    guard let top = topController() else {
+      current = nil
+      done(nil)
+      return
+    }
+    top.present(picker, animated: true)
+  }
+
+  static func topController() -> UIViewController? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    let window = scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? scenes.first?.windows.first
+    var top = window?.rootViewController
+    while let next = top?.presentedViewController { top = next }
+    return top
+  }
+
+  func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    picker.dismiss(animated: true)
+    let finish: (UIImage?) -> Void = { [weak self] image in
+      DispatchQueue.main.async {
+        self?.done?(image.map(KStampPressGeometry.upright))
+        self?.done = nil
+        KPressPickerPresenter.current = nil
+      }
+    }
+    guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else {
+      finish(nil)
+      return
+    }
+    provider.loadObject(ofClass: UIImage.self) { object, _ in
+      finish(object as? UIImage)
+    }
+  }
+}
+
+/// The newest photo in the library as a small square, only when the library is already open to
+/// the app (it never asks for that just to draw a thumbnail).
+enum KPressThumb {
+  static func load(_ done: @escaping (UIImage?) -> Void) {
+    let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+    guard status == .authorized || status == .limited else { return done(nil) }
+    let options = PHFetchOptions()
+    options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+    options.fetchLimit = 1
+    guard let asset = PHAsset.fetchAssets(with: .image, options: options).firstObject else { return done(nil) }
+    let req = PHImageRequestOptions()
+    req.deliveryMode = .opportunistic
+    req.isNetworkAccessAllowed = false
+    PHImageManager.default().requestImage(for: asset, targetSize: CGSize(width: 132, height: 132), contentMode: .aspectFill, options: req) { image, _ in
+      DispatchQueue.main.async { done(image) }
+    }
+  }
+}
+
+/// THE STAMP PRESS PAGE (see the comment at the top of this section).
+public struct KStampPressCamera: View {
+  private let strings: KStampPressStrings
+  private let topInset: CGFloat
+  private let bottomInset: CGFloat
+  private let onClose: () -> Void
+  private let onPressed: (KPressedPhoto) -> Void
+
+  @StateObject private var camera = KPressCamera()
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.scenePhase) private var scenePhase
+
+  @State private var flashOn = false
+  @State private var twoX = false
+  @State private var hintShown = true
+  @State private var cornersShown = true
+  @State private var flashOpacity: Double = 0
+  @State private var frozen: UIImage?
+  @State private var slid = false
+  @State private var handing = false
+  @State private var busy = false
+  @State private var tap = 0
+  @State private var thumb: UIImage?
+  @State private var failedShown = false
+  // the crop page (a photo from the library)
+  @State private var cropping: UIImage?
+  @State private var cropScale: CGFloat = 1
+  @State private var cropScaleBase: CGFloat = 1
+  @State private var cropOffset: CGSize = .zero
+  @State private var cropOffsetBase: CGSize = .zero
+  // where the window is on screen, and the screen (for the camera's crop)
+  @State private var windowOnScreen: CGRect = .zero
+  @State private var screen: CGSize = .zero
+
+  private static let ink = Color(hex: "#1E1B35")
+  private static let room = Color(hex: "#14122A")
+  private static let maskColor = Color(red: 20 / 255, green: 18 / 255, blue: 42 / 255)
+
+  public init(
+    strings: KStampPressStrings,
+    topInset: CGFloat,
+    bottomInset: CGFloat,
+    onClose: @escaping () -> Void,
+    onPressed: @escaping (KPressedPhoto) -> Void
+  ) {
+    self.strings = strings
+    self.topInset = topInset
+    self.bottomInset = bottomInset
+    self.onClose = onClose
+    self.onPressed = onPressed
+  }
+
+  private var canPress: Bool {
+    !busy && (cropping != nil || camera.access == .live || camera.access == .standIn)
+  }
+
+  private var showsCard: Bool {
+    cropping == nil && frozen == nil && (camera.access == .ask || camera.access == .denied)
+  }
+
+  public var body: some View {
+    GeometryReader { g in
+      let size = g.size
+      // the room the stamp may take: below the top row, above the controls
+      let top = topInset + 8 + 44 + 44
+      let below: CGFloat = 12 + 2 + 14 + 16 + 20
+      // the permission card (words + Allow + Choose a photo, Dynamic Type capped at AX1) is
+      // taller than the control row: reserve its room or "Choose a photo instead" falls off an SE
+      let controls = bottomInset + 24 + (showsCard ? 196 : 96)
+      let sw = KStampPressGeometry.stampWidth(screen: size, room: size.height - top - below - controls)
+      ZStack(alignment: .top) {
+        Self.room
+        picture(size: size)
+        VStack(spacing: 0) {
+          topRow
+            .padding(.top, topInset + 8)
+            .padding(.horizontal, 20)
+            .opacity(handing ? 0 : 1)
+            // above the stamp's mask, which reaches over the whole screen
+            .zIndex(1)
+          Spacer().frame(height: 44)
+          stamp(width: sw)
+          slotAndHint(width: sw)
+            .opacity(handing ? 0 : 1)
+          Spacer(minLength: 0)
+          if showsCard {
+            card
+              .padding(.horizontal, 32)
+              .padding(.bottom, bottomInset + 24)
+          } else {
+            controlRow
+              .padding(.horizontal, 40)
+              .padding(.bottom, bottomInset + 24)
+              .opacity(handing ? 0 : 1)
+          }
+        }
+      }
+      .coordinateSpace(name: "stampPress")
+      .onAppear { screen = size }
+      .onChange(of: size) { _, now in screen = now }
+    }
+    .ignoresSafeArea()
+    .environment(\.colorScheme, .dark)
+    .sensoryFeedback(.impact(weight: .medium), trigger: tap)
+    .onAppear {
+      camera.refresh()
+      KPressThumb.load { thumb = $0 }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        withAnimation(.easeOut(duration: 0.6)) { hintShown = false }
+      }
+    }
+    .onDisappear { camera.stop() }
+    .onChange(of: scenePhase) { _, phase in
+      // back from Settings, or the app coming forward: read the permission again
+      if phase == .active, frozen == nil, cropping == nil { camera.refresh() }
+    }
+  }
+
+  // MARK: the picture behind everything
+
+  @ViewBuilder
+  private func picture(size: CGSize) -> some View {
+    if cropping == nil {
+      switch camera.access {
+      case .live:
+        KPressPreview(camera: camera)
+          .frame(width: size.width, height: size.height)
+          .accessibilityHidden(true)
+      case .standIn:
+        KPressStandIn()
+          .frame(width: size.width, height: size.height)
+          .scaleEffect(twoX ? 2 : 1)
+          .clipped()
+      default:
+        EmptyView()
+      }
+    }
+  }
+
+  // MARK: the top row
+
+  private var topRow: some View {
+    HStack {
+      Button(action: close) {
+        Circle()
+          .strokeBorder(Color.white, lineWidth: 1.5)
+          .frame(width: 44, height: 44)
+          .overlay(KLineIcon(.close, size: 18, lineWidth: 2, color: .white))
+          .contentShape(Circle())
+      }
+      .buttonStyle(KPressScaleStyle())
+      .accessibilityLabel(cropping != nil ? strings.back : strings.close)
+      Spacer()
+      Text(strings.title)
+        .kText(.mono(10, tracking: 0.16))
+        .foregroundStyle(Color.white.opacity(0.7))
+        .lineLimit(1)
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .accessibilityAddTraits(.isHeader)
+      Spacer()
+      Button { flashOn.toggle() } label: {
+        Circle()
+          .strokeBorder(Color.white, lineWidth: 1.5)
+          .frame(width: 44, height: 44)
+          .overlay(Self.bolt.stroke(flashOn ? KBrand.lime : Color.white, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)).frame(width: 18, height: 18))
+          .contentShape(Circle())
+      }
+      .buttonStyle(KPressScaleStyle())
+      .opacity(flashButtonShown ? 1 : 0)
+      .disabled(!flashButtonShown)
+      .accessibilityHidden(!flashButtonShown)
+      .accessibilityLabel(flashOn ? strings.flashOn : strings.flashOff)
+    }
+    .frame(height: 44)
+  }
+
+  private var flashButtonShown: Bool {
+    cropping == nil && camera.access == .live && camera.hasFlash
+  }
+
+  /// the prototype's bolt, M13 2L5 14h6l-1 8 8-12h-6z on the 24 grid
+  private static let bolt = KPressBolt()
+
+  // MARK: the stamp
+
+  private func stamp(width sw: CGFloat) -> some View {
+    let sh = KStampPressGeometry.height(sw)
+    let win = KStampPressGeometry.window(width: sw)
+    return ZStack(alignment: .topLeading) {
+      // what is in the window: the frozen press, the photo being cropped, or nothing (the live
+      // picture behind shows through)
+      Group {
+        if let frozen {
+          Image(uiImage: frozen).resizable().interpolation(.high)
+            .accessibilityHidden(true)
+        } else if let cropping {
+          cropContent(cropping, window: win.size)
+        } else if showsCard {
+          Self.room.overlay(KLineIcon(.camera, size: 28, lineWidth: 1.9, color: Color.white.opacity(0.8)))
+            .accessibilityHidden(true)
+        } else {
+          // the live picture shows through here: one element for VoiceOver
+          Color.clear
+            .contentShape(Rectangle())
+            .accessibilityElement()
+            .accessibilityLabel(strings.viewfinder)
+            .accessibilityAddTraits(.isImage)
+        }
+      }
+      .frame(width: win.width, height: win.height)
+      .clipShape(RoundedRectangle(cornerRadius: 2))
+      .offset(x: win.minX, y: win.minY)
+
+      // the paper: the ink edge, then the white 2.5 inside it, both with the window cut out
+      KPressPaper(inset: 0).fill(Self.ink, style: FillStyle(eoFill: false))
+        .frame(width: sw, height: sh)
+        .allowsHitTesting(false)
+      KPressPaper(inset: 2.5).fill(Color.white)
+        .frame(width: sw, height: sh)
+        .allowsHitTesting(false)
+      if showsCard {
+        // the card's blank stamp: a dashed keyline inside the paper
+        RoundedRectangle(cornerRadius: 2)
+          .stroke(Color.white.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+          .frame(width: win.width - 12, height: win.height - 12)
+          .offset(x: win.minX + 6, y: win.minY + 6)
+          .allowsHitTesting(false)
+      }
+
+      // the mask grows from the window: everything else under .58 (.6 on the crop page)
+      KPressMask()
+        .fill(Self.maskColor.opacity(cropping != nil ? 0.6 : 0.58), style: FillStyle(eoFill: true))
+        .frame(width: sw, height: sh)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+
+      corners(window: win)
+        .allowsHitTesting(false)
+
+      Color.white
+        .opacity(flashOpacity)
+        .frame(width: win.width, height: win.height)
+        .offset(x: win.minX, y: win.minY)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+    .frame(width: sw, height: sh, alignment: .topLeading)
+    .scaleEffect(slid ? 0.72 : 1)
+    .rotationEffect(.degrees(slid ? -4 : 0))
+    .offset(y: slid ? sh * 0.42 : 0)
+    .onGeometryChange(for: CGRect.self) { proxy in
+      proxy.frame(in: .named("stampPress"))
+    } action: { frame in
+      // the window on screen, for mapping the camera's photo (only while the stamp stands still)
+      if !slid { windowOnScreen = win.offsetBy(dx: frame.minX, dy: frame.minY) }
+    }
+  }
+
+  private func corners(window win: CGRect) -> some View {
+    let l: CGFloat = 12
+    let i: CGFloat = 10
+    return ZStack(alignment: .topLeading) {
+      ForEach(0..<4, id: \.self) { k in
+        let right = k % 2 == 1
+        let bottom = k >= 2
+        KPressCorner(right: right, bottom: bottom)
+          .stroke(KBrand.lime, style: StrokeStyle(lineWidth: 2, lineCap: .square))
+          .frame(width: l, height: l)
+          .offset(
+            x: right ? win.maxX - i - l : win.minX + i,
+            y: bottom ? win.maxY - i - l : win.minY + i
+          )
+      }
+    }
+    .scaleEffect(cornersShown ? 1 : 0.001, anchor: .center)
+    .opacity(cornersShown && !showsCard ? 1 : 0)
+    .accessibilityHidden(true)
+  }
+
+  private func slotAndHint(width sw: CGFloat) -> some View {
+    VStack(spacing: 14) {
+      // the slot the pressed stamp slides out of
+      Rectangle().fill(Color.white.opacity(0.25)).frame(width: sw, height: 2)
+      Text(cropping != nil ? strings.cropHint : (camera.access == .noLens ? strings.noCamera : strings.hint))
+        .kText(.mono(10, tracking: 0.14))
+        .foregroundStyle(Color.white.opacity(0.8))
+        .multilineTextAlignment(.center)
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .opacity(failedShown ? 0 : ((hintShown || cropping != nil || camera.access == .noLens) && !showsCard ? 1 : 0))
+        .overlay {
+          if failedShown {
+            Text(strings.failed)
+              .kText(.mono(10, tracking: 0.14))
+              .foregroundStyle(Color.white)
+              .multilineTextAlignment(.center)
+              .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+        }
+        .accessibilityHidden(!hintShown && cropping == nil && !failedShown && camera.access != .noLens)
+    }
+    .padding(.top, 12)
+  }
+
+  // MARK: the controls
+
+  private var controlRow: some View {
+    Group {
+      if cropping != nil {
+        HStack(spacing: 14) {
+          Button(action: leaveCrop) {
+            Text(strings.back)
+              .font(.system(size: 16, weight: .semibold))
+              .foregroundStyle(Color.white)
+              .frame(maxWidth: .infinity, minHeight: 52)
+              .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5))
+              .contentShape(RoundedRectangle(cornerRadius: 16))
+          }
+          .buttonStyle(KPressScaleStyle(scale: 0.97))
+          Button(action: useCrop) {
+            Text(strings.useThis)
+              .font(.system(size: 16, weight: .semibold))
+              .foregroundStyle(KBrand.inkOnBrand)
+              .frame(maxWidth: .infinity, minHeight: 52)
+              .background(RoundedRectangle(cornerRadius: 16).fill(KBrand.lime))
+              // the hard shadow sits BEHIND the lime (a later .background is further back)
+              .background(
+                RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.5)).offset(x: 4, y: 4)
+              )
+              .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Self.ink, lineWidth: 2.5))
+              .contentShape(RoundedRectangle(cornerRadius: 16))
+          }
+          .buttonStyle(KPressScaleStyle(scale: 0.97))
+          .disabled(busy)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+      } else {
+        HStack(alignment: .center, spacing: 0) {
+          uploadButton.frame(maxWidth: .infinity)
+          shutter.frame(maxWidth: .infinity)
+          zoomButton.frame(maxWidth: .infinity)
+        }
+        // icon buttons: they keep their size at every Dynamic Type setting
+        .dynamicTypeSize(.large)
+      }
+    }
+    .frame(minHeight: 96)
+  }
+
+  private var uploadButton: some View {
+    Button(action: pick) {
+      VStack(spacing: 5) {
+        RoundedRectangle(cornerRadius: 10)
+          .fill(Color.white.opacity(0.08))
+          .frame(width: 44, height: 44)
+          .overlay {
+            if let thumb {
+              Image(uiImage: thumb).resizable().scaledToFill().frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 10))
+            } else {
+              KLineIcon(.picture, size: 22, lineWidth: 1.9, color: .white)
+            }
+          }
+          .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5))
+        Text(strings.upload)
+          .kText(.mono(8, tracking: 0.14))
+          .foregroundStyle(Color.white.opacity(0.75))
+          .lineLimit(1)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KPressScaleStyle())
+    .disabled(busy)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(strings.choosePhoto)
+    .accessibilityAddTraits(.isButton)
+  }
+
+  private var shutter: some View {
+    Button(action: press) {
+      ZStack {
+        Circle().fill(Color.black.opacity(0.5)).offset(x: 4, y: 4)
+        Circle().fill(KBrand.lime)
+        Circle().strokeBorder(Self.ink, lineWidth: 2.5)
+        Circle().strokeBorder(Self.ink, lineWidth: 1.5).frame(width: 60, height: 60)
+      }
+      .frame(width: 76, height: 76)
+      .contentShape(Circle())
+    }
+    .buttonStyle(KPressScaleStyle())
+    .disabled(!canPress)
+    .opacity(canPress || busy ? 1 : 0.5)
+    .accessibilityLabel(strings.shutter)
+  }
+
+  private var zoomButton: some View {
+    Button(action: toggleZoom) {
+      VStack(spacing: 5) {
+        Circle()
+          .fill(twoX ? KBrand.lime.opacity(0.9) : Color.clear)
+          .frame(width: 44, height: 44)
+          .overlay(Circle().strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5))
+          .overlay(
+            Text(twoX ? "2×" : "1×")
+              .kText(.mono(11))
+              .foregroundStyle(twoX ? KBrand.inkOnBrand : Color.white)
+          )
+        Text(strings.zoom)
+          .kText(.mono(8, tracking: 0.14))
+          .foregroundStyle(Color.white.opacity(0.75))
+          .lineLimit(1)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KPressScaleStyle())
+    .disabled(busy || !(camera.access == .live || camera.access == .standIn))
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(strings.zoomA11y.replacingOccurrences(of: "{n}", with: twoX ? "2" : "1"))
+    .accessibilityAddTraits(.isButton)
+  }
+
+  // MARK: the permission card
+
+  private var card: some View {
+    VStack(spacing: 14) {
+      Text(strings.permission)
+        .font(.system(size: 15, weight: .regular))
+        .foregroundStyle(Color.white)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+      Button(action: camera.access == .denied ? openSettings : camera.ask) {
+        Text(camera.access == .denied ? strings.openSettings : strings.allow)
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundStyle(KBrand.inkOnBrand)
+          .frame(maxWidth: .infinity, minHeight: 52)
+          .background(RoundedRectangle(cornerRadius: 16).fill(KBrand.lime))
+          .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.5)).offset(x: 4, y: 4))
+          .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Self.ink, lineWidth: 2.5))
+          .contentShape(RoundedRectangle(cornerRadius: 16))
+      }
+      .buttonStyle(KPressScaleStyle(scale: 0.97))
+      Button(action: pick) {
+        Text(strings.instead)
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(Color.white)
+          .frame(maxWidth: .infinity, minHeight: 44)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(KPressScaleStyle(scale: 0.97))
+    }
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+  }
+
+  // MARK: the crop page's photo
+
+  private func cropContent(_ image: UIImage, window: CGSize) -> some View {
+    let base = Self.fillScale(image.size, window)
+    let k = base * cropScale
+    return Image(uiImage: image)
+      .resizable()
+      .interpolation(.high)
+      .frame(width: image.size.width * k, height: image.size.height * k)
+      .offset(cropOffset)
+      .frame(width: window.width, height: window.height)
+      .contentShape(Rectangle())
+      .gesture(
+        DragGesture()
+          .onChanged { v in
+            cropOffset = Self.clampOffset(
+              CGSize(width: cropOffsetBase.width + v.translation.width, height: cropOffsetBase.height + v.translation.height),
+              image: image.size, window: window, scale: cropScale)
+          }
+          .onEnded { _ in cropOffsetBase = cropOffset }
+          .simultaneously(with:
+            MagnifyGesture()
+              .onChanged { v in
+                cropScale = min(6, max(1, cropScaleBase * v.magnification))
+                cropOffset = Self.clampOffset(cropOffset, image: image.size, window: window, scale: cropScale)
+              }
+              .onEnded { _ in
+                cropScaleBase = cropScale
+                cropOffsetBase = cropOffset
+              }
+          )
+      )
+      .accessibilityElement()
+      .accessibilityLabel(strings.cropA11y)
+      .accessibilityAddTraits(.isImage)
+      .accessibilityAdjustableAction { dir in
+        // VoiceOver: swipe up / down zooms
+        cropScale = min(6, max(1, cropScale * (dir == .increment ? 1.2 : 1 / 1.2)))
+        cropScaleBase = cropScale
+        cropOffset = Self.clampOffset(cropOffset, image: image.size, window: window, scale: cropScale)
+        cropOffsetBase = cropOffset
+      }
+  }
+
+  /// the scale at which the picture just covers the window
+  static func fillScale(_ image: CGSize, _ window: CGSize) -> CGFloat {
+    guard image.width > 0, image.height > 0 else { return 1 }
+    return max(window.width / image.width, window.height / image.height)
+  }
+
+  /// keeps the window covered: the picture's edges never come inside it
+  static func clampOffset(_ o: CGSize, image: CGSize, window: CGSize, scale: CGFloat) -> CGSize {
+    let k = fillScale(image, window) * scale
+    let mx = max(0, (image.width * k - window.width) / 2)
+    let my = max(0, (image.height * k - window.height) / 2)
+    return CGSize(width: min(mx, max(-mx, o.width)), height: min(my, max(-my, o.height)))
+  }
+
+  /// the crop page's window in the picture's pixels
+  static func cropRect(image: CGSize, window: CGSize, scale: CGFloat, offset: CGSize) -> CGRect {
+    let k = fillScale(image, window) * scale
+    guard k > 0 else { return .zero }
+    // the picture's top-left in the window's points
+    let ox = window.width / 2 + offset.width - image.width * k / 2
+    let oy = window.height / 2 + offset.height - image.height * k / 2
+    let r = CGRect(x: -ox / k, y: -oy / k, width: window.width / k, height: window.height / k)
+    return r.intersection(CGRect(origin: .zero, size: image))
+  }
+
+  // MARK: actions
+
+  private func close() {
+    if cropping != nil { return leaveCrop() }
+    camera.stop()
+    onClose()
+  }
+
+  private func toggleZoom() {
+    twoX.toggle()
+    if camera.access == .live { camera.zoom(two: twoX) }
+  }
+
+  private func openSettings() {
+    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+  }
+
+  private func pick() {
+    guard !busy else { return }
+    KPressPickerPresenter.present { image in
+      guard let image else { return }
+      camera.stop()
+      cropScale = 1
+      cropScaleBase = 1
+      cropOffset = .zero
+      cropOffsetBase = .zero
+      failedShown = false
+      cropping = image
+    }
+  }
+
+  private func leaveCrop() {
+    guard !busy else { return }
+    cropping = nil
+    camera.refresh()
+  }
+
+  private func useCrop() {
+    guard let image = cropping, !busy else { return }
+    let win = windowOnScreen.size
+    let crop = Self.cropRect(image: image.size, window: win, scale: cropScale, offset: cropOffset)
+    busy = true
+    strike()
+    guard let pressed = KStampPressGeometry.render(image, crop: crop, source: .library) else {
+      busy = false
+      return showFailed()
+    }
+    frozen = pressed.image
+    run(pressed)
+  }
+
+  /// the shutter
+  private func press() {
+    guard canPress, cropping == nil else { return }
+    busy = true
+    failedShown = false
+    strike()
+    let window = windowOnScreen
+    let view = screen
+    if camera.access == .standIn {
+      let renderer = ImageRenderer(content:
+        KPressStandIn()
+          .frame(width: view.width, height: view.height)
+          .scaleEffect(twoX ? 2 : 1)
+          .clipped()
+      )
+      renderer.scale = 2
+      guard let shot = renderer.uiImage.map(KStampPressGeometry.upright),
+            let pressed = KStampPressGeometry.render(shot, crop: KStampPressGeometry.cropRect(imageSize: shot.size, viewSize: view, window: window), source: .camera)
+      else {
+        busy = false
+        return showFailed()
+      }
+      frozen = pressed.image
+      return run(pressed)
+    }
+    // t80: the picture holds still
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { camera.freeze() }
+    let started = Date()
+    camera.capture(flash: flashOn) { shot in
+      guard let shot,
+            let pressed = KStampPressGeometry.render(shot, crop: KStampPressGeometry.cropRect(imageSize: shot.size, viewSize: view, window: window), source: .camera)
+      else {
+        camera.thaw()
+        withAnimation(.easeOut(duration: 0.2)) { cornersShown = true }
+        busy = false
+        return showFailed()
+      }
+      frozen = pressed.image
+      camera.stop()
+      run(pressed, elapsed: Date().timeIntervalSince(started))
+    }
+  }
+
+  /// t0: the white flash in the window and the tap (the ka-chunk)
+  private func strike() {
+    tap += 1
+    flashOpacity = 0.9
+    withAnimation(.linear(duration: reduceMotion ? 0.1 : 0.08)) { flashOpacity = 0 }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+      withAnimation(.easeIn(duration: 0.2)) { cornersShown = false }
+    }
+  }
+
+  /// t500 the slide, t1000 the hand-over (Reduce Motion: a fade, the hand-over at t500)
+  private func run(_ pressed: KPressedPhoto, elapsed: TimeInterval = 0) {
+    AccessibilityNotification.Announcement(strings.pressed).post()
+    if reduceMotion {
+      let wait = max(0.15, 0.3 - elapsed)
+      DispatchQueue.main.asyncAfter(deadline: .now() + wait) {
+        withAnimation(.easeInOut(duration: 0.2)) { handing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { onPressed(pressed) }
+      }
+      return
+    }
+    let wait = max(0.05, 0.5 - elapsed)
+    DispatchQueue.main.asyncAfter(deadline: .now() + wait) {
+      withAnimation(.timingCurve(0.3, 1.2, 0.4, 1, duration: 0.5)) { slid = true }
+      withAnimation(.easeOut(duration: 0.3)) { handing = true }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { onPressed(pressed) }
+    }
+  }
+
+  private func showFailed() {
+    withAnimation(.easeOut(duration: 0.2)) { failedShown = true }
+    AccessibilityNotification.Announcement(strings.failed).post()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+      withAnimation(.easeOut(duration: 0.4)) { failedShown = false }
+    }
+  }
+}
+
+/// one corner mark: an L, 12 × 12
+struct KPressCorner: Shape {
+  let right: Bool
+  let bottom: Bool
+
+  func path(in rect: CGRect) -> Path {
+    var p = Path()
+    let x0 = right ? rect.maxX : rect.minX
+    let y0 = bottom ? rect.maxY : rect.minY
+    p.move(to: CGPoint(x: right ? rect.minX : rect.maxX, y: y0))
+    p.addLine(to: CGPoint(x: x0, y: y0))
+    p.addLine(to: CGPoint(x: x0, y: bottom ? rect.minY : rect.maxY))
+    return p
+  }
+}
+
+/// the flash key's bolt: M13 2L5 14h6l-1 8 8-12h-6z on the 24 grid
+struct KPressBolt: Shape {
+  func path(in rect: CGRect) -> Path {
+    let s = min(rect.width, rect.height) / 24
+    func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+    var p = Path()
+    p.move(to: pt(13, 2))
+    p.addLine(to: pt(5, 14))
+    p.addLine(to: pt(11, 14))
+    p.addLine(to: pt(10, 22))
+    p.addLine(to: pt(18, 10))
+    p.addLine(to: pt(12, 10))
+    p.closeSubpath()
+    return p
   }
 }

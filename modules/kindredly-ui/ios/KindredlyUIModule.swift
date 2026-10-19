@@ -87,6 +87,22 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // custom stamps: the Stamp Press camera (adapter appended to Adapters/KLabView.swift, the page
+    // at the end of Portable/Kit/KLab.swift), the /stamp-press route
+    ExpoUIView(KStampPressView.self) {
+      AsyncFunction("command") { (view: KStampPressView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
+    // Stamp Press: the edit page (adapter appended to Adapters/KEditProfileView.swift, the screen
+    // to Portable/Profile/KFaceStrip.swift; src/app/stamp-edit.tsx)
+    ExpoUIView(KStampEditView.self) {
+      AsyncFunction("command") { (view: KStampEditView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // dev only on the JS side (src/app/dev/step5-lab.tsx): the batch 0b spike lab, a screen view
     // like the eight above (KScreenProps, the command bus, a KField)
     ExpoUIView(KLabView.self) {

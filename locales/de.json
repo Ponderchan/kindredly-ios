@@ -1,5 +1,6 @@
 {
   "NSMicrophoneUsageDescription": "Kindredly nutzt das Mikrofon, damit du einen Sprachbrief oder eine gesprochene Tagebuchseite aufnehmen kannst.",
   "NSPhotoLibraryUsageDescription": "Kindredly öffnet deine Fotomediathek, damit du einer privaten Tagebuchseite ein Foto oder Video hinzufügen kannst.",
-  "NSPhotoLibraryAddUsageDescription": "Kindredly speichert deine Aura-Karte in deinen Fotos, wenn du das möchtest."
+  "NSPhotoLibraryAddUsageDescription": "Kindredly speichert deine Aura-Karte in deinen Fotos, wenn du das möchtest.",
+  "NSCameraUsageDescription": "Kindredly nutzt die Kamera, um aus einem Moment, den du fotografierst, eine Briefmarke zu machen. Nichts wird gespeichert, bis du dich entscheidest, sie zu behalten."
 }

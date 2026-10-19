@@ -4,19 +4,25 @@
    it. The owner's rule (2026-10-19, O6): a row shows ONLY when the thing it
    sells can be reached in this build. Rooms, voice letters and the wardrobe
    exist; the monthly writing report has a door now (Me → Aura, the row under
-   the aura card, lib/report-door), so its row is on. Custom stamps and letter
-   paper are not built yet: each sits behind its own flag, off, and the day
-   one ships its flag flips here and nowhere else.
+   the aura card, lib/report-door), so its row is on. Custom stamps ship with
+   Stamp Press (owner, 2026-10-19: "this version"), so their flag is on and
+   the row's sub is the owner's line (cs2.pw.stampsSub in strings-stamps2.ts,
+   "Make as many as you like, every filter."; the old m4.pw.b.stampsSub said
+   "franked", and nothing is printed on a stamp). Letter paper is not built
+   yet: it sits behind its flag, off, and the day it ships its flag flips here
+   and nowhere else.
 
    Titles and subs are i18n keys. The four shipped rows reuse the nine-language
    fc.* keys (fc.b3 says "writing report", never "reading": Apple 2.3.2, see
-   me-model.ts); the two flagged rows are m4.pw.b.* in strings-me4a.ts.
+   me-model.ts); the two flagged rows' titles are m4.pw.b.* in strings-me4a.ts
+   (the stamps row's sub is cs2.pw.stampsSub: the paywall imports
+   strings-stamps2 for it).
    "Priority delivery" and "All 12 stamp frames" from the prototype are not
    here at all: nothing in the app does either. */
 
 export const FC_FLAGS = {
-  /** a photo of your own, framed as a stamp — not built */
-  customStamps: false,
+  /** a photo of your own, framed as a stamp — Stamp Press (2026-10-19) */
+  customStamps: false, // back to true when the Stamp Press has its doors (Me, the compose tray); owner O6
   /** letter paper to write on — not built */
   letterPaper: false,
 } as const;
@@ -29,7 +35,7 @@ export const FC_BENEFITS: readonly FcBenefit[] = [
   { id: "voice", title: "fc.b2", sub: "fc.b2s", on: true },
   { id: "wardrobe", title: "fc.b4", sub: "fc.b4s", on: true },
   { id: "report", title: "fc.b3", sub: "fc.b3s", on: true }, // has a door now (Me → Aura)
-  { id: "stamps", title: "m4.pw.b.stamps", sub: "m4.pw.b.stampsSub", on: FC_FLAGS.customStamps },
+  { id: "stamps", title: "m4.pw.b.stamps", sub: "cs2.pw.stampsSub", on: FC_FLAGS.customStamps },
   { id: "paper", title: "m4.pw.b.paper", sub: "m4.pw.b.paperSub", on: FC_FLAGS.letterPaper },
 ];
 

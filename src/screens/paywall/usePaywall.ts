@@ -12,6 +12,7 @@ import { visibleBenefits, type FcBenefitId } from "../../data/fc-benefits";
 import { buildPaywallView, type Fare, type PaywallView, type ReceiptFacts } from "./paywall-model";
 import { claimReceipt, receiptKey } from "../../lib/fc-receipt";
 import "../../data/strings-me4a";
+import "../../data/strings-stamps2"; // cs2.pw.*: the custom stamps row's sub, the Cofounder gold-edge perk
 
 /* THE FIRST CLASS PAGE'S HOOK (Me 4a, ME4A §2.3). Gathers the facts —
    RevenueCat's fares (lib/fares, one fetch per launch), the seats left
