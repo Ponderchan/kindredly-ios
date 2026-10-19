@@ -36,8 +36,10 @@ export const BACK_CHEVRON = {
 } as const;
 
 /** The box's top inside a bar of `barHeight` that sits directly under the safe area. */
-export function backChevronTop(barHeight: 52 | 44 = 52): number {
-  return (barHeight - BACK_CHEVRON.box) / 2;
+export function backChevronTop(_barHeight: 52 | 44 = 52): number {
+  // the Settings position in every bar (owner, 2026-10-19): centred in the first 44 under the
+  // safe area; a 52 bar keeps its height and centres its own row in that same 44 (paddingBottom 8)
+  return (44 - BACK_CHEVRON.box) / 2;
 }
 
 /** The glyph alone (18 at 2.2), for a control that draws its own box. */

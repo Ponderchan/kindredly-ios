@@ -79,7 +79,10 @@ public struct KBackBar<Trailing: View>: View {
           .padding(.trailing, 12)
       }
     }
-    .frame(height: height)
+    // every bar puts its row where Settings' 44 bar does (owner, 2026-10-19): a 52 bar keeps its
+    // height but centres the chevron and the title in its first 44
+    .frame(height: 44)
+    .frame(height: height, alignment: .top)
     .frame(maxWidth: .infinity)
     .background(sticky ? theme.bg : Color.clear)
     // the bar is fixed height: its words stop growing at the largest standard size
@@ -353,7 +356,9 @@ public struct KMyLettersScreen: View {
       }
     }
     .padding(.horizontal, 16)
-    .frame(minHeight: 52)
+    // the chevron where Settings has it: the row centred in the first 44, 8 below (owner, 2026-10-19)
+    .frame(minHeight: 44)
+    .padding(.bottom, 8)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 
@@ -566,9 +571,11 @@ public struct KMyLettersScreen: View {
         Text(c.status)
           .kText(.mono(10, .semibold, tracking: 0.04))
           .foregroundStyle(theme.ink)
-          // a name and "and 4 more replied" can take two lines in a narrow column
-          .lineLimit(2)
-          .fixedSize(horizontal: false, vertical: true)
+          // one line, like the live page (owner, 2026-10-19): it shrinks a little, then a long
+          // name is cut at its end
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+          .truncationMode(.tail)
       default:
         Text(c.status)
           .kText(.mono(10, .semibold, tracking: 0.14))

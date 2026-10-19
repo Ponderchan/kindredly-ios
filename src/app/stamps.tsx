@@ -45,7 +45,7 @@ export default function StampsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       {/* a 52 bar under the safe area: the one BackChevron, the title centred, the count 12 from the right */}
-      <View style={{ height: 52, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+      <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
         <BackChevron onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} color={tk.ink} />
         <Text accessibilityRole="header" style={{ fontFamily: F.serif, fontSize: 19, color: tk.ink }}>Your stamps</Text>
         <Text style={{ position: "absolute", right: 12, minWidth: 36, fontFamily: F.sansBold, fontSize: 12, color: tk.mute, textAlign: "center" }}>

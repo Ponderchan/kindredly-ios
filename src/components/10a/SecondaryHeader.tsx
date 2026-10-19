@@ -56,7 +56,7 @@ export function SecondaryHeader({
   const back = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace(fallbackHref)));
 
   return (
-    <View style={[{ height, flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: ground ?? tk.bg }, style]}>
+    <View style={[{ height, paddingBottom: height - 44, flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: ground ?? tk.bg }, style]}>
       <BackChevron onPress={back} color={tk.ink} label={backLabel} barHeight={height} />
       {!!title && (
         <Text

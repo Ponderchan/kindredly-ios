@@ -140,7 +140,7 @@ export default function JournalDetail() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* header — back + a ··· menu; the date leads the entry from the centre */}
       {/* no rule under it: 10a's sub-page headers have none (H:90, H:97) */}
-      <View style={{ height: 52, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingRight: 20 }}>
+      <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingRight: 20 }}>
         <BackChevron onPress={goBack} color={P.ink} />
         {/* samples get the menu too — hiding it read as "delete is missing",
             not "this is a sample". Drift stays real-pages-only inside. */}

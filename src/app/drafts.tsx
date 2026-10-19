@@ -71,7 +71,7 @@ export default function DraftsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
       {/* a 52 bar under the safe area: the one BackChevron, then the title after its 12 + 36 + 8 */}
-      <View style={{ height: 52, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 14 }}>
+      <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 14 }}>
         <BackChevron onPress={() => router.back()} color={tk.ink} />
         <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.ink }}>
           {t("dr.title")}

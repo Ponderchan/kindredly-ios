@@ -70,7 +70,7 @@ export default function VoiceDetail() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       {/* header */}
-      <View style={{ minHeight: 52, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 12 }}>
+      <View style={{ minHeight: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 12 }}>
         <BackChevron onPress={goBack} color={tk.ink} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: tk.ink }}>{t("vc.title")}</Text>

@@ -49,7 +49,7 @@ export default function SealedDay() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ height: 52, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 56 }}>
+      <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 56 }}>
         <BackChevron onPress={goBack} color={P.ink} />
         <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>
           {title.toLocaleUpperCase(localeTag())}
