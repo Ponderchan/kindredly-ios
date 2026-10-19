@@ -3,127 +3,174 @@
 import SwiftUI
 
 /*
- THE KEEPSAKES BLOCK (H:75), under the courier's scene inside her frame: what she has kept from
- journeys that really happened. 12 in from the frame on three sides, padding 12 14, corners 16,
- 10 between its pieces:
- - the header: KEEPSAKES (mono 600 10 at .14em) and, at the right, "3 SO FAR" (mono 500 10 at
-   .12em); a button to the whole shelf;
- - two tiles 72 tall (at least: they grow together with large text), 10 apart, corners 12: the
-   latest keepsakes (the icon and its name, system 600 11; a small ind dot on one not opened
-   yet, which VoiceOver hears in the tile's label, "{name}, new"), each a button to that
-   keepsake; an empty one is a 2pt dashed outline (and takes you to the shelf);
- - the note, the serif italic 12/1.4, centred.
- The mock lays it on the courier's green; here it is the theme's (soft2 under ink and mute,
- sf tiles), which reads in all four themes and under every hour's band.
+ WREN'S LOOKS (4a, Prompt 4, O1; owner 2026-10-19: the accessories exactly as live, no redraw),
+ under the courier card on Me. The file keeps its old
+ name (it held the keepsakes block, which moved to the courier's own page, /courier) because a
+ new Swift file needs a pod install.
+
+ A soft tray, corners 20, padding 14 14 12, 12 between the header and the tiles:
+ - the header: WREN'S LOOKS (mono 10 at .16em, sub) and "All looks →" (12/600, ind) at the right;
+ - four square tiles, 10 apart, corners 18, a 2pt border, each with the courier at 62% of it (a
+   snapshot of her own WrenBird in that look, grown) and its label under it, 6 lower (mono 9 at
+   .1em; ink when on, gold on the locked tile, sub otherwise):
+     BARE      sf, a light line border (ink once chosen; 4a's PLAIN, the app's own word ws.acc.none)
+     BEANIE    lav, its own colour as border (ws.acc.beanie: the live beanie, drawn as live)
+     SCARF     pale green (on a dark theme the green at .28), the same
+     1ST CLASS cream, a 2pt dashed wax-gold border; for a free reader the bird at 35% and an 18
+               gold lock at the top right; for a member her current First Class look, no lock.
+ - the one she wears: an ink border, an 18 green check at the top left and the tile at 1.04 (a
+   .25s spring; no scale under Reduce Motion, the border and the check say it).
+ Every tile is a button (VoiceOver: its name, selected when on; the locked one "Locked" and
+ "Opens First Class"). The labels stop growing at xxLarge so four still fit across.
  */
-public struct KKeepsakesBlock: View {
-  static var headerStyle: KTextStyle { .monoSection }
-  static var nameStyle: KTextStyle { .system(11, .semibold) }
-  /// the mock's tile height; a tile grows past it with large text rather than letting its icon
-  /// and name spill over the header and the note
-  static var tileMinHeight: CGFloat { 72 }
+struct KLooksTray: View {
+  let theme: KTheme
+  let looks: KMeLooks
+  let a11y: KMeA11yWords
+  let actions: KMeActions
 
-  private let theme: KTheme
-  private let keepsakes: KMeKeepsakes
-  private let actions: KMeActions
+  static var headerStyle: KTextStyle { .mono(10, .semibold, tracking: 0.16) }
 
-  public init(theme: KTheme, keepsakes: KMeKeepsakes, actions: KMeActions) {
-    self.theme = theme
-    self.keepsakes = keepsakes
-    self.actions = actions
-  }
-
-  public var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      SwiftUI.Button {
-        actions.onKeepsakes()
-      } label: {
-        HStack(alignment: .center, spacing: 8) {
-          Text(keepsakes.header)
-            .kText(Self.headerStyle)
-            .foregroundStyle(theme.ink)
-            .lineLimit(1)
-          Spacer(minLength: 0)
-          Text(keepsakes.count)
-            .kText(.monoMeta)
-            .foregroundStyle(theme.mute)
-            .lineLimit(1)
-        }
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-      }
-      .buttonStyle(KFadePressStyle())
-      .padding(.vertical, -6)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(keepsakes.a11yLabel)
-      .accessibilityAddTraits(.isButton)
-
-      HStack(spacing: 10) {
-        ForEach(0..<max(2, keepsakes.tiles.count), id: \.self) { i in
-          tile(i < keepsakes.tiles.count ? keepsakes.tiles[i] : nil)
-        }
-      }
-      // both tiles take the taller one's height (each fills it: maxHeight .infinity)
-      .fixedSize(horizontal: false, vertical: true)
-
-      if !keepsakes.note.isEmpty {
-        Text(keepsakes.note)
-          .kText(.letterNote)
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .center, spacing: 8) {
+        Text(looks.header)
+          .kText(Self.headerStyle)
           .foregroundStyle(theme.sub)
-          .multilineTextAlignment(.center)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+          .accessibilityAddTraits(.isHeader)
+        Spacer(minLength: 0)
+        SwiftUI.Button {
+          actions.onAllLooks()
+        } label: {
+          Text(looks.all)
+            .kText(.system(12, .semibold))
+            .foregroundStyle(theme.ind)
+            .lineLimit(1)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .padding(.vertical, -8)
+        .accessibilityLabel(looks.all.replacingOccurrences(of: "→", with: "").trimmingCharacters(in: .whitespaces))
+        .accessibilityHint(looks.allHint)
+      }
+      // the header row stops growing where the peek's do, so the name and the link both stay legible
+      .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+      HStack(alignment: .top, spacing: 10) {
+        ForEach(looks.tiles) { tile in
+          KLookTile(theme: theme, tile: tile, lockedWord: a11y.locked) {
+            actions.onLook(tile.id)
+          }
           .frame(maxWidth: .infinity)
-          .fixedSize(horizontal: false, vertical: true)
+        }
       }
     }
-    .padding(.vertical, 12)
+    .padding(.top, 14)
     .padding(.horizontal, 14)
-    .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.soft2))
-    .padding(12)
+    .padding(.bottom, 12)
+    .background(RoundedRectangle(cornerRadius: 20, style: .circular).fill(theme.soft))
+    .accessibilityElement(children: .contain)
+  }
+}
+
+struct KLookTile: View {
+  let theme: KTheme
+  let tile: KMeLookTile
+  let lockedWord: String
+  let onTap: () -> Void
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  static var labelStyle: KTextStyle { .mono(9, .semibold, tracking: 0.1) }
+
+  private var fill: Color {
+    switch tile.id {
+    case "beanie": return theme.lav
+    case "scarf": return scarfFill
+    case "fc": return KBrand.cream
+    default: return theme.sf
+    }
   }
 
-  @ViewBuilder
-  private func tile(_ k: KMeKeepsakeTile?) -> some View {
-    let shape = RoundedRectangle(cornerRadius: 12, style: .circular)
-    if let k {
-      SwiftUI.Button {
-        actions.onKeepsake(k.id)
-      } label: {
-        VStack(spacing: 4) {
-          KImage(k.image, size: CGSize(width: 32, height: 32), contentMode: .fit, placeholder: .clear)
-          Text(k.name)
-            .kText(Self.nameStyle)
-            .foregroundStyle(theme.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, minHeight: Self.tileMinHeight, maxHeight: .infinity)
-        .background(shape.fill(theme.sf))
-        .overlay(alignment: .topTrailing) {
-          if k.fresh {
-            Circle()
-              .fill(theme.ind)
-              .frame(width: 7, height: 7)
-              .padding(7)
-              .accessibilityHidden(true)
-          }
-        }
-        .contentShape(shape)
-      }
-      .buttonStyle(KFadePressStyle())
-      .accessibilityLabel(k.a11yLabel)
-    } else {
-      SwiftUI.Button {
-        actions.onKeepsakes()
-      } label: {
-        shape
-          .strokeBorder(theme.faint, style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
-          .frame(maxWidth: .infinity, minHeight: Self.tileMinHeight, maxHeight: .infinity)
-          .contentShape(shape)
-      }
-      .buttonStyle(KFadePressStyle())
-      .accessibilityHidden(true)
+  /// 4a's pale green; on a dark theme the green at .28, as the kindreds button's open fill
+  private var scarfFill: Color {
+    theme.isDark ? KBrand.greenText.opacity(0.28) : KBrand.paleGreen
+  }
+
+  private var border: Color {
+    if tile.selected { return theme.ln }
+    switch tile.id {
+    case "beanie": return theme.lav
+    case "scarf": return scarfFill
+    case "fc": return KBrand.waxGold
+    // 4a draws PLAIN's ink border even when another look is on, which made two tiles read as
+    // chosen; unselected, the white tile keeps a light line so it still shows on the soft tray
+    default: return theme.line
     }
+  }
+
+  private var labelColor: Color {
+    if tile.locked { return KBrand.goldText }
+    return tile.selected ? theme.ink : theme.sub
+  }
+
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 18, style: .circular)
+    let dashed = tile.id == "fc" && !tile.selected
+    SwiftUI.Button(action: onTap) {
+      VStack(spacing: 6) {
+        shape
+          .fill(fill)
+          .aspectRatio(1, contentMode: .fit)
+          .overlay {
+            GeometryReader { g in
+              let side = (min(g.size.width, g.size.height) * 0.62).rounded()
+              KImage(tile.bird, size: CGSize(width: side, height: side), contentMode: .fit, placeholder: .clear)
+                .opacity(tile.dim ? 0.35 : 1)
+                .frame(width: g.size.width, height: g.size.height)
+            }
+          }
+          .overlay {
+            shape.strokeBorder(border, style: StrokeStyle(lineWidth: 2, dash: dashed ? [5, 4] : []))
+          }
+          .overlay(alignment: .topTrailing) {
+            if tile.locked {
+              ZStack {
+                Circle().fill(KBrand.waxGold)
+                KLineIcon(.lock, size: 10, lineWidth: 2.6, color: KBrand.inkOnBrand)
+              }
+              .frame(width: 18, height: 18)
+              .padding(6)
+            }
+          }
+          .overlay(alignment: .topLeading) {
+            if tile.selected {
+              ZStack {
+                Circle().fill(KBrand.greenText)
+                KLineIcon(.check, size: 10, lineWidth: 3, color: .white)
+              }
+              .frame(width: 18, height: 18)
+              .padding(6)
+            }
+          }
+          .scaleEffect(tile.selected && !reduceMotion ? 1.04 : 1)
+          .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.55), value: tile.selected)
+        Text(tile.label)
+          .kText(Self.labelStyle)
+          .foregroundStyle(labelColor)
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+          .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(tile.name)
+    .accessibilityValue(tile.locked ? lockedWord : "")
+    .accessibilityHint(tile.hint)
+    .accessibilityAddTraits(tile.selected ? [.isButton, .isSelected] : .isButton)
   }
 }

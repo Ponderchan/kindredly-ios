@@ -11,6 +11,9 @@ import { scoped as AsyncStorage } from "./scoped-store";
 import { loadJournal } from "./journal";
 import { analyzeVoice, type VoiceRead } from "./voice";
 import { fingerprint } from "./signature";
+import { getLang, t } from "./i18n";
+import type { WrenTypeId } from "./wren-type";
+import "../data/strings-me4a"; // m4.rt.*
 
 const KEY = "kindredly_voice_report"; // {firstDone: boolean, lastMonth: "2026-08"}
 
@@ -26,7 +29,8 @@ async function loadState(): Promise<{ firstDone: boolean; lastMonth: string | nu
   try {
     const raw = await AsyncStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : { firstDone: false, lastMonth: null };
-  } catch {
+  } catch (e) {
+    console.warn("[report] loadState", e);
     return { firstDone: false, lastMonth: null };
   }
 }
@@ -52,8 +56,9 @@ export async function markReportRead(): Promise<void> {
     const s = await loadState();
     await AsyncStorage.setItem(KEY, JSON.stringify({ firstDone: true, lastMonth: monthKey() }));
     void s;
-  } catch {
-    /* best-effort */
+  } catch (e) {
+    // best-effort, but logged: a failed write leaves Me's report door saying "ready"
+    console.warn("[report] markReportRead", e);
   }
 }
 
@@ -62,7 +67,9 @@ export async function markReportRead(): Promise<void> {
 export interface ReportData {
   read: VoiceRead;
   units: number[];
-  archetype: string; // cover title, from the born type + how the hand grew
+  archetype: string; // cover title, from the born type + how the hand grew (localized)
+  chips: string[]; // the three trait chips, in the reader's language
+  brightest: string[]; // the three strongest of the nine signals' names, localized
   words: string[]; // up to 5 favourite words (latin; skipped if too few)
   punct: { mark: string; pct: number }[]; // top 3
   hourBand: string | null; // "23:00 – 02:00" style, from real journal times
@@ -75,20 +82,83 @@ const STOP = new Set(
     " ",
   ),
 );
+/* the other Latin-script languages' little words, so a German writer's
+   favourite word is not "und" (ja and ko never match the Latin pattern, so
+   their words card simply doesn't appear) */
+const STOP_MORE = new Set(
+  [
+    // es
+    "que los las del por con una para como pero más sus este esta eso ese muy sin sobre también hay fue ser está todo nos mis tus ya",
+    // pt
+    "que não uma com para por mais como mas dos das seu sua isso este esta muito sem tem foi ser está tudo nos meu minha você pra",
+    // fr
+    "les des une que qui pas pour dans sur avec mais est son ses ces cette tout très suis être ont été mon mes ton tes vous nous elle",
+    // de
+    "und die der das den dem des ein eine einen ich nicht ist mit auf für sich auch aber wie wir sie war noch nur mir mich dich dir mein dein sehr schon",
+    // it
+    "che non una per con del della dei gli le sono come più anche questo questa molto mio mia tuo tua era essere tutto sei",
+    // id
+    "yang dan ini itu dengan untuk tidak dari dalam akan pada juga aku kamu saya ada bisa sudah karena atau tapi jadi lagi",
+  ]
+    .join(" ")
+    .split(" "),
+);
 
-export async function buildReport(texts: string[], typeName: string | null, aiQuote: string | null): Promise<ReportData> {
+/* voice.ts reads in English; the report shows its findings in the reader's
+   language. Each English chip, row and local quote maps to its key. */
+const CHIP_KEY: Record<string, string> = {
+  "quick thoughts": "m4.rt.chip.quick",
+  "unhurried thoughts": "m4.rt.chip.unhurried",
+  "short, clear lines": "m4.rt.chip.short",
+  "long, winding lines": "m4.rt.chip.long",
+  "soft pauses": "m4.rt.chip.pauses",
+  "few pauses": "m4.rt.chip.fewPauses",
+};
+const ROW_KEY: Record<string, string> = {
+  vocab: "dim.label.vocabulary",
+  syntax: "dim.label.sentence",
+  rhythm: "dim.label.rhythm",
+  punct: "dim.label.punctuation",
+  emotion: "dim.label.emotion",
+  flow: "m4.rt.row.flow",
+  little: "dim.label.function",
+  quirks: "dim.label.quirks",
+  shape: "dim.label.structure",
+};
+function localQuoteKey(q: string): string | null {
+  if (q.startsWith("You take the long way")) return "m4.rt.quote.longPaused";
+  if (q.startsWith("You let a thought run")) return "m4.rt.quote.longRun";
+  if (q.startsWith("You don't over-explain")) return "m4.rt.quote.short";
+  return null;
+}
+const chipText = (c: string) => (CHIP_KEY[c] ? t(CHIP_KEY[c]) : c);
+
+export async function buildReport(texts: string[], typeId: WrenTypeId | null, aiQuote: string | null): Promise<ReportData> {
   const read = analyzeVoice(texts);
   const all = texts.join("\n\n");
   const units = fingerprint(all).units.slice(0, 24);
 
   // archetype: the born type carries the name; the dims colour it
-  const chipsBit = read.chips[0] || "quiet";
-  const archetype = typeName ? `${typeName}, ${chipsBit}` : `A ${chipsBit} writer`;
+  const chipsBit = read.chips[0] || "quick thoughts";
+  const archetype = typeId
+    ? t("m4.rt.archTyped", { type: t(`m4.rt.type.${typeId}`), chip: chipText(chipsBit) })
+    : t(chipsBit === "unhurried thoughts" ? "m4.rt.archUnhurried" : "m4.rt.archQuick");
+  const chips = read.chips.map(chipText);
+  const brightest = read.rows
+    .slice()
+    .sort((a, b) => b.strength - a.strength)
+    .slice(0, 3)
+    .map((r) => (ROW_KEY[r.key] ? t(ROW_KEY[r.key]) : r.title));
+  /* the AI portrait line is written in English by the server job: it rides
+     along only for an English reader; everyone else gets the local line in
+     their own language */
+  const qKey = localQuoteKey(read.quote);
+  const quote = aiQuote && getLang() === "en" ? aiQuote : qKey ? t(qKey) : read.quote;
 
   // favourite words — latin tokens, stopwords out, top 5 by count (min 2 uses)
   const counts = new Map<string, number>();
   for (const m of all.toLowerCase().match(/[a-zà-ɏ']{3,}/g) || []) {
-    if (STOP.has(m)) continue;
+    if (STOP.has(m) || STOP_MORE.has(m)) continue;
     counts.set(m, (counts.get(m) || 0) + 1);
   }
   const words = [...counts.entries()]
@@ -116,7 +186,7 @@ export async function buildReport(texts: string[], typeName: string | null, aiQu
 
   const hourBand = await journalHourBand();
 
-  return { read, units, archetype, words, punct, hourBand, quote: aiQuote || read.quote, pieces: read.pieces };
+  return { read, units, archetype, chips, brightest, words, punct, hourBand, quote, pieces: read.pieces };
 }
 
 /** your hour — real journal timestamps only (letters aren't dated locally). */
@@ -142,7 +212,8 @@ export async function journalHourBand(): Promise<string | null> {
       }
     }
     return best;
-  } catch {
+  } catch (e) {
+    console.warn("[report] journalHourBand", e);
     return null;
   }
 }

@@ -173,6 +173,9 @@ export const KSCREEN_VIEWS = [
   "KSettingsView",
   "KEditProfileView",
   "KNotesView",
+  // Me 4a: the First Class page and My letters
+  "KPaywallView",
+  "KMyLettersView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

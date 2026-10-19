@@ -3,193 +3,371 @@
 import SwiftUI
 
 /*
- THE PROFILE CARD (H:72): an InkCard .me (sf, 2.5 ln, corners 24, a 5/5 ln shadow, padding
- 16), 14 between its row and its figures.
+ THE HEADER'S TWO BUTTONS AND THEIR PEEKS (4a, Prompts 1 and 2). The file keeps its old name
+ (it held the profile card, which 4a's header replaced) because a new Swift file needs a pod
+ install; the header itself is KMeHeader.swift.
 
- THE ROW (14 apart): the avatar, 56 across in a circle on the theme's line colour with a 2pt ln
- ring — the real one (a photo, a portrait, an old drawn face or the mosaic), which the app hands
- in as a React Native island; then the name (system 600 18), JOINED (mono 500 10 at .12em, mute)
- and, for a cofounder, the gold mark; and at the trailing edge the pencil, 20 across at stroke
- 1.9 in a 34 box (Edit profile).
+ THE BUTTONS (KMeStatButton): 46 tall (scaled with the text), corners 14, padding 0 14, 8
+ apart inside: the glyph 18 across (the letters' indigo outline envelope at stroke 2.2; the
+ kindreds' filled green rounded square with two white eyes and a mouth), the figure (system 600
+ 15), the unit (15, sub), and at the far end a 14 chevron (stroke 2.4, mute) that turns over
+ while its tray is open. Closed: soft. Open: lav for letters, pale green for kindreds (on a dark
+ theme the green at .28, so the ink still reads). VoiceOver reads the count ("12 letters"), the
+ expanded / collapsed state, a hint, and a custom action straight to the whole list (set by the
+ header).
 
- THE FIGURES: two cells 2 apart in a 14-cornered clip, each soft2 with 12 of padding: the glyph
- 16 across (the envelope in ind, the bubbles in ink, the mock's 2.4 stroke on its 28 grid), the
- figure (mono 600 13: a figure, not a label, so owner question 2 keeps it at 13 — KMonoSizes)
- and the unit (mono 600 10 at .12em, mute); when the unit doesn't fit beside the figure (a long
- language, a narrow phone, large text) it goes under it, centred, on up to two lines, and the two
- cells keep one height. Each cell is a button that VoiceOver reads as the count ("12 letters").
+ THE TRAYS (KMePeekTray): soft, corners 16, padding 12, 10 between the cards and the link.
+ - letters: three mini cards 8 apart, each sf, corners 12, padding 10, 6 apart inside: the date
+   (mono 9 at .1em, mute) and the 22 stamp; two lines of the letter (the serif 13/1.3); the status
+   (mono 9 at .12em: QUIET in mute, ANSWERED · 2 in green, "Luna wrote back" in ink). "See all
+   10 →" (13/600, ind) at the bottom right.
+ - kindreds: three cards 10 apart, padding 10 6, centred: the 40 face, the name (12/600), their
+   last line in the italic serif 11, mute, quoted, on one line. "Open kindreds →" in green.
+ Fewer than three cards keep a third of the width each and line up on the left. Before the
+ first read: three blank cards (hidden from VoiceOver). None: one line and its link.
  */
-public struct KProfileCard<Avatar: View>: View {
-  /// the avatar's side (H:72)
-  public static var avatarSize: CGFloat { 56 }
 
-  static var unitStyle: KTextStyle { .mono(10, .semibold, tracking: 0.12) }
-  /// the mock's 2.4 stroke on the glyphs' 28 grid, in KLineGlyph's 24-grid units
-  static var statStroke: CGFloat { 2.4 * 24 / 28 }
+// MARK: - The two buttons
 
-  private let theme: KTheme
-  private let profile: KMeProfile
-  private let actions: KMeActions
-  private let avatar: Avatar
+struct KMeStatButton: View {
+  let theme: KTheme
+  let stat: KMeStat
+  let kind: KMePeek
+  let open: Bool
+  let height: CGFloat
+  let onTap: () -> Void
 
-  public init(theme: KTheme, profile: KMeProfile, actions: KMeActions, @ViewBuilder avatar: () -> Avatar) {
-    self.theme = theme
-    self.profile = profile
-    self.actions = actions
-    self.avatar = avatar()
-  }
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  public var body: some View {
-    InkCard(theme: theme, variant: .me, spacing: 14) {
-      row
-      figures
+  private var openFill: Color {
+    switch kind {
+    case .letters: return theme.lav
+    case .kindreds: return theme.isDark ? KBrand.greenText.opacity(0.28) : KBrand.paleGreen
     }
   }
 
-  private var row: some View {
-    HStack(alignment: .center, spacing: 14) {
-      ZStack {
-        Circle().fill(theme.line)
-        avatar
-          .frame(width: Self.avatarSize, height: Self.avatarSize)
-      }
-      .frame(width: Self.avatarSize, height: Self.avatarSize)
-      .clipShape(Circle())
-      .overlay(Circle().strokeBorder(theme.ln, lineWidth: 2))
-      .accessibilityHidden(true)
-
-      VStack(alignment: .leading, spacing: 3) {
-        Text(profile.name)
-          .kText(.profileName)
-          .foregroundStyle(theme.ink)
-          .lineLimit(2)
-          .fixedSize(horizontal: false, vertical: true)
-          .accessibilityAddTraits(.isHeader)
-        if !profile.joined.isEmpty {
-          Text(profile.joined)
-            .kText(.monoMeta)
-            .foregroundStyle(theme.mute)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-        }
-        if !profile.cofounder.isEmpty {
-          KCofounderMark(theme: theme, label: profile.cofounder)
-            .padding(.top, 3)
-        }
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-
-      SwiftUI.Button {
-        actions.onEdit()
-      } label: {
-        KLineIcon(.pen, size: 20, lineWidth: 1.9, color: theme.ink)
-          .frame(width: 34, height: 34)
-          .padding(5)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(KFadePressStyle())
-      .padding(-5)
-      .accessibilityLabel(profile.editLabel)
-    }
-  }
-
-  private var figures: some View {
-    HStack(spacing: 2) {
-      ForEach(profile.stats) { stat in
-        SwiftUI.Button {
-          actions.onStat(stat.key)
-        } label: {
-          figure(stat)
-            .padding(12)
-            // both cells take the taller one's height (the row is fixed-size vertically)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(theme.soft2)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KFadePressStyle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(stat.a11yLabel)
-        .accessibilityAddTraits(.isButton)
-      }
-    }
-    .fixedSize(horizontal: false, vertical: true)
-    .clipShape(RoundedRectangle(cornerRadius: 14, style: .circular))
-    .dynamicTypeSize(...DynamicTypeSize.accessibility3)
-  }
-
-  /// One cell's glyph, figure and unit: in a row while the unit fits beside the figure, else the
-  /// glyph and figure over the unit, which may then take two lines (SEELENVERWANDTE with three
-  /// figures on an SE, or any language at the AX3 cap, used to be cut to an ellipsis).
-  private func figure(_ stat: KMeStat) -> some View {
-    let glyph = KLineIcon(stat.glyph, size: 16, lineWidth: Self.statStroke, color: stat.glyph == .envelope ? theme.ind : theme.ink)
-    let count = Text(stat.count)
-      .kText(.monoFigure)
-      .foregroundStyle(theme.ink)
-      .lineLimit(1)
-      .fixedSize()
-    let unit = Text(stat.unit)
-      .kText(Self.unitStyle)
-      .foregroundStyle(theme.mute)
-    return ViewThatFits(in: .horizontal) {
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 14, style: .circular)
+    SwiftUI.Button(action: onTap) {
       HStack(alignment: .center, spacing: 8) {
-        glyph
-        count
-        unit
+        Group {
+          switch kind {
+          case .letters: KMeLettersGlyph(color: theme.ind)
+          case .kindreds: KMeKindredsGlyph()
+          }
+        }
+        .frame(width: 18, height: 18)
+        Text(stat.count)
+          .kText(.system(15, .semibold))
+          .foregroundStyle(theme.ink)
           .lineLimit(1)
           .fixedSize()
+        Text(stat.unit)
+          .kText(.system(15))
+          .foregroundStyle(theme.sub)
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+        Spacer(minLength: 0)
+        KLineIcon(.chevronDown, size: 14, lineWidth: 2.4, color: theme.mute)
+          .rotationEffect(.degrees(open ? 180 : 0))
+          .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: open)
       }
-      VStack(alignment: .center, spacing: 4) {
-        HStack(alignment: .center, spacing: 8) {
-          glyph
-          count
-        }
-        unit
-          .lineLimit(2)
-          .minimumScaleFactor(0.7)
-          .multilineTextAlignment(.center)
-          .fixedSize(horizontal: false, vertical: true)
-      }
+      .padding(.horizontal, 14)
+      .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+      .background(shape.fill(open ? openFill : theme.soft))
+      .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: open)
+      .contentShape(shape)
     }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(stat.a11yLabel)
+    .accessibilityAddTraits(.isButton)
   }
 }
 
-/*
- THE COFOUNDER MARK (CofounderMark.tsx in SwiftUI): a square gold dot and COFOUNDER No. 007 in
- mono 600 9 (the owner's 9/10/11 rule lifts the old 8.5) inside a 1pt gold outline. Never shown
- to strangers (the caller only draws it on your own Me). The gold is a brand colour: the wax
- gold outline and dot in every theme, the number in the brass of a seal on a light card and in
- wax gold on a dark one, where the brass would sit near 3.6:1.
- */
-public struct KCofounderMark: View {
-  static var style: KTextStyle { .mono(9, .semibold, tracking: 0.13) }
+/// 4a's letters glyph on the 24 grid: an outline envelope (rect 2.5,5,19,14 r2.5 and its flap).
+struct KMeLettersGlyph: View {
+  let color: Color
 
-  private let theme: KTheme
-  private let label: String
+  var body: some View {
+    Canvas { ctx, size in
+      ctx.scaleBy(x: size.width / 24, y: size.height / 24)
+      var p = Path(roundedRect: CGRect(x: 2.5, y: 5, width: 19, height: 14), cornerRadius: 2.5)
+      p.move(to: CGPoint(x: 3, y: 7))
+      p.addLine(to: CGPoint(x: 12, y: 14))
+      p.addLine(to: CGPoint(x: 21, y: 7))
+      ctx.stroke(p, with: .color(color), style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+    }
+    .accessibilityHidden(true)
+  }
+}
 
-  public init(theme: KTheme, label: String) {
+/// 4a's kindreds glyph on the 24 grid: a green rounded square, two white eyes and a mouth bar.
+struct KMeKindredsGlyph: View {
+  var body: some View {
+    Canvas { ctx, size in
+      ctx.scaleBy(x: size.width / 24, y: size.height / 24)
+      ctx.fill(Path(roundedRect: CGRect(x: 2.5, y: 2.5, width: 19, height: 19), cornerRadius: 5), with: .color(KBrand.greenText))
+      ctx.fill(Path(ellipseIn: CGRect(x: 9 - 1.6, y: 10 - 1.6, width: 3.2, height: 3.2)), with: .color(.white))
+      ctx.fill(Path(ellipseIn: CGRect(x: 15 - 1.6, y: 10 - 1.6, width: 3.2, height: 3.2)), with: .color(.white))
+      ctx.fill(Path(roundedRect: CGRect(x: 8.5, y: 14, width: 7, height: 2.2), cornerRadius: 1.1), with: .color(.white))
+    }
+    .accessibilityHidden(true)
+  }
+}
+
+// MARK: - The trays
+
+/// The soft tray both peeks sit in, with the link at its bottom right.
+struct KMePeekTray<Cards: View>: View {
+  let theme: KTheme
+  let link: String
+  let linkColor: Color
+  let linkHint: String
+  let onLink: () -> Void
+  let cards: Cards
+
+  init(theme: KTheme, link: String, linkColor: Color, linkHint: String = "", onLink: @escaping () -> Void, @ViewBuilder cards: () -> Cards) {
     self.theme = theme
-    self.label = label
+    self.link = link
+    self.linkColor = linkColor
+    self.linkHint = linkHint
+    self.onLink = onLink
+    self.cards = cards()
   }
 
-  public var body: some View {
-    HStack(alignment: .center, spacing: 6) {
-      Rectangle()
-        .fill(KBrand.waxGold)
-        .frame(width: 5, height: 5)
-        .accessibilityHidden(true)
-      Text(label)
-        .kText(Self.style)
-        .foregroundStyle(theme.isDark ? KBrand.waxGold : KBrand.brassSeal)
-        .lineLimit(1)
-        // shrinks rather than pushing the row past the card (it used to be fixed-size: at AX1,
-        // or MITGRÜNDER NR. 007 on an SE at xxxLarge, the avatar and pencil were pushed out)
-        .minimumScaleFactor(0.7)
+  var body: some View {
+    VStack(alignment: .trailing, spacing: 10) {
+      cards
+      if !link.isEmpty {
+        SwiftUI.Button(action: onLink) {
+          Text(link)
+            .kText(.system(13, .semibold))
+            .foregroundStyle(linkColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .padding(.vertical, -6)
+        .accessibilityLabel(link.replacingOccurrences(of: "→", with: "").trimmingCharacters(in: .whitespaces))
+      }
     }
-    .padding(.horizontal, 7)
-    .padding(.vertical, 3)
-    .overlay(Rectangle().strokeBorder(KBrand.waxGold, lineWidth: 1))
-    // a 9pt mark: it grows with the text up to AX1, no further
-    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-    .accessibilityElement(children: .combine)
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .trailing)
+    .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.soft))
+  }
+}
+
+/// Three cards in a row, each a third of the width; the missing ones are left empty.
+struct KMeThirds<Item: Identifiable, Card: View>: View {
+  let items: [Item]
+  let spacing: CGFloat
+  let card: (Item) -> Card
+
+  var body: some View {
+    HStack(alignment: .top, spacing: spacing) {
+      ForEach(items.prefix(3)) { item in
+        card(item)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      }
+      ForEach(0..<max(0, 3 - min(3, items.count)), id: \.self) { _ in
+        Color.clear
+          .frame(maxWidth: .infinity, maxHeight: 1)
+          .accessibilityHidden(true)
+      }
+    }
+    // the cards in a row take the tallest one's height
+    .fixedSize(horizontal: false, vertical: true)
+  }
+}
+
+/// Three blank cards, before the first read.
+struct KMePeekSkeleton: View {
+  let theme: KTheme
+  let height: CGFloat
+
+  var body: some View {
+    HStack(spacing: 8) {
+      ForEach(0..<3, id: \.self) { _ in
+        RoundedRectangle(cornerRadius: 12, style: .circular)
+          .fill(theme.sf)
+          .overlay(alignment: .topLeading) {
+            VStack(alignment: .leading, spacing: 6) {
+              RoundedRectangle(cornerRadius: 3).fill(theme.soft2).frame(width: 46, height: 8)
+              RoundedRectangle(cornerRadius: 3).fill(theme.soft2).frame(height: 10)
+              RoundedRectangle(cornerRadius: 3).fill(theme.soft2).frame(width: 40, height: 10)
+            }
+            .padding(10)
+          }
+          .frame(maxWidth: .infinity)
+          .frame(height: height)
+      }
+    }
+    .accessibilityHidden(true)
+  }
+}
+
+/// The empty tray's line.
+struct KMePeekEmpty: View {
+  let theme: KTheme
+  let text: String
+
+  var body: some View {
+    Text(text)
+      .kText(.system(13, lineHeight: 1.4))
+      .foregroundStyle(theme.sub)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .fixedSize(horizontal: false, vertical: true)
+  }
+}
+
+struct KMeLettersPeek: View {
+  let theme: KTheme
+  let peek: KMePeekLetters
+  let actions: KMeActions
+
+  static var dateStyle: KTextStyle { .mono(9, .medium, tracking: 0.1) }
+  static var bodyStyle: KTextStyle { .letter(13, lineHeight: 1.3) }
+  static var statusStyle: KTextStyle { .mono(9, .semibold, tracking: 0.12) }
+
+  var body: some View {
+    switch peek.state {
+    case .loading:
+      KMePeekTray(theme: theme, link: "", linkColor: theme.ind, onLink: {}) {
+        KMePeekSkeleton(theme: theme, height: 96)
+      }
+    case .empty:
+      KMePeekTray(theme: theme, link: peek.emptyCta, linkColor: theme.ind, onLink: { actions.onWrite() }) {
+        KMePeekEmpty(theme: theme, text: peek.emptyText)
+      }
+    case .ready:
+      KMePeekTray(theme: theme, link: peek.seeAll, linkColor: theme.ind, onLink: { actions.onSeeAll() }) {
+        KMeThirds(items: peek.items, spacing: 8) { item in
+          card(item)
+        }
+      }
+    }
+  }
+
+  private func statusColor(_ tone: KMePeekLetter.Tone) -> Color {
+    switch tone {
+    case .quiet: return theme.mute
+    case .answered: return theme.isDark ? Color(hex: "#7CC58F") : KBrand.greenText
+    case .replied: return theme.ink
+    }
+  }
+
+  private func card(_ l: KMePeekLetter) -> some View {
+    let shape = RoundedRectangle(cornerRadius: 12, style: .circular)
+    return SwiftUI.Button {
+      actions.onPeekLetter(l.id)
+    } label: {
+      VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .center, spacing: 4) {
+          Text(l.date)
+            .kText(Self.dateStyle)
+            .foregroundStyle(theme.mute)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+          Spacer(minLength: 0)
+          if !l.stampId.isEmpty {
+            KStamp(id: l.stampId, width: 22, dark: theme.isDark, fallbackHex: l.stampHex.isEmpty ? nil : l.stampHex)
+              .dynamicTypeSize(.large)
+          }
+        }
+        Text(l.body)
+          .kText(Self.bodyStyle)
+          .foregroundStyle(theme.ink)
+          .lineLimit(2)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        Spacer(minLength: 0)
+        Text(l.status)
+          .kText(Self.statusStyle)
+          .foregroundStyle(statusColor(l.tone))
+          .lineLimit(1)
+          .truncationMode(.tail)
+      }
+      .padding(10)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .background(shape.fill(theme.sf))
+      .contentShape(shape)
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(l.a11y)
+    .accessibilityAddTraits(.isButton)
+  }
+}
+
+struct KMeKindredsPeek: View {
+  let theme: KTheme
+  let peek: KMePeekKindreds
+  let actions: KMeActions
+
+  static var lineStyle: KTextStyle { .letter(11, italic: true) }
+
+  private var green: Color { theme.isDark ? Color(hex: "#7CC58F") : KBrand.greenText }
+
+  var body: some View {
+    switch peek.state {
+    case .loading:
+      KMePeekTray(theme: theme, link: "", linkColor: green, onLink: {}) {
+        KMePeekSkeleton(theme: theme, height: 96)
+      }
+    case .empty:
+      KMePeekTray(theme: theme, link: peek.open, linkColor: green, onLink: { actions.onOpenKindreds() }) {
+        KMePeekEmpty(theme: theme, text: peek.emptyText)
+      }
+    case .ready:
+      KMePeekTray(theme: theme, link: peek.open, linkColor: green, onLink: { actions.onOpenKindreds() }) {
+        KMeThirds(items: peek.items, spacing: 10) { item in
+          card(item)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func face(_ f: KPersonFace) -> some View {
+    if case let .bird(ref) = f {
+      KPersonBirdFace(theme: theme, bird: ref, size: 40, dim: false, badge: false)
+    } else {
+      KFace(theme: theme, source: f.source(theme), size: 40, round: true)
+    }
+  }
+
+  private func card(_ k: KMePeekKindred) -> some View {
+    let shape = RoundedRectangle(cornerRadius: 12, style: .circular)
+    return SwiftUI.Button {
+      actions.onPeekKindred(k.id)
+    } label: {
+      VStack(alignment: .center, spacing: 6) {
+        face(k.face)
+          .accessibilityHidden(true)
+        Text(k.name)
+          .kText(.system(12, .semibold))
+          .foregroundStyle(theme.ink)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+        if !k.line.isEmpty {
+          Text("“\(k.line)”")
+            .kText(Self.lineStyle)
+            .foregroundStyle(theme.mute)
+            .lineLimit(1)
+            .truncationMode(.tail)
+        }
+      }
+      .padding(.vertical, 10)
+      .padding(.horizontal, 6)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .background(shape.fill(theme.sf))
+      .contentShape(shape)
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(k.a11y)
+    .accessibilityAddTraits(.isButton)
   }
 }

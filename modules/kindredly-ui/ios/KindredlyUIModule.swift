@@ -75,6 +75,18 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // Me 4a: the First Class page and My letters (adapters appended to Adapters/KSettingsView.swift)
+    ExpoUIView(KPaywallView.self) {
+      AsyncFunction("command") { (view: KPaywallView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KMyLettersView.self) {
+      AsyncFunction("command") { (view: KMyLettersView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // dev only on the JS side (src/app/dev/step5-lab.tsx): the batch 0b spike lab, a screen view
     // like the eight above (KScreenProps, the command bus, a KField)
     ExpoUIView(KLabView.self) {

@@ -86,6 +86,12 @@ import {
      editprofile  Edit profile (in the Me stack) — KEditProfileView
      notes        the Notes tab — KNotesView
 
+   Me 4a (2026-10-19), each keeping its React Native page the same way:
+
+     paywall      the First Class page (paywall) — KPaywallView; onboarding's
+                  fare step keeps the React Native PaywallBody
+     myletters    My letters (my-letters) — KMyLettersView
+
    The one-letter reader, a kindred's page and Wren's desk stay React
    Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
@@ -99,10 +105,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   settings: true,
   editprofile: true,
   notes: true,
+  paywall: true,
+  myletters: true,
 };
 
-/** the nine step-5 surface keys (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes";
+/** the nine step-5 surface keys and Me 4a's two (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

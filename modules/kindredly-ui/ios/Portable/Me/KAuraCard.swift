@@ -290,3 +290,68 @@ public struct KMeFlowLayout: Layout {
     }
   }
 }
+
+// MARK: - The report door (O6)
+
+/*
+ THE REPORT DOOR, 12 under the Aura card: the monthly writing report's way in (lib/report and
+ /report existed with no door). A soft tray, corners 16, padding 14, 12 between: a 36 lav box
+ with the ruled card in ind (or a gold lock on wax gold when it is First Class only), the title
+ (system 600 15) over the sub (13, sub), and a chevron when it opens something. TS decides the
+ four states (not enough writing yet, ready, locked, read this month) and every word; a door
+ that opens nothing is plain text to VoiceOver.
+ */
+struct KReportDoorRow: View {
+  let theme: KTheme
+  let report: KMeReport
+  let onTap: () -> Void
+
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 16, style: .circular)
+    SwiftUI.Button(action: onTap) {
+      HStack(alignment: .center, spacing: 12) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 10, style: .circular)
+            .fill(report.locked ? KBrand.cream : theme.lav)
+          if report.locked {
+            ZStack {
+              Circle().fill(KBrand.waxGold)
+              KLineIcon(.lock, size: 12, lineWidth: 2.4, color: KBrand.inkOnBrand)
+            }
+            .frame(width: 22, height: 22)
+          } else {
+            KLineIcon(.ruledCard, size: 20, lineWidth: 1.9, color: theme.ind)
+          }
+        }
+        .frame(width: 36, height: 36)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(report.title)
+            .kText(.system(15, .semibold))
+            .foregroundStyle(theme.ink)
+            .fixedSize(horizontal: false, vertical: true)
+          if !report.sub.isEmpty {
+            Text(report.sub)
+              .kText(.system(13))
+              .foregroundStyle(theme.sub)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        if report.enabled {
+          KLineIcon(.chevronRight, size: 14, lineWidth: 2.4, color: theme.mute)
+        }
+      }
+      .padding(14)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(shape.fill(theme.soft))
+      .contentShape(shape)
+    }
+    .buttonStyle(KFadePressStyle())
+    .disabled(!report.enabled)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel([report.title, report.sub].filter { !$0.isEmpty }.joined(separator: ", "))
+    .accessibilityHint(report.enabled ? report.hint : "")
+    .accessibilityAddTraits(report.enabled ? .isButton : .isStaticText)
+    .accessibilityRemoveTraits(report.enabled ? [] : .isButton)
+  }
+}

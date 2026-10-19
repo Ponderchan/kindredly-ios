@@ -11,7 +11,7 @@ import { useWrenSkinControl } from "../../lib/wren-skin";
 import { getAvatarPhoto } from "../../lib/avatar-photo";
 import { bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
-import { myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp } from "../../lib/aura";
+import { fetchMyWriting, myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp, type WritingRow } from "../../lib/aura";
 import { observeAuraLocks, replanLocal } from "../../lib/local-push";
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { fetchCarried, recordStageDate, whereabouts, type WhereaboutsRead } from "../../lib/whereabouts";
@@ -28,11 +28,20 @@ import { daylight } from "../../components/CourierCard";
 import { auraCardFacts } from "../../components/AuraCard";
 import type { WrenStage } from "../../components/WrenBird";
 import type { GrowthStats } from "../../data/growth";
+import { useFares } from "../../lib/fares";
+import { readReportDoor, reportDoorVM, type ReportDoor } from "../../lib/report-door";
+import { localeTag } from "../../lib/format";
+import { trialLabel } from "../paywall/paywall-model";
+import { buildLetterCards } from "../letters/letters-model";
 import "../../data/strings-step5-me";
+import "../../data/strings-me4a";
 import { meFormat } from "./me-format";
 import {
+  ME4A_ROUTES,
   ME_ROUTES,
+  NO_REPORT_ROW,
   auraCtaHref,
+  buildMe4a,
   buildMeView,
   courierHref,
   segmentIndex,
@@ -40,7 +49,10 @@ import {
   statHref,
   type KeepsakeFacts,
   type MeFacts,
+  type LookTileId,
+  type Me4aView,
   type MeView,
+  type ReportRowVM,
   type StampFacts,
   type StatKey,
 } from "./me-model";
@@ -112,10 +124,28 @@ export type MeActions = {
   auraShare: () => void;
   stampsEmpty: () => void;
   firstClass: () => void;
+  /* Me 4a (the Swift Me; MeRN doesn't use these) */
+  /** a peek opened or closed (no analytics event exists for it yet: nothing is sent) */
+  peek: (key: StatKey, open: boolean) => void;
+  peekLetter: (id: string) => void;
+  peekKindred: (id: string) => void;
+  seeAll: () => void;
+  openKindreds: () => void;
+  /** the empty letters peek's "Write a letter →" */
+  write: () => void;
+  /** a free look: she wears it (useWrenSkinControl().dress); "fc" for a member: her wardrobe.
+      The locked First Class tile switches the segment instead — the renderer does that. */
+  look: (id: LookTileId) => void;
+  /** "All looks →" for a member: her wardrobe (for anyone else the renderer shows the FC segment) */
+  allLooks: () => void;
+  /** the report door: the report, or First Class when locked */
+  report: () => void;
 };
 
 export type MeModel = {
   view: MeView;
+  /** Me 4a's records (the Swift Me; the fallback draws `view`) */
+  me4a: Me4aView;
   /** the segment shown (0 Courier, 1 Aura, 2 Stamps, 3 First Class) */
   segment: number;
   courier: MeCourier;
@@ -142,6 +172,12 @@ export function stampFacts(used: readonly UsedStamp[]): StampFacts[] {
 }
 
 /** The shelf's facts: the name in the reader's language and whether the catalog can draw it. */
+/** A stamp's colour from stamps.ts ("" when it doesn't list it). */
+export const stampHex = (id: string): string => getStamp(id)?.color ?? "";
+
+/** "November" for "2026-11-01", in the reader's language. */
+export const monthName = (iso: string): string => new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(localeTag(), { month: "long" });
+
 export function keepsakeFacts(shelf: readonly Minted[], fresh: ReadonlySet<string>): KeepsakeFacts[] {
   return shelf.map((k) => ({ id: k.id, name: t(`ks.name.${k.id}`), fresh: fresh.has(k.id), known: !!keepsake(k.id) }));
 }
@@ -153,7 +189,8 @@ export function useMeModel(): MeModel {
   const auth = useAuth();
   const { user, handle, profile } = auth;
   const { premium, settled, cofounderNo } = useEntitlement();
-  const { skin, pick } = useWrenSkinControl();
+  const { skin, pick, accessory, dress } = useWrenSkinControl();
+  const fares = useFares();
   const wren = useWrenName();
   const flightBest = useFlightBest();
 
@@ -161,6 +198,12 @@ export function useMeModel(): MeModel {
   const [statsIn, setStatsIn] = useState(false);
   const [aura, setAura] = useState<Aura | null>(null);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
+  const [threadsIn, setThreadsIn] = useState(false);
+  /* Me 4a: your letters (the peek and its count; null until read) and the report's door */
+  const [writing, setWriting] = useState<WritingRow[] | null>(null);
+  const [door, setDoor] = useState<ReportDoor | null>(null);
+  const [doorSerial, setDoorSerial] = useState(0);
+  const doorOpened = useRef(false);
   const [seenTodayN, setSeenTodayN] = useState(0);
   const [photo, setPhoto] = useState<string | null>(null);
   const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
@@ -234,8 +277,22 @@ export function useMeModel(): MeModel {
             }
           })
           .catch((e) => console.warn("[me] stats:", e));
-        readThreadsCache().then((c) => alive && c && setThreads(c)); // the last list, at once
-        if (threadsAge() > 15) fetchThreads().then((th) => alive && th && setThreads(th));
+        readThreadsCache().then((c) => {
+          if (!alive || !c) return;
+          setThreads(c); // the last list, at once
+          setThreadsIn(true);
+        });
+        if (threadsAge() > 15)
+          fetchThreads().then((th) => {
+            if (!alive || !th) return;
+            setThreads(th);
+            setThreadsIn(true);
+          });
+        // your letters, for the peek (null answers keep what was there: never an emptied list)
+        fetchMyWriting()
+          .then((m) => alive && m && setWriting(m.letters))
+          .catch((e) => console.warn("[me] your letters weren't read:", e));
+        setDoorSerial((n) => n + 1);
         getCounters().then((c) => alive && setSeenTodayN(seenToday(c)));
         readUsedStamps().then((u) => alive && setUsed(u));
 
@@ -282,6 +339,27 @@ export function useMeModel(): MeModel {
       };
     }, [user?.created_at, firstLine]),
   );
+
+  /* THE REPORT'S DOOR (Me 4a, O6): read with the page (doorSerial), when the entitlement
+     answers, and again on the way back from the report (opening it marks the month read) */
+  useFocusEffect(
+    useCallback(() => {
+      if (doorOpened.current) {
+        doorOpened.current = false;
+        setDoorSerial((n) => n + 1);
+      }
+    }, []),
+  );
+  useEffect(() => {
+    if (doorSerial === 0 || !settled) return;
+    let alive = true;
+    readReportDoor(premium, firstLine)
+      .then((d) => alive && setDoor(d))
+      .catch((e) => console.warn("[me] the report's door wasn't read:", e));
+    return () => {
+      alive = false;
+    };
+  }, [doorSerial, settled, premium, firstLine]);
 
   /* her status rides the card — you see she moved before you open her room */
   const sent = statsIn ? stats.lettersSent : null;
@@ -352,11 +430,38 @@ export function useMeModel(): MeModel {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, user?.created_at, cofounderNo, aura, statsIn, stats.kindreds, used, shelf, fresh, premium, wren, dayOff, where.state, best, entry, hunger, lang]);
 
+  const trial = fares.trial;
+  const report = useMemo<ReportRowVM>(() => {
+    if (!door) return NO_REPORT_ROW;
+    return reportDoorVM(door, { t, monthName }, wren);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [door, wren, lang]);
+  const me4a = useMemo(() => {
+    const letters = writing ? writing.length : aura ? aura.sources.letters : null;
+    return buildMe4a(
+      {
+        profile: { handle, createdAt: user?.created_at ?? null, cofounderNo, letters, kindreds: statsIn ? stats.kindreds : null },
+        letters: writing ? buildLetterCards(writing, threads, []) : null,
+        stampHex,
+        threads: threadsIn ? threads : null,
+        nameOf: (th) => book.threadName(th as ThreadSummary),
+        looks: { accessory, premium, wren },
+        firstClass: { premium, cofounderNo, wren, trial: trialLabel(trial, t) },
+        report,
+      },
+      meFormat(),
+    );
+    // lang: every word follows the reader's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, trial, report, lang]);
+
   const ctaTo = view.aura?.ctaTo ?? "compose";
   const dayOffRef = useRef(dayOff);
   dayOffRef.current = dayOff;
   const ctaRef = useRef(ctaTo);
   ctaRef.current = ctaTo;
+  const reportHref = useRef<string | null>(null);
+  reportHref.current = report.href;
 
   const act = useMemo<MeActions>(
     () => ({
@@ -376,8 +481,25 @@ export function useMeModel(): MeModel {
       auraShare: () => router.push(ME_ROUTES.auraCard),
       stampsEmpty: () => router.push(ME_ROUTES.compose),
       firstClass: () => router.push(ME_ROUTES.paywall),
+      peek: () => {},
+      peekLetter: () => router.push(ME_ROUTES.letters),
+      peekKindred: (id) => router.push(ME4A_ROUTES.room(id)),
+      seeAll: () => router.push(ME_ROUTES.letters),
+      openKindreds: () => router.push(ME_ROUTES.kindreds),
+      write: () => router.push(ME_ROUTES.compose),
+      look: (id) => {
+        if (id === "fc") router.push(ME4A_ROUTES.courier);
+        else dress(id);
+      },
+      allLooks: () => router.push(ME4A_ROUTES.courier),
+      report: () => {
+        const href = reportHref.current;
+        if (!href) return;
+        doorOpened.current = true;
+        router.push(href);
+      },
     }),
-    [router],
+    [router, dress],
   );
 
   const courier = useMemo<MeCourier>(
@@ -390,5 +512,5 @@ export function useMeModel(): MeModel {
   const avatar = useMemo(() => ({ id: avatarId, photo, seed }), [avatarId, photo, seed]);
   const scroll = useMemo(() => ({ serial: scrollSerial }), [scrollSerial]);
 
-  return { view, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act };
+  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act };
 }

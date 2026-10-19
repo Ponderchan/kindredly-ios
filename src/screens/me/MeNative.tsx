@@ -6,38 +6,44 @@ import {
   type KMeAura,
   type KMeCommands,
   type KMeFirstClass,
-  type KMeKeepsakes,
+  type KMeLooks,
+  type KMePeekKindreds,
+  type KMePeekLetters,
   type KMeProfile,
+  type KMeReport,
   type KMeStamps,
   type KMeStrings,
 } from "../../../modules/kindredly-ui/src/Me";
+import type { KKindredsFace } from "../../../modules/kindredly-ui/src/Kindreds";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { AvatarImage } from "../../components/AvatarImage";
 import { CourierCard } from "../../components/CourierCard";
 import { AURA_ART_H, AuraArtSlot, auraArtWidth } from "../../components/AuraCard";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
-import { useAssetImageRefs } from "../../lib/images";
-import { useBirdImageRef } from "../../lib/bird-images";
-import { keepsake } from "../../data/keepsakes";
-import type { AuraCardVM, KeepsakesVM, MeView } from "./me-model";
+import { useBirdImageRef, type BirdPose } from "../../lib/bird-images";
+import { faceRecord, useFaceSources, type FaceInput, type FaceSource } from "../../lib/faces";
+import type { ImageRefRecord } from "../../lib/images";
+import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type Me4aView, type MeView } from "./me-model";
 import type { MeModel } from "./useMeModel";
 
-/* THE ME TAB IN SWIFTUI (10a step 5): one Host for the whole screen
+/* THE ME TAB IN SWIFTUI (4a, 2026-10-19): one Host for the whole screen
    (SurfaceHost: flex 1, every safe area ignored, light or dark from the
    theme, the crash breadcrumb's layout report), holding KMeView, with three
    React Native islands inside it — the user's avatar (AvatarImage: a photo,
    a portrait, an old drawn face or the mosaic, which SwiftUI can't all
-   draw), the courier's live scene (CourierCard: the owner keeps her
-   animation React Native) and the Aura card's picture (one of the fifty
-   scenes fitted by height, or the desk). Every tap is SwiftUI's; the
-   islands take no touches and VoiceOver doesn't see them.
+   draw; drawn 72 and scaled by the collapsing header), the courier's live
+   scene (CourierCard: the owner keeps her animation React Native) and the
+   Aura card's picture. Every tap is SwiftUI's; the islands take no touches
+   and VoiceOver doesn't see them.
 
-   This file only turns the model's view (me-model, the same one the React
-   Native fallback draws) into the Swift records:
-   - the keepsake icons as expo-asset files (useAssetImageRefs), the First
-     Class stamp's bird as a snapshot of the reader's own courier, grown,
-     curious or delighted (useBirdImageRef fcFree / fcMember);
+   This file only turns the model (useMeModel: me-model's MeView for the
+   courier, aura and stamps, and its Me4aView for the header, the peeks, the
+   looks, the First Class card and the report door) into the Swift records:
+   - the kindreds' faces (lib/faces useFaceSources → faceRecord), the looks
+     tiles' and the First Class stamp's birds as snapshots of the reader's
+     own courier (useBirdImageRef lookNone / lookBeanie / lookScarf /
+     lookWorn, fcFree / fcMember);
    - the records kept by content, so a refocus that reads the same page
      again doesn't re-send them (every prop change re-sends the whole props
      map), with one rev for all of them;
@@ -45,6 +51,8 @@ import type { MeModel } from "./useMeModel";
      rule), the courier filled only while Courier shows and the art only
      while Aura shows — so the courier's loops don't run behind another card
      (critic) — and each the size Swift places it at;
+   - the locked First Class look and "All looks →" for a free reader show the
+     First Class segment (a segment command, reported back like a chip);
    - pressing Me again goes to the top (the model's scroll serial). */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
@@ -61,21 +69,55 @@ const GUTTER = 16;
 const FRAME_LINES = 5;
 /** the courier scene's height (CourierCard SCENE_H; KMeScreen.courierSceneHeight) */
 const COURIER_H = 236;
+/** the avatar island's side (KMeScreen.avatarIsland): the header scales it, never re-lays it out */
+const AVATAR = 72;
 
-export const nativeStrings = (v: MeView): KMeStrings => ({
-  title: v.title,
-  penName: v.penName,
+export const nativeStrings = (v: MeView, m: Me4aView): KMeStrings => ({
   settingsLabel: v.settingsLabel,
   courierA11y: v.courierA11y,
   segments: v.segments,
+  ...m.a11y,
 });
 
-export const nativeProfile = (v: MeView): KMeProfile => ({
-  name: v.profile.name,
-  joined: v.profile.joined,
-  cofounder: v.profile.cofounder,
-  editLabel: v.profile.editLabel,
-  stats: v.profile.stats.map((s) => ({ key: s.key, glyph: s.glyph, count: s.count, unit: s.unit, a11y: s.a11y })),
+export const nativeProfile = (m: Me4aView): KMeProfile => ({
+  name: m.profile.name,
+  joined: m.profile.joined,
+  editLabel: m.profile.editLabel,
+  stats: m.profile.stats.map((s) => ({ key: s.key, count: s.count, unit: s.unit, a11y: s.a11y, hint: s.hint })),
+});
+
+export const nativePeekLetters = (m: Me4aView): KMePeekLetters => ({
+  state: m.peekLetters.state,
+  items: m.peekLetters.items.map((l) => ({ id: l.id, date: l.date, stampId: l.stampId, stampHex: l.stampHex, body: l.body, tone: l.tone, status: l.status, a11y: l.a11y })),
+  seeAll: m.peekLetters.seeAll,
+  emptyText: m.peekLetters.emptyText,
+  emptyCta: m.peekLetters.emptyCta,
+});
+
+const PLACEHOLDER_FACE: KKindredsFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, tint: "ink" };
+const kindredFace = (s: FaceSource | undefined): KKindredsFace => (s ? { ...faceRecord(s), tint: "ink" } : PLACEHOLDER_FACE);
+
+export const nativePeekKindreds = (m: Me4aView, faces: Readonly<Record<string, FaceSource>>): KMePeekKindreds => ({
+  state: m.peekKindreds.state,
+  items: m.peekKindreds.items.map((k) => ({ id: k.id, name: k.name, line: k.line, face: kindredFace(faces[k.id]), a11y: k.a11y })),
+  open: m.peekKindreds.open,
+  emptyText: m.peekKindreds.emptyText,
+});
+
+export const nativeLooks = (m: Me4aView, birds: Readonly<Record<LookPose, ImageRefRecord | null>>): KMeLooks => ({
+  header: m.looks.header,
+  all: m.looks.all,
+  allHint: m.looks.allHint,
+  tiles: m.looks.tiles.map((t) => ({ id: t.id, label: t.label, name: t.name, bird: birds[t.pose], selected: t.selected, locked: t.locked, dim: t.dim, hint: t.hint })),
+});
+
+export const nativeReport = (m: Me4aView): KMeReport => ({
+  show: m.report.show,
+  title: m.report.title,
+  sub: m.report.sub,
+  enabled: m.report.enabled,
+  locked: m.report.locked,
+  hint: m.report.hint,
 });
 
 const NO_AURA: KMeAura = {
@@ -123,16 +165,6 @@ export const nativeStamps = (v: MeView): KMeStamps => ({
   emptyCta: v.stamps.emptyCta,
 });
 
-export function nativeKeepsakes(k: KeepsakesVM, icons: Partial<Record<string, { uri: string; key: string }>>): KMeKeepsakes {
-  return {
-    header: k.header,
-    count: k.count,
-    note: k.note,
-    a11y: k.a11y,
-    tiles: k.tiles.map((t) => (t ? { id: t.id, name: t.name, image: icons[t.id] ?? null, fresh: t.fresh, a11y: t.a11y } : { id: "", name: "", image: null, fresh: false, a11y: "" })),
-  };
-}
-
 export function MeNative({ model }: { model: MeModel }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
@@ -140,7 +172,7 @@ export function MeNative({ model }: { model: MeModel }) {
   const { width } = useWindowDimensions();
   const ref = useRef<KScreenHandle>(null);
   const commands = useKCommands<KMeCommands>(ref);
-  const { view, act, courier, aura, avatar, segment } = model;
+  const { view, me4a, act, courier, aura, avatar, segment } = model;
 
   // pressing Me again while on it: to the top (the Me stack has popped itself to this page)
   const served = useRef(model.scroll.serial);
@@ -150,38 +182,58 @@ export function MeNative({ model }: { model: MeModel }) {
     commands.send("scrollTo", { key: "top", animated: true });
   }, [model.scroll, commands]);
 
-  // the keepsake icons the two tiles show, as files Swift can load
-  const tileIds = view.keepsakes.tiles.map((t) => t?.id ?? "").join("|");
-  const iconMods = useMemo(() => {
-    const mods: Record<string, number> = {};
-    for (const id of tileIds.split("|")) {
-      const def = id ? keepsake(id) : null;
-      if (def) mods[id] = def.icon;
-    }
-    return mods;
-  }, [tileIds]);
-  const icons = useAssetImageRefs(iconMods);
-  const bird = useBirdImageRef(view.firstClass.pose);
+  // the kindreds peek's faces, as files and mosaics Swift can draw
+  const faceInputs = useMemo(() => {
+    const o: Record<string, FaceInput> = {};
+    for (const k of me4a.peekKindreds.items) o[k.id] = k.face;
+    return o;
+  }, [me4a.peekKindreds.items]);
+  const faces = useFaceSources(faceInputs);
 
-  const strings = useSameContent(useMemo(() => nativeStrings(view), [view]));
-  const profile = useSameContent(useMemo(() => nativeProfile(view), [view]));
+  // her pictures: the looks tiles (grown, each look pinned; lookWorn is whatever she has on) and
+  // the First Class stamp
+  const lookNone = useBirdImageRef("lookNone");
+  const lookBeanie = useBirdImageRef("lookBeanie");
+  const lookScarf = useBirdImageRef("lookScarf");
+  const lookWorn = useBirdImageRef("lookWorn");
+  const fcPose: BirdPose = me4a.firstClass.pose;
+  const fcBird = useBirdImageRef(fcPose);
+  const birds = useMemo(() => ({ lookNone, lookBeanie, lookScarf, lookWorn }), [lookNone, lookBeanie, lookScarf, lookWorn]);
+
+  const strings = useSameContent(useMemo(() => nativeStrings(view, me4a), [view, me4a]));
+  const profile = useSameContent(useMemo(() => nativeProfile(me4a), [me4a]));
+  const peekLetters = useSameContent(useMemo(() => nativePeekLetters(me4a), [me4a]));
+  const peekKindreds = useSameContent(useMemo(() => nativePeekKindreds(me4a, faces), [me4a, faces]));
+  const looks = useSameContent(useMemo(() => nativeLooks(me4a, birds), [me4a, birds]));
   const auraRec = useSameContent(useMemo(() => nativeAura(view.aura), [view.aura]));
+  const report = useSameContent(useMemo(() => nativeReport(me4a), [me4a]));
   const stamps = useSameContent(useMemo(() => nativeStamps(view), [view]));
-  const keepsakes = useSameContent(useMemo(() => nativeKeepsakes(view.keepsakes, icons), [view.keepsakes, icons]));
   const firstClass = useSameContent<KMeFirstClass>(
     useMemo(
       () => ({
-        eyebrow: view.firstClass.eyebrow,
-        headline: view.firstClass.headline,
-        sub: view.firstClass.sub,
-        cta: view.firstClass.cta,
-        stampLabel: view.firstClass.stampLabel,
-        bird,
+        eyebrow: me4a.firstClass.eyebrow,
+        headline: me4a.firstClass.headline,
+        rows: me4a.firstClass.rows,
+        cta: me4a.firstClass.cta,
+        trial: me4a.firstClass.trial,
+        stampLabel: me4a.firstClass.stampLabel,
+        bird: fcBird,
+        member: me4a.firstClass.member,
       }),
-      [view.firstClass, bird],
+      [me4a.firstClass, fcBird],
     ),
   );
-  const rev = useRev(strings, profile, auraRec, stamps, keepsakes, firstClass);
+  const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass);
+
+  // a free reader's First Class look and "All looks →": the First Class segment, shown as its
+  // chip would (Swift reports it back through onSegment); a member's: her wardrobe
+  const member = me4a.looks.member;
+  const toFirstClass = () => commands.send("segment", { index: FIRST_CLASS_SEGMENT });
+  const onLook = (id: "none" | "beanie" | "scarf" | "fc") => {
+    if (id === "fc" && !member) toFirstClass();
+    else act.look(id);
+  };
+  const onAllLooks = () => (member ? act.allLooks() : toFirstClass());
 
   // the segment the view opens on: the session's, read once (Swift owns it after)
   const initialSegment = useRef(segment).current;
@@ -198,26 +250,35 @@ export function MeNative({ model }: { model: MeModel }) {
         rev={rev}
         strings={strings}
         profile={profile}
+        peekLetters={peekLetters}
+        peekKindreds={peekKindreds}
+        looks={looks}
         aura={auraRec}
+        report={report}
         stamps={stamps}
-        keepsakes={keepsakes}
         firstClass={firstClass}
         initialSegment={initialSegment}
         onSettings={act.settings}
         onEdit={act.edit}
-        onStat={act.stat}
+        onPeek={act.peek}
+        onPeekLetter={act.peekLetter}
+        onPeekKindred={act.peekKindred}
+        onSeeAll={act.seeAll}
+        onOpenKindreds={act.openKindreds}
+        onWrite={act.write}
         onSegment={act.segment}
         onCourier={act.courier}
-        onKeepsakes={act.keepsakes}
-        onKeepsake={act.keepsake}
+        onLook={onLook}
+        onAllLooks={onAllLooks}
         onAuraOpen={act.auraOpen}
         onAuraCta={act.auraCta}
         onAuraShare={act.auraShare}
+        onReport={act.report}
         onStampsEmpty={act.stampsEmpty}
         onFirstClass={act.firstClass}
       >
-        <KIsland name="avatar" style={{ width: 56, height: 56 }}>
-          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={56} />
+        <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
+          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} />
         </KIsland>
         <KIsland name="courier" style={{ width: courierW, height: COURIER_H }}>
           {segment === 0 ? (

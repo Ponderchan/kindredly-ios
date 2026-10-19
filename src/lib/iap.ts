@@ -75,6 +75,17 @@ export interface IapPackage {
      it as LIFETIME, and the paywall prices and words it differently */
   period: "monthly" | "annual" | "lifetime" | "other";
   raw: any;
+  /* Me 4a (lib/fares): the numbers the Swift paywall needs beside the
+     string. All three are the store's own, read as RevenueCat hands them;
+     absent on the placeholders. */
+  /** the store product's identifier (for the trial eligibility check) */
+  productId?: string;
+  /** product.price, a number in the store's currency */
+  price?: number | null;
+  /** product.pricePerMonthString (an annual's monthly figure, in the store's format) */
+  perMonthString?: string | null;
+  /** product.introPrice: a free trial is one whose price is 0 */
+  introPrice?: { price: number; periodUnit: string; periodNumberOfUnits: number; cycles: number } | null;
 }
 
 export async function iapGetPackages(): Promise<IapPackage[]> {
@@ -97,9 +108,43 @@ export async function iapGetPackages(): Promise<IapPackage[]> {
               ? "lifetime"
               : "other",
       raw: p,
+      productId: p.product?.identifier,
+      price: typeof p.product?.price === "number" ? p.product.price : null,
+      perMonthString: p.product?.pricePerMonthString ?? null,
+      introPrice: p.product?.introPrice
+        ? {
+            price: Number(p.product.introPrice.price),
+            periodUnit: String(p.product.introPrice.periodUnit || ""),
+            periodNumberOfUnits: Number(p.product.introPrice.periodNumberOfUnits) || 0,
+            cycles: Number(p.product.introPrice.cycles) || 0,
+          }
+        : null,
     }));
-  } catch {
+  } catch (e) {
+    console.warn("[iap] offerings:", e);
     return [];
+  }
+}
+
+/** Whether this Apple ID may still take each product's introductory offer, by product id:
+    0 unknown, 1 ineligible, 2 eligible, 3 no intro offer exists (RevenueCat's
+    INTRO_ELIGIBILITY_STATUS). {} when purchases can't be reached or the check fails (logged):
+    the caller then shows no trial, never a trial it can't vouch for (ME4A D12). */
+export async function iapTrialEligibility(productIds: string[]): Promise<Record<string, number>> {
+  if (!IAP_READY || !productIds.length) return {};
+  const P = load();
+  if (!P) return {};
+  try {
+    const res = await P.checkTrialOrIntroductoryPriceEligibility(productIds);
+    const out: Record<string, number> = {};
+    for (const id of productIds) {
+      const st = res?.[id]?.status;
+      if (typeof st === "number") out[id] = st;
+    }
+    return out;
+  } catch (e) {
+    console.warn("[iap] trial eligibility:", e);
+    return {};
   }
 }
 

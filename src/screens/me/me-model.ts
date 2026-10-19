@@ -1,4 +1,6 @@
 import type { Rung } from "../../lib/aura-ladder";
+import type { FaceInput } from "../../lib/faces";
+import type { LetterCardFacts, LetterStatus } from "../letters/letters-model";
 
 /* THE ME TAB, AS DATA (10a step 5). Pure: no React, no React Native, no
    i18n — every word comes in through `fmt`, so
@@ -518,3 +520,319 @@ export const ME_ROUTES = {
 
 export const statHref = (key: StatKey): string => (key === "letters" ? ME_ROUTES.letters : ME_ROUTES.kindreds);
 export const auraCtaHref = (to: AuraCardVM["ctaTo"]): string => (to === "compose" ? ME_ROUTES.compose : ME_ROUTES.aura);
+
+/* ══ ME 4a (2026-10-19, .claude/me4a/ME4A.md) ═════════════════════════════
+   The Swift Me draws 4a: a sticky header (avatar, name, "joined …", the gear,
+   the two peek buttons and their trays, the four chips) over one segment —
+   the courier with WREN'S LOOKS, the Aura card with the report door, the
+   stamps, the First Class card. These builders make its records. MeRN (the
+   React Native fallback) still draws buildMeView's records above, unchanged.
+   Like everything here: pure, words through fmt, node-tested. */
+
+/** a peek or the looks: whether its data has been read yet, and whether it found anything */
+export type PeekState = "loading" | "empty" | "ready";
+
+/** The few facts of a letter card the letters peek reads (screens/letters LetterCardFacts). */
+export type PeekLetterSource = Pick<LetterCardFacts, "kind" | "id" | "date" | "stamp" | "body" | "status">;
+
+export type PeekLetterVM = {
+  id: string;
+  /** 2026.09.23 */
+  date: string;
+  stampId: string;
+  stampHex: string;
+  body: string;
+  tone: "quiet" | "answered" | "replied";
+  /** QUIET · ANSWERED · 2 · LUNA REPLIED (mono, upper-cased) */
+  status: string;
+  /** VoiceOver: the day, the letter, its status */
+  a11y: string;
+};
+
+export type PeekLettersVM = { state: PeekState; items: PeekLetterVM[]; seeAll: string; emptyText: string; emptyCta: string };
+
+/** How many letters the peek shows. */
+export const PEEK_CARDS = 3;
+
+/** "2026.09.23" from an ISO date (screens/letters letterDate's rule); "" for none. */
+const dotted = (iso: string): string => (iso ? iso.slice(0, 10).replace(/-/g, ".") : "");
+
+/** A letter's status as the peek's mono line says it. */
+export function peekStatus(s: LetterStatus, fmt: MeFormat): { tone: PeekLetterVM["tone"]; text: string } {
+  const { t, upper } = fmt;
+  if (s.kind === "quiet") return { tone: "quiet", text: upper(t("ml.quiet")) };
+  if (s.kind === "answered") return { tone: "answered", text: `${upper(t("ml.answered"))} · ${s.n}` };
+  return { tone: "replied", text: upper(s.more > 0 ? t("ml.repliedMore", { who: s.who, n: s.more }) : t("ml.replied", { who: s.who })) };
+}
+
+/**
+ * The letters peek: the newest three letters (never drafts), "See all n →" with the same count
+ * as the stat. `cards` null = not read yet (three blank cards). `stampHex` gives a stamp's colour
+ * (stamps.ts), for an id the Swift table doesn't know.
+ */
+export function buildPeekLetters(cards: readonly PeekLetterSource[] | null, count: number | null, stampHex: (id: string) => string, fmt: MeFormat): PeekLettersVM {
+  const { t } = fmt;
+  const base = { seeAll: t("m4.peek.seeAll", { n: count ?? 0 }), emptyText: t("m4.peek.noLetters"), emptyCta: `${t("ml.write")} →` };
+  if (cards == null) return { state: "loading", items: [], ...base };
+  const letters = cards.filter((c) => c.kind === "letter");
+  if (letters.length === 0) return { state: "empty", items: [], ...base };
+  const items = letters.slice(0, PEEK_CARDS).map((c): PeekLetterVM => {
+    const st = peekStatus(c.status, fmt);
+    const body = c.body.replace(/\s+/g, " ").trim();
+    const day = c.date ? fmt.dateShort(c.date) : "";
+    return {
+      id: c.id,
+      date: dotted(c.date),
+      stampId: c.stamp ?? "",
+      stampHex: c.stamp ? stampHex(c.stamp) : "",
+      body,
+      tone: st.tone,
+      status: st.text,
+      a11y: [day, body, st.text.toLocaleLowerCase()].filter(Boolean).join(". "),
+    };
+  });
+  // the count says how many there are; never fewer than the cards on show
+  return { state: "ready", items, ...base, seeAll: t("m4.peek.seeAll", { n: Math.max(count ?? 0, letters.length) }) };
+}
+
+/** What a kindreds card is drawn from: a thread with names traded. */
+export type PeekThreadSource = {
+  id: string;
+  revealed: boolean;
+  gone?: boolean;
+  other: string | null;
+  otherFace?: string | null;
+  otherName: string | null;
+  theirTexts?: string[];
+  preview: string;
+  lastAt: number;
+};
+
+export type PeekKindredVM = { id: string; name: string; line: string; face: FaceInput; a11y: string };
+export type PeekKindredsVM = { state: PeekState; items: PeekKindredVM[]; open: string; emptyText: string };
+
+/**
+ * The kindreds peek: up to three kindreds (names traded, account still open), the latest first,
+ * each with their face, their name (`nameOf`: the pen name, else the who-book's) and their last
+ * line (the newest of what they wrote, else the thread's preview). `threads` null = not read yet.
+ */
+export function buildPeekKindreds(threads: readonly PeekThreadSource[] | null, nameOf: (th: PeekThreadSource) => string, fmt: MeFormat): PeekKindredsVM {
+  const { t } = fmt;
+  const base = { open: t("m4.peek.openKindreds"), emptyText: t("m4.peek.noKindreds") };
+  if (threads == null) return { state: "loading", items: [], ...base };
+  const kin = threads.filter((th) => th.revealed && !th.gone).sort((a, b) => b.lastAt - a.lastAt);
+  if (kin.length === 0) return { state: "empty", items: [], ...base };
+  const items = kin.slice(0, PEEK_CARDS).map((th): PeekKindredVM => {
+    const theirs = (th.theirTexts ?? []).map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const line = theirs.length ? theirs[theirs.length - 1] : th.preview.replace(/\s+/g, " ").trim();
+    const name = (th.otherName ?? "").trim() || nameOf(th);
+    return {
+      id: th.id,
+      name,
+      line,
+      face: { role: "kindred", seed: th.other, avatarId: th.otherFace ?? null, gone: !!th.gone },
+      a11y: [name, line].filter(Boolean).join(", "),
+    };
+  });
+  return { state: "ready", items, ...base };
+}
+
+/* ── WREN'S LOOKS (owner 2026-10-19: the accessories exactly as live) ──── */
+
+/** The three free looks, in the tray's order, then the First Class tile. */
+export const LOOK_TILES = ["none", "beanie", "scarf", "fc"] as const;
+export type LookTileId = (typeof LOOK_TILES)[number];
+/** The snapshot pose each tile shows (lib/bird-images). */
+export type LookPose = "lookNone" | "lookBeanie" | "lookScarf" | "lookWorn";
+
+export type LookTileVM = {
+  id: LookTileId;
+  label: string;
+  name: string;
+  pose: LookPose;
+  selected: boolean;
+  locked: boolean;
+  dim: boolean;
+  hint: string;
+};
+
+export type LooksVM = {
+  /** WREN'S LOOKS */
+  header: string;
+  /** All looks → */
+  all: string;
+  allHint: string;
+  tiles: LookTileVM[];
+  /** a First Class reader: the FC tile and "All looks →" open the wardrobe; otherwise the First Class segment */
+  member: boolean;
+};
+
+export type LooksFacts = {
+  /** what she wears now (useWrenSkinControl().accessory) */
+  accessory: string;
+  premium: boolean;
+  wren: string;
+};
+
+const FREE_LOOKS = ["none", "beanie", "scarf"] as const;
+
+export function buildLooks(f: LooksFacts, fmt: MeFormat): LooksVM {
+  const { t, upper } = fmt;
+  const wearsPaid = !(FREE_LOOKS as readonly string[]).includes(f.accessory);
+  const free = FREE_LOOKS.map(
+    (id): LookTileVM => ({
+      id,
+      label: upper(t(`ws.acc.${id}`)),
+      name: t(`ws.acc.${id}`),
+      pose: id === "none" ? "lookNone" : id === "beanie" ? "lookBeanie" : "lookScarf",
+      selected: f.accessory === id,
+      locked: false,
+      dim: false,
+      hint: "",
+    }),
+  );
+  const fc: LookTileVM = {
+    id: "fc",
+    label: upper(t("m4.looks.fc")),
+    name: t("m4.looks.fcName"),
+    // a member wearing a First Class piece sees her in it; otherwise the plain bird
+    pose: f.premium && wearsPaid ? "lookWorn" : "lookNone",
+    selected: f.premium && wearsPaid,
+    locked: !f.premium,
+    dim: !f.premium,
+    hint: f.premium ? t("m4.a11y.opensWardrobe", { wren: f.wren }) : t("m4.a11y.opensFc"),
+  };
+  return {
+    header: upper(t("m4.looks.title", { wren: f.wren })),
+    all: t("m4.looks.all"),
+    allHint: f.premium ? t("m4.a11y.opensWardrobe", { wren: f.wren }) : t("m4.a11y.opensFc"),
+    tiles: [...free, fc],
+    member: f.premium,
+  };
+}
+
+/* ── the First Class card (4a, Prompt 6) ───────────────────────────────── */
+
+export type FirstClass4aFacts = FirstClassFacts & {
+  /** "7 DAYS FREE" when the store has a free trial this reader may take (lib/fares); "" otherwise */
+  trial: string;
+};
+
+export type FirstClass4aVM = {
+  eyebrow: string;
+  headline: string;
+  rows: string[];
+  cta: string;
+  trial: string;
+  stampLabel: string;
+  pose: "fcFree" | "fcMember";
+  member: boolean;
+};
+
+export function buildFirstClass4a(f: FirstClass4aFacts, fmt: MeFormat): FirstClass4aVM {
+  const { t, upper } = fmt;
+  const w = { wren: f.wren };
+  // rooms, the wardrobe, voice letters — what this build really has (no "all stamp frames")
+  const rows = [t("fc.b1", w), t("fc.b4", w), t("fc.b2", w)];
+  if (f.premium) {
+    return {
+      eyebrow: t("me.firstClass"),
+      headline: f.cofounderNo != null ? t("me.fc.founding", { n: String(f.cofounderNo) }) : t("fc.paidHead"),
+      rows,
+      cta: `${t("fc.paidCta")} →`,
+      trial: "",
+      stampLabel: t("fc.member"),
+      pose: "fcMember",
+      member: true,
+    };
+  }
+  return {
+    eyebrow: t("me.firstClass"),
+    headline: t("fc.stubHead"),
+    rows,
+    cta: `${t("fc.stubCta")} →`,
+    trial: f.trial ? upper(f.trial) : "",
+    stampLabel: t("fc.firstMark"),
+    pose: "fcFree",
+    member: false,
+  };
+}
+
+/* ── the report door (lib/report-door decides; this only carries it) ───── */
+
+export type ReportRowVM = { show: boolean; title: string; sub: string; enabled: boolean; locked: boolean; hint: string; href: string | null };
+export const NO_REPORT_ROW: ReportRowVM = { show: false, title: "", sub: "", enabled: false, locked: false, hint: "", href: null };
+
+/* ── the header ────────────────────────────────────────────────────────── */
+
+export type Stat4aVM = { key: StatKey; count: string; unit: string; a11y: string; hint: string };
+export type Profile4aVM = { name: string; joined: string; editLabel: string; stats: Stat4aVM[] };
+
+/** 4a's header: "joined Jul 27" in sentence case (the cofounder number after it), the two buttons
+    with VoiceOver's hints. The figures are buildProfile's, so both renderers count the same. */
+export function buildProfile4a(f: ProfileFacts, fmt: MeFormat): Profile4aVM {
+  const { t } = fmt;
+  const p = buildProfile(f, fmt);
+  const joined = f.createdAt ? t("m4.joined", { date: fmt.dateShort(f.createdAt) }) : "";
+  return {
+    name: p.name,
+    joined: [joined, p.cofounder].filter(Boolean).join(" · "),
+    editLabel: p.editLabel,
+    // 4a's units are sentence case after the figure ("10 letters"), not the mono label's capitals
+    stats: p.stats.map((s) => {
+      const one = (s.key === "letters" ? f.letters : f.kindreds) === 1;
+      const unit = s.key === "letters" ? t(one ? "m4.unit.letterOne" : "m4.unit.letters") : t(one ? "m4.unit.kindredOne" : "m4.unit.kindreds");
+      return { key: s.key, count: s.count, unit, a11y: s.a11y, hint: t(s.key === "letters" ? "m4.a11y.lettersHint" : "m4.a11y.kindredsHint") };
+    }),
+  };
+}
+
+export type Me4aA11y = { expanded: string; collapsed: string; seeAllAction: string; openKindredsAction: string; locked: string };
+
+export type Me4aFacts = {
+  profile: ProfileFacts;
+  /** letter cards (screens/letters buildLetterCards), null until read */
+  letters: readonly PeekLetterSource[] | null;
+  stampHex: (id: string) => string;
+  /** the threads, null until read */
+  threads: readonly PeekThreadSource[] | null;
+  nameOf: (th: PeekThreadSource) => string;
+  looks: LooksFacts;
+  firstClass: FirstClass4aFacts;
+  report: ReportRowVM;
+};
+
+export type Me4aView = {
+  profile: Profile4aVM;
+  peekLetters: PeekLettersVM;
+  peekKindreds: PeekKindredsVM;
+  looks: LooksVM;
+  firstClass: FirstClass4aVM;
+  report: ReportRowVM;
+  a11y: Me4aA11y;
+};
+
+export function buildMe4a(f: Me4aFacts, fmt: MeFormat): Me4aView {
+  const { t } = fmt;
+  return {
+    profile: buildProfile4a(f.profile, fmt),
+    peekLetters: buildPeekLetters(f.letters, f.profile.letters, f.stampHex, fmt),
+    peekKindreds: buildPeekKindreds(f.threads, f.nameOf, fmt),
+    looks: buildLooks(f.looks, fmt),
+    firstClass: buildFirstClass4a(f.firstClass, fmt),
+    report: f.report,
+    a11y: {
+      expanded: t("m4.a11y.expanded"),
+      collapsed: t("m4.a11y.collapsed"),
+      seeAllAction: t("m4.a11y.seeAllAction"),
+      openKindredsAction: t("m4.a11y.openKindredsAction"),
+      locked: t("m4.a11y.locked"),
+    },
+  };
+}
+
+/* the 4a taps' destinations */
+export const ME4A_ROUTES = {
+  courier: "/courier",
+  room: (id: string) => `/room/${encodeURIComponent(id)}`,
+} as const;

@@ -97,6 +97,8 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   case pen
   /// three sliders (Settings)
   case sliders
+  /// a gear (the Me header's settings key, 4a: never sliders there)
+  case gear
   /// a stills camera (STAMP CAM, the avatar's camera button)
   case camera
   /// a rounded photo with a sun (UPLOAD, Choose a photo)
@@ -367,6 +369,8 @@ enum KLineGlyphTable {
         .d("M4 6h9 M17 6h3 M4 12h3 M11 12h9 M4 18h11 M19 18h1"),
         .circle(15, 6, r: 2), .circle(9, 12, r: 2), .circle(17, 18, r: 2),
       ])
+    // 4a's gear (template line 35), verbatim
+    case .gear: return Drawing(stroke: [.d("M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"), .circle(12, 12, r: 3)])
     case .camera: return Drawing(stroke: [.d("M4 8h3l2-3h6l2 3h3v11H4z"), .circle(12, 13, r: 3.5)])
     case .picture: return Drawing(stroke: [.rect(3, 5, 18, 14, r: 3), .circle(9, 10, r: 2), .d("M21 15l-5-4-9 8")])
     case .lock:

@@ -45,7 +45,13 @@ export type BirdPose =
   | "fcFree"
   | "fcMember"
   // Today (3d x 25b): the wire bird's curious face, at the 56 set's size
-  | "curious56";
+  | "curious56"
+  // Me 4a (.claude/me4a/ME4A.md §5): the looks tiles and the paywall hero
+  | "lookNone"
+  | "lookBeanie"
+  | "lookScarf"
+  | "lookWorn"
+  | "fcHero";
 
 /** What a pose draws. Anything pinned overrides the user's look; the rest is hers. */
 export type BirdPoseSpec = {
@@ -88,6 +94,16 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      scale up. Her look and stage, unpinned; the hatchling's face is
      HatchEyes, as for every mood. Not base: captured only while Today asks. */
   curious56: { size: 56, mood: "curious" },
+  /* Me 4a's WREN'S LOOKS tiles: the grown bird (an egg wears nothing, so a
+     tile at her own stage would show no difference before she hatches),
+     her skin, the tile's accessory pinned. lookWorn is the member's First
+     Class tile: whatever she has on. Not base: captured only while Me asks. */
+  lookNone: { size: 48, mood: "content", stage: "wren", accessory: "none" },
+  lookBeanie: { size: 48, mood: "content", stage: "wren", accessory: "beanie" },
+  lookScarf: { size: 48, mood: "content", stage: "wren", accessory: "scarf" },
+  lookWorn: { size: 48, mood: "content", stage: "wren" },
+  // the Swift paywall's hero: the grown bird flying, at 4a's 120, in her look
+  fcHero: { size: 120, mood: "content", fly: true, stage: "wren" },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */
@@ -231,7 +247,7 @@ export function birdImageRef(pose: BirdPose, wilt = false): ImageRefRecord | nul
  * placeholder the screen already has. While a new look is being captured the
  * previous picture stays. Keeps the variant captured while mounted.
  *
- * @param pose  'content' 'mini' 'curious24' 'curious56' 'think20' 'official' 'fcFree' 'fcMember' (or a Live Activity pose)
+ * @param pose  'content' 'mini' 'curious24' 'curious56' 'think20' 'official' 'fcFree' 'fcMember' 'lookNone' 'lookBeanie' 'lookScarf' 'lookWorn' 'fcHero' (or a Live Activity pose)
  * @param opts.wilt starving (lib/hunger → wilt): greyed and drooping. Its own capture.
  */
 export function useBirdImageRef(pose: BirdPose, opts: { wilt?: boolean } = {}): ImageRefRecord | null {

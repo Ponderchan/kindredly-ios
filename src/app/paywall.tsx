@@ -17,6 +17,9 @@ import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
 import { openPrivacy, openTerms } from "../lib/legal";
 import { track, type PaywallSource } from "../lib/track";
+import { NativeSurface } from "../components/NativeSurface";
+import { usePaywall } from "../screens/paywall/usePaywall";
+import { PaywallNative } from "../screens/paywall/PaywallNative";
 
 /* FIRST CLASS — the boarding pass, with the fares on it (owner's sheet).
    ────────────────────────────────────────────────────────────────────────
@@ -102,7 +105,33 @@ export default function Paywall() {
   /* sent here by an expired room: say so, or the fare page reads as a
      non sequitur to someone who only wanted to answer a friend */
   const lead = source === "rekindle" ? t("pw.road.rekindle") : undefined;
-  return <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} sheet />;
+  /* Me 4a: the page is drawn in Swift (screens/paywall: PaywallNative over
+     usePaywall), with this file's PaywallBody as the remote switch's
+     fallback ("paywall" in app_surfaces, NativeSurface in mount mode). */
+  return (
+    <NativeSurface
+      surface="paywall"
+      view="KPaywallView"
+      mode="mount"
+      native={() => <PaywallSwift source={source} lead={lead} onClose={close} onDone={() => router.back()} />}
+      fallback={() => <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} sheet />}
+    />
+  );
+}
+
+/* the Swift page; once a purchase goes through, the same welcome the React
+   Native page shows */
+export function PaywallSwift({ source, lead, onClose, onDone, dev, sheet = true }: { source: PaywallSource; lead?: string; onClose: () => void; onDone: () => void; dev?: Parameters<typeof usePaywall>[0]["dev"]; sheet?: boolean }) {
+  const P = useP();
+  const model = usePaywall({ source, lead, onClose, dev });
+  if (model.welcome) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
+        <FirstClassWelcome lifetime={model.welcome === "lifetime"} onDone={onDone} />
+      </SafeAreaView>
+    );
+  }
+  return <PaywallNative model={model} sheet={sheet} />;
 }
 
 /* THE PASS ITSELF, wherever it's shown. The route above presents it as a

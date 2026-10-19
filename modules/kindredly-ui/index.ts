@@ -54,6 +54,25 @@ export { KSettingsView, type KSettingsViewProps } from "./src/Settings";
 export { KEditProfileView, type KEditProfileViewProps } from "./src/EditProfile";
 export { KNotesView, type KNotesViewProps } from "./src/Notes";
 
+// Me 4a (.claude/me4a/ME4A.md §2.3-2.5): the First Class page and My letters, in Swift
+export {
+  KPaywallView,
+  type KPaywallBenefit,
+  type KPaywallCofounder,
+  type KPaywallFare,
+  type KPaywallMember,
+  type KPaywallStrings,
+  type KPaywallViewProps,
+} from "./src/Paywall";
+export {
+  KMyLettersView,
+  type KMyLettersCard,
+  type KMyLettersFace,
+  type KMyLettersFilter,
+  type KMyLettersStrings,
+  type KMyLettersViewProps,
+} from "./src/MyLetters";
+
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {
   KLabView,

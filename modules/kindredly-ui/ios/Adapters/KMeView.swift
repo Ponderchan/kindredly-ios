@@ -6,7 +6,7 @@ import ExpoUI
  THE ME TAB as React Native sees it: <KMeView … /> on the JS side (modules/kindredly-ui/src/Me.tsx),
  drawn by src/screens/me/MeNative.tsx in one full-screen Host. This file turns records into
  Portable values and taps into events, and places the React Native islands; the screen itself is
- Portable/Me/KMeScreen.swift and knows nothing about Expo.
+ Portable/Me/KMeScreen.swift (4a, 2026-10-19) and knows nothing about Expo.
 
  Built as every step-5 screen is (KScreenProps.swift): the props subclass KScreenProps (theme,
  letterFont, insets, rev, commands), the view is registered with ExpoUIView and the "command"
@@ -16,69 +16,94 @@ import ExpoUI
  Props, beyond KScreenProps (insets: top = the status bar the screen draws its strip for,
  tabBarRoom = the floating bar the last of the page clears, plus 12, and never less than the
  bottom fade's height - 6, since the fade is always drawn):
- - strings: { title, penName, settingsLabel, courierA11y, segments: [4] }
- - profile: { name, joined, cofounder, editLabel, stats: [{ key, glyph, count, unit, a11y }] }
+ - strings: { settingsLabel, courierA11y, segments: [4], expanded, collapsed, seeAllAction,
+   openKindredsAction, locked }
+ - profile: { name, joined ("joined Jul 27[ · COFOUNDER No. 007]", "" for none), editLabel,
+   stats: [{ key, count, unit, a11y, hint }] }
+ - peekLetters: { state (loading | empty | ready), items: [{ id, date, stampId, stampHex, body,
+   tone (quiet | answered | replied), status, a11y }], seeAll, emptyText, emptyCta }
+ - peekKindreds: { state, items: [{ id, name, line, face (KKindredsFaceRecord), a11y }], open,
+   emptyText }
+ - looks: { header, all, allHint, tiles: [{ id (none | beanie | scarf | fc), label, name, bird,
+   selected, locked, dim, hint }] }
  - aura: { present (false = the skeleton), label, title, from, chips: [{ id, name, emerging }],
    meterKind (ticks | slots), filled, total, slipsN, slipsOf (-1 for none), caption, cta, share,
    shareLabel }
+ - report: { show, title, sub, enabled, locked, hint }
  - stamps: { label, count, cells: [{ id, date, a11y, hex }], emptyText, emptyCta }
- - keepsakes: { header, count, note, a11y, tiles: [{ id ("" = empty), name, image, fresh, a11y }] }
- - firstClass: { eyebrow, headline, sub, cta, stampLabel, bird }
+ - firstClass: { eyebrow, headline, rows, cta, trial ("" = none), stampLabel, bird, member }
  - initialSegment: the segment to open on (read when the view first draws)
- Every record above is converted once per rev (useRev in TS); the strings with them.
+ Every record above is converted once per rev (useRev in TS).
 
- Children: three <KIsland>s, found by name — "avatar" (56 × 56), "courier" (the frame's inside
- × 236) and "auraArt" (the Aura card's inside × 110). The courier and aura islands are placed
- only while their card shows; TS fills them only then.
+ Children: three <KIsland>s, found by name — "avatar" (72 × 72, scaled by the header as it
+ collapses), "courier" (the frame's inside × 236) and "auraArt" (the Aura card's inside × 110).
+ The courier and aura islands are placed only while their card shows; TS fills them only then.
 
  Commands (KCommandBus): scrollTo { key: "top", animated } (Me pressed again while showing), and
  segment { index }, which shows a card as its chip would and sends onMeSegment as a chip does, so
- TS fills that card's island.
+ TS fills that card's island (the locked First Class look tile and "All looks →" use it).
 
  Events, with what nativeEvent carries:
- - onMeSettings {}             the sliders
- - onMeEdit {}                 the pencil
- - onMeStat { key }            a figure: letters | kindreds
+ - onMeSettings {}             the gear
+ - onMeEdit {}                 the pencil or the avatar
+ - onMePeek { key, open }      a peek opened or closed (analytics only)
+ - onMePeekLetter { id }       a mini letter card
+ - onMePeekKindred { id }      a kindred card
+ - onMeSeeAll {}               "See all n →" (and the letters button's custom action)
+ - onMeOpenKindreds {}         "Open kindreds →" (and the kindreds button's custom action)
+ - onMeWrite {}                the empty letters peek's "Write a letter →"
  - onMeSegment { index }       a chip or a segment command (the card is already showing)
  - onMeCourier {}              the courier's scene
- - onMeKeepsakes {}            the keepsakes header or an empty tile
- - onMeKeepsake { id }         a keepsake tile
+ - onMeLook { id }             a looks tile: none | beanie | scarf | fc
+ - onMeAllLooks {}             "All looks →"
  - onMeAuraOpen {}             the top of the Aura card
  - onMeAuraCta {}              its call to action
  - onMeAuraShare {}            its share key
+ - onMeReport {}               the report door
  - onMeStampsEmpty {}          "Write a letter" under no stamps
  - onMeFirstClass {}           the First Class card
 
- Unknown enum strings fall back rather than fail (a glyph draws the envelope, a meter kind the
- ticks), as KTabBarView does. This file imports ExpoUI, whose public Button, Text and Image would
- make bare names ambiguous, so nothing of that kind is written here.
+ Unknown enum strings fall back rather than fail (a meter kind draws the ticks, a peek state the
+ skeleton, a tone the quiet colour), as KTabBarView does. This file imports ExpoUI, whose public
+ Button, Text and Image would make bare names ambiguous, so nothing of that kind is written here.
  */
 
 struct KMeStringsRecord: Record {
-  @Field var title: String = ""
-  @Field var penName: String = ""
   @Field var settingsLabel: String = ""
   @Field var courierA11y: String = ""
   @Field var segments: [String] = []
+  @Field var expanded: String = ""
+  @Field var collapsed: String = ""
+  @Field var seeAllAction: String = ""
+  @Field var openKindredsAction: String = ""
+  @Field var locked: String = ""
+
+  var a11y: KMeA11yWords {
+    var w = KMeA11yWords()
+    w.expanded = expanded
+    w.collapsed = collapsed
+    w.seeAllAction = seeAllAction
+    w.openKindredsAction = openKindredsAction
+    w.locked = locked
+    return w
+  }
 }
 
 struct KMeStatRecord: Record {
   @Field var key: String = ""
-  /// envelope | bubbles
-  @Field var glyph: String = "envelope"
   @Field var count: String = ""
   @Field var unit: String = ""
   @Field var a11y: String = ""
+  @Field var hint: String = ""
 
   var stat: KMeStat {
-    KMeStat(key: key, glyph: glyph == "bubbles" ? .bubbles : .envelope, count: count, unit: unit, a11yLabel: a11y)
+    KMeStat(key: key, count: count, unit: unit, a11yLabel: a11y, hint: hint)
   }
 }
 
 struct KMeProfileRecord: Record {
   @Field var name: String = ""
   @Field var joined: String = ""
-  @Field var cofounder: String = ""
   @Field var editLabel: String = ""
   @Field var stats: [KMeStatRecord] = []
 
@@ -86,10 +111,110 @@ struct KMeProfileRecord: Record {
     var p = KMeProfile()
     p.name = name
     p.joined = joined
-    p.cofounder = cofounder
     p.editLabel = editLabel
-    p.stats = stats.map(\.stat)
+    // only the two keys the header knows, each once
+    var seen = Set<String>()
+    p.stats = stats.compactMap { s in
+      guard s.key == "letters" || s.key == "kindreds", seen.insert(s.key).inserted else { return nil }
+      return s.stat
+    }
     return p
+  }
+}
+
+struct KMePeekLetterRecord: Record {
+  @Field var id: String = ""
+  @Field var date: String = ""
+  @Field var stampId: String = ""
+  @Field var stampHex: String = ""
+  @Field var body: String = ""
+  /// quiet | answered | replied
+  @Field var tone: String = "quiet"
+  @Field var status: String = ""
+  @Field var a11y: String = ""
+}
+
+struct KMePeekLettersRecord: Record {
+  /// loading | empty | ready
+  @Field var state: String = "loading"
+  @Field var items: [KMePeekLetterRecord] = []
+  @Field var seeAll: String = ""
+  @Field var emptyText: String = ""
+  @Field var emptyCta: String = ""
+
+  var peek: KMePeekLetters {
+    var p = KMePeekLetters()
+    p.state = KMePeekState(rawValue: state) ?? .loading
+    var seen = Set<String>()
+    p.items = items.compactMap { l in
+      guard !l.id.isEmpty, seen.insert(l.id).inserted else { return nil }
+      return KMePeekLetter(id: l.id, date: l.date, stampId: l.stampId, stampHex: l.stampHex, body: l.body, tone: KMePeekLetter.Tone(rawValue: l.tone) ?? .quiet, status: l.status, a11y: l.a11y)
+    }
+    if p.state == .ready && p.items.isEmpty { p.state = .empty }
+    p.seeAll = seeAll
+    p.emptyText = emptyText
+    p.emptyCta = emptyCta
+    return p
+  }
+}
+
+struct KMePeekKindredRecord: Record {
+  @Field var id: String = ""
+  @Field var name: String = ""
+  @Field var line: String = ""
+  @Field var face: KKindredsFaceRecord = KKindredsFaceRecord()
+  @Field var a11y: String = ""
+}
+
+struct KMePeekKindredsRecord: Record {
+  @Field var state: String = "loading"
+  @Field var items: [KMePeekKindredRecord] = []
+  @Field var open: String = ""
+  @Field var emptyText: String = ""
+
+  var peek: KMePeekKindreds {
+    var p = KMePeekKindreds()
+    p.state = KMePeekState(rawValue: state) ?? .loading
+    var seen = Set<String>()
+    p.items = items.compactMap { k in
+      guard !k.id.isEmpty, seen.insert(k.id).inserted else { return nil }
+      return KMePeekKindred(id: k.id, name: k.name, line: k.line, face: k.face.face, a11y: k.a11y)
+    }
+    if p.state == .ready && p.items.isEmpty { p.state = .empty }
+    p.open = open
+    p.emptyText = emptyText
+    return p
+  }
+}
+
+struct KMeLookTileRecord: Record {
+  @Field var id: String = ""
+  @Field var label: String = ""
+  @Field var name: String = ""
+  @Field var bird: KImageRefRecord = KImageRefRecord()
+  @Field var selected: Bool = false
+  @Field var locked: Bool = false
+  @Field var dim: Bool = false
+  @Field var hint: String = ""
+}
+
+struct KMeLooksRecord: Record {
+  @Field var header: String = ""
+  @Field var all: String = ""
+  @Field var allHint: String = ""
+  @Field var tiles: [KMeLookTileRecord] = []
+
+  var looks: KMeLooks {
+    var l = KMeLooks()
+    l.header = header
+    l.all = all
+    l.allHint = allHint
+    var seen = Set<String>()
+    l.tiles = tiles.compactMap { t in
+      guard !t.id.isEmpty, seen.insert(t.id).inserted else { return nil }
+      return KMeLookTile(id: t.id, label: t.label, name: t.name, bird: t.bird.ref, selected: t.selected, locked: t.locked, dim: t.dim, hint: t.hint)
+    }
+    return l
   }
 }
 
@@ -139,6 +264,26 @@ struct KMeAuraRecord: Record {
   }
 }
 
+struct KMeReportRecord: Record {
+  @Field var show: Bool = false
+  @Field var title: String = ""
+  @Field var sub: String = ""
+  @Field var enabled: Bool = false
+  @Field var locked: Bool = false
+  @Field var hint: String = ""
+
+  var report: KMeReport {
+    var r = KMeReport()
+    r.show = show && !title.isEmpty
+    r.title = title
+    r.sub = sub
+    r.enabled = enabled
+    r.locked = locked
+    r.hint = hint
+    return r
+  }
+}
+
 struct KMeStampCellRecord: Record {
   @Field var id: String = ""
   @Field var date: String = ""
@@ -169,54 +314,27 @@ struct KMeStampsRecord: Record {
   }
 }
 
-struct KMeKeepsakeTileRecord: Record {
-  /// "" for an empty (dashed) tile
-  @Field var id: String = ""
-  @Field var name: String = ""
-  @Field var image: KImageRefRecord = KImageRefRecord()
-  @Field var fresh: Bool = false
-  /// VoiceOver's label: "{name}, new" while unopened; "" falls back to the name
-  @Field var a11y: String = ""
-}
-
-struct KMeKeepsakesRecord: Record {
-  @Field var header: String = ""
-  @Field var count: String = ""
-  @Field var note: String = ""
-  @Field var a11y: String = ""
-  @Field var tiles: [KMeKeepsakeTileRecord] = []
-
-  var keepsakes: KMeKeepsakes {
-    var k = KMeKeepsakes()
-    k.header = header
-    k.count = count
-    k.note = note
-    k.a11yLabel = a11y
-    var tiles: [KMeKeepsakeTile?] = self.tiles.prefix(2).map { t in
-      t.id.isEmpty ? nil : KMeKeepsakeTile(id: t.id, name: t.name, image: t.image.ref, fresh: t.fresh, a11yLabel: t.a11y.isEmpty ? t.name : t.a11y)
-    }
-    while tiles.count < 2 { tiles.append(nil) }
-    k.tiles = tiles
-    return k
-  }
-}
-
 struct KMeFirstClassRecord: Record {
   @Field var eyebrow: String = ""
   @Field var headline: String = ""
-  @Field var sub: String = ""
+  @Field var rows: [String] = []
   @Field var cta: String = ""
+  /// "" for none
+  @Field var trial: String = ""
   @Field var stampLabel: String = ""
   @Field var bird: KImageRefRecord = KImageRefRecord()
+  @Field var member: Bool = false
 
   var firstClass: KMeFirstClass {
     var f = KMeFirstClass()
     f.eyebrow = eyebrow
     f.headline = headline
-    f.sub = sub
+    f.rows = rows
     f.cta = cta
+    f.trial = trial
     f.stampLabel = stampLabel
     f.bird = bird.ref
+    f.member = member
     return f
   }
 }
@@ -224,22 +342,31 @@ struct KMeFirstClassRecord: Record {
 final class KMeViewProps: KScreenProps {
   @Field var strings: KMeStringsRecord = KMeStringsRecord()
   @Field var profile: KMeProfileRecord = KMeProfileRecord()
+  @Field var peekLetters: KMePeekLettersRecord = KMePeekLettersRecord()
+  @Field var peekKindreds: KMePeekKindredsRecord = KMePeekKindredsRecord()
+  @Field var looks: KMeLooksRecord = KMeLooksRecord()
   @Field var aura: KMeAuraRecord = KMeAuraRecord()
+  @Field var report: KMeReportRecord = KMeReportRecord()
   @Field var stamps: KMeStampsRecord = KMeStampsRecord()
-  @Field var keepsakes: KMeKeepsakesRecord = KMeKeepsakesRecord()
   @Field var firstClass: KMeFirstClassRecord = KMeFirstClassRecord()
   @Field var initialSegment: Int = 0
 
   var onMeSettings = EventDispatcher()
   var onMeEdit = EventDispatcher()
-  var onMeStat = EventDispatcher()
+  var onMePeek = EventDispatcher()
+  var onMePeekLetter = EventDispatcher()
+  var onMePeekKindred = EventDispatcher()
+  var onMeSeeAll = EventDispatcher()
+  var onMeOpenKindreds = EventDispatcher()
+  var onMeWrite = EventDispatcher()
   var onMeSegment = EventDispatcher()
   var onMeCourier = EventDispatcher()
-  var onMeKeepsakes = EventDispatcher()
-  var onMeKeepsake = EventDispatcher()
+  var onMeLook = EventDispatcher()
+  var onMeAllLooks = EventDispatcher()
   var onMeAuraOpen = EventDispatcher()
   var onMeAuraCta = EventDispatcher()
   var onMeAuraShare = EventDispatcher()
+  var onMeReport = EventDispatcher()
   var onMeStampsEmpty = EventDispatcher()
   var onMeFirstClass = EventDispatcher()
 
@@ -251,14 +378,20 @@ final class KMeViewProps: KScreenProps {
     let a = KMeActions()
     a.onSettings = { [weak self] in self?.onMeSettings() }
     a.onEdit = { [weak self] in self?.onMeEdit() }
-    a.onStat = { [weak self] key in self?.onMeStat(["key": key]) }
+    a.onPeek = { [weak self] key, open in self?.onMePeek(["key": key, "open": open]) }
+    a.onPeekLetter = { [weak self] id in self?.onMePeekLetter(["id": id]) }
+    a.onPeekKindred = { [weak self] id in self?.onMePeekKindred(["id": id]) }
+    a.onSeeAll = { [weak self] in self?.onMeSeeAll() }
+    a.onOpenKindreds = { [weak self] in self?.onMeOpenKindreds() }
+    a.onWrite = { [weak self] in self?.onMeWrite() }
     a.onSegment = { [weak self] index in self?.onMeSegment(["index": index]) }
     a.onCourier = { [weak self] in self?.onMeCourier() }
-    a.onKeepsakes = { [weak self] in self?.onMeKeepsakes() }
-    a.onKeepsake = { [weak self] id in self?.onMeKeepsake(["id": id]) }
+    a.onLook = { [weak self] id in self?.onMeLook(["id": id]) }
+    a.onAllLooks = { [weak self] in self?.onMeAllLooks() }
     a.onAuraOpen = { [weak self] in self?.onMeAuraOpen() }
     a.onAuraCta = { [weak self] in self?.onMeAuraCta() }
     a.onAuraShare = { [weak self] in self?.onMeAuraShare() }
+    a.onReport = { [weak self] in self?.onMeReport() }
     a.onStampsEmpty = { [weak self] in self?.onMeStampsEmpty() }
     a.onFirstClass = { [weak self] in self?.onMeFirstClass() }
     return a
@@ -268,15 +401,17 @@ final class KMeViewProps: KScreenProps {
   var content: KMeContent {
     cached("content") {
       var c = KMeContent()
-      c.title = strings.title
-      c.penName = strings.penName
       c.settingsLabel = strings.settingsLabel
       c.courierA11y = strings.courierA11y
       c.segments = strings.segments
+      c.a11y = strings.a11y
       c.profile = profile.profile
+      c.peekLetters = peekLetters.peek
+      c.peekKindreds = peekKindreds.peek
+      c.looks = looks.looks
       c.aura = aura.aura
+      c.report = report.report
       c.stamps = stamps.stamps
-      c.keepsakes = keepsakes.keepsakes
       c.firstClass = firstClass.firstClass
       return c
     }

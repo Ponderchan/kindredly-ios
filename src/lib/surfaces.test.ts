@@ -54,7 +54,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("NATIVE_DEFAULTS has all nine step-5 keys", NINE.every((k) => k in entries));
   ok("every step-5 key is on", NINE.every((k) => entries[k] === true));
   ok("the tab bar stays on", entries.tabbar === true);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + 1);
+  // Me 4a (2026-10-19): the First Class page and My letters
+  const ME4A = ["paywall", "myletters"];
+  ok("the two Me 4a keys are there and on", ME4A.every((k) => entries[k] === true));
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 1);
 }
 
 /* ── the crash breadcrumb ── */

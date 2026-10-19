@@ -8,6 +8,7 @@ import React, {
 import { useAuth } from "./auth";
 import { fetchEntitlement } from "./api";
 import { IAP_READY, iapCheckPremium, iapConfigure } from "./iap";
+import { fetchMyCofounderNo } from "./cofounder-seats";
 
 /* Unified Kindredly+ state. Premium is true if EITHER the server entitlement
    (subscriptions table, fed by the Creem *or* RevenueCat webhook) OR the live
@@ -67,7 +68,11 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       setPremium(!!server?.premium || rc === true);
       setPlan(server?.plan ?? null);
       setStatus(server?.status ?? null);
-      setCofounderNo(typeof server?.cofounder_no === "number" ? server.cofounder_no : null);
+      /* /api/entitlement doesn't send cofounder_no today (Me 4a, ME4A D9):
+         a lifetime plan asks the server for the reader's own number
+         (my_cofounder_no, web 0036). Null until 0036 has run, logged once. */
+      const sentNo = typeof server?.cofounder_no === "number" ? server.cofounder_no : null;
+      setCofounderNo(sentNo ?? (server?.plan === "lifetime" ? await fetchMyCofounderNo() : null));
     } finally {
       setLoading(false);
       setSettled(true);

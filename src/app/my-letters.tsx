@@ -14,6 +14,8 @@ import { t, useLang } from "../lib/i18n";
 import { fetchMyWriting, type WritingRow } from "../lib/aura";
 import { fetchThreads, withdrawLetter, type ThreadSummary } from "../lib/db";
 import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
+import { NativeSurface } from "../components/NativeSurface";
+import { MyLettersNative } from "../screens/letters/MyLettersNative";
 
 /* MY LETTERS — the owner's A1 sheet. Every letter you sent into the pool,
    as cards in two columns: the date, its stamp, the words, and what came
@@ -42,7 +44,20 @@ interface Card {
 
 const ymd = (iso: string) => iso.slice(0, 10).replace(/-/g, ".");
 
+/* Me 4a: the page is drawn in Swift (screens/letters/MyLettersNative,
+   KMyLettersView), with the React Native page below as the remote switch's
+   fallback ("myletters" in app_surfaces, NativeSurface in mount mode). */
 export default function MyLetters() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="myletters" view="KMyLettersView" mode="mount" native={() => <MyLettersNative />} fallback={() => <MyLettersRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+export function MyLettersRN() {
   useLang();
   const router = useRouter();
   const { t: tk } = useTheme();

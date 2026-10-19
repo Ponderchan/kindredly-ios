@@ -3,86 +3,197 @@
 import SwiftUI
 
 /*
- THE ME TAB (10a, H:71-86 with the owner's decisions), drawn by SwiftUI. Every word, figure and
+ THE ME TAB (4a, 2026-10-19, with the owner's decisions), drawn by SwiftUI. Every word, figure and
  destination is TS's (src/screens/me/me-model.ts builds them); this draws them and reports taps.
- Its own state is only the gesture's: which segment is showing, how far the page is scrolled,
- and four measured heights.
+ Its own state is only the gesture's: which segment is showing, the scroll, which peek is open,
+ and a few measured heights.
 
-   ME ─────────────────────────────── (sliders)      the 52pt bar: ME fades and rises as the
-                                                       pen name comes in (H:71), never hidden
-   ┌ profile (InkCard .me) ──────────────────────┐
-   │ (avatar) pen name / JOINED / COFOUNDER   ✎ │    the avatar is a React Native island
-   │ [✉ 12 LETTERS] [☺ 4 KINDREDS]              │
-   └─────────────────────────────────────────────┘
-   [Courier] [Aura] [Stamps] [First Class]           pinned under the bar once it gets there
-   one card: the courier in her frame + keepsakes · the Aura card · your stamps · First Class
-                                                       (bottom fade over the last of it)
+   (72 avatar ✎) pen name                    (gear)     KMeHeader: sticky, OUTSIDE the scroll
+                 joined Jul 27                            view; collapses by the scroll's first
+   [✉ 10 letters ⌄] [☺ 4 kindreds ⌄]                      40pt (72→36 avatar, 22→17 name, the
+   ┌ peek: 3 latest letters | 3 kindreds ┐               joined line and the two buttons gone)
+   [Courier] [Aura] [Stamps] [First Class]
+   ─────────────────────────────────────────────
+   one segment: the courier in her frame + WREN'S LOOKS · the Aura card + the report door ·
+   your stamps · the First Class card                    (bottom fade over the last of it)
 
- LAYOUT. One ScrollView over a PLAIN VStack, not a LazyVStack: the avatar, the courier scene
- and the aura art are React Native islands, and a lazy container re-parents an island's native
- view whenever it rebuilds a row (foundation list_host_pattern (f)). The page is short, so a
- plain stack costs nothing. The Host ignores every safe area, so the status-bar strip above the
- scroll view is drawn here from `topInset`, and the bar sits at its top, over the scroll view,
- on the page colour. The cards are 16 from the edges and 12 apart (H:28); the chip row runs
- edge to edge (H:73: margin 0 -16, padding 4 18 10).
+ LAYOUT. The header sits above a ScrollView that holds only the segment, on a PLAIN VStack, not a
+ LazyVStack: the avatar, the courier scene and the aura art are React Native islands, and a lazy
+ container re-parents an island's native view whenever it rebuilds a row (foundation
+ list_host_pattern (f)). The Host ignores every safe area, so the status-bar strip is drawn here
+ from `topInset`. Only the header observes the scroll (a KScrollModel capped past 40), so the
+ page never redraws as it moves.
 
- THE PINNED CHIPS. A LazyVStack's pinned section header would put the islands in a lazy
- container, so the chip row pins itself: it sits in a placeholder of its own height and, past
- the point where it reaches the bar, is drawn that far further down (offset, which moves its
- taps with it), over the card under it. Only that small row follows the scroll frame by frame
- (a KScrollModel it alone observes); the page itself never redraws as it scrolls.
+ FITS ONE SCREEN = NO SCROLL (4a's rule). The segment's natural height C (its top margin and the
+ bottom clearance included) is measured, and so is the room under the EXPANDED header, Vx (the
+ header reports its expanded height and how much it collapses, `delta`, whenever those change:
+ a peek opening, the type size; never per frame). C ≤ Vx: the scroll view is disabled and the
+ header stays expanded. Otherwise the segment is given a minimum height of Vx + delta + 40, so a
+ page that scrolls can always reach the fully collapsed header, and the header can never
+ oscillate as the viewport grows under it (a page just over the line used to bounce).
 
- THE SEGMENTS. One card at a time (H:74-85). A chip shows its card at once, here, and tells TS
- (onSegment), which then fills that card's island — so a hidden CourierCard isn't running its
- loops while Aura is showing (critic): the courier and aura islands are only placed while
- their card is up, and TS renders nothing into them otherwise. AT ONCE means no animation: the
- chip's highlight moves on its own curve (KSegmentChips' KMotion.chip, and not at all under
- Reduce Motion), but the card is swapped in a transaction with animations off, so the old card
- never fades over the new one and the page's height never overshoots (which unpinned the chips
- for a moment). Switching while the chips are pinned scrolls (without animation) so the new
- card starts right under them. The segment area is never shorter than the screen less the bar,
- the chips and the bottom margin, so even the short First Class card can pin the chips (the
- mock's 380pt tail, measured instead).
+ THE SEGMENTS. One card at a time. A chip shows its card at once and tells TS (onSegment), which
+ then fills that card's island — so a hidden CourierCard isn't running its loops. The swap is
+ never animated (only the chip's highlight moves, on its own curve), and the page jumps to the
+ top, so the header expands (4a: segments don't inherit each other's scroll).
 
- SCROLL REQUESTS (TS commands through the driver): top, when Me is pressed again while showing
- (the Me stack pops itself to this page first). And segment, which shows a card as a chip would
- and reports it the same way (onSegment), so TS fills that card's island.
+ SCROLL REQUESTS (TS commands through the driver): top, when Me is pressed again while showing;
+ segment, which shows a card as a chip would and reports it the same way (onSegment).
  */
 
 // MARK: - What the screen shows
 
-/// One of the two figures on the profile card.
+/// One of the two buttons under the name.
 public struct KMeStat: Identifiable, Equatable, Sendable {
   /// letters | kindreds, as tapped
   public let key: String
-  /// .envelope or .bubbles
-  public let glyph: KLineGlyph
   /// the figure, or "–" while unknown
   public let count: String
   public let unit: String
   public let a11yLabel: String
+  /// VoiceOver's hint ("Shows your latest letters")
+  public let hint: String
 
   public var id: String { key }
 
-  public init(key: String, glyph: KLineGlyph, count: String, unit: String, a11yLabel: String) {
+  public init(key: String, count: String, unit: String, a11yLabel: String, hint: String) {
     self.key = key
-    self.glyph = glyph
     self.count = count
     self.unit = unit
     self.a11yLabel = a11yLabel
+    self.hint = hint
   }
 }
 
-/// The profile card (H:72).
+/// The header's person.
 public struct KMeProfile: Equatable, Sendable {
   public var name = ""
-  /// "JOINED JUL 27"; "" for none
+  /// "joined Jul 27", plus " · COFOUNDER No. 007" for a cofounder; "" for none
   public var joined = ""
-  /// "COFOUNDER No. 007"; "" for none
-  public var cofounder = ""
   public var stats: [KMeStat] = []
-  /// VoiceOver's name for the pencil
+  /// VoiceOver's name for the pencil and the avatar
   public var editLabel = ""
+
+  public init() {}
+}
+
+/// One mini card in the letters peek.
+public struct KMePeekLetter: Identifiable, Equatable, Sendable {
+  public enum Tone: String, Sendable {
+    case quiet, answered, replied
+  }
+
+  public let id: String
+  /// 2026.09.23
+  public let date: String
+  public let stampId: String
+  /// its colour, for a stamp this binary's table doesn't know; "" for none
+  public let stampHex: String
+  public let body: String
+  public let tone: Tone
+  /// QUIET · ANSWERED · 2 · Luna wrote back
+  public let status: String
+  public let a11y: String
+
+  public init(id: String, date: String, stampId: String, stampHex: String, body: String, tone: Tone, status: String, a11y: String) {
+    self.id = id
+    self.date = date
+    self.stampId = stampId
+    self.stampHex = stampHex
+    self.body = body
+    self.tone = tone
+    self.status = status
+    self.a11y = a11y
+  }
+}
+
+/// Whether a peek has been read yet, and whether it found anything.
+public enum KMePeekState: String, Sendable {
+  case loading, empty, ready
+}
+
+/// The letters peek.
+public struct KMePeekLetters: Equatable, Sendable {
+  public var state: KMePeekState = .loading
+  /// the newest three
+  public var items: [KMePeekLetter] = []
+  /// See all 10 →
+  public var seeAll = ""
+  public var emptyText = ""
+  /// Write a letter →
+  public var emptyCta = ""
+
+  public init() {}
+}
+
+/// One small card in the kindreds peek.
+public struct KMePeekKindred: Identifiable, Equatable, Sendable {
+  public let id: String
+  public let name: String
+  /// their last line; "" for none
+  public let line: String
+  public let face: KPersonFace
+  public let a11y: String
+
+  public init(id: String, name: String, line: String, face: KPersonFace, a11y: String) {
+    self.id = id
+    self.name = name
+    self.line = line
+    self.face = face
+    self.a11y = a11y
+  }
+}
+
+/// The kindreds peek.
+public struct KMePeekKindreds: Equatable, Sendable {
+  public var state: KMePeekState = .loading
+  public var items: [KMePeekKindred] = []
+  /// Open kindreds →
+  public var open = ""
+  public var emptyText = ""
+
+  public init() {}
+}
+
+/// One tile of WREN'S LOOKS.
+public struct KMeLookTile: Identifiable, Equatable, Sendable {
+  /// none | beanie | scarf | fc
+  public let id: String
+  /// BARE · BEANIE · SCARF · 1ST CLASS (drawn)
+  public let label: String
+  /// Bare · Beanie · Scarf · First Class looks (VoiceOver)
+  public let name: String
+  public let bird: KImageRef?
+  public let selected: Bool
+  /// the gold lock (First Class for a free reader)
+  public let locked: Bool
+  /// the bird at 35%
+  public let dim: Bool
+  /// VoiceOver's hint; "" for none
+  public let hint: String
+
+  public init(id: String, label: String, name: String, bird: KImageRef?, selected: Bool, locked: Bool, dim: Bool, hint: String) {
+    self.id = id
+    self.label = label
+    self.name = name
+    self.bird = bird
+    self.selected = selected
+    self.locked = locked
+    self.dim = dim
+    self.hint = hint
+  }
+}
+
+/// WREN'S LOOKS, under the courier card.
+public struct KMeLooks: Equatable, Sendable {
+  /// WREN'S LOOKS
+  public var header = ""
+  /// All looks →
+  public var all = ""
+  /// VoiceOver's hint for All looks ("Opens First Class" or "Opens Wren's wardrobe")
+  public var allHint = ""
+  /// always four: none, beanie, scarf, fc
+  public var tiles: [KMeLookTile] = []
 
   public init() {}
 }
@@ -141,6 +252,21 @@ public struct KMeAura: Equatable, Sendable {
   public init() {}
 }
 
+/// The report door under the Aura card (O6): four states, decided in TS.
+public struct KMeReport: Equatable, Sendable {
+  public var show = false
+  public var title = ""
+  public var sub = ""
+  /// a tap opens something (the report, or First Class when locked)
+  public var enabled = false
+  /// First Class only: the gold lock
+  public var locked = false
+  /// VoiceOver's hint; "" for none
+  public var hint = ""
+
+  public init() {}
+}
+
 /// One stamp you have used.
 public struct KMeStampCell: Identifiable, Equatable, Sendable {
   /// the stamp id (stamps.ts)
@@ -172,71 +298,54 @@ public struct KMeStamps: Equatable, Sendable {
   public init() {}
 }
 
-/// One filled keepsake tile.
-public struct KMeKeepsakeTile: Identifiable, Equatable, Sendable {
-  public let id: String
-  public let name: String
-  /// its icon (a bundled PNG as a file, through expo-asset); nil while it is on its way
-  public let image: KImageRef?
-  /// not opened yet: a small ind dot
-  public let fresh: Bool
-  /// VoiceOver's label, from TS: "{name}, new" while unopened (the dot is only drawn)
-  public let a11yLabel: String
-
-  public init(id: String, name: String, image: KImageRef?, fresh: Bool, a11yLabel: String) {
-    self.id = id
-    self.name = name
-    self.image = image
-    self.fresh = fresh
-    self.a11yLabel = a11yLabel
-  }
-}
-
-/// The keepsakes block under the courier's scene (H:75).
-public struct KMeKeepsakes: Equatable, Sendable {
-  /// KEEPSAKES
-  public var header = ""
-  /// 3 SO FAR
-  public var count = ""
-  public var note = ""
-  /// two tiles: the latest keepsakes, nil for an empty (dashed) one
-  public var tiles: [KMeKeepsakeTile?] = [nil, nil]
-  /// VoiceOver's reading of the header
-  public var a11yLabel = ""
+/// The First Class segment's card (4a, Prompt 6).
+public struct KMeFirstClass: Equatable, Sendable {
+  /// FIRST CLASS
+  public var eyebrow = ""
+  public var headline = ""
+  /// the three rows with gold checks
+  public var rows: [String] = []
+  /// See First Class →
+  public var cta = ""
+  /// 7 DAYS FREE; "" for none (no trial on offer, or a member)
+  public var trial = ""
+  /// 1ST, or MEMBER
+  public var stampLabel = ""
+  /// the courier's live snapshot for the stamp; nil leaves its face cream
+  public var bird: KImageRef?
+  public var member = false
 
   public init() {}
 }
 
-/// The First Class card (H:84 in the owner's cream and copy).
-public struct KMeFirstClass: Equatable, Sendable {
-  public var eyebrow = ""
-  public var headline = ""
-  public var sub = ""
-  public var cta = ""
-  public var stampLabel = ""
-  /// the courier's live snapshot for the stamp; nil leaves its face white
-  public var bird: KImageRef?
+/// VoiceOver's words the header and the looks need beyond the records.
+public struct KMeA11yWords: Equatable, Sendable {
+  public var expanded = ""
+  public var collapsed = ""
+  public var seeAllAction = ""
+  public var openKindredsAction = ""
+  public var locked = ""
 
   public init() {}
 }
 
 /// Everything the screen shows, from TS.
 public struct KMeContent: Equatable, Sendable {
-  /// ME
-  public var title = ""
-  /// the pen name the bar crossfades to
-  public var penName = ""
   public var settingsLabel = ""
   /// the four chips: Courier, Aura, Stamps, First Class
   public var segments: [String] = []
   public var profile = KMeProfile()
+  public var peekLetters = KMePeekLetters()
+  public var peekKindreds = KMePeekKindreds()
+  public var looks = KMeLooks()
   /// nil until the first aura read: the card's skeleton
   public var aura: KMeAura?
+  public var report = KMeReport()
   public var stamps = KMeStamps()
-  public var keepsakes = KMeKeepsakes()
   public var firstClass = KMeFirstClass()
   /// VoiceOver's one sentence for the courier card
   public var courierA11y = ""
+  public var a11y = KMeA11yWords()
 
   public init() {}
 }
@@ -245,16 +354,26 @@ public struct KMeContent: Equatable, Sendable {
 public final class KMeActions {
   public var onSettings: () -> Void = {}
   public var onEdit: () -> Void = {}
-  /// a figure: "letters" or "kindreds"
-  public var onStat: (String) -> Void = { _ in }
+  /// a peek opened or closed: "letters" | "kindreds" (analytics only)
+  public var onPeek: (String, Bool) -> Void = { _, _ in }
+  public var onPeekLetter: (String) -> Void = { _ in }
+  public var onPeekKindred: (String) -> Void = { _ in }
+  /// See all n →
+  public var onSeeAll: () -> Void = {}
+  /// Open kindreds →
+  public var onOpenKindreds: () -> Void = {}
+  /// the empty letters peek's Write a letter →
+  public var onWrite: () -> Void = {}
   /// the segment now showing, after a chip or a segment command
   public var onSegment: (Int) -> Void = { _ in }
   public var onCourier: () -> Void = {}
-  public var onKeepsakes: () -> Void = {}
-  public var onKeepsake: (String) -> Void = { _ in }
+  /// a looks tile: none | beanie | scarf | fc
+  public var onLook: (String) -> Void = { _ in }
+  public var onAllLooks: () -> Void = {}
   public var onAuraOpen: () -> Void = {}
   public var onAuraCta: () -> Void = {}
   public var onAuraShare: () -> Void = {}
+  public var onReport: () -> Void = {}
   public var onStampsEmpty: () -> Void = {}
   public var onFirstClass: () -> Void = {}
 
@@ -279,7 +398,7 @@ public final class KMeDriver: ObservableObject {
 
   public init() {}
 
-  /// To the top of the page (the bar and the profile card).
+  /// To the top of the page (the header expands).
   public func scrollToTop(animated: Bool = true) {
     serial += 1
     scrollRequest = ScrollRequest(animated: animated, serial: serial)
@@ -299,16 +418,26 @@ final class KMeBox {
   var segmentSerial = 0
 }
 
+/// The header's two measured facts the fit rule needs: its height expanded, and how much
+/// shorter it is collapsed.
+struct KMeHeaderMetrics: Equatable {
+  var expanded: CGFloat = 0
+  var delta: CGFloat = 0
+}
+
 // MARK: - The screen
 
 public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
-  /// the bar's height (H:71)
-  public static var barHeight: CGFloat { 52 }
+  /// the avatar island's side: always drawn 72 and scaled, so React Native never re-lays it out
+  public static var avatarIsland: CGFloat { 72 }
   /// the courier scene's height: CourierCard's SCENE_H, its band included
   public static var courierSceneHeight: CGFloat { 236 }
   static var gutter: CGFloat { 16 }
   static var gap: CGFloat { 12 }
-  static var space: String { "kMeContent" }
+  /// 4a's scroll content starts 12 below the header (the container's gap)
+  static var topMargin: CGFloat { 12 }
+  /// how far past the collapse a page that scrolls can always go (the fit rule's 40)
+  static var collapseSlack: CGFloat { 40 }
 
   private let theme: KTheme
   private let content: KMeContent
@@ -322,27 +451,25 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   private let auraArt: AuraArt
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  /// The bar reads this (its crossfade is over by 100pt); held in @State, not observed here.
-  @State private var barChrome = KScrollModel(offsetCap: 120)
-  /// The chip row reads this, frame by frame while pinned; nothing else does.
-  @State private var pinChrome = KScrollModel(quantum: 0.5)
+  /// The header reads this (k = offset / 40); held in @State, never observed here.
+  @State private var chrome = KScrollModel(offsetCap: 48, quantum: 0.5)
   @State private var position = ScrollPosition(edge: .top)
   /// the card showing; only ever changed with animations off
   @State private var segment: Int
   /// the chips' highlight: follows `segment`, but on the chip's own curve
   @State private var chipSelection: Int
   @State private var box = KMeBox()
-  /// where the chip row's placeholder starts in the content, and its height
-  @State private var chipsY: CGFloat = 0
-  @State private var chipRowHeight: CGFloat = 50
-  /// the scroll view's own height
-  @State private var viewportHeight: CGFloat = 0
+  /// the room under the status strip (header + scroll view)
+  @State private var areaHeight: CGFloat = 0
+  /// the segment's natural height, its margins included
+  @State private var contentHeight: CGFloat = 0
+  @State private var header = KMeHeaderMetrics()
 
   /// - Parameters:
   ///   - initialSegment: the segment to open on (the one used last this session)
   ///   - topInset: the status bar's height (the Host ignores safe areas)
   ///   - bottomInset: how far the last of the page must clear the bottom (the tab bar and the fade)
-  ///   - avatar: the user's avatar (a React Native island in the app), drawn 56 across in a circle
+  ///   - avatar: the user's avatar (a React Native island in the app), drawn avatarIsland across
   ///   - courier: the courier's live scene, as wide as the frame's inside, courierSceneHeight tall
   ///   - auraArt: the Aura card's picture, as wide as the card's inside, 110 tall
   public init(
@@ -382,57 +509,60 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     (0..<4).contains(i) ? i : 0
   }
 
-  /// how far the page has scrolled when the chips reach the bar
-  private var pinOffset: CGFloat { max(0, chipsY - Self.barHeight) }
+  /// The fit rule (see the top): nil when the segment fits under the expanded header (no
+  /// scroll), else the minimum height that lets the header collapse fully.
+  static func scrollFloor(content: CGFloat, area: CGFloat, header: KMeHeaderMetrics) -> CGFloat? {
+    guard area > 0, header.expanded > 0 else { return nil }
+    let room = area - header.expanded
+    if content <= room + 0.5 { return nil }
+    return max(content, room + header.delta + collapseSlack)
+  }
 
-  /// the segment area is never shorter than this, so any card can pin the chips
-  private var segmentMinHeight: CGFloat {
-    max(0, viewportHeight - Self.barHeight - chipRowHeight - Self.gap - bottomInset)
+  private var floor: CGFloat? {
+    Self.scrollFloor(content: contentHeight, area: areaHeight, header: header)
   }
 
   public var body: some View {
+    let floor = self.floor
     VStack(spacing: 0) {
       // the status bar's strip: the page colour, nothing under the clock
       Color.clear.frame(height: topInset)
-      ScrollView(.vertical) {
-        VStack(alignment: .leading, spacing: Self.gap) {
-          // the bar's room: it is drawn over the scroll view, on the page colour
-          Color.clear
-            .frame(height: Self.barHeight)
-            .accessibilityHidden(true)
-          KProfileCard(theme: theme, profile: content.profile, actions: actions) {
-            avatar
+      VStack(spacing: 0) {
+        KMeHeader(
+          theme: theme,
+          content: content,
+          chrome: chrome,
+          selection: Binding(get: { chipSelection }, set: { pick($0) }),
+          actions: actions,
+          onMetrics: { m in
+            if abs(m.expanded - header.expanded) > 0.5 || abs(m.delta - header.delta) > 0.5 { header = m }
           }
-          chipPlaceholder
+        ) {
+          avatar
+        }
+        .zIndex(1)
+        ScrollView(.vertical) {
           segmentCard
-            .frame(minHeight: segmentMinHeight, alignment: .top)
+            .padding(.horizontal, Self.gutter)
+            .padding(.top, Self.topMargin)
+            .padding(.bottom, bottomInset)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+              if abs(h - contentHeight) > 0.5 { contentHeight = h }
+            }
+            .frame(minHeight: floor ?? 0, alignment: .top)
             // the swap is never animated (see THE SEGMENTS), even if a caller's transaction is
             .transaction(value: segment) { t in
               t.animation = nil
               t.disablesAnimations = true
             }
         }
-        .padding(.horizontal, Self.gutter)
-        .coordinateSpace(.named(Self.space))
+        .scrollIndicators(.hidden)
+        .scrollDisabled(floor == nil)
+        .scrollPosition($position)
+        .kScrollChrome(chrome)
       }
-      .scrollIndicators(.hidden)
-      .contentMargins(.bottom, bottomInset, for: .scrollContent)
-      .scrollPosition($position)
-      .kScrollChrome(barChrome, pinChrome)
-      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-        if abs(height - viewportHeight) > 0.5 { viewportHeight = height }
-      }
-      .overlay(alignment: .top) {
-        KMeHeader(
-          theme: theme,
-          title: content.title,
-          centerTitle: content.penName,
-          trailingLabel: content.settingsLabel,
-          chrome: barChrome,
-          onTrailing: { actions.onSettings() }
-        )
-        // drawn over the page, read before it
-        .accessibilitySortPriority(1)
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+        if abs(h - areaHeight) > 0.5 { areaHeight = h }
       }
     }
     .accessibilityElement(children: .contain)
@@ -441,6 +571,10 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     }
     .background { theme.bg.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
+    .onChange(of: floor == nil) { _, fits in
+      // a page that stopped scrolling (a peek closed, the card got shorter) goes back to the top
+      if fits { withTransaction(Self.instant) { position.scrollTo(edge: .top) } }
+    }
     .onReceive(driver.$scrollRequest) { request in
       guard let request, request.serial > box.scrollSerial else { return }
       box.scrollSerial = request.serial
@@ -459,31 +593,6 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     }
   }
 
-  // ── the chips: a placeholder in the stack, the row drawn over it ─────
-  private var chipPlaceholder: some View {
-    // read here, so this screen redraws the row when the highlight moves
-    let on = chipSelection
-    return Color.clear
-      .frame(height: chipRowHeight)
-      .frame(maxWidth: .infinity)
-      .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named(Self.space)).minY } action: { y in
-        if abs(y - chipsY) > 0.5 { chipsY = y }
-      }
-      .overlay(alignment: .top) {
-        KMeChipsRow(
-          theme: theme,
-          labels: content.segments,
-          selection: Binding(get: { on }, set: { pick($0) }),
-          chrome: pinChrome,
-          pinOffset: pinOffset,
-          rowHeight: $chipRowHeight
-        )
-        .padding(.horizontal, -Self.gutter)
-      }
-      // over the card that follows it, so the pinned row covers what scrolls under it
-      .zIndex(1)
-  }
-
   /// A chip, tapped (inside KSegmentChips' withAnimation(KMotion.chip)): the highlight moves on
   /// that curve, or at once under Reduce Motion; the card is shown at once either way.
   private func pick(_ index: Int) {
@@ -495,21 +604,19 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     show(index, report: true)
   }
 
-  /// Shows a segment at once (no transition, no height animation). Pinned, the page then goes
-  /// (without animation) to where the chips pin, so the new card starts right under them.
+  /// Shows a segment at once (no transition, no height animation), at the top of the page, so
+  /// the header expands (4a: switching segments resets the scroll).
   private func show(_ index: Int, report: Bool) {
     if chipSelection != index {
       // a command: the highlight jumps with the card
       withTransaction(Self.instant) { chipSelection = index }
     }
     guard index != segment else { return }
-    let pinned = pinChrome.offset >= pinOffset - 0.5 && pinOffset > 0
-    withTransaction(Self.instant) { segment = index }
-    if report { actions.onSegment(index) }
-    if pinned {
-      let y = pinOffset
-      withTransaction(Self.instant) { position.scrollTo(y: y) }
+    withTransaction(Self.instant) {
+      segment = index
+      position.scrollTo(edge: .top)
     }
+    if report { actions.onSegment(index) }
   }
 
   // ── the one card ──────────────────────────────────────────────────────
@@ -517,84 +624,165 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   private var segmentCard: some View {
     switch segment {
     case 1:
-      if let aura = content.aura {
-        KAuraCard(theme: theme, aura: aura, actions: actions) {
-          auraArt
+      VStack(alignment: .leading, spacing: Self.gap) {
+        if let aura = content.aura {
+          KAuraCard(theme: theme, aura: aura, actions: actions) {
+            auraArt
+          }
+        } else {
+          KAuraSkeleton(theme: theme)
         }
-      } else {
-        KAuraSkeleton(theme: theme)
+        if content.report.show {
+          KReportDoorRow(theme: theme, report: content.report) { actions.onReport() }
+        }
       }
     case 2:
       KStampsCard(theme: theme, stamps: content.stamps, actions: actions)
     case 3:
-      KFirstClassCard(
-        variant: .card,
-        eyebrow: content.firstClass.eyebrow,
-        headline: content.firstClass.headline,
-        sub: content.firstClass.sub,
-        cta: content.firstClass.cta,
-        stampLabel: content.firstClass.stampLabel,
-        bird: content.firstClass.bird
-      ) {
-        actions.onFirstClass()
-      }
+      KMeFirstClassCard(card: content.firstClass) { actions.onFirstClass() }
     default:
-      KCourierFrame(
-        theme: theme,
-        a11yLabel: content.courierA11y,
-        sceneHeight: Self.courierSceneHeight,
-        onTap: { actions.onCourier() }
-      ) {
-        courier
-      } footer: {
-        KKeepsakesBlock(theme: theme, keepsakes: content.keepsakes, actions: actions)
+      VStack(alignment: .leading, spacing: Self.gap) {
+        KCourierFrame(
+          theme: theme,
+          a11yLabel: content.courierA11y,
+          sceneHeight: Self.courierSceneHeight,
+          onTap: { actions.onCourier() }
+        ) {
+          courier
+        } footer: {
+          EmptyView()
+        }
+        KLooksTray(theme: theme, looks: content.looks, a11y: content.a11y, actions: actions)
       }
     }
   }
 }
 
-// MARK: - The chip row
+// MARK: - The First Class card (4a, Prompt 6)
 
-/// The four chips, edge to edge (H:73: padding 4 18 10, scrolling sideways when they don't
-/// fit), on the page colour. It pins itself under the bar: past `pinOffset` it is drawn that
-/// much lower, so it stays put while the page scrolls under it. The one view that follows the
-/// scroll frame by frame.
-struct KMeChipsRow: View {
-  let theme: KTheme
-  let labels: [String]
-  @Binding var selection: Int
-  @ObservedObject var chrome: KScrollModel
-  let pinOffset: CGFloat
-  @Binding var rowHeight: CGFloat
+/*
+ Cream paper (KBrand, the same in every theme): a 1.5 cream-border outline, corners of 24, padding
+ 18 18 16, 14 between its parts:
+ - the eyebrow: a 7pt wax-gold dot and FIRST CLASS in mono 10 at .18em, gold text;
+ - the headline in the serif 26/1.1, 100 clear on the right for the stamp;
+ - three rows of system 14 (7 apart), each after a 16 gold check at stroke 2.6, also 100 clear;
+ - the foot: an ink button 40 tall (padding 0 16, corners 14, system 600 14 in white) and, at the
+   far right, 7 DAYS FREE in mono 10 at .1em, gold — only when TS says a free trial is on offer;
+ - the stamp, 16 from the right and 18 from the top, turned 5°: 82 × 100, white, corners 4, a 2pt
+   dotted wax-gold edge, 5 of padding round a cream face with the bird at 70% and 1ST in mono
+   600 8, gold, at its bottom right.
+ The whole card is one button and one VoiceOver element. The headline grows with the type; the
+ stamp stays its size.
+ */
+struct KMeFirstClassCard: View {
+  let card: KMeFirstClass
+  let onPress: () -> Void
+
+  static var eyebrowStyle: KTextStyle { .mono(10, .semibold, tracking: 0.18) }
+  static var headlineStyle: KTextStyle { .letter(26, lineHeight: 1.1) }
+  static var rowStyle: KTextStyle { .system(14) }
+  static var trialStyle: KTextStyle { .mono(10, .semibold, tracking: 0.1) }
+  static var stampSize: CGSize { CGSize(width: 82, height: 100) }
+  /// the room the words leave the stamp
+  static var stampRoom: CGFloat { 100 }
 
   var body: some View {
-    let drop = pinOffset > 0 ? max(0, chrome.offset - pinOffset) : 0
-    // the whole row in view if it can be (First Class is the fourth chip): at its own size, then
-    // tight, and only then scrolling sideways (KSegmentChips' note)
-    ViewThatFits(in: .horizontal) {
-      chips(tight: false)
-      chips(tight: true)
-      ScrollView(.horizontal) {
-        chips(tight: true)
+    let shape = RoundedRectangle(cornerRadius: 24, style: .circular)
+    SwiftUI.Button(action: onPress) {
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(spacing: 6) {
+          Circle().fill(KBrand.waxGold).frame(width: 7, height: 7)
+          Text(card.eyebrow)
+            .textCase(.uppercase)
+            .kText(Self.eyebrowStyle)
+            .foregroundStyle(KBrand.goldText)
+            .lineLimit(1)
+        }
+        Text(card.headline)
+          .kText(Self.headlineStyle)
+          .foregroundStyle(KBrand.inkOnBrand)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.trailing, Self.stampRoom)
+        VStack(alignment: .leading, spacing: 7) {
+          ForEach(Array(card.rows.enumerated()), id: \.offset) { _, row in
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+              KLineIcon(.check, size: 16, lineWidth: 2.6, color: KBrand.goldText)
+                .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] + 5 }
+              Text(row)
+                .kText(Self.rowStyle)
+                .foregroundStyle(KBrand.inkOnBrand)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+          }
+        }
+        .padding(.trailing, Self.stampRoom)
+        HStack(alignment: .center, spacing: 12) {
+          Text(card.cta)
+            .kText(.button)
+            .foregroundStyle(KBrand.paperWhite)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 40)
+            .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(KBrand.inkOnBrand))
+          Spacer(minLength: 0)
+          if !card.trial.isEmpty {
+            Text(card.trial)
+              .kText(Self.trialStyle)
+              .foregroundStyle(KBrand.goldText)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
+          }
+        }
+        .padding(.top, 4)
       }
-      .scrollIndicators(.hidden)
-      .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+      .padding(.top, 18 + 1.5)
+      .padding(.horizontal, 18 + 1.5)
+      .padding(.bottom, 16 + 1.5)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .overlay(alignment: .topTrailing) {
+        stamp
+          .padding(.top, 18)
+          .padding(.trailing, 16)
+      }
+      .background(shape.fill(KBrand.cream))
+      .overlay(shape.strokeBorder(KBrand.creamBorder, lineWidth: 1.5))
+      .clipShape(shape)
+      .contentShape(shape)
     }
-    .fixedSize(horizontal: false, vertical: true)
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-    .background(theme.bg)
-    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-      if abs(height - rowHeight) > 0.5 { rowHeight = height }
-    }
-    .offset(y: drop)
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel([card.eyebrow, card.headline, card.rows.joined(separator: ", "), card.trial].filter { !$0.isEmpty }.joined(separator: ". "))
+    .accessibilityHint(card.cta.replacingOccurrences(of: "→", with: "").trimmingCharacters(in: .whitespaces))
+    .accessibilityAddTraits(.isButton)
   }
 
-  private func chips(tight: Bool) -> some View {
-    KSegmentChips(theme: theme, labels: labels, selection: $selection, firstClassIndex: labels.count > 3 ? 3 : nil, tight: tight)
-      .padding(.top, 4)
-      .padding(.horizontal, 18)
-      .padding(.bottom, 10)
-      .frame(maxWidth: .infinity, alignment: .leading)
+  private var stamp: some View {
+    let size = Self.stampSize
+    let inner = CGSize(width: size.width - 14, height: size.height - 14)
+    return ZStack {
+      RoundedRectangle(cornerRadius: 2, style: .circular).fill(KBrand.cream)
+      KImage(card.bird, size: CGSize(width: inner.width * 0.7, height: inner.width * 0.7), contentMode: .fit, placeholder: .clear)
+    }
+    .frame(width: inner.width, height: inner.height)
+    .overlay(alignment: .bottomTrailing) {
+      Text(card.stampLabel)
+        .kText(.mono(8, .semibold))
+        .foregroundStyle(KBrand.goldText)
+        .lineLimit(1)
+        .fixedSize()
+        .padding(.trailing, 5)
+        .padding(.bottom, 4)
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 2, style: .circular))
+    .padding(5)
+    .frame(width: size.width, height: size.height)
+    .background(RoundedRectangle(cornerRadius: 4, style: .circular).fill(KBrand.paperWhite))
+    // CSS's 2px dotted: round dots 2 across, 4 apart
+    .overlay(RoundedRectangle(cornerRadius: 4, style: .circular).strokeBorder(KBrand.waxGold, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [0.001, 4])))
+    .rotationEffect(.degrees(5))
+    .dynamicTypeSize(.large)
+    .accessibilityHidden(true)
   }
 }
 

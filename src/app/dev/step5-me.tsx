@@ -17,12 +17,15 @@ import type { Minted } from "../../lib/keepsakes";
 import { DEMO_THREADS } from "../../data/demo";
 import { daylight } from "../../components/CourierCard";
 import { auraCardFacts } from "../../components/AuraCard";
-import { buildMeView, segmentIndex, spokenAgo } from "../../screens/me/me-model";
+import { NO_REPORT_ROW, buildMe4a, buildMeView, segmentIndex, spokenAgo, type PeekLetterSource } from "../../screens/me/me-model";
+import { reportDoorVM, firstOfNextMonth, type ReportDoor } from "../../lib/report-door";
+import { trialLabel } from "../../screens/paywall/paywall-model";
 import { meFormat } from "../../screens/me/me-format";
-import { keepsakeFacts, stampFacts, type MeActions, type MeModel } from "../../screens/me/useMeModel";
+import { keepsakeFacts, monthName, stampFacts, stampHex, type MeActions, type MeModel } from "../../screens/me/useMeModel";
 import { MeNative } from "../../screens/me/MeNative";
 import { MeRN } from "../../screens/me/MeRN";
 import "../../data/strings-step5-me";
+import "../../data/strings-me4a";
 
 /* dev only — THE ME TAB ON DEMO DATA (10a step 5, slice me).
    kindredly:///dev/step5-me
@@ -51,13 +54,52 @@ import "../../data/strings-step5-me";
      chip's highlight moves, and with Reduce Motion not even that; try one
      while the chips are pinned over the short First Class card);
    - STAMPS, KEEPSAKES, FC (free / member / cofounder), DAY OFF, NO NAME
-     (no pen name: "You"), HUNGRY.
+     (no pen name: "You"), HUNGRY;
+   - Me 4a (the Swift Me only): LETTERS (the peek: – not read yet, 0, 2,
+     10), KIN (– / 0 / 3), LOOK (what she wears: none, beanie, scarf, or a
+     First Class piece, headphones — try it with FC MEMBER), DOOR (the report
+     door's four states, or none), TRIAL (a 7-day free trial on offer: "7
+     DAYS FREE" on the First Class card). The looks here are the page's own
+     state: a tile never dresses the real Wren (so the courier island keeps
+     her real look).
    Everything that would leave the page says where it would go instead.
    The panel's words are English: a dev page. */
 
 type AuraMode = "named" | "sketch" | "desk" | "pencil" | "early" | "none";
 const AURA_MODES: readonly AuraMode[] = ["named", "sketch", "desk", "pencil", "early", "none"];
 type FcMode = "free" | "member" | "cofounder";
+type DoorMode = "none" | "progress" | "ready" | "locked" | "done";
+const DOOR_MODES: readonly DoorMode[] = ["none", "progress", "ready", "locked", "done"];
+const LETTER_COUNTS = [null, 0, 2, 10] as const;
+const KIN_MODES = [null, 0, 3] as const;
+const LOOKS = ["none", "beanie", "scarf", "phones"] as const;
+
+/* the letters peek's fixtures: ten letters, newest first, quiet / answered / replied */
+const LETTER_BODIES = [
+  "I keep a list of small things that went right today. It is longer than I expected.",
+  "Does anyone else rehearse conversations in the shower and then never have them?",
+  "The bus driver waved at me like we were old friends. Maybe we are.",
+  "I moved cities in August and still take the long way home on purpose.",
+  "Tell me one song you would keep if every other song disappeared.",
+  "Some nights the quiet is loud. Tonight it is kind.",
+  "I learned to bake bread this year and it changed how I wait for things.",
+  "What is a word in your language that you wish English had?",
+  "My grandmother wrote letters every Sunday. I am trying to be her.",
+  "I said yes to something that scares me. Write back if you have done that too.",
+];
+const LETTER_STAMPS = ["never-told", "almost-texted", "hot-take", "off-chest", "pretending"];
+function demoLetters(n: number): PeekLetterSource[] {
+  return LETTER_BODIES.slice(0, n).map((body, i) => ({
+    kind: "letter" as const,
+    id: `demo-letter-${i}`,
+    date: iso(NOW - (i * 3 + 1) * DAY),
+    stamp: LETTER_STAMPS[i % LETTER_STAMPS.length],
+    body,
+    status: i % 3 === 0 ? { kind: "replied" as const, who: "Luna", more: i === 0 ? 1 : 0, face: null } : i % 3 === 1 ? { kind: "answered" as const, n: 2 } : { kind: "quiet" as const },
+  }));
+}
+const demoDoor = (m: DoorMode): ReportDoor | null =>
+  m === "progress" ? { state: "progress", have: 4, need: 10 } : m === "ready" ? { state: "ready", kind: "first" } : m === "locked" ? { state: "locked" } : m === "done" ? { state: "done", nextMonth: firstOfNextMonth() } : null;
 
 const NOW = Date.now();
 const H = 3600_000;
@@ -130,6 +172,11 @@ function MeLab() {
   const [hungry, setHungry] = useState(false);
   const [serial, setSerial] = useState(0);
   const [panel, setPanel] = useState(true);
+  const [lettersN, setLettersN] = useState<(typeof LETTER_COUNTS)[number]>(10);
+  const [kinN, setKinN] = useState<(typeof KIN_MODES)[number]>(3);
+  const [look, setLook] = useState<(typeof LOOKS)[number]>("none");
+  const [door, setDoor] = useState<DoorMode>("ready");
+  const [trial, setTrial] = useState(false);
 
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
   // the diary names a pen pal as the tab does (lib/who): the number, or the courier name with the switch on
@@ -150,7 +197,7 @@ function MeLab() {
     const kept = shelf(keep);
     const view = buildMeView(
       {
-        profile: { handle: noName ? null : "maynaa", createdAt: "2026-07-27T09:00:00Z", cofounderNo, letters: aura ? aura.sources.letters : null, kindreds: threads.filter((th) => th.revealed).length },
+        profile: { handle: noName ? null : "maynaa", createdAt: "2026-07-27T09:00:00Z", cofounderNo, letters: lettersN ?? (aura ? aura.sources.letters : null), kindreds: kinN ?? null },
         aura: auraCardFacts(aura),
         stamps: stampFacts(stamps ? DEMO_STAMPS : []),
         keepsakes: keepsakeFacts(kept, new Set(kept.length ? [kept[0].id] : [])),
@@ -172,9 +219,38 @@ function MeLab() {
       auraShare: () => away("/aura-card"),
       stampsEmpty: () => away("/compose"),
       firstClass: () => away("/paywall?src=me_row"),
+      peek: () => {},
+      peekLetter: () => away("/my-letters"),
+      peekKindred: (id) => away(`/room/${id}`),
+      seeAll: () => away("/my-letters"),
+      openKindreds: () => away("/my-kindreds"),
+      write: () => away("/compose"),
+      look: (id) => (id === "fc" ? away("/courier (the wardrobe)") : setLook(id)),
+      allLooks: () => away("/courier (the wardrobe)"),
+      report: () => {
+        const d = demoDoor(door);
+        const href = d ? reportDoorVM(d, { t, monthName }, wren).href : null;
+        if (href) away(href);
+      },
     };
+    const doorState = demoDoor(door);
+    const kinThreads = kinN === 0 ? [] : threads;
+    const me4a = buildMe4a(
+      {
+        profile: { handle: noName ? null : "maynaa", createdAt: "2026-07-27T09:00:00Z", cofounderNo, letters: lettersN, kindreds: kinN == null ? null : kinThreads.filter((th) => th.revealed && !th.gone).length },
+        letters: lettersN == null ? null : demoLetters(lettersN),
+        stampHex,
+        threads: kinN == null ? null : kinThreads,
+        nameOf: (th) => book.threadName(th as (typeof threads)[number]),
+        looks: { accessory: look, premium, wren },
+        firstClass: { premium, cofounderNo, wren, trial: trial ? trialLabel({ n: 7, unit: "day" }, t) : "" },
+        report: doorState ? reportDoorVM(doorState, { t, monthName }, wren) : NO_REPORT_ROW,
+      },
+      meFormat(),
+    );
     return {
       view,
+      me4a,
       segment,
       courier: { wren, where, threads, lastWrittenAt, hunger, seenToday: 3, stage: "wren", dayOff, best: 12, entry },
       aura,
@@ -185,7 +261,7 @@ function MeLab() {
     };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book]);
+  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial]);
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   const useSwift = swift && swiftAvailable;
@@ -234,6 +310,13 @@ function MeLab() {
             <Chip label="DAY OFF" on={dayOff} onPress={() => setDayOff((v) => !v)} />
             <Chip label="HUNGRY" on={hungry} onPress={() => setHungry((v) => !v)} />
             <Chip label="NO NAME" on={noName} onPress={() => setNoName((v) => !v)} />
+          </Row>
+          <Row>
+            <Chip label={`LETTERS ${lettersN ?? "–"}`} onPress={() => setLettersN((n) => LETTER_COUNTS[(LETTER_COUNTS.indexOf(n) + 1) % LETTER_COUNTS.length])} />
+            <Chip label={`KIN ${kinN ?? "–"}`} onPress={() => setKinN((n) => KIN_MODES[(KIN_MODES.indexOf(n) + 1) % KIN_MODES.length])} />
+            <Chip label={`LOOK ${look.toUpperCase()}`} onPress={() => setLook((l) => LOOKS[(LOOKS.indexOf(l) + 1) % LOOKS.length])} />
+            <Chip label={`DOOR ${door.toUpperCase()}`} onPress={() => setDoor((d) => DOOR_MODES[(DOOR_MODES.indexOf(d) + 1) % DOOR_MODES.length])} />
+            <Chip label="TRIAL" on={trial} onPress={() => setTrial((v) => !v)} />
           </Row>
           <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${useSwift ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KMeView in this build)"} · ${t("me.header")} · SEGMENT ${segment}`}

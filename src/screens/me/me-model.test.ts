@@ -41,6 +41,17 @@ import {
   spokenAgo,
   statHref,
   withAlpha,
+  NO_REPORT_ROW,
+  PEEK_CARDS,
+  buildFirstClass4a,
+  buildLooks,
+  buildMe4a,
+  buildPeekKindreds,
+  buildPeekLetters,
+  buildProfile4a,
+  peekStatus,
+  type PeekLetterSource,
+  type PeekThreadSource,
   type AuraFacts,
   type MeFacts,
   type MeFormat,
@@ -357,6 +368,96 @@ ok("no aura yet → no card (the skeleton)", buildAuraCard(null, fmt) === null);
   ok("no aura yet: null", v.aura === null);
   ok("the keepsakes note names the courier", v.keepsakes.note === "me.keepsakes.note{wren:Pip}");
   ok("the courier sentence", v.courierA11y === "Pip. home. me.open");
+}
+
+/* ══ Me 4a ══ */
+{
+  /* the header */
+  const p = buildProfile4a({ handle: "maynaa", createdAt: "2026-07-27T09:00:00Z", cofounderNo: null, letters: 12, kindreds: 1 }, fmt);
+  ok("4a: joined is sentence case, the day not upper-cased", p.joined === "m4.joined{date:d(2026-07-27)}");
+  ok("4a: the figures are buildProfile's", p.stats[0].count === "12" && p.stats[1].count === "1");
+  ok("4a: units in sentence case, one and many", p.stats[0].unit === "m4.unit.letters" && p.stats[1].unit === "m4.unit.kindredOne");
+  ok("4a: VoiceOver hints", p.stats[0].hint === "m4.a11y.lettersHint" && p.stats[1].hint === "m4.a11y.kindredsHint");
+  const cf = buildProfile4a({ handle: null, createdAt: "2026-07-27T09:00:00Z", cofounderNo: 7, letters: null, kindreds: null }, fmt);
+  ok("4a: the cofounder number follows joined", cf.joined === "m4.joined{date:d(2026-07-27)} · cf.no{n:007}");
+  ok("4a: unknown figures are a dash", cf.stats[0].count === UNKNOWN && cf.stats[1].count === UNKNOWN);
+  const guest = buildProfile4a({ handle: null, createdAt: null, cofounderNo: null, letters: 0, kindreds: 0 }, fmt);
+  ok("4a: a guest has no joined line", guest.joined === "");
+
+  /* the letters peek */
+  const L = (i: number, status: PeekLetterSource["status"], kind: "letter" | "draft" = "letter"): PeekLetterSource => ({ kind, id: `l${i}`, date: `2026-09-${String(20 - i).padStart(2, "0")}T10:00:00Z`, stamp: i % 2 ? "almosts" : null, body: `  body\n${i} `, status });
+  const hex = (id: string) => (id === "almosts" ? "#F8779E" : "");
+  ok("peek: not read yet is loading", buildPeekLetters(null, null, hex, fmt).state === "loading");
+  ok("peek: only drafts is empty", buildPeekLetters([L(0, { kind: "quiet" }, "draft")], 0, hex, fmt).state === "empty");
+  const cards = [L(0, { kind: "quiet" }, "draft"), L(1, { kind: "answered", n: 2 }), L(2, { kind: "replied", who: "Luna", more: 1, face: null }), L(3, { kind: "quiet" }), L(4, { kind: "quiet" })];
+  const pk = buildPeekLetters(cards, 4, hex, fmt);
+  ok("peek: three letters, never drafts", pk.items.length === PEEK_CARDS && pk.items[0].id === "l1");
+  ok("peek: the date dotted", pk.items[0].date === "2026.09.19");
+  ok("peek: a stamp and its colour", pk.items[0].stampId === "almosts" && pk.items[0].stampHex === "#F8779E" && pk.items[1].stampId === "");
+  ok("peek: the body on one line", pk.items[0].body === "body 1");
+  ok("peek: answered", pk.items[0].tone === "answered" && pk.items[0].status === "ML.ANSWERED · 2");
+  ok("peek: replied with more", pk.items[1].tone === "replied" && pk.items[1].status === "ML.REPLIEDMORE{WHO:LUNA,N:1}");
+  ok("peek: quiet", peekStatus({ kind: "quiet" }, fmt).text === "ML.QUIET");
+  ok("peek: See all with the stat's count", pk.seeAll === "m4.peek.seeAll{n:4}");
+  ok("peek: the count is never under the cards shown", buildPeekLetters(cards, 1, hex, fmt).seeAll === "m4.peek.seeAll{n:4}");
+  ok("peek: VoiceOver reads day, letter, status", pk.items[0].a11y === "d(2026-09-19). body 1. ml.answered · 2");
+  ok("peek: the empty tray's link", pk.emptyCta === "ml.write →");
+
+  /* the kindreds peek */
+  const T = (id: string, lastAt: number, extra: Partial<PeekThreadSource> = {}): PeekThreadSource => ({ id, revealed: true, other: `u-${id}`, otherFace: null, otherName: `N${id}`, theirTexts: ["old", "newest  line"], preview: "pv", lastAt, ...extra });
+  ok("kin: not read yet", buildPeekKindreds(null, () => "x", fmt).state === "loading");
+  ok("kin: pen pals only is empty", buildPeekKindreds([T("a", 1, { revealed: false })], () => "x", fmt).state === "empty");
+  const kin = buildPeekKindreds([T("a", 1), T("b", 5), T("c", 3, { gone: true }), T("d", 4, { otherName: null, theirTexts: [] }), T("e", 2)], (th) => `who-${th.id}`, fmt);
+  ok("kin: the latest three, gone left out", kin.items.map((k) => k.id).join() === "b,d,e");
+  ok("kin: their newest line", kin.items[0].line === "newest line");
+  ok("kin: no line of theirs → the preview", kin.items[1].line === "pv");
+  ok("kin: no pen name → the who-book", kin.items[1].name === "who-d");
+  ok("kin: a kindred's face, round", kin.items[0].face.role === "kindred" && kin.items[0].face.seed === "u-b");
+  ok("kin: VoiceOver", kin.items[0].a11y === "Nb, newest line");
+  ok("kin: open link", kin.open === "m4.peek.openKindreds" && kin.emptyText === "m4.peek.noKindreds");
+
+  /* the looks */
+  const free = buildLooks({ accessory: "beanie", premium: false, wren: "Pip" }, fmt);
+  ok("looks: four tiles in order", free.tiles.map((x) => x.id).join() === "none,beanie,scarf,fc");
+  ok("looks: the app's own names, upper-cased", free.tiles[1].label === "WS.ACC.BEANIE" && free.tiles[1].name === "ws.acc.beanie");
+  ok("looks: the one she wears", free.tiles[1].selected && !free.tiles[0].selected);
+  ok("looks: free FC tile locked and dimmed", free.tiles[3].locked && free.tiles[3].dim && !free.tiles[3].selected && free.tiles[3].pose === "lookNone");
+  ok("looks: locked hint", free.tiles[3].hint === "m4.a11y.opensFc" && free.allHint === "m4.a11y.opensFc" && !free.member);
+  ok("looks: the header names her", free.header === "M4.LOOKS.TITLE{WREN:PIP}");
+  const paid = buildLooks({ accessory: "phones", premium: true, wren: "Pip" }, fmt);
+  ok("looks: a member in a First Class piece", paid.tiles[3].selected && paid.tiles[3].pose === "lookWorn" && !paid.tiles[3].locked && !paid.tiles[3].dim);
+  ok("looks: no free tile selected then", paid.tiles.slice(0, 3).every((x) => !x.selected));
+  ok("looks: member hints open the wardrobe", paid.tiles[3].hint === "m4.a11y.opensWardrobe{wren:Pip}" && paid.member);
+  const paidPlain = buildLooks({ accessory: "none", premium: true, wren: "Pip" }, fmt);
+  ok("looks: a member in a free look", paidPlain.tiles[0].selected && !paidPlain.tiles[3].selected && paidPlain.tiles[3].pose === "lookNone");
+
+  /* the First Class card */
+  const fcFree = buildFirstClass4a({ premium: false, cofounderNo: null, wren: "Pip", trial: "7 days free" }, fmt);
+  ok("fc4a: three rows, no stamp frames", fcFree.rows.join("|") === "fc.b1{wren:Pip}|fc.b4{wren:Pip}|fc.b2{wren:Pip}");
+  ok("fc4a: the trial, upper-cased", fcFree.trial === "7 DAYS FREE");
+  ok("fc4a: no trial on offer, nothing said", buildFirstClass4a({ premium: false, cofounderNo: null, wren: "Pip", trial: "" }, fmt).trial === "");
+  ok("fc4a: free copy", fcFree.headline === "fc.stubHead" && fcFree.cta === "fc.stubCta →" && fcFree.pose === "fcFree" && !fcFree.member);
+  const fcMember = buildFirstClass4a({ premium: true, cofounderNo: null, wren: "Pip", trial: "7 days free" }, fmt);
+  ok("fc4a: a member never sees a trial", fcMember.trial === "" && fcMember.member && fcMember.headline === "fc.paidHead");
+  ok("fc4a: a cofounder's headline", buildFirstClass4a({ premium: true, cofounderNo: 47, wren: "Pip", trial: "" }, fmt).headline === "me.fc.founding{n:47}");
+
+  /* the whole record */
+  const m = buildMe4a(
+    {
+      profile: { handle: "maynaa", createdAt: null, cofounderNo: null, letters: 3, kindreds: 0 },
+      letters: cards,
+      stampHex: hex,
+      threads: [],
+      nameOf: () => "",
+      looks: { accessory: "none", premium: false, wren: "Pip" },
+      firstClass: { premium: false, cofounderNo: null, wren: "Pip", trial: "" },
+      report: NO_REPORT_ROW,
+    },
+    fmt,
+  );
+  ok("4a: See all never says fewer than the letters it has", m.peekLetters.seeAll === "m4.peek.seeAll{n:4}");
+  ok("4a: no door until read", m.report.show === false);
+  ok("4a: VoiceOver words", m.a11y.expanded === "m4.a11y.expanded" && m.a11y.locked === "m4.a11y.locked");
 }
 
 /* ── where taps go ── */

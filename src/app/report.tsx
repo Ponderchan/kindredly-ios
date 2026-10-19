@@ -14,6 +14,7 @@ import { cachedVoiceAI, gatherWriting } from "../lib/voice";
 import { buildReport, markReportRead, type ReportData } from "../lib/report";
 import { getWrenType } from "../lib/wren-type";
 import { useAuth } from "../lib/auth";
+import "../data/strings-me4a"; // m4.rt.*, m4.pw.close
 
 /* The Voice report — Wren's night letter about how you write. One fact per
    screen, tap to move; the last card is yours to share. Deliberately dark:
@@ -50,7 +51,7 @@ export default function VoiceReport() {
         let texts = await gatherWriting((profile?.firstLine as string) || null);
         if (__DEV__ && texts.length === 0) texts = DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3);
         const [type, ai] = await Promise.all([getWrenType(), cachedVoiceAI()]);
-        const d = await buildReport(texts, type?.name ?? null, ai?.voice_summary ?? null);
+        const d = await buildReport(texts, type?.id ?? null, ai?.voice_summary ?? null);
         if (!alive) return;
         setData(d);
         void markReportRead(); // opened = read; the month is spent
@@ -72,17 +73,17 @@ export default function VoiceReport() {
       key: K("cover"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>YOUR AURA · WRAPPED</Text>
+          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("m4.rt.eyebrow")}</Text>
           <Text style={{ fontFamily: F.serifSemi, fontSize: 30, lineHeight: 40, color: "#fff", marginTop: 12 }}>{data.archetype}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 16 }}>
-            {data.read.chips.map((c) => (
+            {data.chips.map((c) => (
               <View key={c} style={{ borderWidth: 1, borderColor: "rgba(185,178,255,0.45)", borderRadius: 13, paddingHorizontal: 11, paddingVertical: 5 }}>
                 <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, color: "#CFC9F2" }}>{c}</Text>
               </View>
             ))}
           </View>
           <Text style={{ fontFamily: F.sans, fontSize: 13, color: DIM, marginTop: 16 }}>
-            Written from {data.pieces} {data.pieces === 1 ? "piece" : "pieces"} of you.
+            {data.pieces === 1 ? t("m4.rt.writtenOne") : t("m4.rt.written", { n: data.pieces })}
           </Text>
         </View>
       ),
@@ -95,15 +96,10 @@ export default function VoiceReport() {
           <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.sky")}</Text>
           <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} />
           <Text style={{ fontFamily: F.serifSemi, fontSize: 18, color: "#fff", textAlign: "center", marginTop: 6 }}>
-            The brightest of your nine:
+            {t("m4.rt.brightest")}
           </Text>
           <Text style={{ fontFamily: F.sansBold, fontSize: 14, color: STARLIGHT, textAlign: "center", marginTop: 10, lineHeight: 24 }}>
-            {data.read.rows
-              .slice()
-              .sort((a, b) => b.strength - a.strength)
-              .slice(0, 3)
-              .map((r) => r.title)
-              .join(" · ")}
+            {data.brightest.join(" · ")}
           </Text>
         </View>
       ),
@@ -117,7 +113,7 @@ export default function VoiceReport() {
             <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.hour")}</Text>
             <Text style={{ fontFamily: F.serifSemi, fontSize: 34, color: "#fff", marginTop: 14 }}>{data.hourBand}</Text>
             <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 15, color: DIM, marginTop: 12, lineHeight: 23 }}>
-              That's when the true lines come out of you.
+              {t("m4.rt.hourLine")}
             </Text>
           </View>
         ),
@@ -134,7 +130,7 @@ export default function VoiceReport() {
               {data.words.slice(1).join("   ·   ")}
             </Text>
             <Text style={{ fontFamily: F.sans, fontSize: 13, color: DIM, marginTop: 18, textAlign: "center" }}>
-              The words your voice keeps coming back to.
+              {t("m4.rt.wordsLine")}
             </Text>
           </View>
         ),
@@ -158,7 +154,7 @@ export default function VoiceReport() {
                 </View>
               ))}
             </View>
-            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, color: DIM, marginTop: 18 }}>You let your sentences breathe.</Text>
+            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, color: DIM, marginTop: 18 }}>{t("m4.rt.breathe")}</Text>
           </View>
         ),
       });
@@ -191,7 +187,7 @@ export default function VoiceReport() {
           <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
             <Pressable
               onPress={() =>
-                Share.share({ message: `${wren} read my letters on Kindredly — "${data.quote}" · ${data.archetype}` })
+                Share.share({ message: t("m4.rt.share", { wren, quote: data.quote, archetype: data.archetype }) })
               }
               style={{ flex: 1, borderWidth: 1, borderColor: "rgba(255,255,255,0.4)", borderRadius: 16, paddingVertical: 13, alignItems: "center" }}
             >
@@ -238,7 +234,7 @@ export default function VoiceReport() {
           <View key={sc.key} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i <= idx ? "#fff" : "rgba(255,255,255,0.22)" }} />
         ))}
       </View>
-      <Pressable onPress={done} hitSlop={10} style={{ position: "absolute", right: 12, top: 20, width: 38, height: 38, alignItems: "center", justifyContent: "center", zIndex: 5 }}>
+      <Pressable onPress={done} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("m4.pw.close")} style={{ position: "absolute", right: 12, top: 20, width: 38, height: 38, alignItems: "center", justifyContent: "center", zIndex: 5 }}>
         <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 17 }}>✕</Text>
       </Pressable>
 
