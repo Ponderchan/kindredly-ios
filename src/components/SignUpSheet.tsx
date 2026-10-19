@@ -96,7 +96,7 @@ export function SignUpSheet({
   };
 
   const sheet = (
-    <View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
+    <View accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
         <Pressable onPress={onClose} accessible={false} style={{ flex: 1, backgroundColor: DIM }} />
       </Animated.View>

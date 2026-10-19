@@ -42,9 +42,10 @@ const G = JSON.parse(readFileSync(new URL("../../design/stamps-v3/golden.json", 
   layers: Record<string, string[]>;
   tiltsByLetter: Record<string, boolean>;
   dotPt: number;
+  dotEdge: { width: number; color: string };
   fallbackHex: string;
   unknown: GoldenEl[];
-  slot: { d: string; width: number; dash: number[]; cap: string; join: string; light: string; dark: string };
+  slot: { d: string; width: number; dash: number[]; cap: string; join: string; light: string; dark: string; pale: string };
   bounds: { x0: number; y0: number; x1: number; y1: number };
   categories: Record<string, string>;
   colours: Record<string, { hex: string; tint: string; ink: string; nameLight: string; nameDark: string }>;
@@ -99,7 +100,7 @@ for (const t of ["dot", "xs", "s", "l"] as const) {
   ok(`${t}: ${G.tiltsByLetter[t] ? "delivered mail tilts by its letter" : "flat"}`, spec.delivered === G.tiltsByLetter[t] && F.stampTiltsAtV3(spec.minWidth) === G.tiltsByLetter[t]);
 }
 ok("the layers, in draw order", same(F.STAMP_V3_LAYERS, ["frame", "rims", "body", "marks", "face"]));
-ok("the dot: 6pt", F.STAMP_DOT_PT === G.dotPt);
+ok("the dot: 6pt, edged 1pt in ink", F.STAMP_DOT_PT === G.dotPt && F.STAMP_DOT_EDGE_PT === G.dotEdge.width && F.STAMP_V3_INK === G.dotEdge.color);
 ok("the ladder keeps its sizes: Today card 40×48 by the letter, compose corner 40×48 at 8°, tray 30×36",
   same(F.STAMP_LADDER.todayCard, { w: 40, h: 48, tilt: "letter" }) && same(F.STAMP_LADDER.composeCorner, { w: 40, h: 48, tilt: 8 }) && F.STAMP_LADDER.trayTile.w === 30);
 ok("every placement that tilts by the letter is at l (≥ 40)", Object.values(F.STAMP_LADDER).every((p) => p.tilt !== "letter" || F.stampTiltsAtV3(p.w)));
@@ -140,8 +141,19 @@ ok("the data's frame is lib/stamp-frame's frame (path and the two elements)", A.
 ok("every drawing shares that frame", Object.values(A.STAMP_ART_V3).every((a) => a && a.frame === A.STAMP_V3_FRAME));
 ok("an id with no drawing draws the frame alone in the fallback colour (golden unknown)", same(F.stampDrawListV3(null, undefined, 40).map(asGolden), G.unknown) && same(F.stampDrawListV3(undefined, "nope", 30).map(asGolden), G.unknown));
 ok("an id with no drawing but a known colour draws the frame in that colour", same(F.stampDrawListV3(null, "#9774F0", 20).map((e) => [e.fill, e.stroke]), [["#F3EEFD", "#F3EEFD"], ["#F3EEFD", "#1E1B35"]]));
-ok("the slot: the frame path, 6u, dashed 4/10, round, #8A86A3 / #8F8BAA",
-  F.STAMP_V3_SLOT.d === G.slot.d && F.STAMP_V3_SLOT.width === G.slot.width && same(F.STAMP_V3_SLOT.dash, G.slot.dash) && F.STAMP_V3_SLOT.cap === "round" && F.STAMP_V3_SLOT.join === "round" && F.STAMP_V3_SLOT.light === G.slot.light && F.STAMP_V3_SLOT.dark === G.slot.dark);
+ok("the slot: the frame path, 4u, dashed 8/10 (a dashed outline, not beads), round, #8A86A3 / #8F8BAA, pale #7A7694",
+  F.STAMP_V3_SLOT.d === G.slot.d && F.STAMP_V3_SLOT.width === G.slot.width && G.slot.width === 4 && same(F.STAMP_V3_SLOT.dash, G.slot.dash) && same(G.slot.dash, [8, 10]) && F.STAMP_V3_SLOT.cap === "round" && F.STAMP_V3_SLOT.join === "round" && F.STAMP_V3_SLOT.light === G.slot.light && F.STAMP_V3_SLOT.dark === G.slot.dark && F.STAMP_V3_SLOT.pale === G.slot.pale);
+ok("the slot's dashes are longer than its gaps once the round caps are on (8 + 4 against 10 − 4)",
+  F.STAMP_V3_SLOT.dash[0] + F.STAMP_V3_SLOT.width > F.STAMP_V3_SLOT.dash[1] - F.STAMP_V3_SLOT.width);
+{
+  /* the slot's stroke on each theme's page (themes.json): mute, except where mute is under 3:1 (Lavender) */
+  const themes = JSON.parse(readFileSync(new URL("../theme/themes.json", import.meta.url), "utf8")).themes as Record<string, { mute: string; bg: string }>;
+  const picks = Object.fromEntries(Object.entries(themes).map(([k, tk]) => [k, F.stampSlotStroke(tk)]));
+  ok("slot stroke: Classic, Midnight and Paper keep their mute", picks.classic === themes.classic.mute && picks.midnight === themes.midnight.mute && picks.paper === themes.paper.mute);
+  ok("slot stroke: Lavender takes the pale slot colour (its mute is 2.9:1 on its page)", picks.lavender === F.STAMP_V3_SLOT.pale && F.hexContrast(themes.lavender.mute, themes.lavender.bg) < 3);
+  ok("slot stroke: ≥ 3:1 on every theme's page", Object.entries(themes).every(([k, tk]) => F.hexContrast(picks[k], tk.bg) >= F.STAMP_V3_SLOT_MIN_CONTRAST));
+  ok("slot stroke: a malformed colour keeps mute", F.stampSlotStroke({ mute: "nope", bg: "#ECEAF8" }) === "nope");
+}
 const B = F.STAMP_V3_FRAME_BOUNDS;
 ok(`the paint stays in the box: x${G.bounds.x0}–${G.bounds.x1} y${G.bounds.y0}–${G.bounds.y1} (STAMP_V3_FRAME_BOUNDS + the break-out)`,
   G.bounds.x0 >= 0 && G.bounds.y0 >= 0 && G.bounds.x1 <= 100 && G.bounds.y1 <= 120 && B.x === G.bounds.x0 && B.x + B.width === G.bounds.x1 && B.y + B.height === G.bounds.y1 && G.bounds.y0 >= 8);

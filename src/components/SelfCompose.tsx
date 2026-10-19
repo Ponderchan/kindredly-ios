@@ -14,6 +14,7 @@ import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { MoodKeyGlyph, MoodTray, MoodTrayFlat } from "./MoodTray";
 import { Recorder } from "./Recorder";
+import "../data/strings-a11y-compose";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
@@ -378,7 +379,14 @@ export function SelfCompose({
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                   {photos.map((p, i) => (
-                    <Pressable key={p.uri + i} onPress={() => setViewer(i)} style={({ pressed }) => ({ width: "48.6%", aspectRatio: 1, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}>
+                    <Pressable
+                      key={p.uri + i}
+                      onPress={() => setViewer(i)}
+                      // a11y cm-7: which picture, of how many; the first is the cover
+                      accessibilityRole="button"
+                      accessibilityLabel={t(i === 0 && photos.length >= 2 ? "sc.a11y.photoCover" : "sc.a11y.photo", { i: i + 1, n: photos.length })}
+                      accessibilityHint={t("sc.a11y.photoHint")}
+                      style={({ pressed }) => ({ width: "48.6%", aspectRatio: 1, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}>
                       <Image source={{ uri: p.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                     </Pressable>
                   ))}
@@ -508,6 +516,9 @@ export function SelfCompose({
               void pickMood(mood);
             }}
             disabled={!hasSomething || busy}
+            // a11y cm-7: a button, dimmed and busy as it looks
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !hasSomething || busy, busy }}
             style={{
               flex: 1,
               flexDirection: "row",
@@ -588,13 +599,17 @@ function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Ph
     <Modal visible transparent={false} animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "#0A0A0C" }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingTop: insets.top + 4, paddingHorizontal: 8, height: insets.top + 52 }}>
-          <Pressable onPress={onClose} hitSlop={10} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("ob2.back")} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 24, color: "#FFFFFF" }}>‹</Text>
           </Pressable>
-          <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: "#FFFFFF" }}>
+          <Text
+            accessibilityLabel={t(i === 0 && photos.length >= 2 ? "sc.a11y.photoCover" : "sc.a11y.photo", { i: i + 1, n: photos.length })}
+            style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: "#FFFFFF" }}
+          >
             {i + 1}/{photos.length}
           </Text>
-          <Pressable onPress={() => onRemove(i)} hitSlop={10} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          {/* a11y cm-7: the bin was a bare drawing, silent under VoiceOver */}
+          <Pressable onPress={() => onRemove(i)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("sc.a11y.deletePhoto")} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
             <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
               <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
             </Svg>
@@ -618,7 +633,7 @@ function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Ph
           {i === 0 ? (
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(255,255,255,0.55)" }}>{t("sc.isCover")}</Text>
           ) : (
-            <Pressable onPress={() => onCover(i)} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
+            <Pressable onPress={() => onCover(i)} accessibilityRole="button" style={({ pressed }) => ({ borderWidth: 1.5, borderColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
               <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#FFFFFF" }}>{t("sc.makeCover")}</Text>
             </Pressable>
           )}
@@ -636,7 +651,14 @@ function VideoPreview({ uri, onClear }: { uri: string; onClear: () => void }) {
   return (
     <View style={{ overflow: "hidden", marginBottom: 16, position: "relative", maxHeight: 300 }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 9 / 16, maxHeight: 300 }} contentFit="cover" nativeControls={false} />
-      <Pressable onPress={onClear} style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
+      {/* a11y cm-7: named, and 44 to touch around the 26 disc (hitSlop 9) */}
+      <Pressable
+        onPress={onClear}
+        hitSlop={9}
+        accessibilityRole="button"
+        accessibilityLabel={t("sc.a11y.removeVideo")}
+        style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}
+      >
         <Text style={{ color: "#fff", fontSize: 11 }}>✕</Text>
       </Pressable>
     </View>

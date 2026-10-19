@@ -118,9 +118,14 @@ enum KStampArtData {
   /// an id this table doesn't know: its frame alone in this colour (STAMP_FALLBACK_HEX) and its tint
   static let v3FallbackHex: UInt32 = 0x8B7FE8FF
   static let v3FallbackTint: UInt32 = 0xF1F0FCFF
-  /// the empty slot: the frame path, no fill, a 6u stroke dashed 4/10, round caps; the theme's mute colour
-  static let v3SlotWidth: CGFloat = 6
-  static let v3SlotDash: [CGFloat] = [4, 10]
+  /// the empty slot: the frame path, no fill, a 4u stroke dashed 8/10, round caps (a dashed outline, not beads);
+  /// the theme's mute colour, the pale one where mute is under 3:1 on the page (KStampSlot.stroke(for:))
+  static let v3SlotWidth: CGFloat = 4
+  static let v3SlotDash: [CGFloat] = [8, 10]
+  /// the slot on a page where mute is under 3:1 (Lavender), 0xRRGGBB: lib/stamp-frame STAMP_V3_SLOT.pale
+  static let v3SlotPale: UInt32 = 0x7A7694
+  /// the dot below 15pt is edged in ink this wide (lib/stamp-frame STAMP_DOT_EDGE_PT)
+  static let v3DotEdge: CGFloat = 1
   /// the frame path, the same in all 36 (lib/stamp-frame STAMP_V3_FRAME_D)
   static let v3FramePath = "M17,25L23,25A5,5 0 0 0 33,25L45,25A5,5 0 0 0 55,25L67,25A5,5 0 0 0 77,25L83,25A7,7 0 0 1 90,32L90,36.25A5,5 0 0 0 90,46.25L90,54.75A5,5 0 0 0 90,64.75L90,73.25A5,5 0 0 0 90,83.25L90,91.75A5,5 0 0 0 90,101.75L90,106A7,7 0 0 1 83,113L77,113A5,5 0 0 0 67,113L55,113A5,5 0 0 0 45,113L33,113A5,5 0 0 0 23,113L17,113A7,7 0 0 1 10,106L10,101.75A5,5 0 0 0 10,91.75L10,83.25A5,5 0 0 0 10,73.25L10,64.75A5,5 0 0 0 10,54.75L10,46.25A5,5 0 0 0 10,36.25L10,32A7,7 0 0 1 17,25Z"
   /// the frame layer, the same in all 36: the tint rim (14u) under the keyline (tint paper, ink 6u)

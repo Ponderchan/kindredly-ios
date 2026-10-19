@@ -370,6 +370,8 @@ public struct KChatDock: Equatable, Sendable {
   public var notice: KChatNotice?
   public var signDoor: KChatSignDoor = .none
   public var signLabel = ""
+  /// what the door does, for VoiceOver (identity on: it opens the signing sheet); "" for none
+  public var signHint = ""
   /// REPLYING TO …, in capitals; "" for none
   public var replyLabel = ""
   public var replyExcerpt = ""

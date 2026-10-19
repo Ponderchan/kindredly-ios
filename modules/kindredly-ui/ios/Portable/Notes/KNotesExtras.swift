@@ -99,32 +99,20 @@ struct KEveningAskCard: View {
           .fixedSize(horizontal: false, vertical: true)
           .frame(maxWidth: .infinity, alignment: .leading)
       }
-      HStack(spacing: 10) {
-        Spacer(minLength: 0)
-        SwiftUI.Button(action: onNo) {
-          Text(strings.eveningNo)
-            .kText(Self.button)
-            .foregroundStyle(theme.sub)
-            .lineLimit(1)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+      // a11y cm-10: side by side while both fit on one line each; stacked, right-aligned and
+      // wrapping once they don't (Indonesian from XXXL, English at the AX sizes), so YES, AT 9
+      // never loses the 9 it is agreeing to (KNewFacesNoteView's pattern)
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 10) {
+          noButton(oneLine: true)
+          yesButton(oneLine: true)
         }
-        .buttonStyle(KFadePressStyle())
-        SwiftUI.Button(action: onYes) {
-          Text(strings.eveningYes)
-            .kText(Self.button)
-            .foregroundStyle(theme.bg)
-            .lineLimit(1)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 9)
-            .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(theme.ink))
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+        VStack(alignment: .trailing, spacing: 8) {
+          noButton(oneLine: false)
+          yesButton(oneLine: false)
         }
-        .buttonStyle(KFadePressStyle())
       }
+      .frame(maxWidth: .infinity, alignment: .trailing)
       .padding(.top, 4)
       Text(strings.eveningFoot)
         .kText(Self.foot)
@@ -139,6 +127,42 @@ struct KEveningAskCard: View {
     .disabled(busy)
     .padding(.top, 4)
     .padding(.bottom, 2)
+  }
+
+  /// No thanks: one line beside the yes (so ViewThatFits can tell when the pair no longer fits),
+  /// wrapping when stacked.
+  private func noButton(oneLine: Bool) -> some View {
+    SwiftUI.Button(action: onNo) {
+      Text(strings.eveningNo)
+        .kText(Self.button)
+        .foregroundStyle(theme.sub)
+        .multilineTextAlignment(.trailing)
+        .lineLimit(oneLine ? 1 : nil)
+        .fixedSize(horizontal: false, vertical: !oneLine)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+  }
+
+  /// Yes, at 9: the ink pill, one line beside the no, wrapping when stacked.
+  private func yesButton(oneLine: Bool) -> some View {
+    SwiftUI.Button(action: onYes) {
+      Text(strings.eveningYes)
+        .kText(Self.button)
+        .foregroundStyle(theme.bg)
+        .multilineTextAlignment(.center)
+        .lineLimit(oneLine ? 1 : nil)
+        .fixedSize(horizontal: false, vertical: !oneLine)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(theme.ink))
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
   }
 }
 

@@ -86,7 +86,7 @@ export default function S05Face(props: ObScreenProps) {
         <View style={{ flex: 1, borderRadius: 18, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, overflow: "hidden" }}>
           {cell > 0 && (
             <ScrollView ref={scroller} contentContainerStyle={{ padding: pad, paddingTop: pad + 14, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
-              {list.map((a) => {
+              {list.map((a, i) => {
                 const on = draft.avatarId === a.id;
                 return (
                   <Pressable
@@ -98,7 +98,7 @@ export default function S05Face(props: ObScreenProps) {
                     }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
-                    accessibilityLabel={a.name}
+                    accessibilityLabel={t("a11yob.face", { n: i + 1, total: list.length })}
                     style={{ width: cell, height: cell, alignItems: "center", justifyContent: "center" }}
                   >
                     <View

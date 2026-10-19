@@ -2,6 +2,7 @@ import { Pressable, ScrollView, Text, View, type ViewStyle } from "react-native"
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { GrowthStats } from "../data/growth";
 import { t } from "../lib/i18n";
+import "../data/strings-a11y-compose";
 import { PF } from "../theme/post";
 import { useP } from "../lib/theme";
 import { useEggOS } from "../lib/egg-os";
@@ -42,6 +43,7 @@ export function WardrobeRack({
   headers = true,
   onLook,
   onDress,
+  plusHint,
 }: {
   tone: RackTone;
   /** what she has on now — the looks row wears the accessory, the dress row wears the skin */
@@ -57,6 +59,9 @@ export function WardrobeRack({
   headers?: boolean;
   onLook: (id: WrenSkin, unlocked: boolean) => void;
   onDress: (id: WrenAccessory, unlocked: boolean) => void;
+  /** VoiceOver's hint on a First Class piece still locked: what a tap on it does here (her room
+      opens the fare; the hatch lets you try it on, so it passes none) */
+  plusHint?: string;
 }) {
   const P = useP();
   const { Y } = useEggOS();
@@ -89,6 +94,7 @@ export function WardrobeRack({
                   on={skin === sk.id}
                   label={skinName(sk.id)}
                   lock={unlocked ? null : sk.lock === "plus" ? t("wren.lock.plus") : t("wren.lock.kindred")}
+                  hint={!unlocked && sk.lock === "plus" ? plusHint : undefined}
                   style={{ flex: 1, marginHorizontal: 3 }}
                   onPress={() => onLook(sk.id, unlocked)}
                 >
@@ -112,6 +118,7 @@ export function WardrobeRack({
                   on={accessory === a.id}
                   label={t(`ws.acc.${a.id}`)}
                   lock={unlocked ? null : t("wren.lock.plus")}
+                  hint={unlocked ? undefined : plusHint}
                   style={{ width: 76, marginRight: 8 }}
                   onPress={() => onDress(a.id, unlocked)}
                 >
@@ -131,6 +138,7 @@ function Tile({
   on,
   label,
   lock,
+  hint,
   style,
   onPress,
   children,
@@ -139,6 +147,7 @@ function Tile({
   on: boolean;
   label: string;
   lock: string | null;
+  hint?: string;
   style: ViewStyle;
   onPress: () => void;
   children: React.ReactNode;
@@ -165,13 +174,21 @@ function Tile({
           borderColor: on ? P.pen : "transparent",
         };
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [chrome, { alignItems: "center", paddingTop: 8, paddingBottom: 8, opacity: pressed ? 0.85 : 1 }, style]}>
+    <Pressable
+      onPress={onPress}
+      // a11y cm-11: the one she has on was only a 2pt edge; the lock tag rides in the name
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={lock ? `${label}, ${lock}` : label}
+      accessibilityHint={hint}
+      style={({ pressed }) => [chrome, { alignItems: "center", paddingTop: 8, paddingBottom: 8, opacity: pressed ? 0.85 : 1 }, style]}>
       {children}
-      <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 8, letterSpacing: 0.6, color: on ? accent : tone === "console" ? Y.ink : P.ink60, marginTop: 4 }}>
+      <Text numberOfLines={1} maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 8, letterSpacing: 0.6, color: on ? accent : tone === "console" ? Y.ink : P.ink60, marginTop: 4 }}>
         {label.toUpperCase()}
       </Text>
-      {/* the tag keeps its line even when empty, so the tiles stay one height */}
-      <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 6.5, letterSpacing: 0.5, color: "#B08037", marginTop: 2, height: 10 }}>
+      {/* the tag keeps its line even when empty, so the tiles stay one height; at least 10, not
+          exactly 10, so the larger sizes don't clip it away (a11y cm-12) */}
+      <Text numberOfLines={1} maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 6.5, letterSpacing: 0.5, color: "#B08037", marginTop: 2, minHeight: 10 }}>
         {lock ?? ""}
       </Text>
     </Pressable>

@@ -6,7 +6,7 @@ import { BRAND } from "../../theme/themes";
 import { PF } from "../../theme/post";
 import { LineIcon } from "./LineIcon";
 import { StickerBox } from "./StickerBox";
-import { useComposerField, type ComposerFieldHandle } from "./useComposerField";
+import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
 import { REPLY_BAR, REPLY_BAR_MAX, REPLY_BAR_PAD, sendClearsField, sendDiscLook, sendKeyState, sendTakesPress, type SendState } from "./kit";
 
 /* THE REPLY BAR (chat composers, Prompt 1; the owner's final, 2026-10-18;
@@ -122,14 +122,17 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
   };
 
   const { minHeight, border, radius, shadow, padLeft, padRight, gap, fontSize, lineHeight } = REPLY_BAR;
-  const inner = minHeight - 2 * border;
+  /* the resting row follows the field's one line at the reader's text size (54 at the default;
+     useComposerField DYNAMIC TYPE), so the placeholder is never cut */
+  const inner = Math.max(minHeight - 2 * border, f.restingLine(lineHeight, REPLY_BAR_PAD));
+  const rowHeight = inner + 2 * border;
   // the arrow and the two keys: centred on the resting row, kept on the bottom line as it grows
   const rest = { height: inner, justifyContent: "center" as const };
 
   return (
     <View style={[{ gap: REPLY_BAR.hintGap }, style]}>
       {showsHint && !!hint && (
-        <Text numberOfLines={2} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: hintWarn ? BRAND.postRed : tk.sub, paddingLeft: 6 }}>
+        <Text numberOfLines={2} maxFontSizeMultiplier={2} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: hintWarn ? BRAND.postRed : tk.sub, paddingLeft: 6 }}>
           {hint}
         </Text>
       )}
@@ -140,7 +143,7 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
         radius={radius}
         shadow={tk.ln}
         offset={shadow}
-        faceStyle={{ flexDirection: "row", alignItems: "flex-end", minHeight, paddingLeft: padLeft, paddingRight: padRight, gap }}
+        faceStyle={{ flexDirection: "row", alignItems: "flex-end", minHeight: rowHeight, paddingLeft: padLeft, paddingRight: padRight, gap }}
       >
         <View style={rest} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <LineIcon name="replyArrow" size={REPLY_BAR.arrow} color={tk.ink} />
@@ -164,6 +167,7 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
           onFocus={onFocus}
           onBlur={onBlur}
           keyboardAppearance={tk.dark ? "dark" : "light"}
+          maxFontSizeMultiplier={FIELD_FONT_CAP}
           style={{
             flex: 1,
             ...f.box(lineHeight, REPLY_BAR_MAX, REPLY_BAR_PAD),

@@ -83,50 +83,23 @@ public struct KFoldRow: View, Equatable {
     a.theme == b.theme && a.fold == b.fold
   }
 
+  @Environment(\.dynamicTypeSize) private var typeSize
+
   public var body: some View {
-    HStack(alignment: .center, spacing: 12) {
-      HStack(spacing: -Self.overlap) {
-        ForEach(Array(fold.faces.enumerated()), id: \.element.id) { index, face in
-          SwiftUI.Button {
-            onFace(face.id)
-          } label: {
-            if let frost = face.frost {
-              let square = RoundedRectangle(cornerRadius: Self.face * 0.25, style: .circular)
-              KFace(theme: theme, source: .frost(frost), size: Self.face)
-                .overlay(square.strokeBorder(theme.bg, lineWidth: Self.ring))
-                .contentShape(square)
-            } else {
-              KFace(theme: theme, source: .mosaic(mask: face.mask, tint: theme.ink), size: Self.face)
-                .overlay(Circle().strokeBorder(theme.bg, lineWidth: Self.ring))
-                .contentShape(Circle())
-            }
-          }
-          .buttonStyle(KFadePressStyle())
-          .zIndex(Double(fold.faces.count - index))
-          .accessibilityLabel(face.a11yLabel)
+    // at the accessibility sizes the faces leave the label no room ("Their…", the count cut off):
+    // the faces on their own line, the label under them on up to two
+    Group {
+      if typeSize.isAccessibilitySize {
+        VStack(alignment: .leading, spacing: 8) {
+          faces
+          rowButton(lines: 2)
         }
-      }
-      SwiftUI.Button(action: onRow) {
+      } else {
         HStack(alignment: .center, spacing: 12) {
-          if !fold.more.isEmpty {
-            Text(fold.more)
-              .kText(Self.label)
-              .foregroundStyle(theme.mute)
-              .lineLimit(1)
-              .fixedSize()
-          }
-          Text(fold.label)
-            .kText(Self.label)
-            .foregroundStyle(theme.mute)
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
-          KLineIcon(.chevronRight, size: 15, lineWidth: 2.4, color: theme.mute)
+          faces
+          rowButton(lines: 1)
         }
-        .frame(maxHeight: .infinity)
-        .contentShape(Rectangle())
       }
-      .buttonStyle(KFadePressStyle())
-      .accessibilityLabel(fold.a11yLabel)
     }
     .padding(.horizontal, KPersonRow.inset)
     .padding(.vertical, 12)
@@ -138,5 +111,54 @@ public struct KFoldRow: View, Equatable {
         .frame(height: 1)
         .padding(.leading, KPersonRow.inset)
     }
+  }
+
+  private var faces: some View {
+    HStack(spacing: -Self.overlap) {
+      ForEach(Array(fold.faces.enumerated()), id: \.element.id) { index, face in
+        SwiftUI.Button {
+          onFace(face.id)
+        } label: {
+          if let frost = face.frost {
+            let square = RoundedRectangle(cornerRadius: Self.face * 0.25, style: .circular)
+            KFace(theme: theme, source: .frost(frost), size: Self.face)
+              .overlay(square.strokeBorder(theme.bg, lineWidth: Self.ring))
+              .contentShape(square)
+          } else {
+            KFace(theme: theme, source: .mosaic(mask: face.mask, tint: theme.ink), size: Self.face)
+              .overlay(Circle().strokeBorder(theme.bg, lineWidth: Self.ring))
+              .contentShape(Circle())
+          }
+        }
+        .buttonStyle(KFadePressStyle())
+        .zIndex(Double(fold.faces.count - index))
+        .accessibilityLabel(face.a11yLabel)
+      }
+    }
+  }
+
+  private func rowButton(lines: Int) -> some View {
+    SwiftUI.Button(action: onRow) {
+      HStack(alignment: .center, spacing: 12) {
+        if !fold.more.isEmpty {
+          Text(fold.more)
+            .kText(Self.label)
+            .foregroundStyle(theme.mute)
+            .lineLimit(1)
+            .fixedSize()
+        }
+        Text(fold.label)
+          .kText(Self.label)
+          .foregroundStyle(theme.mute)
+          .lineLimit(lines)
+          .fixedSize(horizontal: false, vertical: lines > 1)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        KLineIcon(.chevronRight, size: 15, lineWidth: 2.4, color: theme.mute)
+      }
+      .frame(maxHeight: .infinity)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityLabel(fold.a11yLabel)
   }
 }

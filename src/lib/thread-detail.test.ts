@@ -218,6 +218,7 @@ ok("refusals: gone, blocked, suspended — not offline or session", isRefusal("g
 /* ── folds ── */
 ok("FOLD_MAX is 600", FOLD_MAX === 600);
 ok("foldOver measures the trimmed text", foldOver("  " + "a".repeat(600) + "  ") === 0 && foldOver("a".repeat(612)) === 12);
+ok("foldOver counts code points (char_length), not UTF-16 units", foldOver("😀".repeat(600)) === 0 && foldOver("😀".repeat(603)) === 3);
 
 /* ── the demo fixtures: every state the screens are checked against ── */
 ok("the demo's taken-back text is the database's", DEMO_TAKEN_BACK === TAKEN_BACK);

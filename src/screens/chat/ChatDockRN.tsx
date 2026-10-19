@@ -1,5 +1,5 @@
-import type { RefObject } from "react";
-import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { useEffect, type RefObject } from "react";
+import { AccessibilityInfo, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { KChatDock, KChatDockAction } from "../../../modules/kindredly-ui/src/Conversation";
 import { InkPanel } from "../../components/10a/InkPanel";
@@ -9,6 +9,7 @@ import { WrenBird } from "../../components/WrenBird";
 import { useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
 import { MONO, PF } from "../../theme/post";
+import "../../data/strings-a11y-chat"; // rm.askNeedsPrompt (build-items roomComposer)
 
 /* THE DOCK, IN REACT NATIVE (10a step 5, slice chat-rn): everything above
    and in place of the composer in the room and chat fallbacks, drawn from
@@ -74,6 +75,12 @@ export type DockAboveProps = {
 export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint }: DockAboveProps) {
   const { t: tk } = useTheme();
   const { height } = useWindowDimensions();
+  /* a refusal in the postmark red is said as it turns red (accessibilityLiveRegion is Android's
+     only); not on every keystroke that moves "12 over" to "13 over" */
+  useEffect(() => {
+    if (statusAlarm && status) AccessibilityInfo.announceForAccessibility(status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusAlarm]);
   const hasAny = !!dock.closingText || !!dock.notice || dock.signDoor !== "none" || !!status || (!!dock.replyLabel && !dock.mode) || !!dock.mode;
   if (!hasAny) return null;
   return (
@@ -110,11 +117,10 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
         </View>
       )}
 
-      {dock.signDoor !== "none" && <SignDoor dock={dock} onDock={onDock} hint={signHint} />}
+      {dock.signDoor !== "none" && <SignDoor dock={dock} onDock={onDock} hint={signHint ?? (dock.signHint || undefined)} />}
 
       {!!status && (
         <Text
-          accessibilityLiveRegion="polite"
           style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: statusAlarm ? BRAND.postRed : tk.mute, textAlign: "center", marginBottom: 6 }}
         >
           {status}

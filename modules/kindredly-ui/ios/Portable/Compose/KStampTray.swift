@@ -16,8 +16,9 @@ import SwiftUI
  nameDark on Midnight, each ≥4.7:1 on this tray's soft; TS's inkHex only for an id this build
  doesn't know), on ONE line wherever it fits (the
  owner's call: most names one line): at 9, else at 8, and only a name that fits neither wraps to
- two centred lines at 9 (in English 31 of 36 stay on one line; never told anyone, situationship,
- hat meinen tag gerettet wrap; a row of the grid grows to its tallest name). Never truncated.
+ centred lines at 9, up to three, stepping down to 8 rather than cut a word (in English 31 of 36
+ stay on one line; never told anyone, situationship, hat meinen tag gerettet wrap; a row of the
+ grid grows to its tallest name). Never truncated.
  The names are drawn exactly as TS sends them: lower
  case since the owner's call of 2026-10-18 (useComposeState traySections), so nothing here
  upper-cases them or sets a textCase; the section heads stay in capitals, also as sent. The tiles
@@ -89,14 +90,23 @@ struct KStampTray: View {
             RoundedRectangle(cornerRadius: 7, style: .circular)
               .strokeBorder(on ? theme.ind : Color.clear, lineWidth: 2)
           }
-        // one line at 9, else one line at 8, else two lines at 9 (see the header): the first that fits
+        // one line at 9, else one line at 8, else wrapped (see the header): the first that fits.
+        // The wrapped one takes up to three lines and steps down to 8 before it would cut a word:
+        // on a 375 phone a column leaves a name 53pt and "never told" alone needs 54 at 9, so the
+        // old two lines at 9 cut "never told anyone" (and German's three-word names) with an ellipsis
+        // A wrapped option is only taken while its longest word fits the column whole (at large
+        // type "ordinary" alone outgrows it and SwiftUI would break it ordina/ry); past that each
+        // word gets its own line and shrinks to fit.
         ViewThatFits(in: .horizontal) {
           name(item, size: 9).lineLimit(1).fixedSize()
           name(item, size: 8).lineLimit(1).fixedSize()
-          name(item, size: 9)
-            .lineLimit(2)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
+          wrapped(item, size: 9)
+          wrapped(item, size: 8)
+          VStack(spacing: 0) {
+            ForEach(Array(Self.words(item.name).enumerated()), id: \.offset) { _, word in
+              nameText(word, item: item, size: 9).lineLimit(1).minimumScaleFactor(0.4)
+            }
+          }
         }
         // 3 either side, so two neighbours' names never read as one (can't sleep made my day)
         .padding(.horizontal, 3)
@@ -113,11 +123,42 @@ struct KStampTray: View {
     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
 
+  /// Up to three centred lines; its ideal width is its longest word's, so ViewThatFits takes it
+  /// only while every word fits the column on its own (the words themselves never break).
+  private func wrapped(_ item: KComposeStampItem, size: CGFloat) -> some View {
+    let longest = Self.words(item.name).max { $0.count < $1.count } ?? item.name
+    return VStack(spacing: 0) {
+      name(item, size: size)
+        .lineLimit(3)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(idealWidth: 0, maxWidth: .infinity)
+      nameText(longest, item: item, size: size).lineLimit(1).fixedSize().hidden().frame(height: 0)
+    }
+  }
+
+  private static func words(_ s: String) -> [String] {
+    s.split(separator: " ").map(String.init)
+  }
+
   private func name(_ item: KComposeStampItem, size: CGFloat) -> some View {
-    Text(item.name)
+    nameText(item.name, item: item, size: size)
+  }
+
+  private func nameText(_ text: String, item: KComposeStampItem, size: CGFloat) -> some View {
+    Text(text)
       .kText(.mono(size, .medium, tracking: 0))
       // stamps v3 §9: nameLight on the light themes, nameDark on Midnight (measured on soft, this
       // tray's ground); TS's colour for an id this build doesn't know
       .foregroundStyle(KStampArt.trayName(id: item.id, dark: theme.isDark) ?? item.ink)
+  }
+}
+
+extension KStampSlot {
+  /// The empty slot's stroke on a theme's page (Kit/KStampArt.swift KStampSlot): its mute, except
+  /// on Lavender (mute 2.94:1 on #ECEAF8), which takes the pale slot colour (3.65:1), so the slot
+  /// keeps 3:1 everywhere. The twin of TS lib/stamp-frame stampSlotStroke.
+  public static func stroke(for theme: KTheme) -> Color {
+    theme.key == "lavender" ? KStampFrame.color(KStampArtData.v3SlotPale) : theme.mute
   }
 }

@@ -517,5 +517,6 @@ export const isRefusal = (k: WriteFail | null | undefined): boolean => k === "go
     same measure folds.ts cuts at, not the weighted letter count */
 export const FOLD_MAX = 600;
 
-/** how far a fold body runs past FOLD_MAX (0 when it fits) */
-export const foldOver = (body: string): number => Math.max(0, body.trim().length - FOLD_MAX);
+/** how far a fold body runs past FOLD_MAX (0 when it fits), in code points as Postgres's
+    char_length counts them (an emoji is one, not the two UTF-16 units .length sees) */
+export const foldOver = (body: string): number => Math.max(0, Array.from(body.trim()).length - FOLD_MAX);

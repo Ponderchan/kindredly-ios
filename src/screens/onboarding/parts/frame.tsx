@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View, findNodeHandle, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { t } from "../../../lib/i18n";
@@ -7,6 +7,7 @@ import type { Ground } from "../flow";
 import { NEST_SLOT_H } from "./nest-egg";
 import { GUTTER, KEY_H, OB_MAX_FONT, ON_GROUND, SHADOW, TYPE } from "./tokens";
 import "../../../data/strings-onboarding2";
+import "../../../data/strings-a11y-onboarding";
 
 /* THE SCREEN FRAME (storyboard §2 "The keys never move", §6).
    ────────────────────────────────────────────────────────────────────────
@@ -34,6 +35,22 @@ export const TEXT_KEY_ROW = 44;
 
 /** Where the nest egg's slot starts, from the top of the window (the runner places the egg here). */
 export const nestTop = (insetTop: number): number => insetTop + TOPBAR_H;
+
+/** VoiceOver: the whole run is one route whose screens swap in place, so iOS never hears "the
+    screen changed" and the cursor lands on the next screen's key (which never moves) without
+    reading the new question. This puts the VoiceOver cursor on `ref` (a screen's headline) once
+    the runner's 220ms fade-in is over, and again whenever `again` changes (9's headline after
+    the hatch). A no-op with VoiceOver off. */
+export function useFocusOnMount(ref: RefObject<unknown>, again?: unknown, delay = 260): void {
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const node = ref.current ? findNodeHandle(ref.current as Parameters<typeof findNodeHandle>[0]) : null;
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, delay);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [again]);
+}
 
 /** ‹, in the ground's type colour, a 44pt target. */
 export function BackKey({ onPress, on = "blue" }: { onPress: () => void; on?: Ground }) {
@@ -86,6 +103,7 @@ export function ScreenFrame({
   topRight,
   children,
   bodyStyle,
+  scroll = false,
 }: {
   /** the ground under it (the back key and type colours follow) */
   ground: Ground;
@@ -103,11 +121,21 @@ export function ScreenFrame({
   topRight?: ReactNode;
   children?: ReactNode;
   bodyStyle?: StyleProp<ViewStyle>;
+  /** the body scrolls when it outgrows its room (an SE: the nest and the key area leave it ~339pt;
+      4's third choice and 8's envelope ran under the keys). Where it fits it is exactly the plain
+      body (flexGrow keeps a flex:1 child filling it, and it doesn't bounce). */
+  scroll?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const body = (
     <>
-      <View style={[{ flex: 1, paddingHorizontal: GUTTER }, bodyStyle]}>{children}</View>
+      {scroll ? (
+        <ScrollView style={{ flex: 1 }} alwaysBounceVertical={false} showsVerticalScrollIndicator={false} contentContainerStyle={[{ flexGrow: 1, paddingHorizontal: GUTTER }, bodyStyle]}>
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={[{ flex: 1, paddingHorizontal: GUTTER }, bodyStyle]}>{children}</View>
+      )}
       <KeyArea primary={primary} secondary={secondary} keyboard={keyboard} />
     </>
   );
@@ -129,10 +157,14 @@ export function ScreenFrame({
   );
 }
 
-/** A screen's headline: Inter 800, 28–30, −0.8, sentence case, in the ground's type colour. */
+/** A screen's headline: Inter 800, 28–30, −0.8, sentence case, in the ground's type colour.
+    VoiceOver's cursor moves to it when it mounts (useFocusOnMount), so a new screen is read
+    from its question. */
 export function Headline({ children, on = "blue", align = "center", style }: { children: ReactNode; on?: Ground; align?: "center" | "left"; style?: StyleProp<TextStyle> }) {
+  const ref = useRef<Text>(null);
+  useFocusOnMount(ref);
   return (
-    <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={[TYPE.headline, { color: ON_GROUND[on], textAlign: align }, style]}>
+    <Text ref={ref} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={[TYPE.headline, { color: ON_GROUND[on], textAlign: align }, style]}>
       {children}
     </Text>
   );

@@ -44,6 +44,10 @@ export default function SettingsScreen() {
           label: l.label.toUpperCase(),
           lead: l.flag,
           kind: l.id === model.lang ? ("primary" as const) : ("quiet" as const),
+          selected: l.id === model.lang,
+          // VoiceOver says the name in that language's own voice, without the flag
+          accessibilityLabel: l.label,
+          accessibilityLanguage: l.id === "pt" ? "pt-BR" : l.id,
           onPress: () => model.act.pickLanguage(l.id),
         }))}
         cancelLabel={t("set.neverMind")}
@@ -56,7 +60,7 @@ export default function SettingsScreen() {
         open={model.askDelete}
         title={t("set.delTitle")}
         body={t("set.delBody", { wren: model.wren })}
-        actions={[{ label: model.deleting ? "…" : t("set.delConfirm"), kind: "destructive", onPress: model.act.confirmDelete }]}
+        actions={[{ label: t("set.delConfirm"), busy: model.deleting, kind: "destructive", onPress: model.act.confirmDelete }]}
         cancelLabel={t("set.delKeep")}
         onCancel={model.act.cancelDelete}
       />

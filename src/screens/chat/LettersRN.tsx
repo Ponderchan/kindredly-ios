@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, ScrollView, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
@@ -57,10 +57,11 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
    · the dock: the sign door above the status line, the slow note in the
      dock instead of a toast under the keyboard (spec bug 8), the reply bar
      (ReplyBar: the reply arrow, the field, the emoji key, the send disc;
-     Return sends) 16 from either edge and 12 over the keyboard, with its
-     hint over it while it has the keyboard (LETTER 4 OF 5, LETTER 5 OF 5 ·
-     ONE MORE AND NAMES, build-items lettersHint) — or the gone line where
-     it was.
+     the send key sends, Return is a new line) 16 from either edge and 12
+     over the keyboard, with its hint over it while it has the keyboard
+     (LETTER 4 OF 5, LETTER 5 OF 5 · ONE MORE AND NAMES, build-items
+     lettersHint; nothing once your five are in, the band says that) — or
+     the gone line where it was.
 
    The correspondence, seen from Kindreds: a slow chat. The other person's
    face develops in the header with every letter THEY send. Two lenses on
@@ -80,6 +81,17 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
   const lang = getLang();
 
   const bar = useRef<ReplyBarHandle>(null);
+  /* KeyboardAvoidingView measures the keyboard's overlap from its own frame, which it only knows
+     relative to its parent (this screen's root): with anything above the screen (the dev page's
+     chips, a stack's header) that overlap comes out short by the root's distance from the window's
+     top, and the bar sat under the keyboard. The root's place in the window is that offset */
+  const root = useRef<View>(null);
+  const [rootTop, setRootTop] = useState(0);
+  const measureRoot = useCallback(() => {
+    root.current?.measureInWindow((_x, y) => {
+      if (Number.isFinite(y)) setRootTop((cur) => (Math.abs(cur - y) > 0.5 ? y : cur));
+    });
+  }, []);
   /* the bar has the keyboard: its hint shows */
   const [focused, setFocused] = useState(false);
   const listRef = useRef<{ requestEnd: (animated: boolean, delayMs: number) => void; jumpTo: (key: string) => void } | null>(null);
@@ -212,7 +224,7 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+    <View ref={root} onLayout={measureRoot} style={{ flex: 1, backgroundColor: tk.bg }}>
       {header ? (
         <ConversationHeaderRN
           model={header}
@@ -240,7 +252,7 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
         />
       )}
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={rootTop}>
         <ScrollView {...list.listProps} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
           {items.map((item, i) => (
             <LetterRowRN key={item.key} item={item} first={i === 0} lit={list.lit === item.key} env={env} onLayout={list.rowLayout(item.key)} />
@@ -254,8 +266,7 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
             status={m.composer.status}
             statusAlarm={m.composer.statusAlarm}
             onDock={m.onDock}
-            // identity on: the door opens the signing sheet, and VoiceOver says so
-            signHint={m.identity ? t("id2.door.hint") : undefined}
+            // identity on: the door opens the signing sheet, and VoiceOver says so (buildLettersDock's signHint)
           />
           {/* write — unless there is no longer anyone at the other end. 0009 nulls their side when
               an account is deleted; the correspondence stays open to read and stops being somewhere

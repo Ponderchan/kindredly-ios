@@ -7,7 +7,7 @@ import { HATCH_READ_S, HatchStage } from "../../../components/HatchStage";
 import { firstWord } from "../../../lib/first-word";
 import { t } from "../../../lib/i18n";
 import { ShellFlood } from "../parts/flood";
-import { KeyArea, TOPBAR_H } from "../parts/frame";
+import { KeyArea, TOPBAR_H, useFocusOnMount } from "../parts/frame";
 import { AcidKey } from "../parts/keys";
 import { GUTTER, OB, TYPE } from "../parts/tokens";
 import type { ObScreenProps } from "../types";
@@ -86,6 +86,10 @@ export default function S09Hatch(props: ObScreenProps) {
     setTimeout(() => props.advance(), 320);
   };
 
+  /* VoiceOver: the headline on arrival, and the new one once it has hatched */
+  const headRef = useRef<Text>(null);
+  useFocusOnMount(headRef, hatched, hatched ? 480 : 260);
+
   const ink = flooded ? OB.ink : OB.white;
   const soft = flooded ? OB.inkSoft : OB.white;
   const chips = [t("ob2.hatch.rhythm"), t("ob2.hatch.pauses"), t("ob2.hatch.tells")];
@@ -106,14 +110,14 @@ export default function S09Hatch(props: ObScreenProps) {
       {!hatched ? (
         <View style={{ alignItems: "center", marginTop: 16 }}>
           <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.label, { color: soft }]}>{t("ob.hatch.eyebrow")}</Text>
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={[TYPE.headline, { color: ink, textAlign: "center", marginTop: 6 }]}>
+          <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={[TYPE.headline, { color: ink, textAlign: "center", marginTop: 6 }]}>
             {t("ob.hatch.title")}
           </Text>
           <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.voice, { color: soft, marginTop: 6 }]}>{t("ob2.hatch.tap")}</Text>
         </View>
       ) : (
         <Animated.View entering={FadeInDown.duration(420)} style={{ alignItems: "center", marginTop: 16 }}>
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={[TYPE.headline, { color: OB.ink, textAlign: "center" }]}>
+          <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={[TYPE.headline, { color: OB.ink, textAlign: "center" }]}>
             {keptLine("ob.hatched.plain", "ob.hatched.em")}
           </Text>
           <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, textAlign: "center", marginTop: 8 }]}>

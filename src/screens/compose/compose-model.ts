@@ -79,6 +79,12 @@ export type KeyVM = {
   count: string;
   /** the chevron leaning toward the stamp key */
   nudge: boolean;
+  /** VoiceOver's value on the key (a11y pass cm-8: the wash and "7/20" are hidden from it, so a
+      dimmed key said nothing about why): how many are still to go while filling below the floor
+      ("13 more to go"), how far over the ceiling past it; "" otherwise */
+  countA11y: string;
+  /** VoiceOver's hint on the key: what PICK A MOOD STAMP does and why a stamp is needed; "" otherwise */
+  hintA11y: string;
 };
 
 /** The count near the ceiling, or null below it. */
@@ -130,7 +136,14 @@ export function keyFor(
     progress: filling ? clamp01(p.weight / OPENING_MIN) : -1,
     count: filling ? `${p.weight}/${OPENING_MIN}` : "",
     nudge: stage === "needStamp" && p.tray !== "stamps",
+    countA11y: filling ? keyLeftA11y(OPENING_MIN - Math.max(0, p.weight), fmt) : stage === "filling" && p.mode === "write" && p.weight > LETTER_MAX ? fmt.t("ui.overLimit", { n: p.weight - LETTER_MAX }) : "",
+    hintA11y: stage === "needStamp" ? fmt.t("cp.a11y.needStampHint") : "",
   };
+}
+
+/** "13 more to go" (one has its own key: "Falta 1", not "Faltan 1") */
+function keyLeftA11y(left: number, fmt: ComposeFormat): string {
+  return left === 1 ? fmt.t("cp.a11y.keyLeftOne") : fmt.t("cp.a11y.keyLeft", { n: left });
 }
 
 /** The count, only near the ceiling of a written letter (from COUNTER_FROM,
@@ -317,7 +330,7 @@ export function trayNameHex(
 /* A TRAY NAME'S SIZE (the owner, 2026-10-18: most names on one line). The tray's names are set in
    the mono, whose every Latin glyph is 0.6 em wide (a CJK or other wide glyph a whole em), so
    whether a name fits its column is arithmetic, not a measurement: one line at 9 if it fits, else
-   one line at 8, else two lines at 9 — never cut short. The SwiftUI tray asks the same question of
+   one line at 8, else wrapped at 9 in up to three lines (else at 8) — never cut short. The SwiftUI tray asks the same question of
    the real text (ViewThatFits in KStampTray); this is React Native's answer. `room` is the
    column's width in pt. */
 export const TRAY_NAME_SIZES = [9, 8] as const;
@@ -333,7 +346,36 @@ export function trayNameWidth(name: string, size: number): number {
   }
   return ems * size + Math.max(0, glyphs - 1) * TRAY_NAME_TRACKING;
 }
-export function trayNameFit(name: string, room: number): { size: number; lines: 1 | 2 } {
+/** the most lines a wrapped tray name takes (a11y pass cm-9: two at 9 cut "never told anyone" with
+    an ellipsis on a 375 phone, where a column leaves 53pt and "never told" needs 54) */
+export const TRAY_NAME_MAX_LINES = 3;
+/** how many lines `name` wraps to at `size` in `room`: word by word, a word wider than the room
+    broken where it overflows (as the text system does) */
+export function trayNameLines(name: string, size: number, room: number): number {
+  let lines = 0;
+  let line = "";
+  for (const word of name.split(/\s+/).filter(Boolean)) {
+    const next = line ? `${line} ${word}` : word;
+    if (trayNameWidth(next, size) <= room) {
+      line = next;
+      continue;
+    }
+    if (line) lines++;
+    line = "";
+    const w = trayNameWidth(word, size);
+    if (w <= room) line = word;
+    // a word that alone overflows takes whole lines of its own (its last piece closes its line)
+    else lines += Math.ceil(w / Math.max(1, room));
+  }
+  return lines + (line ? 1 : 0);
+}
+export type TrayNameFit = { size: number; lines: 1 | 2 | 3 };
+/** One line at 9, else one line at 8, else wrapped at 9 in up to three lines, else at 8 (the
+    SwiftUI tray's ViewThatFits and its last choice's .minimumScaleFactor(8 / 9)). */
+export function trayNameFit(name: string, room: number): TrayNameFit {
   for (const size of TRAY_NAME_SIZES) if (trayNameWidth(name, size) <= room) return { size, lines: 1 };
-  return { size: TRAY_NAME_SIZES[0], lines: 2 };
+  const clamp = (n: number) => Math.min(TRAY_NAME_MAX_LINES, Math.max(2, n)) as 2 | 3;
+  const at9 = trayNameLines(name, TRAY_NAME_SIZES[0], room);
+  if (at9 <= TRAY_NAME_MAX_LINES) return { size: TRAY_NAME_SIZES[0], lines: clamp(at9) };
+  return { size: TRAY_NAME_SIZES[1], lines: clamp(trayNameLines(name, TRAY_NAME_SIZES[1], room)) };
 }

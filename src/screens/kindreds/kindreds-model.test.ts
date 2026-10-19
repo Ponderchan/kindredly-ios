@@ -17,7 +17,7 @@
 import { registerHooks } from "node:module";
 
 const STUBS: Record<string, string> = {
-  i18n: `export const t = (k) => k; export const getLang = () => "en";`,
+  i18n: `export const t = (k) => k; export const getLang = () => "en"; export const strings = () => {};`,
   "scoped-store": `export const scoped = { getItem: async () => null, setItem: async () => {}, removeItem: async () => {} };`,
 };
 registerHooks({
@@ -188,7 +188,7 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("ALL: Wren is the first row", first?.id === "wren");
   const w = rowOf(all, "wren")!;
   ok("Wren: her name, the official mark, her last line, a badge, no menu", w.name === "Wren" && w.faceBadge && w.preview === "News" && w.badge === "2" && w.actions.length === 0);
-  ok("Wren's VoiceOver label says OFFICIAL and the count", w.a11yLabel.startsWith("Wren, wo.tag, 2"));
+  ok("Wren's VoiceOver label says OFFICIAL and the count", w.a11yLabel.startsWith("Wren, wo.tag, kd.unreadA11y(n=2)"));
   const quietDesk = M.buildKindredsView(base(ts), fmt);
   ok("Wren with no posts: no time, the desk's subline", rowOf(quietDesk, "wren")!.time === "" && rowOf(quietDesk, "wren")!.preview === "wo.row.sub");
   ok("KINDREDS: no Wren", !ids(M.buildKindredsView(base(ts, { tab: "kindreds" }), fmt).items).includes("wren"));
@@ -264,7 +264,7 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("chips: All / Kindreds n / Pen pals n, sentence-cased", v.chips.map((c) => `${c.label}${c.count}`).join("|") === "Kd.tab.all|Kd.tab.kindreds2|Kd.tab.penpals1");
   ok("chips: glyphs and the selected one", v.chips.map((c) => c.glyph).join() === "none,kindred,penPal" && v.chips[1].selected && !v.chips[0].selected);
   ok("chips: a dot where someone is on you", v.chips[0].dot && v.chips[1].dot && !v.chips[2].dot);
-  ok("chips: VoiceOver reads the name and the count", v.chips[1].a11yLabel === "Kd.tab.kindreds, 2" && v.chips[0].a11yLabel === "Kd.tab.all");
+  ok("chips: VoiceOver reads the name and the count, and the dot on a chip not shown", v.chips[1].a11yLabel === "Kd.tab.kindreds, 2" && v.chips[0].a11yLabel === "Kd.tab.all, State.yourturn" && v.chips[2].a11yLabel === "Kd.tab.penpals, 1");
 }
 
 /* ── load states ── */

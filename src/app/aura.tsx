@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Dimensions, Modal, Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { storeAura, storeMode } from "../lib/dev-store";
@@ -19,6 +19,7 @@ import type { DimKey } from "../lib/hatch-engine";
 import type { TraitObservation } from "../lib/writing-engine/stickers";
 import { dShort } from "../lib/format";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
+import "../data/strings-a11y-sheets";
 
 /* WRITING AURA — the room (owner's sheet, three tabs).
    ────────────────────────────────────────────────────────────────────────
@@ -155,10 +156,11 @@ export default function AuraScreen() {
       />
 
       {/* the three lenses */}
-      <View style={{ marginHorizontal: 22, marginTop: 8, flexDirection: "row", backgroundColor: tk.lav, borderRadius: 12, padding: 3 }}>
+      <View accessibilityRole="tablist" style={{ marginHorizontal: 22, marginTop: 8, flexDirection: "row", backgroundColor: tk.lav, borderRadius: 12, padding: 3 }}>
         {(["portrait", "dims", "habits"] as Tab[]).map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: tab === k ? tk.sf : "transparent", alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.letter, fontWeight: tab === k ? "600" : "400", fontSize: 13, color: tab === k ? tk.ink : tk.sub }}>{tr(`wa.tab.${k}`)}</Text>
+          <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: tab === k ? tk.sf : "transparent", alignItems: "center" }}>
+            {/* one line per segment at every text size (a11y pass: at AX sizes "Portrait" broke mid-word over its neighbour) */}
+            <Text maxFontSizeMultiplier={1.6} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ alignSelf: "stretch", textAlign: "center", paddingHorizontal: 4, fontFamily: PF.letter, fontWeight: tab === k ? "600" : "400", fontSize: 13, color: tab === k ? tk.ink : tk.sub }}>{tr(`wa.tab.${k}`)}</Text>
           </Pressable>
         ))}
       </View>
@@ -174,7 +176,7 @@ export default function AuraScreen() {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 22, paddingTop: 16 }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("wa.dimOf", { i: idx + 1 })}</Text>
-            <Pressable onPress={() => setGrid(true)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+            <Pressable onPress={() => setGrid(true)} hitSlop={8} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
               <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.pen }}>{tr("wa.allDims")}</Text>
               <GridIcon size={18} color={P.pen} />
             </Pressable>
@@ -189,15 +191,15 @@ export default function AuraScreen() {
             ))}
           </ScrollView>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 22, marginTop: 16 }}>
-            <Pressable onPress={() => goto(Math.max(0, idx - 1))} disabled={idx === 0} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: tk.line, alignItems: "center", justifyContent: "center", opacity: idx === 0 ? 0.35 : 1 }}>
+            <Pressable onPress={() => goto(Math.max(0, idx - 1))} disabled={idx === 0} accessibilityRole="button" accessibilityLabel={tr("sh.a11y.prevDim")} accessibilityState={{ disabled: idx === 0 }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: tk.line, alignItems: "center", justifyContent: "center", opacity: idx === 0 ? 0.35 : 1 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 18, color: tk.ink }}>←</Text>
             </Pressable>
             <Text style={{ fontFamily: PF.letter, fontSize: 12, color: tk.mute }}>{tr("wa.swipe")}</Text>
-            <Pressable onPress={() => goto(Math.min(ORDER.length - 1, idx + 1))} disabled={idx === ORDER.length - 1} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: tk.line, alignItems: "center", justifyContent: "center", opacity: idx === ORDER.length - 1 ? 0.35 : 1 }}>
+            <Pressable onPress={() => goto(Math.min(ORDER.length - 1, idx + 1))} disabled={idx === ORDER.length - 1} accessibilityRole="button" accessibilityLabel={tr("sh.a11y.nextDim")} accessibilityState={{ disabled: idx === ORDER.length - 1 }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: tk.line, alignItems: "center", justifyContent: "center", opacity: idx === ORDER.length - 1 ? 0.35 : 1 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 18, color: tk.ink }}>→</Text>
             </Pressable>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 14, marginBottom: 18 }}>
+          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 14, marginBottom: 18 }}>
             {ORDER.map((d, i) => (
               <View key={d} style={{ width: i === idx ? 14 : 5, height: 5, borderRadius: 3, backgroundColor: i === idx ? P.pen : tk.faint }} />
             ))}
@@ -205,56 +207,38 @@ export default function AuraScreen() {
 
           {/* the sentence and the read: the whole piece, the words the rule
               fired on marked, and what the sticker says it means */}
-          <Modal visible={!!reading} transparent animationType="slide" onRequestClose={() => setReading(null)}>
-            <Pressable onPress={() => setReading(null)} style={{ flex: 1, backgroundColor: scrim, justifyContent: "flex-end" }}>
-              <Pressable onPress={() => {}} style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34, maxHeight: "80%" }, sheetEdge(tk)]}>
-                <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
-                  <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{tr("wa.readTitle")}</Text>
-                  <Pressable onPress={() => setReading(null)} hitSlop={10}><Text style={{ fontFamily: PF.letter, fontSize: 18, color: tk.mute }}>✕</Text></Pressable>
+          <AuraSheet visible={!!reading} title={tr("wa.readTitle")} onClose={() => setReading(null)} scrim={scrim} tk={tk}>
+            {reading && (
+              <View style={{ marginTop: 14 }}>
+                <Text style={{ fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 27, color: tk.ink }}>
+                  {reading.text.slice(0, reading.start)}
+                  <Text style={{ backgroundColor: tk.lav2, color: tk.ind }}>{reading.text.slice(reading.start, reading.end)}</Text>
+                  {reading.text.slice(reading.end)}
+                </Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: tk.mute, marginTop: 10 }}>{reading.from}</Text>
+                <View style={{ marginTop: 16, backgroundColor: tk.lav2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
+                  <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: tk.ink }}>{reading.name}</Text>
+                  <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: tk.sub, marginTop: 4 }}>{reading.line}</Text>
                 </View>
-                {reading && (
-                  <ScrollView style={{ marginTop: 14 }} showsVerticalScrollIndicator={false}>
-                    <Text style={{ fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 27, color: tk.ink }}>
-                      {reading.text.slice(0, reading.start)}
-                      <Text style={{ backgroundColor: tk.lav2, color: tk.ind }}>{reading.text.slice(reading.start, reading.end)}</Text>
-                      {reading.text.slice(reading.end)}
-                    </Text>
-                    <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: tk.mute, marginTop: 10 }}>{reading.from}</Text>
-                    <View style={{ marginTop: 16, backgroundColor: tk.lav2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
-                      <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14, color: tk.ink }}>{reading.name}</Text>
-                      <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: tk.sub, marginTop: 4 }}>{reading.line}</Text>
-                    </View>
-                  </ScrollView>
-                )}
-              </Pressable>
-            </Pressable>
-          </Modal>
+              </View>
+            )}
+          </AuraSheet>
 
           {/* the grid of nine */}
-          <Modal visible={grid} transparent animationType="slide" onRequestClose={() => setGrid(false)}>
-            <Pressable onPress={() => setGrid(false)} style={{ flex: 1, backgroundColor: scrim, justifyContent: "flex-end" }}>
-              <Pressable onPress={() => {}} style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34 }, sheetEdge(tk)]}>
-                <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
-                  <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{tr("wa.nine")}</Text>
-                  <Pressable onPress={() => setGrid(false)} hitSlop={10}><Text style={{ fontFamily: PF.letter, fontSize: 18, color: tk.mute }}>✕</Text></Pressable>
-                </View>
-                <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: tk.sub, marginTop: 4 }}>{tr("wa.nineSub")}</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
-                  {ORDER.map((d, i) => {
-                    const on = i === idx;
-                    return (
-                      <Pressable key={d} onPress={() => { setGrid(false); goto(i); }} style={{ width: "31%", paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: on ? P.pen : tk.line, backgroundColor: on ? tk.lav2 : tk.sf, alignItems: "center", gap: 4 }}>
-                        <Text style={{ fontFamily: PF.serif, fontSize: 18, color: on ? P.pen : tk.ink }}>{String(i + 1).padStart(2, "0")}</Text>
-                        <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: on ? P.pen : tk.sub, textAlign: "center" }} numberOfLines={1}>{dimLabel(d)}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </Pressable>
-            </Pressable>
-          </Modal>
+          <AuraSheet visible={grid} title={tr("wa.nine")} onClose={() => setGrid(false)} scrim={scrim} tk={tk}>
+            <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: tk.sub, marginTop: 4 }}>{tr("wa.nineSub")}</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+              {ORDER.map((d, i) => {
+                const on = i === idx;
+                return (
+                  <Pressable key={d} onPress={() => { setGrid(false); goto(i); }} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${dimLabel(d)}`} accessibilityState={{ selected: on }} style={{ width: "31%", paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: on ? P.pen : tk.line, backgroundColor: on ? tk.lav2 : tk.sf, alignItems: "center", gap: 4 }}>
+                    <Text style={{ fontFamily: PF.serif, fontSize: 18, color: on ? P.pen : tk.ink }}>{String(i + 1).padStart(2, "0")}</Text>
+                    <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: on ? P.pen : tk.sub, textAlign: "center" }} numberOfLines={1}>{dimLabel(d)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </AuraSheet>
         </View>
       )}
 
@@ -262,7 +246,7 @@ export default function AuraScreen() {
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("wa.fromPieces", { n: aura.pieces })}</Text>
-            <Pressable onPress={() => setScope(true)} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Pressable onPress={() => setScope(true)} hitSlop={8} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: P.pen }}>{tr("wa.scope")}</Text>
               <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.pen }}>≡</Text>
             </Pressable>
@@ -349,51 +333,43 @@ export default function AuraScreen() {
             ))
           )}
 
-          <Pressable onPress={() => setScope(true)} style={[{ marginTop: 12, backgroundColor: tk.sf, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 10 }, cardEdge(tk)]}>
+          <Pressable onPress={() => setScope(true)} accessibilityRole="button" accessibilityLabel={tr("wa.scopeRow")} style={[{ marginTop: 12, backgroundColor: tk.sf, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 10 }, cardEdge(tk)]}>
             <Text style={{ fontFamily: PF.mono, fontSize: 13, color: tk.sub }}>🔒</Text>
             <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 14, color: tk.ink }}>{tr("wa.scopeRow")}</Text>
             <Text style={{ fontFamily: PF.letter, fontSize: 16, color: tk.faint }}>›</Text>
           </Pressable>
 
           {/* which of your text is in scope */}
-          <Modal visible={scope} transparent animationType="slide" onRequestClose={() => setScope(false)}>
-            <Pressable onPress={() => setScope(false)} style={{ flex: 1, backgroundColor: scrim, justifyContent: "flex-end" }}>
-              <Pressable onPress={() => {}} style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 14, paddingBottom: 34 }, sheetEdge(tk)]}>
-                <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16 }}>
-                  <Text style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{tr("wa.scopeTitle")}</Text>
-                  <Pressable onPress={() => setScope(false)} hitSlop={10}><Text style={{ fontFamily: PF.letter, fontSize: 18, color: tk.mute }}>✕</Text></Pressable>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: tk.line, marginTop: 8 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: tk.ink }}>{tr("wa.scopeLetters")}</Text>
-                    <Text style={{ fontFamily: PF.letter, fontSize: 12, color: tk.sub, marginTop: 3 }}>{tr("wa.scopeLettersSub")}</Text>
-                  </View>
-                  <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: tk.mute }}>{tr("wa.included")}</Text>
-                </View>
-                <Pressable onPress={() => setSealedOn((v) => !v)} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: tk.line }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: tk.ink }}>{tr("wa.scopeSealed")}</Text>
-                    <Text style={{ fontFamily: PF.letter, fontSize: 12, color: tk.sub, marginTop: 3 }}>{tr("wa.scopeSealedSub")}</Text>
-                  </View>
-                  <View style={{ width: 22, height: 22, borderRadius: 5, borderWidth: 1.5, borderColor: sealedOn ? P.pen : tk.faint, backgroundColor: sealedOn ? P.pen : "transparent", alignItems: "center", justifyContent: "center" }}>
-                    {sealedOn && <Text style={{ color: tk.bg, fontSize: 13 }}>✓</Text>}
-                  </View>
-                </Pressable>
-                <Text style={{ fontFamily: PF.letter, fontSize: 12, lineHeight: 18, color: tk.sub, marginTop: 14 }}>{tr("wa.scopeNote")}</Text>
-                <Pressable
-                  onPress={async () => {
-                    await setAuraScope({ sealed: sealedOn });
-                    setScope(false);
-                    await load();
-                  }}
-                  style={({ pressed }) => ({ marginTop: 18, backgroundColor: tk.ink, borderRadius: 12, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
-                >
-                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: tk.bg }}>{tr("wa.done")}</Text>
-                </Pressable>
-              </Pressable>
+          <AuraSheet visible={scope} title={tr("wa.scopeTitle")} onClose={() => setScope(false)} scrim={scrim} tk={tk}>
+            <View accessible style={{ flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: tk.line, marginTop: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: tk.ink }}>{tr("wa.scopeLetters")}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 12, color: tk.sub, marginTop: 3 }}>{tr("wa.scopeLettersSub")}</Text>
+              </View>
+              <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: tk.mute }}>{tr("wa.included")}</Text>
+            </View>
+            <Pressable onPress={() => setSealedOn((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: sealedOn }} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: tk.line }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14.5, color: tk.ink }}>{tr("wa.scopeSealed")}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 12, color: tk.sub, marginTop: 3 }}>{tr("wa.scopeSealedSub")}</Text>
+              </View>
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: 22, height: 22, borderRadius: 5, borderWidth: 1.5, borderColor: sealedOn ? P.pen : tk.faint, backgroundColor: sealedOn ? P.pen : "transparent", alignItems: "center", justifyContent: "center" }}>
+                {sealedOn && <Text style={{ color: tk.bg, fontSize: 13 }}>✓</Text>}
+              </View>
             </Pressable>
-          </Modal>
+            <Text style={{ fontFamily: PF.letter, fontSize: 12, lineHeight: 18, color: tk.sub, marginTop: 14 }}>{tr("wa.scopeNote")}</Text>
+            <Pressable
+              onPress={async () => {
+                await setAuraScope({ sealed: sealedOn });
+                setScope(false);
+                await load();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => ({ marginTop: 18, backgroundColor: tk.ink, borderRadius: 12, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
+            >
+              <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: tk.bg }}>{tr("wa.done")}</Text>
+            </Pressable>
+          </AuraSheet>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -449,6 +425,8 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
         <Pressable
           onPress={() => onRead({ text: piece.text, start: ev.start, end: ev.end, from: tr(`wa.quoteFrom.${ev.source}`, { d: when }), name: stickerName(rep.stickerId), line: stickerLine(rep) })}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={tr("wa.seeRead")}
           style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 }}
         >
           <Text style={{ fontFamily: PF.letter, fontSize: 13, color: P.pen }}>{tr("wa.seeRead")}</Text>
@@ -456,5 +434,34 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
         </Pressable>
       )}
     </View>
+  );
+}
+
+/* THE ROOM'S THREE SHEETS (a11y pass 2026-10-19, cm-2). The dim and the
+   sheet are siblings: the dim used to be a Pressable wrapping the sheet,
+   and a Pressable is one VoiceOver element — the whole sheet read as one
+   thing whose double-tap closed it (no dimension, no tick box, no DONE).
+   Now the dim is a plain tap target VoiceOver doesn't see, the sheet's
+   rows are their own elements, a two-finger scrub closes it, and the
+   sheet scrolls once large type makes it taller than 85% of the screen. */
+function AuraSheet({ visible, title, onClose, scrim, tk, children }: { visible: boolean; title: string; onClose: () => void; scrim: string; tk: ThemeTokens; children: ReactNode }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ flex: 1, justifyContent: "flex-end" }}>
+        <Pressable accessible={false} onPress={onClose} style={[StyleSheet.absoluteFill, { backgroundColor: scrim }]} />
+        <View style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 14, maxHeight: "85%" }, sheetEdge(tk)]}>
+          <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16, paddingHorizontal: 22 }}>
+            <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{title}</Text>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr("wren.trackClose")}>
+              <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 18, color: tk.mute }}>✕</Text>
+            </Pressable>
+          </View>
+          <ScrollView bounces={false} showsVerticalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 34 }}>
+            {children}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 }

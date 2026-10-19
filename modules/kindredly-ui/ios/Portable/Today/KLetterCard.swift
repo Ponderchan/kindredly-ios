@@ -57,7 +57,8 @@ import SwiftUI
    arrow, the light segment with yours, the lit side the one you are reading; TS's code
    ("ES→EN", "EN←ES" once turned round) is read into the pair by KLangPair.pair. It is the
    card's last row: the old rule and the ↑ PASS / REPLY ↓ row are gone, because NEXT and
-   REPLY are the control band's buttons now.
+   REPLY are the control band's buttons now. While the reader writes back (`compact`) the foot
+   is not drawn and the docket stops at xxxLarge, so the shrunk card keeps the letter (a11y pass).
 
  VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
  NO.7273" with the switch off, "Sunday Kite, she, Gemini. SEP.23" with it on — the topic, why the
@@ -130,7 +131,12 @@ struct KLetterCard: View, Equatable {
       // minHeight 0: the body takes what the card leaves it and no more, so a long letter is
       // measured against that room and folds (KCardText), instead of growing the card past its frame
       .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-      foot
+      // not while the reader writes back: on an SE from AX1 the docket and the foot alone were
+      // taller than the 200pt card, leaving the letter 0 high and no UNFOLD (a11y pass,
+      // today-reply-card-ax-se). The topic and the translation stay in the card's label and actions.
+      if !compact {
+        foot
+      }
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(card.a11yLabel)
@@ -194,7 +200,8 @@ struct KLetterCard: View, Equatable {
         .accessibilityLabel(labels.more)
       }
     }
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    // shrunk for the keyboard, the docket stops at xxxLarge so the letter keeps some lines
+    .dynamicTypeSize(...(compact ? DynamicTypeSize.xxxLarge : DynamicTypeSize.accessibility2))
   }
 
   /// The name (with its mark and sign) over the date. The first layout that fits wins: all on the

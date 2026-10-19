@@ -419,13 +419,17 @@ export async function buildGolden(r) {
     layers: { dot: [], xs: ["frame", "rims", "body"], s: ["frame", "rims", "body", "face"], l: ["frame", "rims", "body", "marks", "face"] },
     tiltsByLetter: { dot: false, xs: false, s: false, l: true },
     dotPt: 6,
+    // the dot's 1pt ink edge (the lead's call 2026-10-19, a11y pass: bright yellow and pink dots on white)
+    dotEdge: { width: 1, color: INK },
     fallbackHex: "#8B7FE8",
     // an id with no drawing, in the fallback hex (with a known colour: the same two in that colour's tint and ink)
     unknown: [
       { layer: "frame", el: "path", d: r.frameD, fill: tintOf("#8B7FE8"), stroke: tintOf("#8B7FE8"), width: 14 },
       { layer: "frame", el: "path", d: r.frameD, fill: tintOf("#8B7FE8"), stroke: INK, width: 6 },
     ],
-    slot: { d: kit.FRAME_D, fill: null, width: kit.SLOT.width, dash: kit.SLOT.dash, cap: "round", join: "round", light: "#8A86A3", dark: "#8F8BAA" },
+    // the app's slot, not the kit's 6u dashed 4/10 (which read as beads): 4u dashed 8/10 (the lead's call
+    // 2026-10-19, a11y pass), and `pale` where the theme's mute is under 3:1 on the page (Lavender)
+    slot: { d: kit.FRAME_D, fill: null, width: 4, dash: [8, 10], cap: "round", join: "round", light: "#8A86A3", dark: "#8F8BAA", pale: "#7A7694" },
     bounds: { x0: r1(x0), y0: r1(y0), x1: r1(x1), y1: r1(y1) },
     tag: { text: INK, fill: "the stamp hex", border: "theme ln", shadow: "theme ln (hard 3/3)", borderPt: 2 },
     trayName: { light: "nameLight (classic, lavender, paper)", dark: "nameDark (midnight)" },

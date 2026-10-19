@@ -1,4 +1,5 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { AccessibilityInfo, Modal, PixelRatio, Pressable, Text, View, findNodeHandle, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
@@ -38,7 +39,16 @@ import "../data/strings-step5-platform"; // rp.menu.a11y
    button VoiceOver can name (rp.menu.a11y).
 
    Midnight (7.1): the dim is black (scrimColor), and block's word takes
-   Settings' red for a dark ground. */
+   Settings' red for a dark ground.
+
+   LARGE TYPE AND VOICEOVER (a11y pass 2026-10-19, chat-02 / chat-06). The
+   rows grow with their words (min 48) instead of overlapping at a fixed 48,
+   the type stops at 1.6, and past 1.3 the card widens to the screen less
+   32 (at most 320). The card is measured and kept on screen whatever `top`
+   asks for (SignatureHold used to assume 200pt). The answer line takes
+   VoiceOver's focus when it appears, so "it didn't go through" is heard —
+   accessibilityLiveRegion is Android-only. A working row reads its words,
+   busy, instead of "…". */
 
 /** Draws a report flow's stages: the three choices, the one-line answer,
     the block question. Render it once per screen, anywhere — it is a
@@ -54,16 +64,40 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
   const insets = useSafeAreaInsets();
   const { t: tk, dark } = useTheme();
   const { stage, busy } = flow;
+  const win = useWindowDimensions();
+  const scale = PixelRatio.getFontScale();
+  const cardW = scale > 1.3 ? Math.min(win.width - 32, 320) : 236;
+  // measured once drawn; before that, three rows at their grown height
+  const [cardH, setCardH] = useState<number | null>(null);
+  const estH = 8 + 3 * Math.max(48, 15.5 * Math.min(scale, 1.6) * 1.3 + 24) + 9;
+  const wantTop = top ?? insets.top + 50;
+  const cardTop = Math.max(insets.top + 8, Math.min(wantTop, win.height - (cardH ?? estH) - insets.bottom - 8));
+  const answer = stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : stage === "blockFailed" ? t("rp.blockFailed") : null;
+  const answerRef = useRef<Text>(null);
+  useEffect(() => {
+    if (!answer) return;
+    // the line itself takes the focus (it is read out, and Done is the next swipe)
+    const id = setTimeout(() => {
+      const node = answerRef.current ? findNodeHandle(answerRef.current) : null;
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+      else AccessibilityInfo.announceForAccessibility(answer);
+    }, 350);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
   /* Block's word: the postal red is 4.2:1 on Midnight's card, so there it takes Settings' exits'
      red (dangerInk, 5.5:1; 4.7:1 pressed). The ban glyph keeps the postmark red. */
   const red = dark ? dangerInk(tk.ink, STATIC_P.post) : STATIC_P.post;
 
-  const Row = ({ label, icon, tone = "ink", onPress }: { label: string; icon: "flag" | "ban" | "none"; tone?: "ink" | "red"; onPress: () => void }) => (
+  // `working`: this row shows "…" while busy (its label is still what VoiceOver says)
+  const Row = ({ label, icon, tone = "ink", working = false, onPress }: { label: string; icon: "flag" | "ban" | "none"; tone?: "ink" | "red"; working?: boolean; onPress: () => void }) => (
     <Pressable
       onPress={onPress}
       disabled={busy}
       accessibilityRole="button"
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, height: 48, backgroundColor: pressed ? tk.soft2 : "transparent" })}
+      accessibilityLabel={label}
+      accessibilityState={{ busy: busy && working, disabled: busy }}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 48, backgroundColor: pressed ? tk.soft2 : "transparent" })}
     >
       <View style={{ width: 20, alignItems: "center" }}>
         {icon === "flag" && (
@@ -79,7 +113,9 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
           </Svg>
         )}
       </View>
-      <Text style={{ fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? red : tk.ink }}>{label}</Text>
+      <Text maxFontSizeMultiplier={1.6} style={{ flexShrink: 1, fontFamily: PF.letter, fontSize: 15.5, color: tone === "red" ? red : tk.ink }}>
+        {busy && working ? "…" : label}
+      </Text>
     </Pressable>
   );
 
@@ -89,11 +125,13 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
         {stage !== null && stage !== "block" && (
           <View
             accessibilityViewIsModal
+            onAccessibilityEscape={flow.close}
+            onLayout={(e) => setCardH(e.nativeEvent.layout.height)}
             style={{
               position: "absolute",
-              top: top ?? insets.top + 50,
+              top: cardTop,
               right: 16,
-              width: 236,
+              width: cardW,
               backgroundColor: tk.sf,
               borderRadius: 16,
               borderWidth: 2,
@@ -109,15 +147,15 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
             {stage !== "menu" ? (
               <>
                 {/* the confirmation lives in the same card — no second sheet */}
-                <Text accessibilityLiveRegion="polite" style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: tk.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
-                  {stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : t("rp.blockFailed")}
+                <Text ref={answerRef} accessible accessibilityLiveRegion="polite" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: tk.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
+                  {answer ?? t("rp.blockFailed")}
                 </Text>
                 <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 2 }} />
                 <Row label={t("wu.done")} icon="none" onPress={flow.close} />
               </>
             ) : (
               <>
-                <Row label={busy ? "…" : (reportLabel ?? t("rp.menu.report"))} icon="flag" onPress={() => void flow.report()} />
+                <Row label={reportLabel ?? t("rp.menu.report")} working icon="flag" onPress={() => void flow.report()} />
                 <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => flow.askBlock()} />
                 <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 4 }} />
                 <Row label={t("rp.menu.never")} icon="none" onPress={flow.close} />
@@ -131,7 +169,7 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
         open={stage === "block"}
         title={t("rp.blockTitle")}
         body={t("rp.blockBody")}
-        actions={[{ label: busy ? "…" : t("rp.blockConfirm"), kind: "destructive", onPress: () => void flow.block() }]}
+        actions={[{ label: t("rp.blockConfirm"), busy, kind: "destructive", onPress: () => void flow.block() }]}
         cancelLabel={t("set.neverMind")}
         onCancel={flow.close}
       />

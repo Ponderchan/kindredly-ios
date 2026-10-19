@@ -64,6 +64,10 @@ const ENV_TILT = -2;
 
 type Box = { cx: number; cy: number; w: number };
 
+/** the envelope's smallest width, and the room that keeps (its slot never gets less) */
+const ENV_MIN_W = 150;
+const ENV_MIN_H = Math.ceil(ENV_MIN_W * (ENV_H / ENV_W)) + 6;
+
 export default function S08Stamp(props: ObScreenProps) {
   const { draft } = props;
   const reduce = useReducedMotion();
@@ -83,7 +87,7 @@ export default function S08Stamp(props: ObScreenProps) {
 
   /* the envelope as big as its room allows, never past the design size by more than a little */
   const { width: winW } = useWindowDimensions();
-  const envW = Math.max(150, Math.min(winW - 2 * GUTTER - 6, envBox.w || ENV_W, ((envBox.h || ENV_H) - 6) * (ENV_W / ENV_H)));
+  const envW = Math.max(ENV_MIN_W, Math.min(winW - 2 * GUTTER - 6, envBox.w || ENV_W, ((envBox.h || ENV_H) - 6) * (ENV_W / ENV_H)));
 
   /* where things are on the window (the run's screens fill it; the root is measured anyway) */
   const measure = (ref: React.RefObject<View | null>) =>
@@ -197,6 +201,7 @@ export default function S08Stamp(props: ObScreenProps) {
         ground="blue"
         back={busy ? null : props.back}
         nest
+        scroll
         primary={<AcidKey label={t("ob2.stamp.key")} onPress={() => void stickItOn()} disabled={!props.canAdvance} />}
         secondary={<GhostKey label={t("ob2.stamp.another")} onPress={() => !busy && props.openSide("tray")} on="blue" style={{ height: 44, alignSelf: "stretch" }} />}
       >
@@ -205,7 +210,10 @@ export default function S08Stamp(props: ObScreenProps) {
           <Animated.View ref={bigRef} collapsable={false} style={[bigStyle, { marginTop: 12 }]} accessible accessibilityRole="image" accessibilityLabel={name}>
             <Stamp id={shown} width={BIG} dark={false} />
           </Animated.View>
-          <View style={{ flex: 1, alignSelf: "stretch", alignItems: "center", justifyContent: "center", marginVertical: 8 }} onLayout={onEnvLayout}>
+          {/* never shorter than the smallest envelope (150 wide): where the room runs out (an SE at a
+              large text size) the body scrolls rather than the envelope spilling over the big stamp
+              above and under the white stamp name below */}
+          <View style={{ flex: 1, minHeight: ENV_MIN_H, alignSelf: "stretch", alignItems: "center", justifyContent: "center", marginVertical: 8 }} onLayout={onEnvLayout}>
             {envBox.w > 0 && (
               <Animated.View ref={envRef} collapsable={false} style={envStyle}>
                 <EnvelopeFront
@@ -229,7 +237,7 @@ export default function S08Stamp(props: ObScreenProps) {
             <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[TYPE.headline, { color: OB.white, textAlign: "center", fontSize: 31, lineHeight: 36 }]}>
               {name}
             </Text>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={3} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center", marginTop: 6, marginBottom: 4 }]}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.8} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center", marginTop: 6, marginBottom: 4 }]}>
               {/* "picked from what you wrote" stops being true once they chose another from the tray */}
               {t(draft.stamp && draft.stamp !== suggested ? "ob2.stamp.linePicked" : "ob2.stamp.line")}
             </Text>

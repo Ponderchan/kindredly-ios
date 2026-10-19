@@ -1,4 +1,4 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PF } from "../theme/post";
@@ -47,7 +47,16 @@ import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
    window-level, over the bar and everything else. Prefer `modal` for any
    sheet raised inside the tabs; a pushed root route doesn't need it.
 
-   The mono sizes follow the 10a rule (theme/post MONO: a title is 11). */
+   The mono sizes follow the 10a rule (theme/post MONO: a title is 11).
+
+   NEVER TALLER THAN THE SCREEN (a11y pass 2026-10-19, cm-1). Nine languages
+   on an SE were ~96pt taller than the window at the default size, and the
+   delete warning lost its first half from AX3 on. The sheet stops under the
+   status bar: the title row stays on top, the cancel row stays at the
+   bottom, and the body and the actions scroll between them (bounces off, so
+   a sheet that fits looks exactly as it did). The fixed rows cap their type
+   at 1.6 so they can't eat the scrolling part. A two-finger scrub (escape)
+   is the cancel, so it never travels up to the screen behind and pops it. */
 
 export interface LeaveAction {
   label: string;
@@ -56,8 +65,17 @@ export interface LeaveAction {
   kind: "primary" | "destructive" | "quiet";
   /** a mark before the label (a flag, a glyph). With one, the actions
       become a list — mark in a fixed column, label ranged left — so a set
-      of them lines up instead of each centring on its own length */
+      of them lines up instead of each centring on its own length.
+      VoiceOver doesn't read it */
   lead?: string;
+  /** VoiceOver: the row is the current choice (the language list) */
+  selected?: boolean;
+  /** VoiceOver: say this instead of the label (a language's own name) */
+  accessibilityLabel?: string;
+  /** VoiceOver: the language the label is in (BCP 47), so it is spoken in its own voice */
+  accessibilityLanguage?: string;
+  /** working: the row shows "…" and VoiceOver hears the label, busy */
+  busy?: boolean;
   onPress: () => void;
 }
 
@@ -93,10 +111,11 @@ export function LeaveSheet({
   const P = useP();
   const { t: tk, dark } = useTheme();
   const insets = useSafeAreaInsets();
+  const win = useWindowDimensions();
   if (!open) return null;
 
   const sheet = (
-    <View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
+    <View accessibilityViewIsModal onAccessibilityEscape={onCancel} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
         {/* a low-opacity dim rather than a blur: the page behind stays
             readable, which matters when the question is about that page */}
@@ -106,6 +125,7 @@ export function LeaveSheet({
       <Animated.View
         entering={SlideInDown.duration(260)}
         style={{
+          maxHeight: win.height - insets.top - 12,
           backgroundColor: tk.sf,
           borderTopWidth: 1,
           borderTopColor: tk.ln,
@@ -113,59 +133,68 @@ export function LeaveSheet({
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
-          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{title.toUpperCase()}</Text>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{title.toUpperCase()}</Text>
           <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
+            <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>
         </View>
 
-        <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink60, paddingHorizontal: 22, paddingTop: 16, paddingBottom: 20 }}>
-          {body}
-        </Text>
+        <ScrollView bounces={false} style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: cancelLabel === null ? 0 : 10 }}>
+          <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink60, paddingHorizontal: 22, paddingTop: 16, paddingBottom: 20 }}>
+            {body}
+          </Text>
 
-        <View style={{ paddingHorizontal: 22, gap: 10 }}>
-          {actions.map((a) => (
-            <Pressable
-              key={a.label}
-              onPress={a.onPress}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                a.kind === "primary"
-                  ? { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" as const, opacity: pressed ? 0.85 : 1 }
-                  : {
-                      borderWidth: 1,
-                      borderColor: a.kind === "quiet" ? tk.ln : P.post,
-                      paddingVertical: 15,
-                      alignItems: "center" as const,
-                      backgroundColor: pressed
-                        ? a.kind === "quiet"
-                          ? P.paperDeep
-                          : "rgba(224,72,60,0.08)"
-                        : "transparent",
-                    },
-                a.lead ? { flexDirection: "row" as const, alignItems: "center" as const, paddingHorizontal: 18 } : null,
-              ]}
-            >
-              {!!a.lead && <Text style={{ width: 34, fontSize: 17, lineHeight: 20 }}>{a.lead}</Text>}
-              <Text
-                style={{
-                  fontFamily: PF.monoSemi,
-                  fontSize: MONO.title,
-                  letterSpacing: 1.6,
-                  color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : dark ? dangerInk(tk.ink, P.post) : P.post,
-                }}
+          <View style={{ paddingHorizontal: 22, gap: 10 }}>
+            {actions.map((a) => (
+              <Pressable
+                key={a.label}
+                onPress={a.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={a.accessibilityLabel ?? (a.busy ? a.label : undefined)}
+                accessibilityLanguage={a.accessibilityLanguage}
+                accessibilityState={{ selected: a.selected, busy: a.busy }}
+                style={({ pressed }) => [
+                  a.kind === "primary"
+                    ? { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" as const, opacity: pressed ? 0.85 : 1 }
+                    : {
+                        borderWidth: 1,
+                        borderColor: a.kind === "quiet" ? tk.ln : P.post,
+                        paddingVertical: 15,
+                        alignItems: "center" as const,
+                        backgroundColor: pressed
+                          ? a.kind === "quiet"
+                            ? P.paperDeep
+                            : "rgba(224,72,60,0.08)"
+                          : "transparent",
+                      },
+                  a.lead ? { flexDirection: "row" as const, alignItems: "center" as const, paddingHorizontal: 18 } : null,
+                ]}
               >
-                {a.label}
-              </Text>
-            </Pressable>
-          ))}
+                {!!a.lead && (
+                  <Text accessibilityElementsHidden importantForAccessibility="no" style={{ width: 34, fontSize: 17, lineHeight: 20 }}>
+                    {a.lead}
+                  </Text>
+                )}
+                <Text
+                  style={{
+                    fontFamily: PF.monoSemi,
+                    fontSize: MONO.title,
+                    letterSpacing: 1.6,
+                    color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : dark ? dangerInk(tk.ink, P.post) : P.post,
+                  }}
+                >
+                  {a.busy ? "…" : a.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
 
-          {cancelLabel === null ? null : (
-            <Pressable onPress={onCancel} accessibilityRole="button" style={{ paddingVertical: 16, alignItems: "center" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
-            </Pressable>
-          )}
-        </View>
+        {cancelLabel === null ? null : (
+          <Pressable onPress={onCancel} accessibilityRole="button" style={{ marginHorizontal: 22, paddingVertical: 16, alignItems: "center" }}>
+            <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
+          </Pressable>
+        )}
       </Animated.View>
     </View>
   );

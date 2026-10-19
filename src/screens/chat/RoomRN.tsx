@@ -314,13 +314,25 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
     <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={44} />
   );
 
+  /* KeyboardAvoidingView measures the keyboard's overlap from its frame relative to its parent (this
+     screen's root): with anything above the screen (the dev page's chips, a stack's header) it came
+     out short by the root's distance from the window's top and the bar sat under the keyboard (as in
+     LettersRN). The root's place in the window is that offset */
+  const root = useRef<View>(null);
+  const [rootTop, setRootTop] = useState(0);
+  const measureRoot = useCallback(() => {
+    root.current?.measureInWindow((_x, y) => {
+      if (Number.isFinite(y)) setRootTop((cur) => (Math.abs(cur - y) > 0.5 ? y : cur));
+    });
+  }, []);
+
   const trayOpen = tray.shown && open && dock.traces.length > 0;
   const showsIdeas = ideasOpen && open && !!dock.ideasLabel && !!m.idea;
   /* the dim over the list while the tray is up: rgba(30,27,53,.18), Midnight black at .35 */
   const dim = tk.dark ? "rgba(0,0,0,0.35)" : "rgba(30,27,53,0.18)";
 
   return (
-    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+    <View ref={root} onLayout={measureRoot} style={{ flex: 1, backgroundColor: tk.bg }}>
       {/* their mark, always — you are in their room */}
       <ConversationHeaderRN
         model={header}
@@ -332,7 +344,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
         onMore={() => ui.thenModal(() => report.openMenu())}
       />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={rootTop}>
         <View style={{ flex: 1 }} {...listTouch}>
           <ScrollView {...list.listProps} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
             {items.map((item, i) => (

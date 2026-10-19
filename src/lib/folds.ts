@@ -137,7 +137,7 @@ async function insertFold(
        ui.overLimit); this cut is only the last guard, at the same measure */
     const { error: bErr } = await supabase!
       .from("fold_bodies")
-      .insert({ fold_id: fold.id, body: body.trim().slice(0, FOLD_MAX) });
+      .insert({ fold_id: fold.id, body: Array.from(body.trim()).slice(0, FOLD_MAX).join("") });
     if (bErr) {
       /* the reason first — this used to `return null` before noteFail ever
          ran, so alertFail read whatever the previous write had said */

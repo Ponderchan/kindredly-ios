@@ -575,6 +575,7 @@ const NO_DOCK: KChatDock = {
   notice: null,
   signDoor: "none",
   signLabel: "",
+  signHint: "",
   replyLabel: "",
   replyExcerpt: "",
   replyCloseLabel: "",
@@ -736,12 +737,14 @@ export function signDoorOf(i: Pick<LettersDockInput, "revealed" | "gone" | "miss
 
 /** The pen-pal reply bar's hint (A2), over the bar while the keyboard is up: the letter being
     written, LETTER {n} OF 5 with n your own count + 1, and on your fifth LETTER 5 OF 5 · ONE MORE
-    AND NAMES. Once your five are in, more from you won't move anything, so it says what will (the
-    band's line: the one thing a counter must never invite is filler). In capitals, in the
-    reader's locale; "" once names are traded or nothing can be written. */
+    AND NAMES. Once your five are in, more from you won't move anything, and what will is the
+    band's line (YOUR FIVE ARE IN · 2 MORE FROM THEM, NAMES CAN BE TRADED), which the band under the
+    header already says while names aren't traded: the hint says nothing then rather than repeat
+    it (owner, 2026-10-19). In capitals, in the reader's locale; "" once names are traded or
+    nothing can be written. */
 export function lettersHint(i: Pick<LettersDockInput, "t" | "revealed" | "gone" | "missing" | "myCount" | "otherCount" | "locale">): string {
   if (i.revealed || i.gone || i.missing) return "";
-  if (i.myCount >= REVEAL) return bandFacts(i.myCount, i.otherCount ?? 0, i.t).line.toLocaleUpperCase(i.locale);
+  if (i.myCount >= REVEAL) return "";
   const n = i.myCount + 1;
   return (n === REVEAL ? i.t("ch.hint.names", { n }) : i.t("ch.hint.letter", { n })).toLocaleUpperCase(i.locale);
 }
@@ -777,6 +780,8 @@ export function buildLettersDock(i: LettersDockInput): KChatDock {
         : t("ld.writeBackPh"),
     sendLabel: t("ld.send"),
     hint: lettersHint(i),
+    // identity on: the door opens the signing sheet, and VoiceOver says so (ChatDockRN's signHint)
+    signHint: i.identity && (signDoor === "offer" || signDoor === "theirsFirst") ? t("id2.door.hint") : "",
     emojiLabel: t("cmp.emoji"),
   };
 }
@@ -813,9 +818,16 @@ export function roomComposer(i: { t: TFn; text: string; prompt: string; mode: Ro
   if (i.mode && i.mode.kind !== "song") {
     const over = foldOver(i.text);
     const needsPrompt = i.mode.kind === "question";
+    // words but no question yet: Return would do nothing, so the status line says why (in red, and
+    // VoiceOver hears it)
+    const noPrompt = needsPrompt && !i.prompt.trim() && !!body;
     return {
       canSend: !!body && over === 0 && (!needsPrompt || !!i.prompt.trim()) && !i.sending,
-      ...(over > 0 ? { status: t("ui.overLimit", { n: String(over) }), statusAlarm: true } : slow),
+      ...(over > 0
+        ? { status: t("ui.overLimit", { n: String(over) }), statusAlarm: true }
+        : noPrompt
+          ? { status: t("rm.askNeedsPrompt"), statusAlarm: true }
+          : slow),
       clearOnSend: false,
     };
   }

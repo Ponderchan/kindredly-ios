@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from "react-native";
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AuthResult } from "../../../lib/auth";
@@ -73,6 +73,7 @@ export default function S11Address(props: ObScreenProps) {
     else if ("error" in r) {
       console.warn(`[onboarding] 11: ${p} didn't link:`, r.error);
       setFailed(true);
+      AccessibilityInfo.announceForAccessibility(t("ob2.address.failed"));
     }
     // cancelled: nothing to say
   };
@@ -122,6 +123,7 @@ export default function S11Address(props: ObScreenProps) {
       } else if ("error" in r) {
         console.warn("[onboarding] 11: the switch didn't go through:", r.error);
         setFailed(true);
+        AccessibilityInfo.announceForAccessibility(t("ob2.address.failed"));
       }
     } finally {
       setBusy(null);
@@ -256,6 +258,7 @@ function CodeField({ email, verify }: { email: string; verify: (code: string) =>
                 if (!ok) {
                   setBad(true);
                   setCode("");
+                  AccessibilityInfo.announceForAccessibility(t("ob.code.bad")); // the field just cleared; say why
                 }
               });
             }

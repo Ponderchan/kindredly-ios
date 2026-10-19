@@ -17,6 +17,7 @@ import { dismissKeyboard } from "../lib/keyboard";
 import { WrenBird } from "./WrenBird";
 import "../data/strings-step5-chat"; // in.meFallback, in.knowYouUnsigned
 import "../data/strings-identity2"; // id2.in.*, id2.rp.signature
+import "../data/strings-a11y-chat"; // in.a11yOff
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
    ────────────────────────────────────────────────────────────────────────
@@ -144,7 +145,14 @@ export function Introduction({
         t("id2.in.a11yMine", { name: signed.mine.courier, pen: signed.mine.name || t("in.meFallback") }),
         t("in.sinceChip", { date: dShort(since).toUpperCase() }),
       ].join(" ")
-    : undefined;
+    : /* the mosaic ritual (no signatures: the switch off, or names traded before it) is one
+         sentence too, not the jumping counts, ten envelopes' dates and a half-typed name */
+      [
+        road.length ? t("in.a11yOff", { n: road.length, name: otherName }) : otherName,
+        t("in.sinceChip", { date: dShort(since).toUpperCase() }),
+      ]
+        .filter(Boolean)
+        .join(" ");
   const holdable = !!signed && done && hold.can;
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>

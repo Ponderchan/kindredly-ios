@@ -6,6 +6,7 @@ import { GlyphInput } from "../../components/GlyphInput";
 import { Stamp, StampSlot } from "../../components/Stamp";
 import { KeyDot, MoreTray, Nudge, PlusGlyph, RoundKey, StampKeyGlyph, StampTray } from "../../components/ComposeTray";
 import { WrenBird } from "../../components/WrenBird";
+import { StickerBox } from "../../components/10a/StickerBox";
 import { Recorder } from "../../components/Recorder";
 import { AudioCard } from "../../components/AudioCard";
 import { useBreathe } from "../../components/anim";
@@ -13,7 +14,7 @@ import { t } from "../../lib/i18n";
 import { useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
-import { STAMP_LADDER } from "../../lib/stamp-frame";
+import { STAMP_LADDER, stampSlotStroke } from "../../lib/stamp-frame";
 import { stampVM, type ComposeState } from "./useComposeState";
 import { countBrand } from "./compose-model";
 
@@ -49,9 +50,11 @@ import { countBrand } from "./compose-model";
    place, its 8° and its 50pt hit area; what sits in it is the stamp
    itself at the ladder's composeCorner, 40×48 — your own stamp, so flat:
    no letter tilt, no postmark. Before one is chosen it is the v3 frame
-   alone, unfilled, dashed 4/10 in the theme's mute (StampSlot, contract
-   §7), so choosing a stamp fills the outline it was promised. The toolbar's round stamp key and the #name pill stay
-   exactly as they are. */
+   alone, unfilled, dashed in the theme's mute (darker on Lavender, where
+   mute is under 3:1: stampSlotStroke) (StampSlot, contract §7), so
+   choosing a stamp fills the outline it was promised. The toolbar's round
+   stamp key stays as it was; the #name pill is the App Store solid pill
+   like the #tag (stampVM). */
 const CORNER = STAMP_LADDER.composeCorner;
 const CORNER_DEG = typeof CORNER.tilt === "number" ? CORNER.tilt : 0;
 /** the corner's tap target, as it was: the old 44 tile and its 3pt of padding */
@@ -114,7 +117,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
                 <Stamp id={state.sel} width={CORNER.w} />
               ) : (
                 /* the corner where the stamp goes, still empty: its outline */
-                <StampSlot width={CORNER.w} stroke={tk.mute} />
+                <StampSlot width={CORNER.w} stroke={stampSlotStroke(tk)} />
               )}
             </View>
           </Pressable>
@@ -214,17 +217,28 @@ export function ComposeRN({ state }: { state: ComposeState }) {
               <PlusGlyph size={27} open={state.tray === "more"} color={state.tray === "more" ? tk.ind : tk.ink} />
             </RoundKey>
             {chosen ? (
-              /* CHOSEN: the stamp's own pill — its wash, its ink, its #name */
+              /* CHOSEN: the stamp's own pill, the App Store solid pill like the #tag (stampVM:
+                 the hex, ink words, a 2pt ln edge and a hard 3/3 ln shadow, as on the web) */
               <Pressable
                 onPress={() => act.openTray("stamps")}
                 hitSlop={4}
                 accessibilityRole="button"
                 accessibilityLabel={t("cp.stampChosen.a11y", { name: chosen.name })}
-                style={({ pressed }) => ({ height: 46, maxWidth: 148, borderRadius: 23, borderWidth: 1.5, borderColor: chosen.line, backgroundColor: chosen.wash, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
+                style={({ pressed }) => ({ maxWidth: 148, marginRight: 3, opacity: pressed ? 0.7 : 1 })}
               >
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={{ fontFamily: PF.monoMed, fontSize: 11.5, letterSpacing: 0.2, color: chosen.ink }}>
-                  {chosen.tag}
-                </Text>
+                <StickerBox
+                  fill={chosen.wash}
+                  stroke={chosen.line}
+                  lineWidth={2}
+                  radius={23}
+                  shadow={chosen.line}
+                  offset={3}
+                  faceStyle={{ height: 46, paddingHorizontal: 12, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={{ fontFamily: PF.monoSemi, fontSize: 11.5, letterSpacing: 0.2, color: chosen.ink }}>
+                    {chosen.tag}
+                  </Text>
+                </StickerBox>
               </Pressable>
             ) : (
               <RoundKey onPress={() => act.openTray("stamps")} accessibilityLabel={t("cp.stamp.a11y")}>
@@ -239,6 +253,8 @@ export function ComposeRN({ state }: { state: ComposeState }) {
               disabled={!key.enabled}
               accessibilityRole="button"
               accessibilityLabel={key.label}
+              accessibilityValue={key.countA11y ? { text: key.countA11y } : undefined}
+              accessibilityHint={key.hintA11y || undefined}
               accessibilityState={{ disabled: !key.enabled }}
               style={{ flex: 1, backgroundColor: keyFill, borderWidth: 1, borderColor: keyBorder, overflow: "hidden" }}
             >

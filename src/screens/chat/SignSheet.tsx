@@ -38,6 +38,7 @@ import {
 } from "./sign-sheet";
 import type { LettersModel } from "./useLettersModel";
 import "../../data/strings-identity2";
+import "../../data/strings-a11y-chat"; // ch.a11y.nameLong; and the chat's and room's batch-3 words (rm.askNeedsPrompt), loaded with every conversation
 
 /* THE SIGNING SHEET (identity Phase 2; .claude/identity-build/PHASE2.md §6).
    ────────────────────────────────────────────────────────────────────────
@@ -210,9 +211,15 @@ export function SignSheetView(p: SignSheetViewProps) {
   /* ── the facts and words ── */
   const myCourier = useMemo(() => (p.myUid ? strangerName(p.myUid, { lang: getLang(), unsigned: "" }) : ""), [p.myUid]);
   const check = checkPenName(name, myCourier, screenNow);
-  const errorKey = nameErrorKey(check.problem);
+  /* no maxLength on the field: iOS applies it to marked text too, so a Japanese or Chinese name
+     near the limit lost its romaji or pinyin mid-composition. Past the limit (the same count
+     checkField holds it to) the red line says so and SIGN AND SEND stays off; nothing is cut */
+  const tooLong = name.trim().length > PEN_NAME_MAX;
+  const errorKey = tooLong ? "ch.a11y.nameLong" : nameErrorKey(check.problem);
+  const errorText = errorKey ? t(errorKey, { n: PEN_NAME_MAX }) : "";
   useEffect(() => {
-    if (errorKey && Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(t(errorKey));
+    if (errorText && Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(errorText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorKey]);
   const copy = sheetCopy({ courier: p.courier, theirSigned: p.theirSigned, handle: p.handle, photo, isGuest: p.isGuest }, t);
 
@@ -238,7 +245,7 @@ export function SignSheetView(p: SignSheetViewProps) {
   }, [p.open]);
 
   const drawing = useMemo(() => drawingOf(strokes, { width: padW, height: padH }), [strokes, padW, padH]);
-  const can = canSign({ name: check, typed, drawing, busy: p.busy });
+  const can = !tooLong && canSign({ name: check, typed, drawing, busy: p.busy });
   const scrollRef = useRef(null);
 
   const onStroke = useCallback((s: PadPoint[]) => setStrokes((all) => (padTakesStroke(all.length) ? [...all, s] : all)), []);
@@ -367,7 +374,6 @@ export function SignSheetView(p: SignSheetViewProps) {
                       touched.current = true;
                       setName(v);
                     }}
-                    maxLength={PEN_NAME_MAX}
                     autoCapitalize={FIELD_SPECS.pen.autoCapitalize}
                     autoCorrect={FIELD_SPECS.pen.autoCorrect}
                     spellCheck={false}
@@ -381,13 +387,13 @@ export function SignSheetView(p: SignSheetViewProps) {
                     selectionColor={tk.ind}
                     keyboardAppearance={dark ? "dark" : "light"}
                     accessibilityLabel={t("id2.sheet.name")}
-                    accessibilityHint={errorKey ? t(errorKey) : copy.nameNote}
+                    accessibilityHint={errorKey ? errorText : copy.nameNote}
                     style={{ fontSize: 17, color: tk.ink, paddingVertical: 14 }}
                   />
                 </View>
                 {errorKey ? (
-                  <Text accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 18, color: err, paddingHorizontal: 4 }}>
-                    {t(errorKey)}
+                  <Text style={{ fontSize: 13, lineHeight: 18, color: err, paddingHorizontal: 4 }}>
+                    {errorText}
                   </Text>
                 ) : (
                   <Text style={{ fontSize: 13, lineHeight: 18, color: tk.mute, paddingHorizontal: 4 }}>{copy.nameNote}</Text>

@@ -366,9 +366,14 @@ function swiftV3({ v3, cats, unknownTint }, entries, counts) {
   o(`  /// an id this table doesn't know: its frame alone in this colour (STAMP_FALLBACK_HEX) and its tint`);
   o(`  static let v3FallbackHex: UInt32 = ${hex(paint(unknownTint, "fill"))}`);
   o(`  static let v3FallbackTint: UInt32 = ${hex(tintOf(unknownTint))}`);
-  o(`  /// the empty slot: the frame path, no fill, a 6u stroke dashed 4/10, round caps; the theme's mute colour`);
-  o(`  static let v3SlotWidth: CGFloat = 6`);
-  o(`  static let v3SlotDash: [CGFloat] = [4, 10]`);
+  o(`  /// the empty slot: the frame path, no fill, a 4u stroke dashed 8/10, round caps (a dashed outline, not beads);`);
+  o(`  /// the theme's mute colour, the pale one where mute is under 3:1 on the page (KStampSlot.stroke(for:))`);
+  o(`  static let v3SlotWidth: CGFloat = 4`);
+  o(`  static let v3SlotDash: [CGFloat] = [8, 10]`);
+  o(`  /// the slot on a page where mute is under 3:1 (Lavender), 0xRRGGBB: lib/stamp-frame STAMP_V3_SLOT.pale`);
+  o(`  static let v3SlotPale: UInt32 = 0x7A7694`);
+  o(`  /// the dot below 15pt is edged in ink this wide (lib/stamp-frame STAMP_DOT_EDGE_PT)`);
+  o(`  static let v3DotEdge: CGFloat = 1`);
   o(`  /// the frame path, the same in all 36 (lib/stamp-frame STAMP_V3_FRAME_D)`);
   o(`  static let v3FramePath = ${JSON.stringify(v3.framePath)}`);
   o(`  /// the frame layer, the same in all 36: the tint rim (14u) under the keyline (tint paper, ink 6u)`);

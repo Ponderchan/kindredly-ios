@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
-import { Dimensions, type AccessibilityActionEvent, type AccessibilityActionInfo, type View } from "react-native";
+import { type AccessibilityActionEvent, type AccessibilityActionInfo, type View } from "react-native";
 import { initialWindowMetrics } from "react-native-safe-area-context";
 import { t } from "../lib/i18n";
 import { useReportFlow, type ReportFlow, type ReportStage } from "../lib/report-flow";
@@ -87,11 +87,10 @@ export function useSignatureHold({
         flow.openMenu();
         return;
       }
-      // just under what was held, kept on screen (the card is about 170pt tall)
+      // just under what was held; ReportSheet measures the card and keeps it on screen (it grows with large type)
       anchor.measureInWindow((_x, y, _w, h) => {
-        const max = Dimensions.get("window").height - 200;
         const lift = inSheet ? (initialWindowMetrics?.insets.top ?? 0) : 0;
-        setTop(Number.isFinite(y) ? Math.min(y + lift + h + 6, max) : undefined);
+        setTop(Number.isFinite(y) ? y + lift + h + 6 : undefined);
         flow.openMenu();
       });
     },

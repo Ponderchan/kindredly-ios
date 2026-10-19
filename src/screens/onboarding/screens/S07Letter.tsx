@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, PixelRatio, Platform, Pressable, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useDerivedValue, useReducedMotion, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -9,7 +9,7 @@ import { getLang, t } from "../../../lib/i18n";
 import { screenNow } from "../../../lib/wren";
 import { OPENING_MIN, weightedCount } from "../../../lib/weighted-count";
 import { lettersLeft } from "../flow";
-import { BackKey, nestTop } from "../parts/frame";
+import { BackKey, nestTop, useFocusOnMount } from "../parts/frame";
 import { NEST_EGG } from "../parts/nest-egg";
 import { AcidKey } from "../parts/keys";
 import { FONT, GUTTER, OB, TYPE } from "../parts/tokens";
@@ -60,8 +60,11 @@ import { OB_MAX_FONT } from "../parts/tokens";
    OUT (→ 8): "Stamp it" drops the keyboard, the page folds up into itself
    and the blue flap closes down over it — so the screen is all Post Blue
    when 8 fades in on its blue. Reduce Motion: no fold, no rise, no
-   travel; straight on. A short phone with the keyboard up loses the
-   egg's voice and the line under the headline, so three ruled lines fit. */
+   travel; straight on. A short room with the keyboard up (COMPACT: an SE, a
+   13 mini, or any phone at a large text size) loses the egg's voice, the
+   line under the headline and the STUCK? chip, the meter shares the key's
+   row, and the house rule only shows when it bites (a full-width line above
+   that row), so three ruled lines stay above the bar. */
 
 /** the egg on the flap (it is the nest egg, smaller) */
 const FLAP_EGG = 46;
@@ -108,9 +111,17 @@ export default function S07Letter(props: ObScreenProps) {
   const clean = screenNow(text).ok;
   const ready = props.canAdvance && clean;
   const [kb, setKb] = useState(false);
-  /* a short phone with the keyboard up (an SE: 667 less a 260 keyboard) has no room for the egg's
-     voice and the line under the headline as well as three ruled lines; they step aside */
-  const compact = kb && H < 780;
+  const [kbH, setKbH] = useState(0);
+  /* COMPACT is judged on the room the keyboard leaves, not the window: an SE (667 less a 260
+     keyboard, less the status bar) and a 13 mini (812 less ~335, less 50) both have about 400pt,
+     and the bar under the page grows with the text size, so the threshold grows with it too
+     (capped where this screen's type stops growing). The page needs its three lines. */
+  const room = H - kbH - insets.top;
+  const compact = kb && room < 440 * Math.min(PixelRatio.getFontScale(), OB_MAX_FONT);
+  /* the bar's words stop growing early in compact, so the bar can't climb over the page */
+  const barFont = compact ? 1.15 : OB_MAX_FONT;
+  const headRef = useRef<Text>(null);
+  useFocusOnMount(headRef);
   const [pageH, setPageH] = useState(0);
   const leaving = useRef(false);
 
@@ -121,7 +132,10 @@ export default function S07Letter(props: ObScreenProps) {
   }, []);
 
   useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKb(true));
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => {
+      setKbH(e.endCoordinates.height);
+      setKb(true);
+    });
     const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKb(false));
     return () => {
       show.remove();
@@ -170,6 +184,16 @@ export default function S07Letter(props: ObScreenProps) {
     }));
   };
 
+  /* VoiceOver hears the turns (accessibilityLiveRegion is Android's only): the meter reaching the
+     mark, and the house rule biting or letting go */
+  const was = useRef({ left, clean });
+  useEffect(() => {
+    const p = was.current;
+    was.current = { left, clean };
+    if (p.clean && !clean) AccessibilityInfo.announceForAccessibility(t("ob2.letter.ruleHit"));
+    else if (clean && left === 0 && (p.left > 0 || !p.clean)) AccessibilityInfo.announceForAccessibility(t("ob2.letter.ready"));
+  }, [left, clean]);
+
   const dealCue = () => props.set({ cue: draft.cue + 1 });
   const cueKey = `ob.cue.${(draft.cue % CUE_COUNT) + 1}`;
   const rules = Math.max(3, Math.floor((pageH - 4) / PITCH));
@@ -189,7 +213,7 @@ export default function S07Letter(props: ObScreenProps) {
           <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: FONT.semi, fontSize: 13.5, color: OB.inkSoft }}>
             {clockLine(props.now())}
           </Text>
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[TYPE.headline, { color: OB.ink, marginTop: 4 }]}>
+          <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[TYPE.headline, { color: OB.ink, marginTop: 4 }]}>
             {t("ob2.letter.head")}
           </Text>
           {!compact && (
@@ -198,7 +222,9 @@ export default function S07Letter(props: ObScreenProps) {
             </Text>
           )}
 
-          {/* the cue chip: STUCK? and one of the eighteen cues; a tap deals another */}
+          {/* the cue chip: STUCK? and one of the eighteen cues; a tap deals another (not in compact:
+              the page needs the room more, and the chip is back as soon as the keyboard goes) */}
+          {!compact && (
           <Pressable
             onPress={dealCue}
             accessibilityRole="button"
@@ -224,6 +250,7 @@ export default function S07Letter(props: ObScreenProps) {
             </Text>
             <Deal turn={draft.cue} />
           </Pressable>
+          )}
 
           {/* the page: ruled, like the paper it is */}
           <View style={{ flex: 1, marginTop: 12, minHeight: PITCH * 3 }} onLayout={(e) => setPageH(e.nativeEvent.layout.height)}>
@@ -248,22 +275,34 @@ export default function S07Letter(props: ObScreenProps) {
           </View>
         </Animated.View>
 
-        {/* above the keyboard: the meter, the house rule, the key */}
+        {/* above the keyboard: the meter, the house rule, the key. Compact: the rule only when it
+            bites, full width above one row of meter + key */}
         <View style={{ paddingHorizontal: GUTTER, paddingTop: 8, paddingBottom: kb ? 10 : Math.max(insets.bottom, 14), backgroundColor: OB.sheet }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }} accessible accessibilityLiveRegion="polite" accessibilityLabel={left > 0 ? t("ob2.letter.left", { n: left }) : t("ob2.letter.ready")}>
-            <View style={{ width: METER_W, height: 4, borderRadius: 2, backgroundColor: "rgba(30,27,53,0.14)", overflow: "hidden" }}>
-              <View style={{ width: METER_W * fill, height: 4, borderRadius: 2, backgroundColor: left > 0 ? OB.ink : GO }} />
-            </View>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ marginLeft: 10, fontFamily: FONT.monoSemi, fontSize: 11.5, letterSpacing: 0.4, color: left > 0 ? OB.inkSoft : GO }}>
-              {left > 0 ? t("ob2.letter.left", { n: left }) : t("ob2.letter.ready")}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { flex: 1, marginRight: 14, color: clean ? OB.inkSoft : STOP, fontFamily: clean ? FONT.body : FONT.semi }]}>
-              {clean ? t("ob2.letter.rule") : t("ob2.letter.ruleHit")}
-            </Text>
-            <AcidKey label={t("ob2.letter.key")} disabled={!ready} onPress={stampIt} style={{ width: 156 }} />
-          </View>
+          {compact ? (
+            <>
+              {!clean && (
+                <Text maxFontSizeMultiplier={barFont} style={[TYPE.small, { color: STOP, fontFamily: FONT.semi, marginBottom: 8 }]}>
+                  {t("ob2.letter.ruleHit")}
+                </Text>
+              )}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Meter left={left} fill={fill} font={barFont} width={Math.min(METER_W, W - 2 * GUTTER - 156 - 12)} />
+                </View>
+                <AcidKey label={t("ob2.letter.key")} disabled={!ready} onPress={stampIt} style={{ width: 156 }} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Meter left={left} fill={fill} font={barFont} width={METER_W} />
+              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+                <Text maxFontSizeMultiplier={barFont} style={[TYPE.small, { flex: 1, marginRight: 14, color: clean ? OB.inkSoft : STOP, fontFamily: clean ? FONT.body : FONT.semi }]}>
+                  {clean ? t("ob2.letter.rule") : t("ob2.letter.ruleHit")}
+                </Text>
+                <AcidKey label={t("ob2.letter.key")} disabled={!ready} onPress={stampIt} style={{ width: 156 }} />
+              </View>
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -285,6 +324,22 @@ export default function S07Letter(props: ObScreenProps) {
           <BackKey onPress={props.back} on="blue" />
         </View>
       )}
+    </View>
+  );
+}
+
+/** The thin ink meter to the 20-character mark and its words ("{n} more to travel" → "that'll
+    travel ✓"); one VoiceOver element. In compact the words wrap under the track if they must. */
+function Meter({ left, fill, font, width }: { left: number; fill: number; font: number; width: number }) {
+  const words = left > 0 ? t("ob2.letter.left", { n: left }) : t("ob2.letter.ready");
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", rowGap: 4 }} accessible accessibilityLabel={words}>
+      <View style={{ width, height: 4, borderRadius: 2, backgroundColor: "rgba(30,27,53,0.14)", overflow: "hidden", marginRight: 10 }}>
+        <View style={{ width: width * fill, height: 4, borderRadius: 2, backgroundColor: left > 0 ? OB.ink : GO }} />
+      </View>
+      <Text maxFontSizeMultiplier={font} style={{ fontFamily: FONT.monoSemi, fontSize: 11.5, letterSpacing: 0.4, color: left > 0 ? OB.inkSoft : GO }}>
+        {words}
+      </Text>
     </View>
   );
 }

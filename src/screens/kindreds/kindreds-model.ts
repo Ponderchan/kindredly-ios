@@ -7,6 +7,7 @@ import { closingSoon, daysLeft, isExpired, quietDays } from "../../lib/kindred-e
 import { EACH_WAY, developFor, hashStr, mosaicMask } from "../../lib/mosaic";
 import { NO_WHO_MARKS, whoBook, type WhoBook, type WhoMarks } from "../../lib/stranger-who";
 import type { FrostSpec } from "../../lib/frost";
+import "../../data/strings-a11y-chat"; // kd.unreadA11y
 
 /* THE KINDREDS TAB, AS DATA (10a step 5). Pure: no React, no React
    Native, no i18n — every word comes in through `fmt`, so
@@ -467,7 +468,8 @@ export function rowFor(
     milestone ?? turn?.label ?? null,
     progress ? t("mk.ofFive", { n: each }) : null,
     statusLine,
-    count ? String(count) : null,
+    // "3 unread", not a bare "3"
+    count ? t("kd.unreadA11y", { n: count }) : null,
     time || null,
   ]
     .filter(Boolean)
@@ -524,7 +526,7 @@ export function wrenRow(desk: DeskFacts, wrenName: string, fmt: KindredsFormat):
     badge: desk.unread > 0 ? badgeText(desk.unread) : "",
     trailingLink: "",
     dim: false,
-    a11yLabel: [wrenName, t("wo.tag"), desk.unread ? String(desk.unread) : null, time || null].filter(Boolean).join(", "),
+    a11yLabel: [wrenName, t("wo.tag"), desk.unread ? t("kd.unreadA11y", { n: desk.unread }) : null, time || null].filter(Boolean).join(", "),
     actions: [],
     opens: "wren",
   };
@@ -591,7 +593,8 @@ export function buildKindredsView(f: KindredsFacts, fmt0: KindredsFormat): Kindr
       glyph: k === "kindreds" ? "kindred" : k === "penpals" ? "penPal" : "none",
       selected: f.tab === k,
       dot: c.dots[k],
-      a11yLabel: [label, count].filter(Boolean).join(", "),
+      // the blue dot (someone in this group is waiting on you) is said too, while the chip isn't the one shown
+      a11yLabel: [label, count, c.dots[k] && f.tab !== k ? fmt.sentence(t("state.yourTurn")) : null].filter(Boolean).join(", "),
     };
   });
 

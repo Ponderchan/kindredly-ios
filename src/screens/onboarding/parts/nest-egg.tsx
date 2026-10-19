@@ -7,6 +7,8 @@ import type { Ground } from "../flow";
 import * as haptics from "./haptics";
 import { OB, ON_GROUND, TYPE } from "./tokens";
 import { OB_MAX_FONT } from "./tokens";
+import { t } from "../../../lib/i18n";
+import "../../../data/strings-a11y-onboarding";
 
 /* THE EGG ON SCREENS 2–8: the nest egg, its warmth, its four pips, its voice
    (storyboard §6, "The egg on screens 2–8").
@@ -141,7 +143,15 @@ export function NestEgg({
   const ink = ON_GROUND[on];
 
   return (
-    <View style={[{ alignItems: "center" }, style]} accessibilityRole="image" accessibilityLabel={voice ?? undefined}>
+    // one VoiceOver element: "Your egg, step 2 of 4, <its line>" (the pips are the run's only
+    // progress; the role and label used to sit on a View that wasn't an element, so said nothing)
+    <View
+      style={[{ alignItems: "center" }, style]}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={t("a11yob.egg")}
+      accessibilityValue={{ min: 0, max: 4, now: Math.min(4, Math.max(0, lit)), text: voice ? `${t("a11yob.step", { n: Math.min(4, Math.max(0, lit)), total: 4 })}. ${voice}` : t("a11yob.step", { n: Math.min(4, Math.max(0, lit)), total: 4 }) }}
+    >
       <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
         <View pointerEvents="none" style={{ position: "absolute", left: (size - glow) / 2, top: (size - glow) / 2 }}>
           <WarmthGlow size={glow} heat={heat} />

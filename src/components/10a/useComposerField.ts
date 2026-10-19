@@ -1,5 +1,5 @@
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
-import type { TextInput, TextInputContentSizeChangeEvent, TextInputScrollEvent, TextStyle } from "react-native";
+import { useWindowDimensions, type TextInput, type TextInputContentSizeChangeEvent, type TextInputScrollEvent, type TextStyle } from "react-native";
 
 /* THE UNCONTROLLED COMPOSER FIELD (10a; the React Native side of KField and
    KComposerField). One mechanism under every React Native place a reply is
@@ -65,6 +65,23 @@ import type { TextInput, TextInputContentSizeChangeEvent, TextInputScrollEvent, 
        autoFocus={f.seed.n > 0 ? f.seed.focus : autoFocus}
        style={{ ...f.box(lineHeight, max, pad), … }} … /> */
 
+/* DYNAMIC TYPE (a11y pass, 2026-10-19). React Native scales the field's
+   font AND its line height with the reader's text size, so a height rule
+   in unscaled points cut the placeholder in half at XXXL and left a
+   one-line slit (the 113 ceiling) at the accessibility sizes. box() works
+   in the field's real line: the line height times the text size, capped
+   at FIELD_FONT_CAP — the Swift reply dock's .accessibility3 ceiling. The
+   caller gives the field maxFontSizeMultiplier={FIELD_FONT_CAP} so the
+   text and the rule agree. At the accessibility sizes (AX_SCALE and up)
+   the field grows to three lines at most before it scrolls inside, as the
+   Swift docks do; below them, to the caller's own count. */
+
+/** the reply fields' Dynamic Type ceiling (KReplyDock's .accessibility3); the field's maxFontSizeMultiplier */
+export const FIELD_FONT_CAP = 2.6;
+/** from here (AX1) up, a field grows to three lines at most */
+const AX_SCALE = 1.6;
+const AX_MAX_LINES = 3;
+
 export type ComposerFieldHandle = {
   /** put text in the field (draft resume, restore after a failed send, an idea used); keeps focus */
   setText(value: string): void;
@@ -80,6 +97,10 @@ export type ComposerFieldHandle = {
 
 export function useComposerField(ref: Ref<ComposerFieldHandle>, initialText: string | undefined, onChangeText?: (value: string) => void) {
   const input = useRef<TextInput>(null);
+  /* the text size the field is drawn at (see DYNAMIC TYPE); useWindowDimensions re-renders on a change.
+     Never below 1: at the smaller sizes the field keeps the design's own heights, as it always had */
+  const { fontScale } = useWindowDimensions();
+  const scale = Math.min(Math.max(fontScale || 1, 1), FIELD_FONT_CAP);
   /* the field's native `text` prop (see HOW TEXT GOES IN): `text` changes
      only in setText and clear; `n` is the field's key, bumped to put in the
      text the prop already carries; `focus` is whether that fresh field
@@ -122,12 +143,20 @@ export function useComposerField(ref: Ref<ComposerFieldHandle>, initialText: str
   const onScroll = (e: TextInputScrollEvent) => report((e.nativeEvent as { contentSize?: { height?: number } }).contentSize?.height);
   // and a layout that changed it (the field narrowed or widened) says so here
   const onContentSizeChange = (e: TextInputContentSizeChangeEvent) => report(e.nativeEvent.contentSize?.height);
-  /** the field's height rule: one line while empty, else at least its words (to `max`, then it scrolls inside) */
+  /** the field's height rule: one line while empty, else at least its words (to its ceiling, then it
+      scrolls inside). `lineHeight`, `max` and `pad` are the design's unscaled points (max = lines ×
+      lineHeight + 2 × pad); the lines are scaled to the text size here (see DYNAMIC TYPE). */
   const box = (lineHeight: number, max: number, pad: number): TextStyle => {
-    const oneLine = lineHeight + pad * 2;
-    if (empty) return { height: oneLine, maxHeight: max };
-    return { minHeight: Math.min(max, Math.max(oneLine, grown.h)) + (grown.nudge ? 0.01 : 0), maxHeight: max };
+    const line = lineHeight * scale;
+    const lines = Math.max(1, Math.round((max - pad * 2) / lineHeight));
+    const most = scale >= AX_SCALE ? Math.min(lines, AX_MAX_LINES) : lines;
+    const oneLine = Math.ceil(line + pad * 2);
+    const top = Math.max(oneLine, Math.ceil(most * line + pad * 2));
+    if (empty) return { height: oneLine, maxHeight: top };
+    return { minHeight: Math.min(top, Math.max(oneLine, grown.h)) + (grown.nudge ? 0.01 : 0), maxHeight: top };
   };
+  /** one line of the field, padding included, at the text size: the bars' resting row follows it */
+  const restingLine = (lineHeight: number, pad: number) => Math.ceil(lineHeight * scale + pad * 2);
 
   const clear = () => {
     input.current?.clear();
@@ -168,5 +197,5 @@ export function useComposerField(ref: Ref<ComposerFieldHandle>, initialText: str
     [],
   );
 
-  return { input, seed, note, clear, text, empty, hasWords, box, onScroll, onContentSizeChange };
+  return { input, seed, note, clear, text, empty, hasWords, box, restingLine, scale, onScroll, onContentSizeChange };
 }

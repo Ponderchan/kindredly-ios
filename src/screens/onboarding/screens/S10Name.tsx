@@ -90,7 +90,7 @@ export default function S10Name(props: ObScreenProps) {
   return (
     <ScreenFrame ground="shell" keyboard primary={<AcidKey label={t("ob2.name.key", { name: shown })} disabled={!props.canAdvance} onPress={go} />}>
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: "center", paddingBottom: 16 }}>
-        <Chick shell={draft.shell} form={form} mood={mood} size={kb ? 64 : 104} nudge={nudge} tag={trimmed ? trimmed.toLocaleUpperCase() : null} />
+        <Chick shell={draft.shell} form={form} mood={mood} size={kb ? 64 : 104} nudge={nudge} tag={trimmed ? trimmed.toLocaleUpperCase() : null} name={trimmed || null} />
         <Headline on="shell" style={{ marginTop: 10 }}>
           {t("ob2.name.head")}
         </Headline>

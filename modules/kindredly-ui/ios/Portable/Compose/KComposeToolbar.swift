@@ -14,9 +14,11 @@ import SwiftUI
  - the stamp: while none is chosen, the same round key holding the stamp glyph, a face in a
    perforated square (ComposeTray's StampKeyGlyph at 27); while the stamp tray is open the face
    comes apart and a pencil lies across the square (owner 2026-09-20: the eyes fly up and out,
-   the smile drops, the pencil arrives, .36s). Once a stamp is chosen, its pill instead: 46
-   tall, corners of 23, a 1.5 rule in the stamp's colour on its wash, "#name" in Plex Mono 500
-   11.5 in its channel ink, at most 148 wide, shrinking to .68 before it would cut the word;
+   the smile drops, the pencil arrives, .36s). Once a stamp is chosen, its pill instead, the App
+   Store solid pill like the letter's #tag and the web's (the lead's call, 2026-10-19; TS stampVM
+   over kit topicTagLook): 46 tall, corners of 23, filled with the stamp's hex, a 2pt edge and a
+   hard 3/3 shadow in ln, "#name" in Plex Mono 500 11.5 in ink #1E1B35, at most 148 wide,
+   shrinking to .68 before it would cut the word;
  - the wide key, taking the rest of the row: square corners, a 1pt edge, padding 17 and 10, its
    label in Plex Mono 600 13 at 1.4, centred. Filling: no fill and a line-coloured edge, a lav2
    wash rising from its left to how far the words are toward the floor, the label in mute and,
@@ -164,6 +166,9 @@ private struct KComposePlusGlyph: View {
 /// The chosen stamp's pill.
 private struct KComposeStampPill: View {
   static let maxWidth: CGFloat = 148
+  /// the #tag's edge and its hard shadow's offset (KTopicTag, TS TopicTag: 2 and 3)
+  static let edge: CGFloat = 2
+  static let shadow: CGFloat = 3
   let stamp: KComposeStamp
   let action: () -> Void
 
@@ -171,19 +176,23 @@ private struct KComposeStampPill: View {
     SwiftUI.Button(action: action) {
       // the words' room inside the pill: it hugs a short name and stops a long one at 148,
       // where the name shrinks instead (React Native's maxWidth; a frame would always fill it)
-      KComposeWidthCap(maxWidth: Self.maxWidth - 2 * (12 + 1.5)) {
+      KComposeWidthCap(maxWidth: Self.maxWidth - 2 * (12 + Self.edge)) {
         Text(stamp.name)
           .composeText(.pillName)
           .foregroundStyle(stamp.ink)
           .lineLimit(1)
           .minimumScaleFactor(0.68)
       }
-      // padding 12 inside the 1.5 rule, which React Native counts in the box (and in the 148)
-      .padding(.horizontal, 12 + 1.5)
+      // padding 12 inside the 2pt edge, which React Native counts in the box (and in the 148)
+      .padding(.horizontal, 12 + Self.edge)
       .frame(height: KComposeKeySize.diameter)
       .background(Capsule().fill(stamp.wash))
-      .overlay(Capsule().strokeBorder(stamp.line, lineWidth: 1.5))
+      .overlay(Capsule().strokeBorder(stamp.line, lineWidth: Self.edge))
+      // the hard shadow: the same capsule in ln, 3 right and 3 down, behind (no blur)
+      .background(Capsule().fill(stamp.line).offset(x: Self.shadow, y: Self.shadow))
       .contentShape(Capsule())
+      // the shadow takes no room in the row; leave it its 3 on the right
+      .padding(.trailing, Self.shadow)
     }
     .buttonStyle(KComposeDimPressStyle())
     // the pill keeps its width; the key takes what is left and says SEND if it must
@@ -208,6 +217,63 @@ private struct KComposeWidthCap: Layout {
   }
 }
 
+/*
+ WHAT VOICEOVER HEARS ON THE WIDE KEY beyond its label (a11y pass cm-8): the wash and "7/20" are
+ hidden from it, so a dimmed LET IT TRAVEL said nothing about why. TS compose-model keyFor writes
+ both: `value` while the letter is under the floor ("13 more to go") or past the ceiling, `hint`
+ on PICK A MOOD STAMP (what it opens, and that a letter needs one). They travel beside
+ KComposeLive rather than in KComposeKey: the adapter (KComposeView) keeps one of these for the
+ life of the page, sets it from the same composer command, and hands it down the environment;
+ without one (the gallery, a preview) the key says only its label, as before.
+ */
+public final class KComposeKeySpeech: ObservableObject {
+  /// VoiceOver's value on the key, "" for none
+  @Published public var value: String = ""
+  /// VoiceOver's hint on the key, "" for none
+  @Published public var hint: String = ""
+
+  public init() {}
+
+  /// Both at once, published only when they change (a keystroke that moves neither redraws nothing).
+  public func set(value: String, hint: String) {
+    if self.value != value { self.value = value }
+    if self.hint != hint { self.hint = hint }
+  }
+}
+
+private struct KComposeKeySpeechKey: EnvironmentKey {
+  static let defaultValue: KComposeKeySpeech? = nil
+}
+
+public extension EnvironmentValues {
+  /// The wide key's VoiceOver value and hint (KComposeKeySpeech); nil says only the label.
+  var kComposeKeySpeech: KComposeKeySpeech? {
+    get { self[KComposeKeySpeechKey.self] }
+    set { self[KComposeKeySpeechKey.self] = newValue }
+  }
+}
+
+/// The value and hint on the key, watching the speech object; nothing without one.
+private struct KComposeKeySpeechModifier: ViewModifier {
+  @ObservedObject var speech: KComposeKeySpeech
+
+  func body(content: Content) -> some View {
+    content
+      .accessibilityValue(speech.value)
+      .accessibilityHint(speech.hint)
+  }
+}
+
+private extension View {
+  @ViewBuilder func kComposeKeySpeech(_ speech: KComposeKeySpeech?) -> some View {
+    if let speech {
+      modifier(KComposeKeySpeechModifier(speech: speech))
+    } else {
+      self
+    }
+  }
+}
+
 /// The wide key, watching the live state.
 private struct KComposeTravelKey: View {
   /// under this width the key says SEND (compose.tsx: keyW < 170 && narrowLabel)
@@ -218,6 +284,8 @@ private struct KComposeTravelKey: View {
   let action: () -> Void
   /// the key's width as laid out (0 until it is)
   @State private var width: CGFloat = 0
+  /// what VoiceOver hears beyond the label (see KComposeKeySpeech)
+  @Environment(\.kComposeKeySpeech) private var speech
 
   var body: some View {
     let key = driver.live.key
@@ -252,6 +320,7 @@ private struct KComposeTravelKey: View {
     .buttonStyle(KAsIsButtonStyle())
     .disabled(!key.enabled)
     .accessibilityLabel(key.label)
+    .kComposeKeySpeech(speech)
     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
   }
 

@@ -44,9 +44,16 @@ import SwiftUI
  home indicator's inset (at least 10) when both are down.
 
  ACCESSIBILITY SIZES. 1-6 sit in a scroll view at most 40% of the surface tall (KChatCappedHeight:
- its content's height up to that), so at AX5 on an SE the dock can't push the composer under the
- keyboard and leave the list nothing; the body field shows 3 lines before it scrolls inside (5 at
- ordinary sizes) and the round tools stop growing at xxxLarge, as KTabBar's fixed bar does.
+ its content's height up to that), and never more than what the header (a reserve), the composer
+ row as measured and a strip of list leave (never less than one scrollable line), so at AX5 on an
+ SE the dock can't push the composer under the keyboard and leave the list nothing; the body field
+ shows 3 lines before it scrolls inside (5 at ordinary sizes; 2 at the accessibility sizes when the
+ surface is under 480 tall) and the round tools stop growing at xxxLarge, as KTabBar's fixed bar
+ does. The dock's own small lines (the closing line, the sign door, the status line, the reply
+ bar's hint) stop growing at AX2, as KChatHeader does.
+
+ VOICEOVER HEARS A REFUSAL: the status line in the postmark red is announced when it appears, and
+ again when a send is refused while it stands (a room sends from Return, with no key to grey out).
 
  VOICEOVER'S ESCAPE (two-finger Z) closes only what is open: the reply quote, the mode box (from
  its prompt field or its x), the tray from the + (the tray's own cards close it too, KChatTray),
@@ -79,6 +86,8 @@ struct KChatDockView: View {
   @State private var shownTerminal: KChatTerminal
   /// the composer has the keyboard (the reply bar's hint shows)
   @State private var bodyFocused = false
+  /// the composer row's height as laid out (the reply bar with its hint, or the Kindreds bar)
+  @State private var composerHeight: CGFloat = 0
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   init(theme: KTheme, variant: KChatVariant, dock: KChatDock, birds: KChatBirds, bottomInset: CGFloat, surfaceHeight: CGFloat, driver: KConversationDriver, actions: KConversationActions) {
@@ -95,8 +104,26 @@ struct KChatDockView: View {
 
   private var composerHidden: Bool { shownTerminal != .none }
 
-  /// the most the lines above the composer may take before they scroll
-  private var aboveCap: CGFloat { max(120, (surfaceHeight * 0.4).rounded()) }
+  /// the header's room, held back from the surface (KChatHeader stops growing at AX2, about 92,
+  /// and the band under it); the dock can't measure it, so it reserves it
+  private static let headerReserve: CGFloat = 130
+  /// the list keeps at least this much above the dock
+  private static let listReserve: CGFloat = 80
+  /// the lines above the composer never shrink below one scrollable line
+  private static let aboveFloor: CGFloat = 56
+
+  /// the most the lines above the composer may take before they scroll: 40% of the surface (at
+  /// least 120 on a tall one), and never more than the header, the composer row and a strip of
+  /// list leave
+  private var aboveCap: CGFloat {
+    let share = max(120, (surfaceHeight * 0.4).rounded())
+    let left = surfaceHeight - Self.headerReserve - composerHeight - Self.listReserve
+    return max(Self.aboveFloor, min(share, left.rounded()))
+  }
+
+  /// little height above the keyboard (an SE with the keyboard up): the reply bar's field shows
+  /// two lines at the accessibility sizes
+  private var tightRoom: Bool { surfaceHeight < 480 }
 
   private var trayAnimation: Animation { KChatMotion.tray(reduceMotion: reduceMotion) }
 
@@ -153,6 +180,9 @@ struct KChatDockView: View {
         .transition(reduceMotion ? .opacity : .kChatPopIn)
       }
       composerRow
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+          if abs(h - composerHeight) > 0.5 { composerHeight = h }
+        }
         .frame(maxHeight: composerHidden ? 0 : nil, alignment: .top)
         .clipped()
         .opacity(composerHidden ? 0 : 1)
@@ -171,6 +201,16 @@ struct KChatDockView: View {
       // the prompt field collapses: it lets go first
       if !shows { driver.prompt.blur() }
     }
+    .onChange(of: driver.statusAlarm) { _, alarm in
+      // a refusal in the postmark red is said as it appears (VoiceOver can't see red); only as it
+      // turns red, not on every keystroke that changes "12 over" to "13 over"
+      if alarm { announce(driver.status) }
+    }
+  }
+
+  private func announce(_ text: String) {
+    guard !text.isEmpty else { return }
+    AccessibilityNotification.Announcement(text).post()
   }
 
   /// 1-6: the closing line, Wren's notice, the sign door, the status line, the reply quote, the mode
@@ -193,6 +233,7 @@ struct KChatDockView: View {
           .foregroundStyle(driver.statusAlarm ? KBrand.postRed : theme.mute)
           .multilineTextAlignment(.center)
           .frame(maxWidth: .infinity)
+          .dynamicTypeSize(...DynamicTypeSize.accessibility2)
           .padding(.bottom, 6)
       }
       // never above the gone line or the expired card (TS doesn't send one there either)
@@ -230,6 +271,8 @@ struct KChatDockView: View {
     // a plain line that will go as it is: the field empties at once, and the owner puts the words
     // back only if it refuses them
     let clears = driver.clearOnSend && driver.canSend
+    // refused while a refusal stands (a room's Return has no key to grey out): say why again
+    if !driver.canSend && driver.statusAlarm { announce(driver.status) }
     if clears { driver.body.clear() }
     actions.onSend(value, prompt, clears)
   }
@@ -256,6 +299,7 @@ struct KChatDockView: View {
     }
     .buttonStyle(KChatPlainPress())
     .padding(.horizontal, 10)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     .accessibilityElement(children: .combine)
     .accessibilityAddTraits(.isLink)
   }
@@ -301,8 +345,13 @@ struct KChatDockView: View {
 
   // MARK: 3. sign door
 
-  @ViewBuilder
+  /// capped at AX2 (the dock's small lines)
   private var signDoor: some View {
+    signDoorContent.dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+
+  @ViewBuilder
+  private var signDoorContent: some View {
     switch dock.signDoor {
     case .waiting:
       Text(dock.signLabel)
@@ -334,6 +383,7 @@ struct KChatDockView: View {
           .contentShape(RoundedRectangle(cornerRadius: 20, style: .circular))
       }
       .buttonStyle(KFloatPressStyle())
+      .accessibilityHint(dock.signHint)
       .frame(maxWidth: .infinity)
     case .none:
       EmptyView()
@@ -443,6 +493,7 @@ struct KChatDockView: View {
       // (only the kindreds bar sends on the keyboard)
       returnSends: false,
       autocapitalize: dock.autocapitalize,
+      tightRoom: tightRoom,
       onChange: { actions.onText($0) },
       onSubmit: { send($0) },
       onFocus: { focused in

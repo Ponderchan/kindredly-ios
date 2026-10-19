@@ -163,6 +163,28 @@ export async function iapPurchase(
   }
 }
 
+/** The free trial First Class is in right now, as the App Store's own receipt says it (RevenueCat's
+    customer info): the product, and when the trial ends — the day the first charge happens. Null
+    when it isn't a trial, won't renew (so nothing will be charged), or can't be read (logged). The
+    welcome after a purchase says it (components/FirstClassWelcome); it never guesses a date. */
+export async function iapActiveTrial(): Promise<{ productId: string; endsAt: string } | null> {
+  if (!IAP_READY) return null;
+  const P = load();
+  if (!P) return null;
+  try {
+    const info = await P.getCustomerInfo();
+    const ent = info?.entitlements?.active?.[ENTITLEMENT_ID];
+    if (!ent || ent.periodType !== "TRIAL" || ent.willRenew === false) return null;
+    const endsAt = typeof ent.expirationDate === "string" ? ent.expirationDate : null;
+    const productId = typeof ent.productIdentifier === "string" ? ent.productIdentifier : null;
+    if (!endsAt || !productId || Number.isNaN(Date.parse(endsAt))) return null;
+    return { productId, endsAt };
+  } catch (e) {
+    console.warn("[iap] trial from customer info:", e);
+    return null;
+  }
+}
+
 /** What a restore came back with: First Class found on this Apple ID ("restored"), the App
     Store answered and found nothing ("nothing"), no answer (offline, a StoreKit error:
     "failed"), or purchases can't be reached by this build at all (no RevenueCat key or no

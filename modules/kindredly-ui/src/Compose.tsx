@@ -113,6 +113,10 @@ export type KComposeLive = {
     /** the count beside the label while the wash shows ("7/20"), "" for none */
     count: string;
     nudge: boolean;
+    /** VoiceOver's value on the key ("13 more to go"), "" for none (a11y pass cm-8) */
+    countA11y: string;
+    /** VoiceOver's hint on the key (on PICK A MOOD STAMP), "" for none */
+    hintA11y: string;
   };
   /** the count near the ceiling; text "" hides it */
   count: { text: string; tone: "mute" | "amber" | "post" };

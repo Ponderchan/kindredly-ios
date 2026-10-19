@@ -62,6 +62,7 @@ export default function S04Pronoun(props: ObScreenProps) {
         ground="blue"
         back={props.back}
         nest
+        scroll
         primary={
           <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.label, { color: OB.white, textAlign: "center" }]} accessibilityElementsHidden importantForAccessibility="no">
             {t("ob2.pronoun.hint")}

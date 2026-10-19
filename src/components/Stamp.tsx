@@ -4,8 +4,10 @@ import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import { STAMP_ART_V3, type StampArtV3 } from "../data/stamp-art-v3";
 import { getStamp } from "../data/stamps";
 import {
+  STAMP_DOT_EDGE_PT,
   STAMP_DOT_PT,
   STAMP_LADDER,
+  STAMP_V3_INK,
   STAMP_V3_SLOT,
   stampColoursV3,
   stampDrawListV3,
@@ -27,8 +29,9 @@ import {
    same stamp (design/stamps-v3/golden.json locks all three).
 
    By the width (stampTierV3):
-     · below 15pt there is no stamp: a 6pt dot of the hex (STAMP_DOT_PT),
-       and the dot is all the component lays out;
+     · below 15pt there is no stamp: a 6pt dot of the hex (STAMP_DOT_PT)
+       edged 1pt in ink (STAMP_DOT_EDGE_PT), and the dot is all the
+       component lays out;
      · 15–24: frame, rims, body (the colour and the silhouette);
      · 25–39: + the face (no marks);
      · 40 and up: all five layers.
@@ -141,7 +144,13 @@ export const Stamp = memo(function Stamp({ id, width, delivered = false, letterI
   const plan = useMemo(() => planFor(id, width), [id, width]);
 
   if (plan.els.length === 0) {
-    return <View pointerEvents="none" style={[{ width: STAMP_DOT_PT, height: STAMP_DOT_PT, borderRadius: STAMP_DOT_PT / 2, backgroundColor: plan.hex }, style]} />;
+    // edged in ink (STAMP_DOT_EDGE_PT) so a bright yellow or pink dot stays visible on white
+    return (
+      <View
+        pointerEvents="none"
+        style={[{ width: STAMP_DOT_PT, height: STAMP_DOT_PT, borderRadius: STAMP_DOT_PT / 2, backgroundColor: plan.hex, borderWidth: STAMP_DOT_EDGE_PT, borderColor: STAMP_V3_INK }, style]}
+      />
+    );
   }
 
   const deg = delivered && plan.tilts && letterId ? tilt(letterId) : 0;
@@ -181,8 +190,8 @@ const StampFace = memo(function StampFace({ plan }: { plan: StampPlan }) {
 
 /**
  * Where a stamp goes before one is chosen (contract §7): the v3 frame path alone, no rim, no
- * break-out, stroked 6u dashed 4/10 with round caps in `stroke` (the theme's `mute` on the compose
- * corner). `fill` is "none" unless a picture asks for one (onboarding's glowing corner). Same box
+ * break-out, stroked 4u dashed 8/10 with round caps (STAMP_V3_SLOT: a dashed outline, not beads)
+ * in `stroke` (on the compose corner stampSlotStroke(tk): the theme's mute, darker on Lavender). `fill` is "none" unless a picture asks for one (onboarding's glowing corner). Same box
  * as a Stamp of that width, so choosing one doesn't move anything. Below 15pt: an outlined dot.
  */
 export function StampSlot({ width, stroke, fill = "none", style }: { width: number; stroke: string; fill?: string; style?: StyleProp<ViewStyle> }) {

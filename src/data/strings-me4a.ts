@@ -596,8 +596,10 @@ strings(
     // agent A (Me 4a header): the two buttons' units, after the figure ("10 letters")
     "m4.unit.letters": "Briefe",
     "m4.unit.letterOne": "Brief",
-    "m4.unit.kindreds": "Seelenverwandte",
-    "m4.unit.kindredOne": "Seelenverwandte",
+    // short on purpose: "Seelenverwandte" didn't fit the SE's half-width button (and its singular
+    // was feminine). "Seele" is anyone, as in "keine Seele"; the glyph and the tray say which souls
+    "m4.unit.kindreds": "Seelen",
+    "m4.unit.kindredOne": "Seele",
 
     "m4.peek.seeAll": "Alle {n} ansehen →",
     "m4.peek.noLetters": "Noch keine Briefe.",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { StatusBar } from "expo-status-bar";
@@ -20,6 +20,7 @@ import { track, type PaywallSource } from "../lib/track";
 import { NativeSurface } from "../components/NativeSurface";
 import { usePaywall } from "../screens/paywall/usePaywall";
 import { PaywallNative } from "../screens/paywall/PaywallNative";
+import "../data/strings-a11y-today";
 
 /* FIRST CLASS — the boarding pass, with the fares on it (owner's sheet).
    ────────────────────────────────────────────────────────────────────────
@@ -161,6 +162,11 @@ export function PaywallBody({
   const { handle } = useAuth();
   const { premium, refresh } = useEntitlement();
   const focused = useIsFocused(); // the full page's status bar (see above)
+  /* THE FARES STACK (a11y pass): three side by side are 63–75pt each on an SE, so from the larger
+     text sizes the terms ("cancel anytime") were cut and the period broke mid-word. From XXXL, or
+     a narrow phone past the default sizes, each fare is a full-width row instead. */
+  const { width: winW, fontScale } = useWindowDimensions();
+  const stacked = fontScale >= 1.35 || (winW < 380 && fontScale > 1.1);
 
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -266,17 +272,17 @@ export function PaywallBody({
       {focused && !sheet && <StatusBar style="light" />}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
         {/* a modal closes; it doesn't go back. An × on the sheet, not a ‹ */}
-        <Pressable onPress={back} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+        <Pressable onPress={back} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("nb.close")} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Svg width={18} height={18} viewBox="0 0 24 24">
             <Path d="M5 5 L19 19 M19 5 L5 19" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" />
           </Svg>
         </Pressable>
-        <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.6, color: GOLD }}>{t("me.firstClass")}</Text>
+        <Text maxFontSizeMultiplier={1.6} numberOfLines={1} style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.6, color: GOLD }}>{t("me.firstClass")}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 24, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: PF.serif, fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : head || t("fc.introHead")}</Text>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.serif, fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : head || t("fc.introHead")}</Text>
         <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: "rgba(255,255,255,0.62)", marginTop: 10 }}>
           {premium ? t("fc.paidIntroSub", { wren }) : lead || t("fc.introSub")}
         </Text>
@@ -289,13 +295,13 @@ export function PaywallBody({
             ))}
           </View>
           <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.passenger")}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.messenger")}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+              <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.passenger")}</Text>
+              <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.messenger")}</Text>
             </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{handle || "you"}</Text>
-              <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{wren}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
+              <Text maxFontSizeMultiplier={1.6} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{handle || t("a11yt.fc.you")}</Text>
+              <Text maxFontSizeMultiplier={1.6} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{wren}</Text>
             </View>
             {lifetime && (
               /* the mark itself, as it will sit on their own desk — the thing
@@ -317,7 +323,7 @@ export function PaywallBody({
                     </View>
                   ) : (
                     <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#E4E1FA", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontFamily: PF.mono, fontSize: 11.5, color: PASS_IND }}>{glyphs[i]}</Text>
+                      <Text maxFontSizeMultiplier={1} accessibilityElementsHidden importantForAccessibility="no" style={{ fontFamily: PF.mono, fontSize: 11.5, color: PASS_IND }}>{glyphs[i]}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
@@ -342,11 +348,23 @@ export function PaywallBody({
                 <Text style={{ fontFamily: PF.letter, fontSize: 14, color: "rgba(30,27,53,0.65)", textAlign: "center" }}>{t("fc.paidSub")}</Text>
               </View>
             ) : (
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View accessibilityRole="radiogroup" style={{ flexDirection: stacked ? "column" : "row", gap: stacked ? 10 : 8 }}>
                 {packages.map((p) => {
                   const on = p.id === selected;
                   const m = money(p.priceString);
                   const perMonth = p.period === "annual" && m ? `${m.symbol}${(m.amount / 12).toFixed(2)}` : null;
+                  const periodLabel = p.period === "annual" ? t("fc.yearly") : p.period === "monthly" ? t("fc.monthly") : t("fc.lifetimeLabel");
+                  const priceShown = m?.short ?? p.priceString;
+                  const sub = p.period === "annual" ? (perMonth ? t("fc.perMonth", { p: perMonth }) : t("fc.perYr")) : p.period === "monthly" ? t("fc.cancelAnytime") : t("fc.foundingOnly", { n: COFOUNDERS_TOTAL });
+                  const badge = p.period === "annual" && saving != null && saving > 0 ? t("fc.save", { n: saving }) : null;
+                  const badgeView = badge ? (
+                    <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: GOLD, alignSelf: "flex-start" }}>
+                      <Text maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: W14.ink }}>{badge}</Text>
+                    </View>
+                  ) : null;
+                  const periodText = (
+                    <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? PASS_IND : "rgba(30,27,53,0.5)" }}>{periodLabel}</Text>
+                  );
                   return (
                     <Pressable
                       key={p.id}
@@ -354,22 +372,38 @@ export function PaywallBody({
                         setSelected(p.id);
                         track("fare_selected", { source, fare: p.period });
                       }}
-                      style={{ flex: p.period === "lifetime" ? 0.9 : 1, paddingHorizontal: 11, paddingVertical: 12, borderRadius: 12, borderWidth: on ? 2 : 1.5, borderColor: on ? PASS_IND : "#DCD9F0", backgroundColor: "#FFFFFF", position: "relative" }}
+                      // one radio per fare: VoiceOver says which is chosen, and the whole fare in one breath
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: on }}
+                      accessibilityLabel={[periodLabel, priceShown, sub, badge].filter(Boolean).join(", ")}
+                      style={[
+                        { paddingHorizontal: 11, paddingVertical: 12, borderRadius: 12, borderWidth: on ? 2 : 1.5, borderColor: on ? PASS_IND : "#DCD9F0", backgroundColor: "#FFFFFF", position: "relative" },
+                        stacked ? { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14 } : { flex: p.period === "lifetime" ? 0.9 : 1 },
+                      ]}
                     >
-                      {p.period === "annual" && saving != null && saving > 0 && (
-                        <View style={{ position: "absolute", right: 8, top: -9, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: GOLD }}>
-                          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: W14.ink }}>{t("fc.save", { n: saving })}</Text>
-                        </View>
+                      {stacked ? (
+                        <>
+                          <View style={{ flex: 1, gap: 4 }}>
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                              {periodText}
+                              {badgeView}
+                            </View>
+                            <Text style={{ fontFamily: PF.letter, fontSize: 10.5, lineHeight: 13, color: "rgba(30,27,53,0.5)" }}>{sub}</Text>
+                          </View>
+                          <Text maxFontSizeMultiplier={1.6} numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 0, maxWidth: "50%", textAlign: "right", fontFamily: PF.letter, fontWeight: "700", fontSize: 20, letterSpacing: -0.4, color: W14.ink }}>{priceShown}</Text>
+                        </>
+                      ) : (
+                        <>
+                          {badgeView && <View style={{ position: "absolute", right: 8, top: -9 }}>{badgeView}</View>}
+                          {periodText}
+                          <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 20, letterSpacing: -0.4, color: W14.ink, marginTop: 5 }} numberOfLines={1} adjustsFontSizeToFit>
+                            {priceShown}
+                          </Text>
+                          <Text style={{ fontFamily: PF.letter, fontSize: 10.5, lineHeight: 13, color: "rgba(30,27,53,0.5)", marginTop: 3 }} numberOfLines={2}>
+                            {sub}
+                          </Text>
+                        </>
                       )}
-                      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? PASS_IND : "rgba(30,27,53,0.5)" }}>
-                        {p.period === "annual" ? t("fc.yearly") : p.period === "monthly" ? t("fc.monthly") : t("fc.lifetimeLabel")}
-                      </Text>
-                      <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 20, letterSpacing: -0.4, color: W14.ink, marginTop: 5 }} numberOfLines={1} adjustsFontSizeToFit>
-                        {m?.short ?? p.priceString}
-                      </Text>
-                      <Text style={{ fontFamily: PF.letter, fontSize: 10.5, lineHeight: 13, color: "rgba(30,27,53,0.5)", marginTop: 3 }} numberOfLines={2}>
-                        {p.period === "annual" ? (perMonth ? t("fc.perMonth", { p: perMonth }) : t("fc.perYr")) : p.period === "monthly" ? t("fc.cancelAnytime") : t("fc.foundingOnly", { n: COFOUNDERS_TOTAL })}
-                      </Text>
                     </Pressable>
                   );
                 })}
@@ -382,18 +416,21 @@ export function PaywallBody({
           <Pressable
             onPress={() => (premium ? Linking.openURL("https://apps.apple.com/account/subscriptions") : subscribe())}
             disabled={busy}
-            style={({ pressed }) => ({ backgroundColor: lifetime ? "#FFFFFF" : GOLD, borderRadius: 14, paddingVertical: 18, alignItems: "center", opacity: busy ? 0.5 : pressed ? 0.88 : 1 })}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+            accessibilityState={{ busy, disabled: busy }}
+            style={({ pressed }) => ({ backgroundColor: lifetime ? "#FFFFFF" : GOLD, borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", opacity: busy ? 0.5 : pressed ? 0.88 : 1 })}
           >
-            <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: lifetime ? GOLD_INK : W14.ink }}>{busy ? "…" : `${ctaLabel} →`}</Text>
+            <Text maxFontSizeMultiplier={1.6} style={{ textAlign: "center", fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: lifetime ? GOLD_INK : W14.ink }}>{busy ? "…" : `${ctaLabel} →`}</Text>
           </Pressable>
-          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8 }}>
-            <Pressable onPress={restore} hitSlop={6}><Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.restore")}</Text></Pressable>
-            <Text style={{ color: "rgba(255,255,255,0.3)" }}>·</Text>
-            <Pressable onPress={openTerms} hitSlop={6}><Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.terms")}</Text></Pressable>
-            <Text style={{ color: "rgba(255,255,255,0.3)" }}>·</Text>
-            <Pressable onPress={openPrivacy} hitSlop={6}><Text style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.privacy")}</Text></Pressable>
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Pressable onPress={restore} hitSlop={6} accessibilityRole="button"><Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.restore")}</Text></Pressable>
+            <Text maxFontSizeMultiplier={1.6} importantForAccessibility="no" accessibilityElementsHidden style={{ color: "rgba(255,255,255,0.3)" }}>·</Text>
+            <Pressable onPress={openTerms} hitSlop={6} accessibilityRole="link"><Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.terms")}</Text></Pressable>
+            <Text maxFontSizeMultiplier={1.6} importantForAccessibility="no" accessibilityElementsHidden style={{ color: "rgba(255,255,255,0.3)" }}>·</Text>
+            <Pressable onPress={openPrivacy} hitSlop={6} accessibilityRole="link"><Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{t("pw.privacy")}</Text></Pressable>
           </View>
-          <Text style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 16, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>{premium ? t("fc.manageNote") : lifetime ? t("pw.foot") : t("fc.managedByApple")}</Text>
+          <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 11.5, lineHeight: 16, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>{premium ? t("fc.manageNote") : lifetime ? t("pw.foot") : t("fc.managedByApple")}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

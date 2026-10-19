@@ -17,6 +17,8 @@ import { WrenBird, type WrenMood } from "../../../components/WrenBird";
 import type { HatchlingForm } from "../../../lib/hatchling-form";
 import { EDGE, FONT, OB } from "../parts/tokens";
 import { OB_MAX_FONT } from "../parts/tokens";
+import { t } from "../../../lib/i18n";
+import "../../../data/strings-a11y-onboarding";
 
 /* THE CHICK AFTER THE HATCH (screens 10, 11 and 13; the Today slip).
    ────────────────────────────────────────────────────────────────────────
@@ -43,6 +45,7 @@ export function Chick({
   size = 112,
   nudge,
   tag,
+  name,
   holding,
 }: {
   shell: number;
@@ -53,6 +56,8 @@ export function Chick({
   nudge?: Nudge;
   /** the name tag round its neck (10), as typed */
   tag?: string | null;
+  /** VoiceOver: its name as typed (the tag is in capitals), said after "Your courier" */
+  name?: string | null;
   /** something at its side: your envelope (11) */
   holding?: ReactNode;
 }) {
@@ -114,6 +119,7 @@ export function Chick({
       }}
       hitSlop={10}
       accessibilityRole="image"
+      accessibilityLabel={name ? t("a11yob.chickNamed", { name }) : t("a11yob.chick")}
       style={{ width: size * 1.6, height: size * 1.12, alignItems: "center", justifyContent: "flex-end" }}
     >
       <Animated.Text maxFontSizeMultiplier={OB_MAX_FONT} style={[sparkStyle, { position: "absolute", top: 0, left: size * 0.32, fontSize: 18, color: OB.blue }]}>♪</Animated.Text>

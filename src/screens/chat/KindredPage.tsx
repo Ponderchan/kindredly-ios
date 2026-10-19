@@ -29,6 +29,7 @@ import { isVoiceLetter, largeType, readerLetters } from "./reader";
 import { canTalk, faceKind, firstMetAs, lettersValue, openingLetter, pageFace, pageTitle, showsArrivalMosaic, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
 import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
 import "../../data/strings-identity2"; // id2.kd.*, id2.rp.signature
+import "../../data/strings-a11y-chat"; // kd.resA11y, kd.resTogether
 
 /* A KINDRED'S PAGE — the room behind the name (10a step 5, slice chat-rn).
    ────────────────────────────────────────────────────────────────────────
@@ -420,14 +421,22 @@ function Moment({ d }: { d: DimScore }) {
    reading a number. */
 function ResonanceLine({ r, locale }: { r: ResonanceRow; locale: string }) {
   const { t: tk } = useTheme();
+  // from xxxLarge the label goes over its track, at its full width, instead of "RHY…" in 86
+  const stack = useWindowDimensions().fontScale >= 1.35;
   const lo = Math.min(r.mine, r.theirs);
   const hi = Math.max(r.mine, r.theirs);
+  // VoiceOver hears both places on the track and whether you land together, not the name alone
+  const spoken = t("kd.resA11y", { label: dimLabel(r.key), mine: Math.round(r.mine), theirs: Math.round(r.theirs) }) + (r.together ? `, ${t("kd.resTogether")}` : "");
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 11 }} accessible accessibilityLabel={dimLabel(r.key)}>
-      <Text numberOfLines={1} style={{ width: 86, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.sub }}>
+    <View
+      style={stack ? { marginBottom: 14, gap: 6 } : { flexDirection: "row", alignItems: "center", marginBottom: 11 }}
+      accessible
+      accessibilityLabel={spoken}
+    >
+      <Text numberOfLines={stack ? undefined : 1} style={{ width: stack ? undefined : 86, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.sub }}>
         {dimLabel(r.key).toLocaleUpperCase(locale)}
       </Text>
-      <View style={{ flex: 1, height: 12, justifyContent: "center" }}>
+      <View style={{ flex: stack ? undefined : 1, height: 12, justifyContent: "center" }}>
         <View style={{ height: 1, backgroundColor: tk.line }} />
         {/* the span between you */}
         <View style={{ position: "absolute", left: `${lo}%`, width: `${Math.max(hi - lo, 0.5)}%`, height: 1, backgroundColor: r.together ? tk.ink : tk.line }} />

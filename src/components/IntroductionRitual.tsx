@@ -210,13 +210,13 @@ function MosaicRitual({
         <Bumper side={1} seed={otherSeed} face={otherFace ?? null} at={T_BUMP} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, width: 300 }}>
-        <Animated.Text entering={FadeIn.duration(300).delay(T_BUMP + 700)} numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: P.ink, maxWidth: 120 }}>{myName}</Animated.Text>
+        <Animated.Text entering={FadeIn.duration(300).delay(T_BUMP + 700)} numberOfLines={1} maxFontSizeMultiplier={1.4} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: P.ink, maxWidth: 120 }}>{myName}</Animated.Text>
         <Slapped at={T_BUMP + 600} tilt={2} small>
           <View style={{ backgroundColor: BRAND.paperWhite, borderRadius: 999, borderWidth: 1.5, borderColor: BRAND.greenText, paddingHorizontal: 9, paddingVertical: 3 }}>
             <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.4, color: BRAND.greenText }}>{t("in.sinceChip", { date: dShort(since).toUpperCase() })}</Text>
           </View>
         </Slapped>
-        <Animated.Text entering={FadeIn.duration(300).delay(T_BUMP + 700)} numberOfLines={1} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: P.ink, maxWidth: 120 }}>{otherName}</Animated.Text>
+        <Animated.Text entering={FadeIn.duration(300).delay(T_BUMP + 700)} numberOfLines={1} maxFontSizeMultiplier={1.4} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: P.ink, maxWidth: 120 }}>{otherName}</Animated.Text>
       </View>
 
       {/* ⑤ one more sticker: what she noticed, if a label showed */}
@@ -366,7 +366,13 @@ function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: nu
     return { opacity: q, transform: [{ scale: 0.5 + 0.5 * q }, { rotate: `${-10 + 10 * q}deg` }] };
   });
   return (
-    <Animated.View pointerEvents="none" style={[{ position: "absolute", left: -21, top: -14, width: 42, height: 28, alignItems: "center", justifyContent: "center" }, body]}>
+    <Animated.View
+      pointerEvents="none"
+      // decoration: pointerEvents stops touches, not VoiceOver (the ritual is one sentence on its container)
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[{ position: "absolute", left: -21, top: -14, width: 42, height: 28, alignItems: "center", justifyContent: "center" }, body]}
+    >
       {/* the courier, small, over the letter — facing the way she flies */}
       <View style={{ position: "absolute", top: -22, transform: [{ scaleX: dir }] }}>
         <WrenBird size={26} pose="fly" mood="delight" skin="sticker" />
@@ -475,7 +481,15 @@ function TypedName({ name, at, color }: { name: string; at: number; color: strin
   const style = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.06 * jolt.value }] }));
   return (
     <Animated.View style={[{ flexDirection: "row", alignItems: "center" }, style]}>
-      <Text style={{ fontFamily: PF.letter, fontSize: 34, fontWeight: "800", letterSpacing: -0.8, color }} numberOfLines={1}>
+      {/* the name being revealed: a display size that doesn't grow with Dynamic Type, and shrinks to
+          fit before it would be cut to "MARGA…" */}
+      <Text
+        style={{ flexShrink: 1, fontFamily: PF.letter, fontSize: 34, fontWeight: "800", letterSpacing: -0.8, color }}
+        numberOfLines={1}
+        maxFontSizeMultiplier={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+      >
         {name.slice(0, n)}
       </Text>
       {caret && (

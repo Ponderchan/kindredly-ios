@@ -265,6 +265,10 @@ enum StampFrameGolden {
     }
     ok("v3Tier(for: .nan) = dot, no layers", KStampFrame.v3Tier(for: .nan) == .dot && KStampLayer.kept(width: .nan).isEmpty)
     ok("the dot is 6pt", (json["dotPt"] as? NSNumber)?.doubleValue == Double(KStampFrame.dotPt))
+    let dotEdge = json["dotEdge"] as? [String: Any] ?? [:]
+    ok("the dot is edged 1pt in ink",
+       (dotEdge["width"] as? NSNumber)?.doubleValue == Double(KStampArtData.v3DotEdge)
+         && (dotEdge["color"] as? String).flatMap { UInt32($0.dropFirst(), radix: 16) } == KStampArtData.v3Ink >> 8)
     ok("below 15pt nothing is drawn (the dot), its colour the hex",
        KStampPlan.drawList(id: "tiny-win", width: 14.99).isEmpty
          && KStampPlan.plan(id: "tiny-win", width: 9, fallbackHex: nil).tier == .dot
@@ -340,10 +344,11 @@ enum StampFrameGolden {
 
     // ── the empty slot ──
     let slot = json["slot"] as? [String: Any] ?? [:]
-    ok("slot: the frame path, no fill, 6u dashed 4/10, round",
+    ok("slot: the frame path, no fill, 4u dashed 8/10, round, pale #7A7694",
        slot["d"] as? String == KStampArtData.v3FramePath && slot["fill"] is NSNull
          && (slot["width"] as? NSNumber)?.doubleValue == Double(KStampArtData.v3SlotWidth)
          && (slot["dash"] as? [Double]) == KStampArtData.v3SlotDash.map(Double.init)
+         && (slot["pale"] as? String).flatMap { UInt32($0.dropFirst(), radix: 16) } == KStampArtData.v3SlotPale
          && !KStampSlot.framePath.isEmpty)
 
     // ── the tag and the tray names ──

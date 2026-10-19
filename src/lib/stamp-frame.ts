@@ -522,18 +522,49 @@ export function stampDrawListV3(art: StampArtV3 | null | undefined, hex: string 
 }
 
 /** The empty slot (the compose corner before a stamp is chosen, 40×48 at 8°): the frame path
-    alone, fill none, no rim, no break-out; stroke 6u dashed 4/10 with round caps (≈10u dashes,
-    4u gaps). The stroke is UI chrome: the theme's `mute` token (Classic and Lavender #8A86A3,
-    Midnight #8F8BAA, Paper #8E8878); `light`/`dark` are the kit's two reference values. */
+    alone, fill none, no rim, no break-out; stroke 4u dashed 8/10 with round caps (≈12u dashes,
+    6u gaps: a dashed outline; the kit's 6u dashed 4/10 read as a string of beads, the lead's call
+    of 2026-10-19 in the a11y pass). The stroke is UI chrome: the theme's `mute` token (Classic
+    #8A86A3, Midnight #8F8BAA, Paper #8E8878), except where mute falls under 3:1 on the page —
+    Lavender, 2.94:1 on #ECEAF8 — which takes `pale` (3.65:1) instead (stampSlotStroke; Swift
+    KStampSlot.stroke(for:)). `light`/`dark` are the kit's two reference values. */
 export const STAMP_V3_SLOT = Object.freeze({
   d: STAMP_V3_FRAME_D,
-  width: 6,
-  dash: Object.freeze([4, 10]) as readonly number[],
+  width: 4,
+  dash: Object.freeze([8, 10]) as readonly number[],
   cap: "round" as const,
   join: "round" as const,
   light: "#8A86A3",
   dark: "#8F8BAA",
+  /** the slot on a page where mute is under 3:1 (Lavender) */
+  pale: "#7A7694",
 });
+
+/** the least contrast the empty slot keeps against the page (WCAG 1.4.11, a graphic that says
+    "a stamp goes here") */
+export const STAMP_V3_SLOT_MIN_CONTRAST = 3;
+
+const relLum = (hex: string): number => {
+  const h = hex.replace("#", "");
+  const ch = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+};
+/** WCAG contrast of two #RRGGBB colours */
+export function hexContrast(a: string, b: string): number {
+  const [x, y] = [relLum(a), relLum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+/** The empty slot's stroke on a theme's page: its mute, or STAMP_V3_SLOT.pale where mute is under
+    3:1 on the page (only Lavender of the four). A malformed colour keeps mute. */
+export function stampSlotStroke(tk: { mute: string; bg: string }): string {
+  if (!HEX6.test(tk.mute) || !HEX6.test(tk.bg)) return tk.mute;
+  return hexContrast(tk.mute, tk.bg) < STAMP_V3_SLOT_MIN_CONTRAST ? STAMP_V3_SLOT.pale : tk.mute;
+}
+
+/** Below 15pt a stamp is a STAMP_DOT_PT dot of its hex, edged in ink this wide (pt) so the bright
+    yellows and pinks stay visible on white (the lead's call of 2026-10-19). */
+export const STAMP_DOT_EDGE_PT = 1;
 
 /** Where a v3 stamp's paint lands on the 100 × 120 box, over all 36 (strokes included): the frame
     and its rim fill x3–97 × y18–120; the break-out's rim tops out at y8 at the highest (ink at

@@ -215,7 +215,8 @@ export type TraySection = { title: string; items: TrayStamp[] };
    stamp is never put inside another tile's border. The picked one keeps
    the selection it always had, the pen ring 2pt out from its edge. Its
    name sits on one line wherever it fits (at 9, else 8; compose-model
-   trayNameFit), and only a name that fits neither wraps to two lines. */
+   trayNameFit), and only a name that fits neither wraps, in up to three
+   lines at 9 (else at 8), never cut (a11y pass cm-9). */
 const TILE = STAMP_LADDER.trayTile;
 
 export function StampTray({
@@ -253,7 +254,7 @@ export function StampTray({
           <Stamp id={it.id} width={TILE.w} />
         </View>
         {/* its name, in its own ink — a stamp is a word as much as a picture; one line where it
-            fits, two only for the long ones (never told anyone, mi ha fatto la giornata) */}
+            fits, more only for the long ones (never told anyone, mi ha fatto la giornata) */}
         <Text numberOfLines={fit.lines} style={{ fontFamily: PF.monoMed, fontSize: fit.size, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: room, textAlign: "center" }}>
           {it.name}
         </Text>

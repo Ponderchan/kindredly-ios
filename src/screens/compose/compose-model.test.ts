@@ -80,6 +80,15 @@ ok("needStamp with the more tray open: still nudges", key({ weight: OPENING_MIN,
 }
 ok("busy wins over needStamp", key({ weight: 40, wordsReady: true, busy: true }).stage === "sending");
 
+// ── keyFor: what VoiceOver hears beyond the label (a11y pass cm-8) ──
+ok("a11y filling: the value says how many are still to go", key({ weight: 7 }).countA11y === `cp.a11y.keyLeft:${OPENING_MIN - 7}` && key({ weight: 7 }).hintA11y === "");
+ok("a11y filling: one to go has its own key", key({ weight: OPENING_MIN - 1 }).countA11y === "cp.a11y.keyLeftOne");
+ok("a11y empty page: the whole floor to go", key({ weight: 0 }).countA11y === `cp.a11y.keyLeft:${OPENING_MIN}`);
+ok("a11y over the ceiling: how far over", key({ weight: LETTER_MAX + 3 }).countA11y === "ui.overLimit:3");
+ok("a11y speaking: no value", key({ mode: "speak", weight: 0 }).countA11y === "");
+ok("a11y needStamp: no value, the hint says why", (() => { const k = key({ weight: OPENING_MIN, wordsReady: true }); return k.countA11y === "" && k.hintA11y === "cp.a11y.needStampHint"; })());
+ok("a11y ready and sending: nothing extra", (() => { const r = key({ weight: 40, wordsReady: true, hasStamp: true }), b = key({ weight: 40, wordsReady: true, hasStamp: true, busy: true }); return r.countA11y === "" && r.hintA11y === "" && b.countA11y === "" && b.hintA11y === ""; })());
+
 // ── countFor ──
 ok("count: nothing below the counter", M.countFor({ mode: "write", weight: COUNTER_FROM - 1 }, fmt) === null);
 ok("count: nothing while speaking", M.countFor({ mode: "speak", weight: LETTER_MAX + 50 }, fmt) === null);
@@ -251,6 +260,11 @@ ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
   ok("tray name: 11 glyphs fit at 9 (11 × 5.4 + 10 × .2 = 61.4)", M.trayNameFit("can't sleep", room).size === 9 && M.trayNameFit("can't sleep", room).lines === 1);
   ok("tray name: off my chest (12) drops to 8 rather than wrap", JSON.stringify(M.trayNameFit("off my chest", room)) === JSON.stringify({ size: 8, lines: 1 }));
   ok("tray name: never told anyone wraps to two lines at 9, never cut", JSON.stringify(M.trayNameFit("never told anyone", room)) === JSON.stringify({ size: 9, lines: 2 }));
+  // a 375 phone (a11y pass cm-9): the column leaves (375 − 20) / 6 − 6 = 53.2, and "never told" needs 55.8 at 9
+  const se = (375 - 20) / 6 - 6;
+  ok("tray name on a 375 phone: never told anyone takes three lines at 9, not two cut short", JSON.stringify(M.trayNameFit("never told anyone", se)) === JSON.stringify({ size: 9, lines: 3 }));
+  ok("tray name on a 375 phone: hat meinen tag gerettet steps down to 8 to stay in three lines", JSON.stringify(M.trayNameFit("hat meinen tag gerettet", se)) === JSON.stringify({ size: 8, lines: 3 }));
+  ok("tray name lines: a word wider than the room takes lines of its own", M.trayNameLines("situationship", 9, se) === 2);
   ok("tray name: a CJK glyph is a whole em (6 at 9 fit, 7 don't at 9 but do at 8)",
     M.trayNameFit("眠れない夜だ", room).size === 9 && M.trayNameFit("眠れない夜だよ", room).size === 8 && M.trayNameFit("眠れない夜だよね", room).lines === 2);
 }

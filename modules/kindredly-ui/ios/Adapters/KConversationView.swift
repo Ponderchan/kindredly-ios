@@ -198,6 +198,8 @@ struct KChatDockRecord: Record {
   /// none | offer | theirsFirst | waiting
   @Field var signDoor: String = "none"
   @Field var signLabel: String = ""
+  /// what the door does, for VoiceOver ("" for none)
+  @Field var signHint: String = ""
   @Field var replyLabel: String = ""
   @Field var replyExcerpt: String = ""
   @Field var replyCloseLabel: String = ""
@@ -239,6 +241,7 @@ struct KChatDockRecord: Record {
       : KChatNotice(label: noticeLabel, evidence: noticeEvidence, line: noticeLine, word: noticeWord, closeLabel: noticeCloseLabel)
     d.signDoor = KChatSignDoor(rawValue: signDoor) ?? .none
     d.signLabel = signLabel
+    d.signHint = signHint
     d.replyLabel = replyLabel
     d.replyExcerpt = replyExcerpt
     d.replyCloseLabel = replyCloseLabel

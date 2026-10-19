@@ -24,10 +24,11 @@ import SwiftUI
      KStamp(id: card.stampId, width: KStampLadder.todayCard.w, dark: theme.isDark,
             delivered: true, letterId: card.id)                                  // the Today card
      KStamp(id: item.id, width: KStampLadder.trayTile.w, dark: theme.isDark)    // a tray tile
-     KStampSlot(width: 40, stroke: theme.mute)                                  // the empty corner
+     KStampSlot(width: 40, stroke: KStampSlot.stroke(for: theme))               // the empty corner
 
  Which layers a width keeps (KStampLayer.kept(width:), the kit's tierFor + the app's dot):
-   · below 15pt there is no stamp: a 6pt dot of the hex, and the dot is all it lays out;
+   · below 15pt there is no stamp: a 6pt dot of the hex edged 1pt in ink, and the dot is all it
+     lays out;
    · 15–24.99 (xs): frame, rims, body;
    · 25–39.99 (s): + face (no marks);
    · from 40 (l): all five.
@@ -109,8 +110,10 @@ public struct KStamp: View {
   @ViewBuilder
   private func stamp(_ plan: KStampPlan) -> some View {
     if plan.tier == .dot {
+      // edged 1pt in ink so a bright yellow or pink dot stays visible on white (STAMP_DOT_EDGE_PT)
       Circle()
         .fill(KStampFrame.color(plan.hex))
+        .overlay(Circle().strokeBorder(KStampFrame.color(KStampArtData.v3Ink >> 8), lineWidth: KStampArtData.v3DotEdge))
         .frame(width: KStampFrame.dotPt, height: KStampFrame.dotPt)
     } else {
       let mail = delivered && KStampFrame.v3TiltsAt(width)
@@ -154,9 +157,13 @@ struct KStampFace: View, Equatable {
 
 /**
  Where a stamp goes before one is chosen (components/Stamp StampSlot; contract §7): the v3 frame
- path alone, no fill, stroked 6u dashed 4/10 (box units, so it scales with the width) with round
- caps and joins, in `stroke` (the theme's mute). The same box as a KStamp of that width, so
- choosing one moves nothing. Under 15pt: a 6pt ring.
+ path alone, no fill, stroked 4u dashed 8/10 (box units, so it scales with the width) with round
+ caps and joins: a dashed outline (the kit's 6u dashed 4/10 read as a string of beads; the lead's
+ call of 2026-10-19, a11y pass). In `stroke`: on a page, `stroke(for:)` — the theme's mute, or the
+ pale slot colour on Lavender, whose mute is 2.94:1 on its page (lib/stamp-frame stampSlotStroke,
+ which decides by contrast; only Lavender is under 3:1; it lives with the tray in
+ Compose/KStampTray.swift, so this file and the golden program stay free of KTheme). The same box as a KStamp of that width,
+ so choosing one moves nothing. Under 15pt: a 6pt ring.
  */
 public struct KStampSlot: View {
   private let width: CGFloat

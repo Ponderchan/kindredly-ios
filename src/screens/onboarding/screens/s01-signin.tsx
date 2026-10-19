@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from "react-native";
+import { AccessibilityInfo, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t } from "../../../lib/i18n";
@@ -116,7 +116,10 @@ export function SignInSheet({ props }: { props: ObScreenProps }) {
       return;
     }
     setBusy(null);
-    if ("error" in r) setErr(r.error);
+    if ("error" in r) {
+      setErr(r.error);
+      AccessibilityInfo.announceForAccessibility(r.error); // a live region is Android's only
+    }
   };
 
   /* the email: the code is sent with the mode the verify must use (a plain sign-in is "otp") */
@@ -151,13 +154,15 @@ export function SignInSheet({ props }: { props: ObScreenProps }) {
   };
 
   return (
-    <View style={StyleSheet.absoluteFill}>
+    /* modal HERE, on the layer that is the doorstep's sibling (on the sheet, which has no siblings
+       in its KeyboardAvoidingView, it hid nothing and VoiceOver could reach "Hatch my courier"
+       behind it); the two-finger Z closes it like the scrim */
+    <View style={StyleSheet.absoluteFill} accessibilityViewIsModal onAccessibilityEscape={close}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: OB.scrim }, dimStyle]}>
         <Pressable style={{ flex: 1 }} onPress={close} accessibilityRole="button" accessibilityLabel={t("ob2.signin.close")} />
       </Animated.View>
       <KeyboardAvoidingView behavior="padding" style={{ position: "absolute", left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
         <Animated.View
-          accessibilityViewIsModal
           style={[
             sheetStyle,
             {

@@ -99,9 +99,9 @@ export function LetterReader({ model }: { model: TodayModel }) {
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={act.closeReader}>
       <View onLayout={(e) => setSheetH(e.nativeEvent.layout.height)} style={{ flex: 1, backgroundColor: tk.bg }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
-          <Pressable onPress={act.closeReader} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("ld.foldBack")} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 15, color: tk.ink }}>✕</Text>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.sub }}>{t("ld.foldBack")}</Text>
+          <Pressable onPress={act.closeReader} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("ld.foldBack")} style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
+            <Text maxFontSizeMultiplier={2} style={{ fontFamily: PF.monoMed, fontSize: 15, color: tk.ink }}>✕</Text>
+            <Text maxFontSizeMultiplier={2} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.sub }}>{t("ld.foldBack")}</Text>
           </Pressable>
         </View>
 

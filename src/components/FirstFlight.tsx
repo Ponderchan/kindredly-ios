@@ -104,7 +104,9 @@ export function FirstFlight({
   envelope?: ReactNode;
   /** its box on the 390 × 844 chart (default 120 × 80) */
   envelopeSize?: { w: number; h: number };
-  /** one line under the chart, over TAP TO SKIP */
+  /** one line under the chart, over TAP TO SKIP. The chart's own labels (the stops, YOUR CITY, the
+      footnote) are drawn at the chart's fixed geometry and don't grow with the text size (a11y
+      pass: at AX sizes they ran over each other and over this line); TAP TO SKIP stops at 1.35. */
   line?: ReactNode;
   skipLabel?: string;
   /** the landed chart alone, dimmed: no bird, no letter, no title, no clock, onDone never called */
@@ -225,14 +227,14 @@ export function FirstFlight({
               </React.Fragment>
             ))}
           </Svg>
-          <Text style={{ position: "absolute", left: 40, top: 664, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: P.ink }}>{t("ff.yourCity")}</Text>
+          <Text maxFontSizeMultiplier={1} style={{ position: "absolute", left: 40, top: 664, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: P.ink }}>{t("ff.yourCity")}</Text>
           {STOPS.map(([x, y], i) => (
             <View key={i} style={{ position: "absolute", left: x - 70, top: y + 22, width: 140, alignItems: "center" }} pointerEvents="none">
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink }}>{stampOf(stops[i]) || t("ff.stop", { n: i + 1 })}</Text>
-              {!!words(stops[i]) && <Text numberOfLines={1} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11, color: P.ink60, marginTop: 2 }}>{words(stops[i])}…</Text>}
+              <Text maxFontSizeMultiplier={1} numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink }}>{stampOf(stops[i]) || t("ff.stop", { n: i + 1 })}</Text>
+              {!!words(stops[i]) && <Text maxFontSizeMultiplier={1} numberOfLines={1} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11, color: P.ink60, marginTop: 2 }}>{words(stops[i])}…</Text>}
             </View>
           ))}
-          <Text style={{ position: "absolute", left: 20, top: 756, fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{t("ff.chart")}</Text>
+          <Text maxFontSizeMultiplier={1} style={{ position: "absolute", left: 20, top: 756, fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{t("ff.chart")}</Text>
         </Animated.View>
         {/* the trail she leaves */}
         {pts.map((p, i) => <TrailDot key={i} clock={clock} at={p.at} x={p.x} y={p.y} color={colors?.accent} />)}
@@ -285,7 +287,7 @@ export function FirstFlight({
         </Animated.View>
 
         {!!line && <View pointerEvents="none" style={{ position: "absolute", left: 24, right: 24, bottom: 98, alignItems: "center" }}>{line}</View>}
-        <Text style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{skipLabel ?? t("ff.skip")}</Text>
+        <Text maxFontSizeMultiplier={1.35} style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{skipLabel ?? t("ff.skip")}</Text>
         </>
         )}
       </View>

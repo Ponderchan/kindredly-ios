@@ -135,7 +135,7 @@ export default function S03Birthday(props: ObScreenProps) {
             <View pointerEvents="none" style={{ position: "absolute", left: 10, right: 10, top: ((rows - 1) / 2) * ROW, height: ROW, borderRadius: 10, backgroundColor: "#EFEEF8" }} />
             <PaperWheel items={months} value={w.m} rows={rows} label={t("ob2.birthday.month")} onChange={(i) => turn({ m: i })} />
             <PaperWheel items={days} value={w.d - 1} rows={rows} label={t("ob2.birthday.day")} onChange={(i) => turn({ d: i + 1 })} />
-            <PaperWheel items={years} value={yi} rows={rows} label={t("ob2.birthday.year")} onChange={(i) => turn({ y: years[i] })} />
+            <PaperWheel items={years} value={yi} rows={rows} label={t("ob2.birthday.year")} descending onChange={(i) => turn({ y: years[i] })} />
           </View>
           {sign && (
             <Animated.View

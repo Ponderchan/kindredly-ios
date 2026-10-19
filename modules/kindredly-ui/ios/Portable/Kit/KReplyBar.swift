@@ -56,6 +56,7 @@ public struct KReplyBar: View {
   private let emojiLabel: String
   private let returnSends: Bool
   private let autocapitalize: Bool
+  private let tightRoom: Bool
   private let onChange: (String) -> Void
   private let onSubmit: (String) -> Void
   private let onFocus: (Bool) -> Void
@@ -74,6 +75,8 @@ public struct KReplyBar: View {
   ///   - sendLabel: SEND, what VoiceOver calls the send key
   ///   - emojiLabel: what VoiceOver calls the emoji key
   ///   - returnSends: Return sends (onSubmit) instead of making a new line
+  ///   - tightRoom: the screen has little height above the keyboard (an SE at the accessibility
+  ///     sizes): the field shows two lines at the accessibility sizes before it scrolls, not three
   ///   - onChange, onSubmit, onFocus, onEscape: the field's (KComposerField)
   ///   - onSend: the send key was pressed (enabled or dimmed); read the words from the controller
   public init(
@@ -88,6 +91,7 @@ public struct KReplyBar: View {
     emojiLabel: String,
     returnSends: Bool,
     autocapitalize: Bool = true,
+    tightRoom: Bool = false,
     onChange: @escaping (String) -> Void = { _ in },
     onSubmit: @escaping (String) -> Void = { _ in },
     onFocus: @escaping (Bool) -> Void = { _ in },
@@ -105,6 +109,7 @@ public struct KReplyBar: View {
     self.emojiLabel = emojiLabel
     self.returnSends = returnSends
     self.autocapitalize = autocapitalize
+    self.tightRoom = tightRoom
     self.onChange = onChange
     self.onSubmit = onSubmit
     self.onFocus = onFocus
@@ -118,11 +123,15 @@ public struct KReplyBar: View {
   public var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       if showsHint && !hint.isEmpty {
+        // capped at AX2 as the chat header is; at the accessibility sizes one line, shrinking before
+        // it truncates, so on a small screen it can't take the field's room above the keyboard
         Text(hint)
           .kText(.monoMetaWide)
           .foregroundStyle(hintWarn ? KBrand.postRed : theme.sub)
-          .lineLimit(2)
+          .lineLimit(typeSize.isAccessibilitySize ? 1 : 2)
+          .minimumScaleFactor(typeSize.isAccessibilitySize ? 0.7 : 1)
           .fixedSize(horizontal: false, vertical: true)
+          .dynamicTypeSize(...DynamicTypeSize.accessibility2)
           .padding(.leading, 6)
       }
       bar
@@ -138,8 +147,9 @@ public struct KReplyBar: View {
         controller: controller,
         placeholder: placeholder,
         size: 16,
-        // at the accessibility sizes a line is ~40pt: three, then it scrolls inside
-        maxLines: typeSize.isAccessibilitySize ? 3 : 4,
+        // at the accessibility sizes a line is ~40pt: three (two where the screen is tight), then
+        // it scrolls inside
+        maxLines: typeSize.isAccessibilitySize ? (tightRoom ? 2 : 3) : 4,
         returnSends: returnSends,
         autocapitalize: autocapitalize,
         onChange: onChange,

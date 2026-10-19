@@ -9,7 +9,7 @@ import type { WrenMood } from "../../components/WrenBird";
 import { openLeaveSheet } from "../../components/LeaveSheet";
 import { openSignUpSheet } from "../../components/SignUpSheet";
 import { STAMP_CATEGORIES, getStamp, sname, stampsByCat, type Stamp } from "../../data/stamps";
-import { channelColors } from "../../theme/post";
+import { topicTagLook } from "../../components/10a/kit";
 import type { ThemeTokens } from "../../theme/themes";
 import { blurTarget, blurThen, dismissKeyboard, type CommandTarget } from "../../lib/keyboard";
 import { weightedCount } from "../../lib/weighted-count";
@@ -28,6 +28,7 @@ import { startLetterOut } from "../../lib/activities";
 import { setFlag } from "../../lib/flags";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { alertFail, type AlertFailOptions } from "../../lib/fail";
+import "../../data/strings-a11y-stamps"; // VoiceOver on the wide key (a11y pass, batch 6)
 import {
   askCell,
   autosaveDraft,
@@ -179,7 +180,9 @@ export type StampVM = {
   /** the plain name ("Made my day"), for VoiceOver */
   name: string;
   color: string;
-  /** the pill on the page: channelColors against bg */
+  /** the pill on the page, the App Store solid pill like the letter's #tag and the web's
+      (stamps v3 §8, the lead's call 2026-10-19; kit topicTagLook): fill = the stamp's hex, the
+      words in ink #1E1B35 (4.67–13.2:1 on all 36), the edge and the hard 3/3 shadow in ln */
   wash: string;
   ink: string;
   line: string;
@@ -187,9 +190,9 @@ export type StampVM = {
 
 export function stampVM(st: Stamp | null, tk: ThemeTokens): StampVM | null {
   if (!st) return null;
-  const c = channelColors(st.color, tk.bg);
+  const look = topicTagLook(st.color, tk, tk.bg);
   const name = sname(st.name);
-  return { id: st.id, tag: `#${name.toLowerCase()}`, name, color: st.color, wash: c.wash, ink: c.ink, line: c.line };
+  return { id: st.id, tag: `#${name.toLowerCase()}`, name, color: st.color, wash: look.fill, ink: look.text, line: look.border };
 }
 
 /** The tray's sections for the stamps it shows now: names in the stamp's own name colour

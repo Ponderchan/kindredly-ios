@@ -346,6 +346,10 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   @State private var keptHeight: CGFloat = 0
   @State private var fullHeight: CGFloat = 0
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  /// one written line (Inter 19 on 30) at the reader's Dynamic Type setting: the editor never
+  /// gets less than two of them (see THE EDITOR'S FLOOR)
+  @ScaledMetric private var writingLine: CGFloat
 
   /// - Parameters:
   ///   - content: everything that isn't live (the caller's props)
@@ -374,10 +378,30 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     self.actions = actions
     self.wren = wren()
     self.recorder = recorder()
+    _writingLine = ScaledMetric(wrappedValue: KComposeType.writing.lineHeight ?? 30, relativeTo: KComposeType.writing.textStyle)
   }
 
   /// the keyboard covers part of the page (a hardware keyboard covers none)
   private var keyboardUp: Bool { fullHeight - keptHeight > 1 }
+  /// the keyboard is up and the page is short of room (a11y cm-3): an SE's 407 or so around the
+  /// keyboard, or type at XXXL and up. The question's label goes and Wren's line stops at two
+  /// lines (one at the accessibility sizes), so the editor keeps two; on a roomier page at the
+  /// usual sizes nothing changes.
+  private var tight: Bool {
+    keyboardUp && (keptHeight < 440 || dynamicTypeSize >= .xxxLarge)
+  }
+  /// Wren's line's limit: none, unless the page is tight
+  private var wrenLines: Int? {
+    guard tight else { return nil }
+    return dynamicTypeSize.isAccessibilitySize ? 1 : 2
+  }
+  /// THE EDITOR'S FLOOR: two written lines and UITextView's 8 above and below, the lines counted
+  /// at most at AX1's height (46.5: the rest of the page stops growing at AX1, so a floor that
+  /// kept growing past it would push the toolbar under the keyboard on an SE; past AX1 it still
+  /// shows a whole line and most of the next, where it used to show none)
+  private var editorFloor: CGFloat {
+    2 * min(writingLine, 46.5) + 2 * KComposeEditor.topInset
+  }
   /// the tray, once the keyboard has gone
   private var showTray: Bool { content.tray != .none && !keyboardUp }
   /// the cap panel, only while the keyboard and the trays are away (see the top of the file)
@@ -409,6 +433,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
       page
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // THE EDITOR'S FLOOR: the rest of the stack gives way before the page does
+        .layoutPriority(1)
 
       if content.askOn && content.mode == .write {
         askField
@@ -519,7 +545,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     if let stamp = content.stamp {
       KStamp(id: stamp.id, width: width, dark: theme.isDark)
     } else {
-      KStampSlot(width: width, stroke: theme.mute)
+      KStampSlot(width: width, stroke: KStampSlot.stroke(for: theme))
     }
   }
 
@@ -530,7 +556,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       wren
         .frame(width: 46, height: 46)
         .accessibilityHidden(true)
-      KComposeWrenLine(theme: theme, driver: driver)
+      KComposeWrenLine(theme: theme, driver: driver, lines: wrenLines)
     }
   }
 
@@ -553,6 +579,10 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         onChange: { actions.onTextChange(.body, $0) },
         onFocus: { actions.onFieldFocus(.body, $0) }
       )
+      // THE EDITOR'S FLOOR (a11y cm-3): on an SE with the keyboard up and a question attached,
+      // the fixed rows above and below left the editor under one line at AX1 and none from AX3,
+      // the line being written cut off. Two lines at least (editorFloor).
+      .frame(minHeight: editorFloor)
       // UITextView pads its lines 5 in from each side: the words start at the gutter
       .padding(.horizontal, Self.gutter - KComposeEditor.linePadding)
       // compose.tsx: 8 under the line and the field's own 10, less UITextView's 8
@@ -592,10 +622,15 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
   private var askField: some View {
     VStack(alignment: .leading, spacing: 7) {
-      Text(content.strings.askLabel)
-        .composeText(.askLabel)
-        .foregroundStyle(theme.mute)
-        .accessibilityHidden(true)
+      // the label goes while the page is tight (a11y cm-3): the field's placeholder says the
+      // same, VoiceOver never read it (the field carries it), and its two or three lines at the
+      // larger sizes came out of the editor's height
+      if !tight {
+        Text(content.strings.askLabel)
+          .composeText(.askLabel)
+          .foregroundStyle(theme.mute)
+          .accessibilityHidden(true)
+      }
       KField(
         controller: driver.ask,
         placeholder: content.strings.askPlaceholder,
@@ -624,6 +659,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     .overlay(alignment: .top) {
       Rectangle().fill(theme.line).frame(height: 1)
     }
+    // the toolbar's cap (a11y cm-3): uncapped, the label and the field grew past the editor
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     .transition(.opacity)
   }
 
@@ -767,15 +804,20 @@ extension View {
 /// Wren's line, watching the live state. Never cut short: her once-per-language hello runs to
 /// about 150 characters in French and about 70 full-width ones in Japanese and Korean, more than
 /// three lines in this column; the editor below takes whatever room is left. The row stops
-/// growing at the page's accessibility cap instead of truncating her words.
+/// growing at the page's accessibility cap instead of truncating her words. The one exception is
+/// while the keyboard is up on a tight page (lines, a11y cm-3): then two lines (one at the
+/// accessibility sizes), so the editor keeps its two on an SE; VoiceOver still reads all of it,
+/// and the keyboard going shows it whole again.
 private struct KComposeWrenLine: View {
   let theme: KTheme
   @ObservedObject var driver: KComposeDriver
+  var lines: Int? = nil
 
   var body: some View {
     Text(driver.live.wrenLine)
       .composeText(.wrenLine)
       .foregroundStyle(theme.sub)
+      .lineLimit(lines)
       .fixedSize(horizontal: false, vertical: true)
       .frame(maxWidth: .infinity, alignment: .leading)
       .dynamicTypeSize(...DynamicTypeSize.accessibility1)

@@ -15,6 +15,7 @@ import { WrenBird } from "../components/WrenBird";
 import { myAura, type Aura } from "../lib/aura";
 import { useAuth } from "../lib/auth";
 import { t, useLang } from "../lib/i18n";
+import "../data/strings-a11y-sheets";
 
 /* YOUR WRITING AURA — the share screen (owner's sheet).
    The card on the light ground, then two acts: share it, or save it to
@@ -101,7 +102,7 @@ export default function AuraShareCard() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: ui.page }} edges={["top"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4 }}>
-        <Pressable onPress={done} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+        <Pressable onPress={done} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("sh.a11y.back")} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: PF.letter, fontSize: 24, color: tk.ink }}>‹</Text>
         </Pressable>
         <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.4, color: tk.ink }}>{t("ac.shareYourAura")}</Text>

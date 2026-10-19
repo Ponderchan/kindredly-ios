@@ -7,7 +7,7 @@ import { BRAND } from "../../theme/themes";
 import { PF } from "../../theme/post";
 import { LineIcon } from "./LineIcon";
 import { EmojiKey } from "./ReplyBar";
-import { useComposerField, type ComposerFieldHandle } from "./useComposerField";
+import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
 import { KINDRED_BAR, KINDRED_BAR_MAX, KINDRED_BAR_PAD, capsuleFill, openKeyFill } from "./kit";
 
 /* THE KINDREDS BAR (chat composers, Prompt 3, as the owner reworked it on
@@ -107,7 +107,10 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
   const { t: tk } = useTheme();
   const reduce = useReducedMotion();
   const f = useComposerField(ref, initialText, onChangeText);
-  const { target, icon, disc, capsule, capsulePad, gap, rowHeight, fontSize, lineHeight } = KINDRED_BAR;
+  const { target, icon, disc, capsule: capsuleRest, capsulePad, gap, rowHeight, fontSize, lineHeight } = KINDRED_BAR;
+  /* the capsule's one-line height follows the field's line at the reader's text size (40 at the
+     default; useComposerField DYNAMIC TYPE), so the placeholder is never cut */
+  const capsule = Math.max(capsuleRest, f.restingLine(lineHeight, KINDRED_BAR_PAD));
 
   /* the keyboard's send: the words as typed. Every caller's model empties the field itself (before
      its first await) and leaves the words alone when it refuses, so the bar never clears on its own
@@ -139,7 +142,7 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
   const onRestingRow = { marginBottom: (capsule - target) / 2 };
 
   return (
-    <View style={[{ flexDirection: "row", alignItems: "flex-end", paddingVertical: (rowHeight - capsule) / 2 }, style]}>
+    <View style={[{ flexDirection: "row", alignItems: "flex-end", paddingVertical: (rowHeight - capsuleRest) / 2 }, style]}>
       {/* the ideas key */}
       <Pressable
         onPress={onIdeas}
@@ -157,7 +160,7 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
       <Pressable
         onPress={() => f.input.current?.focus()}
         accessible={false}
-        style={{ flex: 1, minHeight: capsule, marginHorizontal: gap, borderRadius: capsule / 2, backgroundColor: capsuleFill(tk), paddingHorizontal: capsulePad }}
+        style={{ flex: 1, minHeight: capsule, marginHorizontal: gap, borderRadius: capsuleRest / 2, backgroundColor: capsuleFill(tk), paddingHorizontal: capsulePad }}
       >
         <GlyphInput
           key={f.seed.n}
@@ -179,6 +182,7 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
           onFocus={onFocus}
           onBlur={onBlur}
           keyboardAppearance={tk.dark ? "dark" : "light"}
+          maxFontSizeMultiplier={FIELD_FONT_CAP}
           style={{
             ...f.box(lineHeight, KINDRED_BAR_MAX, KINDRED_BAR_PAD),
             paddingTop: KINDRED_BAR_PAD,

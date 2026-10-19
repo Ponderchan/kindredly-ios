@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { View, Text, Pressable } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,7 +14,14 @@ import { PF } from "../theme/post";
 import { THEMES } from "../theme/themes";
 import { scrimColor, useP, useTheme } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
-import { t } from "../lib/i18n";
+import { t, useLang } from "../lib/i18n";
+import { localeTag } from "../lib/format";
+import { useEntitlement } from "../lib/entitlement";
+import { clearCofounderCache } from "../lib/cofounder-seats";
+import { iapActiveTrial } from "../lib/iap";
+import { useFares } from "../lib/fares";
+import { trialFromIntro, type Trial } from "../screens/paywall/paywall-model";
+import "../data/strings-a11y-today";
 
 /* THE ONE MOMENT THE PRODUCT USED TO SAY NOTHING AT ALL.
  *
@@ -72,8 +79,64 @@ function AirmailEdge({ w, flip, clip }: { w: number; flip?: boolean; clip?: bool
   return clip ? <View style={{ overflow: "hidden" }}>{strip}</View> : strip;
 }
 
+/* THE CARD'S FACTS (a11y pass, 2026-10-19). Both come from the receipts, never from the card:
+   · LIFETIME: the buyer's own Cofounder number (useEntitlement().cofounderNo, my_cofounder_no()).
+     Right after the purchase the server may not have heard from the store yet (the webhook), so
+     while it is null the card asks again a few times; until it answers, no number is shown — never
+     a made-up one.
+   · A SUBSCRIPTION THAT BEGAN WITH A FREE TRIAL: one line with the trial's length (the bought
+     product's own intro offer, as lib/fares has it from RevenueCat) and the day of the first charge
+     (the trial's end on the App Store's receipt, lib/iap iapActiveTrial). Either unknown: no line. */
+const COFOUNDER_RETRY_MS = [3_000, 8_000, 20_000];
+
+function trialLine(trial: Trial, endsAt: string): string {
+  const end = new Date(endsAt);
+  const sameYear = end.getFullYear() === new Date().getFullYear();
+  const date = end.toLocaleDateString(localeTag(), sameYear ? { month: "long", day: "numeric" } : { month: "long", day: "numeric", year: "numeric" });
+  if (trial.unit === "day") return trial.n === 1 ? t("a11yt.fcw.trialDayOne", { date }) : t("a11yt.fcw.trialDays", { n: trial.n, date });
+  return trial.n === 1 ? t("a11yt.fcw.trialMonthOne", { date }) : t("a11yt.fcw.trialMonths", { n: trial.n, date });
+}
+
+/** the bought subscription's free trial, as one line, or "" while (or if) it can't be said */
+function useTrialLine(on: boolean): string {
+  useLang();
+  const fares = useFares();
+  const [started, setStarted] = useState<{ productId: string; endsAt: string } | null>(null);
+  useEffect(() => {
+    if (!on) return;
+    let alive = true;
+    void iapActiveTrial().then((x) => alive && setStarted(x));
+    return () => {
+      alive = false;
+    };
+  }, [on]);
+  if (!on || !started) return "";
+  // the bought product's own intro offer (not the fare's eligibility-checked trial: once bought,
+  // the store says this Apple ID may no longer take it)
+  const fare = fares.fares.find((f) => (f.raw as { product?: { identifier?: string } } | null)?.product?.identifier === started.productId);
+  const intro = (fare?.raw as { product?: { introPrice?: { price?: unknown; periodUnit?: unknown; periodNumberOfUnits?: unknown; cycles?: unknown } | null } } | null)?.product?.introPrice;
+  const trial = intro
+    ? trialFromIntro({ price: Number(intro.price), periodUnit: String(intro.periodUnit || ""), periodNumberOfUnits: Number(intro.periodNumberOfUnits) || 0, cycles: Number(intro.cycles) || 0 })
+    : null;
+  return trial ? trialLine(trial, started.endsAt) : "";
+}
+
 export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; onDone: () => void }) {
   const P = useP();
+  const { cofounderNo, refresh } = useEntitlement();
+  const trial = useTrialLine(!lifetime);
+  /* the number may land a few seconds after the purchase (see THE CARD'S FACTS) */
+  const waitingForNo = !!lifetime && cofounderNo == null;
+  useEffect(() => {
+    if (!waitingForNo) return;
+    const ids = COFOUNDER_RETRY_MS.map((ms) =>
+      setTimeout(() => {
+        clearCofounderCache();
+        void refresh();
+      }, ms),
+    );
+    return () => ids.forEach(clearTimeout);
+  }, [waitingForNo, refresh]);
   const { t: T, dark } = useTheme();
   const card = useSharedValue(0);
   const mark = useSharedValue(0);
@@ -119,10 +182,18 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
      the sides melting into the page. The strips are clipped to it
      (AirmailEdge clip); the card itself doesn't clip, so the FIRST CLASS
      mark can still come down from outside it. */
+  /* IT SCROLLS (a11y pass): at the larger text sizes the ticket is taller than the screen, and a
+     centred card spilled START WRITING — the one way on — off the bottom. Centred while it fits. */
   return (
-    <View style={{ position: "absolute", inset: 0, backgroundColor: dark ? scrimColor(true, 0.55) : "rgba(17,17,19,0.55)", alignItems: "center", justifyContent: "center", paddingHorizontal: 28 }}>
+    <View accessibilityViewIsModal style={{ position: "absolute", inset: 0, backgroundColor: dark ? scrimColor(true, 0.55) : "rgba(17,17,19,0.55)" }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, paddingVertical: 24 }}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+      >
       <Animated.View style={[{ width: "100%", maxWidth: 360, backgroundColor: P.sheet }, dark && { borderWidth: 1.5, borderColor: T.ln }, cardStyle]}>
-        <AirmailEdge w={360} clip={dark} />
+        <AirmailEdge w={360} clip />
 
         <View style={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 26, alignItems: "center" }}>
           <WrenBird size={92} mood="delight" accessory="scarf" stage="wren" />
@@ -131,31 +202,45 @@ export function FirstClassWelcome({ lifetime, onDone }: { lifetime?: boolean; on
               postmark lands across whatever is already on the envelope */}
           <Animated.View style={[{ position: "absolute", top: 44, alignSelf: "center" }, markStyle]}>
             <View style={{ borderWidth: 2.5, borderColor: P.post, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: "transparent" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 15, letterSpacing: 2.5, color: P.post }}>
+              <Text maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 15, letterSpacing: 2.5, color: P.post }}>
                 {t("pw.welcome.mark")}
               </Text>
             </View>
           </Animated.View>
 
-          <Text style={{ fontFamily: PF.letter, fontSize: 25, lineHeight: 33, color: P.ink, textAlign: "center", marginTop: 26 }}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 25, lineHeight: 33, color: P.ink, textAlign: "center", marginTop: 26 }}>
             {t(lifetime ? "pw.welcome.lifeTitle" : "pw.welcome.title")}
           </Text>
-          <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, textAlign: "center", marginTop: 12 }}>
+          {/* the buyer's own number, once the server has it (see THE CARD'S FACTS) */}
+          {lifetime && cofounderNo != null && (
+            <Text maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2, color: P.ink, textAlign: "center", marginTop: 10 }}>
+              {t("cf.no", { n: String(cofounderNo).padStart(3, "0") })}
+            </Text>
+          )}
+          <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 23, color: P.ink60, textAlign: "center", marginTop: 12 }}>
             {t(lifetime ? "pw.welcome.lifeBody" : "pw.welcome.body")}
           </Text>
+          {/* the trial's length and the first charge's day (see THE CARD'S FACTS) */}
+          {!!trial && (
+            <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 13, lineHeight: 19, color: P.ink60, textAlign: "center", marginTop: 10 }}>
+              {trial}
+            </Text>
+          )}
 
           <Pressable
             onPress={onDone}
+            accessibilityRole="button"
             style={{ marginTop: 26, alignSelf: "stretch", backgroundColor: P.ink, paddingVertical: 15, alignItems: "center" }}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: T.bg }}>
+            <Text maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 12.5, letterSpacing: 2, color: T.bg }}>
               {t("pw.welcome.go")}
             </Text>
           </Pressable>
         </View>
 
-        <AirmailEdge w={360} flip clip={dark} />
+        <AirmailEdge w={360} flip clip />
       </Animated.View>
+      </ScrollView>
     </View>
   );
 }

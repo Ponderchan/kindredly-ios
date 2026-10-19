@@ -24,6 +24,7 @@ import { FreeFlight, PillarsGlyph } from "./FreeFlightGame";
 import { isDayOff } from "../lib/free-flight";
 import type { Daylight } from "./CourierCard";
 import { WardrobeRack } from "./WardrobeRack";
+import "../data/strings-a11y-compose";
 import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo, useHatchSkin } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, flightLog, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
@@ -474,6 +475,7 @@ export function WrenHome({
               premium={premium}
               onLook={(id) => tapSkin(id)}
               onDress={(id, unlocked) => (unlocked ? onEquip(id) : onLocked())}
+              plusHint={tr("wren.a11y.plusHint")}
             />
           </View>
         )}
@@ -535,7 +537,12 @@ function Cell({ label, value, count, swatch, on, onPress }: { label: string; val
   const lit = on && T.dark;
   const small = lit ? P.ink60 : P.ink40;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, backgroundColor: lit ? T.lav : T.sf, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : T.dark ? T.mute : "transparent", opacity: pressed ? 0.85 : 1 })}>
+    <Pressable
+      onPress={onPress}
+      // a11y cm-11: it opens and shuts the rack below it
+      accessibilityRole="button"
+      accessibilityState={{ expanded: on }}
+      style={({ pressed }) => ({ flex: 1, backgroundColor: lit ? T.lav : T.sf, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : T.dark ? T.mute : "transparent", opacity: pressed ? 0.85 : 1 })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: swatch }} />
         <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: small }}>{label}</Text>

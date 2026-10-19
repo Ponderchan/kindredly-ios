@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Redirect, useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { devLaunchHandoff, type LaunchMode } from "../../components/LaunchAnimation";
 import { devIdentityPreview, setDevIdentityPreview } from "../../lib/identity";
-import { SCREENS, SCREEN_NO, SIDE_HOME, SIDE_NO, SIDES, type NotifState, type ScreenId, type SideId } from "../../screens/onboarding/flow";
+import { isScreen, SCREENS, SCREEN_NO, SIDE_HOME, SIDE_NO, SIDES, type NotifState, type ScreenId, type SideId } from "../../screens/onboarding/flow";
 import { clearDevNotes, devConfig, devNotes, devPayload, setDevConfig, setDevStart, type DevConfig, type DevVariant } from "../../screens/onboarding/dev";
 import { clearBlock } from "../../screens/onboarding/device-block";
 import { clearDraft } from "../../screens/onboarding/draft-store";
@@ -46,7 +46,7 @@ const NOTIFS: NotifState[] = ["ask", "granted", "settings"];
 
 export default function DevOnboarding2() {
   const router = useRouter();
-  const { done } = useLocalSearchParams<{ done?: string }>();
+  const { done, jump } = useLocalSearchParams<{ done?: string; jump?: string }>();
   const [cfg, setCfg] = useState<DevConfig>(devConfig());
   const [preview, setPreview] = useState(devIdentityPreview());
   const [, bump] = useState(0);
@@ -91,6 +91,15 @@ export default function DevOnboarding2() {
     setPreview(false);
     openRun(step);
   };
+
+  /* ?jump=<screen> or ?jump=<side> (signin, underage, tray, code): the same as tapping its chip,
+     for scripted screenshots at the large text sizes, where the chips are hard to find */
+  useEffect(() => {
+    if (!jump) return;
+    if (isScreen(jump)) go(jump);
+    else if ((SIDES as readonly string[]).includes(jump)) go(SIDE_HOME[jump as SideId], jump as SideId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jump]);
 
   const payload = devPayload();
   const notes = devNotes();

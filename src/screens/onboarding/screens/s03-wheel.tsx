@@ -31,6 +31,7 @@ export function PaperWheel({
   onChange,
   rows = 5,
   label,
+  descending = false,
 }: {
   items: (string | number)[];
   value: number;
@@ -39,6 +40,9 @@ export function PaperWheel({
   rows?: number;
   /** VoiceOver: what the column is ("Month") */
   label: string;
+  /** the items run from the largest down (the years: this year first), so VoiceOver's "increase"
+      (swipe up) steps back up the list, to a larger value */
+  descending?: boolean;
 }) {
   const ref = useRef<ScrollView>(null);
   const placed = useRef(false);
@@ -82,7 +86,8 @@ export function PaperWheel({
       accessibilityValue={{ text: String(items[value] ?? "") }}
       accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
       onAccessibilityAction={(e) => {
-        const next = e.nativeEvent.actionName === "increment" ? value + 1 : value - 1;
+        const up = e.nativeEvent.actionName === "increment";
+        const next = up !== descending ? value + 1 : value - 1;
         if (next >= 0 && next < items.length) onChange(next);
       }}
     >

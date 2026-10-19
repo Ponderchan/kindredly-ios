@@ -29,8 +29,9 @@ import ExpoUI
  - setText { target: "body" | "ask", value }   a draft resumed, a seed, a remount's reseed
  - focus { target: "body" | "ask" }            the autofocus, the question just attached
  - blur {}                                      before a sheet, an Alert, a push
- - composer { wrenLine, key: { stage, label, narrowLabel, tone, enabled, progress, count, nudge },
-              count: { text, tone } }           the live state, sent when it changes
+ - composer { wrenLine, key: { stage, label, narrowLabel, tone, enabled, progress, count, nudge,
+              countA11y, hintA11y }, count: { text, tone } }   the live state, sent when it changes
+              (countA11y / hintA11y go to keySpeech: VoiceOver's value and hint on the wide key)
  - reset {}                                     blurs (nothing else to put back)
 
  Events, with what nativeEvent carries:
@@ -167,6 +168,9 @@ final class KComposeViewProps: KScreenProps {
 
   /// The fields and the live state: as long-lived as the view, like `commands`.
   let driver = KComposeDriver()
+  /// The wide key's VoiceOver value and hint (key.countA11y / key.hintA11y), set from the same
+  /// composer command as `driver.live` and handed down the environment (KComposeToolbar.swift).
+  let keySpeech = KComposeKeySpeech()
 
   /// The page's taps and edits, made once: each closure reaches this props object's events.
   private(set) lazy var actions: KComposeActions = {
@@ -198,6 +202,8 @@ final class KComposeViewProps: KScreenProps {
     case KCommandName.blur, KCommandName.reset:
       driver.blurAll()
     case KCommandName.composer:
+      let k = args.kObject("key") ?? [:]
+      keySpeech.set(value: k.kString("countA11y") ?? "", hint: k.kString("hintA11y") ?? "")
       let live = Self.live(args)
       if driver.live != live { driver.live = live }
     default:
@@ -276,6 +282,7 @@ struct KComposeView: ExpoSwiftUI.View {
       props.children?.kSlot("recorder")
     }
     .kScreenEnvironment(props)
+    .environment(\.kComposeKeySpeech, props.keySpeech)
     .onKCommand(props.commands) { name, args in
       props.handle(name, args)
     }

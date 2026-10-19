@@ -5,6 +5,7 @@ import { FirstFlight, type FlightColors } from "../../../components/FirstFlight"
 import type { PoolLetter } from "../../../lib/db";
 import { starterStamp } from "../../../lib/hatch-engine";
 import { t } from "../../../lib/i18n";
+import { useFocusOnMount } from "../parts/frame";
 import { FONT, OB, TYPE } from "../parts/tokens";
 import type { ObScreenProps } from "../types";
 import { ENV_H, ENV_W, EnvelopeFront, yourCourierName } from "./s08-envelope";
@@ -44,6 +45,8 @@ export default function S12Flight(props: ObScreenProps) {
   const { form } = useHatchRead(draft.letter);
   const [stops, setStops] = useState<PoolLetter[]>([]);
   const left = useRef(false);
+  const headRef = useRef<Text>(null);
+  useFocusOnMount(headRef); // VoiceOver: start the flight from its title
 
   useEffect(() => {
     let alive = true;
@@ -84,7 +87,7 @@ export default function S12Flight(props: ObScreenProps) {
         colors={COLORS}
         head={
           <View style={{ alignItems: "center", paddingHorizontal: 24 }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={[TYPE.headline, { color: OB.ink, textAlign: "center" }]}>
+            <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={[TYPE.headline, { color: OB.ink, textAlign: "center" }]}>
               {keptLine("ob.flight.plain", "ob.flight.em", { name: her })}
             </Text>
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.label, { color: OB.inkSoft, marginTop: 10 }]}>{t("ob2.flight.sub")}</Text>

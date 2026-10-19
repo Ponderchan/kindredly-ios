@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { t } from "../../../lib/i18n";
 import type { Ground } from "../flow";
@@ -146,10 +146,17 @@ export function EmailFold({
   const caption = ON_GROUND[on];
   const field = { height: 52, borderRadius: 10, marginTop: first ? 0 : 12, backgroundColor: "#FFFFFF", borderWidth: 1, justifyContent: "center" as const };
 
+  /* a refusal is said aloud as well as shown: the field clears or dims and VoiceOver's cursor stays
+     put, so without this nothing was read (accessibilityLiveRegion is Android's only) */
+  const fail = (msg: string) => {
+    setBad(msg);
+    AccessibilityInfo.announceForAccessibility(msg);
+  };
+
   const doSend = async () => {
     const e = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
-      setBad(t("ob.email.bad"));
+      fail(t("ob.email.bad"));
       return;
     }
     setBad(null);
@@ -158,7 +165,7 @@ export function EmailFold({
     setBusy(false);
     if (r === "code") setStage("code");
     else if (r === "exists") onExists?.(e);
-    else setBad(r.error);
+    else fail(r.error);
   };
   const doVerify = async (c: string) => {
     if (c.length !== 6) return;
@@ -166,7 +173,7 @@ export function EmailFold({
     const r = await verify(email.trim(), c);
     setBusy(false);
     if (r !== true) {
-      setBad(t("ob.code.bad"));
+      fail(t("ob.code.bad"));
       setCode("");
     }
   };
@@ -214,6 +221,7 @@ export function EmailFold({
             setBad(null);
           }}
           hitSlop={8}
+          accessibilityRole="button"
           style={{ alignSelf: "center", marginTop: 6, padding: 6 }}
         >
           <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: caption, textDecorationLine: "underline" }]}>{t("ob.code.again")}</Text>

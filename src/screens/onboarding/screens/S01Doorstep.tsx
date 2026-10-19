@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActionSheetIOS, Pressable, Text, View, useWindowDimensions } from "react-native";
+import { AccessibilityInfo, ActionSheetIOS, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -172,6 +172,20 @@ export default function S01Doorstep(props: ObScreenProps) {
   const pageRef = useRef(0);
   pageRef.current = page;
   const [stopped, setStopped] = useState(false);
+  /* VoiceOver's gestures never reach onTouchStart, so with a screen reader on the cards don't turn
+     by themselves (WCAG 2.2.2) and the headline isn't remounted under the cursor */
+  const [reader, setReader] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    AccessibilityInfo.isScreenReaderEnabled()
+      .then((on) => alive && setReader(on))
+      .catch((e) => console.warn("[onboarding] couldn't ask whether a screen reader is on:", e));
+    const sub = AccessibilityInfo.addEventListener("screenReaderChanged", setReader);
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
   const scrollRef = useRef<Animated.ScrollView>(null);
   const leaving = useRef(false);
 
@@ -209,16 +223,16 @@ export default function S01Doorstep(props: ObScreenProps) {
     finish();
   };
 
-  /* ── the auto-advance: every 4.5 s, until a touch, Reduce Motion, or the sheet ── */
+  /* ── the auto-advance: every 4.5 s, until a touch, Reduce Motion, a screen reader, or the sheet ── */
   useEffect(() => {
-    if (!seqDone || still || stopped || props.side) return;
+    if (!seqDone || still || stopped || reader || props.side) return;
     const id = setInterval(() => {
       const next = (pageRef.current + 1) % 3;
       scrollRef.current?.scrollTo({ x: next * inner.w, y: 0, animated: true });
       setPage(next);
     }, 4500);
     return () => clearInterval(id);
-  }, [seqDone, still, stopped, props.side, inner.w]);
+  }, [seqDone, still, stopped, reader, props.side, inner.w]);
 
   const popChip = useCallback(() => {
     chipPop.value = withSequence(withTiming(1, { duration: 110 }), withSpring(0, { damping: 9, stiffness: 220 }));
@@ -352,9 +366,9 @@ export default function S01Doorstep(props: ObScreenProps) {
       {/* the headline: two lines reserved, crossfading with the slide */}
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: GUTTER, right: GUTTER, top: L.headTop, height: HEADLINE_H, justifyContent: "center" }, headStyle]}>
         <Animated.Text maxFontSizeMultiplier={OB_MAX_FONT}
-          key={page}
-          entering={FadeIn.duration(260)}
-          exiting={FadeOut.duration(160)}
+          key={reader ? "head" : page}
+          entering={reader ? undefined : FadeIn.duration(260)}
+          exiting={reader ? undefined : FadeOut.duration(160)}
           accessibilityRole="header"
           numberOfLines={2}
           adjustsFontSizeToFit
@@ -382,7 +396,7 @@ export default function S01Doorstep(props: ObScreenProps) {
         <Text maxFontSizeMultiplier={OB_MAX_FONT} allowFontScaling={false} style={WORD_TYPE}>kindredly</Text>
       </Animated.View>
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: GUTTER, right: GUTTER, top: L.appTop }, appLine]}>
-        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center" }]} numberOfLines={2}>
+        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center" }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
           {t("ob2.doorstep.app")}
         </Text>
       </Animated.View>

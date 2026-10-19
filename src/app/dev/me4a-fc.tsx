@@ -16,6 +16,7 @@ import type { PaywallDev } from "../../screens/paywall/usePaywall";
 import { MyLettersNative, type MyLettersDemo } from "../../screens/letters/MyLettersNative";
 import { PaywallBody, PaywallSwift } from "../paywall";
 import { MyLettersRN } from "../my-letters";
+import { FirstClassWelcome } from "../../components/FirstClassWelcome";
 import "../../data/strings-me4a";
 
 /* dev only — ME 4a's FIRST CLASS PAGE AND MY LETTERS ON DEMO DATA.
@@ -30,7 +31,9 @@ import "../../data/strings-me4a";
    brings it back):
    - PAGE: PAYWALL (Swift) · PW RN (the React Native PaywallBody, the
      fallback) · LETTERS (Swift, demo rows) · ML RN (the React Native page,
-     the account's real letters, read only);
+     the account's real letters, read only) · WELCOME / WELCOME LIFE (the
+     post-purchase card on its own; it only reads the entitlement and
+     RevenueCat's customer info, START WRITING just returns to PAYWALL);
    - THEME: the dev override (My letters follows it; the paywall keeps First
      Class's own palette in every theme);
    - FARES: TRIAL (a 7-day free intro, eligible) · NO TRIAL · PLACEHOLDER
@@ -41,7 +44,7 @@ import "../../data/strings-me4a";
    - LETTERS: FULL (10 letters, answered, quiet and replied, 2 drafts) ·
      NO DRAFTS · EMPTY (nothing written yet). */
 
-type Page = "paywall" | "pwrn" | "letters" | "mlrn";
+type Page = "paywall" | "pwrn" | "letters" | "mlrn" | "welcome" | "welcomeL";
 type FareMode = "trial" | "notrial" | "placeholder" | "real";
 type Who = "free" | "member" | "cofounder";
 type SeatMode = "ask" | 53 | 0 | null;
@@ -148,6 +151,8 @@ function Me4aFc() {
           <PaywallSwift key={`${who}:${seats}:${all}`} source="unknown" onClose={back} onDone={back} dev={dev} sheet={false} />
         ) : page === "pwrn" ? (
           <PaywallBody source="unknown" onClose={back} onDone={back} />
+        ) : page === "welcome" || page === "welcomeL" ? (
+          <FirstClassWelcome key={page} lifetime={page === "welcomeL"} onDone={() => setPage("paywall")} />
         ) : page === "letters" ? (
           <MyLettersNative key={letters} demo={demo} />
         ) : (
@@ -164,6 +169,8 @@ function Me4aFc() {
                 ["pwrn", "PW RN"],
                 ["letters", "LETTERS"],
                 ["mlrn", "ML RN"],
+                ["welcome", "WELCOME"],
+                ["welcomeL", "WELCOME LIFE"],
               ] as const
             ).map(([k, l]) => (
               <Chip key={k} label={l} on={page === k} onPress={() => setPage(k)} />

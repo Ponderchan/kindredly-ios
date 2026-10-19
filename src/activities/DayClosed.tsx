@@ -1,5 +1,5 @@
 import { HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
-import { activityBackgroundTint, aspectRatio, font, foregroundStyle, frame, padding, resizable } from "@expo/ui/swift-ui/modifiers";
+import { accessibilityHidden, activityBackgroundTint, aspectRatio, font, foregroundStyle, frame, padding, resizable } from "@expo/ui/swift-ui/modifiers";
 import { createLiveActivity, type LiveActivityEnvironment } from "expo-widgets";
 
 /* THE CLOSED WINDOW, ON THE LOCK SCREEN.
@@ -64,7 +64,11 @@ const DayClosed = (props: DayClosedProps, env: LiveActivityEnvironment) => {
   const shown = Math.min(15, props.read);
   for (let i = 0; i < shown; i++) marks.push(<Image key={"r" + i} systemName="envelope.open.fill" size={9} color={mark} />);
   for (let i = 0; i < Math.min(5, props.waiting); i++) marks.push(<Image key={"w" + i} systemName="envelope.fill" size={9} color={PEN} />);
-  const her = (px: number) => <Image uiImage={props.bird} modifiers={[resizable(), aspectRatio({ contentMode: "fit" }), frame({ width: px, height: px })]} />;
+  /* VoiceOver (a11y pass): the marks are drawn, not told — the line beside them says the day
+     ("All read.", "2 WAITING ON YOU"), so the row is hidden rather than read envelope by envelope,
+     and so is her picture */
+  const marksRow = (top: number) => <HStack spacing={2} modifiers={[padding({ top }), accessibilityHidden(true)]}>{marks}</HStack>;
+  const her = (px: number) => <Image uiImage={props.bird} modifiers={[resizable(), aspectRatio({ contentMode: "fit" }), frame({ width: px, height: px }), accessibilityHidden(true)]} />;
 
   return {
     banner: (
@@ -76,7 +80,7 @@ const DayClosed = (props: DayClosedProps, env: LiveActivityEnvironment) => {
             <Spacer />
             <Text modifiers={[mono(9, "semibold"), foregroundStyle(dim)]}>{props.wren}</Text>
           </HStack>
-          {marks.length > 0 ? <HStack spacing={2} modifiers={[padding({ top: 7 })]}>{marks}</HStack> : null}
+          {marks.length > 0 ? marksRow(7) : null}
           <HStack alignment="lastTextBaseline" spacing={0} modifiers={[padding({ top: 5 })]}>
             <Text modifiers={[font({ design: "serif", size: 16 }), foregroundStyle(ink)]}>{props.read > 0 ? props.allRead : props.none}</Text>
             {props.waitingLine ? <Text modifiers={[mono(9, "semibold"), foregroundStyle(PEN), padding({ leading: 8 })]}>{props.waitingLine}</Text> : null}
@@ -108,7 +112,7 @@ const DayClosed = (props: DayClosedProps, env: LiveActivityEnvironment) => {
     ),
     expandedBottom: (
       <HStack alignment="center" spacing={2} modifiers={[padding({ horizontal: 4, top: 6, bottom: 4 })]}>
-        {marks}
+        {marks.length > 0 ? marksRow(0) : null}
         {marks.length > 0 ? <Spacer /> : null}
         {props.waitingLine ? <Text modifiers={[mono(9, "semibold"), foregroundStyle("#8A86FF")]}>{props.waitingLine}</Text> : null}
       </HStack>

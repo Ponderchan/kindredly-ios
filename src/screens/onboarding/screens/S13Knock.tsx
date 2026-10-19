@@ -4,6 +4,7 @@ import Animated, { Easing, FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FirstFlight, type FlightColors } from "../../../components/FirstFlight";
 import { t } from "../../../lib/i18n";
+import { useFocusOnMount } from "../parts/frame";
 import { AcidKey, TextKey } from "../parts/keys";
 import { EDGE, FONT, GUTTER, OB, SHADOW, TYPE } from "../parts/tokens";
 import type { ObScreenProps } from "../types";
@@ -43,6 +44,9 @@ export default function S13Knock(props: ObScreenProps) {
   const her = draft.wrenName.trim() || t("ob2.name.ph");
   const refused = props.ctx.notif === "settings";
   const left = useRef(false);
+  /* VoiceOver: the card's question once it has slid in (120 + 360ms) */
+  const headRef = useRef<Text>(null);
+  useFocusOnMount(headRef, undefined, 500);
   const once = (f: () => void) => () => {
     if (left.current) return;
     left.current = true;
@@ -85,7 +89,7 @@ export default function S13Knock(props: ObScreenProps) {
           <View style={{ position: "absolute", left: 52, top: -12, width: 22, height: 22, backgroundColor: OB.paper, borderLeftWidth: EDGE, borderTopWidth: EDGE, borderColor: OB.ink, transform: [{ rotate: "45deg" }], zIndex: 2 }} />
           <View style={{ position: "absolute", left: SHADOW, top: SHADOW, right: -SHADOW, bottom: -SHADOW, borderRadius: 22, backgroundColor: OB.ink }} />
           <View style={{ borderRadius: 22, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, paddingHorizontal: 22, paddingTop: 22, paddingBottom: 14 }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 25, lineHeight: 30, letterSpacing: -0.6, color: OB.ink }}>
+            <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 25, lineHeight: 30, letterSpacing: -0.6, color: OB.ink }}>
               {t("ob2.knock.head")}
             </Text>
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, marginTop: 8 }]}>{refused ? t("ob2.knock.settings") : t("ob2.knock.line")}</Text>

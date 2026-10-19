@@ -1,5 +1,5 @@
 import { HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
-import { activityBackgroundTint, aspectRatio, font, foregroundStyle, frame, padding, resizable } from "@expo/ui/swift-ui/modifiers";
+import { accessibilityHidden, activityBackgroundTint, aspectRatio, font, foregroundStyle, frame, padding, resizable } from "@expo/ui/swift-ui/modifiers";
 import { createLiveActivity, type LiveActivityEnvironment } from "expo-widgets";
 
 /* YOUR LETTER IS OUT, ON THE LOCK SCREEN.
@@ -51,11 +51,19 @@ const LetterOut = (props: LetterOutProps, env: LiveActivityEnvironment) => {
   const head = props.replied ? props.repliedHead : props.reads === 0 ? props.reads0 : props.reads === 1 ? props.reads1 : props.readsN.replace("{n}", n);
   const line = props.replied ? props.repliedLine : props.looking;
   const picture = props.replied ? props.birdBack : props.bird;
-  const her = (px: number) => <Image uiImage={picture} modifiers={[resizable(), aspectRatio({ contentMode: "fit" }), frame({ width: px, height: px })]} />;
+  const her = (px: number) => <Image uiImage={picture} modifiers={[resizable(), aspectRatio({ contentMode: "fit" }), frame({ width: px, height: px }), accessibilityHidden(true)]} />;
   /* the desks it has been on, as marks; past twelve, a count takes over */
   const marks: React.JSX.Element[] = [];
   if (!props.replied) for (let i = 0; i < Math.min(12, props.reads); i++) marks.push(<Image key={"d" + i} systemName="envelope.open.fill" size={9} color={PEN} />);
   const tally = !props.replied && props.reads > 12 ? <Text modifiers={[mono(9, "semibold"), foregroundStyle(PEN), padding({ leading: 4 })]}>{"+" + String(props.reads - 12)}</Text> : null;
+  /* VoiceOver (a11y pass): the head already says how many desks ("On 3 strangers' desks."), so the
+     marks and their tally are hidden rather than read envelope by envelope, and so is her picture */
+  const marksRow = (top: number) => (
+    <HStack alignment="center" spacing={2} modifiers={[padding({ top }), accessibilityHidden(true)]}>
+      {marks}
+      {tally}
+    </HStack>
+  );
   /* the reply itself, a sealed brass envelope, sits with its line */
   const lineRow = (color: string) => (
     <HStack alignment="center" spacing={5}>
@@ -75,12 +83,7 @@ const LetterOut = (props: LetterOutProps, env: LiveActivityEnvironment) => {
             <Text modifiers={[font({ size: 13 })]}>{props.stamp}</Text>
           </HStack>
           <Text modifiers={[font({ design: "serif", size: 16 }), foregroundStyle(ink), padding({ top: 5 })]}>{head}</Text>
-          {marks.length > 0 ? (
-            <HStack alignment="center" spacing={2} modifiers={[padding({ top: 6 })]}>
-              {marks}
-              {tally}
-            </HStack>
-          ) : null}
+          {marks.length > 0 ? marksRow(6) : null}
           <VStack modifiers={[padding({ top: 5 })]}>{lineRow(props.replied ? BRASS : dim)}</VStack>
         </VStack>
       </HStack>
@@ -109,8 +112,7 @@ const LetterOut = (props: LetterOutProps, env: LiveActivityEnvironment) => {
     expandedTrailing: <VStack modifiers={[padding({ trailing: 4, top: 4 })]}><Text modifiers={[font({ size: 24 })]}>{props.stamp}</Text></VStack>,
     expandedBottom: (
       <HStack alignment="center" spacing={2} modifiers={[padding({ horizontal: 4, top: 6, bottom: 4 })]}>
-        {marks}
-        {tally}
+        {marks.length > 0 ? marksRow(0) : null}
         <Spacer />
         {lineRow(props.replied ? BRASS : "#B6B0E0")}
         {marks.length > 0 ? null : <Spacer />}

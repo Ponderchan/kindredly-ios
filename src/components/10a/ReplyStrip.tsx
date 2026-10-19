@@ -4,7 +4,7 @@ import { GlyphInput } from "../GlyphInput";
 import { useTheme } from "../../lib/theme";
 import { SendKey } from "./SendKey";
 import { StickerBox } from "./StickerBox";
-import { useComposerField, type ComposerFieldHandle } from "./useComposerField";
+import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
 import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKeyState, sendTakesPress, type SendStyle } from "./kit";
 
 /* THE REPLY STRIP (10a, H:124; KReplyStrip's React Native twin).
@@ -106,7 +106,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
   ref,
 ) {
   const { t: tk } = useTheme();
-  const { input, seed, note, clear, text, hasWords, box, onScroll, onContentSizeChange } = useComposerField(ref, initialText, onChangeText);
+  const { input, seed, note, clear, text, hasWords, box, restingLine, onScroll, onContentSizeChange } = useComposerField(ref, initialText, onChangeText);
 
   const state = sendKeyState({ hasWords, canSend, held });
   const send = () => {
@@ -115,8 +115,11 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
     if (sendClearsField(state) && !kept) clear();
   };
 
-  const { minHeight, border, radius, shadow, padLeft, padRight, fontSize, lineHeight, gap } = REPLY_STRIP;
-  const inner = minHeight - 2 * border;
+  const { border, radius, shadow, padLeft, padRight, fontSize, lineHeight, gap } = REPLY_STRIP;
+  /* the resting row follows the field's one line at the reader's text size (54 at the default;
+     useComposerField DYNAMIC TYPE), so the placeholder is never cut */
+  const inner = Math.max(REPLY_STRIP.minHeight - 2 * border, restingLine(lineHeight, REPLY_FIELD_PAD));
+  const minHeight = inner + 2 * border;
 
   return (
     <View style={[{ flexDirection: "row", alignItems: "flex-end", gap }, style]}>
@@ -150,6 +153,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
           maxLength={maxLength}
           onFocus={onFocus}
           onBlur={onBlur}
+          maxFontSizeMultiplier={FIELD_FONT_CAP}
           style={{
             flex: 1,
             ...box(lineHeight, REPLY_FIELD_MAX, REPLY_FIELD_PAD),

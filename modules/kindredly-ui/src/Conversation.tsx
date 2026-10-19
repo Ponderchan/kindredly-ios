@@ -130,6 +130,8 @@ export type KChatDock = {
   notice: { label: string; evidence: string; line: string; word: string; closeLabel: string } | null;
   signDoor: "none" | "offer" | "theirsFirst" | "waiting";
   signLabel: string;
+  /** what the door does, for VoiceOver (identity on: it opens the signing sheet); "" or absent for none */
+  signHint?: string;
   replyLabel: string;
   replyExcerpt: string;
   replyCloseLabel: string;
@@ -340,6 +342,7 @@ type NativeDock = {
   noticeCloseLabel: string;
   signDoor: KChatDock["signDoor"];
   signLabel: string;
+  signHint: string;
   replyLabel: string;
   replyExcerpt: string;
   replyCloseLabel: string;
@@ -476,6 +479,7 @@ export function nativeChatDock(d: KChatDock): NativeDock {
     noticeCloseLabel: d.notice?.closeLabel ?? "",
     signDoor: d.signDoor,
     signLabel: d.signLabel,
+    signHint: d.signHint ?? "",
     replyLabel: d.replyLabel,
     replyExcerpt: d.replyExcerpt,
     replyCloseLabel: d.replyCloseLabel,
