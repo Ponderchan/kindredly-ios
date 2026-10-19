@@ -389,7 +389,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
 
   const light = M.buildCard({ letter: L({ id: "d", stamp: "dark" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
   const dark = M.buildCard({ letter: L({ id: "d", stamp: "dark" }), offer: null, signal: null, voiceReady: false }, "#1A1830", fmt);
-  ok("card: the topic colours are worked out on the card's own face (Midnight differs)", light.topicWash !== dark.topicWash && light.topicInk !== dark.topicInk);
+  ok("card: the topic tag is the stamp's own colour with white words, the same on both themes (the App Store tag)", light.topicWash === dark.topicWash && light.topicInk === "#FFFFFF" && dark.topicInk === "#FFFFFF");
 
   const demo = M.buildCard({ letter: L({ id: "demo-p1" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
   ok("card: dev samples are marked demo", demo.demo && !c.demo);

@@ -80,12 +80,14 @@ for (const key of THEME_KEYS) {
   for (const surface of ["sf", "bg", "soft2"] as const) {
     const bad = stamps.filter((c) => {
       const l = kit.topicTagLook(c, tk, tk[surface]);
-      return kit.contrastRatio(l.text, l.fill) < 4.5 || l.shadow !== tk.ln;
+      return l.fill !== c.toUpperCase() || l.text !== "#FFFFFF" || l.border !== tk.ln || l.shadow !== tk.ln || kit.contrastRatio(l.text, l.fill) < 3;
     });
-    ok(`${key} ${surface}: every stamp's tag reads at 4.5:1 with an ln shadow${bad.length ? " (" + bad.join(" ") + ")" : ""}`, bad.length === 0);
+    // the App Store tag: the stamp's colour solid, white words, ln outline and shadow (3:1 until
+    // the palette pass lifts every hex to 4.5:1 against white)
+    ok(`${key} ${surface}: every stamp's tag is its colour, solid, with white words${bad.length ? " (" + bad.join(" ") + ")" : ""}`, bad.length === 0);
   }
   ok(`${key}: a tag defaults to the card face`, JSON.stringify(kit.topicTagLook("#2E7D4F", tk)) === JSON.stringify(kit.topicTagLook("#2E7D4F", tk, tk.sf)));
-  ok(`${key}: a stamp without a colour still gives a readable tag`, (() => { const l = kit.topicTagLook(null, tk); return kit.contrastRatio(l.text, l.fill) >= 4.5; })());
+  ok(`${key}: a stamp without a colour is the quiet grey, readable`, (() => { const l = kit.topicTagLook(null, tk); return l.fill === kit.TOPIC_TAG_NEUTRAL && kit.contrastRatio(l.text, l.fill) >= 4.5; })());
 
   const r = kit.rowStyleFor(tk);
   ok(`${key}: the row keeps the owner's sizes (52 face, gap 14, name 17/600, preview 15/20, badge 20)`, r.face === 52 && r.gap === 14 && r.name.fontSize === 17 && r.name.fontWeight === "600" && r.preview.fontSize === 15 && r.preview.lineHeight === 20 && r.badge.height === 20);

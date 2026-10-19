@@ -50,7 +50,7 @@ import SwiftUI
  - a voice letter instead: VOICE LETTER, the voice card (the 44 disc, sixteen bars, the time)
    drawn from TS's one player, and the writer's caption in the italic serif under it. Until its
    link is signed it shows itself unavailable; the caption is never drawn as the letter;
- - the foot: the topic tag (the stamp's channel colours, worked out on this card's face by TS) and
+ - the foot: the topic tag (the App Store tag: the stamp's colour solid with white words, from TS) and
    the one capsule (translation wins over the lime signal), side by side, stacked when they
    don't fit (a long language, large text). The translation is the LANGUAGE PAIR (KLangPair,
    the owner's B1 brought back 2026-10-16): the ink segment with the code they wrote in, the
@@ -276,6 +276,7 @@ struct KLetterCard: View, Equatable {
       KTopicTag(
         theme: theme,
         text: card.topic,
+        // topicWash is the stamp's own colour and topicInk white (the App Store tag; today-cards)
         tone: .channel(wash: Color(hex: card.topicWash), ink: Color(hex: card.topicInk))
       )
     }

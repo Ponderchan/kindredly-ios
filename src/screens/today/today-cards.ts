@@ -666,8 +666,10 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     stampHex: st?.color ?? "",
     stampName: st?.name ?? "",
     topic,
-    topicWash: colors.wash,
-    topicInk: colors.ink,
+    // the App Store tag (owner, 2026-10-19): the stamp's colour solid, white words, every theme
+    // (kit topicTagLook draws the same); the field names stay for the Swift record
+    topicWash: st?.color ? st.color.toUpperCase() : "#6E6A85",
+    topicInk: "#FFFFFF",
     topicLine: colors.line,
     body: isVoice ? "" : shown,
     bodySize: tier.size,
