@@ -28,6 +28,8 @@ strings(
     "cs2.cam.cropHint": "DRAG TO MOVE · PINCH TO ZOOM",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "That one didn’t come through. Try again.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "Stamps you make live on your account. Sign up to press your first one.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Pressed. Now give it a name.",
     /* ── /A camera · en ── */
@@ -201,6 +203,8 @@ strings(
     "cs2.cam.cropHint": "ARRASTRA Y PELLIZCA PARA ENCUADRAR",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "No salió. Inténtalo otra vez.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "Los sellos que haces viven en tu cuenta. Regístrate para hacer el primero.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Sello prensado. Ahora ponle nombre.",
     /* ── /A camera · es ── */
@@ -359,6 +363,8 @@ strings(
     "cs2.cam.cropHint": "ARRASTE E FAÇA PINÇA PARA ENQUADRAR",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "Não deu certo. Tente de novo.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "Os selos que você cria ficam na sua conta. Cadastre-se para fazer o primeiro.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Selo prensado. Agora dê um nome a ele.",
     /* ── /A camera · pt ── */
@@ -517,6 +523,8 @@ strings(
     "cs2.cam.cropHint": "GESER DAN CUBIT UNTUK MEMBINGKAI",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "Belum berhasil. Coba lagi, ya.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "Prangko buatanmu tersimpan di akunmu. Daftar dulu untuk membuat yang pertama.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Perangko sudah dicetak. Sekarang kasih nama.",
     /* ── /A camera · id ── */
@@ -675,6 +683,8 @@ strings(
     "cs2.cam.cropHint": "GLISSE ET PINCE POUR CADRER",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "Ça n’a pas marché. Réessaie.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "Les timbres que tu crées vivent dans ton compte. Inscris-toi pour faire le premier.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Timbre pressé. Maintenant, donne-lui un nom.",
     /* ── /A camera · fr ── */
@@ -833,6 +843,8 @@ strings(
     "cs2.cam.cropHint": "ZIEHEN UND ZOOMEN ZUM AUSRICHTEN",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "Das hat nicht geklappt. Versuch’s noch mal.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "Deine Briefmarken gehören zu deinem Konto. Melde dich an, um die erste zu machen.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Gepresst. Jetzt gib ihr einen Namen.",
     /* ── /A camera · de ── */
@@ -991,6 +1003,8 @@ strings(
     "cs2.cam.cropHint": "TRASCINA E PIZZICA PER INQUADRARE",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "Non è venuta. Riprova.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "I francobolli che crei restano nel tuo account. Iscriviti per fare il primo.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "Francobollo pressato. Ora dagli un nome.",
     /* ── /A camera · it ── */
@@ -1149,6 +1163,8 @@ strings(
     "cs2.cam.cropHint": "ドラッグで移動・ピンチで拡大",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "うまく撮れませんでした。もう一度どうぞ。",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "作った切手はアカウントに保存されます。登録して、最初の一枚をつくろう。",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "切手ができました。名前をつけましょう。",
     /* ── /A camera · ja ── */
@@ -1307,6 +1323,8 @@ strings(
     "cs2.cam.cropHint": "드래그로 옮기고 핀치로 확대",
     // the shutter or Use this failed to make a photo (shown under the stamp, and read out)
     "cs2.cam.failed": "잘 안 됐어요. 다시 해 보세요.",
+    // a guest taps make: stamps belong to an account (owner, 2026-10-20)
+    "cs2.guest.reason": "만든 우표는 계정에 저장돼요. 가입하고 첫 우표를 만들어 보세요.",
     // VoiceOver hears this when the press is done and the edit page comes next
     "cs2.cam.pressed": "우표를 찍었어요. 이제 이름을 붙여 주세요.",
     /* ── /A camera · ko ── */

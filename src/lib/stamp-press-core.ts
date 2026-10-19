@@ -111,7 +111,7 @@ export type StampQuota = {
   cap: number | null;
   remaining: number | null;
   canMake: boolean;
-  why: "quota" | "cap" | null;
+  why: "quota" | "cap" | "account" | null;
   /** new stamps will be gold-edged (a Cofounder) */
   gold: boolean;
 };
@@ -132,7 +132,7 @@ export function parseQuota(data: unknown): StampQuota | null {
     cap: num(r.cap),
     remaining: num(r.remaining),
     canMake: r.can_make === true,
-    why: r.why === "quota" || r.why === "cap" ? r.why : null,
+    why: r.why === "quota" || r.why === "cap" || r.why === "account" ? r.why : null,
     gold: r.gold === true || plan === "cofounder",
   };
 }
@@ -215,6 +215,7 @@ export function parseCheck(status: number, body: unknown): CheckOutcome {
     return { kind: "quota", plan };
   }
   if (status === 429) return { kind: "cap" };
+  if (status === 403 && error === "account") return { kind: "auth" }; // a guest (0039); the press page gates guests first
   if (status === 403) return { kind: "suspended" };
   if (status === 401) return { kind: "auth" };
   if (status === 404) return { kind: "not_found" };

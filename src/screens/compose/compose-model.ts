@@ -404,7 +404,7 @@ export function customTopicTag(topic: string): string {
 export function customTray(
   p: {
     /** my_stamp_quota's why, or null; `quota` null = the feature is hidden */
-    quota: { why: "quota" | "cap" | null } | null;
+    quota: { why: "quota" | "cap" | "account" | null } | null;
     pressAvailable: boolean;
     stamps: readonly { id: string; status: string; topic: string; hex: string }[];
   },

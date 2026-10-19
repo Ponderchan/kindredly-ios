@@ -28,7 +28,7 @@ export type CollectionFormat = {
   lower: (s: string) => string;
 };
 
-type Quota = { plan: "free" | "first" | "cofounder"; made: number; cap: number | null; why: "quota" | "cap" | null };
+type Quota = { plan: "free" | "first" | "cofounder"; made: number; cap: number | null; why: "quota" | "cap" | "account" | null };
 
 export type MineFact = {
   id: string;
