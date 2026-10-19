@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, findNodeHandle, Pressable, ScrollView, Text, View, useWindowDimensions, type ViewStyle } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { PF } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
@@ -226,6 +227,13 @@ export function FirstClassReceipt({
     return () => clearTimeout(id);
   }, []);
 
+  const router = useRouter();
+  const startWriting = () => {
+    onDone();
+    // after the fare's sheet has gone, so the composer lands on top of the page underneath
+    setTimeout(() => router.push("/compose"), 350);
+  };
+
   const stickerText = { color: INK } as const;
 
   return (
@@ -284,11 +292,13 @@ export function FirstClassReceipt({
           <Text style={{ fontSize: 14, lineHeight: 21, color: T.sub }}>{w.body}</Text>
         </ScrollView>
 
-        {/* ④ Start writing: always last, always on screen */}
+        {/* ④ Start writing: always last, always on screen. It means what it says (owner,
+            2026-10-19): the receipt and the fare close, then the composer opens. The scrim
+            only closes. */}
         <View style={{ marginRight: 4, marginBottom: 4 }}>
           <View style={{ position: "absolute", left: 4, top: 4, right: -4, bottom: -4, borderRadius: 16, backgroundColor: LIME }} />
           <Pressable
-            onPress={onDone}
+            onPress={startWriting}
             accessibilityRole="button"
             style={({ pressed }) => ({ minHeight: 52, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 16, backgroundColor: T.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.9 : 1 })}
           >
