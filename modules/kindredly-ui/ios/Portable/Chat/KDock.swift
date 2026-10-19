@@ -439,7 +439,9 @@ struct KChatDockView: View {
       sendState: driver.canSend ? .enabled : .disabled,
       sendLabel: dock.sendLabel,
       emojiLabel: dock.emojiLabel,
-      returnSends: true,
+      // owner, 2026-10-19: a pen-pal letter leaves by the bar's send key; Return is a new line
+      // (only the kindreds bar sends on the keyboard)
+      returnSends: false,
       autocapitalize: dock.autocapitalize,
       onChange: { actions.onText($0) },
       onSubmit: { send($0) },

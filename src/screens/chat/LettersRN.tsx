@@ -275,6 +275,8 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
               initialText={m.text}
               sendLabel={dock.sendLabel}
               emojiLabel={dock.emojiLabel}
+              // owner, 2026-10-19: the bar's send key sends; Return is a new line
+              returnSends={false}
               inputProps={{ autoCapitalize: dock.autocapitalize ? "sentences" : "none" }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
