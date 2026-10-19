@@ -311,9 +311,10 @@ export function swatches(theme: ThemeFacts, t: TFn): SwatchVM[] {
     .map((k) => ({ key: k, label: t(`theme.${k}`) }));
 }
 
-/** The Letter font tiles: the choices this build can draw, by their own names. */
-export function fontTiles(choices: readonly string[]): FontVM[] {
-  return choices.map((k) => ({ key: k, name: LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
+/** The Letter font tiles: the choices this build can draw, by their own names; the system serif
+    (New York) is called "System" in the reader's language (owner, 2026-10-19). */
+export function fontTiles(choices: readonly string[], t?: TFn): FontVM[] {
+  return choices.map((k) => ({ key: k, name: k === "newyork" && t ? t("set.font.system") : LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
 }
 
 /** The First Class banner in the owner's copy (never "More Kindreds" or "a monthly reading":
@@ -421,7 +422,7 @@ export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
       matchOn: f.theme.matchSystem,
       fontLabel: t("set.letterFont"),
       fontSub: t("set.letterFont.sub"),
-      fonts: fontTiles(f.letterFont.choices),
+      fonts: fontTiles(f.letterFont.choices, t),
       selectedFont: f.letterFont.selected,
     },
     groups: [
