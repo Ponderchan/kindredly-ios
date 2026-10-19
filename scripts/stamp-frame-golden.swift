@@ -1,13 +1,24 @@
 /* The Swift stamp frame's lock (modules/kindredly-ui/ios/Portable/Kit/KStampFrame.swift, the port
    of src/lib/stamp-frame.ts). The module has no test target, so this is a small program compiled
-   on the Mac with the two Portable files it needs (both import SwiftUI only) and run by hand from
+   on the Mac with the four Portable files it needs (all import SwiftUI only) and run by hand from
    the repo root:
 
      xcrun swiftc -parse-as-library -target arm64-apple-macos14 \
        modules/kindredly-ui/ios/Portable/Kit/KStampFrame.swift \
        modules/kindredly-ui/ios/Portable/Kit/KLineGlyph.swift \
+       modules/kindredly-ui/ios/Portable/Kit/KStampArtData.swift \
+       modules/kindredly-ui/ios/Portable/Kit/KStampArt.swift \
        scripts/stamp-frame-golden.swift -o "$TMPDIR/stamp-frame-golden" \
+       && "$TMPDIR/stamp-frame-golden" design/stamps-v3/golden.json \
        && "$TMPDIR/stamp-frame-golden" design/stamps-v2/golden.json
+
+   STAMPS v3 (2026-10-19): given design/stamps-v3/golden.json (it has "draw") it checks
+   KStampArtData.v3 and KStamp's draw list (KStampPlan.drawList) per id × tier at several widths
+   against the kit's own lists, element for element with literal colours; the tiers, layers and
+   tilt rule; the colours and tray names; the fallback chain; the slot; that every path reads and
+   that paint stays in x 3–97, y 8–120. Given the v2 golden it runs the v2 checks below (the v2
+   frame is still in KStampFrame.swift until the reviewer deletes it). The ladder checks run for
+   both.
 
    It reads design/stamps-v2/golden.json, the goldens src/lib/stamp-frame.test.ts locks the
    TypeScript to (and rewrites with --write-golden), and checks, in order: every tier's rules and
@@ -37,7 +48,7 @@ enum StampFrameGolden {
   static func main() {
     let args = CommandLine.arguments.dropFirst()
     guard let file = args.first(where: { !$0.hasPrefix("--") }) else {
-      print("usage: stamp-frame-golden design/stamps-v2/golden.json [--dump]")
+      print("usage: stamp-frame-golden design/stamps-v3/golden.json | design/stamps-v2/golden.json [--dump]")
       exit(2)
     }
     guard let data = FileManager.default.contents(atPath: file),
@@ -47,6 +58,43 @@ enum StampFrameGolden {
       exit(1)
     }
 
+    if json["draw"] != nil {
+      v3(json)
+    } else {
+      v2(json)
+    }
+
+    // ── from the TS test's own numbers (src/lib/stamp-frame.test.ts) ──
+    ok("the ladder: 25 placements, every one 5:6", KStampLadder.all.count == 25 && KStampLadder.all.allSatisfy { $0.h == KStampFrame.height($0.w) })
+    ok("Today card 40×48 by the letter; compose corner 40×48 at 8°; tray 30; Me 80",
+       KStampLadder.todayCard.w == 40 && KStampLadder.todayCard.tilt == .letter
+         && KStampLadder.composeCorner.w == 40 && KStampLadder.composeCorner.degrees == 8
+         && KStampLadder.trayTile.w == 30 && KStampLadder.meYourStamps.w == 80 && KStampLadder.readerHead.w == 60)
+    ok("only delivered mail at M and up (v3: 40 and up) tilts by the letter",
+       KStampLadder.all.allSatisfy { $0.tilt != .letter || (KStampFrame.spec(for: $0.w).delivered && KStampFrame.v3TiltsAt($0.w)) })
+
+    if args.contains("--dump") {
+      var dump: [String: Any] = [:]
+      dump["ladder"] = KStampLadder.all.map { p -> [String: Any] in
+        let tilt: Any
+        switch p.tilt {
+        case let .fixed(d): tilt = d
+        case .letter: tilt = "letter"
+        case .scatter: tilt = "scatter"
+        }
+        return ["name": p.name, "w": p.w, "h": p.h, "tilt": tilt]
+      }
+      if let out = try? JSONSerialization.data(withJSONObject: dump, options: [.sortedKeys]), let text = String(data: out, encoding: .utf8) {
+        print("DUMP " + text)
+      }
+    }
+
+    print(fails > 0 ? "\n\(fails) FAILED" : "\nall ok")
+    exit(fails > 0 ? 1 : 0)
+  }
+
+  // ── stamps v2: design/stamps-v2/golden.json (kept until the reviewer deletes v2) ──
+  static func v2(_ json: [String: Any]) {
     // ── the box ──
     if let box = json["box"] as? [Double] {
       ok("the box is 0 0 100 120", box == [0, 0, 100, 120] && KStampFrame.box == CGRect(x: 0, y: 0, width: 100, height: 120))
@@ -143,7 +191,6 @@ enum StampFrameGolden {
     ok("a colour that isn't #RRGGBB reads as the fallback tint", KStampFrame.softHex("purple") == KStampFrame.softHex("#8B7FE8"))
     ok("paper: white, Midnight #ECE9F4", KStampFrame.paperRGB(dark: false) == 0xFFFFFF && KStampFrame.paperRGB(dark: true) == 0xECE9F4)
 
-    // ── from the TS test's own numbers (src/lib/stamp-frame.test.ts) ──
     ok("keyline light: S 0.75, M 1, L 1.25, XL 1.5pt at 40%",
        [KStampTier.s, .m, .l, .xl].map { KStampFrame.edge(dark: false, tier: $0)?.widthPt ?? 0 } == [0.75, 1, 1.25, 1.5]
          && KStampFrame.edge(dark: false, tier: .m)?.opacity == 0.4 && KStampFrame.edge(dark: false, tier: .m)?.rgb == 0x1E1B35)
@@ -153,31 +200,161 @@ enum StampFrameGolden {
          && [KStampTier.s, .m, .l, .xl, .dot].allSatisfy { KStampFrame.edge(dark: true, tier: $0) == nil })
     ok("strokeU: 4.31 at 50, 7.5 at XS 20, 5 at S 25",
        KStampFrame.strokeU(for: 50) == 4.31 && abs(KStampFrame.strokeU(for: 20) - 7.5) < 1e-9 && abs(KStampFrame.strokeU(for: 25) - 5) < 1e-9)
-    ok("the ladder: 25 placements, every one 5:6", KStampLadder.all.count == 25 && KStampLadder.all.allSatisfy { $0.h == KStampFrame.height($0.w) })
-    ok("Today card 40×48 by the letter; compose corner 40×48 at 8°; tray 30; Me 80",
-       KStampLadder.todayCard.w == 40 && KStampLadder.todayCard.tilt == .letter
-         && KStampLadder.composeCorner.w == 40 && KStampLadder.composeCorner.degrees == 8
-         && KStampLadder.trayTile.w == 30 && KStampLadder.meYourStamps.w == 80 && KStampLadder.readerHead.w == 60)
-    ok("only delivered mail at M and up tilts by the letter",
-       KStampLadder.all.allSatisfy { $0.tilt != .letter || KStampFrame.spec(for: $0.w).delivered })
+  }
 
-    if args.contains("--dump") {
-      var dump: [String: Any] = [:]
-      dump["ladder"] = KStampLadder.all.map { p -> [String: Any] in
-        let tilt: Any
-        switch p.tilt {
-        case let .fixed(d): tilt = d
-        case .letter: tilt = "letter"
-        case .scatter: tilt = "scatter"
+  // ── stamps v3: design/stamps-v3/golden.json (INTEGRATION.md §12) ──
+
+  static func hex(_ v: UInt32?) -> Any {
+    guard let v else { return NSNull() }
+    return KStampFrame.hexString(v)
+  }
+
+  /// one golden element against one drawn element: layer, shape, colours, stroke width
+  static func same(_ g: [String: Any], _ e: KStampDrawEl) -> Bool {
+    guard (g["layer"] as? String) == layerName(e.layer) else { return false }
+    let num = { (k: String) -> Double? in (g[k] as? NSNumber)?.doubleValue }
+    switch e.shape {
+    case let .path(d):
+      guard g["el"] as? String == "path", g["d"] as? String == d else { return false }
+    case let .circle(cx, cy, r):
+      guard g["el"] as? String == "circle", num("cx") == Double(cx), num("cy") == Double(cy), num("r") == Double(r) else { return false }
+    case let .ellipse(cx, cy, rx, ry):
+      guard g["el"] as? String == "ellipse", num("cx") == Double(cx), num("cy") == Double(cy), num("rx") == Double(rx), num("ry") == Double(ry) else { return false }
+    }
+    let gf = g["fill"] as? String
+    let gs = g["stroke"] as? String
+    let fill = e.fill.map(KStampFrame.hexString)
+    let stroke = e.stroke.map(KStampFrame.hexString)
+    return gf == fill && gs == stroke && num("width") == Double(e.width)
+  }
+
+  static func layerName(_ l: KStampLayer) -> String {
+    switch l {
+    case .frame: return "frame"
+    case .rims: return "rims"
+    case .body: return "body"
+    case .marks: return "marks"
+    case .face: return "face"
+    }
+  }
+
+  static func sameList(_ g: [[String: Any]], _ list: [KStampDrawEl]) -> (Bool, Int) {
+    if g.count != list.count { return (false, min(g.count, list.count)) }
+    for (i, e) in list.enumerated() where !same(g[i], e) { return (false, i) }
+    return (true, -1)
+  }
+
+  static func v3(_ json: [String: Any]) {
+    ok("the box is 0 0 100 120", (json["box"] as? [Double]) == [0, 0, 100, 120])
+    ok("ink #1E1B35 (KStampArtData.v3Ink, KStampFrame.v3Ink)",
+       json["ink"] as? String == "#1E1B35" && KStampArtData.v3Ink == 0x1E1B35FF && KStampFrame.v3Ink == 0x1E1B35)
+    ok("tint mix 0.88", (json["tintMix"] as? NSNumber)?.doubleValue == 0.88 && KStampFrame.v3TintMix == 0.88 && KStampArtData.v3TintMix == 0.88)
+
+    // ── tiers, layers, tilt, dot ──
+    let layers = json["layers"] as? [String: [String]] ?? [:]
+    let tilts = json["tiltsByLetter"] as? [String: Bool] ?? [:]
+    let tierFor = json["tierFor"] as? [[Any]] ?? []
+    ok("golden.json has the tier table", !tierFor.isEmpty && layers.count == 4)
+    for pair in tierFor {
+      guard pair.count == 2, let w = (pair[0] as? NSNumber)?.doubleValue, let t = pair[1] as? String else { ok("a tierFor pair reads", false); continue }
+      let width = CGFloat(w)
+      ok("v3Tier(for: \(w)) = \(t); layers \(layers[t] ?? []); tilts \(tilts[t] ?? false)",
+         KStampFrame.v3Tier(for: width).rawValue == t
+           && KStampLayer.kept(width: width).map(layerName) == (layers[t] ?? ["?"])
+           && KStampFrame.v3TiltsAt(width) == (tilts[t] ?? !KStampFrame.v3TiltsAt(width)))
+    }
+    ok("v3Tier(for: .nan) = dot, no layers", KStampFrame.v3Tier(for: .nan) == .dot && KStampLayer.kept(width: .nan).isEmpty)
+    ok("the dot is 6pt", (json["dotPt"] as? NSNumber)?.doubleValue == Double(KStampFrame.dotPt))
+    ok("below 15pt nothing is drawn (the dot), its colour the hex",
+       KStampPlan.drawList(id: "tiny-win", width: 14.99).isEmpty
+         && KStampPlan.plan(id: "tiny-win", width: 9, fallbackHex: nil).tier == .dot
+         && KStampPlan.plan(id: "tiny-win", width: 9, fallbackHex: nil).hex == (KStampArt.entries["tiny-win"].map { $0.hex >> 8 } ?? 0))
+
+    // ── colours and the table ──
+    let colours = json["colours"] as? [String: [String: String]] ?? [:]
+    ok("36 stamps in the golden and in KStampArtData.v3, the same ids",
+       colours.count == 36 && KStampArtData.v3.count == 36 && Set(colours.keys) == Set(KStampArt.ids))
+    ok("every id once in the table", Set(KStampArt.ids).count == KStampArt.ids.count && KStampArt.entries.count == 36)
+    ok("every stamp has a drawing (none drawn as the frame alone)", KStampArt.unread.isEmpty)
+    for entry in KStampArtData.v3 {
+      guard let c = colours[entry.id] else { ok("\(entry.id): in golden colours", false); continue }
+      let h = entry.hex >> 8
+      ok("\(entry.id): hex \(c["hex"] ?? "?") tint \(c["tint"] ?? "?") names \(c["nameLight"] ?? "?")/\(c["nameDark"] ?? "?")",
+         KStampFrame.hexString(h) == c["hex"] && KStampFrame.hexString(entry.tint >> 8) == c["tint"]
+           && KStampFrame.hexString(KStampFrame.v3Tint(h)) == c["tint"]
+           && KStampFrame.hexString(entry.nameLight >> 8) == c["nameLight"] && KStampFrame.hexString(entry.nameDark >> 8) == c["nameDark"]
+           && c["ink"] == "#1E1B35"
+           && entry.hex & 0xFF == 0xFF && entry.tint & 0xFF == 0xFF)
+    }
+    let cats = json["categories"] as? [String: String] ?? [:]
+    ok("the six category colours", cats.count == 6 && cats.allSatisfy { k, v in KStampArtData.v3Categories[k].map { KStampFrame.hexString($0 >> 8) } == v })
+
+    // ── the drawings: every id × tier, and every width of the tier ──
+    let draw = json["draw"] as? [String: [String: [[String: Any]]]] ?? [:]
+    let widths: [String: [CGFloat]] = ["xs": [15, 20, 24.99], "s": [25, 30, 39.99], "l": [40, 60, 80, 200]]
+    var drawn = 0
+    for id in KStampArt.ids {
+      for tier in ["xs", "s", "l"] {
+        guard let g = draw[id]?[tier] else { ok("\(id) \(tier): in golden draw", false); continue }
+        var all = true
+        var at = ""
+        for w in widths[tier] ?? [] {
+          let (match, i) = sameList(g, KStampPlan.drawList(id: id, width: w))
+          if !match { all = false; at = "at \(w)pt, element \(i)"; break }
         }
-        return ["name": p.name, "w": p.w, "h": p.h, "tilt": tilt]
-      }
-      if let out = try? JSONSerialization.data(withJSONObject: dump, options: [.sortedKeys]), let text = String(data: out, encoding: .utf8) {
-        print("DUMP " + text)
+        ok("\(id) \(tier): \(g.count) elements = the golden list" + (all ? "" : " (differs \(at))"), all)
+        drawn += g.count
       }
     }
+    ok("read every element of every tier (\(drawn))", drawn > 36 * 3 * 2)
 
-    print(fails > 0 ? "\n\(fails) FAILED" : "\nall ok")
-    exit(fails > 0 ? 1 : 0)
+    // ── every path reads, and paint stays in x 3–97, y 8–120 ──
+    let b = json["bounds"] as? [String: Double] ?? [:]
+    let limit = CGRect(x: b["x0"] ?? 0, y: b["y0"] ?? 0, width: (b["x1"] ?? 0) - (b["x0"] ?? 0), height: (b["y1"] ?? 0) - (b["y0"] ?? 0))
+    var empty: [String] = []
+    var outside: [String] = []
+    var union = CGRect.null
+    for id in KStampArt.ids {
+      for e in KStampPlan.drawList(id: id, width: 40) {
+        let p = KStampPlan.path(e.shape)
+        if p.isEmpty { empty.append(id) }
+        let r = p.boundingRect.insetBy(dx: -e.width / 2, dy: -e.width / 2)
+        union = union.union(r)
+        if !limit.insetBy(dx: -0.05, dy: -0.05).contains(r) { outside.append(id) }
+      }
+    }
+    ok("KSVGPath reads every path of all 36" + (empty.isEmpty ? "" : ": empty in \(Set(empty).sorted())"), empty.isEmpty)
+    ok("paint stays in x 3–97, y 8–120 (drawn: \(union.integral))" + (outside.isEmpty ? "" : ": out in \(Set(outside).sorted())"), outside.isEmpty && !limit.isEmpty)
+
+    // ── the fallback chain ──
+    let unknown = json["unknown"] as? [[String: Any]] ?? []
+    ok("unknown id: the frame alone in #8B7FE8 / #F1F0FC at 20, 30, 40",
+       [20, 30, 40].allSatisfy { sameList(unknown, KStampPlan.drawList(id: "no-such-stamp", width: $0)).0 }
+         && json["fallbackHex"] as? String == "#8B7FE8")
+    let fb = KStampPlan.drawList(id: "no-such-stamp", width: 40, fallbackHex: "#0099CC")
+    ok("unknown id with TS's colour: the frame in that hex's tint, ink keyline",
+       fb.count == 2 && fb.allSatisfy { $0.layer == .frame } && fb[0].fill == KStampFrame.v3Tint(0x0099CC) && fb[1].stroke == 0x1E1B35)
+    ok("a known id ignores TS's colour", KStampPlan.drawList(id: "tiny-win", width: 40, fallbackHex: "#000000").count == KStampPlan.drawList(id: "tiny-win", width: 40).count
+         && KStampPlan.colours(id: "tiny-win", fallbackHex: "#000000").hex == KStampArt.entries["tiny-win"].map { $0.hex >> 8 })
+    ok("the unknown dot is #8B7FE8", KStampPlan.plan(id: "no-such-stamp", width: 9, fallbackHex: nil).hex == 0x8B7FE8)
+
+    // ── the empty slot ──
+    let slot = json["slot"] as? [String: Any] ?? [:]
+    ok("slot: the frame path, no fill, 6u dashed 4/10, round",
+       slot["d"] as? String == KStampArtData.v3FramePath && slot["fill"] is NSNull
+         && (slot["width"] as? NSNumber)?.doubleValue == Double(KStampArtData.v3SlotWidth)
+         && (slot["dash"] as? [Double]) == KStampArtData.v3SlotDash.map(Double.init)
+         && !KStampSlot.framePath.isEmpty)
+
+    // ── the tag and the tray names ──
+    ok("the #tag's words are ink in every theme; the quiet grey #B9B5D0",
+       (json["tag"] as? [String: Any])?["text"] as? String == "#1E1B35" && KStampFrame.v3TagNeutral == 0xB9B5D0)
+    ok("tray names: nameLight on light, nameDark on Midnight, nil for an unknown id",
+       KStampArt.trayName(id: "tiny-win", dark: false) == KStampFrame.color(KStampArt.entries["tiny-win"]!.nameLight >> 8)
+         && KStampArt.trayName(id: "tiny-win", dark: true) == KStampFrame.color(KStampArt.entries["tiny-win"]!.nameDark >> 8)
+         && KStampArt.trayName(id: "no-such-stamp", dark: false) == nil)
+
+    // ── tilt (unchanged, shared) ──
+    ok("tilt: FNV-1a 32 published vectors, ±1/±2", KStampFrame.fnv1a("a") == 0xE40C_292C && KStampFrame.fnv1a("foobar") == 0xBF9C_F968 && KStampFrame.tilts == [-2, -1, 1, 2])
   }
 }

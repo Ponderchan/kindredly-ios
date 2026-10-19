@@ -9,6 +9,11 @@ import { DAY_LETTERS, MAX_IN_FLIGHT, rationPool } from "../../lib/ration";
 import { MORNING_HOUR, isNightHour, untilMorning } from "../../lib/day";
 import { channelColors } from "../../theme/post";
 
+/** the #tag's words and its no-colour fill (= components/10a/kit TOPIC_TAG_INK / TOPIC_TAG_NEUTRAL;
+    copied, not imported: kit pulls in themes.json, which plain node can't load) */
+const TOPIC_TAG_INK = "#1E1B35";
+const TOPIC_TAG_NEUTRAL = "#B9B5D0";
+
 /* THE TODAY TAB, AS DATA (10a step 5; Today 3d × 25b, 2026-10-16). Pure: no
    React, no React Native, no i18n — every word comes in through `t` /
    `fmt`, so `node src/screens/today/today-cards.test.ts` locks the rules.
@@ -666,10 +671,12 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     stampHex: st?.color ?? "",
     stampName: st?.name ?? "",
     topic,
-    // the App Store tag (owner, 2026-10-19): the stamp's colour solid, white words, every theme
-    // (kit topicTagLook draws the same); the field names stay for the Swift record
-    topicWash: st?.color ? st.color.toUpperCase() : "#6E6A85",
-    topicInk: "#FFFFFF",
+    // the App Store tag (owner, 2026-10-19): the stamp's colour solid with ink #1E1B35 words in
+    // every theme, Midnight too (white passes 4.5:1 on none of the bright hexes; stamps v3 contract
+    // §8); no colour: the quiet grey #B9B5D0 (ink on it 8.3:1). kit topicTagLook draws the same;
+    // the field names stay for the Swift record
+    topicWash: st?.color ? st.color.toUpperCase() : TOPIC_TAG_NEUTRAL,
+    topicInk: TOPIC_TAG_INK,
     topicLine: colors.line,
     body: isVoice ? "" : shown,
     bodySize: tier.size,

@@ -43,6 +43,7 @@ import {
   quotaFor,
   sendBody,
   stampSections as buildStampSections,
+  trayNameHex,
   wordsReadyFor,
   wrenLineFor,
   type ComposeMode,
@@ -191,8 +192,9 @@ export function stampVM(st: Stamp | null, tk: ThemeTokens): StampVM | null {
   return { id: st.id, tag: `#${name.toLowerCase()}`, name, color: st.color, wash: c.wash, ink: c.ink, line: c.line };
 }
 
-/** The tray's sections for the stamps it shows now: names in the stamp's channel ink against
-    the tray's soft (so they read in Midnight too), unknown ids dropped. */
+/** The tray's sections for the stamps it shows now: names in the stamp's own name colour
+    (nameLight on the light themes, nameDark on Midnight: compose-model trayNameHex, measured on
+    the tray's soft), unknown ids dropped. */
 export function traySections(p: { suggested: string[]; recent: string[]; tk: ThemeTokens }): StampSectionVM[] {
   return buildStampSections({
     suggested: { title: t("cp.forThisLetter"), ids: p.suggested },
@@ -204,7 +206,7 @@ export function traySections(p: { suggested: string[]; recent: string[]; tk: The
       const name = sname(st.name);
       // the name under a stamp in lower case, as its #name pill and the letter's tag say it (owner,
       // 2026-10-18); the set titles stay in capitals as the tray's headings
-      return { id, name: name.toLowerCase(), inkHex: channelColors(st.color, p.tk.soft).ink, a11yLabel: name };
+      return { id, name: name.toLowerCase(), inkHex: trayNameHex(st, p.tk.dark, p.tk.ink), a11yLabel: name };
     },
   });
 }

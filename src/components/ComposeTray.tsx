@@ -3,12 +3,12 @@ import { Animated, Easing, Pressable, ScrollView, Text, View, useWindowDimension
 import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
-import { MONO, P as STATIC_P, PF, channelColors } from "../theme/post";
+import { MONO, P as STATIC_P, PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
 import { Stamp } from "./Stamp";
 import { STAMP_LADDER } from "../lib/stamp-frame";
-import { trayNameFit } from "../screens/compose/compose-model";
+import { trayNameFit, trayNameHex } from "../screens/compose/compose-model";
 
 /* THE TWO ROUND KEYS UNDER THE LETTER, AND WHAT THEY OPEN.
    ────────────────────────────────────────────────────────────────────────
@@ -202,12 +202,12 @@ export type TraySection = { title: string; items: TrayStamp[] };
 
 /* THE STAMP TRAY. Given `sections` (the compose page's, built by
    compose-model stampSections: unknown ids already dropped, names in each
-   stamp's channel ink against this tray's soft), it lists those — the same
-   sections the SwiftUI page's tray shows. Without them it builds its own
-   from `suggested` and `recent`, as it always has. Names are mono 9 and
-   heads mono 10 (the 10a 9/10/11 rule), and a name's ink is worked out
-   against the tray it sits on (channelColors), so a deep stamp's name still
-   reads on Midnight's dark tray.
+   stamp's name colour), it lists those — the same sections the SwiftUI
+   page's tray shows. Without them it builds its own from `suggested` and
+   `recent`, as it always has. Names are mono 9 and heads mono 10 (the 10a
+   9/10/11 rule), and a name's colour is the stamp's nameLight on the light
+   themes and nameDark on Midnight (compose-model trayNameHex, stamps v3),
+   measured on this tray's soft: ≥ 4.5:1 on every theme.
 
    Each tile is the stamp itself at the ladder's trayTile, 30×36 (the
    owner, 2026-10-18: the App Store tray's size; 40×48 read too big for a
@@ -275,7 +275,7 @@ export function StampTray({
         const st = getStamp(id);
         const name = sname(st?.name);
         // lower case, as the #name pill says it (owner, 2026-10-18); the set titles stay in capitals
-        return { id, name: name.toLowerCase(), inkHex: channelColors(st?.color, tk.soft).ink, a11yLabel: name };
+        return { id, name: name.toLowerCase(), inkHex: trayNameHex(st, tk.dark, tk.ink), a11yLabel: name };
       });
   return (
     <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>

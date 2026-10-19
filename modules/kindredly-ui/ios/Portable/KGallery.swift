@@ -85,7 +85,7 @@ public struct KGallery: View {
         section("LONG-PRESS MENU") { menu }
       }
       Group {
-        section("STAMPS V2 · KSTAMP · ALL \(KStampArt.ids.count)") { stamps }
+        section("STAMPS V3 · KSTAMP · ALL \(KStampArt.ids.count)") { stamps }
       }
     }
     .padding(.horizontal, 16)
@@ -718,8 +718,8 @@ public struct KGallery: View {
       stampSheet(.midnight)
       caption(
         KStampArt.unread.isEmpty
-          ? "ALL \(KStampArt.ids.count) DRAWN FROM THEIR MARKS"
-          : "TEMPLATE, NO MARKS · " + KStampArt.unread.joined(separator: " · ").uppercased()
+          ? "ALL \(KStampArt.ids.count) DRAWN FROM THEIR LAYERS"
+          : "FRAME ALONE, NO DRAWING · " + KStampArt.unread.joined(separator: " · ").uppercased()
       )
     }
   }
@@ -727,7 +727,7 @@ public struct KGallery: View {
   /// One surface: the sample stamps at every flat width, then delivered, each row scrolling
   /// sideways (the dev page's LadderSheet).
   private func stampLadderSheet(_ sheet: KTheme) -> some View {
-    let flat = Self.stampFlatWidths.map { "\(Int($0)) \(KStampFrame.tier(for: $0).rawValue.uppercased())" }.joined(separator: " · ")
+    let flat = Self.stampFlatWidths.map { "\(Int($0)) \(KStampFrame.v3Tier(for: $0).rawValue.uppercased())" }.joined(separator: " · ")
     let mail = Self.stampMailWidths.map { "\(Int($0))×\(Int(KStampFrame.height($0)))" }.joined(separator: " · ")
     return VStack(alignment: .leading, spacing: 10) {
       Text("\(sheet.name.uppercased()) · FLAT").kText(.monoSection).foregroundStyle(sheet.mute)
@@ -771,10 +771,10 @@ public struct KGallery: View {
         let id = ids.isEmpty ? "" : ids[(i * 7) % ids.count]
         let letter = Self.stampLetterIds[i % Self.stampLetterIds.count]
         VStack(alignment: .leading, spacing: 6) {
-          stampCaption("\(p.name.uppercased()) · \(Int(p.w))×\(Int(p.h)) · \(KStampFrame.tier(for: p.w).rawValue.uppercased()) · \(Self.rule(p, letter: letter))", theme)
+          stampCaption("\(p.name.uppercased()) · \(Int(p.w))×\(Int(p.h)) · \(KStampFrame.v3Tier(for: p.w).rawValue.uppercased()) · \(Self.rule(p, letter: letter))", theme)
           HStack(alignment: .center, spacing: 18) {
             if p.name == KStampLadder.composeCorner.name {
-              KStampSlot(width: p.w, fill: theme.lav2, stroke: theme.ind)
+              KStampSlot(width: p.w, stroke: theme.mute)
                 .rotationEffect(.degrees(p.degrees))
             }
             KStamp(id: id, width: p.w, dark: theme.isDark, delivered: p.tilt == .letter, letterId: letter)

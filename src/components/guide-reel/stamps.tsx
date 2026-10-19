@@ -9,7 +9,8 @@ import { EnvelopeArt } from "../EnvelopeArt";
 import { STAMPS, getStamp, sname } from "../../data/stamps";
 import { OPENING_MIN } from "../../lib/weighted-count";
 import { stampHeight } from "../../lib/stamp-frame";
-import { P, PF, channelInk, channelWash } from "../../theme/post";
+import { P, PF } from "../../theme/post";
+import { TOPIC_TAG_INK, TOPIC_TAG_NEUTRAL } from "../10a/kit";
 import { t } from "../../lib/i18n";
 
 /* THE MOOD STAMPS GUIDE, AS A REEL. Five scenes, each the real part at
@@ -20,12 +21,12 @@ import { t } from "../../lib/i18n";
    photos are not built yet, so they are not in here. The ground is the
    stamp tray's own pale lavender.
 
-   THE STAMPS ARE THE REAL ONES (stamps v2, 2026-10-18): <Stamp/>, 5:6,
+   THE STAMPS ARE THE REAL ONES (stamps v3, 2026-10-19): <Stamp/>, 5:6,
    at the three widths a guide reel may use — 30×36, 40×48 or 60×72 —
    whichever is nearest the size the scene asks for at this square's size
    (snapStampWidth over GUIDE_REEL_WIDTHS), and laid out by that real
-   width and height. The reel is a light picture in every theme, so they
-   are drawn as on a light surface (dark={false}), and flat: these are
+   width and height. The reel is a light picture in every theme, so the
+   names under them are the light themes' nameLight, and the stamps are flat: these are
    stamps in an album, not stamps that came in the post. */
 
 const RM = ReduceMotion.System;
@@ -165,7 +166,7 @@ function FanStamp({ id, i, s, w, cy, fan, pick }: { id: string; i: number; s: nu
         <Stamp id={id} width={w} dark={false} />
       </View>
       {/* two lines: de "Hat meinen Tag gerettet" won't fit one at this size */}
-      <Animated.Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={[{ width: box, marginTop: s * 0.006, textAlign: "center", fontFamily: PF.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: channelInk(stamp?.color) }, name]}>
+      <Animated.Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={[{ width: box, marginTop: s * 0.006, textAlign: "center", fontFamily: PF.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: stamp?.nameLight ?? P.ink }, name]}>
         {sname(stamp?.name).toUpperCase()}
       </Animated.Text>
     </Animated.View>
@@ -275,14 +276,15 @@ function Land({ s }: { s: number }) {
       <Animated.View style={[{ position: "absolute", left: sx, top: sy }, stampSt]}>
         <Stamp id={CHOSEN} width={sw} dark={false} />
       </Animated.View>
-      {/* the bar after: the stamp's own pill, and the key in solid ink */}
+      {/* the bar after: the stamp's own pill (the App Store tag: its colour solid, ink words and
+          border, stamps v3), and the key in solid ink */}
       <View style={{ position: "absolute", left: ex, top: rowTop, width: ew }}>
         <Rise delay={1300} dy={s * 0.04}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: s * 0.025, height: kh }}>
-            <View style={{ height: kh, maxWidth: ew * 0.46, borderRadius: kh / 2, borderWidth: bw, borderColor: stamp?.color ?? P.pen, backgroundColor: channelWash(stamp?.color), paddingHorizontal: s * 0.03, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ height: kh, maxWidth: ew * 0.46, borderRadius: kh / 2, borderWidth: bw, borderColor: TOPIC_TAG_INK, backgroundColor: stamp?.color ?? TOPIC_TAG_NEUTRAL, paddingHorizontal: s * 0.03, alignItems: "center", justifyContent: "center" }}>
               {/* two lines allowed: de/it names run to 23 characters and the
                   pill here is narrower than the real one (148pt) */}
-              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={{ textAlign: "center", fontFamily: PF.monoMed, fontSize: s * 0.036, color: channelInk(stamp?.color) }}>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={{ textAlign: "center", fontFamily: PF.monoMed, fontSize: s * 0.036, color: TOPIC_TAG_INK }}>
                 #{sname(stamp?.name).toLowerCase()}
               </Text>
             </View>

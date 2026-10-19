@@ -13,7 +13,7 @@
    read becomes the template (no marks) without touching the others. */
 
 import { readFileSync } from "node:fs";
-import { LAYERS, OUT, arcToCurves, buildSwift, paint, parsePath, readMark, readSources, swiftMark } from "./gen-stamp-art-swift.mjs";
+import { LAYERS, LAYERS_V3, OUT, arcToCurves, buildSwift, paint, parsePath, readElV3, readMark, readSources, swiftEl, swiftMark, tintOf } from "./gen-stamp-art-swift.mjs";
 
 let fails = 0;
 const ok = (name, cond) => {
@@ -201,6 +201,87 @@ const onEllipse = (x0, y0, curves, cx, cy, rx, ry, eps) => {
   ok("an arc to its own start draws nothing", ops(parsePath("M5,5a3,3 0 1 0 0,0")) === "M");
   const small = arcToCurves(0, 0, 1, 1, 0, false, true, 10, 0); // radius too small: scaled up to reach
   ok("a radius too small to reach is scaled up (a half circle of radius 5)", onEllipse(0, 0, small, 5, 0, 5, 5, 1e-3));
+}
+
+/* ── stamps v3 (owner, 2026-10-19): KStampArtData.v3 round-trips stamp-art-v3.ts ── */
+
+{
+  const v3 = src.v3;
+  ok("stamp-art-v3.ts: 36 drawings, the four own layers each", stamps.every((s) => Object.keys(v3.art[s.id] ?? {}).join() === LAYERS_V3.join()));
+  ok("stamps.ts gives every stamp a nameLight and a nameDark", stamps.every((s) => /^#[0-9A-F]{6}$/i.test(s.nameLight ?? "") && /^#[0-9A-F]{6}$/i.test(s.nameDark ?? "")));
+  ok("all 36 v3 stamps read (none drawn as a bare frame)", built.v3.entries.every((e) => e.layers) && built.ignoredV3.length === 0);
+  const vcount = (L) => stamps.reduce((n, s) => n + v3.art[s.id][L].length, 0);
+  ok("every v3 element becomes one KStampEl", LAYERS_V3.every((L) => built.v3.counts[L] === vcount(L)));
+  ok("the v3 frame path and frame layer are written", committed.includes(`static let v3FramePath = ${JSON.stringify(v3.framePath)}`) && committed.includes("static let v3Frame: [KStampEl] = [.p(v3FramePath, .tint, .tint, 14), .p(v3FramePath, .tint, .ink, 6)]"));
+  ok("the ink role is 0x1E1B35FF, the tint mix 0.88, the fallback #8B7FE8", /static let v3Ink: UInt32 = 0x1E1B35FF/.test(committed) && /static let v3TintMix: CGFloat = 0\.88/.test(committed) && /static let v3FallbackHex: UInt32 = 0x8B7FE8FF/.test(committed));
+  ok("the tint is mix(hex, white, 0.88) half up (never-told #9774F0 → #F3EEFD, the palette's)", tintOf("#9774F0") === 0xf3eefdff);
+  ok("the six category colours are written", cats.every((c) => committed.includes(`${JSON.stringify(c.id)}: 0x${c.color.slice(1).toUpperCase()}FF,`)));
+
+  // read the committed v3 table back
+  const V3ENTRY = /^ {4}KStampV3Entry\("([^"]+)", category: "([^"]+)", hex: (0x[0-9A-F]{8}), tint: (0x[0-9A-F]{8}), nameLight: (0x[0-9A-F]{8}), nameDark: (0x[0-9A-F]{8})(, rims: \[\], body: \[\], marks: \[\], face: \[\]\),|,)$/;
+  const V3OPEN = /^ {6}(rims|body|marks|face): \[(\],?)?$/;
+  const V3EL = /^ {8}(\.[pce]\(.*\)),$/;
+  const back3 = new Map();
+  let cur = null;
+  let lay = null;
+  let stray3 = 0;
+  let inV3 = false;
+  for (const line of committed.split("\n")) {
+    if (/^ {2}static let v3: \[KStampV3Entry\] = \[$/.test(line)) { inV3 = true; continue; }
+    if (inV3 && /^ {2}\]$/.test(line)) { inV3 = false; continue; }
+    if (!inV3) continue;
+    const e = V3ENTRY.exec(line);
+    if (e) {
+      cur = { id: e[1], cat: e[2], hex: e[3], tint: e[4], nameLight: e[5], nameDark: e[6], rims: [], body: [], marks: [], face: [] };
+      back3.set(e[1], cur);
+      lay = null;
+      continue;
+    }
+    const o = V3OPEN.exec(line);
+    if (o) { lay = o[2] ? null : o[1]; continue; }
+    if (/^ {6}\],?$/.test(line)) { lay = null; continue; }
+    const m = V3EL.exec(line);
+    if (m) { if (!cur || !lay) stray3++; else cur[lay].push(m[1]); continue; }
+    if (/^ {4}\),$/.test(line) || /^ {4}\/\/ ── /.test(line)) continue;
+    stray3++;
+  }
+  ok("every line of the v3 table reads back", stray3 === 0);
+  ok("the v3 table lists the 36 in stamps.ts order", [...back3.keys()].join() === stamps.map((s) => s.id).join());
+  const hx = (c) => "0x" + c.slice(1).toUpperCase() + "FF";
+  ok("every v3 entry carries its category, hex, tint, nameLight and nameDark", stamps.every((s) => {
+    const b = back3.get(s.id);
+    return b && b.cat === s.cat && b.hex === hx(s.color) && parseInt(b.tint, 16) === tintOf(s.color) && b.nameLight === hx(s.nameLight) && b.nameDark === hx(s.nameDark);
+  }));
+  let elMatch = true;
+  for (const s of stamps) for (const L of LAYERS_V3) {
+    const want = v3.art[s.id][L].map((e) => swiftEl(readElV3(e)));
+    const got = back3.get(s.id)?.[L] ?? [];
+    if (want.join("\n") !== got.join("\n")) { elMatch = false; console.log(`     ${s.id} ${L}: differs`); }
+  }
+  ok("every v3 element's geometry, roles and width are copied verbatim, in order", elMatch);
+
+  ok("an element: path / circle / ellipse as .p / .c / .e with its roles and width",
+    swiftEl(readElV3({ el: "path", d: "M0,0L1,1", fill: "none", stroke: "ink", width: 6, cap: "round", join: "round" })) === '.p("M0,0L1,1", .none, .ink, 6)' &&
+      swiftEl(readElV3({ el: "circle", cx: 40.4, cy: 42.4, r: 10.7, fill: "ink", stroke: "none" })) === ".c(40.4, 42.4, 10.7, .ink, .none, 0)" &&
+      swiftEl(readElV3({ el: "ellipse", cx: 1, cy: 2, rx: 3, ry: 4, fill: "tint", stroke: "none" })) === ".e(1, 2, 3, 4, .tint, .none, 0)");
+  ok("refuses paint that isn't a role (a hex literal)", throws(() => readElV3({ el: "path", d: "M0,0Z", fill: "#FFFFFF", stroke: "none" })));
+  ok("refuses a stroke with no width, or not round", throws(() => readElV3({ el: "path", d: "M0,0L1,1", fill: "none", stroke: "ink" })) && throws(() => readElV3({ el: "path", d: "M0,0L1,1", fill: "none", stroke: "ink", width: 6, cap: "butt", join: "round" })));
+  ok("refuses an unknown kind or key, and path data the reader would cut short",
+    throws(() => readElV3({ el: "rect", fill: "hex", stroke: "none" })) && throws(() => readElV3({ el: "circle", cx: 1, cy: 1, r: 1, fill: "hex", stroke: "none", opacity: 1 })) && throws(() => readElV3({ el: "path", d: "M0,0L1", fill: "hex", stroke: "none" })));
+  {
+    const ids = stamps.map((s) => s.id);
+    const broken = structuredClone(v3.art);
+    broken[ids[0]].body[0].fill = "#123456";
+    delete broken[ids[1]];
+    const r = buildSwift({ ...src, v3: { ...v3, art: broken } });
+    const bad = r.v3.entries.filter((e) => !e.layers).map((e) => e.id);
+    ok("a v3 stamp that can't be read is written with empty layers (its frame alone), named, the rest untouched",
+      bad.join() === ids.slice(0, 2).join() && ids.slice(0, 2).every((id) => new RegExp(`KStampV3Entry\\("${id}", [^\n]*, rims: \\[\\], body: \\[\\], marks: \\[\\], face: \\[\\]\\),`).test(r.swift)) && r.v3.entries.filter((e) => e.layers).length === 34);
+  }
+  {
+    const r = buildSwift({ ...src, art: null });
+    ok("without stamp-art-v2.ts the v2 table is left out and the v3 one stays", !r.swift.includes("static let stamps: [KStampArtEntry]") && r.swift.includes("static let v3: [KStampV3Entry] = [") && /\n\}\n$/.test(r.swift));
+  }
 }
 
 /* ── what can't be read becomes the template, alone ── */

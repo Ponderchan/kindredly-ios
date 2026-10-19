@@ -324,6 +324,51 @@ public enum KStampFrame {
   }
 }
 
+// MARK: - STAMPS v3 (owner, 2026-10-19; .claude/stamp-design/v3/INTEGRATION.md §4)
+
+/*
+ v3 draws one drawing per stamp (Kit/KStampArtData.swift `v3`, five layers on the 100 × 120 box,
+ three colours: the hex, ink #1E1B35 and tint = mix(hex, white, 0.88)) and no frame by code: the
+ frame layer IS the paper and its keyline. What the width decides is only which layers are kept
+ (KStampLayer.kept(width:), generated beside the data) and whether delivered mail tilts. The v2
+ tiers above (KStampTier, the perforated silhouettes, the window, the grounds, the keyline) stay
+ for design/stamps-v2/golden.json until the reviewer deletes them; nothing draws them any more.
+ */
+
+/// The v3 level of detail by rendered width (lib/stamp-frame StampTierV3, the kit's tierFor plus
+/// the app's dot): below 15 a 6pt dot of the hex; 15–24.99 frame, rims, body; 25–39.99 + face;
+/// from 40 all five layers, and delivered mail tilts by its letter.
+public enum KStampTierV3: String, CaseIterable, Sendable {
+  case dot, xs, s, l
+}
+
+extension KStampFrame {
+  /// tint = mix(hex, white, this), each channel rounded half up
+  public static let v3TintMix = 0.88
+  /// v3's ink, in every theme (Midnight too)
+  public static let v3Ink: UInt32 = 0x1E1B35
+  /// the quiet grey a #tag with no stamp colour takes (ink words on it 8.3:1)
+  public static let v3TagNeutral: UInt32 = 0xB9B5D0
+
+  /// The v3 tier a rendered width (pt) falls in. Below 15 (or not a number): .dot.
+  public static func v3Tier(for width: CGFloat) -> KStampTierV3 {
+    guard width >= 15 else { return .dot }
+    if width < 25 { return .xs }
+    if width < 40 { return .s }
+    return .l
+  }
+
+  /// Delivered mail at this width tilts by its letter (40 and up).
+  public static func v3TiltsAt(_ width: CGFloat) -> Bool {
+    v3Tier(for: width) == .l
+  }
+
+  /// mix(hex, white, 0.88), half up, as 0xRRGGBB (lib/stamp-frame stampTint)
+  public static func v3Tint(_ hex: UInt32) -> UInt32 {
+    mix(hex, white, v3TintMix)
+  }
+}
+
 // MARK: - The ladder (spec §2.8): placements pass a width from here only
 
 /// stamp-frame StampTiltRule: 0 or a fixed angle (degrees); .letter: tilt(letterId) of the

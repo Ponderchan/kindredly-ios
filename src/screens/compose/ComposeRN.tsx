@@ -45,13 +45,12 @@ import { countBrand } from "./compose-model";
    (the gesture would otherwise pop the page past the leave guard); the
    count near the ceiling takes compose-model's brass (countBrand).
 
-   THE STAMP CORNER (stamps v2, owner 2026-10-18). It keeps its App Store
-   place, its 8° and its 50pt hit area; what sits in it is now the stamp
+   THE STAMP CORNER (stamps v3, owner 2026-10-19). It keeps its App Store
+   place, its 8° and its 50pt hit area; what sits in it is the stamp
    itself at the ladder's composeCorner, 40×48 — your own stamp, so flat:
-   no letter tilt, no postmark. Before one is chosen it is the same
-   perforated silhouette drawn dashed in ind on lav2 (StampSlot), where the
-   44 dashed square used to be, so choosing a stamp fills the outline it
-   was promised. The toolbar's round stamp key and the #name pill stay
+   no letter tilt, no postmark. Before one is chosen it is the v3 frame
+   alone, unfilled, dashed 4/10 in the theme's mute (StampSlot, contract
+   §7), so choosing a stamp fills the outline it was promised. The toolbar's round stamp key and the #name pill stay
    exactly as they are. */
 const CORNER = STAMP_LADDER.composeCorner;
 const CORNER_DEG = typeof CORNER.tilt === "number" ? CORNER.tilt : 0;
@@ -115,7 +114,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
                 <Stamp id={state.sel} width={CORNER.w} />
               ) : (
                 /* the corner where the stamp goes, still empty: its outline */
-                <StampSlot width={CORNER.w} fill={tk.lav2} stroke={tk.ind} />
+                <StampSlot width={CORNER.w} stroke={tk.mute} />
               )}
             </View>
           </Pressable>

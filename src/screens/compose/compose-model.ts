@@ -298,6 +298,22 @@ export function stampSections(p: {
   return out;
 }
 
+/* A TRAY NAME'S COLOUR (the bright palette, owner 2026-10-19). The name under a stamp in the tray
+   is drawn in the stamp's own name shade, not the stamp colour and not a walked channel ink:
+   `nameLight` (the palette's name_classic, OKLCH L 0.52 at the hex's hue) on the light themes —
+   Classic, Lavender, Paper — and `nameDark` (name_midnight, the hex itself) on Midnight. Both are
+   data/stamps.ts fields; measured on the tray's ground (tk.soft) every one clears 4.5:1 (4.74+ on
+   the light themes, 4.85+ on Midnight). Pure: the caller passes the stamp (or null), whether the
+   theme is dark, and the theme's ink for a stamp with no shades (an id stamps.ts doesn't know). */
+export function trayNameHex(
+  stamp: { nameLight?: string | null; nameDark?: string | null } | null | undefined,
+  dark: boolean,
+  inkFallback: string,
+): string {
+  const c = dark ? stamp?.nameDark : stamp?.nameLight;
+  return c && /^#[0-9a-f]{6}$/i.test(c) ? c.toUpperCase() : inkFallback;
+}
+
 /* A TRAY NAME'S SIZE (the owner, 2026-10-18: most names on one line). The tray's names are set in
    the mono, whose every Latin glyph is 0.6 em wide (a CJK or other wide glyph a whole em), so
    whether a name fits its column is arithmetic, not a measurement: one line at 9 if it fits, else

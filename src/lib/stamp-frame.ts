@@ -1,4 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════
+   STAMPS v3 (owner, 2026-10-19) LIVE AT THE END OF THIS FILE: the v3 tiers
+   (which layers a width keeps, the dot below 15), the colour roles, the
+   draw list and the empty slot; the ladder, the tilt and StampTiltRule
+   below are shared by v2 and v3 and stay. Everything marked @deprecated is
+   v2 only and goes once the renderers have moved (INTEGRATION.md).
+
    STAMP v2 · THE FRAME AS CODE (stamp-spec §2 and §3; the owner approved
    the 36-stamp set on 2026-10-18). Everything about a stamp that is not
    its drawing: the tier a rendered width falls in, the perforated 5:6
@@ -22,6 +28,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 import { hashStr } from "./mosaic";
+import type { StampArtV3, StampEl, StampLayer, StampRole } from "../data/stamp-art-v3";
 
 /* ── the box (spec §2.1, §2.4) ───────────────────────────────────────── */
 
@@ -34,14 +41,18 @@ export interface StampRect {
 
 /** the authoring box: 100 × 120 units, 5:6 */
 export const STAMP_BOX: Readonly<StampRect> = Object.freeze({ x: 0, y: 0, width: 100, height: 120 });
-/** the printed window: 80 × 100u, exactly 4:5, square corners; everything drawn is clipped to it.
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the printed window: 80 × 100u, exactly 4:5, square corners; everything drawn is clipped to it.
     Also the DIY crop box. */
 export const STAMP_WINDOW: Readonly<StampRect> = Object.freeze({ x: 10, y: 10, width: 80, height: 100 });
-/** where drawn motifs must stay: the window inset 8u (the importer refuses ink outside it) */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    where drawn motifs must stay: the window inset 8u (the importer refuses ink outside it) */
 export const STAMP_SAFE_AREA: Readonly<StampRect> = Object.freeze({ x: 18, y: 18, width: 64, height: 84 });
-/** the 62u motif square, centred horizontally, centre y 58 (2u above the window's centre) */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the 62u motif square, centred horizontally, centre y 58 (2u above the window's centre) */
 export const STAMP_MOTIF_BOX: Readonly<StampRect> = Object.freeze({ x: 19, y: 27, width: 62, height: 62 });
-/** the one stroke weight of the drawings, in box units (2.16pt at the 50-wide card) */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the one stroke weight of the drawings, in box units (2.16pt at the 50-wide card) */
 export const STAMP_STROKE_U = 4.31;
 /** below the chip there is no stamp: a dot of the field colour this wide (pt) */
 export const STAMP_DOT_PT = 6;
@@ -51,8 +62,10 @@ export const stampHeight = (width: number): number => (width * 6) / 5;
 
 /* ── tiers (spec §2.2, §2.3): the level of detail by rendered width ──── */
 
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export type StampTier = "dot" | "chip" | "xs" | "s" | "m" | "l" | "xl";
 
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export interface StampTierSpec {
   tier: StampTier;
   /** the narrowest rendered width (pt, inclusive) in this tier; the next tier's minWidth ends it */
@@ -78,6 +91,7 @@ export interface StampTierSpec {
   delivered: boolean;
 }
 
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export const STAMP_TIERS: readonly Readonly<StampTierSpec>[] = Object.freeze([
   { tier: "dot", minWidth: 0, nx: 0, ny: 0, r: 0, paper: false, motif: "none", ground: false, soft: "none", minStrokePt: 0, keylinePt: 0, delivered: false },
   { tier: "chip", minWidth: 15, nx: 5, ny: 6, r: 6, paper: false, motif: "none", ground: false, soft: "none", minStrokePt: 0, keylinePt: 0, delivered: false },
@@ -90,7 +104,8 @@ export const STAMP_TIERS: readonly Readonly<StampTierSpec>[] = Object.freeze([
 
 const SPEC_BY_TIER = Object.fromEntries(STAMP_TIERS.map((s) => [s.tier, s])) as Record<StampTier, Readonly<StampTierSpec>>;
 
-/** The tier a rendered width (pt) falls in. Below 15 (or not a number): "dot", no stamp. */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    The tier a rendered width (pt) falls in. Below 15 (or not a number): "dot", no stamp. */
 export function tierFor(width: number): StampTier {
   if (!(width >= 15)) return "dot";
   if (width < 20) return "chip";
@@ -101,10 +116,13 @@ export function tierFor(width: number): StampTier {
   return "xl";
 }
 
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export const tierSpec = (tier: StampTier): Readonly<StampTierSpec> => SPEC_BY_TIER[tier];
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export const tierSpecFor = (width: number): Readonly<StampTierSpec> => SPEC_BY_TIER[tierFor(width)];
 
-/** The stroke width to draw the art with at a rendered width, in box units: 4.31u, or more when
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    The stroke width to draw the art with at a rendered width, in box units: 4.31u, or more when
     that would fall under the tier's minimum on screen (XS 1.5pt, S and up 1.25pt). */
 export function strokeU(width: number): number {
   const s = tierSpecFor(width);
@@ -116,7 +134,8 @@ export function strokeU(width: number): number {
 
 const f3 = (v: number): string => v.toFixed(3);
 
-/**
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+   
  * The perforated paper on 0 0 100 120: semicircular bites centred on the edge line at k·pitch
  * (pitch = 100 / nx = 120 / ny) for k = 0…n, so every corner is a quarter-circle notch; bite
  * radius 0.3 × pitch. A port of .claude/ui10a-research/identity/stamps/tools/build.py
@@ -154,7 +173,8 @@ export function silhouetteFor(nx: number, ny: number): string {
 
 const SILHOUETTES = new Map<StampTier, string>();
 
-/** The silhouette of a tier ("" for the dot: there is no stamp). */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    The silhouette of a tier ("" for the dot: there is no stamp). */
 export function silhouetteForTier(tier: StampTier): string {
   const s = SPEC_BY_TIER[tier];
   if (!s || !s.nx) return "";
@@ -166,11 +186,13 @@ export function silhouetteForTier(tier: StampTier): string {
   return d;
 }
 
-/** The 5:6 paper with its perforation for a rendered width, as SVG path data on 0 0 100 120.
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    The 5:6 paper with its perforation for a rendered width, as SVG path data on 0 0 100 120.
     "" below 15pt (the dot tier: draw a STAMP_DOT_PT circle of the field colour instead). */
 export const silhouettePath = (width: number): string => silhouetteForTier(tierFor(width));
 
-/** The field's rect for a rendered width: the window from S up; the whole box at chip and XS,
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    The field's rect for a rendered width: the window from S up; the whole box at chip and XS,
     where the field is the stamp (clip it to the silhouette). */
 export function windowRect(width: number): Readonly<StampRect> {
   return SPEC_BY_TIER[tierFor(width)].paper ? STAMP_WINDOW : STAMP_BOX;
@@ -180,7 +202,8 @@ export function windowRect(width: number): Readonly<StampRect> {
 
 export type StampCategory = "confessions" | "almosts" | "latenights" | "small" | "becoming" | "missing";
 
-/** Each category's ground as path data on 0 0 100 120, already inside the window (build.py
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    Each category's ground as path data on 0 0 100 120, already inside the window (build.py
     ground(); the far lamp is written as the quarter disc the window leaves of its circle). Fill
     with groundHex(hex), behind the motif, from M up. */
 export const STAMP_GROUNDS: Readonly<Record<StampCategory, string>> = Object.freeze({
@@ -192,7 +215,8 @@ export const STAMP_GROUNDS: Readonly<Record<StampCategory, string>> = Object.fre
   missing: "M90,10V48A38,38 0 0 1 52,10Z", // far lamp, a quarter disc r 38 in the top-right corner
 });
 
-/** A category's series ground ("" for a category that has none). */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    A category's series ground ("" for a category that has none). */
 export function groundPath(category: string): string {
   return Object.prototype.hasOwnProperty.call(STAMP_GROUNDS, category) ? STAMP_GROUNDS[category as StampCategory] : "";
 }
@@ -202,16 +226,23 @@ export function groundPath(category: string): string {
 export const STAMP_WHITE = "#FFFFFF";
 /** the last fallback (spec §2.11): the template in this tint with no motif */
 export const STAMP_FALLBACK_HEX = "#8B7FE8";
-/** ln in Classic, Lavender and Paper: the keyline on light themes */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    ln in Classic, Lavender and Paper: the keyline on light themes */
 export const STAMP_INK_LIGHT = "#1E1B35";
-/** ln in Midnight */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    ln in Midnight */
 export const STAMP_INK_DARK = "#D4D0EA";
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export const STAMP_PAPER_LIGHT = "#FFFFFF";
-/** Midnight's paper: cool, from its own ink family, deliberately not cream */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    Midnight's paper: cool, from its own ink family, deliberately not cream */
 export const STAMP_PAPER_DARK = "#ECE9F4";
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export const STAMP_SOFT_MIX = 0.55;
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export const STAMP_GROUND_MIX = 0.2;
-/** the light keyline's opacity: one constant (spec §2.3: step it to 0.55 if device review asks) */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the light keyline's opacity: one constant (spec §2.3: step it to 0.55 if device review asks) */
 export const STAMP_KEYLINE_OPACITY = 0.4;
 
 const rgbOf = (hex: string): number[] | null => {
@@ -229,13 +260,17 @@ export function mixHex(a: string, b: string, t: number): string {
   return "#" + A.map((x, i) => Math.round(x + (B[i] - x) * t).toString(16).toUpperCase().padStart(2, "0")).join("");
 }
 
-/** the soft plate (secondary marks): mix(hex, white, 0.55) */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the soft plate (secondary marks): mix(hex, white, 0.55) */
 export const softHex = (hex: string): string => mixHex(hex, STAMP_WHITE, STAMP_SOFT_MIX);
-/** the series ground: mix(hex, white, 0.20) */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the series ground: mix(hex, white, 0.20) */
 export const groundHex = (hex: string): string => mixHex(hex, STAMP_WHITE, STAMP_GROUND_MIX);
-/** the paper: white on the light themes, #ECE9F4 on Midnight */
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+    the paper: white on the light themes, #ECE9F4 on Midnight */
 export const paperHex = (themeDark: boolean): string => (themeDark ? STAMP_PAPER_DARK : STAMP_PAPER_LIGHT);
 
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file). */
 export interface StampEdge {
   /** "keyline": ln at 40% (light); "rim": the 1pt paper rim of chip and XS on a dark surface */
   kind: "keyline" | "rim";
@@ -245,7 +280,8 @@ export interface StampEdge {
   widthPt: number;
 }
 
-/**
+/** @deprecated stamps v2 only (see STAMPS v3 at the end of this file).
+   
  * The stamp's edge stroke (spec §2.3, §2.6). Light: ln at 40%, S 0.75 / M 1 / L 1.25 / XL 1.5pt,
  * none at chip and XS. Dark (Midnight, or any dark surface such as the Live Activity): no keyline;
  * chip and XS get a 1pt paper rim. null when nothing is stroked. No stamp ever has a shadow.
@@ -341,3 +377,165 @@ export type StampPlacementName = keyof typeof STAMP_LADDER;
 
 /** store, OG and landing masters, in px (XL @5x), regenerated from the vectors */
 export const STAMP_STORE_MASTER_PX = Object.freeze({ w: 1000, h: 1200 });
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STAMPS v3 · B "CHARACTER" (owner, 2026-10-19). The contract is
+   .claude/stamp-design/v3/INTEGRATION.md; this is its code.
+
+   The drawing is the whole stamp now. data/stamp-art-v3.ts (written by
+   scripts/import-stamp-art-v3.mjs from the kit's SVGs) holds each of the 36
+   as five layers of plain elements — frame, rims, body, marks, face, in
+   that draw order — whose paint is a colour ROLE, never a hex. This
+   section resolves the roles, decides which layers a width keeps, and
+   holds the empty slot. Nothing else is drawn by code: no paper, window,
+   ground, keyline or rim (the frame layer is the perforated paper and its
+   ink keyline), and one drawing serves every theme (the ink is never
+   swapped for the theme's light ink on Midnight).
+
+   Colour roles, per stamp:
+     hex   the stamp's colour: data/stamps.ts `color` (the bright palette)
+     ink   #1E1B35, always
+     tint  mixHex(hex, #FFFFFF, 0.88), rounded half up per channel
+     none  not painted
+   Strokes are always round-capped and round-joined; stroke widths are in
+   box units and scale with the stamp (no minimum on screen: the tiers drop
+   whole layers instead).
+
+   Tiers (the kit's tierFor/tierSVG, plus the app's dot):
+     < 15   dot: no stamp, a STAMP_DOT_PT circle of the hex
+     15–24  xs:  frame, rims, body          (the colour and the silhouette)
+     25–39  s:   frame, rims, body, face    (no marks)
+     ≥ 40   l:   all five; delivered mail tilts by its letter (tilt())
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** the ink role: edges, eye rings, pupils, lids, lines on the paper; the #tag's words; never theme-swapped */
+export const STAMP_V3_INK = "#1E1B35";
+/** tint = mix(hex, white, this) */
+export const STAMP_V3_TINT_MIX = 0.88;
+/** the five layers, in draw order */
+export const STAMP_V3_LAYERS: readonly StampLayer[] = Object.freeze(["frame", "rims", "body", "marks", "face"]);
+
+export type StampV3Tier = "dot" | "xs" | "s" | "l";
+
+export interface StampV3TierSpec {
+  tier: StampV3Tier;
+  /** the narrowest rendered width (pt, inclusive) in this tier */
+  minWidth: number;
+  /** the layers drawn, in draw order (none for the dot) */
+  layers: readonly StampLayer[];
+  /** delivered mail at this size tilts by its letter (l only) */
+  delivered: boolean;
+}
+
+export const STAMP_V3_TIERS: readonly Readonly<StampV3TierSpec>[] = Object.freeze([
+  { tier: "dot", minWidth: 0, layers: Object.freeze([]), delivered: false },
+  { tier: "xs", minWidth: 15, layers: Object.freeze(["frame", "rims", "body"]), delivered: false },
+  { tier: "s", minWidth: 25, layers: Object.freeze(["frame", "rims", "body", "face"]), delivered: false },
+  { tier: "l", minWidth: 40, layers: Object.freeze(["frame", "rims", "body", "marks", "face"]), delivered: true },
+] satisfies StampV3TierSpec[]);
+
+const V3_SPEC = Object.fromEntries(STAMP_V3_TIERS.map((s) => [s.tier, s])) as Record<StampV3Tier, Readonly<StampV3TierSpec>>;
+
+/** The v3 tier a rendered width (pt) falls in. Below 15 (or not a number): "dot". */
+export function stampTierV3(width: number): StampV3Tier {
+  if (!(width >= 15)) return "dot";
+  if (width < 25) return "xs";
+  if (width < 40) return "s";
+  return "l";
+}
+export const stampTierSpecV3 = (width: number): Readonly<StampV3TierSpec> => V3_SPEC[stampTierV3(width)];
+/** the layers a width draws, in order ([] below 15: draw the dot) */
+export const stampLayersFor = (width: number): readonly StampLayer[] => V3_SPEC[stampTierV3(width)].layers;
+/** whether a delivered stamp at this width tilts by its letter (tilt(letterId)); else 0° */
+export const stampTiltsAtV3 = (width: number): boolean => V3_SPEC[stampTierV3(width)].delivered;
+
+/** the tint of a stamp colour: mix(hex, white, 0.88), half up (the kit's tintOf) */
+export const stampTint = (hex: string): string => mixHex(hex, STAMP_WHITE, STAMP_V3_TINT_MIX);
+
+export interface StampV3Colours {
+  hex: string;
+  ink: string;
+  tint: string;
+}
+
+const HEX6 = /^#?[0-9a-f]{6}$/i;
+/** A stamp's three colours from its hex (data/stamps.ts `color`). A missing or malformed hex
+    reads as STAMP_FALLBACK_HEX, never NaN on screen. */
+export function stampColoursV3(hex: string | null | undefined): StampV3Colours {
+  const h = hex && HEX6.test(hex.trim()) ? mixHex(hex, STAMP_WHITE, 0) : STAMP_FALLBACK_HEX;
+  return { hex: h, ink: STAMP_V3_INK, tint: stampTint(h) };
+}
+
+/** a role as a colour (#RRGGBB in capitals), null for "none" */
+export function stampRoleHex(role: StampRole, c: StampV3Colours): string | null {
+  return role === "hex" ? c.hex : role === "ink" ? c.ink : role === "tint" ? c.tint : null;
+}
+
+type V3Geometry =
+  | { el: "path"; d: string }
+  | { el: "circle"; cx: number; cy: number; r: number }
+  | { el: "ellipse"; cx: number; cy: number; rx: number; ry: number };
+
+/** one element as drawn: its geometry on the 100 × 120 box, resolved paint, and its layer */
+export type StampDrawEl = V3Geometry & {
+  layer: StampLayer;
+  fill: string | null;
+  stroke: string | null;
+  /** stroke width in box units (0 when stroke is null) */
+  width: number;
+  cap: "round";
+  join: "round";
+};
+
+/** the frame path (the kit's FRAME_D): the perforated paper at x10 y25 w80 h88, r7, bites r5 (3 × 4) */
+export const STAMP_V3_FRAME_D =
+  "M17,25L23,25A5,5 0 0 0 33,25L45,25A5,5 0 0 0 55,25L67,25A5,5 0 0 0 77,25L83,25A7,7 0 0 1 90,32L90,36.25A5,5 0 0 0 90,46.25L90,54.75A5,5 0 0 0 90,64.75L90,73.25A5,5 0 0 0 90,83.25L90,91.75A5,5 0 0 0 90,101.75L90,106A7,7 0 0 1 83,113L77,113A5,5 0 0 0 67,113L55,113A5,5 0 0 0 45,113L33,113A5,5 0 0 0 23,113L17,113A7,7 0 0 1 10,106L10,101.75A5,5 0 0 0 10,91.75L10,83.25A5,5 0 0 0 10,73.25L10,64.75A5,5 0 0 0 10,54.75L10,46.25A5,5 0 0 0 10,36.25L10,32A7,7 0 0 1 17,25Z";
+
+/** The frame layer, the same in all 36 (data/stamp-art-v3 STAMP_V3_FRAME holds the same two):
+    the tint rim (14u, under) and the keyline (tint paper fill, ink 6u stroke). An id with no
+    drawing is drawn as this alone. */
+export const STAMP_V3_FRAME_ELS: readonly StampEl[] = Object.freeze([
+  { el: "path", d: STAMP_V3_FRAME_D, fill: "tint", stroke: "tint", width: 14, cap: "round", join: "round" },
+  { el: "path", d: STAMP_V3_FRAME_D, fill: "tint", stroke: "ink", width: 6, cap: "round", join: "round" },
+] satisfies StampEl[]);
+
+/**
+ * What to draw for a stamp at a width, bottom to top: the layers its tier keeps, each element
+ * with its paint resolved from `hex` (data/stamps.ts `color` of that id). `art` is
+ * STAMP_ART_V3[id]; null/undefined (an id this build has no drawing for) draws the frame layer
+ * alone, in `hex` or, without one, STAMP_FALLBACK_HEX. [] below 15pt: draw the dot instead
+ * (STAMP_DOT_PT wide, filled with stampColoursV3(hex).hex). Pure; renderers cache it per id/width.
+ */
+export function stampDrawListV3(art: StampArtV3 | null | undefined, hex: string | null | undefined, width: number): StampDrawEl[] {
+  const layers = stampLayersFor(width);
+  if (!layers.length) return [];
+  const c = stampColoursV3(hex);
+  const out: StampDrawEl[] = [];
+  for (const layer of layers) {
+    const list: readonly StampEl[] = art ? art[layer] ?? [] : layer === "frame" ? STAMP_V3_FRAME_ELS : [];
+    for (const e of list) {
+      const stroke = stampRoleHex(e.stroke, c);
+      out.push({ ...e, layer, fill: stampRoleHex(e.fill, c), stroke, width: stroke ? e.width ?? 0 : 0, cap: "round", join: "round" });
+    }
+  }
+  return out;
+}
+
+/** The empty slot (the compose corner before a stamp is chosen, 40×48 at 8°): the frame path
+    alone, fill none, no rim, no break-out; stroke 6u dashed 4/10 with round caps (≈10u dashes,
+    4u gaps). The stroke is UI chrome: the theme's `mute` token (Classic and Lavender #8A86A3,
+    Midnight #8F8BAA, Paper #8E8878); `light`/`dark` are the kit's two reference values. */
+export const STAMP_V3_SLOT = Object.freeze({
+  d: STAMP_V3_FRAME_D,
+  width: 6,
+  dash: Object.freeze([4, 10]) as readonly number[],
+  cap: "round" as const,
+  join: "round" as const,
+  light: "#8A86A3",
+  dark: "#8F8BAA",
+});
+
+/** Where a v3 stamp's paint lands on the 100 × 120 box, over all 36 (strokes included): the frame
+    and its rim fill x3–97 × y18–120; the break-out's rim tops out at y8 at the highest (ink at
+    y12–16). Nothing reaches outside the box, so nothing is clipped and a placement sizes by the box. */
+export const STAMP_V3_FRAME_BOUNDS: Readonly<StampRect> = Object.freeze({ x: 3, y: 18, width: 94, height: 102 });

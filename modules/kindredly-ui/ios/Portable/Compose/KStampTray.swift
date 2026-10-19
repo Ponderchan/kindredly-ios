@@ -8,12 +8,13 @@ import SwiftUI
  (stamps read off the letter itself), RECENTLY USED, then the six categories of six — each under
  its head in mono 600 10 at .14em in mute, six to a row. A tile is the stamp itself at the
  ladder's trayTile, 30×36 (the owner, 2026-10-18: the App Store tray's size, after 40×48 read too
- big for a picker of 36; stamps v2: KStamp, your own stamp so flat, and nothing
- framed round it, since a stamp is never put inside another tile's border; stamps keep their
- colours in every theme, only the paper turns Midnight's), and the one on the envelope keeps the
+ big for a picker of 36; KStamp, your own stamp so flat, and nothing
+ framed round it, since a stamp is never put inside another tile's border; stamps v3 look the same
+ in every theme), and the one on the envelope keeps the
  selection it always had, the 2pt ind ring with corners of 7, 2 out from the stamp's edge; its
- name under it in mono in its channel ink (worked out by TS against this tray's soft, so a
- deep stamp's name still reads on Midnight's dark tray), on ONE line wherever it fits (the
+ name under it in mono in its tray name colour (stamps v3 §9: nameLight on the light themes,
+ nameDark on Midnight, each ≥4.7:1 on this tray's soft; TS's inkHex only for an id this build
+ doesn't know), on ONE line wherever it fits (the
  owner's call: most names one line): at 9, else at 8, and only a name that fits neither wraps to
  two centred lines at 9 (in English 31 of 36 stay on one line; never told anyone, situationship,
  hat meinen tag gerettet wrap; a row of the grid grows to its tallest name). Never truncated.
@@ -115,6 +116,8 @@ struct KStampTray: View {
   private func name(_ item: KComposeStampItem, size: CGFloat) -> some View {
     Text(item.name)
       .kText(.mono(size, .medium, tracking: 0))
-      .foregroundStyle(item.ink)
+      // stamps v3 §9: nameLight on the light themes, nameDark on Midnight (measured on soft, this
+      // tray's ground); TS's colour for an id this build doesn't know
+      .foregroundStyle(KStampArt.trayName(id: item.id, dark: theme.isDark) ?? item.ink)
   }
 }

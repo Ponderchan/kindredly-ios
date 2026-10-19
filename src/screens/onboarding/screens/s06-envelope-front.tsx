@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Text, View, type StyleProp, type ViewStyle } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { G, Path } from "react-native-svg";
 import { LaunchMarkArt, POST_BLUE } from "../../../components/LaunchAnimation";
 import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
-import { keyline, silhouetteForTier, tierFor } from "../../../lib/stamp-frame";
+import { STAMP_V3_FRAME_D, STAMP_V3_INK } from "../../../lib/stamp-frame";
 import { PF } from "../../../theme/post";
 import { OB } from "../parts/tokens";
 import { OB_MAX_FONT } from "../parts/tokens";
@@ -37,8 +37,8 @@ import { OB_MAX_FONT } from "../parts/tokens";
    paper, not chrome, so it keeps its colours on every theme.
 
    THE MARK AS A STAMP (owner, 2026-10-18: "邮戳不要了 … 落成第一张卡右上角的
-   一枚邮票"). A stamps-v2 stamp — the 5:6 perforated paper of lib/stamp-frame
-   for its width's tier, the light keyline, a solid window — whose window is
+   一枚邮票"). A stamp — the v3 frame of lib/stamp-frame stretched round the
+   window (stamps v3, 2026-10-19: MarkStampPaper), a solid window — whose window is
    Post Blue and whose art is the launch's own white mark (LaunchMarkArt),
    i.e. the app icon as a stamp. The mark's 1024 box is drawn at the stamp's
    WIDTH, centred on the window: its strokes then fill about 70% of the
@@ -209,17 +209,21 @@ export function Docket({ k, face, name, date, stamp }: { k: number; face: ReactN
 
 /* ── the launch's mark as a v2 stamp ── */
 
-/** The stamp's perforated paper with its light keyline, `width` × 1.2 width (no window, no art). */
+/* The v3 frame (lib/stamp-frame STAMP_V3_FRAME_D: x10–90 × y25–113 on the 100 × 120 box) stretched
+   round the v2 window this mark was drawn for (x10–90 × y10–110), so the window, the mark and the
+   doorstep's landing don't move: to x3–97 × y3–117, which keeps the 6u ink keyline (the v3 one)
+   inside the box and the bites (5u, stretched to ≤ 6.5u) short of the window. */
+const MARK_SX = 94 / 80;
+const MARK_SY = 114 / 88;
+const MARK_FRAME_T = `translate(${3 - 10 * MARK_SX} ${3 - 25 * MARK_SY}) scale(${MARK_SX} ${MARK_SY})`;
+
+/** The stamp's paper, `width` × 1.2 width: the v3 frame stretched round the window (no window, no art). */
 export function MarkStampPaper({ width }: { width: number }) {
-  const tier = tierFor(width);
-  const sil = silhouetteForTier(tier);
-  const edge = keyline(false, tier);
-  const u = 100 / width;
-  const pad = 1 * u;
   return (
-    <Svg width={width + 2} height={width * 1.2 + 2} viewBox={`${-pad} ${-pad} ${100 + 2 * pad} ${120 + 2 * pad}`} style={{ position: "absolute", left: -1, top: -1 }}>
-      <Path d={sil} fill={OB.paper} />
-      {edge && <Path d={sil} fill="none" stroke={edge.color} strokeOpacity={edge.opacity} strokeWidth={edge.widthPt * u} />}
+    <Svg width={width} height={width * 1.2} viewBox="0 0 100 120" style={{ position: "absolute", left: 0, top: 0 }}>
+      <G transform={MARK_FRAME_T}>
+        <Path d={STAMP_V3_FRAME_D} fill={OB.paper} stroke={STAMP_V3_INK} strokeWidth={6 / Math.sqrt(MARK_SX * MARK_SY)} strokeLinejoin="round" />
+      </G>
     </Svg>
   );
 }

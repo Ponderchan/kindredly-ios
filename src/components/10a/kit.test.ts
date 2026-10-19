@@ -65,6 +65,7 @@ ok("an unreadable colour is 1:1, not a throw", kit.contrastRatio("blue", "#FFFFF
 /* ── every theme ── */
 const stamps = [...new Set([...readFileSync(new URL("../../data/stamps.ts", import.meta.url), "utf8").matchAll(/color: "(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1]))];
 ok("the stamp colours were found", stamps.length >= 36);
+ok("white words would fail 4.5:1 on every stamp colour (why the tag is ink)", stamps.every((c) => kit.contrastRatio("#FFFFFF", c) < 4.5));
 
 for (const key of THEME_KEYS) {
   const tk = THEMES[key];
@@ -80,12 +81,13 @@ for (const key of THEME_KEYS) {
   for (const surface of ["sf", "bg", "soft2"] as const) {
     const bad = stamps.filter((c) => {
       const l = kit.topicTagLook(c, tk, tk[surface]);
-      return l.fill !== c.toUpperCase() || l.text !== "#FFFFFF" || l.border !== tk.ln || l.shadow !== tk.ln || kit.contrastRatio(l.text, l.fill) < 3;
+      return l.fill !== c.toUpperCase() || l.text !== "#1E1B35" || l.border !== tk.ln || l.shadow !== tk.ln || kit.contrastRatio(l.text, l.fill) < 4.5;
     });
-    // the App Store tag: the stamp's colour solid, white words, ln outline and shadow (3:1 until
-    // the palette pass lifts every hex to 4.5:1 against white)
-    ok(`${key} ${surface}: every stamp's tag is its colour, solid, with white words${bad.length ? " (" + bad.join(" ") + ")" : ""}`, bad.length === 0);
+    // the App Store tag: the stamp's colour solid, INK words in every theme (the bright palette,
+    // 2026-10-19: white passes on none of the 36), ln outline and shadow; ink clears 4.5:1 on all
+    ok(`${key} ${surface}: every stamp's tag is its colour, solid, with ink words at 4.5:1 or more${bad.length ? " (" + bad.join(" ") + ")" : ""}`, bad.length === 0);
   }
+  ok(`${key}: the tag's words are ink #1E1B35 even where the theme's ink is light`, kit.topicTagLook("#9774F0", tk).text === "#1E1B35" && kit.TOPIC_TAG_INK === "#1E1B35");
   ok(`${key}: a tag defaults to the card face`, JSON.stringify(kit.topicTagLook("#2E7D4F", tk)) === JSON.stringify(kit.topicTagLook("#2E7D4F", tk, tk.sf)));
   ok(`${key}: a stamp without a colour is the quiet grey, readable`, (() => { const l = kit.topicTagLook(null, tk); return l.fill === kit.TOPIC_TAG_NEUTRAL && kit.contrastRatio(l.text, l.fill) >= 4.5; })());
 

@@ -254,15 +254,16 @@ export function toastColors(tk: ThemeTokens): { fill: string; text: string } {
 /* ── the topic tag (H:35, H:42, with the contrast-safe recipe) ─────────── */
 
 /** THE TOPIC TAG IS THE APP STORE ONE (the owner, 2026-10-19, pointing at the shipped card):
-    the stamp's own colour as a SOLID pill with WHITE words, a 2pt ln outline and the hard 3/3 ln
-    shadow, the same on every theme and every surface. (10a had turned it into a wash with the
-    words in a walked stamp colour; the owner wants the solid sticker back.) A stamp with no colour
-    is the quiet grey. White on today's hexes is 3.5:1 or more everywhere, 4.5:1 on 19 of 36; the
-    stamp palette pass lifts every hex to 4.5:1 against white. `surfaceHex` is kept for callers. */
-export const TOPIC_TAG_NEUTRAL = "#6E6A85";
+    the stamp's own colour as a SOLID pill, a 2pt ln outline and the hard 3/3 ln shadow, the same
+    on every theme and every surface. Its WORDS ARE INK #1E1B35 IN EVERY THEME, Midnight included
+    (the bright palette, owner 2026-10-19: white words pass 4.5:1 on none of the 36 hexes; ink is
+    4.67–13.2:1 on all of them, the same words-on-colour as the lime capsule). A stamp with no
+    colour is the quiet grey, which carries the ink words too. `surfaceHex` is kept for callers. */
+export const TOPIC_TAG_INK = "#1E1B35";
+export const TOPIC_TAG_NEUTRAL = "#B9B5D0";
 export function topicTagLook(stampHex: string | null | undefined, tk: ThemeTokens, _surfaceHex: string = tk.sf): { fill: string; text: string; border: string; shadow: string } {
   const fill = stampHex && /^#[0-9a-f]{6}$/i.test(stampHex) ? stampHex.toUpperCase() : TOPIC_TAG_NEUTRAL;
-  return { fill, text: "#FFFFFF", border: tk.ln, shadow: tk.ln };
+  return { fill, text: TOPIC_TAG_INK, border: tk.ln, shadow: tk.ln };
 }
 
 /** the topic tag's type: mono 600 at 11 (the 9/10/11 rule; the mock's 13) */

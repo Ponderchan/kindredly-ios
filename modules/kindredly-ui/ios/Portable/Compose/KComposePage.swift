@@ -12,7 +12,7 @@ import SwiftUI
    what is left, and the stamp corner tilted 8° in its 50pt of room (a tap opens the stamps).
    Stamps v2 (owner, 2026-10-18): what sits in it is the stamp itself at the ladder's
    composeCorner, 40×48, your own stamp so flat (no letter tilt, no postmark); before one is
-   chosen, that same perforated silhouette drawn dashed in ind on lav2 (KStampSlot), where the
+   chosen, the stamps v3 frame drawn dashed in mute with no fill (KStampSlot, 2026-10-19), where the
    44 dashed square used to be, so choosing a stamp fills the outline it was promised. The
    toolbar's round stamp key and the #name pill are untouched (ComposeRN does the same);
  - Wren's row, 14 down: Wren bare in a 46 frame (a React Native island drawing her at 38: her
@@ -512,14 +512,14 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   /// the corner's tap target, as it was: the old 44 tile and its 3pt of room (ComposeRN CORNER_BOX)
   static var cornerBox: CGFloat { 50 }
 
-  /// the corner where the stamp goes, at the ladder's composeCorner (40×48): its dashed outline,
-  /// ind on lav2, while empty; the stamp once chosen
+  /// the corner where the stamp goes, at the ladder's composeCorner (40×48): the v3 frame dashed
+  /// in mute while empty (stamps v3 §7: no fill); the stamp once chosen
   @ViewBuilder private var stampCorner: some View {
     let width = KStampLadder.composeCorner.w
     if let stamp = content.stamp {
       KStamp(id: stamp.id, width: width, dark: theme.isDark)
     } else {
-      KStampSlot(width: width, fill: theme.lav2, stroke: theme.ind)
+      KStampSlot(width: width, stroke: theme.mute)
     }
   }
 

@@ -219,6 +219,31 @@ ok("sections: a repeated id once", sections[0].items.length === 2);
 ok("sections: an emptied section isn't sent", !sections.some((s) => s.title === "RECENT" || s.title === "TWO"));
 ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
 
+/* ── the tray's names: their colour (the bright palette, owner 2026-10-19) ── */
+{
+  const st = { nameLight: "#7443D1", nameDark: "#9774F0" };
+  ok("tray name colour: nameLight on a light theme", M.trayNameHex(st, false, "#1E1B35") === "#7443D1");
+  ok("tray name colour: nameDark on Midnight", M.trayNameHex(st, true, "#E8E5F6") === "#9774F0");
+  ok("tray name colour: lower case comes back in capitals", M.trayNameHex({ nameLight: "#7443d1" }, false, "#1E1B35") === "#7443D1");
+  ok("tray name colour: no stamp, the theme's ink", M.trayNameHex(null, false, "#1E1B35") === "#1E1B35" && M.trayNameHex(undefined, true, "#E8E5F6") === "#E8E5F6");
+  ok("tray name colour: a missing or malformed shade, the theme's ink", M.trayNameHex({ nameDark: "#9774F0" }, false, "#1E1B35") === "#1E1B35" && M.trayNameHex({ nameLight: "#7443D1", nameDark: "purple" }, true, "#E8E5F6") === "#E8E5F6");
+
+  // the 36 shades in data/stamps.ts (read as text: it imports i18n), on each theme's tray ground (soft)
+  const { readFileSync } = await import("node:fs");
+  const text = readFileSync(new URL("../../data/stamps.ts", import.meta.url), "utf8");
+  const rows = [...text.matchAll(/\{ id: "([\w-]+)", cat: "\w+", emoji: "[^"]*", color: "(#[0-9A-F]{6})", nameLight: "(#[0-9A-F]{6})", nameDark: "(#[0-9A-F]{6})"/g)].map((m) => ({ id: m[1], color: m[2], nameLight: m[3], nameDark: m[4] }));
+  const themes = JSON.parse(readFileSync(new URL("../../theme/themes.json", import.meta.url), "utf8")).themes as Record<string, { soft: string; ink: string; dark: boolean }>;
+  const lin = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255); };
+  const cr = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  ok("stamps.ts gives all 36 stamps a nameLight and a nameDark", rows.length === 36);
+  ok("nameDark is the stamp colour itself (the palette's name_midnight)", rows.every((r) => r.nameDark === r.color));
+  for (const [key, tk] of Object.entries(themes)) {
+    const bad = rows.filter((r) => cr(M.trayNameHex(r, tk.dark, tk.ink), tk.soft) < 4.5).map((r) => r.id);
+    ok(`${key}: every tray name clears 4.5:1 on the tray's ground (soft ${tk.soft})${bad.length ? " (" + bad.join(" ") + ")" : ""}`, bad.length === 0);
+  }
+}
+
 /* ── the tray's names: one line wherever it fits (owner, 2026-10-18) ── */
 {
   const room = 62; // a wide phone's column less its 3 + 3

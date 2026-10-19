@@ -30,7 +30,7 @@ import SwiftUI
      circle beside the stamp heavy for what it is; still always there, on a 44 target, since
      Report and Block must be one tap away) (Report / Block / Bring back the last letter; only
      Bring back on an unsigned letter: a SwiftUI Menu, inside the one Host).
-   The stamp (stamps v2, owner 2026-10-18; TodayRN's CardFace draws the same): where the 34 box
+   The stamp (stamps v3 since 2026-10-19; TodayRN's CardFace draws the same): where the 34 box
    with the art inside used to be, KStamp at the ladder's todayCard, 40×48, with no box round it
    (a stamp is never framed twice). It is delivered mail, so it tilts by the letter's id (the
    same tilt the sender's phone and the web give it; each card is its own view: the deck gives it
@@ -276,8 +276,13 @@ struct KLetterCard: View, Equatable {
       KTopicTag(
         theme: theme,
         text: card.topic,
-        // topicWash is the stamp's own colour and topicInk white (the App Store tag; today-cards)
-        tone: .channel(wash: Color(hex: card.topicWash), ink: Color(hex: card.topicInk))
+        // the App Store tag: the stamp's own colour (topicWash, from today-cards) and, stamps v3
+        // §8, the words in ink #1E1B35 in every theme whatever TS sends (white passes on none of
+        // the 36 bright hexes); no colour: the quiet grey #B9B5D0
+        tone: .custom(
+          fill: KStampFrame.rgb(hex: card.topicWash).map { KStampFrame.color($0) } ?? KStampFrame.color(KStampFrame.v3TagNeutral),
+          text: KStampFrame.color(KStampFrame.v3Ink)
+        )
       )
     }
   }

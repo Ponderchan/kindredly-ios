@@ -5,34 +5,33 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { KGalleryHost, isKindredlyUIViewAvailable, type KThemeKey } from "../../../modules/kindredly-ui";
 import { Stamp, StampSlot } from "../../components/Stamp";
 import { STAMPS } from "../../data/stamps";
-import { STAMP_LADDER, stampHeight, tierFor, tilt, type StampPlacement, type StampPlacementName } from "../../lib/stamp-frame";
+import { STAMP_LADDER, stampHeight, stampTierV3, tilt, type StampPlacement, type StampPlacementName } from "../../lib/stamp-frame";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import THEMES from "../../theme/themes.json";
 import { PF } from "../../theme/post";
 
-/* dev only — STAMPS V2 IN REACT NATIVE (the set the owner approved on 2026-10-18).
+/* dev only — STAMPS V3 IN REACT NATIVE (v3 B "character", owner 2026-10-19).
    kindredly:///dev/step5-stamp-art
 
-   Every stamp here is components/Stamp, drawn from lib/stamp-frame (the paper, the bites, the
-   window, the ground, the colours, the keyline, the tilt, the ladder) and
-   data/stamp-art-v2 (the drawings), to check them on a device before the Swift renderer (KStamp)
-   draws the same thing. No network, no account: everything is bundled.
+   Every stamp here is components/Stamp, drawn from lib/stamp-frame (the v3 tiers, the colour
+   roles, the tilt, the ladder) and data/stamp-art-v3 (the drawings), to check them on a device
+   beside the Swift renderer (KStamp). Tier names are the v3 ones (DOT, XS, S, L). No network, no account: everything is bundled.
 
    From the top:
    - THEME: the dev theme switch (lib/theme setDevThemeOverride), as in ui-lab. The PLACEMENTS
      section follows it; the LADDER and ALL 36 sheets don't need it, each draws one light
      surface (Classic) and Midnight side by side, whatever the app's theme.
-   - LADDER: one stamp from each category (so all six series grounds show) at every tier: the
-     dot (9), chip 15, XS 20, S 25 and 30, M 40, 50 and 60, L 80 and 120 — flat. Then delivered
+   - LADDER: one stamp from each category at every v3 tier: the dot (9), XS 15 and 20, S 25
+     and 30, L 40, 50, 60, 80 and 120 — flat. Then delivered
      at 40, 50, 60, 80 and 120, each tilted by a sample letter id (the four tilts, −2 to +2°, in
      turn; the ids are the golden ones in lib/stamp-frame.test). No postmark (the owner took it
      off on 2026-10-18). Each row scrolls sideways.
    - PLACEMENTS: every entry of STAMP_LADDER at its own size, with its rule (a fixed angle,
      the letter's tilt, or flat), named as the code names it. The compose
-     corner shows both states: the empty dashed outline (ind on lav2) and a stamp in it, at 8°.
+     corner shows both states: the empty dashed v3 frame (the theme's mute) and a stamp in it, at 8°.
      The landing wall's scatter is the web's and is drawn flat here.
-   - FALLBACK: an id this build doesn't know (the template in #8B7FE8) at XS, M and L, and the
-     dot.
+   - FALLBACK: an id this build doesn't know (the frame alone in #8B7FE8) at XS, S and L, and
+     the dot.
    - ALL 36: every stamp at the tray's 30×36 on both surfaces, six to a row, a row per category.
    - SWIFT: the module's gallery (KGalleryHost) after all of it. Until the Swift renderer step
      its STAMPS section still draws the v1 art (KStampArt); it is kept here so the two can be
@@ -96,7 +95,7 @@ function StampArtPage() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text style={[section, { fontSize: 10.5, letterSpacing: 1.3, color: tk.ind, margin: 16, marginBottom: 6 }]}>STEP 5 · STAMPS V2</Text>
+        <Text style={[section, { fontSize: 10.5, letterSpacing: 1.3, color: tk.ind, margin: 16, marginBottom: 6 }]}>STEP 5 · STAMPS V3</Text>
         <Text style={[section, { color: tk.mute, marginHorizontal: 16, marginBottom: 8 }]}>
           THEME · {forced ? "FORCED" : "NORMAL"} · {THEMES.themes[key].name.toUpperCase()}
         </Text>
@@ -182,7 +181,7 @@ function LadderSheet({ theme }: { theme: KThemeKey }) {
           ))}
         </ScrollView>
       ))}
-      <Caption color={kt.mute}>{FLAT_WIDTHS.map((w) => `${w} ${tierFor(w).toUpperCase()}`).join(" · ")}</Caption>
+      <Caption color={kt.mute}>{FLAT_WIDTHS.map((w) => `${w} ${stampTierV3(w).toUpperCase()}`).join(" · ")}</Caption>
       <Text style={[section, { color: kt.mute, marginTop: 6 }]}>{kt.name.toUpperCase()} · DELIVERED</Text>
       {SAMPLE.map((id, r) => (
         <ScrollView key={id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: "flex-end", paddingVertical: 6 }}>
@@ -214,12 +213,12 @@ function Placements() {
         return (
           <View key={name} style={{ gap: 6 }}>
             <Caption color={tk.mute}>
-              {name.toUpperCase()} · {p.w}×{p.h} · {tierFor(p.w).toUpperCase()} · {rule}
+              {name.toUpperCase()} · {p.w}×{p.h} · {stampTierV3(p.w).toUpperCase()} · {rule}
             </Caption>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingLeft: 0 }}>
               {name === "composeCorner" && (
                 <View style={{ transform: [{ rotate: `${p.tilt}deg` }] }}>
-                  <StampSlot width={p.w} fill={tk.lav2} stroke={tk.ind} />
+                  <StampSlot width={p.w} stroke={tk.mute} />
                 </View>
               )}
               <View style={{ transform: typeof p.tilt === "number" && p.tilt ? [{ rotate: `${p.tilt}deg` }] : undefined }}>
