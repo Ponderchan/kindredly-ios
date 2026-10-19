@@ -18,8 +18,8 @@ import { OB_MAX_FONT } from "../parts/tokens";
    and starts screen 2 for anyone who opened it by mistake (the owner's
    "guest" option lives here, not as a third key on the doorstep).
 
-     Welcome back.
-     Sign in the way you did last time.
+            Welcome back.                 the title and its line centred over
+     Sign in the way you did last time.   the keys (owner, 2026-10-19)
      [ Continue with Apple ]      black, first wherever Google is (4.8)
      [ Continue with Google ]
      [ Continue with email ]      unfolds in place: the address, then the code
@@ -178,10 +178,10 @@ export function SignInSheet({ props }: { props: ObScreenProps }) {
             contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 10, paddingBottom: Math.max(insets.bottom, 16) + 6 }}
           >
             <View style={{ alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: "#D9D7E6", marginBottom: 18 }} />
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 26, lineHeight: 31, letterSpacing: -0.7, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 26, lineHeight: 31, letterSpacing: -0.7, color: OB.ink, textAlign: "center" }}>
               {t("ob2.signin.title")}
             </Text>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, marginTop: 6, marginBottom: 20 }]}>{t("ob2.signin.line")}</Text>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, marginTop: 6, marginBottom: 20, textAlign: "center" }]}>{t("ob2.signin.line")}</Text>
 
             {services.appleAvailable && (
               <AuthKey first solid icon={<AppleLogo />} label={t("ob.continueApple")} busy={busy === "apple"} dim={!!busy && busy !== "apple"} onPress={() => void signIn("apple")} />
