@@ -268,10 +268,35 @@ struct KChatDockRecord: Record {
   }
 }
 
+/// The pen-pal chat's progress band (build-items lettersBand). show: false draws none.
+struct KChatBandRecord: Record {
+  @Field var show: Bool = false
+  @Field var me: Int = 0
+  @Field var them: Int = 0
+  @Field var line: String = ""
+  @Field var named: Bool = false
+  @Field var youLabel: String = ""
+  @Field var themLabel: String = ""
+  @Field var a11y: String = ""
+
+  var band: KChatBandModel? {
+    guard show else { return nil }
+    var b = KChatBandModel()
+    b.me = min(5, max(0, me))
+    b.them = min(5, max(0, them))
+    b.line = line
+    b.named = named
+    b.youLabel = youLabel
+    b.themLabel = themLabel
+    b.a11y = a11y
+    return b
+  }
+}
+
 /// The conversation's own header (build-items lettersHeader, roomHeader). show: false draws none.
 struct KChatHeaderRecord: Record {
   @Field var show: Bool = false
-  /// the kindreds chat's (B): the round face below, no dots
+  /// the kindreds chat's (B): the round face below, no band
   @Field var room: Bool = false
   /// image | mosaic | veil | placeholder (lib/faces faceRecord, flattened)
   @Field var faceKind: String = "placeholder"
@@ -295,7 +320,8 @@ struct KChatHeaderRecord: Record {
   @Field var identity: Bool = false
   /// none | line | brass
   @Field var frame: String = "none"
-  @Field var dots: Int = 0
+  /// the progress band under the rule (lettersBand); show: false for none
+  @Field var band: KChatBandRecord = KChatBandRecord()
   @Field var a11yLabel: String = ""
   @Field var canOpenPage: Bool = false
   @Field var backLabel: String = ""
@@ -321,7 +347,7 @@ struct KChatHeaderRecord: Record {
     h.veil = veil
     h.veilTile = identity
     h.frame = KChatFaceFrame(rawValue: frame) ?? .none
-    h.dots = min(5, max(0, dots))
+    h.band = room ? nil : band.band
     h.a11yLabel = a11yLabel
     h.canOpenPage = canOpenPage
     h.backLabel = backLabel

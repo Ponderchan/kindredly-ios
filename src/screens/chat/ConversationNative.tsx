@@ -50,8 +50,8 @@ import { ChatHeader } from "./ChatHeader";
    sign sheet, the introduction, the report card). Both draw their header in
    Swift now (chat composers, 2026-10-18), its ⋯ opening ReportSheet:
    · the pen-pal chat before names (A2): the face, No. 5422, LETTER 3 OF 5 ·
-     THEIRS, five dots; they say what the reach band said (with the reply
-     bar's hint), so the band is not drawn there. With the identity switch
+     THEIRS, and under its rule the reach band, back from live 1.0.4 in
+     place of the five dots (owner, 2026-10-19). With the identity switch
      on the same header carries the frosted window, the courier name and
      the ♀/♂ mark and star sign (lettersHeader, from the screen's book), and
      a deleted pen pal's veil becomes the flat veil tile (identity). A

@@ -8,8 +8,11 @@ import SwiftUI
  kindreds chat's (B). A pen-pal chat that turns out to be revealed already keeps the React Native
  header (ChatHeader.tsx).
 
-   ‹  ▦  No. 5422                         ●●●○○  ···      72 tall, on the page, a 1.5 line rule
+   ‹  ▦  No. 5422                                ···      72 tall, on the page, a 1.5 line rule
          LETTER 3 OF 5 · THEIRS                            under it; padding 0 18 0 14, 12 apart
+   ────────────────────────────────────────────────
+   YOU ■■■□□   NO. 5422 ■■□□□                              the progress band (KChatBand), on
+   2 MORE FROM YOU · 3 FROM THEM → NAMES                   the page under the rule
 
    ‹  ◯  Luna                                    ···      the kindreds chat (model.room): the
          KINDRED SINCE OCTOBER 8                           kindred's face, round, 44 across
@@ -17,7 +20,7 @@ import SwiftUI
  THE KINDREDS CHAT'S (B) is the same header with the kindred in it: their face as their Kindreds
  row draws it (KFace round, 44: the portrait they chose, the glyph when they gave none, the veil
  once gone; TS resolves it, lib/faces), the name, and under it KINDRED SINCE {the day names were
- traded}, or how they write, in mute; no dots. The face and name always open their page. The
+ traded}, or how they write, in mute; no band. The face and name always open their page. The
  React Native room header's lore button and its "Wren found you two" line are not in the
  owner's B.
 
@@ -38,11 +41,17 @@ import SwiftUI
    square inside the 36 the frame closes (corners of a quarter, the frame's corners following
    them), never developing; the courier name ("Sunday Kite") takes the number's, with the ♀/♂
    mark 6pt after it and the star sign 4pt after that (KWhoMarks at 14, ink glyphs in sub). The
-   glyphs never give way: a name too long for the room left beside the dots is the one that is
+   glyphs never give way: a name too long for the room left beside the ⋯ is the one that is
    cut, and VoiceOver hears it whole (TS's label, "Sunday Kite, she, Gemini, …"). A deleted
    account is the flat veil tile instead of the mosaic's veil.
- - THE DOTS: five, 8 across with a 1.5 ln outline, 4 apart; one filled (ln) for each exchange
-   that went both ways. VoiceOver hears them in the name's element.
+ - THE BAND (live 1.0.4's progress band, brought back by the owner 2026-10-19 in place of the
+   five round dots that sat beside the ⋯): under the rule, on the page, padding 9 16 10. YOU and
+   the pen pal's name in capitals ("NO. 8768"; the courier name with the switch on), mono 600 10
+   at .12em in sub, each followed 6pt later by five square cells 8 across, 2 apart (ink filled,
+   the theme's line empty, all five in ind), the two groups 16 apart; 7 under them bandFacts'
+   line in mono 600 10 at .12em, ink (ind once names can be traded). One VoiceOver element (TS's
+   ch.band.a11y). The groups stack and the line wraps when there's no room (Dynamic Type), rather
+   than clip. None for a deleted account or the kindreds chat (TS sends none).
  - ··· Report or block (TS opens ReportSheet: it rises from here), 22 in ink, in a 44 target;
    none when there is nobody on the other side to report.
 
@@ -70,6 +79,17 @@ struct KChatHeader: View {
   }
 
   var body: some View {
+    VStack(spacing: 0) {
+      bar
+      if !model.room, let band = model.band {
+        KChatBand(theme: theme, model: band)
+      }
+    }
+    .background(theme.bg)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+
+  private var bar: some View {
     HStack(spacing: 0) {
       SwiftUI.Button {
         actions.onDock("back")
@@ -84,12 +104,6 @@ struct KChatHeader: View {
 
       identity
         .frame(maxWidth: .infinity, alignment: .leading)
-
-      if !model.room {
-        dots
-          .padding(.leading, 12)
-          .accessibilityHidden(true)
-      }
 
       if !model.moreLabel.isEmpty {
         SwiftUI.Button {
@@ -116,7 +130,6 @@ struct KChatHeader: View {
         .frame(height: 1.5)
         .accessibilityHidden(true)
     }
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
   }
 
   @ViewBuilder
@@ -164,13 +177,70 @@ struct KChatHeader: View {
     }
   }
 
-  private var dots: some View {
-    HStack(spacing: 4) {
-      ForEach(0..<5, id: \.self) { i in
-        Circle()
-          .fill(i < model.dots ? theme.ln : Color.clear)
-          .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
-          .frame(width: 8, height: 8)
+}
+
+/// The pen-pal chat's progress band under the header's rule (live 1.0.4's; ReachBand is its React
+/// Native twin): both sides' five cells and the line that says who still owes what.
+struct KChatBand: View {
+  let theme: KTheme
+  let model: KChatBandModel
+
+  static let cell: CGFloat = 8
+  static let total = 5
+
+  private static let label = KTextStyle.mono(10, .semibold, tracking: 0.12)
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 7) {
+      // side by side, 16 apart; stacked when they don't fit (large Dynamic Type, a long name)
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 16) {
+          side(model.youLabel, model.me)
+          side(model.themLabel, model.them)
+        }
+        VStack(alignment: .leading, spacing: 4) {
+          side(model.youLabel, model.me)
+          side(model.themLabel, model.them, wraps: true)
+        }
+      }
+      // one line; it wraps rather than clip when there's no room
+      ViewThatFits(in: .horizontal) {
+        line.lineLimit(1)
+        line.fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 16)
+    .padding(.top, 9)
+    .padding(.bottom, 10)
+    .background(theme.bg)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(model.a11y)
+  }
+
+  private var line: some View {
+    Text(model.line)
+      .kText(.mono(10, .semibold, tracking: 0.12))
+      .foregroundStyle(model.named ? theme.ind : theme.ink)
+  }
+
+  private func side(_ label: String, _ n: Int, wraps: Bool = false) -> some View {
+    HStack(alignment: .center, spacing: 6) {
+      Text(label)
+        .kText(Self.label)
+        .foregroundStyle(theme.sub)
+        .lineLimit(wraps ? nil : 1)
+        .fixedSize(horizontal: !wraps, vertical: wraps)
+      cells(n)
+    }
+  }
+
+  private func cells(_ n: Int) -> some View {
+    HStack(spacing: 2) {
+      ForEach(0..<Self.total, id: \.self) { i in
+        Rectangle()
+          .fill(n >= Self.total ? theme.ind : i < n ? theme.ink : theme.line)
+          .frame(width: Self.cell, height: Self.cell)
       }
     }
   }

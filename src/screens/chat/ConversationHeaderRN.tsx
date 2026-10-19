@@ -11,6 +11,7 @@ import { useTheme } from "../../lib/theme";
 import { COLS, ROWS, VEIL_MASK, maskHas } from "../../lib/mosaic";
 import { BRAND } from "../../theme/themes";
 import { PF } from "../../theme/post";
+import { ReachBand } from "./ReachBand";
 
 /* THE CONVERSATION'S HEADER, IN REACT NATIVE (chat composers, the owner's
    final, 2026-10-18; KChatHeader's twin): the pen-pal chat's while names
@@ -18,11 +19,13 @@ import { PF } from "../../theme/post";
    RoomRN). A pen-pal chat that is already revealed keeps the older
    ChatHeader. It draws the very record the Swift header draws (build-items
    lettersHeader / roomHeader: every word, the tone, the face's mask, the
-   frame, the dots, the VoiceOver label), so the two can't drift.
+   frame, the band, the VoiceOver label), so the two can't drift.
 
-     ‹  ▦  No. 5422                         ●●●○○  ···    72 tall, on the page, a 1.5
+     ‹  ▦  No. 5422                                ···    72 tall, on the page, a 1.5
            LETTER 3 OF 5 · THEIRS                         line rule under it; padding
-                                                          0 18 0 14, 12 apart
+     ─────────────────────────────────────────────        0 18 0 14, 12 apart
+     YOU ■■■□□   NO. 5422 ■■□□□                           the band (ReachBand)
+     2 MORE FROM YOU · 3 FROM THEM → NAMES
      ‹  ◯  Luna                                    ···    the kindreds chat (model.room):
            KINDRED SINCE OCTOBER 8                        the kindred's face, round, 44
 
@@ -38,16 +41,17 @@ import { PF } from "../../theme/post";
      pen pal's frosted window instead (`frost`, lib/frost through
      lib/stranger-who): drawn at 34 in the same slot (components/Frost), 32
      inside the same frame once it is framed, so the slot never changes
-     size. It never develops; the frame and the dots still tell the story.
+     size. It never develops; the frame and the band still tell the story.
      A deleted account is then the flat veil tile (components/Frost).
    · THE NAME in system 600 18 on one line (the courier name once the switch
      is on, with the record's ♀/♂ mark 6pt after it and the star sign 4pt
      after that, ink glyphs in sub: components/WhoName); under it mono 500
      10 at .12em on one line, in mute (or the state's tone past the
      letters).
-   · THE DOTS (the pen pal only): five, 8 across with a 1.5 ln outline, 4
-     apart; one filled for each exchange that went both ways. VoiceOver
-     hears them in the name's element.
+   · THE BAND (the pen pal only, while someone is on the other side) under
+     the rule: ReachBand on the record's `band` — both sides' five square
+     cells and the line that says who still owes what; one VoiceOver
+     element. It replaced the five dots (owner, 2026-10-19).
    · ··· Report or block (the screen opens ReportSheet: it drops from here),
      22 in ink, in a 40 × 44 target; none when there is nobody to report.
    Face and name are one button that opens their page when the record says
@@ -103,53 +107,49 @@ export function ConversationHeaderRN({
   );
 
   return (
-    <View style={{ paddingTop: topInset ?? insets.top, backgroundColor: tk.bg, borderBottomWidth: 1.5, borderBottomColor: tk.line }}>
-      {/* padding 0 18 0 14 to the icons' own edges: the 40 targets reach 9 past each 22 icon */}
-      <View style={{ minHeight: 72, flexDirection: "row", alignItems: "center", paddingLeft: 14 - 9, paddingRight: model.moreLabel ? 18 - 9 : 18 }}>
-        <Pressable
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel={model.backLabel}
-          style={({ pressed }) => ({ width: 40, height: 44, alignItems: "center", justifyContent: "center", marginRight: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}
-        >
-          <LineIcon name="chevronLeft" size={22} stroke={2.2} color={tk.ink} />
-        </Pressable>
-
-        {model.canOpenPage ? (
+    <View style={{ backgroundColor: tk.bg }}>
+      <View style={{ paddingTop: topInset ?? insets.top, borderBottomWidth: 1.5, borderBottomColor: tk.line }}>
+        {/* padding 0 18 0 14 to the icons' own edges: the 40 targets reach 9 past each 22 icon */}
+        <View style={{ minHeight: 72, flexDirection: "row", alignItems: "center", paddingLeft: 14 - 9, paddingRight: model.moreLabel ? 18 - 9 : 18 }}>
           <Pressable
-            onPress={onPage}
-            accessible
+            onPress={onBack}
             accessibilityRole="button"
-            accessibilityLabel={model.a11yLabel}
-            style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
+            accessibilityLabel={model.backLabel}
+            style={({ pressed }) => ({ width: 40, height: 44, alignItems: "center", justifyContent: "center", marginRight: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}
           >
-            {identity}
+            <LineIcon name="chevronLeft" size={22} stroke={2.2} color={tk.ink} />
           </Pressable>
-        ) : (
-          <View accessible accessibilityRole="header" accessibilityLabel={model.a11yLabel} style={{ flex: 1 }}>
-            {identity}
-          </View>
-        )}
 
-        {!model.room && (
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ flexDirection: "row", gap: 4, marginLeft: 12 }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <View key={i} style={{ width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: tk.ln, backgroundColor: i < model.dots ? tk.ln : "transparent" }} />
-            ))}
-          </View>
-        )}
+          {model.canOpenPage ? (
+            <Pressable
+              onPress={onPage}
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={model.a11yLabel}
+              style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
+            >
+              {identity}
+            </Pressable>
+          ) : (
+            <View accessible accessibilityRole="header" accessibilityLabel={model.a11yLabel} style={{ flex: 1 }}>
+              {identity}
+            </View>
+          )}
 
-        {!!model.moreLabel && (
-          <Pressable
-            onPress={onMore}
-            accessibilityRole="button"
-            accessibilityLabel={model.moreLabel}
-            style={({ pressed }) => ({ width: 40, height: 44, alignItems: "center", justifyContent: "center", marginLeft: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}
-          >
-            <LineIcon name="more" size={22} color={tk.ink} />
-          </Pressable>
-        )}
+          {!!model.moreLabel && (
+            <Pressable
+              onPress={onMore}
+              accessibilityRole="button"
+              accessibilityLabel={model.moreLabel}
+              style={({ pressed }) => ({ width: 40, height: 44, alignItems: "center", justifyContent: "center", marginLeft: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}
+            >
+              <LineIcon name="more" size={22} color={tk.ink} />
+            </Pressable>
+          )}
+        </View>
       </View>
+      {/* the progress band under the rule (live 1.0.4's; it replaced the five dots, owner 2026-10-19) */}
+      {!model.room && model.band && <ReachBand band={model.band} />}
     </View>
   );
 }

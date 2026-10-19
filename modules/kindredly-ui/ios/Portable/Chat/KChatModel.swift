@@ -456,8 +456,8 @@ public enum KChatFaceFrame: String, Sendable {
 /// The conversation's own header, worded by TS: the pen-pal chat's (chat composers A2,
 /// build-items lettersHeader) or the kindreds chat's (B, roomHeader).
 public struct KChatHeaderModel: Equatable, Sendable {
-  /// the kindreds chat's: `face` round, 44 across, and no dots; false for the pen-pal chat's
-  /// FACE v1 (mask, veil, frame) and its five dots
+  /// the kindreds chat's: `face` round, 44 across, and no band; false for the pen-pal chat's
+  /// FACE v1 (mask, veil, frame) and the progress band under it
   public var room = false
   /// room: the kindred's face as TS resolved it (their portrait, the glyph, the veil)
   public var face: KFaceSource = .placeholder
@@ -470,7 +470,7 @@ public struct KChatHeaderModel: Equatable, Sendable {
   /// FACE v1, bit row × 5 + column (TS mosaicMask with their letters' develop)
   public var mask = 0
   /// identity switch on: the pen pal's frosted window, drawn in the face slot instead of the
-  /// mosaic (it never develops; the frame and the dots stay); nil while the switch is off
+  /// mosaic (it never develops; the frame and the band stay); nil while the switch is off
   public var frost: KFrostSpec?
   /// identity switch on: the ♀/♂ mark after the name (an ink glyph in sub); nil for none
   public var mark: KLineGlyph?
@@ -482,9 +482,10 @@ public struct KChatHeaderModel: Equatable, Sendable {
   /// rather than the mosaic's
   public var veilTile = false
   public var frame: KChatFaceFrame = .none
-  /// the five dots: how many exchanges went both ways, 0…5
-  public var dots = 0
-  /// VoiceOver: the face, the name, the line and the dots, as one
+  /// the progress band under the header's rule (live 1.0.4's, owner 2026-10-19); nil for none
+  /// (names traded, a deleted account, the kindreds chat)
+  public var band: KChatBandModel?
+  /// VoiceOver: the face, the name and the line, as one (the band says the counts)
   public var a11yLabel = ""
   /// the face and name open their page (only once you know their voice)
   public var canOpenPage = false
@@ -492,6 +493,28 @@ public struct KChatHeaderModel: Equatable, Sendable {
   public var backLabel = ""
   /// VoiceOver: the ⋯ (Report or block); "" hides it (nobody to report)
   public var moreLabel = ""
+
+  public init() {}
+}
+
+/// The pen-pal chat's progress band, worded by TS (build-items lettersBand, bandFacts):
+///   YOU ■■□□□   NO. 8768 ■□□□□
+///   3 MORE FROM YOU · 4 FROM THEM → NAMES
+public struct KChatBandModel: Equatable, Sendable {
+  /// your letters, 0…5; a side with all five is drawn in ind
+  public var me = 0
+  /// theirs, 0…5
+  public var them = 0
+  /// the second line, already in capitals
+  public var line = ""
+  /// both fives are in: the line in ind
+  public var named = false
+  /// "YOU"
+  public var youLabel = ""
+  /// the pen pal's name in capitals: "NO. 8768" (identity switch on: the courier name)
+  public var themLabel = ""
+  /// VoiceOver: the band as one element
+  public var a11y = ""
 
   public init() {}
 }

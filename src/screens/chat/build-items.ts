@@ -2,7 +2,7 @@ import type { MessageQuote, ThreadDetail, ThreadMessage } from "../../lib/db";
 import type { Fold } from "../../lib/folds";
 import type { TFn } from "../../lib/format";
 import type { KImageRefProps, KMenuAction } from "../../../modules/kindredly-ui/src/types";
-import type { KChatDock, KChatFace, KChatFoldHalf, KChatHeader, KChatItem, KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
+import type { KChatBand, KChatDock, KChatFace, KChatFoldHalf, KChatHeader, KChatItem, KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
 import type { ThreadStateKind, ThreadToneKey } from "../../lib/thread-state";
 import { foldOver } from "../../lib/thread-detail-core";
 import { developFor, mosaicMask } from "../../lib/mosaic";
@@ -32,7 +32,7 @@ import { parseSongUrl } from "../../lib/song";
    · the composer: whether the words may go, the status line (over the
      limit, a slow network), and whether the field may clear itself at once
    · the pen-pal chat's own header (chat composers A2, 2026-10-18): its
-     name, the line under it, the face and the five dots; and the kindreds
+     name, the line under it, the face and the progress band; and the kindreds
      chat's (B): the kindred's round face, the name, KINDRED SINCE
    · the room's ideas (the Kindreds bar's Sparkle, B): the order the 36
      stamps' prompts are offered in, theirs first, shuffled per room
@@ -885,27 +885,43 @@ export type LettersHeaderInput = {
 /** No face to draw: the soft2 disc alone. */
 export const NO_FACE: KChatFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0 };
 
-/** The pen-pal chat's header (A2): the name, the line under it, FACE v1 and its frame, the dots.
-    The line says whose letter is owed and which of the five it is — LETTER {k} OF 5 · THEIRS when
-    their letter is owed (k their count + 1), · YOURS when yours is, by the Kindreds rows' turn
-    rule; once that writer's five are in, the band's line (what still moves names); past the
-    letters (names may be traded, or their account is gone) the state's own words in its tone.
-    The dots are the exchanges that went both ways (the Kindreds rows' n/5). */
+/** The pen-pal chat's progress band under the header's rule (live 1.0.4's, brought back by the
+    owner 2026-10-19; ReachBand is its React Native twin): YOU and their name in capitals ("NO.
+    8768", the courier name with the identity switch on), each with five cells, and bandFacts'
+    line. Only while someone is on the other side (a deleted account has none); the callers draw
+    this header only while names aren't traded. */
+export function lettersBand(i: { t: TFn; locale: string; name: string; other: string | null; myCount: number; otherCount: number }): KChatBand | null {
+  if (!i.other) return null;
+  const f = bandFacts(i.myCount, i.otherCount, i.t);
+  return {
+    me: f.me,
+    them: f.them,
+    line: f.line,
+    named: f.named,
+    youLabel: i.t("ch.band.you"),
+    themLabel: i.name.toLocaleUpperCase(i.locale),
+    a11y: i.t("ch.band.a11y", { me: f.me, them: f.them }),
+  };
+}
+
+/** The pen-pal chat's header (A2): the name, the line under it, FACE v1 and its frame, the band.
+    The line is the thread's state (YOUR TURN / THEIR TURN in mute, other states in their tone),
+    as live 1.0.4 has it; the counts are the band's.
+    The band (lettersBand) replaced the five dots (owner, 2026-10-19): it says both sides' counts. */
 export function lettersHeader(i: LettersHeaderInput): KChatHeader {
   const { t } = i;
   const kind = i.state?.kind ?? null;
-  const band = () => bandFacts(i.myCount, i.otherCount, t).line;
+  // the line under the name is the thread's state as live 1.0.4 says it (owner, 2026-10-19):
+  // YOUR TURN / THEIR TURN in mute, any other state in its own tone; the band under the header
+  // carries the counts, so the line never repeats them
   let sub = "";
   let tone: KChatHeader["tone"] = "mute";
-  if (kind === "yourTurn") sub = i.myCount >= REVEAL ? band() : t("ch.head.yours", { n: i.myCount + 1 });
-  else if (kind === "theirTurn") sub = i.otherCount >= REVEAL ? band() : t("ch.head.theirs", { n: i.otherCount + 1 });
-  else if (i.state) {
+  if (i.state) {
     sub = i.state.label;
-    tone = i.state.toneKey;
+    if (kind !== "yourTurn" && kind !== "theirTurn") tone = i.state.toneKey;
   }
   sub = sub.toLocaleUpperCase(i.locale);
   const seed = i.other || null;
-  const dots = Math.min(i.myCount, i.otherCount, REVEAL);
   // switch on: the frosted window in the face slot (it never develops), the mark and the sign after the name
   const frost = seed && i.who?.face.kind === "frost" ? i.who.face.spec : null;
   return {
@@ -921,9 +937,9 @@ export function lettersHeader(i: LettersHeaderInput): KChatHeader {
     veil: !seed,
     // CorrespondentFace: a face that has come through is framed; brass once they went first
     frame: !seed || i.otherCount < REVEAL ? "none" : i.theirSigned ? "brass" : "line",
-    dots,
-    // VoiceOver: "Sunday Kite, she, Gemini" with the switch on (the name alone off), the line, the dots
-    a11yLabel: join(seed && i.who ? i.who.spoken : i.name, sub, t("mk.ofFive", { n: dots })),
+    band: lettersBand({ t, locale: i.locale, name: i.name, other: seed, myCount: i.myCount, otherCount: i.otherCount }),
+    // VoiceOver: "Sunday Kite, she, Gemini" with the switch on (the name alone off), the line; the band says the counts
+    a11yLabel: join(seed && i.who ? i.who.spoken : i.name, sub),
     canOpenPage: i.canOpenPage,
     backLabel: t("a11y.back"),
     moreLabel: i.canReport ? t("rp.menu.a11y") : "",
@@ -947,7 +963,7 @@ export type RoomHeaderInput = {
 };
 
 /** The kindreds chat's header (chat composers B): ‹, the kindred's round face 44 across, the name,
-    the line under it in mute capitals, ⋯. No dots: the five are behind them. The face and name
+    the line under it in mute capitals, ⋯. No band: the five are behind them. The face and name
     open their page. */
 export function roomHeader(i: RoomHeaderInput): KChatHeader {
   const { t } = i;
@@ -965,7 +981,7 @@ export function roomHeader(i: RoomHeaderInput): KChatHeader {
     sign: null,
     veil: false,
     frame: "none",
-    dots: 0,
+    band: null,
     a11yLabel: join(i.name, sub),
     canOpenPage: true,
     backLabel: t("a11y.back"),

@@ -40,10 +40,10 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
      chat draws it: before names, the header with the face developing with
      THEIR letters (FACE v1, the veil for a gone pen pal), No. 5422, LETTER
      3 OF 5 · THEIRS (whose letter is owed; past the letters the state in
-     its tone, ACCOUNT CLOSED for a gone one) and the five dots, its ⋯
-     opening the report card (ConversationHeaderRN on build-items
-     lettersHeader). They say what the reach band said, with the reply
-     bar's hint, so the band is not drawn any more. With the identity
+     its tone, ACCOUNT CLOSED for a gone one), its ⋯ opening the report
+     card, and under its rule the reach band (both sides' five cells and
+     who still owes what; it replaced the five dots, owner 2026-10-19)
+     (ConversationHeaderRN + ReachBand on build-items lettersHeader). With the identity
      switch on (identity Phase 1) the same header shows their frosted
      window instead, never developing, and the courier name with the ♀/♂
      mark and the star sign after it; the letter cards' heads read LETTER 3

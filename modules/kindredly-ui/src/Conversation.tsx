@@ -176,8 +176,8 @@ export type KChatFace = {
 /** The conversation's own header: the pen-pal chat's (chat composers A2; build-items
     lettersHeader) or the kindreds chat's (B; build-items roomHeader). */
 export type KChatHeader = {
-  /** the kindreds chat's: the kindred's round face (`face`) 44 across, no dots; false for the
-      pen-pal chat's FACE v1 (`mask`, `veil`, `frame`) and its five dots */
+  /** the kindreds chat's: the kindred's round face (`face`) 44 across, no band; false for the
+      pen-pal chat's FACE v1 (`mask`, `veil`, `frame`) and the progress band under it */
   room: boolean;
   /** room: the face, as lib/faces resolves it */
   face: KChatFace;
@@ -189,7 +189,7 @@ export type KChatHeader = {
   /** FACE v1 (lib/mosaic mosaicMask with their letters' develop) */
   mask: number;
   /** identity on: the pen pal's frosted window, drawn in the face slot instead of `mask` (never
-      develops; the frame and the dots stay); null while the switch is off, and for the room */
+      develops; the frame and the band stay); null while the switch is off, and for the room */
   frost: KFrost | null;
   /** identity on: the ♀/♂ mark after the name (an ink glyph in sub, 6pt after it); null for none */
   mark: KMark;
@@ -202,14 +202,36 @@ export type KChatHeader = {
   identity?: boolean;
   /** none while the face develops; line when their five are in; brass when they also went first */
   frame: "none" | "line" | "brass";
-  /** exchanges that went both ways, 0..5 */
-  dots: number;
-  /** VoiceOver: the face, the name, the line and the dots, as one */
+  /** the progress band under the header's rule (live 1.0.4's, owner 2026-10-19): both sides'
+      five cells and the line that says who still owes what; null for none (names traded, a
+      deleted account, the kindreds chat) */
+  band: KChatBand | null;
+  /** VoiceOver: the face, the name and the line, as one (the band says the counts) */
   a11yLabel: string;
   canOpenPage: boolean;
   backLabel: string;
   /** "" hides the ⋯ (nobody to report) */
   moreLabel: string;
+};
+
+/** The pen-pal chat's progress band (build-items bandFacts):
+      YOU ■■□□□   NO. 8768 ■□□□□
+      3 MORE FROM YOU · 4 FROM THEM → NAMES */
+export type KChatBand = {
+  /** your letters, 0..5 (a side with all five is drawn in ind) */
+  me: number;
+  /** theirs, 0..5 */
+  them: number;
+  /** the second line, already in capitals (ch.band.*) */
+  line: string;
+  /** both fives are in: the line in ind */
+  named: boolean;
+  /** "YOU" */
+  youLabel: string;
+  /** the pen pal's name in capitals: "NO. 8768", or with the identity switch on the courier name */
+  themLabel: string;
+  /** VoiceOver: the band as one element (ch.band.a11y) */
+  a11y: string;
 };
 
 /** The words the rows share. */
@@ -348,7 +370,7 @@ type NativeDock = {
 };
 /* the header as Swift's record: the face flattened, no mark or sign as "", no window as NO_FROST
    (a @Field record can't take null) */
-type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity"> & {
+type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band"> & {
   show: boolean;
   faceKind: KChatFace["kind"];
   faceUri: string;
@@ -359,7 +381,10 @@ type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "iden
   mark: string;
   sign: string;
   identity: boolean;
+  band: NativeBand;
 };
+type NativeBand = KChatBand & { show: boolean };
+const NO_BAND: NativeBand = { show: false, me: 0, them: 0, line: "", named: false, youLabel: "", themLabel: "", a11y: "" };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
@@ -381,7 +406,7 @@ const NO_HEADER: NativeHeader = {
   veil: true,
   identity: false,
   frame: "none",
-  dots: 0,
+  band: NO_BAND,
   a11yLabel: "",
   canOpenPage: false,
   backLabel: "",
@@ -484,7 +509,7 @@ export function nativeChatDock(d: KChatDock): NativeDock {
 /** The header as Swift's record (the face flattened): show false for none. */
 export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeader {
   if (!h) return NO_HEADER;
-  const { face, frost, mark, sign, identity, ...rest } = h;
+  const { face, frost, mark, sign, identity, band, ...rest } = h;
   return {
     ...rest,
     show: true,
@@ -497,6 +522,7 @@ export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeade
     mark: mark ?? "",
     sign: sign ?? "",
     identity: !!identity,
+    band: band ? { ...band, show: true } : NO_BAND,
   };
 }
 

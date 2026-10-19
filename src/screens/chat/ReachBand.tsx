@@ -1,9 +1,8 @@
 import { Text, View } from "react-native";
-import { t, useLang } from "../../lib/i18n";
+import type { KChatBand } from "../../../modules/kindredly-ui/src/Conversation";
 import { useTheme } from "../../lib/theme";
 import { PF } from "../../theme/post";
-import { penPalName } from "../../lib/format";
-import { REVEAL, bandFacts } from "./build-items";
+import { REVEAL } from "./build-items";
 
 /* THE ONE THRESHOLD, SAID ON THE PAGE — both sides of it (owner,
    2026-10-10), under the pen-pal chat's header while names aren't traded.
@@ -13,13 +12,20 @@ import { REVEAL, bandFacts } from "./build-items";
    full, ind when it is — no green. Not dismissable: it's the product's
    only gate, in two lines. A gone thread has no band (spec bug 6).
 
-   10a: the theme's ink / line / ind, mono 10 (the 9/10/11 rule), no rule
-   under it (the header has none either). One VoiceOver element. */
+     YOU ■□□□□   NO. 8768 ■□□□□
+     4 MORE FROM YOU · 4 FROM THEM → NAMES
 
-export function ReachBand({ myCount, otherCount, other }: { myCount: number; otherCount: number; other: string | null }) {
-  useLang();
+   It draws the record the Swift header draws (build-items lettersBand, on
+   the header's `band`), so the two can't drift: the second label is the
+   header's own name in capitals — "NO. 8768", or with the identity switch
+   on the courier name. Brought back under the header's rule, replacing the
+   header's five dots (owner, 2026-10-19).
+
+   10a: the theme's ink / line / ind, mono semibold 10, no rule under it.
+   One VoiceOver element. */
+
+export function ReachBand({ band }: { band: KChatBand }) {
   const { t: tk } = useTheme();
-  const band = bandFacts(myCount, otherCount, t);
   const cells = (n: number) => (
     <View style={{ flexDirection: "row", gap: 2 }}>
       {Array.from({ length: REVEAL }, (_, i) => (
@@ -29,20 +35,20 @@ export function ReachBand({ myCount, otherCount, other }: { myCount: number; oth
   );
   const label = { fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.sub } as const;
   return (
-    <View accessible accessibilityLabel={t("ch.band.a11y", { me: band.me, them: band.them })} style={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, backgroundColor: tk.bg }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+    <View accessible accessibilityLabel={band.a11y} style={{ paddingHorizontal: 16, paddingTop: 9, paddingBottom: 10, backgroundColor: tk.bg }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 16, rowGap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text style={label}>{t("ch.band.you")}</Text>
+          <Text maxFontSizeMultiplier={2.2} style={label}>{band.youLabel}</Text>
           {cells(band.me)}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 }}>
-          <Text numberOfLines={1} style={label}>
-            {penPalName(other, { upper: true })}
+          <Text maxFontSizeMultiplier={2.2} style={[label, { flexShrink: 1 }]}>
+            {band.themLabel}
           </Text>
           {cells(band.them)}
         </View>
       </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: band.named ? tk.ind : tk.ink, marginTop: 7 }}>
+      <Text maxFontSizeMultiplier={2.2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: band.named ? tk.ind : tk.ink, marginTop: 7 }}>
         {band.line}
       </Text>
     </View>
