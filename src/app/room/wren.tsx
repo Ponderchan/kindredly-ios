@@ -45,6 +45,7 @@ import { DEMO_WREN_POSTS } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { atBottomOf, follow, settlesAtEnd, spendsOwn, type FollowFacts } from "../../screens/chat/follow";
 import { useKeyboardRN, useKeyboardSettle, useKeyboardTray } from "../../screens/chat/useKeyboardRN";
+import { BackChevron } from "../../components/10a/BackChevron";
 
 /* WREN'S DESK — the one room everybody has.
    ────────────────────────────────────────────────────────────────────────
@@ -354,14 +355,9 @@ export default function WrenDeskScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingTop: 2, paddingBottom: 10 }}>
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))}
-          hitSlop={10}
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-        >
-          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
-        </Pressable>
+      {/* the one BackChevron at its place (centred 26 below the safe area); the 46 face row is centred on the same line */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 10, paddingTop: 3, paddingBottom: 9 }}>
+        <BackChevron onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))} color={P.ink} />
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 11 }}>
           <OfficialBird size={46} />
           <View style={{ flex: 1 }}>

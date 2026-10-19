@@ -19,7 +19,7 @@ import Svg, { Circle, Path } from "react-native-svg";
      askSomething  Ask something,
      tinyMoment    Tiny moment,
      leaveSong     Leave a song
-     chevronLeft   the conversation header's back (22 at 2.2)
+     chevronLeft   the back chevron (BackChevron draws it, 18 at 2.2)
      more          the header's ⋯, three filled dots
 
    THE MARKS AFTER A STRANGER'S NAME (identity Phase 1, identity-plan §4, §9
@@ -86,7 +86,7 @@ const PATHS: Record<Exclude<LineIconName, "more" | "plus">, string> = {
   askSomething: "M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9.5L5 20z M10.3 9.3a1.8 1.8 0 0 1 3.2 1.1c0 1.2-1.5 1.4-1.5 2.6 M12 15.3h.01",
   tinyMoment: "M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20V19H4z M12 16.5a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z",
   leaveSong: "M9 17.5V5.5l10-2.2v12 M9 9.3l10-2.2 M9 17.5a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z M19 15.3a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z",
-  chevronLeft: "M15 5l-7 7 7 7",
+  chevronLeft: "M15 6l-7 6 7 6", // the back chevron, KLineIcon .chevronLeft
   // the identity marks (drawn for stroke 2; each one's stroked extent centred on 12,12)
   she: "M16.5 8.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12 13.25v6.25 M9 16.5h6",
   he: "M14.25 14.25a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12.93 11.07 18.75 5.25 M13.5 5.25h5.25v5.25",

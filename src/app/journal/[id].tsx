@@ -8,6 +8,7 @@ import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../../lib/i18n";
 import { PF } from "../../theme/post";
 import { useP, useTheme } from "../../lib/theme";
+import { BackChevron } from "../../components/10a/BackChevron";
 import { AudioCard } from "../../components/AudioCard";
 import { moodArtKey, moodGroup, moodLabel } from "../../data/moods";
 import { demoJournal } from "../../data/demo";
@@ -119,10 +120,8 @@ export default function JournalDetail() {
        than the blank page both used to share. */
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
-          <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("a11y.back")} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
-          </Pressable>
+        <View style={{ height: 52 }}>
+          <BackChevron onPress={goBack} color={P.ink} />
         </View>
         {read && (
           <Text style={{ fontSize: 15, lineHeight: 22, color: P.ink60, textAlign: "center", paddingHorizontal: 40, marginTop: 120 }}>{t("jd.notFound")}</Text>
@@ -141,10 +140,8 @@ export default function JournalDetail() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* header — back + a ··· menu; the date leads the entry from the centre */}
       {/* no rule under it: 10a's sub-page headers have none (H:90, H:97) */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }}>
-        <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("a11y.back")} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
-        </Pressable>
+      <View style={{ height: 52, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingRight: 20 }}>
+        <BackChevron onPress={goBack} color={P.ink} />
         {/* samples get the menu too — hiding it read as "delete is missing",
             not "this is a sample". Drift stays real-pages-only inside. */}
         <Pressable

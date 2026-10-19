@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter, Redirect } from "expo-router";
 import { t, useLang } from "../lib/i18n";
 import { F, cardStyle } from "../theme/tokens";
 import { useTheme } from "../lib/theme";
+import { BackChevron } from "../components/10a/BackChevron";
 import { WrenBird } from "../components/WrenBird";
 import { analyzeVoice, cachedVoiceAI, gatherWriting, storeVoiceAI, type VoiceRead } from "../lib/voice";
 import { reportGate, type ReportGate } from "../lib/report";
@@ -69,10 +70,8 @@ export default function VoiceDetail() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       {/* header */}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 2 }}>
-        <Pressable onPress={goBack} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 24, color: tk.ink }}>‹</Text>
-        </Pressable>
+      <View style={{ minHeight: 52, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 12 }}>
+        <BackChevron onPress={goBack} color={tk.ink} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: F.sansExtra, fontSize: 13, letterSpacing: 2.5, color: tk.ink }}>{t("vc.title")}</Text>
           <Text style={{ fontFamily: F.sans, fontSize: 11, color: tk.sub, marginTop: 2 }}>

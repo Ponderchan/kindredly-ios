@@ -21,6 +21,10 @@ import SwiftUI
  the CURRENT theme (KSelectableTile: a 2pt ind border and a 3pt lav halo); the others a 2pt line
  border. Each swatch is one button; VoiceOver reads its name with the selected trait. The tiles
  are drawn from KTheme, so a key this binary doesn't know draws as Classic.
+
+ At the accessibility text sizes four columns leave a name ~70 wide ("Clas…", "Lave…" at AX3):
+ there the swatches go two to a row, each phone no wider than 110 and centred over its name, and
+ the name wraps (up to three lines) instead of being cut.
  */
 public struct KThemeSwatch: Identifiable, Equatable, Sendable {
   /// a themes.json key: classic, midnight, lavender, paper
@@ -54,10 +58,17 @@ public struct KThemeSwatches: View {
     self.onPick = onPick
   }
 
+  @Environment(\.dynamicTypeSize) private var typeSize
+
   private static let columns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 4)
+  /// at the accessibility sizes: two to a row, the phone at most this wide
+  private static let largeColumns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 2)
+  private static let largePhone: CGFloat = 110
+
+  private var large: Bool { typeSize.isAccessibilitySize }
 
   public var body: some View {
-    LazyVGrid(columns: Self.columns, alignment: .leading, spacing: 10) {
+    LazyVGrid(columns: large ? Self.largeColumns : Self.columns, alignment: .leading, spacing: large ? 14 : 10) {
       ForEach(options) { option in
         swatch(option)
       }
@@ -73,13 +84,17 @@ public struct KThemeSwatches: View {
         KMiniPhone(theme: KTheme.named(option.key) ?? .classic)
           .aspectRatio(3.0 / 4.0, contentMode: .fit)
           .kSelectableTile(theme: theme, selected: selected, cornerRadius: 12)
+          .frame(maxWidth: large ? Self.largePhone : .infinity)
         Text(option.label)
           .kText(.swatchLabel)
           .foregroundStyle(selected ? theme.ind : theme.sub)
-          .lineLimit(1)
-          .minimumScaleFactor(0.75)
+          .multilineTextAlignment(.center)
+          .lineLimit(large ? 3 : 1)
+          .minimumScaleFactor(large ? 1 : 0.75)
+          .fixedSize(horizontal: false, vertical: large)
           .animation(.easeInOut(duration: 0.2), value: selected)
       }
+      .frame(maxWidth: .infinity)
       .contentShape(Rectangle())
     }
     .buttonStyle(KFloatPressStyle())

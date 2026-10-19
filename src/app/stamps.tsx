@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter, Redirect } from "expo-router";
 import { F, cardStyle, navyBtn } from "../theme/tokens";
 import { useTheme } from "../lib/theme";
 import { GrowthStampTile } from "../components/GrowthStamp";
+import { BackChevron } from "../components/10a/BackChevron";
 import { GROWTH_STAMPS, type GrowthStamp, type GrowthStats } from "../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../lib/stats";
 import { useAuth } from "../lib/auth";
@@ -43,12 +44,11 @@ export default function StampsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontSize: 26, color: tk.ink }}>‹</Text>
-        </Pressable>
-        <Text style={{ fontFamily: F.serif, fontSize: 19, color: tk.ink }}>Your stamps</Text>
-        <Text style={{ width: 42, fontFamily: F.sansBold, fontSize: 12, color: tk.mute, textAlign: "center" }}>
+      {/* a 52 bar under the safe area: the one BackChevron, the title centred, the count 12 from the right */}
+      <View style={{ height: 52, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+        <BackChevron onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} color={tk.ink} />
+        <Text accessibilityRole="header" style={{ fontFamily: F.serif, fontSize: 19, color: tk.ink }}>Your stamps</Text>
+        <Text style={{ position: "absolute", right: 12, minWidth: 36, fontFamily: F.sansBold, fontSize: 12, color: tk.mute, textAlign: "center" }}>
           {earnedCount}/{GROWTH_STAMPS.length}
         </Text>
       </View>

@@ -25,7 +25,9 @@ import SwiftUI
  owner's B.
 
  THE PEN-PAL CHAT'S (A2):
- - ‹ the back chevron, 22 at 2.2 in ink, in a 44 target (VoiceOver: Back).
+ - ‹ the back chevron: KBackChevron, the app's one (Settings' 18 at 2.2 in ink, its 36 box 12 from
+   the edge, a 44 target; VoiceOver: Back). It stays centred with the face and name in the 72 row
+   (by design), so it sits 10 lower than Settings' does; size and x are the same.
  - THE FACE: FACE v1 as the rest of the app draws it (KMosaic, the mask from TS's mosaicMask with
    their letters' develop; the veil in faint for a deleted account), in a 44 × 36 slot. The
    prototype's 5 × 4 placeholder grid is not the face: FACE v1 is frozen at 5 × 5 square cells
@@ -91,16 +93,12 @@ struct KChatHeader: View {
 
   private var bar: some View {
     HStack(spacing: 0) {
-      SwiftUI.Button {
+      // the app's one back chevron (KBackChevron, Settings' size and x): its 44 target at
+      // KBackChevron.leading, so the 18 glyph spans 21–39; the face keeps 12 after it (at 51)
+      KBackChevron(theme: theme, label: model.backLabel) {
         actions.onDock("back")
-      } label: {
-        KLineIcon(.chevronLeft, size: 22, lineWidth: 2.2, color: theme.ink)
-          .frame(width: 40, height: 44)
-          .contentShape(Rectangle())
       }
-      .buttonStyle(KFloatPressStyle())
-      .accessibilityLabel(model.backLabel)
-      .padding(.trailing, 3)
+      .padding(.trailing, -1)   // the target ends at 52; the face 12 after the glyph's 39
 
       identity
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -118,8 +116,9 @@ struct KChatHeader: View {
         .padding(.leading, 3)
       }
     }
-    // padding 0 18 0 14 to the icons' own edges: the 40 targets reach 9 past each 22 icon
-    .padding(.leading, 14 - 9)
+    // the chevron at Settings' place (KBackChevron.leading); 18 at the right to the ⋯'s own edge,
+    // whose 40 target reaches 9 past its 22 icon
+    .padding(.leading, KBackChevron.leading)
     .padding(.trailing, model.moreLabel.isEmpty ? 18 : 18 - 9)
     .frame(minHeight: Self.height)
     .padding(.top, topInset)

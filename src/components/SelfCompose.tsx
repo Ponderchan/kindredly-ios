@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BackChevron } from "./10a/BackChevron";
 import { GlyphInput } from "./GlyphInput";
 import { useWrenName } from "../lib/wren-name";
 import { Alert, Image, Keyboard, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
@@ -598,10 +599,8 @@ function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Ph
   return (
     <Modal visible transparent={false} animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "#0A0A0C" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingTop: insets.top + 4, paddingHorizontal: 8, height: insets.top + 52 }}>
-          <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("ob2.back")} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 24, color: "#FFFFFF" }}>‹</Text>
-          </Pressable>
+        <View style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 8, height: 52 }}>
+          <BackChevron onPress={onClose} color="#FFFFFF" label={t("ob2.back")} />
           <Text
             accessibilityLabel={t(i === 0 && photos.length >= 2 ? "sc.a11y.photoCover" : "sc.a11y.photo", { i: i + 1, n: photos.length })}
             style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: "#FFFFFF" }}

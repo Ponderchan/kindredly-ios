@@ -72,16 +72,8 @@ public struct KBackBar<Trailing: View>: View {
         .padding(.horizontal, sideRoom)
         .accessibilityAddTraits(.isHeader)
       HStack(spacing: 0) {
-        SwiftUI.Button(action: onBack) {
-          KLineIcon(.chevronLeft, size: 18, lineWidth: 2.2, color: theme.ink)
-            .frame(width: 36, height: 36)
-            // a 44 target around the 36 box
-            .padding(4)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KFloatPressStyle())
-        .accessibilityLabel(backLabel)
-        .padding(.leading, 12 - 4)
+        KBackChevron(theme: theme, label: backLabel, action: onBack)
+          .padding(.leading, KBackChevron.leading)
         Spacer(minLength: 0)
         trailing
           .padding(.trailing, 12)
@@ -92,6 +84,43 @@ public struct KBackBar<Trailing: View>: View {
     .background(sticky ? theme.bg : Color.clear)
     // the bar is fixed height: its words stop growing at the largest standard size
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+  }
+}
+
+/*
+ THE BACK CHEVRON (owner 2026-10-19: every detail page's back icon the size and place of
+ Settings'). The one ‹ every pushed Swift page draws, so its metrics live here only:
+ KLineIcon(.chevronLeft) (M15 6l-7 6 7 6) 18 across at stroke 2.2 in ink, in a 36 box, inside a
+ 44 target (padding 4). Put it `KBackChevron.leading` (8) from the screen's left edge, so the
+ 36 box sits 12 from it, and centre it in the first 52 (sticky) or 44 (scrolling) below the safe
+ area. VoiceOver calls it `label`, already translated.
+ */
+public struct KBackChevron: View {
+  /// the 44 target's left edge from the screen's: the 36 box then sits 12 in
+  public static var leading: CGFloat { 12 - 4 }
+  /// the target's side
+  public static var target: CGFloat { 44 }
+
+  private let theme: KTheme
+  private let label: String
+  private let action: () -> Void
+
+  public init(theme: KTheme, label: String, action: @escaping () -> Void) {
+    self.theme = theme
+    self.label = label
+    self.action = action
+  }
+
+  public var body: some View {
+    SwiftUI.Button(action: action) {
+      KLineIcon(.chevronLeft, size: 18, lineWidth: 2.2, color: theme.ink)
+        .frame(width: 36, height: 36)
+        // a 44 target around the 36 box
+        .padding(4)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(KFloatPressStyle())
+    .accessibilityLabel(label)
   }
 }
 
@@ -108,7 +137,7 @@ public extension KBackBar where Trailing == EmptyView {
  MY LETTERS (Me 4a, .claude/me4a/ME4A.md §1.7, §2.4), the route /my-letters drawn in Swift. It
  lives in this file rather than one of its own so the module needs no pod install (ME4A D1);
  KBackBar above is untouched. On the reader's theme, like the React Native page it replaces.
- - THE TOP ROW: ‹, "My letters" 22/600 and the count 18 in mute, the three-line manage key at
+ - THE TOP ROW: ‹ (KBackChevron, Settings' size and place), "My letters" 22/600 and the count 18 in mute, the three-line manage key at
    the right. While managing: Cancel, and "Manage" with every letter and draft counted.
  - THE FILTERS: All / Answered / Quiet / Drafts with their counts, 34 tall, radius 17, 13/600;
    the chosen one ink with the page colour on it, the others the surface with a 1.5 line edge.
@@ -290,14 +319,10 @@ public struct KMyLettersScreen: View {
         Spacer(minLength: 0)
         Color.clear.frame(width: 64, height: 1)
       } else {
-        SwiftUI.Button(action: actions.onBack) {
-          KLineIcon(.chevronLeft, size: 22, lineWidth: 2.2, color: theme.ink)
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KFloatPressStyle())
-        .accessibilityLabel(content.back)
-        .padding(.leading, -6)
+        // the app's one back chevron (KBackChevron), 12 from the edge like Settings': the row's
+        // 16 gutter less 8 puts its 44 target at KBackChevron.leading
+        KBackChevron(theme: theme, label: content.back, action: actions.onBack)
+          .padding(.leading, KBackChevron.leading - 16)
         HStack(alignment: .firstTextBaseline, spacing: 8) {
           Text(content.title)
             .kText(.system(22, .semibold))

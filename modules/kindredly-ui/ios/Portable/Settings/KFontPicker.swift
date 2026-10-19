@@ -15,6 +15,10 @@ import SwiftUI
  until its file is in the app). A face's specimen is drawn with KType's own letter font, so New
  York scales with Dynamic Type as .kText does, and an unembedded Garamond draws as Newsreader,
  never as the system sans.
+
+ At the accessibility text sizes three columns leave a name ~80 wide ("News…", "EB Ga…" at AX3):
+ there the tiles stack, one to a row, the specimen at the left and the name beside it, wrapping
+ (up to three lines) instead of being cut.
  */
 public struct KFontOption: Identifiable, Equatable, Sendable {
   /// the key TS sends: newsreader, newyork, garamond
@@ -49,12 +53,24 @@ public struct KFontPicker: View {
     self.onPick = onPick
   }
 
+  @Environment(\.dynamicTypeSize) private var typeSize
+
   private static let columns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 3)
 
+  private var large: Bool { typeSize.isAccessibilitySize }
+
   public var body: some View {
-    LazyVGrid(columns: Self.columns, alignment: .leading, spacing: 10) {
-      ForEach(options) { option in
-        tile(option)
+    if large {
+      VStack(alignment: .leading, spacing: 10) {
+        ForEach(options) { option in
+          tile(option)
+        }
+      }
+    } else {
+      LazyVGrid(columns: Self.columns, alignment: .leading, spacing: 10) {
+        ForEach(options) { option in
+          tile(option)
+        }
       }
     }
   }
@@ -64,18 +80,24 @@ public struct KFontPicker: View {
     return SwiftUI.Button {
       onPick(option.key)
     } label: {
-      VStack(spacing: 4) {
+      let layout = large
+        ? AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        : AnyLayout(VStackLayout(spacing: 4))
+      layout {
         KFontSpecimen(face: option.face, sample: option.sample)
           .foregroundStyle(theme.ink)
+          .fixedSize()
         Text(option.name)
           .kText(.swatchLabel)
           .foregroundStyle(selected ? theme.ind : theme.sub)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
+          .lineLimit(large ? 3 : 1)
+          .minimumScaleFactor(large ? 1 : 0.7)
+          .fixedSize(horizontal: false, vertical: large)
+          .frame(maxWidth: large ? .infinity : nil, alignment: .leading)
           .animation(.easeInOut(duration: 0.2), value: selected)
       }
       .padding(10)
-      .frame(maxWidth: .infinity)
+      .frame(maxWidth: .infinity, alignment: large ? .leading : .center)
       .background(theme.sf)
       .kSelectableTile(theme: theme, selected: selected, cornerRadius: 12)
       .contentShape(RoundedRectangle(cornerRadius: 12, style: .circular))

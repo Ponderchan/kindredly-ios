@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Pressable, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 /* the gesture library's scroll view: a drag that starts on her (the perch,
    components/CourierStage) blocks the page's scroll instead of racing it */
 import { ScrollView } from "react-native-gesture-handler";
@@ -10,6 +10,7 @@ import { PF } from "../theme/post";
 import { useP } from "../lib/theme";
 import { PALETTE, daylight, type Daylight } from "../components/CourierCard";
 import { WrenHome } from "../components/WrenHome";
+import { BackChevron } from "../components/10a/BackChevron";
 import type { WrenAccessory, WrenStage } from "../components/WrenBird";
 import { t, useLang } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
@@ -128,11 +129,9 @@ export default function CourierRoom() {
         {/* the header rides on the cover and scrolls away with it */}
         {/* box-none: the header's empty stretch lets taps through to the cover
             below it (the game's × sits there) */}
-        <View pointerEvents="box-none" style={{ height: 44, zIndex: 2, marginBottom: -44 }}>
-          <View pointerEvents="box-none" style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingTop: 4, height: 44 }}>
-            <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} hitSlop={10} style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: PF.letter, fontSize: 24, color: coverSky.ink }}>‹</Text>
-            </Pressable>
+        <View pointerEvents="box-none" style={{ height: 52, zIndex: 2, marginBottom: -52 }}>
+          <View pointerEvents="box-none" style={{ flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 14, height: 52 }}>
+            <BackChevron onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} color={coverSky.ink} />
             <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 2.4, color: coverSky.ink }}>{t("cr.title", { wren: wren.toUpperCase() })}</Text>
           </View>
         </View>

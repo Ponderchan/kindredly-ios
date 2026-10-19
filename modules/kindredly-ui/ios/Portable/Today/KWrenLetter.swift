@@ -18,9 +18,10 @@ import SwiftUI
    I'm back with the next ones at 8:00 AM.
    Go find one small thing worth putting in a letter — or come fly a lap with me.
    — W.  ⋔                                             the signature and her foot
-            ╭──( OPENS AT 8:00 AM )──╮                 the bag: tomorrow's desk, closed, no number,
-            │ ⌣⌣⌣⌣⌣⌣⌣⌣● ⌣⌣⌣⌣⌣⌣⌣⌣  │                 the flap and its wax seal
-             ╰──────────────────────╯
+            ╭──( OPENS AT 8:00 AM )──╮                 the bag: tomorrow's desk, three sealed
+            │  ✉      ✉              │                 envelopes inside and no number (the
+            │      ✉                 │                 design's 1→5 WAITING was invented; three
+             ╰──────────────────────╯                  is only a picture of "some", owner 10-19)
    ──────────────────────────────────────────────
    WREN IS BACK IN                          8H 06M     the foot, the countdown in ind
 
@@ -31,6 +32,13 @@ import SwiftUI
  bag's 120 kept, and only when even 16 leaves less than that (a small phone, large text) does the
  bag stand aside, the lines then taking the room back at 20, 18 or 16, and at the last truncating
  rather than spilling out of the card.
+
+ The envelopes (design 25b): 52 × 36 white cards, a 2 outline, corners of 4, a V flap and an 11
+ wax-gold dot, drawn in the brand ink on white whatever the theme (Midnight's pale ln would vanish
+ on the white), resting at (14,26,−8°) (78,36,6°) (44,62,−3°) in the bag, the cluster moved
+ sideways with the bag's width so it sits where the design's 205-wide bag put it. When the letter
+ comes in through the timeline they drop in one by one (kdrop .6 s cubic-bezier(.3,1.1,.4,1)
+ from 70 up and nothing, .35 s apart); at rest and under Reduce Motion they are simply there.
 
  Taps: the letter bounces (.6 s) and shows the chip (THAT'S ALL FOR TODAY) under the card for
  1.6 s; the bag jiggles (.45 s) and shows NOT YET · 8H 06M for 1.5 s, and its tap stays its own.
@@ -68,6 +76,13 @@ struct KWrenLetter: View {
   /// the bag's least height (the design's min-height 120): the lines step down to keep it
   static let bagMin: CGFloat = 120
 
+  /// the envelopes' resting spots in the design's bag (left, top, turn), and its width
+  static let envelopes: [(x: CGFloat, y: CGFloat, angle: Double)] = [(14, 26, -8), (78, 36, 6), (44, 62, -3)]
+  static let designBagWidth: CGFloat = 205
+  /// the first drop (once the letter has risen) and the gap between drops
+  static let dropFirst: Double = 0.35
+  static let dropGap: Double = 0.35
+
   /// the chips' pop: kpop .3s with CSS's default ease
   static let popIn = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)
   static let popOut = Animation.easeOut(duration: 0.2)
@@ -79,6 +94,8 @@ struct KWrenLetter: View {
   let stampBird: KImageRef?
   /// move VoiceOver to the letter once it is up (it came in through the timeline, not at rest)
   let focusOnAppear: Bool
+  /// drop the bag's envelopes in one by one (the letter came in through the timeline)
+  let animateIn: Bool
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @AccessibilityFocusState private var letterFocused: Bool
@@ -88,12 +105,20 @@ struct KWrenLetter: View {
   @State private var chipSerial = 0
   @State private var notYetShown = false
   @State private var notYetSerial = 0
+  /// how many envelopes have dropped in (only read while they are dropping in)
+  @State private var dropped = 0
 
-  init(theme: KTheme, model: KWrenLetterModel, stampBird: KImageRef?, focusOnAppear: Bool = false) {
+  init(theme: KTheme, model: KWrenLetterModel, stampBird: KImageRef?, focusOnAppear: Bool = false, animateIn: Bool = false) {
     self.theme = theme
     self.model = model
     self.stampBird = stampBird
     self.focusOnAppear = focusOnAppear
+    self.animateIn = animateIn
+  }
+
+  /// the envelopes in the bag now: all three at rest and under Reduce Motion
+  private var envelopesIn: Int {
+    animateIn && !reduceMotion ? dropped : Self.envelopes.count
   }
 
   var body: some View {
@@ -121,6 +146,13 @@ struct KWrenLetter: View {
       // standard size (the lines then step down to fit)
       .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
       .onAppear {
+        if animateIn && !reduceMotion {
+          for i in Self.envelopes.indices {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.dropFirst + Self.dropGap * Double(i)) {
+              dropped = max(dropped, i + 1)
+            }
+          }
+        }
         guard focusOnAppear else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { letterFocused = true }
       }
@@ -261,7 +293,7 @@ struct KWrenLetter: View {
     }
   }
 
-  // ── the bag: tomorrow's desk, closed ──
+  // ── the bag: tomorrow's desk, three sealed envelopes in it ──
   private var bagRoom: some View {
     GeometryReader { geo in
       let height = geo.size.height - Self.bagTop - Self.bagBottom
@@ -279,15 +311,21 @@ struct KWrenLetter: View {
     let fill = theme.isDark ? theme.soft2 : theme.soft
     return ZStack(alignment: .topLeading) {
       shape.fill(fill)
-      // the closed flap: M0 30 Q 50% 52 100% 30, and its wax seal where the curve dips lowest
-      KWrenBagFlap()
-        .stroke(theme.ln, lineWidth: 2)
-        .clipShape(shape)
-      Circle()
-        .fill(KBrand.waxGold)
-        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
-        .frame(width: 14, height: 14)
-        .position(x: w / 2, y: KWrenBagFlap.lowest)
+      // the envelopes, inside the outline (CSS's absolute children of a 2.5 border) and clipped
+      // by the bag (overflow hidden)
+      ZStack(alignment: .topLeading) {
+        let shift = max(0, (w - Self.designBagWidth) / 2)
+        ForEach(Self.envelopes.indices, id: \.self) { i in
+          let e = Self.envelopes[i]
+          KWrenEnvelope(shown: i < envelopesIn, angle: e.angle)
+            .position(
+              x: Self.border + shift + e.x + KWrenEnvelope.size.width / 2,
+              y: Self.border + e.y + KWrenEnvelope.size.height / 2
+            )
+        }
+      }
+      .frame(width: w, height: h)
+      .clipShape(shape)
       shape.strokeBorder(theme.ln, lineWidth: 2.5)
     }
     .frame(width: w, height: h)
@@ -426,17 +464,53 @@ private struct KWrenBagJig {
   var x: CGFloat = 0
 }
 
-/// The bag's closed flap, in the bag's own points: M0 30 Q 50% 52 100% 30.
-private struct KWrenBagFlap: Shape {
-  static let edge: CGFloat = 30
-  static let dip: CGFloat = 52
-  /// where the curve is lowest, under the middle (a quadratic's midpoint): the seal sits there
-  static let lowest: CGFloat = (edge + dip) / 2
+/// One sealed envelope in the bag (design 25b): a 52 × 36 white card, a 2 outline, corners of 4,
+/// the V of its flap and an 11 wax-gold dot with a 1.5 outline, in the brand ink on white in every
+/// theme. It drops in (kdrop) when `shown` turns true: from 70 up and nothing, on .6 s of
+/// cubic-bezier(.3,1.1,.4,1), fully there by 55%.
+private struct KWrenEnvelope: View {
+  static let size = CGSize(width: 52, height: 36)
+  static let drop = Animation.timingCurve(0.3, 1.1, 0.4, 1, duration: 0.6)
+  static let fade = Animation.linear(duration: 0.33)
 
+  let shown: Bool
+  let angle: Double
+
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 4, style: .circular)
+    ZStack(alignment: .topLeading) {
+      shape.fill(KBrand.paperWhite)
+      KWrenEnvelopeFlap()
+        .stroke(KBrand.inkOnBrand, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+      Circle()
+        .fill(KBrand.waxGold)
+        .overlay(Circle().strokeBorder(KBrand.inkOnBrand, lineWidth: 1.5))
+        .frame(width: 11, height: 11)
+        // left 50%, top 8 inside the 2 outline
+        .position(x: Self.size.width / 2, y: 2 + 8 + 5.5)
+      shape.strokeBorder(KBrand.inkOnBrand, lineWidth: 2)
+    }
+    .frame(width: Self.size.width, height: Self.size.height)
+    .rotationEffect(.degrees(angle))
+    .offset(y: shown ? 0 : -70)
+    .animation(Self.drop, value: shown)
+    .opacity(shown ? 1 : 0)
+    .animation(Self.fade, value: shown)
+  }
+}
+
+/// The envelope's flap: the design's M1 1l28 18L57 1 on a 58 × 38 box, met into the 48 × 32
+/// inside the 2 outline (so at 2 × 0.83 from the card's corner), in the card's own points.
+private struct KWrenEnvelopeFlap: Shape {
   func path(in rect: CGRect) -> Path {
+    let s = min(48 / 58.0, 32 / 38.0)
+    let ox = rect.minX + 2
+    let oy = rect.minY + 2 + (32 - 38 * s) / 2
+    func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: ox + x * s, y: oy + y * s) }
     var p = Path()
-    p.move(to: CGPoint(x: rect.minX, y: rect.minY + Self.edge))
-    p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + Self.edge), control: CGPoint(x: rect.midX, y: rect.minY + Self.dip))
+    p.move(to: pt(1, 1))
+    p.addLine(to: pt(29, 19))
+    p.addLine(to: pt(57, 1))
     return p
   }
 }

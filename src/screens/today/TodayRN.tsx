@@ -133,8 +133,8 @@ import "../../data/strings-today3d";
      would reach it. Reduce Motion: the bar and the band fade where they
      stand, the card's change of size is a short ease.
    - done: the buttons go, Wren fades from the ground into her window, and
-     her letter comes up in the card's place (her counted note, the closed
-     bag with when it opens, the countdown). The window offers a lap of her
+     her letter comes up in the card's place (her counted note, the bag with
+     three sealed envelopes and when it opens, the countdown). The window offers a lap of her
      game when she can play, else when she's back. Opening into a finished
      desk draws it at rest.
    - the first arrival: her line in a bubble over her head while the first
@@ -1723,12 +1723,12 @@ function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterV
           </View>
         </Pressable>
 
-        {/* tomorrow's bag: closed, when it opens, no number */}
+        {/* tomorrow's bag: three sealed envelopes, when it opens, no number */}
         <View style={{ flex: 1 }} onLayout={(e) => setBagRoom(e.nativeEvent.layout.height)}>
           {bagH >= 96 && (
             <Animated.View style={[{ flex: 1, marginTop: 14, marginHorizontal: 56, marginBottom: 8 }, bagStyle]}>
               <Pressable onPress={tapBag} accessible accessibilityRole="button" accessibilityLabel={[letter.bag, letter.countdown].filter((x) => x !== "").join(" ")} style={{ flex: 1 }}>
-                <Bag fill={dark ? tk.soft2 : tk.soft} />
+                <Bag fill={dark ? tk.soft2 : tk.soft} dropIn={animateIn && !reduce} />
                 <View pointerEvents="none" style={{ position: "absolute", top: -15, left: -40, right: -40, alignItems: "center" }}>
                   <View style={{ height: 28, paddingHorizontal: 12, borderRadius: 14, borderWidth: 2.5, borderColor: tk.ln, backgroundColor: tk.sf, justifyContent: "center" }}>
                     <Text numberOfLines={1} style={[mono(10, 0.14), { color: tk.ink }]}>
@@ -1775,24 +1775,61 @@ function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterV
   );
 }
 
-/** the bag: rounded at the top, deep at the bottom, its flap shut with a wax seal */
-function Bag({ fill }: { fill: string }) {
+/* the bag's envelopes (design 25b): resting spots (left, top, turn) in the
+   design's 205-wide bag; the cluster moves sideways with the bag's width.
+   Three, always: a picture of "some", never a count (the design's 1→5
+   WAITING was invented; owner 2026-10-19). */
+const ENVELOPES: readonly { x: number; y: number; r: number }[] = [
+  { x: 14, y: 26, r: -8 },
+  { x: 78, y: 36, r: 6 },
+  { x: 44, y: 62, r: -3 },
+];
+const DESIGN_BAG_W = 205;
+/** the first drop (once the letter has risen) and the gap between drops */
+const DROP_FIRST = 350;
+const DROP_GAP = 350;
+const DROP = { duration: 600, easing: Easing.bezier(0.3, 1.1, 0.4, 1) };
+
+/** the bag: rounded at the top, deep at the bottom, three sealed envelopes inside */
+function Bag({ fill, dropIn }: { fill: string; dropIn: boolean }) {
   const { t: tk } = useTheme();
   const [w, setW] = useState(0);
   const radii = { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomLeftRadius: 96, borderBottomRightRadius: 96 };
+  const shift = Math.max(0, (w - DESIGN_BAG_W) / 2);
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      {/* the ground, and the envelopes inside the 2.5 outline, clipped by the bag */}
       <View style={[StyleSheet.absoluteFill, radii, { backgroundColor: fill, overflow: "hidden" }]}>
-        {w > 0 && (
-          <Svg width={w} height={60} style={{ position: "absolute", left: 0, top: 0 }}>
-            <Path d={`M0 30 Q${w / 2} 52 ${w} 30`} fill="none" stroke={tk.ln} strokeWidth={2} />
-          </Svg>
-        )}
+        {w > 0 && ENVELOPES.map((e, i) => <BagEnvelope key={i} left={2.5 + shift + e.x} top={2.5 + e.y} turn={e.r} delay={dropIn ? DROP_FIRST + DROP_GAP * i : -1} />)}
       </View>
-      {/* the seal at the flap's lowest point (30 → 52 → 30 bottoms out at 41) */}
-      {w > 0 && <View style={{ position: "absolute", left: w / 2 - 7, top: 41 - 7, width: 14, height: 14, borderRadius: 7, backgroundColor: BRAND.waxGold, borderWidth: 1.5, borderColor: tk.ln }} />}
       <View style={[StyleSheet.absoluteFill, radii, { borderWidth: 2.5, borderColor: tk.ln }]} />
     </View>
+  );
+}
+
+/** one sealed envelope: a 52 × 36 white card, 2 outline, corners of 4, a V
+    flap and an 11 wax-gold dot, in the brand ink on white in every theme
+    (Midnight's pale ln would vanish on the white). With a delay ≥ 0 it drops
+    in (kdrop: from 70 up and nothing, .6 s, there by 55%); otherwise it is
+    simply there. */
+function BagEnvelope({ left, top, turn, delay }: { left: number; top: number; turn: number; delay: number }) {
+  const y = useSharedValue(delay >= 0 ? -70 : 0);
+  const o = useSharedValue(delay >= 0 ? 0 : 1);
+  useEffect(() => {
+    if (delay < 0) return;
+    y.value = withDelay(delay, withTiming(0, DROP));
+    o.value = withDelay(delay, withTiming(1, { duration: 330, easing: Easing.linear }));
+    // it drops once, at mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => ({ opacity: o.value, transform: [{ translateY: y.value }, { rotate: `${turn}deg` }] }));
+  return (
+    <Animated.View style={[{ position: "absolute", left, top, width: 52, height: 36, borderRadius: 4, borderWidth: 2, borderColor: BRAND.inkOnBrand, backgroundColor: BRAND.paperWhite }, style]}>
+      <Svg width={48} height={32} viewBox="0 0 58 38" style={{ position: "absolute", left: 0, top: 0 }}>
+        <Path d="M1 1l28 18L57 1" fill="none" stroke={BRAND.inkOnBrand} strokeWidth={2.4} strokeLinejoin="round" />
+      </Svg>
+      <View style={{ position: "absolute", left: 24 - 5.5, top: 8, width: 11, height: 11, borderRadius: 5.5, backgroundColor: BRAND.waxGold, borderWidth: 1.5, borderColor: BRAND.inkOnBrand }} />
+    </Animated.View>
   );
 }
 

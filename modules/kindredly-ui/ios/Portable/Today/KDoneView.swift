@@ -213,7 +213,7 @@ struct KDoneView: View {
     ZStack {
       if flow.letterShown {
         // her stamp is her own picture, at rest (the content capture: TS's fallback for them all)
-        KWrenLetter(theme: theme, model: letter, stampBird: birds.idle, focusOnAppear: flow.played)
+        KWrenLetter(theme: theme, model: letter, stampBird: birds.idle, focusOnAppear: flow.played, animateIn: flow.played)
           .transition(reduceMotion ? .opacity : .kWrenLetterRise)
       }
     }

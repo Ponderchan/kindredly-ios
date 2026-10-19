@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { KChatHeader } from "../../../modules/kindredly-ui/src/Conversation";
 import { LineIcon } from "../../components/10a/LineIcon";
+import { BackChevron } from "../../components/10a/BackChevron";
 import { Frost, VeilTile } from "../../components/Frost";
 import { useIdentityOn } from "../../lib/identity";
 import { WhoName } from "../../components/WhoName";
@@ -29,8 +30,9 @@ import { ReachBand } from "./ReachBand";
      ‹  ◯  Luna                                    ···    the kindreds chat (model.room):
            KINDRED SINCE OCTOBER 8                        the kindred's face, round, 44
 
-   · ‹ the back chevron, 22 at 2.2 in ink, in a 40 × 44 target (VoiceOver:
-     Back).
+   · ‹ the one BackChevron (components/10a/BackChevron: 18 at 2.2 in ink, a
+     36 box 12 from the left, a 44 touch; VoiceOver: Back), Settings' size
+     and x (owner 10-19), centred with the face in the 72 row as KChatHeader.
    · THE FACE. A pen pal: FACE v1 from the record's mask (lib/mosaic, 5 × 5
      square cells, 31 across) in a 44 × 36 slot, the veil in faint for a
      deleted account, and the frame a face that has come through wears (a
@@ -109,16 +111,12 @@ export function ConversationHeaderRN({
   return (
     <View style={{ backgroundColor: tk.bg }}>
       <View style={{ paddingTop: topInset ?? insets.top, borderBottomWidth: 1.5, borderBottomColor: tk.line }}>
-        {/* padding 0 18 0 14 to the icons' own edges: the 40 targets reach 9 past each 22 icon */}
-        <View style={{ minHeight: 72, flexDirection: "row", alignItems: "center", paddingLeft: 14 - 9, paddingRight: model.moreLabel ? 18 - 9 : 18 }}>
-          <Pressable
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel={model.backLabel}
-            style={({ pressed }) => ({ width: 40, height: 44, alignItems: "center", justifyContent: "center", marginRight: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}
-          >
-            <LineIcon name="chevronLeft" size={22} stroke={2.2} color={tk.ink} />
-          </Pressable>
+        {/* the one BackChevron (18 at 2.2, its 36 box 12 from the left), centred with the face and
+            name in the 72 row by design, as KChatHeader does (so 10 lower than Settings'; size and x
+            the same); the face starts 3 past its box, at 51 like Swift's. 18 to the ⋯'s own edge: its
+            40 target reaches 9 past the 22 icon */}
+        <View style={{ minHeight: 72, flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: model.moreLabel ? 18 - 9 : 18 }}>
+          <BackChevron inline onPress={onBack} color={tk.ink} label={model.backLabel} style={{ marginRight: 3 }} />
 
           {model.canOpenPage ? (
             <Pressable

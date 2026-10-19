@@ -20,6 +20,9 @@ import SwiftUI
  system 12/1.4, and the call to action as a gold link (system 600 13), 2 lower. The stamp 56 × 70,
  the bird 31 across.
 
+ At the accessibility text sizes the eyebrow and the call to action wrap instead of being cut
+ ("FIRST CLA…" at AX3), and the banner's stamp moves under its words, so they get the width.
+
  The whole card is one button (onPress) and one VoiceOver element. Every word is passed in,
  the owner's copy, already translated; the bird is a picture (the courier's live snapshot in
  the reader's own coat, KImageRef), and nil leaves the stamp's face white.
@@ -62,13 +65,20 @@ public struct KFirstClassCard: View {
     self.onPress = onPress
   }
 
+  @Environment(\.dynamicTypeSize) private var typeSize
+
   private var isCard: Bool { variant == .card }
+  /// an accessibility text size: the one-line words wrap
+  private var large: Bool { typeSize.isAccessibilitySize }
 
   public var body: some View {
     let border: CGFloat = isCard ? 2 : 1.5
     let shape = RoundedRectangle(cornerRadius: isCard ? 24 : 18, style: .circular)
     SwiftUI.Button(action: onPress) {
-      HStack(alignment: isCard ? .top : .center, spacing: isCard ? 14 : 12) {
+      let layout = large && !isCard
+        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+        : AnyLayout(HStackLayout(alignment: isCard ? .top : .center, spacing: isCard ? 14 : 12))
+      layout {
         words
         stamp
       }
@@ -99,7 +109,8 @@ public struct KFirstClassCard: View {
           .textCase(.uppercase)
           .kText(.monoEyebrow)
           .foregroundStyle(KBrand.goldText)
-          .lineLimit(1)
+          .lineLimit(large ? nil : 1)
+          .fixedSize(horizontal: false, vertical: large)
       }
       Text(headline)
         .kText(isCard ? .letterHeadline : .letterBanner)
@@ -113,8 +124,9 @@ public struct KFirstClassCard: View {
         Text(cta)
           .kText(.chip)
           .foregroundStyle(KBrand.paperWhite)
-          .lineLimit(1)
-          .minimumScaleFactor(0.8)
+          .lineLimit(large ? nil : 1)
+          .minimumScaleFactor(large ? 1 : 0.8)
+          .fixedSize(horizontal: false, vertical: large)
           .padding(.vertical, 10)
           .padding(.horizontal, 14)
           .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(KBrand.inkOnBrand))
@@ -123,8 +135,9 @@ public struct KFirstClassCard: View {
         Text(cta)
           .kText(.chip)
           .foregroundStyle(KBrand.goldText)
-          .lineLimit(1)
-          .minimumScaleFactor(0.8)
+          .lineLimit(large ? nil : 1)
+          .minimumScaleFactor(large ? 1 : 0.8)
+          .fixedSize(horizontal: false, vertical: large)
           .padding(.top, 2)
       }
     }

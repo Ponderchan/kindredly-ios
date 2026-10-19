@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { MONO, PF } from "../theme/post";
@@ -11,7 +10,7 @@ import { STAMP_LADDER } from "../lib/stamp-frame";
 import { getStamp } from "../data/stamps";
 import { dLong } from "../lib/format";
 import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
-import "../data/strings-step5-kitrn"; // a11y.back
+import { BackChevron } from "../components/10a/BackChevron";
 
 /* Unsent — the letters you started and didn't send.
    ────────────────────────────────────────────────────────────────────────
@@ -71,18 +70,9 @@ export default function DraftsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 10 }}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("a11y.back")}
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-        >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <Path d="M15 6l-7 6 7 6" stroke={tk.ink} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
-          </Svg>
-        </Pressable>
+      {/* a 52 bar under the safe area: the one BackChevron, then the title after its 12 + 36 + 8 */}
+      <View style={{ height: 52, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 14 }}>
+        <BackChevron onPress={() => router.back()} color={tk.ink} />
         <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.ink }}>
           {t("dr.title")}
         </Text>

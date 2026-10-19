@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { PF } from "../../../theme/post";
 import { useP } from "../../../lib/theme";
+import { BackChevron } from "../../../components/10a/BackChevron";
 import { SealedEntry } from "../../../components/SealedEntry";
 import { dayKey } from "../../../components/SealedCalendar";
 import { loadJournal, type JournalEntry } from "../../../lib/journal";
@@ -48,14 +49,11 @@ export default function SealedDay() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginHorizontal: 16, paddingBottom: 4 }}>
-        <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("a11y.back")} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 22, color: P.ink }}>‹</Text>
-        </Pressable>
+      <View style={{ height: 52, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 56 }}>
+        <BackChevron onPress={goBack} color={P.ink} />
         <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>
           {title.toLocaleUpperCase(localeTag())}
         </Text>
-        <View style={{ width: 42 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>

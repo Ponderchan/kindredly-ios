@@ -18,7 +18,8 @@ import SwiftUI
  "TURN ON IN SETTINGS ›"); the whole of that is one button (onTap). Then, if a closeLabel is
  given, the × (14 across at stroke 2.2), its own button with that label for VoiceOver.
 
- Every word comes from the caller, already translated.
+ Every word comes from the caller, already translated. At the accessibility text sizes nothing
+ is cut: the words and the action line wrap to whatever they need.
  */
 public struct KNoticeBar: View {
   /// the two looks a notice takes
@@ -37,6 +38,8 @@ public struct KNoticeBar: View {
   private let style: Style
   private let onTap: () -> Void
   private let onClose: () -> Void
+
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   /// - Parameters:
   ///   - text: the notice, two lines at most
@@ -81,15 +84,16 @@ public struct KNoticeBar: View {
             Text(text)
               .kText(.notice)
               .foregroundStyle(theme.ind)
-              .lineLimit(2)
+              .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
               .fixedSize(horizontal: false, vertical: true)
             if let actionLabel {
               Text(actionLabel)
                 .textCase(.uppercase)
                 .kText(.monoAction)
                 .foregroundStyle(theme.ind)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                .minimumScaleFactor(typeSize.isAccessibilitySize ? 1 : 0.8)
+                .fixedSize(horizontal: false, vertical: typeSize.isAccessibilitySize)
             }
           }
           .frame(maxWidth: .infinity, alignment: .leading)

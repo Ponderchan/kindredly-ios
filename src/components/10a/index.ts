@@ -15,6 +15,7 @@
      LineIcon          the chat composers' I1 line icons
      SendKey           the one send key: disabled / enabled (plane) / dimmed
      SecondaryHeader   a pushed page's header (H:90): chevron, mono title, right slot
+     BackChevron       the one back key (KBackBar's): 18 at 2.2 in a 36 box 12 from the left
      TranslateCapsule  "ES→EN  Read it in yours" (H:42)
      TopicTag          "#made my day", contrast-safe on any theme surface (H:35/42)
      InkPanel          the InkCard material, "today" (28, 6/6) or "me" (24, 5/5)
@@ -28,6 +29,7 @@ export { LineIcon, type LineIconName } from "./LineIcon";
 export { type ComposerFieldHandle } from "./useComposerField";
 export { SendKey } from "./SendKey";
 export { SecondaryHeader } from "./SecondaryHeader";
+export { BackChevron, BackChevronGlyph, BACK_CHEVRON, backChevronTop } from "./BackChevron";
 export { TranslateCapsule } from "./TranslateCapsule";
 export { TopicTag } from "./TopicTag";
 export { InkPanel } from "./InkPanel";

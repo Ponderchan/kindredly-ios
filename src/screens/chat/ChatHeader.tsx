@@ -1,5 +1,4 @@
 import { Pressable, Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t, useLang } from "../../lib/i18n";
 import { useTheme } from "../../lib/theme";
@@ -13,7 +12,7 @@ import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { WrenBird } from "../../components/WrenBird";
 import { dismissKeyboard } from "../../lib/keyboard";
-import "../../data/strings-step5-kitrn"; // a11y.back
+import { BackChevron } from "../../components/10a/BackChevron";
 
 /* THE CONVERSATION'S HEADER, above the SwiftUI Host (10a step 5).
    ────────────────────────────────────────────────────────────────────────
@@ -96,18 +95,9 @@ export function ChatHeader({
 
   return (
     <View style={{ paddingTop: topInset ?? insets.top, backgroundColor: tk.bg }}>
+      {/* the one BackChevron (Settings' size and x), centred with the face row by design */}
       <View style={{ minHeight: 52, flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 8, paddingVertical: 6, gap: 6 }}>
-        <Pressable
-          onPress={onBack}
-          hitSlop={4}
-          accessibilityRole="button"
-          accessibilityLabel={t("a11y.back")}
-          style={({ pressed }) => ({ width: 36, height: 36, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}
-        >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={tk.ink} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M15 6l-7 6 7 6" />
-          </Svg>
-        </Pressable>
+        <BackChevron inline onPress={onBack} color={tk.ink} />
 
         <Pressable
           onPress={onOpenPage}

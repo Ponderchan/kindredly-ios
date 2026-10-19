@@ -1,20 +1,19 @@
 import type { ReactNode } from "react";
-import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import { MONO, PF } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
-import { t, useLang } from "../../lib/i18n";
-import "../../data/strings-step5-kitrn"; // a11y.back
+import { useLang } from "../../lib/i18n";
+import { BackChevron } from "./BackChevron";
 
 /* THE SECONDARY PAGE'S HEADER (10a, H:90; KBackBar's React Native twin).
    ────────────────────────────────────────────────────────────────────────
    Every page pushed over a tab — the reader, a kindred's page, Me's
    sub-pages — opens under this: 52 tall on the page colour, and no rule
    (the owner took the rules away; the ground does the separating). The
-   back key is a 36 box 12 from the left edge holding the mock's chevron
-   (M15 6l-7 6 7 6, 18pt, stroke 2.2, in ink), reached by a 44pt touch and
-   named for VoiceOver (a11y.back). The title is centred in mono 600 at 11
+   back key is the one BackChevron (a 36 box 12 from the left edge holding
+   M15 6l-7 6 7 6, 18pt, stroke 2.2, in ink, a 44pt touch, named for
+   VoiceOver a11y.back), centred in the bar's height. The title is centred in mono 600 at 11
    with .16em of tracking (the mock's 12, under owner question 2's 9/10/11
    rule) and is the page's header for VoiceOver; pass it already cased as
    the page wants it (the strings are written in capitals where the mock
@@ -58,17 +57,7 @@ export function SecondaryHeader({
 
   return (
     <View style={[{ height, flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: ground ?? tk.bg }, style]}>
-      <Pressable
-        onPress={back}
-        hitSlop={4}
-        accessibilityRole="button"
-        accessibilityLabel={backLabel ?? t("a11y.back")}
-        style={({ pressed }) => ({ position: "absolute", left: 12, width: 36, height: 36, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}
-      >
-        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={tk.ink} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-          <Path d="M15 6l-7 6 7 6" />
-        </Svg>
-      </Pressable>
+      <BackChevron onPress={back} color={tk.ink} label={backLabel} barHeight={height} />
       {!!title && (
         <Text
           numberOfLines={1}
