@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import Svg, { Circle, Rect } from "react-native-svg";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { AvatarImage } from "../../../components/AvatarImage";
 import { FACES } from "../../../data/aura-avatar-lib";
@@ -7,7 +8,7 @@ import { t } from "../../../lib/i18n";
 import { Headline, Line, ScreenFrame } from "../parts/frame";
 import * as haptics from "../parts/haptics";
 import { AcidKey, TextKey } from "../parts/keys";
-import { EDGE, OB, SHADOW } from "../parts/tokens";
+import { EDGE, FONT, OB, OB_MAX_FONT, SHADOW } from "../parts/tokens";
 import type { ObScreenProps } from "../types";
 import "../../../data/strings-onboarding2";
 
@@ -27,7 +28,27 @@ import "../../../data/strings-onboarding2";
    The grid scrolls inside its card, so the key never moves on any phone;
    the chosen face is ringed in acid with a thin ink ring outside it (acid
    alone on white paper is too faint to read as "picked"). Going on, screen
-   6 opens with this face in its window and frosts it over (S06Envelope). */
+   6 opens with this face in its window and frosts it over (S06Envelope).
+
+   RANDOM (the owner, 2026-10-19: "还缺个随机"): a dice chip on the card's
+   top-right edge, a sticker on the sticker, picks a face from the same pool
+   (never the one already picked), rings it and scrolls it into view — for
+   whoever would rather not choose. Its word is Edit profile's own Random
+   (ep.random), already in all nine languages. */
+
+/** the dice, in the run's ink (it sits on the white chip in every theme the run has) */
+function Dice({ size = 16 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x={3} y={3} width={18} height={18} rx={4} fill="none" stroke={OB.ink} strokeWidth={2.2} />
+      <Circle cx={8.5} cy={8.5} r={1.9} fill={OB.ink} />
+      <Circle cx={15.5} cy={8.5} r={1.9} fill={OB.ink} />
+      <Circle cx={12} cy={12} r={1.9} fill={OB.ink} />
+      <Circle cx={8.5} cy={15.5} r={1.9} fill={OB.ink} />
+      <Circle cx={15.5} cy={15.5} r={1.9} fill={OB.ink} />
+    </Svg>
+  );
+}
 
 export default function S05Face(props: ObScreenProps) {
   const { draft } = props;
@@ -37,6 +58,18 @@ export default function S05Face(props: ObScreenProps) {
   const pad = 10;
   const cell = cardW > 0 ? (cardW - 2 * EDGE - 2 * pad) / cols : 0;
   const face = Math.max(40, Math.min(60, cell - 18));
+  const scroller = useRef<ScrollView>(null);
+
+  /* a face from this pool, not the one already picked; the grid scrolls so it shows a row above */
+  const roll = () => {
+    const pool = list.filter((a) => a.id !== draft.avatarId);
+    if (!pool.length) return;
+    const a = pool[Math.floor(Math.random() * pool.length)];
+    haptics.tick();
+    props.set({ avatarId: a.id, faceLater: false });
+    const row = Math.floor(list.indexOf(a) / cols);
+    if (cell > 0) scroller.current?.scrollTo({ y: Math.max(0, (row - 1) * cell), animated: true });
+  };
 
   return (
     <ScreenFrame
@@ -52,7 +85,7 @@ export default function S05Face(props: ObScreenProps) {
         <View style={{ position: "absolute", left: SHADOW, top: SHADOW, right: -SHADOW, bottom: -SHADOW, borderRadius: 18, backgroundColor: OB.ink }} />
         <View style={{ flex: 1, borderRadius: 18, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, overflow: "hidden" }}>
           {cell > 0 && (
-            <ScrollView contentContainerStyle={{ padding: pad, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
+            <ScrollView ref={scroller} contentContainerStyle={{ padding: pad, paddingTop: pad + 14, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
               {list.map((a) => {
                 const on = draft.avatarId === a.id;
                 return (
@@ -90,6 +123,26 @@ export default function S05Face(props: ObScreenProps) {
             </ScrollView>
           )}
         </View>
+        {/* the dice chip, on the card's top-right edge */}
+        <Pressable
+          onPress={roll}
+          accessibilityRole="button"
+          accessibilityLabel={t("ep.random")}
+          hitSlop={8}
+          style={({ pressed }) => ({ position: "absolute", top: -16, right: 14, transform: [{ translateX: pressed ? 2 : 0 }, { translateY: pressed ? 2 : 0 }] })}
+        >
+          {({ pressed }) => (
+            <View>
+              {!pressed && <View style={{ position: "absolute", left: 2, top: 2, right: -2, bottom: -2, borderRadius: 999, backgroundColor: OB.ink }} />}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 999, borderWidth: 2.5, borderColor: OB.ink, backgroundColor: OB.paper }}>
+                <Dice size={16} />
+                <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.bold, fontSize: 13, color: OB.ink }}>
+                  {t("ep.random")}
+                </Text>
+              </View>
+            </View>
+          )}
+        </Pressable>
       </Animated.View>
     </ScreenFrame>
   );
