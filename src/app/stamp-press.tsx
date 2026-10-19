@@ -20,7 +20,7 @@ import "../data/strings-stamps2";
 
    ONLY ACCOUNTS MAKE STAMPS (owner, 2026-10-20): a guest who opens the press gets the sign-up
    sheet first (every door leads here, so this is the one gate); signing up opens the camera,
-   closing the sheet goes back. The server refuses a guest too (0038 stamp_quota: 'account'). */
+   closing the sheet goes back. The server refuses a guest too (0039 stamp_quota: 'account'). */
 export default function StampPress() {
   const router = useRouter();
   const { t: tk } = useTheme();

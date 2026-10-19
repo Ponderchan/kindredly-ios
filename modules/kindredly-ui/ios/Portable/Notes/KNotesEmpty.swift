@@ -113,7 +113,9 @@ struct KNotesEmpty: View {
     .frame(maxWidth: .infinity)
     .background {
       RoundedRectangle(cornerRadius: 28, style: .continuous)
-        .fill(chosen.map { $0.mood.fill.opacity(0.4) } ?? .clear)
+        // the pastel fill at 40% greys out on Midnight's navy; there the mood's own ink, thin, keeps
+        // the colour clean (owner saw it muddy, 10-19)
+        .fill(chosen.map { theme.isDark ? $0.mood.ink.opacity(0.2) : $0.mood.fill.opacity(0.4) } ?? .clear)
         .animation(Self.ground, value: chosen)
     }
     .padding(.horizontal, 16)
@@ -132,7 +134,8 @@ struct KNotesEmpty: View {
       KMoodChip(group: g, icon: g.iconKey, metrics: Self.tile)
         .scaleEffect(grows ? 1.18 : 1)
         .offset(y: grows ? -6 : 0)
-        .opacity(chosen == nil || on ? 1 : 0.35)
+        // the others step back; on Midnight a pastel at .35 mixes into grey, so they go further back
+        .opacity(chosen == nil || on ? 1 : (theme.isDark ? 0.2 : 0.35))
         .animation(reduceMotion ? Self.fade : Self.grow, value: chosen)
         .contentShape(Rectangle())
     }

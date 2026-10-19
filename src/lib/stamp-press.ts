@@ -160,7 +160,7 @@ export async function recolourStamp(id: string, category: PressCategory): Promis
 
 /* ── 3 · drafts ───────────────────────────────────────────────────────────────────────────── */
 
-function folder(name: "stamp-drafts" | "stamp-originals"): Directory {
+function folder(name: "stamp-drafts" | "stamp-originals" | "stamp-pictures"): Directory {
   const d = new Directory(Paths.document, name);
   d.create({ intermediates: true, idempotent: true });
   return d;
@@ -256,6 +256,33 @@ export function originalFor(stampId: string): string | null {
 
 export function forgetOriginal(stampId: string): void {
   const uri = originalFor(stampId);
+  if (uri) removeFile(uri);
+}
+
+/* the approved picture itself (the filtered JPEG that was sent), so a stamp just made shows on this
+   phone while its signed link can't be had (offline, storage slow); the server's copy wins when it
+   answers. Mine only: custom-stamps reads it for my own stamps. */
+export async function keepPicture(stampId: string, imageUri: string): Promise<void> {
+  try {
+    const dest = new File(folder("stamp-pictures"), `${stampId}.jpg`);
+    if (dest.exists) dest.delete();
+    await new File(imageUri).copy(dest);
+  } catch (e) {
+    console.warn("[stamp-press] couldn't keep the approved picture", e);
+  }
+}
+
+export function pictureFor(stampId: string): string | null {
+  try {
+    const f = new File(new Directory(Paths.document, "stamp-pictures"), `${stampId}.jpg`);
+    return f.exists ? f.uri : null;
+  } catch {
+    return null;
+  }
+}
+
+export function forgetPicture(stampId: string): void {
+  const uri = pictureFor(stampId);
   if (uri) removeFile(uri);
 }
 

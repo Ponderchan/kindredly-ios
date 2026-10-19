@@ -21,6 +21,7 @@ import {
   isCategory,
   isFilter,
   keepOriginal,
+  keepPicture,
   keepsDraft,
   normalizeTopic,
   notePressed,
@@ -223,6 +224,7 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
       if ("plan" in out && out.plan) setServerPlan(out.plan);
       if (out.kind === "approved") {
         if (files.original && !editing) await keepOriginal(out.stamp.id, files.original);
+        if (files.image) await keepPicture(out.stamp.id.toLowerCase(), files.image);
         if (draft) await removeDraft(draft.id);
         notePressed(out.stamp);
         setReject(null);

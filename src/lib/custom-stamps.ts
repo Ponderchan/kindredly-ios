@@ -33,7 +33,7 @@ import { supabase, supabaseReady } from "./supabase";
 import { getLang, t, useLang } from "./i18n";
 import { STAMP_CATEGORIES } from "../data/stamps";
 import "../data/strings-stamps2";
-import { fetchStampQuota, forgetOriginal, originalFor, usePressedStamp, type PressedStamp } from "./stamp-press";
+import { fetchStampQuota, forgetOriginal, forgetPicture, originalFor, pictureFor, usePressedStamp, type PressedStamp } from "./stamp-press";
 import type { PressCategory, PressFilter, StampQuota } from "./stamp-press-core";
 import {
   RESOLVE_TTL_MS,
@@ -210,6 +210,8 @@ function withPicture(r: ReadRow): CustomStampInfo {
   let url: string | null = null;
   if (path && wantsPicture(r)) url = signedByPath.get(path)?.url ?? null;
   if (!url && r.mine && (r.state === "pending" || r.state === "rejected")) url = originalFor(r.uuid);
+  // my approved stamp without a link (offline, or signing failed): the picture this phone sent
+  if (!url && r.mine && r.state === "ok") url = pictureFor(r.uuid);
   return { ...info, category: info.category as PressCategory, url, key: url ? info.key || `local:${r.uuid}` : "" };
 }
 
@@ -528,6 +530,7 @@ export async function deleteCustomStamp(id: string): Promise<boolean> {
       if (rmError) console.warn("[custom-stamps] the deleted stamp's file stayed in storage", data, rmError);
     }
     forgetOriginal(uuid);
+    forgetPicture(uuid);
     mine = mine.filter((m) => m.id !== id);
     update(id, { state: "deleted", url: null, key: "", topic: "" });
     emit();
