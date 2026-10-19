@@ -634,6 +634,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const deleteAccount = useCallback(async (): Promise<AuthResult> => {
     if (!supabase) return { error: t("auth.err.offline") };
     await forgetThisDevice();
+    await removeMyStampPictures();
     const { error } = await supabase.rpc("delete_account");
     if (error) {
       return { error: t("auth.err.delete") };
@@ -703,4 +704,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+/* The custom stamps' pictures live in the private "stamps" bucket under <uid>/, which SQL may not
+   empty (0038): an account that goes takes its pictures with it, removed here while the session can
+   still list and delete its own folder. A failure is logged and never blocks the deletion. */
+async function removeMyStampPictures(): Promise<void> {
+  if (!supabase) return;
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u?.user?.id;
+    if (!uid) return;
+    const bucket = supabase.storage.from("stamps");
+    const { data, error } = await bucket.list(uid, { limit: 1000 });
+    if (error) {
+      console.warn("[account] stamp pictures not listed", error.message);
+      return;
+    }
+    const paths = (data ?? []).map((f) => `${uid}/${f.name}`);
+    if (paths.length) {
+      const { error: rmError } = await bucket.remove(paths);
+      if (rmError) console.warn("[account] stamp pictures not removed", rmError.message);
+    }
+  } catch (e) {
+    console.warn("[account] stamp pictures", e);
+  }
 }
