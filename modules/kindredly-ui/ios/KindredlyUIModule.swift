@@ -119,6 +119,35 @@ public class KindredlyUIModule: Module {
     }
     .runOnQueue(.main)
 
+    // custom stamps (contract .claude/custom-stamps/CONTRACT.md §4.2): src/lib/custom-stamps
+    // resolves "c:<uuid>" ids and pushes them here; KStamp draws them from KCustomStamps at every
+    // width (Portable/Kit/KStampArt.swift). JS: modules/kindredly-ui/src/customStamps.ts.
+    Function("setCustomStamps") { (rows: [[String: Any]]) in
+      let infos = rows.compactMap { KCustomStampInfo(row: $0) }
+      Task { @MainActor in
+        KCustomStamps.shared.merge(infos)
+      }
+    }
+    Function("clearCustomStamps") {
+      Task { @MainActor in
+        KCustomStamps.shared.clear()
+      }
+    }
+    Function("setCustomStampWords") { (row: [String: Any]) in
+      let words = KCustomStampWords(row: row)
+      Task { @MainActor in
+        KCustomStamps.shared.setWords(words)
+      }
+    }
+
+    // The album (custom stamps, B): adapter appended to Adapters/KMeView.swift, the page to
+    // Portable/Me/KStampsCard.swift; src/app/album.tsx
+    ExpoUIView(KStampAlbumView.self) {
+      AsyncFunction("command") { (view: KStampAlbumView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
     // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.
     Function("setTextScript") { (lang: String) in

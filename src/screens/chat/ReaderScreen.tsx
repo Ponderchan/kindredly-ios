@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn } from "react-native-reanimated";
@@ -28,7 +28,9 @@ import { StampAvatar, StampMosaic } from "../../components/StampAvatar";
 import { useMemberStamps } from "../../lib/member-marks";
 import { WhoFaceView } from "../../components/Frost";
 import { WhoName } from "../../components/WhoName";
-import { Stamp } from "../../components/Stamp";
+import { KeepableStamp } from "../../components/Stamp";
+import { Toast } from "../../components/ui";
+import { isCustomStampId, tagOf, useCustomStamps } from "../../lib/custom-stamps";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { ReportSheet } from "../../components/ReportMenu";
 import { InkPanel, ReplyStrip, SecondaryHeader, TopicTag, TranslateCapsule, type ReplyStripHandle } from "../../components/10a";
@@ -165,6 +167,16 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
     : null;
   const tone = state ? (state.toneKey === "ind" ? tk.ind : state.toneKey === "brass" ? BRAND.brassSeal : tk.mute) : tk.mute;
   const stamp = getStamp(detail?.stamp);
+  /* a photo stamp ("c:<uuid>", custom stamps): drawn by Stamp itself; its #topic on its colour */
+  const customId = isCustomStampId(detail?.stamp) ? (detail?.stamp as string) : null;
+  const custom = useCustomStamps(customId ? [customId] : [])(customId ?? "");
+  const customTag = custom ? tagOf(custom) : "";
+  const [stampLine, setStampLine] = useState("");
+  useEffect(() => {
+    if (!stampLine) return;
+    const tm = setTimeout(() => setStampLine(""), 2600);
+    return () => clearTimeout(tm);
+  }, [stampLine]);
 
   /* ── translation of the hero: translated once, then toggled ── */
   const [xl, setXl] = useState<{ key: string; text: string } | null>(null);
@@ -324,12 +336,15 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                       </Text>
                     )}
                   </View>
-                  {stamp && (
-                    <Stamp
+                  {(stamp || customId) && (
+                    <KeepableStamp
                       id={detail.stamp}
                       width={HEAD_STAMP.w}
                       delivered={!hero.mine}
                       letterId={hero.id || detail.letterId || id || null}
+                      dark={tk.dark}
+                      from={{ thread: id ?? null }}
+                      onDone={setStampLine}
                     />
                   )}
                   {!flow.nobody && (
@@ -367,9 +382,15 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 )}
 
                 {/* its topic and, for their words in another language, the capsule */}
-                {(!!stamp || offerXl) && (
+                {(!!stamp || !!customTag || offerXl) && (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 18 }}>
-                    {stamp ? <TopicTag name={`#${sname(stamp.name).toLowerCase()}`} colorHex={stamp.color} style={{ marginRight: 3, marginBottom: 3 }} /> : <View />}
+                    {stamp ? (
+                      <TopicTag name={`#${sname(stamp.name).toLowerCase()}`} colorHex={stamp.color} style={{ marginRight: 3, marginBottom: 3 }} />
+                    ) : customTag && custom ? (
+                      <TopicTag name={`#${customTag.toLowerCase()}`} colorHex={custom.hex} style={{ marginRight: 3, marginBottom: 3 }} />
+                    ) : (
+                      <View />
+                    )}
                     {offerXl && (
                       <TranslateCapsule
                         code={capsuleCode(letterLang(hero.body), getLang().toUpperCase(), translated)}
@@ -450,6 +471,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
       </KeyboardAvoidingView>
 
       <ReportSheet flow={flow} top={reportTop} />
+      {stampLine ? <Toast msg={stampLine} bottom={insets.bottom + 90} /> : null}
     </View>
   );
 }

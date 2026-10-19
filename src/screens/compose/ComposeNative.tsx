@@ -8,6 +8,7 @@ import {
   type KComposeLive,
   type KComposeMore,
   type KComposeSection,
+  type KComposeCustomStamp,
   type KComposeStamp,
   type KComposeStrings,
 } from "../../../modules/kindredly-ui/src/Compose";
@@ -19,7 +20,8 @@ import { AudioCard } from "../../components/AudioCard";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { t } from "../../lib/i18n";
-import { stampVM, type ComposeActions, type ComposeState } from "./useComposeState";
+import "../../data/strings-stamps2";
+import type { ComposeActions, ComposeState } from "./useComposeState";
 
 /* THE COMPOSE PAGE IN SWIFTUI (10a step 5): one Host for the whole page
    (SurfaceHost field: flex 1, the keyboard's safe area kept so the toolbar
@@ -77,10 +79,10 @@ function useSameContent<T>(value: T): T {
   return kept.current.value;
 }
 
-const NO_STAMP: KComposeStamp = { id: "", name: "", washHex: "", inkHex: "", lineHex: "", a11yLabel: "" };
+const NO_STAMP: KComposeStamp = { id: "", name: "", washHex: "", inkHex: "", lineHex: "", a11yLabel: "", hex: "" };
 
 export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef: RefObject<KScreenHandle | null> }) {
-  const { key: theme, t: tk } = useTheme();
+  const { key: theme } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
   const { width } = useWindowDimensions();
@@ -159,12 +161,21 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
     capText: state.capText,
     capSub: t("cp.repliesFree"),
     capLink: t("cp.discover"),
+    trayTabOfficial: t("cs2.tray.tabOfficial"),
+    trayTabCustom: t("cs2.tray.tabCustom"),
+    trayCustomHead: t("cs2.tray.custom"),
+    trayCustomEmpty: t("cs2.tray.empty"),
+    trayMake: t("cs2.use.a11yMake"),
+    trayFullTitle: state.customFullTitle,
+    trayFullCta: t("cs2.me.fullCta"),
+    trayNotNow: t("cs2.me.notNow"),
   });
 
-  const vm = stampVM(state.chosen, tk);
+  const vm = state.chosenVM;
   const stamp = useSameContent<KComposeStamp>(
-    vm ? { id: vm.id, name: vm.tag, washHex: vm.wash, inkHex: vm.ink, lineHex: vm.line, a11yLabel: t("cp.stampChosen.a11y", { name: vm.name }) } : NO_STAMP,
+    vm ? { id: vm.id, name: vm.tag, washHex: vm.wash, inkHex: vm.ink, lineHex: vm.line, a11yLabel: t("cp.stampChosen.a11y", { name: vm.name }), hex: vm.color } : NO_STAMP,
   );
+  const customStamps = useSameContent<KComposeCustomStamp[]>(state.custom.items);
   const sections = useSameContent<KComposeSection[]>(state.sections);
   const rev = useRev(sections);
   const more = useSameContent<KComposeMore>(state.more);
@@ -187,6 +198,10 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
       quota={state.quota}
       capPanel={state.capPanel}
       busy={state.busy}
+      trayTab={state.trayTab}
+      customState={state.custom.state}
+      customStamps={customStamps}
+      customFull={state.custom.full}
       act={state.act}
       moodStore={moodStore}
       recUri={state.recUri}
@@ -213,6 +228,10 @@ type SurfaceProps = {
   quota: string;
   capPanel: boolean;
   busy: boolean;
+  trayTab: "official" | "custom";
+  customState: "hidden" | "empty" | "list";
+  customStamps: KComposeCustomStamp[];
+  customFull: boolean;
   act: ComposeActions;
   moodStore: ValueStore<WrenMood>;
   recUri: string | null;
@@ -244,6 +263,10 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         quota={p.quota}
         capPanel={p.capPanel}
         busy={p.busy}
+        trayTab={p.trayTab}
+        customState={p.customState}
+        customStamps={p.customStamps}
+        customFull={p.customFull}
         onClose={act.close}
         onTextChange={act.textChange}
         onTray={act.openTray}
@@ -253,6 +276,9 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         onKeyPress={act.keyPress}
         onCapLink={act.capLink}
         onFieldFocus={act.fieldFocus}
+        onTrayTab={act.pickTrayTab}
+        onMakeStamp={act.makeStamp}
+        onFullCta={act.fullCta}
       >
         {/* every island on every render, in this order (Slot.tsx) */}
         <KIsland name="wren" style={{ width: 46, height: 46 }}>

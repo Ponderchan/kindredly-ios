@@ -15,7 +15,7 @@ import { useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
 import { STAMP_LADDER, stampSlotStroke } from "../../lib/stamp-frame";
-import { stampVM, type ComposeState } from "./useComposeState";
+import type { ComposeState } from "./useComposeState";
 import { countBrand } from "./compose-model";
 
 /* THE COMPOSE PAGE IN REACT NATIVE — the remote switch's fallback (10a
@@ -66,7 +66,8 @@ export function ComposeRN({ state }: { state: ComposeState }) {
   const breathe = useBreathe(6, 2600);
   const [keyW, setKeyW] = useState(0);
   const narrow = keyW > 0 && keyW < 170 && !!state.key.narrowLabel;
-  const chosen = stampVM(state.chosen, tk);
+  // the chosen stamp, official or photo ("c:<uuid>": its #topic on its category's colour)
+  const chosen = state.chosenVM;
   const key = state.key;
   const filling = key.progress >= 0;
   const keyFill = key.stage === "ready" ? tk.ink : key.stage === "needStamp" ? tk.ind : "transparent";
@@ -269,7 +270,19 @@ export function ComposeRN({ state }: { state: ComposeState }) {
               </View>
             </Pressable>
           </View>
-          {state.tray === "stamps" && <StampTray selected={state.sel} sections={state.sections} onPick={act.pickStamp} />}
+          {state.tray === "stamps" && (
+            <StampTray
+              selected={state.sel}
+              sections={state.sections}
+              onPick={act.pickStamp}
+              custom={state.custom}
+              tab={state.trayTab}
+              fullTitle={state.customFullTitle}
+              onTab={act.pickTrayTab}
+              onMake={act.makeStamp}
+              onFullCta={act.fullCta}
+            />
+          )}
           {state.tray === "more" && (
             <MoreTray askOn={state.more.askOn} askDisabled={state.more.askDisabled} voiceOn={state.more.voiceOn} premium={!state.more.voiceLocked} onAsk={act.toggleAsk} onVoice={act.toggleVoice} />
           )}

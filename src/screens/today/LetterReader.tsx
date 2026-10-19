@@ -9,7 +9,8 @@ import { MosaicId } from "../../components/MosaicId";
 import { WhoFaceView } from "../../components/Frost";
 import { WhoName } from "../../components/WhoName";
 import { useIdentityOn } from "../../lib/identity";
-import { Stamp } from "../../components/Stamp";
+import { KeepableStamp } from "../../components/Stamp";
+import { Toast } from "../../components/ui";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { LeaveSheet } from "../../components/LeaveSheet";
@@ -90,6 +91,13 @@ export function LetterReader({ model }: { model: TodayModel }) {
   useEffect(() => {
     if (!id) setWriting(false);
   }, [id]);
+  /* a stranger's photo stamp, held: kept or reported (KeepableStamp), said in a toast */
+  const [stampLine, setStampLine] = useState("");
+  useEffect(() => {
+    if (!stampLine) return;
+    const tm = setTimeout(() => setStampLine(""), 2600);
+    return () => clearTimeout(tm);
+  }, [stampLine]);
   if (!letter || !card) return null;
 
   const state = model.replyFor(letter.id);
@@ -125,7 +133,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
                   <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>{card.postmark}</Text>
                 </>
               )}
-              <Stamp id={letter.stamp} width={READER_STAMP.w} delivered letterId={letter.id} />
+              <KeepableStamp id={letter.stamp} width={READER_STAMP.w} delivered letterId={letter.id} dark={tk.dark} from={{ letter: letter.id }} onDone={card.demo ? undefined : setStampLine} />
             </View>
 
             <Text style={[{ fontSize: 19, lineHeight: 31, color: tk.ink }, face]}>{card.isVoice ? card.caption : card.body}</Text>
@@ -196,6 +204,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
           cancelLabel={null}
           onCancel={act.closeFlightSheet}
         />
+        {stampLine ? <Toast msg={stampLine} bottom={Math.max(insets.bottom, 12) + 90} /> : null}
       </View>
     </Modal>
   );

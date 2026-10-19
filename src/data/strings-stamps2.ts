@@ -58,6 +58,18 @@ strings(
     "cs2.ed.broken": "Something went wrong making this stamp. Try another photo?",
     /* ── /B edit · en ── */
     /* ── C collection · en ── */
+    "cs2.col.reasonTitle": "What’s wrong with this stamp?",
+    "cs2.col.reason.harassment": "It’s aimed at someone",
+    "cs2.col.reason.inappropriate": "It shouldn’t be shown",
+    "cs2.col.reason.spam": "It’s an ad or spam",
+    "cs2.col.reason.other": "Something else",
+    "cs2.col.reported": "Reported. You won’t see it again.",
+    "cs2.col.removed": "Removed from your album.",
+    "cs2.col.deleted": "Deleted.",
+    "cs2.col.failed": "That didn’t go through. Try again in a moment.",
+    "cs2.col.checking": "checking…",
+    "cs2.col.lastUsed": "Last used {date}",
+    "cs2.col.pending": "Made {date} · still checking",
     /* ── /C collection · en ── */
     /* ── D web+copy · en ── */
     "cs2.me.made": "MADE BY YOU",
@@ -173,6 +185,13 @@ strings(
     "cs2.pw.stampsSub": "Make as many as you like, every filter.",
     "cs2.pw.cfGold": "Gold-edged stamps",
     "cs2.pw.cfGoldSub": "only the hundred have them.",
+    // the compose tray's tab row (build agent C, 2026-10-19): VoiceOver names of the two glyph tabs
+    "cs2.tray.tabOfficial": "Mood stamps",
+    "cs2.tray.tabCustom": "Your own stamps",
+    // the custom tab's head (mono caps; replaces the retired cs2.use.yours in the tray)
+    "cs2.tray.custom": "CUSTOM STAMPS",
+    // the custom tab with no stamp yet, beside the dashed + (owner's line)
+    "cs2.tray.empty": "Photograph a moment. It becomes a stamp.",
     /* ── /D web+copy · en ── */
   },
   /* ── es · Español ── */
@@ -200,6 +219,18 @@ strings(
     "cs2.ed.broken": "Algo salió mal al crear este sello. ¿Pruebas con otra foto?",
     /* ── /B edit · es ── */
     /* ── C collection · es ── */
+    "cs2.col.reasonTitle": "¿Qué pasa con este sello?",
+    "cs2.col.reason.harassment": "Va contra alguien",
+    "cs2.col.reason.inappropriate": "No debería verse",
+    "cs2.col.reason.spam": "Es publicidad o spam",
+    "cs2.col.reason.other": "Otra cosa",
+    "cs2.col.reported": "Denunciado. No volverás a verlo.",
+    "cs2.col.removed": "Quitado de tu álbum.",
+    "cs2.col.deleted": "Borrado.",
+    "cs2.col.failed": "No se pudo. Inténtalo en un momento.",
+    "cs2.col.checking": "revisando…",
+    "cs2.col.lastUsed": "Último uso: {date}",
+    "cs2.col.pending": "Hecho el {date} · aún en revisión",
     /* ── /C collection · es ── */
     /* ── D web+copy · es ── */
     "cs2.me.made": "HECHOS POR TI",
@@ -315,6 +346,10 @@ strings(
     "cs2.pw.stampsSub": "Haz todos los que quieras, con todos los filtros.",
     "cs2.pw.cfGold": "Sellos con borde dorado",
     "cs2.pw.cfGoldSub": "solo los cien los tienen.",
+    "cs2.tray.tabOfficial": "Sellos de ánimo",
+    "cs2.tray.tabCustom": "Tus propios sellos",
+    "cs2.tray.custom": "SELLOS PROPIOS",
+    "cs2.tray.empty": "Fotografía un momento. Se vuelve un sello.",
     /* ── /D web+copy · es ── */
   },
   /* ── pt · Português (Brasil) ── */
@@ -342,6 +377,18 @@ strings(
     "cs2.ed.broken": "Algo deu errado ao criar este selo. Que tal outra foto?",
     /* ── /B edit · pt ── */
     /* ── C collection · pt ── */
+    "cs2.col.reasonTitle": "O que tem de errado com este selo?",
+    "cs2.col.reason.harassment": "É contra alguém",
+    "cs2.col.reason.inappropriate": "Não deveria aparecer",
+    "cs2.col.reason.spam": "É propaganda ou spam",
+    "cs2.col.reason.other": "Outra coisa",
+    "cs2.col.reported": "Denunciado. Você não vai vê-lo de novo.",
+    "cs2.col.removed": "Tirado do seu álbum.",
+    "cs2.col.deleted": "Apagado.",
+    "cs2.col.failed": "Não deu certo. Tente de novo daqui a pouco.",
+    "cs2.col.checking": "verificando…",
+    "cs2.col.lastUsed": "Usado por último em {date}",
+    "cs2.col.pending": "Feito em {date} · ainda em verificação",
     /* ── /C collection · pt ── */
     /* ── D web+copy · pt ── */
     "cs2.me.made": "FEITOS POR VOCÊ",
@@ -457,6 +504,10 @@ strings(
     "cs2.pw.stampsSub": "Crie quantos quiser, com todos os filtros.",
     "cs2.pw.cfGold": "Selos com borda dourada",
     "cs2.pw.cfGoldSub": "só os cem têm.",
+    "cs2.tray.tabOfficial": "Selos de humor",
+    "cs2.tray.tabCustom": "Seus próprios selos",
+    "cs2.tray.custom": "SELOS PRÓPRIOS",
+    "cs2.tray.empty": "Fotografe um momento. Ele vira um selo.",
     /* ── /D web+copy · pt ── */
   },
   /* ── id · Bahasa Indonesia ── */
@@ -484,6 +535,18 @@ strings(
     "cs2.ed.broken": "Ada yang salah saat membuat perangko ini. Coba foto lain?",
     /* ── /B edit · id ── */
     /* ── C collection · id ── */
+    "cs2.col.reasonTitle": "Ada apa dengan perangko ini?",
+    "cs2.col.reason.harassment": "Menyerang seseorang",
+    "cs2.col.reason.inappropriate": "Tidak pantas ditampilkan",
+    "cs2.col.reason.spam": "Iklan atau spam",
+    "cs2.col.reason.other": "Hal lain",
+    "cs2.col.reported": "Sudah dilaporkan. Kamu tidak akan melihatnya lagi.",
+    "cs2.col.removed": "Dikeluarkan dari albummu.",
+    "cs2.col.deleted": "Dihapus.",
+    "cs2.col.failed": "Belum berhasil. Coba lagi sebentar lagi.",
+    "cs2.col.checking": "sedang dicek…",
+    "cs2.col.lastUsed": "Terakhir dipakai {date}",
+    "cs2.col.pending": "Dibuat {date} · masih dicek",
     /* ── /C collection · id ── */
     /* ── D web+copy · id ── */
     "cs2.me.made": "BUATANMU",
@@ -599,6 +662,10 @@ strings(
     "cs2.pw.stampsSub": "Buat sebanyak yang kamu mau, semua filter.",
     "cs2.pw.cfGold": "Perangko bertepi emas",
     "cs2.pw.cfGoldSub": "cuma seratus orang yang punya.",
+    "cs2.tray.tabOfficial": "Perangko suasana hati",
+    "cs2.tray.tabCustom": "Perangko buatanmu",
+    "cs2.tray.custom": "PERANGKO BUATANMU",
+    "cs2.tray.empty": "Potret satu momen. Jadi perangko.",
     /* ── /D web+copy · id ── */
   },
   /* ── fr · Français ── */
@@ -626,6 +693,18 @@ strings(
     "cs2.ed.broken": "Un souci est survenu en créant ce timbre. Une autre photo ?",
     /* ── /B edit · fr ── */
     /* ── C collection · fr ── */
+    "cs2.col.reasonTitle": "Qu’est-ce qui ne va pas avec ce timbre ?",
+    "cs2.col.reason.harassment": "Il vise quelqu’un",
+    "cs2.col.reason.inappropriate": "Il ne devrait pas être montré",
+    "cs2.col.reason.spam": "C’est de la pub ou du spam",
+    "cs2.col.reason.other": "Autre chose",
+    "cs2.col.reported": "Signalé. Tu ne le verras plus.",
+    "cs2.col.removed": "Retiré de ton album.",
+    "cs2.col.deleted": "Supprimé.",
+    "cs2.col.failed": "Ça n’a pas marché. Réessaie dans un instant.",
+    "cs2.col.checking": "vérification…",
+    "cs2.col.lastUsed": "Utilisé pour la dernière fois le {date}",
+    "cs2.col.pending": "Fait le {date} · encore en vérification",
     /* ── /C collection · fr ── */
     /* ── D web+copy · fr ── */
     "cs2.me.made": "FAITS PAR TOI",
@@ -741,6 +820,10 @@ strings(
     "cs2.pw.stampsSub": "Autant que tu veux, tous les filtres.",
     "cs2.pw.cfGold": "Timbres bordés d’or",
     "cs2.pw.cfGoldSub": "seuls les cent les ont.",
+    "cs2.tray.tabOfficial": "Timbres d’humeur",
+    "cs2.tray.tabCustom": "Tes propres timbres",
+    "cs2.tray.custom": "TES TIMBRES PERSO",
+    "cs2.tray.empty": "Photographie un moment. Il devient un timbre.",
     /* ── /D web+copy · fr ── */
   },
   /* ── de · Deutsch ── */
@@ -768,6 +851,18 @@ strings(
     "cs2.ed.broken": "Beim Machen dieser Marke ist etwas schiefgegangen. Vielleicht ein anderes Foto?",
     /* ── /B edit · de ── */
     /* ── C collection · de ── */
+    "cs2.col.reasonTitle": "Was stimmt mit dieser Marke nicht?",
+    "cs2.col.reason.harassment": "Sie richtet sich gegen jemanden",
+    "cs2.col.reason.inappropriate": "Sie sollte nicht zu sehen sein",
+    "cs2.col.reason.spam": "Werbung oder Spam",
+    "cs2.col.reason.other": "Etwas anderes",
+    "cs2.col.reported": "Gemeldet. Du siehst sie nicht wieder.",
+    "cs2.col.removed": "Aus deinem Album genommen.",
+    "cs2.col.deleted": "Gelöscht.",
+    "cs2.col.failed": "Das hat nicht geklappt. Versuch es gleich noch mal.",
+    "cs2.col.checking": "wird geprüft…",
+    "cs2.col.lastUsed": "Zuletzt benutzt am {date}",
+    "cs2.col.pending": "Gemacht am {date} · wird noch geprüft",
     /* ── /C collection · de ── */
     /* ── D web+copy · de ── */
     "cs2.me.made": "VON DIR GEMACHT",
@@ -883,6 +978,10 @@ strings(
     "cs2.pw.stampsSub": "So viele du willst, mit jedem Filter.",
     "cs2.pw.cfGold": "Marken mit Goldrand",
     "cs2.pw.cfGoldSub": "nur die Hundert haben sie.",
+    "cs2.tray.tabOfficial": "Stimmungsmarken",
+    "cs2.tray.tabCustom": "Deine eigenen Marken",
+    "cs2.tray.custom": "EIGENE MARKEN",
+    "cs2.tray.empty": "Fotografier einen Moment. Er wird zur Marke.",
     /* ── /D web+copy · de ── */
   },
   /* ── it · Italiano ── */
@@ -910,6 +1009,18 @@ strings(
     "cs2.ed.broken": "Qualcosa è andato storto nel creare questo francobollo. Provi con un’altra foto?",
     /* ── /B edit · it ── */
     /* ── C collection · it ── */
+    "cs2.col.reasonTitle": "Cosa non va in questo francobollo?",
+    "cs2.col.reason.harassment": "Prende di mira qualcuno",
+    "cs2.col.reason.inappropriate": "Non dovrebbe essere mostrato",
+    "cs2.col.reason.spam": "È pubblicità o spam",
+    "cs2.col.reason.other": "Altro",
+    "cs2.col.reported": "Segnalato. Non lo vedrai più.",
+    "cs2.col.removed": "Tolto dal tuo album.",
+    "cs2.col.deleted": "Eliminato.",
+    "cs2.col.failed": "Non è andata. Riprova tra un attimo.",
+    "cs2.col.checking": "in verifica…",
+    "cs2.col.lastUsed": "Usato l’ultima volta il {date}",
+    "cs2.col.pending": "Fatto il {date} · ancora in verifica",
     /* ── /C collection · it ── */
     /* ── D web+copy · it ── */
     "cs2.me.made": "FATTI DA TE",
@@ -1025,6 +1136,10 @@ strings(
     "cs2.pw.stampsSub": "Quanti ne vuoi, con tutti i filtri.",
     "cs2.pw.cfGold": "Francobolli bordati d’oro",
     "cs2.pw.cfGoldSub": "solo i cento li hanno.",
+    "cs2.tray.tabOfficial": "Francobolli dell’umore",
+    "cs2.tray.tabCustom": "I tuoi francobolli",
+    "cs2.tray.custom": "FRANCOBOLLI TUOI",
+    "cs2.tray.empty": "Fotografa un momento. Diventa un francobollo.",
     /* ── /D web+copy · it ── */
   },
   /* ── ja · 日本語 ── */
@@ -1052,6 +1167,18 @@ strings(
     "cs2.ed.broken": "切手をつくる途中で問題が起きました。別の写真にしてみませんか？",
     /* ── /B edit · ja ── */
     /* ── C collection · ja ── */
+    "cs2.col.reasonTitle": "この切手のどこが問題ですか？",
+    "cs2.col.reason.harassment": "誰かを攻撃している",
+    "cs2.col.reason.inappropriate": "人に見せるべきでない",
+    "cs2.col.reason.spam": "広告・スパム",
+    "cs2.col.reason.other": "その他",
+    "cs2.col.reported": "報告しました。もう表示されません。",
+    "cs2.col.removed": "アルバムから外しました。",
+    "cs2.col.deleted": "削除しました。",
+    "cs2.col.failed": "うまくいきませんでした。少ししてからもう一度どうぞ。",
+    "cs2.col.checking": "確認中…",
+    "cs2.col.lastUsed": "最後に使った日 {date}",
+    "cs2.col.pending": "{date} に作成 · 確認中",
     /* ── /C collection · ja ── */
     /* ── D web+copy · ja ── */
     "cs2.me.made": "あなたが作った",
@@ -1167,6 +1294,10 @@ strings(
     "cs2.pw.stampsSub": "好きなだけ作れて、フィルターも全部。",
     "cs2.pw.cfGold": "金のふちの切手",
     "cs2.pw.cfGoldSub": "持てるのは100人だけ。",
+    "cs2.tray.tabOfficial": "気分の切手",
+    "cs2.tray.tabCustom": "自分で作った切手",
+    "cs2.tray.custom": "オリジナル切手",
+    "cs2.tray.empty": "ひとときを撮ろう。それが切手になる。",
     /* ── /D web+copy · ja ── */
   },
   /* ── ko · 한국어 ── */
@@ -1194,6 +1325,18 @@ strings(
     "cs2.ed.broken": "우표를 만드는 중에 문제가 생겼어요. 다른 사진으로 해 볼까요?",
     /* ── /B edit · ko ── */
     /* ── C collection · ko ── */
+    "cs2.col.reasonTitle": "이 우표에 어떤 문제가 있나요?",
+    "cs2.col.reason.harassment": "누군가를 겨냥해요",
+    "cs2.col.reason.inappropriate": "보여서는 안 돼요",
+    "cs2.col.reason.spam": "광고나 스팸이에요",
+    "cs2.col.reason.other": "기타",
+    "cs2.col.reported": "신고했어요. 다시는 보이지 않아요.",
+    "cs2.col.removed": "앨범에서 뺐어요.",
+    "cs2.col.deleted": "삭제했어요.",
+    "cs2.col.failed": "잘 안 됐어요. 잠시 후 다시 해 보세요.",
+    "cs2.col.checking": "확인 중…",
+    "cs2.col.lastUsed": "마지막으로 쓴 날 {date}",
+    "cs2.col.pending": "{date}에 만듦 · 아직 확인 중",
     /* ── /C collection · ko ── */
     /* ── D web+copy · ko ── */
     "cs2.me.made": "내가 만든",
@@ -1309,6 +1452,10 @@ strings(
     "cs2.pw.stampsSub": "원하는 만큼, 모든 필터로.",
     "cs2.pw.cfGold": "금테 우표",
     "cs2.pw.cfGoldSub": "100명만 가질 수 있어요.",
+    "cs2.tray.tabOfficial": "기분 우표",
+    "cs2.tray.tabCustom": "내가 만든 우표",
+    "cs2.tray.custom": "나만의 우표",
+    "cs2.tray.empty": "한순간을 찍어 보세요. 우표가 돼요.",
     /* ── /D web+copy · ko ── */
   },
 );

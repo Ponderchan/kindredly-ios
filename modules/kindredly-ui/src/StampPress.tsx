@@ -7,8 +7,10 @@ import type { KInsets, KScreenBaseProps, KScreenHandle } from "./types";
 /* THE STAMP PRESS CAMERA, drawn by SwiftUI (custom stamps, the owner's V1 live viewfinder;
    ios/Portable/Kit/KLab.swift KStampPressCamera, adapter ios/Adapters/KLabView.swift
    KStampPressView), for src/screens/stamp-press/StampPressNative.tsx. Swift runs the camera,
-   the photo picker, the crop page and the press; it hands back one file: the window's part of
-   the picture, 960 × 1200, upright, no EXIF. Every word comes in from TS.
+   the photo picker, the crop page and the press; it hands back one file: the photo stamp's cut
+   bounds of the picture (the photo IS the stamp, cut to the 36's silhouette by every renderer),
+   1280 × 1408 (10:11, PHOTO_STAMP.original), upright, unfiltered, no EXIF. Every word comes in
+   from TS.
 
    A whole screen: alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost), only after
    isKindredlyUIViewAvailable("KStampPressView") says so. Outside a Host it is a RedBox in dev

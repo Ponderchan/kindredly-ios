@@ -10,6 +10,7 @@ import { guessLatin } from "../../lib/lang-guess";
 import { clockTime, fmt as clock, penPalName, postNo, postmark } from "../../lib/format";
 import { useWhoBook } from "../../lib/who";
 import { getStamp, sname } from "../../data/stamps";
+import { isCustomStampId, keepStampFlow, lookOf, reportStampFlow, tagOf, useCustomStamps } from "../../lib/custom-stamps";
 import { stickerName } from "../../lib/sticker-copy";
 import { POOL_CACHE_KEY, fetchMatches, fetchPool, fetchPoolPage, fetchThreads, lastWriteFail, markLetterRead, replyToLetter, type PoolLetter, type ThreadSummary } from "../../lib/db";
 import type { WriteFail } from "../../lib/thread-detail-core";
@@ -964,6 +965,9 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
      the writers on the desk, asked once and drawn when they land */
   const authors = useMemo(() => feed.map((l) => l.author), [feed]);
   const who = useWhoBook({ uids: authors });
+  /* the photo stamps on the desk ("c:<uuid>", lib/custom-stamps): resolved before the cards are
+     built, and the cards rebuilt when they land (the lookup changes) */
+  const customStamp = useCustomStamps(useMemo(() => feed.map((l) => l.stamp), [feed]));
   const fmt = useMemo<C.TodayFormat>(
     () => ({
       t,
@@ -980,6 +984,12 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       },
       stampTime: (ms) => `${postmark(ms)} · ${clockTime(ms)}`,
       stamp: (id) => {
+        if (isCustomStampId(id)) {
+          const info = customStamp(id);
+          if (!info) return null;
+          const topic = tagOf(info);
+          return { color: info.hex, name: topic, spoken: topic && lookOf(info) !== "frame" ? t("cs2.use.a11yStamp", { topic }) : t("cs2.use.a11yBlank") };
+        }
         const st = getStamp(id);
         return st ? { color: st.color, name: sname(st.name) } : null;
       },
@@ -987,7 +997,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     }),
     // lang: the words and the dates follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lang, who],
+    [lang, who, customStamp],
   );
   const bringBackNow = C.canBringBack(rec) && phase === "reading";
   const cards = useMemo(

@@ -211,6 +211,8 @@ export type KTodayViewProps = CommonViewModifierProps &
     onReplySend?: (letterId: string, text: string, serial: number) => void;
     onReplyFocus?: (focused: boolean) => void;
     onCardAction?: (letterId: string, action: KTodayCardAction) => void;
+    /** a stranger's photo stamp on a card, long-pressed (custom stamps): keep | report */
+    onStampMenu?: (letterId: string, action: "keep" | "report") => void;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
@@ -226,7 +228,7 @@ type NativeCard = Omit<KTodayCard, "who" | "capsule" | "menu"> & {
 type NativeImageRef = Required<KImageRefProps>;
 type NativeBirds = { idle: NativeImageRef; curious: NativeImageRef; delight: NativeImageRef; sleepy: NativeImageRef; fly: NativeImageRef; flyIsPerch: boolean };
 
-type Handlers = "onPass" | "onBringBack" | "onReplyOpen" | "onWindow" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction";
+type Handlers = "onPass" | "onBringBack" | "onReplyOpen" | "onWindow" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction" | "onStampMenu";
 
 type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "rev" | "cards" | "birds" | Handlers> &
   Required<Pick<KTodayViewProps, "letterFont" | "insets" | "rev">> & {
@@ -241,6 +243,7 @@ type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "re
     onTodayReplySend?: Ev<{ letterId: string; text: string; serial: number }>;
     onTodayReplyFocus?: Ev<{ focused: boolean }>;
     onTodayCardAction?: Ev<{ letterId: string; action: KTodayCardAction }>;
+    onTodayStampMenu?: Ev<{ letterId: string; action: "keep" | "report" }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -285,7 +288,7 @@ const NativeKTodayView = requireNativeView<NativeKTodayViewProps>("KindredlyUI",
     view, whose every props update re-converts the whole map. */
 export const KTodayView = memo(
   forwardRef<KScreenHandle, KTodayViewProps>(function KTodayView(
-    { modifiers, letterFont, insets, rev, cards, birds, onPass, onBringBack, onReplyOpen, onWindow, onReplyChange, onReplySend, onReplyFocus, onCardAction, ...rest },
+    { modifiers, letterFont, insets, rev, cards, birds, onPass, onBringBack, onReplyOpen, onWindow, onReplyChange, onReplySend, onReplyFocus, onCardAction, onStampMenu, ...rest },
     ref,
   ) {
     const sent = useMemo(() => nativeTodayCards(cards), [cards]);
@@ -311,6 +314,7 @@ export const KTodayView = memo(
         onTodayReplySend={onReplySend ? (e) => onReplySend(e.nativeEvent.letterId, e.nativeEvent.text, e.nativeEvent.serial) : undefined}
         onTodayReplyFocus={onReplyFocus ? (e) => onReplyFocus(e.nativeEvent.focused) : undefined}
         onTodayCardAction={onCardAction ? (e) => onCardAction(e.nativeEvent.letterId, e.nativeEvent.action) : undefined}
+        onTodayStampMenu={onStampMenu ? (e) => onStampMenu(e.nativeEvent.letterId, e.nativeEvent.action) : undefined}
       />
     );
   }),

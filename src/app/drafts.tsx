@@ -8,6 +8,7 @@ import { MONO, PF } from "../theme/post";
 import { Stamp } from "../components/Stamp";
 import { STAMP_LADDER } from "../lib/stamp-frame";
 import { getStamp } from "../data/stamps";
+import { isCustomStampId } from "../lib/custom-stamps";
 import { dLong } from "../lib/format";
 import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
 import { BackChevron } from "../components/10a/BackChevron";
@@ -117,7 +118,7 @@ export default function DraftsScreen() {
               >
                 <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
                   <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute }}>{date}</Text>
-                  {st ? <Stamp id={d.stamp} width={DRAFT_STAMP.w} /> : null}
+                  {st || isCustomStampId(d.stamp) ? <Stamp id={d.stamp} width={DRAFT_STAMP.w} /> : null}
                 </View>
                 <Text numberOfLines={4} style={{ fontSize: 17, lineHeight: 25, color: tk.ink, marginTop: 12 }}>
                   {words}

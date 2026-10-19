@@ -7,18 +7,19 @@ import SwiftUI
  (owner, 2026-10-18; compose.tsx and ComposeTray.tsx): two round keys, a keyboard's shape (owner,
  2026-09-20), then the wide key.
 
- - the + (a 46 circle with a 1.5 ln ring, ComposeTray's RoundKey): the question and the voice
-   letter live behind it. Its plus (27 across, 1.8 on the 24 grid) turns 45° into an × in ind
-   while its tray is open, and the ring wears an ind dot edged in the page colour, 2 inside the
-   ring at the top right, when something rides with the letter (a question, the voice);
- - the stamp: while none is chosen, the same round key holding the stamp glyph, a face in a
-   perforated square (ComposeTray's StampKeyGlyph at 27); while the stamp tray is open the face
-   comes apart and a pencil lies across the square (owner 2026-09-20: the eyes fly up and out,
-   the smile drops, the pencil arrives, .36s). Once a stamp is chosen, its pill instead, the App
-   Store solid pill like the letter's #tag and the web's (the lead's call, 2026-10-19; TS stampVM
-   over kit topicTagLook): 46 tall, corners of 23, filled with the stamp's hex, a 2pt edge and a
-   hard 3/3 shadow in ln, "#name" in Plex Mono 500 11.5 in ink #1E1B35, at most 148 wide,
-   shrinking to .68 before it would cut the word;
+ THE TWO KEYS WEAR NO RINGS (owner 2026-10-19, contract D11; the compose page only): each is its
+ glyph alone in a 44 target, and a press is a small scale (.92) with a light haptic.
+ - the +: the question and the voice letter live behind it. Its plus (27 across, 1.8 on the 24
+   grid) turns 45° into an × in ind while its tray is open, and an ind dot edged in the page
+   colour sits at the glyph's top right when something rides with the letter (a question, the
+   voice);
+ - the stamp: while none is chosen, the stamp glyph, a face in a perforated square
+   (ComposeTray's StampKeyGlyph at 27); while the stamp tray is open the face comes apart and a
+   pencil lies across the square (owner 2026-09-20: the eyes fly up and out, the smile drops, the
+   pencil arrives, .36s). Once a stamp is chosen, THE CHOSEN STAMP ITSELF (owner: "the stamp key
+   shows the chosen stamp"): KStamp at 30 wide, flat (your own stamp: no tilt), an official one
+   or a photo stamp ("c:<uuid>", drawn by KStamp from the custom registry; the category's frame
+   while it resolves). It replaces the 10-19 #name pill (contract §9 Q1);
  - the wide key, taking the rest of the row: square corners, a 1pt edge, padding 17 and 10, its
    label in Plex Mono 600 13 at 1.4, centred. Filling: no fill and a line-coloured edge, a lav2
    wash rising from its left to how far the words are toward the floor, the label in mute and,
@@ -46,7 +47,7 @@ struct KComposeToolbar: View {
 
   var body: some View {
     HStack(spacing: 10) {
-      KComposeRoundKey(
+      KComposeIconKey(
         theme: theme,
         accessibilityLabel: content.tray == .more ? content.strings.closeLabel : content.strings.plusLabel,
         selected: false,
@@ -58,21 +59,21 @@ struct KComposeToolbar: View {
         KComposePlusGlyph(open: content.tray == .more, color: content.tray == .more ? theme.ind : theme.ink)
       }
 
-      if let stamp = content.stamp {
-        KComposeStampPill(stamp: stamp) {
-          driver.blurAll()
-          actions.onTray(.stamps)
-        }
-      } else {
-        KComposeRoundKey(
-          theme: theme,
-          accessibilityLabel: content.strings.stampLabel,
-          selected: content.tray == .stamps,
-          dot: false
-        ) {
-          driver.blurAll()
-          actions.onTray(.stamps)
-        } glyph: {
+      KComposeIconKey(
+        theme: theme,
+        accessibilityLabel: content.stamp?.accessibilityLabel ?? content.strings.stampLabel,
+        selected: content.tray == .stamps,
+        dot: false
+      ) {
+        driver.blurAll()
+        actions.onTray(.stamps)
+      } glyph: {
+        if let stamp = content.stamp {
+          // the chosen stamp itself, flat (D11)
+          KStamp(id: stamp.id, width: KComposeKeySize.stamp, dark: theme.isDark, fallbackHex: stamp.hex.isEmpty ? nil : stamp.hex)
+            .id(stamp.id)
+            .transition(.scale(scale: 0.6).combined(with: .opacity))
+        } else {
           KStampKeyGlyph(open: content.tray == .stamps, ink: theme.ink, pencil: KBrand.waxGold)
             .frame(width: KComposeKeySize.glyph, height: KComposeKeySize.glyph)
         }
@@ -88,24 +89,30 @@ struct KComposeToolbar: View {
   }
 }
 
-/// React Native's pressed look on these keys: the key at .7 while held.
-private struct KComposeDimPressStyle: ButtonStyle {
+/// The keys' press (D11): a small scale while held. The haptic is the key's own (on the tap).
+private struct KComposeKeyPressStyle: ButtonStyle {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .opacity(configuration.isPressed ? 0.7 : 1)
+      .scaleEffect(configuration.isPressed ? 0.92 : 1)
+      .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
   }
 }
 
-/// The round keys' measures (ComposeTray RoundKey, PlusGlyph and StampKeyGlyph).
+/// The keys' measures (ComposeTray PlusGlyph and StampKeyGlyph; D11's 44 target).
 private enum KComposeKeySize {
-  /// the circle, and the pill's height beside it
-  static let diameter: CGFloat = 46
+  /// the touch target (no ring any more: the glyph alone in it)
+  static let target: CGFloat = 44
   /// the glyph's box
   static let glyph: CGFloat = 27
+  /// the chosen stamp in the stamp key: 30 wide, the tray tile's size (36 tall, inside the 44)
+  static let stamp: CGFloat = 30
 }
 
-/// A round key in the bar (ComposeTray RoundKey): a 46 circle, a 1.5 ln ring, no fill.
-private struct KComposeRoundKey<Glyph: View>: View {
+/// A key in the bar (D11): its glyph alone in a 44 target, no ring, no fill; a press scales it
+/// to .92 and taps a light haptic.
+private struct KComposeIconKey<Glyph: View>: View {
 
   let theme: KTheme
   let accessibilityLabel: String
@@ -113,6 +120,8 @@ private struct KComposeRoundKey<Glyph: View>: View {
   let dot: Bool
   let action: () -> Void
   let glyph: Glyph
+  /// one more per tap: the light haptic's trigger
+  @State private var taps = 0
 
   init(theme: KTheme, accessibilityLabel: String, selected: Bool, dot: Bool, action: @escaping () -> Void, @ViewBuilder glyph: () -> Glyph) {
     self.theme = theme
@@ -124,23 +133,27 @@ private struct KComposeRoundKey<Glyph: View>: View {
   }
 
   var body: some View {
-    SwiftUI.Button(action: action) {
+    SwiftUI.Button {
+      taps += 1
+      action()
+    } label: {
       glyph
-        .frame(width: KComposeKeySize.diameter, height: KComposeKeySize.diameter)
-        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+        .frame(width: KComposeKeySize.target, height: KComposeKeySize.target)
         .overlay(alignment: .topTrailing) {
           if dot {
-            // ComposeTray KeyDot: 9 across, ind edged 1.5 in the page colour, 2 inside the ring
+            // ComposeTray KeyDot: 9 across, ind edged 1.5 in the page colour, at the glyph's
+            // top right (the 27 glyph sits 8.5 in from the target's edges)
             Circle()
               .fill(theme.ind)
               .overlay(Circle().strokeBorder(theme.bg, lineWidth: 1.5))
               .frame(width: 9, height: 9)
-              .padding(1.5 + 2)
+              .padding(5)
           }
         }
-        .contentShape(Circle())
+        .contentShape(Rectangle())
     }
-    .buttonStyle(KComposeDimPressStyle())
+    .buttonStyle(KComposeKeyPressStyle())
+    .sensoryFeedback(.impact(weight: .light), trigger: taps)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityAddTraits(selected ? .isSelected : [])
   }
@@ -160,60 +173,6 @@ private struct KComposePlusGlyph: View {
       .rotationEffect(.degrees(open ? 45 : 0))
       .animation(reduceMotion ? nil : .easeOut(duration: 0.26), value: open)
       .accessibilityHidden(true)
-  }
-}
-
-/// The chosen stamp's pill.
-private struct KComposeStampPill: View {
-  static let maxWidth: CGFloat = 148
-  /// the #tag's edge and its hard shadow's offset (KTopicTag, TS TopicTag: 2 and 3)
-  static let edge: CGFloat = 2
-  static let shadow: CGFloat = 3
-  let stamp: KComposeStamp
-  let action: () -> Void
-
-  var body: some View {
-    SwiftUI.Button(action: action) {
-      // the words' room inside the pill: it hugs a short name and stops a long one at 148,
-      // where the name shrinks instead (React Native's maxWidth; a frame would always fill it)
-      KComposeWidthCap(maxWidth: Self.maxWidth - 2 * (12 + Self.edge)) {
-        Text(stamp.name)
-          .composeText(.pillName)
-          .foregroundStyle(stamp.ink)
-          .lineLimit(1)
-          .minimumScaleFactor(0.68)
-      }
-      // padding 12 inside the 2pt edge, which React Native counts in the box (and in the 148)
-      .padding(.horizontal, 12 + Self.edge)
-      .frame(height: KComposeKeySize.diameter)
-      .background(Capsule().fill(stamp.wash))
-      .overlay(Capsule().strokeBorder(stamp.line, lineWidth: Self.edge))
-      // the hard shadow: the same capsule in ln, 3 right and 3 down, behind (no blur)
-      .background(Capsule().fill(stamp.line).offset(x: Self.shadow, y: Self.shadow))
-      .contentShape(Capsule())
-      // the shadow takes no room in the row; leave it its 3 on the right
-      .padding(.trailing, Self.shadow)
-    }
-    .buttonStyle(KComposeDimPressStyle())
-    // the pill keeps its width; the key takes what is left and says SEND if it must
-    .layoutPriority(1)
-    .accessibilityLabel(stamp.accessibilityLabel)
-  }
-}
-
-/// Offers its one child at most `maxWidth` and takes the child's own size: a cap that hugs, as
-/// React Native's maxWidth does (a flexible frame takes the whole width it is offered up to its
-/// cap).
-private struct KComposeWidthCap: Layout {
-  let maxWidth: CGFloat
-
-  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-    guard let child = subviews.first else { return .zero }
-    return child.sizeThatFits(ProposedViewSize(width: min(proposal.width ?? maxWidth, maxWidth), height: proposal.height))
-  }
-
-  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-    subviews.first?.place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
   }
 }
 

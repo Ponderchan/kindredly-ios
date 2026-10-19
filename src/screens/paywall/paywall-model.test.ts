@@ -7,6 +7,7 @@
    Run by hand from the repo root:
      node src/screens/paywall/paywall-model.test.ts */
 
+import { FC_FLAGS, visibleBenefits } from "../../data/fc-benefits.ts";
 import { buildFares, buildPaywallView, mayTakeTrial, money, pad3, savingPct, trialFromIntro, trialLabel, type PaywallFacts, type PaywallFormat } from "./paywall-model.ts";
 
 let fails = 0;
@@ -71,6 +72,10 @@ ok("cofounder perk: the gold-edged stamps line, after the avatar", cf.cofounder.
 ok("head: replaces the title for a non-member only", buildPaywallView({ ...base, head: "Keep it" }, fmt).strings.title === "Keep it" && buildPaywallView({ ...base, head: "Keep it", premium: true }, fmt).strings.title === "fc.paidHead");
 ok("pad3", pad3(7) === "007" && pad3(123) === "123");
 ok("trialLabel none", trialLabel(null, t) === "");
+
+// custom stamps: the row shows now that the Stamp Press has its doors (Me › Stamps and the tray)
+ok("custom stamps row on, with its sub", FC_FLAGS.customStamps && visibleBenefits().some((b) => b.id === "stamps" && b.sub === "cs2.pw.stampsSub"));
+ok("letter paper still off", !visibleBenefits().some((b) => b.id === "paper"));
 
 if (fails) {
   console.log(`\n${fails} failed`);

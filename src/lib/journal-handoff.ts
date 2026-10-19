@@ -48,3 +48,18 @@ export function takeSpark(): string | null {
   spark = null;
   return s && Date.now() - s.at < SPARK_TTL_MS ? s.text : null;
 }
+
+/* THE MOOD, HANDED TO THE PAGE (Notes E1, 2026-10-19). The empty Notes page asks "how was today,
+   honestly?"; the mood tapped there arrives on the composer already chosen, beside its follow-up
+   question (the spark above). Same one-shot, same TTL: a tap abandoned on the way doesn't choose
+   the mood of a page written hours later. A stored mood id (moods.ts MoodId: "group-calm" …). */
+let mood: { id: string; at: number } | null = null;
+
+export function leaveMood(id: string): void {
+  mood = { id, at: Date.now() };
+}
+export function takeMood(): string | null {
+  const m = mood;
+  mood = null;
+  return m && Date.now() - m.at < SPARK_TTL_MS ? m.id : null;
+}

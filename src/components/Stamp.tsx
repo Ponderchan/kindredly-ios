@@ -1,14 +1,20 @@
-import { memo, useMemo } from "react";
-import { View, type StyleProp, type ViewStyle } from "react-native";
-import Svg, { Circle, Ellipse, Path } from "react-native-svg";
+import { memo, useId, useMemo } from "react";
+import { ActionSheetIOS, Alert, Platform, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
+import Svg, { Circle, ClipPath, Defs, Ellipse, FeColorMatrix, Filter, G, Image as SvgImage, Path } from "react-native-svg";
+import { canKeep, isCustomStampId, isKeptStamp, keepStampFlow, lookOf, reportStampFlow, useCustomStamps } from "../lib/custom-stamps";
+import { t } from "../lib/i18n";
 import { STAMP_ART_V3, type StampArtV3 } from "../data/stamp-art-v3";
 import { getStamp } from "../data/stamps";
 import {
   STAMP_DOT_EDGE_PT,
   STAMP_DOT_PT,
   STAMP_LADDER,
+  PHOTO_STAMP,
+  STAMP_FALLBACK_HEX,
+  STAMP_V3_FRAME_D,
   STAMP_V3_INK,
   STAMP_V3_SLOT,
+  photoStampEdge,
   stampColoursV3,
   stampDrawListV3,
   stampHeight,
@@ -76,12 +82,12 @@ const PLANS_MAX = 600;
 const artFor = (id: string): StampArtV3 | null =>
   Object.prototype.hasOwnProperty.call(STAMP_ART_V3, id) ? (STAMP_ART_V3 as Record<string, StampArtV3 | undefined>)[id] ?? null : null;
 
-function planFor(id: string | null | undefined, width: number): StampPlan {
-  const key = `${id ?? ""}|${width}`;
+function planFor(id: string | null | undefined, width: number, fallbackHex?: string | null): StampPlan {
+  const key = `${id ?? ""}|${width}|${fallbackHex ?? ""}`;
   const kept = PLANS.get(key);
   if (kept) return kept;
   const st = getStamp(id);
-  const hex = stampColoursV3(st?.color).hex;
+  const hex = stampColoursV3(st?.color ?? fallbackHex ?? null).hex;
   const plan: StampPlan = {
     width,
     height: stampHeight(width),
@@ -140,8 +146,14 @@ export interface StampProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export const Stamp = memo(function Stamp({ id, width, delivered = false, letterId, style }: StampProps) {
-  const plan = useMemo(() => planFor(id, width), [id, width]);
+export const Stamp = memo(function Stamp({ id, width, delivered = false, letterId, dark = false, style }: StampProps) {
+  if (isCustomStampId(id)) return <PhotoStamp id={id} width={width} delivered={delivered} letterId={letterId} dark={dark} style={style} />;
+  return <DrawnStamp id={id} width={width} delivered={delivered} letterId={letterId} style={style} />;
+});
+
+/** The 36 (or the frame alone in `fallbackHex` / #8B7FE8 for an id this build doesn't draw). */
+function DrawnStamp({ id, width, delivered = false, letterId, fallbackHex, style }: StampProps & { fallbackHex?: string | null }) {
+  const plan = useMemo(() => planFor(id, width, fallbackHex), [id, width, fallbackHex]);
 
   if (plan.els.length === 0) {
     // edged in ink (STAMP_DOT_EDGE_PT) so a bright yellow or pink dot stays visible on white
@@ -161,7 +173,74 @@ export const Stamp = memo(function Stamp({ id, width, delivered = false, letterI
       </View>
     </View>
   );
-});
+}
+
+/* ── custom photo stamps ("c:<uuid>", contract .claude/custom-stamps/CONTRACT.md §2.2, §3) ──
+   The photo full bleed, clipped to STAMP_V3_FRAME_D (the 36's paper) in the same 100 × 120 box,
+   so it lines up with the official stamps. Edges by the rendered width (photoStampEdge): ≤ 60 a
+   1pt hairline inside the cut (ink, white on dark, at .3), > 60 a soft shadow that follows the
+   bites; a Cofounder's stamp a 2pt #D8A63F line at every size. My own taken-down stamp is greyed
+   (saturation 0, opacity .6). No picture (removed, deleted, hidden, not resolved yet): the frame
+   alone in the category's colour; nothing known: in #8B7FE8. Below 15pt: the dot. The reader
+   (60), a kindred's "began under", drafts and the RN fallbacks draw through here. */
+function PhotoStamp({ id, width, delivered = false, letterId, dark = false, style }: StampProps & { id: string }) {
+  const info = useCustomStamps([id])(id);
+  const look = lookOf(info);
+  const uid = useId().replace(/:/g, "");
+  if (look === "frame" || look === "unknown" || !info?.url || !(width >= 15)) {
+    return <DrawnStamp id={id} width={width} delivered={delivered} letterId={letterId} fallbackHex={info?.hex ?? STAMP_FALLBACK_HEX} style={style} />;
+  }
+  const height = stampHeight(width);
+  const deg = delivered && stampTiltsAtV3(width) && letterId ? tilt(letterId) : 0;
+  const edge = photoStampEdge(width, info.gold);
+  const k = 100 / width; // pt → box units
+  const lineU = (edge === "gold" ? PHOTO_STAMP.goldLinePt : PHOTO_STAMP.hairlinePt) * 2 * k;
+  const lineColor = edge === "gold" ? PHOTO_STAMP.goldEdge : dark ? "#FFFFFF" : STAMP_V3_INK;
+  const lineOpacity = edge === "gold" ? 1 : PHOTO_STAMP.hairlineOpacity;
+  const p = PHOTO_STAMP.paper;
+  const paperW = (p.width * width) / 100;
+  const shadow =
+    edge === "none" || (edge === "gold" && width > PHOTO_STAMP.hairlineMaxBoxWidth)
+      ? {
+          shadowColor: "#000",
+          shadowOpacity: dark ? PHOTO_STAMP.shadowOpacity.dark : PHOTO_STAMP.shadowOpacity.light,
+          shadowRadius: paperW * PHOTO_STAMP.shadowRadiusK,
+          shadowOffset: { width: 0, height: paperW * PHOTO_STAMP.shadowYK },
+        }
+      : null;
+  return (
+    <View pointerEvents="none" style={[{ width, height }, style]}>
+      <View style={[{ position: "absolute", left: 0, top: 0, width, height, transform: deg ? [{ rotate: `${deg}deg` }] : undefined }, shadow]}>
+        <Svg width={width} height={height} viewBox="0 0 100 120">
+          <Defs>
+            <ClipPath id={`c${uid}`}>
+              <Path d={STAMP_V3_FRAME_D} />
+            </ClipPath>
+            {look === "greyed" ? (
+              <Filter id={`g${uid}`}>
+                <FeColorMatrix type="saturate" values="0" />
+              </Filter>
+            ) : null}
+          </Defs>
+          <G clipPath={`url(#c${uid})`}>
+            {look === "greyed" ? null : <Path d={STAMP_V3_FRAME_D} fill={stampColoursV3(info.hex).tint} />}
+            <SvgImage
+              href={{ uri: info.url }}
+              x={p.x}
+              y={p.y}
+              width={p.width}
+              height={p.height}
+              preserveAspectRatio="xMidYMid slice"
+              opacity={look === "greyed" ? 0.6 : 1}
+              filter={look === "greyed" ? `url(#g${uid})` : undefined}
+            />
+            {edge !== "none" ? <Path d={STAMP_V3_FRAME_D} fill="none" stroke={lineColor} strokeOpacity={lineOpacity} strokeWidth={lineU} strokeLinejoin="round" /> : null}
+          </G>
+        </Svg>
+      </View>
+    </View>
+  );
+}
 
 /** one resolved element as an SVG node */
 function el(e: StampDrawEl, key: number) {
@@ -211,5 +290,68 @@ export function StampSlot({ width, stroke, fill = "none", style }: { width: numb
         />
       </Svg>
     </View>
+  );
+}
+
+/* ── a stranger's photo stamp on a letter you read: hold it to keep or report it ──
+   (custom stamps, contract §7 B4; Prompt 7). The readers (Today's LetterReader, a correspondence's
+   ReaderScreen) draw their stamp through this: an official stamp, my own, or one that isn't ok is
+   the plain Stamp with no gesture. A stranger's ok "c:" stamp answers a long press with Keep this
+   stamp (or "In your album ✓" once kept) / Report this stamp / Never mind; the flows are
+   lib/custom-stamps keepStampFlow / reportStampFlow, and the line they answer goes to `onDone`
+   (the screen's toast). `from` says where it was seen: the letter (Today) or the correspondence. */
+export function KeepableStamp({
+  id,
+  width,
+  delivered,
+  letterId,
+  dark,
+  from,
+  onDone,
+  style,
+}: StampProps & { from: { letter?: string | null; thread?: string | null }; onDone?: (line: string) => void }) {
+  const custom = isCustomStampId(id) ? id : null;
+  const info = useCustomStamps(custom ? [custom] : [])(custom ?? "");
+  const stamp = <Stamp id={id} width={width} delivered={delivered} letterId={letterId} dark={dark} style={style} />;
+  if (!custom || !canKeep(info)) return stamp;
+  const kept = isKeptStamp(custom);
+  const run = (which: "keep" | "report") => {
+    const flow = which === "keep" ? keepStampFlow(custom, from) : reportStampFlow(custom, from.letter ?? null);
+    void flow.then((line) => {
+      if (line) onDone?.(line);
+    });
+  };
+  const open = () => {
+    const keepLabel = kept ? t("cs2.use.inAlbum") : t("cs2.use.keep");
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [keepLabel, t("cs2.use.report"), t("cs2.use.neverMind")], destructiveButtonIndex: 1, cancelButtonIndex: 2, disabledButtonIndices: kept ? [0] : undefined },
+        (i) => {
+          if (i === 0 && !kept) run("keep");
+          else if (i === 1) run("report");
+        },
+      );
+    } else {
+      Alert.alert("", undefined, [
+        ...(kept ? [] : [{ text: keepLabel, onPress: () => run("keep") }]),
+        { text: t("cs2.use.report"), style: "destructive" as const, onPress: () => run("report") },
+        { text: t("cs2.use.neverMind"), style: "cancel" as const },
+      ]);
+    }
+  };
+  return (
+    <Pressable
+      onLongPress={open}
+      delayLongPress={350}
+      accessibilityRole="image"
+      accessibilityLabel={info?.topic ? t("cs2.use.a11yStamp", { topic: info.topic }) : t("cs2.use.a11yBlank")}
+      accessibilityActions={[...(kept ? [] : [{ name: "keep", label: t("cs2.use.keep") }]), { name: "report", label: t("cs2.use.report") }]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === "keep") run("keep");
+        if (e.nativeEvent.actionName === "report") run("report");
+      }}
+    >
+      {stamp}
+    </Pressable>
   );
 }

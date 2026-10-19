@@ -16,7 +16,8 @@ import ExpoUI
 
  Props, beyond KScreenProps (insets.top = the status bar the screen draws its strip for,
  insets.tabBarRoom = the floating bar the bottom fade and the last note clear):
- - strings: KNotesStringsRecord (every word that isn't on a note; weekdays as an array)
+ - strings: KNotesStringsRecord (every word that isn't on a note; weekdays as an array; Notes E1's
+   neTitle, neLines × 4, neAsks × 4, neTime, neA11yCard, neGroupNames × 4)
  - notes: [{ id, kind, group, icon, label, textTier, shortLabel, listLabel, body,
    listLine, photo, photos, photoCount, photoMore, video, duration, playable, waveSeed, a11y }] —
    the window TS sends (60, then 60 more), newest first; icon is the mood icon's art key (moods.ts
@@ -33,6 +34,7 @@ import ExpoUI
  - calendarOpen: the overlay is up
  - recentGroups: the calendar button's six squares, ["calm" | "happy" | "tired" | "low"]
  - wrenLine: her first-visit line, "" for none
+ - wrenFirst: the line is Notes E1's one-time "first one down…" (drawn in the system font)
  - bird, birdMini: her snapshots ({ uri, key }; uri "" until captured)
  - evening: none | ask | on; eveningBusy
  - palette: { keyText, keyVoice, tape, sticker } as "#RRGGBB" (the empty state's fixed colours)
@@ -56,6 +58,8 @@ import ExpoUI
  - onNotesWrenLineDismiss {}       her line tapped away
  - onNotesCompose { kind }         an empty-state key: text | voice
  - onNotesReachEnd {}              the list nears the end of the window
+ - onNotesEmptyWrite { group }     Notes E1: the draft card under a chosen mood (calm | happy |
+                                   tired | low)
 
  Unknown enum strings fall back rather than fail (a kind or a view this binary doesn't know
  draws as text / card, a group as calm, an evening as none). This file imports ExpoUI, whose public
@@ -153,6 +157,13 @@ struct KNotesStringsRecord: Record {
   @Field var eveningOn: String = ""
   @Field var eveningOff: String = ""
   @Field var weekdays: [String] = []
+  /// Notes E1 (the empty page); a bundle from before E1 sends none (the title then reads "")
+  @Field var neTitle: String = ""
+  @Field var neLines: [String] = []
+  @Field var neAsks: [String] = []
+  @Field var neTime: String = ""
+  @Field var neA11yCard: String = ""
+  @Field var neGroupNames: [String] = []
 
   var strings: KNotesStrings {
     var s = KNotesStrings()
@@ -183,6 +194,12 @@ struct KNotesStringsRecord: Record {
     s.eveningOn = eveningOn
     s.eveningOff = eveningOff
     s.weekdays = weekdays
+    s.neTitle = neTitle
+    s.neLines = neLines
+    s.neAsks = neAsks
+    s.neTime = neTime
+    s.neA11yCard = neA11yCard
+    s.neGroupNames = neGroupNames
     return s
   }
 }
@@ -215,6 +232,7 @@ final class KNotesViewProps: KScreenProps {
   @Field var calendarOpen: Bool = false
   @Field var recentGroups: [String] = []
   @Field var wrenLine: String = ""
+  @Field var wrenFirst: Bool = false
   @Field var bird: KImageRefRecord = KImageRefRecord()
   @Field var birdMini: KImageRefRecord = KImageRefRecord()
   @Field var evening: String = "none"
@@ -231,6 +249,7 @@ final class KNotesViewProps: KScreenProps {
   var onNotesWrenLineDismiss = EventDispatcher()
   var onNotesCompose = EventDispatcher()
   var onNotesReachEnd = EventDispatcher()
+  var onNotesEmptyWrite = EventDispatcher()
 
   /// The month, the player, the scroll requests: as long-lived as the view, like `commands`.
   let driver = KNotesDriver()
@@ -248,6 +267,7 @@ final class KNotesViewProps: KScreenProps {
     a.onWrenLineDismiss = { [weak self] in self?.onNotesWrenLineDismiss() }
     a.onCompose = { [weak self] kind in self?.onNotesCompose(["kind": kind]) }
     a.onReachEnd = { [weak self] in self?.onNotesReachEnd() }
+    a.onEmptyWrite = { [weak self] group in self?.onNotesEmptyWrite(["group": group]) }
     return a
   }()
 
@@ -338,6 +358,7 @@ struct KNotesView: ExpoSwiftUI.View {
     content.calendarOpen = props.calendarOpen
     content.recentGroups = props.recentGroups.prefix(6).map(KMoodGroup.from)
     content.wrenLine = props.wrenLine
+    content.wrenFirst = props.wrenFirst
     content.bird = props.bird.ref
     content.birdMini = props.birdMini.ref
     content.evening = KNotesEvening(rawValue: props.evening) ?? .none

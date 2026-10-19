@@ -145,75 +145,67 @@ struct KRoomyButtonStyle<Inner: ButtonStyle>: ButtonStyle {
 
 /*
  THE EDIT PAGE OF THE STAMP PRESS (the owner's final design, .claude/mock/stamp-press, Prompt 5
- and 6; full-flow prompts .claude/custom-stamps/PROMPTS.md). It lives here, at the end of an
- existing Portable file, because a new .swift file needs a pod install before the next build.
- The camera (build agent A) hands it a 4:5 crop as a file; this page names the moment, picks the
- colour and the filter, shows WHAT STRANGERS SEE on a live letter card, makes the JPEG the server
- checks and plays the review's three endings. It never talks to the network: the submit hands the
- files back (KStampEditActions.onSubmit) and TS (src/lib/stamp-press checkStamp) answers by
- setting `phase`.
+ and 6; full-flow prompts .claude/custom-stamps/PROMPTS.md; the shape per the owner's decision of
+ 2026-10-19 evening and .claude/custom-stamps/CONTRACT.md §2 and §7 A). It lives here, at the end
+ of an existing Portable file, because a new .swift file needs a pod install before the next
+ build. The camera (KStampPressCamera, Kit/KLab.swift) hands it the cut's bounds of the photo as a
+ file (1280 × 1408, 10:11, unfiltered); this page names the moment, picks the colour and the
+ filter, shows WHAT STRANGERS SEE on a live letter card, makes the JPEG the server checks and
+ plays the review's three endings. It never talks to the network: the submit hands the files back
+ (KStampEditActions.onSubmit) and TS (src/lib/stamp-press checkStamp) answers by setting `phase`.
 
  Layout (pt = the prototype's px), top to bottom on the theme's soft page:
    top row 44: Retake (13/600) · NEW STAMP (mono 10 .16em, sub) · a 44 spacer
-   the big stamp 200 wide, rotate −4°, a 4 4 0 hard shadow, pops in (.45s); touch and hold shows
-     the photo before its filter; a Free reader on a First Class filter gets the gold ribbon
+   the big stamp: the photo itself cut to the stamp's silhouette (KPhotoStampFace .paper), 200
+     wide (176 on a short phone), turned KPhotoStamp.landingTiltDeg (−5°) with the soft shadow; it
+     lands there from the press (a simulated landing: a little higher, larger and more turned,
+     settling in .45 s); touch and hold shows the photo before its filter; a Free reader on a
+     First Class filter gets the gold ribbon
    WHAT STRANGERS SEE (mono 10) and the letter card (2.5 ln, radius 20, 4 4 0): a frosted 22
-     square + the date and name line, this stamp at 40 × 48 rotate 2°; the first-line hint; the
-     #topic tag (dashed and "#name this moment" while empty, solid in the colour once named, the
-     n/24 count while typing) and the AURAS CLOSE capsule
+     square + the date and name line, this stamp in a 40-wide box (KPhotoStampFace .box, which
+     draws the small sizes' hairline by itself) turned 2°; the first-line hint; the #topic tag
+     (dashed and "#name this moment" while empty, solid in the colour once named, the n/24 count
+     while typing) and the AURAS CLOSE capsule
    the colour row: the six REAL category colours (src/data/stamps.ts, rung 3), 28 circles, 2 ink
      edge, the chosen one ringed white 2 + ind 5 and checked; small things by default
-   the filter row: live 64-wide stamps, the gold 1ST badge on what the plan can't keep
+   the filter row: live 64-wide photo stamps (.paper), the gold 1ST badge on what the plan can't keep
    the button 52 (ink, a 4 4 0 lime shadow): Put it in my stamps / Checking your stamp… with a
      3pt lime line / Keep it with First Class → (cream and gold) — and above it THIS IS n OF 3
      FREE, the reject card, or the card for unavailable / quota / cap / problem
  While the keyboard is up only the card and the button stay (the stamp, colours, filters fold).
 
- THE STAMP (KPressStamp): the v3 frame every official stamp has (KStampArtData.v3FramePath: the
- gear, 3 bites top and bottom, 4 a side) in paper white with the ink keyline — Cofounder: cream
- #FFF8E8 with a gold #D8A63F edge — and the photo in a 4:5 window inside it, KPressGeometry.window
- (box units 22…78 × 34…104). Nothing is printed on it. Placement `.box` lays it on the 100 × 120
- box exactly like KStamp (so 40 wide here matches a 40-wide official stamp on a card); `.frame`
- crops the box to the frame (the big stamp and the filter tiles, which have no air above).
+ THE STAMP is KPhotoStampFace (Kit/KStampFrame.swift), the one photo-stamp view every renderer
+ uses: the photo full bleed, clipped to the 36's paper silhouette, the bites showing what's behind;
+ no paper, no keyline. Edges by size: a 60-wide box or less gets a faint ink hairline along the
+ cut, larger ones the soft shadow; a Cofounder's stamp gets the 2pt gold #D8A63F line at every
+ size. Nothing is printed on it.
 
- THE FILTERS (KPressFilter.apply), Core Image after the prototype's CSS, in its order:
+ THE FILTERS (KPressFilter.apply), Core Image after the prototype's CSS, in its order, on the
+ 10:11 crop:
    original  nothing
    paper     sepia .35 · contrast .92 · brightness 1.05
-   riso      grayscale · contrast 1.4, then the colour multiplied over at 75%
+   riso      grayscale · contrast 1.4 · its blacks lifted to a floor (a tone curve, so a dark photo
+             doesn't print nearly black), then the colour multiplied over at 75%
    night     hue-rotate 190° · saturate .6 · brightness .78 · contrast 1.1
    sun       brightness 1.22 · saturate 1.3 · sepia .2
    sticker   saturate 1.1, the colour laid over at 60%, and the photo again in a circle with a
-             white ring (a sticker on its own backing)
+             white ring (a sticker on its own backing; the circle uses the crop's width)
    gilt      sepia .6 · saturate 1.4 · contrast 1.05 · brightness 1.05 (Cofounder only)
  (CSS brightness() multiplies, so it is CIExposureAdjust log2(b); contrast and saturate are
  CIColorControls; hue-rotate is CIHueAdjust.)
 
- THE JPEG (KPressRender.export): the filtered window at exactly 576 × 720, sRGB, scale 1, JPEG
- stepped down in quality until it is ≤ 150 KB (153600 bytes, stamp-check.js LIMITS), drawn from
- pixels so it carries no EXIF or location. The unfiltered crop goes beside it at 1152 × 1440 (the
- phone keeps it so First Class can change the filter later; it never leaves the phone). Both are
- written to the temporary folder (tmp/stamp-press/) and their file:// URLs come back in onSubmit.
+ THE JPEG (KPressRender.export): the filtered cut's bounds at exactly KPhotoStamp.exportSize
+ (640 × 704), sRGB, scale 1, JPEG stepped down in quality until it is ≤ KPhotoStamp.maxBytes
+ (153 600, stamp-check.js LIMITS), drawn from pixels so it carries no EXIF or location; the shape
+ is never baked in (every renderer clips). The unfiltered crop goes beside it at
+ KPhotoStamp.originalSize (1280 × 1408; the phone keeps it so First Class can change the filter
+ later; it never leaves the phone). Both are written to the temporary folder (tmp/stamp-press/)
+ and their file:// URLs come back in onSubmit. Previews: big 640 × 704, tiles 192 × 211.
 
- Reduce Motion: no pop, nudge, shake or flight (a fade where something must leave). VoiceOver:
- every control is labelled; the review's ending is announced; holding the stamp has a hint.
+ Reduce Motion: no landing, pop, nudge, shake or flight (a fade where something must leave).
+ VoiceOver: every control is labelled; the review's ending is announced; holding the stamp has a
+ hint.
  */
-
-/// The custom stamp's geometry on the official 100 × 120 box (shared with every renderer that
-/// draws a custom stamp: Swift KStamp for "c:" ids, RN Stamp, the web).
-public enum KPressGeometry {
-  /// the 4:5 photo window inside the v3 frame (x 10…90, y 25…113), box units
-  public static let window = CGRect(x: 22, y: 34, width: 56, height: 70)
-  /// the frame with its keyline and rim, the crop `.frame` placements show (88 × 96)
-  public static let frameView = CGRect(x: 6, y: 21, width: 88, height: 96)
-  /// the JPEG the server takes: the window only
-  public static let exportSize = CGSize(width: 576, height: 720)
-  /// the unfiltered crop kept on the phone
-  public static let originalSize = CGSize(width: 1152, height: 1440)
-  public static let maxBytes = 153_600
-  /// the gold of a Cofounder's stamps
-  public static let goldEdge: UInt32 = 0xD8A63F
-  public static let goldPaper: UInt32 = 0xFFF8E8
-}
 
 /// The seven filters (src/lib/stamp-press-core PRESS_FILTERS; the server's custom_stamps_filter).
 public enum KPressFilter: String, CaseIterable, Sendable {
@@ -232,7 +224,7 @@ public enum KPressFilter: String, CaseIterable, Sendable {
     case .paper:
       adjusted = ci.kSepia(0.35).kControls(contrast: 0.92).kBrightness(1.05)
     case .riso:
-      adjusted = ci.kControls(saturation: 0).kControls(contrast: 1.4)
+      adjusted = ci.kControls(saturation: 0).kControls(contrast: 1.4).kFloor()
     case .night:
       adjusted = ci.kHue(degrees: 190).kControls(saturation: 0.6).kBrightness(0.78).kControls(contrast: 1.1)
     case .sun:
@@ -283,14 +275,27 @@ private extension CIImage {
   func kBrightness(_ b: Double) -> CIImage {
     applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: log2(b)])
   }
+  /// Lifts the blacks to a floor (Riso: a dark photo multiplied by the colour came out nearly
+  /// black). Midtones and whites move little.
+  func kFloor() -> CIImage {
+    applyingFilter("CIToneCurve", parameters: [
+      "inputPoint0": CIVector(x: 0, y: 0.22),
+      "inputPoint1": CIVector(x: 0.25, y: 0.4),
+      "inputPoint2": CIVector(x: 0.5, y: 0.62),
+      "inputPoint3": CIVector(x: 0.75, y: 0.82),
+      "inputPoint4": CIVector(x: 1, y: 1),
+    ])
+  }
   func kHue(degrees: Double) -> CIImage {
     applyingFilter("CIHueAdjust", parameters: [kCIInputAngleKey: degrees * .pi / 180])
   }
 }
 
-/// Picture work for the press: loading, the 4:5 crop, the filters' composites, the JPEG.
+/// Picture work for the press: loading, the 10:11 crop, the filters' composites, the JPEG.
 public enum KPressRender {
   static let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+  /// the filter tiles' pictures (64-wide stamps at 3×), 10:11
+  static let tileSize = CGSize(width: 192, height: 211)
   /// one context for the whole module (CIContext is thread-safe and costly to make)
   static let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!, .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
 
@@ -320,27 +325,22 @@ public enum KPressRender {
     return UIImage(contentsOfFile: path)
   }
 
-  /// The picture centre-cropped to 4:5, upright, at `size` (scale 1, sRGB, opaque).
-  static func crop45(_ image: UIImage, size: CGSize) -> CGImage? {
+  /// The picture's centred 10:11 part (KPhotoStamp.centreCrop), upright, at `size` (scale 1,
+  /// sRGB, opaque). A photo from the press is already 10:11, so it is only rescaled.
+  static func centreCrop(_ image: UIImage, size: CGSize) -> CGImage? {
     let src = image.size
     guard src.width > 0, src.height > 0 else { return nil }
-    let target = size.width / size.height
-    var crop = CGRect(origin: .zero, size: src)
-    if src.width / src.height > target {
-      crop.size.width = src.height * target
-      crop.origin.x = (src.width - crop.width) / 2
-    } else {
-      crop.size.height = src.width / target
-      crop.origin.y = (src.height - crop.height) / 2
-    }
+    let crop = KPhotoStamp.centreCrop(src)
+    guard crop.width > 0 else { return nil }
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1
     format.opaque = true
     format.preferredRange = .standard
     let scale = size.width / crop.width
+    let scaleY = size.height / crop.height
     let out = UIGraphicsImageRenderer(size: size, format: format).image { _ in
       // draw(in:) honours imageOrientation, so the crop comes out upright
-      image.draw(in: CGRect(x: -crop.minX * scale, y: -crop.minY * scale, width: src.width * scale, height: src.height * scale))
+      image.draw(in: CGRect(x: -crop.minX * scale, y: -crop.minY * scaleY, width: src.width * scale, height: src.height * scaleY))
     }
     return out.cgImage
   }
@@ -378,9 +378,9 @@ public enum KPressRender {
 
   /// Writes the stamp's two files to tmp/stamp-press/. → (filtered, original) file:// URLs.
   static func export(source: CGImage, filter: KPressFilter, colour: UInt32) -> (image: String, original: String)? {
-    guard let window = rescale(source, to: KPressGeometry.exportSize),
-          let filtered = filter.apply(to: window, colour: colour),
-          let data = jpeg(filtered, maxBytes: KPressGeometry.maxBytes)
+    guard let sized = rescale(source, to: KPhotoStamp.exportSize),
+          let filtered = filter.apply(to: sized, colour: colour),
+          let data = jpeg(filtered, maxBytes: KPhotoStamp.maxBytes)
     else { return nil }
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("stamp-press", isDirectory: true)
     do {
@@ -389,7 +389,7 @@ public enum KPressRender {
       let imageURL = dir.appendingPathComponent("\(name).jpg")
       try data.write(to: imageURL, options: .atomic)
       var originalPath = ""
-      if let big = rescale(source, to: KPressGeometry.originalSize),
+      if let big = rescale(source, to: KPhotoStamp.originalSize),
          let od = UIImage(cgImage: big, scale: 1, orientation: .up).jpegData(compressionQuality: 0.85) {
         let originalURL = dir.appendingPathComponent("\(name)-o.jpg")
         if (try? od.write(to: originalURL, options: .atomic)) != nil { originalPath = originalURL.absoluteString }
@@ -400,7 +400,7 @@ public enum KPressRender {
     }
   }
 
-  /// `image` (already 4:5) drawn at `size`, scale 1.
+  /// `image` (already 10:11) drawn at `size`, scale 1.
   static func rescale(_ image: CGImage, to size: CGSize) -> CGImage? {
     if image.width == Int(size.width), image.height == Int(size.height) { return image }
     return composite(image, size: size) { _, _ in }
@@ -410,11 +410,11 @@ public enum KPressRender {
 /// Keeps the page's pictures: the crop, the big preview and the tiles, rendered off the main thread.
 @MainActor
 final class KPressPictures: ObservableObject {
-  /// the 4:5 crop at 1152 × 1440 (what the export and the original are made from)
+  /// the 10:11 crop at 1280 × 1408 (what the export and the original are made from)
   @Published private(set) var source: CGImage?
-  /// the crop at 576 × 720, unfiltered (the big stamp while held)
+  /// the crop at 640 × 704, unfiltered (the big stamp while held)
   @Published private(set) var plain: UIImage?
-  /// "filter|rrggbb" → the big preview (576 × 720) and the tile (192 × 240)
+  /// "filter|rrggbb" → the big preview (640 × 704) and the tile (192 × 211)
   @Published private(set) var big: [String: UIImage] = [:]
   @Published private(set) var tiles: [String: UIImage] = [:]
   @Published private(set) var failed = false
@@ -437,14 +437,14 @@ final class KPressPictures: ObservableObject {
     Task.detached(priority: .userInitiated) {
       let crop: CGImage?
       if uri.isEmpty {
-        crop = KPressRender.devScene(size: KPressGeometry.originalSize)
+        crop = KPressRender.devScene(size: KPhotoStamp.originalSize)
       } else if let ui = KPressRender.load(uri) {
-        crop = KPressRender.crop45(ui, size: KPressGeometry.originalSize)
+        crop = KPressRender.centreCrop(ui, size: KPhotoStamp.originalSize)
       } else {
         crop = nil
       }
-      let medium = crop.flatMap { KPressRender.rescale($0, to: KPressGeometry.exportSize) }
-      let small = crop.flatMap { KPressRender.rescale($0, to: CGSize(width: 192, height: 240)) }
+      let medium = crop.flatMap { KPressRender.rescale($0, to: KPhotoStamp.exportSize) }
+      let small = crop.flatMap { KPressRender.rescale($0, to: KPressRender.tileSize) }
       await MainActor.run {
         guard self.loadedURI == uri else { return }
         self.source = crop
@@ -483,80 +483,6 @@ final class KPressPictures: ObservableObject {
         }
       }
     }
-  }
-}
-
-/// The custom stamp: the v3 frame in paper with its keyline (gold for a Cofounder) and the photo
-/// in its 4:5 window. `photo` nil draws the blank paper in the frame.
-public struct KPressStamp: View {
-  public enum Placement: Sendable { case box, frame }
-
-  let photo: UIImage?
-  let width: CGFloat
-  let gold: Bool
-  let placement: Placement
-  /// a hard shadow this far down and right, in pt (0 for none), in `shadow`
-  let shadowPt: CGFloat
-  let shadow: Color
-
-  static let framePath: Path = KSVGPath.path(KStampArtData.v3FramePath)
-
-  public init(photo: UIImage?, width: CGFloat, gold: Bool, placement: Placement = .box, shadowPt: CGFloat = 0, shadow: Color = .clear) {
-    self.photo = photo
-    self.width = width
-    self.gold = gold
-    self.placement = placement
-    self.shadowPt = shadowPt
-    self.shadow = shadow
-  }
-
-  /// the view's rect in box units
-  var viewBox: CGRect { placement == .box ? CGRect(x: 0, y: 0, width: 100, height: 120) : KPressGeometry.frameView }
-  public var height: CGFloat { width * viewBox.height / viewBox.width }
-
-  public var body: some View {
-    let box = viewBox
-    let s = width / box.width
-    let paper = KStampFrame.color(gold ? KPressGeometry.goldPaper : 0xFFFFFF)
-    let edge = KStampFrame.color(gold ? KPressGeometry.goldEdge : KStampFrame.v3Ink)
-    let win = KPressGeometry.window
-    let winRect = CGRect(x: (win.minX - box.minX) * s, y: (win.minY - box.minY) * s, width: win.width * s, height: win.height * s)
-    // the die-cut rim (7u outside the path) and the hard shadow reach past `frame`'s view box;
-    // the Canvas is drawn with this much room on every side so neither is clipped square
-    let room = 8 * s + shadowPt
-    ZStack(alignment: .topLeading) {
-      Canvas { context, _ in
-        var c = context
-        c.translateBy(x: room - box.minX * s, y: room - box.minY * s)
-        c.scaleBy(x: s, y: s)
-        if shadowPt > 0 {
-          var sh = c
-          sh.translateBy(x: shadowPt / s, y: shadowPt / s)
-          sh.fill(Self.framePath, with: .color(shadow))
-          // round joins like the rim: mitred joins poke dark specks out at every bite
-          sh.stroke(Self.framePath, with: .color(shadow), style: StrokeStyle(lineWidth: 14, lineJoin: .round))
-        }
-        // the die-cut rim, the paper, the keyline (KStampArtData.v3Frame's three passes)
-        c.stroke(Self.framePath, with: .color(paper), style: StrokeStyle(lineWidth: 14, lineJoin: .round))
-        c.fill(Self.framePath, with: .color(paper))
-        c.stroke(Self.framePath, with: .color(edge), style: StrokeStyle(lineWidth: max(6, 1.5 / s), lineJoin: .round))
-      }
-      .frame(width: width + 2 * room, height: height + 2 * room)
-      .padding(-room)
-      .allowsHitTesting(false)
-      Group {
-        if let photo {
-          Image(uiImage: photo).resizable().interpolation(.high).aspectRatio(contentMode: .fill)
-        } else {
-          Rectangle().fill(paper)
-        }
-      }
-      .frame(width: winRect.width, height: winRect.height)
-      .clipped()
-      .overlay(Rectangle().strokeBorder(edge.opacity(0.18), lineWidth: max(0.5, 0.6 * s)))
-      .offset(x: winRect.minX, y: winRect.minY)
-    }
-    .frame(width: width, height: height, alignment: .topLeading)
   }
 }
 
@@ -681,6 +607,7 @@ public struct KStampEditScreen: View {
   @State private var flying = false
   @State private var progress = false
   @State private var exporting = false
+  @State private var pageHeight: CGFloat = 0
   @FocusState private var typing: Bool
 
   public init(theme: KTheme, content: KStampEditContent, seed: KStampEditSeed, topInset: CGFloat, bottomInset: CGFloat, actions: KStampEditActions) {
@@ -737,6 +664,7 @@ public struct KStampEditScreen: View {
     }
     .padding(.top, topInset)
     .background(theme.soft.ignoresSafeArea())
+    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { pageHeight = $0 }
     .onAppear { reseed() }
     .onChange(of: seed) { _, _ in reseed() }
     .onChange(of: category) { _, _ in refresh() }
@@ -750,6 +678,21 @@ public struct KStampEditScreen: View {
   }
 
   // MARK: parts
+
+  /// The big stamp's width: 200, 176 on a short phone (an SE).
+  private var bigWidth: CGFloat { pageHeight > 0 && pageHeight < 700 ? 176 : 200 }
+
+  /// A photo stamp of this page (KPhotoStampFace: the edge its size calls for, gold for a
+  /// Cofounder). No picture yet: a tint of the chosen colour inside the cut.
+  private func photoStamp(_ photo: UIImage?, width: CGFloat, placement: KPhotoStamp.Placement) -> some View {
+    KPhotoStampFace(width: width, placement: placement, gold: content.gold, dark: theme.isDark) {
+      if let photo {
+        Image(uiImage: photo).resizable().interpolation(.high).aspectRatio(contentMode: .fill)
+      } else {
+        KStampFrame.color(colourRGB).opacity(0.25)
+      }
+    }
+  }
 
   private var topRow: some View {
     // the title stays centred on the screen whatever Retake's width (AX sizes, long languages)
@@ -782,7 +725,7 @@ public struct KStampEditScreen: View {
   }
 
   private var bigStamp: some View {
-    KPressStamp(photo: bigPhoto, width: 200, gold: content.gold, placement: .frame, shadowPt: 4, shadow: theme.ln)
+    photoStamp(bigPhoto, width: bigWidth, placement: .paper)
       .overlay(alignment: .bottomTrailing) {
         if locked && content.phase == .editing {
           Text(content.fcRibbon)
@@ -812,9 +755,10 @@ public struct KStampEditScreen: View {
             .accessibilityHidden(true)
         }
       }
-      .rotationEffect(.degrees(flying ? 0 : -4 + Double(shake)))
-      .offset(x: flying && !reduceMotion ? -90 : 0, y: flying && !reduceMotion ? -320 : (appeared || reduceMotion ? 0 : 16))
-      .scaleEffect(flying && !reduceMotion ? 0.42 : (appeared || reduceMotion ? 1 : 0.94))
+      // it lands from the press at −5°: a little higher, larger and more turned until `appeared`
+      .rotationEffect(.degrees(flying ? 0 : (appeared || reduceMotion ? KPhotoStamp.landingTiltDeg : KPhotoStamp.landingTiltDeg - 6) + Double(shake)))
+      .offset(x: flying && !reduceMotion ? -90 : 0, y: flying && !reduceMotion ? -320 : (appeared || reduceMotion ? 0 : -28))
+      .scaleEffect(flying && !reduceMotion ? 0.42 : (appeared || reduceMotion ? 1 : 1.08))
       .opacity(flying ? 0 : (appeared ? 1 : 0))
       .onLongPressGesture(minimumDuration: 0.12, maximumDistance: 40, pressing: { holding = $0 }, perform: {})
       .accessibilityElement(children: .ignore)
@@ -839,7 +783,7 @@ public struct KStampEditScreen: View {
           .foregroundStyle(theme.sub)
           .lineLimit(1)
         Spacer(minLength: 6)
-        KPressStamp(photo: bigPhoto, width: 40, gold: content.gold, placement: .box)
+        photoStamp(bigPhoto, width: 40, placement: .box)
           .rotationEffect(.degrees(2))
           .accessibilityHidden(true)
       }
@@ -994,7 +938,7 @@ public struct KStampEditScreen: View {
             filter = f.id
           } label: {
             VStack(spacing: 5) {
-              KPressStamp(photo: pictures.tiles[KPressPictures.key(f.filter, colourRGB)] ?? pictures.plain, width: 64, gold: content.gold, placement: .frame, shadowPt: 2, shadow: theme.ln)
+              photoStamp(pictures.tiles[KPressPictures.key(f.filter, colourRGB)] ?? pictures.plain, width: 64, placement: .paper)
                 .padding(3)
                 .overlay(RoundedRectangle(cornerRadius: 8, style: .circular).strokeBorder(on ? theme.ind : Color.clear, lineWidth: 2))
                 .overlay(alignment: .topTrailing) {

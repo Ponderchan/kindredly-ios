@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
@@ -6,8 +6,9 @@ import { t } from "../lib/i18n";
 import { MONO, P as STATIC_P, PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
-import { Stamp } from "./Stamp";
-import { STAMP_LADDER } from "../lib/stamp-frame";
+import { Stamp, StampSlot } from "./Stamp";
+import { STAMP_LADDER, stampSlotStroke } from "../lib/stamp-frame";
+import "../data/strings-stamps2"; // cs2.tray.* and the 3/3 card's words
 import { trayNameFit, trayNameHex } from "../screens/compose/compose-model";
 
 /* THE TWO ROUND KEYS UNDER THE LETTER, AND WHAT THEY OPEN.
@@ -16,9 +17,10 @@ import { trayNameFit, trayNameHex } from "../screens/compose/compose-model";
    key where the ? and the microphone used to stand square. Each opens a
    tray where the keyboard was.
 
-   The stamp tray: a tab row — stamps, a custom stamp, a stamp tool (the
-   last two are doors not built yet) — then the stamps this letter
-   suggests, the ones used lately, and all thirty-six in their categories.
+   The stamp tray: a tab row — the 36, and my own photo stamps (only while
+   the feature exists for the reader) — then the stamps this letter
+   suggests, the ones used lately, and all thirty-six in their categories;
+   or, on the custom tab, a dashed + (the Stamp Press) and my stamps.
    The ⊕ tray: the question and the voice letter.
 
    COLOURS. The keys, trays and glyphs are chrome and take the theme: P
@@ -38,18 +40,23 @@ import { trayNameFit, trayNameHex } from "../screens/compose/compose-model";
 
 export const TRAY_H = 296;
 
-/* THE DOORS STAY SHUT THIS VERSION (owner, 2026-09-23). The custom stamp
-   and the stamp cam were drawn faint and inert in the tab row; a reviewer
-   who taps one and gets nothing is a rejection. Stamps alone need no row,
-   so the whole row waits with them. When the two are built, set this and
-   the row comes back as it was. */
-const DOORS_OPEN = false;
+/* THE DOORS (owner, 2026-09-23 → 2026-10-19). They stayed shut while the
+   custom stamp was a door to nothing (a reviewer who taps one and gets
+   nothing is a rejection). The Stamp Press exists now, so the row is back
+   with TWO tabs, the WeChat sticker panel's (owner 2026-10-19, contract §7
+   C): the 36 (StampGlyph) and my own photo stamps (CustomGlyph). The stamp
+   cam tab is gone: the press is the custom tab's dashed +. Even open, the
+   row is drawn only when the caller passes a custom tab that isn't
+   "hidden" (the 0038 quota answered and this binary has the press, D10);
+   otherwise the tray is exactly the old one. */
+const DOORS_OPEN = true;
 
 /* ── THE GLYPH FAMILY (design sheet 2026-09-20, set 1a "Perf Line") ──
    One perforated square is the mother shape; only what sits inside it
    changes. STAMP: a face — it is a MOOD stamp, and a moon would read as
    one particular stamp. CUSTOM: a photo with a pen-blue plus in the
-   corner — your picture becomes a stamp. CAM: a lens in the square.
+   corner — your picture becomes a stamp. (CAM, a lens in the square, was
+   dropped with its tab on 2026-10-19.)
    PLUS turns 45° into × while its tray is open, so closing needs no
    second key. 1.6px strokes, short-dash perforation, nothing else. */
 const Perf = ({ color }: { color: string }) => <Rect x={3.5} y={3.5} width={17} height={17} rx={1} stroke={color} strokeWidth={1.6} strokeDasharray="1.4 1.6" fill="none" />;
@@ -101,12 +108,14 @@ export function KeyDot() {
   const { t: tk } = useTheme();
   return <View pointerEvents="none" style={{ position: "absolute", top: 2, right: 2, width: 9, height: 9, borderRadius: 4.5, backgroundColor: P.pen, borderWidth: 1.5, borderColor: tk.bg }} />;
 }
-/* the two doors still to build (owner's picks from the sheet, 2026-09-20):
-   CUSTOM is 2f — your photo mounted inside the perforated square, a stamp
-   already; STAMP CAM is 2d — a viewfinder's four corners in the square and
-   the red shutter dot, the one red in the row. Both keep the mother shape. */
-function CustomGlyph({ size = 22, color }: { size?: number; color?: string }) {
+/* CUSTOM (owner's pick 2f, 2026-09-20; the + added 2026-10-19): your
+   photo mounted inside the perforated square — a stamp already — and a
+   pen-blue + in its top-right corner on a disc of the tray's ground, so it
+   reads cut out of the square: your picture becomes a stamp. The same
+   drawing as the SwiftUI tray's KTrayCustomGlyph. */
+export function CustomGlyph({ size = 22, color, plus, cut }: { size?: number; color?: string; plus?: string; cut?: string }) {
   const P = useP();
+  const { t: tk } = useTheme();
   const ink = color ?? P.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -114,17 +123,8 @@ function CustomGlyph({ size = 22, color }: { size?: number; color?: string }) {
       <Rect x={6.5} y={6.5} width={11} height={11} stroke={ink} strokeWidth={1.3} fill="none" />
       <Circle cx={10} cy={10} r={1.4} fill="#F2A33A" />
       <Path d="M6.5 17.5l3.4-3.8 2.2 2.2 1.8-1.8 3.6 3.4z" fill={ink} />
-    </Svg>
-  );
-}
-function CamGlyph({ size = 22, color, shutter = "#C8412E" }: { size?: number; color?: string; shutter?: string }) {
-  const P = useP();
-  const ink = color ?? P.ink;
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Perf color={ink} />
-      <Path d="M7 9.5V7h2.5M14.5 7H17v2.5M17 14.5V17h-2.5M9.5 17H7v-2.5" stroke={ink} strokeWidth={1.5} strokeLinecap="round" fill="none" />
-      <Circle cx={12} cy={12} r={2} fill={shutter} />
+      <Circle cx={19} cy={5.5} r={4} fill={cut ?? tk.soft} />
+      <Path d="M19 3v5M16.5 5.5h5" stroke={plus ?? tk.ind} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -199,6 +199,8 @@ const COLS = 6;
 /** One stamp as a tray section lists it (screens/compose compose-model StampItemVM). */
 export type TrayStamp = { id: string; name: string; inkHex: string; a11yLabel: string };
 export type TraySection = { title: string; items: TrayStamp[] };
+/** The custom tab (screens/compose compose-model customTray): hidden = no tab row. */
+export type TrayCustom = { state: "hidden" | "empty" | "list"; items: { id: string; topic: string; hex: string; a11yLabel: string }[]; full: boolean };
 
 /* THE STAMP TRAY. Given `sections` (the compose page's, built by
    compose-model stampSections: unknown ids already dropped, names in each
@@ -225,15 +227,33 @@ export function StampTray({
   recent = [],
   sections,
   onPick,
+  custom,
+  tab = "official",
+  fullTitle = "",
+  onTab,
+  onMake,
+  onFullCta,
 }: {
   selected: string | null;
   suggested?: string[];
   recent?: string[];
   sections?: TraySection[];
   onPick: (id: string) => void;
+  /** the custom tab; absent or hidden = no tab row (contract D10) */
+  custom?: TrayCustom;
+  tab?: "official" | "custom";
+  /** the 3/3 card's title, with its count */
+  fullTitle?: string;
+  onTab?: (tab: "official" | "custom") => void;
+  onMake?: () => void;
+  onFullCta?: () => void;
 }) {
   const P = useP();
   const { t: tk } = useTheme();
+  const tabs = DOORS_OPEN && !!custom && custom.state !== "hidden";
+  const shown = tabs ? tab : "official";
+  const [fullCard, setFullCard] = useState(false);
+  useEffect(() => setFullCard(false), [shown]);
   // a name's room: the column (the tray's width less its two 10 gutters, over six) less 3 either
   // side, so two neighbours' names never read as one (can't sleep made my day)
   const room = (useWindowDimensions().width - 20) / COLS - 6;
@@ -280,29 +300,102 @@ export function StampTray({
       });
   return (
     <View style={{ height: TRAY_H, backgroundColor: tk.soft, borderTopWidth: 1, borderTopColor: P.ink12 }}>
-      {/* the tab row: stamps, then the two doors not built yet (DOORS_OPEN) */}
-      {DOORS_OPEN && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 }}>
-          <View style={{ width: 44, height: 36, borderRadius: 9, backgroundColor: tk.sf, alignItems: "center", justifyContent: "center" }}>
-            <StampGlyph size={22} color={P.ink} />
-          </View>
-          <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
-            <CustomGlyph size={22} />
-          </View>
-          <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
-            <CamGlyph size={22} />
-          </View>
+      {/* the tab row (WeChat's sticker panel): the 36, my own stamps — 44 tall, the chosen tab on
+          soft2, a 1pt line under it */}
+      {tabs && (
+        <View style={{ height: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: tk.line }}>
+          {(["official", "custom"] as const).map((which) => {
+            const on = shown === which;
+            return (
+              <Pressable
+                key={which}
+                onPress={() => !on && onTab?.(which)}
+                accessibilityRole="tab"
+                accessibilityLabel={t(which === "official" ? "cs2.tray.tabOfficial" : "cs2.tray.tabCustom")}
+                accessibilityState={{ selected: on }}
+                style={({ pressed }) => ({ width: 44, height: 36, borderRadius: 9, backgroundColor: on ? tk.soft2 : "transparent", alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : on ? 1 : 0.55 })}
+              >
+                {which === "official" ? <StampGlyph size={22} color={P.ink} /> : <CustomGlyph size={22} color={P.ink} cut={tk.soft} />}
+              </Pressable>
+            );
+          })}
         </View>
       )}
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingTop: DOORS_OPEN ? 0 : 4, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {sections
-          ? sections.map((s, i) => section(`${i}:${s.title}`, s.title, s.items))
-          : [
-              section("suggested", t("cp.forThisLetter"), own(suggested)),
-              section("recent", t("cp.recent"), own(recent)),
-              ...STAMP_CATEGORIES.map((cat) => section(cat.id, sname(cat.name).toUpperCase(), own(stampsByCat(cat.id).map((s) => s.id)))),
-            ]}
+      <ScrollView key={shown} contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 4, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {shown === "custom" && custom ? (
+          <View style={{ marginBottom: 6 }}>
+            <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{t("cs2.tray.custom")}</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              {/* the dashed +: the Stamp Press, or (Free at 3/3) the small card */}
+              <Pressable
+                onPress={() => (custom.full ? setFullCard(true) : onMake?.())}
+                hitSlop={2}
+                accessibilityRole="button"
+                accessibilityLabel={t("cs2.use.a11yMake")}
+                style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingTop: 6, paddingBottom: 4, opacity: pressed ? 0.6 : 1 })}
+              >
+                <View style={{ padding: 4 }}>
+                  <StampSlot width={TILE.w} stroke={stampSlotStroke(tk)} />
+                  <View pointerEvents="none" style={{ position: "absolute", left: 4, right: 4, top: 4 + (9 / 120) * TILE.h, bottom: 4 - (9 / 120) * TILE.h, alignItems: "center", justifyContent: "center" }}>
+                    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                      <Path d="M12 7v10M7 12h10" stroke={tk.ind} strokeWidth={2.7} strokeLinecap="round" />
+                    </Svg>
+                  </View>
+                </View>
+              </Pressable>
+              {custom.items.map((it) => {
+                const on = selected === it.id;
+                return (
+                  <Pressable
+                    key={it.id}
+                    onPress={() => onPick(it.id)}
+                    hitSlop={2}
+                    accessibilityRole="button"
+                    accessibilityLabel={it.a11yLabel}
+                    accessibilityState={{ selected: on }}
+                    style={({ pressed }) => ({ width: `${100 / COLS}%`, alignItems: "center", paddingTop: 6, paddingBottom: 4, opacity: pressed ? 0.6 : 1 })}
+                  >
+                    <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
+                      <Stamp id={it.id} width={TILE.w} />
+                    </View>
+                    <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 0.2, color: tk.sub, marginTop: 2, maxWidth: room, textAlign: "center" }}>
+                      {it.topic}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {custom.items.length === 0 && (
+              <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, paddingHorizontal: 6, marginTop: 6 }}>{t("cs2.tray.empty")}</Text>
+            )}
+          </View>
+        ) : sections ? (
+          sections.map((s, i) => section(`${i}:${s.title}`, s.title, s.items))
+        ) : (
+          [
+            section("suggested", t("cp.forThisLetter"), own(suggested)),
+            section("recent", t("cp.recent"), own(recent)),
+            ...STAMP_CATEGORIES.map((cat) => section(cat.id, sname(cat.name).toUpperCase(), own(stampsByCat(cat.id).map((s) => s.id)))),
+          ]
+        )}
       </ScrollView>
+      {/* the 3/3 card: Free has made its three */}
+      {fullCard && custom?.full && (
+        <Pressable accessibilityElementsHidden onPress={() => setFullCard(false)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: tk.soft + "B8", alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
+          <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 300 }}>
+            <View style={{ position: "absolute", left: 3, top: 3, right: -3, bottom: -3, backgroundColor: tk.dark ? tk.ln : tk.ink }} />
+            <View style={{ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ink, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 6 }}>
+              <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.3, color: tk.ink }}>{fullTitle}</Text>
+              <Pressable accessibilityRole="button" onPress={() => { setFullCard(false); onFullCta?.(); }} style={{ minHeight: 44, justifyContent: "center", marginTop: 6 }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: tk.ind }}>{t("cs2.me.fullCta")}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => setFullCard(false)} style={{ minHeight: 44, justifyContent: "center" }}>
+                <Text style={{ fontSize: 14, color: tk.mute }}>{t("cs2.me.notNow")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -101,10 +101,36 @@ public struct KStamp: View {
   }
 
   public var body: some View {
-    let plan = KStampPlan.plan(id: id, width: width, fallbackHex: fallbackHex)
-    stamp(plan)
-      .allowsHitTesting(false)
-      .modifier(KStampArtLabel(label: accessibilityLabel))
+    if id.hasPrefix("c:") {
+      // a custom photo stamp: drawn from the registry TS fills (KCustomStamps, below)
+      KCustomStampFace(id: id, width: width, dark: dark, delivered: delivered, letterId: letterId, fallbackHex: fallbackHex, accessibilityLabel: accessibilityLabel)
+        .allowsHitTesting(false)
+    } else {
+      KStampOfficialFace(id: id, width: width, dark: dark, delivered: delivered, letterId: letterId, fallbackHex: fallbackHex)
+        .allowsHitTesting(false)
+        .modifier(KStampArtLabel(label: accessibilityLabel))
+    }
+  }
+
+  /// the letter's tilt; no id (or an empty one), no tilt
+  static func tiltDegrees(_ letterId: String?) -> Double {
+    guard let letterId, !letterId.isEmpty else { return 0 }
+    return KStampFrame.tilt(letterId: letterId)
+  }
+}
+
+/// The drawn stamp (the 36, or the frame alone for an id the table doesn't know): KStamp's body
+/// before custom stamps, kept as it was.
+struct KStampOfficialFace: View {
+  let id: String
+  let width: CGFloat
+  let dark: Bool
+  let delivered: Bool
+  let letterId: String?
+  let fallbackHex: String?
+
+  var body: some View {
+    stamp(KStampPlan.plan(id: id, width: width, fallbackHex: fallbackHex))
   }
 
   @ViewBuilder
@@ -117,18 +143,12 @@ public struct KStamp: View {
         .frame(width: KStampFrame.dotPt, height: KStampFrame.dotPt)
     } else {
       let mail = delivered && KStampFrame.v3TiltsAt(width)
-      let deg = mail ? Self.tiltDegrees(letterId) : 0
+      let deg = mail ? KStamp.tiltDegrees(letterId) : 0
       KStampFace(plan: plan, width: width, dark: dark)
         .equatable()
         .rotationEffect(.degrees(deg))
         .frame(width: width, height: KStampFrame.height(width))
     }
-  }
-
-  /// the letter's tilt; no id (or an empty one), no tilt
-  static func tiltDegrees(_ letterId: String?) -> Double {
-    guard let letterId, !letterId.isEmpty else { return 0 }
-    return KStampFrame.tilt(letterId: letterId)
   }
 }
 
@@ -494,5 +514,197 @@ private struct KStampArtLabel: ViewModifier {
     } else {
       content.accessibilityHidden(true)
     }
+  }
+}
+
+// MARK: - CUSTOM PHOTO STAMPS ("c:<uuid>", contract .claude/custom-stamps/CONTRACT.md §3, §4.2)
+
+/*
+ Swift never talks to the network: src/lib/custom-stamps resolves the "c:" ids a screen shows
+ (0038 custom_stamps_for, a signed link per picture) and pushes them into KCustomStamps through
+ the module function setCustomStamps (KindredlyUIModule.swift). KStamp(id: "c:…") draws from it at
+ every width, so every Swift surface (the Today card, the tray, the compose corner, Me, the album,
+ My letters) shows a photo stamp with no code of its own.
+
+ What a state draws (§3):
+   ok                       the photo in KPhotoStampFace(.box) (the hairline ≤ 60, the soft shadow
+                            above, a Cofounder's gold line at every size), tilted like any
+                            delivered stamp
+   pending / rejected       mine only: the photo when TS has a local file for it, else the frame
+   removed                  mine: the photo greyed (saturation 0, opacity .6); theirs: the frame
+   deleted / hidden / blank the official frame alone in the category's colour
+   not in the registry      "resolving" or unknown: the frame in TS's fallbackHex, else #8B7FE8
+ Below 15pt every one is the dot in its colour. Decorative unless the caller gives a label, as
+ every KStamp; TS names it "Photo stamp, #topic" / "Empty stamp" (KCustomStampWords.spoken is
+ the same rule for Swift's own menus).
+ */
+
+/// One custom stamp as TS resolved it (src/lib/custom-stamps-core nativeRow).
+public struct KCustomStampInfo: Equatable, Sendable {
+  public enum State: String, Sendable {
+    case ok, pending, rejected, removed, deleted, hidden, blank
+  }
+
+  public let id: String
+  public let state: State
+  /// "#RRGGBB": the category's colour (the frame, the tag, the placeholder's tint)
+  public let hex: String
+  public let gold: Bool
+  /// the #topic without "#"
+  public let topic: String
+  /// the picture (a signed https link or a file://), nil when there is none
+  public let ref: KImageRef?
+  /// the reader's own stamp (no Keep / Report)
+  public let mine: Bool
+  /// a stranger's stamp the reader keeps in their album
+  public let kept: Bool
+
+  public init(id: String, state: State, hex: String, gold: Bool, topic: String, ref: KImageRef?, mine: Bool, kept: Bool) {
+    self.id = id
+    self.state = state
+    self.hex = hex
+    self.gold = gold
+    self.topic = topic
+    self.ref = ref
+    self.mine = mine
+    self.kept = kept
+  }
+
+  /// From one row TS sent ({ id, state, hex, gold, topic, url, key, mine, kept }); nil for a row
+  /// that isn't a custom stamp.
+  public init?(row: [String: Any]) {
+    guard let id = row["id"] as? String, id.hasPrefix("c:") else { return nil }
+    let url = row["url"] as? String ?? ""
+    let key = row["key"] as? String ?? ""
+    self.init(
+      id: id,
+      state: State(rawValue: row["state"] as? String ?? "") ?? .blank,
+      hex: row["hex"] as? String ?? "",
+      gold: row["gold"] as? Bool ?? false,
+      topic: row["topic"] as? String ?? "",
+      ref: KImageRef(uri: url, key: key),
+      mine: row["mine"] as? Bool ?? false,
+      kept: row["kept"] as? Bool ?? false
+    )
+  }
+
+  /// How it draws.
+  public enum Look: Equatable, Sendable { case photo, greyed, frame }
+
+  public var look: Look {
+    guard ref != nil else { return .frame }
+    switch state {
+    case .ok: return .photo
+    case .pending, .rejected: return mine ? .photo : .frame
+    case .removed: return mine ? .greyed : .frame
+    case .deleted, .hidden, .blank: return .frame
+    }
+  }
+
+  /// a stranger's approved stamp: the reader may keep or report it
+  public var canKeep: Bool { !mine && state == .ok }
+}
+
+/// The words the stamp menu and VoiceOver use (TS sends them in the reader's language).
+public struct KCustomStampWords: Equatable, Sendable {
+  public var keep = "Keep this stamp"
+  public var report = "Report this stamp"
+  public var neverMind = "Never mind"
+  public var inAlbum = "In your album ✓"
+  /// "Photo stamp, #{topic}"
+  public var a11yStamp = "Photo stamp, #{topic}"
+  public var a11yBlank = "Empty stamp"
+
+  public init() {}
+
+  public init(row: [String: Any]) {
+    func s(_ k: String, _ d: String) -> String {
+      let v = (row[k] as? String ?? "").trimmingCharacters(in: .whitespaces)
+      return v.isEmpty ? d : v
+    }
+    let d = KCustomStampWords()
+    keep = s("keep", d.keep)
+    report = s("report", d.report)
+    neverMind = s("neverMind", d.neverMind)
+    inAlbum = s("inAlbum", d.inAlbum)
+    a11yStamp = s("a11yStamp", d.a11yStamp)
+    a11yBlank = s("a11yBlank", d.a11yBlank)
+  }
+
+  public func spoken(_ info: KCustomStampInfo?) -> String {
+    guard let info, info.look != .frame, !info.topic.isEmpty else { return a11yBlank }
+    return a11yStamp.replacingOccurrences(of: "{topic}", with: info.topic)
+  }
+}
+
+/// THE REGISTRY KStamp draws "c:" ids from. Filled by TS only (setCustomStamps / clearCustomStamps).
+/// Only photo stamps observe it, so the 36 never redraw for it.
+@MainActor
+public final class KCustomStamps: ObservableObject {
+  public static let shared = KCustomStamps()
+
+  @Published public private(set) var byId: [String: KCustomStampInfo] = [:]
+  @Published public private(set) var words = KCustomStampWords()
+
+  public init() {}
+
+  /// Rows replace the ones with the same id; a row equal to the one held changes nothing.
+  public func merge(_ infos: [KCustomStampInfo]) {
+    var next = byId
+    var changed = false
+    for info in infos where next[info.id] != info {
+      next[info.id] = info
+      changed = true
+    }
+    if changed { byId = next }
+  }
+
+  public func clear() {
+    if !byId.isEmpty { byId = [:] }
+  }
+
+  public func setWords(_ w: KCustomStampWords) {
+    if words != w { words = w }
+  }
+
+  public func info(_ id: String) -> KCustomStampInfo? {
+    byId[id]
+  }
+}
+
+/// KStamp for a "c:" id (see the note above).
+struct KCustomStampFace: View {
+  let id: String
+  let width: CGFloat
+  let dark: Bool
+  let delivered: Bool
+  let letterId: String?
+  let fallbackHex: String?
+  let accessibilityLabel: String?
+
+  @ObservedObject private var registry = KCustomStamps.shared
+
+  var body: some View {
+    let info = registry.info(id)
+    let look = info?.look ?? .frame
+    Group {
+      if look != .frame, let info, let ref = info.ref, KStampFrame.v3Tier(for: width) != .dot {
+        let mail = delivered && KStampFrame.v3TiltsAt(width)
+        let deg = mail ? KStamp.tiltDegrees(letterId) : 0
+        let paper = KPhotoStamp.paperRect(boxWidth: width)
+        let tint = KStampFrame.rgb(hex: info.hex).map { KStampFrame.color(KStampFrame.v3Tint($0)) } ?? KStampFrame.color(KStampArtData.v3FallbackTint >> 8)
+        KPhotoStampFace(width: width, placement: .box, gold: info.gold, dark: dark) {
+          KImage(ref, size: paper.size, contentMode: .fill, placeholder: tint)
+            .saturation(look == .greyed ? 0 : 1)
+            .opacity(look == .greyed ? 0.6 : 1)
+        }
+        .rotationEffect(.degrees(deg))
+        .frame(width: width, height: KStampFrame.height(width))
+      } else {
+        KStampOfficialFace(id: id, width: width, dark: dark, delivered: delivered, letterId: letterId, fallbackHex: info?.hex ?? fallbackHex)
+      }
+    }
+    // decorative unless the caller names it, as every KStamp (TS sends "Photo stamp, #topic")
+    .modifier(KStampArtLabel(label: accessibilityLabel))
   }
 }

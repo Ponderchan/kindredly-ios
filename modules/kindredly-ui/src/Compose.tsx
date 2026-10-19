@@ -41,6 +41,21 @@ import type { KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from
 
 export type KComposeMode = "write" | "speak";
 export type KComposeTray = "none" | "stamps" | "more";
+/** the stamp tray's tabs (contract §4.3 C): the 36, and my own photo stamps */
+export type KComposeTrayTab = "official" | "custom";
+/** hidden: no tab row, the tray as it always was (the feature isn't there for this reader, D10) */
+export type KComposeCustomState = "hidden" | "empty" | "list";
+/** one of my approved photo stamps in the custom tab */
+export type KComposeCustomStamp = {
+  /** "c:<uuid>" */
+  id: string;
+  /** "#topic", lower case, as the tile says it */
+  topic: string;
+  /** the category's colour ("#RRGGBB"): KStamp's frame while the picture resolves */
+  hex: string;
+  /** VoiceOver: "Photo stamp, #topic" */
+  a11yLabel: string;
+};
 
 /** Every word of the page that isn't live or in a list. */
 export type KComposeStrings = {
@@ -74,6 +89,17 @@ export type KComposeStrings = {
   capText: string;
   capSub: string;
   capLink: string;
+  /** VoiceOver: the tray's two tabs ("Mood stamps", "Your own stamps") */
+  trayTabOfficial: string;
+  trayTabCustom: string;
+  /** the custom tab's head (CUSTOM STAMPS), its empty line, the dashed + (VoiceOver) */
+  trayCustomHead: string;
+  trayCustomEmpty: string;
+  trayMake: string;
+  /** the 3/3 card: its title (with the count), its link to First Class, its Not now */
+  trayFullTitle: string;
+  trayFullCta: string;
+  trayNotNow: string;
 };
 
 /** The chosen stamp, coloured for the page (theme/post channelColors against the theme's page
@@ -88,6 +114,8 @@ export type KComposeStamp = {
   lineHex: string;
   /** VoiceOver: "Mood stamp: Made my day. Change it" */
   a11yLabel: string;
+  /** the stamp's colour ("#RRGGBB"): the frame KStamp draws while a photo stamp resolves */
+  hex: string;
 };
 
 export type KComposeStampItem = { id: string; name: string; inkHex: string; a11yLabel: string };
@@ -151,6 +179,13 @@ export type KComposeViewProps = CommonViewModifierProps &
     capPanel: boolean;
     /** a send is in flight */
     busy: boolean;
+    /** the stamp tray's tab (drawn only while customState isn't hidden) */
+    trayTab: KComposeTrayTab;
+    customState: KComposeCustomState;
+    /** my approved photo stamps, newest first */
+    customStamps: KComposeCustomStamp[];
+    /** Free has made its three: the dashed + opens the 3/3 card */
+    customFull: boolean;
     onClose?: () => void;
     onTextChange?: (target: "body" | "ask", text: string) => void;
     /** a tray key: toggles that tray */
@@ -163,6 +198,12 @@ export type KComposeViewProps = CommonViewModifierProps &
     onCapLink?: () => void;
     /** a field gained or lost the keyboard (a gained focus closes the tray) */
     onFieldFocus?: (target: "body" | "ask", focused: boolean) => void;
+    /** the tray's tab row */
+    onTrayTab?: (tab: KComposeTrayTab) => void;
+    /** the custom tab's dashed +: open the Stamp Press */
+    onMakeStamp?: () => void;
+    /** the 3/3 card's link: the paywall */
+    onFullCta?: () => void;
     /** the two <KIsland>s, "wren" then "recorder", every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -184,6 +225,9 @@ type NativeKComposeViewProps = Omit<
   | "onKeyPress"
   | "onCapLink"
   | "onFieldFocus"
+  | "onTrayTab"
+  | "onMakeStamp"
+  | "onFullCta"
 > &
   Required<Pick<KComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -197,6 +241,9 @@ type NativeKComposeViewProps = Omit<
     onComposeKeyPress?: Ev<{ text: string; ask: string }>;
     onComposeCapLink?: Ev<Record<string, never>>;
     onComposeFieldFocus?: Ev<{ target: "body" | "ask"; focused: boolean }>;
+    onComposeTrayTab?: Ev<{ tab: KComposeTrayTab }>;
+    onComposeMakeStamp?: Ev<Record<string, never>>;
+    onComposeFullCta?: Ev<Record<string, never>>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -231,11 +278,20 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
     onKeyPress,
     onCapLink,
     onFieldFocus,
+    onTrayTab,
+    onMakeStamp,
+    onFullCta,
+    customStamps,
     ...rest
   },
   ref,
 ) {
   const sent = useMemo(() => nativeComposeSections(sections), [sections]);
+  // every field present (a Swift @Field record can't take null or undefined)
+  const customSent = useMemo(
+    () => (customStamps ?? []).map((c) => ({ id: c.id ?? "", topic: c.topic ?? "", hex: c.hex ?? "", a11yLabel: c.a11yLabel ?? "" })),
+    [customStamps],
+  );
   return (
     <NativeKComposeView
       ref={ref}
@@ -248,6 +304,7 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       insets={insets ?? NO_INSETS}
       rev={rev ?? 0}
       sections={sent}
+      customStamps={customSent}
       onComposeClose={onClose ? () => onClose() : undefined}
       onComposeTextChange={onTextChange ? (e) => onTextChange(e.nativeEvent.target, e.nativeEvent.text) : undefined}
       onComposeTray={onTray ? (e) => onTray(e.nativeEvent.which) : undefined}
@@ -257,6 +314,9 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       onComposeKeyPress={onKeyPress ? (e) => onKeyPress(e.nativeEvent.text, e.nativeEvent.ask) : undefined}
       onComposeCapLink={onCapLink ? () => onCapLink() : undefined}
       onComposeFieldFocus={onFieldFocus ? (e) => onFieldFocus(e.nativeEvent.target, e.nativeEvent.focused) : undefined}
+      onComposeTrayTab={onTrayTab ? (e) => onTrayTab(e.nativeEvent.tab === "custom" ? "custom" : "official") : undefined}
+      onComposeMakeStamp={onMakeStamp ? () => onMakeStamp() : undefined}
+      onComposeFullCta={onFullCta ? () => onFullCta() : undefined}
     />
   );
 });

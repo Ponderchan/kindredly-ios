@@ -222,7 +222,7 @@ export function parseCheck(status: number, body: unknown): CheckOutcome {
   return { kind: "unavailable" };
 }
 
-/** The request body (stamp-check's contract). image: base64 JPEG 576 × 720, or null for a rename
+/** The request body (stamp-check's contract). image: base64 JPEG 640 × 704 (10:11), or null for a rename
     of an approved stamp (replace set). */
 export function checkBody(input: { image: string | null; topic: string; category: PressCategory; filter: PressFilter; replace?: string | null }): string {
   const o: Record<string, string> = { topic: normalizeTopic(input.topic), category: input.category, filter: input.filter };
@@ -237,7 +237,7 @@ export function checkBody(input: { image: string | null; topic: string; category
     that would have been sent, and what it was to be called. Never uploaded until it is checked. */
 export type PressDraft = {
   id: string;
-  /** file:// of the filtered 576 × 720 JPEG, inside the app's documents */
+  /** file:// of the filtered 640 × 704 JPEG, inside the app's documents */
   image: string;
   topic: string;
   category: PressCategory;

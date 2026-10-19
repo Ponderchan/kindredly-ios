@@ -295,7 +295,8 @@ export function buildStamps(used: readonly StampFacts[], fmt: MeFormat): StampsV
   const seen = new Set<string>();
   const cells: StampCellVM[] = [];
   for (const s of used) {
-    if (!s.id || seen.has(s.id)) continue;
+    // official stamps only: a photo stamp ("c:<uuid>") lives in MADE BY YOU, never here (custom stamps)
+    if (!s.id || s.id.startsWith("c:") || seen.has(s.id)) continue;
     seen.add(s.id);
     const date = s.at ? upper(fmt.dateShort(s.at)) : "";
     cells.push({ id: s.id, date, a11y: [s.name.trim(), date].filter(Boolean).join(", "), hex: s.hex });

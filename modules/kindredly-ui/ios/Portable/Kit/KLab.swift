@@ -553,44 +553,53 @@ private struct KLabSwitch: View {
 /*
  THE STAMP PRESS, V1 LIVE VIEWFINDER (the owner's final design: .claude/mock/stamp-press,
  CLAUDE-CODE-PROMPTS-STAMP-PRESS.md Prompt 3, with .claude/custom-stamps/PROMPTS.md Prompt 2 for
- the permission card and the crop page). React Native shows it through Adapters/KLabView.swift
- (KStampPressView, the /stamp-press route); the edit page that follows is not drawn here.
+ the permission card and the crop page; the shape and the press per the owner's decision of
+ 2026-10-19 evening and .claude/custom-stamps/CONTRACT.md §2 and §7 A). React Native shows it
+ through Adapters/KLabView.swift (KStampPressView, the /stamp-press route); the edit page that
+ follows is KStampEditScreen (Portable/Profile/KFaceStrip.swift).
 
- One full-screen page, the tab bar hidden. The camera fills the screen (no darkroom colour on a
- phone with a camera: the ground is the picture). Over it, one big stamp: our v3 gear frame
- (a rounded rect with big half-circle bites, 3 across the top and bottom and 4 down each side),
- 5:6, its white paper round a 4:5 window 10u from the paper's edge (on the 100 × 120 box: x 10–90,
- y 10–110). The window draws the mask: one even-odd path, the whole screen and more less the
- window, at rgba(20,18,42,.58), which moves with the stamp, so it can never sit out of line.
- Four lime corner marks inside the window say "what's in here is the stamp".
+ THE PHOTO IS THE STAMP: no white paper, no window. The live picture fills the screen; over it
+ one stamp-shaped hole, the photo stamp's cut (KPhotoStamp in Kit/KStampFrame.swift, the same
+ silhouette as the 36 official stamps: a rounded rect with big half-circle bites, 3 across the
+ top and bottom, 4 down each side), its paper width the screen less 64 (never under 240, no
+ taller than the room), 10:11. Everything outside the cut sits under one even-odd dim
+ (rgba(20,18,42,.58)), so the bites show the dimmed live picture behind. A 1pt white @ .5 line
+ follows the cut so it reads on a dark scene. Four lime corner marks inside the cut's corners say
+ "what's in here is the stamp".
 
- Controls: × and the flash at the top; UPLOAD (the system photo picker, then the crop page),
- the lime shutter and ZOOM 1× / 2× at the bottom. No flip camera (owner).
+ Controls: × and the flash at the top; UPLOAD (the system photo picker, then the crop page: the
+ same cut fixed, the photo dragged and pinched under it, the outside dimmed), the lime shutter and
+ ZOOM 1× / 2× at the bottom. No flip camera (owner).
 
- THE PRESS: t0 a white flash in the window (80ms) and a medium tap; t80 the picture freezes and
- the corner marks fold away; t500 the whole stamp slides down out of the slot under it, to .72 and
- -4° (.5s cubic-bezier(.3,1.2,.4,1)); t1000 the pressed photo goes to onPressed. Reduce Motion:
- the flash is a .1s fade, nothing slides, the page fades and hands over at t500.
+ THE PRESS: t0 a white flash in the cut and a medium tap (the ka-chunk); t80 the picture freezes
+ and the corner marks fold away; t150 the frozen photo shows as the un-bitten rounded rect and the
+ 14 bites punch through it one after another in KPhotoStamp.bites order (clockwise from the top
+ left) over KPhotoStamp.punchDuration (.35 s); t500 the stamp slides down out of the slot under
+ it, shrinking and turning to KPhotoStamp.landingTiltDeg (−5°) with the soft shadow, where the edit
+ page picks it up (a simulated landing: the edit page's big stamp arrives at −5°); t950 the
+ pressed photo goes to onPressed. Reduce Motion: the bites simply appear, nothing slides, the page
+ fades and hands over at t500.
 
- THE PHOTO (KPressedPhoto): the window's part of the picture, upright, 960 × 1200 (4:5, the long
- side 1200), drawn afresh into a new bitmap and encoded as JPEG, so no EXIF or location survives.
- The original never leaves this view. The camera's picture and the screen are both mapped by
- aspect-fill, the preview layer's own gravity (KStampPressGeometry.cropRect).
+ THE PHOTO (KPressedPhoto): the cut's bounds of the picture, upright, KPhotoStamp.originalSize
+ (1280 × 1408, 10:11), unfiltered (the camera never filters), drawn afresh into a new bitmap and
+ encoded as JPEG, so no EXIF or location survives. The edit page filters it and makes the
+ 640 × 704 file the server checks. The camera's picture and the screen are both mapped by
+ aspect-fill, the preview layer's own gravity (KPhotoStamp.cropRect).
 
  ACCESS: not asked yet → our own card first (a blank stamp, "Your camera makes the stamp…",
  Allow camera, which brings up the system prompt, and Choose a photo instead); refused → the same
  card with Open Settings. No camera at all (the Simulator): a drawn stand-in scene fills the
  screen and the shutter presses that, so the whole flow can be walked without a lens.
 
- VoiceOver: the window is one element ("Camera view, the stamp's window"); the shutter is
+ VoiceOver: the cut is one element ("Camera view, the stamp's window"); the shutter is
  "Press the stamp"; UPLOAD is "Choose a photo"; the result is announced. The control row keeps
  its size at every Dynamic Type setting (icon buttons); the hint stops growing at xxLarge (≈1.35×).
  */
 
-/// What the press made: the window's part of the picture, upright, 960 × 1200, no metadata.
+/// What the press made: the cut's bounds of the picture, upright, 1280 × 1408, unfiltered, no metadata.
 public struct KPressedPhoto: Equatable {
   public enum Source: String, Sendable { case camera, library }
-  /// the photo, 960 × 1200 at scale 1
+  /// the photo, KPhotoStamp.originalSize (1280 × 1408) at scale 1
   public let image: UIImage
   /// the same photo as JPEG (quality 0.9), with no EXIF
   public let jpeg: Data
@@ -634,74 +643,40 @@ public struct KStampPressStrings: Equatable, Sendable {
   public init() {}
 }
 
-/// The numbers of the press: the stamp's frame and window, and how a picture maps onto them.
-/// Pure, so the arithmetic can be checked away from a camera.
+/// The press's own arithmetic beyond the shared geometry (KPhotoStamp): how wide the stamp is on
+/// a screen, the bites' punch timing, and the photo it writes. Pure, so it can be checked away
+/// from a camera.
 public enum KStampPressGeometry {
-  /// 5:6
-  public static func height(_ width: CGFloat) -> CGFloat { width * 1.2 }
-
-  /// The 4:5 window in a stamp of this width: 10u in from the paper on the 100 × 120 box.
-  public static func window(width w: CGFloat) -> CGRect {
-    CGRect(x: w * 0.1, y: w * 0.1, width: w * 0.8, height: w)
-  }
-
-  /// The gear frame in `rect` (any 5:6 rect): a rounded rect, corner 7% of the width, with
-  /// half-circle bites of 5% of the width centred on the edge, at 25 / 50 / 75% across the top and
-  /// bottom and 20 / 40 / 60 / 80% down each side (the prototype's clip path, which is our v3
-  /// frame's 3 + 4).
-  public static func gear(in rect: CGRect) -> Path {
-    let w = rect.width
-    let h = rect.height
-    guard w > 0, h > 0 else { return Path() }
-    let body = Path(roundedRect: rect, cornerRadius: w * 0.07, style: .circular)
-    let r = w * 0.05
-    var bites = Path()
-    for fx in [0.25, 0.5, 0.75] as [CGFloat] {
-      for y in [rect.minY, rect.maxY] {
-        bites.addEllipse(in: CGRect(x: rect.minX + w * fx - r, y: y - r, width: 2 * r, height: 2 * r))
-      }
-    }
-    for fy in [0.2, 0.4, 0.6, 0.8] as [CGFloat] {
-      for x in [rect.minX, rect.maxX] {
-        bites.addEllipse(in: CGRect(x: x - r, y: rect.minY + h * fy - r, width: 2 * r, height: 2 * r))
-      }
-    }
-    return body.subtracting(bites)
-  }
-
-  /// The stamp's width on a screen: the screen less 64, no taller than the room left for it, and
-  /// never under 220 (an SE gives 311 × 373).
+  /// The cut's paper width on a screen: the screen less 64, no taller (at 10:11) than the room
+  /// left for it, and never under 240.
   public static func stampWidth(screen: CGSize, room: CGFloat) -> CGFloat {
     let byWidth = screen.width - 64
-    let byHeight = room / 1.2
-    return max(220, min(byWidth, byHeight))
+    let byHeight = room * KPhotoStamp.aspect
+    return max(240, min(byWidth, byHeight))
   }
 
-  /**
-   The part of a picture of `imageSize` that shows in `window` (in the view's points) when the
-   picture fills a view of `viewSize` by aspect-fill, centred (AVLayerVideoGravity
-   .resizeAspectFill). In the picture's pixels, clamped to the picture.
-   */
-  public static func cropRect(imageSize: CGSize, viewSize: CGSize, window: CGRect) -> CGRect {
-    guard imageSize.width > 0, imageSize.height > 0, viewSize.width > 0, viewSize.height > 0 else { return .zero }
-    let s = max(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
-    let ox = (viewSize.width - imageSize.width * s) / 2
-    let oy = (viewSize.height - imageSize.height * s) / 2
-    let r = CGRect(x: (window.minX - ox) / s, y: (window.minY - oy) / s, width: window.width / s, height: window.height / s)
-    return r.intersection(CGRect(origin: .zero, size: imageSize))
+  /// How far in each of the 14 bites is `t` seconds after the punch began (0…1 each, in
+  /// KPhotoStamp.bites order): staggered so the last one lands at KPhotoStamp.punchDuration, each
+  /// eased out over a third of it.
+  public static func punched(at t: Double) -> [CGFloat] {
+    let n = KPhotoStamp.bites.count
+    let total = KPhotoStamp.punchDuration
+    let each = total / 3
+    let step = (total - each) / Double(max(1, n - 1))
+    return (0..<n).map { i in
+      let k = max(0, min(1, (t - Double(i) * step) / each))
+      return CGFloat(1 - (1 - k) * (1 - k))
+    }
   }
 
-  /// The output: 960 × 1200.
-  public static let output = CGSize(width: 960, height: 1200)
-
-  /// The part `crop` (pixels of an upright image) drawn into a new 960 × 1200 bitmap, JPEG 0.9.
-  /// A fresh bitmap carries no EXIF and no location.
+  /// The part `crop` (pixels of an upright image) drawn into a new KPhotoStamp.originalSize
+  /// bitmap (1280 × 1408), JPEG 0.9. A fresh bitmap carries no EXIF and no location.
   public static func render(_ image: UIImage, crop: CGRect, source: KPressedPhoto.Source) -> KPressedPhoto? {
     guard crop.width > 1, crop.height > 1 else { return nil }
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1
     format.opaque = true
-    let out = output
+    let out = KPhotoStamp.originalSize
     let k = out.width / crop.width
     let ky = out.height / crop.height
     let img = UIGraphicsImageRenderer(size: out, format: format).image { _ in
@@ -726,28 +701,15 @@ public enum KStampPressGeometry {
   }
 }
 
-/// The paper of the stamp, with the window cut out of it (so the picture shows through).
-struct KPressPaper: Shape {
-  /// drawn in the rect inset by this much (the white paper sits 2.5 inside the ink edge)
-  var inset: CGFloat = 0
-  var hole = true
-
-  func path(in rect: CGRect) -> Path {
-    let gear = KStampPressGeometry.gear(in: rect.insetBy(dx: inset, dy: inset * 1.2))
-    guard hole else { return gear }
-    let win = KStampPressGeometry.window(width: rect.width).offsetBy(dx: rect.minX, dy: rect.minY)
-    return gear.subtracting(Path(win))
-  }
-}
-
-/// The mask: everything but the window, `reach` points past the stamp on every side.
-struct KPressMask: Shape {
+/// The dim: everything `reach` points past the rect, less the photo stamp's cut fitted to the
+/// rect (with its bites as far in as `punched` says), filled even-odd.
+struct KPressDim: Shape {
+  var punched: [CGFloat]?
   var reach: CGFloat = 2400
 
   func path(in rect: CGRect) -> Path {
     var p = Path(rect.insetBy(dx: -reach, dy: -reach))
-    let win = KStampPressGeometry.window(width: rect.width).offsetBy(dx: rect.minX, dy: rect.minY)
-    p.addRoundedRect(in: win, cornerSize: CGSize(width: 2, height: 2))
+    p.addPath(KPhotoStamp.cut(in: rect, punched: punched))
     return p
   }
 }
@@ -1039,8 +1001,11 @@ public struct KStampPressCamera: View {
   @State private var cropScaleBase: CGFloat = 1
   @State private var cropOffset: CGSize = .zero
   @State private var cropOffsetBase: CGSize = .zero
-  // where the window is on screen, and the screen (for the camera's crop)
-  @State private var windowOnScreen: CGRect = .zero
+  // the bites of the frozen photo: when they began punching, and whether they still are
+  @State private var punchStart: Date?
+  @State private var punching = false
+  // where the cut is on screen, and the screen (for the camera's crop)
+  @State private var paperOnScreen: CGRect = .zero
   @State private var screen: CGSize = .zero
 
   private static let ink = Color(hex: "#1E1B35")
@@ -1194,82 +1159,105 @@ public struct KStampPressCamera: View {
 
   // MARK: the stamp
 
+  /// The bites of the frozen photo now: all in while there is no press (or once it is done),
+  /// none before t150, then punched one after another (Reduce Motion: all in at once).
+  private func punchedNow(_ date: Date) -> [CGFloat]? {
+    guard frozen != nil, punching, let punchStart else { return nil }
+    return KStampPressGeometry.punched(at: date.timeIntervalSince(punchStart))
+  }
+
   private func stamp(width sw: CGFloat) -> some View {
-    let sh = KStampPressGeometry.height(sw)
-    let win = KStampPressGeometry.window(width: sw)
+    let sh = KPhotoStamp.height(paperWidth: sw)
+    let paper = CGSize(width: sw, height: sh)
+    let cut = KPhotoStampCut()
+    // the dim: .58 over the live picture, .6 on the crop page, the room itself while handing over
+    let dim = Self.maskColor.opacity(handing ? 1 : (cropping != nil ? 0.6 : 0.58))
     return ZStack(alignment: .topLeading) {
-      // what is in the window: the frozen press, the photo being cropped, or nothing (the live
-      // picture behind shows through)
-      Group {
-        if let frozen {
-          Image(uiImage: frozen).resizable().interpolation(.high)
-            .accessibilityHidden(true)
-        } else if let cropping {
-          cropContent(cropping, window: win.size)
-        } else if showsCard {
-          Self.room.overlay(KLineIcon(.camera, size: 28, lineWidth: 1.9, color: Color.white.opacity(0.8)))
-            .accessibilityHidden(true)
-        } else {
-          // the live picture shows through here: one element for VoiceOver
-          Color.clear
-            .contentShape(Rectangle())
-            .accessibilityElement()
-            .accessibilityLabel(strings.viewfinder)
-            .accessibilityAddTraits(.isImage)
+      // the crop page's photo: under the cut and past it, the outside under the dim
+      if let cropping, frozen == nil {
+        cropPicture(cropping, paper: paper)
+      }
+
+      if let frozen {
+        // the press: the frozen photo, cut, its bites punching through (the dim follows them)
+        TimelineView(.animation(minimumInterval: nil, paused: !punching)) { tl in
+          let p = punchedNow(tl.date)
+          ZStack(alignment: .topLeading) {
+            KPressDim(punched: p)
+              .fill(dim, style: FillStyle(eoFill: true))
+              .frame(width: sw, height: sh)
+            KPhotoStampFace(width: sw, placement: .paper, gold: false, dark: true, punched: p) {
+              Image(uiImage: frozen).resizable().interpolation(.high)
+            }
+          }
         }
-      }
-      .frame(width: win.width, height: win.height)
-      .clipShape(RoundedRectangle(cornerRadius: 2))
-      .offset(x: win.minX, y: win.minY)
-
-      // the paper: the ink edge, then the white 2.5 inside it, both with the window cut out
-      KPressPaper(inset: 0).fill(Self.ink, style: FillStyle(eoFill: false))
-        .frame(width: sw, height: sh)
-        .allowsHitTesting(false)
-      KPressPaper(inset: 2.5).fill(Color.white)
-        .frame(width: sw, height: sh)
-        .allowsHitTesting(false)
-      if showsCard {
-        // the card's blank stamp: a dashed keyline inside the paper
-        RoundedRectangle(cornerRadius: 2)
-          .stroke(Color.white.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-          .frame(width: win.width - 12, height: win.height - 12)
-          .offset(x: win.minX + 6, y: win.minY + 6)
-          .allowsHitTesting(false)
-      }
-
-      // the mask grows from the window: everything else under .58 (.6 on the crop page)
-      KPressMask()
-        .fill(Self.maskColor.opacity(cropping != nil ? 0.6 : 0.58), style: FillStyle(eoFill: true))
-        .frame(width: sw, height: sh)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+      } else {
+        KPressDim()
+          .fill(dim, style: FillStyle(eoFill: true))
+          .frame(width: sw, height: sh)
+          .allowsHitTesting(false)
+          .accessibilityHidden(true)
+        Group {
+          if let cropping {
+            cropTouch(cropping, paper: paper)
+          } else if showsCard {
+            // the card's blank stamp: the room, the camera, a dashed line inside the cut
+            KPhotoStampFace(width: sw, placement: .paper, gold: false, dark: true, shadow: false) {
+              Self.room.overlay(KLineIcon(.camera, size: 28, lineWidth: 1.9, color: Color.white.opacity(0.8)))
+            }
+            .overlay {
+              cut
+                .stroke(Color.white.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                .padding(8)
+            }
+            .accessibilityHidden(true)
+          } else {
+            // the live picture shows through the cut: one element for VoiceOver
+            Color.clear
+              .frame(width: sw, height: sh)
+              .contentShape(cut)
+              .accessibilityElement()
+              .accessibilityLabel(strings.viewfinder)
+              .accessibilityAddTraits(.isImage)
+          }
+        }
+        // a 1pt white line along the cut, so it reads on a dark scene
+        if !showsCard {
+          cut.stroke(Color.white.opacity(0.5), lineWidth: 1)
+            .frame(width: sw, height: sh)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
 
-      corners(window: win)
+      corners(paper: paper)
         .allowsHitTesting(false)
 
       Color.white
         .opacity(flashOpacity)
-        .frame(width: win.width, height: win.height)
-        .offset(x: win.minX, y: win.minY)
+        .frame(width: sw, height: sh)
+        .clipShape(cut)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
     .frame(width: sw, height: sh, alignment: .topLeading)
     .scaleEffect(slid ? 0.72 : 1)
-    .rotationEffect(.degrees(slid ? -4 : 0))
+    .rotationEffect(.degrees(slid ? KPhotoStamp.landingTiltDeg : 0))
     .offset(y: slid ? sh * 0.42 : 0)
     .onGeometryChange(for: CGRect.self) { proxy in
       proxy.frame(in: .named("stampPress"))
     } action: { frame in
-      // the window on screen, for mapping the camera's photo (only while the stamp stands still)
-      if !slid { windowOnScreen = win.offsetBy(dx: frame.minX, dy: frame.minY) }
+      // the cut on screen, for mapping the camera's photo (only while the stamp stands still)
+      if !slid { paperOnScreen = CGRect(x: frame.minX, y: frame.minY, width: sw, height: sh) }
     }
   }
 
-  private func corners(window win: CGRect) -> some View {
+  /// The four lime L marks, inside the cut's rounded corners.
+  private func corners(paper: CGSize) -> some View {
     let l: CGFloat = 12
-    let i: CGFloat = 10
+    let i = max(10, paper.width * 0.06)
     return ZStack(alignment: .topLeading) {
       ForEach(0..<4, id: \.self) { k in
         let right = k % 2 == 1
@@ -1278,13 +1266,14 @@ public struct KStampPressCamera: View {
           .stroke(KBrand.lime, style: StrokeStyle(lineWidth: 2, lineCap: .square))
           .frame(width: l, height: l)
           .offset(
-            x: right ? win.maxX - i - l : win.minX + i,
-            y: bottom ? win.maxY - i - l : win.minY + i
+            x: right ? paper.width - i - l : i,
+            y: bottom ? paper.height - i - l : i
           )
       }
     }
+    .frame(width: paper.width, height: paper.height, alignment: .topLeading)
     .scaleEffect(cornersShown ? 1 : 0.001, anchor: .center)
-    .opacity(cornersShown && !showsCard ? 1 : 0)
+    .opacity(cornersShown && !showsCard && frozen == nil ? 1 : 0)
     .accessibilityHidden(true)
   }
 
@@ -1465,29 +1454,39 @@ public struct KStampPressCamera: View {
 
   // MARK: the crop page's photo
 
-  private func cropContent(_ image: UIImage, window: CGSize) -> some View {
-    let base = Self.fillScale(image.size, window)
-    let k = base * cropScale
+  /// The photo being cropped, at its scale and offset, centred on the cut and spilling past it
+  /// (the dim covers what lies outside). Touches go to cropTouch.
+  private func cropPicture(_ image: UIImage, paper: CGSize) -> some View {
+    let k = Self.fillScale(image.size, paper) * cropScale
     return Image(uiImage: image)
       .resizable()
       .interpolation(.high)
       .frame(width: image.size.width * k, height: image.size.height * k)
       .offset(cropOffset)
-      .frame(width: window.width, height: window.height)
+      .frame(width: paper.width, height: paper.height)
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
+  }
+
+  /// The cut as the crop page's touch area: drag moves the photo, pinch zooms it (VoiceOver:
+  /// swipe up / down zooms).
+  private func cropTouch(_ image: UIImage, paper: CGSize) -> some View {
+    Color.clear
+      .frame(width: paper.width, height: paper.height)
       .contentShape(Rectangle())
       .gesture(
         DragGesture()
           .onChanged { v in
             cropOffset = Self.clampOffset(
               CGSize(width: cropOffsetBase.width + v.translation.width, height: cropOffsetBase.height + v.translation.height),
-              image: image.size, window: window, scale: cropScale)
+              image: image.size, paper: paper, scale: cropScale)
           }
           .onEnded { _ in cropOffsetBase = cropOffset }
           .simultaneously(with:
             MagnifyGesture()
               .onChanged { v in
                 cropScale = min(6, max(1, cropScaleBase * v.magnification))
-                cropOffset = Self.clampOffset(cropOffset, image: image.size, window: window, scale: cropScale)
+                cropOffset = Self.clampOffset(cropOffset, image: image.size, paper: paper, scale: cropScale)
               }
               .onEnded { _ in
                 cropScaleBase = cropScale
@@ -1499,36 +1498,35 @@ public struct KStampPressCamera: View {
       .accessibilityLabel(strings.cropA11y)
       .accessibilityAddTraits(.isImage)
       .accessibilityAdjustableAction { dir in
-        // VoiceOver: swipe up / down zooms
         cropScale = min(6, max(1, cropScale * (dir == .increment ? 1.2 : 1 / 1.2)))
         cropScaleBase = cropScale
-        cropOffset = Self.clampOffset(cropOffset, image: image.size, window: window, scale: cropScale)
+        cropOffset = Self.clampOffset(cropOffset, image: image.size, paper: paper, scale: cropScale)
         cropOffsetBase = cropOffset
       }
   }
 
-  /// the scale at which the picture just covers the window
-  static func fillScale(_ image: CGSize, _ window: CGSize) -> CGFloat {
+  /// the scale at which the picture just covers the cut's bounds
+  static func fillScale(_ image: CGSize, _ paper: CGSize) -> CGFloat {
     guard image.width > 0, image.height > 0 else { return 1 }
-    return max(window.width / image.width, window.height / image.height)
+    return max(paper.width / image.width, paper.height / image.height)
   }
 
-  /// keeps the window covered: the picture's edges never come inside it
-  static func clampOffset(_ o: CGSize, image: CGSize, window: CGSize, scale: CGFloat) -> CGSize {
-    let k = fillScale(image, window) * scale
-    let mx = max(0, (image.width * k - window.width) / 2)
-    let my = max(0, (image.height * k - window.height) / 2)
+  /// keeps the cut covered: the picture's edges never come inside its bounds
+  static func clampOffset(_ o: CGSize, image: CGSize, paper: CGSize, scale: CGFloat) -> CGSize {
+    let k = fillScale(image, paper) * scale
+    let mx = max(0, (image.width * k - paper.width) / 2)
+    let my = max(0, (image.height * k - paper.height) / 2)
     return CGSize(width: min(mx, max(-mx, o.width)), height: min(my, max(-my, o.height)))
   }
 
-  /// the crop page's window in the picture's pixels
-  static func cropRect(image: CGSize, window: CGSize, scale: CGFloat, offset: CGSize) -> CGRect {
-    let k = fillScale(image, window) * scale
+  /// the crop page's cut bounds in the picture's pixels (10:11)
+  static func cropRect(image: CGSize, paper: CGSize, scale: CGFloat, offset: CGSize) -> CGRect {
+    let k = fillScale(image, paper) * scale
     guard k > 0 else { return .zero }
-    // the picture's top-left in the window's points
-    let ox = window.width / 2 + offset.width - image.width * k / 2
-    let oy = window.height / 2 + offset.height - image.height * k / 2
-    let r = CGRect(x: -ox / k, y: -oy / k, width: window.width / k, height: window.height / k)
+    // the picture's top-left in the cut's points
+    let ox = paper.width / 2 + offset.width - image.width * k / 2
+    let oy = paper.height / 2 + offset.height - image.height * k / 2
+    let r = CGRect(x: -ox / k, y: -oy / k, width: paper.width / k, height: paper.height / k)
     return r.intersection(CGRect(origin: .zero, size: image))
   }
 
@@ -1571,8 +1569,7 @@ public struct KStampPressCamera: View {
 
   private func useCrop() {
     guard let image = cropping, !busy else { return }
-    let win = windowOnScreen.size
-    let crop = Self.cropRect(image: image.size, window: win, scale: cropScale, offset: cropOffset)
+    let crop = Self.cropRect(image: image.size, paper: paperOnScreen.size, scale: cropScale, offset: cropOffset)
     busy = true
     strike()
     guard let pressed = KStampPressGeometry.render(image, crop: crop, source: .library) else {
@@ -1589,7 +1586,7 @@ public struct KStampPressCamera: View {
     busy = true
     failedShown = false
     strike()
-    let window = windowOnScreen
+    let paper = paperOnScreen
     let view = screen
     if camera.access == .standIn {
       let renderer = ImageRenderer(content:
@@ -1600,7 +1597,7 @@ public struct KStampPressCamera: View {
       )
       renderer.scale = 2
       guard let shot = renderer.uiImage.map(KStampPressGeometry.upright),
-            let pressed = KStampPressGeometry.render(shot, crop: KStampPressGeometry.cropRect(imageSize: shot.size, viewSize: view, window: window), source: .camera)
+            let pressed = KStampPressGeometry.render(shot, crop: KPhotoStamp.cropRect(imageSize: shot.size, viewSize: view, paper: paper), source: .camera)
       else {
         busy = false
         return showFailed()
@@ -1613,7 +1610,7 @@ public struct KStampPressCamera: View {
     let started = Date()
     camera.capture(flash: flashOn) { shot in
       guard let shot,
-            let pressed = KStampPressGeometry.render(shot, crop: KStampPressGeometry.cropRect(imageSize: shot.size, viewSize: view, window: window), source: .camera)
+            let pressed = KStampPressGeometry.render(shot, crop: KPhotoStamp.cropRect(imageSize: shot.size, viewSize: view, paper: paper), source: .camera)
       else {
         camera.thaw()
         withAnimation(.easeOut(duration: 0.2)) { cornersShown = true }
@@ -1626,7 +1623,7 @@ public struct KStampPressCamera: View {
     }
   }
 
-  /// t0: the white flash in the window and the tap (the ka-chunk)
+  /// t0: the white flash in the cut and the tap (the ka-chunk)
   private func strike() {
     tap += 1
     flashOpacity = 0.9
@@ -1636,7 +1633,9 @@ public struct KStampPressCamera: View {
     }
   }
 
-  /// t500 the slide, t1000 the hand-over (Reduce Motion: a fade, the hand-over at t500)
+  /// t150 the bites punch through the frozen photo (.35 s), t500 the slide to −5°, t950 the
+  /// hand-over. A slow capture pushes the whole run later; it never skips the punch. Reduce
+  /// Motion: the bites are simply there, nothing slides, a fade and the hand-over at t500.
   private func run(_ pressed: KPressedPhoto, elapsed: TimeInterval = 0) {
     AccessibilityNotification.Announcement(strings.pressed).post()
     if reduceMotion {
@@ -1647,11 +1646,16 @@ public struct KStampPressCamera: View {
       }
       return
     }
-    let wait = max(0.05, 0.5 - elapsed)
+    let punchWait = max(0, 0.15 - elapsed)
+    punchStart = Date().addingTimeInterval(punchWait)
+    punching = true
+    let punchEnd = punchWait + KPhotoStamp.punchDuration
+    DispatchQueue.main.asyncAfter(deadline: .now() + punchEnd + 0.05) { punching = false }
+    let wait = max(punchEnd, 0.5 - elapsed)
     DispatchQueue.main.asyncAfter(deadline: .now() + wait) {
-      withAnimation(.timingCurve(0.3, 1.2, 0.4, 1, duration: 0.5)) { slid = true }
+      withAnimation(.timingCurve(0.3, 1.2, 0.4, 1, duration: 0.45)) { slid = true }
       withAnimation(.easeOut(duration: 0.3)) { handing = true }
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { onPressed(pressed) }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { onPressed(pressed) }
     }
   }
 

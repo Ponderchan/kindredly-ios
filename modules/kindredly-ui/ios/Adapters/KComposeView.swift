@@ -19,10 +19,14 @@ import ExpoUI
 
  Props, beyond KScreenProps (insets: top = the status bar, bottom = the home indicator):
  - strings: every word that isn't live or in a list (KComposeStringsRecord)
- - stamp: { id, name, washHex, inkHex, lineHex, a11yLabel }, id "" for none chosen
+ - stamp: { id, name, washHex, inkHex, lineHex, a11yLabel, hex }, id "" for none chosen (hex: the
+   frame's colour while a photo stamp resolves, "" for none)
  - mode: write | speak;  tray: none | stamps | more
  - sections: [{ title, items: [{ id, name, inkHex, a11yLabel }] }], converted once per rev
  - askOn, more { askOn, askDisabled, voiceOn, voiceLocked }, plusDot, quota, capPanel, busy
+ - the stamp tray's tabs (contract §4.3 C): trayTab official | custom; customState hidden | empty |
+   list (hidden = no tab row, D10); customStamps [{ id: "c:<uuid>", topic: "#…", hex, a11yLabel }]
+   (my approved stamps, newest first); customFull (Free at 3/3: the + opens the 3/3 card)
  - children: <KIsland name="wren">, <KIsland name="recorder">
 
  Commands (KCommandBus):
@@ -44,6 +48,10 @@ import ExpoUI
  - onComposeKeyPress { text, ask }          the main key, with the words as typed
  - onComposeCapLink {}
  - onComposeFieldFocus { target, focused }
+ - onComposeTrayTab { tab }                 official | custom (the tab row)
+ - onComposeMakeStamp {}                    the custom tab's dashed + (TS opens the Stamp Press)
+ - onComposeFullCta {}                      the 3/3 card's "Make more with First Class →"
+   (a custom stamp is picked with onComposePickStamp { id: "c:<uuid>" }, as any stamp)
 
  Unknown enum strings fall back rather than fail (a mode or tray this binary doesn't know is
  write / none; a tone draws mute). This file imports ExpoUI, whose public Button, Text, Image and
@@ -69,6 +77,14 @@ struct KComposeStringsRecord: Record {
   @Field var capText: String = ""
   @Field var capSub: String = ""
   @Field var capLink: String = ""
+  @Field var trayTabOfficial: String = ""
+  @Field var trayTabCustom: String = ""
+  @Field var trayCustomHead: String = ""
+  @Field var trayCustomEmpty: String = ""
+  @Field var trayMake: String = ""
+  @Field var trayFullTitle: String = ""
+  @Field var trayFullCta: String = ""
+  @Field var trayNotNow: String = ""
 
   var strings: KComposeStrings {
     var s = KComposeStrings()
@@ -89,6 +105,14 @@ struct KComposeStringsRecord: Record {
     s.capText = capText
     s.capSub = capSub
     s.capLink = capLink
+    s.trayTabOfficial = trayTabOfficial
+    s.trayTabCustom = trayTabCustom
+    s.trayCustomHead = trayCustomHead
+    s.trayCustomEmpty = trayCustomEmpty
+    s.trayMake = trayMake
+    s.trayFullTitle = trayFullTitle
+    s.trayFullCta = trayFullCta
+    s.trayNotNow = trayNotNow
     return s
   }
 }
@@ -101,6 +125,7 @@ struct KComposeStampRecord: Record {
   @Field var inkHex: String = ""
   @Field var lineHex: String = ""
   @Field var a11yLabel: String = ""
+  @Field var hex: String = ""
 
   /// nil while none is chosen
   func stamp(theme: KTheme) -> KComposeStamp? {
@@ -111,9 +136,18 @@ struct KComposeStampRecord: Record {
       wash: kComposeColor(washHex) ?? theme.soft2,
       ink: kComposeColor(inkHex) ?? theme.ink,
       line: kComposeColor(lineHex) ?? theme.ln,
-      accessibilityLabel: a11yLabel
+      accessibilityLabel: a11yLabel,
+      hex: kComposeColor(hex) != nil ? hex : ""
     )
   }
+}
+
+/// One of my approved photo stamps in the tray's custom tab.
+struct KComposeCustomStampRecord: Record {
+  @Field var id: String = ""
+  @Field var topic: String = ""
+  @Field var hex: String = ""
+  @Field var a11yLabel: String = ""
 }
 
 struct KComposeStampItemRecord: Record {
@@ -155,6 +189,10 @@ final class KComposeViewProps: KScreenProps {
   @Field var quota: String = ""
   @Field var capPanel: Bool = false
   @Field var busy: Bool = false
+  @Field var trayTab: String = "official"
+  @Field var customState: String = "hidden"
+  @Field var customStamps: [KComposeCustomStampRecord] = []
+  @Field var customFull: Bool = false
 
   var onComposeClose = EventDispatcher()
   var onComposeTextChange = EventDispatcher()
@@ -165,6 +203,9 @@ final class KComposeViewProps: KScreenProps {
   var onComposeKeyPress = EventDispatcher()
   var onComposeCapLink = EventDispatcher()
   var onComposeFieldFocus = EventDispatcher()
+  var onComposeTrayTab = EventDispatcher()
+  var onComposeMakeStamp = EventDispatcher()
+  var onComposeFullCta = EventDispatcher()
 
   /// The fields and the live state: as long-lived as the view, like `commands`.
   let driver = KComposeDriver()
@@ -182,6 +223,9 @@ final class KComposeViewProps: KScreenProps {
       self?.onComposeTray(["which": tray.rawValue])
     }
     a.onPickStamp = { [weak self] id in self?.onComposePickStamp(["id": id]) }
+    a.onTrayTab = { [weak self] tab in self?.onComposeTrayTab(["tab": tab.rawValue]) }
+    a.onMakeStamp = { [weak self] in self?.onComposeMakeStamp() }
+    a.onFullCta = { [weak self] in self?.onComposeFullCta() }
     a.onAskToggle = { [weak self] in self?.onComposeAskToggle() }
     a.onVoiceToggle = { [weak self] in self?.onComposeVoiceToggle() }
     a.onKey = { [weak self] text, ask in self?.onComposeKeyPress(["text": text, "ask": ask]) }
@@ -251,6 +295,19 @@ final class KComposeViewProps: KScreenProps {
           }
         )
       }
+    }
+    c.trayTab = KComposeTrayTab(rawValue: trayTab) ?? .official
+    // hidden (or a state this binary doesn't know): no tab row, the tray as it always was
+    switch customState {
+    case "empty", "list":
+      c.customTray = KComposeCustomTray(
+        items: customStamps.filter { $0.id.hasPrefix("c:") }.map {
+          KComposeCustomItem(id: $0.id, topic: $0.topic, hex: kComposeColor($0.hex) != nil ? $0.hex : "", accessibilityLabel: $0.a11yLabel)
+        },
+        full: customFull
+      )
+    default:
+      c.customTray = nil
     }
     c.askOn = askOn
     c.askCellOn = more.askOn

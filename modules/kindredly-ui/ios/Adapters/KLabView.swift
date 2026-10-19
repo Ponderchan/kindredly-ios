@@ -258,7 +258,8 @@ extension KLabView: ExpoSwiftUI.FocusableView {
  Events, with what nativeEvent carries:
  - onSpClose {}                         the ×
  - onSpPressed { uri, width, height, source }
-     the pressed photo: a file:// JPEG in Caches/stamp-press/, 960 × 1200, upright, no EXIF;
+     the pressed photo: a file:// JPEG in Caches/stamp-press/, the photo stamp's cut bounds,
+     1280 × 1408 (10:11, KPhotoStamp.originalSize), upright, unfiltered, no EXIF;
      source "camera" | "library". Files there older than a day are swept on the next press.
  - onSpError { message }                the photo could not be written (never silent)
  */

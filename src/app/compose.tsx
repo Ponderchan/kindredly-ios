@@ -40,9 +40,10 @@ import "../data/strings-step5-compose";
    scroll; it is only uncovered again.
 
    Params: draft (resume one), seed (the words a sealed page decided to
-   send, journal/[id]), stamp (preselected), morning (the courier's morning
-   words), demo (store mode). stamp and morning have no in-app caller and
-   are kept for deep links. */
+   send, journal/[id]), stamp (preselected: an official id, or a photo
+   stamp "c:<uuid>" from the album's Write with it), morning (the courier's
+   morning words), demo (store mode). morning has no in-app caller and is
+   kept for deep links. */
 export default function Compose() {
   const params = useLocalSearchParams<ComposeParams>();
   const { t: tk } = useTheme();

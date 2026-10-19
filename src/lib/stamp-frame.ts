@@ -570,3 +570,40 @@ export const STAMP_DOT_EDGE_PT = 1;
     and its rim fill x3–97 × y18–120; the break-out's rim tops out at y8 at the highest (ink at
     y12–16). Nothing reaches outside the box, so nothing is clipped and a placement sizes by the box. */
 export const STAMP_V3_FRAME_BOUNDS: Readonly<StampRect> = Object.freeze({ x: 3, y: 18, width: 94, height: 102 });
+
+/* ── THE PHOTO STAMP (custom stamps, the owner's call of 2026-10-19 evening) ──────────────────
+   A custom stamp ("c:<uuid>") is the photo itself, full bleed, clipped to STAMP_V3_FRAME_D (the
+   36's paper: x10 y25 w80 h88, r7, bites r5, 3 × 4). No paper border, no keyline, no window; the
+   bites show what is behind. Twin of Swift KPhotoStamp (Portable/Kit/KStampFrame.swift) and the
+   web's app/engine/custom-stamp-core.js; contract .claude/custom-stamps/CONTRACT.md §2.
+   RN draws it as an svg <ClipPath> of STAMP_V3_FRAME_D round an <Image> laid over PHOTO_STAMP.paper
+   (placement "box", in the 100 × 120 viewBox), or a viewBox of the paper rect ("paper"). */
+export const PHOTO_STAMP = Object.freeze({
+  /** the cut's bounds on the 100 × 120 box */
+  paper: Object.freeze({ x: 10, y: 25, width: 80, height: 88 }) as Readonly<StampRect>,
+  /** width / height (10:11) */
+  aspect: 80 / 88,
+  /** the JPEG the server checks and stores (stamp-check.js LIMITS): the cut's bounds, filtered */
+  export: Object.freeze({ width: 640, height: 704 }),
+  /** the unfiltered crop kept on the phone */
+  original: Object.freeze({ width: 1280, height: 1408 }),
+  maxBytes: 153600,
+  /** a rendered box width at or under this (pt): a 1pt hairline inside the cut; over it, a soft shadow */
+  hairlineMaxBoxWidth: 60,
+  hairlinePt: 1,
+  /** the hairline: STAMP_V3_INK on a light surface, #FFFFFF on a dark one, at this opacity */
+  hairlineOpacity: 0.3,
+  /** a Cofounder's stamp: this line inside the cut at every size, instead of the hairline */
+  goldEdge: "#D8A63F",
+  goldLinePt: 2,
+  /** the large stamp's soft shadow: black at light/dark opacity; radius and y as fractions of the cut's width */
+  shadowOpacity: Object.freeze({ light: 0.18, dark: 0.45 }),
+  shadowRadiusK: 0.04,
+  shadowYK: 0.02,
+});
+
+/** "hairline" | "gold" | "none" for a stamp at a rendered box width (Swift KPhotoStamp.edge) */
+export function photoStampEdge(boxWidth: number, gold: boolean): "hairline" | "gold" | "none" {
+  if (gold) return "gold";
+  return boxWidth <= PHOTO_STAMP.hairlineMaxBoxWidth ? "hairline" : "none";
+}

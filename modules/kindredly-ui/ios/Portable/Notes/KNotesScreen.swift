@@ -83,6 +83,18 @@ public struct KNotesStrings: Equatable, Sendable {
   public var eveningOff = ""
   /// the calendar's seven weekday letters, from the language's first weekday
   public var weekdays: [String] = []
+  /// Notes E1 (the empty page, KNotesEmpty): the question
+  public var neTitle = ""
+  /// the title once a mood is tapped, in KMoodGroup.allCases order (calm, happy, tired, low)
+  public var neLines: [String] = []
+  /// the draft card's grey follow-up, in the same order
+  public var neAsks: [String] = []
+  /// the draft card's time, as a Card's head row says it ("OCT 19 · 21:37")
+  public var neTime = ""
+  /// VoiceOver on the draft card
+  public var neA11yCard = ""
+  /// the four groups' names, in the same order (VoiceOver on the tiles)
+  public var neGroupNames: [String] = []
 
   public init() {}
 
@@ -120,6 +132,8 @@ public struct KNotesContent: Equatable, Sendable {
   public var recentGroups: [KMoodGroup] = []
   /// her first-visit line; "" when it doesn't show
   public var wrenLine = ""
+  /// the line is Notes E1's one-time "first one down…" (KNotesFirstLine, the system font)
+  public var wrenFirst = false
   /// her bird at 22 and 26 (the 'content' snapshot); nil until it is captured
   public var bird: KImageRef?
   /// her mini bird at 18 (the off row)
@@ -164,8 +178,10 @@ public final class KNotesActions {
   public var onEvening: (String) -> Void = { _ in }
   /// her line was tapped away
   public var onWrenLineDismiss: () -> Void = {}
-  /// an empty-state key: "text" or "voice"
+  /// an empty-state key: "text" or "voice" (the old empty state; E1 has none)
   public var onCompose: (String) -> Void = { _ in }
+  /// Notes E1: the draft card under a chosen mood, with its group ("calm" | "happy" | "tired" | "low")
+  public var onEmptyWrite: (String) -> Void = { _ in }
   /// the list nears the end of the window and more notes lie past it
   public var onReachEnd: () -> Void = {}
 
@@ -356,8 +372,13 @@ public struct KNotesScreen: View {
       ScrollView(.vertical) {
         LazyVStack(alignment: .leading, spacing: 12) {
           if !content.wrenLine.isEmpty {
-            KNotesWrenLine(theme: theme, bird: content.bird, text: content.wrenLine) { actions.onWrenLineDismiss() }
-              .id(Self.wrenId)
+            if content.wrenFirst {
+              KNotesFirstLine(theme: theme, bird: content.bird, text: content.wrenLine) { actions.onWrenLineDismiss() }
+                .id(Self.wrenId)
+            } else {
+              KNotesWrenLine(theme: theme, bird: content.bird, text: content.wrenLine) { actions.onWrenLineDismiss() }
+                .id(Self.wrenId)
+            }
           }
           eveningRow
           ForEach(rows) { row in
@@ -550,9 +571,9 @@ public struct KNotesScreen: View {
 
   // ── nothing yet ─────────────────────────────────────────────────────────
 
-  /// The empty state scrolls when it doesn't fit (accessibility sizes, an iPhone SE with the off
-  /// row): its bottom margin is the list's, the fade's less 6, so its last scroll position leaves the
-  /// two keys clear of the fade drawn over it, not in its graded band.
+  /// The empty state (Notes E1, KNotesEmpty) scrolls when it doesn't fit (accessibility sizes, an
+  /// iPhone SE with the off row, the draft card out): its bottom margin is the list's, the fade's
+  /// less 6, so its last scroll position leaves the draft card clear of the fade drawn over it.
   private var emptyBody: some View {
     let bottom = KBottomFade.contentMargin(height: fadeHeight)
     return GeometryReader { geo in
@@ -563,7 +584,7 @@ public struct KNotesScreen: View {
               .padding(.horizontal, 16)
           }
           Spacer(minLength: 24)
-          KNotesEmpty(theme: theme, strings: content.strings, palette: content.palette, actions: actions)
+          KNotesEmpty(theme: theme, strings: content.strings, actions: actions)
           Spacer(minLength: 24)
         }
         // centred between the header and the fade, scrolling when it doesn't fit

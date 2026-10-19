@@ -44,7 +44,8 @@ import "../../data/strings-stamps2";
    /stamp-press route draws the camera until a photo is pressed, then this, in the same route, so
    Retake is a state change and never a navigation:
 
-     photo     the pressed photo: a file:// JPEG, 4:5, upright, no EXIF (Caches/stamp-press/)
+     photo     the pressed photo: a file:// JPEG, 1280 × 1408 (10:11), upright, unfiltered, no EXIF
+               (Caches/stamp-press/)
      from      where the flow began: "me" | "compose" | "album" | ""
      onRetake  back to the camera (the photo is dropped)
      onClose   leave the whole flow

@@ -28,6 +28,7 @@ import { t } from "../../lib/i18n";
 import { stampSpoken, useMemberStamps, useMyStamp } from "../../lib/member-marks";
 import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type Me4aView, type MeView } from "./me-model";
 import type { MeModel } from "./useMeModel";
+import { useStampCollection } from "./useStampCollection";
 
 /* THE ME TAB IN SWIFTUI (4a, 2026-10-19): one Host for the whole screen
    (SurfaceHost: flex 1, every safe area ignored, light or dark from the
@@ -172,13 +173,6 @@ export function nativeAura(a: AuraCardVM | null): KMeAura {
   };
 }
 
-export const nativeStamps = (v: MeView): KMeStamps => ({
-  label: v.stamps.label,
-  count: v.stamps.count,
-  cells: v.stamps.cells.map((c) => ({ id: c.id, date: c.date, a11y: c.a11y, hex: c.hex })),
-  emptyText: v.stamps.emptyText,
-  emptyCta: v.stamps.emptyCta,
-});
 
 export function MeNative({ model }: { model: MeModel }) {
   const { key: theme } = useTheme();
@@ -225,7 +219,10 @@ export function MeNative({ model }: { model: MeModel }) {
   const looks = useSameContent(useMemo(() => nativeLooks(me4a, birds), [me4a, birds]));
   const auraRec = useSameContent(useMemo(() => nativeAura(view.aura), [view.aura]));
   const report = useSameContent(useMemo(() => nativeReport(me4a), [me4a]));
-  const stamps = useSameContent(useMemo(() => nativeStamps(view), [view]));
+  /* the Stamps card (custom stamps, Prompt 1): MADE BY YOU, FROM STRANGERS, YOUR STAMPS, the album
+     (useStampCollection: the facts, the words and the taps; the album route shares it) */
+  const collection = useStampCollection({ where: "me" });
+  const stamps = useSameContent<KMeStamps>(collection.card);
   const firstClass = useSameContent<KMeFirstClass>(
     useMemo(
       () => ({
@@ -293,6 +290,7 @@ export function MeNative({ model }: { model: MeModel }) {
         onAuraShare={act.auraShare}
         onReport={act.report}
         onStampsEmpty={act.stampsEmpty}
+        onStamps={collection.onCard}
         onFirstClass={act.firstClass}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>

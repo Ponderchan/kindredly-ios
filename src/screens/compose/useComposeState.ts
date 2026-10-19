@@ -28,10 +28,19 @@ import { startLetterOut } from "../../lib/activities";
 import { setFlag } from "../../lib/flags";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { alertFail, type AlertFailOptions } from "../../lib/fail";
+import { scoped as ScopedStore } from "../../lib/scoped-store";
+import { customStampNow, isCustomStampId, resolveCustomStamps, useCustomStamps, useMyCustomStamps } from "../../lib/custom-stamps";
+import { usePressedStamp } from "../../lib/stamp-press";
+import { stampPressAvailable } from "../stamp-press/StampPressNative";
+import "../../data/strings-stamps2"; // cs2.tray.* (the tray's tabs), cs2.use.*, cs2.me.full*
 import "../../data/strings-a11y-stamps"; // VoiceOver on the wide key (a11y pass, batch 6)
 import {
   askCell,
   autosaveDraft,
+  customTopicTag,
+  customTray,
+  pressedReturn,
+  trayTabFor,
   bumpBeforeFlight,
   capVisible,
   countFor,
@@ -53,6 +62,8 @@ import {
   type KeyVM,
   type LeaveOutcome,
   type StampSectionVM,
+  type CustomTrayVM,
+  type TrayTab,
 } from "./compose-model";
 
 /* THE COMPOSE PAGE'S STATE, FOR BOTH RENDERERS (10a step 5).
@@ -195,6 +206,25 @@ export function stampVM(st: Stamp | null, tk: ThemeTokens): StampVM | null {
   return { id: st.id, tag: `#${name.toLowerCase()}`, name, color: st.color, wash: look.fill, ink: look.text, line: look.border };
 }
 
+/** The colour a photo stamp is drawn in before anything is known of it (contract D9). */
+const CUSTOM_UNKNOWN_HEX = "#8B7FE8";
+
+/** Any chosen stamp as the page shows it: an official one (stampVM), or a photo stamp
+    ("c:<uuid>"): its #topic on its category's colour (lib/custom-stamps customStampNow, the
+    synchronous cache; #8B7FE8 and "#…" until it has resolved). */
+export function stampVMFor(id: string | null, tk: ThemeTokens): StampVM | null {
+  if (!id) return null;
+  if (!isCustomStampId(id)) return stampVM(getStamp(id), tk);
+  const info = customStampNow(id);
+  const hex = info?.hex || CUSTOM_UNKNOWN_HEX;
+  const tag = info ? customTopicTag(info.topic) : "";
+  const look = topicTagLook(hex, tk, tk.bg);
+  return { id, tag: tag || "#…", name: tag || t("cs2.use.a11yBlank"), color: hex, wash: look.fill, ink: look.text, line: look.border };
+}
+
+/** The last tray tab used, on this phone, per account (contract §7 C 4). */
+const TRAY_TAB_KEY = "kindredly_tray_tab";
+
 /** The tray's sections for the stamps it shows now: names in the stamp's own name colour
     (nameLight on the light themes, nameDark on Midnight: compose-model trayNameHex, measured on
     the tray's soft), unknown ids dropped. */
@@ -229,9 +259,18 @@ export type ComposeState = {
   ask: string;
   /** the question field shows */
   askOpen: boolean;
-  /** the chosen stamp id, or null */
+  /** the chosen stamp id, or null ("c:<uuid>" for a photo stamp) */
   sel: string | null;
+  /** the chosen OFFICIAL stamp (null for none and for a photo stamp: use chosenVM) */
   chosen: Stamp | null;
+  /** the chosen stamp, official or photo, as the page draws it (stampVMFor) */
+  chosenVM: StampVM | null;
+  /** the stamp tray's tab (official while there is no custom tab) */
+  trayTab: TrayTab;
+  /** the custom tab: hidden (no tab row, D10) | empty | list, my approved stamps, Free at 3/3 */
+  custom: CustomTrayVM;
+  /** the 3/3 card's title, with the free count ("3 OF 3 FREE STAMPS MADE") */
+  customFullTitle: string;
   tray: ComposeTray;
   /** the stamp tray's sections ([] unless it is open) */
   sections: StampSectionVM[];
@@ -276,6 +315,12 @@ export type ComposeActions = {
   openTray: (which: "stamps" | "more") => void;
   closeTray: () => void;
   pickStamp: (id: string) => void;
+  /** the stamp tray's tab row */
+  pickTrayTab: (tab: TrayTab) => void;
+  /** the custom tab's dashed +: the Stamp Press (the 3/3 card is the tray's own) */
+  makeStamp: () => void;
+  /** the 3/3 card's "Make more with First Class →" */
+  fullCta: () => void;
   toggleAsk: () => void;
   toggleVoice: () => void;
   /** the main key: sends, or opens the stamps when the words are ready and none is chosen.
@@ -335,7 +380,8 @@ export function useComposeState(opts: {
   const [askOpen, setAskOpen] = useState(false);
   /* THE STAMP IS CHOSEN, NOT DEFAULTED: empty until you choose (or a deep
      link names one), and the letter cannot leave without one. */
-  const [sel, setSel] = useState<string | null>(params.stamp ?? null);
+  // (a photo stamp, /compose?stamp=c:<uuid> from the album's Write with it, in its canonical lower case)
+  const [sel, setSel] = useState<string | null>(params.stamp ? (/^c:/i.test(params.stamp) ? params.stamp.toLowerCase() : params.stamp) : null);
   const [text, setTextState] = useState(initialText);
   const [ask, setAskState] = useState("");
   const [busy, setBusy] = useState(false);
@@ -352,6 +398,9 @@ export function useComposeState(opts: {
   // serial 0 is the page's first words, which the Swift page takes on attach (latest())
   const [seed, setSeed] = useState<ComposeSeed>({ serial: 0, text: null, ask: null });
   const [focus, setFocus] = useState<ComposeFocus>({ serial: 0, target: "body" });
+  const [savedTab, setSavedTab] = useState<TrayTab | null>(null);
+  /** when the + opened the Stamp Press from here (contract §4.5), null when it didn't */
+  const pressOpenedAt = useRef<number | null>(null);
 
   /* what the page holds right now, for the send and the leave that run
      between renders (the last keystroke's event lands just before the key's) */
@@ -381,10 +430,15 @@ export function useComposeState(opts: {
     setSeed((s) => ({ serial: s.serial + 1, text: body, ask: question }));
   };
 
-  // the recent stamps, the spark, store mode's open tray
+  // the recent stamps, the spark, the last tray tab, store mode's open tray
   useEffect(() => {
     let alive = true;
     void ioRef.current.readRecentStamps().then((r) => alive && setRecent(r));
+    void ScopedStore.getItem(TRAY_TAB_KEY)
+      .then((v) => {
+        if (alive && (v === "custom" || v === "official")) setSavedTab((cur) => cur ?? v);
+      })
+      .catch((e) => console.warn("[compose] couldn't read the last tray tab", e));
     // the empty page hands you something to reach for, not "start typing"
     void ioRef.current.nextSpark().then((s) => alive && setSpark(s));
     const timer = demo ? setTimeout(() => setTray("stamps"), 400) : null;
@@ -471,6 +525,35 @@ export function useComposeState(opts: {
   const capPanel = capVisible({ capHit, free, left: quotaLeft });
   const capText = t("cp.cap", { n: capN ?? FREE_PER_DAY });
   const chosen = getStamp(sel);
+  // a photo stamp on the letter: resolved (and redrawn when it arrives)
+  const customSel = useMemo(() => (sel && isCustomStampId(sel) ? [sel] : []), [sel]);
+  useCustomStamps(customSel);
+  const chosenVM = stampVMFor(sel, tk);
+
+  // the custom tab (contract §7 C): my approved stamps, while the feature exists for me (D10)
+  const mine = useMyCustomStamps();
+  const pressHere = useMemo(() => stampPressAvailable(), []);
+  const custom = customTray({ quota: mine.quota, pressAvailable: pressHere, stamps: mine.stamps }, fmt);
+  const trayTab = trayTabFor(savedTab, custom.state);
+  const customFullTitle = t("cs2.me.fullTitle", { cap: mine.quota?.cap ?? 3 });
+  const rememberTab = (tab: TrayTab) => {
+    setSavedTab(tab);
+    void ScopedStore.setItem(TRAY_TAB_KEY, tab).catch((e) => console.warn("[compose] couldn't keep the tray tab", e));
+  };
+
+  // back from the Stamp Press opened here: the new stamp chosen, the tray open on the custom tab
+  const pressed = usePressedStamp();
+  useEffect(() => {
+    const id = pressedReturn(pressed, pressOpenedAt.current);
+    if (!id) return;
+    pressOpenedAt.current = null;
+    setSel(id);
+    rememberTab("custom");
+    setTray("stamps");
+    void resolveCustomStamps([id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pressed]);
+
   const askCellNow = askCell({ askOpen, mode });
 
   // the stamp tray's sections, read off the letter as it stands when the tray opens
@@ -606,6 +689,13 @@ export function useComposeState(opts: {
       setTray((cur) => (cur === which ? null : which));
     },
     closeTray: () => setTray(null),
+    pickTrayTab: (tab: TrayTab) => rememberTab(tab),
+    makeStamp: () => {
+      // the + is drawn only while the feature exists; Free at 3/3 gets the card, not this
+      pressOpenedAt.current = Date.now();
+      blurThen(() => ioRef.current.push("/stamp-press?from=compose"), target);
+    },
+    fullCta: () => blurThen(() => ioRef.current.push("/paywall?src=stamp_quota"), target),
     pickStamp: (id: string) => {
       setSel(id);
       setTray(null);
@@ -709,6 +799,9 @@ export function useComposeState(opts: {
       openTray: (w) => liveRef.current.openTray(w),
       closeTray: () => liveRef.current.closeTray(),
       pickStamp: (id) => liveRef.current.pickStamp(id),
+      pickTrayTab: (tab) => liveRef.current.pickTrayTab(tab),
+      makeStamp: () => liveRef.current.makeStamp(),
+      fullCta: () => liveRef.current.fullCta(),
       toggleAsk: () => liveRef.current.toggleAsk(),
       toggleVoice: () => liveRef.current.toggleVoice(),
       keyPress: (a, b) => liveRef.current.keyPress(a, b),
@@ -740,6 +833,10 @@ export function useComposeState(opts: {
     askOpen,
     sel,
     chosen,
+    chosenVM,
+    trayTab,
+    custom,
+    customFullTitle,
     tray,
     sections,
     spark,

@@ -26,6 +26,7 @@ import { PenSignature } from "../../components/PenSignature";
 import { useSignatureHold } from "../../components/SignatureHold";
 import { ReportMenu } from "../../components/ReportMenu";
 import { Stamp } from "../../components/Stamp";
+import { isCustomStampId, tagOf, useCustomStamps } from "../../lib/custom-stamps";
 import { InkPanel, SecondaryHeader } from "../../components/10a";
 import { isVoiceLetter, largeType, readerLetters } from "./reader";
 import { canTalk, faceKind, firstMetAs, lettersValue, openingLetter, pageFace, pageTitle, showsArrivalMosaic, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
@@ -116,6 +117,10 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
      the relationship; held back until you know each other (before, a verdict on a stranger). */
   const res = useMemo(() => (detail?.revealed && writing ? resonance(writing.mine, writing.theirs) : null), [detail, writing]);
   const st = detail ? getStamp(detail.stamp) : null;
+  /* a photo stamp it began under ("c:<uuid>"): its #topic is its name; drawn by Stamp itself */
+  const customId = detail && isCustomStampId(detail.stamp) ? detail.stamp : null;
+  const custom = useCustomStamps(customId ? [customId] : [])(customId ?? "");
+  const customName = custom ? tagOf(custom) : "";
   // the opening or no card: never the first reply standing in for an opening that was dropped
   const opening = useMemo(() => openingLetter(readerLetters(detail)), [detail]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -320,6 +325,8 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
               value={
                 st ? (
                   <BeganUnder name={sname(st.name)} stamp={detail.stamp} letterId={detail.letterId || id || null} />
+                ) : customId ? (
+                  <BeganUnder name={customName ? `#${customName.toLowerCase()}` : ""} stamp={customId} letterId={detail.letterId || id || null} />
                 ) : (
                   "—"
                 )

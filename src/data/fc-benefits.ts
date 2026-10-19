@@ -22,7 +22,7 @@
 
 export const FC_FLAGS = {
   /** a photo of your own, framed as a stamp — Stamp Press (2026-10-19) */
-  customStamps: false, // back to true when the Stamp Press has its doors (Me, the compose tray); owner O6
+  customStamps: true, // the Stamp Press has its doors now: Me › Stamps (B) and the compose tray's custom tab (C); owner O6 (both still hide while 0038 isn't run, D10)
   /** letter paper to write on — not built */
   letterPaper: false,
 } as const;

@@ -13,6 +13,7 @@ import { deleteDraft, loadDrafts, type Draft } from "../../lib/drafts";
 import { faceRecord, useFaceSources, type FaceInput } from "../../lib/faces";
 import { useMemberStamps } from "../../lib/member-marks";
 import { getStamp, sname } from "../../data/stamps";
+import { isCustomStampId, tagOf, useCustomStamps } from "../../lib/custom-stamps";
 import { buildLetterCards, buildMyLettersView } from "./letters-model";
 import "../../data/strings-me4a";
 import "../../data/strings-step5-kitrn";
@@ -77,19 +78,26 @@ export function MyLettersNative({ demo }: { demo?: MyLettersDemo }) {
   );
 
   const facts = useMemo(() => buildLetterCards(letters, threads, drafts), [letters, threads, drafts]);
+  /* photo stamps on my letters ("c:<uuid>"): resolved and pushed to Swift, which draws them
+     (KStamp's registry); their colour and #topic here */
+  const custom = useCustomStamps(useMemo(() => [...(letters ?? []).map((l) => l.stamp), ...drafts.map((d) => d.stamp)].filter((x): x is string => !!x), [letters, drafts]));
   const view = useMemo(
     () =>
       buildMyLettersView(facts, {
         t,
         upper: (s) => s.toLocaleUpperCase(),
         stamp: (id) => {
+          if (isCustomStampId(id)) {
+            const c = custom(id);
+            return { hex: c?.hex ?? "", name: c ? tagOf(c) : "" };
+          }
           const s = getStamp(id);
           return { hex: s?.color ?? "", name: s ? sname(s.name) : "" };
         },
       }),
     // lang: every word is t()'s
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [facts, lang],
+    [facts, lang, custom],
   );
 
   const faceInputs = useMemo(() => {

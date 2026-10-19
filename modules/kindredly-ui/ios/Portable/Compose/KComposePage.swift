@@ -14,7 +14,7 @@ import SwiftUI
    composeCorner, 40×48, your own stamp so flat (no letter tilt, no postmark); before one is
    chosen, the stamps v3 frame drawn dashed in mute with no fill (KStampSlot, 2026-10-19), where the
    44 dashed square used to be, so choosing a stamp fills the outline it was promised. The
-   toolbar's round stamp key and the #name pill are untouched (ComposeRN does the same);
+   toolbar's stamp key shows the same stamp once chosen (KComposeToolbar, D11);
  - Wren's row, 14 down: Wren bare in a 46 frame (a React Native island drawing her at 38: her
    skin, her mood, her breathing are hers to draw) and, 10 from her, her line in Fraunces italic
    14 on 20, sub;
@@ -34,7 +34,7 @@ import SwiftUI
  - the small line above the toolbar, 24 in: the count near the ceiling and, for a free writer,
    "N LEFT TODAY", in Plex Mono 11, right-aligned (owner question 6's default);
  - the toolbar, 18 in, 10 above it and 24 below (10 over a tray): the two round keys, + and the
-   stamp (or the chosen stamp's #name pill), and the wide key that fills toward the floor with
+   stamp (the chosen stamp itself once there is one, D11), and the wide key that fills toward the floor with
    the count beside its label (KComposeToolbar);
  - a tray, where the keyboard was (the stamps, or the + tray).
  The three faces 10a's type (KType) doesn't carry, Plex Mono at 400, Inter and Fraunces italic,
@@ -93,6 +93,44 @@ public enum KComposeTray: String, Sendable {
   case more
 }
 
+/// The stamp tray's two tabs (contract §7 C): the 36, and my own photo stamps.
+public enum KComposeTrayTab: String, Sendable {
+  case official
+  case custom
+}
+
+/// One of my approved photo stamps in the tray's custom tab.
+public struct KComposeCustomItem: Identifiable, Equatable, Sendable {
+  /// "c:<uuid>"
+  public let id: String
+  /// "#topic", lower case, as the tile says it
+  public let topic: String
+  /// the category's colour ("#RRGGBB"): the frame KStamp draws while the picture resolves
+  public let hex: String
+  public let accessibilityLabel: String
+
+  public init(id: String, topic: String, hex: String, accessibilityLabel: String) {
+    self.id = id
+    self.topic = topic
+    self.hex = hex
+    self.accessibilityLabel = accessibilityLabel
+  }
+}
+
+/// The custom tab, when the reader has the feature (the 0038 quota answered and this binary has
+/// the Stamp Press, contract D10); nil hides the tab row.
+public struct KComposeCustomTray: Equatable, Sendable {
+  /// my approved stamps, newest first ([] = the empty tab: the + and its line)
+  public var items: [KComposeCustomItem] = []
+  /// Free has made its three: the + opens the 3/3 card instead of the press
+  public var full = false
+
+  public init(items: [KComposeCustomItem] = [], full: Bool = false) {
+    self.items = items
+    self.full = full
+  }
+}
+
 /// The chosen stamp, coloured for the page by the caller (theme/post channelColors).
 public struct KComposeStamp: Equatable, Sendable {
   public let id: String
@@ -104,14 +142,18 @@ public struct KComposeStamp: Equatable, Sendable {
   public let line: Color
   /// VoiceOver: "Mood stamp: Made my day. Change it"
   public let accessibilityLabel: String
+  /// the stamp's colour ("#RRGGBB"), the frame KStamp draws for an id it can't draw yet (a photo
+  /// stamp still resolving); "" for none
+  public let hex: String
 
-  public init(id: String, name: String, wash: Color, ink: Color, line: Color, accessibilityLabel: String) {
+  public init(id: String, name: String, wash: Color, ink: Color, line: Color, accessibilityLabel: String, hex: String = "") {
     self.id = id
     self.name = name
     self.wash = wash
     self.ink = ink
     self.line = line
     self.accessibilityLabel = accessibilityLabel
+    self.hex = hex
   }
 }
 
@@ -247,6 +289,17 @@ public struct KComposeStrings: Equatable, Sendable {
   public var capText = ""
   public var capSub = ""
   public var capLink = ""
+  /// the stamp tray's tab row (VoiceOver names of the two glyph tabs)
+  public var trayTabOfficial = ""
+  public var trayTabCustom = ""
+  /// the custom tab: its head (CUSTOM STAMPS), its empty line, the + (VoiceOver)
+  public var trayCustomHead = ""
+  public var trayCustomEmpty = ""
+  public var trayMake = ""
+  /// the 3/3 card: "3 OF 3 FREE STAMPS MADE", "Make more with First Class →", "Not now"
+  public var trayFullTitle = ""
+  public var trayFullCta = ""
+  public var trayNotNow = ""
 
   public init() {}
 }
@@ -260,6 +313,10 @@ public struct KComposeContent: Equatable, Sendable {
   public var tray: KComposeTray = .none
   /// the stamp tray's sections (sent while it is open)
   public var sections: [KComposeStampSection] = []
+  /// the stamp tray's tab (the last one used); drawn only while `customTray` exists
+  public var trayTab: KComposeTrayTab = .official
+  /// my photo stamps for the custom tab; nil = no tab row (contract D10)
+  public var customTray: KComposeCustomTray?
   /// the question field shows
   public var askOn = false
   /// the + tray's cells (ASK is off while speaking)
@@ -316,6 +373,12 @@ public final class KComposeActions {
   /// a tray key: toggles that tray (.stamps or .more)
   public var onTray: (KComposeTray) -> Void = { _ in }
   public var onPickStamp: (String) -> Void = { _ in }
+  /// the stamp tray's tab row: the other tab
+  public var onTrayTab: (KComposeTrayTab) -> Void = { _ in }
+  /// the custom tab's dashed +: the Stamp Press
+  public var onMakeStamp: () -> Void = {}
+  /// the 3/3 card's "Make more with First Class →"
+  public var onFullCta: () -> Void = {}
   public var onAskToggle: () -> Void = {}
   public var onVoiceToggle: () -> Void = {}
   /// the main key, with the words as typed (the letter, the question)
@@ -543,7 +606,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   @ViewBuilder private var stampCorner: some View {
     let width = KStampLadder.composeCorner.w
     if let stamp = content.stamp {
-      KStamp(id: stamp.id, width: width, dark: theme.isDark)
+      KStamp(id: stamp.id, width: width, dark: theme.isDark, fallbackHex: stamp.hex.isEmpty ? nil : stamp.hex)
     } else {
       KStampSlot(width: width, stroke: KStampSlot.stroke(for: theme))
     }
@@ -669,7 +732,19 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   @ViewBuilder private var tray: some View {
     switch content.tray {
     case .stamps:
-      KStampTray(theme: theme, sections: content.sections, selectedId: content.stamp?.id ?? "", bottomInset: bottomInset, onPick: actions.onPickStamp)
+      KStampTray(
+        theme: theme,
+        sections: content.sections,
+        selectedId: content.stamp?.id ?? "",
+        bottomInset: bottomInset,
+        onPick: actions.onPickStamp,
+        custom: content.customTray,
+        tab: content.trayTab,
+        strings: content.strings,
+        onTab: actions.onTrayTab,
+        onMake: actions.onMakeStamp,
+        onFullCta: actions.onFullCta
+      )
     case .more:
       KMoreTray(
         theme: theme,

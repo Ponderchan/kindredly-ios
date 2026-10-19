@@ -30,7 +30,7 @@ export * from "./stamp-press-core";
    3. Drafts              the filtered JPEG the server couldn't check, kept in the app's documents
                           (stamp-drafts/) with a per-account index (scoped store). Never uploaded
                           by themselves: retryDraft() sends one again when asked.
-   4. Originals           the 4:5 crop BEFORE its filter, kept on this phone only (stamp-originals/
+   4. Originals           the 10:11 crop (1280 × 1408) BEFORE its filter, kept on this phone only (stamp-originals/
                           <stamp id>.jpg) so a First Class member can change the filter later. The
                           server never sees an original.
    5. The pressed signal  notePressed(stamp) after an approval; Me › Stamps reads usePressedStamp()
@@ -38,9 +38,10 @@ export * from "./stamp-press-core";
                           with it →" bar (once: takePressedToast()). Memory only, plus the "new"
                           ids in the scoped store for the 24 hours.
 
-   The JPEG is made by Swift (KStampEditScreen, Portable/Profile/KFaceStrip.swift): 576 × 720, the
-   4:5 window only, filtered, ≤150 KB, no EXIF, written to a temporary file whose path comes back
-   in the submit event; readJpegBase64 reads it here. */
+   The JPEG is made by Swift (KStampEditScreen, Portable/Profile/KFaceStrip.swift): 640 × 704, the
+   photo stamp's cut bounds (10:11, PHOTO_STAMP.export; the shape is never baked in, every renderer
+   clips), filtered, ≤150 KB, no EXIF, written to a temporary file whose path comes back in the
+   submit event; readJpegBase64 reads it here. */
 
 const DRAFTS_KEY = "kindredly_stamp_drafts";
 const NEW_KEY = "kindredly_stamp_new";

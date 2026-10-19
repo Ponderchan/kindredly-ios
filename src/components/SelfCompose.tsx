@@ -19,12 +19,12 @@ import "../data/strings-a11y-compose";
 import { AudioCard } from "./AudioCard";
 import { WREN_OPENERS, byLang } from "../data/content";
 import type { Lang } from "../data/stamps";
-import { moodArtKey, moodGroup, moodLabel, type MoodId } from "../data/moods";
+import { isNamedMood, moodArtKey, moodGroup, moodLabel, type MoodId } from "../data/moods";
 import { MoodFace, moodColors } from "../screens/notes/notes-glyphs";
 import { useNativeSurface } from "../lib/surfaces";
 import { addEntry, loadJournal, persistMedia, persistMediaMany, type JournalType } from "../lib/journal";
 import { journalSpark } from "../lib/journal-sparks";
-import { takePicked, takeSpark } from "../lib/journal-handoff";
+import { takeMood, takePicked, takeSpark } from "../lib/journal-handoff";
 import { todaysMorningLine } from "../lib/local-push";
 import { storeMode, storePhotos } from "../lib/dev-store";
 import { CourierSendOff } from "./CourierSendOff";
@@ -125,7 +125,15 @@ export function SelfCompose({
   const [dur, setDur] = useState(0);
   const [busy, setBusy] = useState(false);
   const [sealed, setSealed] = useState(false);
-  const [mood, setMood] = useState<MoodId | null>(null);
+  /* THE MOOD ALREADY CHOSEN (Notes E1): the empty Notes page asked "how was today, honestly?" and
+     the mood tapped there arrives chosen, with its follow-up question as the spark (the
+     placeholder above, never saved). Taken once, on mount; the page then opens with the caret at
+     the start of the empty body. */
+  const [handedMood] = useState<MoodId | null>(() => {
+    const m = takeMood();
+    return m && isNamedMood(m) ? (m as MoodId) : null;
+  });
+  const [mood, setMood] = useState<MoodId | null>(handedMood);
 
   const openers = byLang(WREN_OPENERS.journal, getLang() as Lang);
   const hasMedia = att === "photo" ? photos.length > 0 : !!mediaUri;
@@ -452,6 +460,9 @@ export function SelfCompose({
                 value={text}
                 onChangeText={setText}
                 placeholder={spark}
+                // from Notes E1 with a mood: straight to writing (the body is empty, so the caret
+                // sits at its start)
+                autoFocus={!!handedMood}
                 placeholderTextColor={tk.faint}
                 keyboardAppearance={dark ? "dark" : "light"}
                 multiline

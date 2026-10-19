@@ -79,8 +79,10 @@ export type TodayFormat = {
   clockHour: (hour: number) => string;
   /** `${postmark(ms)} · ${clockTime(ms)}`: "OCT.15 · 10:14 PM" */
   stampTime: (ms: number) => string;
-  /** the stamp's colour and its name in the reader's language (sname), or null for an id stamps.ts doesn't list */
-  stamp: (id: string) => { color: string; name: string } | null;
+  /** the stamp's colour and its name in the reader's language (sname), or null for an id stamps.ts doesn't list.
+      A custom photo stamp ("c:<uuid>"): its category's colour, its #topic as the name ("" while it has none to
+      show: taken down, hidden, deleted), and `spoken`, what VoiceOver calls it ("Photo stamp, #tea") */
+  stamp: (id: string) => { color: string; name: string; spoken?: string } | null;
   /** a sticker's name in the reader's language (sticker-copy stickerName) */
   stickerName: (id: string) => string;
 };
@@ -634,7 +636,7 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
   const shown = xl?.on && xl.text ? xl.text : letter.body || "";
   const tier = letterTier(weightedCount(shown));
   const caption = isVoice && letter.body && letter.body !== DEFAULT_VOICE_CAPTION ? letter.body : "";
-  const topic = st ? `#${st.name.toLowerCase()}` : "";
+  const topic = st?.name ? `#${st.name.toLowerCase()}` : "";
   const colors = channelColors(st?.color ?? null, surfaceHex);
   const post = docket(letter, fmt);
   const ready = isVoice && voiceReady;
@@ -669,7 +671,7 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
     ghost: !letter.author,
     stampId: letter.stamp,
     stampHex: st?.color ?? "",
-    stampName: st?.name ?? "",
+    stampName: st?.spoken ?? st?.name ?? "",
     topic,
     // the App Store tag (owner, 2026-10-19): the stamp's colour solid with ink #1E1B35 words in
     // every theme, Midnight too (white passes 4.5:1 on none of the bright hexes; stamps v3 contract

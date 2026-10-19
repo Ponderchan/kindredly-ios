@@ -108,13 +108,55 @@ export type KMeAura = {
 
 export type KMeReport = { show: boolean; title: string; sub: string; enabled: boolean; locked: boolean; hint: string };
 
+/** The Stamps card (custom stamps, the owner's final Prompt 1; ios/Portable/Me/KStampsCard.swift).
+    Built by src/screens/me/stamp-collection.ts. Photo stamps ("c:<uuid>") are drawn by Swift from
+    the registry lib/custom-stamps fills; only their ids travel here. */
 export type KMeStamps = {
+  /** YOUR STAMPS: the official stamps used, at most three, newest first */
   label: string;
   count: string;
   cells: { id: string; date: string; a11y: string; hex: string }[];
+  /** none used: the owner's line and "Write a letter →" (onStampsEmpty) */
   emptyText: string;
   emptyCta: string;
+  /** the empty state's three dashed slots, each a category's "#RRGGBB" */
+  yoursSlots: string[];
+  /** MADE BY YOU at all (the press and 0038 both there, D10) */
+  madeShow: boolean;
+  madeLabel: string;
+  /** "2 OF 3 FREE" | "UNLIMITED" */
+  madeQuota: string;
+  madeQuotaGold: boolean;
+  /** "See all →" past two; "" for none */
+  seeAll: string;
+  makeOne: string;
+  emptyTitle: string;
+  emptySub: string;
+  makeA11y: string;
+  /** the two newest of mine */
+  made: { id: string; topic: string; fresh: boolean; note: string; a11y: string }[];
+  newLabel: string;
+  /** Free with three made: the blank stamp opens the small card */
+  full: boolean;
+  fullTitle: string;
+  fullSub: string;
+  fullCta: string;
+  notNow: string;
+  /** "Your stamp is ready." once after an approval ("" none), its action, the stamp */
+  ready: string;
+  readyCta: string;
+  readyId: string;
+  strangersLabel: string;
+  strangersCount: string;
+  strangers: { id: string; from: string; a11y: string }[];
+  strangersEmpty: string;
+  /** "Open the album →"; "" hides it */
+  album: string;
 };
+
+/** What the Stamps card reports: the blank stamp, First Class from the 3/3 card, See all, the
+    album, a stamp tapped, the ready bar's "Write with it". */
+export type KMeStampsAction = "make" | "fullCta" | "seeAll" | "album" | "stamp" | "ready";
 
 export type KMeFirstClass = {
   eyebrow: string;
@@ -180,6 +222,8 @@ export type KMeViewProps = CommonViewModifierProps &
     onAuraShare?: () => void;
     onReport?: () => void;
     onStampsEmpty?: () => void;
+    /** the Stamps card (custom stamps): `id` for stamp / ready, "" otherwise */
+    onStamps?: (action: KMeStampsAction, id: string) => void;
     onFirstClass?: () => void;
     /** the three <KIsland>s: avatar, courier, auraArt (see the top) */
     children?: ReactNode;
@@ -208,6 +252,7 @@ type EventProps =
   | "onAuraShare"
   | "onReport"
   | "onStampsEmpty"
+  | "onStamps"
   | "onFirstClass";
 
 type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | EventProps> &
@@ -233,6 +278,7 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     onMeAuraShare?: None;
     onMeReport?: None;
     onMeStampsEmpty?: None;
+    onMeStamps?: Ev<{ action: KMeStampsAction; id: string }>;
     onMeFirstClass?: None;
   };
 
@@ -273,6 +319,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
     onAuraShare,
     onReport,
     onStampsEmpty,
+    onStamps,
     onFirstClass,
     ...rest
   },
@@ -314,7 +361,101 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
       onMeAuraShare={onAuraShare ? () => onAuraShare() : undefined}
       onMeReport={onReport ? () => onReport() : undefined}
       onMeStampsEmpty={onStampsEmpty ? () => onStampsEmpty() : undefined}
+      onMeStamps={onStamps ? (e) => onStamps(e.nativeEvent.action, e.nativeEvent.id) : undefined}
       onMeFirstClass={onFirstClass ? () => onFirstClass() : undefined}
+    />
+  );
+});
+
+/* ── THE ALBUM (custom stamps, the owner's final Prompt 2), drawn by SwiftUI
+   (ios/Portable/Me/KStampsCard.swift KStampAlbumScreen, adapter ios/Adapters/KMeView.swift
+   KStampAlbumView), for src/app/album.tsx. TS builds every section (src/screens/me/
+   stamp-collection.ts buildAlbum); Swift draws the leaf, the sticky heads, the grids and the
+   sheet, and reports taps. The sheet closes itself before an action is reported, so an Alert TS
+   raises (delete, a report's reason) shows over the page.
+
+   A whole screen: alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost), only after
+   isKindredlyUIViewAvailable("KStampAlbumView") says so. Outside a Host it is a RedBox in dev and
+   a CRASH in a release build. ── */
+
+export type KAlbumActionKey = "write" | "rename" | "recolour" | "filter" | "delete" | "remove" | "report";
+
+export type KAlbumCell = {
+  /** "c:<uuid>" or an official id */
+  id: string;
+  /** under the stamp: "#tea", "FROM SUNDAY KITE", the official name */
+  under: string;
+  /** the sheet's #topic tag ("" none) and its colour */
+  tag: string;
+  tagHex: string;
+  /** "Made Oct 19 · on 4 letters" */
+  info: string;
+  a11y: string;
+  actions: { key: KAlbumActionKey; title: string; style: "ink" | "plain" | "danger" }[];
+};
+
+export type KAlbumSection = { key: "made" | "strangers" | "yours"; title: string; make: boolean; cells: KAlbumCell[] };
+
+export type KAlbumStrings = {
+  title: string;
+  back: string;
+  makeOne: string;
+  makeA11y: string;
+  fullTitle: string;
+  fullSub: string;
+  fullCta: string;
+  notNow: string;
+  /** no official stamp used: the owner's line ("" = not drawn) and "Write a letter →" */
+  yoursEmpty: string;
+  yoursCta: string;
+};
+
+export type KStampAlbumProps = CommonViewModifierProps &
+  KScreenBaseProps & {
+    strings: KAlbumStrings;
+    sections: KAlbumSection[];
+    full: boolean;
+    yoursSlots: string[];
+    /** the section to open at ("" for the top) */
+    focus: string;
+    onBack?: () => void;
+    onMake?: () => void;
+    onFullCta?: () => void;
+    onWrite?: () => void;
+    onAction?: (id: string, action: KAlbumActionKey) => void;
+  };
+
+type NativeAlbumProps = Omit<KStampAlbumProps, "letterFont" | "insets" | "rev" | "onBack" | "onMake" | "onFullCta" | "onWrite" | "onAction"> &
+  Required<Pick<KStampAlbumProps, "letterFont" | "insets" | "rev">> & {
+    ref?: Ref<KScreenHandle>;
+    onAlbumBack?: None;
+    onAlbumMake?: None;
+    onAlbumFullCta?: None;
+    onAlbumWrite?: None;
+    onAlbumAction?: Ev<{ id: string; action: KAlbumActionKey }>;
+  };
+
+const NativeKStampAlbumView = requireNativeView<NativeAlbumProps>("KindredlyUI", "KStampAlbumView");
+
+/** The bare SwiftUI album. Only inside an @expo/ui <Host>. */
+export const StampAlbum = forwardRef<KScreenHandle, KStampAlbumProps>(function StampAlbum(
+  { modifiers, letterFont, insets, rev, onBack, onMake, onFullCta, onWrite, onAction, ...rest },
+  ref,
+) {
+  return (
+    <NativeKStampAlbumView
+      ref={ref}
+      modifiers={modifiers}
+      {...(modifiers ? createViewModifierEventListener(modifiers) : undefined)}
+      {...rest}
+      letterFont={letterFont ?? "newsreader"}
+      insets={insets ?? NO_INSETS}
+      rev={rev ?? 0}
+      onAlbumBack={onBack ? () => onBack() : undefined}
+      onAlbumMake={onMake ? () => onMake() : undefined}
+      onAlbumFullCta={onFullCta ? () => onFullCta() : undefined}
+      onAlbumWrite={onWrite ? () => onWrite() : undefined}
+      onAlbumAction={onAction ? (e) => onAction(e.nativeEvent.id, e.nativeEvent.action) : undefined}
     />
   );
 });

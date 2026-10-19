@@ -16,6 +16,8 @@ import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
 import { playbackCommandArgs } from "../../lib/voice-playback";
 import { useIdentityOn } from "../../lib/identity";
+import { keepStampFlow, reportStampFlow } from "../../lib/custom-stamps";
+import { Toast } from "../../components/ui";
 import type { CardVM } from "./today-cards";
 import { useTodayBirds } from "./today-birds";
 import type { TodayModel } from "./useTodayDesk";
@@ -169,6 +171,26 @@ export function TodayNative({ model }: { model: TodayModel }) {
     });
   }, [navigation, commands]);
 
+  /* a stranger's photo stamp, long-pressed on a card (custom stamps): keep it or report it, and
+     say so in a toast above the band */
+  const [stampToast, setStampToast] = useState("");
+  useEffect(() => {
+    if (!stampToast) return;
+    const id = setTimeout(() => setStampToast(""), 2600);
+    return () => clearTimeout(id);
+  }, [stampToast]);
+  const cardsRef = useRef(view.cards);
+  cardsRef.current = view.cards;
+  const onStampMenu = useMemo(
+    () => (letterId: string, action: "keep" | "report") => {
+      const card = cardsRef.current.find((c) => c.id === letterId);
+      if (!card || card.demo || !card.stampId.startsWith("c:")) return;
+      const flow = action === "keep" ? keepStampFlow(card.stampId, { letter: letterId }) : reportStampFlow(card.stampId, letterId);
+      void flow.then((line) => line && setStampToast(line));
+    },
+    [],
+  );
+
   /* ── props ── */
   // the identity switch, as the cards' book read it (lib/identity): which header Swift draws, and the deleted writer's veil
   const identity = useIdentityOn();
@@ -232,8 +254,10 @@ export function TodayNative({ model }: { model: TodayModel }) {
           onReplySend={act.send}
           onReplyFocus={setReplying}
           onCardAction={act.cardAction}
+          onStampMenu={onStampMenu}
         />
       </SurfaceHost>
+      {stampToast ? <Toast msg={stampToast} bottom={insets.tabBarRoom + 120} /> : null}
     </View>
   );
 }

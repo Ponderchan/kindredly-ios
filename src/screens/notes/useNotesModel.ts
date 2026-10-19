@@ -3,10 +3,11 @@ import { AppState } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { fmt as fmtDuration, firstWeekday, localeTag, monthTitle, noteDay, time24, weekdayLetters } from "../../lib/format";
-import { moodLabel, type MoodGroup } from "../../data/moods";
+import { MOOD_GROUP_IDS, MOOD_GROUPS, moodLabel, type MoodGroup } from "../../data/moods";
 import { demoJournal } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { hiddenDemoIds, loadJournal, type JournalEntry } from "../../lib/journal";
+import { leaveMood, leaveSpark } from "../../lib/journal-handoff";
 import { scoped } from "../../lib/scoped-store";
 import { speakAs, useWrenName } from "../../lib/wren-name";
 import { dismissWrenOnce, useWrenOnce } from "../../components/WrenSaysOnce";
@@ -32,6 +33,7 @@ import {
   type YearMonth,
 } from "./notes-model";
 import "../../data/strings-step5-notes";
+import "../../data/strings-notes-empty";
 
 /* THE NOTES TAB'S MODEL (10a step 5), shared by both renderers: the SwiftUI
    screen (NotesNative) and the React Native fallback (NotesRN) draw exactly
@@ -61,6 +63,14 @@ import "../../data/strings-step5-notes";
    - her first-visit line: useWrenOnce("sealed") decided only once there are
      pages to show it over (an empty Notes keeps it for the next visit), her
      name swapped in (speakAs);
+   - Notes E1 (2026-10-19): the empty page's question, the four mood lines and
+     follow-ups, the draft card's time; a tap on the draft card hands the mood
+     and its follow-up to the composer (journal-handoff leaveMood/leaveSpark)
+     and opens it; and after the first page is saved over an empty Notes seen
+     this session, her one-time line "first one down…" in the same slot
+     (useWrenOnce("notesFirstBubble"): the flag of that name is spent the moment
+     it shows, so it never comes back), the "sealed" line waiting for the next
+     launch so two lines never follow each other;
    - the evening question (useEveningAsk, on real pages only);
    - the one voice player (useVoicePlayback): a finished note replays from
      the start, another note replaces it, it pauses when the tab loses
@@ -76,6 +86,8 @@ const STORE_BODY: Record<string, keyof (typeof DEMO_TEXT)["en"]> = { "demo-j-pho
 const storeBody = (d: JournalEntry): JournalEntry => (STORE_BODY[d.id] ? { ...d, body: DEMO_TEXT[getLang()][STORE_BODY[d.id]] } : d);
 
 const VIEW_KEY = "kindredly_notes_view";
+/** Notes E1: her one-time line after the first page (lib/flags, spent by useWrenOnce) */
+export const NOTES_FIRST_BUBBLE = "notesFirstBubble";
 
 /** The words Notes shows, everywhere at once (Swift takes them as one record). */
 export type NotesStrings = {
@@ -113,6 +125,16 @@ export type NotesStrings = {
   groupNames: string[];
   /** the old calendar key's count, for the fallback */
   monthCount: string;
+  /** Notes E1: the empty page's question */
+  neTitle: string;
+  /** Notes E1: the title once a mood is tapped, in MOOD_GROUPS order */
+  neLines: string[];
+  /** Notes E1: the draft card's grey follow-up, in MOOD_GROUPS order */
+  neAsks: string[];
+  /** Notes E1: the draft card's time, as a Card's head row says it ("OCT 19 · 21:37") */
+  neTime: string;
+  /** Notes E1: VoiceOver on the draft card */
+  neA11yCard: string;
 };
 
 /** The dev page's stand-ins: its own pages and evening state, nothing read or written. */
@@ -143,6 +165,9 @@ export type NotesActions = {
   eveningOff: () => void;
   dismissWrenLine: () => void;
   compose: (kind: "text" | "voice") => void;
+  /** Notes E1: the draft card under a chosen mood: the composer, that mood chosen, its follow-up
+      as the empty page's placeholder */
+  writeEmpty: (group: MoodGroup) => void;
 };
 
 export type NotesModel = {
@@ -160,6 +185,8 @@ export type NotesModel = {
   strings: NotesStrings;
   /** her first-visit line, her name in it; null when it doesn't show */
   wrenLine: string | null;
+  /** the line showing is Notes E1's one-time "first one down…" (drawn in the system font) */
+  wrenFirst: boolean;
   evening: { state: EveningShow; busy: boolean };
   playback: VoicePlayback | null;
   act: NotesActions;
@@ -295,9 +322,18 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
     };
   }, []);
 
-  /* ── her line ── */
-  const showsLine = useWrenOnce("sealed", !demo && loaded && !empty && notes.length > 0);
-  const wrenLine = demo ? (demo.wrenLine ? speakAs(t("jt.said"), wren) : null) : showsLine ? speakAs(t("jt.said"), wren) : null;
+  /* ── her line ──
+     Notes E1: an empty Notes seen this session, then a page: her one-time "first one down…" takes
+     the slot (useWrenOnce spends the flag notesFirstBubble when it shows, so never again), and the
+     "sealed" first-visit line waits for the next launch rather than following it. */
+  const [sawEmpty, setSawEmpty] = useState(false);
+  useEffect(() => {
+    if (!demo && empty) setSawEmpty(true);
+  }, [demo, empty]);
+  const showsFirst = useWrenOnce(NOTES_FIRST_BUBBLE, !demo && sawEmpty && loaded && !empty && realPages > 0);
+  const showsLine = useWrenOnce("sealed", !demo && !sawEmpty && loaded && !empty && notes.length > 0);
+  const wrenFirst = !demo && showsFirst;
+  const wrenLine = demo ? (demo.wrenLine ? speakAs(t("jt.said"), wren) : null) : showsFirst ? t("ne.wren") : showsLine ? speakAs(t("jt.said"), wren) : null;
 
   /* ── the evening question ── */
   const evening = useEveningAsk(realPages, { enabled: !demo && loaded, wren });
@@ -341,13 +377,21 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
       weekdays: weekdayLetters(firstWeekday(lang), { locale: localeTag() }),
       groupNames: [t("mood.group.calm"), t("mood.group.happy"), t("mood.group.tired"), t("mood.group.low")],
       monthCount: String(pagesThisMonth(all, nowDate)).padStart(2, "0"),
+      neTitle: t("ne.title"),
+      neLines: MOOD_GROUPS.map((g) => t(`ne.line.${g}`)),
+      neAsks: MOOD_GROUPS.map((g) => t(`ne.ask.${g}`)),
+      // re-read on focus and when the app comes back (now)
+      neTime: `${fmt.day(nowDate.toISOString())} · ${fmt.time(nowDate.toISOString())}`,
+      neA11yCard: t("ne.a11yCard"),
     }),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lang, wren, all, today],
+    [lang, wren, all, today, nowDate, fmt],
   );
 
   /* ── the taps ── */
+  const wrenFirstRef = useRef(wrenFirst);
+  wrenFirstRef.current = wrenFirst;
   const notesRef = useRef(notes);
   notesRef.current = notes;
   const boundsRef = useRef(bounds);
@@ -413,9 +457,18 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
       dismissWrenLine: () => {
         const d = demoRef.current;
         if (d) d.setWrenLine(false);
+        else if (wrenFirstRef.current) dismissWrenOnce(NOTES_FIRST_BUBBLE);
         else dismissWrenOnce("sealed");
       },
       compose: (kind) => go(kind === "voice" ? "/journal-entry?start=voice" : "/journal-entry"),
+      writeEmpty: (group) => {
+        // the question is the empty page's placeholder only (takeSpark), never its words
+        if (!demoRef.current) {
+          leaveSpark(t(`ne.ask.${group}`));
+          leaveMood(MOOD_GROUP_IDS[group]);
+        }
+        go("/journal-entry");
+      },
     }),
     [go, toggle, pauseVoice, evening.yes, evening.no, evening.turnOff],
   );
@@ -431,6 +484,7 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
     recentGroups: recent,
     strings,
     wrenLine,
+    wrenFirst,
     evening: demo ? { state: demo.evening, busy: false } : { state: evening.state, busy: evening.busy },
     playback: voice.state,
     act,

@@ -252,17 +252,17 @@ struct KEditProfileView: ExpoSwiftUI.View {
  Props, beyond KScreenProps (insets: top = the status bar, bottom = the home indicator):
  - strings: every word, resolved (KStampEditStringsRecord; the card and reject words follow the phase)
  - categories [{ id, hex "#RRGGBB", name }], filters [{ id, name, locked }], filterEditable
- - gold (a Cofounder: the gold edge on cream), editing (an edit of an approved stamp)
+ - gold (a Cofounder: the 2pt gold line along the cut), editing (an edit of an approved stamp)
  - phase: editing | checking | rejected | approved | unavailable | quota | cap | problem;
    rejectField: image | topic
- - seed (bump to put the page back to the values below), photo (file:// of the 4:5 crop; "" =
+ - seed (bump to put the page back to the values below), photo (file:// of the 10:11 crop; "" =
    the dev stand-in scene), topic, category, filter
 
  Events, with what nativeEvent carries:
  - onStampEditRetake {}                     Retake / Try another photo
  - onStampEditSubmit { image, original, topic, category, filter }   image = the filtered
-                                            576 × 720 JPEG (file://), original = the unfiltered
-                                            1152 × 1440 crop (file://, or "")
+                                            640 × 704 JPEG (file://), original = the unfiltered
+                                            1280 × 1408 crop (file://, or "")
  - onStampEditUpgrade {}                    Keep it with First Class →
  - onStampEditReset {}                      the reader started fixing a rejection
  - onStampEditFlown {}                      the approved stamp has flown: leave the page

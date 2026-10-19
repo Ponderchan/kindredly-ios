@@ -24,6 +24,7 @@ import { loadJournal } from "../../lib/journal";
 import { loadShelf, mint, unseen, type Minted } from "../../lib/keepsakes";
 import { keepsake } from "../../data/keepsakes";
 import { getStamp, sname } from "../../data/stamps";
+import { isCustomStampId, useCustomStamps } from "../../lib/custom-stamps";
 import { daylight } from "../../components/CourierCard";
 import { auraCardFacts } from "../../components/AuraCard";
 import type { WrenStage } from "../../components/WrenBird";
@@ -430,6 +431,10 @@ export function useMeModel(): MeModel {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, user?.created_at, cofounderNo, aura, statsIn, stats.kindreds, used, shelf, fresh, premium, wren, dayOff, where.state, best, entry, hunger, lang]);
 
+  /* photo stamps on your letters ("c:<uuid>"): resolved and pushed to Swift for the peek's cards;
+     their colour for the frame while they load */
+  const customStamp = useCustomStamps(useMemo(() => (writing ?? []).map((w) => w.stamp).filter((x): x is string => !!x), [writing]));
+  const hexOf = useCallback((id: string) => (isCustomStampId(id) ? customStamp(id)?.hex ?? "" : stampHex(id)), [customStamp]);
   const trial = fares.trial;
   const report = useMemo<ReportRowVM>(() => {
     if (!door) return NO_REPORT_ROW;
@@ -442,7 +447,7 @@ export function useMeModel(): MeModel {
       {
         profile: { handle, createdAt: user?.created_at ?? null, cofounderNo, letters, kindreds: statsIn ? stats.kindreds : null },
         letters: writing ? buildLetterCards(writing, threads, []) : null,
-        stampHex,
+        stampHex: hexOf,
         threads: threadsIn ? threads : null,
         nameOf: (th) => book.threadName(th as ThreadSummary),
         looks: { accessory, premium, wren },
@@ -453,7 +458,7 @@ export function useMeModel(): MeModel {
     );
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, trial, report, lang]);
+  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, trial, report, lang, hexOf]);
 
   const ctaTo = view.aura?.ctaTo ?? "compose";
   const dayOffRef = useRef(dayOff);

@@ -5,7 +5,8 @@ import { deskDay, isNightHour, nextMorning } from "./day";
 import { clockTime } from "./format";
 import { getWrenName } from "./wren-name";
 import { supabase, supabaseReady } from "./supabase";
-import { STAMPS } from "../data/stamps";
+import { STAMPS, STAMP_CATEGORIES } from "../data/stamps";
+import { customStampNow, isCustomStampId } from "./custom-stamps";
 import { identityOn } from "./identity";
 import "../data/strings-identity";
 import { snapshotBird, type BirdPose } from "../components/BirdSnapshots";
@@ -145,7 +146,13 @@ async function outMap(): Promise<Record<string, string>> {
   }
 }
 
-const stampEmoji = (id: string | null | undefined) => STAMPS.find((s) => s.id === id)?.emoji ?? "✉️";
+/* a photo stamp ("c:<uuid>") has no emoji of its own: its category's, once resolved (custom stamps) */
+const stampEmoji = (id: string | null | undefined): string => {
+  const official = STAMPS.find((s) => s.id === id)?.emoji;
+  if (official) return official;
+  const cat = id && isCustomStampId(id) ? customStampNow(id)?.category : null;
+  return (cat && STAMP_CATEGORIES.find((c) => c.id === cat)?.emoji) || "✉️";
+};
 
 /* the static half of a letter's activity: her, the stamp, and every line
    it can show. The server pushes only `reads` and `replied` on top. */

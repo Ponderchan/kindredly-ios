@@ -269,6 +269,39 @@ ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
     M.trayNameFit("眠れない夜だ", room).size === 9 && M.trayNameFit("眠れない夜だよ", room).size === 8 && M.trayNameFit("眠れない夜だよね", room).lines === 2);
 }
 
+/* ── the stamp tray's tabs: the custom tab (owner 2026-10-19, contract §7 C) ── */
+{
+  const fmt = { t: (k: string, v?: Record<string, string | number>) => (v ? `${k}(${Object.values(v).join(",")})` : k) };
+  const U1 = "c:11111111-2222-4333-8444-555555555555";
+  const U2 = "c:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  const stamps = [
+    { id: U1, status: "approved", topic: "Rainy Bus", hex: "#5B55FF" },
+    { id: "c:99999999-2222-4333-8444-555555555555", status: "pending", topic: "waiting", hex: "#5B55FF" },
+    { id: U2, status: "approved", topic: "#Fika", hex: "#F2A33A" },
+    { id: "c:77777777-2222-4333-8444-555555555555", status: "removed", topic: "gone", hex: "#5B55FF" },
+    { id: U1, status: "approved", topic: "Rainy Bus", hex: "#5B55FF" },
+    { id: "made-my-day", status: "approved", topic: "x", hex: "#000000" },
+  ];
+  const free = { why: null };
+  ok("custom tab: hidden without the 0038 quota (no row at all)", M.customTray({ quota: null, pressAvailable: true, stamps }, fmt).state === "hidden");
+  ok("custom tab: hidden on a binary without the Stamp Press", M.customTray({ quota: free, pressAvailable: false, stamps }, fmt).state === "hidden");
+  const vm = M.customTray({ quota: free, pressAvailable: true, stamps }, fmt);
+  ok("custom tab: approved only, newest first as given, no duplicates, no official ids", vm.state === "list" && vm.items.map((i) => i.id).join() === [U1, U2].join());
+  ok("custom tab: #topic in lower case, one #", vm.items[0].topic === "#rainy bus" && vm.items[1].topic === "#fika");
+  ok("custom tab: VoiceOver says the topic without #", vm.items[0].a11yLabel === "cs2.use.a11yStamp(rainy bus)");
+  ok("custom tab: the category hex rides along (KStamp's frame while resolving)", vm.items[1].hex === "#F2A33A");
+  ok("custom tab: nothing approved = empty (the + and its line)", M.customTray({ quota: free, pressAvailable: true, stamps: stamps.filter((s) => s.status !== "approved") }, fmt).state === "empty");
+  ok("custom tab: Free at 3/3 makes the + open the card", M.customTray({ quota: { why: "quota" }, pressAvailable: true, stamps }, fmt).full === true);
+  ok("custom tab: the silent cap is not the 3/3 card", M.customTray({ quota: { why: "cap" }, pressAvailable: true, stamps }, fmt).full === false);
+  ok("tray tab: the last used one", M.trayTabFor("custom", "list") === "custom" && M.trayTabFor("custom", "empty") === "custom");
+  ok("tray tab: official while there is no custom tab, or nothing saved", M.trayTabFor("custom", "hidden") === "official" && M.trayTabFor(null, "list") === "official" && M.trayTabFor("junk", "list") === "official");
+  const uuid = "11111111-2222-4333-8444-555555555555";
+  ok("press return: a stamp approved after the + was tapped comes back chosen", M.pressedReturn({ stamp: { id: uuid.toUpperCase() }, at: 200 }, 100) === `c:${uuid}`);
+  ok("press return: an older approval, or a press not opened from here, chooses nothing",
+    M.pressedReturn({ stamp: { id: uuid }, at: 50 }, 100) === null && M.pressedReturn({ stamp: { id: uuid }, at: 200 }, null) === null && M.pressedReturn(null, 100) === null);
+  ok("press return: an id already c: stays one; junk is refused", M.pressedReturn({ stamp: { id: `c:${uuid}` }, at: 200 }, 100) === `c:${uuid}` && M.pressedReturn({ stamp: { id: "nope" }, at: 200 }, 100) === null);
+}
+
 if (fails) {
   console.log(`\n${fails} FAILED`);
   process.exit(1);

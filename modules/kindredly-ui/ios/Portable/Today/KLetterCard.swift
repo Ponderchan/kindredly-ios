@@ -168,14 +168,7 @@ struct KLetterCard: View, Equatable {
           .minimumScaleFactor(0.75)
           .frame(maxWidth: .infinity, alignment: .leading)
       }
-      KStamp(
-        id: card.stampId,
-        width: Self.stampWidth,
-        dark: theme.isDark,
-        delivered: true,
-        letterId: card.id,
-        fallbackHex: card.stampHex.isEmpty ? nil : card.stampHex
-      )
+      KLetterCardStamp(theme: theme, card: card, width: Self.stampWidth, actions: actions)
       if !card.menu.isEmpty {
         Menu {
           ForEach(card.menu) { item in
@@ -319,9 +312,12 @@ struct KLetterCardAccessibilityActions: ViewModifier {
   let labels: KTodayLabels
   @ObservedObject var voice: KTodayVoice
   let actions: KLetterCardActions
+  /// a stranger's photo stamp on the card: Keep / Report it (custom stamps)
+  @ObservedObject private var registry = KCustomStamps.shared
 
   func body(content: Content) -> some View {
     let playing = voice.key == card.id && voice.playback?.playing == true
+    let photo = card.stampId.hasPrefix("c:") ? registry.info(card.stampId) : nil
     content.accessibilityActions {
       SwiftUI.Button(labels.replyA11y) { actions.onReply(card.id) }
       if case let .translate(_, label, enabled, _) = card.capsule, enabled {
@@ -337,6 +333,12 @@ struct KLetterCardAccessibilityActions: ViewModifier {
       // Report, Block and Bring back the last letter, as TS orders them
       ForEach(card.menu) { item in
         SwiftUI.Button(item.title) { actions.onAction(card.id, item.key) }
+      }
+      if let photo, photo.canKeep {
+        if !photo.kept {
+          SwiftUI.Button(registry.words.keep) { actions.onAction(card.id, "stamp.keep") }
+        }
+        SwiftUI.Button(registry.words.report) { actions.onAction(card.id, "stamp.report") }
       }
       // "Next letter": the same pass as NEXT (the deck serves deck.requestNext())
       SwiftUI.Button(labels.nextA11y) { actions.onNext(card.id) }
@@ -524,5 +526,53 @@ struct KCardVoiceBlock: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .clipped()
+  }
+}
+
+/*
+ THE STAMP ON A DESK CARD, and its long press (custom stamps, contract §7 B4; Prompt 7). A
+ stranger's approved photo stamp ("c:<uuid>", KCustomStamps says ok and not mine) answers a long
+ press with Keep this stamp / Report this stamp / Never mind, or, once kept, "In your album ✓"
+ (disabled) and Report. The choice goes to TS as the card action "stamp.keep" / "stamp.report"
+ (KTodayView turns it into onTodayStampMenu); TS keeps or reports it (with the reason), and the
+ registry it pushes back redraws the stamp (a reported one becomes the frame in its colour). Every
+ other stamp is exactly the KStamp it was, with no gesture. VoiceOver gets the same two moves as
+ the card's actions (KLetterCardAccessibilityActions).
+ */
+struct KLetterCardStamp: View {
+  let theme: KTheme
+  let card: KLetterCardModel
+  let width: CGFloat
+  let actions: KLetterCardActions
+
+  @ObservedObject private var registry = KCustomStamps.shared
+
+  var body: some View {
+    let stamp = KStamp(
+      id: card.stampId,
+      width: width,
+      dark: theme.isDark,
+      delivered: true,
+      letterId: card.id,
+      fallbackHex: card.stampHex.isEmpty ? nil : card.stampHex
+    )
+    if card.stampId.hasPrefix("c:"), let info = registry.info(card.stampId), info.canKeep {
+      let words = registry.words
+      Color.clear
+        .frame(width: width, height: KStampFrame.height(width))
+        .overlay(stamp)
+        .contentShape(Rectangle())
+        .contextMenu {
+          if info.kept {
+            SwiftUI.Button(words.inAlbum) {}.disabled(true)
+          } else {
+            SwiftUI.Button(words.keep) { actions.onAction(card.id, "stamp.keep") }
+          }
+          SwiftUI.Button(words.report, role: .destructive) { actions.onAction(card.id, "stamp.report") }
+          SwiftUI.Button(words.neverMind) {}
+        }
+    } else {
+      stamp
+    }
   }
 }

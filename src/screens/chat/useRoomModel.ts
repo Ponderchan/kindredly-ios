@@ -26,6 +26,7 @@ import { noticeThings, type Notice } from "../../lib/notice";
 import { noticeAboutUs, type KindredNotice } from "../../lib/kindred-read";
 import { STAMPS, getStamp, sname } from "../../data/stamps";
 import { stampsHeard } from "../../lib/stamp-suggest";
+import { customStampNow } from "../../lib/custom-stamps";
 import { useWrenName } from "../../lib/wren-name";
 import { alertFail } from "../../lib/fail";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
@@ -470,7 +471,8 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
       const cats = theirCategories({
         openingStamp: detail.openingFromMe ? null : detail.stamp || null,
         heard: theirs.map(stampsHeard),
-        catOf: (stampId) => getStamp(stampId)?.cat,
+        // a photo stamp's category is its own (custom stamps: known once resolved)
+        catOf: (stampId) => getStamp(stampId)?.cat ?? customStampNow(stampId)?.category,
       });
       setTheirCats((cur) => (cur.join() === cats.join() ? cur : cats));
     });

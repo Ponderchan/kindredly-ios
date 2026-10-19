@@ -290,15 +290,93 @@ public struct KMeStampCell: Identifiable, Equatable, Sendable {
   }
 }
 
-/// The Stamps card (owner's placeholder, H:81).
+/// One of my own photo stamps in MADE BY YOU ("c:<uuid>"; KStamp draws it from KCustomStamps).
+public struct KMeMadeCell: Identifiable, Equatable, Sendable {
+  public let id: String
+  /// "#first snow", lower case; "" for none
+  public let topic: String
+  /// made in the last 24 hours: the lime "new" sticker
+  public let fresh: Bool
+  /// "taken down", "checking…" under it instead of the topic; "" for none
+  public let note: String
+  public let a11yLabel: String
+
+  public init(id: String, topic: String, fresh: Bool, note: String, a11yLabel: String) {
+    self.id = id
+    self.topic = topic
+    self.fresh = fresh
+    self.note = note
+    self.a11yLabel = a11yLabel
+  }
+}
+
+/// A stranger's photo stamp kept in the album.
+public struct KMeStrangerCell: Identifiable, Equatable, Sendable {
+  public let id: String
+  /// "FROM SUNDAY KITE"
+  public let from: String
+  public let a11yLabel: String
+
+  public init(id: String, from: String, a11yLabel: String) {
+    self.id = id
+    self.from = from
+    self.a11yLabel = a11yLabel
+  }
+}
+
+/// The Stamps card (owner's final Prompt 1, custom stamps): MADE BY YOU · FROM STRANGERS · YOUR
+/// STAMPS · Open the album. Every word from TS.
 public struct KMeStamps: Equatable, Sendable {
+  // ── YOUR STAMPS: the official stamps you have used (at most three here) ──
   /// YOUR STAMPS
   public var label = ""
   /// 7 USED
   public var count = ""
   public var cells: [KMeStampCell] = []
+  /// none used yet: the owner's line, and "Write a letter →"
   public var emptyText = ""
   public var emptyCta = ""
+  /// the empty state's three dashed slots, each in a category's colour ("#RRGGBB")
+  public var yoursSlots: [String] = []
+
+  // ── MADE BY YOU (shown only when the press and 0038 are both there, D10) ──
+  public var madeShow = false
+  public var madeLabel = ""
+  /// "2 OF 3 FREE" or "UNLIMITED"
+  public var madeQuota = ""
+  /// the quota in the gold ink (First Class, Cofounder)
+  public var madeQuotaGold = false
+  /// "See all →" when there are more than two; "" for none
+  public var seeAll = ""
+  public var makeOne = ""
+  /// none made yet: "Photograph a moment." and its sub
+  public var emptyTitle = ""
+  public var emptySub = ""
+  /// VoiceOver for the blank stamp: "Make a stamp"
+  public var makeA11y = ""
+  /// the two newest
+  public var made: [KMeMadeCell] = []
+  public var newLabel = ""
+  /// Free with all three made: the blank stamp opens the small card instead of the camera
+  public var full = false
+  public var fullTitle = ""
+  public var fullSub = ""
+  public var fullCta = ""
+  public var notNow = ""
+  /// "Your stamp is ready." once after an approval, "" for none; its action and the stamp's id
+  public var ready = ""
+  public var readyCta = ""
+  public var readyId = ""
+
+  // ── FROM STRANGERS ──
+  public var strangersLabel = ""
+  public var strangersCount = ""
+  public var strangers: [KMeStrangerCell] = []
+  /// none kept: the owner's light line
+  public var strangersEmpty = ""
+
+  /// "Open the album →"; "" hides it (all three areas empty)
+  public var album = ""
 
   public init() {}
 }
@@ -380,6 +458,8 @@ public final class KMeActions {
   public var onAuraShare: () -> Void = {}
   public var onReport: () -> Void = {}
   public var onStampsEmpty: () -> Void = {}
+  /// the Stamps card (custom stamps): make | fullCta | seeAll | album | stamp (id) | ready (id)
+  public var onStamps: (_ action: String, _ id: String) -> Void = { _, _ in }
   public var onFirstClass: () -> Void = {}
 
   public init() {}

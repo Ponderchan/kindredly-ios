@@ -30,7 +30,11 @@ import ExpoUI
    meterKind (ticks | slots), filled, total, slipsN, slipsOf (-1 for none), caption, cta, share,
    shareLabel }
  - report: { show, title, sub, enabled, locked, hint }
- - stamps: { label, count, cells: [{ id, date, a11y, hex }], emptyText, emptyCta }
+ - stamps: { label, count, cells: [{ id, date, a11y, hex }], emptyText, emptyCta, yoursSlots,
+   madeShow, madeLabel, madeQuota, madeQuotaGold, seeAll, makeOne, emptyTitle, emptySub, makeA11y,
+   made: [{ id, topic, fresh, note, a11y }], newLabel, full, fullTitle, fullSub, fullCta, notNow,
+   ready, readyCta, readyId, strangersLabel, strangersCount, strangers: [{ id, from, a11y }],
+   strangersEmpty, album } (custom stamps: Portable/Me/KStampsCard.swift)
  - firstClass: { eyebrow, headline, rows, cta, trial ("" = none), stampLabel, bird, member }
  - initialSegment: the segment to open on (read when the view first draws)
  Every record above is converted once per rev (useRev in TS).
@@ -61,6 +65,7 @@ import ExpoUI
  - onMeAuraShare {}            its share key
  - onMeReport {}               the report door
  - onMeStampsEmpty {}          "Write a letter" under no stamps
+ - onMeStamps { action, id }   the Stamps card: make | fullCta | seeAll | album | stamp (id) | ready (id)
  - onMeFirstClass {}           the First Class card
 
  Unknown enum strings fall back rather than fail (a meter kind draws the ticks, a peek state the
@@ -294,12 +299,52 @@ struct KMeStampCellRecord: Record {
   @Field var hex: String = ""
 }
 
+struct KMeMadeCellRecord: Record {
+  @Field var id: String = ""
+  @Field var topic: String = ""
+  @Field var fresh: Bool = false
+  @Field var note: String = ""
+  @Field var a11y: String = ""
+}
+
+struct KMeStrangerCellRecord: Record {
+  @Field var id: String = ""
+  @Field var from: String = ""
+  @Field var a11y: String = ""
+}
+
 struct KMeStampsRecord: Record {
   @Field var label: String = ""
   @Field var count: String = ""
   @Field var cells: [KMeStampCellRecord] = []
   @Field var emptyText: String = ""
   @Field var emptyCta: String = ""
+  @Field var yoursSlots: [String] = []
+  // custom stamps (Prompt 1): MADE BY YOU, FROM STRANGERS, the album
+  @Field var madeShow: Bool = false
+  @Field var madeLabel: String = ""
+  @Field var madeQuota: String = ""
+  @Field var madeQuotaGold: Bool = false
+  @Field var seeAll: String = ""
+  @Field var makeOne: String = ""
+  @Field var emptyTitle: String = ""
+  @Field var emptySub: String = ""
+  @Field var makeA11y: String = ""
+  @Field var made: [KMeMadeCellRecord] = []
+  @Field var newLabel: String = ""
+  @Field var full: Bool = false
+  @Field var fullTitle: String = ""
+  @Field var fullSub: String = ""
+  @Field var fullCta: String = ""
+  @Field var notNow: String = ""
+  @Field var ready: String = ""
+  @Field var readyCta: String = ""
+  @Field var readyId: String = ""
+  @Field var strangersLabel: String = ""
+  @Field var strangersCount: String = ""
+  @Field var strangers: [KMeStrangerCellRecord] = []
+  @Field var strangersEmpty: String = ""
+  @Field var album: String = ""
 
   var stamps: KMeStamps {
     var s = KMeStamps()
@@ -313,6 +358,39 @@ struct KMeStampsRecord: Record {
     }
     s.emptyText = emptyText
     s.emptyCta = emptyCta
+    s.yoursSlots = yoursSlots
+    s.madeShow = madeShow
+    s.madeLabel = madeLabel
+    s.madeQuota = madeQuota
+    s.madeQuotaGold = madeQuotaGold
+    s.seeAll = seeAll
+    s.makeOne = makeOne
+    s.emptyTitle = emptyTitle
+    s.emptySub = emptySub
+    s.makeA11y = makeA11y
+    var seenMade = Set<String>()
+    s.made = made.compactMap { m in
+      guard m.id.hasPrefix("c:"), seenMade.insert(m.id).inserted else { return nil }
+      return KMeMadeCell(id: m.id, topic: m.topic, fresh: m.fresh, note: m.note, a11yLabel: m.a11y)
+    }
+    s.newLabel = newLabel
+    s.full = full
+    s.fullTitle = fullTitle
+    s.fullSub = fullSub
+    s.fullCta = fullCta
+    s.notNow = notNow
+    s.ready = ready
+    s.readyCta = readyCta
+    s.readyId = readyId
+    s.strangersLabel = strangersLabel
+    s.strangersCount = strangersCount
+    var seenS = Set<String>()
+    s.strangers = strangers.compactMap { x in
+      guard x.id.hasPrefix("c:"), seenS.insert(x.id).inserted else { return nil }
+      return KMeStrangerCell(id: x.id, from: x.from, a11yLabel: x.a11y)
+    }
+    s.strangersEmpty = strangersEmpty
+    s.album = album
     return s
   }
 }
@@ -371,6 +449,7 @@ final class KMeViewProps: KScreenProps {
   var onMeAuraShare = EventDispatcher()
   var onMeReport = EventDispatcher()
   var onMeStampsEmpty = EventDispatcher()
+  var onMeStamps = EventDispatcher()
   var onMeFirstClass = EventDispatcher()
 
   /// The scroll and segment requests: as long-lived as the view, like `commands`.
@@ -396,6 +475,7 @@ final class KMeViewProps: KScreenProps {
     a.onAuraShare = { [weak self] in self?.onMeAuraShare() }
     a.onReport = { [weak self] in self?.onMeReport() }
     a.onStampsEmpty = { [weak self] in self?.onMeStampsEmpty() }
+    a.onStamps = { [weak self] action, id in self?.onMeStamps(["action": action, "id": id]) }
     a.onFirstClass = { [weak self] in self?.onMeFirstClass() }
     return a
   }()
@@ -462,5 +542,134 @@ struct KMeView: ExpoSwiftUI.View {
     .onKCommand(props.commands) { name, args in
       props.handle(name, args)
     }
+  }
+}
+
+/*
+ THE ALBUM as React Native sees it: <KStampAlbumView … /> (modules/kindredly-ui/src/Me.tsx
+ StampAlbum), drawn by src/app/album.tsx in one Host. Appended here so the module needs no pod
+ install; the page is KStampAlbumScreen in Portable/Me/KStampsCard.swift.
+
+ Props, beyond KScreenProps (insets.top the status bar, insets.bottom the home indicator):
+ - strings: { title, back, makeOne, makeA11y, fullTitle, fullSub, fullCta, notNow, yoursEmpty,
+   yoursCta }
+ - sections: [{ key (made | strangers | yours), title, make, cells: [{ id, under, tag, tagHex, info,
+   a11y, actions: [{ key, title, style (ink | plain | danger) }] }] }]
+ - full: Free has made all three (the blank stamp opens the small card)
+ - yoursSlots: three "#RRGGBB" for the empty YOUR STAMPS
+ - focus: the section to open at ("" for the top)
+
+ Events: onAlbumBack {}, onAlbumMake {}, onAlbumFullCta {}, onAlbumWrite {},
+ onAlbumAction { id, action } (write | rename | recolour | filter | delete | remove | report).
+ */
+
+struct KAlbumStringsRecord: Record {
+  @Field var title: String = ""
+  @Field var back: String = ""
+  @Field var makeOne: String = ""
+  @Field var makeA11y: String = ""
+  @Field var fullTitle: String = ""
+  @Field var fullSub: String = ""
+  @Field var fullCta: String = ""
+  @Field var notNow: String = ""
+  @Field var yoursEmpty: String = ""
+  @Field var yoursCta: String = ""
+}
+
+struct KAlbumActionRecord: Record {
+  @Field var key: String = ""
+  @Field var title: String = ""
+  @Field var style: String = "plain"
+}
+
+struct KAlbumCellRecord: Record {
+  @Field var id: String = ""
+  @Field var under: String = ""
+  @Field var tag: String = ""
+  @Field var tagHex: String = ""
+  @Field var info: String = ""
+  @Field var a11y: String = ""
+  @Field var actions: [KAlbumActionRecord] = []
+}
+
+struct KAlbumSectionRecord: Record {
+  @Field var key: String = ""
+  @Field var title: String = ""
+  @Field var make: Bool = false
+  @Field var cells: [KAlbumCellRecord] = []
+}
+
+final class KStampAlbumViewProps: KScreenProps {
+  @Field var strings: KAlbumStringsRecord = KAlbumStringsRecord()
+  @Field var sections: [KAlbumSectionRecord] = []
+  @Field var full: Bool = false
+  @Field var yoursSlots: [String] = []
+  @Field var focus: String = ""
+
+  var onAlbumBack = EventDispatcher()
+  var onAlbumMake = EventDispatcher()
+  var onAlbumFullCta = EventDispatcher()
+  var onAlbumWrite = EventDispatcher()
+  var onAlbumAction = EventDispatcher()
+
+  private(set) lazy var actions: KStampAlbumActions = {
+    let a = KStampAlbumActions()
+    a.onBack = { [weak self] in self?.onAlbumBack() }
+    a.onMake = { [weak self] in self?.onAlbumMake() }
+    a.onFullCta = { [weak self] in self?.onAlbumFullCta() }
+    a.onWrite = { [weak self] in self?.onAlbumWrite() }
+    a.onAction = { [weak self] id, action in self?.onAlbumAction(["id": id, "action": action]) }
+    return a
+  }()
+
+  var content: KStampAlbumContent {
+    cached("content") {
+      var c = KStampAlbumContent()
+      c.title = strings.title
+      c.backLabel = strings.back
+      c.makeOne = strings.makeOne
+      c.makeA11y = strings.makeA11y
+      c.full = full
+      c.fullTitle = strings.fullTitle
+      c.fullSub = strings.fullSub
+      c.fullCta = strings.fullCta
+      c.notNow = strings.notNow
+      c.yoursEmpty = strings.yoursEmpty
+      c.yoursCta = strings.yoursCta
+      c.yoursSlots = yoursSlots
+      c.focus = focus
+      var seenSections = Set<String>()
+      c.sections = sections.compactMap { sec in
+        guard ["made", "strangers", "yours"].contains(sec.key), seenSections.insert(sec.key).inserted else { return nil }
+        var seen = Set<String>()
+        let cells: [KAlbumCell] = sec.cells.compactMap { r in
+          guard !r.id.isEmpty, seen.insert(r.id).inserted else { return nil }
+          let acts = r.actions.compactMap { a -> KAlbumAction? in
+            guard !a.key.isEmpty, !a.title.isEmpty else { return nil }
+            return KAlbumAction(key: a.key, title: a.title, style: KAlbumAction.Style(rawValue: a.style) ?? .plain)
+          }
+          return KAlbumCell(id: r.id, under: r.under, tag: r.tag, tagHex: r.tagHex, info: r.info, actions: acts, a11yLabel: r.a11y)
+        }
+        guard !cells.isEmpty || sec.make else { return nil }
+        return KAlbumSection(key: sec.key, title: sec.title, cells: cells, make: sec.make)
+      }
+      return c
+    }
+  }
+}
+
+struct KStampAlbumView: ExpoSwiftUI.View {
+  @ObservedObject var props: KStampAlbumViewProps
+
+  var body: some View {
+    let insets = props.insets
+    return KStampAlbumScreen(
+      theme: props.kTheme,
+      content: props.content,
+      topInset: insets.top,
+      bottomInset: insets.bottom,
+      actions: props.actions
+    )
+    .kScreenEnvironment(props)
   }
 }

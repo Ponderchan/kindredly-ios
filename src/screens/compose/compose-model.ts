@@ -379,3 +379,60 @@ export function trayNameFit(name: string, room: number): TrayNameFit {
   if (at9 <= TRAY_NAME_MAX_LINES) return { size: TRAY_NAME_SIZES[0], lines: clamp(at9) };
   return { size: TRAY_NAME_SIZES[1], lines: clamp(trayNameLines(name, TRAY_NAME_SIZES[1], room)) };
 }
+
+/* THE STAMP TRAY'S TWO TABS (owner 2026-10-19, the WeChat sticker panel; contract §7 C).
+   Tab 1 = the 36 (the sections above); tab 2 = my own photo stamps. The tab row exists only while
+   the feature does (D10): the 0038 quota answered (my_stamp_quota, null = not run / offline /
+   signed out) AND this binary has the Stamp Press. Otherwise "hidden": no row, today's tray.
+   The custom tab lists my APPROVED stamps only (contract §9 Q3: pending ones live in Me and the
+   album), newest first as my_custom_stamps answers them, each with its #topic in lower case
+   under it; never a stranger's kept stamp (they aren't in my_custom_stamps at all). Empty = the
+   dashed + and its line. Free at 3/3 (quota.why "quota") makes the + open the 3/3 card. */
+export type TrayTab = "official" | "custom";
+export type CustomTrayState = "hidden" | "empty" | "list";
+export type CustomTrayItemVM = { id: string; topic: string; hex: string; a11yLabel: string };
+export type CustomTrayVM = { state: CustomTrayState; items: CustomTrayItemVM[]; full: boolean };
+
+const CUSTOM_STAMP_ID = /^c:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** "#topic" as a tile or a pill says it: lower case, no "#" doubled, "" for no topic. */
+export function customTopicTag(topic: string): string {
+  const s = topic.trim().replace(/^#+/, "");
+  return s ? `#${s.toLowerCase()}` : "";
+}
+
+export function customTray(
+  p: {
+    /** my_stamp_quota's why, or null; `quota` null = the feature is hidden */
+    quota: { why: "quota" | "cap" | null } | null;
+    pressAvailable: boolean;
+    stamps: readonly { id: string; status: string; topic: string; hex: string }[];
+  },
+  fmt: ComposeFormat,
+): CustomTrayVM {
+  if (!p.quota || !p.pressAvailable) return { state: "hidden", items: [], full: false };
+  const seen = new Set<string>();
+  const items: CustomTrayItemVM[] = [];
+  for (const s of p.stamps) {
+    if (s.status !== "approved" || !CUSTOM_STAMP_ID.test(s.id) || seen.has(s.id)) continue;
+    seen.add(s.id);
+    const topic = customTopicTag(s.topic);
+    items.push({ id: s.id, topic, hex: s.hex, a11yLabel: topic ? fmt.t("cs2.use.a11yStamp", { topic: topic.slice(1) }) : fmt.t("cs2.use.a11yBlank") });
+  }
+  return { state: items.length ? "list" : "empty", items, full: p.quota.why === "quota" };
+}
+
+/** The tab the tray opens on: the last one used (kindredly_tray_tab), official while there is no
+    custom tab. */
+export function trayTabFor(saved: unknown, state: CustomTrayState): TrayTab {
+  return state !== "hidden" && saved === "custom" ? "custom" : "official";
+}
+
+/** Back from the Stamp Press opened from this page (contract §4.5): the stamp approved after the
+    + was tapped, as the value a letter carries ("c:<uuid>"), or null. */
+export function pressedReturn(pressed: { stamp: { id: string }; at: number } | null, openedAt: number | null): string | null {
+  if (!pressed || openedAt === null || !(pressed.at > openedAt)) return null;
+  const raw = pressed.stamp.id.toLowerCase();
+  const id = raw.startsWith("c:") ? raw : `c:${raw}`;
+  return CUSTOM_STAMP_ID.test(id) ? id : null;
+}

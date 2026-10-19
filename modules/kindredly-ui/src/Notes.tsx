@@ -99,6 +99,18 @@ export type KNotesStrings = {
   eveningOn: string;
   eveningOff: string;
   weekdays: string[];
+  /** Notes E1 (the empty page): the question, all in the system font */
+  neTitle: string;
+  /** the title once a mood is tapped, in calm, happy, tired, low order */
+  neLines: string[];
+  /** the draft card's grey follow-up, in the same order */
+  neAsks: string[];
+  /** the draft card's time, as a Card's head row says it ("OCT 19 · 21:37") */
+  neTime: string;
+  /** VoiceOver on the draft card */
+  neA11yCard: string;
+  /** the four groups' names (mood.group.*), in the same order: VoiceOver on the tiles */
+  neGroupNames: string[];
 };
 
 /** The empty state's fixed colours ("#RRGGBB"). */
@@ -140,6 +152,9 @@ export type KNotesViewProps = CommonViewModifierProps &
     recentGroups: KNotesGroup[];
     /** "" for none */
     wrenLine: string;
+    /** the line is Notes E1's one-time "first one down…": drawn in the system font, not the letter
+        face's italic */
+    wrenFirst: boolean;
     bird: KImageRefProps | null;
     birdMini: KImageRefProps | null;
     evening: KNotesEvening;
@@ -155,6 +170,8 @@ export type KNotesViewProps = CommonViewModifierProps &
     onWrenLineDismiss?: () => void;
     onCompose?: (kind: "text" | "voice") => void;
     onReachEnd?: () => void;
+    /** Notes E1: the draft card under a chosen mood was tapped */
+    onEmptyWrite?: (group: KNotesGroup) => void;
     /** <KIsland> / <KSlot> children (none today), every one on every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -181,6 +198,7 @@ type NativeKNotesViewProps = Omit<
   | "onWrenLineDismiss"
   | "onCompose"
   | "onReachEnd"
+  | "onEmptyWrite"
 > &
   Required<Pick<KNotesViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -197,6 +215,7 @@ type NativeKNotesViewProps = Omit<
     onNotesWrenLineDismiss?: Ev<Record<string, never>>;
     onNotesCompose?: Ev<{ kind: "text" | "voice" }>;
     onNotesReachEnd?: Ev<Record<string, never>>;
+    onNotesEmptyWrite?: Ev<{ group: KNotesGroup }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -237,6 +256,7 @@ export const KNotesView = forwardRef<KScreenHandle, KNotesViewProps>(function KN
     onWrenLineDismiss,
     onCompose,
     onReachEnd,
+    onEmptyWrite,
     ...rest
   },
   ref,
@@ -268,6 +288,7 @@ export const KNotesView = forwardRef<KScreenHandle, KNotesViewProps>(function KN
       onNotesWrenLineDismiss={onWrenLineDismiss ? () => onWrenLineDismiss() : undefined}
       onNotesCompose={onCompose ? (e) => onCompose(e.nativeEvent.kind) : undefined}
       onNotesReachEnd={onReachEnd ? () => onReachEnd() : undefined}
+      onNotesEmptyWrite={onEmptyWrite ? (e) => onEmptyWrite(e.nativeEvent.group) : undefined}
     />
   );
 });

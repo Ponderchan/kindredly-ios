@@ -56,6 +56,7 @@ import ExpoUI
  - onTodayReplyFocus { focused }        reply mode (the chat composers' A1, owner 2026-10-18): TS
                                         slides the tab bar away while it is true (another Host)
  - onTodayCardAction { letterId, action }   unfold | translate | report | block | voice
+ - onTodayStampMenu { letterId, action }    a stranger's photo stamp, long-pressed: keep | report
 
  Unknown enum strings fall back rather than fail (a capsule kind this binary doesn't know draws
  none, an unknown send state is disabled, an unknown phase is loading, an unknown plus is closed,
@@ -358,6 +359,7 @@ final class KTodayViewProps: KScreenProps {
   var onTodayReplySend = EventDispatcher()
   var onTodayReplyFocus = EventDispatcher()
   var onTodayCardAction = EventDispatcher()
+  var onTodayStampMenu = EventDispatcher()
 
   /// The dock (with the field), the voice, the deck, the drag and the day's end: as long-lived as the view.
   let dock = KTodayDock()
@@ -376,7 +378,14 @@ final class KTodayViewProps: KScreenProps {
     a.onReplyChange = { [weak self] id, text in self?.onTodayReplyChange(["letterId": id, "text": text]) }
     a.onReplySend = { [weak self] id, text, serial in self?.onTodayReplySend(["letterId": id, "text": text, "serial": serial]) }
     a.onReplyFocus = { [weak self] focused in self?.onTodayReplyFocus(["focused": focused]) }
-    a.onCardAction = { [weak self] id, action in self?.onTodayCardAction(["letterId": id, "action": action]) }
+    a.onCardAction = { [weak self] id, action in
+      // the photo stamp's long press (KLetterCardStamp): "stamp.keep" | "stamp.report"
+      if action.hasPrefix("stamp.") {
+        self?.onTodayStampMenu(["letterId": id, "action": String(action.dropFirst("stamp.".count))])
+      } else {
+        self?.onTodayCardAction(["letterId": id, "action": action])
+      }
+    }
     return a
   }()
 

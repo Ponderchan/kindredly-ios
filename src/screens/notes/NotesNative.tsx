@@ -280,6 +280,12 @@ export function NotesNative({ model }: { model: NotesModel }) {
       eveningOn: s.eveningOn,
       eveningOff: s.eveningOff,
       weekdays: s.weekdays,
+      neTitle: s.neTitle,
+      neLines: s.neLines,
+      neAsks: s.neAsks,
+      neTime: s.neTime,
+      neA11yCard: s.neA11yCard,
+      neGroupNames: s.groupNames,
     };
   }, [s]);
 
@@ -310,6 +316,7 @@ export function NotesNative({ model }: { model: NotesModel }) {
         calendarOpen={model.calendarOpen}
         recentGroups={model.recentGroups}
         wrenLine={model.wrenLine ?? ""}
+        wrenFirst={model.wrenFirst}
         bird={bird}
         birdMini={birdMini}
         evening={model.evening.state}
@@ -325,6 +332,7 @@ export function NotesNative({ model }: { model: NotesModel }) {
         onWrenLineDismiss={act.dismissWrenLine}
         onCompose={act.compose}
         onReachEnd={win.grow}
+        onEmptyWrite={act.writeEmpty}
       />
     </SurfaceHost>
   );
