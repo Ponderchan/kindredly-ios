@@ -230,7 +230,8 @@ export default function S08Stamp(props: ObScreenProps) {
               {name}
             </Text>
             <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={3} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center", marginTop: 6, marginBottom: 4 }]}>
-              {t("ob2.stamp.line")}
+              {/* "picked from what you wrote" stops being true once they chose another from the tray */}
+              {t(draft.stamp && draft.stamp !== suggested ? "ob2.stamp.linePicked" : "ob2.stamp.line")}
             </Text>
           </Animated.View>
         </View>

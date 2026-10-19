@@ -241,7 +241,9 @@ export default function S07Letter(props: ObScreenProps) {
               selectionColor={OB.blue}
               keyboardAppearance="light"
               accessibilityLabel={t("ob2.letter.head")}
-              style={{ flex: 1, fontFamily: FONT.letterItalic, fontSize: 19.5, lineHeight: PITCH, color: OB.ink, paddingTop: 2, paddingBottom: 4, paddingHorizontal: 0, textAlignVertical: "top" }}
+              // fontStyle too: a TextInput given the italic face alone typed upright while its
+              // placeholder leaned (the same trap the compose page's Fraunces-Italic fell into)
+              style={{ flex: 1, fontFamily: FONT.letterItalic, fontStyle: "italic", fontSize: 19.5, lineHeight: PITCH, color: OB.ink, paddingTop: 2, paddingBottom: 4, paddingHorizontal: 0, textAlignVertical: "top" }}
             />
           </View>
         </Animated.View>

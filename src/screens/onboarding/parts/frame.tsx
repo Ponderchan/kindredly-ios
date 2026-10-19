@@ -1,13 +1,12 @@
-import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { t } from "../../../lib/i18n";
 import type { Ground } from "../flow";
 import { NEST_SLOT_H } from "./nest-egg";
-import { GUTTER, KEY_H, ON_GROUND, SHADOW, TYPE } from "./tokens";
+import { GUTTER, KEY_H, OB_MAX_FONT, ON_GROUND, SHADOW, TYPE } from "./tokens";
 import "../../../data/strings-onboarding2";
-import { OB_MAX_FONT } from "./tokens";
 
 /* THE SCREEN FRAME (storyboard §2 "The keys never move", §6).
    ────────────────────────────────────────────────────────────────────────
@@ -47,11 +46,30 @@ export function BackKey({ onPress, on = "blue" }: { onPress: () => void; on?: Gr
   );
 }
 
-/** The key area: the primary key, then a 44pt row for a text key — both always reserved. */
+/** The keyboard is up (iOS: from the moment it starts rising, so the key moves with it). */
+function useKeyboardUp(watch: boolean): boolean {
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    if (!watch) return;
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setUp(true));
+    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [watch]);
+  return watch && up;
+}
+
+/** The key area: the primary key, then a 44pt row for a text key — both always reserved. A screen
+    with a keyboard (10) keeps the key 8 above the keyboard while it is up, and on the home
+    indicator's line like every other screen while it is down (it used to keep the 8 with the
+    keyboard down too, 24pt lower than its neighbours). */
 export function KeyArea({ primary, secondary, keyboard = false, style }: { primary?: ReactNode; secondary?: ReactNode; keyboard?: boolean; style?: StyleProp<ViewStyle> }) {
   const insets = useSafeAreaInsets();
+  const kbUp = useKeyboardUp(keyboard);
   return (
-    <View style={[{ paddingHorizontal: GUTTER, paddingTop: 10, paddingBottom: keyboard ? 8 : Math.max(insets.bottom, 16) }, style]}>
+    <View style={[{ paddingHorizontal: GUTTER, paddingTop: 10, paddingBottom: kbUp ? 8 : Math.max(insets.bottom, 16) }, style]}>
       <View style={{ height: KEY_H + SHADOW, justifyContent: "center" }}>{primary}</View>
       <View style={{ height: TEXT_KEY_ROW, marginTop: 4, alignItems: "center", justifyContent: "center" }}>{secondary}</View>
     </View>

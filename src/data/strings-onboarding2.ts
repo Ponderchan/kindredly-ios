@@ -161,6 +161,7 @@ strings(
     // 8 · your first stamp (+ 8a, the tray), and the envelope front that 8 and 12 draw
     "ob2.stamp.eyebrow": "YOUR FIRST STAMP", // 8, mono label over the big stamp (caps, ≤ 22)
     "ob2.stamp.line": "Picked from what you wrote. It tells a stranger the mood before they open it.", // 8, under the stamp's name, 2 lines
+    "ob2.stamp.linePicked": "Your pick. It tells a stranger the mood before they open it.", // 8, the same line once they picked another from 8a (it was no longer "picked from what you wrote")
     "ob2.stamp.key": "Stick it on", // 8 primary key (≤ 16)
     "ob2.stamp.another": "Pick another", // 8 outlined key under it: opens 8a (≤ 18)
     "ob2.stamp.trayHead": "Pick your first stamp", // 8a, the tray sheet's title (≤ 26)
@@ -301,6 +302,7 @@ strings(
     "ob2.letter.key": "Ponle sello",
     "ob2.stamp.eyebrow": "TU PRIMER SELLO",
     "ob2.stamp.line": "Sale de lo que escribiste. Anuncia el ánimo de la carta antes de abrirla.",
+    "ob2.stamp.linePicked": "Lo elegiste tú. Anuncia el ánimo de la carta antes de abrirla.",
     "ob2.stamp.key": "Pégalo",
     "ob2.stamp.another": "Elegir otro",
     "ob2.stamp.trayHead": "Elige tu primer sello",
@@ -430,6 +432,7 @@ strings(
     "ob2.letter.key": "Pôr o selo",
     "ob2.stamp.eyebrow": "SEU PRIMEIRO SELO",
     "ob2.stamp.line": "Escolhido pelo que você escreveu. Mostra o clima da carta antes de alguém abrir.",
+    "ob2.stamp.linePicked": "Você escolheu. Mostra o clima da carta antes de alguém abrir.",
     "ob2.stamp.key": "Colar o selo",
     "ob2.stamp.another": "Escolher outro",
     "ob2.stamp.trayHead": "Escolha seu primeiro selo",
@@ -559,6 +562,7 @@ strings(
     "ob2.letter.key": "Beri perangko",
     "ob2.stamp.eyebrow": "PERANGKO PERTAMAMU",
     "ob2.stamp.line": "Dipilih dari tulisanmu. Ia memberi tahu orang asing suasana suratmu sebelum dibuka.",
+    "ob2.stamp.linePicked": "Pilihanmu sendiri. Ia memberi tahu orang asing suasana suratmu sebelum dibuka.",
     "ob2.stamp.key": "Tempelkan",
     "ob2.stamp.another": "Pilih yang lain",
     "ob2.stamp.trayHead": "Pilih perangko pertamamu",
@@ -688,6 +692,7 @@ strings(
     "ob2.letter.key": "Timbrer",
     "ob2.stamp.eyebrow": "TON PREMIER TIMBRE",
     "ob2.stamp.line": "Choisi d'après ce que tu as écrit. Il donne le ton avant même qu'on ouvre la lettre.",
+    "ob2.stamp.linePicked": "C'est toi qui l'as choisi. Il donne le ton avant même qu'on ouvre la lettre.",
     "ob2.stamp.key": "Le coller",
     "ob2.stamp.another": "En choisir un autre",
     "ob2.stamp.trayHead": "Choisis ton premier timbre",
@@ -817,6 +822,7 @@ strings(
     "ob2.letter.key": "Marke drauf",
     "ob2.stamp.eyebrow": "DEINE ERSTE MARKE",
     "ob2.stamp.line": "Ausgesucht nach dem, was du geschrieben hast. Sie verrät die Stimmung, bevor jemand den Brief öffnet.",
+    "ob2.stamp.linePicked": "Von dir ausgesucht. Sie verrät die Stimmung, bevor jemand den Brief öffnet.",
     "ob2.stamp.key": "Draufkleben",
     "ob2.stamp.another": "Andere Marke",
     "ob2.stamp.trayHead": "Deine erste Marke",
@@ -946,6 +952,7 @@ strings(
     "ob2.letter.key": "Affrancala",
     "ob2.stamp.eyebrow": "IL TUO PRIMO FRANCOBOLLO",
     "ob2.stamp.line": "Scelto da ciò che hai scritto. Dice l'umore della lettera prima ancora di aprirla.",
+    "ob2.stamp.linePicked": "L'hai scelto tu. Dice l'umore della lettera prima ancora di aprirla.",
     "ob2.stamp.key": "Attaccalo",
     "ob2.stamp.another": "Scegline un altro",
     "ob2.stamp.trayHead": "Il tuo primo francobollo",
@@ -1075,6 +1082,7 @@ strings(
     "ob2.letter.key": "切手を貼る",
     "ob2.stamp.eyebrow": "はじめての切手",
     "ob2.stamp.line": "書いた内容から選びました。開ける前に、手紙の気分を伝えます。",
+    "ob2.stamp.linePicked": "あなたが選んだ切手です。開ける前に、手紙の気分を伝えます。",
     "ob2.stamp.key": "これを貼る",
     "ob2.stamp.another": "ほかを選ぶ",
     "ob2.stamp.trayHead": "はじめての切手を選ぶ",
@@ -1204,6 +1212,7 @@ strings(
     "ob2.letter.key": "우표 붙이기",
     "ob2.stamp.eyebrow": "첫 우표",
     "ob2.stamp.line": "쓴 내용을 보고 골랐어요. 열어 보기 전에 편지의 기분을 알려 줘요.",
+    "ob2.stamp.linePicked": "직접 고른 우표예요. 열어 보기 전에 편지의 기분을 알려 줘요.",
     "ob2.stamp.key": "이걸로 붙이기",
     "ob2.stamp.another": "다른 거 고르기",
     "ob2.stamp.trayHead": "첫 우표 고르기",

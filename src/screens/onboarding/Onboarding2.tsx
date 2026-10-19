@@ -369,6 +369,9 @@ export default function Onboarding2() {
   );
   const finished = useCallback(() => finishP.current, []);
   const now = useCallback(() => Date.now(), []);
+  /* the screen of the last render, and the one the current screen was entered from */
+  const lastScreenRef = useRef<string | null>(null);
+  const enteredFromRef = useRef<string | null>(null);
 
   if (!ctx || !run) return <LaunchFrame />;
 
@@ -376,6 +379,13 @@ export default function Onboarding2() {
   const screen = draft.screen;
   // the launch's hand-off is screen 1's, once: gone as soon as the run leaves 1
   if (screen !== "doorstep") handoffRef.current = null;
+  if (lastScreenRef.current !== screen) {
+    enteredFromRef.current = lastScreenRef.current;
+    lastScreenRef.current = screen;
+  }
+  /* no fade into 2 from 1 either: screen 1 rolls the egg into 2's hero spot itself, and the
+     runner's fade blinked it out for ~3 frames on arrival */
+  const noFade = (screen === "doorstep" && !!handoffRef.current) || (screen === "egg" && enteredFromRef.current === "doorstep");
   const hasBack = !ctx.blocked && side !== "underage" && flowBack(draft, ctx, Date.now()) !== null;
   const props: ObScreenProps = {
     draft,
@@ -406,8 +416,9 @@ export default function Onboarding2() {
     <ObRunContext.Provider value={props}>
       <Ground kind={ground}>
         {/* no fade for screen 1 straight from the launch: its first frame IS the launch's last
-            (storyboard §4), and a fade from nothing would dip the mark under the route's own fade */}
-        <Animated.View key={screen} entering={screen === "doorstep" && props.handoff ? undefined : FadeIn.duration(220)} style={{ flex: 1 }}>
+            (storyboard §4), and a fade from nothing would dip the mark under the route's own fade;
+            none into 2 from 1 (noFade above) */}
+        <Animated.View key={screen} entering={noFade ? undefined : FadeIn.duration(220)} style={{ flex: 1 }}>
           <Screen {...props} />
         </Animated.View>
         {eggPlace(screen) === "nest" && (
