@@ -445,6 +445,13 @@ export const DEMO_STATE_THREADS: ThreadSummary[] = [
   },
 ];
 
+/* THE SIGNATURES ON THE DEMO KINDRED (identity Phase 2): lib/pen-signature penDemo("Mira") and
+   penDemo("Rowan") written out as literals, so this file keeps its type-only imports. The ceremony
+   and the kindred page draw them on the dev pages; src/lib/pen-signature.test.ts checks they are
+   still exactly what penDemo makes. Never real data. */
+export const DEMO_PEN_MIRA = { v: 1 as const, w: 1000 as const, h: 320 as const, s: [[112,230,130,227,146,219,160,207,169,194,173,181,173,171,170,164,165,163,160,167,156,176,155,187,159,200,167,212,179,222,195,228,213,230,231,228,247,223,260,216,269,208,273,200,274,191,270,184,265,180,260,180,257,184,256,191,260,201,268,212,281,221,296,228,314,230,332,227,348,220,361,209,371,195,375,180,376,168,372,159,367,155,362,157,358,165,358,177,361,192,369,206,382,219,397,227,415,230,433,227,449,219,463,207,472,193,476,179,476,168,473,161,468,160,463,164,459,173,458,185,462,198,470,211,483,221,498,228,516,230,534,228,550,222,563,214,572,206,577,198,577,192,568,185,563,185,560,188,559,195,563,203,571,213,583,222,599,228,617,230],[92,256,274,262,365,261,455,256,637,238],[253,123]] };
+export const DEMO_PEN_ME = { v: 1 as const, w: 1000 as const, h: 320 as const, s: [[164,230,181,228,197,220,209,208,217,193,220,177,219,162,215,151,209,145,203,146,200,153,200,166,204,182,213,200,226,215,242,226,260,230,277,226,293,214,305,197,312,176,315,154,314,136,310,124,304,119,299,123,295,135,296,153,300,175,309,196,322,214,338,226,356,230,373,226,389,215,401,199,408,180,411,162,410,148,406,140,401,139,395,145,392,157,392,173,397,190,405,206,418,219,434,227,452,230,469,228,485,221,497,210,505,197,508,182,507,168,503,157,497,151,492,152,488,158,488,170,492,185,501,202,514,216,530,226,548,230,565,226,581,215,593,198,600,177,603,156,602,138,598,125,592,120,587,124,583,135,584,153,588,175,597,196,610,214,626,226,644,230],[144,256,317,262,404,261,491,256,664,238],[298,89]] };
+
 /* canned conversations for the sample threads (thread/[id] falls back to
    these for demo- ids so browsing the preview isn't a dead end). Every
    pen pal's counts match its messages, so the band and the five-each-way
@@ -458,6 +465,13 @@ export const DEMO_DETAILS: Record<string, ThreadDetail> = {
     other: "demo-mira",
     myCount: 6,
     otherCount: 6,
+    // what each side was given at the reveal (web 0035): her drawn name, and yours as she received it
+    otherSig: DEMO_PEN_MIRA,
+    mySig: DEMO_PEN_ME,
+    mySignedName: "Rowan",
+    mySignedFace: "m-anchor",
+    iSigned: true,
+    theirSigned: true,
     since: iso(200 * H),
     revealedAt: iso(100 * H),
     openingAt: iso(210 * H),

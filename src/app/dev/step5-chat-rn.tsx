@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
@@ -10,6 +10,7 @@ import { LettersRN } from "../../screens/chat/LettersRN";
 import { ReaderScreen } from "../../screens/chat/ReaderScreen";
 import { KindredPage } from "../../screens/chat/KindredPage";
 import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
+import { setSignDemo, signDemo, subscribeSignDemo } from "../../screens/chat/sign-sheet";
 
 /* dev only — THE CHAT GROUP IN REACT NATIVE ON DEMO FIXTURES (10a step 5, slice chat-rn).
    kindredly:///dev/step5-chat-rn
@@ -62,6 +63,7 @@ const FIXTURES: Fixture[] = [
   { kind: "room", id: "demo-gone-kindred", label: "ROOM · GONE" },
   { kind: "letters", id: "demo-north", label: "LETTERS · YOU FIRST" },
   { kind: "letters", id: "demo-blackberry", label: "LETTERS · THEY FIRST" },
+  { kind: "letters", id: "demo-band-names", label: "LETTERS · NAMES" },
   { kind: "letters", id: "demo-band-youdone", label: "BAND · YOU DONE" },
   { kind: "letters", id: "demo-band-theydone", label: "BAND · THEY DONE" },
   { kind: "letters", id: "demo-voice", label: "LETTERS · VOICE" },
@@ -109,10 +111,13 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
 function ChatRNLab() {
   const { key, t: tk } = useTheme();
   const forced = useDevThemeOverride();
-  const [index, setIndex] = useState(0);
+  // ?fx=demo-blackberry opens on that pen-pal fixture (the identity Phase 2 checks jump straight to a door)
+  const { fx: fxParam } = useLocalSearchParams<{ fx?: string }>();
+  const [index, setIndex] = useState(() => Math.max(0, FIXTURES.findIndex((f) => f.id === fxParam && f.kind === "letters")));
   const fx = FIXTURES[index];
   // NAMES: the identity switch previewed on for this run (never saved)
   const names = useIdentityOn();
+  const pen = useSignDemoChips();
 
   const keys = THEME_KEYS as ThemeKey[];
   const themeIndex = forced ? keys.indexOf(forced) : -1;
@@ -133,6 +138,8 @@ function ChatRNLab() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 6 }}>
           <Chip label={`THEME ${forced ? THEMES[key].name.toUpperCase() : "OFF"}`} onPress={nextTheme} />
           <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
+          <Chip label={`PEN ${pen.mode}`} on={pen.mode !== "REAL"} onPress={pen.next} />
+          <Chip label="GUEST" on={pen.guest} onPress={pen.toggleGuest} />
           {FIXTURES.map((f, i) => (
             <Chip key={`${i}:${f.kind}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
           ))}
@@ -151,4 +158,18 @@ function ChatRNLab() {
       </View>
     </SafeAreaView>
   );
+}
+
+/* DEMO MODE for the signing sheet (identity Phase 2, NAMES on; sign-sheet setSignDemo): PEN cycles
+   REAL (the account's own pen name) → FIRST (no pen name yet: the first trade, an empty field) →
+   LATER (pre-filled "Rowan"); GUEST makes the sheet believe the reader is a guest (its guest line).
+   A demo signature never saves to the profile or reaches the server; it writes its name here, so
+   the next demo trade opens pre-filled. Kept for this run of the app only. */
+function useSignDemoChips() {
+  const demo = useSyncExternalStore(subscribeSignDemo, signDemo);
+  const mode = !demo ? "REAL" : demo.handle ? "LATER" : "FIRST";
+  const guest = !!demo?.guest;
+  const next = () => setSignDemo(mode === "REAL" ? { handle: "", guest } : mode === "FIRST" ? { handle: "Rowan", guest } : guest ? { handle: "", guest } : null);
+  const toggleGuest = () => setSignDemo({ handle: demo?.handle ?? "", guest: !guest });
+  return { mode, guest, next, toggleGuest };
 }

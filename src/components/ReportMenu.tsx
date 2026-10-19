@@ -43,8 +43,12 @@ import "../data/strings-step5-platform"; // rp.menu.a11y
 /** Draws a report flow's stages: the three choices, the one-line answer,
     the block question. Render it once per screen, anywhere — it is a
     window-level Modal. `top` places the card (default: just under the
-    header, where the ⋯ usually is). */
-export function ReportSheet({ flow, top }: { flow: ReportFlow; top?: number }) {
+    header, where the ⋯ usually is). `reportLabel` names the report row
+    when it is about one thing in particular (identity Phase 2: "Report
+    this signature", id2.rp.signature); rp.menu.report otherwise.
+    `onDismiss` runs once the card's Modal has finished going (iOS) — a
+    caller inside another sheet waits for it before closing that sheet. */
+export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: ReportFlow; top?: number; reportLabel?: string; onDismiss?: () => void }) {
   useLang();
   const wren = useWrenName();
   const insets = useSafeAreaInsets();
@@ -80,7 +84,7 @@ export function ReportSheet({ flow, top }: { flow: ReportFlow; top?: number }) {
   );
 
   return (
-    <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={flow.close}>
+    <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={flow.close} onDismiss={onDismiss}>
       <Pressable onPress={flow.close} accessible={false} style={{ flex: 1, backgroundColor: scrimColor(dark, 0.14) }}>
         {stage !== null && stage !== "block" && (
           <View
@@ -113,7 +117,7 @@ export function ReportSheet({ flow, top }: { flow: ReportFlow; top?: number }) {
               </>
             ) : (
               <>
-                <Row label={busy ? "…" : t("rp.menu.report")} icon="flag" onPress={() => void flow.report()} />
+                <Row label={busy ? "…" : (reportLabel ?? t("rp.menu.report"))} icon="flag" onPress={() => void flow.report()} />
                 <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => flow.askBlock()} />
                 <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 4 }} />
                 <Row label={t("rp.menu.never")} icon="none" onPress={flow.close} />
@@ -148,6 +152,7 @@ export function ReportMenu({
   snapshot,
   onBlocked,
   ring,
+  reportLabel,
 }: {
   targetUser?: string;
   context: ReportContext;
@@ -158,6 +163,8 @@ export function ReportMenu({
   onBlocked?: () => void;
   /** the sticker-punch face: a small outlined ring instead of bare dots */
   ring?: boolean;
+  /** the report row's words when it is about one thing (ReportSheet) */
+  reportLabel?: string;
 }) {
   useLang();
   const { t: tk } = useTheme();
@@ -181,7 +188,7 @@ export function ReportMenu({
       </Pressable>
 
       {/* window-level, so it sits over whatever row the ⋯ is in */}
-      <ReportSheet flow={flow} />
+      <ReportSheet flow={flow} reportLabel={reportLabel} />
     </>
   );
 }

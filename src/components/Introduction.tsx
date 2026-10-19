@@ -1,11 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PF } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
-import { IntroductionRitual, T_RITUAL_DONE } from "./IntroductionRitual";
-import Animated, { FadeIn } from "react-native-reanimated";
+import { IntroductionRitual, ritualDoneAt } from "./IntroductionRitual";
+import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
+import { useSignatureHold } from "./SignatureHold";
+import type { SignedPair } from "../lib/signed-sides";
+import { dShort } from "../lib/format";
 import { stickerName } from "../lib/sticker-copy";
 import type { ThreadMessage } from "../lib/db";
 import { roadFact, type KindredNotice } from "../lib/kindred-read";
@@ -13,6 +16,7 @@ import { t, useLang } from "../lib/i18n";
 import { dismissKeyboard } from "../lib/keyboard";
 import { WrenBird } from "./WrenBird";
 import "../data/strings-step5-chat"; // in.meFallback, in.knowYouUnsigned
+import "../data/strings-identity2"; // id2.in.*, id2.rp.signature
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
    ────────────────────────────────────────────────────────────────────────
@@ -41,7 +45,21 @@ import "../data/strings-step5-chat"; // in.meFallback, in.knowYouUnsigned
    name the ritual labels their face with a lower-case "you" in their
    language (in.meFallback) and the line under it has its own sentence
    (in.knowYouUnsigned): a "you" dropped into in.knowYou takes the wrong case
-   in German, Italian or Korean ("dich" in the sentence, "du" on the label). */
+   in German, Italian or Korean ("dich" in the sentence, "du" on the label).
+
+   IDENTITY ON (Phase 2, `signed`): the ritual wipes the frosted windows
+   clear and draws both signatures in (IntroductionRitual), and the words
+   around it follow what was actually SIGNED — the line under it is
+   in.knowYou with my pen name as they received it, TALK TO says theirs.
+   VoiceOver hears the whole ritual as one sentence: who signed as whom,
+   both ways, and since when (id2.in.a11y / a11yMine + the chip). Once it
+   is done their signature can be held (450ms) for Report this signature /
+   Block — and VoiceOver has the same two as actions on that sentence; the
+   card is drawn inside this sheet (SignatureHold), and a block closes the
+   ceremony for Kindreds (`report.onBlocked`). Under Reduce Motion the end
+   state cross-fades in, done by 1600, and the "noticed" line waits for
+   whichever ritual is showing (ritualDoneAt). `signed` absent: today's
+   ritual and words, exactly. */
 export function Introduction({
   open,
   wren,
@@ -56,6 +74,9 @@ export function Introduction({
   notice = null,
   since = new Date().toISOString(),
   stamp = null,
+  signed = null,
+  report,
+  reducedMotion,
   onClose,
   onTalk,
 }: {
@@ -78,6 +99,12 @@ export function Introduction({
   since?: string;
   /** the stamp the correspondence opened under */
   stamp?: string | null;
+  /** identity on: what each side signed (lib/signed-sides); null/absent = today's mosaic ritual */
+  signed?: SignedPair | null;
+  /** identity on: who a held signature is reported about, and where a block goes */
+  report?: { threadId?: string | null; targetUser?: string | null; onBlocked?: () => void };
+  /** dev preview only: force Reduce Motion on or off (else the system's setting) */
+  reducedMotion?: boolean;
   onClose: () => void;
   /** the exit isn't "dismiss" — it's the door into the room */
   onTalk: () => void;
@@ -91,6 +118,34 @@ export function Introduction({
   const P = useP();
   const tk = useTheme().t;
   const insets = useSafeAreaInsets();
+  const systemStill = useReducedMotion();
+  const still = reducedMotion ?? systemStill;
+  const doneAt = ritualDoneAt(!!signed, still);
+  /* the signed ritual's end state, when their signature may be held (and VoiceOver offers it) */
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    setDone(false);
+    if (!open || !signed) return;
+    const id = setTimeout(() => setDone(true), doneAt);
+    return () => clearTimeout(id);
+  }, [open, signed, doneAt]);
+  const hold = useSignatureHold({
+    threadId: report?.threadId,
+    targetUser: signed ? report?.targetUser : null,
+    onBlocked: report?.onBlocked,
+    inSheet: true,
+  });
+  // what was signed, when it was: the line under the ritual and TALK TO follow it
+  const theirName = signed ? signed.theirs.name : otherName;
+  const meName = signed ? signed.mine.name : myName;
+  const ritualA11y = signed
+    ? [
+        t("id2.in.a11y", { name: signed.theirs.courier, pen: signed.theirs.name }),
+        t("id2.in.a11yMine", { name: signed.mine.courier, pen: signed.mine.name || t("in.meFallback") }),
+        t("in.sinceChip", { date: dShort(since).toUpperCase() }),
+      ].join(" ")
+    : undefined;
+  const holdable = !!signed && done && hold.can;
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: P.paper }}>
@@ -112,9 +167,36 @@ export function Introduction({
 
           {/* THE RITUAL — four beats: the ten letters stamped in order, the
               mosaic flying into a postmark, the name typed into it by •>,
-              and both faces resolving side by side. */}
-          <View style={{ marginTop: 22, marginBottom: 4 }}>
-            <IntroductionRitual road={road} otherSeed={otherSeed} otherFace={otherFace} otherName={otherName} mySeed={mySeed} myFace={myFace} myName={myName || t("in.meFallback")} since={since} stamp={stamp} notice={notice} />
+              and both faces resolving side by side. Identity on: the road,
+              the frost wiped clear, the courier names struck, the two
+              signatures drawn in, the bump — one VoiceOver sentence. */}
+          <View
+            style={{ marginTop: 22, marginBottom: 4 }}
+            {...(ritualA11y
+              ? {
+                  accessible: true,
+                  accessibilityLabel: ritualA11y,
+                  accessibilityActions: holdable ? hold.actions : undefined,
+                  onAccessibilityAction: hold.onAction,
+                }
+              : null)}
+          >
+            <IntroductionRitual
+              road={road}
+              otherSeed={otherSeed}
+              otherFace={otherFace}
+              otherName={otherName}
+              mySeed={mySeed}
+              myFace={myFace}
+              myName={myName || t("in.meFallback")}
+              since={since}
+              stamp={stamp}
+              notice={notice}
+              signed={signed}
+              still={still}
+              holdable={holdable}
+              onHoldTheirs={hold.open}
+            />
           </View>
 
           {/* what she noticed — a label you both wear, or their strongest;
@@ -126,12 +208,12 @@ export function Introduction({
             const line = notice
               ? notice.shared
                 ? t("in.both", { label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
-                : t("in.theirs", { name: otherName, label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
+                : t("in.theirs", { name: theirName, label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
               : fact!.nightTheirs > 0
                 ? t("in.roadNight", { n: fact!.letters, d: fact!.days, k: fact!.nightTheirs })
                 : t("in.roadWait", { n: fact!.letters, d: fact!.days, g: fact!.longestWaitDays });
             return (
-              <Animated.View entering={FadeIn.duration(500).delay(T_RITUAL_DONE)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
+              <Animated.View entering={FadeIn.duration(500).delay(doneAt)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
                 <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
                 <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{line}</Text>
               </Animated.View>
@@ -139,9 +221,12 @@ export function Introduction({
           })()}
 
           <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
-            {myName ? t("in.knowYou", { name: myName }) : t("in.knowYouUnsigned")}
+            {meName ? t("in.knowYou", { name: meName }) : t("in.knowYouUnsigned")}
           </Text>
         </ScrollView>
+
+        {/* Report this signature / Block, under their held signature — inside this sheet */}
+        {signed ? hold.sheet : null}
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
           <Pressable
@@ -150,7 +235,7 @@ export function Introduction({
             style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
           >
             <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.bg }}>
-              {t("in.talkTo", { name: otherName.toUpperCase() })}
+              {t("in.talkTo", { name: theirName.toUpperCase() })}
             </Text>
           </Pressable>
         </View>

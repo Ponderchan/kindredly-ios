@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
-import Animated, { Easing, FadeIn, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import Animated, { Easing, FadeIn, ReduceMotion, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { MONO, PF } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import { useP, useTheme } from "../lib/theme";
@@ -12,11 +13,16 @@ import { Stamp } from "./Stamp";
 import { STAMP_DOT_PT } from "../lib/stamp-frame";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
-import { dShort } from "../lib/format";
+import { dShort, localeTag } from "../lib/format";
 import { hashStr } from "../lib/format";
 import { stickerLook } from "../lib/sticker-copy";
 import type { ThreadMessage } from "../lib/db";
 import type { KindredNotice } from "../lib/kindred-read";
+import { Frost, VeilTile } from "./Frost";
+import type { FrostSpec } from "../lib/frost";
+import { penDrawPlan, penTypedUpright, penViewBox, type PenDrawStep, type PenSig } from "../lib/pen-signature";
+import type { SignedPair, SignedSide } from "../lib/signed-sides";
+import { PenSignature } from "./PenSignature";
 
 /* THE RITUAL — a sticker book, not a ceremony.
    ────────────────────────────────────────────────────────────────────────
@@ -45,7 +51,32 @@ import type { KindredNotice } from "../lib/kindred-read";
    brand: paperWhite, inkOnBrand, greenText), not literals; the kindred
    green sticker and the window's pane are this object's alone. The mono
    labels sit on the 9/10/11 sizes (the envelope's own tiny postmark is
-   drawing, not a label). */
+   drawing, not a label).
+
+   IDENTITY ON — THE SIGNED NAME (Phase 2, PHASE2.md §7; `signed` given).
+   The road stays; the burst and the typed sticker go, because there was
+   no mosaic to blow apart and the name wasn't typed by the courier — it
+   was signed by the person. Two columns, yours on the left as on the road:
+   ② at 3400 the two frosted windows each of you wore (FROST v1, the very
+      colours the other saw), courier names under them; a soft sheen
+      sweeps each pane top-left to bottom-right as the frost goes, the
+      square turns round, and the face each of you SENT is behind it (the
+      snapshot from the seal, or the glyph for none).
+   ③ at 4250 an ink line strikes through their courier name, then yours;
+      both dim to 45%. A name you were given gives way to one you chose.
+   ④ at 4600 their signature draws in stroke by stroke (penDrawPlan, in a
+      132×42 slot, 2pt, the theme's ink), their pen name fading in under
+      it; at 5600 yours, faster. A typed side has no drawing: the pen name
+      fades into the slot in the italic (upright for CJK), once.
+   ⑤ at 6250 the two faces bump (kept), ⑥ at 6850 KINDREDS · {date}
+      slaps under them, ⑦ at 7300 what she noticed; done at 8000, inside
+      today's 8040.
+   Under Reduce Motion (`still`) none of that moves: the road is already
+   landed, and the end state cross-fades in — faces, struck names, whole
+   signatures at 300, the chip at 900, the sticker at 1300 — done by 1600.
+   Their signature, once still, can be held (450ms) for Report this
+   signature / Block (`onHoldTheirs`; the Introduction draws the card).
+   No postmark wavy lines anywhere; the envelopes' stamps are Stamp's. */
 
 const T_ROAD = 380;
 const T_STEP = 240; // one letter crosses every 240 ms; the last lands before the burst
@@ -57,9 +88,72 @@ const T_BUMP = T_NAME + 1500;
 const T_NOTICE = T_BUMP + 1100;
 export const T_RITUAL_DONE = T_NOTICE + 700;
 
+/* identity on: the signed beats (PHASE2.md §7.1), on the same road */
+const S_WINDOWS = 3400; // the two windows fade in (250ms)
+const S_WIPE = 3650; // the sheen sweeps, the frost goes (→ 4200); round 3700 → 4200; the face 3800 → 4250
+const S_STRIKE_THEIRS = 4250;
+const S_STRIKE_MINE = 4370;
+const S_SIGN_THEIRS = 4600;
+const S_SIGN_THEIRS_MS = 1000;
+const S_SIGN_MINE = 5600;
+const S_SIGN_MINE_MS = 600;
+const S_BUMP = 6250;
+const S_CHIP = 6850;
+const S_NOTICE = 7300;
+/** identity on: when the signed ritual is done (the Introduction's "noticed" line waits for it) */
+export const T_SIGNED_DONE = 8000;
+/** the same under Reduce Motion: a cross-fade to the end state */
+export const T_SIGNED_DONE_STILL = 1600;
+/** When the ritual a sheet is showing is done: today's, or the signed one, moving or still. */
+export const ritualDoneAt = (signed: boolean, still: boolean): number => (!signed ? T_RITUAL_DONE : still ? T_SIGNED_DONE_STILL : T_SIGNED_DONE);
+
 const ease = { out: Easing.out(Easing.cubic), back: Easing.out(Easing.back(2)), sine: Easing.inOut(Easing.sin) };
 
 export function IntroductionRitual({
+  road,
+  otherSeed,
+  otherFace,
+  otherName,
+  mySeed,
+  myFace,
+  myName,
+  since,
+  stamp,
+  notice,
+  signed,
+  still = false,
+  holdable = false,
+  onHoldTheirs,
+}: {
+  road: ThreadMessage[];
+  otherSeed: string;
+  otherFace?: string | null;
+  otherName: string;
+  mySeed: string;
+  myFace?: string | null;
+  myName: string;
+  /** the day the names met */
+  since: string;
+  /** the stamp the correspondence opened under — the envelopes wear it */
+  stamp?: string | null;
+  notice?: KindredNotice | null;
+  /** identity on: what each side signed — the frost wipe and the signatures replace the burst and the sticker */
+  signed?: SignedPair | null;
+  /** identity on, Reduce Motion: the end state cross-fades in (done by 1600) */
+  still?: boolean;
+  /** identity on: the ritual is done and their signature may be held */
+  holdable?: boolean;
+  /** identity on: their signature was held (450ms); the view that was held, for the card */
+  onHoldTheirs?: (anchor: View | null) => void;
+}) {
+  if (signed) {
+    return <SignedRitual road={road} stamp={stamp} signed={signed} since={since} notice={notice} still={still} holdable={holdable} onHoldTheirs={onHoldTheirs} />;
+  }
+  return <MosaicRitual road={road} otherSeed={otherSeed} otherFace={otherFace} otherName={otherName} mySeed={mySeed} myFace={myFace} myName={myName} since={since} stamp={stamp} notice={notice} />;
+}
+
+/* identity off (or no signed data): today's ritual, exactly */
+function MosaicRitual({
   road,
   otherSeed,
   otherFace,
@@ -78,9 +172,7 @@ export function IntroductionRitual({
   mySeed: string;
   myFace?: string | null;
   myName: string;
-  /** the day the names met */
   since: string;
-  /** the stamp the correspondence opened under — the envelopes wear it */
   stamp?: string | null;
   notice?: KindredNotice | null;
 }) {
@@ -152,15 +244,30 @@ export function IntroductionRitual({
 const ROAD_W = 300;
 const ROAD_H = 100;
 const WIN = 34;
-function Flight({ road, stamp }: { road: ThreadMessage[]; stamp?: string | null }) {
+function Flight({ road, stamp, still = false }: { road: ThreadMessage[]; stamp?: string | null; still?: boolean }) {
   const P = useP();
   const tk = useTheme().t;
-  const [mine, setMine] = useState(0);
-  const [theirs, setTheirs] = useState(0);
+  /* still (identity on, Reduce Motion): the road as it ends — every letter landed, the counts final,
+     no crossings, the count line already there */
+  const [mine, setMine] = useState(() => (still ? road.filter((m) => !m.mine).length : 0));
+  const [theirs, setTheirs] = useState(() => (still ? road.filter((m) => m.mine).length : 0));
+  /* the counts follow the road's letters, not the array: the chat hands a new one on every reload
+     of the thread (a letter arriving while the ceremony is open), and replaying the timers onto the
+     counts already there landed every letter twice — "10 YOU · 10 THEM". A road that really changed
+     starts its count again. */
+  const roadKey = road.map((m) => (m.mine ? "1" : "0")).join("");
   useEffect(() => {
+    if (still) {
+      setMine(road.filter((m) => !m.mine).length);
+      setTheirs(road.filter((m) => m.mine).length);
+      return;
+    }
+    setMine(0);
+    setTheirs(0);
     const timers = road.map((m, i) => setTimeout(() => (m.mine ? setTheirs((n) => n + 1) : setMine((n) => n + 1)), T_ROAD + i * T_STEP + T_FLY));
     return () => timers.forEach(clearTimeout);
-  }, [road]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roadKey, still]);
   const x0 = WIN / 2 + 8;
   const x1 = ROAD_W - WIN / 2 - 8;
   const y = ROAD_H - 30;
@@ -169,12 +276,16 @@ function Flight({ road, stamp }: { road: ThreadMessage[]; stamp?: string | null 
       {/* the ground the two windows stand on, and the dotted road between */}
       <View style={{ position: "absolute", left: 10, right: 10, top: y + WIN / 2 + 2, height: 1.5, backgroundColor: tk.ln }} />
       <View style={{ position: "absolute", left: x0 + WIN / 2 + 6, right: ROAD_W - x1 + WIN / 2 + 6, top: y - 30, height: 0, borderTopWidth: 1.5, borderStyle: "dotted", borderColor: P.ink12 }} />
-      <Window x={x0} y={y} label={t("ui.you").toUpperCase()} count={mine} roof />
-      <Window x={x1} y={y} label={t("in.them").toUpperCase()} count={theirs} />
-      {road.map((m, i) => (
-        <Crossing key={i} from={m.mine ? x0 : x1} to={m.mine ? x1 : x0} y={y} at={T_ROAD + i * T_STEP} date={m.date} stamp={stamp} mine={m.mine} />
-      ))}
-      <Animated.Text entering={FadeIn.duration(400).delay(T_ROAD + road.length * T_STEP + T_FLY + 100)} style={{ position: "absolute", left: 0, right: 0, bottom: 0, textAlign: "center", fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40 }}>
+      <Window x={x0} y={y} label={t("ui.you").toUpperCase()} count={mine} roof still={still} />
+      <Window x={x1} y={y} label={t("in.them").toUpperCase()} count={theirs} still={still} />
+      {!still &&
+        road.map((m, i) => (
+          <Crossing key={i} from={m.mine ? x0 : x1} to={m.mine ? x1 : x0} y={y} at={T_ROAD + i * T_STEP} date={m.date} stamp={stamp} mine={m.mine} />
+        ))}
+      <Animated.Text
+        entering={still ? undefined : FadeIn.duration(400).delay(T_ROAD + road.length * T_STEP + T_FLY + 100)}
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, textAlign: "center", fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40 }}
+      >
         {t("in.road", { n: road.length })}
       </Animated.Text>
     </View>
@@ -182,14 +293,14 @@ function Flight({ road, stamp }: { road: ThreadMessage[]; stamp?: string | null 
 }
 
 /* a window with a sill: the count of letters that have landed on it */
-function Window({ x, y, label, count, roof }: { x: number; y: number; label: string; count: number; roof?: boolean }) {
+function Window({ x, y, label, count, roof, still }: { x: number; y: number; label: string; count: number; roof?: boolean; still?: boolean }) {
   const P = useP();
   const tk = useTheme().t;
   const pop = useSharedValue(0);
   useEffect(() => {
-    if (count === 0) return;
+    if (count === 0 || still) return;
     pop.value = withSequence(withTiming(1, { duration: 90 }), withTiming(0, { duration: 280, easing: ease.back }));
-  }, [count, pop]);
+  }, [count, pop, still]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.25 * pop.value }] }));
   return (
     <View style={{ position: "absolute", left: x - WIN / 2 - 20, top: y - WIN / 2 - 14, width: WIN + 40, alignItems: "center" }}>
@@ -407,4 +518,376 @@ function Bumper({ side, seed, face, at }: { side: -1 | 1; seed: string; face: st
       </Animated.View>
     </Animated.View>
   );
+}
+
+/* ═══ IDENTITY ON: THE SIGNED NAME ═══════════════════════════════════════
+   Two columns (yours left, theirs right, as on the road), each a window
+   that wipes clear onto the face sent, the courier name struck through,
+   the signature drawn in, the pen name under it. Columns, not the 56pt
+   pair of the first sketch: two 132pt signature slots side by side need
+   the room, so the faces sit over their own signatures (80pt apart) and
+   the bump carries them to the middle and back. */
+const COL_W = 136;
+const COL_GAP = 8;
+const FACE = 64;
+const SLOT_W = 132;
+const SLOT_H = 42;
+/* how far each face travels to the collision: they meet overlapping by 10pt */
+const BUMP_IN = (COL_W + COL_GAP - FACE) / 2 + 5;
+/* the wipe's own clock, from S_WIPE (ms) */
+const WIPE_MS = 600;
+const never = ReduceMotion.Never; // the moving path only runs with Reduce Motion off; `still` is the other path
+
+function SignedRitual({
+  road,
+  stamp,
+  signed,
+  since,
+  notice,
+  still,
+  holdable,
+  onHoldTheirs,
+}: {
+  road: ThreadMessage[];
+  stamp?: string | null;
+  signed: SignedPair;
+  since: string;
+  notice?: KindredNotice | null;
+  still: boolean;
+  holdable: boolean;
+  onHoldTheirs?: (anchor: View | null) => void;
+}) {
+  const chipLook = notice ? stickerLook(notice.stickerId, 1) : null;
+  // a cross-fade is not motion: under Reduce Motion it still fades (and is the only thing that moves)
+  const fade = (ms: number, at: number) => FadeIn.duration(ms).delay(at).reduceMotion(never);
+  const pair = (
+    <View style={{ flexDirection: "row", width: COL_W * 2 + COL_GAP, justifyContent: "space-between" }}>
+      <SignedColumn side={signed.mine} dir={1} strikeAt={S_STRIKE_MINE} signAt={S_SIGN_MINE} signMs={S_SIGN_MINE_MS} still={still} fallbackName={t("in.meFallback")} />
+      <SignedColumn side={signed.theirs} dir={-1} strikeAt={S_STRIKE_THEIRS} signAt={S_SIGN_THEIRS} signMs={S_SIGN_THEIRS_MS} still={still} holdable={holdable} onHold={onHoldTheirs} />
+    </View>
+  );
+  const chip = (
+    <View style={{ backgroundColor: BRAND.paperWhite, borderRadius: 999, borderWidth: 1.5, borderColor: BRAND.greenText, paddingHorizontal: 9, paddingVertical: 3 }}>
+      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.4, color: BRAND.greenText }}>{t("in.sinceChip", { date: dShort(since).toUpperCase() })}</Text>
+    </View>
+  );
+  return (
+    <View style={{ alignItems: "center" }}>
+      {/* ① the road, as today (or already landed) */}
+      <Flight road={road} stamp={stamp} still={still} />
+
+      {/* ② the windows wipe clear, ③ the courier names struck, ④ the signatures */}
+      <Animated.View entering={still ? fade(400, 300) : fade(250, S_WINDOWS)} style={{ marginTop: 14 }}>
+        {pair}
+      </Animated.View>
+
+      {/* ⑥ since when — under the two of you */}
+      <View style={{ marginTop: 10, alignItems: "center", minHeight: 24 }}>
+        {still ? (
+          // at the tilt the slapped chip settles at, so the end state is the same either way
+          <Animated.View entering={fade(300, 900)} style={{ transform: [{ rotate: "2deg" }] }}>
+            {chip}
+          </Animated.View>
+        ) : (
+          <Slapped at={S_CHIP} tilt={2} small>
+            {chip}
+          </Slapped>
+        )}
+      </View>
+
+      {/* ⑦ what she noticed, if a label showed (kept) */}
+      {notice && chipLook && (
+        <View style={{ marginTop: 14, alignItems: "center" }}>
+          {(() => {
+            const sticker = (
+              <View>
+                <StickerChip id={notice.stickerId} i={1} size="lg" />
+                {notice.shared && (
+                  <View style={{ position: "absolute", top: -9, right: -12, backgroundColor: BRAND.inkOnBrand, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 2, borderColor: BRAND.paperWhite }}>
+                    <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, color: BRAND.paperWhite }}>×2</Text>
+                  </View>
+                )}
+              </View>
+            );
+            return still ? (
+              <Animated.View entering={fade(300, 1300)} style={{ transform: [{ rotate: `${notice.shared ? -2 : 2}deg` }] }}>
+                {sticker}
+              </Animated.View>
+            ) : (
+              <Slapped at={S_NOTICE} tilt={notice.shared ? -2 : 2}>
+                {sticker}
+              </Slapped>
+            );
+          })()}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* one side: the window that wipes onto the face, the struck courier name, the signature, the pen name */
+function SignedColumn({
+  side,
+  dir,
+  strikeAt,
+  signAt,
+  signMs,
+  still,
+  fallbackName,
+  holdable = false,
+  onHold,
+}: {
+  side: SignedSide;
+  /** which way the middle is: +1 for the left column, -1 for the right */
+  dir: 1 | -1;
+  strikeAt: number;
+  signAt: number;
+  signMs: number;
+  still: boolean;
+  /** the words for a side with no pen name (mine only: in.meFallback) */
+  fallbackName?: string;
+  holdable?: boolean;
+  onHold?: (anchor: View | null) => void;
+}) {
+  const slot = useRef<View>(null);
+  const name = side.name || fallbackName || "";
+  const holds = !!onHold && holdable;
+  return (
+    <View style={{ width: COL_W, alignItems: "center" }}>
+      <Bumping dir={dir} at={S_BUMP} still={still}>
+        <WipeWindow frost={side.frost} face={side.face} seed={side.seed} still={still} />
+      </Bumping>
+      <StruckName text={side.courier.toLocaleUpperCase(localeTag())} at={strikeAt} still={still} />
+      <Pressable
+        ref={slot}
+        disabled={!holds}
+        delayLongPress={450}
+        onLongPress={holds ? () => onHold?.(slot.current) : undefined}
+        accessible={false}
+        style={{ marginTop: 10, width: SLOT_W, height: SLOT_H }}
+      >
+        {side.sig ? <DrawnSig sig={side.sig} at={signAt} ms={signMs} still={still} /> : <TypedSig name={name} at={signAt} still={still} />}
+      </Pressable>
+      {/* the typed pen name under a drawing (a typed side IS the name: nothing under it) */}
+      <View style={{ height: 20, marginTop: 4, justifyContent: "center" }}>{side.sig ? <FadeName text={name} at={signAt + signMs} still={still} /> : null}</View>
+    </View>
+  );
+}
+
+/* ② the frosted window each wore, wiped clear: a sheen sweeps the pane while the frost fades, the
+   square goes round, and the face behind it — the one they SENT, or the glyph — comes forward */
+function WipeWindow({ frost, face, seed, still }: { frost: FrostSpec | null; face: string | null; seed: string; still: boolean }) {
+  const c = useSharedValue(still ? WIPE_MS : 0);
+  useEffect(() => {
+    if (still) {
+      c.value = WIPE_MS;
+      return;
+    }
+    c.value = withDelay(S_WIPE, withTiming(WIPE_MS, { duration: WIPE_MS, easing: Easing.linear, reduceMotion: never }));
+  }, [still, c]);
+  const clip = useAnimatedStyle(() => {
+    const r = Math.min(1, Math.max(0, (c.value - 50) / 500)); // 3700 → 4200
+    const e = r * r * (3 - 2 * r);
+    return { borderRadius: FACE * (0.25 + 0.25 * e) };
+  });
+  const frostStyle = useAnimatedStyle(() => {
+    const p = Math.min(1, Math.max(0, c.value / 550)); // 3650 → 4200
+    return { opacity: 1 - p * p * (3 - 2 * p) };
+  });
+  const sheen = useAnimatedStyle(() => {
+    const p = Math.min(1, Math.max(0, c.value / 550));
+    const e = p * p * (3 - 2 * p);
+    const d = -FACE * 0.85 + FACE * 1.7 * e;
+    return { opacity: p > 0 && p < 1 ? Math.sin(p * Math.PI) : 0, transform: [{ translateX: d }, { translateY: d }, { rotate: "45deg" }] };
+  });
+  const faceStyle = useAnimatedStyle(() => {
+    const f = Math.min(1, Math.max(0, (c.value - 150) / 450)); // 3800 → 4250
+    return { opacity: f, transform: [{ scale: 0.92 + 0.08 * f }] };
+  });
+  return (
+    <View style={{ width: FACE, height: FACE }}>
+      <Animated.View style={[{ width: FACE, height: FACE, overflow: "hidden" }, clip]}>
+        <Animated.View style={[{ position: "absolute" }, faceStyle]}>
+          <AvatarImage id={face} seed={seed} size={FACE} />
+        </Animated.View>
+        {!still && (
+          <Animated.View pointerEvents="none" style={[{ position: "absolute" }, frostStyle]}>
+            {frost ? <Frost spec={frost} size={FACE} /> : <VeilTile size={FACE} />}
+          </Animated.View>
+        )}
+        {!still && (
+          <Animated.View pointerEvents="none" style={[{ position: "absolute", left: (FACE - FACE * 0.5) / 2, top: (FACE - FACE * 2) / 2, width: FACE * 0.5, height: FACE * 2 }, sheen]}>
+            <Svg width={FACE * 0.5} height={FACE * 2}>
+              <Defs>
+                <LinearGradient id="wipe" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset={0} stopColor="#FFFFFF" stopOpacity={0} />
+                  <Stop offset={0.5} stopColor="#FFFFFF" stopOpacity={0.85} />
+                  <Stop offset={1} stopColor="#FFFFFF" stopOpacity={0} />
+                </LinearGradient>
+              </Defs>
+              <Rect x={0} y={0} width={FACE * 0.5} height={FACE * 2} fill="url(#wipe)" />
+            </Svg>
+          </Animated.View>
+        )}
+      </Animated.View>
+      {/* the white ring a face wears as a sticker (as the bump's faces always did), once it's round */}
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: FACE, height: FACE, borderWidth: 3, borderColor: BRAND.paperWhite }, clip, faceStyle]} />
+    </View>
+  );
+}
+
+/* ③ a 1.5pt ink line strikes through the courier name, left to right; the name dims to 45% */
+function StruckName({ text, at, still }: { text: string; at: number; still: boolean }) {
+  const tk = useTheme().t;
+  const v = useSharedValue(still ? 1 : 0);
+  useEffect(() => {
+    if (still) {
+      v.value = 1;
+      return;
+    }
+    v.value = withDelay(at, withTiming(1, { duration: 240, easing: Easing.inOut(Easing.quad), reduceMotion: never }));
+  }, [at, still, v]);
+  // the name's own width, measured: a percentage width on the absolute line resolved against the
+  // column, not the name, and ran past it
+  const w = useSharedValue(0);
+  const nameStyle = useAnimatedStyle(() => ({ opacity: 1 - 0.55 * v.value }));
+  const line = useAnimatedStyle(() => ({ width: w.value * v.value }));
+  if (!text) return <View style={{ height: 16, marginTop: 8 }} />;
+  /* the wrapper is the name's own width, so the line strikes the name and nothing past it. No
+     numberOfLines: a one-line Text takes the whole column on iOS, and the line ran past the name.
+     The face is mono, so the width is known: a name too long for the column (a long German one)
+     steps the size down instead of wrapping (full-width CJK counts as two). */
+  const fs = Math.max(8, Math.min(MONO.title, COL_W / monoEms(text, 0.6 / MONO.title)));
+  return (
+    <View onLayout={(e) => (w.value = e.nativeEvent.layout.width)} style={{ marginTop: 8, maxWidth: COL_W, alignSelf: "center", justifyContent: "center" }}>
+      <Animated.Text style={[{ fontFamily: PF.monoMed, fontSize: fs, letterSpacing: 0.6, color: tk.sub }, nameStyle]}>{text}</Animated.Text>
+      <Animated.View style={[{ position: "absolute", left: 0, top: "50%", height: 1.5, marginTop: -0.5, backgroundColor: tk.ink }, line]} />
+    </View>
+  );
+}
+
+/* a mono line's width in ems (plus `spacingEm` a character): 0.6 per character, 1.0 per wide one */
+const WIDE = /[ᄀ-ᇿ⺀-꓏가-힯豈-﫿＀-｠]/;
+function monoEms(text: string, spacingEm: number): number {
+  let n = 0;
+  for (const ch of text) n += (WIDE.test(ch) ? 1 : 0.6) + spacingEm;
+  return Math.max(1, n);
+}
+
+/* ④ the drawing, stroke by stroke, in the 132×42 slot: one clock per side, each stroke's dash run
+   out over its own share of it (penDrawPlan). Still, it is simply the signature (PenSignature, the
+   same box, margin and weight, so nothing jumps). */
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const SIG_PT = 2;
+
+/* the plan squeezed into `ms` however many strokes there are (32 at most): the gaps and the floor
+   per stroke shrink before the whole would overrun the next beat */
+function fitPlan(sig: PenSig, ms: number): PenDrawStep[] | null {
+  const n = sig.s.length;
+  const gapMs = n > 1 ? Math.min(60, (ms * 0.25) / (n - 1)) : 0;
+  const minStrokeMs = Math.min(80, ((ms - gapMs * (n - 1)) / n) * 0.6);
+  return penDrawPlan(sig, ms, { gapMs, minStrokeMs });
+}
+
+function DrawnSig({ sig, at, ms, still }: { sig: PenSig; at: number; ms: number; still: boolean }) {
+  const tk = useTheme().t;
+  const plan = useMemo(() => fitPlan(sig, ms), [sig, ms]);
+  const vb = useMemo(() => penViewBox(sig, "ink", { aspect: SLOT_W / SLOT_H }), [sig]);
+  const end = plan ? plan.reduce((m, st) => Math.max(m, st.delay + st.duration), 0) : 0;
+  const clock = useSharedValue(still ? end + 1 : 0);
+  useEffect(() => {
+    if (still) {
+      clock.value = end + 1;
+      return;
+    }
+    clock.value = withDelay(at, withTiming(end + 1, { duration: end + 1, easing: Easing.linear, reduceMotion: never }));
+  }, [at, end, still, clock]);
+  if (still || !plan) return <PenSignature sig={sig} name="" width={SLOT_W} height={SLOT_H} fit="ink" strokePt={SIG_PT} />;
+  const sw = (SIG_PT * vb.w) / SLOT_W;
+  return (
+    <Svg width={SLOT_W} height={SLOT_H} viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}>
+      {plan.map((st, i) => (
+        <StrokeIn key={i} step={st} clock={clock} width={sw} ink={tk.ink} />
+      ))}
+    </Svg>
+  );
+}
+
+function StrokeIn({ step, clock, width, ink }: { step: PenDrawStep; clock: SharedValue<number>; width: number; ink: string }) {
+  const dash = step.length + 2;
+  const props = useAnimatedProps(() => {
+    const raw = Math.min(1, Math.max(0, (clock.value - step.delay) / step.duration));
+    const p = raw * raw * (3 - 2 * raw);
+    // hidden until its turn: a round cap at the dash's end would otherwise sit on the first point as a dot
+    return { strokeDashoffset: dash * (1 - p), strokeOpacity: clock.value >= step.delay ? 1 : 0 };
+  });
+  return <AnimatedPath d={step.d} fill="none" stroke={ink} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={[dash, dash]} animatedProps={props} />;
+}
+
+/* a typed side: the pen name fades into the slot in the italic (upright for CJK), 20pt, once */
+function TypedSig({ name, at, still }: { name: string; at: number; still: boolean }) {
+  const tk = useTheme().t;
+  const upright = penTypedUpright(name);
+  const v = useSharedValue(still ? 1 : 0);
+  useEffect(() => {
+    if (still) {
+      v.value = 1;
+      return;
+    }
+    v.value = withDelay(at, withTiming(1, { duration: 400, easing: ease.out, reduceMotion: never }));
+  }, [at, still, v]);
+  const style = useAnimatedStyle(() => ({ opacity: v.value }));
+  return (
+    <Animated.View style={[{ width: SLOT_W, height: SLOT_H, alignItems: "center", justifyContent: "center" }, style]}>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+        style={{ fontFamily: upright ? PF.letter : "Newsreader-Italic", fontStyle: upright ? "normal" : "italic", fontSize: 20, color: tk.ink, maxWidth: SLOT_W }}
+      >
+        {name}
+      </Text>
+    </Animated.View>
+  );
+}
+
+/* the typed pen name under a drawing, in the letter face */
+function FadeName({ text, at, still }: { text: string; at: number; still: boolean }) {
+  const tk = useTheme().t;
+  const v = useSharedValue(still ? 1 : 0);
+  useEffect(() => {
+    if (still) {
+      v.value = 1;
+      return;
+    }
+    v.value = withDelay(at, withTiming(1, { duration: 200, easing: ease.out, reduceMotion: never }));
+  }, [at, still, v]);
+  const style = useAnimatedStyle(() => ({ opacity: v.value }));
+  return (
+    <Animated.Text numberOfLines={1} style={[{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: tk.ink, maxWidth: COL_W }, style]}>
+      {text}
+    </Animated.Text>
+  );
+}
+
+/* ⑤ the bump, kept: both faces go to the middle, meet overlapping a little, and spring back to
+   their own columns (the back easing overshoots them outward once) */
+function Bumping({ dir, at, still, children }: { dir: 1 | -1; at: number; still: boolean; children: React.ReactNode }) {
+  const v = useSharedValue(0);
+  useEffect(() => {
+    if (still) return;
+    v.value = withDelay(
+      at,
+      withSequence(
+        withTiming(1, { duration: 420, easing: Easing.in(Easing.quad), reduceMotion: never }),
+        withTiming(2, { duration: 420, easing: ease.back, reduceMotion: never }),
+      ),
+    );
+  }, [at, still, v]);
+  const style = useAnimatedStyle(() => {
+    const p = v.value;
+    const k = p <= 1 ? p : 2 - p;
+    return { transform: [{ translateX: dir * BUMP_IN * k }, { rotate: `${dir * 6 * k}deg` }] };
+  });
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

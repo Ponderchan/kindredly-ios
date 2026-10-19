@@ -1,4 +1,5 @@
 import type { ThreadDetail, ThreadMessage, MessageQuote } from "./db";
+import type { PenSig } from "./pen-signature";
 import type { Fold } from "./folds";
 
 /* THE ROOM'S DATA RULES, WITHOUT REACT OR THE NETWORK.
@@ -206,6 +207,21 @@ export function emptyReadFail(session: SessionCheck, me: string): "gone" | "offl
 
 /* ── a row, made into a detail ──────────────────────────────────────── */
 
+/**
+ * Has this side of the thread signed? Web 0035's a_signed / b_signed when
+ * the server has them (a boolean, never null there); before 0035 a name on
+ * the row is the signature (0010). The thread list (lib/db) and the detail
+ * read it the same way.
+ */
+export function signedOf(
+  row: { a_name?: string | null; b_name?: string | null; a_signed?: boolean | null; b_signed?: boolean | null },
+  side: "a" | "b",
+): boolean {
+  const flag = side === "a" ? row.a_signed : row.b_signed;
+  if (typeof flag === "boolean") return flag;
+  return !!(side === "a" ? row.a_name : row.b_name);
+}
+
 /** the columns fetchThreadDetail reads from `threads` (older servers lack the optional ones) */
 export interface ThreadRow {
   a: string | null;
@@ -224,6 +240,12 @@ export interface ThreadRow {
   created_at?: string | null;
   revealed_at?: string | null;
   letter?: string | null;
+  /** web 0035: each side has signed (sealed, or names traded) — absent on an older server */
+  a_signed?: boolean | null;
+  b_signed?: boolean | null;
+  /** web 0035: each side's drawn signature (PEN v1), published at the reveal; null when typed */
+  a_sig?: PenSig | null;
+  b_sig?: PenSig | null;
   /** the pool letter, embedded through threads.letter — null when RLS hides it
       (withdrawn, or blocked) or the thread predates 0020 */
   opening_letter?: { created_at?: string | null } | { created_at?: string | null }[] | null;
@@ -254,6 +276,17 @@ const openingLetterAt = (v: ThreadRow["opening_letter"]): string | null => {
  * when both names were sealed (0020). For a correspondent who closed
  * their account (0009 nulls their side), `other` is null at runtime and
  * `gone` is true.
+ *
+ * SIGNED, FROM WEB 0035 ON (identity Phase 2): a side's enclosed name sits
+ * in a seal nobody can read until both have signed, so the row's a_name
+ * stays null until the reveal and `signed` reads a_signed / b_signed
+ * instead (signedOf). On an older server, where a name on the row IS the
+ * signature (0010), the name decides as before. The names, faces and the
+ * drawings (a_sig / b_sig, published at the reveal) are each side's own
+ * snapshot: `mySignedName` / `mySignedFace` / `mySig` are what THEY were
+ * given, which the ceremony shows instead of the reader's current profile.
+ * The drawings pass through as stored: lib/db checks them (penOrNull)
+ * before they are kept, and every renderer checks again (penDrawPlan).
  */
 export function buildThreadDetail(row: ThreadRow, msgs: readonly MessageRow[], me: string): ThreadDetail {
   const iamA = row.a === me;
@@ -267,8 +300,12 @@ export function buildThreadDetail(row: ThreadRow, msgs: readonly MessageRow[], m
     gone: !other,
     myCount: (iamA ? row.a_count : row.b_count) ?? 0,
     otherCount: (iamA ? row.b_count : row.a_count) ?? 0,
-    iSigned: !!(iamA ? row.a_name : row.b_name),
-    theirSigned: !!(iamA ? row.b_name : row.a_name),
+    iSigned: signedOf(row, iamA ? "a" : "b"),
+    theirSigned: signedOf(row, iamA ? "b" : "a"),
+    mySignedName: (iamA ? row.a_name : row.b_name) ?? null,
+    mySignedFace: (iamA ? row.a_face : row.b_face) ?? null,
+    mySig: (iamA ? row.a_sig : row.b_sig) ?? null,
+    otherSig: (iamA ? row.b_sig : row.a_sig) ?? null,
     since: row.created_at ?? null,
     revealedAt: row.revealed_at ?? null,
     openingAt: openingLetterAt(row.opening_letter),

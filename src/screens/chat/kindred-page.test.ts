@@ -106,5 +106,21 @@ ok("who began", K.whoBegan(base, "Mira", t, "en-US") === "kd.theyFirst(name=MIRA
   ok("identity on: no mosaic block — no face arrived, the frost did", !K.showsArrivalMosaic(kin, true));
 }
 
+/* ── FIRST MET AS (identity Phase 2) ── */
+{
+  const nameOf = (u: string) => `COURIER(${u})`;
+  const penPalOf = (u: string) => `NO.(${u})`;
+  const firstOn = Date.parse("2026-10-20T00:00:00Z");
+  const after = { other: "u-k", gone: false, revealedAt: "2026-10-22T09:00:00Z" };
+  const before = { other: "u-k", gone: false, revealedAt: "2026-09-02T09:00:00Z" };
+  ok("first met: a reveal after the switch came on, the courier name", K.firstMetAs(after, nameOf, penPalOf, firstOn) === "COURIER(u-k)");
+  ok("first met: a kindred from before the switch, the old number", K.firstMetAs(before, nameOf, penPalOf, firstOn) === "NO.(u-k)");
+  ok("first met: the switch's first day not known yet, the courier name", K.firstMetAs(before, nameOf, penPalOf, null) === "COURIER(u-k)" && K.firstMetAs(before, nameOf, penPalOf, undefined) === "COURIER(u-k)");
+  ok("first met: a reveal with no date (older than 0020) is from before the switch", K.firstMetAs({ other: "u-k", gone: false, revealedAt: null }, nameOf, penPalOf, firstOn) === "NO.(u-k)");
+  ok("first met: the very moment the switch came on counts as after", K.firstMetAs({ other: "u-k", revealedAt: new Date(firstOn).toISOString() }, nameOf, penPalOf, firstOn) === "COURIER(u-k)");
+  ok("first met: a gone kindred has no line", K.firstMetAs({ other: "u-k", gone: true, revealedAt: after.revealedAt }, nameOf, penPalOf, firstOn) === null && K.firstMetAs({ other: "", revealedAt: after.revealedAt }, nameOf, penPalOf, firstOn) === null);
+  ok("first met: demo-mira (a kindred) gets a line", K.firstMetAs(demoDetail("demo-mira")!, nameOf, penPalOf, null) === "COURIER(demo-mira)");
+}
+
 console.log(fails ? `\n${fails} FAILED` : "\nall ok");
 if (fails) process.exit(1);

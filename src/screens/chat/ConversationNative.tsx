@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { AppState, Linking, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { KConversationView, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import type { KChatCommands, KChatDockAction, KChatFace, KChatHeader, KChatItem, KChatPart, KChatStrings } from "../../../modules/kindredly-ui/src/Conversation";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
-import { Introduction } from "../../components/Introduction";
+import { LettersIntroduction } from "./LettersIntroduction";
 import { RoomIntroduction } from "./RoomIntroduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
+import { SignSheet } from "./SignSheet";
 import { ReportSheet } from "../../components/ReportMenu";
 import { useReportFlow } from "../../lib/report-flow";
 import { WrenBird } from "../../components/WrenBird";
@@ -429,7 +429,6 @@ function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; on
 
 export function LettersNative({ id, topInset }: { id: string | undefined; topInset?: number }) {
   useLang();
-  const router = useRouter();
   const { key: themeKey, letterFont, t: tk } = useTheme();
   const safe = useSafeAreaInsets();
   const { commands, ui, live } = useChatSurface();
@@ -600,35 +599,21 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
 
       {/* the Swift header's ⋯: the card drops just under it */}
       {swiftHeader ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
-      <LeaveSheet
-        open={m.askSign}
-        modal
-        title={t("ch.sign.title")}
-        body={t("ch.sign.body", { name: m.auth.handle || t("ch.sign.fallback") })}
-        actions={[{ label: m.signing ? "…" : t("ch.sign.confirm"), kind: "primary", onPress: () => void m.onSign() }]}
-        cancelLabel={t("ch.sign.cancel")}
-        onCancel={() => !m.signing && m.setAskSign(false)}
-      />
-      <Introduction
-        open={m.ceremony}
-        wren={m.wren}
-        otherSeed={detail?.other || "anon"}
-        otherFace={detail?.otherFace ?? null}
-        otherName={detail?.otherName || t("cm.kindred")}
-        otherArchetype={m.read?.archetype ? archNameThird(m.read.archetype.id) : null}
-        myName={m.myName}
-        road={m.road}
-        mySeed={m.auth.user?.id || "me"}
-        myFace={(m.auth.profile?.avatarId as string) || null}
-        notice={m.kindredNotice}
-        since={m.since}
-        stamp={detail?.stamp ?? null}
-        onClose={() => m.setCeremony(false)}
-        onTalk={() => {
-          m.setCeremony(false);
-          router.replace(`/room/${id}`);
-        }}
-      />
+      {/* the KDock door's sheet: identity on, the signing sheet; off, today's ENCLOSE IT confirmation */}
+      {m.identity ? (
+        <SignSheet m={m} />
+      ) : (
+        <LeaveSheet
+          open={m.askSign}
+          modal
+          title={t("ch.sign.title")}
+          body={t("ch.sign.body", { name: m.auth.handle || t("ch.sign.fallback") })}
+          actions={[{ label: m.signing ? "…" : t("ch.sign.confirm"), kind: "primary", onPress: () => void m.onSign() }]}
+          cancelLabel={t("ch.sign.cancel")}
+          onCancel={() => !m.signing && m.setAskSign(false)}
+        />
+      )}
+      <LettersIntroduction m={m} />
     </View>
   );
 }

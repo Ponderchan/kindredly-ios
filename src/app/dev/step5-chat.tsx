@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
@@ -10,6 +10,7 @@ import { LettersNative, RoomNative } from "../../screens/chat/ConversationNative
 import { RoomRN } from "../../screens/chat/RoomRN";
 import { LettersRN } from "../../screens/chat/LettersRN";
 import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
+import { setSignDemo, signDemo, subscribeSignDemo } from "../../screens/chat/sign-sheet";
 
 /* dev only — THE CONVERSATION KIT ON DEMO FIXTURES (10a step 5, slice chat-kit).
    kindredly:///dev/step5-chat
@@ -109,11 +110,14 @@ function ChatLab() {
   const { key, t: tk } = useTheme();
   const forced = useDevThemeOverride();
   const available = isKindredlyUIViewAvailable("KConversationView");
-  const [index, setIndex] = useState(0);
+  // ?fx=demo-blackberry opens on that pen-pal fixture (the identity Phase 2 checks jump straight to a door)
+  const { fx: fxParam } = useLocalSearchParams<{ fx?: string }>();
+  const [index, setIndex] = useState(() => Math.max(0, FIXTURES.findIndex((f) => f.id === fxParam && f.variant === "letters")));
   const [rn, setRn] = useState(!available);
   const fx = FIXTURES[index];
   // NAMES: the identity switch previewed on for this run (never saved): the pen pal's courier name, frost, ♀/♂ and sign
   const names = useIdentityOn();
+  const pen = useSignDemoChips();
 
   const keys = THEME_KEYS as ThemeKey[];
   const themeIndex = forced ? keys.indexOf(forced) : -1;
@@ -132,6 +136,8 @@ function ChatLab() {
           <Chip label={`THEME ${forced ? THEMES[key].name.toUpperCase() : "OFF"}`} onPress={nextTheme} />
           <Chip label={rn ? "RN" : "SWIFT"} on={rn} onPress={() => available && setRn((v) => !v)} />
           <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
+          <Chip label={`PEN ${pen.mode}`} on={pen.mode !== "REAL"} onPress={pen.next} />
+          <Chip label="GUEST" on={pen.guest} onPress={pen.toggleGuest} />
           {FIXTURES.map((f, i) => (
             <Chip key={`${i}:${f.variant}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
           ))}
@@ -157,4 +163,18 @@ function ChatLab() {
       </View>
     </SafeAreaView>
   );
+}
+
+/* DEMO MODE for the signing sheet (identity Phase 2, NAMES on; sign-sheet setSignDemo): PEN cycles
+   REAL (the account's own pen name) → FIRST (no pen name yet: the first trade, an empty field) →
+   LATER (pre-filled "Rowan"); GUEST makes the sheet believe the reader is a guest (its guest line).
+   A demo signature never saves to the profile or reaches the server; it writes its name here, so
+   the next demo trade opens pre-filled. Kept for this run of the app only. */
+function useSignDemoChips() {
+  const demo = useSyncExternalStore(subscribeSignDemo, signDemo);
+  const mode = !demo ? "REAL" : demo.handle ? "LATER" : "FIRST";
+  const guest = !!demo?.guest;
+  const next = () => setSignDemo(mode === "REAL" ? { handle: "", guest } : mode === "FIRST" ? { handle: "Rowan", guest } : guest ? { handle: "", guest } : null);
+  const toggleGuest = () => setSignDemo({ handle: demo?.handle ?? "", guest: !guest });
+  return { mode, guest, next, toggleGuest };
 }

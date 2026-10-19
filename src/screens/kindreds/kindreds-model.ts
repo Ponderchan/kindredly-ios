@@ -49,7 +49,9 @@ import type { FrostSpec } from "../../lib/frost";
    and VoiceOver opens the row with "Pen pal". A thread from before the
    switch says "was No. 4481" for its first fourteen days on this device.
    The legend's PEN PALS glyph becomes a small frosted square
-   (legendFrost). Kindreds keep their names and faces; nobody is ever
+   (legendFrost). Phase 2: for seven days after names were traded, a
+   kindred's row says "was Sunday Kite", the courier name they wore
+   (kindredWas), in the same quiet place. Kindreds keep their names and faces; nobody is ever
    sorted, hidden or chosen by a mark or a sign.
 
    LOAD STATES. loading (nothing yet) · ready (a list, kept or fresh) ·
@@ -121,7 +123,8 @@ export type RowVM = WhoMarks & {
   faceBadge: boolean;
   /** a pen pal: "No. 4481", or (switch on) the courier name, followed by the mark and the sign (WhoMarks: null / "" for a kindred, Wren, or none) */
   name: string;
-  /** switch on, a pen pal from before the switch, for 14 days: "was No. 4481" on the row's second line, ahead of the preview; "" otherwise */
+  /** switch on, a pen pal from before the switch, for 14 days: "was No. 4481" on the row's second line, ahead of the preview;
+      a kindred for 7 days after names were traded: "was Sunday Kite" (Phase 2); "" otherwise */
   was: string;
   nameDim: boolean;
   /** "2/5"; "" */
@@ -400,6 +403,23 @@ export function orbitItems(live: readonly ThreadSummary[], ledger: Readonly<Reco
   });
 }
 
+/** How long a new kindred's row still says the courier name they wore (identity Phase 2, plan §1 row 5). */
+export const KINDRED_WAS_DAYS = 7;
+
+/** "was Sunday Kite" (id2.kd.was) on a kindred's row for KINDRED_WAS_DAYS after the names met
+    (revealedAt), with the switch on; "" otherwise — switch off, a gone account, no date, or later. */
+export function kindredWas(
+  th: Pick<ThreadSummary, "revealed" | "gone" | "other" | "revealedAt">,
+  book: WhoBook,
+  t: KindredsFormat["t"],
+  now: number = Date.now(),
+): string {
+  if (!book.identity || !th.revealed || th.gone || !th.other || th.revealedAt == null) return "";
+  const age = now - th.revealedAt;
+  if (!(age >= 0 && age < KINDRED_WAS_DAYS * 864e5)) return "";
+  return t("id2.kd.was", { name: book.name(th.other) });
+}
+
 /** One row (a kindred, a pen pal, a quiet room, a closed account). */
 export function rowFor(
   th: ThreadSummary,
@@ -417,7 +437,7 @@ export function rowFor(
   const pal = kindred ? null : book.who(gone ? null : th.other);
   const name = pal ? pal.name : th.otherName || t("kd.aKindred");
   const marks: WhoMarks = pal ? { mark: pal.mark, markLabel: pal.markLabel, sign: pal.sign, signLabel: pal.signLabel } : NO_WHO_MARKS;
-  const was = pal ? book.was(th) : "";
+  const was = pal ? book.was(th) : kindredWas(th, book, t);
   const left = ctx.closing ? daysLeft(th.lastAt) : 0;
   const closes = ctx.closing ? (left <= 1 ? t("kd.closesDay") : t("kd.closesIn", { n: left })) : null;
   // the brass moment: five letters each way, names may be traded

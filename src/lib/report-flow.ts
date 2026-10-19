@@ -25,7 +25,10 @@ import { blockUser, forgetThread, reportContent } from "./db";
    the caller's (room, chat, reader and kindred page replace to Kindreds;
    Today drops that author's letters; Kindreds drops the row). */
 
-export type ReportContext = "letter" | "thread" | "message";
+/** What a report is about. "signature": a kindred's drawn pen name (identity Phase 2), refId = the
+    thread — web 0035 fills the report itself from the stored strokes and points it at the other
+    side of that thread, so no snapshot is sent. */
+export type ReportContext = "letter" | "thread" | "message" | "signature";
 
 /** What a report or a block is about. */
 export type ReportTarget = {
@@ -37,7 +40,7 @@ export type ReportTarget = {
       photo line is reported by its path, as theirLatest carries one) */
   refId?: string | null;
   /** the thread forgotten from the list cache after a block. Defaults to
-      refId when the context is "thread". */
+      refId when the context is "thread" or "signature". */
   threadId?: string | null;
   /** their words, kept with the report (the server keeps 1000 characters).
       A function is called when the report is sent — to fetch the freshest
@@ -132,7 +135,7 @@ export function useReportFlow(options: ReportFlowOptions): ReportFlow {
     try {
       ok = !!target.targetUser && (await blockUser(target.targetUser)) === true;
       if (ok) {
-        const thread = target.threadId ?? (target.context === "thread" ? target.refId : null);
+        const thread = target.threadId ?? (target.context === "thread" || target.context === "signature" ? target.refId : null);
         if (thread) await forgetThread(thread);
       }
     } catch (e) {
@@ -151,7 +154,7 @@ export function useReportFlow(options: ReportFlowOptions): ReportFlow {
     return true;
   }, []);
 
-  const nobody = options.context === "thread" && !options.targetUser;
+  const nobody = (options.context === "thread" || options.context === "signature") && !options.targetUser;
   // the same object until something in it changes, so it can sit in deps
   return useMemo(() => ({ stage, busy, nobody, openMenu, report, askBlock, block, close }), [stage, busy, nobody, openMenu, report, askBlock, block, close]);
 }

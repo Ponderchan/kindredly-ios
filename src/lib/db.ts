@@ -5,6 +5,8 @@
 
 import { supabase, supabaseReady } from "./supabase";
 import { forgetMarks } from "./identity";
+import { isMissingRpc } from "./identity-core";
+import { penFaceOrNull, penOrNull, simplifyPen, validatePen, type PenSig } from "./pen-signature";
 import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
 import { t } from "./i18n";
@@ -17,6 +19,7 @@ import {
   isNetworkish,
   isSchemaError,
   readReason,
+  signedOf,
   unconfirmedEmpty,
   writeFailOf,
   type MessageRow,
@@ -624,7 +627,7 @@ export interface ThreadSummary {
   revealed: boolean;
   mine: number; // my message count on this thread
   theirs: number; // their count — what drives a face coming into view
-  theirSigned?: boolean; // their name is enclosed, waiting on mine
+  theirSigned?: boolean; // their name is enclosed, waiting on mine (web 0035 b_signed/a_signed; before it, a name on the row)
   iSigned?: boolean; // mine is enclosed, waiting on theirs
   /** everything they have written to me — what lib/correspondent reads */
   theirTexts?: string[];
@@ -762,19 +765,26 @@ export async function forgetThread(threadId: string): Promise<void> {
   await scoped.setItem(THREADS_CACHE_KEY, JSON.stringify(list)).catch(() => {});
 }
 
+/* the list's columns (0020 on); web 0035's a_signed / b_signed are asked beside them while this
+   server is known to have them — the first refusal turns that off for the rest of the launch */
+const LIST_COLS = "id,a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at,created_at";
+let listSigned = true;
+
 async function fetchThreadsUncached(): Promise<ThreadsResult> {
   if (!supabaseReady) return { status: "offline", reason: "not-ready" };
   const who = await whoAmI();
   if (!("id" in who)) return { status: "offline", reason: who.reason };
   const me = who.id;
   try {
-    let { data, error, status } = await supabase!
-      .from("threads")
-      .select(
-        "id,a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,last_sender,last_body,last_at,created_at",
-      )
-      .or(`a.eq.${me},b.eq.${me}`)
-      .order("last_at", { ascending: false });
+    const listOf = (cols: string) => supabase!.from("threads").select(cols).or(`a.eq.${me},b.eq.${me}`).order("last_at", { ascending: false });
+    /* web 0035's signed flags first (a sealed name no longer sits on the row, so the flags are what
+       says "they went first"); a server without them refuses the column (a schema error), and the
+       read goes on as before — and stays there for the rest of the launch */
+    let { data, error, status } = (await listOf(listSigned ? `${LIST_COLS},a_signed,b_signed` : LIST_COLS)) as { data: any[] | null; error: any; status: number };
+    if (error && listSigned && isSchemaError(error, status)) {
+      listSigned = false;
+      ({ data, error, status } = (await listOf(LIST_COLS)) as { data: any[] | null; error: any; status: number });
+    }
     if (error && !isNetworkish(error, status)) {
       // pre-0011 fallback: face columns absent (no point retrying a dropped connection)
       const retry = await supabase!
@@ -821,8 +831,8 @@ async function fetchThreadsUncached(): Promise<ThreadsResult> {
         revealed: !!r.revealed,
         mine: iamA ? r.a_count : r.b_count,
         theirs: iamA ? r.b_count : r.a_count,
-        theirSigned: !!(iamA ? r.b_name : r.a_name),
-        iSigned: !!(iamA ? r.a_name : r.b_name),
+        theirSigned: signedOf(r, iamA ? "b" : "a"),
+        iSigned: signedOf(r, iamA ? "a" : "b"),
         // the opening was written by b; it is theirs unless I am b
         theirTexts: (iamA && r.opening ? [r.opening as string] : []).concat(theirs.get(r.id) || []),
         otherName: iamA ? r.b_name : r.a_name,
@@ -859,6 +869,17 @@ export interface ThreadDetail {
   iSigned?: boolean; // my pen name is enclosed with this correspondence
   theirSigned?: boolean; // theirs is — one signature from a reveal
   otherFace?: string | null; // the face they chose to give at signing (library id)
+  /* WHAT EACH SIDE WAS GIVEN AT THE REVEAL (web 0035 publishes both seals together). Before
+     names, and on a thread revealed before 0035, the drawings are null: show the typed name.
+     The drawings are PEN v1 (lib/pen-signature), checked here before they are kept. */
+  /** their drawn pen name; null = typed (or not revealed yet) */
+  otherSig?: PenSig | null;
+  /** my drawn pen name as they received it; null = typed */
+  mySig?: PenSig | null;
+  /** my pen name as they received it (my a_name / b_name): the ceremony shows this, not today's profile */
+  mySignedName?: string | null;
+  /** the face I gave them (library id), as they received it; null = the glyph */
+  mySignedFace?: string | null;
   /** when the thread row was created — the FIRST REPLY's date. Never the
       opening letter's date (openingAt) nor the names date (revealedAt):
       known bug 3 stamped this on the stranger's letter. */
@@ -937,6 +958,10 @@ export async function readThreadDetailCache(threadId: string): Promise<ThreadDet
    letters hides a withdrawn or blocked letter, and the embed is then null. */
 const THREAD_COLS = {
   sets: [
+    // web 0035: the signed flags and the drawn signatures
+    "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,a_signed,b_signed,a_sig,b_sig,opening,opening_media,opening_duration_s,created_at,opening_letter:letters!letter(created_at)",
+    "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,a_signed,b_signed,a_sig,b_sig,opening,opening_media,opening_duration_s,created_at",
+    // pre-0035: no signed flags or drawings (a name on the row is the signature)
     "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at,opening_letter:letters!letter(created_at)",
     // the embed refused (schema cache): the 0020 columns without the letter's date
     "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,opening,opening_media,opening_duration_s,created_at",
@@ -1032,7 +1057,9 @@ export async function fetchThreadDetail(threadId: string): Promise<ThreadDetailR
       return verdict;
     }
     if (verdict.status === "offline") return verdict;
-    const detail = buildThreadDetail(tRes.data!, mRes.data ?? [], me);
+    const built = buildThreadDetail(tRes.data!, mRes.data ?? [], me);
+    // a stored drawing is drawn only when it is PEN v1; anything else is the typed name
+    const detail: ThreadDetail = { ...built, otherSig: penOrNull(built.otherSig), mySig: penOrNull(built.mySig) };
     void scoped.setItem(detailCacheKey(threadId), JSON.stringify(detail)).catch(() => {});
     return { status: "ok", detail };
   } catch (e) {
@@ -1151,13 +1178,28 @@ export async function sendThreadMessage(
 /* Enclose my pen name with this correspondence. From the fifth letter on
    (client-gated in the UI), either side may sign; whoever signs second
    completes the reveal. Returns { revealed } — true when the second
-   signature just landed (mine), so the caller can hold the ceremony. */
+   signature just landed (mine), so the caller can hold the ceremony.
+   THE IDENTITY SWITCH OFF (today's door): the pen name from the profile and
+   the profile's library face, written straight onto the row. Before web
+   0035 that write IS the signature; from 0035 on the server's adapter
+   moves it into a seal (and opens both when theirs is in), so this keeps
+   working unchanged. The switch on signs through signThreadV2. */
 export async function signThread(threadId: string): Promise<{ revealed: boolean } | null> {
   /* chat/[id] reports this failure through alertFail, which reads the module
      flag — without clearing it first, a failed signature inherits whatever
      the last write said and can announce a lost connection over a live one. */
   const me = await writer();
   if (!me) return null;
+  // never an empty name: the screens ask for a pen name before they sign (useLettersModel)
+  const name = await currentHandle();
+  if (!name) return null;
+  return signDirect(threadId, me, name, await currentFace());
+}
+
+/* the direct write both doors fall back to: my name (and face) onto my side of the row. The
+   answer reads `revealed` back from the row as the server left it (0034's and 0035's guards
+   decide it, whatever this sends), and guesses only when the row can't be read back. */
+async function signDirect(threadId: string, me: string, name: string, face: string | null): Promise<{ revealed: boolean } | null> {
   try {
     const { data: t, error: tErr } = await supabase!
       .from("threads")
@@ -1170,27 +1212,89 @@ export async function signThread(threadId: string): Promise<{ revealed: boolean 
     if (!(t.a === me ? t.b : t.a)) return setFail("gone");
     const iamA = t.a === me;
     const theirs = iamA ? t.b_name : t.a_name;
-    // never an empty name: the screens ask for a pen name before they sign (useLettersModel)
-    const name = await currentHandle();
-    if (!name) return null;
     const patch: Record<string, unknown> = { [iamA ? "a_name" : "b_name"]: name };
-    const face = await currentFace();
     if (face) patch[iamA ? "a_face" : "b_face"] = face;
+    // before 0034 the client flips it; from 0034 on the server decides and this is ignored
     if (theirs) patch.revealed = true;
-    let { error } = await supabase!.from("threads").update(patch).eq("id", threadId);
+    let { data: back, error } = await supabase!.from("threads").update(patch).eq("id", threadId).select("revealed").maybeSingle();
     if (error && face) {
       // pre-0011 backend: the face columns don't exist yet — sign with the name alone
       delete patch[iamA ? "a_face" : "b_face"];
-      const retry = await supabase!.from("threads").update(patch).eq("id", threadId);
+      const retry = await supabase!.from("threads").update(patch).eq("id", threadId).select("revealed").maybeSingle();
+      back = retry.data;
       error = retry.error;
     }
     if (error) return noteFail(error);
-    return { revealed: !!theirs || !!t.revealed };
+    const after = (back as { revealed?: boolean | null } | null)?.revealed;
+    return { revealed: typeof after === "boolean" ? after : !!theirs || !!t.revealed };
   } catch (e) {
     return noteFail(e);
   }
 }
 
+/** What the signing sheet sends (identity Phase 2): the pen name as typed on the sheet (never the
+    account's legal name), the library face chosen there (null = none, the glyph; a photo never
+    travels), and the drawing (PEN v1 from lib/pen-signature penFromPad; null = "type it instead"). */
+export type PenSignature = { name: string; face: string | null; sig: PenSig | null };
+/** How a signature went: `revealed` when it was the second (hold the ceremony now); `via` "seal"
+    through web 0035's sign_thread, "direct" through the old write on a server without it (the
+    drawing was dropped there: typed name and face only). */
+export type SignResult = { revealed: boolean; via: "seal" | "direct" };
+
+/** the longest pen name sign_thread takes (the sheet's field stops at 20, Edit profile's PEN_NAME_MAX) */
+export const SIGN_NAME_MAX = 24;
+/* sign_thread missing on this server (0035 not run yet): the old write for ten minutes, then ask
+   again — the owner may run it while the app is open */
+let signRpcAbsentUntil = 0;
+const SIGN_RPC_ABSENT_MS = 10 * 60_000;
+
+/**
+ * Sign a correspondence from the signing sheet (identity Phase 2). The
+ * name is trimmed (1–24, the server's rule; the sheet has checked it with
+ * checkField and the safety screen already), the face kept only when it is
+ * a library id, the drawing brought within PEN v1's caps (simplifyPen) and
+ * dropped to typed if it still isn't valid. Then web 0035's sign_thread:
+ * it seals all three and, when theirs is already sealed, opens both onto
+ * the thread in the same statement.
+ *
+ * Before 0035 is run the function isn't there (PGRST202 / 404): the old
+ * direct write instead, with this name and face (the drawing can't travel
+ * there), remembered for ten minutes so a second signature doesn't ask
+ * twice. Never throws. null on failure, with the reason in lastWriteFail()
+ * (the server's refusals map: "unreachable thread" → gone, blocked,
+ * suspended, no session → session; alertFail(…, { context: "thread" })
+ * words them). Does NOT touch the profile: the sheet saves the pen name
+ * (auth.saveProfile) before it calls this.
+ */
+export async function signThreadV2(threadId: string, s: PenSignature): Promise<SignResult | null> {
+  const me = await writer();
+  if (!me) return null;
+  const name = (s.name || "").trim();
+  if (!name || name.length > SIGN_NAME_MAX) {
+    console.log("[sign] refused on the phone: the pen name must be 1–24 characters");
+    return setFail("server");
+  }
+  const face = penFaceOrNull(s.face);
+  let sig: PenSig | null = null;
+  if (s.sig) {
+    const fit = validatePen(s.sig).ok ? s.sig : simplifyPen(s.sig);
+    sig = fit && validatePen(fit).ok ? fit : null;
+    if (!sig) console.log("[sign] the drawing couldn't be made PEN v1; signing typed");
+  }
+  if (Date.now() >= signRpcAbsentUntil) {
+    try {
+      const { data, error, status } = await supabase!.rpc("sign_thread", { p_thread: threadId, p_name: name, p_face: face, p_sig: sig });
+      if (!error) return { revealed: !!(data as { revealed?: boolean } | null)?.revealed, via: "seal" };
+      if (!isMissingRpc(error, status)) return noteFail(error);
+      signRpcAbsentUntil = Date.now() + SIGN_RPC_ABSENT_MS;
+      console.log("[sign] sign_thread isn't on this server yet (web 0035); signing with the old write, typed");
+    } catch (e) {
+      return noteFail(e);
+    }
+  }
+  const direct = await signDirect(threadId, me, name, face);
+  return direct ? { revealed: direct.revealed, via: "direct" } : null;
+}
 /* ── Trust & Safety ── */
 /* TAKE IT BACK (web 0031): your own line, within two minutes of sending it.
    The server is the clock — this only asks. "too_late" when the two minutes
@@ -1230,6 +1334,14 @@ export async function reportContent(input: {
   } catch (e) {
     return noteFail(e);
   }
+}
+
+/** Report a kindred's drawn signature (long-press on it in the ceremony's end state or on their
+    page). Web 0035 fills the report on the server: the target is the other side of THAT thread and
+    the snapshot their stored strokes, whatever is sent from here. Before 0035 it is an ordinary
+    report about the thread. */
+export function reportSignature(threadId: string, targetUser: string | null | undefined): Promise<true | null> {
+  return reportContent({ targetUser: targetUser ?? null, context: "signature", refId: threadId, reason: "other", snapshot: null });
 }
 
 /* ── Window (a post your kindreds can see) ──

@@ -424,6 +424,23 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("identity on: after fourteen days the old number is gone", rowOf(M.buildKindredsView(base(mixed), { ...fmt, who: later }), "p")!.was === "");
   const k = rowOf(on, "k")!;
   ok("identity on: a kindred keeps their name and face, no mark, no sign, no was", k.name === "Mara" && k.mark === null && k.sign === null && k.was === "" && k.face?.role === "kindred" && !k.face.frost);
+  /* Phase 2: a new kindred says the courier name they wore, for seven days after names were traded */
+  {
+    const fresh = th({ id: "kn", revealed: true, otherName: "Juniper", other: "u-kn", revealedAt: now - 2 * DAY });
+    const old = th({ id: "ko", revealed: true, otherName: "Wren Ash", other: "u-ko", revealedAt: now - 8 * DAY });
+    const ghost = th({ id: "kg", revealed: true, gone: true, otherName: "Sol", other: "u-kg", revealedAt: now - DAY });
+    const v = M.buildKindredsView(base([fresh, old, ghost]), { ...fmt, who: onBook });
+    const kn = rowOf(v, "kn")!;
+    const courier = onBook.name("u-kn");
+    ok("Phase 2: a kindred made two days ago says was {courier}", kn.was === `id2.kd.was(name=${courier})` && kn.name === "Juniper");
+    ok("Phase 2: VoiceOver says the was line after the name", kn.a11yLabel.startsWith(`Juniper, id2.kd.was(name=${courier})`));
+    ok("Phase 2: after seven days the courier name is gone", rowOf(v, "ko")!.was === "");
+    ok("Phase 2: a gone kindred has no was line", rowOf(v, "kg")!.was === "");
+    const offV = M.buildKindredsView(base([fresh]), { ...fmt, who: offBook });
+    ok("Phase 2: switch off, no was line on a kindred", rowOf(offV, "kn")!.was === "");
+    ok("Phase 2: kindredWas edges — no date, the future, day seven exactly", M.kindredWas({ revealed: true, other: "u", revealedAt: null }, onBook, fmt.t, now) === "" && M.kindredWas({ revealed: true, other: "u", revealedAt: now + DAY }, onBook, fmt.t, now) === "" && M.kindredWas({ revealed: true, other: "u", revealedAt: now - 7 * DAY }, onBook, fmt.t, now) === "" && M.kindredWas({ revealed: true, other: "u", revealedAt: now - 7 * DAY + 1 }, onBook, fmt.t, now) !== "");
+    ok("Phase 2: a pen pal is never given a kindred's was line", M.kindredWas({ revealed: false, other: "u", revealedAt: now - DAY }, onBook, fmt.t, now) === "");
+  }
   const g = rowOf(on, "g")!;
   ok("identity on: a closed pen pal is UNSIGNED behind the veil", g.name === "ld.unsigned" && g.face?.gone === true && !g.face.frost && g.mark === null);
   const w = on.items.find((i) => i.type === "wren");

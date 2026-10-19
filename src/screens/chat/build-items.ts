@@ -724,9 +724,12 @@ export type LettersDockInput = {
   locale?: string;
 };
 
-/** The sign door's state: from the fifth letter, until names are traded; never on a gone thread. */
-export function signDoorOf(i: Pick<LettersDockInput, "revealed" | "gone" | "missing" | "myCount" | "iSigned" | "theirSigned">): KChatDock["signDoor"] {
+/** The sign door's state: from the fifth letter, until names are traded; never on a gone thread.
+    With the identity switch on (Phase 2) it waits for five letters EACH way, as sign_thread does
+    (PHASE2.md §5): a door that opens on my fifth would sign into a refusal. */
+export function signDoorOf(i: Pick<LettersDockInput, "revealed" | "gone" | "missing" | "myCount" | "otherCount" | "iSigned" | "theirSigned" | "identity">): KChatDock["signDoor"] {
   if (i.revealed || i.gone || i.missing || i.myCount < REVEAL) return "none";
+  if (i.identity && (i.otherCount ?? 0) < REVEAL) return "none";
   if (i.iSigned) return "waiting";
   return i.theirSigned ? "theirsFirst" : "offer";
 }
@@ -743,6 +746,18 @@ export function lettersHint(i: Pick<LettersDockInput, "t" | "revealed" | "gone" 
   return (n === REVEAL ? i.t("ch.hint.names", { n }) : i.t("ch.hint.letter", { n })).toLocaleUpperCase(i.locale);
 }
 
+/** The door's words. Off: today's three. On (Phase 2): SEND THEM YOUR NAME, then {COURIER} WROTE
+    FIRST when theirs is in (their courier name in capitals: who wrote their NAME first), and the
+    quiet YOU SIGNED · WAITING once mine is — the line the SwiftUI KDock and ChatDockRN draw
+    unpressable. */
+function signLabelOf(i: Pick<LettersDockInput, "t" | "identity" | "name" | "locale">, door: KChatDock["signDoor"]): string {
+  const { t } = i;
+  if (door === "none") return "";
+  if (door === "offer") return t("ch.sendYours");
+  if (!i.identity) return door === "waiting" ? t("ch.wentFirst") : t("ch.theyFirst");
+  return door === "waiting" ? t("id2.door.waiting") : t("id2.door.theyFirst", { name: i.name.toLocaleUpperCase(i.locale) });
+}
+
 /** Everything above and in place of the pen-pal chat's composer. */
 export function buildLettersDock(i: LettersDockInput): KChatDock {
   const { t } = i;
@@ -750,7 +765,7 @@ export function buildLettersDock(i: LettersDockInput): KChatDock {
   return {
     ...NO_DOCK,
     signDoor,
-    signLabel: signDoor === "waiting" ? t("ch.wentFirst") : signDoor === "theirsFirst" ? t("ch.theyFirst") : signDoor === "offer" ? t("ch.sendYours") : "",
+    signLabel: signLabelOf(i, signDoor),
     terminal: i.gone || i.missing ? "gone" : "none",
     goneText: i.gone ? t("ch.gone") : t("fail.closed.body"),
     // before names you write back (the reply bar's own words, A2) — to the courier name once the switch is on, as on

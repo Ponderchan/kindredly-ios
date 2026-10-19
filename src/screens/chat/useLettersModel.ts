@@ -5,7 +5,7 @@ import { getLang, t, useLang } from "../../lib/i18n";
 import { localeTag, time24 } from "../../lib/format";
 import { developFor } from "../../lib/mosaic";
 import { useWhoBook } from "../../lib/who";
-import { reportContent, sendThreadMessage, signThread, theirLatest, type ThreadMessage } from "../../lib/db";
+import { lastWriteFail, reportContent, sendThreadMessage, signThread, signThreadV2, theirLatest, type PenSignature, type ThreadMessage } from "../../lib/db";
 import { chatSeenRule, useThreadDetail } from "../../lib/thread-detail";
 import { copyText } from "../../lib/clipboard";
 import { offerTranslate } from "../../lib/lang-guess";
@@ -17,12 +17,15 @@ import { useAuth } from "../../lib/auth";
 import { checkField } from "../edit-profile/edit-profile-model";
 import { isReservedName } from "../../lib/wren-name";
 import { useWrenName } from "../../lib/wren-name";
-import { alertFail } from "../../lib/fail";
+import { alertFail, isRefusal } from "../../lib/fail";
 import { useSlow } from "../../components/ui";
 import type { KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
 import { conversation, isOpening, lettersComposer, type ComposerFacts, type MenuCtx } from "./build-items";
 import { introduceOnce, noteDayLabel, useCeremony, useCorrespondentRead, usePendingLines, useTakeBackClock, useTranslations, type ChatUi } from "./useRoomModel";
+import { afterSign, demoSignResult, nameToSave, setSignDemo, signDemo, type SignOutcome } from "./sign-sheet";
+import { penFaceOrNull } from "../../lib/pen-signature";
 import "../../data/strings-step5-chat";
+import "../../data/strings-identity2";
 
 /* THE PEN-PAL CHAT, AS A MODEL (10a step 5).
    ────────────────────────────────────────────────────────────────────────
@@ -39,6 +42,10 @@ import "../../data/strings-step5-chat";
    taking back (a posted letter is posted) and no quoting (a letter is
    answered whole). */
 
+/* how long a sheet's transparent window takes to go before another window (an alert, the
+   ceremony's page sheet) may rise in its place */
+const SHEET_GONE_MS = 350;
+
 export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) {
   useLang();
   const router = useRouter();
@@ -47,7 +54,15 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
   const isDemo = !!id?.startsWith("demo-");
 
   const lines = usePendingLines();
-  const { detail, status, reload } = useThreadDetail(id, { folds: false, markSeen: chatSeenRule, pending: lines.pending });
+  const { detail: loaded, status, reload } = useThreadDetail(id, { folds: false, markSeen: chatSeenRule, pending: lines.pending });
+  /* A DEMO SIGNATURE THAT WAITS (identity Phase 2, dev pages): a demo thread is read from its
+     fixture again on every reload, so the signing sheet's first signature on one is kept here and
+     laid over it — the door reads YOU SIGNED · WAITING, as a real thread's would from its row */
+  const [demoSigned, setDemoSigned] = useState(false);
+  const detail = useMemo(
+    () => (loaded && demoSigned && !loaded.iSigned && !loaded.revealed ? { ...loaded, iSigned: true } : loaded),
+    [loaded, demoSigned],
+  );
   const detailRef = useRef(detail);
   detailRef.current = detail;
   useEffect(() => {
@@ -80,7 +95,17 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
   };
   const slow = useSlow(sending);
   const [askSign, setAskSign] = useState(false);
-  const [signing, setSigning] = useState(false);
+  const [signing, setSigningState] = useState(false);
+  const signingRef = useRef(false);
+  const setSigning = (v: boolean) => {
+    signingRef.current = v;
+    setSigningState(v);
+  };
+  /* WHAT I JUST SIGNED WITH (identity Phase 2): the signing sheet sets it once sign_thread (or a
+     demo) accepted it, so the ceremony can show my own name, face and drawing before the reload
+     brings the published row (detail.mySignedName / mySignedFace / mySig) — and on a demo thread,
+     which never reaches the server, instead of it. Null until a signature lands here. */
+  const [signedNow, setSignedNow] = useState<PenSignature | null>(null);
   const { trans, translateLine, hideTranslation } = useTranslations(ui, wren);
 
   const read = useCorrespondentRead(detail);
@@ -195,6 +220,66 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     }
   }, [id, isDemo, signing, reload, setCeremony]);
 
+  /** THE SIGNING SHEET'S SEND (identity on; PHASE2.md §6.3; the rules are sign-sheet.ts). The pen
+      name goes to the profile first when it changed (a failure stops there and the sheet stays
+      as drawn); then sign_thread through signThreadV2, which falls back to the old direct write
+      — typed name and face, no drawing — on a server without 0035. A failure is said plainly and
+      the sheet keeps the name, the face and the drawing; a refusal (the thread has gone) closes
+      it. The second signature holds the ceremony here and now; the first leaves the door at YOU
+      SIGNED · WAITING. A demo thread never reaches the server or the account: it answers itself,
+      and its pen name goes to the dev pages' demo mode instead of the profile. onSign (the switch
+      off) is untouched. */
+  const onSignSheet = useCallback(
+    async (s: PenSignature): Promise<SignOutcome> => {
+      const d = detailRef.current;
+      if (!id || !d || signingRef.current) return "kept";
+      const name = s.name.trim();
+      setSigning(true);
+      const demo = isDemo ? signDemo() : null;
+      const save = nameToSave(name, demo ? demo.handle : auth.handle);
+      if (save && demo) setSignDemo({ ...demo, handle: save });
+      else if (save && !isDemo) {
+        const saved = await auth.saveProfile({ handle: save });
+        if ("error" in saved) {
+          setSigning(false);
+          Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
+          return "kept";
+        }
+      }
+      const res = isDemo ? demoSignResult(!!d.theirSigned) : await signThreadV2(id, { name, face: s.face, sig: s.sig });
+      setSigning(false);
+      const next = afterSign(res, !res && isRefusal(lastWriteFail()));
+      const fail = () => alertFail(t("ch.name.fail.title"), t("ch.name.fail.body"), { context: "thread" });
+      if (next.outcome === "kept") {
+        fail();
+        return "kept";
+      }
+      if (next.outcome === "closed") {
+        // the sheet's window goes first: an alert raised on it would go with it
+        setAskSign(false);
+        setTimeout(fail, SHEET_GONE_MS);
+        return "closed";
+      }
+      // what actually travelled: the old direct write (a server without 0035) takes no drawing
+      setSignedNow({ name, face: penFaceOrNull(s.face), sig: res?.via === "direct" ? null : s.sig });
+      setAskSign(false);
+      if (isDemo && next.waiting) setDemoSigned(true);
+      await reload();
+      if (next.ceremony) {
+        // a demo's reveal is not a kindred made: never counted in the real events table
+        if (!isDemo) track("kindred_made");
+        // the sheet's window is dismissed before the ceremony's rises (two at once can drop the second)
+        await new Promise((r) => setTimeout(r, SHEET_GONE_MS));
+        // a demo plays it every time (the dev pages are run again and again); a real thread once
+        if (isDemo) setCeremony(true);
+        else await introduceOnce(id, () => setCeremony(true));
+      }
+      return "signed";
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, isDemo, auth.handle, auth.saveProfile, reload, setCeremony],
+  );
+
   const reportLetter = useCallback(
     async (m: ThreadMessage) => {
       const ok = await reportContent({ targetUser: detailRef.current?.other ?? null, context: "message", refId: m.id ?? null, reason: "other", snapshot: m.body });
@@ -247,8 +332,9 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     [openLetter],
   );
 
-  /* SEND THEM YOUR NAME WITH NO PEN NAME YET. The new onboarding no longer asks for one (it is
-     chosen at the first trade; the Phase 2 signing sheet will add the drawn signature), and the
+  /* SEND THEM YOUR NAME WITH NO PEN NAME YET — THE SWITCH OFF ONLY. The new onboarding no longer
+     asks for one (it is chosen at the first trade; with the identity switch on, the signing sheet
+     asks for it, beside the drawn signature, and this prompt never shows), and the
      pen name never falls back to the account's legal name any more (lib/auth). So the first trade
      asks for it right here, with the same rules as Edit profile's field (checkField), saves it to
      the profile, and only then shows the usual confirmation, which names it. iOS's own text
@@ -277,13 +363,16 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     );
   }, [auth, ui]);
 
+  /* the door's press: switch on, the signing sheet (the pen name, the face and the signature, all
+     in one place: no prompt, no ENCLOSE IT); off, exactly as before. The chat's keyboard goes first */
   const onDock = useCallback(
     (action: string) => {
       if (action !== "sign") return;
-      if (!isDemo && !auth.handle.trim()) ui.thenModal(askPenNameThenSign);
+      if (book.identity) ui.thenModal(() => setAskSign(true));
+      else if (!isDemo && !auth.handle.trim()) ui.thenModal(askPenNameThenSign);
       else ui.thenModal(() => setAskSign(true));
     },
-    [ui, auth.handle, isDemo, askPenNameThenSign],
+    [ui, auth.handle, isDemo, askPenNameThenSign, book.identity],
   );
 
   const goBack = useCallback(() => ui.thenModal(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router]);
@@ -323,6 +412,11 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     setAskSign,
     signing,
     onSign,
+    /** identity on: the signing sheet's send (sign-sheet.ts afterSign says what each outcome means) */
+    onSignSheet,
+    /** what this reader just signed with (the sheet sets it); the ceremony prefers the published row's snapshot */
+    signedNow,
+    setSignedNow,
     composer,
     keyOf: lines.keyOf,
     menuCtx,

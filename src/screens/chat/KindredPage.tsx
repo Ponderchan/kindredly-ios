@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, type Href } from "expo-router";
@@ -6,7 +6,7 @@ import { getLang, t, useLang } from "../../lib/i18n";
 import { useLetterFamily, useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { archDescThird, archName, dimLabel, dimLineThird, dimSealedThird } from "../../lib/aura-copy";
-import { dLong, localeTag } from "../../lib/format";
+import { dLong, localeTag, penPalName } from "../../lib/format";
 import { developFor } from "../../lib/mosaic";
 import { theirLatest } from "../../lib/db";
 import { useIdentityOn } from "../../lib/identity";
@@ -18,13 +18,17 @@ import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { Frost, VeilTile } from "../../components/Frost";
-import { useWhoBook } from "../../lib/who";
+import { useIdentityFirstOn, useWhoBook } from "../../lib/who";
+import { penOrNull } from "../../lib/pen-signature";
+import { PenSignature } from "../../components/PenSignature";
+import { useSignatureHold } from "../../components/SignatureHold";
 import { ReportMenu } from "../../components/ReportMenu";
 import { Stamp } from "../../components/Stamp";
 import { InkPanel, SecondaryHeader } from "../../components/10a";
 import { isVoiceLetter, largeType, readerLetters } from "./reader";
-import { canTalk, faceKind, lettersValue, openingLetter, pageFace, pageTitle, showsArrivalMosaic, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
+import { canTalk, faceKind, firstMetAs, lettersValue, openingLetter, pageFace, pageTitle, showsArrivalMosaic, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
 import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
+import "../../data/strings-identity2"; // id2.kd.*, id2.rp.signature
 
 /* A KINDRED'S PAGE — the room behind the name (10a step 5, slice chat-rn).
    ────────────────────────────────────────────────────────────────────────
@@ -65,7 +69,16 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
    A pen pal you know the voice of is then their frosted window at 56
    (kindred-page pageFace; the spec from the screen's book, lib/who), the
    same window as on their row and in the chat and never developing, and a
-   deleted account the flat veil tile. */
+   deleted account the flat veil tile.
+
+   Identity Phase 2 (switch on, a kindred): THE NAME THEY SIGNED comes
+   right after the person — their drawing on the pad's baseline, or their
+   typed name in the italic when they signed in type or before drawings
+   existed — and under it FIRST MET AS the courier name they wore (the old
+   No. for a kindred made before this phone first had the switch on;
+   kindred-page firstMetAs; none for a gone account). Touch and hold the
+   signature (450ms) for Report this signature / Block (SignatureHold);
+   VoiceOver has both as actions, with a hint. The ⋯ stays the thread's. */
 
 export function KindredPage({ id, topInset }: { id?: string; topInset?: number }) {
   useLang();
@@ -79,8 +92,17 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   const voice = useOpeningVoiceRN(detail, isDemo);
   const lang = getLang();
   const identity = useIdentityOn();
-  // the book only for the frost (no names or marks are drawn on this page)
+  // the book for the frost, and (Phase 2) the courier name under THE NAME THEY SIGNED
   const book = useWhoBook();
+  const firstOnAt = useIdentityFirstOn(identity);
+  const { width: winW } = useWindowDimensions();
+  // a held signature: Report this signature / Block, about the other side of this thread
+  const hold = useSignatureHold({
+    threadId: id,
+    targetUser: detail && !detail.gone && detail.revealed ? detail.other : null,
+    onBlocked: () => router.replace("/(tabs)/kindreds"),
+  });
+  const sigRef = useRef<View>(null);
 
   const name = detail?.otherName || t("cm.kindred");
   /* THE READ, and it arrives BEFORE the name: what ten letters have earned you is a read of how
@@ -186,6 +208,43 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
             </View>
           </InkPanel>
 
+          {/* THE NAME THEY SIGNED (identity Phase 2) — their hand, kept as it was given, then the name
+              they wore while you were strangers */}
+          {identity && detail.revealed && (
+            <SoftGroup>
+              <Text style={label}>{t("id2.kd.signed")}</Text>
+              {(() => {
+                const pen = detail.otherName || name;
+                const drawn = !!penOrNull(detail.otherSig);
+                const met = firstMetAs(
+                  detail,
+                  (u) => book.name(u, { upper: true }),
+                  (u) => penPalName(u, { upper: true }),
+                  firstOnAt,
+                );
+                return (
+                  <>
+                    <Pressable
+                      ref={sigRef}
+                      disabled={!hold.can}
+                      delayLongPress={450}
+                      onLongPress={hold.can ? () => hold.open(sigRef.current) : undefined}
+                      accessible
+                      accessibilityLabel={t(drawn ? "id2.kd.drawnA11y" : "id2.kd.typedA11y", { pen })}
+                      accessibilityHint={hold.can ? t("id2.kd.holdHint") : undefined}
+                      accessibilityActions={hold.actions}
+                      onAccessibilityAction={hold.onAction}
+                      style={{ marginTop: 10 }}
+                    >
+                      <PenSignature sig={detail.otherSig} name={pen} fit="box" baseline width={Math.max(120, winW - 64)} />
+                    </Pressable>
+                    {met ? <Text style={{ ...label, marginTop: 8 }}>{t("id2.kd.firstMet", { name: met })}</Text> : null}
+                  </>
+                );
+              })()}
+            </SoftGroup>
+          )}
+
           {/* WHAT THEIR LETTERS HAVE TOLD YOU — a line per dimension that has come through, the rest
               sealed under KEEP WRITING. Built from THEIR letters, on this device, with no LLM: every
               line is a deterministic read of words they really wrote. */}
@@ -276,6 +335,9 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
           )}
         </ScrollView>
       )}
+
+      {/* the card under a held signature (window-level) */}
+      {hold.sheet}
     </View>
   );
 }

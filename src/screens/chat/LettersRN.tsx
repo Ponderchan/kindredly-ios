@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, ScrollView, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { getLang, hasString, t, useLang } from "../../lib/i18n";
 import { useTheme } from "../../lib/theme";
-import { archNameThird } from "../../lib/aura-copy";
 import { blurThen } from "../../lib/keyboard";
 import { useRenderWindow } from "../../lib/render-window";
-import { Introduction } from "../../components/Introduction";
+import { LettersIntroduction } from "./LettersIntroduction";
 import { LeaveSheet } from "../../components/LeaveSheet";
+import { SignSheet } from "./SignSheet";
 import { ReportSheet } from "../../components/ReportMenu";
 import { useReportFlow } from "../../lib/report-flow";
 import { BAR_ABOVE_KEYBOARD, REPLY_BAR, ReplyBar, type ReplyBarHandle } from "../../components/10a";
@@ -73,7 +73,6 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
   useLang();
   const params = useLocalSearchParams<{ id: string }>();
   const id = props.id ?? params.id;
-  const router = useRouter();
   const { t: tk, key: themeKey } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
@@ -250,7 +249,14 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
 
         {/* the bar rides the keyboard 12 above it; the home indicator's inset (at least 10) below it at rest */}
         <View style={{ paddingHorizontal: 12, paddingBottom: keyboard.up ? BAR_ABOVE_KEYBOARD : Math.max(10, insets.bottom), backgroundColor: tk.bg }}>
-          <DockAbove dock={dock} status={m.composer.status} statusAlarm={m.composer.statusAlarm} onDock={m.onDock} />
+          <DockAbove
+            dock={dock}
+            status={m.composer.status}
+            statusAlarm={m.composer.statusAlarm}
+            onDock={m.onDock}
+            // identity on: the door opens the signing sheet, and VoiceOver says so
+            signHint={m.identity ? t("id2.door.hint") : undefined}
+          />
           {/* write — unless there is no longer anyone at the other end. 0009 nulls their side when
               an account is deleted; the correspondence stays open to read and stops being somewhere
               you can write */}
@@ -281,36 +287,23 @@ export function LettersRN(props: { id?: string; topInset?: number } = {}) {
 
       {/* the A2 header's ⋯: the card drops just under it */}
       {header ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
-      <LeaveSheet
-        open={m.askSign}
-        modal
-        title={t("ch.sign.title")}
-        body={t("ch.sign.body", { name: m.auth.handle || t("ch.sign.fallback") })}
-        actions={[{ label: m.signing ? "…" : t("ch.sign.confirm"), kind: "primary", onPress: () => void m.onSign() }]}
-        cancelLabel={t("ch.sign.cancel")}
-        onCancel={() => !m.signing && m.setAskSign(false)}
-      />
+      {/* the door's sheet: identity on, the signing sheet (the face, the pen name, the signature);
+          off, today's ENCLOSE IT confirmation */}
+      {m.identity ? (
+        <SignSheet m={m} />
+      ) : (
+        <LeaveSheet
+          open={m.askSign}
+          modal
+          title={t("ch.sign.title")}
+          body={t("ch.sign.body", { name: m.auth.handle || t("ch.sign.fallback") })}
+          actions={[{ label: m.signing ? "…" : t("ch.sign.confirm"), kind: "primary", onPress: () => void m.onSign() }]}
+          cancelLabel={t("ch.sign.cancel")}
+          onCancel={() => !m.signing && m.setAskSign(false)}
+        />
+      )}
 
-      <Introduction
-        open={m.ceremony}
-        wren={m.wren}
-        otherSeed={detail?.other || "anon"}
-        otherFace={detail?.otherFace ?? null}
-        otherName={detail?.otherName || t("cm.kindred")}
-        otherArchetype={m.read?.archetype ? archNameThird(m.read.archetype.id) : null}
-        myName={m.myName}
-        road={m.road}
-        mySeed={m.auth.user?.id || "me"}
-        myFace={(m.auth.profile?.avatarId as string) || null}
-        notice={m.kindredNotice}
-        since={m.since}
-        stamp={detail?.stamp ?? null}
-        onClose={() => m.setCeremony(false)}
-        onTalk={() => {
-          m.setCeremony(false);
-          router.replace(`/room/${id}`);
-        }}
-      />
+      <LettersIntroduction m={m} />
     </View>
   );
 }

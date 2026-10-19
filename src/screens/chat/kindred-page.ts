@@ -27,7 +27,11 @@ import { isOpening } from "./build-items";
      their frosted window, never a developing mosaic (pageFace), and a
      kindred's card loses THE FACE YOU WATCHED ARRIVE — there was no face
      arriving, only the frost (plan §1 5a). WHO BEGAN reads id.kd.theyFirst,
-     whose words never agree with the name. Switch off: all as before. */
+     whose words never agree with the name. Switch off: all as before;
+   · identity Phase 2: under THE NAME THEY SIGNED, FIRST MET AS the name
+     they wore as a stranger (firstMetAs) — the courier name, or for a
+     kindred made before this phone first had the switch on, the old
+     number ("No. 4481", plan §8: revealed threads gain the history line). */
 
 /** Each side's writing: the bodies they wrote, the opening on its side, nothing taken back. */
 export function writingOf(d: ThreadDetail): { mine: string[]; theirs: string[] } {
@@ -97,4 +101,23 @@ export const canTalk = (d: Pick<ThreadDetail, "gone" | "other">, status?: Thread
 export function openingLetter(letters: readonly ThreadMessage[]): ThreadMessage | null {
   const first = letters[0];
   return first && isOpening(first) ? first : null;
+}
+
+/** FIRST MET AS — the name they wore while you were strangers (identity Phase 2, plan §1 rows 5/5a):
+    the old number (`penPalOf`, "No. 4481") when the names met before this device's first launch with
+    the switch on (`firstOnAt`): that is what you knew them by. A reveal with no date is older than
+    0020, so before any switch. Otherwise — including while `firstOnAt` isn't known yet — the courier
+    name (`nameOf`). A gone kindred (no id) has no FIRST MET line: null. */
+export function firstMetAs(
+  d: Pick<ThreadDetail, "other" | "gone" | "revealedAt">,
+  nameOf: (uid: string) => string,
+  penPalOf: (uid: string) => string,
+  firstOnAt: number | null | undefined,
+): string | null {
+  if (!d.other || d.gone) return null;
+  if (firstOnAt != null) {
+    const at = d.revealedAt ? Date.parse(d.revealedAt) : NaN;
+    if (!Number.isFinite(at) || at < firstOnAt) return penPalOf(d.other);
+  }
+  return nameOf(d.other);
 }

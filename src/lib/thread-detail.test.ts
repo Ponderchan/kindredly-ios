@@ -21,6 +21,7 @@ import {
   readReason,
   reduceDetail,
   seenCountAfter,
+  signedOf,
   unconfirmedEmpty,
   writeFailOf,
   type DetailState,
@@ -116,6 +117,19 @@ ok("letterId comes through", dA.letterId === "L1");
 ok("an embed handed back as an array still reads", buildThreadDetail(row({ opening_letter: [{ created_at: "2026-09-01T00:00:00Z" }] }), [], "me").openingAt === "2026-09-01T00:00:00Z");
 ok("an unreadable letter (RLS) → openingAt null", buildThreadDetail(row({ opening_letter: null }), [], "me").openingAt === null);
 ok("a pre-0020 row → revealedAt / openingAt / letterId null", (() => { const d = buildThreadDetail(row({ revealed_at: undefined, letter: undefined, opening_letter: undefined }), [], "me"); return d.revealedAt === null && d.openingAt === null && d.letterId === null; })());
+/* web 0035 (identity Phase 2): a sealed name isn't on the row, the flags say who signed */
+{
+  const sealedTheirs = buildThreadDetail(row({ revealed: false, a_name: null, b_name: null, a_face: null, b_face: null, a_signed: false, b_signed: true, a_sig: null, b_sig: null }), [], "me");
+  ok("0035: they signed (sealed) — theirSigned from b_signed, no name, no face", sealedTheirs.theirSigned === true && sealedTheirs.iSigned === false && sealedTheirs.otherName === null && sealedTheirs.otherFace === null);
+  const asB = buildThreadDetail(row({ revealed: false, a_name: null, b_name: null, a_signed: true, b_signed: false }), [], "them");
+  ok("0035: read from b's side, the same flags swap", asB.iSigned === false && asB.theirSigned === true);
+  const SIG = { v: 1 as const, w: 1000 as const, h: 320 as const, s: [[10, 20, 30, 40]] };
+  const opened = buildThreadDetail(row({ a_signed: true, b_signed: true, a_sig: null, b_sig: SIG }), [], "me");
+  ok("0035: revealed — their drawing, my typed one, my name and face as they got them", opened.otherSig === SIG && opened.mySig === null && opened.mySignedName === "Ana" && opened.mySignedFace === "f-a");
+  ok("pre-0035: a name on the row is the signature", signedOf({ a_name: "Ana", b_name: null }, "a") && !signedOf({ a_name: "Ana", b_name: null }, "b"));
+  ok("0035: the flag wins over a name (false stays false)", !signedOf({ a_name: "Ana", a_signed: false }, "a") && signedOf({ a_name: null, a_signed: true }, "a"));
+  ok("pre-0035 row: no drawings", dA.otherSig === null && dA.mySig === null);
+}
 ok("messages: mine, kind defaults to text", dA.messages[0].mine === true && dA.messages[0].kind === "text");
 ok("messages: a quote of my line is replyMine", dA.messages[1].replyMine === true);
 ok("messages: no quote → replyMine undefined", dA.messages[0].replyMine === undefined);

@@ -66,10 +66,12 @@ export type DockAboveProps = {
   onDock: (action: KChatDockAction) => void;
   /** the question's prompt field: its seed (text and a key bumped to put text in), ref and edits */
   prompt?: { seed: { text: string; n: number }; ref: RefObject<TextInput | null>; onChange: (v: string) => void; onFocus?: () => void };
+  /** what a double tap on the sign door does, said by VoiceOver (identity on: it opens the signing sheet); none by default */
+  signHint?: string;
 };
 
 /** 1-6, in a scroll view at most 40% of the screen tall */
-export function DockAbove({ dock, status, statusAlarm, onDock, prompt }: DockAboveProps) {
+export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint }: DockAboveProps) {
   const { t: tk } = useTheme();
   const { height } = useWindowDimensions();
   const hasAny = !!dock.closingText || !!dock.notice || dock.signDoor !== "none" || !!status || (!!dock.replyLabel && !dock.mode) || !!dock.mode;
@@ -108,7 +110,7 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt }: DockAbo
         </View>
       )}
 
-      {dock.signDoor !== "none" && <SignDoor dock={dock} onDock={onDock} />}
+      {dock.signDoor !== "none" && <SignDoor dock={dock} onDock={onDock} hint={signHint} />}
 
       {!!status && (
         <Text
@@ -164,8 +166,8 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt }: DockAbo
   );
 }
 
-/** the sign door: from the fifth letter until names are traded */
-function SignDoor({ dock, onDock }: { dock: KChatDock; onDock: (action: KChatDockAction) => void }) {
+/** the sign door: from the fifth letter until names are traded (identity on: five each way) */
+function SignDoor({ dock, onDock, hint }: { dock: KChatDock; onDock: (action: KChatDockAction) => void; hint?: string }) {
   const { t: tk } = useTheme();
   if (dock.signDoor === "waiting") {
     return (
@@ -176,7 +178,7 @@ function SignDoor({ dock, onDock }: { dock: KChatDock; onDock: (action: KChatDoc
   const gold = dock.signDoor === "theirsFirst";
   return (
     <View style={{ alignItems: "center", marginBottom: 10 }}>
-      <Pressable onPress={() => onDock("sign")} accessibilityRole="button" hitSlop={8}>
+      <Pressable onPress={() => onDock("sign")} accessibilityRole="button" accessibilityHint={hint} hitSlop={8}>
         {({ pressed }) => (
           <StickerBox
             fill={gold ? BRAND.cream : tk.sf}
