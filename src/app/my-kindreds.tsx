@@ -7,6 +7,8 @@ import { MONO, PF } from "../theme/post";
 import { useLetterFamily, useTheme } from "../lib/theme";
 import { BRAND, type ThemeTokens } from "../theme/themes";
 import { AvatarImage } from "../components/AvatarImage";
+import { StampAvatar } from "../components/StampAvatar";
+import { stampSpoken, useMemberStamps } from "../lib/member-marks";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { t, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
@@ -94,6 +96,8 @@ export default function MyKindreds() {
     return [...named, ...anon];
   }, [threads]);
   const namedCount = list.filter((th) => th.revealed).length;
+  /* a member kindred's face is a gold perforated stamp (C2) */
+  const stampOf = useMemberStamps(list.filter((th) => th.revealed).map((th) => th.other));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
@@ -110,6 +114,7 @@ export default function MyKindreds() {
 
         {list.map((th, i) => {
           const no = String(i + 1).padStart(2, "0");
+          const stamp = th.revealed ? stampOf(th.other) : "";
           const each = Math.min(th.mine, th.theirs);
           if (th.revealed) {
             return (
@@ -120,9 +125,12 @@ export default function MyKindreds() {
                 </View>
                 <Pressable onPress={() => router.push(`/room/${th.id}`)} style={({ pressed }) => ({ padding: 14, opacity: pressed ? 0.94 : 1 })}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <View style={{ width: 56, height: 56 }}>
-                      <AvatarImage id={th.otherFace ?? null} seed={th.other} size={52} />
-                      <View style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: GREEN_TEXT, borderWidth: 2, borderColor: tk.sf, alignItems: "center", justifyContent: "center" }}>
+                    <View style={{ width: 56, height: 56 }} accessible={!!stamp} accessibilityLabel={stamp ? stampSpoken(stamp, t) : undefined}>
+                      <StampAvatar size={52} denom={stamp}>
+                        {({ size, radius }) => <AvatarImage id={th.otherFace ?? null} seed={th.other} size={size} radius={radius ?? undefined} />}
+                      </StampAvatar>
+                      {/* stamped, the tick moves to the bottom-left so the denomination stays readable */}
+                      <View style={{ position: "absolute", ...(stamp ? { left: -6 } : { right: -2 }), bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: GREEN_TEXT, borderWidth: 2, borderColor: tk.sf, alignItems: "center", justifyContent: "center" }}>
                         <Svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={BRAND.paperWhite} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
                           <Path d="M5 12l5 5 9-10" />
                         </Svg>

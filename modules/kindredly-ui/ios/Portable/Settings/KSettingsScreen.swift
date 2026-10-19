@@ -8,10 +8,10 @@ import SwiftUI
  and reports taps. It keeps no state of its own: even the switches show what the app holds.
 
    ‹            SETTINGS                     the 44pt header, scrolling away with the page
-   ┌ ● FIRST CLASS ─────────────── [1ST] ┐   the cream banner: one button, to the paywall
-   └─────────────────────────────────────┘
-   APPEARANCE                                the swatches (the theme in effect selected), then
-   [▣][▣][▣][ ]                              Match system (once the dark theme is ready), then
+   ┌ ● FIRST CLASS ─────────────── [1ST] ┐   Me's 4a First Class card (KMeFirstClassCard, FC2
+   └─────────────────────────────────────┘   decision 4): one button, to the paywall
+   APPEARANCE                                five swatches, System / Light / Dark / Lavender /
+   [◩][▣][▣][▣][▣]                           Paper (the reader's appearance selected), then
    Letter font  [Aa][Aa]                     the Letter font tiles
    ACCOUNT · THE QUIET · FIRST CLASS · HELP · SAFETY · the exits in red
                 KINDREDLY 1.0.5 · 1.3.0 (29) · MADE SLOWLY
@@ -105,30 +105,12 @@ public struct KSettingsGroupItem: Identifiable, Equatable, Sendable {
   }
 }
 
-/// The cream First Class banner (H:98, in the owner's copy).
-public struct KSettingsBanner: Equatable, Sendable {
-  public var eyebrow = ""
-  public var headline = ""
-  public var sub = ""
-  public var cta = ""
-  public var stampLabel = ""
-  /// the courier's live snapshot for the stamp; nil leaves its face white
-  public var bird: KImageRef?
-
-  public init() {}
-}
-
 /// APPEARANCE (H:99, plus the owner's Letter font).
 public struct KSettingsAppearance: Equatable, Sendable {
   public var header = ""
   public var swatches: [KThemeSwatch] = []
-  /// the theme in effect
+  /// the reader's appearance (system / light / dark / lavender / paper)
   public var selectedTheme = ""
-  /// Match system's row shows (only once the dark theme is ready)
-  public var showMatch = false
-  public var matchLabel = ""
-  public var matchSub = ""
-  public var matchOn = false
   public var fontLabel = ""
   public var fontSub = ""
   public var fonts: [KFontOption] = []
@@ -143,7 +125,8 @@ public struct KSettingsContent: Equatable, Sendable {
   public var title = ""
   /// VoiceOver's name for the back chevron
   public var backLabel = ""
-  public var banner = KSettingsBanner()
+  /// the First Class card at the top: Me's 4a card, the member state for members
+  public var banner = KMeFirstClass()
   public var appearance = KSettingsAppearance()
   public var groups: [KSettingsGroupItem] = []
   /// KINDREDLY 1.0.5 · 1.3.0 (29) · MADE SLOWLY
@@ -156,10 +139,8 @@ public struct KSettingsContent: Equatable, Sendable {
 public final class KSettingsActions {
   public var onBack: () -> Void = {}
   public var onBanner: () -> Void = {}
-  /// a swatch: its theme key
+  /// a swatch: its appearance key
   public var onTheme: (String) -> Void = { _ in }
-  /// Match system flipped to this value
-  public var onMatchSystem: (Bool) -> Void = { _ in }
   /// a Letter font tile: its key
   public var onFont: (String) -> Void = { _ in }
   /// a row (link, danger): its key
@@ -210,15 +191,7 @@ public struct KSettingsScreen: View {
             onBack: { actions.onBack() }
           )
           .padding(.horizontal, -Self.gutter)
-          KFirstClassCard(
-            variant: .banner,
-            eyebrow: content.banner.eyebrow,
-            headline: content.banner.headline,
-            sub: content.banner.sub,
-            cta: content.banner.cta,
-            stampLabel: content.banner.stampLabel,
-            bird: content.banner.bird
-          ) {
+          KMeFirstClassCard(card: content.banner) {
             actions.onBanner()
           }
           KSettingsAppearanceGroup(theme: theme, appearance: content.appearance, actions: actions)
@@ -249,8 +222,9 @@ public struct KSettingsScreen: View {
 
 // MARK: - Appearance
 
-/// APPEARANCE (H:99): one soft block, padding 14 14 12, 12 between its parts: the swatches;
-/// Match system with a 1pt line over it; the Letter font with a 1pt line over it.
+/// APPEARANCE (H:99): one soft block, padding 14 14 12, 12 between its parts: the five swatches
+/// (System is one of them, so there is no Match system row); the Letter font with a 1pt line
+/// over it.
 struct KSettingsAppearanceGroup: View {
   let theme: KTheme
   let appearance: KSettingsAppearance
@@ -262,31 +236,6 @@ struct KSettingsAppearanceGroup: View {
       VStack(alignment: .leading, spacing: 12) {
         KThemeSwatches(theme: theme, options: appearance.swatches, selectedKey: appearance.selectedTheme) { key in
           actions.onTheme(key)
-        }
-        if appearance.showMatch {
-          VStack(alignment: .leading, spacing: 12) {
-            SoftDivider(theme: theme)
-            Toggle(isOn: Binding(get: { appearance.matchOn }, set: { actions.onMatchSystem($0) })) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text(appearance.matchLabel)
-                  .kText(.rowLabel)
-                  .foregroundStyle(theme.ink)
-                Text(appearance.matchSub)
-                  .kText(.subtext)
-                  .foregroundStyle(theme.mute)
-                  .fixedSize(horizontal: false, vertical: true)
-                  // shown, but read once, as the hint (SoftToggleRow's rule)
-                  .accessibilityHidden(true)
-              }
-              .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .toggleStyle(KToggleStyle(theme: theme))
-            .accessibilityLabel(Text(appearance.matchLabel))
-            .accessibilityHint(appearance.matchSub)
-            // the whole row flips it, not only the 26-tall track
-            .contentShape(Rectangle())
-            .onTapGesture { actions.onMatchSystem(!appearance.matchOn) }
-          }
         }
         if !appearance.fonts.isEmpty {
           VStack(alignment: .leading, spacing: 12) {

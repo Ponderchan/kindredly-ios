@@ -79,15 +79,13 @@ import type { ThemeTokens } from "../theme/themes";
    tk.ink — the pale lavender the dark app icon draws it in (15.4:1) — the
    word in ink and the line under it in sub (9.6:1); the gold dot stays gold
    and the cracks are still cut in the ground's colour. The splash's dark
-   variant (expo-splash-screen "dark": Midnight's bg) goes into app.json in
-   the binary that turns DARK_READY on and userInterfaceStyle "automatic" —
-   one without the other is a lavender splash then night, or night then
-   lavender, at every cold start on a dark phone (lib/theme's release note).
-   Until then only the dev theme switch can play it (DARK_READY off keeps
-   the theme light). Which set plays is decided once, at mount, by the
-   theme the app starts on — before the saved pick is read, that is Match
-   system (the default) and the phone's scheme, the rule the splash
-   follows. A saved pick read a moment later doesn't change it, so the
+   variant (SplashScreenBackground.colorset's dark appearance, Midnight's
+   bg; app.json expo-splash-screen "dark" kept in step) shipped in the same
+   binary as userInterfaceStyle "automatic" and the open DARK_READY (FC2,
+   2026-10-19), so a cold start on a dark phone is night from the splash
+   on. Which set plays is decided once, at mount, by the theme the app
+   starts on — before the saved appearance is read, that is System (the
+   default) and the phone's scheme, the rule the splash follows. A saved pick read a moment later doesn't change it, so the
    piece never switches grounds half-way; the first screen brings the
    theme. */
 

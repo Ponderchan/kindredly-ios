@@ -6,20 +6,23 @@ import { StatusBar } from "expo-status-bar";
 import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { PF } from "../theme/post";
 import { THEMES } from "../theme/themes";
-import { useP } from "../lib/theme";
 import { W14 } from "../components/AuraCard";
 import { CofounderMark } from "../components/CofounderMark";
-import { FirstClassWelcome } from "../components/FirstClassWelcome";
+import { FirstClassReceipt } from "../components/FirstClassWelcome";
 import { t, useLang } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEntitlement } from "../lib/entitlement";
 import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
+import { claimReceipt, receiptKey } from "../lib/fc-receipt";
+import { clearCofounderCache } from "../lib/cofounder-seats";
 import { openPrivacy, openTerms } from "../lib/legal";
 import { track, type PaywallSource } from "../lib/track";
 import { NativeSurface } from "../components/NativeSurface";
 import { usePaywall } from "../screens/paywall/usePaywall";
 import { PaywallNative } from "../screens/paywall/PaywallNative";
+import { trialFromIntro, type ReceiptFacts } from "../screens/paywall/paywall-model";
+import "../data/strings-fc2";
 import "../data/strings-a11y-today";
 
 /* FIRST CLASS — the boarding pass, with the fares on it (owner's sheet).
@@ -109,30 +112,75 @@ export default function Paywall() {
   /* Me 4a: the page is drawn in Swift (screens/paywall: PaywallNative over
      usePaywall), with this file's PaywallBody as the remote switch's
      fallback ("paywall" in app_surfaces, NativeSurface in mount mode). */
+  return <FirstClassPaywall source={source} lead={lead} onClose={close} onDone={() => router.back()} sheet />;
+}
+
+/* EVERY WAY INTO FIRST CLASS REACHES THE SAME PAGE (FC2 §4.8, owner decision 4).
+   The route, Today's wardrobe slip and legacy onboarding's fare step all show
+   this: the Swift page (PaywallSwift) where the "paywall" surface is on, this
+   file's PaywallBody as its fallback, the same switch the route always used.
+   `head` is a title of the host's own for a non-member (the slip's "Keep this
+   look"), `lead` the line under it. `sheet`: presented as a page sheet (the
+   route, the slip), so the close row sits under the sheet's top; false for a
+   full page in a flow (legacy onboarding). `courier` is the courier's name
+   when it isn't saved yet (legacy onboarding; the Swift page reads the saved
+   one from useWrenName). */
+export function FirstClassPaywall({
+  source,
+  lead,
+  head,
+  courier,
+  onClose,
+  onDone,
+  sheet = true,
+}: {
+  source: PaywallSource;
+  lead?: string;
+  head?: string;
+  courier?: string;
+  onClose: () => void;
+  onDone: () => void;
+  sheet?: boolean;
+}) {
   return (
     <NativeSurface
       surface="paywall"
       view="KPaywallView"
       mode="mount"
-      native={() => <PaywallSwift source={source} lead={lead} onClose={close} onDone={() => router.back()} />}
-      fallback={() => <PaywallBody source={source} lead={lead} onClose={close} onDone={() => router.back()} sheet />}
+      native={() => <PaywallSwift source={source} lead={lead} head={head} onClose={onClose} onDone={onDone} sheet={sheet} />}
+      fallback={() => <PaywallBody source={source} lead={lead} head={head} courier={courier} onClose={onClose} onDone={onDone} sheet={sheet} />}
     />
   );
 }
 
-/* the Swift page; once a purchase goes through, the same welcome the React
-   Native page shows */
-export function PaywallSwift({ source, lead, onClose, onDone, dev, sheet = true }: { source: PaywallSource; lead?: string; onClose: () => void; onDone: () => void; dev?: Parameters<typeof usePaywall>[0]["dev"]; sheet?: boolean }) {
-  const P = useP();
-  const model = usePaywall({ source, lead, onClose, dev });
-  if (model.welcome) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <FirstClassWelcome lifetime={model.welcome === "lifetime"} onDone={onDone} />
-      </SafeAreaView>
-    );
-  }
-  return <PaywallNative model={model} sheet={sheet} />;
+/* the Swift page; once a purchase goes through (and its transaction's receipt
+   hasn't been shown on this phone), the A3 receipt over it (FC2 §4.2). The
+   page stays mounted under the receipt; Start writing or the scrim → onDone. */
+export function PaywallSwift({
+  source,
+  lead,
+  head,
+  onClose,
+  onDone,
+  dev,
+  sheet = true,
+}: {
+  source: PaywallSource;
+  lead?: string;
+  head?: string;
+  onClose: () => void;
+  onDone: () => void;
+  dev?: Parameters<typeof usePaywall>[0]["dev"];
+  sheet?: boolean;
+}) {
+  const model = usePaywall({ source, lead, head, onClose, onDone, dev });
+  const r = model.receipt;
+  return (
+    <View style={{ flex: 1 }}>
+      <PaywallNative model={model} sheet={sheet} />
+      {r && <FirstClassReceipt plan={r.plan} price={r.price} productId={r.productId} offeredTrial={r.offeredTrial} onDone={onDone} />}
+    </View>
+  );
 }
 
 /* THE PASS ITSELF, wherever it's shown. The route above presents it as a
@@ -149,14 +197,13 @@ export function PaywallBody({
 }: {
   source: PaywallSource;
   onClose: () => void; // × — dismissed without buying
-  onDone: () => void; // after the welcome, bought
+  onDone: () => void; // after the receipt, bought
   head?: string; // the headline, when the page has a reason of its own
   lead?: string; // the line under it
   courier?: string; // her name, when it isn't saved yet
   sheet?: boolean; // presented as the route's page sheet: the bar is over the window's ground, not the night page
 }) {
   useLang();
-  const P = useP();
   const savedName = useWrenName();
   const wren = courier || savedName;
   const { handle } = useAuth();
@@ -171,7 +218,7 @@ export function PaywallBody({
   const [packages, setPackages] = useState<IapPackage[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [welcome, setWelcome] = useState<"plus" | "lifetime" | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptFacts | null>(null);
 
   useEffect(() => {
     track("paywall_shown", { source });
@@ -212,8 +259,17 @@ export function PaywallBody({
     setBusy(false);
     if (res.ok) {
       track("purchase_done", { source, fare: chosen.period, price: chosen.priceString });
+      clearCofounderCache();
       await refresh();
-      setWelcome(chosen.period === "lifetime" ? "lifetime" : "plus");
+      // the receipt, once per transaction (FC2 §4.2, the same rule as usePaywall)
+      if (await claimReceipt(receiptKey(res, chosen.id))) {
+        const period = chosen.period === "lifetime" || chosen.period === "monthly" ? chosen.period : "annual";
+        // this page doesn't check trial eligibility: a free intro offer counts as offered, which only
+        // ever picks the neutral renewal line over "charged today" (D-10)
+        setReceipt({ plan: period, price: chosen.priceString, productId: res.productId ?? chosen.productId ?? null, offeredTrial: period !== "lifetime" && trialFromIntro(chosen.introPrice ?? null) != null });
+      } else {
+        onDone();
+      }
     } else if (!res.cancelled) {
       track("purchase_failed", { source, fare: chosen.period });
       Alert.alert(t("pw.purchase.title"), t("pw.purchase.fail"));
@@ -228,13 +284,10 @@ export function PaywallBody({
     Alert.alert(ok ? t("pw.restored") : t("pw.nothingRestore"), ok ? t("pw.restoredBody") : t("pw.nothingRestoreBody"));
   };
 
-  if (welcome) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
-        <FirstClassWelcome lifetime={welcome === "lifetime"} onDone={onDone} />
-      </SafeAreaView>
-    );
-  }
+  // the pass stays under the receipt (FC2 §4.2)
+  const receiptView = receipt ? (
+    <FirstClassReceipt plan={receipt.plan} price={receipt.price} productId={receipt.productId} offeredTrial={receipt.offeredTrial} onDone={onDone} />
+  ) : null;
 
   const lifetime = !premium && chosen?.period === "lifetime";
   /* the pass lists what the chosen fare opens. First Class: the four gates
@@ -243,7 +296,8 @@ export function PaywallBody({
   const benefits: [string, string][] = lifetime
     ? [
         [t("pw.cf.number"), t("pw.cf.numberSub", { n: COFOUNDERS_TOTAL })],
-        [speakAs(t("pw.cf.ring", { wren }), wren), speakAs(t("pw.cf.ringSub"), wren)],
+        // FC2 (owner decision 2): the stamp avatar replaces "a gold ring on Wren"
+        [t("fc2.cf.stamp"), t("fc2.cf.stampSub")],
         [t("pw.cf.first"), t("pw.cf.firstSub")],
         [t("pw.cf.letter"), speakAs(t("pw.cf.letterSub"), wren)],
       ]
@@ -267,6 +321,7 @@ export function PaywallBody({
         : `${t("fc.board")} · ${price} ${chosen.period === "annual" ? t("fc.perYr") : t("fc.perMo")}`;
 
   return (
+    <View style={{ flex: 1 }}>
     <SafeAreaView style={{ flex: 1, backgroundColor: NIGHT }} edges={["top", "bottom"]}>
       {/* light on the night page; a sheet leaves the bar to iOS (see above) */}
       {focused && !sheet && <StatusBar style="light" />}
@@ -434,5 +489,7 @@ export function PaywallBody({
         </View>
       </ScrollView>
     </SafeAreaView>
+    {receiptView}
+    </View>
   );
 }

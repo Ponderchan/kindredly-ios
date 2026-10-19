@@ -183,10 +183,12 @@ public struct KMyLettersCard: Equatable, Sendable, Identifiable {
   public let tone: Tone
   public let status: String
   public let face: KFaceSource?
+  /// the replied face's stamp when they are a member (C2; the small rule at 22); nil for none
+  public let stamp: KMemberStamp?
   public let opens: Bool
   public let a11y: String
 
-  public init(id: String, kind: Kind, tag: Tag, date: String, reads: Int, answers: Int, stampId: String, stampHex: String, body: String, tone: Tone, status: String, face: KFaceSource?, opens: Bool, a11y: String) {
+  public init(id: String, kind: Kind, tag: Tag, date: String, reads: Int, answers: Int, stampId: String, stampHex: String, body: String, tone: Tone, status: String, face: KFaceSource?, stamp: KMemberStamp? = nil, opens: Bool, a11y: String) {
     self.id = id
     self.kind = kind
     self.tag = tag
@@ -199,6 +201,7 @@ public struct KMyLettersCard: Equatable, Sendable, Identifiable {
     self.tone = tone
     self.status = status
     self.face = face
+    self.stamp = stamp
     self.opens = opens
     self.a11y = a11y
   }
@@ -558,7 +561,7 @@ public struct KMyLettersScreen: View {
           .foregroundStyle(answeredGreen)
       case .replied:
         if let face = c.face {
-          KFace(theme: theme, source: face, size: 22, round: true)
+          KFace(theme: theme, source: face, size: 22, round: true, stamp: c.stamp)
         }
         Text(c.status)
           .kText(.mono(10, .semibold, tracking: 0.04))

@@ -9,7 +9,8 @@ import { clearCofounderCache, fetchSeatsLeft } from "../../lib/cofounder-seats";
 import { openPrivacy, openTerms } from "../../lib/legal";
 import { track, type PaywallSource } from "../../lib/track";
 import { visibleBenefits, type FcBenefitId } from "../../data/fc-benefits";
-import { buildPaywallView, type Fare, type PaywallView } from "./paywall-model";
+import { buildPaywallView, type Fare, type PaywallView, type ReceiptFacts } from "./paywall-model";
+import { claimReceipt, receiptKey } from "../../lib/fc-receipt";
 import "../../data/strings-me4a";
 
 /* THE FIRST CLASS PAGE'S HOOK (Me 4a, ME4A §2.3). Gathers the facts —
@@ -21,8 +22,13 @@ import "../../data/strings-me4a";
    Buying stays here, in the existing React Native RevenueCat code: buy(id)
    is PaywallBody's subscribe() moved over line for line (the IAP_READY /
    raw check with the "almost" Alert, track, iapPurchase, refresh, then the
-   welcome, or the failure Alert); restore() is its restore(). Swift only
-   says which fare and shows `busy`.
+   receipt, or the failure Alert); restore() is its restore() and never shows
+   a receipt. Swift only says which fare and shows `busy`.
+
+   THE RECEIPT (FC2 §4.2): after a purchase goes through, the A3 receipt
+   (components/FirstClassWelcome FirstClassReceipt) is shown once per store
+   transaction (lib/fc-receipt). A transaction already shown on this phone
+   skips it and calls onDone, so the page closes as it would have.
 
    `dev` (src/app/dev/me4a-fc.tsx only) overrides the facts the account
    can't show: the seats answer, member and cofounder states, the flags. */
@@ -38,8 +44,8 @@ export type PaywallDev = {
 export type PaywallModel = {
   view: PaywallView;
   busy: boolean;
-  /** "plus" or "lifetime" once a purchase went through: the route shows the welcome */
-  welcome: "plus" | "lifetime" | null;
+  /** set once a purchase went through and its receipt hasn't been shown: the host overlays it */
+  receipt: ReceiptFacts | null;
   act: {
     close: () => void;
     select: (id: string) => void;
@@ -53,14 +59,30 @@ export type PaywallModel = {
 
 const asPackage = (f: Fare): IapPackage => ({ id: f.id, priceString: f.priceString, title: f.period, period: f.period, raw: f.raw });
 
-export function usePaywall({ source, lead, onClose, dev }: { source: PaywallSource; lead?: string; onClose: () => void; dev?: PaywallDev }): PaywallModel {
+export function usePaywall({
+  source,
+  lead,
+  head,
+  onClose,
+  onDone,
+  dev,
+}: {
+  source: PaywallSource;
+  lead?: string;
+  /** a title of its own for a non-member (paywall-model PaywallFacts.head) */
+  head?: string;
+  onClose: () => void;
+  /** after a purchase whose receipt was already shown on this phone (what the receipt's button would do) */
+  onDone?: () => void;
+  dev?: PaywallDev;
+}): PaywallModel {
   const lang = useLang();
   const wren = useWrenName();
   const ent = useEntitlement();
   const fares = useFares();
   const [seats, setSeats] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [welcome, setWelcome] = useState<"plus" | "lifetime" | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptFacts | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,12 +104,12 @@ export function usePaywall({ source, lead, onClose, dev }: { source: PaywallSour
   const view = useMemo(
     () =>
       buildPaywallView(
-        { fares, seatsLeft, premium, cofounderNo, wren, benefits: visibleBenefits(flags), lead },
+        { fares, seatsLeft, premium, cofounderNo, wren, benefits: visibleBenefits(flags), lead, head },
         { t, upper: (s) => s.toLocaleUpperCase(), speak: (s) => speakAs(s, wren) },
       ),
     // lang: every word is t()'s
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fares, seatsLeft, premium, cofounderNo, wren, flags, lead, lang],
+    [fares, seatsLeft, premium, cofounderNo, wren, flags, lead, head, lang],
   );
 
   const fareOf = useCallback((id: string | null) => fares.fares.find((f) => f.id === id) ?? null, [fares]);
@@ -123,13 +145,18 @@ export function usePaywall({ source, lead, onClose, dev }: { source: PaywallSour
         track("purchase_done", { source, fare: f.period, price: f.priceString });
         clearCofounderCache();
         await ent.refresh();
-        setWelcome(f.period === "lifetime" ? "lifetime" : "plus");
+        // once per transaction (FC2 §4.2); if the store can't say, it shows
+        if (await claimReceipt(receiptKey(res, f.id))) {
+          setReceipt({ plan: f.period, price: f.priceString, productId: res.productId ?? null, offeredTrial: f.trial != null });
+        } else {
+          onDone?.();
+        }
       } else if (!res.cancelled) {
         track("purchase_failed", { source, fare: f.period });
         Alert.alert(t("pw.purchase.title"), t("pw.purchase.fail"));
       }
     },
-    [fareOf, busy, source, ent],
+    [fareOf, busy, source, ent, onDone],
   );
 
   const restore = useCallback(async () => {
@@ -148,7 +175,7 @@ export function usePaywall({ source, lead, onClose, dev }: { source: PaywallSour
   return {
     view,
     busy,
-    welcome,
+    receipt,
     act: { close, select, buy: (id) => void buy(id), restore: () => void restore(), manage, terms: openTerms, privacy: openPrivacy },
   };
 }

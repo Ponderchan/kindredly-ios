@@ -5,6 +5,7 @@
 
 import { supabase, supabaseReady } from "./supabase";
 import { forgetMarks } from "./identity";
+import { forgetMemberMark } from "./member-marks";
 import { isMissingRpc } from "./identity-core";
 import { penFaceOrNull, penOrNull, simplifyPen, validatePen, type PenSig } from "./pen-signature";
 import { scoped } from "./scoped-store";
@@ -1439,6 +1440,7 @@ export async function unblockUser(targetUser: string): Promise<true | null> {
     const { error } = await supabase!.from("blocks").delete().eq("blocker", me).eq("blocked", targetUser);
     if (error) return noteFail(error);
     forgetMarks(targetUser); // their ♀/♂ and sign are asked again, now that marks_for may answer (lib/identity)
+    forgetMemberMark(targetUser); // their stamp is asked again (lib/member-marks)
     return true;
   } catch (e) {
     return noteFail(e);
@@ -1458,6 +1460,7 @@ export async function blockUser(targetUser: string): Promise<true | null> {
       .upsert({ blocker: me, blocked: targetUser }, { onConflict: "blocker,blocked" });
     if (error) return noteFail(error);
     forgetMarks(targetUser); // marks_for stops answering for a blocked pair; drop what this session kept (lib/identity)
+    forgetMemberMark(targetUser); // member_marks_for stops answering for a blocked pair (lib/member-marks)
     return true;
   } catch (e) {
     return noteFail(e);

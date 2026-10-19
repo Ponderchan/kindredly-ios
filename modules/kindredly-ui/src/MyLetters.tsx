@@ -32,7 +32,15 @@ export type KMyLettersStrings = {
 export type KMyLettersFilter = { key: "all" | "answered" | "quiet" | "drafts"; label: string; count: number };
 
 /** A face as Swift's KFace takes it (lib/faces faceRecord without the frost: a reply's face is a kindred's). */
-export type KMyLettersFace = { kind: "image" | "mosaic" | "veil" | "placeholder" | "frost"; uri: string; key: string; overscan: number; mask: number };
+export type KMyLettersFace = {
+  kind: "image" | "mosaic" | "veil" | "placeholder" | "frost";
+  uri: string;
+  key: string;
+  overscan: number;
+  mask: number;
+  /** their stamp when they are a member (C2): "1ST" | "007" | "" (omitted = none) */
+  stamp?: string;
+};
 
 export type KMyLettersCard = {
   id: string;
@@ -85,7 +93,7 @@ type NativeKMyLettersViewProps = Omit<KMyLettersViewProps, "letterFont" | "inset
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
-const NO_FACE: KMyLettersFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0 };
+const NO_FACE: KMyLettersFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, stamp: "" };
 
 const NativeKMyLettersView = requireNativeView<NativeKMyLettersViewProps>("KindredlyUI", "KMyLettersView");
 
@@ -96,7 +104,7 @@ export const KMyLettersView = forwardRef<KScreenHandle, KMyLettersViewProps>(fun
 ) {
   // a Swift record can't take null: no face is the placeholder, which Swift doesn't draw for a
   // card whose tone isn't "replied"
-  const sentCards = useMemo(() => cards.map((c) => ({ ...c, face: c.face ?? NO_FACE })), [cards]);
+  const sentCards = useMemo(() => cards.map((c) => ({ ...c, face: c.face ? { ...c.face, stamp: c.face.stamp ?? "" } : NO_FACE })), [cards]);
   return (
     <NativeKMyLettersView
       ref={ref}

@@ -66,6 +66,8 @@ ok("0 seats: Lifetime not offered", full.fares.length === 2 && full.fares.every(
 const cf = buildPaywallView({ ...base, premium: true, cofounderNo: 47 }, fmt);
 ok("cofounder: the real number, padded", cf.cofounder.badge === "m4.pw.cfBadge{n:047}" && cf.member.cofounder && cf.member.premium);
 ok("member: manage", cf.member.cta === "fc.manage" && cf.strings.title === "fc.paidHead");
+ok("cofounder perk: the stamp avatar, not the ring", cf.cofounder.perks[1].title === "fc2.cf.stamp" && cf.cofounder.perks[1].sub === "fc2.cf.stampSub" && !JSON.stringify(cf.cofounder).includes("pw.cf.ring"));
+ok("head: replaces the title for a non-member only", buildPaywallView({ ...base, head: "Keep it" }, fmt).strings.title === "Keep it" && buildPaywallView({ ...base, head: "Keep it", premium: true }, fmt).strings.title === "fc.paidHead");
 ok("pad3", pad3(7) === "007" && pad3(123) === "123");
 ok("trialLabel none", trialLabel(null, t) === "");
 

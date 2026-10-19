@@ -16,8 +16,14 @@ import type { PaywallDev } from "../../screens/paywall/usePaywall";
 import { MyLettersNative, type MyLettersDemo } from "../../screens/letters/MyLettersNative";
 import { PaywallBody, PaywallSwift } from "../paywall";
 import { MyLettersRN } from "../my-letters";
-import { FirstClassWelcome } from "../../components/FirstClassWelcome";
+import { FirstClassReceipt, type ReceiptPlan } from "../../components/FirstClassWelcome";
+import { FirstClassCard } from "../../components/FirstClassStub";
+import { buildFirstClass4a } from "../../screens/me/me-model";
+import { meFormat } from "../../screens/me/me-format";
+import { trialLabel } from "../../screens/paywall/paywall-model";
+import { t } from "../../lib/i18n";
 import "../../data/strings-me4a";
+import "../../data/strings-fc2";
 
 /* dev only — ME 4a's FIRST CLASS PAGE AND MY LETTERS ON DEMO DATA.
    kindredly:///dev/me4a-fc
@@ -31,9 +37,16 @@ import "../../data/strings-me4a";
    brings it back):
    - PAGE: PAYWALL (Swift) · PW RN (the React Native PaywallBody, the
      fallback) · LETTERS (Swift, demo rows) · ML RN (the React Native page,
-     the account's real letters, read only) · WELCOME / WELCOME LIFE (the
-     post-purchase card on its own; it only reads the entitlement and
-     RevenueCat's customer info, START WRITING just returns to PAYWALL);
+     the account's real letters, read only) · CARD RN (the 4a First Class
+     card's React Native twin, FirstClassCard, in the WHO state);
+   - THE A3 RECEIPT (FC2 §4.6) over the Swift paywall, on fixed facts (the
+     store and the server aren't asked; nothing is bought): RC TRIAL (monthly,
+     US$6.99, 7 days free ending a week from today) · RC YEARLY (US$39.99,
+     no trial offered: "charged today") · RC LIFE (Cofounder No. 001) · RC
+     PENDING (Lifetime, the number not landed yet). Start writing or the
+     scrim return to PAYWALL. Check each at Default type and at AX5
+     (Settings › Accessibility › Display & Text Size › Larger Text): the
+     button must stay the last thing and on screen;
    - THEME: the dev override (My letters follows it; the paywall keeps First
      Class's own palette in every theme);
    - FARES: TRIAL (a 7-day free intro, eligible) · NO TRIAL · PLACEHOLDER
@@ -44,7 +57,24 @@ import "../../data/strings-me4a";
    - LETTERS: FULL (10 letters, answered, quiet and replied, 2 drafts) ·
      NO DRAFTS · EMPTY (nothing written yet). */
 
-type Page = "paywall" | "pwrn" | "letters" | "mlrn" | "welcome" | "welcomeL";
+type Page = "paywall" | "pwrn" | "letters" | "mlrn" | "card" | "rcTrial" | "rcMonthly" | "rcLife" | "rcPending";
+
+/* the four receipt fixtures (FC2 §4.6) */
+type ReceiptFixture = { plan: ReceiptPlan; price: string; offeredTrial: boolean; dev: { trial?: { n: number; unit: "day" | "month"; endsAt: string } | null; cofounderNo?: number | null } };
+function receiptFixture(page: Page): ReceiptFixture | null {
+  switch (page) {
+    case "rcTrial":
+      return { plan: "monthly", price: "US$6.99", offeredTrial: true, dev: { trial: { n: 7, unit: "day", endsAt: new Date(Date.now() + 7 * 86_400_000).toISOString() } } };
+    case "rcMonthly":
+      return { plan: "annual", price: "US$39.99", offeredTrial: false, dev: { trial: null } };
+    case "rcLife":
+      return { plan: "lifetime", price: "US$129.99", offeredTrial: false, dev: { cofounderNo: 1 } };
+    case "rcPending":
+      return { plan: "lifetime", price: "US$129.99", offeredTrial: false, dev: { cofounderNo: null } };
+    default:
+      return null;
+  }
+}
 type FareMode = "trial" | "notrial" | "placeholder" | "real";
 type Who = "free" | "member" | "cofounder";
 type SeatMode = "ask" | 53 | 0 | null;
@@ -142,6 +172,11 @@ function Me4aFc() {
     return d;
   }, [who, seats, all]);
   const demo = useMemo(() => demoRows(letters), [letters]);
+  const rc = receiptFixture(page);
+  const card = useMemo(
+    () => buildFirstClass4a({ premium: who !== "free", cofounderNo: who === "cofounder" ? 47 : null, wren: "Wren", trial: fares === "trial" ? trialLabel({ n: 7, unit: "day" }, t) : "" }, meFormat()),
+    [who, fares],
+  );
   const back = () => (router.canGoBack() ? router.back() : router.replace("/"));
 
   return (
@@ -151,8 +186,18 @@ function Me4aFc() {
           <PaywallSwift key={`${who}:${seats}:${all}`} source="unknown" onClose={back} onDone={back} dev={dev} sheet={false} />
         ) : page === "pwrn" ? (
           <PaywallBody source="unknown" onClose={back} onDone={back} />
-        ) : page === "welcome" || page === "welcomeL" ? (
-          <FirstClassWelcome key={page} lifetime={page === "welcomeL"} onDone={() => setPage("paywall")} />
+        ) : rc ? (
+          <View style={{ flex: 1 }}>
+            <PaywallSwift source="unknown" onClose={back} onDone={back} dev={dev} sheet={false} />
+            <Text style={{ position: "absolute", top: safe.top + 4, left: 12, right: 12, fontFamily: PF.monoSemi, fontSize: 10, color: tk.ink, backgroundColor: tk.sf, padding: 4 }}>
+              Default type / AX5: the button stays last and on screen
+            </Text>
+            <FirstClassReceipt key={page} plan={rc.plan} price={rc.price} productId={null} offeredTrial={rc.offeredTrial} dev={rc.dev} onDone={() => setPage("paywall")} />
+          </View>
+        ) : page === "card" ? (
+          <ScrollView contentContainerStyle={{ paddingTop: safe.top + 16, paddingHorizontal: 16, paddingBottom: 24 }}>
+            <FirstClassCard card={card} onPress={() => console.log("[me4a-fc dev] card tapped")} />
+          </ScrollView>
         ) : page === "letters" ? (
           <MyLettersNative key={letters} demo={demo} />
         ) : (
@@ -169,8 +214,11 @@ function Me4aFc() {
                 ["pwrn", "PW RN"],
                 ["letters", "LETTERS"],
                 ["mlrn", "ML RN"],
-                ["welcome", "WELCOME"],
-                ["welcomeL", "WELCOME LIFE"],
+                ["card", "CARD RN"],
+                ["rcTrial", "RC TRIAL"],
+                ["rcMonthly", "RC YEARLY"],
+                ["rcLife", "RC LIFE"],
+                ["rcPending", "RC PENDING"],
               ] as const
             ).map(([k, l]) => (
               <Chip key={k} label={l} on={page === k} onPress={() => setPage(k)} />

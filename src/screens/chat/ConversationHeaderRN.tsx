@@ -6,6 +6,9 @@ import { LineIcon } from "../../components/10a/LineIcon";
 import { BackChevron } from "../../components/10a/BackChevron";
 import { Frost, VeilTile } from "../../components/Frost";
 import { useIdentityOn } from "../../lib/identity";
+import { StampAvatar } from "../../components/StampAvatar";
+import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
+import { t } from "../../lib/i18n";
 import { WhoName } from "../../components/WhoName";
 import type { FrostSpec } from "../../lib/frost";
 import { useTheme } from "../../lib/theme";
@@ -67,8 +70,12 @@ export function ConversationHeaderRN({
   onBack,
   onPage,
   onMore,
+  stampUid,
 }: {
   model: KChatHeader;
+  /** the other person's user id, for their member stamp (C2); null / omitted = none. The kindreds
+   *  chat stamps its own roomFace (RoomRN) and passes the id only for VoiceOver */
+  stampUid?: string | null;
   /** the kindreds chat: their round face, 44 across */
   roomFace?: ReactNode;
   /** the status bar's room; the safe-area inset by default (a dev page above it passes 0) */
@@ -81,13 +88,18 @@ export function ConversationHeaderRN({
   const insets = useSafeAreaInsets();
   const brass = dark ? BRAND.waxGold : BRAND.brassSeal;
   const subColor = model.tone === "ind" ? tk.ind : model.tone === "brass" ? brass : tk.mute;
+  /* a member: their face is a gold perforated stamp (C2); never a closed account */
+  const uid = model.veil ? null : stampUid;
+  const stamp = useMemberStamps([uid])(uid);
+  const spoken = stampSpoken(stamp, t);
+  const a11yLabel = spoken ? `${model.a11yLabel}, ${spoken}` : model.a11yLabel;
 
   const identity = (
     <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}>
       {model.room ? (
         <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>{roomFace}</View>
       ) : (
-        <PenPalFace mask={model.mask} veil={model.veil} frost={model.room ? null : (model.frost as FrostSpec | null)} frame={model.frame === "none" ? null : model.frame === "brass" ? brass : tk.line} />
+        <PenPalFace mask={model.mask} veil={model.veil} frost={model.room ? null : (model.frost as FrostSpec | null)} frame={model.frame === "none" ? null : model.frame === "brass" ? brass : tk.line} stamp={stamp} />
       )}
       <View style={{ flex: 1, gap: 3 }}>
         <WhoName
@@ -123,13 +135,13 @@ export function ConversationHeaderRN({
               onPress={onPage}
               accessible
               accessibilityRole="button"
-              accessibilityLabel={model.a11yLabel}
+              accessibilityLabel={a11yLabel}
               style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
             >
               {identity}
             </Pressable>
           ) : (
-            <View accessible accessibilityRole="header" accessibilityLabel={model.a11yLabel} style={{ flex: 1 }}>
+            <View accessible accessibilityRole="header" accessibilityLabel={a11yLabel} style={{ flex: 1 }}>
               {identity}
             </View>
           )}
@@ -158,10 +170,36 @@ export function ConversationHeaderRN({
 const CELL = 5.2;
 const GAP = 1.3;
 
-function PenPalFace({ mask, veil, frame, frost }: { mask: number; veil: boolean; frame: string | null; frost: FrostSpec | null }) {
+function PenPalFace({ mask, veil, frame, frost, stamp }: { mask: number; veil: boolean; frame: string | null; frost: FrostSpec | null; stamp: string }) {
   const { t: tk } = useTheme();
   // a deleted account with the switch on: the flat veil tile, the same for every ghost (plan §1 1b)
   const identity = useIdentityOn();
+  if (stamp && !veil) {
+    /* a member (C2): a 36 stamp in the same slot; it replaces the line / brass frame (contract
+       D-8: the turn still shows in the line's tone). The window as is, or the mask on a soft2
+       tile at the round face's proportions */
+    return (
+      <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center" }}>
+        <StampAvatar size={36} denom={stamp}>
+          {({ size }) => {
+            if (frost) return <Frost spec={frost} size={size} />;
+            const k = size / 36;
+            return (
+              <View style={{ width: size, height: size, borderRadius: 3, backgroundColor: tk.soft2, alignItems: "center", justifyContent: "center", gap: GAP * k }}>
+                {Array.from({ length: ROWS }).map((_, r) => (
+                  <View key={r} style={{ flexDirection: "row", gap: GAP * k }}>
+                    {Array.from({ length: COLS }).map((_, c) => (
+                      <View key={c} style={{ width: CELL * k, height: CELL * k, backgroundColor: maskHas(mask, r, c) ? tk.ink : "transparent" }} />
+                    ))}
+                  </View>
+                ))}
+              </View>
+            );
+          }}
+        </StampAvatar>
+      </View>
+    );
+  }
   if (veil && identity) {
     return (
       <View style={{ width: 44, height: 36, alignItems: "center", justifyContent: "center" }}>

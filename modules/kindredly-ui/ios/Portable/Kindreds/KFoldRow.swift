@@ -13,6 +13,7 @@ import SwiftUI
    VoiceOver's "No. 4481". With the identity switch on each face is that pen pal's frosted window
    (KFrost: a 34 square with corners of 8.5, its ring following the corners), the same window as
    on their row and in the orbit, never developing; VoiceOver hears "Sunday Kite, she, Gemini".
+ - A member's face is their stamp (C2, the small rule at 34), its ring around the stamp's frame.
  - "+n" (13/600 mute) for the rest, the label (13/600 mute) and a chevron in mute: one button
    that shows PEN PALS, labelled by TS.
  - 22 in from the edges, a 1pt line under it like every row (H:65), no rule above (the row
@@ -28,12 +29,15 @@ public struct KFoldFace: Identifiable, Equatable, Sendable {
   public let frost: KFrostSpec?
   /// what VoiceOver calls it ("No. 4481"; switch on, "Sunday Kite, she, Gemini")
   public let a11yLabel: String
+  /// a member's stamp (C2), at 34 the small rule; nil for none
+  public let stamp: KMemberStamp?
 
-  public init(id: String, mask: Int, frost: KFrostSpec? = nil, a11yLabel: String) {
+  public init(id: String, mask: Int, frost: KFrostSpec? = nil, a11yLabel: String, stamp: KMemberStamp? = nil) {
     self.id = id
     self.mask = mask
     self.frost = frost
     self.a11yLabel = a11yLabel
+    self.stamp = stamp
   }
 }
 
@@ -119,7 +123,20 @@ public struct KFoldRow: View, Equatable {
         SwiftUI.Button {
           onFace(face.id)
         } label: {
-          if let frost = face.frost {
+          if let stamp = face.stamp {
+            // a member: the stamp's frame (4 outside the box), ringed in the page colour outside it
+            let source: KFaceSource = face.frost.map { .frost($0) } ?? .mosaic(mask: face.mask, tint: theme.ink)
+            let edge = RoundedRectangle(cornerRadius: KMemberStamp.outerRadius + Self.ring, style: .circular)
+            // at 34 the fold takes the small rule (no denomination): KFace alone would pick by size (> 32 = full)
+            KStampAvatar(theme: theme, size: Self.face, stamp: stamp, compact: 1) { inner in
+              KFace.stampedContent(theme: theme, source: source, inner: inner)
+            }
+              .overlay(
+                edge.strokeBorder(theme.bg, lineWidth: Self.ring)
+                  .frame(width: Self.face + 2 * (KMemberStamp.bleed + Self.ring), height: Self.face + 2 * (KMemberStamp.bleed + Self.ring))
+              )
+              .contentShape(Rectangle())
+          } else if let frost = face.frost {
             let square = RoundedRectangle(cornerRadius: Self.face * 0.25, style: .circular)
             KFace(theme: theme, source: .frost(frost), size: Self.face)
               .overlay(square.strokeBorder(theme.bg, lineWidth: Self.ring))

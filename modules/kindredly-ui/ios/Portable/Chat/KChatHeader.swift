@@ -135,10 +135,10 @@ struct KChatHeader: View {
   private var identity: some View {
     let content = HStack(spacing: 12) {
       if model.room {
-        KFace(theme: theme, source: model.face, size: 44)
+        KFace(theme: theme, source: model.face, size: 44, stamp: KMemberStamp(model.stamp))
           .accessibilityHidden(true)
       } else {
-        KChatHeaderFace(theme: theme, mask: model.mask, frost: model.frost, veil: model.veil, veilTile: model.veilTile, frame: model.frame)
+        KChatHeaderFace(theme: theme, mask: model.mask, frost: model.frost, veil: model.veil, veilTile: model.veilTile, frame: model.frame, stamp: model.veil ? nil : KMemberStamp(model.stamp))
       }
       VStack(alignment: .leading, spacing: 3) {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
@@ -256,6 +256,8 @@ struct KChatHeaderFace: View {
   let veil: Bool
   let veilTile: Bool
   let frame: KChatFaceFrame
+  /// a member (C2): the stamp at 36 replaces the frame (D-8; the turn still shows in the tone)
+  var stamp: KMemberStamp? = nil
 
   static let cell: CGFloat = 5.2
   static let gap: CGFloat = 1.3
@@ -276,8 +278,35 @@ struct KChatHeaderFace: View {
   }
 
   var body: some View {
+    if let stamp {
+      stamped(stamp)
+    } else {
+      plain
+    }
+  }
+
+  /// The stamp at the frame's 36 (inner 29): the window as is, or the mosaic on a soft2 tile,
+  /// 80% across it so the face still reads at this size.
+  private func stamped(_ stamp: KMemberStamp) -> some View {
+    KStampAvatar(theme: theme, size: Self.framed, stamp: stamp) { inner in
+      if let frost {
+        KFrost(theme: theme, spec: frost, size: inner)
+      } else {
+        let span = inner * 0.8
+        let cell = span / (5 + 4 * (Self.gap / Self.cell))
+        ZStack {
+          Rectangle().fill(theme.soft2)
+          KMosaic(mask: mask, cell: cell, gap: cell * Self.gap / Self.cell, color: theme.ink)
+        }
+      }
+    }
+    .frame(width: 44, height: 36)
+    .accessibilityHidden(true)
+  }
+
+  private var plain: some View {
     let side = Self.framed - 2 * Self.pad
-    Group {
+    return Group {
       if veil && veilTile {
         KFrostVeil(theme: theme, size: side)
       } else if veil {

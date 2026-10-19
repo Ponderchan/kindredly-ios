@@ -39,6 +39,9 @@ import SwiftUI
  Increase Contrast gives them their ink edge, as KFrost does anywhere. The centre cell, the
  rings, the drift and the arrival fade are unchanged; switch off is exactly the mosaic above.
 
+ A FIRST CLASS MEMBER (C2) gets a 1pt dotted wax-gold edge 1.5pt outside their face, nothing more:
+ the stamp's full rule would leave a 6pt face at these sizes (decision D-6).
+
  VoiceOver doesn't see the drawing; the legend and the Orbit chip's hint say what it means.
  */
 
@@ -59,8 +62,10 @@ public struct KOrbitItem: Identifiable, Equatable, Sendable {
   public let period: Double
   /// it is your turn to write to them: inked in ind (a window: a 1.5pt ind ring round it)
   public let turn: Bool
+  /// a First Class member (C2): at these sizes only a 1pt dotted wax-gold edge round the face
+  public let stamp: Bool
 
-  public init(id: String, mask: Int, frost: KFrostSpec? = nil, ring: Int, a0: Double, dir: Double, period: Double, turn: Bool) {
+  public init(id: String, mask: Int, frost: KFrostSpec? = nil, ring: Int, a0: Double, dir: Double, period: Double, turn: Bool, stamp: Bool = false) {
     self.id = id
     self.mask = mask
     self.frost = frost
@@ -69,6 +74,7 @@ public struct KOrbitItem: Identifiable, Equatable, Sendable {
     self.dir = dir >= 0 ? 1 : -1
     self.period = max(1, period)
     self.turn = turn
+    self.stamp = stamp
   }
 }
 
@@ -90,6 +96,9 @@ public enum KOrbitGeometry {
   /// your turn round a window: a ring this wide (pt), this far clear of the window's edge
   public static let turnRing: CGFloat = 1.5
   public static let turnGap: CGFloat = 1
+  /// a member's edge (C2): this wide (pt), this far clear of the face's box
+  public static let stampEdge: CGFloat = 1
+  public static let stampGap: CGFloat = 1.5
 
   /// the ring of someone who has sent you `letters`
   public static func radius(letters: Int) -> CGFloat {
@@ -175,6 +184,9 @@ public struct KOrbit: View, Equatable {
       let box = CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
       let opacity = running ? arrivals.opacity(item.id, order: order, at: date) : 1
       guard opacity > 0 else { continue }
+      if item.stamp {
+        drawStampEdge(around: box, clearOfTurnRing: item.frost != nil && item.turn, opacity: opacity, context: gc)
+      }
       if let frost = item.frost {
         drawWindow(frost, in: box, turn: item.turn, opacity: opacity, context: gc)
         continue
@@ -184,6 +196,20 @@ public struct KOrbit: View, Equatable {
       let shape = KMosaicShape(mask: item.mask, cell: cell, gap: gap).path(in: box)
       gc.fill(shape, with: .color((item.turn ? theme.ind : theme.ink).opacity(opacity)))
     }
+  }
+
+  /// A member's stamp at orbit size (C2, decision D-6): a face under 20pt can't take the full
+  /// rule, so only a 1pt dotted wax-gold rounded rect (radius 2) 1.5pt outside the face's box, no
+  /// ground and no denomination; outside the turn ring when a window has one.
+  private func drawStampEdge(around box: CGRect, clearOfTurnRing: Bool, opacity: Double, context gc: GraphicsContext) {
+    var out: CGFloat = KOrbitGeometry.stampGap + KOrbitGeometry.stampEdge / 2
+    if clearOfTurnRing { out += KOrbitGeometry.turnGap + KOrbitGeometry.turnRing }
+    let edge = box.insetBy(dx: -out, dy: -out)
+    gc.stroke(
+      Path(roundedRect: edge, cornerRadius: 2, style: .circular),
+      with: .color(KBrand.waxGold.opacity(opacity)),
+      style: StrokeStyle(lineWidth: KOrbitGeometry.stampEdge, lineCap: .round, dash: [0.001, 2])
+    )
   }
 
   /// A stranger's frosted window on the orbit (identity switch on): base, lights and hairline at

@@ -330,11 +330,11 @@ struct KMeKindredsPeek: View {
   }
 
   @ViewBuilder
-  private func face(_ f: KPersonFace) -> some View {
+  private func face(_ f: KPersonFace, stamp: KMemberStamp?) -> some View {
     if case let .bird(ref) = f {
       KPersonBirdFace(theme: theme, bird: ref, size: 40, dim: false, badge: false)
     } else {
-      KFace(theme: theme, source: f.source(theme), size: 40, round: true)
+      KFace(theme: theme, source: f.source(theme), size: 40, round: true, stamp: stamp)
     }
   }
 
@@ -344,7 +344,7 @@ struct KMeKindredsPeek: View {
       actions.onPeekKindred(k.id)
     } label: {
       VStack(alignment: .center, spacing: 6) {
-        face(k.face)
+        face(k.face, stamp: k.stamp)
           .accessibilityHidden(true)
         Text(k.name)
           .kText(.system(12, .semibold))

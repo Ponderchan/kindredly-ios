@@ -36,10 +36,6 @@ export type ThemeTokens = { readonly name: string; readonly dark: boolean } & { 
 export const THEMES: Readonly<Record<ThemeKey, ThemeTokens>> = data.themes;
 export const THEME_KEYS = Object.keys(THEMES) as ThemeKey[];
 
-/* the one dark theme. The mock's rule names it outright: Match system turns
-   to it after dark, whatever the light pick is. */
-const NIGHT: ThemeKey = "midnight";
-
 /** the themes that can stand for the day: Classic, Lavender, Paper */
 export const LIGHT_KEYS: readonly ThemeKey[] = THEME_KEYS.filter((k) => !THEMES[k].dark);
 
@@ -63,56 +59,73 @@ export const MOOD10A_FACE = Object.fromEntries(
 ) as Readonly<Record<MoodKey, string>>;
 
 /* ── the choice and how it resolves ───────────────────────────────────────
-   The reader chooses two things: a theme (pick) and whether to follow the
-   phone (matchSystem). Owner, 2026-10-15: everyone follows the system after
-   the update, on Classic. */
+   The reader chooses one APPEARANCE out of five (owner, 2026-10-19, FC2
+   decision 5): System, Light, Dark, Lavender, Paper. The themes underneath
+   keep their keys (classic / midnight / lavender / paper: themes.json,
+   KTheme.named, the Swift generator and every t.dark check are unchanged);
+   only the reader's choice is named apart from them.
 
-export type ThemePrefs = { pick: ThemeKey; matchSystem: boolean };
-export const DEFAULT_PREFS: ThemePrefs = { pick: "classic", matchSystem: true };
+     system   → the phone's appearance: Midnight in Dark mode, Classic in Light
+     light    → Classic
+     dark     → Midnight
+     lavender → Lavender
+     paper    → Paper
 
-/** the theme a pick stands for by day. Midnight has no day of its own, so
-    its day is Classic (H:429). */
-export const dayKey = (pick: ThemeKey): ThemeKey => (THEMES[pick].dark ? "classic" : pick);
+   "After dark" is the phone's appearance; there is no clock in this. */
 
-/* The effective theme (H:430):
-     matchSystem on  → system dark ? Midnight : the pick's day theme
-     matchSystem off → the pick, as it is
-   So Lavender with Match system is Lavender by day and Midnight at night,
-   and a stored Midnight with Match system on falls back to Classic by day.
-   "After dark" is the phone's appearance; there is no clock in this.
+export type Appearance = "system" | "light" | "dark" | "lavender" | "paper";
+/** the five, in the order Settings shows them */
+export const APPEARANCES: readonly Appearance[] = ["system", "light", "dark", "lavender", "paper"];
+/** nothing stored: follow the phone */
+export const DEFAULT_APPEARANCE: Appearance = "system";
 
-   darkReady is the release guard (DARK_READY in lib/theme.tsx). While it is
-   false nothing resolves to Midnight: the screens not yet moved onto the
-   theme still paint fixed light colours, and a dark ground behind them would
-   show them as white slabs. So system dark, and a stored Midnight pick, both
-   give the day theme until the screens have moved. */
-export function resolveTheme({
-  pick,
-  matchSystem,
-  systemScheme,
-  darkReady = true,
-}: ThemePrefs & { systemScheme?: string | null; darkReady?: boolean }): ThemeKey {
-  if (!darkReady) return dayKey(pick);
-  if (matchSystem) return systemScheme === "dark" ? NIGHT : dayKey(pick);
-  return pick;
+export const isAppearance = (v: unknown): v is Appearance => typeof v === "string" && (APPEARANCES as readonly string[]).includes(v);
+
+/** The theme a fixed appearance stands for; System has none of its own (it is resolved against
+    the phone by resolveAppearance), so it answers null. Settings' swatches draw from this. */
+export function appearanceTheme(a: Appearance): ThemeKey | null {
+  switch (a) {
+    case "light":
+      return "classic";
+    case "dark":
+      return "midnight";
+    case "lavender":
+      return "lavender";
+    case "paper":
+      return "paper";
+    default:
+      return null;
+  }
 }
 
-/* Picking a swatch (H:440): Midnight turns Match system off — someone who
-   taps Midnight wants it now, not only after dark. Any other pick leaves the
-   switch where it was. */
-export function applyPick(prefs: ThemePrefs, pick: ThemeKey): ThemePrefs {
-  return { pick, matchSystem: THEMES[pick].dark ? false : prefs.matchSystem };
+/** The theme in effect for an appearance and the phone's scheme ("dark", "light", null). */
+export function resolveAppearance(a: Appearance, systemScheme?: string | null): ThemeKey {
+  return appearanceTheme(a) ?? (systemScheme === "dark" ? "midnight" : "classic");
 }
 
-/* what was saved, read back. Each field that doesn't hold up falls back to
-   its default on its own, so a theme name from a later version doesn't also
-   throw away the switch. Unreadable JSON throws; the caller says so. */
-export function parsePrefs(raw: string): ThemePrefs {
-  const v = JSON.parse(raw) as Partial<Record<keyof ThemePrefs, unknown>> | null;
-  const pick = v?.pick;
-  const matchSystem = v?.matchSystem;
-  return {
-    pick: typeof pick === "string" && (THEME_KEYS as string[]).includes(pick) ? (pick as ThemeKey) : DEFAULT_PREFS.pick,
-    matchSystem: typeof matchSystem === "boolean" ? matchSystem : DEFAULT_PREFS.matchSystem,
-  };
+/** What is written under the key: {"appearance":"…"} */
+export const serializeAppearance = (a: Appearance): string => JSON.stringify({ appearance: a });
+
+/* What was saved, read back, migrating the shape the 10a builds wrote,
+   { pick, matchSystem } (FC2 §10, decision D-1):
+     pick midnight                      → dark
+     pick lavender / paper              → lavender / paper (kept: Match system
+                                          was never a visible switch, so it says
+                                          nothing about what they wanted)
+     pick classic, matchSystem false    → light
+     pick classic, matchSystem anything else → system
+     nothing usable                     → system
+   A pick this build doesn't know reads as the old default, Classic. The new
+   shape wins when it holds up. Nothing is written back here: the new shape is
+   saved the first time the reader picks (lib/theme). Unreadable JSON throws;
+   the caller says so. */
+export function parseAppearance(raw: string): Appearance {
+  const v = JSON.parse(raw) as Record<string, unknown> | null;
+  if (v == null || typeof v !== "object") return DEFAULT_APPEARANCE;
+  if (isAppearance(v.appearance)) return v.appearance;
+  const pick = typeof v.pick === "string" && (THEME_KEYS as string[]).includes(v.pick) ? (v.pick as ThemeKey) : "classic";
+  if (pick === "midnight") return "dark";
+  if (pick === "lavender" || pick === "paper") return pick;
+  if (THEMES[pick].dark) return "dark";
+  return v.matchSystem === false ? "light" : "system";
 }

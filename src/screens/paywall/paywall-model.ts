@@ -177,6 +177,18 @@ export type PaywallFacts = {
   benefits: readonly { id: string; title: string; sub: string }[];
   /** onboarding or a lock may bring its own headline; the route passes the rekindle line */
   lead?: string;
+  /** a title of its own for a non-member (the wardrobe slip's "Keep this look"); replaces m4.pw.title */
+  head?: string;
+};
+
+/** What the purchase receipt (components/FirstClassWelcome FirstClassReceipt) is told after a buy
+    (FC2 §4.2): the fare's period and store price, the bought product id (for its intro offer), and
+    whether that fare showed a free trial when it was bought. */
+export type ReceiptFacts = {
+  plan: FarePeriod;
+  price: string;
+  productId: string | null;
+  offeredTrial: boolean;
 };
 
 /** The glyph a benefit row draws (Swift KPaywallGlyph): the six 4a drawings. */
@@ -308,7 +320,7 @@ export function buildPaywallView(facts: PaywallFacts, fmt: PaywallFormat): Paywa
   return {
     strings: {
       eyebrow: t("me.firstClass"),
-      title: premium ? t("fc.paidHead") : t("m4.pw.title"),
+      title: premium ? t("fc.paidHead") : facts.head || t("m4.pw.title"),
       sub: premium ? speak(t("fc.paidIntroSub", { wren })) : facts.lead || speak(t("m4.pw.sub", { wren })),
       close: t("m4.pw.close"),
       restore: t("pw.restore"),
@@ -335,7 +347,8 @@ export function buildPaywallView(facts: PaywallFacts, fmt: PaywallFormat): Paywa
       badge: cofounder ? t("m4.pw.cfBadge", { n: pad3(facts.cofounderNo as number) }) : "",
       perks: [
         { title: t("pw.cf.number"), sub: t("pw.cf.numberSub", { n: COFOUNDERS_TOTAL }) },
-        { title: speak(t("pw.cf.ring", { wren })), sub: speak(t("pw.cf.ringSub")) },
+        // FC2 (owner decision 2): the stamp avatar replaces "a gold ring on Wren"
+        { title: t("fc2.cf.stamp"), sub: t("fc2.cf.stampSub") },
         { title: t("pw.cf.first"), sub: t("pw.cf.firstSub") },
         { title: t("pw.cf.letter"), sub: speak(t("pw.cf.letterSub")) },
       ],

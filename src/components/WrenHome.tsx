@@ -24,6 +24,8 @@ import { FreeFlight, PillarsGlyph } from "./FreeFlightGame";
 import { isDayOff } from "../lib/free-flight";
 import type { Daylight } from "./CourierCard";
 import { WardrobeRack } from "./WardrobeRack";
+import { FirstClassCard } from "./FirstClassStub";
+import type { FirstClass4aVM } from "../screens/me/me-model";
 import "../data/strings-a11y-compose";
 import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo, useHatchSkin } from "../lib/wren-style";
 import { useWrenSkinControl } from "../lib/wren-skin";
@@ -80,6 +82,7 @@ export function WrenHome({
   onAllKeepsakes,
   cofounderNo = null,
   onPlus,
+  firstClass,
   statsReady = true,
   lastWrittenAt = null,
   scrollRef,
@@ -106,6 +109,8 @@ export function WrenHome({
   /** her ring — the one cofounder mark another person ever sees */
   cofounderNo?: number | null;
   onPlus: () => void;
+  /** the 4a First Class card (me-model buildFirstClass4a; the courier page builds it) */
+  firstClass: FirstClass4aVM;
   /** the page's scroll view — a drag that starts on her is hers, not the page's */
   scrollRef?: RefObject<any>;
   /** her day off (Free Flight, played on the cover): the hour being flown, or null when she's back on her perch */
@@ -480,14 +485,10 @@ export function WrenHome({
           </View>
         )}
 
-        {/* ── the door to First Class, named for what it opens on this page:
-             her full wardrobe. It said FULL ARCHIVE, which no build ever had
-             (audit, 2026-10-12; Apple 2.3.2 reads a paywall against the app). ── */}
-        <Pressable onPress={onPlus} style={({ pressed }) => ({ marginTop: 24, backgroundColor: "#FFF8DE", borderRadius: 999, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 13, gap: 10, opacity: pressed ? 0.85 : 1 })}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#D8A63F" }} />
-          <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "#8A6A1C" }}>{tr("wren.fcArchive")}</Text>
-          <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: "#8A6A1C" }}>{premium ? tr("wren.activeArrow") : tr("wren.unlock")}</Text>
-        </Pressable>
+        {/* ── the door to First Class: the 4a card, the same one Me and Settings
+             show (FC2 §4.9; members see the member state). Its rows are what
+             the build has (rooms, the wardrobe, voice letters; Apple 2.3.2). ── */}
+        <FirstClassCard card={firstClass} onPress={onPlus} style={{ marginTop: 24 }} />
       </View>
     </View>
   );

@@ -408,7 +408,44 @@ public struct KGallery: View {
         KWhoMarks(mark: nil, sign: .capricorn, size: 14, color: theme.sub)
       }
       caption("frost 52 · 40 card · 31.2 chat · 18 chip · 12 orbit (no silhouette under 20) · veil tile | name ♀ sign · sign alone")
+      stampedFaces(mask: mask, frost: frost)
     }
+  }
+
+  // ── KStampAvatar / KFace(stamp:): a member's face as a gold perforated stamp (C2) ──
+  private func stampedFaces(mask: Int, frost: KFrostSpec) -> some View {
+    let first = KMemberStamp("1ST")
+    let no7 = KMemberStamp("007")
+    let night = KTheme.midnight
+    let nightFrost = Self.sampleFrost(dark: true)
+    return VStack(alignment: .leading, spacing: 14) {
+      HStack(alignment: .center, spacing: 18) {
+        KStampAvatar(theme: theme, size: 72, stamp: no7!) { inner in
+          theme.soft2.overlay(KLineIcon(.pen, size: inner * 0.3, lineWidth: 2, color: theme.mute))
+        }
+        KFace(theme: theme, source: .image(nil), size: 52, stamp: first)
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ink), size: 52, stamp: no7)
+        KFace(theme: theme, source: .frost(frost), size: 40, stamp: first)
+      }
+      HStack(alignment: .center, spacing: 18) {
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ind), size: 44, stamp: first)
+        KFace(theme: theme, source: .mosaic(mask: mask, tint: theme.ink), size: 34, stamp: no7)
+        KFace(theme: theme, source: .frost(frost), size: 34, stamp: first)
+        KFace(theme: theme, source: .placeholder, size: 22, stamp: first)
+        KFace(theme: theme, source: .veil, size: 40, stamp: first)   // a veil is never stamped
+      }
+      caption("stamp 72 (Me) · 52 image 1ST · 52 mosaic 007 · 40 frost | 44 room · 34 fold small · 34 frost · 22 small · veil: never")
+      HStack(alignment: .center, spacing: 18) {
+        KFace(theme: night, source: .mosaic(mask: mask, tint: night.ink), size: 52, stamp: no7)
+        KFace(theme: night, source: .frost(nightFrost), size: 40, stamp: first)
+        KFace(theme: night, source: .mosaic(mask: mask, tint: night.ink), size: 34, stamp: first)
+        KFace(theme: night, source: .image(nil), size: 22, stamp: no7)
+      }
+      .padding(12)
+      .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(night.bg))
+      caption("Midnight: the ground is wax gold at 15%, the edge the same gold")
+    }
+    .padding(.top, 6)
   }
 
   /// A fixed sample window for the gallery (TS works out every real one; this is nobody's): FROST

@@ -44,6 +44,8 @@ export type KMeProfile = {
   /** "joined Jul 27", plus " · COFOUNDER No. 007" for a cofounder; "" for none */
   joined: string;
   editLabel: string;
+  /** your stamp when you are a member (C2): "1ST" | "007" | "" (none; omitted = none) */
+  stamp?: string;
   stats: KMeStat[];
 };
 
@@ -238,7 +240,7 @@ const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
 const image = (r: KImageRefProps | null | undefined): NativeImage => (r ? { uri: r.uri, key: r.key, kind: r.kind ?? "image" } : NO_IMAGE);
 /* a Swift @Field record can't take null: the window is NO_FROST when there is none */
-const face = (f: KKindredsFace): NativeFace => ({ ...f, frost: nativeFrost(f.kind === "frost" ? f.frost : null) });
+const face = (f: KKindredsFace): NativeFace => ({ ...f, frost: nativeFrost(f.kind === "frost" ? f.frost : null), stamp: f.stamp ?? "" });
 
 // the view's JS name is the Swift struct's name (ios/Adapters/KMeView.swift)
 const NativeKMeView = requireNativeView<NativeKMeViewProps>("KindredlyUI", "KMeView");

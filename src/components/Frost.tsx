@@ -5,6 +5,7 @@ import { useTheme } from "../lib/theme";
 import { COLS, ROWS, maskHas } from "../lib/mosaic";
 import { frostLayers, type FrostSpec } from "../lib/frost";
 import type { WhoFace } from "../lib/stranger-who";
+import { StampAvatar } from "./StampAvatar";
 
 /* ═══════════════════════════════════════════════════════════════════════
    A STRANGER'S FROSTED WINDOW, DRAWN BY REACT NATIVE (identity Phase 1).
@@ -230,8 +231,25 @@ function MaskFace({ mask, size, ink }: { mask: number; size: number; ink: string
  * the frosted window (switch on), the switch-on veil tile for no one, or the
  * mosaic at 70% of the slot (switch off, centred). `ring` is "your turn".
  */
-export function WhoFaceView({ face, size, ring }: { face: WhoFace; size: number; ring?: string | null }) {
+export function WhoFaceView({ face, size, ring, denom }: { face: WhoFace; size: number; ring?: string | null; denom?: string | null }) {
   const { t: tk } = useTheme();
+  /* a member (C2): the window, or the mask on a soft2 tile, square inside the gold stamp; the
+     stamp replaces the turn ring (the screen's words still say whose turn it is). Never the veil */
+  if (denom && face.kind !== "veil") {
+    return (
+      <StampAvatar size={size} denom={denom}>
+        {({ size: inner }) =>
+          face.kind === "frost" ? (
+            <Frost spec={face.spec} size={inner} />
+          ) : (
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: inner, height: inner, borderRadius: 3, backgroundColor: tk.soft2, alignItems: "center", justifyContent: "center" }}>
+              <MaskFace mask={face.mask} size={inner * 0.7} ink={ring ?? tk.ink} />
+            </View>
+          )
+        }
+      </StampAvatar>
+    );
+  }
   if (face.kind === "frost") return <Frost spec={face.spec} size={size} ring={ring} />;
   if (face.kind === "veil") return <VeilTile size={size} />;
   return (

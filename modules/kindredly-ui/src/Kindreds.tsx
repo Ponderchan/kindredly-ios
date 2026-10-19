@@ -43,6 +43,8 @@ export type KKindredsFace = {
   frost?: KFrost | null;
   /** a mosaic's ink: the theme's ink, or ind */
   tint: "ink" | "ind";
+  /** a First Class member's stamp round the face (C2): "1ST" | "007" | "" (omitted = none; never Wren) */
+  stamp?: string;
 };
 
 /** A tag ahead of a row's preview, already cased. */
@@ -83,7 +85,7 @@ export type KKindredsRow = {
 };
 
 /** One folded face: the mosaic (`mask`), or with the identity switch on the window (`frost`). */
-export type KKindredsFoldFace = { id: string; mask: number; frost: KFrost | null; a11yLabel: string };
+export type KKindredsFoldFace = { id: string; mask: number; frost: KFrost | null; a11yLabel: string; /** C2: "1ST" | "007" | "" */ stamp?: string };
 export type KKindredsFold = { faces: KKindredsFoldFace[]; more: string; label: string; a11yLabel: string };
 
 export type KKindredsItemType =
@@ -123,7 +125,18 @@ export type KKindredsChip = {
 };
 
 /** One stranger on the orbit: the mosaic (`mask`), or with the identity switch on their window (`frost`, never developing). */
-export type KKindredsOrbitItem = { id: string; mask: number; frost: KFrost | null; ring: number; a0: number; dir: number; period: number; turn: boolean };
+export type KKindredsOrbitItem = {
+  id: string;
+  mask: number;
+  frost: KFrost | null;
+  ring: number;
+  a0: number;
+  dir: number;
+  period: number;
+  turn: boolean;
+  /** a First Class member (C2): a 1pt dotted gold edge at orbit size */
+  stamp?: boolean;
+};
 
 export type KKindredsStrings = {
   title: string;
@@ -230,7 +243,7 @@ type NativeKKindredsViewProps = Omit<
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
-const NO_FACE: NativeFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, frost: nativeFrost(null), tint: "ink" };
+const NO_FACE: NativeFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, frost: nativeFrost(null), tint: "ink", stamp: "" };
 const NO_ROW: NativeRow = {
   id: "",
   face: NO_FACE,
@@ -266,20 +279,20 @@ export function nativeKindredsItems(items: KKindredsItem[]): NativeItem[] {
     row: it.row
       ? {
           ...it.row,
-          face: { ...it.row.face, frost: nativeFrost(it.row.face.kind === "frost" ? it.row.face.frost : null) },
+          face: { ...it.row.face, frost: nativeFrost(it.row.face.kind === "frost" ? it.row.face.frost : null), stamp: it.row.face.stamp ?? "" },
           mark: it.row.mark ?? "",
           sign: it.row.sign ?? "",
           was: it.row.was ?? "",
           actions: it.row.actions.map((a) => ({ key: a.key, title: a.title, icon: a.icon, destructive: a.destructive ?? false })),
         }
       : NO_ROW,
-    fold: it.fold ? { ...it.fold, faces: it.fold.faces.map((f) => ({ id: f.id, mask: f.mask, frost: nativeFrost(f.frost), a11yLabel: f.a11yLabel })) } : NO_FOLD,
+    fold: it.fold ? { ...it.fold, faces: it.fold.faces.map((f) => ({ id: f.id, mask: f.mask, frost: nativeFrost(f.frost), a11yLabel: f.a11yLabel, stamp: f.stamp ?? "" })) } : NO_FOLD,
   }));
 }
 
 /** The orbit as the Swift records want it: each frost NO_FROST when there is none. */
 export function nativeKindredsOrbit(orbit: KKindredsOrbitItem[]): NativeOrbit[] {
-  return orbit.map((o) => ({ ...o, frost: nativeFrost(o.frost) }));
+  return orbit.map((o) => ({ ...o, frost: nativeFrost(o.frost), stamp: o.stamp ?? false }));
 }
 
 // the view's JS name is the Swift struct's name (ios/Adapters/KKindredsView.swift)

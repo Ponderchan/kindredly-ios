@@ -15,28 +15,46 @@ import SwiftUI
    └───────┘
     Classic    the name under it, 7 below, system 500 11: ind when selected, sub otherwise (.2s).
 
- Four columns, 10 apart (H:99), whatever number is offered, so the tiles keep their size when
- Midnight joins them (it is offered only once the dark theme is ready: the caller decides).
- The selected one (the theme IN EFFECT, H:440, decided by the caller) wears the selected look in
- the CURRENT theme (KSelectableTile: a 2pt ind border and a 3pt lav halo); the others a 2pt line
- border. Each swatch is one button; VoiceOver reads its name with the selected trait. The tiles
- are drawn from KTheme, so a key this binary doesn't know draws as Classic.
+ FIVE APPEARANCES (owner, 2026-10-19, FC2 decision 5): System, Light, Dark, Lavender, Paper, in
+ five columns 10 apart. A swatch's key is the APPEARANCE (system / light / dark / lavender /
+ paper), drawn as the theme it stands for (light → Classic, dark → Midnight); System draws one
+ phone split on the diagonal from its top-right to its bottom-left corner, Classic above it,
+ Midnight below (it follows the phone). An older theme key (classic, midnight) still draws as
+ itself, and anything else as Classic.
+ The selected one (the reader's APPEARANCE, decided by the caller: System at night is still
+ System) wears the selected look in the CURRENT theme (KSelectableTile: a 2pt ind border and a
+ 3pt lav halo); the others a 2pt line border. Each swatch is one button; VoiceOver reads its
+ name with the selected trait, and its hint when it has one (System: what it follows).
 
- At the accessibility text sizes four columns leave a name ~70 wide ("Clas…", "Lave…" at AX3):
+ At the accessibility text sizes five columns leave a name far too narrow:
  there the swatches go two to a row, each phone no wider than 110 and centred over its name, and
  the name wraps (up to three lines) instead of being cut.
  */
 public struct KThemeSwatch: Identifiable, Equatable, Sendable {
-  /// a themes.json key: classic, midnight, lavender, paper
+  /// an appearance: system, light, dark, lavender, paper (an old theme key still draws)
   public let key: String
   /// its name, already translated
   public let label: String
+  /// VoiceOver's hint, already translated; "" for none
+  public let hint: String
 
   public var id: String { key }
 
-  public init(key: String, label: String) {
+  public init(key: String, label: String, hint: String = "") {
     self.key = key
     self.label = label
+    self.hint = hint
+  }
+
+  /// The theme a swatch draws: an appearance's theme, an old theme key as itself, nil for System
+  /// (the split phone), Classic for anything unknown.
+  static func theme(for key: String) -> KTheme? {
+    switch key {
+    case "system": return nil
+    case "light": return .classic
+    case "dark": return .midnight
+    default: return KTheme.named(key) ?? .classic
+    }
   }
 }
 
@@ -49,7 +67,7 @@ public struct KThemeSwatches: View {
   /// - Parameters:
   ///   - theme: the theme the page is drawn in (the selected look uses its ind and lav)
   ///   - options: the swatches offered, in order
-  ///   - selectedKey: the theme in effect
+  ///   - selectedKey: the reader's appearance
   ///   - onPick: a swatch was tapped
   public init(theme: KTheme, options: [KThemeSwatch], selectedKey: String, onPick: @escaping (String) -> Void) {
     self.theme = theme
@@ -60,7 +78,7 @@ public struct KThemeSwatches: View {
 
   @Environment(\.dynamicTypeSize) private var typeSize
 
-  private static let columns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 4)
+  private static let columns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 5)
   /// at the accessibility sizes: two to a row, the phone at most this wide
   private static let largeColumns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 2)
   private static let largePhone: CGFloat = 110
@@ -81,7 +99,7 @@ public struct KThemeSwatches: View {
       onPick(option.key)
     } label: {
       VStack(spacing: 7) {
-        KMiniPhone(theme: KTheme.named(option.key) ?? .classic)
+        swatchPhone(option.key)
           .aspectRatio(3.0 / 4.0, contentMode: .fit)
           .kSelectableTile(theme: theme, selected: selected, cornerRadius: 12)
           .frame(maxWidth: large ? Self.largePhone : .infinity)
@@ -100,7 +118,52 @@ public struct KThemeSwatches: View {
     .buttonStyle(KFloatPressStyle())
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(option.label)
+    .accessibilityHint(option.hint)
     .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+  }
+
+  @ViewBuilder
+  private func swatchPhone(_ key: String) -> some View {
+    if let t = KThemeSwatch.theme(for: key) {
+      KMiniPhone(theme: t)
+    } else {
+      KSplitMiniPhone()
+    }
+  }
+}
+
+/// System's swatch: Classic's phone above the diagonal from the top-right to the bottom-left
+/// corner, Midnight's below it, each half clipped to its triangle.
+struct KSplitMiniPhone: View {
+  var body: some View {
+    ZStack {
+      KMiniPhone(theme: .classic)
+        .clipShape(KDiagonalHalf(lower: false))
+      KMiniPhone(theme: .midnight)
+        .clipShape(KDiagonalHalf(lower: true))
+    }
+    .accessibilityHidden(true)
+  }
+}
+
+/// One triangle of a rectangle cut from its top-right corner to its bottom-left one: the upper
+/// left half, or (lower) the bottom right half.
+struct KDiagonalHalf: Shape {
+  let lower: Bool
+
+  func path(in rect: CGRect) -> Path {
+    var p = Path()
+    if lower {
+      p.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+      p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+      p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+    } else {
+      p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+      p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+      p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+    }
+    p.closeSubpath()
+    return p
   }
 }
 

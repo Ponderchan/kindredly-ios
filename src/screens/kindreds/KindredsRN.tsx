@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { createContext, memo, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "expo-router";
@@ -13,6 +13,9 @@ import { KindredsSky } from "../../components/KindredsSky";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { Frost, VeilTile } from "../../components/Frost";
+import { StampAvatar, StampMosaic } from "../../components/StampAvatar";
+import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
+import { t } from "../../lib/i18n";
 import { WhoGlyphs } from "../../components/WhoName";
 import type { FrostSpec } from "../../lib/frost";
 import { OfficialBird } from "../../components/WrenDesk";
@@ -60,11 +63,28 @@ import type { KindredsActions, KindredsModel } from "./useKindredsModel";
 
 type Tk = ThemeTokens;
 
+/* a member's face is a gold perforated stamp (C2): the screen asks member_marks_for once for
+   every face it shows and hands the lookup down (rows and fold faces read it here) */
+type StampOf = (uid: string | null | undefined) => string;
+const NO_STAMPS: StampOf = () => "";
+const StampsCtx = createContext<StampOf>(NO_STAMPS);
+function faceSeeds(items: readonly ItemVM[]): (string | null | undefined)[] {
+  const out: (string | null | undefined)[] = [];
+  for (const it of items) {
+    if (it.type === "row" && !it.row.face?.gone) out.push(it.row.face?.seed);
+    else if (it.type === "fold") for (const f of it.fold.faces) out.push(f.seed);
+  }
+  return out;
+}
+/** a row's stamp: never Wren's, never a closed account's */
+const rowStamp = (row: RowVM, stampOf: StampOf): string => (row.kind === "wren" || !row.face || row.face.gone ? "" : stampOf(row.face.seed));
+
 export function KindredsRN({ model }: { model: KindredsModel }) {
   const { t: tk } = useTheme();
   const tabRoom = useTabBarSpace();
   const navigation = useNavigation();
   const { view, act } = model;
+  const stampOf = useMemberStamps(faceSeeds(view.items));
   const scrollRef = useRef<ScrollView>(null);
   const listY = useRef(0);
 
@@ -166,9 +186,11 @@ export function KindredsRN({ model }: { model: KindredsModel }) {
         <View onLayout={(e) => (listY.current = e.nativeEvent.layout.y)}>
           <Chips chips={view.chips} onPress={act.chip} tk={tk} legendFrost={view.legendFrost} />
           <View style={{ marginTop: 8 }}>
-            {view.items.map((it) => (
-              <Item key={it.id} item={it} act={act} tk={tk} identity={view.identity} />
-            ))}
+            <StampsCtx.Provider value={stampOf}>
+              {view.items.map((it) => (
+                <Item key={it.id} item={it} act={act} tk={tk} identity={view.identity} />
+              ))}
+            </StampsCtx.Provider>
           </View>
         </View>
       </ScrollView>
@@ -326,6 +348,7 @@ function Row({ row, onOpen, onAction, identity }: { row: RowVM; onOpen: () => vo
   const { t: tk } = useTheme();
   const tone = TONE(tk);
   const actions: MessageAction[] = row.actions.map((a) => ({ key: a.key, label: a.title, icon: a.icon, destructive: a.destructive, onPress: () => onAction(row.id, a.key) }));
+  const spoken = stampSpoken(rowStamp(row, useContext(StampsCtx)), t);
   return (
     <Pressable
       onPress={onOpen}
@@ -333,7 +356,7 @@ function Row({ row, onOpen, onAction, identity }: { row: RowVM; onOpen: () => vo
       onLongPress={actions.length ? NOOP : undefined}
       delayLongPress={350}
       accessibilityRole="button"
-      accessibilityLabel={row.a11yLabel}
+      accessibilityLabel={spoken ? `${row.a11yLabel}, ${spoken}` : row.a11yLabel}
       {...a11yActions(actions)}
       style={({ pressed }) => ({ opacity: pressed && !actions.length ? 0.6 : 1 })}
     >
@@ -388,9 +411,26 @@ const NOOP = () => {};
    52 (the flat veil tile once their account is closed) */
 function Face({ row, identity }: { row: RowVM; identity: boolean }) {
   const s = useRowStyle();
+  const stamp = rowStamp(row, useContext(StampsCtx));
   if (row.kind === "wren") return <OfficialBird size={s.face} ground={s.colors.ground} />;
   const f = row.face;
   if (!f) return <View style={s.disc} />;
+  if (stamp) {
+    /* a member: the same face, square inside its gold stamp (the frame bleeds 4pt, the row never moves) */
+    return (
+      <StampAvatar size={s.face} denom={stamp}>
+        {({ size, radius }) =>
+          f.role === "kindred" && (f.avatarId || f.seed) ? (
+            <AvatarImage id={f.avatarId ?? null} seed={f.seed ?? "anon"} size={size} radius={radius ?? undefined} />
+          ) : f.role === "penpal" && identity && f.frost ? (
+            <Frost spec={f.frost} size={size} />
+          ) : (
+            <StampMosaic seed={f.seed} size={size} develop={f.develop ?? 1} base={s.face} cell={4.5} gap={1.2} />
+          )
+        }
+      </StampAvatar>
+    );
+  }
   if (f.role === "kindred" && (f.avatarId || (!f.gone && f.seed))) {
     return <AvatarImage id={f.avatarId ?? null} seed={f.seed ?? "anon"} size={s.face} />;
   }
@@ -410,6 +450,7 @@ function Face({ row, identity }: { row: RowVM; identity: boolean }) {
    the same window as on the row and never developing */
 const FOLD_FACE = 34;
 function Fold({ fold, onFace, onAll, tk }: { fold: FoldVM; onFace: (id: string) => void; onAll: () => void; tk: Tk }) {
+  const stampOf = useContext(StampsCtx);
   return (
     <Pressable onPress={onAll} accessibilityRole="button" accessibilityLabel={fold.a11yLabel} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: 22, paddingRight: 22, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: tk.line }}>
@@ -423,7 +464,12 @@ function Fold({ fold, onFace, onAll, tk }: { fold: FoldVM; onFace: (id: string) 
               accessibilityLabel={f.a11yLabel}
               style={{ marginLeft: i > 0 ? -8 : 0, zIndex: fold.faces.length - i }}
             >
-              {f.frost ? (
+              {stampOf(f.seed) ? (
+                /* a member: the small stamp (≤32 rule at 34: thin edge, no denomination) */
+                <StampAvatar size={FOLD_FACE} denom={stampOf(f.seed)} compact={1}>
+                  {({ size }) => (f.frost ? <Frost spec={f.frost} size={size} /> : <StampMosaic seed={f.seed} size={size} develop={f.develop} base={FOLD_FACE} cell={2.9} gap={0.8} />)}
+                </StampAvatar>
+              ) : f.frost ? (
                 <View style={{ width: FOLD_FACE, height: FOLD_FACE, borderRadius: FOLD_FACE * f.frost.corner, padding: 2, backgroundColor: tk.bg }}>
                   <Frost spec={f.frost} size={FOLD_FACE - 4} />
                 </View>

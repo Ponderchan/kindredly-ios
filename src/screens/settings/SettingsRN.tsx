@@ -2,19 +2,20 @@ import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PF } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
-import { useBirdImage } from "../../lib/bird-images";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { NoticeBar } from "../../components/NotifyBanner";
 import { BottomFade, SecondaryHeader } from "../../components/10a";
 import { BOTTOM_FADE } from "../../components/10a/kit";
-import { BannerRN, FontTilesRN, SoftRowRN, SoftSection, SoftSwitchRow, SwatchesRN } from "./SoftRN";
+import { FirstClassCard } from "../../components/FirstClassStub";
+import { FontTilesRN, SoftRowRN, SoftSection, SoftSwitchRow, SwatchesRN } from "./SoftRN";
 import type { SettingsModel } from "./useSettingsModel";
 
 /* SETTINGS IN REACT NATIVE — the remote switch's fallback (10a step 5).
    The same page the Swift one draws, from the same view (settings-model)
    and the same actions (useSettingsModel), on the theme: the 44pt header
-   scrolling away with the page, the cream banner, APPEARANCE (swatches,
-   Match system once the dark theme is ready, the Letter font), the groups,
+   scrolling away with the page, Me's 4a First Class card (FirstClassCard,
+   the member state for members), APPEARANCE (the five swatches — System,
+   Light, Dark, Lavender, Paper — and the Letter font), the groups,
    the two exits in red, the footer. The page starts under the status bar
    (clipped there), clears the floating tab bar (it is pushed inside the Me
    tab) and fades into the page colour above it. The language and delete
@@ -24,7 +25,6 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
   const safe = useSafeAreaInsets();
   const tabBar = useTabBarSpace();
   const { view, act, danger } = model;
-  const bird = useBirdImage(view.banner.pose);
   const a = view.appearance;
 
   return (
@@ -35,17 +35,12 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
       >
         <SecondaryHeader title={view.title.toLocaleUpperCase()} backLabel={view.backLabel} onBack={act.back} height={44} style={{ marginHorizontal: -16 }} />
 
-        <BannerRN {...view.banner} bird={bird} onPress={act.banner} />
+        <FirstClassCard card={view.banner} onPress={act.banner} />
 
         {/* APPEARANCE */}
         <SoftSection header={a.header}>
           <View style={{ paddingTop: 14, paddingHorizontal: 14, paddingBottom: 12, gap: 12 }}>
             <SwatchesRN swatches={a.swatches} selected={a.selectedTheme} onPick={act.theme} />
-            {a.showMatch && (
-              <View style={{ borderTopWidth: 1, borderTopColor: tk.line, marginHorizontal: -14 }}>
-                <SoftSwitchRow label={a.matchLabel} sub={a.matchSub} on={a.matchOn} last onChange={act.matchSystem} />
-              </View>
-            )}
             {a.fonts.length > 0 && (
               <View style={{ borderTopWidth: 1, borderTopColor: tk.line, paddingTop: 12, gap: 12 }}>
                 <View style={{ gap: 4 }}>

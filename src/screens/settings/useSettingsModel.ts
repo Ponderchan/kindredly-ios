@@ -10,11 +10,15 @@ import { LANGS, setLang, t, useLang, type Lang } from "../../lib/i18n";
 import { openPrivacy, openTerms } from "../../lib/legal";
 import { disableMorningKnock, enableMorningKnock, morningKnockEnabled, registerForReplies, setNotifyOn } from "../../lib/notify";
 import { getNotifyOn } from "../../lib/local-push";
-import { DARK_READY, LETTER_FONT_CHOICES, useTheme, type LetterFontKey } from "../../lib/theme";
+import { LETTER_FONT_CHOICES, useTheme, type LetterFontKey } from "../../lib/theme";
+import { useFares } from "../../lib/fares";
 import { useWrenName } from "../../lib/wren-name";
 import { useNotifyBanner } from "../../components/NotifyBanner";
 import { P } from "../../theme/post";
-import { THEMES, THEME_KEYS, type ThemeKey } from "../../theme/themes";
+import { APPEARANCES, isAppearance } from "../../theme/themes";
+import { buildFirstClass4a } from "../me/me-model";
+import { meFormat } from "../me/me-format";
+import { trialLabel } from "../paywall/paywall-model";
 import {
   ROW_ROUTES,
   SETTINGS_LINKS,
@@ -29,6 +33,7 @@ import {
 } from "./settings-model";
 import "../../data/strings-step5-settings";
 import "../../data/strings-step5-me"; // fc.firstMark, on the banner's stamp
+import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
 
 /* SETTINGS' LOGIC, for both renderers (10a step 5). Everything settings.tsx
    did, plus 10a's APPEARANCE, in one hook: SettingsNative (SwiftUI) and
@@ -43,8 +48,10 @@ import "../../data/strings-step5-me"; // fc.firstMark, on the banner's stamp
    on coming back from iOS Settings).
 
    What it does (owner decisions and the fixes that come with them):
-   - a swatch sets the pick (Midnight turns Match system off: lib/theme);
-     a font tile sets the Letter font;
+   - a swatch sets the appearance (System / Light / Dark / Lavender /
+     Paper: lib/theme); a font tile sets the Letter font;
+   - the First Class card at the top is Me's 4a card (buildFirstClass4a,
+     the store's trial from useFares, as useMeModel builds it);
    - pen name and the courier's name open the one-field page
      (/me/edit-field), where going back saves;
    - the two switches are optimistic and controlled: the switch moves at
@@ -67,13 +74,11 @@ export function versionFacts(): VersionFacts {
   };
 }
 
-const DARK_KEYS: readonly ThemeKey[] = THEME_KEYS.filter((k) => THEMES[k].dark);
-
 export type SettingsActions = {
   back: () => void;
   banner: () => void;
+  /** a swatch: an appearance key (system / light / dark / lavender / paper) */
   theme: (key: string) => void;
-  matchSystem: (on: boolean) => void;
   font: (key: string) => void;
   row: (key: string) => void;
   toggle: (key: string, on: boolean) => void;
@@ -106,12 +111,13 @@ export function useSettingsModel(): SettingsModel {
   const router = useRouter();
   const lang = useLang();
   const theme = useTheme();
-  const { key: themeKey, pick, matchSystem, setPick, setMatchSystem, letterFont, setLetterFont, t: tk } = theme;
+  const { appearance, setAppearance, letterFont, setLetterFont, t: tk } = theme;
   const auth = useAuth();
   const { handle, profile, signOut, deleteAccount } = auth;
   const wren = useWrenName();
   const { premium, cofounderNo, refresh: refreshEntitlement } = useEntitlement();
   const { perm, check: checkPerm, turnOn } = useNotifyBanner();
+  const { trial } = useFares();
 
   const [knock, setKnock] = useState(false);
   /* Notifications, one switch for this phone (owner, 2026-10-13) — null until read */
@@ -157,13 +163,14 @@ export function useSettingsModel(): SettingsModel {
           now: Date.now(),
           language: { flag: language.flag, label: language.label },
           wren,
-          theme: { effective: themeKey, pick, matchSystem, keys: THEME_KEYS, dark: DARK_KEYS, darkReady: DARK_READY },
+          theme: { appearance, choices: APPEARANCES },
           letterFont: { selected: letterFont, choices: LETTER_FONT_CHOICES },
           perm,
           notifyOn,
           knock,
           premium,
           cofounderNo,
+          firstClass: buildFirstClass4a({ premium, cofounderNo, wren, trial: trialLabel(trial, t) }, meFormat()),
           restoring,
           version,
         },
@@ -171,7 +178,7 @@ export function useSettingsModel(): SettingsModel {
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, language, wren, themeKey, pick, matchSystem, letterFont, perm, notifyOn, knock, premium, cofounderNo, restoring, version, lang],
+    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, premium, cofounderNo, trial, restoring, version, lang],
   );
 
   const onRestore = useCallback(async () => {
@@ -305,9 +312,8 @@ export function useSettingsModel(): SettingsModel {
       back: () => (router.canGoBack() ? router.back() : router.replace(SETTINGS_ROUTES.me as never)),
       banner: () => router.push(SETTINGS_ROUTES.banner as never),
       theme: (key) => {
-        if ((THEME_KEYS as string[]).includes(key)) setPick(key as ThemeKey);
+        if (isAppearance(key)) setAppearance(key);
       },
-      matchSystem: (on) => setMatchSystem(on),
       font: (key) => {
         if ((LETTER_FONT_CHOICES as readonly string[]).includes(key)) setLetterFont(key as LetterFontKey);
       },
@@ -330,7 +336,7 @@ export function useSettingsModel(): SettingsModel {
         if (!deletingRef.current) setAskDelete(false);
       },
     }),
-    [router, setPick, setMatchSystem, setLetterFont, row, onToggleKnock, onToggleNotify, turnOn, perm, confirmDelete],
+    [router, setAppearance, setLetterFont, row, onToggleKnock, onToggleNotify, turnOn, perm, confirmDelete],
   );
 
   return {

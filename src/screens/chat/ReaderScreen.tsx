@@ -24,6 +24,8 @@ import { noteWrote } from "../../lib/local-push";
 import { getStamp, sname } from "../../data/stamps";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
+import { StampAvatar, StampMosaic } from "../../components/StampAvatar";
+import { useMemberStamps } from "../../lib/member-marks";
 import { WhoFaceView } from "../../components/Frost";
 import { WhoName } from "../../components/WhoName";
 import { Stamp } from "../../components/Stamp";
@@ -246,12 +248,26 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
 
   // switch on, a pen pal (or no one) as the book gives them; null off, and for a kindred
   const pal = who.identity ? correspondentWho(detail, fmt) : null;
+  /* a member's face is a gold perforated stamp (C2; ≤32 takes the thin edge, no denomination);
+     never a closed account */
+  const stampUid = detail && !detail.gone && !isUnsigned(detail) ? detail.other || null : null;
+  const memberStamp = useMemberStamps([stampUid])(stampUid);
   const face = !detail ? null : pal ? (
-    <WhoFaceView face={pal.face} size={34} />
+    <WhoFaceView face={pal.face} size={34} denom={memberStamp} />
   ) : isUnsigned(detail) ? (
     <MosaicId seed={null} cell={4} gap={1} />
   ) : detail.revealed ? (
-    <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={28} />
+    memberStamp ? (
+      <StampAvatar size={28} denom={memberStamp}>
+        {({ size, radius }) => <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={size} radius={radius ?? undefined} />}
+      </StampAvatar>
+    ) : (
+      <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={28} />
+    )
+  ) : memberStamp ? (
+    <StampAvatar size={28} denom={memberStamp}>
+      {({ size }) => <StampMosaic seed={detail.other} size={size} develop={developFor(detail.otherCount)} base={28} cell={4} gap={1} />}
+    </StampAvatar>
   ) : (
     <MosaicId seed={detail.other} cell={4} gap={1} develop={developFor(detail.otherCount)} />
   );

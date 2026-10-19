@@ -4,6 +4,7 @@ import { developFor } from "../lib/mosaic";
 import { BRAND } from "../theme/themes";
 import { AvatarImage } from "./AvatarImage";
 import { MosaicId } from "./MosaicId";
+import { StampAvatar, StampMosaic } from "./StampAvatar";
 
 /* THE OTHER PERSON, AS FAR AS YOU KNOW THEM — one component, three screens.
    ────────────────────────────────────────────────────────────────────────
@@ -32,10 +33,15 @@ import { MosaicId } from "./MosaicId";
      placeholder like "anon", which dressed every ghost in one face. */
 
 const SIZES = {
-  sm: { cell: 2.8, gap: 0.9, avatar: 22, pad: 3 }, // the orbit
-  md: { cell: 4.4, gap: 1.2, avatar: 28, pad: 4 }, // a list row
-  lg: { cell: 5.5, gap: 1.5, avatar: 32, pad: 4 }, // the chat header
+  sm: { cell: 2.8, gap: 0.9, avatar: 22, pad: 3, stamp: 18 }, // the orbit
+  md: { cell: 4.4, gap: 1.2, avatar: 28, pad: 4, stamp: 28 }, // a list row
+  lg: { cell: 5.5, gap: 1.5, avatar: 32, pad: 4, stamp: 36 }, // the chat header
 } as const;
+
+/* A MEMBER (C2, 2026-10-19): `denom` ("1ST" / "007") draws the face as a gold perforated stamp
+   at the size's `stamp` side — a kindred's portrait or a pen pal's mosaic, square inside. The
+   stamp replaces the line / brass signing frame (contract D-8): the signing state still shows in
+   the header's own tone. A deleted account (no seed) is never stamped. */
 
 export function CorrespondentFace({
   seed,
@@ -44,6 +50,7 @@ export function CorrespondentFace({
   otherFace,
   theirSigned,
   size = "md",
+  denom,
 }: {
   /** their user id; null (or "") for a deleted account, which draws the veil */
   seed: string | null | undefined;
@@ -55,12 +62,28 @@ export function CorrespondentFace({
   /** I signed first: the face is done either way (a quiet frame), so it changes nothing drawn */
   iSigned?: boolean;
   size?: keyof typeof SIZES;
+  /** a member's denomination ("" / undefined = not a member) */
+  denom?: string | null;
 }) {
   const { t: tk } = useTheme();
   const s = SIZES[size];
 
   // no one behind it: the veil, no frame (nothing about them is complete or waiting)
   if (!seed) return <MosaicId seed={null} cell={s.cell} gap={s.gap} />;
+
+  if (denom) {
+    return (
+      <StampAvatar size={s.stamp} denom={denom}>
+        {({ size: inner, radius }) =>
+          revealed ? (
+            <AvatarImage id={otherFace ?? null} seed={seed} size={inner} radius={radius ?? undefined} />
+          ) : (
+            <StampMosaic seed={seed} size={inner} develop={developFor(theirs)} base={s.stamp} cell={s.cell} gap={s.gap} />
+          )
+        }
+      </StampAvatar>
+    );
+  }
 
   // a kindred: round — their portrait, or the stranger glyph when they gave none
   if (revealed) return <AvatarImage id={otherFace ?? null} seed={seed} size={s.avatar} />;

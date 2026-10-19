@@ -323,6 +323,8 @@ struct KChatHeaderRecord: Record {
   @Field var identity: Bool = false
   /// none | line | brass
   @Field var frame: String = "none"
+  /// a First Class member's stamp round the face (C2): "1ST" | "007" | ""
+  @Field var stamp: String = ""
   /// the progress band under the rule (lettersBand); show: false for none
   @Field var band: KChatBandRecord = KChatBandRecord()
   @Field var a11yLabel: String = ""
@@ -342,6 +344,7 @@ struct KChatHeaderRecord: Record {
     }
     h.name = name
     h.sub = sub
+    h.stamp = stamp
     h.tone = KChatTone(rawValue: tone) ?? .mute
     h.mask = mask
     h.frost = frost.spec

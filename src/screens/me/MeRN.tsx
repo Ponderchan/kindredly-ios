@@ -12,7 +12,10 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { CofounderMark } from "../../components/CofounderMark";
 import { CourierCard } from "../../components/CourierCard";
 import { AuraCard } from "../../components/AuraCard";
-import { FirstClassStub } from "../../components/FirstClassStub";
+import { FirstClassCard } from "../../components/FirstClassStub";
+import { StampAvatar } from "../../components/StampAvatar";
+import { stampSpoken, useMyStamp } from "../../lib/member-marks";
+import { t } from "../../lib/i18n";
 import { Stamp } from "../../components/Stamp";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { InkPanel } from "../../components/10a/InkPanel";
@@ -121,15 +124,7 @@ export function MeRN({ model }: { model: MeModel }) {
 
         <StampsCardRN stamps={view.stamps} tk={tk} cardW={cardW} onEmpty={act.stampsEmpty} />
 
-        <FirstClassStub
-          eyebrow={view.firstClass.eyebrow}
-          headline={view.firstClass.headline}
-          sub={view.firstClass.sub}
-          cta={view.firstClass.cta}
-          stampLabel={view.firstClass.stampLabel}
-          member={view.firstClass.pose === "fcMember"}
-          onPress={act.firstClass}
-        />
+        <FirstClassCard card={model.me4a.firstClass} onPress={act.firstClass} />
       </ScrollView>
       <BottomFade />
     </SafeAreaView>
@@ -157,13 +152,24 @@ function ProfileCardRN({
      cut to "SEELENVER…" (KProfileCard does the same with ViewThatFits) */
   const { fontScale } = useWindowDimensions();
   const stack = fontScale >= 1.3;
+  const stamp = useMyStamp();
+  const spoken = stampSpoken(stamp, t);
   return (
     <InkPanel variant="me" contentStyle={{ gap: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: tk.line, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
-          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={56} />
-          <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: tk.ln }} />
-        </View>
+        {/* a member's face is a gold perforated stamp (C2): the disc and its ring go */}
+        <StampAvatar size={56} denom={stamp}>
+          {({ size, radius }) =>
+            radius != null ? (
+              <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={size} radius={radius} />
+            ) : (
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: tk.line, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
+                <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={56} />
+                <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: tk.ln }} />
+              </View>
+            )
+          }
+        </StampAvatar>
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text numberOfLines={2} accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: tk.ink }}>
             {profile.name}
@@ -175,7 +181,7 @@ function ProfileCardRN({
             </View>
           )}
         </View>
-        <Pressable onPress={onEdit} hitSlop={5} accessibilityRole="button" accessibilityLabel={profile.editLabel} style={({ pressed }) => ({ width: 34, height: 34, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}>
+        <Pressable onPress={onEdit} hitSlop={5} accessibilityRole="button" accessibilityLabel={spoken ? `${profile.editLabel}, ${spoken}` : profile.editLabel} style={({ pressed }) => ({ width: 34, height: 34, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}>
           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={tk.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
             <Path d="M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </Svg>

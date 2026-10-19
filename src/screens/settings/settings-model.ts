@@ -1,5 +1,6 @@
 import type { SettingsGlyph } from "../../components/SettingsIcons";
 import type { RestoreOutcome } from "../../lib/iap";
+import type { FirstClass4aVM } from "../me/me-model";
 
 /* SETTINGS, AS ONE PURE VIEW (10a step 5, slice settings-profile).
    ────────────────────────────────────────────────────────────────────────
@@ -13,12 +14,14 @@ import type { RestoreOutcome } from "../../lib/iap";
 
    The page, top to bottom (owner decisions over H:97-103):
    - the 44pt header that scrolls away (SETTINGS, mono at 11);
-   - the First Class banner, straight to the paywall (settings_banner), in
-     the owner's copy for a free reader, a member and a cofounder;
-   - APPEARANCE: the theme swatches, selected = the theme IN EFFECT (H:440);
-     Midnight and Match system only once DARK_READY (lib/theme); then the
-     Letter font tiles, names never translated, Garamond only once
-     GARAMOND_READY (theme/post);
+   - the First Class card (4a, the same card Me's First Class segment draws:
+     me-model buildFirstClass4a, built by the hook; FC2 decision 4), straight
+     to the paywall (settings_banner), the member state for members;
+   - APPEARANCE: five swatches — System, Light, Dark, Lavender, Paper (FC2
+     decision 5) — selected = the reader's APPEARANCE, not the theme in
+     effect (System at night is System, not Dark); then the Letter font
+     tiles, names never translated, Garamond only once GARAMOND_READY
+     (theme/post);
    - ACCOUNT: pen name and the courier's name (each opens the one-field
      page), age (display only, a band; the real number under 18), language
      (the endonym with its flag, never translated);
@@ -93,31 +96,21 @@ export type SettingsGroupVM = {
   rows: SettingsRowVM[];
 };
 
-export type SettingsBannerVM = {
-  eyebrow: string;
-  headline: string;
-  sub: string;
-  cta: string;
-  stampLabel: string;
-  /** the courier's snapshot for the stamp (lib/bird-images): curious for a free reader,
-      delighted for a member, always grown */
-  pose: "fcFree" | "fcMember";
-};
+/** The First Class card at the top: the 4a card (me-model FirstClass4aVM), as Me draws it. */
+export type SettingsBannerVM = FirstClass4aVM;
 
-export type SwatchVM = { key: string; label: string };
+/** an APPEARANCE swatch: its key (system / light / dark / lavender / paper), its name, and
+    VoiceOver's hint ("" for none; System says what it follows) */
+export type SwatchVM = { key: string; label: string; hint: string };
 /** a Letter font tile: its key, its own name, and the specimen drawn in it */
 export type FontVM = { key: string; name: string; sample: string };
 
 export type AppearanceVM = {
   header: string;
   swatches: SwatchVM[];
-  /** the theme in effect (H:440): at night with Match system on, Midnight, whatever was tapped */
+  /** the reader's appearance (System stays selected at night, while the theme in effect is
+      Midnight). The Match system row is gone: System is a swatch now. */
   selectedTheme: string;
-  /** Match system's row (only once DARK_READY) */
-  showMatch: boolean;
-  matchLabel: string;
-  matchSub: string;
-  matchOn: boolean;
   fontLabel: string;
   fontSub: string;
   fonts: FontVM[];
@@ -136,16 +129,10 @@ export type SettingsView = {
 /* ── what the page is built from ────────────────────────────────────────── */
 
 export type ThemeFacts = {
-  /** the theme in effect (useTheme().key) */
-  effective: string;
-  /** the reader's pick and the switch (useTheme) */
-  pick: string;
-  matchSystem: boolean;
-  /** every theme, in themes.json's order, and which are dark */
-  keys: readonly string[];
-  dark: readonly string[];
-  /** lib/theme DARK_READY */
-  darkReady: boolean;
+  /** the reader's appearance (useTheme().appearance) */
+  appearance: string;
+  /** the five, in Settings' order (theme/themes APPEARANCES) */
+  choices: readonly string[];
 };
 
 export type SettingsFacts = {
@@ -167,6 +154,8 @@ export type SettingsFacts = {
   knock: boolean;
   premium: boolean;
   cofounderNo: number | null;
+  /** the 4a First Class card (me-model buildFirstClass4a, with the store's trial) */
+  firstClass: FirstClass4aVM;
   restoring: boolean;
   version: VersionFacts;
 };
@@ -283,62 +272,29 @@ export function footerVersion(v: VersionFacts): string {
   return v.build ? `${v.store} (${v.build})` : v.store;
 }
 
-/** The theme a pick stands for by day: Midnight has no day of its own, so Classic (H:429). */
-export function dayOf(pick: string, theme: Pick<ThemeFacts, "dark">): string {
-  return theme.dark.includes(pick) ? "classic" : pick;
-}
+/** Each appearance's name: System / Light / Dark are FC2's words, Lavender and Paper keep their
+    swatch names (theme.*). An unknown key (a later build's) shows as itself. */
+export const APPEARANCE_LABEL_KEYS: Readonly<Record<string, string>> = {
+  system: "fc2.ap.system",
+  light: "fc2.ap.light",
+  dark: "fc2.ap.dark",
+  lavender: "theme.lavender",
+  paper: "theme.paper",
+};
 
-/** The theme a pick stands for after dark: the dark theme (themes.json's first, Midnight). */
-export function nightOf(theme: Pick<ThemeFacts, "dark">): string {
-  return theme.dark[0] ?? "midnight";
-}
-
-/** Match system's subline (H:99): "Midnight after dark · Lavender by day" while on, "Always
-    Paper" while off. Both themes come in by their swatch names (theme.*), never written into
-    the sentence, so a translation names them as their swatches do. */
-export function matchSub(theme: ThemeFacts, t: TFn): string {
-  return theme.matchSystem
-    ? t("set.matchSystem.on", { night: t(`theme.${nightOf(theme)}`), day: t(`theme.${dayOf(theme.pick, theme)}`) })
-    : t("set.matchSystem.off", { theme: t(`theme.${theme.pick}`) });
-}
-
-/** The swatches offered: every light theme, and Midnight only once DARK_READY (lib/theme: don't
-    offer it while it is off) — or while it is already in effect, which only the dev theme
-    switch can do then, so its screenshots show the swatch it forced. */
+/** The five swatches, in order (FC2 §10). Only System carries a hint: what it follows. */
 export function swatches(theme: ThemeFacts, t: TFn): SwatchVM[] {
-  return theme.keys
-    .filter((k) => theme.darkReady || !theme.dark.includes(k) || k === theme.effective)
-    .map((k) => ({ key: k, label: t(`theme.${k}`) }));
+  return theme.choices.map((k) => ({
+    key: k,
+    label: APPEARANCE_LABEL_KEYS[k] ? t(APPEARANCE_LABEL_KEYS[k]) : k,
+    hint: k === "system" ? t("fc2.ap.systemHint") : "",
+  }));
 }
 
 /** The Letter font tiles: the choices this build can draw, by their own names; the system serif
     (New York) is called "System" in the reader's language (owner, 2026-10-19). */
 export function fontTiles(choices: readonly string[], t?: TFn): FontVM[] {
   return choices.map((k) => ({ key: k, name: k === "newyork" && t ? t("set.font.system") : LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
-}
-
-/** The First Class banner in the owner's copy (never "More Kindreds" or "a monthly reading":
-    Apple 2.3.2): a free reader is offered it, a member is told they travel First Class, a
-    cofounder sees their number. */
-export function buildBanner(f: { premium: boolean; cofounderNo: number | null; wren: string }, t: TFn): SettingsBannerVM {
-  if (f.premium || f.cofounderNo != null) {
-    return {
-      eyebrow: t("me.firstClass"),
-      headline: f.cofounderNo != null ? t("me.fc.founding", { n: String(f.cofounderNo) }) : t("fc.paidHead"),
-      sub: t("fc.paidSub"),
-      cta: `${t("fc.paidCta")} →`,
-      stampLabel: t("fc.member"),
-      pose: "fcMember",
-    };
-  }
-  return {
-    eyebrow: t("me.firstClass"),
-    headline: t("fc.stubHead"),
-    sub: `${t("fc.stubSub1")}\n${t("fc.stubSub2", { wren: f.wren })}`,
-    cta: `${t("fc.tryCta")} →`,
-    stampLabel: t("fc.firstMark"),
-    pose: "fcFree",
-  };
 }
 
 /** The membership row's value: Cofounder No. 007, First Class, or Not yet. */
@@ -411,15 +367,11 @@ export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
   return {
     title: t("settings.title"),
     backLabel: t("a11y.back"),
-    banner: buildBanner({ premium: f.premium, cofounderNo: f.cofounderNo, wren: f.wren }, t),
+    banner: f.firstClass,
     appearance: {
       header: t("set.sec.appearance"),
       swatches: swatches(f.theme, t),
-      selectedTheme: f.theme.effective,
-      showMatch: f.theme.darkReady,
-      matchLabel: t("set.matchSystem"),
-      matchSub: matchSub(f.theme, t),
-      matchOn: f.theme.matchSystem,
+      selectedTheme: f.theme.appearance,
       fontLabel: t("set.letterFont"),
       fontSub: t("set.letterFont.sub"),
       fonts: fontTiles(f.letterFont.choices, t),

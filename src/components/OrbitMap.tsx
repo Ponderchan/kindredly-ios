@@ -19,6 +19,8 @@ import { PF } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { MosaicId } from "./MosaicId";
 import { Frost } from "./Frost";
+import { StampEdge } from "./StampAvatar";
+import { useMemberStamps } from "../lib/member-marks";
 import type { FrostSpec } from "../lib/frost";
 import type { OrbitVM } from "../screens/kindreds/kindreds-model";
 import { t, useLang } from "../lib/i18n";
@@ -89,6 +91,9 @@ export function OrbitMap({ items, empty, flat, line = true }: { items: OrbitVM[]
   const { t: tk } = useTheme();
   const { width: winW } = useWindowDimensions();
   const { W, H, CX, CY, RX_MAX } = orbitBox(winW);
+  /* a member's face wears only a 1pt dotted gold edge here (C2, contract D-6): the faces are
+     ~17.6, too small for the stamp's ground and denomination */
+  const stampOf = useMemberStamps(items.map((o) => o.seed));
   const ringRx = (p: number) => RX_MIN + (RX_MAX - RX_MIN) * ((REVEAL - p) / (REVEAL - 1));
   const rings = Array.from({ length: REVEAL }, (_, i) => ringRx(i + 1));
   const RX_VOID = RX_MAX + 14;
@@ -142,6 +147,7 @@ export function OrbitMap({ items, empty, flat, line = true }: { items: OrbitVM[]
             develop={o.develop}
             frost={o.frost}
             turn={o.turn}
+            stamped={!!stampOf(o.seed)}
             rx={rx}
             ry={rx * SQUASH}
             a0={o.a0}
@@ -175,6 +181,7 @@ function OrbitingFace({
   develop,
   frost,
   turn: yours,
+  stamped,
   rx,
   ry,
   a0,
@@ -194,6 +201,8 @@ function OrbitingFace({
   frost: FrostSpec | null;
   /** it is your turn: the window wears the ind ring (the mosaic is inked in `ink` instead) */
   turn: boolean;
+  /** a member (C2): the 1pt dotted gold edge round the face, fading with it on the fold */
+  stamped: boolean;
   rx: number;
   ry: number;
   a0: number;
@@ -247,6 +256,7 @@ function OrbitingFace({
         <Animated.View style={body}>
           <Animated.View style={face}>
             {frost ? <Frost spec={frost} size={FACE} ring={yours ? ink : null} /> : <MosaicId seed={seed} cell={2.8} gap={0.9} develop={develop} color={ink} />}
+            {stamped && <StampEdge size={FACE} />}
           </Animated.View>
           <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: FACE, height: FACE, backgroundColor: ink }, tick]} />
         </Animated.View>

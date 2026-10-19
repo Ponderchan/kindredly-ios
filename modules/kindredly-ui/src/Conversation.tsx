@@ -204,6 +204,9 @@ export type KChatHeader = {
   identity?: boolean;
   /** none while the face develops; line when their five are in; brass when they also went first */
   frame: "none" | "line" | "brass";
+  /** a First Class member's stamp round the face (C2): "1ST" | "007" | "" (omitted = none). In the
+      pen-pal header it replaces the frame (D-8); never on a veil */
+  stamp?: string;
   /** the progress band under the header's rule (live 1.0.4's, owner 2026-10-19): both sides'
       five cells and the line that says who still owes what; null for none (names traded, a
       deleted account, the kindreds chat) */
@@ -373,8 +376,9 @@ type NativeDock = {
 };
 /* the header as Swift's record: the face flattened, no mark or sign as "", no window as NO_FROST
    (a @Field record can't take null) */
-type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band"> & {
+type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band" | "stamp"> & {
   show: boolean;
+  stamp: string;
   faceKind: KChatFace["kind"];
   faceUri: string;
   faceKey: string;
@@ -409,6 +413,7 @@ const NO_HEADER: NativeHeader = {
   veil: true,
   identity: false,
   frame: "none",
+  stamp: "",
   band: NO_BAND,
   a11yLabel: "",
   canOpenPage: false,
@@ -513,10 +518,11 @@ export function nativeChatDock(d: KChatDock): NativeDock {
 /** The header as Swift's record (the face flattened): show false for none. */
 export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeader {
   if (!h) return NO_HEADER;
-  const { face, frost, mark, sign, identity, band, ...rest } = h;
+  const { face, frost, mark, sign, identity, band, stamp, ...rest } = h;
   return {
     ...rest,
     show: true,
+    stamp: stamp ?? "",
     faceKind: face.kind,
     faceUri: face.uri,
     faceKey: face.key,

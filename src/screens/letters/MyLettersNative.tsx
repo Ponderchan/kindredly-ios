@@ -11,6 +11,7 @@ import { fetchMyWriting, type WritingRow } from "../../lib/aura";
 import { fetchThreads, withdrawLetter, type ThreadSummary } from "../../lib/db";
 import { deleteDraft, loadDrafts, type Draft } from "../../lib/drafts";
 import { faceRecord, useFaceSources, type FaceInput } from "../../lib/faces";
+import { useMemberStamps } from "../../lib/member-marks";
 import { getStamp, sname } from "../../data/stamps";
 import { buildLetterCards, buildMyLettersView } from "./letters-model";
 import "../../data/strings-me4a";
@@ -97,6 +98,8 @@ export function MyLettersNative({ demo }: { demo?: MyLettersDemo }) {
     return o;
   }, [view.cards]);
   const faces = useFaceSources(faceInputs);
+  // C2: the replier's stamp when they are a member (the small rule at 22; none once gone)
+  const stampOf = useMemberStamps(useMemo(() => view.cards.map((c) => c.face?.seed), [view.cards]));
 
   const cards = useSameContent<KMyLettersCard[]>(
     useMemo(
@@ -104,9 +107,10 @@ export function MyLettersNative({ demo }: { demo?: MyLettersDemo }) {
         view.cards.map((c) => {
           const f = faces[c.id];
           const r = f ? faceRecord(f) : null;
-          return { ...c, face: r ? { kind: r.kind, uri: r.uri, key: r.key, overscan: r.overscan, mask: r.mask } : NO_FACE };
+          const stamp = c.face && !c.face.gone ? stampOf(c.face.seed) : "";
+          return { ...c, face: r ? { kind: r.kind, uri: r.uri, key: r.key, overscan: r.overscan, mask: r.mask, stamp } : NO_FACE };
         }),
-      [view.cards, faces],
+      [view.cards, faces, stampOf],
     ),
   );
   const strings = useSameContent(view.strings);

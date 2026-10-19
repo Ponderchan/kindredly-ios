@@ -19,7 +19,7 @@ import ExpoUI
  - strings: { settingsLabel, courierA11y, segments: [4], expanded, collapsed, seeAllAction,
    openKindredsAction, locked }
  - profile: { name, joined ("joined Jul 27[ · COFOUNDER No. 007]", "" for none), editLabel,
-   stats: [{ key, count, unit, a11y, hint }] }
+   stamp ("1ST" | "007" | "": your C2 stamp round the avatar), stats: [{ key, count, unit, a11y, hint }] }
  - peekLetters: { state (loading | empty | ready), items: [{ id, date, stampId, stampHex, body,
    tone (quiet | answered | replied), status, a11y }], seeAll, emptyText, emptyCta }
  - peekKindreds: { state, items: [{ id, name, line, face (KKindredsFaceRecord), a11y }], open,
@@ -105,6 +105,8 @@ struct KMeProfileRecord: Record {
   @Field var name: String = ""
   @Field var joined: String = ""
   @Field var editLabel: String = ""
+  /// your stamp when you are a member (C2): "1ST" | "007" | ""
+  @Field var stamp: String = ""
   @Field var stats: [KMeStatRecord] = []
 
   var profile: KMeProfile {
@@ -112,6 +114,7 @@ struct KMeProfileRecord: Record {
     p.name = name
     p.joined = joined
     p.editLabel = editLabel
+    p.stamp = stamp
     // only the two keys the header knows, each once
     var seen = Set<String>()
     p.stats = stats.compactMap { s in
@@ -178,7 +181,7 @@ struct KMePeekKindredsRecord: Record {
     var seen = Set<String>()
     p.items = items.compactMap { k in
       guard !k.id.isEmpty, seen.insert(k.id).inserted else { return nil }
-      return KMePeekKindred(id: k.id, name: k.name, line: k.line, face: k.face.face, a11y: k.a11y)
+      return KMePeekKindred(id: k.id, name: k.name, line: k.line, face: k.face.face, a11y: k.a11y, stamp: k.face.memberStamp)
     }
     if p.state == .ready && p.items.isEmpty { p.state = .empty }
     p.open = open

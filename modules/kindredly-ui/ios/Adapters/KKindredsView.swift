@@ -20,7 +20,9 @@ import ExpoUI
  - statusActive: letters are waiting, so the status is ind and a button
  - active: the tab is focused (the orbit drifts only then)
  - chips: [{ key, label, count, glyph: none | kindred | penPal, selected, dot, a11yLabel }]
- - orbit: [{ id, mask, frost, ring, a0, dir, period, turn }]
+ - orbit: [{ id, mask, frost, ring, a0, dir, period, turn, stamp }]
+ - a face record's `stamp`, a fold face's `stamp`: a First Class member's denomination ("1ST" |
+   "007" | ""), drawn as their stamp (C2, KStampAvatar); an orbit face's `stamp` is a Bool
  - items: [{ id, type, text, text2, image, row, fold }], type one of wrenLine | notice | line |
    showing | wren | row | fold | emptyLine | hintKindreds | hintPenpals | groupHeader; `row` and
    `fold` are always sent (empty when unused, a record field can't be null).
@@ -71,6 +73,12 @@ struct KKindredsFaceRecord: Record {
   @Field var frost: KFrostRecord = KFrostRecord()
   /// ink | ind (a mosaic for someone whose turn it is to be written to)
   @Field var tint: String = "ink"
+  /// a First Class member's stamp (C2): "1ST" or "007"; "" for none (never Wren, never a veil)
+  @Field var stamp: String = ""
+
+  var memberStamp: KMemberStamp? {
+    kind == "bird" ? nil : KMemberStamp(stamp)
+  }
 
   var face: KPersonFace {
     switch kind {
@@ -136,6 +144,7 @@ struct KKindredsRowRecord: Record {
       badge: badge,
       trailingLink: trailingLink,
       dim: dim,
+      stamp: face.memberStamp,
       a11yLabel: a11yLabel,
       actions: actions.map { KMenuItem(key: $0.key, title: $0.title, systemImage: $0.icon, destructive: $0.destructive) }
     )
@@ -148,6 +157,8 @@ struct KKindredsFoldFaceRecord: Record {
   /// identity switch on: the pen pal's window (NO_FROST off)
   @Field var frost: KFrostRecord = KFrostRecord()
   @Field var a11yLabel: String = ""
+  /// a member's stamp (C2): "1ST" | "007" | ""
+  @Field var stamp: String = ""
 }
 
 struct KKindredsFoldRecord: Record {
@@ -159,7 +170,7 @@ struct KKindredsFoldRecord: Record {
   func fold(id: String) -> KFoldModel {
     KFoldModel(
       id: id,
-      faces: faces.map { KFoldFace(id: $0.id, mask: $0.mask, frost: $0.frost.spec, a11yLabel: $0.a11yLabel) },
+      faces: faces.map { KFoldFace(id: $0.id, mask: $0.mask, frost: $0.frost.spec, a11yLabel: $0.a11yLabel, stamp: KMemberStamp($0.stamp)) },
       more: more,
       label: label,
       a11yLabel: a11yLabel
@@ -221,9 +232,11 @@ struct KKindredsOrbitRecord: Record {
   @Field var dir: Double = 1
   @Field var period: Double = 200
   @Field var turn: Bool = false
+  /// a First Class member (C2): the orbit's 1pt dotted gold edge
+  @Field var stamp: Bool = false
 
   var item: KOrbitItem {
-    KOrbitItem(id: id, mask: mask, frost: frost.spec, ring: ring, a0: a0, dir: dir, period: period, turn: turn)
+    KOrbitItem(id: id, mask: mask, frost: frost.spec, ring: ring, a0: a0, dir: dir, period: period, turn: turn, stamp: stamp)
   }
 }
 

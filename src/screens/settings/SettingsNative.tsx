@@ -15,7 +15,8 @@ import type { SettingsModel } from "./useSettingsModel";
    window-level modals above the Host and the floating tab bar.
 
    This file only turns the model's view (settings-model, the same one the
-   React Native fallback draws) into the Swift records: the banner's bird as
+   React Native fallback draws) into the Swift records — the banner is Me's
+   4a First Class card (KMeFirstClassCard) — with the banner's bird as
    a snapshot of the reader's own courier, grown (useBirdImageRef fcFree /
    fcMember), and every record kept by content, so a focus that reads the
    same page again doesn't re-send it (every prop change re-sends the whole
@@ -34,8 +35,6 @@ export const nativeStrings = (v: SettingsView): KSettingsStrings => ({
   title: v.title,
   backLabel: v.backLabel,
   appearanceHeader: v.appearance.header,
-  matchLabel: v.appearance.matchLabel,
-  matchSub: v.appearance.matchSub,
   fontLabel: v.appearance.fontLabel,
   fontSub: v.appearance.fontSub,
   footer: v.footer,
@@ -67,17 +66,19 @@ export function SettingsNative({ model }: { model: SettingsModel }) {
       () => ({
         eyebrow: view.banner.eyebrow,
         headline: view.banner.headline,
-        sub: view.banner.sub,
+        rows: view.banner.rows,
         cta: view.banner.cta,
+        trial: view.banner.trial,
         stampLabel: view.banner.stampLabel,
+        member: view.banner.member,
         bird,
       }),
       [view.banner, bird],
     ),
   );
-  const { selectedTheme, showMatch, matchOn, selectedFont } = view.appearance;
+  const { selectedTheme, selectedFont } = view.appearance;
   // over every record AND the small values: Swift converts the whole page once per rev
-  const rev = useRev(strings, groups, swatches, fonts, banner, selectedTheme, showMatch, matchOn, selectedFont);
+  const rev = useRev(strings, groups, swatches, fonts, banner, selectedTheme, selectedFont);
 
   return (
     <SurfaceHost>
@@ -91,15 +92,12 @@ export function SettingsNative({ model }: { model: SettingsModel }) {
         banner={banner}
         swatches={swatches}
         selectedTheme={selectedTheme}
-        showMatch={showMatch}
-        matchOn={matchOn}
         fonts={fonts}
         selectedFont={selectedFont}
         groups={groups}
         onBack={act.back}
         onBanner={act.banner}
         onTheme={act.theme}
-        onMatchSystem={act.matchSystem}
         onFont={act.font}
         onRow={act.row}
         onToggle={act.toggle}

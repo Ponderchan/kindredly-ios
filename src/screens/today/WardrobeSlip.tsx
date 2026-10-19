@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { WardrobeRack } from "../../components/WardrobeRack";
 import { WrenBird, type WrenAccessory, type WrenSkin } from "../../components/WrenBird";
-import { PaywallBody } from "../../app/paywall";
+import { FirstClassPaywall } from "../../app/paywall";
 import { useEntitlement } from "../../lib/entitlement";
 import { WARDROBE_SLIP, getFlags, unsetFlag } from "../../lib/flags";
 import { t, useLang } from "../../lib/i18n";
@@ -32,7 +32,8 @@ import "../../data/strings-onboarding2";
    A tap opens the existing WardrobeRack (tone post) in a page sheet, where
    EVERYTHING tries on — the free pieces and the First Class ones, on the
    bird itself, big. "Keep this look" keeps it; if something First Class is
-   on, it opens the existing fare (PaywallBody) first, and the fare's ×
+   on, it opens the First Class page (FirstClassPaywall: the Swift page, as
+   every other way in, FC2 §4.8) first, and the page's close
    puts the bird back the way it was when the sheet opened (as it hatched),
    while boarding keeps the look. The flag is cleared the moment the slip is
    opened or put away, so it never comes back.
@@ -161,7 +162,7 @@ function WardrobeSheet({ open, name, demo, onClose }: { open: boolean; name: str
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       {fare ? (
-        <PaywallBody
+        <FirstClassPaywall
           sheet
           source="onboarding_dress"
           courier={name}

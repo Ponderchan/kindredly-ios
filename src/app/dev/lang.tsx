@@ -10,8 +10,8 @@ import { THEME_KEYS, type ThemeKey } from "../../theme/themes";
    screens. Nothing is saved and nothing reaches the server: the Settings
    picker persists the language and re-registers the push token in it, which
    a look at the copy shouldn't do to a real account; the theme goes through
-   the dev theme switch (lib/theme setDevThemeOverride: memory only, Midnight
-   allowed before DARK_READY), and theme=off lets go of it. */
+   the dev theme switch (lib/theme setDevThemeOverride: memory only, over the
+   reader's appearance), and theme=off lets go of it. */
 export default function DevLang() {
   const { l, theme, to } = useLocalSearchParams<{ l?: string; theme?: string; to?: string }>();
   const router = useRouter();

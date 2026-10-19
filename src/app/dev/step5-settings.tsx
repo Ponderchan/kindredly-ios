@@ -6,7 +6,10 @@ import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { LETTER_FONT_KEYS, setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { LANGS, t, useLang } from "../../lib/i18n";
 import { P, PF } from "../../theme/post";
-import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
+import { APPEARANCES, THEME_KEYS, THEMES, appearanceTheme, isAppearance, type Appearance, type ThemeKey } from "../../theme/themes";
+import { buildFirstClass4a } from "../../screens/me/me-model";
+import { meFormat } from "../../screens/me/me-format";
+import "../../data/strings-fc2";
 import { FACES, getFace } from "../../data/aura-avatar-lib";
 import { buildSettingsView, dangerInk, type SettingsFacts } from "../../screens/settings/settings-model";
 import { versionFacts, type SettingsActions, type SettingsModel } from "../../screens/settings/useSettingsModel";
@@ -35,7 +38,8 @@ import "../../data/strings-step5-me";
    settings-model, screens/edit-profile edit-profile-model), drawn by
    SettingsNative / EditProfileNative (SwiftUI) or SettingsRN /
    EditProfileRN. Nothing here writes a preference, the account or the
-   phone: a swatch sets the dev theme switch, the font and the switches are
+   phone: a swatch sets the dev theme switch (System lets go of it, so the
+   page follows the reader's own theme), the font and the switches are
    this page's own state, and anything that would leave the page says where
    it would go instead.
 
@@ -48,8 +52,8 @@ import "../../data/strings-step5-me";
    - SWIFT / RN: which renderer (SWIFT needs a dev client built with this
      slice's views, after pod install);
    - Settings: FC (free / member / cofounder), PERM (granted / ask /
-     settings / unknown: the notice), DARK (the page as it will be once
-     DARK_READY: Midnight's swatch and Match system), GARAMOND (its tile, as
+     settings / unknown: the notice), TRIAL (the First Class card's
+     7 DAYS FREE, as a real store trial would show it), GARAMOND (its tile, as
      it will be once the font is in the app), BUSY (restore running), NO
      NAME, NO DOB;
    - Edit: FACE (a portrait / a legacy portrait: the new-faces note / an
@@ -92,7 +96,7 @@ function SettingsLab() {
   // settings fixtures
   const [fc, setFc] = useState<FcMode>("free");
   const [perm, setPerm] = useState<PermMode>("ask");
-  const [dark, setDark] = useState(false);
+  const [trial, setTrial] = useState(false);
   const [garamond, setGaramond] = useState(false);
   const [busy, setBusy] = useState(false);
   const [noName, setNoName] = useState(false);
@@ -100,7 +104,8 @@ function SettingsLab() {
   const [font, setFont] = useState("newsreader");
   const [notifyOn, setNotifyOn] = useState(true);
   const [knock, setKnock] = useState(false);
-  const [matchOn, setMatchOn] = useState(true);
+  // the swatch this page shows selected (its own state: nothing is saved)
+  const [appearance, setAppearance] = useState<Appearance>("system");
 
   // edit fixtures
   const [faceMode, setFaceMode] = useState<FaceMode>("portrait");
@@ -125,28 +130,25 @@ function SettingsLab() {
       now: Date.now(),
       language: { flag: LANGS.find((l) => l.id === lang)?.flag ?? "", label: LANGS.find((l) => l.id === lang)?.label ?? "English" },
       wren,
-      theme: {
-        effective: themeKey,
-        pick: themeKey,
-        matchSystem: matchOn,
-        keys: THEME_KEYS,
-        dark: THEME_KEYS.filter((k) => THEMES[k].dark),
-        darkReady: dark,
-      },
+      theme: { appearance, choices: APPEARANCES },
       letterFont: { selected: font, choices: garamond ? LETTER_FONT_KEYS : LETTER_FONT_KEYS.filter((k) => k !== "garamond") },
       perm: perm === "unknown" ? null : perm,
       notifyOn,
       knock,
       premium: fc !== "free",
       cofounderNo: fc === "cofounder" ? 7 : null,
+      firstClass: buildFirstClass4a({ premium: fc !== "free", cofounderNo: fc === "cofounder" ? 7 : null, wren, trial: trial ? t("m4.trial.days", { n: 7 }) : "" }, meFormat()),
       restoring: busy,
       version: versionFacts(),
     };
     const act: SettingsActions = {
       back: () => away("goes back to Me"),
       banner: () => away("opens /paywall?src=settings_banner"),
-      theme: (key) => setDevThemeOverride(key as ThemeKey),
-      matchSystem: setMatchOn,
+      theme: (key) => {
+        if (!isAppearance(key)) return;
+        setAppearance(key);
+        setDevThemeOverride(appearanceTheme(key));
+      },
       font: setFont,
       row: (key) => away(`acts on the "${key}" row`),
       toggle: (key, on) => (key === "notify" ? setNotifyOn(on) : setKnock(on)),
@@ -167,7 +169,7 @@ function SettingsLab() {
       deleting: false,
       act,
     };
-  }, [handle, dob, lang, themeKey, matchOn, dark, font, garamond, perm, notifyOn, knock, fc, busy, away, tk.ink]);
+  }, [handle, dob, lang, appearance, trial, font, garamond, perm, notifyOn, knock, fc, busy, away, tk.ink]);
 
   const edit = useMemo<EditProfileModel>(() => {
     const base = faceMode === "legacy" ? LEGACY_ID : faceMode === "drawn" ? DRAWN_ID : faceMode === "none" ? null : FACES[3].id;
@@ -249,7 +251,7 @@ function SettingsLab() {
               {(["granted", "ask", "settings", "unknown"] as const).map((m) => (
                 <Chip key={m} label={`PERM ${m.toUpperCase()}`} on={perm === m} onPress={() => setPerm(m)} />
               ))}
-              <Chip label="DARK" on={dark} onPress={() => setDark((v) => !v)} />
+              <Chip label="TRIAL" on={trial} onPress={() => setTrial((v) => !v)} />
               <Chip label="GARAMOND" on={garamond} onPress={() => setGaramond((v) => !v)} />
               <Chip label="BUSY" on={busy} onPress={() => setBusy((v) => !v)} />
               <Chip label="NO NAME" on={noName} onPress={() => setNoName((v) => !v)} />

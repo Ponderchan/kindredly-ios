@@ -21,6 +21,7 @@ import { blurThen } from "../../lib/keyboard";
 import { localImageRef, useSignedImageRefs, useSignedUrls } from "../../lib/images";
 import { useBirdImageRef } from "../../lib/bird-images";
 import { faceRecord, threadFaceInput, useFaceSource } from "../../lib/faces";
+import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
 import { playbackCommandArgs, useVoicePlayback, type VoicePlayback } from "../../lib/voice-playback";
 import { useRenderWindow, type RenderWindow } from "../../lib/render-window";
 import type { ThreadDetail, ThreadMessage } from "../../lib/db";
@@ -152,6 +153,14 @@ function useFollowNewLines(built: readonly KChatItem[], send: (args: KChatComman
 }
 
 /** The voice opening's playable address: signed from storage, or the demo's sample. */
+/** A header with the other person's C2 stamp on its face, and VoiceOver told once ("…, First
+    Class" / "…, Cofounder No. 7"); the header unchanged when they aren't a member. */
+function withStamp(h: KChatHeader, stamp: string): KChatHeader {
+  if (!stamp) return h;
+  const spoken = stampSpoken(stamp, t);
+  return { ...h, stamp, a11yLabel: h.a11yLabel ? `${h.a11yLabel}, ${spoken}` : spoken };
+}
+
 function useOpeningVoice(detail: ThreadDetail | null, isDemo: boolean) {
   const path = detail?.openingMedia ?? null;
   const signed = useSignedUrls("voice-letters", isDemo ? [] : [path]);
@@ -268,11 +277,14 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   const face: KChatFace = detail ? faceRecord(faceSource) : NO_FACE;
   const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
   const subtitle = detail?.revealedAt ? t("rm.kindredSince", { date: dLong(detail.revealedAt).toUpperCase() }) : archNameThird(m.read?.archetype?.id);
+  // C2: the kindred's stamp when they are a member (never once gone)
+  const stampOf = useMemberStamps([detail?.other]);
+  const stamp = detail && !detail.gone ? stampOf(detail.other) : "";
   const header = useMemo<KChatHeader>(
-    () => roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody }),
+    () => withStamp(roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody }), stamp),
     // face is a fresh record each render; its fields are what change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang],
+    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang, stamp],
   );
   const headerTop = topInset ?? safe.top;
   const insets = useMemo(() => ({ top: headerTop, bottom: safe.bottom, tabBarRoom: 0 }), [headerTop, safe.bottom]);
@@ -481,10 +493,13 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
      thread seen here keeps the React Native one */
   const swiftHeader = !detail?.revealed;
   const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  // C2: the pen pal's stamp when they are a member (membership only, never who; never once gone)
+  const stampOf = useMemberStamps([detail?.other]);
+  const stamp = detail && !detail.gone ? stampOf(detail.other) : "";
   const header = useMemo<KChatHeader | null>(
     () =>
       swiftHeader
-        ? {
+        ? withStamp({
             ...lettersHeader({
               t,
               locale: m.locale,
@@ -500,10 +515,10 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
             }),
             // the identity switch: a deleted pen pal's veil is the flat veil tile, square like the windows
             identity: m.identity,
-          }
+          }, stamp)
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [swiftHeader, m.name, m.who, m.identity, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang],
+    [swiftHeader, m.name, m.who, m.identity, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang, stamp],
   );
   const headerTop = topInset ?? safe.top;
   const strings = useChatStrings();

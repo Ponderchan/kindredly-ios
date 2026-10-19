@@ -148,15 +148,25 @@ export async function iapTrialEligibility(productIds: string[]): Promise<Record<
   }
 }
 
-export async function iapPurchase(
-  pkg: IapPackage,
-): Promise<{ ok: boolean; cancelled?: boolean; error?: string }> {
+/** A purchase's outcome. On success it also carries the store's transaction id and the bought
+    product id (FC2 §4.4: the receipt shows once per transaction id), both read defensively from
+    RevenueCat's result; either may be missing, and the caller copes. */
+export type IapPurchaseResult = { ok: boolean; cancelled?: boolean; error?: string; transactionId?: string; productId?: string };
+
+export async function iapPurchase(pkg: IapPackage): Promise<IapPurchaseResult> {
   if (!IAP_READY) return { ok: false, error: "not-configured" };
   const P = load();
   if (!P) return { ok: false, error: "not-configured" };
   try {
     const res = await P.purchasePackage(pkg.raw);
-    return { ok: succeeded(res?.customerInfo) };
+    const ok = succeeded(res?.customerInfo);
+    const tx = (res as any)?.transaction?.transactionIdentifier;
+    const pid = (res as any)?.productIdentifier ?? (res as any)?.transaction?.productIdentifier;
+    return {
+      ok,
+      ...(typeof tx === "string" && tx ? { transactionId: tx } : {}),
+      ...(typeof pid === "string" && pid ? { productId: pid } : {}),
+    };
   } catch (e: any) {
     if (e?.userCancelled) return { ok: false, cancelled: true };
     return { ok: false, error: e?.message || "purchase-failed" };
@@ -166,7 +176,7 @@ export async function iapPurchase(
 /** The free trial First Class is in right now, as the App Store's own receipt says it (RevenueCat's
     customer info): the product, and when the trial ends — the day the first charge happens. Null
     when it isn't a trial, won't renew (so nothing will be charged), or can't be read (logged). The
-    welcome after a purchase says it (components/FirstClassWelcome); it never guesses a date. */
+    receipt after a purchase says it (components/FirstClassWelcome FirstClassReceipt); it never guesses a date. */
 export async function iapActiveTrial(): Promise<{ productId: string; endsAt: string } | null> {
   if (!IAP_READY) return null;
   const P = load();

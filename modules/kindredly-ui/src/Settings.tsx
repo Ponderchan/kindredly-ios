@@ -8,7 +8,7 @@ import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle } from ".
    ios/Adapters/KSettingsView.swift), for src/screens/settings/SettingsNative.tsx. Every word,
    value, row and destination comes in from TS (src/screens/settings/settings-model.ts builds
    them); Swift draws them and reports taps. It keeps no state of its own: the switches show the
-   props and ask for the other value through onToggle / onMatchSystem, and TS answers by
+   props and ask for the other value through onToggle, and TS answers by
    changing the prop (a permission prompt may say no).
 
    It is a whole screen: put it alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost in
@@ -27,24 +27,29 @@ export type KSettingsStrings = {
   title: string;
   backLabel: string;
   appearanceHeader: string;
-  matchLabel: string;
-  matchSub: string;
   fontLabel: string;
   fontSub: string;
   footer: string;
 };
 
+/** The First Class card at the top: the 4a card Me draws (Swift KMeFirstClassCard; TS
+    me-model buildFirstClass4a), the member state for members. */
 export type KSettingsBanner = {
   eyebrow: string;
   headline: string;
-  sub: string;
+  /** the rows with gold checks */
+  rows: string[];
   cta: string;
+  /** "7 DAYS FREE"; "" for none (no real trial, or a member) */
+  trial: string;
   stampLabel: string;
+  member: boolean;
   /** the courier's snapshot for the stamp (lib/bird-images fcFree / fcMember); null for none */
   bird: KImageRefProps | null;
 };
 
-export type KSettingsSwatch = { key: string; label: string };
+/** an APPEARANCE swatch: system / light / dark / lavender / paper, its name, VoiceOver's hint ("" none) */
+export type KSettingsSwatch = { key: string; label: string; hint: string };
 /** a Letter font tile: its key, its own name (untranslated) and the specimen drawn in its face */
 export type KSettingsFont = { key: string; name: string; sample: string };
 
@@ -76,18 +81,14 @@ export type KSettingsViewProps = CommonViewModifierProps &
     strings: KSettingsStrings;
     banner: KSettingsBanner;
     swatches: KSettingsSwatch[];
-    /** the theme in effect */
+    /** the reader's appearance (system / light / dark / lavender / paper), not the theme in effect */
     selectedTheme: string;
-    /** Match system's row (only once the dark theme is ready) */
-    showMatch: boolean;
-    matchOn: boolean;
     fonts: KSettingsFont[];
     selectedFont: string;
     groups: KSettingsGroup[];
     onBack?: () => void;
     onBanner?: () => void;
     onTheme?: (key: string) => void;
-    onMatchSystem?: (on: boolean) => void;
     onFont?: (key: string) => void;
     onRow?: (key: string) => void;
     onToggle?: (key: string, on: boolean) => void;
@@ -101,7 +102,7 @@ type NativeGroup = Omit<KSettingsGroup, "notice"> & { notice: { present: boolean
 
 type NativeKSettingsViewProps = Omit<
   KSettingsViewProps,
-  "letterFont" | "insets" | "rev" | "banner" | "groups" | "onBack" | "onBanner" | "onTheme" | "onMatchSystem" | "onFont" | "onRow" | "onToggle" | "onNotice"
+  "letterFont" | "insets" | "rev" | "banner" | "groups" | "onBack" | "onBanner" | "onTheme" | "onFont" | "onRow" | "onToggle" | "onNotice"
 > &
   Required<Pick<KSettingsViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -110,7 +111,6 @@ type NativeKSettingsViewProps = Omit<
     onSettingsBack?: None;
     onSettingsBanner?: None;
     onSettingsTheme?: Ev<{ key: string }>;
-    onSettingsMatch?: Ev<{ on: boolean }>;
     onSettingsFont?: Ev<{ key: string }>;
     onSettingsRow?: Ev<{ key: string }>;
     onSettingsToggle?: Ev<{ key: string; on: boolean }>;
@@ -138,7 +138,7 @@ const NativeKSettingsView = requireNativeView<NativeKSettingsViewProps>("Kindred
 /** The bare SwiftUI screen. Only inside an @expo/ui <Host>. Pass the records memoised with a rev
     from useRev over all of them. */
 export const KSettingsView = forwardRef<KScreenHandle, KSettingsViewProps>(function KSettingsView(
-  { modifiers, letterFont, insets, rev, banner, groups, onBack, onBanner, onTheme, onMatchSystem, onFont, onRow, onToggle, onNotice, ...rest },
+  { modifiers, letterFont, insets, rev, banner, groups, onBack, onBanner, onTheme, onFont, onRow, onToggle, onNotice, ...rest },
   ref,
 ) {
   // the converted records follow their source's identity, so a render that changes nothing
@@ -161,7 +161,6 @@ export const KSettingsView = forwardRef<KScreenHandle, KSettingsViewProps>(funct
       onSettingsBack={onBack ? () => onBack() : undefined}
       onSettingsBanner={onBanner ? () => onBanner() : undefined}
       onSettingsTheme={onTheme ? (e) => onTheme(e.nativeEvent.key) : undefined}
-      onSettingsMatch={onMatchSystem ? (e) => onMatchSystem(e.nativeEvent.on) : undefined}
       onSettingsFont={onFont ? (e) => onFont(e.nativeEvent.key) : undefined}
       onSettingsRow={onRow ? (e) => onRow(e.nativeEvent.key) : undefined}
       onSettingsToggle={onToggle ? (e) => onToggle(e.nativeEvent.key, e.nativeEvent.on) : undefined}

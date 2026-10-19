@@ -13,53 +13,63 @@ registerHooks({
     next(url, url.endsWith(".json") ? { ...context, importAttributes: { ...context.importAttributes, type: "json" } } : context),
 });
 
-const { THEMES, THEME_KEYS, LIGHT_KEYS, BRAND, MOOD10A, DEFAULT_PREFS, resolveTheme, applyPick, parsePrefs } = await import("./themes.ts");
+const { THEMES, THEME_KEYS, LIGHT_KEYS, BRAND, MOOD10A, APPEARANCES, DEFAULT_APPEARANCE, appearanceTheme, resolveAppearance, parseAppearance, serializeAppearance, isAppearance } =
+  await import("./themes.ts");
 
 let fail = 0;
 const ok = (label: string, cond: boolean) => {
   if (!cond) fail++;
   console.log(`${cond ? "ok  " : "FAIL"}  ${label}`);
 };
-const r = (pick: string, matchSystem: boolean, systemScheme: string | null, darkReady: boolean) =>
-  resolveTheme({ pick: pick as never, matchSystem, systemScheme, darkReady });
 
-/* the table, once the screens have moved (DARK_READY true) */
-ok("classic, match, light → classic", r("classic", true, "light", true) === "classic");
-ok("classic, match, dark → midnight", r("classic", true, "dark", true) === "midnight");
-ok("lavender, match, dark → midnight", r("lavender", true, "dark", true) === "midnight");
-ok("lavender, match, light → lavender", r("lavender", true, "light", true) === "lavender");
-ok("midnight, match, light → classic", r("midnight", true, "light", true) === "classic");
-ok("midnight, match, dark → midnight", r("midnight", true, "dark", true) === "midnight");
-ok("paper, no match, dark → paper", r("paper", false, "dark", true) === "paper");
-ok("midnight, no match, light → midnight", r("midnight", false, "light", true) === "midnight");
-ok("classic, match, scheme unknown → classic", r("classic", true, null, true) === "classic");
+/* the five, in Settings' order */
+ok("five appearances in order", JSON.stringify(APPEARANCES) === '["system","light","dark","lavender","paper"]');
+ok("default is system", DEFAULT_APPEARANCE === "system");
+ok("isAppearance takes the five and nothing else", APPEARANCES.every((a) => isAppearance(a)) && !isAppearance("classic") && !isAppearance("midnight") && !isAppearance(null) && !isAppearance(3));
 
-/* the same table while DARK_READY is false: nothing ever resolves to Midnight */
-ok("[not ready] classic, match, light → classic", r("classic", true, "light", false) === "classic");
-ok("[not ready] classic, match, dark → classic", r("classic", true, "dark", false) === "classic");
-ok("[not ready] lavender, match, dark → lavender", r("lavender", true, "dark", false) === "lavender");
-ok("[not ready] midnight, match, light → classic", r("midnight", true, "light", false) === "classic");
-ok("[not ready] paper, no match, dark → paper", r("paper", false, "dark", false) === "paper");
-ok("[not ready] midnight, no match, dark → classic", r("midnight", false, "dark", false) === "classic");
-const neverNight = THEME_KEYS.every((pick) =>
-  [true, false].every((m) => ["light", "dark", "unspecified", null].every((s) => r(pick, m, s, false) !== "midnight")),
-);
-ok("[not ready] no pick × switch × scheme gives midnight", neverNight);
+/* resolve: an appearance and the phone's scheme → the theme in effect */
+const R = (a: string, s: string | null | undefined) => resolveAppearance(a as never, s);
+ok("system, phone light → classic", R("system", "light") === "classic");
+ok("system, phone dark → midnight", R("system", "dark") === "midnight");
+ok("system, scheme unknown → classic", R("system", null) === "classic" && R("system", undefined) === "classic" && R("system", "unspecified") === "classic");
+ok("light → classic, whatever the phone", ["light", "dark", null].every((s) => R("light", s) === "classic"));
+ok("dark → midnight, whatever the phone", ["light", "dark", null].every((s) => R("dark", s) === "midnight"));
+ok("lavender → lavender, whatever the phone", ["light", "dark", null].every((s) => R("lavender", s) === "lavender"));
+ok("paper → paper, whatever the phone", ["light", "dark", null].every((s) => R("paper", s) === "paper"));
+ok("appearanceTheme: system has none", appearanceTheme("system") === null);
+ok("every fixed appearance names a real theme", APPEARANCES.filter((a) => a !== "system").every((a) => THEME_KEYS.includes(appearanceTheme(a)!)));
 
-/* the setter rule */
-ok("picking midnight turns match system off", JSON.stringify(applyPick({ pick: "lavender", matchSystem: true }, "midnight")) === '{"pick":"midnight","matchSystem":false}');
-ok("picking paper keeps match system on", JSON.stringify(applyPick({ pick: "classic", matchSystem: true }, "paper")) === '{"pick":"paper","matchSystem":true}');
-ok("picking classic keeps match system off", JSON.stringify(applyPick({ pick: "midnight", matchSystem: false }, "classic")) === '{"pick":"classic","matchSystem":false}');
+/* storage: the new shape round-trips */
+const P = (raw: string) => parseAppearance(raw);
+ok("new shape round-trips, all five", APPEARANCES.every((a) => P(serializeAppearance(a)) === a));
+ok("written as {appearance}", serializeAppearance("dark") === '{"appearance":"dark"}');
 
-/* defaults and what's read back */
-ok("default is classic, following the system", DEFAULT_PREFS.pick === "classic" && DEFAULT_PREFS.matchSystem === true);
-ok("saved prefs read back", JSON.stringify(parsePrefs('{"pick":"paper","matchSystem":false}')) === '{"pick":"paper","matchSystem":false}');
-ok("unknown theme falls back alone", JSON.stringify(parsePrefs('{"pick":"neon","matchSystem":false}')) === '{"pick":"classic","matchSystem":false}');
-ok("a non-boolean switch falls back alone", JSON.stringify(parsePrefs('{"pick":"lavender","matchSystem":"yes"}')) === '{"pick":"lavender","matchSystem":true}');
-ok("null reads as defaults", JSON.stringify(parsePrefs("null")) === JSON.stringify(DEFAULT_PREFS));
+/* the migration from { pick, matchSystem } (D-1) */
+ok("old midnight (match off) → dark", P('{"pick":"midnight","matchSystem":false}') === "dark");
+ok("old midnight (match on) → dark", P('{"pick":"midnight","matchSystem":true}') === "dark");
+ok("old lavender (match on) → lavender", P('{"pick":"lavender","matchSystem":true}') === "lavender");
+ok("old lavender (match off) → lavender", P('{"pick":"lavender","matchSystem":false}') === "lavender");
+ok("old paper → paper", P('{"pick":"paper","matchSystem":true}') === "paper" && P('{"pick":"paper","matchSystem":false}') === "paper");
+ok("old classic, match on → system", P('{"pick":"classic","matchSystem":true}') === "system");
+ok("old classic, match off → light", P('{"pick":"classic","matchSystem":false}') === "light");
+ok("old classic, no switch saved → system", P('{"pick":"classic"}') === "system");
+ok("old classic, junk switch → system", P('{"pick":"classic","matchSystem":"no"}') === "system");
+ok("old unknown pick, match off → light (the old default pick)", P('{"pick":"neon","matchSystem":false}') === "light");
+ok("old unknown pick, match on → system", P('{"pick":"neon","matchSystem":true}') === "system");
+
+/* junk */
+ok("null → system", P("null") === "system");
+ok("{} → system", P("{}") === "system");
+ok("a bare string → system", P('"dark"') === "system");
+ok("a number → system", P("42") === "system");
+ok("an array → system", P("[1,2]") === "system");
+ok("unknown new appearance with no old fields → system", P('{"appearance":"neon"}') === "system");
+ok("unknown new appearance falls back to the old fields", P('{"appearance":"neon","pick":"paper"}') === "paper");
+ok("the new shape wins over old fields", P('{"appearance":"light","pick":"midnight"}') === "light");
+ok("old theme keys are not appearances", P('{"appearance":"midnight"}') === "system" && P('{"appearance":"classic"}') === "system");
 let threw = false;
 try {
-  parsePrefs("{not json");
+  P("{not json");
 } catch {
   threw = true;
 }

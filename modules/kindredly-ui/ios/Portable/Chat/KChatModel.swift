@@ -484,6 +484,9 @@ public struct KChatHeaderModel: Equatable, Sendable {
   /// rather than the mosaic's
   public var veilTile = false
   public var frame: KChatFaceFrame = .none
+  /// a First Class member's stamp round the face (C2): "1ST" or "007"; "" for none. In the
+  /// pen-pal header it replaces the frame (decision D-8); never on a veil
+  public var stamp = ""
   /// the progress band under the header's rule (live 1.0.4's, owner 2026-10-19); nil for none
   /// (names traded, a deleted account, the kindreds chat)
   public var band: KChatBandModel?

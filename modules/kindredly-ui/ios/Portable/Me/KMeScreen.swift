@@ -73,6 +73,8 @@ public struct KMeProfile: Equatable, Sendable {
   public var stats: [KMeStat] = []
   /// VoiceOver's name for the pencil and the avatar
   public var editLabel = ""
+  /// your stamp's denomination when you are a member (C2): "1ST" or "007"; "" for none
+  public var stamp = ""
 
   public init() {}
 }
@@ -134,13 +136,16 @@ public struct KMePeekKindred: Identifiable, Equatable, Sendable {
   public let line: String
   public let face: KPersonFace
   public let a11y: String
+  /// a member's stamp around the face (C2); nil for none
+  public let stamp: KMemberStamp?
 
-  public init(id: String, name: String, line: String, face: KPersonFace, a11y: String) {
+  public init(id: String, name: String, line: String, face: KPersonFace, a11y: String, stamp: KMemberStamp? = nil) {
     self.id = id
     self.name = name
     self.line = line
     self.face = face
     self.a11y = a11y
+    self.stamp = stamp
   }
 }
 

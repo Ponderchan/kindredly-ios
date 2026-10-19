@@ -19,8 +19,8 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words, for the s
 
    From the top:
    - THEME: the dev theme switch (lib/theme setDevThemeOverride). Classic / Midnight /
-     Lavender / Paper force that theme on the WHOLE app, Midnight included while DARK_READY
-     is off, so a screen that has moved onto useTheme() / useP() can be checked in each
+     Lavender / Paper force that theme on the WHOLE app, whatever the reader's appearance,
+     so a screen that has moved onto useTheme() / useP() can be checked in each
      before release; Off goes back to the normal theme. Dev builds only, never saved. This
      page paints itself from the theme too, so it is the first thing that changes.
    - one InkCard per theme, each on its own page colour, with a line of React Native text

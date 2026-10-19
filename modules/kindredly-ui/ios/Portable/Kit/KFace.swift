@@ -64,6 +64,7 @@ public struct KFace: View {
   private let dim: Bool
   private let badge: Bool
   private let ground: Color?
+  private let stamp: KMemberStamp?
 
   /// - Parameters:
   ///   - source: what to show (KFaceSource)
@@ -73,7 +74,10 @@ public struct KFace: View {
   ///   - dim: draw the face at .45 (a closed or quiet row)
   ///   - badge: the official mark at the bottom right (Wren)
   ///   - ground: the colour the face sits on, which cuts the badge's edge; nil for theme.bg
-  public init(theme: KTheme, source: KFaceSource, size: CGFloat, round: Bool = true, dim: Bool = false, badge: Bool = false, ground: Color? = nil) {
+  ///   - stamp: a member's stamp (C2): the face is drawn square inside a gold perforated frame
+  ///     that bleeds 4pt outside the box (KStampAvatar). nil (the default) draws it as always. A
+  ///     veil (a deleted account) is never stamped.
+  public init(theme: KTheme, source: KFaceSource, size: CGFloat, round: Bool = true, dim: Bool = false, badge: Bool = false, ground: Color? = nil, stamp: KMemberStamp? = nil) {
     self.theme = theme
     self.source = source
     self.size = size
@@ -81,6 +85,10 @@ public struct KFace: View {
     self.dim = dim
     self.badge = badge
     self.ground = ground
+    switch source {
+    case .veil, .frostVeil: self.stamp = nil
+    default: self.stamp = stamp
+    }
   }
 
   /// The official badge's side on a face of this size, as OfficialBird sizes it (WrenDesk.tsx).
@@ -93,7 +101,7 @@ public struct KFace: View {
   }
 
   public var body: some View {
-    face
+    framed
       .frame(width: size, height: size)
       // flattened first, so the disc doesn't show through a dimmed mosaic
       .compositingGroup()
@@ -105,6 +113,38 @@ public struct KFace: View {
         }
       }
       .accessibilityHidden(true)
+  }
+
+  @ViewBuilder
+  private var framed: some View {
+    if let stamp {
+      KStampAvatar(theme: theme, size: size, stamp: stamp) { inner in
+        KFace.stampedContent(theme: theme, source: source, inner: inner)
+      }
+    } else {
+      face
+    }
+  }
+
+  /// A source drawn square at `inner`, for the inside of a stamp: an image clipped to radius 3, a
+  /// mosaic on a soft2 radius-3 tile at the round face's proportions, the frost as is.
+  @ViewBuilder
+  static func stampedContent(theme: KTheme, source: KFaceSource, inner: CGFloat) -> some View {
+    let tile = RoundedRectangle(cornerRadius: KMemberStamp.innerRadius, style: .circular)
+    switch source {
+    case let .image(ref, overscan):
+      KImage(ref, size: CGSize(width: inner, height: inner), placeholder: theme.soft2, overscan: overscan)
+        .clipShape(tile)
+    case let .mosaic(mask, tint):
+      ZStack {
+        tile.fill(theme.soft2)
+        KMosaic(mask: mask, cell: inner * roundCell, gap: inner * roundGap, color: tint, veil: false)
+      }
+    case let .frost(spec):
+      KFrost(theme: theme, spec: spec, size: inner)
+    case .veil, .frostVeil, .placeholder:
+      tile.fill(theme.soft2)
+    }
   }
 
   @ViewBuilder
@@ -138,6 +178,115 @@ public struct KFace: View {
       let cell = size / (5 + 4 * Self.bareGapRatio)
       KMosaic(mask: mask, cell: cell, gap: cell * Self.bareGapRatio, color: color, veil: veil)
     }
+  }
+}
+
+/*
+ A MEMBER'S STAMP (C2, the owner's 10-19 design): a First Class member's face is drawn as a gold
+ perforated postage stamp, its denomination printed at the bottom right: "1ST" for a member,
+ the Cofounder number ("007") for one of the hundred. The denomination is a printed mark, never
+ translated. KStamp is taken (the postage stamps), hence KMemberStamp / KStampAvatar.
+
+   ┌·····························┐  the frame bleeds 4pt outside the face's box, so a row never
+   ·  ┌───────────────────────┐  ·  moves: outer = size + 8, radius 6, edge waxGold dotted
+   ·  │                       │  ·  (2.5 full, 1.5 small), padding 5 (3 small), inner radius 3
+   ·  │        the face       │  ·  ground cream, waxGold at 15% in a dark theme
+   ·  │                   007 │  ·  denomination mono 8/600 goldText at 3 / 2, hidden ≤ 32
+   ·  └───────────────────────┘  ·
+   └·····························┘
+ inner = size + 8 − 2 × (border + padding): 72 → 65, 52 → 45, 40 → 33, 34 small → 33, 22 small → 21.
+ Decorative: the row or button that holds it says "First Class" / "Cofounder No. 7".
+ */
+
+/// A member's stamp: the denomination printed at its bottom right ("1ST" or "007").
+public struct KMemberStamp: Equatable, Sendable {
+  public let denom: String
+  /// nil for "" (not a member: the face stays as it is)
+  public init?(_ denom: String) {
+    let d = denom.trimmingCharacters(in: .whitespaces)
+    if d.isEmpty { return nil }
+    self.denom = d
+  }
+
+  /// the frame's bleed outside the face's box, its corner, and the face's corner inside it
+  public static let bleed: CGFloat = 4
+  public static let outerRadius: CGFloat = 6
+  public static let innerRadius: CGFloat = 3
+
+  /// the side a face is drawn at inside a stamp of this size (KStampAvatar.inner)
+  public static func inner(for size: CGFloat, compact: CGFloat) -> CGFloat {
+    let c = min(1, max(0, compact))
+    return size + 2 * bleed - 2 * ((2.5 - c) + (5 - 2 * c))
+  }
+}
+
+/// Any face drawn as a gold perforated stamp (C2). The layout box stays size × size; the frame
+/// bleeds 4pt outside it, so rows never move. `content` is drawn at `inner` × `inner`.
+public struct KStampAvatar<Content: View>: View {
+  public static var bleed: CGFloat { KMemberStamp.bleed }
+  public static var outerRadius: CGFloat { KMemberStamp.outerRadius }
+  public static var innerRadius: CGFloat { KMemberStamp.innerRadius }
+
+  private let theme: KTheme
+  private let size: CGFloat
+  private let stamp: KMemberStamp
+  private let compact: CGFloat
+  private let content: (CGFloat) -> Content
+
+  /// - Parameters:
+  ///   - size: the face's box; the frame bleeds 4pt outside it
+  ///   - compact: 0 = the full rule (2.5 edge, 5 padding, the denomination), 1 = the small rule
+  ///     (1.5, 3, no denomination), linear between; nil = by size (≤ 32 → 1). The Me header
+  ///     passes its collapse k.
+  ///   - content: the face, drawn at the inner side it is given
+  public init(theme: KTheme, size: CGFloat, stamp: KMemberStamp, compact: CGFloat? = nil,
+              @ViewBuilder content: @escaping (_ inner: CGFloat) -> Content) {
+    self.theme = theme
+    self.size = size
+    self.stamp = stamp
+    self.compact = min(1, max(0, compact ?? (size <= 32 ? 1 : 0)))
+    self.content = content
+  }
+
+  static func border(_ c: CGFloat) -> CGFloat { 2.5 - c }          // 2.5 → 1.5
+  static func padding(_ c: CGFloat) -> CGFloat { 5 - 2 * c }       // 5 → 3
+
+  /// the side the face is drawn at inside a stamp of this size
+  public static func inner(for size: CGFloat, compact: CGFloat) -> CGFloat {
+    KMemberStamp.inner(for: size, compact: compact)
+  }
+
+  public var body: some View {
+    let c = compact
+    let outer = size + 2 * Self.bleed
+    let edge = Self.border(c)
+    let inner = Self.inner(for: size, compact: c)
+    let frame = RoundedRectangle(cornerRadius: Self.outerRadius, style: .circular)
+    ZStack {
+      frame.fill(theme.isDark ? KBrand.waxGold.opacity(0.15) : KBrand.cream)
+      frame.strokeBorder(KBrand.waxGold, style: StrokeStyle(lineWidth: edge, lineCap: .round, dash: [0.001, edge * 2]))
+      content(inner)
+        .frame(width: inner, height: inner)
+        .clipShape(RoundedRectangle(cornerRadius: Self.innerRadius, style: .circular))
+        .overlay(alignment: .bottomTrailing) {
+          if c < 1 {
+            Text(stamp.denom)
+              .font(.custom(KType.monoSemiBold, fixedSize: 8))
+              .foregroundStyle(KBrand.goldText)
+              .lineLimit(1)
+              .fixedSize()
+              .padding(.trailing, 3)
+              .padding(.bottom, 2)
+              .opacity(Double(1 - c))
+              .dynamicTypeSize(.large)
+              .accessibilityHidden(true)
+          }
+        }
+    }
+    .frame(width: outer, height: outer)
+    // the box stays size × size; the frame bleeds outside it
+    .frame(width: size, height: size)
+    .accessibilityHidden(true)
   }
 }
 

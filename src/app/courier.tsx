@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 /* the gesture library's scroll view: a drag that starts on her (the perch,
    components/CourierStage) blocks the page's scroll instead of racing it */
@@ -24,6 +24,11 @@ import { useWrenStage } from "../lib/wren-stage";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { myAura, type Aura } from "../lib/aura";
 import { getStageFloor, stageIndex, wrenStage } from "../lib/wren-style";
+import { useFares } from "../lib/fares";
+import { trialLabel } from "../screens/paywall/paywall-model";
+import { buildFirstClass4a } from "../screens/me/me-model";
+import { meFormat } from "../screens/me/me-format";
+import "../data/strings-me4a";
 
 /* THE COURIER'S ROOM — her own page (owner's call, 2026-09-16).
    ────────────────────────────────────────────────────────────────────────
@@ -51,6 +56,16 @@ export default function CourierRoom() {
   const { user, profile } = useAuth();
   const { premium, cofounderNo } = useEntitlement();
   const insets = useSafeAreaInsets();
+  /* the 4a First Class card at the foot of her page (FC2 §4.9), built as Me builds it
+     (useMeModel): the trial only when the store offers one */
+  const fares = useFares();
+  const lang = useLang();
+  const firstClass = useMemo(
+    () => buildFirstClass4a({ premium, cofounderNo, wren, trial: trialLabel(fares.trial, t) }, meFormat()),
+    // lang: every word is t()'s
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [premium, cofounderNo, wren, fares.trial, lang],
+  );
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [statsReady, setStatsReady] = useState(false);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -153,6 +168,7 @@ export default function CourierRoom() {
           onAllKeepsakes={() => router.push("/keepsakes")}
           cofounderNo={cofounderNo}
           onPlus={() => router.push("/paywall?src=journey_archive")}
+          firstClass={firstClass}
           scrollRef={scrollRef}
           onPlayChange={onPlayChange}
           autoPlay={params.play === "1"}

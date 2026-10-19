@@ -1899,7 +1899,7 @@ strings(
     "ob.dress.plain": "Give {name}",
     "ob.dress.em": "a look.",
     "ob.dress.sub": "Sky and a couple of pieces come free. The rest ride First Class.",
-    "ob.fare.head": "{what} you picked ride First Class.",
+    "ob.fare.head": "{what} you picked — First Class only.",
     "ob.fare.look": "The look",
     "ob.fare.dress": "The piece",
     "ob.fare.both": "The look and the piece",

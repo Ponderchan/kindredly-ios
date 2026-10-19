@@ -44,7 +44,7 @@ import { readMood } from "../../../lib/wren-read";
 import { ACCESSORY_META, bumpStageFloor, skinUnlocked } from "../../../lib/wren-style";
 import { useWrenSkinControl } from "../../../lib/wren-skin";
 import { useEntitlement } from "../../../lib/entitlement";
-import { PaywallBody } from "../../../app/paywall";
+import { FirstClassPaywall } from "../../../app/paywall";
 import { EMPTY_STATS } from "../../../lib/stats";
 import { hatchlingForm, saveHatchlingForm, type HatchlingForm } from "../../../lib/hatchling-form";
 import { hatch, saveArchetype, type DimScore, starterStamp } from "../../../lib/hatch-engine";
@@ -1125,11 +1125,14 @@ export default function Onboarding() {
 
   /* ── 10 · THE FARE ── a page, not a sheet. Only reached with something
      First Class on her. × takes those off and goes on to the flight;
-     bought, she keeps them and goes on the same way. */
+     bought, she keeps them and goes on the same way. The same First Class
+     page as every other way in (FirstClassPaywall, FC2 §4.8): Swift where the
+     surface is on, as a full page (sheet false); the receipt, then the flight. */
   if (step === "fare") {
     const what = !lookOpen && !dressOpen ? t("ob.fare.both") : !lookOpen ? t("ob.fare.look") : t("ob.fare.dress");
     return (
-      <PaywallBody
+      <FirstClassPaywall
+        sheet={false}
         source="onboarding_dress"
         courier={her || t("ob.naming.placeholder")}
         head={t("ob.fare.head", { what })}

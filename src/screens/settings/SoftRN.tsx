@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { Pressable, Switch, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { Image } from "expo-image";
+import { useState, type ReactNode } from "react";
+import { Pressable, Switch, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
 import { MONO, PF, letterFamily, letterFontKey } from "../../theme/post";
-import { BRAND, THEMES, type ThemeKey } from "../../theme/themes";
+import { THEMES, appearanceTheme, isAppearance, type ThemeKey } from "../../theme/themes";
+import { isAxFontScale } from "../notes/notes-model";
 import { useTheme } from "../../lib/theme";
 import { SettingsIcon, type SettingsGlyph } from "../../components/SettingsIcons";
 
@@ -17,8 +17,9 @@ import { SettingsIcon, type SettingsGlyph } from "../../components/SettingsIcons
      (18, faint), the subline (12/1.4, mute), the 1pt line under the words;
    - SoftSwitchRow: the same with a switch (controlled: it shows `on`);
    - SoftPlainRowRN: Edit profile's row, no box, its value 500 14 (H:92);
-   - SwatchesRN / FontTilesRN: APPEARANCE (H:99);
-   - BannerRN: the First Class banner in brand cream (H:98).
+   - SwatchesRN / FontTilesRN: APPEARANCE (H:99; five appearances, FC2).
+   The First Class card at the top of Settings is components/FirstClassStub
+   FirstClassCard (Me's 4a card), no longer a banner of its own.
    Every word comes in translated. */
 
 const ROW_PAD = 14;
@@ -143,8 +144,8 @@ export function SoftPlainRowRN({ label, value, chevron = true, last = false, onP
 
 /** One theme as a tiny phone (H:99): its bg, a title bar in its ln, a card in its sf with a hard
     ln shadow, the tab bar with its ind dot in the middle of it (justify-content: center). */
-function MiniPhone({ k }: { k: string }) {
-  const th = THEMES[(k in THEMES ? k : "classic") as ThemeKey];
+function MiniPhone({ k }: { k: ThemeKey }) {
+  const th = THEMES[k in THEMES ? k : "classic"];
   return (
     <View style={{ flex: 1, backgroundColor: th.bg, paddingTop: 9, paddingHorizontal: 7, paddingBottom: 7, gap: 5 }}>
       <View style={{ width: "42%", height: 3, borderRadius: 2, backgroundColor: th.ln }} />
@@ -159,6 +160,33 @@ function MiniPhone({ k }: { k: string }) {
   );
 }
 
+/** System's swatch (KThemeSwatches' twin): one phone split on the diagonal from its top-right to
+    its bottom-left corner, Classic above it, Midnight below. React Native has no clip path, so the
+    Midnight half is a square turned onto the diagonal (overflow hidden) holding the Midnight phone
+    turned back into place. Drawn once the tile has a size. */
+function SplitPhone() {
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const w = box?.w ?? 0;
+  const h = box?.h ?? 0;
+  const a = Math.atan2(h, w);
+  const side = Math.hypot(w, h) + 2;
+  return (
+    <View style={{ flex: 1 }} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <MiniPhone k="classic" />
+      {box && w > 0 && h > 0 && (
+        <View
+          pointerEvents="none"
+          style={{ position: "absolute", left: 0, top: h, width: side, height: side, overflow: "hidden", transformOrigin: "left top", transform: [{ rotate: `${-a}rad` }] }}
+        >
+          <View style={{ position: "absolute", left: 0, top: 0, width: w, height: h, transformOrigin: "left top", transform: [{ rotate: `${a}rad` }, { translateY: -h }] }}>
+            <MiniPhone k="midnight" />
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
 /** The selected look (KSelectableTile): a 2pt ind border and a 3pt lav halo; unselected, line. */
 function Tile({ selected, radius, children, style }: { selected: boolean; radius: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { t: tk } = useTheme();
@@ -169,36 +197,65 @@ function Tile({ selected, radius, children, style }: { selected: boolean; radius
   );
 }
 
-export function SwatchesRN({ swatches, selected, onPick }: { swatches: { key: string; label: string }[]; selected: string; onPick: (key: string) => void }) {
+/** APPEARANCE's five swatches (FC2 §10): System (the split phone), Light, Dark, Lavender, Paper —
+    five columns 10 apart, or two to a row at the accessibility text sizes (each phone no wider
+    than 110, the name wrapping), as KThemeSwatches does. The selected one is the reader's
+    appearance. A key that isn't an appearance draws as Classic. */
+export function SwatchesRN({
+  swatches,
+  selected,
+  onPick,
+}: {
+  swatches: { key: string; label: string; hint?: string }[];
+  selected: string;
+  onPick: (key: string) => void;
+}) {
   const { t: tk } = useTheme();
+  const large = isAxFontScale(useWindowDimensions().fontScale);
+  const cols = large ? 2 : 5;
+  const rows: (typeof swatches[number] | null)[][] = [];
+  for (let i = 0; i < swatches.length; i += cols) {
+    const r: (typeof swatches[number] | null)[] = swatches.slice(i, i + cols);
+    while (r.length < cols) r.push(null);
+    rows.push(r);
+  }
   return (
-    <View style={{ flexDirection: "row", gap: 10 }}>
-      {[0, 1, 2, 3].map((i) => {
-        const s = swatches[i];
-        if (!s) return <View key={`empty${i}`} style={{ flex: 1 }} />;
-        const on = s.key === selected;
-        return (
-          <Pressable
-            key={s.key}
-            onPress={() => onPick(s.key)}
-            accessibilityRole="button"
-            accessibilityLabel={s.label}
-            accessibilityState={{ selected: on }}
-            style={({ pressed }) => ({ flex: 1, alignItems: "center", gap: 7, transform: [{ scale: pressed ? 0.94 : 1 }] })}
-          >
-            <Tile selected={on} radius={12} style={{ alignSelf: "stretch", aspectRatio: 3 / 4 }}>
-              <MiniPhone k={s.key} />
-            </Tile>
-            <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: "500", color: on ? tk.ind : tk.sub }}>
-              {s.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+    <View style={{ gap: large ? 14 : 10 }}>
+      {rows.map((r, ri) => (
+        <View key={ri} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+          {r.map((s, i) => {
+            if (!s) return <View key={`empty${i}`} style={{ flex: 1 }} />;
+            const on = s.key === selected;
+            const theme: ThemeKey | null = isAppearance(s.key) ? appearanceTheme(s.key) : "classic";
+            return (
+              <Pressable
+                key={s.key}
+                onPress={() => onPick(s.key)}
+                accessibilityRole="button"
+                accessibilityLabel={s.label}
+                accessibilityHint={s.hint || undefined}
+                accessibilityState={{ selected: on }}
+                style={({ pressed }) => ({ flex: 1, alignItems: "center", gap: 7, transform: [{ scale: pressed ? 0.94 : 1 }] })}
+              >
+                <Tile selected={on} radius={12} style={{ alignSelf: large ? "center" : "stretch", width: large ? 110 : undefined, aspectRatio: 3 / 4 }}>
+                  {theme ? <MiniPhone k={theme} /> : <SplitPhone />}
+                </Tile>
+                <Text
+                  numberOfLines={large ? 3 : 1}
+                  adjustsFontSizeToFit={!large}
+                  minimumFontScale={0.75}
+                  style={{ fontSize: 11, fontWeight: "500", color: on ? tk.ind : tk.sub, textAlign: "center" }}
+                >
+                  {s.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
-
 
 export function FontTilesRN({ fonts, selected, onPick }: { fonts: { key: string; name: string; sample: string }[]; selected: string; onPick: (key: string) => void }) {
   const { t: tk } = useTheme();
@@ -231,34 +288,5 @@ export function FontTilesRN({ fonts, selected, onPick }: { fonts: { key: string;
         );
       })}
     </View>
-  );
-}
-
-/** The First Class banner (H:98): brand cream, the same in every theme; the courier's snapshot on
-    its stamp (null leaves the stamp's face white). One button. */
-export function BannerRN({ eyebrow, headline, sub, cta, stampLabel, bird, onPress }: { eyebrow: string; headline: string; sub: string; cta: string; stampLabel: string; bird: string | null; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={[eyebrow, headline, sub, cta].join(", ")}
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: BRAND.cream, borderWidth: 1.5, borderColor: BRAND.creamBorder, borderRadius: 18, paddingVertical: 14, paddingLeft: 16, paddingRight: 14, opacity: pressed ? 0.85 : 1 })}
-    >
-      <View style={{ flex: 1, gap: 5 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: BRAND.waxGold }} />
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: BRAND.goldText }}>{eyebrow.toLocaleUpperCase()}</Text>
-        </View>
-        <Text style={{ fontFamily: PF.letterSerif, fontStyle: "normal", fontSize: 19, lineHeight: 22.8, color: BRAND.inkOnBrand }}>{headline}</Text>
-        <Text style={{ fontSize: 12, lineHeight: 16.8, color: BRAND.subOnCream }}>{sub}</Text>
-        <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: BRAND.goldText, marginTop: 2 }}>
-          {cta}
-        </Text>
-      </View>
-      <View style={{ width: 56, height: 70, borderRadius: 8, backgroundColor: BRAND.paperWhite, borderWidth: 2, borderStyle: "dotted", borderColor: BRAND.waxGold, alignItems: "center", justifyContent: "center", gap: 4, transform: [{ rotate: "4deg" }] }}>
-        {bird ? <Image source={{ uri: bird }} style={{ width: 31, height: 31 }} contentFit="contain" /> : <View style={{ width: 31, height: 31 }} />}
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: MONO.small * 0.1, color: BRAND.goldText }}>{stampLabel}</Text>
-      </View>
-    </Pressable>
   );
 }

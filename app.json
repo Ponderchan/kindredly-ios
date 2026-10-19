@@ -6,7 +6,7 @@
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "scheme": "kindredly",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#5B55FF",
     "ios": {
       "bundleIdentifier": "io.kindredly.app",
@@ -86,7 +86,13 @@
           "backgroundColor": "#5B55FF",
           "image": "./assets/splash-ground.png",
           "imageWidth": 1,
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#0F0E1C",
+            "image": "./assets/splash-ground.png",
+            "imageWidth": 1,
+            "resizeMode": "contain"
+          }
         }
       ],
       [

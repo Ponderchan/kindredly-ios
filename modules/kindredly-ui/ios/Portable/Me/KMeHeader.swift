@@ -147,26 +147,19 @@ struct KMeHeaderBody<Avatar: View>: View {
       SwiftUI.Button {
         actions.onEdit()
       } label: {
-        ZStack {
-          Circle().fill(theme.soft2)
-          avatar
-            .frame(width: 72, height: 72)
-            .scaleEffect(avatarSide / 72)
-            .frame(width: avatarSide, height: avatarSide)
-        }
-        .frame(width: avatarSide, height: avatarSide)
-        .clipShape(Circle())
-        .overlay(alignment: .bottomTrailing) {
-          ZStack {
-            Circle().fill(theme.sf)
-            Circle().strokeBorder(theme.line, lineWidth: 1.5)
-            KLineIcon(.pen, size: 15, lineWidth: 2.2, color: theme.ink)
+        avatarFace(side: avatarSide, k: k)
+          .overlay(alignment: stamp == nil ? .bottomTrailing : .bottomLeading) {
+            // stamped, the pencil moves to the bottom left so the denomination stays seen (D-7)
+            ZStack {
+              Circle().fill(theme.sf)
+              Circle().strokeBorder(theme.line, lineWidth: 1.5)
+              KLineIcon(.pen, size: 15, lineWidth: 2.2, color: theme.ink)
+            }
+            .frame(width: 24, height: 24)
+            .offset(x: stamp == nil ? 2 : -2, y: 2)
+            .opacity(1 - k)
           }
-          .frame(width: 24, height: 24)
-          .offset(x: 2, y: 2)
-          .opacity(1 - k)
-        }
-        .contentShape(Circle())
+          .contentShape(stamp == nil ? AnyShape(Circle()) : AnyShape(Rectangle()))
       }
       .buttonStyle(KFadePressStyle())
       .accessibilityElement(children: .ignore)
@@ -205,6 +198,35 @@ struct KMeHeaderBody<Avatar: View>: View {
       .buttonStyle(KFadePressStyle())
       .padding(-4)
       .accessibilityLabel(content.settingsLabel)
+    }
+  }
+
+  private var stamp: KMemberStamp? { KMemberStamp(content.profile.stamp) }
+
+  /// The avatar island, drawn 72 and scaled: on a soft2 circle, or, for a member, inside their
+  /// stamp (C2), the island then drawn square (MeNative passes AvatarImage a radius) and scaled to
+  /// the stamp's inner side; the stamp's rule follows the collapse (72 full → 36 small). The
+  /// frame bleeds 4 outside the box, inside the header's top and side padding, so .clipped()
+  /// never cuts it.
+  @ViewBuilder
+  private func avatarFace(side: CGFloat, k: CGFloat) -> some View {
+    if let stamp {
+      KStampAvatar(theme: theme, size: side, stamp: stamp, compact: k) { inner in
+        avatar
+          .frame(width: 72, height: 72)
+          .scaleEffect(inner / 72)
+          .frame(width: inner, height: inner)
+      }
+    } else {
+      ZStack {
+        Circle().fill(theme.soft2)
+        avatar
+          .frame(width: 72, height: 72)
+          .scaleEffect(side / 72)
+          .frame(width: side, height: side)
+      }
+      .frame(width: side, height: side)
+      .clipShape(Circle())
     }
   }
 

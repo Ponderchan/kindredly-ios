@@ -16,6 +16,8 @@ import { useScreenInsets } from "../../lib/screen-insets";
 import { faceRecord, useFaceSources, type FaceSource } from "../../lib/faces";
 import { useBirdImageRef } from "../../lib/bird-images";
 import type { ImageRefRecord } from "../../lib/images";
+import { t } from "../../lib/i18n";
+import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
 import { faceInputs, type ChipVM, type ItemVM, type OrbitVM } from "./kindreds-model";
 import type { KindredsModel } from "./useKindredsModel";
 
@@ -68,13 +70,30 @@ function sourceFace(s: FaceSource | undefined, identity: boolean): KKindredsFace
   return { ...rec, kind: rec.kind === "veil" && identity ? "tile" : rec.kind, tint: "ink" };
 }
 
-/** The view's items as the Swift view takes them. */
+type StampOf = (uid: string | null | undefined) => string;
+const NO_STAMPS: StampOf = () => "";
+
+/** Every uid the screen draws a face for (rows but Wren's, folded faces, the orbit): the ones
+    member_marks_for is asked about (C2). */
+export function stampUids(view: { items: readonly ItemVM[]; orbit: readonly OrbitVM[] }): string[] {
+  const out: string[] = [];
+  for (const it of view.items) {
+    if ((it.type === "row" || it.type === "wren") && it.row.kind !== "wren" && it.row.face?.seed) out.push(it.row.face.seed);
+    else if (it.type === "fold") for (const f of it.fold.faces) out.push(f.seed);
+  }
+  for (const o of view.orbit) out.push(o.seed);
+  return out;
+}
+
+/** The view's items as the Swift view takes them. `stampOf`: a person's C2 stamp by uid
+    (useMemberStamps); a stamped row's VoiceOver label says "First Class" / "Cofounder No. 7". */
 export function nativeItems(
   items: readonly ItemVM[],
   faces: Readonly<Record<string, FaceSource>>,
   official: ImageRefRecord | null,
   mine: ImageRefRecord | null,
   identity = false,
+  stampOf: StampOf = NO_STAMPS,
 ): KKindredsItem[] {
   return items.map((it): KKindredsItem => {
     switch (it.type) {
@@ -89,12 +108,15 @@ export function nativeItems(
       case "wren":
       case "row": {
         const r = it.row;
+        // never Wren; never a closed account (sourceFace's veil drops it in Swift too)
+        const stamp = r.kind === "wren" || r.face?.gone ? "" : stampOf(r.face?.seed);
+        const spoken = stampSpoken(stamp, t);
         return {
           id: it.id,
           type: it.type,
           row: {
             id: r.id,
-            face: r.kind === "wren" ? birdFace(official) : sourceFace(faces[r.id], identity),
+            face: r.kind === "wren" ? birdFace(official) : { ...sourceFace(faces[r.id], identity), stamp },
             faceBadge: r.faceBadge,
             name: r.name,
             mark: r.mark,
@@ -109,7 +131,7 @@ export function nativeItems(
             badge: r.badge,
             trailingLink: r.trailingLink,
             dim: r.dim,
-            a11yLabel: r.a11yLabel,
+            a11yLabel: spoken ? `${r.a11yLabel}, ${spoken}` : r.a11yLabel,
             actions: r.actions,
           },
         };
@@ -119,7 +141,7 @@ export function nativeItems(
           id: it.id,
           type: it.type,
           fold: {
-            faces: it.fold.faces.map((f) => ({ id: f.id, mask: f.mask, frost: f.frost, a11yLabel: f.a11yLabel })),
+            faces: it.fold.faces.map((f) => ({ id: f.id, mask: f.mask, frost: f.frost, a11yLabel: f.a11yLabel, stamp: stampOf(f.seed) })),
             more: it.fold.more,
             label: it.fold.label,
             a11yLabel: it.fold.a11yLabel,
@@ -134,8 +156,8 @@ export function nativeItems(
 export const nativeChips = (chips: readonly ChipVM[]): KKindredsChip[] =>
   chips.map((c) => ({ key: c.key, label: c.label, count: c.count, glyph: c.glyph, selected: c.selected, dot: c.dot, a11yLabel: c.a11yLabel }));
 
-export const nativeOrbit = (orbit: readonly OrbitVM[]): KKindredsOrbitItem[] =>
-  orbit.map((o) => ({ id: o.id, mask: o.mask, frost: o.frost, ring: o.ring, a0: o.a0, dir: o.dir, period: o.period, turn: o.turn }));
+export const nativeOrbit = (orbit: readonly OrbitVM[], stampOf: StampOf = NO_STAMPS): KKindredsOrbitItem[] =>
+  orbit.map((o) => ({ id: o.id, mask: o.mask, frost: o.frost, ring: o.ring, a0: o.a0, dir: o.dir, period: o.period, turn: o.turn, stamp: !!stampOf(o.seed) }));
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged array
     keeps its identity and isn't re-sent to Swift. */
@@ -180,9 +202,14 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
   const official = useBirdImageRef("official");
   const mine = useBirdImageRef("content");
 
-  const items = useSameContent(useMemo(() => nativeItems(view.items, faces, official, mine, view.identity), [view.items, faces, official, mine, view.identity]));
+  // C2: the members among them (member_marks_for; nobody before 0037 runs, or the dev fixture)
+  const stampOf = useMemberStamps(useMemo(() => stampUids(view), [view]));
+
+  const items = useSameContent(
+    useMemo(() => nativeItems(view.items, faces, official, mine, view.identity, stampOf), [view.items, faces, official, mine, view.identity, stampOf]),
+  );
   const chips = useSameContent(useMemo(() => nativeChips(view.chips), [view.chips]));
-  const orbit = useSameContent(useMemo(() => nativeOrbit(view.orbit), [view.orbit]));
+  const orbit = useSameContent(useMemo(() => nativeOrbit(view.orbit, stampOf), [view.orbit, stampOf]));
   const legendFrost = useSameContent(view.legendFrost);
   const rev = useRev(items, chips, orbit, legendFrost);
   const strings = useSameContent<KKindredsStrings>({

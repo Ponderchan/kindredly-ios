@@ -8,6 +8,8 @@ import type { ThreadDetail } from "../../lib/db";
 import type { ThreadToneKey } from "../../lib/thread-state";
 import { AvatarImage } from "../../components/AvatarImage";
 import { CorrespondentFace } from "../../components/CorrespondentFace";
+import { StampAvatar } from "../../components/StampAvatar";
+import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportMenu } from "../../components/ReportMenu";
 import { WrenBird } from "../../components/WrenBird";
@@ -84,13 +86,21 @@ export function ChatHeader({
   const gone = !!detail?.gone;
   const seed = detail?.other || null;
 
-  const face = detail?.revealed ? (
+  /* a member's face is a gold perforated stamp (C2); a closed account never is */
+  const stamp = useMemberStamps([gone ? null : seed])(gone ? null : seed);
+  const spoken = stampSpoken(stamp, t);
+
+  const face = detail?.revealed && stamp ? (
+    <StampAvatar size={36} denom={stamp}>
+      {({ size, radius }) => <AvatarImage id={detail.otherFace ?? null} seed={seed ?? "anon"} size={size} radius={radius ?? undefined} />}
+    </StampAvatar>
+  ) : detail?.revealed ? (
     // a kindred: round, their portrait, or the stranger glyph when they gave none
     <AvatarImage id={detail.otherFace ?? null} seed={seed ?? "anon"} size={36} />
   ) : gone || !seed ? (
     <MosaicId seed={null} cell={5.5} gap={1.5} />
   ) : (
-    <CorrespondentFace seed={seed} theirs={detail?.otherCount ?? 0} revealed={false} theirSigned={detail?.theirSigned} iSigned={detail?.iSigned} size="lg" />
+    <CorrespondentFace seed={seed} theirs={detail?.otherCount ?? 0} revealed={false} theirSigned={detail?.theirSigned} iSigned={detail?.iSigned} size="lg" denom={stamp} />
   );
 
   return (
@@ -104,6 +114,7 @@ export function ChatHeader({
           disabled={!canOpenPage}
           hitSlop={6}
           accessibilityRole={canOpenPage ? "button" : undefined}
+          accessibilityHint={spoken || undefined}
           style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", gap: 11, opacity: pressed ? 0.6 : 1 })}
         >
           {face}

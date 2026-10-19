@@ -165,6 +165,8 @@ public struct KPersonRowModel: Identifiable, Equatable, Sendable {
   public let trailingLink: String
   /// the face at .45
   public let dim: Bool
+  /// a member's stamp around the face (C2); nil for none (never Wren)
+  public let stamp: KMemberStamp?
   public let a11yLabel: String
   /// the long-press menu; [] for none
   public let actions: [KMenuItem]
@@ -186,6 +188,7 @@ public struct KPersonRowModel: Identifiable, Equatable, Sendable {
     badge: String = "",
     trailingLink: String = "",
     dim: Bool = false,
+    stamp: KMemberStamp? = nil,
     a11yLabel: String,
     actions: [KMenuItem] = []
   ) {
@@ -205,6 +208,7 @@ public struct KPersonRowModel: Identifiable, Equatable, Sendable {
     self.badge = badge
     self.trailingLink = trailingLink
     self.dim = dim
+    self.stamp = stamp
     self.a11yLabel = a11yLabel
     self.actions = actions
   }
@@ -271,7 +275,7 @@ public struct KPersonRow: View, Equatable {
     if case let .bird(ref) = row.face {
       KPersonBirdFace(theme: theme, bird: ref, size: Self.face, dim: row.dim, badge: row.faceBadge)
     } else {
-      KFace(theme: theme, source: row.face.source(theme), size: Self.face, dim: row.dim, badge: row.faceBadge)
+      KFace(theme: theme, source: row.face.source(theme), size: Self.face, dim: row.dim, badge: row.faceBadge, stamp: row.stamp)
     }
   }
 

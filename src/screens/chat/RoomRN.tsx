@@ -15,6 +15,8 @@ import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { PlayTray, type TraceKind } from "../../components/LeaveATrace";
 import { WrenBird } from "../../components/WrenBird";
 import { AvatarImage } from "../../components/AvatarImage";
+import { StampAvatar } from "../../components/StampAvatar";
+import { useMemberStamps } from "../../lib/member-marks";
 import { MosaicId } from "../../components/MosaicId";
 import { ReportSheet } from "../../components/ReportMenu";
 import { useReportFlow } from "../../lib/report-flow";
@@ -306,10 +308,17 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
   const headerTop = props.topInset ?? insets.top;
   /* their face as their Kindreds row draws it: their portrait, the glyph when they gave none, the
      veil once their account is gone; the soft disc while the thread loads */
+  /* a member's face is a gold perforated stamp (C2); never a closed account */
+  const stampUid = detail && !detail.gone ? detail.other || null : null;
+  const stamp = useMemberStamps([stampUid])(stampUid);
   const roomFace = !detail ? (
     <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tk.soft2 }} />
   ) : detail.gone || !detail.other ? (
     <MosaicId seed={null} cell={5.5} gap={1.5} />
+  ) : stamp ? (
+    <StampAvatar size={44} denom={stamp}>
+      {({ size, radius }) => <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={size} radius={radius ?? undefined} />}
+    </StampAvatar>
   ) : (
     <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={44} />
   );
@@ -337,6 +346,7 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
       <ConversationHeaderRN
         model={header}
         roomFace={roomFace}
+        stampUid={stampUid}
         topInset={headerTop}
         onBack={m.goBack}
         onPage={m.openPage}

@@ -24,6 +24,8 @@ import { useScreenInsets } from "../../lib/screen-insets";
 import { useBirdImageRef, type BirdPose } from "../../lib/bird-images";
 import { faceRecord, useFaceSources, type FaceInput, type FaceSource } from "../../lib/faces";
 import type { ImageRefRecord } from "../../lib/images";
+import { t } from "../../lib/i18n";
+import { stampSpoken, useMemberStamps, useMyStamp } from "../../lib/member-marks";
 import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type Me4aView, type MeView } from "./me-model";
 import type { MeModel } from "./useMeModel";
 
@@ -79,10 +81,15 @@ export const nativeStrings = (v: MeView, m: Me4aView): KMeStrings => ({
   ...m.a11y,
 });
 
-export const nativeProfile = (m: Me4aView): KMeProfile => ({
+/** `with` appended after a comma, when there is one: what VoiceOver hears for a stamp (C2) */
+const andSpoken = (label: string, spoken: string): string => (spoken ? `${label}, ${spoken}` : label);
+
+/** `stamp`: your C2 denomination (useMyStamp), "" for none; VoiceOver hears it on the avatar button */
+export const nativeProfile = (m: Me4aView, stamp = ""): KMeProfile => ({
   name: m.profile.name,
   joined: m.profile.joined,
-  editLabel: m.profile.editLabel,
+  editLabel: andSpoken(m.profile.editLabel, stampSpoken(stamp, t)),
+  stamp,
   stats: m.profile.stats.map((s) => ({ key: s.key, count: s.count, unit: s.unit, a11y: s.a11y, hint: s.hint })),
 });
 
@@ -97,9 +104,17 @@ export const nativePeekLetters = (m: Me4aView): KMePeekLetters => ({
 const PLACEHOLDER_FACE: KKindredsFace = { kind: "placeholder", uri: "", key: "", overscan: 0, mask: 0, tint: "ink" };
 const kindredFace = (s: FaceSource | undefined): KKindredsFace => (s ? { ...faceRecord(s), tint: "ink" } : PLACEHOLDER_FACE);
 
-export const nativePeekKindreds = (m: Me4aView, faces: Readonly<Record<string, FaceSource>>): KMePeekKindreds => ({
+/** `stampOf`: a kindred's C2 denomination by uid (useMemberStamps), "" for none */
+export const nativePeekKindreds = (
+  m: Me4aView,
+  faces: Readonly<Record<string, FaceSource>>,
+  stampOf: (uid: string | null | undefined) => string = () => "",
+): KMePeekKindreds => ({
   state: m.peekKindreds.state,
-  items: m.peekKindreds.items.map((k) => ({ id: k.id, name: k.name, line: k.line, face: kindredFace(faces[k.id]), a11y: k.a11y })),
+  items: m.peekKindreds.items.map((k) => {
+    const stamp = stampOf(k.face.seed);
+    return { id: k.id, name: k.name, line: k.line, face: { ...kindredFace(faces[k.id]), stamp }, a11y: andSpoken(k.a11y, stampSpoken(stamp, t)) };
+  }),
   open: m.peekKindreds.open,
   emptyText: m.peekKindreds.emptyText,
 });
@@ -189,6 +204,9 @@ export function MeNative({ model }: { model: MeModel }) {
     return o;
   }, [me4a.peekKindreds.items]);
   const faces = useFaceSources(faceInputs);
+  // C2: your stamp from your entitlement; your kindreds' from member_marks_for (none before 0037)
+  const myStamp = useMyStamp();
+  const stampOf = useMemberStamps(me4a.peekKindreds.items.map((k) => k.face.seed));
 
   // her pictures: the looks tiles (grown, each look pinned; lookWorn is whatever she has on) and
   // the First Class stamp
@@ -201,9 +219,9 @@ export function MeNative({ model }: { model: MeModel }) {
   const birds = useMemo(() => ({ lookNone, lookBeanie, lookScarf, lookWorn }), [lookNone, lookBeanie, lookScarf, lookWorn]);
 
   const strings = useSameContent(useMemo(() => nativeStrings(view, me4a), [view, me4a]));
-  const profile = useSameContent(useMemo(() => nativeProfile(me4a), [me4a]));
+  const profile = useSameContent(useMemo(() => nativeProfile(me4a, myStamp), [me4a, myStamp]));
   const peekLetters = useSameContent(useMemo(() => nativePeekLetters(me4a), [me4a]));
-  const peekKindreds = useSameContent(useMemo(() => nativePeekKindreds(me4a, faces), [me4a, faces]));
+  const peekKindreds = useSameContent(useMemo(() => nativePeekKindreds(me4a, faces, stampOf), [me4a, faces, stampOf]));
   const looks = useSameContent(useMemo(() => nativeLooks(me4a, birds), [me4a, birds]));
   const auraRec = useSameContent(useMemo(() => nativeAura(view.aura), [view.aura]));
   const report = useSameContent(useMemo(() => nativeReport(me4a), [me4a]));
@@ -278,7 +296,9 @@ export function MeNative({ model }: { model: MeModel }) {
         onFirstClass={act.firstClass}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
-          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} />
+          {/* stamped (C2), the island is drawn square: Swift scales it to the stamp's inner side
+              (65 of 72), so 3.3 here lands as the stamp's 3pt inner corner */}
+          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} radius={myStamp ? 3.3 : undefined} />
         </KIsland>
         <KIsland name="courier" style={{ width: courierW, height: COURIER_H }}>
           {segment === 0 ? (

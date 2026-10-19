@@ -1,9 +1,9 @@
 /* Behaviour lock for Settings' model (screens/settings/settings-model): the
    sections and their order, exactly two switches in THE QUIET and the
-   notice, the swatches (the theme in effect selected; Midnight and Match
-   system only once DARK_READY), the Letter font tiles (their own names,
+   notice, the five APPEARANCE swatches (System / Light / Dark / Lavender /
+   Paper, the reader's appearance selected, no Match system row), the Letter font tiles (their own names,
    Garamond only once it is in the app), the age band from the birthday, the
-   owner's First Class copy, the footer (both versions, never the email),
+   4a First Class card for a free reader, a member and a cofounder, the footer (both versions, never the email),
    restore's three answers, where each row goes, and the exits' red in all
    four themes (read from theme/themes.json) — the rules both renderers
    draw, so a remote flip between SwiftUI and React Native never changes
@@ -23,11 +23,10 @@ import {
   STORE_VERSION,
   ageBand,
   ageOf,
-  buildBanner,
+  APPEARANCE_LABEL_KEYS,
   buildSettingsView,
   dangerInk,
   footerVersion,
-  matchSub,
   membershipValue,
   parseDob,
   quietNotice,
@@ -36,6 +35,7 @@ import {
   type SettingsFacts,
   type ThemeFacts,
 } from "./settings-model.ts";
+import { buildFirstClass4a } from "../me/me-model.ts";
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => {
@@ -51,9 +51,11 @@ const themesJson = JSON.parse(readFileSync(new URL("../../theme/themes.json", im
   brand: Record<string, string>;
 };
 const KEYS = Object.keys(themesJson.themes);
-const DARK = KEYS.filter((k) => themesJson.themes[k].dark);
+const APPEARANCES = ["system", "light", "dark", "lavender", "paper"];
 
-const theme = (over: Partial<ThemeFacts> = {}): ThemeFacts => ({ effective: "classic", pick: "classic", matchSystem: true, keys: KEYS, dark: DARK, darkReady: false, ...over });
+const theme = (over: Partial<ThemeFacts> = {}): ThemeFacts => ({ appearance: "system", choices: APPEARANCES, ...over });
+const fmt = { t, dateShort: (d: string | number) => String(d), upper: (s: string) => s.toUpperCase() };
+const card = (premium: boolean, cofounderNo: number | null, trial = "") => buildFirstClass4a({ premium, cofounderNo, wren: "Pip", trial }, fmt);
 
 const NOW = new Date(2026, 9, 16, 12).getTime(); // 16 Oct 2026, local
 
@@ -70,6 +72,7 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   knock: false,
   premium: false,
   cofounderNo: null,
+  firstClass: card(false, null),
   restoring: false,
   version: { store: "1.0.5", binary: "1.3.0", build: "29" },
   ...over,
@@ -114,21 +117,18 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
 /* ── appearance ── */
 {
   const v = buildSettingsView(facts(), t);
-  ok("before DARK_READY: no Midnight swatch", !v.appearance.swatches.some((s) => s.key === "midnight"));
-  ok("before DARK_READY: the light themes in themes.json's order", v.appearance.swatches.map((s) => s.key).join(",") === KEYS.filter((k) => !DARK.includes(k)).join(","));
-  ok("before DARK_READY: no Match system row", v.appearance.showMatch === false);
-  ok("swatch names come from the strings, not themes.json's English", v.appearance.swatches[0].label === "theme.classic");
-  const ready = buildSettingsView(facts({ theme: theme({ darkReady: true }) }), t);
-  ok("DARK_READY: all four, and Match system", ready.appearance.swatches.length === KEYS.length && ready.appearance.showMatch);
-  const night = buildSettingsView(facts({ theme: theme({ effective: "midnight", pick: "lavender", darkReady: true }) }), t);
-  ok("selected = the theme in effect (Lavender picked, Midnight after dark)", night.appearance.selectedTheme === "midnight");
-  const forced = swatches(theme({ effective: "midnight" }), t);
-  ok("the dev switch forcing Midnight shows its swatch", forced.some((s) => s.key === "midnight"));
-  ok("Match system on: Midnight after dark, the pick by day", matchSub(theme({ pick: "lavender" }), t) === "set.matchSystem.on{night:theme.midnight,day:theme.lavender}");
-  ok("Match system on with Midnight picked: Classic by day", matchSub(theme({ pick: "midnight" }), t) === "set.matchSystem.on{night:theme.midnight,day:theme.classic}");
-  const onLine = readFileSync(new URL("../../data/strings-step5-settings.ts", import.meta.url), "utf8").match(/"set\.matchSystem\.on": "([^"]*)"/)?.[1] ?? "";
-  ok("the Match system line names both themes by placeholder, never in its words", onLine.includes("{night}") && onLine.includes("{day}") && !/Midnight|Classic|Lavender|Paper/.test(onLine));
-  ok("Match system off: always the pick", matchSub(theme({ pick: "paper", matchSystem: false }), t) === "set.matchSystem.off{theme:theme.paper}");
+  ok("five swatches: system, light, dark, lavender, paper", v.appearance.swatches.map((s) => s.key).join(",") === "system,light,dark,lavender,paper");
+  ok("System / Light / Dark are FC2's words; Lavender and Paper keep their swatch names", v.appearance.swatches.map((s) => s.label).join(",") === "fc2.ap.system,fc2.ap.light,fc2.ap.dark,theme.lavender,theme.paper");
+  ok("only System has a hint, and it says what it follows", v.appearance.swatches[0].hint === "fc2.ap.systemHint" && v.appearance.swatches.slice(1).every((s) => s.hint === ""));
+  ok("default: System selected", v.appearance.selectedTheme === "system");
+  ok("selected = the stored appearance (System at night stays System)", buildSettingsView(facts({ theme: theme({ appearance: "system" }) }), t).appearance.selectedTheme === "system");
+  ok("Dark picked: Dark selected", buildSettingsView(facts({ theme: theme({ appearance: "dark" }) }), t).appearance.selectedTheme === "dark");
+  ok("Paper picked: Paper selected", buildSettingsView(facts({ theme: theme({ appearance: "paper" }) }), t).appearance.selectedTheme === "paper");
+  ok("no Match system row any more", !("showMatch" in v.appearance) && !("matchSub" in v.appearance));
+  ok("every label key is known", APPEARANCES.every((k) => !!APPEARANCE_LABEL_KEYS[k]));
+  ok("an unknown key shows as itself", swatches(theme({ choices: ["neon"] }), t)[0].label === "neon");
+  const fc2 = readFileSync(new URL("../../data/strings-fc2.ts", import.meta.url), "utf8");
+  ok("fc2.ap.* are in strings-fc2 (nine times each)", ["fc2.ap.system", "fc2.ap.light", "fc2.ap.dark", "fc2.ap.systemHint"].every((k) => fc2.split(`"${k}"`).length - 1 === 9));
   ok("the font tiles: Newsreader and New York, by their own names", v.appearance.fonts.map((f) => `${f.key}=${f.name}`).join(",") === "newsreader=Newsreader,newyork=set.font.system");
   ok("each tile carries the specimen (Aa, the same in every language)", v.appearance.fonts.every((f) => f.sample === "Aa"));
   ok("Garamond has its name ready for when it lands", LETTER_FONT_NAMES.garamond === "EB Garamond");
@@ -166,15 +166,17 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
 
 /* ── first class ── */
 {
-  const free = buildBanner({ premium: false, cofounderNo: null, wren: "Pip" }, t);
-  ok("free: the owner's headline and two lines", free.headline === "fc.stubHead" && free.sub === "fc.stubSub1\nfc.stubSub2{wren:Pip}");
-  ok("free: Try First Class →", free.cta === "fc.tryCta →");
+  const free = buildSettingsView(facts(), t).banner;
+  ok("the banner is the 4a card (buildFirstClass4a), as Me draws it", JSON.stringify(free) === JSON.stringify(card(false, null)));
+  ok("free: the 4a headline, three rows, the stub's CTA", free.headline === "fc.stubHead" && free.rows.length === 3 && free.cta === "fc.stubCta →" && !free.member);
   ok("free: 1ST on the stamp, the curious courier", free.stampLabel === "fc.firstMark" && free.pose === "fcFree");
+  ok("free with a real trial: it shows (upper-cased)", buildSettingsView(facts({ firstClass: card(false, null, "7 days free") }), t).banner.trial === "7 DAYS FREE");
+  ok("free without a trial: none", free.trial === "");
   ok("never More Kindreds or a monthly reading", !/kindreds|reading/i.test(JSON.stringify(free)));
-  const member = buildBanner({ premium: true, cofounderNo: null, wren: "Pip" }, t);
-  ok("member: travelling First Class, MEMBER, delighted", member.headline === "fc.paidHead" && member.stampLabel === "fc.member" && member.pose === "fcMember");
-  const founder = buildBanner({ premium: true, cofounderNo: 7, wren: "Pip" }, t);
-  ok("cofounder: the founding number", founder.headline === "me.fc.founding{n:7}");
+  const member = buildSettingsView(facts({ premium: true, firstClass: card(true, null, "7 days free") }), t).banner;
+  ok("member: the member state, MEMBER, delighted, no trial", member.member && member.headline === "fc.paidHead" && member.stampLabel === "fc.member" && member.pose === "fcMember" && member.trial === "");
+  const founder = buildSettingsView(facts({ premium: true, cofounderNo: 7, firstClass: card(true, 7) }), t).banner;
+  ok("cofounder: the founding number", founder.headline === "me.fc.founding{n:7}" && founder.member);
   ok("membership: Cofounder No. 007", membershipValue({ premium: true, cofounderNo: 7 }, t) === "set.member.cofounder{n:007}");
   ok("membership: First Class", membershipValue({ premium: true, cofounderNo: null }, t) === "set.member.first");
   ok("membership: Not yet", membershipValue({ premium: false, cofounderNo: null }, t) === "set.member.not");

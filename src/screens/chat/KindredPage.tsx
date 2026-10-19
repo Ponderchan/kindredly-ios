@@ -18,6 +18,8 @@ import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { Frost, VeilTile } from "../../components/Frost";
+import { StampAvatar, StampMosaic } from "../../components/StampAvatar";
+import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
 import { useIdentityFirstOn, useWhoBook } from "../../lib/who";
 import { penOrNull } from "../../lib/pen-signature";
 import { PenSignature } from "../../components/PenSignature";
@@ -131,6 +133,9 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   const kind = detail ? faceKind(detail) : "veil";
   // switch on, a pen pal's frosted window (null off, for a kindred, and for no one)
   const frost = detail && pageFace(detail, identity) === "frost" ? book.frost(detail.other) : null;
+  /* a member's face is a gold perforated stamp (C2); never a closed account */
+  const stampUid = detail && kind !== "veil" && !detail.gone ? detail.other || null : null;
+  const stamp = useMemberStamps([stampUid])(stampUid);
   const label = { fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute } as const;
 
   return (
@@ -169,7 +174,19 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
           {/* who they are — the face they gave, beside the one you watched develop */}
           <InkPanel variant="me" style={{ marginRight: 5, marginBottom: 5 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-              {kind === "round" ? (
+              {stamp && kind === "round" ? (
+                <View accessible accessibilityLabel={stampSpoken(stamp, t)}>
+                  <StampAvatar size={64} denom={stamp}>
+                    {({ size, radius }) => <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={size} radius={radius ?? undefined} />}
+                  </StampAvatar>
+                </View>
+              ) : stamp ? (
+                <View accessible accessibilityLabel={stampSpoken(stamp, t)}>
+                  <StampAvatar size={56} denom={stamp}>
+                    {({ size }) => (frost ? <Frost spec={frost} size={size} /> : <StampMosaic seed={detail.other} size={size} develop={developFor(detail.otherCount)} base={56} cell={9} gap={2.4} />)}
+                  </StampAvatar>
+                </View>
+              ) : kind === "round" ? (
                 <AvatarImage id={detail.otherFace ?? null} seed={detail.other} size={64} />
               ) : identity && kind === "veil" ? (
                 <VeilTile size={56} />

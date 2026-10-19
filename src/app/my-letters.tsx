@@ -9,6 +9,8 @@ import { BRAND, type ThemeTokens } from "../theme/themes";
 import { Stamp } from "../components/Stamp";
 import { STAMP_LADDER } from "../lib/stamp-frame";
 import { AvatarImage } from "../components/AvatarImage";
+import { StampAvatar } from "../components/StampAvatar";
+import { useMemberStamps } from "../lib/member-marks";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { t, useLang } from "../lib/i18n";
 import { fetchMyWriting, type WritingRow } from "../lib/aura";
@@ -101,6 +103,8 @@ export function MyLettersRN() {
     quiet: cards.filter((c) => c.kind === "letter" && c.answers.length === 0).length,
     drafts: drafts.length,
   };
+  /* the replied face of a member is a small gold stamp (C2): one ask for every card's kindred */
+  const stampOf = useMemberStamps(cards.map((c) => namedOf(c)?.other));
   const shown = cards.filter((c) => (filter === "all" ? c.kind === "letter" : filter === "drafts" ? c.kind === "draft" : c.kind === "letter" && (filter === "answered" ? c.answers.length > 0 : c.answers.length === 0)));
   // the write tile is always first; the letters follow it newest first,
   // dealt left and right in turn
@@ -188,7 +192,7 @@ export function MyLettersRN() {
                   </Jiggle>
                 ) : (
                   <Jiggle key={c.id} on={managing} seed={ci} onRemove={() => remove(c)} tk={tk}>
-                    <LetterCard c={c} tk={tk} letterFace={letterFace} onOpen={managing || !c.answers[0] ? undefined : () => router.push(c.answers[0].revealed ? `/room/${c.answers[0].id}` : `/chat/${c.answers[0].id}`)} />
+                    <LetterCard c={c} tk={tk} letterFace={letterFace} stampOf={stampOf} onOpen={managing || !c.answers[0] ? undefined : () => router.push(c.answers[0].revealed ? `/room/${c.answers[0].id}` : `/chat/${c.answers[0].id}`)} />
                   </Jiggle>
                 ),
               )}
@@ -239,9 +243,25 @@ function Jiggle({ on, seed, onRemove, tk, children }: { on: boolean; seed: numbe
   );
 }
 
-function LetterCard({ c, tk, letterFace, onOpen }: { c: Card; tk: ThemeTokens; letterFace: { fontFamily: string; fontStyle: "normal" | "italic" }; onOpen?: () => void }) {
+/** the kindred a card names in its replied line (the first revealed answer with a name) */
+const namedOf = (c: Card) => c.answers.find((th) => th.revealed && th.otherName && !th.gone);
+
+function LetterCard({
+  c,
+  tk,
+  letterFace,
+  stampOf,
+  onOpen,
+}: {
+  c: Card;
+  tk: ThemeTokens;
+  letterFace: { fontFamily: string; fontStyle: "normal" | "italic" };
+  stampOf: (uid: string | null | undefined) => string;
+  onOpen?: () => void;
+}) {
   const a = c.answers;
   const named = a.find((th) => th.revealed && th.otherName);
+  const stamp = named && !named.gone ? stampOf(named.other) : "";
   return (
     <Pressable onPress={onOpen} disabled={!onOpen} style={({ pressed }) => ({ backgroundColor: tk.sf, borderRadius: 16, borderWidth: 1.5, borderColor: tk.line, overflow: "hidden", opacity: pressed ? 0.92 : 1 })}>
       <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }}>
@@ -279,7 +299,13 @@ function LetterCard({ c, tk, letterFace, onOpen }: { c: Card; tk: ThemeTokens; l
           <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.quiet")}</Text>
         ) : named ? (
           <>
-            <AvatarImage id={named.otherFace ?? null} seed={named.other} size={18} />
+            {stamp ? (
+              <StampAvatar size={18} denom={stamp} style={{ marginHorizontal: 4 }}>
+                {({ size, radius }) => <AvatarImage id={named.otherFace ?? null} seed={named.other} size={size} radius={radius ?? undefined} />}
+              </StampAvatar>
+            ) : (
+              <AvatarImage id={named.otherFace ?? null} seed={named.other} size={18} />
+            )}
             <Text style={{ fontSize: 12, color: tk.ink }} numberOfLines={1}>
               {a.length > 1 ? t("ml.repliedMore", { who: named.otherName!, n: a.length - 1 }) : t("ml.replied", { who: named.otherName! })}
             </Text>

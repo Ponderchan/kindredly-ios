@@ -18,9 +18,9 @@ import ExpoUI
  Props, beyond KScreenProps (insets: top = the status bar the screen draws its strip for,
  tabBarRoom = the floating bar the last row clears, plus 12, and never less than the bottom
  fade's height - 6, since the fade is always drawn):
- - strings: { title, backLabel, appearanceHeader, matchLabel, matchSub, fontLabel, fontSub, footer }
- - banner: { eyebrow, headline, sub, cta, stampLabel, bird }
- - swatches: [{ key, label }], selectedTheme, showMatch, matchOn
+ - strings: { title, backLabel, appearanceHeader, fontLabel, fontSub, footer }
+ - banner: Me's 4a First Class card { eyebrow, headline, rows, cta, trial, stampLabel, member, bird }
+ - swatches: [{ key, label, hint }] (the five appearances), selectedTheme (the reader's appearance)
  - fonts: [{ key, name, sample }], selectedFont
  - groups: [{ key, header, notice: { present, text, action }, rows: [{ key, symbol, label, value,
    sub, chevron, kind (link | toggle | display | danger), on, busy }] }]
@@ -32,8 +32,7 @@ import ExpoUI
  Events, with what nativeEvent carries:
  - onSettingsBack {}            the chevron
  - onSettingsBanner {}          the First Class banner
- - onSettingsTheme { key }      a swatch
- - onSettingsMatch { on }       Match system flipped (the value asked for)
+ - onSettingsTheme { key }      a swatch (an appearance key)
  - onSettingsFont { key }       a Letter font tile
  - onSettingsRow { key }        a link or an exit
  - onSettingsToggle { key, on } a switch flipped (the value asked for; TS answers with the prop)
@@ -48,36 +47,43 @@ struct KSettingsStringsRecord: Record {
   @Field var title: String = ""
   @Field var backLabel: String = ""
   @Field var appearanceHeader: String = ""
-  @Field var matchLabel: String = ""
-  @Field var matchSub: String = ""
   @Field var fontLabel: String = ""
   @Field var fontSub: String = ""
   @Field var footer: String = ""
 }
 
+/// The card at the top: Me's 4a First Class card (the same fields as KMeFirstClassRecord).
 struct KSettingsBannerRecord: Record {
   @Field var eyebrow: String = ""
   @Field var headline: String = ""
-  @Field var sub: String = ""
+  @Field var rows: [String] = []
   @Field var cta: String = ""
+  /// "" for none
+  @Field var trial: String = ""
   @Field var stampLabel: String = ""
+  @Field var member: Bool = false
   @Field var bird: KImageRefRecord = KImageRefRecord()
 
-  var banner: KSettingsBanner {
-    var b = KSettingsBanner()
+  var banner: KMeFirstClass {
+    var b = KMeFirstClass()
     b.eyebrow = eyebrow
     b.headline = headline
-    b.sub = sub
+    b.rows = rows
     b.cta = cta
+    b.trial = trial
     b.stampLabel = stampLabel
+    b.member = member
     b.bird = bird.ref
     return b
   }
 }
 
 struct KSettingsSwatchRecord: Record {
+  /// system | light | dark | lavender | paper
   @Field var key: String = ""
   @Field var label: String = ""
+  /// VoiceOver's hint; "" for none
+  @Field var hint: String = ""
 }
 
 struct KSettingsFontRecord: Record {
@@ -133,8 +139,6 @@ final class KSettingsViewProps: KScreenProps {
   @Field var banner: KSettingsBannerRecord = KSettingsBannerRecord()
   @Field var swatches: [KSettingsSwatchRecord] = []
   @Field var selectedTheme: String = ""
-  @Field var showMatch: Bool = false
-  @Field var matchOn: Bool = false
   @Field var fonts: [KSettingsFontRecord] = []
   @Field var selectedFont: String = ""
   @Field var groups: [KSettingsGroupRecord] = []
@@ -142,7 +146,6 @@ final class KSettingsViewProps: KScreenProps {
   var onSettingsBack = EventDispatcher()
   var onSettingsBanner = EventDispatcher()
   var onSettingsTheme = EventDispatcher()
-  var onSettingsMatch = EventDispatcher()
   var onSettingsFont = EventDispatcher()
   var onSettingsRow = EventDispatcher()
   var onSettingsToggle = EventDispatcher()
@@ -154,7 +157,6 @@ final class KSettingsViewProps: KScreenProps {
     a.onBack = { [weak self] in self?.onSettingsBack() }
     a.onBanner = { [weak self] in self?.onSettingsBanner() }
     a.onTheme = { [weak self] key in self?.onSettingsTheme(["key": key]) }
-    a.onMatchSystem = { [weak self] on in self?.onSettingsMatch(["on": on]) }
     a.onFont = { [weak self] key in self?.onSettingsFont(["key": key]) }
     a.onRow = { [weak self] key in self?.onSettingsRow(["key": key]) }
     a.onToggle = { [weak self] key, on in self?.onSettingsToggle(["key": key, "on": on]) }
@@ -175,13 +177,9 @@ final class KSettingsViewProps: KScreenProps {
       var seenThemes = Set<String>()
       a.swatches = swatches.compactMap { s in
         guard !s.key.isEmpty, seenThemes.insert(s.key).inserted else { return nil }
-        return KThemeSwatch(key: s.key, label: s.label)
+        return KThemeSwatch(key: s.key, label: s.label, hint: s.hint)
       }
       a.selectedTheme = selectedTheme
-      a.showMatch = showMatch
-      a.matchLabel = strings.matchLabel
-      a.matchSub = strings.matchSub
-      a.matchOn = matchOn
       a.fontLabel = strings.fontLabel
       a.fontSub = strings.fontSub
       var seenFonts = Set<String>()
@@ -455,6 +453,8 @@ struct KMyLettersFaceRecord: Record {
   @Field var key: String = ""
   @Field var overscan: Double = 0
   @Field var mask: Int = 0
+  /// their stamp when they are a member (C2): "1ST" or "007"; "" for none
+  @Field var stamp: String = ""
 
   func source(_ theme: KTheme) -> KFaceSource {
     switch kind {
@@ -539,6 +539,7 @@ final class KMyLettersViewProps: KScreenProps {
           tone: tone,
           status: r.status,
           face: tone == .replied ? r.face.source(theme) : nil,
+          stamp: tone == .replied ? KMemberStamp(r.face.stamp) : nil,
           opens: r.opens,
           a11y: r.a11y
         )
