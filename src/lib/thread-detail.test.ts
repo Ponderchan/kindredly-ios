@@ -115,6 +115,8 @@ ok("openingAt is the LETTER's date, read through threads.letter", dA.openingAt =
 ok("bug 3: since stays the first reply's date, not the opening's", dA.since === "2026-10-02T10:00:00Z" && dA.since !== dA.openingAt);
 ok("letterId comes through", dA.letterId === "L1");
 ok("an embed handed back as an array still reads", buildThreadDetail(row({ opening_letter: [{ created_at: "2026-09-01T00:00:00Z" }] }), [], "me").openingAt === "2026-09-01T00:00:00Z");
+ok("letter papers (0041): the opening letter's paper comes through the embed", buildThreadDetail(row({ opening_letter: { created_at: "2026-09-01T00:00:00Z", paper: "kraft" } }), [], "me").openingPaper === "kraft");
+ok("letter papers: no paper (plain), an unreadable letter or a server before 0041 → null", buildThreadDetail(row({ opening_letter: { created_at: "2026-09-01T00:00:00Z", paper: null } }), [], "me").openingPaper === null && buildThreadDetail(row({ opening_letter: null }), [], "me").openingPaper === null && dA.openingPaper === null);
 ok("an unreadable letter (RLS) → openingAt null", buildThreadDetail(row({ opening_letter: null }), [], "me").openingAt === null);
 ok("a pre-0020 row → revealedAt / openingAt / letterId null", (() => { const d = buildThreadDetail(row({ revealed_at: undefined, letter: undefined, opening_letter: undefined }), [], "me"); return d.revealedAt === null && d.openingAt === null && d.letterId === null; })());
 /* web 0035 (identity Phase 2): a sealed name isn't on the row, the flags say who signed */

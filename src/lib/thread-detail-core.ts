@@ -248,8 +248,11 @@ export interface ThreadRow {
   b_sig?: PenSig | null;
   /** the pool letter, embedded through threads.letter — null when RLS hides it
       (withdrawn, or blocked) or the thread predates 0020 */
-  opening_letter?: { created_at?: string | null } | { created_at?: string | null }[] | null;
+  opening_letter?: OpeningLetterEmbed | OpeningLetterEmbed[] | null;
 }
+
+/** what the embed reads of the pool letter: its date, and (web 0041 on) the paper it was written on */
+type OpeningLetterEmbed = { created_at?: string | null; paper?: string | null };
 
 /** the columns fetchThreadDetail reads from `messages` */
 export interface MessageRow {
@@ -266,6 +269,14 @@ export interface MessageRow {
 const openingLetterAt = (v: ThreadRow["opening_letter"]): string | null => {
   const one = Array.isArray(v) ? v[0] : v;
   return (one && typeof one.created_at === "string" && one.created_at) || null;
+};
+
+/* the opening letter's paper (letter papers, web 0041 letters.paper): its id as stored, null for
+   plain, for an unreadable letter and before 0041 (src/data/papers paperOf reads any of those as
+   plain) */
+const openingLetterPaper = (v: ThreadRow["opening_letter"]): string | null => {
+  const one = Array.isArray(v) ? v[0] : v;
+  return (one && typeof one.paper === "string" && one.paper) || null;
 };
 
 /**
@@ -309,6 +320,7 @@ export function buildThreadDetail(row: ThreadRow, msgs: readonly MessageRow[], m
     since: row.created_at ?? null,
     revealedAt: row.revealed_at ?? null,
     openingAt: openingLetterAt(row.opening_letter),
+    openingPaper: openingLetterPaper(row.opening_letter),
     letterId: row.letter ?? null,
     opening: row.opening || "",
     openingFromMe: row.b === me,
