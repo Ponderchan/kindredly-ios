@@ -54,7 +54,7 @@ ok("made: album shows", m.album === "cs2.me.openAlbum");
 const y = C.buildStampsCard({ ...base, used: [{ id: U1, name: "x", hex: "", at: null }, { id: "crush", name: "Crush", hex: "#F8779E", at: "2026-10-18T00:00:00Z" }] }, fmt);
 ok("yours: c: dropped", y.cells.length === 1 && y.cells[0].id === "crush" && y.count === "me.stamps.count(n=1)");
 ok("yours: name lower under it", y.cells[0].date === "crush");
-ok("yours: album shows", y.album === "cs2.me.openAlbum");
+ok("used official stamps alone open no album (owner 2026-10-20: only what you made)", y.album === "");
 
 // strangers
 const k = C.buildStampsCard({ ...base, kept: [{ id: U2, topic: "kite", hex: "#679DF2", state: "ok", keptAt: "2026-10-18T00:00:00Z", from: "SUNDAY KITE" }] }, fmt);
@@ -75,9 +75,9 @@ const a = C.buildAlbum(
   fmt,
   { hasOriginal: (u) => u === U1.slice(2) },
 );
-ok("album: three sections in order", a.sections.map((s) => s.key).join() === "made,strangers,yours");
+ok("album: made then strangers, no used-official section", a.sections.map((s) => s.key).join() === "made,strangers");
 ok("album: made has the blank first", a.sections[0].make);
-ok("album: counts only", a.sections[0].title === "cs2.me.made · 2");
+ok("album: counts only, titled YOUR STAMPS", a.sections[0].title === "cs2.me.yours · 2");
 ok("album: made info", a.sections[0].cells[0].info === "cs2.al.madeOn(date=10-19,n=4)", a.sections[0].cells[0].info);
 ok("album: own ok actions", a.sections[0].cells[0].actions.map((x) => x.key).join() === "write,rename,recolour,filter,delete");
 ok("album: no original, no filter", !a.sections[0].cells[1].actions.some((x) => x.key === "filter"));

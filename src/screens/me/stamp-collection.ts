@@ -106,7 +106,9 @@ export function buildStampsCard(f: CollectionFacts, fmt: CollectionFormat): KMeS
   const yours = used.slice(0, 3);
   const madeAny = open && f.mine.length > 0;
   return {
-    label: t("cs2.me.yours"),
+    // (owner, 2026-10-20: "what I made is what I made") the official stamps you've used are not
+    // "your stamps" and no longer show here or in the album; YOUR STAMPS is what you made
+    label: "",
     count: t("me.stamps.count", { n: used.length }),
     cells: yours.map((u) => {
       const date = u.at ? fmt.upper(fmt.dateShort(u.at)) : "";
@@ -116,7 +118,7 @@ export function buildStampsCard(f: CollectionFacts, fmt: CollectionFormat): KMeS
     emptyCta: t("cs2.me.writeLetter"),
     yoursSlots: [...f.slots].slice(0, 3),
     madeShow: open,
-    madeLabel: t("cs2.me.made"),
+    madeLabel: t("cs2.me.yours"),
     // a guest (0039, why "account") makes none yet: no count, MAKE ONE leads to sign-up
     madeQuota: !q || q.why === "account" ? "" : q.plan === "free" ? t("cs2.me.quotaFree", { n: Math.max(0, q.made), cap: q.cap ?? 3 }) : t("cs2.me.unlimited"),
     madeQuotaGold: !!q && q.plan !== "free",
@@ -148,7 +150,7 @@ export function buildStampsCard(f: CollectionFacts, fmt: CollectionFormat): KMeS
       a11y: [k.topic && k.state === "ok" ? t("cs2.use.a11yStamp", { topic: k.topic }) : t("cs2.use.a11yBlank"), k.from ? t("cs2.me.fromName", { name: k.from }) : ""].filter(Boolean).join(", "),
     })),
     strangersEmpty: t("cs2.me.strangersEmpty"),
-    album: madeAny || f.kept.length > 0 || used.length > 0 ? t("cs2.me.openAlbum") : "",
+    album: madeAny || f.kept.length > 0 ? t("cs2.me.openAlbum") : "",
   };
 }
 
@@ -192,7 +194,7 @@ export function buildAlbum(
           : [act("delete", t("cs2.al.delete"), "danger")];
       return { id: m.id, under: u.text, tag: m.state === "ok" || m.state === "pending" ? tag(m.topic, fmt) : "", tagHex: m.hex, info, a11y: mineA11y(m, fmt), actions };
     });
-    sections.push({ key: "made", title: `${t("cs2.me.made")} · ${f.mine.length}`, make: open, cells });
+    sections.push({ key: "made", title: `${t("cs2.me.yours")} · ${f.mine.length}`, make: open, cells });
   }
 
   if (f.kept.length) {
@@ -217,7 +219,8 @@ export function buildAlbum(
     });
   }
 
-  if (used.length) {
+  if (false && used.length) {
+    // the official stamps used: no longer shown (owner, 2026-10-20), kept for a later "used" view
     sections.push({
       key: "yours",
       title: `${t("cs2.me.yours")} · ${used.length}`,
@@ -244,7 +247,7 @@ export function buildAlbum(
       fullSub: t("cs2.me.fullSub"),
       fullCta: t("cs2.me.fullCta"),
       notNow: t("cs2.me.notNow"),
-      yoursEmpty: used.length ? "" : t("cs2.me.yoursEmpty"),
+      yoursEmpty: "", // the used-official section is gone (2026-10-20), and with it its empty line
       yoursCta: t("cs2.me.writeLetter"),
     },
     sections,

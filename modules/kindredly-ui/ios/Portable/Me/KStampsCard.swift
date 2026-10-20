@@ -293,7 +293,8 @@ public struct KStampsCard: View {
     InkCard(theme: theme, variant: .me, spacing: 18, soft: true) {
       if stamps.madeShow { madeArea }
       strangersArea
-      yoursArea
+      // the official stamps used: shown only while TS sends a label (none since 2026-10-20)
+      if !stamps.label.isEmpty { yoursArea }
       if !stamps.album.isEmpty {
         KStampsWideButton(theme: theme, title: stamps.album) { actions.onStamps("album", "") }
       }
