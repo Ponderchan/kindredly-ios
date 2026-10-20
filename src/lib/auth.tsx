@@ -120,8 +120,32 @@ async function letGoOfDeadSession(): Promise<void> {
     console.warn("[auth] couldn't check the stored session before sign-in:", e);
   }
 }
+/* THE VERIFIER IS HELD ACROSS THE BROWSER (owner's phone, 2026-10-20, still "PKCE code verifier not
+   found" after the above). While nobody is signed in, any supabase.auth.getUser() — and the app makes
+   several the moment it is active again (db uid(), notify, activities, folds…) — fails with "session
+   missing", and supabase-js answers that by dropping the session, which deletes every PKCE verifier.
+   Coming back from Google wakes the app, those calls race the exchange, and the verifier the exchange
+   needs is gone. So the verifier is read before the browser opens and put back, if it went missing,
+   right before the exchange. */
+const verifierKey = () => `${(supabase!.auth as any).storageKey}-code-verifier`;
+let heldVerifier: string | null = null;
+async function holdVerifier(): Promise<void> {
+  try { heldVerifier = await AsyncStorage.getItem(verifierKey()); } catch { heldVerifier = null; }
+}
+async function restoreVerifier(): Promise<void> {
+  if (!supabase || !heldVerifier) return;
+  try {
+    if (!(await AsyncStorage.getItem(verifierKey()))) {
+      await AsyncStorage.setItem(verifierKey(), heldVerifier);
+      console.warn("[auth] the sign-in verifier was cleared while the browser was up; put back");
+    }
+  } catch (e) {
+    console.warn("[auth] couldn't put the sign-in verifier back:", e);
+  }
+}
 async function inBrowserRoundTrip<T>(run: () => Promise<T>): Promise<T> {
   if (!supabase) return run();
+  await holdVerifier();
   try { await supabase.auth.stopAutoRefresh(); } catch {}
   try { return await run(); } finally { try { await supabase.auth.startAutoRefresh(); } catch {} }
 }
@@ -141,6 +165,7 @@ function exchangeOnce(code: string, flowId?: string): Promise<{ error: string | 
   const p = (async () => {
     if (!supabase) return { error: "Auth not configured." };
     try {
+      await restoreVerifier();
       const { error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
       if (!error) return { error: null };
       const { data } = await supabase.auth.getSession();
@@ -151,6 +176,7 @@ function exchangeOnce(code: string, flowId?: string): Promise<{ error: string | 
     }
   })();
   exchanges.set(code, p);
+  void p.then(() => { heldVerifier = null; });
   return p;
 }
 
