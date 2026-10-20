@@ -4,7 +4,7 @@ import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { t, useLang } from "../lib/i18n";
-import { MONO, PF } from "../theme/post";
+import { SheetBody, SheetHeader, sheetWords, sheetCard, sheetKey, sheetKeyLabel } from "./sheet-chrome";
 import { useP, useTheme } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
@@ -101,54 +101,29 @@ export function SignUpSheet({
         <Pressable onPress={onClose} accessible={false} style={{ flex: 1, backgroundColor: DIM }} />
       </Animated.View>
 
-      <Animated.View
-        entering={SlideInDown.duration(260)}
-        style={{ backgroundColor: tk.sf, borderTopWidth: 1, borderTopColor: tk.ln, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
-          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{t("su.title")}</Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
-          </Pressable>
-        </View>
+      <Animated.View entering={SlideInDown.duration(260)} style={[sheetCard(tk, 0), { marginBottom: Math.max(insets.bottom - 26, 8) }]}>
+        <SheetHeader title={sheetWords(t("su.title"))} onClose={onClose} tk={tk} P={P} />
+        <SheetBody P={P}>{reason}</SheetBody>
 
-        <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink60, paddingHorizontal: 22, paddingTop: 16, paddingBottom: 20 }}>
-          {reason}
-        </Text>
-
-        <View style={{ paddingHorizontal: 22, gap: 10 }}>
+        <View style={{ paddingHorizontal: 16, gap: 10 }}>
           {auth.appleAvailable ? (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
               buttonStyle={dark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={0}
+              cornerRadius={25}
               style={{ height: 50, width: "100%", opacity: busy ? 0.5 : 1 }}
               onPress={doApple}
             />
           ) : null}
-          <Pressable
-            onPress={doEmail}
-            disabled={!!busy}
-            accessibilityRole="button"
-            style={({ pressed }) => ({
-              borderWidth: 1,
-              borderColor: tk.ln,
-              paddingVertical: 15,
-              alignItems: "center",
-              backgroundColor: pressed ? tk.lav2 : "transparent",
-              opacity: busy ? 0.5 : 1,
-            })}
-          >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.ind }}>
-              {busy === "email" ? "…" : t("ob.continueEmail")}
-            </Text>
+          <Pressable onPress={doEmail} disabled={!!busy} accessibilityRole="button" style={({ pressed }) => [sheetKey("quiet", tk, P, dark, pressed), { opacity: busy ? 0.5 : pressed ? 0.7 : 1 }]}>
+            <Text style={sheetKeyLabel("quiet", tk, P, dark)}>{busy === "email" ? "…" : sheetWords(t("ob.continueEmail"))}</Text>
           </Pressable>
 
           {/* Leaving is always allowed and always cheap. A sheet you can't
               refuse is a wall, and a wall this early costs more than the
               account is worth. */}
-          <Pressable onPress={onClose} accessibilityRole="button" style={{ paddingVertical: 16, alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{t("su.notYet")}</Text>
+          <Pressable onPress={onClose} accessibilityRole="button" style={({ pressed }) => sheetKey("plain", tk, P, dark, pressed)}>
+            <Text style={sheetKeyLabel("plain", tk, P, dark)}>{sheetWords(t("su.notYet"))}</Text>
           </Pressable>
         </View>
       </Animated.View>

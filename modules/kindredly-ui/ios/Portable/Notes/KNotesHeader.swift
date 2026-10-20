@@ -188,8 +188,10 @@ struct KNotesHeaderBar: View {
   }
 }
 
-/// The view button: an outlined capsule, the current view's icon and name. The name collapses as
-/// the list scrolls (H:346, H:348); a tap cycles Card, Grid, List.
+/// The view button: 34 round like the calendar beside it, the current view's icon only (owner,
+/// 2026-10-20: no word next to it). A tap cycles Card, Grid, List; the icon swaps with a quick
+/// blur-and-scale so the change reads. VoiceOver still hears the view's name as the value. `y` (the
+/// scroll) is kept for the header's call; the old label used it to collapse.
 struct KNotesViewButton: View {
   let theme: KTheme
   let layout: KNoteLayout
@@ -198,33 +200,18 @@ struct KNotesViewButton: View {
   let y: CGFloat
   let action: () -> Void
 
-  @State private var labelWidth: CGFloat = 0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
-    let shown = max(0, min(1, (60 - 2 * y) / 60))
-    let opacity = max(0, min(1, 1 - y / 25))
-    let gap = max(0, min(6, 6 - 0.3 * y))
     SwiftUI.Button(action: action) {
-      HStack(spacing: gap) {
-        KLineIcon(layout.glyph, size: 16, lineWidth: 2, color: theme.ink)
-        Text(label)
-          .kText(.smallLabel)
-          .foregroundStyle(theme.ink)
-          .lineLimit(1)
-          .fixedSize()
-          .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
-            if abs(width - labelWidth) > 0.5 { labelWidth = width }
-          }
-          .frame(width: labelWidth > 0 ? labelWidth * shown : nil, alignment: .leading)
-          .clipped()
-          .opacity(opacity)
-      }
-      .padding(.leading, 10)
-      .padding(.trailing, 11)
-      .frame(height: 34)
-      .background(Capsule().fill(theme.sf))
-      .overlay(Capsule().strokeBorder(theme.ln, lineWidth: 1.5))
-      .contentShape(Capsule())
+      KLineIcon(layout.glyph, size: 18, lineWidth: 2, color: theme.ink)
+        .id(layout)
+        .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
+        .frame(width: 34, height: 34)
+        .background(Circle().fill(theme.sf))
+        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+        .contentShape(Circle())
+        .animation(.spring(duration: 0.28, bounce: 0.25), value: layout)
     }
     .buttonStyle(KFadePressStyle())
     .accessibilityLabel(a11yName)

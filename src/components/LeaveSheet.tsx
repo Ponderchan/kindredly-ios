@@ -1,9 +1,8 @@
 import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MONO, PF } from "../theme/post";
+import { SheetBody, SheetHeader, sheetWords, sheetCard, sheetKey, sheetKeyLabel } from "./sheet-chrome";
 import { scrimColor, useP, useTheme } from "../lib/theme";
-import { dangerInk } from "../screens/settings/settings-model";
 import { t, useLang } from "../lib/i18n";
 import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
 
@@ -19,8 +18,11 @@ import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
    just left, it doesn't cover what you wrote, and it can be dismissed by
    reaching down rather than aiming at a small button.
 
-   The GRAMMAR is ours: paper, square corners, a rule under the title, mono
-   for what the machine asks and the letter face for what it says back.
+   The FACE is iOS's now (owner, 2026-10-20: the paper-and-rule version
+   felt dated): a floating card with large corners, the title centred in the
+   system face, capsule keys — components/sheet-chrome, shared with
+   SignUpSheet. What follows about colours describes the old paper sheet;
+   sheet-chrome says what each key wears now.
 
    The cancel is a full-width row, not a small ✕. The most likely reason you
    are looking at this sheet is that you did not mean to leave at all, so
@@ -124,75 +126,44 @@ export function LeaveSheet({
 
       <Animated.View
         entering={SlideInDown.duration(260)}
-        style={{
-          maxHeight: win.height - insets.top - 12,
-          backgroundColor: tk.sf,
-          borderTopWidth: 1,
-          borderTopColor: tk.ln,
-          paddingBottom: Math.max(insets.bottom, 12) + 6 + (modal ? 0 : bottomExtra),
-        }}
+        style={[sheetCard(tk, modal ? 0 : bottomExtra), { maxHeight: win.height - insets.top - 12 - (modal ? 0 : bottomExtra), marginBottom: Math.max(insets.bottom - 26, 8) + (modal ? 0 : bottomExtra) }]}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: tk.ln }}>
-          <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{title.toUpperCase()}</Text>
-          <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
-            <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
-          </Pressable>
-        </View>
+        <SheetHeader title={sheetWords(title)} onClose={onCancel} tk={tk} P={P} />
 
-        <ScrollView bounces={false} style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: cancelLabel === null ? 0 : 10 }}>
-          <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink60, paddingHorizontal: 22, paddingTop: 16, paddingBottom: 20 }}>
-            {body}
-          </Text>
+        <ScrollView bounces={false} style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: cancelLabel === null ? 6 : 4 }}>
+          <SheetBody P={P}>{body}</SheetBody>
 
-          <View style={{ paddingHorizontal: 22, gap: 10 }}>
-            {actions.map((a) => (
-              <Pressable
-                key={a.label}
-                onPress={a.onPress}
-                accessibilityRole="button"
-                accessibilityLabel={a.accessibilityLabel ?? (a.busy ? a.label : undefined)}
-                accessibilityLanguage={a.accessibilityLanguage}
-                accessibilityState={{ selected: a.selected, busy: a.busy }}
-                style={({ pressed }) => [
-                  a.kind === "primary"
-                    ? { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" as const, opacity: pressed ? 0.85 : 1 }
-                    : {
-                        borderWidth: 1,
-                        borderColor: a.kind === "quiet" ? tk.ln : P.post,
-                        paddingVertical: 15,
-                        alignItems: "center" as const,
-                        backgroundColor: pressed
-                          ? a.kind === "quiet"
-                            ? P.paperDeep
-                            : "rgba(224,72,60,0.08)"
-                          : "transparent",
-                      },
-                  a.lead ? { flexDirection: "row" as const, alignItems: "center" as const, paddingHorizontal: 18 } : null,
-                ]}
-              >
-                {!!a.lead && (
-                  <Text accessibilityElementsHidden importantForAccessibility="no" style={{ width: 34, fontSize: 17, lineHeight: 20 }}>
-                    {a.lead}
-                  </Text>
-                )}
-                <Text
-                  style={{
-                    fontFamily: PF.monoSemi,
-                    fontSize: MONO.title,
-                    letterSpacing: 1.6,
-                    color: a.kind === "primary" ? tk.bg : a.kind === "quiet" ? P.ink : dark ? dangerInk(tk.ink, P.post) : P.post,
-                  }}
+          <View style={{ paddingHorizontal: 16, gap: 10 }}>
+            {actions.map((a) => {
+              const kind = a.kind === "primary" ? "primary" : a.kind === "destructive" ? "destructive" : "quiet";
+              return (
+                <Pressable
+                  key={a.label}
+                  onPress={a.onPress}
+                  accessibilityRole="button"
+                  accessibilityLabel={a.accessibilityLabel ?? (a.busy ? a.label : undefined)}
+                  accessibilityLanguage={a.accessibilityLanguage}
+                  accessibilityState={{ selected: a.selected, busy: a.busy }}
+                  style={({ pressed }) => [
+                    sheetKey(kind, tk, P, dark, pressed),
+                    a.lead ? { flexDirection: "row" as const, justifyContent: "flex-start" as const, paddingHorizontal: 18 } : null,
+                  ]}
                 >
-                  {a.busy ? "…" : a.label}
-                </Text>
-              </Pressable>
-            ))}
+                  {!!a.lead && (
+                    <Text accessibilityElementsHidden importantForAccessibility="no" style={{ width: 34, fontSize: 17, lineHeight: 20 }}>
+                      {a.lead}
+                    </Text>
+                  )}
+                  <Text style={[sheetKeyLabel(kind, tk, P, dark), a.lead ? { textAlign: "left" as const, flexShrink: 1 } : null]}>{a.busy ? "…" : sheetWords(a.label)}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </ScrollView>
 
         {cancelLabel === null ? null : (
-          <Pressable onPress={onCancel} accessibilityRole="button" style={{ marginHorizontal: 22, paddingVertical: 16, alignItems: "center" }}>
-            <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: P.ink }}>{cancelLabel ?? t("cp.leave.keep")}</Text>
+          <Pressable onPress={onCancel} accessibilityRole="button" style={({ pressed }) => [sheetKey("plain", tk, P, dark, pressed), { marginHorizontal: 16, marginTop: 2 }]}>
+            <Text maxFontSizeMultiplier={1.6} style={sheetKeyLabel("plain", tk, P, dark)}>{sheetWords(cancelLabel ?? t("cp.leave.keep"))}</Text>
           </Pressable>
         )}
       </Animated.View>
