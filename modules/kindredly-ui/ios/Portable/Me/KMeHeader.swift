@@ -13,7 +13,7 @@ import SwiftUI
      the gear, 22 at stroke 1.9 in a 36 circle (O3: a gear, never sliders).
    row 2, 10 lower: two buttons side by side, 8 apart, 46 tall (KMeStatButton).
    the peek tray, 10 lower, when one is open (KMePeekTray).
-   the segmented control (Courier, Aura, Stamps), 14 lower and 12 above the page (KMeSegmented).
+   the segmented control (Courier, Aura, Stamps), 20 lower and 2 above the page (KMeSegmented).
 
  COLLAPSING, k = clamp(scroll / 40, 0, 1), every value linear in k as 4a's build() has it: row 1
  76→52, the avatar 72→36, the name 22→17, the gap under it 8→0, the joined line's height 22→0
@@ -88,8 +88,10 @@ struct KMeHeaderBody<Avatar: View>: View {
   static var row2Margin: CGFloat { 10 }
   /// row 2's padding-bottom at k = 0 and 1 (its room never goes under it: max(46(1−k), 18−10k))
   static var row2Floor: (open: CGFloat, shut: CGFloat) { (18, 8) }
-  static var chipsTop: (open: CGFloat, shut: CGFloat) { (14, 4) }
-  static var chipsBottom: CGFloat { 12 }
+  static var chipsTop: (open: CGFloat, shut: CGFloat) { (20, 4) }
+  // the segmented control has no shadow to make room for; with the page's 12 this puts it 14 over the card,
+  // nearer the card it switches than the stat buttons (20 above) — owner, 10-20
+  static var chipsBottom: CGFloat { 2 }
   static var peekMargin: CGFloat { 10 }
   /// the scroll past which an open peek closes by itself
   static var peekCloseAt: CGFloat { 24 }
