@@ -208,8 +208,8 @@ struct KNotesViewButton: View {
         .id(layout)
         .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
         .frame(width: 34, height: 34)
-        .background(Circle().fill(theme.sf))
-        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+        // (owner, 10-20: no black rings) a soft round key, as iOS draws one
+        .background(Circle().fill(theme.soft))
         .contentShape(Circle())
         .animation(.spring(duration: 0.28, bounce: 0.25), value: layout)
     }
@@ -242,8 +242,8 @@ struct KNotesCalendarButton: View {
       }
       .frame(width: 20, height: 20)
       .frame(width: 34, height: 34)
-      .background(Circle().fill(open ? theme.lav : theme.sf))
-      .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+      // (owner, 10-20: no black rings) soft, lav while the calendar is open
+      .background(Circle().fill(open ? theme.lav : theme.soft))
       .contentShape(Circle())
       .animation(KMotion.notesCalendarFill, value: open)
     }
