@@ -167,6 +167,20 @@ struct KNotesCalendar: View {
           .accessibilityFocused($titleFocused)
         Spacer(minLength: 8)
         chevron(.chevronRight, enabled: month.canNext, label: strings.nextMonth) { actions.onCalendarMonth(1) }
+        // (owner, 10-20) a way out you can see: the round grey ✕ the sheets wear
+        SwiftUI.Button {
+          actions.onCalendarToggle(false)
+        } label: {
+          Image(systemName: "xmark")
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(theme.mute)
+            .frame(width: 28, height: 28)
+            .background(Circle().fill(theme.soft))
+            .contentShape(Circle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .padding(.leading, 10)
+        .accessibilityLabel(strings.close)
       }
       .padding(.horizontal, 4)
 
@@ -197,7 +211,10 @@ struct KNotesCalendar: View {
     .padding(.horizontal, 14)
     .padding(.bottom, 14)
     .background {
-      KStickerBackground(shape: RoundedRectangle(cornerRadius: 22, style: .circular), fill: theme.sf, stroke: theme.ln, lineWidth: 2, shadow: theme.ln, shadowOffset: 5)
+      // (owner, 10-20: no black edges) a plain card with a soft shadow
+      RoundedRectangle(cornerRadius: 22, style: .continuous)
+        .fill(theme.sf)
+        .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.12), radius: 18, y: 6)
     }
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
   }
@@ -218,7 +235,7 @@ struct KNotesCalendar: View {
         .overlay {
           // on a filled day the ring is the pale keys' fixed dark ink: Midnight's ln is pale and
           // vanished on the group fills (~1.1:1); the light themes' ln is that same ink
-          if day.today { shape.strokeBorder(day.group == nil ? theme.ln : KBrand.inkOnBrand, lineWidth: 2) }
+          if day.today { shape.strokeBorder(theme.ind, lineWidth: 2) } // today: the accent ring, never black (owner, 10-20)
         }
       if let target = day.targetId {
         SwiftUI.Button {
