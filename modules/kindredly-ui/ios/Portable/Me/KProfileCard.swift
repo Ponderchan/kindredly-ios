@@ -57,6 +57,10 @@ struct KMeStatButton: View {
           }
         }
         .frame(width: 18, height: 18)
+        // (owner, 2026-10-20) the glyph on its own small white tile
+        .frame(width: 30, height: 30)
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(theme.isDark ? theme.bg.opacity(0.5) : KBrand.paperWhite))
+        .padding(.trailing, 2)
         Text(stat.count)
           .kText(.system(15, .semibold))
           .foregroundStyle(theme.ink)
@@ -72,9 +76,13 @@ struct KMeStatButton: View {
           .rotationEffect(.degrees(open ? 180 : 0))
           .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: open)
       }
-      .padding(.horizontal, 14)
+      .padding(.leading, 8)
+      .padding(.trailing, 14)
       .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-      .background(shape.fill(open ? openFill : theme.soft))
+      // (owner, 2026-10-20) each button wears its own colour all the time, letters lav and kindreds
+      // pale green; open, it gains an edge in the same family
+      .background(shape.fill(openFill))
+      .overlay(shape.strokeBorder(open ? (kind == .letters ? theme.ind.opacity(0.45) : KBrand.greenText.opacity(0.45)) : .clear, lineWidth: 1.5))
       .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: open)
       .contentShape(shape)
     }

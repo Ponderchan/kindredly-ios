@@ -13,7 +13,7 @@ import SwiftUI
      the gear, 22 at stroke 1.9 in a 36 circle (O3: a gear, never sliders).
    row 2, 10 lower: two buttons side by side, 8 apart, 46 tall (KMeStatButton).
    the peek tray, 10 lower, when one is open (KMePeekTray).
-   the four chips, 14 lower and 12 above the page, sharing the row's width (KSegmentChips stretch).
+   the segmented control (Courier, Aura, Stamps), 14 lower and 12 above the page (KMeSegmented).
 
  COLLAPSING, k = clamp(scroll / 40, 0, 1), every value linear in k as 4a's build() has it: row 1
  76→52, the avatar 72→36, the name 22→17, the gap under it 8→0, the joined line's height 22→0
@@ -267,37 +267,18 @@ struct KMeHeaderBody<Avatar: View>: View {
     }
   }
 
-  // ── row 3: the chips, at their own size, then tight, then scrolling ──
+  // ── row 3: the segmented control ──
+  // (owner, 2026-10-20) iOS's segmented control in place of the four sticker chips: the page's
+  // three parts only, Courier, Aura, Stamps; First Class left the row for a banner at the foot of
+  // the Courier page (KMeScreen). It sits on the stat buttons' edges, full width.
   private var chips: some View {
-    ViewThatFits(in: .horizontal) {
-      chipRow(tight: false, fill: true)
-      chipRow(tight: true, fill: true)
-      ScrollView(.horizontal) {
-        chipRow(tight: true)
+    KMeSegmented(theme: theme, labels: Array(content.segments.prefix(3)), selection: $selection)
+      .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+      .accessibilityElement(children: .contain)
+      .accessibilityAddTraits(.isTabBar)
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+        if abs(h - chipsHeight) > 0.5 { chipsHeight = h }
       }
-      .scrollIndicators(.hidden)
-      .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-    }
-    .fixedSize(horizontal: false, vertical: true)
-    // the chips' room for their 3/3 shadow and lift runs to the screen's edge
-    .padding(.horizontal, -Self.side)
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-    .accessibilityElement(children: .contain)
-    .accessibilityAddTraits(.isTabBar)
-    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-      if abs(h - chipsHeight) > 0.5 { chipsHeight = h }
-    }
-  }
-
-  /// the chips' left edge sits on the stat buttons' (side), and filling, their right edge too: the
-  /// trailing 3 is the sticker shadow's, so the shadow ends where the buttons do (owner, 10-20: the
-  /// two rows looked off against each other)
-  private func chipRow(tight: Bool, fill: Bool = false) -> some View {
-    KSegmentChips(theme: theme, labels: content.segments, selection: $selection, firstClassIndex: content.segments.count > 3 ? 3 : nil, tight: tight, stretch: fill)
-      .padding(.leading, Self.side)
-      .padding(.trailing, Self.side + 3)
-      .padding(.bottom, 3)
-      .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private func setPeek(_ next: KMePeek?) {
@@ -311,5 +292,54 @@ struct KMeHeaderBody<Avatar: View>: View {
     }
     if let before, before != next { actions.onPeek(before.rawValue, false) }
     if let next, next != before { actions.onPeek(next.rawValue, true) }
+  }
+}
+
+/// Me's segmented control (owner, 2026-10-20): a soft track, corners 12, 38 tall at the default
+/// size; the chosen part is a raised sf pill (corners 9, a faint shadow) that slides to the tap,
+/// at once under Reduce Motion. System 15, semibold on the chosen part. Each part is a tab.
+struct KMeSegmented: View {
+  let theme: KTheme
+  let labels: [String]
+  @Binding var selection: Int
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Namespace private var pill
+
+  var body: some View {
+    HStack(spacing: 0) {
+      ForEach(labels.indices, id: \.self) { i in
+        let on = i == selection
+        SwiftUI.Button {
+          guard !on else { return }
+          if reduceMotion {
+            selection = i
+          } else {
+            withAnimation(.spring(duration: 0.3, bounce: 0.15)) { selection = i }
+          }
+        } label: {
+          Text(labels[i])
+            .kText(.system(15, on ? .semibold : .regular))
+            .foregroundStyle(on ? theme.ink : theme.sub)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, minHeight: 32)
+            .background {
+              if on {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                  .fill(theme.isDark ? theme.lav : theme.sf)
+                  .shadow(color: .black.opacity(theme.isDark ? 0 : 0.10), radius: 3, y: 1)
+                  .matchedGeometryEffect(id: "pill", in: pill)
+              }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? [.isSelected, .isButton] : .isButton)
+      }
+    }
+    .padding(3)
+    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(theme.soft))
   }
 }

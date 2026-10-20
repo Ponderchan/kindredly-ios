@@ -738,8 +738,53 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
           EmptyView()
         }
         KLooksTray(theme: theme, looks: content.looks, a11y: content.a11y, actions: actions)
+        if !content.firstClass.eyebrow.isEmpty {
+          KMeFirstClassBanner(card: content.firstClass) { actions.onFirstClass() }
+        }
       }
     }
+  }
+}
+
+// MARK: - The First Class banner (owner, 2026-10-20)
+
+/// First Class's door now that it left the segments: one row at the foot of the Courier page, cream
+/// paper with a wax-gold edge (dashed while you aren't a member, as the locked look's tile; solid
+/// once you are), FIRST CLASS in gold mono, the card's headline ("More room for your people." /
+/// "You're travelling First Class."), an arrow. It opens what the First Class segment showed.
+struct KMeFirstClassBanner: View {
+  let card: KMeFirstClass
+  let onPress: () -> Void
+
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+    SwiftUI.Button(action: onPress) {
+      HStack(spacing: 12) {
+        Text(card.eyebrow)
+          .textCase(.uppercase)
+          .kText(KMeFirstClassCard.eyebrowStyle)
+          .foregroundStyle(KBrand.goldText)
+          .lineLimit(1)
+          .fixedSize()
+        Text(card.headline)
+          .kText(.system(15))
+          .foregroundStyle(KBrand.inkOnBrand)
+          .lineLimit(2)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        Image(systemName: "arrow.right")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(KBrand.goldText)
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 14)
+      .background(shape.fill(KBrand.cream))
+      .overlay(shape.strokeBorder(KBrand.waxGold, style: StrokeStyle(lineWidth: 1.5, dash: card.member ? [] : [5, 4])))
+      .contentShape(shape)
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel([card.eyebrow, card.headline].filter { !$0.isEmpty }.joined(separator: ". "))
+    .accessibilityAddTraits(.isButton)
   }
 }
 

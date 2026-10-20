@@ -117,7 +117,8 @@ export function buildStampsCard(f: CollectionFacts, fmt: CollectionFormat): KMeS
     yoursSlots: [...f.slots].slice(0, 3),
     madeShow: open,
     madeLabel: t("cs2.me.made"),
-    madeQuota: !q ? "" : q.plan === "free" ? t("cs2.me.quotaFree", { n: Math.max(0, q.made), cap: q.cap ?? 3 }) : t("cs2.me.unlimited"),
+    // a guest (0039, why "account") makes none yet: no count, MAKE ONE leads to sign-up
+    madeQuota: !q || q.why === "account" ? "" : q.plan === "free" ? t("cs2.me.quotaFree", { n: Math.max(0, q.made), cap: q.cap ?? 3 }) : t("cs2.me.unlimited"),
     madeQuotaGold: !!q && q.plan !== "free",
     seeAll: open && f.mine.length > 2 ? t("cs2.me.seeAll") : "",
     makeOne: t("cs2.me.makeOne"),
