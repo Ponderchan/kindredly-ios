@@ -9,7 +9,7 @@ import SwiftUI
  - SF Mono, the system's monospaced design, for the small labels (dates, counts, postmarks,
    eyebrows, section heads, badges) and the send key, at the 10a mono sizes and weights
    (500 and 600). It replaced IBM Plex Mono: the face is .system(size:weight:design: .monospaced),
-   scaled by .kText like the system font. KType.monoMedium / monoSemiBold, the Plex PostScript
+   scaled by .kText like the system font. the Plex PostScript
    names, are left for a later step to remove; nothing draws them;
  - the reader's LETTER font (Settings: Newsreader, the default; New York; EB Garamond; SF Mono)
    for CONTENT: letters, replies, notes, chat bubbles, translations, quotes, the answers in a
@@ -152,10 +152,8 @@ public struct KTextStyle: Equatable, Sendable {
 
 /// Font helpers and the facts about the faces.
 public enum KType {
-  /// the PostScript names of the embedded faces (assets/fonts, app.json ios.fonts). The two
-  /// IBM Plex Mono names are no longer drawn (labels are SF Mono); a later step removes them.
-  public static let monoMedium = "IBMPlexMono-Medium"
-  public static let monoSemiBold = "IBMPlexMono-SemiBold"
+  /// the PostScript names of the embedded faces (assets/fonts, app.json expo-font). Labels are
+  /// SF Mono (the system's), so no mono face is embedded.
   public static let serifRegular = "Newsreader-Regular"
   public static let serifItalic = "Newsreader-Italic"
   /// EB Garamond (see KLetterFace.garamondReady). Only the Regular is embedded, so it has no

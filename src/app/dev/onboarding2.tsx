@@ -119,11 +119,11 @@ export default function DevOnboarding2() {
 
         {done === "1" && (
           <Section title="LAST DEMO RUN">
-            <Text selectable style={{ fontFamily: "IBMPlexMono-Regular", fontSize: 11, color: "#1E1B35" }}>
+            <Text selectable style={{ fontFamily: "ui-monospace", fontSize: 11, color: "#1E1B35" }}>
               {payload ? JSON.stringify(payload, null, 2) : "finish() was not reached"}
             </Text>
             {notes.map((n, i) => (
-              <Text key={i} style={{ fontFamily: "IBMPlexMono-Regular", fontSize: 10.5, color: "#4A4664", marginTop: 2 }}>
+              <Text key={i} style={{ fontFamily: "ui-monospace", fontSize: 10.5, color: "#4A4664", marginTop: 2 }}>
                 {n}
               </Text>
             ))}
@@ -206,7 +206,7 @@ const label = { fontSize: 12, fontWeight: "700" as const, color: "#4A4664", marg
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={{ marginTop: 20 }}>
-      <Text style={{ fontFamily: "IBMPlexMono-SemiBold", fontSize: 11, letterSpacing: 1.4, color: "#5B55FF" }}>{title}</Text>
+      <Text style={{ fontFamily: "ui-monospace", fontWeight: "600", fontSize: 11, letterSpacing: 1.4, color: "#5B55FF" }}>{title}</Text>
       <View style={{ marginTop: 8 }}>{children}</View>
     </View>
   );

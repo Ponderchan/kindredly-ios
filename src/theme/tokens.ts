@@ -44,20 +44,20 @@ export type ColorKey = keyof typeof C;
 export const F = {
   // v20 typography: Fraunces (serif — headings, letter bodies, quotes) +
   // Inter (sans — UI chrome). Recolored to the blue-white palette above.
-  serif: "Fraunces-Regular",
-  serifSemi: "Fraunces-SemiBold",
-  serifItalic: "Fraunces-Italic",
+  serif: "Newsreader-Regular",
+  serifSemi: "Newsreader-Regular",
+  serifItalic: "Newsreader-Italic",
   // letter bodies read in the system font (iOS: SF Pro for latin, PingFang for
   // CJK) — clean and native like Apple Journal, and Chinese renders properly
   // instead of falling back out of a latin-only serif. `undefined` = system.
   letter: undefined as unknown as string,
   letterLight: undefined as unknown as string,
-  letterItalic: "Fraunces-Italic",
-  sans: "Inter-Regular",
-  sansMed: "Inter-Medium",
-  sansSemi: "Inter-SemiBold",
-  sansBold: "Inter-Bold",
-  sansExtra: "Inter-ExtraBold",
+  letterItalic: "Newsreader-Italic",
+  sans: "System",
+  sansMed: "System",
+  sansSemi: "System",
+  sansBold: "System",
+  sansExtra: "System",
 } as const;
 
 /* Soft, low shadows to match the flat product look. */

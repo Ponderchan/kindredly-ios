@@ -86,7 +86,7 @@ export const PF = {
   letter: undefined as unknown as string,
   // OLD (Inter): where you wrote. Fields where someone writes content now
   // take the Letter font (useLetterFamily); don't add uses.
-  writing: "Inter-Regular",
+  writing: "System",
   // a letter between two people — read and written in a text serif
   // (Newsreader: a text face made for long reading on a screen. Fraunces stays
   // the display voice; its ball-terminal f and hooked ligatures are a
@@ -99,8 +99,8 @@ export const PF = {
   letterSerif: "Newsreader-Regular",
   // OLD (Fraunces): not drawn any more; UI moves to the system font, Wren's
   // lines to useLetterFamily(true)
-  serif: "Fraunces-Regular",
-  serifItalic: "Fraunces-Italic",
+  serif: "Newsreader-Regular",
+  serifItalic: "Newsreader-Italic",
 } as const;
 
 /* A panel. What used to be a white card with a radius and a shadow is, in this
