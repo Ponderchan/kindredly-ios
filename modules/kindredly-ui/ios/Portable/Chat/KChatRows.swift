@@ -366,7 +366,13 @@ struct KLetterBlock: View {
   private var indent: CGFloat { item.mine ? Self.mineIndent : 0 }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 0) {
+    VStack(alignment: item.mine ? .trailing : .leading, spacing: 0) {
+      // the live app's caption over the slip: LETTER 2 · NO. 5145 / LETTER 2 · YOU
+      if !item.head.isEmpty && item.kind != .voice {
+        headText
+          .padding(.horizontal, 2)
+          .padding(.bottom, 6)
+      }
       if item.head.isEmpty && !item.speakerLabel.isEmpty {
         // a block with no head line (a builder without the cards): its old label above it, which
         // says whose and when (the row's own label already says so to VoiceOver)
@@ -395,8 +401,8 @@ struct KLetterBlock: View {
       KChatTranslationLine(theme: theme, translation: item.translation, text: item.translationText, strings: strings, maxWidth: .infinity)
     }
     .padding(.leading, indent)
-    .frame(maxWidth: maxWidth, alignment: .leading)
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(maxWidth: maxWidth, alignment: item.mine ? .trailing : .leading)
+    .frame(maxWidth: .infinity, alignment: item.mine ? .trailing : .leading)
     .padding(.bottom, 10)
   }
 
@@ -424,18 +430,17 @@ struct KLetterBlock: View {
 
   /// The head line, the words, and the time at the foot on the right.
   private var textCard: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      headText
+    // as wide as its words (a short line is a small slip), the time at the foot on the right
+    KHugColumn(spacing: 8) {
       Text(item.body)
         .kText(.letterRead(19, lineHeight: 1.35, place: .penPalLetter))
         .foregroundStyle(theme.ink)
         .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
       if !item.timeLabel.isEmpty {
-        timeText.frame(maxWidth: .infinity, alignment: .trailing)
+        timeText
       }
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
     .modifier(KLetterCardFrame(theme: theme, mine: item.mine))
   }
 
@@ -487,12 +492,15 @@ struct KLetterCardFrame: ViewModifier {
   let theme: KTheme
   let mine: Bool
 
-  static let radius: CGFloat = 18
+  /// (owner, 2026-10-20: "the live version's pen-pal messages look good") the live app's paper
+  /// slips: square, a 1pt rule; theirs white with an ink hairline, mine the accent's palest wash
+  /// ruled in lav
+  static let radius: CGFloat = 2
   private static let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
 
   static func fill(_ theme: KTheme, mine: Bool) -> Color {
     guard mine else { return theme.sf }
-    return theme.isDark ? theme.soft2 : theme.soft
+    return theme.lav2
   }
 
   func body(content: Content) -> some View {
@@ -500,9 +508,7 @@ struct KLetterCardFrame: ViewModifier {
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
       .background(Self.shape.fill(Self.fill(theme, mine: mine)))
-      // (owner, 2026-10-20: no black frames) theirs on white keeps a light line so it holds its shape
-      // on the white page; mine is its soft fill alone
-      .overlay(Self.shape.strokeBorder(mine ? Color.clear : theme.line, lineWidth: 1))
+      .overlay(Self.shape.strokeBorder(mine ? theme.lav : theme.ln, lineWidth: 1))
       .contentShape(Self.shape)
   }
 }
@@ -739,5 +745,29 @@ struct KRecallNote: View {
       .accessibilityLabel(item.a11yLabel.isEmpty ? item.body : item.a11yLabel)
       // a quote of a line later taken back still jumps here
       .accessibilityFocused(voFocus, equals: item.key)
+  }
+}
+
+/// A column as wide as its widest child (never wider than offered): the first child at the left,
+/// the last at the right — a pen-pal slip's words and its time under them.
+struct KHugColumn: Layout {
+  var spacing: CGFloat = 8
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let sizes = subviews.map { $0.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil)) }
+    let w = min(sizes.map(\.width).max() ?? 0, proposal.width ?? .infinity)
+    let h = sizes.map(\.height).reduce(0, +) + spacing * CGFloat(max(0, sizes.count - 1))
+    return CGSize(width: w, height: h)
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    var y = bounds.minY
+    for (i, v) in subviews.enumerated() {
+      let size = v.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil))
+      let last = i == subviews.count - 1 && subviews.count > 1
+      let x = last ? bounds.maxX - size.width : bounds.minX
+      v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(width: last ? size.width : bounds.width, height: size.height))
+      y += size.height + spacing
+    }
   }
 }
