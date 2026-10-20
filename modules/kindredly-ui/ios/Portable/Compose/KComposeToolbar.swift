@@ -330,9 +330,11 @@ private struct KComposeTravelKey: View {
         row(key.narrowLabel.isEmpty ? key.label : key.narrowLabel, key: key, fits: false)
       }
       // compose.tsx: padding 17 and 10 inside a 1pt border, which React Native adds to the box
-      .padding(.vertical, 17 + 1)
+      // (owner, 2026-10-20: it stood taller than the keys beside it) 40 tall at the default size,
+      // in step with the 44 row of keys; it still grows with the text at the large sizes
+      .padding(.vertical, 11 + 1)
       .padding(.horizontal, 10 + 1)
-      .frame(maxWidth: .infinity, minHeight: 44)
+      .frame(maxWidth: .infinity, minHeight: 40)
       .background { face(key) }
       .overlay(alignment: .leading) {
         if key.nudge {
