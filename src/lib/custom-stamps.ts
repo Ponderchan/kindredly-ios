@@ -208,10 +208,13 @@ function withPicture(r: ReadRow): CustomStampInfo {
   const { path, version: _v, ...info } = r;
   void _v;
   let url: string | null = null;
-  if (path && wantsPicture(r)) url = signedByPath.get(path)?.url ?? null;
+  /* MY OWN STAMP IS ALREADY ON THIS PHONE (owner, 2026-10-20: the album was slow to show what I had
+     just made). The approved picture this phone sent is the same picture the bucket holds, so it is
+     drawn from here first — no signed link, no download; the server's copy is for stamps made on
+     another phone and for everyone else's. */
+  if (r.mine && r.state === "ok") url = pictureFor(r.uuid);
+  if (!url && path && wantsPicture(r)) url = signedByPath.get(path)?.url ?? null;
   if (!url && r.mine && (r.state === "pending" || r.state === "rejected")) url = originalFor(r.uuid);
-  // my approved stamp without a link (offline, or signing failed): the picture this phone sent
-  if (!url && r.mine && r.state === "ok") url = pictureFor(r.uuid);
   return { ...info, category: info.category as PressCategory, url, key: url ? info.key || `local:${r.uuid}` : "" };
 }
 
