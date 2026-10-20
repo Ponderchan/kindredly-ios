@@ -1,3 +1,4 @@
+import { FC_NONE } from "../../lib/fc-rollout";
 import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Redirect } from "expo-router";
@@ -249,6 +250,7 @@ function MeLab() {
       meFormat(),
     );
     return {
+      fc: FC_NONE,
       view,
       me4a,
       segment,

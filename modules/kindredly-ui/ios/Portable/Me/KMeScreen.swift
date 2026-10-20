@@ -401,6 +401,28 @@ public struct KMeFirstClass: Equatable, Sendable {
   public init() {}
 }
 
+/// First Class by the day (lib/fc-rollout-core decides): the form and every word it shows.
+public struct KMeFcRollout: Equatable, Sendable {
+  /// "none" | "invite" | "seat" | "report" | "tab"
+  public var form = "none"
+  /// the pull-tab on the right edge (with "tab" and "report")
+  public var tab = false
+  public var firstClass = ""
+  public var post = ""
+  public var envelopeA11y = ""
+  public var seatTimer = ""
+  public var seatHead = ""
+  public var seatPerks = ""
+  public var open = ""
+  public var reportEyebrow = ""
+  public var reportSealed = ""
+  public var reportHead = ""
+  public var reportCta = ""
+  public var tabA11y = ""
+
+  public init() {}
+}
+
 /// VoiceOver's words the header and the looks need beyond the records.
 public struct KMeA11yWords: Equatable, Sendable {
   public var expanded = ""
@@ -426,6 +448,8 @@ public struct KMeContent: Equatable, Sendable {
   public var report = KMeReport()
   public var stamps = KMeStamps()
   public var firstClass = KMeFirstClass()
+  /// First Class by the day (the owner's rollout, 2026-10-20): which form shows, and its words
+  public var fc = KMeFcRollout()
   /// VoiceOver's one sentence for the courier card
   public var courierA11y = ""
   public var a11y = KMeA11yWords()
@@ -461,6 +485,8 @@ public final class KMeActions {
   /// the Stamps card (custom stamps): make | fullCta | seeAll | album | stamp (id) | ready (id)
   public var onStamps: (_ action: String, _ id: String) -> Void = { _, _ in }
   public var onFirstClass: () -> Void = {}
+  /// one of the rollout's forms was tapped: "invite" | "seat" | "report" | "tab"
+  public var onFcOpen: (String) -> Void = { _ in }
 
   public init() {}
 }
@@ -654,6 +680,15 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     .overlay(alignment: .bottom) {
       KBottomFade(theme: theme)
     }
+    .overlay {
+      if content.fc.tab {
+        GeometryReader { g in
+          KFcPullTab(fc: content.fc) { actions.onFcOpen("tab") }
+            .position(x: g.size.width - KFcPullTab.size.width / 2, y: g.size.height * 0.52)
+        }
+        .transition(.move(edge: .trailing))
+      }
+    }
     .background { theme.bg.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
     .onChange(of: floor == nil) { _, fits in
@@ -727,6 +762,11 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       KMeFirstClassCard(card: content.firstClass) { actions.onFirstClass() }
     default:
       VStack(alignment: .leading, spacing: Self.gap) {
+        if content.fc.form == "seat" {
+          KFcBoardingPass(fc: content.fc) { actions.onFcOpen("seat") }
+        } else if content.fc.form == "report" {
+          KFcSealedReport(fc: content.fc) { actions.onFcOpen("report") }
+        }
         KCourierFrame(
           theme: theme,
           a11yLabel: content.courierA11y,
@@ -737,54 +777,297 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         } footer: {
           EmptyView()
         }
+        .overlay(alignment: .topTrailing) {
+          if content.fc.form == "invite" {
+            KFcEnvelope(fc: content.fc) { actions.onFcOpen("invite") }
+              .padding(.trailing, 14)
+              .offset(y: -12)
+          }
+        }
         KLooksTray(theme: theme, looks: content.looks, a11y: content.a11y, actions: actions)
-        if !content.firstClass.eyebrow.isEmpty {
-          KMeFirstClassBanner(card: content.firstClass) { actions.onFirstClass() }
+      }
+    }
+  }
+}
+
+// MARK: - First Class by the day (the owner's rollout, 2026-10-20)
+
+/*
+ The owner's "Me First Class Rollout" (D3 / D7 / D30), drawn as its prompts say; every tap goes to
+ our own First Class page (TS: the paywall), never a sheet of its own (owner, 10-20).
+ - D3, the Post's letter: 74 × 50 on the Courier card's top right (14 in, 12 above it), cream with a
+   2 ink edge and corners of 6, a 5pt gold-and-ink stripe along its top, the flap's V in ink, a 14
+   gold wax seal, THE POST in mono 7 gold at its bottom right, a 2/2 ink drop shadow; it bobs 4pt
+   over 3.4s.
+ - D7, the boarding pass: full width over the Courier card, cream, a 2 ink edge, corners 18, a 4/4
+   gold hard shadow, a 14 white notch on its right edge; a 10 wide stripe of gold and ink marching
+   down its left side; ● FIRST CLASS and YOUR WEEK · 48H in mono 9, the serif 20 headline, the
+   perks line and an ink capsule "Open →" that nudges 8pt left every 3s.
+ - D30, the sealed report: white, a 2 ink edge, corners 20, a 4/4 gold shadow; ● YOUR {MONTH}
+   REPORT in mono 10 gold, SEALED in mono 9, the serif 19 headline, a 32 gold capsule with a 1.5
+   ink edge: "Break the seal" and FIRST CLASS.
+ - The pull-tab: 34 × 118 on the right edge at 52% of the page, gold, a 2 ink edge open on the
+   right, corners 14 on the left, a −2/2 ink shadow, ● FIRST CLASS reading upward in mono 9; it
+   nudges 6pt left every 4s; it floats over the page and takes no room.
+ Reduce Motion stills the bob, the march and the nudges.
+ */
+
+struct KFcEnvelope: View {
+  let fc: KMeFcRollout
+  let onPress: () -> Void
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var up = false
+
+  var body: some View {
+    SwiftUI.Button(action: onPress) {
+      ZStack {
+        RoundedRectangle(cornerRadius: 6, style: .continuous).fill(KBrand.cream)
+        VStack(spacing: 0) {
+          KFcStripe(width: 74, height: 5)
+          Spacer(minLength: 0)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        Path { p in
+          p.move(to: CGPoint(x: 2, y: 7))
+          p.addLine(to: CGPoint(x: 37, y: 29))
+          p.addLine(to: CGPoint(x: 72, y: 7))
+        }
+        .stroke(KBrand.inkOnBrand, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+        Circle().fill(KBrand.waxGold)
+          .overlay(Circle().strokeBorder(KBrand.inkOnBrand, lineWidth: 1.5))
+          .frame(width: 14, height: 14)
+          .position(x: 37, y: 29)
+        Text(fc.post)
+          .font(.system(size: 7, weight: .semibold, design: .monospaced))
+          .foregroundStyle(KBrand.goldText)
+          .position(x: 50, y: 43)
+        RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(KBrand.inkOnBrand, lineWidth: 2)
+      }
+      .frame(width: 74, height: 50)
+      .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(KBrand.inkOnBrand).offset(x: 2, y: 2))
+      .offset(y: up ? -4 : 0)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityLabel(fc.envelopeA11y)
+    .onAppear {
+      guard !reduceMotion else { return }
+      withAnimation(.easeInOut(duration: 1.7).repeatForever(autoreverses: true)) { up = true }
+    }
+  }
+}
+
+/// gold and ink stripes at 135°, 7 each; `march` moves them along
+struct KFcStripe: View {
+  /// nil: the size it's given (a background)
+  var width: CGFloat? = nil
+  var height: CGFloat? = nil
+  var march: CGFloat = 0
+
+  var body: some View {
+    Canvas { ctx, size in
+      ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(KBrand.waxGold))
+      let step: CGFloat = 14
+      var x = -size.height - step + march.truncatingRemainder(dividingBy: step)
+      while x < size.width + size.height {
+        var p = Path()
+        p.move(to: CGPoint(x: x + 7, y: 0))
+        p.addLine(to: CGPoint(x: x + 14, y: 0))
+        p.addLine(to: CGPoint(x: x + 14 - size.height, y: size.height))
+        p.addLine(to: CGPoint(x: x + 7 - size.height, y: size.height))
+        p.closeSubpath()
+        ctx.fill(p, with: .color(KBrand.inkOnBrand))
+        x += step
+      }
+    }
+    .frame(width: width, height: height)
+  }
+}
+
+/// a capsule that slides 8pt left and back every `every` seconds (still under Reduce Motion)
+struct KFcNudge: ViewModifier {
+  let every: Double
+  var distance: CGFloat = 8
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  func body(content: Content) -> some View {
+    if reduceMotion {
+      content
+    } else {
+      TimelineView(.periodic(from: .now, by: every)) { ctx in
+        content.keyframeAnimator(initialValue: CGFloat(0), trigger: ctx.date) { v, x in
+          v.offset(x: x)
+        } keyframes: { _ in
+          KeyframeTrack {
+            CubicKeyframe(-distance, duration: 0.25)
+            CubicKeyframe(0, duration: 0.35)
+          }
         }
       }
     }
   }
 }
 
-// MARK: - The First Class banner (owner, 2026-10-20)
-
-/// First Class's door now that it left the segments: one row at the foot of the Courier page, cream
-/// paper with a wax-gold edge (dashed while you aren't a member, as the locked look's tile; solid
-/// once you are), FIRST CLASS in gold mono, the card's headline ("More room for your people." /
-/// "You're travelling First Class."), an arrow. It opens what the First Class segment showed.
-struct KMeFirstClassBanner: View {
-  let card: KMeFirstClass
+struct KFcBoardingPass: View {
+  let fc: KMeFcRollout
   let onPress: () -> Void
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
-    let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+    let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
     SwiftUI.Button(action: onPress) {
-      HStack(spacing: 12) {
-        Text(card.eyebrow)
-          .textCase(.uppercase)
-          .kText(KMeFirstClassCard.eyebrowStyle)
-          .foregroundStyle(KBrand.goldText)
-          .lineLimit(1)
-          .fixedSize()
-        Text(card.headline)
-          .kText(.system(15))
-          .foregroundStyle(KBrand.inkOnBrand)
-          .lineLimit(2)
-          .frame(maxWidth: .infinity, alignment: .leading)
-        Image(systemName: "arrow.right")
-          .font(.system(size: 15, weight: .semibold))
-          .foregroundStyle(KBrand.goldText)
+      HStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
+          HStack {
+            Text("● " + fc.firstClass.uppercased())
+              .kText(.mono(9, .semibold, tracking: 0.12))
+              .foregroundStyle(KBrand.goldText)
+            Spacer(minLength: 8)
+            Text(fc.seatTimer)
+              .kText(.mono(9, .semibold, tracking: 0.1))
+              .foregroundStyle(KBrand.subOnCream)
+          }
+          Text(fc.seatHead)
+            .kText(.letter(20, lineHeight: 1.15))
+            .foregroundStyle(KBrand.inkOnBrand)
+            .fixedSize(horizontal: false, vertical: true)
+          HStack(spacing: 10) {
+            Text(fc.seatPerks)
+              .kText(.system(12))
+              .foregroundStyle(KBrand.subOnCream)
+              .lineLimit(1)
+              .truncationMode(.tail)
+              .frame(maxWidth: .infinity, alignment: .leading)
+            Text(fc.open + " →")
+              .kText(.system(13, .semibold))
+              .foregroundStyle(KBrand.paperWhite)
+              .padding(.horizontal, 14)
+              .frame(height: 28)
+              .background(Capsule().fill(KBrand.inkOnBrand))
+              .modifier(KFcNudge(every: 3))
+          }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
       }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 14)
-      .background(shape.fill(KBrand.cream))
-      .overlay(shape.strokeBorder(KBrand.waxGold, style: StrokeStyle(lineWidth: 1.5, dash: card.member ? [] : [5, 4])))
+      .padding(.leading, 10)
+      .background(alignment: .leading) {
+        // the stripe down the left side, marching (its size is the card's, never asked for)
+        TimelineView(.animation(paused: reduceMotion)) { ctx in
+          let t = ctx.date.timeIntervalSinceReferenceDate
+          KFcStripe(march: CGFloat((t / 1.6).truncatingRemainder(dividingBy: 1)) * 14)
+        }
+        .frame(width: 10)
+      }
+      .background(KBrand.cream)
+      .clipShape(shape)
+      .overlay(shape.strokeBorder(KBrand.inkOnBrand, lineWidth: 2))
+      .overlay(alignment: .trailing) {
+        Circle().fill(KBrand.paperWhite)
+          .overlay(Circle().strokeBorder(KBrand.inkOnBrand, lineWidth: 2))
+          .frame(width: 14, height: 14)
+          .offset(x: 7)
+      }
+      .background(shape.fill(KBrand.waxGold).offset(x: 4, y: 4))
       .contentShape(shape)
     }
     .buttonStyle(KFadePressStyle())
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel([card.eyebrow, card.headline].filter { !$0.isEmpty }.joined(separator: ". "))
+    .accessibilityLabel([fc.firstClass, fc.seatHead, fc.seatPerks].joined(separator: ". "))
     .accessibilityAddTraits(.isButton)
+  }
+}
+
+struct KFcSealedReport: View {
+  let fc: KMeFcRollout
+  let onPress: () -> Void
+
+  var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+    SwiftUI.Button(action: onPress) {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack {
+          Text("● " + fc.reportEyebrow)
+            .kText(.mono(10, .semibold, tracking: 0.14))
+            .foregroundStyle(KBrand.goldText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+          Spacer(minLength: 8)
+          Text(fc.reportSealed)
+            .kText(.mono(9, .semibold, tracking: 0.12))
+            .foregroundStyle(KBrand.subOnCream)
+        }
+        Text(fc.reportHead)
+          .kText(.letter(19, lineHeight: 1.15))
+          .foregroundStyle(KBrand.inkOnBrand)
+          .fixedSize(horizontal: false, vertical: true)
+        HStack(spacing: 8) {
+          Text(fc.reportCta)
+            .kText(.system(13, .semibold))
+          Text(fc.firstClass.uppercased())
+            .kText(.mono(8, .semibold, tracking: 0.12))
+            .opacity(0.75)
+        }
+        .foregroundStyle(KBrand.inkOnBrand)
+        .padding(.horizontal, 14)
+        .frame(height: 32)
+        .background(Capsule().fill(KBrand.waxGold))
+        .overlay(Capsule().strokeBorder(KBrand.inkOnBrand, lineWidth: 1.5))
+        .padding(.top, 2)
+      }
+      .padding(.vertical, 14)
+      .padding(.horizontal, 16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(shape.fill(KBrand.paperWhite))
+      .overlay(shape.strokeBorder(KBrand.inkOnBrand, lineWidth: 2))
+      .background(shape.fill(KBrand.waxGold).offset(x: 4, y: 4))
+      .contentShape(shape)
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel([fc.reportEyebrow, fc.reportSealed, fc.reportHead, fc.reportCta].joined(separator: ". "))
+    .accessibilityAddTraits(.isButton)
+  }
+}
+
+struct KFcPullTab: View {
+  static let size = CGSize(width: 34, height: 118)
+  let fc: KMeFcRollout
+  let onPress: () -> Void
+
+  var body: some View {
+    let shape = UnevenRoundedRectangle(topLeadingRadius: 14, bottomLeadingRadius: 14, style: .continuous)
+    SwiftUI.Button(action: onPress) {
+      Text("● " + fc.firstClass.uppercased())
+        .kText(.mono(9, .semibold, tracking: 0.2))
+        .foregroundStyle(KBrand.inkOnBrand)
+        .fixedSize()
+        .rotationEffect(.degrees(-90))
+        .frame(width: Self.size.width, height: Self.size.height)
+        .background(shape.fill(KBrand.waxGold))
+        .overlay(KFcTabEdge().stroke(KBrand.inkOnBrand, lineWidth: 2))
+        .background(shape.fill(KBrand.inkOnBrand).offset(x: -2, y: 2))
+        .contentShape(shape)
+        .modifier(KFcNudge(every: 4, distance: 6))
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityLabel(fc.tabA11y)
+  }
+}
+
+/// the pull-tab's edge: top, left (rounded 14) and bottom, open on the right
+struct KFcTabEdge: Shape {
+  func path(in r: CGRect) -> Path {
+    let rad: CGFloat = 14
+    let i: CGFloat = 1
+    var p = Path()
+    p.move(to: CGPoint(x: r.maxX + 2, y: r.minY + i))
+    p.addLine(to: CGPoint(x: r.minX + rad, y: r.minY + i))
+    p.addArc(center: CGPoint(x: r.minX + rad, y: r.minY + rad), radius: rad - i, startAngle: .degrees(-90), endAngle: .degrees(180), clockwise: true)
+    p.addLine(to: CGPoint(x: r.minX + i, y: r.maxY - rad))
+    p.addArc(center: CGPoint(x: r.minX + rad, y: r.maxY - rad), radius: rad - i, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
+    p.addLine(to: CGPoint(x: r.maxX + 2, y: r.maxY - i))
+    return p
   }
 }
 

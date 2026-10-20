@@ -6,6 +6,7 @@ import {
   type KMeAura,
   type KMeCommands,
   type KMeFirstClass,
+  type KMeFcRollout,
   type KMeLooks,
   type KMePeekKindreds,
   type KMePeekLetters,
@@ -181,7 +182,7 @@ export function MeNative({ model }: { model: MeModel }) {
   const { width } = useWindowDimensions();
   const ref = useRef<KScreenHandle>(null);
   const commands = useKCommands<KMeCommands>(ref);
-  const { view, me4a, act, courier, aura, avatar, segment } = model;
+  const { view, me4a, act, courier, aura, avatar, segment, fc } = model;
 
   // pressing Me again while on it: to the top (the Me stack has popped itself to this page)
   const served = useRef(model.scroll.serial);
@@ -238,7 +239,13 @@ export function MeNative({ model }: { model: MeModel }) {
       [me4a.firstClass, fcBird],
     ),
   );
-  const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass);
+  /* First Class by the day (lib/fc-rollout): the record without the courier's words */
+  const { courierLine: _cl, courierSub: _cs, ...fcRecord } = fc.view;
+  void _cl;
+  void _cs;
+  const fcSent = useSameContent<KMeFcRollout>(fcRecord);
+  const fcOpen = fc.open;
+  const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass, fcSent);
 
   // a free reader's First Class look and "All looks →": the First Class segment, shown as its
   // chip would (Swift reports it back through onSegment); a member's: her wardrobe
@@ -292,6 +299,8 @@ export function MeNative({ model }: { model: MeModel }) {
         onStampsEmpty={act.stampsEmpty}
         onStamps={collection.onCard}
         onFirstClass={act.firstClass}
+        fc={fcSent}
+        onFcOpen={fcOpen}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
           {/* stamped (C2), the island is drawn square: Swift scales it to the stamp's inner side

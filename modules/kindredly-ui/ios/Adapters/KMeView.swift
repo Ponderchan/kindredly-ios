@@ -67,6 +67,7 @@ import ExpoUI
  - onMeStampsEmpty {}          "Write a letter" under no stamps
  - onMeStamps { action, id }   the Stamps card: make | fullCta | seeAll | album | stamp (id) | ready (id)
  - onMeFirstClass {}           the First Class card
+ - onMeFcOpen { form }          a First Class rollout form (invite | seat | report | tab)
 
  Unknown enum strings fall back rather than fail (a meter kind draws the ticks, a peek state the
  skeleton, a tone the quiet colour), as KTabBarView does. This file imports ExpoUI, whose public
@@ -420,6 +421,42 @@ struct KMeFirstClassRecord: Record {
   }
 }
 
+struct KMeFcRolloutRecord: Record {
+  @Field var form: String = "none"
+  @Field var tab: Bool = false
+  @Field var firstClass: String = ""
+  @Field var post: String = ""
+  @Field var envelopeA11y: String = ""
+  @Field var seatTimer: String = ""
+  @Field var seatHead: String = ""
+  @Field var seatPerks: String = ""
+  @Field var open: String = ""
+  @Field var reportEyebrow: String = ""
+  @Field var reportSealed: String = ""
+  @Field var reportHead: String = ""
+  @Field var reportCta: String = ""
+  @Field var tabA11y: String = ""
+
+  var fc: KMeFcRollout {
+    var f = KMeFcRollout()
+    f.form = form
+    f.tab = tab
+    f.firstClass = firstClass
+    f.post = post
+    f.envelopeA11y = envelopeA11y
+    f.seatTimer = seatTimer
+    f.seatHead = seatHead
+    f.seatPerks = seatPerks
+    f.open = open
+    f.reportEyebrow = reportEyebrow
+    f.reportSealed = reportSealed
+    f.reportHead = reportHead
+    f.reportCta = reportCta
+    f.tabA11y = tabA11y
+    return f
+  }
+}
+
 final class KMeViewProps: KScreenProps {
   @Field var strings: KMeStringsRecord = KMeStringsRecord()
   @Field var profile: KMeProfileRecord = KMeProfileRecord()
@@ -430,6 +467,7 @@ final class KMeViewProps: KScreenProps {
   @Field var report: KMeReportRecord = KMeReportRecord()
   @Field var stamps: KMeStampsRecord = KMeStampsRecord()
   @Field var firstClass: KMeFirstClassRecord = KMeFirstClassRecord()
+  @Field var fc: KMeFcRolloutRecord = KMeFcRolloutRecord()
   @Field var initialSegment: Int = 0
 
   var onMeSettings = EventDispatcher()
@@ -451,6 +489,7 @@ final class KMeViewProps: KScreenProps {
   var onMeStampsEmpty = EventDispatcher()
   var onMeStamps = EventDispatcher()
   var onMeFirstClass = EventDispatcher()
+  var onMeFcOpen = EventDispatcher()
 
   /// The scroll and segment requests: as long-lived as the view, like `commands`.
   let driver = KMeDriver()
@@ -477,6 +516,7 @@ final class KMeViewProps: KScreenProps {
     a.onStampsEmpty = { [weak self] in self?.onMeStampsEmpty() }
     a.onStamps = { [weak self] action, id in self?.onMeStamps(["action": action, "id": id]) }
     a.onFirstClass = { [weak self] in self?.onMeFirstClass() }
+    a.onFcOpen = { [weak self] form in self?.onMeFcOpen(["form": form]) }
     return a
   }()
 
@@ -496,6 +536,7 @@ final class KMeViewProps: KScreenProps {
       c.report = report.report
       c.stamps = stamps.stamps
       c.firstClass = firstClass.firstClass
+      c.fc = fc.fc
       return c
     }
   }

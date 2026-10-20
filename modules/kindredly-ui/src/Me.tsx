@@ -172,6 +172,25 @@ export type KMeFirstClass = {
   member: boolean;
 };
 
+/** First Class by the day (src/lib/fc-rollout): the form on the page and its words. */
+export type KMeFcRollout = {
+  form: "none" | "invite" | "seat" | "report" | "tab";
+  /** the pull-tab on the right edge (with tab and report) */
+  tab: boolean;
+  firstClass: string;
+  post: string;
+  envelopeA11y: string;
+  seatTimer: string;
+  seatHead: string;
+  seatPerks: string;
+  open: string;
+  reportEyebrow: string;
+  reportSealed: string;
+  reportHead: string;
+  reportCta: string;
+  tabA11y: string;
+};
+
 export type KMeStrings = {
   settingsLabel: string;
   courierA11y: string;
@@ -203,6 +222,8 @@ export type KMeViewProps = CommonViewModifierProps &
     report: KMeReport;
     stamps: KMeStamps;
     firstClass: KMeFirstClass;
+    /** First Class by the day; leave it out for none */
+    fc?: KMeFcRollout;
     /** the segment to open on (read when the view first draws) */
     initialSegment: number;
     onSettings?: () => void;
@@ -225,6 +246,8 @@ export type KMeViewProps = CommonViewModifierProps &
     /** the Stamps card (custom stamps): `id` for stamp / ready, "" otherwise */
     onStamps?: (action: KMeStampsAction, id: string) => void;
     onFirstClass?: () => void;
+    /** a First Class rollout form was tapped */
+    onFcOpen?: (form: KMeFcRollout["form"]) => void;
     /** the three <KIsland>s: avatar, courier, auraArt (see the top) */
     children?: ReactNode;
   };
@@ -253,7 +276,8 @@ type EventProps =
   | "onReport"
   | "onStampsEmpty"
   | "onStamps"
-  | "onFirstClass";
+  | "onFirstClass"
+  | "onFcOpen";
 
 type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | EventProps> &
   Required<Pick<KMeViewProps, "letterFont" | "insets" | "rev">> & {
@@ -280,8 +304,10 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     onMeStampsEmpty?: None;
     onMeStamps?: Ev<{ action: KMeStampsAction; id: string }>;
     onMeFirstClass?: None;
+    onMeFcOpen?: Ev<{ form: KMeFcRollout["form"] }>;
   };
 
+const NO_FC: KMeFcRollout = { form: "none", tab: false, firstClass: "", post: "", envelopeA11y: "", seatTimer: "", seatHead: "", seatPerks: "", open: "", reportEyebrow: "", reportSealed: "", reportHead: "", reportCta: "", tabA11y: "" };
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
 const image = (r: KImageRefProps | null | undefined): NativeImage => (r ? { uri: r.uri, key: r.key, kind: r.kind ?? "image" } : NO_IMAGE);
@@ -321,6 +347,8 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
     onStampsEmpty,
     onStamps,
     onFirstClass,
+    onFcOpen,
+    fc,
     ...rest
   },
   ref,
@@ -344,6 +372,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
       peekKindreds={sentKindreds}
       looks={sentLooks}
       firstClass={sentFirstClass}
+      fc={fc ?? NO_FC}
       onMeSettings={onSettings ? () => onSettings() : undefined}
       onMeEdit={onEdit ? () => onEdit() : undefined}
       onMePeek={onPeek ? (e) => onPeek(e.nativeEvent.key, e.nativeEvent.open) : undefined}
@@ -363,6 +392,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
       onMeStampsEmpty={onStampsEmpty ? () => onStampsEmpty() : undefined}
       onMeStamps={onStamps ? (e) => onStamps(e.nativeEvent.action, e.nativeEvent.id) : undefined}
       onMeFirstClass={onFirstClass ? () => onFirstClass() : undefined}
+      onMeFcOpen={onFcOpen ? (e) => onFcOpen(e.nativeEvent.form) : undefined}
     />
   );
 });

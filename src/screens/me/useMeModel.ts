@@ -24,7 +24,8 @@ import { loadJournal } from "../../lib/journal";
 import { loadShelf, mint, unseen, type Minted } from "../../lib/keepsakes";
 import { keepsake } from "../../data/keepsakes";
 import { getStamp, sname } from "../../data/stamps";
-import { isCustomStampId, useCustomStamps } from "../../lib/custom-stamps";
+import { isCustomStampId, useCustomStamps, useMyCustomStamps } from "../../lib/custom-stamps";
+import { useFcRollout } from "../../lib/fc-rollout";
 import { daylight } from "../../components/CourierCard";
 import { auraCardFacts } from "../../components/AuraCard";
 import type { WrenStage } from "../../components/WrenBird";
@@ -159,6 +160,8 @@ export type MeModel = {
   /** pressing Me again: scroll to the top (the serial makes two presses two scrolls) */
   scroll: { serial: number };
   act: MeActions;
+  /** First Class by the day: the form, its words, and its tap */
+  fc: ReturnType<typeof useFcRollout>;
 };
 
 /* the segment lasts while the app is open; a fresh launch opens Courier */
@@ -507,15 +510,25 @@ export function useMeModel(): MeModel {
     [router, dress],
   );
 
-  const courier = useMemo<MeCourier>(
-    () => ({ wren, where, threads, lastWrittenAt, hunger, seenToday: seenTodayN, stage: stageFloor, dayOff, best, entry }),
-    [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageFloor, dayOff, best, entry],
+  /* First Class by the day (the owner's rollout, 2026-10-20; lib/fc-rollout): which form the page
+     shows; every one opens our own First Class page, tagged with its form */
+  const { quota: stampQuota } = useMyCustomStamps();
+  const letterDates = useMemo(() => (writing ? writing.map((w) => w.created_at) : null), [writing]);
+  const fc = useFcRollout(
+    { premium, createdAt: user?.created_at ?? null, letterDates, penPals: threadsIn ? threads.length : 0, stampsMade: stampQuota?.made ?? 0 },
+    useCallback((src: string) => router.push(`/paywall?src=${src}`), [router]),
   );
+
+  const courier = useMemo<MeCourier>(() => {
+    // while the Post's letter waits, Wren's line on the card is about it
+    const invite = fc.view.courierLine ? { ...entry, line: fc.view.courierLine, sub: fc.view.courierSub } : entry;
+    return { wren, where, threads, lastWrittenAt, hunger: fc.view.courierLine ? null : hunger, seenToday: seenTodayN, stage: stageFloor, dayOff, best, entry: invite };
+  }, [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageFloor, dayOff, best, entry, fc.view.courierLine, fc.view.courierSub]);
 
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
   const avatar = useMemo(() => ({ id: avatarId, photo, seed }), [avatarId, photo, seed]);
   const scroll = useMemo(() => ({ serial: scrollSerial }), [scrollSerial]);
 
-  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act };
+  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc };
 }
