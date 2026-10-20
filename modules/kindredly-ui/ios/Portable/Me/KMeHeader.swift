@@ -11,7 +11,8 @@ import SwiftUI
      scaled, never re-laid out) with a 24 white pencil badge at its bottom right (a 1.5 line
      outline, the pen at 15); the name, system 600 22/1.1, 8 over "joined Jul 27" (13, sub);
      the gear, 22 at stroke 1.9 in a 36 circle (O3: a gear, never sliders).
-   row 2, 10 lower: two buttons side by side, 8 apart, 46 tall (KMeStatButton).
+   (2026-10-20, owner) no row 2: "12 letters · 4 kindreds" is a line between the name and joined,
+     each half opening its peek tray.
    the peek tray, 10 lower, when one is open (KMePeekTray).
    the segmented control (Courier, Aura, Stamps), 20 lower and 2 above the page (KMeSegmented).
 
@@ -77,18 +78,19 @@ struct KMeHeaderBody<Avatar: View>: View {
   @State private var chipsHeight: CGFloat = 40
 
   // 4a's heights, scaled with the text (capped at xxxLarge by KMeHeader)
-  @ScaledMetric(relativeTo: .body) private var row1Open: CGFloat = 76
+  @ScaledMetric(relativeTo: .body) private var row1Open: CGFloat = 80
   @ScaledMetric(relativeTo: .body) private var row1Shut: CGFloat = 52
   @ScaledMetric(relativeTo: .body) private var row2: CGFloat = 46
   @ScaledMetric(relativeTo: .title2) private var nameBase: CGFloat = 22
-  @ScaledMetric(relativeTo: .footnote) private var joinedLine: CGFloat = 22
+  @ScaledMetric(relativeTo: .footnote) private var joinedLine: CGFloat = 18
+  @ScaledMetric(relativeTo: .subheadline) private var statsLineHeight: CGFloat = 22
 
   static var topPad: CGFloat { 6 }
   static var side: CGFloat { 20 }
   static var row2Margin: CGFloat { 10 }
   /// row 2's padding-bottom at k = 0 and 1 (its room never goes under it: max(46(1−k), 18−10k))
   static var row2Floor: (open: CGFloat, shut: CGFloat) { (18, 8) }
-  static var chipsTop: (open: CGFloat, shut: CGFloat) { (20, 4) }
+  static var chipsTop: (open: CGFloat, shut: CGFloat) { (18, 8) }
   // the segmented control has no shadow to make room for; with the page's 12 this puts it 14 over the card,
   // nearer the card it switches than the stat buttons (20 above) — owner, 10-20
   static var chipsBottom: CGFloat { 2 }
@@ -107,8 +109,10 @@ struct KMeHeaderBody<Avatar: View>: View {
 
   private var metrics: KMeHeaderMetrics {
     let peekRoom = peek != nil && peekHeight > 0 ? Self.peekMargin + peekHeight : 0
-    let expanded = Self.topPad + row1Open + Self.row2Margin + max(row2, Self.row2Floor.open) + peekRoom + Self.chipsTop.open + chipsHeight + Self.chipsBottom
-    let shut = Self.topPad + row1Shut + Self.row2Floor.shut + peekRoom + Self.chipsTop.shut + chipsHeight + Self.chipsBottom
+    // (owner, 2026-10-20) no row 2: the counts are a line under the name, so the tabs are the one
+    // control row under the profile
+    let expanded = Self.topPad + row1Open + peekRoom + Self.chipsTop.open + chipsHeight + Self.chipsBottom
+    let shut = Self.topPad + row1Shut + peekRoom + Self.chipsTop.shut + chipsHeight + Self.chipsBottom
     return KMeHeaderMetrics(expanded: expanded, delta: max(0, expanded - shut))
   }
 
@@ -117,7 +121,6 @@ struct KMeHeaderBody<Avatar: View>: View {
     VStack(alignment: .leading, spacing: 0) {
       row1(k)
         .frame(height: Self.lerp(row1Open, row1Shut, k))
-      row2View(k)
       if let peek {
         tray(peek)
           .padding(.top, Self.peekMargin)
@@ -168,13 +171,19 @@ struct KMeHeaderBody<Avatar: View>: View {
       .accessibilityLabel(content.profile.editLabel)
       .accessibilityAddTraits(.isButton)
 
-      VStack(alignment: .leading, spacing: Self.lerp(8, 0, k)) {
+      VStack(alignment: .leading, spacing: Self.lerp(4, 0, k)) {
         Text(content.profile.name)
           .font(.system(size: nameSize, weight: .semibold))
           .foregroundStyle(theme.ink)
           .lineLimit(1)
           .minimumScaleFactor(0.7)
           .accessibilityAddTraits(.isHeader)
+        statsLine
+          .frame(height: statsLineHeight * (1 - k), alignment: .top)
+          .clipped()
+          .opacity(1 - min(1, 1.6 * k))
+          .allowsHitTesting(k < 0.3)
+          .accessibilityHidden(k > 0.5)
         if !content.profile.joined.isEmpty {
           Text(content.profile.joined)
             .kText(.system(13))
@@ -232,7 +241,52 @@ struct KMeHeaderBody<Avatar: View>: View {
     }
   }
 
-  // ── row 2: the two buttons ───────────────────────────────────────────
+  // ── the counts, a line under the name (owner, 2026-10-20) ────────────
+  // "12 letters · 4 kindreds": the figure in ink, semibold, the word in sub, 15. Each half opens its
+  // peek tray as the stat buttons did; open, its figure and word take the tray's colour (letters
+  // ind, kindreds green) and a small chevron turns over after it.
+  private var statsLine: some View {
+    HStack(spacing: 6) {
+      ForEach(Array(content.profile.stats.enumerated()), id: \.element.id) { i, stat in
+        if i > 0 {
+          Text("·").kText(.system(15)).foregroundStyle(theme.faint).accessibilityHidden(true)
+        }
+        let key = KMePeek(rawValue: stat.key) ?? .letters
+        let open = peek == key
+        let tint: Color = key == .letters ? theme.ind : KBrand.greenText
+        SwiftUI.Button {
+          setPeek(open ? nil : key)
+        } label: {
+          HStack(spacing: 4) {
+            Text(stat.count)
+              .kText(.system(15, .semibold))
+              .foregroundStyle(open ? tint : theme.ink)
+            Text(stat.unit)
+              .kText(.system(15))
+              .foregroundStyle(open ? tint : theme.sub)
+            KLineIcon(.chevronDown, size: 10, lineWidth: 2.4, color: open ? tint : theme.faint)
+              .rotationEffect(.degrees(open ? 180 : 0))
+              .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: open)
+          }
+          .lineLimit(1)
+          .fixedSize()
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stat.a11yLabel)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityValue(open ? content.a11y.expanded : content.a11y.collapsed)
+        .accessibilityHint(stat.hint)
+        .accessibilityAction(named: Text(key == .letters ? content.a11y.seeAllAction : content.a11y.openKindredsAction)) {
+          if key == .letters { actions.onSeeAll() } else { actions.onOpenKindreds() }
+        }
+      }
+    }
+    .minimumScaleFactor(0.75)
+  }
+
+  // ── row 2: the two buttons (unused since 2026-10-20; kept for 4a's record) ──
   private func row2View(_ k: CGFloat) -> some View {
     let room = max(row2 * (1 - k), Self.lerp(Self.row2Floor.open, Self.row2Floor.shut, k))
     let shown = 1 - min(1, 1.6 * k)
