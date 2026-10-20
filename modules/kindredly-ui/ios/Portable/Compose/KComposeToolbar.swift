@@ -81,21 +81,24 @@ struct KComposeToolbar: View {
       .disabled(content.mode == .speak)
       .opacity(content.mode == .speak ? 0.4 : 1)
 
-      KComposeIconKey(
-        theme: theme,
-        accessibilityLabel: content.stamp?.accessibilityLabel ?? content.strings.stampLabel,
-        selected: content.tray == .stamps,
-        dot: false
-      ) {
-        driver.blurAll()
-        actions.onTray(.stamps)
-      } glyph: {
-        if let stamp = content.stamp {
-          // the chosen stamp itself, flat (D11)
-          KStamp(id: stamp.id, width: KComposeKeySize.stamp, dark: theme.isDark, fallbackHex: stamp.hex.isEmpty ? nil : stamp.hex)
-            .id(stamp.id)
-            .transition(.scale(scale: 0.6).combined(with: .opacity))
-        } else {
+      if let stamp = content.stamp {
+        // (owner, 2026-10-20: "the live one") once chosen, the stamp's #name as the live app's pill:
+        // its wash, its rule, its ink — the stamp itself sits in the header's slot
+        KComposeStampPill(stamp: stamp) {
+          driver.blurAll()
+          actions.onTray(.stamps)
+        }
+        .transition(.scale(scale: 0.8).combined(with: .opacity))
+      } else {
+        KComposeIconKey(
+          theme: theme,
+          accessibilityLabel: content.strings.stampLabel,
+          selected: content.tray == .stamps,
+          dot: false
+        ) {
+          driver.blurAll()
+          actions.onTray(.stamps)
+        } glyph: {
           KStampKeyGlyph(open: content.tray == .stamps, ink: theme.ink, pencil: KBrand.waxGold)
             .frame(width: KComposeKeySize.glyph, height: KComposeKeySize.glyph)
         }
@@ -514,5 +517,35 @@ private struct KStampKeyPiece: Shape {
     let s = min(rect.width, rect.height) / 24
     let place = CGAffineTransform(a: s, b: 0, c: 0, d: s, tx: rect.midX - 12 * s, ty: rect.midY - 12 * s)
     return KSVGPath.path(d).applying(place)
+  }
+}
+
+/// The chosen stamp's #name, the live app's pill: 44 tall, fully round, the stamp's wash with a 2pt
+/// rule in its line colour, "#name" in Plex Mono 500 11.5 in its ink; it hugs a short name and stops
+/// a long one at 148, where the name shrinks. No hard shadow (owner, 2026-10-20). Tapping it opens
+/// the stamps again.
+private struct KComposeStampPill: View {
+  static let maxWidth: CGFloat = 148
+  let stamp: KComposeStamp
+  let action: () -> Void
+
+  var body: some View {
+    SwiftUI.Button(action: action) {
+      Text(stamp.name)
+        .composeText(.pillName)
+        .foregroundStyle(stamp.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.68)
+        .padding(.horizontal, 14)
+        .frame(height: KComposeKeySize.target)
+        .frame(maxWidth: Self.maxWidth)
+        .fixedSize(horizontal: true, vertical: false)
+        .background(Capsule().fill(stamp.wash))
+        .overlay(Capsule().strokeBorder(stamp.line, lineWidth: 2))
+        .contentShape(Capsule())
+    }
+    .buttonStyle(KComposeKeyPressStyle())
+    .layoutPriority(1)
+    .accessibilityLabel(stamp.accessibilityLabel)
   }
 }
