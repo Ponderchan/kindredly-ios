@@ -300,8 +300,15 @@ export async function publishLetter(
   }
   const id = await writer();
   if (!id) return null;
+  /* THE LETTER KNOWS ITS OWN ID BEFORE IT LEAVES (owner's phone, 2026-10-20: "Couldn't send"
+     twice, and both letters were in the pool — 22:42:53 and 22:49:38). The insert reached the
+     server and landed; its answer didn't make it back in time, so the phone called it a failure
+     and the writer was asked to send it again (a second copy). The id is now made here, and a
+     failed or timed-out insert asks once whether that id is in the pool before it says no. */
+  const letterId = newLetterId();
   try {
     const row = {
+      id: letterId,
       author: id,
       stamp: stamp || "off-chest",
       body: String(body).slice(0, 2000),
@@ -314,9 +321,48 @@ export async function publishLetter(
       console.warn("[db] letters.paper is missing (0041 not run): sending the letter as plain", error);
       ({ data, error } = await insert(row));
     }
-    return error ? (noteFail(error) as null) : ((data as { id: string } | null)?.id ?? null);
+    if (!error) return (data as { id: string } | null)?.id ?? letterId;
+    if (await letterLanded(letterId)) {
+      console.warn("[db] the letter's insert answered with an error, but the letter is in the pool:", error);
+      return letterId;
+    }
+    return noteFail(error) as null;
   } catch (e) {
+    if (await letterLanded(letterId)) {
+      console.warn("[db] the letter's insert never answered, but the letter is in the pool:", e);
+      return letterId;
+    }
     return noteFail(e);
+  }
+}
+
+/** a v4 uuid for a new letter (ids only need to be unique, not secret) */
+function newLetterId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  const hex = "0123456789abcdef";
+  let s = "";
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) s += "-";
+    else if (i === 14) s += "4";
+    else if (i === 19) s += hex[8 + Math.floor(Math.random() * 4)];
+    else s += hex[Math.floor(Math.random() * 16)];
+  }
+  return s;
+}
+
+/** whether a letter with this id is in the pool (after an insert whose answer was lost); false when that can't be told */
+async function letterLanded(letterId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase!.from("letters").select("id").eq("id", letterId).maybeSingle();
+    if (error) {
+      console.warn("[db] couldn't check whether the letter landed:", error);
+      return false;
+    }
+    return !!data;
+  } catch (e) {
+    console.warn("[db] couldn't check whether the letter landed:", e);
+    return false;
   }
 }
 
