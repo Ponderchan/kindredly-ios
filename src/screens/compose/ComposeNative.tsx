@@ -98,7 +98,6 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
   const liveJson = JSON.stringify(live);
   const sentLive = useRef<{ json: string; live: KComposeLive } | null>(null);
   const firstAttach = useRef(true);
-  const focusOnOpen = state.mode === "write" && state.tray === null;
 
   const commands = useKCommands<KComposeCommands>(viewRef, {
     blurOnUnmount: true,
@@ -108,11 +107,9 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
       commands.send("setText", { target: "body", value: words.text });
       commands.send("setText", { target: "ask", value: words.ask });
       if (sentLive.current) commands.send("composer", sentLive.current.live);
-      // the page opens straight to writing (store mode opens on the stamps instead)
-      if (firstAttach.current) {
-        firstAttach.current = false;
-        if (focusOnOpen) commands.send("focus", { target: "body" });
-      }
+      // (owner, 2026-10-20) the page opens with the keyboard down: the page, Wren and the paper are
+      // seen first, and a tap on the placeholder brings the keyboard up
+      if (firstAttach.current) firstAttach.current = false;
     },
   });
 
