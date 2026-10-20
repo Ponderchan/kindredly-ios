@@ -10,10 +10,9 @@ import SwiftUI
      │  ‹            OCTOBER 2026               ›    │   16 from each side
      │  S    M    T    W    T    F    S              │   the language's letters, from its first day
      │            1    2    3    4    5              │
-     │  6    7   [8]   9 ...                         │   a day with pages on its group's fill
-     │ ───────────────────────────────────────────── │
-     │  [☺]3 [☺]1 [☺]0 [☺]2               6 NOTES    │
-     └───────────────────────────────────────────────┘   2 ln outline, corners 22, hard 5/5 ln
+     │  6    7    8    9 ...                         │   the number small on top; under it,
+     │           [☺]                                  │   a day with pages wears its mood icon
+     └───────────────────────────────────────────────┘   a plain card, corners 22, soft shadow
 
  One month at a time, and TS's: it pages through the 'month' command (KNotesDriver.month), one
  month record at a time, so no year of day records rides on props. The chevrons ask TS for the
@@ -22,12 +21,13 @@ import SwiftUI
  and dimmed for VoiceOver when off. The title, the letters, every count and every VoiceOver line
  are TS's words; the day numbers too.
 
- A day with pages is its newest page's group fill with the number in the group's ink at 600, and a
- tap on it goes to that page (actions.onDayPick: the screen closes the overlay and the list goes
- to that note). A day without pages is the number in ink (faint in the future), not tappable;
- today has a 2pt ring inside its cell (ln, or the fixed dark ink on a filled day, where Midnight's
- pale ln would vanish). The footer: a legend of the four groups with this month's counts, and
- "N NOTES".
+ Every cell is the day's number (system 12) over a 28pt slot, so the numbers sit on one line like
+ Apple's calendars. A day with pages fills the slot with its NEWEST page's mood icon (the same face
+ the cards draw, KMoodChip .compact on its group's tint; owner 10-20: "直接心情 icon 放在日历里"), and
+ a tap on it goes to that page (actions.onDayPick: the screen closes the overlay and the list goes
+ to that note). A day without pages is the number alone (faint in the future), not tappable; today
+ has a 2pt accent ring around its cell and its number in the accent. No footer (owner 10-20: the
+ per-mood counts and "N NOTES" are gone; the month record still carries them).
 
  VoiceOver: the overlay is one modal container (the notes under the dim can't be reached), the dim
  is a Close button, the escape gesture (two-finger Z) closes it, and focus moves to the month's
@@ -42,6 +42,8 @@ public struct KNotesDay: Identifiable, Equatable, Sendable {
   public let label: String
   /// the group of the day's newest page; nil for a day without pages
   public let group: KMoodGroup?
+  /// that page's mood icon (an art key: "mood-sleepy", "mood-group-low"); "" draws the group's icon
+  public let icon: String
   /// where a tap goes: the day's newest page
   public let targetId: String?
   public let future: Bool
@@ -50,10 +52,11 @@ public struct KNotesDay: Identifiable, Equatable, Sendable {
 
   public var id: Int { n }
 
-  public init(n: Int, label: String, group: KMoodGroup?, targetId: String?, future: Bool, today: Bool, a11yLabel: String) {
+  public init(n: Int, label: String, group: KMoodGroup?, icon: String = "", targetId: String?, future: Bool, today: Bool, a11yLabel: String) {
     self.n = n
     self.label = label
     self.group = group
+    self.icon = icon
     self.targetId = targetId
     self.future = future
     self.today = today
@@ -103,9 +106,10 @@ public struct KNotesMonth: Equatable, Sendable {
 struct KNotesCalendar: View {
   static let title = KTextStyle.mono(11, .semibold, tracking: 0.14)
   static let weekday = KTextStyle.mono(10, .semibold)
-  static let count = KTextStyle.mono(11, .semibold)
-  static let dayOn = KTextStyle.system(13, .semibold)
-  static let dayOff = KTextStyle.system(13)
+  static let dayOn = KTextStyle.system(12, .semibold)
+  static let dayOff = KTextStyle.system(12)
+  /// a cell: the number's line over the mood icon's 28pt slot
+  static let cellHeight: CGFloat = 50
   static let dim = KBrand.inkOnBrand.opacity(0.18)
   /// Midnight's dim. The fixed dark ink at .18 comes out lighter than Midnight's page (#121020 on
   /// #0F0E1C), so nothing dimmed. Black at .35 fades the notes under the panel a little harder
@@ -204,8 +208,6 @@ struct KNotesCalendar: View {
           }
         }
       }
-
-      footer(month)
     }
     .padding(.top, 16)
     .padding(.horizontal, 14)
@@ -221,22 +223,30 @@ struct KNotesCalendar: View {
 
   @ViewBuilder
   private func cell(_ day: KNotesDay?) -> some View {
-    let shape = RoundedRectangle(cornerRadius: 11, style: .circular)
+    let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
     if let day {
-      let ink: Color = day.group?.mood.ink ?? (day.future ? theme.faint : theme.ink)
-      let face = Text(day.label)
-        .kText(day.group != nil ? Self.dayOn : Self.dayOff)
-        .foregroundStyle(ink)
-        .lineLimit(1)
-        .minimumScaleFactor(0.6)
-        .frame(maxWidth: .infinity)
-        .frame(height: 38)
-        .background { shape.fill(day.group?.mood.fill ?? .clear) }
-        .overlay {
-          // on a filled day the ring is the pale keys' fixed dark ink: Midnight's ln is pale and
-          // vanished on the group fills (~1.1:1); the light themes' ln is that same ink
-          if day.today { shape.strokeBorder(theme.ind, lineWidth: 2) } // today: the accent ring, never black (owner, 10-20)
+      let ink: Color = day.today ? theme.ind : (day.future ? theme.faint : theme.ink)
+      let face = VStack(spacing: 4) {
+        Text(day.label)
+          .kText(day.group != nil || day.today ? Self.dayOn : Self.dayOff)
+          .foregroundStyle(ink)
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+          .frame(height: 14)
+        ZStack {
+          if let group = day.group {
+            // the cards' own face on its tint; a page dated ahead (a wrong clock) stays faded
+            KMoodChip(group: group, icon: day.icon, metrics: .compact)
+              .opacity(day.future ? 0.4 : 1)
+          }
         }
+        .frame(width: 28, height: 28)
+      }
+      .frame(maxWidth: .infinity)
+      .frame(height: Self.cellHeight)
+      .overlay {
+        if day.today { shape.strokeBorder(theme.ind, lineWidth: 2) } // today: the accent ring, never black (owner, 10-20)
+      }
       if let target = day.targetId {
         SwiftUI.Button {
           actions.onDayPick(target)
@@ -253,47 +263,8 @@ struct KNotesCalendar: View {
     } else {
       Color.clear
         .frame(maxWidth: .infinity)
-        .frame(height: 38)
+        .frame(height: Self.cellHeight)
         .accessibilityHidden(true)
-    }
-  }
-
-  private func footer(_ month: KNotesMonth) -> some View {
-    let legend = HStack(spacing: 10) {
-      ForEach(Array(KMoodGroup.allCases.enumerated()), id: \.offset) { i, group in
-        HStack(spacing: 5) {
-          // the legend names the four groups: always their group icons, never a page's face
-          KMoodChip(group: group, icon: group.iconKey, metrics: .legend)
-          Text(i < month.counts.count ? month.counts[i] : "")
-            .kText(Self.count)
-            .foregroundStyle(theme.sub)
-            .lineLimit(1)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(i < month.legendA11y.count ? month.legendA11y[i] : "")
-      }
-    }
-    let total = Text(month.footer)
-      .kText(.monoMeta)
-      .foregroundStyle(theme.mute)
-      .lineLimit(1)
-      .accessibilityLabel(month.footerA11y)
-    return ViewThatFits(in: .horizontal) {
-      HStack(alignment: .center, spacing: 8) {
-        legend
-        Spacer(minLength: 0)
-        total
-      }
-      VStack(alignment: .leading, spacing: 8) {
-        legend
-        total
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    .padding(.top, 10)
-    .padding(.horizontal, 4)
-    .overlay(alignment: .top) {
-      Rectangle().fill(theme.line).frame(height: 1)
     }
   }
 

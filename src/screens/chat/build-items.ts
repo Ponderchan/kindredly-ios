@@ -2,13 +2,31 @@ import type { MessageQuote, ThreadDetail, ThreadMessage } from "../../lib/db";
 import type { Fold } from "../../lib/folds";
 import type { TFn } from "../../lib/format";
 import type { KImageRefProps, KMenuAction } from "../../../modules/kindredly-ui/src/types";
-import type { KChatBand, KChatDock, KChatFace, KChatFoldHalf, KChatHeader, KChatItem, KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
+import type {
+  KChatBand,
+  KChatDeck,
+  KChatDeckCard,
+  KChatDock,
+  KChatFace,
+  KChatFoldHalf,
+  KChatHeader,
+  KChatItem,
+  KChatPick,
+  KChatPickChoice,
+  KChatPickState,
+  KChatTrace,
+  KChatWave,
+  KChatWaveCard,
+} from "../../../modules/kindredly-ui/src/Conversation";
 import type { ThreadStateKind, ThreadToneKey } from "../../lib/thread-state";
 import { foldOver } from "../../lib/thread-detail-core";
 import { developFor, mosaicMask } from "../../lib/mosaic";
 import type { StrangerWho } from "../../lib/stranger-who";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
 import { parseSongUrl } from "../../lib/song";
+import { PICKS, WAVE_LINES, type DeckLang, type PickPair, type Sky } from "../../data/sparkle-deck";
+
+export type { Sky };
 
 /* THE CONVERSATION'S RULES, WITHOUT REACT, THE NETWORK OR A RENDERER (10a step 5).
    ────────────────────────────────────────────────────────────────────────
@@ -35,7 +53,14 @@ import { parseSongUrl } from "../../lib/song";
      name, the line under it, the face and the progress band; and the kindreds
      chat's (B): the kindred's round face, the name, KINDRED SINCE
    · the room's ideas (the Kindreds bar's Sparkle, B): the order the 36
-     stamps' prompts are offered in, theirs first, shuffled per room
+     stamps' prompts are offered in, theirs first, shuffled per room (the
+     React Native room's bubble)
+   · the openers deck (Sparkle, 2026-10-21; the SwiftUI room's ✦): the
+     sky now, the Wave card's line, the This or That walk per room, and the
+     two new rows it leaves: a This or That (a fold of kind pick, web 0044)
+     and a sky wave (a message of kind wave), a wave and its wave back drawn
+     as one pair. Their strings are data/strings-sparkle (the model imports
+     it: this file must stay loadable by plain node)
 
    WHO THE PEN PAL IS (identity Phase 1) comes in resolved, from the
    screen's book (lib/stranger-who, lib/who useWhoBook): `name` is their
@@ -89,13 +114,42 @@ export function conversation(d: ThreadDetail | null): ThreadMessage[] {
 
 export type StreamItem =
   | { type: "msg"; date: string; msg: ThreadMessage }
-  | { type: "fold"; date: string; fold: Fold; answer: Fold | null };
+  | { type: "fold"; date: string; fold: Fold; answer: Fold | null }
+  /** a sky wave; with `back`, the wave back that answered it (the pair sits at the back's date) */
+  | { type: "wave"; date: string; wave: ThreadMessage; back: ThreadMessage | null };
 
-/** One stream: lines and root folds by time; an answered fold collapses onto its opener. */
+/** A wave still standing (one taken back is a line taken back). */
+export const isWave = (m: ThreadMessage): boolean => m.kind === "wave" && !m.recalledAt;
+
+/** The wave a wave back answers, by id ("" for none). */
+const backOf = (m: ThreadMessage): string => (typeof m.meta?.back === "string" ? m.meta.back : "");
+
+/** One stream: lines and root folds by time; an answered fold collapses onto its opener; a wave
+    and the first wave back from the other side collapse onto one pair, at the back's date (the
+    newest moment, so it lands at the bottom). */
 export function roomStream(conv: readonly ThreadMessage[], folds: readonly Fold[]): StreamItem[] {
   const byParent = new Map<string, Fold>();
   for (const f of folds) if (f.parentId) byParent.set(f.parentId, f);
-  const items: StreamItem[] = conv.map((m) => ({ type: "msg" as const, date: m.date, msg: m }));
+  // each wave answered by its first wave back from the other side
+  const waves = new Map<string, ThreadMessage>();
+  for (const m of conv) if (isWave(m) && m.id) waves.set(m.id, m);
+  const pairOf = new Map<ThreadMessage, ThreadMessage>(); // back → the wave it answers
+  const paired = new Set<ThreadMessage>();
+  for (const m of conv) {
+    if (!isWave(m)) continue;
+    const x = waves.get(backOf(m));
+    if (!x || x === m || x.mine === m.mine || paired.has(x)) continue;
+    paired.add(x);
+    pairOf.set(m, x);
+  }
+  const items: StreamItem[] = [];
+  for (const m of conv) {
+    if (paired.has(m)) continue;
+    const x = pairOf.get(m);
+    if (x) items.push({ type: "wave", date: m.date, wave: x, back: m });
+    else if (isWave(m)) items.push({ type: "wave", date: m.date, wave: m, back: null });
+    else items.push({ type: "msg", date: m.date, msg: m });
+  }
   for (const f of folds) {
     if (f.parentId) continue;
     items.push({ type: "fold", date: f.date, fold: f, answer: byParent.get(f.id) ?? null });
@@ -236,6 +290,23 @@ export function foldHalfMenu(half: Fold, c: MenuCtx): KMenuAction[] {
   return acts;
 }
 
+/** A sky postcard: theirs translate, keep and report; mine nothing. A wave is a gesture: no reply,
+    no take back (0031 refuses any kind but text). */
+export function waveMenu(m: ThreadMessage, key: string, c: MenuCtx): KMenuAction[] {
+  if (m.mine || !m.body) return [];
+  const acts: KMenuAction[] = [];
+  const tr = translateAct(key, m.body, c);
+  if (tr) acts.push(tr);
+  acts.push(act("keep", c.t("mm.keep"), "bookmark"));
+  if (canReport(m.id, c)) acts.push(act("report", c.t("mm.report"), "flag", true));
+  return acts;
+}
+
+/** A This or That: report theirs, nothing else. */
+export function pickMenu(f: Fold, c: MenuCtx): KMenuAction[] {
+  return !f.mine && canReport(f.id, c) ? [act("report", c.t("mm.report"), "flag", true)] : [];
+}
+
 /** A pen-pal letter: copy; theirs translate and report. A posted letter is posted: no take back,
     no quoting. */
 export function letterMenu(m: ThreadMessage, key: string, c: MenuCtx): KMenuAction[] {
@@ -273,6 +344,8 @@ export type RoomItemsCtx = ItemsCtx & {
   songsCount: number;
   /** the last message of the conversation (the shelf link sits under it if it is a song) */
   lastMessage: ThreadMessage | null;
+  /** This or That picks of mine on their way: the fold's id → the choice tapped */
+  pickSending?: ReadonlyMap<string, 0 | 1>;
 };
 
 /** A built row and what it would say at the top of a window (its own day, its own label). */
@@ -301,6 +374,8 @@ const blank = (key: string, kind: KChatItem["kind"], mine: boolean): KChatItem =
   voiceKey: "",
   voiceDuration: "",
   fold: null,
+  pick: null,
+  wave: null,
 });
 
 const join = (...parts: string[]): string => parts.filter((p) => !!p).join(", ");
@@ -326,6 +401,325 @@ function quoteOf(m: ThreadMessage, c: RoomItemsCtx): KChatItem["quote"] {
   };
 }
 
+/* ── This or That, and the sky wave (Sparkle, 2026-10-21) ─────────────────── */
+
+const SKIES: readonly Sky[] = ["dawn", "day", "dusk", "night"];
+/** A sky word as it came off the wire: anything else reads as day. */
+export const skyWord = (v: unknown): Sky => (SKIES.includes(v as Sky) ? (v as Sky) : "day");
+
+/** The sky at a local hour: dawn 5–8, day 8–17, dusk 17–20, night 20–5. */
+export function skyOf(hour: number): Sky {
+  if (hour >= 5 && hour < 8) return "dawn";
+  if (hour >= 8 && hour < 17) return "day";
+  if (hour >= 17 && hour < 20) return "dusk";
+  return "night";
+}
+
+/** The hours the sky changes at. */
+const SKY_TURNS = [5, 8, 17, 20];
+
+/** How long, in ms, until the sky next changes (the next of 5:00, 8:00, 17:00, 20:00 local). */
+export function msToNextSky(now: Date): number {
+  for (let add = 0; add < 2; add++) {
+    for (const h of SKY_TURNS) {
+      const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + add, h, 0, 0, 0);
+      if (at.getTime() > now.getTime()) return at.getTime() - now.getTime();
+    }
+  }
+  return 3600_000;
+}
+
+const deckLang = (lang: string): DeckLang => (lang in PICKS ? (lang as DeckLang) : "en");
+const picksOf = (lang: string): readonly PickPair[] => PICKS[deckLang(lang)] ?? PICKS.en;
+
+/** The Wave card's line: the language's lines for this sky, the n-th (round). */
+export function waveLine(lang: string, sky: Sky, n: number): string {
+  const lines = (WAVE_LINES[deckLang(lang)] ?? WAVE_LINES.en)[sky] ?? WAVE_LINES.en[sky];
+  if (!lines.length) return "";
+  return lines[((n % lines.length) + lines.length) % lines.length];
+}
+
+/** Where a room's This or That cards stand: the shuffle's seed, the PICKS index on each card
+    (-1 for an empty slot), and how far down the room's order the walk is. */
+export type DeckWalk = { seed: number; slots: number[]; cursor: number };
+/** This or That cards beside the Wave card. */
+export const DECK_SLOTS = 4;
+
+/** The room's order of PICKS indices for a seed. */
+function deckOrder(n: number, roomId: string, seed: number): number[] {
+  const order = Array.from({ length: n }, (_, i) => i);
+  const rand = seeded(hash32(`${roomId}#${seed}`));
+  for (let k = order.length - 1; k > 0; k--) {
+    const j = Math.floor(rand() * (k + 1));
+    [order[k], order[j]] = [order[j], order[k]];
+  }
+  return order;
+}
+
+/** The next card from `cursor`: the first index whose question isn't used in the room and isn't
+    on the table; once the order has none left, the first that isn't on the table. */
+function deckNext(order: readonly number[], cursor: number, pairs: readonly PickPair[], used: ReadonlySet<string>, visible: ReadonlySet<number>): { index: number; cursor: number } {
+  const n = order.length;
+  for (const skipUsed of [true, false]) {
+    for (let step = 0; step < n; step++) {
+      const idx = order[(cursor + step) % n];
+      if (visible.has(idx)) continue;
+      if (skipUsed && used.has(pairs[idx].q)) continue;
+      return { index: idx, cursor: cursor + step + 1 };
+    }
+  }
+  return { index: -1, cursor };
+}
+
+/** A fresh walk: the first DECK_SLOTS cards of the room's order for `seed` (0 by default),
+    skipping questions already asked in the room (`used`) and any in `avoid`. */
+export function deckStart(lang: string, roomId: string, used: ReadonlySet<string>, seed = 0, avoid: ReadonlySet<number> = new Set()): DeckWalk {
+  const pairs = picksOf(lang);
+  const order = deckOrder(pairs.length, roomId, seed);
+  const visible = new Set<number>(avoid);
+  const slots: number[] = [];
+  let cursor = 0;
+  for (let s = 0; s < DECK_SLOTS; s++) {
+    let next = deckNext(order, cursor, pairs, used, visible);
+    // a deck smaller than a shuffle's avoid list still fills from what is left
+    if (next.index < 0 && avoid.size) next = deckNext(order, cursor, pairs, used, new Set(slots));
+    slots.push(next.index);
+    if (next.index >= 0) visible.add(next.index);
+    cursor = next.cursor;
+  }
+  return { seed, slots, cursor };
+}
+
+/** Another card in one slot: the next in the room's order that isn't used or on the table. */
+export function deckAnother(walk: DeckWalk, slot: number, lang: string, used: ReadonlySet<string>, roomId = ""): DeckWalk {
+  if (slot < 0 || slot >= walk.slots.length) return walk;
+  const pairs = picksOf(lang);
+  const order = deckOrder(pairs.length, roomId, walk.seed);
+  const visible = new Set(walk.slots.filter((x) => x >= 0));
+  const next = deckNext(order, walk.cursor, pairs, used, visible);
+  if (next.index < 0) return walk;
+  const slots = walk.slots.slice();
+  slots[slot] = next.index;
+  return { seed: walk.seed, slots, cursor: next.cursor };
+}
+
+/** ↻ Shuffle: a new seed, a new order, and none of the cards on the table now. */
+export function deckShuffle(walk: DeckWalk, lang: string, roomId: string, used: ReadonlySet<string>): DeckWalk {
+  return deckStart(lang, roomId, used, walk.seed + 1, new Set(walk.slots.filter((x) => x >= 0)));
+}
+
+/** The questions already asked in a room (the This or That openers among its folds). */
+export function usedPicks(folds: readonly Fold[]): Set<string> {
+  const out = new Set<string>();
+  for (const f of folds) if (f.kind === "pick" && !f.parentId && f.prompt) out.add(f.prompt);
+  return out;
+}
+
+/** My This or That openers in a room nobody has picked yet (0044's cap is 3). */
+export function picksWaiting(folds: readonly Fold[]): number {
+  const answered = new Set(folds.filter((f) => f.parentId).map((f) => f.parentId as string));
+  return folds.filter((f) => f.kind === "pick" && f.mine && !f.parentId && !answered.has(f.id)).length;
+}
+/** The server's cap on my waiting picks in a room. */
+export const PICK_WAITING_CAP = 3;
+/** The deck's Wave card rests this long after a wave of mine (a courtesy; the server has none). */
+export const WAVE_REST_MS = 60 * 60_000;
+
+/** My newest wave's time in ms, or null. */
+export function lastWaveAt(messages: readonly ThreadMessage[]): number | null {
+  let best: number | null = null;
+  for (const m of messages) {
+    if (!m.mine || m.kind !== "wave") continue;
+    const at = Date.parse(m.date);
+    if (Number.isFinite(at) && (best === null || at > best)) best = at;
+  }
+  return best;
+}
+
+/** The PICKS pair a deck card offers, for its key "pick:<n>" (null for any other key). */
+export function deckPick(lang: string, key: string): { index: number; pair: PickPair } | null {
+  const m = /^pick:(\d+)$/.exec(key);
+  if (!m) return null;
+  const index = Number(m[1]);
+  const pair = picksOf(lang)[index];
+  return pair ? { index, pair } : null;
+}
+
+export type DeckInput = {
+  t: TFn;
+  locale: string;
+  lang: string;
+  walk: DeckWalk;
+  sky: Sky;
+  /** the line the Wave card would send now */
+  line: string;
+  /** a wave of mine went less than WAVE_REST_MS ago */
+  waved: boolean;
+  /** my picks nobody has picked yet */
+  waiting: number;
+  /** the composer's status line for the deck ("" for none) */
+  status: string;
+  /** something can be left in the room: false empties the deck (Swift then shows none) */
+  canWrite: boolean;
+};
+
+/** The openers deck: the Wave card, then a This or That card per slot. */
+export function buildDeck(i: DeckInput): KChatDeck {
+  const { t } = i;
+  const up = (s: string) => s.toLocaleUpperCase(i.locale);
+  const skyName = t(`sp.sky.${i.sky}`);
+  const capped = i.waiting >= PICK_WAITING_CAP;
+  const cards: KChatDeckCard[] = !i.canWrite
+    ? []
+    : [
+        {
+          key: "wave",
+          kind: "wave",
+          label: up(t("sp.deck.wave")),
+          prompt: "",
+          a: "",
+          b: "",
+          sky: i.sky,
+          skyLabel: up(skyName),
+          line: i.line,
+          disabled: i.waved,
+          note: i.waved ? t("sp.deck.waved") : "",
+          a11y: t("sp.deck.waveA11y", { sky: skyName, line: i.line }),
+        },
+        ...i.walk.slots
+          .map((n) => ({ n, pair: picksOf(i.lang)[n] }))
+          .filter((x): x is { n: number; pair: PickPair } => x.n >= 0 && !!x.pair)
+          .map(({ n, pair }) => ({
+            key: `pick:${n}`,
+            kind: "pick" as const,
+            label: up(t("sp.deck.tot")),
+            prompt: pair.q,
+            a: pair.a,
+            b: pair.b,
+            sky: "day" as const,
+            skyLabel: "",
+            line: t("sp.deck.pickHint"),
+            disabled: capped,
+            note: capped ? t("sp.deck.waiting", { n: i.waiting }) : "",
+            a11y: t("sp.deck.pickA11y", { prompt: pair.q, a: pair.a, b: pair.b }),
+          })),
+      ];
+  return {
+    title: t("sp.deck.title"),
+    shuffleLabel: t("sp.deck.shuffle"),
+    closeLabel: t("sp.deck.close"),
+    sendLabel: t("sp.deck.send"),
+    anotherLabel: t("sp.deck.another"),
+    status: i.status,
+    cards,
+  };
+}
+
+const sameText = (a: string | null | undefined, b: string | null | undefined): boolean =>
+  !!a && !!b && a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
+
+/** A This or That row: the question, its two choices, who picked what once both have. */
+export function pickItem(f: Fold, answer: Fold | null, c: RoomItemsCtx): KChatItem {
+  const choices: [string, string] = f.choices ?? [f.body ?? "", answer?.body ?? ""];
+  const tapped = c.pickSending?.get(f.id);
+  const state: KChatPickState = answer ? "open" : f.mine ? "waiting" : tapped !== undefined ? "sending" : c.canWrite ? "choose" : "closed";
+  // my side and theirs, as the bodies say (an opener's body is sealed for me until I pick)
+  const mineText = f.mine ? f.body : answer?.mine ? answer.body : tapped !== undefined ? choices[tapped] : null;
+  const theirText = state === "open" ? (f.mine ? answer?.body : f.body) : null;
+  const you = c.t("sp.pick.you");
+  const both = c.t("sp.pick.both");
+  const choiceRows: KChatPickChoice[] = choices.map((text, idx) => {
+    const mine = state === "sending" ? idx === tapped : sameText(text, mineText);
+    const theirs = state === "open" && sameText(text, theirText);
+    const tag = mine && theirs ? both : mine ? you : theirs ? c.name : "";
+    return {
+      text,
+      mine,
+      theirs,
+      tag,
+      a11y: tag ? c.t("sp.pick.a11yPicked", { choice: text, who: tag }) : c.t("sp.pick.a11yChoice", { choice: text }),
+    };
+  });
+  const same = state === "open" && sameText(mineText, theirText);
+  const n = 1 + (hash32(f.id) % 3);
+  const hint =
+    state === "choose" ? c.t("sp.pick.hint") : state === "waiting" ? c.t("sp.pick.waiting", { name: c.name }) : state === "sending" ? c.t("sp.pick.sending") : state === "closed" ? c.t("sp.pick.closed") : "";
+  const prompt = f.prompt ?? "";
+  const label = c.t("sp.pick.label");
+  const pick: KChatPick = {
+    label: label.toLocaleUpperCase(c.locale),
+    asker: (f.mine ? c.t("sp.pick.youAsked") : c.t("sp.pick.theyAsked", { name: c.name })).toLocaleUpperCase(c.locale),
+    prompt,
+    choices: choiceRows,
+    state,
+    hint,
+    verdict: state === "open" ? c.t(same ? `sp.pick.same.${n}` : `sp.pick.diff.${n}`) : "",
+    same,
+  };
+  return {
+    ...blank(foldKey(f), "pick", f.mine),
+    // the line an older native draws in its place (an unknown kind is a plain line)
+    body: c.t("sp.pick.fallback", { prompt, a: choices[0], b: choices[1] }),
+    a11yLabel: join(label, prompt, ...choiceRows.map((r) => r.a11y), pick.hint, pick.verdict),
+    menu: pickMenu(f, c),
+    pick,
+  };
+}
+
+/** Whether their single wave still offers Wave Back: not answered by a wave of mine, nothing of
+    mine waved after it, and the room still open. */
+function waveBackOpen(w: ThreadMessage, c: RoomItemsCtx): boolean {
+  if (w.mine || !w.id || !c.canWrite) return false;
+  const at = Date.parse(w.date);
+  for (const m of c.messages) {
+    if (!m.mine || m.kind !== "wave") continue;
+    if (backOf(m) === w.id) return false;
+    const mAt = Date.parse(m.date);
+    if (Number.isFinite(at) && Number.isFinite(mAt) && mAt > at) return false;
+  }
+  return true;
+}
+
+function waveCard(m: ThreadMessage, whose: string, c: RoomItemsCtx): KChatWaveCard {
+  const key = c.keyOf(m);
+  const sky = skyWord(m.meta?.sky);
+  const skyName = c.t(`sp.sky.${sky}`);
+  return {
+    key,
+    mine: m.mine,
+    sky,
+    label: skyName.toLocaleUpperCase(c.locale),
+    line: m.body,
+    whose,
+    menu: waveMenu(m, key, c),
+    ...translationOf(key, c.trans),
+    a11y: m.mine ? c.t("sp.wave.a11yMine", { sky: skyName, line: m.body }) : c.t("sp.wave.a11yTheirs", { name: c.name, sky: skyName, line: m.body }),
+  };
+}
+
+/** A sky postcard, or a wave and its wave back as a pair (mine first). */
+export function waveItem(w: ThreadMessage, back: ThreadMessage | null, c: RoomItemsCtx): KChatItem {
+  if (!back) {
+    const card = waveCard(w, "", c);
+    const open = waveBackOpen(w, c);
+    const wave: KChatWave = { cards: [card], backKey: open ? c.t("sp.wave.back") : "", backA11y: open ? c.t("sp.wave.backA11y") : "" };
+    return { ...blank(card.key, "wave", w.mine), body: w.body, a11yLabel: card.a11y, wave };
+  }
+  const mine = w.mine ? w : back;
+  const theirs = w.mine ? back : w;
+  const cards = [
+    waveCard(mine, c.t("sp.wave.yourSky").toLocaleUpperCase(c.locale), c),
+    waveCard(theirs, c.t("sp.wave.theirSky", { name: c.name }).toLocaleUpperCase(c.locale), c),
+  ];
+  return {
+    // the pair is keyed by the wave back (its newest moment)
+    ...blank(c.keyOf(back), "wave", back.mine),
+    body: `${theirs.body} · ${mine.body}`,
+    a11yLabel: join(...cards.map((x) => x.a11y)),
+    wave: { cards, backKey: "", backA11y: "" },
+  };
+}
+
 /** The room's rows, oldest first, against the whole stream (see windowItems for a window). */
 export function buildRoomItems(stream: readonly StreamItem[], c: RoomItemsCtx): BuiltItem[] {
   const out: BuiltItem[] = [];
@@ -338,6 +732,16 @@ export function buildRoomItems(stream: readonly StreamItem[], c: RoomItemsCtx): 
     if (day) prevDay = day;
     const dayLabel = newDay ? day : "";
     const prevIsMsg = prev?.type === "msg";
+
+    if (it.type === "wave") {
+      out.push({ ...waveItem(it.wave, it.back, c), dayLabel, gap: i > 0 && !newDay ? 8 : 0, ownDay: day, ownLabel: "" });
+      continue;
+    }
+
+    if (it.type === "fold" && it.fold.kind === "pick") {
+      out.push({ ...pickItem(it.fold, it.answer, c), dayLabel, gap: i === 0 ? 0 : 14, ownDay: day, ownLabel: "" });
+      continue;
+    }
 
     if (it.type === "fold") {
       const f = it.fold;
@@ -695,7 +1099,8 @@ export function buildRoomDock(i: RoomDockInput): KChatDock {
     plusCloseLabel: t("wren.trackClose"),
     traces: terminal === "none" ? roomTraces(t) : [],
     emojiLabel: t("cmp.emoji"),
-    ideasLabel: t("rm.ideas.a11y"),
+    // the ✦ key: the SwiftUI room's opens the openers deck; the React Native room keeps its bubble
+    ideasLabel: t("sp.deck.a11y"),
     ideaLabel: t("rm.idea.label").toLocaleUpperCase(i.locale),
     ideaAnother: t("rm.idea.another"),
     ideaUse: t("rm.idea.use"),

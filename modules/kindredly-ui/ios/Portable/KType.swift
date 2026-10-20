@@ -12,8 +12,9 @@ import SwiftUI
    scaled by .kText like the system font. the Plex PostScript
    names, are left for a later step to remove; nothing draws them;
  - the reader's LETTER font (Settings: Newsreader, the default; System; EB Garamond; SF Mono)
-   for CONTENT: letters, replies, notes, chat bubbles, translations, quotes, the answers in a
-   fold, Wren's spoken lines everywhere, and every field where someone writes. Content styles
+   for CONTENT: letters, replies, notes, translations, quotes, the answers in a fold, Wren's
+   spoken lines everywhere, and every field where someone writes (a kindred room's bubbles and
+   its field are the exception: System, owner 2026-10-21). Content styles
    are .content(…) (and .letterRead(…), the older name for a letter being read); they follow
    the environment's KLetterFace. CJK falls through to the system face, as it does on the React
    Native side. See LETTER FACE at the end of the file.
@@ -119,8 +120,10 @@ public struct KTextStyle: Equatable, Sendable {
 
   /// CONTENT: words someone wrote or Wren says, always in the reader's Letter font (the
   /// environment's KLetterFace) under .kText, at its one weight, 400. Letters, replies, notes,
-  /// chat bubbles, translations, quotes, fold answers, Wren's lines, my-letter previews, and the
-  /// fields people write content in (KField style:, KComposerField content:). Two tiers by size:
+  /// translations, quotes, fold answers, This or That's question and choices, a wave's line,
+  /// Wren's lines, my-letter previews, and the fields people write content in (KField style:,
+  /// KComposerField content:). Not a kindred room's chat bubbles, their quotes, the translation
+  /// under them or the room's field: those are System (owner, 2026-10-21). Two tiers by size:
   /// the long letter (19–30, with a lineHeight) and the short line (13–17). `italic` slants it
   /// where the face has a true italic (Newsreader, System) and leaves Garamond and SF Mono
   /// upright (KLetterFace.hasItalic). For a face that takes more room (SF Mono wider, Garamond
@@ -479,11 +482,12 @@ public enum KMonoSizes {
  Screen adapters set it once at their root (kScreenEnvironment in Adapters/KScreenProps.swift).
  Following it is the style's choice: every CONTENT style (.content(…), .letterRead(…),
  letterBody, contentInput) is drawn in it; UI (.system) and labels (.mono) never are. Content is
- what someone wrote or Wren says: letters, replies, notes, chat bubbles, translations, quotes,
- fold answers, Wren's lines everywhere, my-letter previews, and every field where someone writes
- content (KField with a content style, KComposerField with content: true). The Kindreds list's
- preview line and names stay system. A paper (InkCard, the compose paper) keeps only its colour,
- texture and size: the reader's face wins over it.
+ what someone wrote or Wren says: letters, replies, notes, translations, quotes, fold answers,
+ Wren's lines everywhere, my-letter previews, and every field where someone writes content
+ (KField with a content style, KComposerField with content: true). The Kindreds list's preview
+ line and names stay system, and so do a kindred room's chat bubbles, their quotes, the
+ translation under them and the room's field (owner, 2026-10-21). A paper (InkCard, the
+ compose paper) keeps only its colour, texture and size: the reader's face wins over it.
 
  - Newsreader is embedded and scales through relativeTo. It has a true italic.
  - System is SF Pro, .system(size:weight:), scaled by .kText's

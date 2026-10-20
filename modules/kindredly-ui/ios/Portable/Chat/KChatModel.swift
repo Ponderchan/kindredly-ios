@@ -10,16 +10,18 @@ import SwiftUI
  these). Swift decides nothing about who may take a line back or what a fold says.
 
  - KChatItem: one row of the list, by kind (a room line, a pen-pal letter block, a moment, a
-   song, a fold, a line taken back, the voice opening).
+   song, a fold, a line taken back, the voice opening, a This or That, a sky wave).
  - KChatDock: everything above and in place of the composer (the closing line, Wren's notice,
    the sign door, the reply quote, the mode box, the composer bar or the gone line or the expired
    card) and the + tray's four choices; for the pen-pal chat the reply bar's hint, for a room the
-   Kindreds bar's words (the ideas key, its bubble, the tray's title).
+   Kindreds bar's words (the ✦ key, the tray's title).
+ - KDeck: the openers deck the ✦ key opens (Sparkle, 2026-10-21): a Wave card and four This or
+   That cards, worded by TS (build-items buildDeck), sent as the deck command.
  - KChatHeaderModel: the conversation's own header (chat composers, 2026-10-18), drawn by
    KChatHeader above the list: the pen-pal chat's (A2) and the kindreds chat's (B).
  - KConversationDriver: the live channel (the two fields' controllers, canSend and the status
-   line, playback, scroll requests, the keyboard's height, the tray, the ideas bubble and its
-   sentence). Things that change often travel through it, never through the items.
+   line, playback, scroll requests, the keyboard's height, the tray, the openers deck). Things
+   that change often travel through it, never through the items.
  - KConversationActions: one object holding every event the surface reports.
  */
 
@@ -46,6 +48,10 @@ public enum KChatItemKind: String, Sendable {
   case recalled
   /// the voice opening: a voice card (a room line or a letter block by variant)
   case voice
+  /// a This or That (a fold of kind pick, web 0044): the question, two choices, who picked what
+  case pick
+  /// a sky wave (a message of kind wave): one postcard, or a wave and its wave back as a pair
+  case wave
 }
 
 /// A translation under a line.
@@ -71,6 +77,197 @@ public enum KChatPart: String, Sendable {
   case shelf
   /// the voice card's disc
   case voice
+  /// a This or That's first / second choice (only while its state is .choose)
+  case pickA
+  case pickB
+  /// Wave Back under their postcard
+  case waveBack
+}
+
+/// The sky a wave was sent under, from the sender's local hour only (dawn 5–8, day 8–17, dusk
+/// 17–20, night 20–5). Never the time, the place or the weather.
+public enum KSky: String, Sendable {
+  case dawn
+  case day
+  case dusk
+  case night
+}
+
+/// Where a This or That stands for this reader.
+public enum KChatPickState: String, Sendable {
+  /// mine, waiting for their pick (my own pick shows)
+  case waiting
+  /// theirs, not picked yet: both choices are buttons
+  case choose
+  /// theirs, my tap is on its way
+  case sending
+  /// both have picked: who picked what, and the verdict
+  case open
+  /// theirs, not picked, in a room nothing can be left in
+  case closed
+}
+
+/// One choice of a This or That.
+public struct KChatPickChoice: Equatable, Sendable {
+  public let text: String
+  /// "You" | their name | "Both of you" | "", worded by TS
+  public let tag: String
+  /// "Spicy, you picked it"
+  public let a11y: String
+  /// I picked it (my own pick shows from the start)
+  public let mine: Bool
+  /// they picked it (only once open)
+  public let theirs: Bool
+
+  public init(text: String, tag: String, a11y: String, mine: Bool, theirs: Bool) {
+    self.text = text
+    self.tag = tag
+    self.a11y = a11y
+    self.mine = mine
+    self.theirs = theirs
+  }
+}
+
+/// A This or That in the chat (the pick card).
+public struct KChatPick: Equatable, Sendable {
+  /// THIS OR THAT, in capitals
+  public let label: String
+  /// YOU ASKED / MIRA ASKED, in capitals
+  public let asker: String
+  public let prompt: String
+  /// waiting / choose / sending / closed: the line under the choices; open: ""
+  public let hint: String
+  /// open only: "Opposites. Discuss."
+  public let verdict: String
+  /// always two
+  public let choices: [KChatPickChoice]
+  public let state: KChatPickState
+  /// open, and both picked the same
+  public let same: Bool
+
+  public init(label: String, asker: String, prompt: String, hint: String, verdict: String, choices: [KChatPickChoice], state: KChatPickState, same: Bool) {
+    self.label = label
+    self.asker = asker
+    self.prompt = prompt
+    self.hint = hint
+    self.verdict = verdict
+    self.choices = choices
+    self.state = state
+    self.same = same
+  }
+}
+
+/// One sky postcard.
+public struct KChatWaveCard: Identifiable, Equatable, Sendable {
+  /// the message's key: its menu's actions and its translation are keyed by it
+  public let key: String
+  public let mine: Bool
+  public let sky: KSky
+  /// NIGHT, in capitals
+  public let label: String
+  /// the sender's line
+  public let line: String
+  /// a pair only: YOUR SKY / MIRA'S SKY, in capitals; "" on a single postcard
+  public let whose: String
+  /// VoiceOver: "Mira waved. Night sky. Stars are out here."
+  public let a11y: String
+  public let menu: [KMenuItem]
+  public let translation: KChatTranslation
+  public let translationText: String
+
+  public var id: String { key }
+
+  public init(key: String, mine: Bool, sky: KSky, label: String, line: String, whose: String, a11y: String, menu: [KMenuItem], translation: KChatTranslation, translationText: String) {
+    self.key = key
+    self.mine = mine
+    self.sky = sky
+    self.label = label
+    self.line = line
+    self.whose = whose
+    self.a11y = a11y
+    self.menu = menu
+    self.translation = translation
+    self.translationText = translationText
+  }
+}
+
+/// A wave in the chat: one postcard, or a wave and its wave back side by side (mine first).
+public struct KChatWave: Equatable, Sendable {
+  public let cards: [KChatWaveCard]
+  /// "Wave Back" under their single postcard; "" for none
+  public let backKey: String
+  /// VoiceOver: "Wave back with your sky"
+  public let backA11y: String
+
+  public init(cards: [KChatWaveCard], backKey: String, backA11y: String) {
+    self.cards = cards
+    self.backKey = backKey
+    self.backA11y = backA11y
+  }
+}
+
+/// A card of the openers deck.
+public enum KDeckCardKind: String, Sendable {
+  case wave
+  case pick
+}
+
+/// One card of the openers deck, worded by TS.
+public struct KDeckCard: Identifiable, Equatable, Sendable {
+  /// "wave" | "pick:<n>"
+  public let key: String
+  public let kind: KDeckCardKind
+  /// WAVE / THIS OR THAT, in capitals
+  public let label: String
+  /// pick only: the question and its two choices
+  public let prompt: String
+  public let a: String
+  public let b: String
+  /// wave: NIGHT, in capitals
+  public let skyLabel: String
+  /// wave: the line that will go; pick: "Pick yours, then send."
+  public let line: String
+  /// shown in place of the send disc while disabled: "Waved" | "3 waiting"
+  public let note: String
+  public let a11y: String
+  /// wave: the live sky now; pick: .day (unused)
+  public let sky: KSky
+  public let disabled: Bool
+
+  public var id: String { key }
+
+  public init(key: String, kind: KDeckCardKind, label: String, prompt: String, a: String, b: String, skyLabel: String, line: String, note: String, a11y: String, sky: KSky, disabled: Bool) {
+    self.key = key
+    self.kind = kind
+    self.label = label
+    self.prompt = prompt
+    self.a = a
+    self.b = b
+    self.skyLabel = skyLabel
+    self.line = line
+    self.note = note
+    self.a11y = a11y
+    self.sky = sky
+    self.disabled = disabled
+  }
+}
+
+/// The openers deck the ✦ key opens: [wave, pick × 4]. Empty = no deck (the pen-pal chat).
+public struct KDeck: Equatable, Sendable {
+  /// "Openers"
+  public var title = ""
+  /// VoiceOver names of the header keys and the send disc, and the cards' "Another"
+  public var shuffleLabel = ""
+  public var closeLabel = ""
+  public var sendLabel = ""
+  public var anotherLabel = ""
+  /// "" or the waiting-cap line
+  public var status = ""
+  public var cards: [KDeckCard] = []
+
+  public init() {}
+
+  public var isEmpty: Bool { cards.isEmpty }
 }
 
 /// The line a reply quotes.
@@ -189,6 +386,10 @@ public struct KChatItem: Identifiable, Equatable, Sendable {
   /// its length, e.g. "1:14"
   public let voiceDuration: String
   public let fold: KChatFold?
+  /// a This or That (kind .pick)
+  public let pick: KChatPick?
+  /// a sky wave (kind .wave)
+  public let wave: KChatWave?
 
   public var id: String { key }
 
@@ -214,7 +415,9 @@ public struct KChatItem: Identifiable, Equatable, Sendable {
     shelfLink: String = "",
     voiceKey: String = "",
     voiceDuration: String = "",
-    fold: KChatFold? = nil
+    fold: KChatFold? = nil,
+    pick: KChatPick? = nil,
+    wave: KChatWave? = nil
   ) {
     self.key = key
     self.kind = kind
@@ -238,6 +441,8 @@ public struct KChatItem: Identifiable, Equatable, Sendable {
     self.voiceKey = voiceKey
     self.voiceDuration = voiceDuration
     self.fold = fold
+    self.pick = pick
+    self.wave = wave
   }
 }
 
@@ -397,13 +602,9 @@ public struct KChatDock: Equatable, Sendable {
   public var plusCloseLabel = ""
   /// the + tray; [] for none
   public var traces: [KChatTrace] = []
-  /// the Kindreds bar's ideas key, for VoiceOver; "" for no Kindreds bar (the pen-pal chat)
+  /// the Kindreds bar's ✦ key (it opens the openers deck), for VoiceOver; "" for no Kindreds bar
+  /// (the pen-pal chat)
   public var ideasLabel = ""
-  /// the ideas bubble: AN IDEA, ANOTHER and USE IT, already in capitals (the ↻ and the → are
-  /// drawn here)
-  public var ideaLabel = ""
-  public var ideaAnother = ""
-  public var ideaUse = ""
   /// over the + tray's cards: "Leave something small", as written
   public var trayTitle = ""
   /// the pen-pal chat's reply bar hint, over the bar while the keyboard is up: "LETTER 4 OF 5",
@@ -415,7 +616,7 @@ public struct KChatDock: Equatable, Sendable {
 
   public init() {}
 
-  /// whether the composer is the Kindreds bar (a room: the ideas key, the capsule, the +), not
+  /// whether the composer is the Kindreds bar (a room: the ✦ key, the capsule, the +), not
   /// the reply bar (the pen-pal chat)
   public var hasTools: Bool { !ideasLabel.isEmpty }
 }
@@ -580,12 +781,11 @@ public final class KConversationDriver: ObservableObject {
   static let softwareKeyboardMin: CGFloat = 200
   /// the room's + tray is open (Swift owns it; the + toggles it)
   @Published public var trayOpen = false
-  /// the room's ideas bubble is open (Swift owns it; the ideas key toggles it). Never with the
+  /// the room's openers deck is open (Swift owns it; the ✦ key toggles it). Never with the
   /// tray, never with the keyboard (Prompt 3: the three panels shut each other)
   @Published public var ideasOpen = false
-  /// the sentence the ideas bubble offers now (TS's idea command: TS keeps the order and where
-  /// the reader is in it)
-  @Published public var idea = ""
+  /// the openers deck (TS's deck command: TS keeps the walk, the sky and the cap)
+  @Published public var deck = KDeck()
 
   @Published public private(set) var scrollRequest: ScrollRequest?
   private var serial = 0
@@ -650,6 +850,9 @@ public final class KConversationActions {
   public var onDock: (String) -> Void = { _ in }
   /// the voice card's disc on an item
   public var onVoiceToggle: (String) -> Void = { _ in }
+  /// the openers deck: open, close, shuffle, another (a card's key), send (a card's key and the
+  /// chip chosen on it, 0/1, or -1 for the Wave card)
+  public var onDeck: (_ action: String, _ key: String, _ choice: Int) -> Void = { _, _, _ in }
 
   public init() {}
 }

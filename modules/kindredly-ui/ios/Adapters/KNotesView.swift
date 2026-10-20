@@ -40,7 +40,7 @@ import ExpoUI
  - palette: { keyText, keyVoice, tape, sticker } as "#RRGGBB" (the empty state's fixed colours)
 
  Commands (KCommandBus):
- - month { key, title, lead, days: [{ n, label, group ("" for none), targetId, future, today,
+ - month { key, title, lead, days: [{ n, label, group ("" for none), icon, targetId, future, today,
    a11y }], counts: [String × 4], footer, footerA11y, legendA11y: [String × 4], canPrev,
    canNext } — the calendar's month, one at a time
  - playback { key, playing, positionS, durationS, at, failed } — the one player's transitions
@@ -304,6 +304,7 @@ final class KNotesViewProps: KScreenProps {
         n: n,
         label: d.kString("label") ?? "",
         group: group,
+        icon: d.kString("icon") ?? "",
         targetId: group == nil ? nil : target,
         future: d.kBool("future") ?? false,
         today: d.kBool("today") ?? false,

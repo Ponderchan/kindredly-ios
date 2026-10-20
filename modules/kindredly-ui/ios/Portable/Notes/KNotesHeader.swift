@@ -30,7 +30,10 @@ import SwiftUI
 
  The per-frame values are read only here (KScrollModel, KNotesScrollState), never by the screen,
  so a scroll frame redraws the header and the chip and nothing else. Dynamic Type is capped at
- .accessibility1 in both, so the 74pt header and the 34pt buttons hold their shape.
+ .accessibility1 in both, so the 74pt header and the 40pt buttons hold their shape.
+
+ The two buttons (owner 10-20: "有点小" beside the bold title): 40pt soft circles, their drawings
+ ~20% bigger than the first 34pt keys, each inside a 44pt hit square (KNotesHeaderKey).
  */
 
 /// Whether the header is hidden and which note the chip shows. Fed by the screen every scroll frame
@@ -186,7 +189,8 @@ struct KNotesHeaderBar: View {
           .foregroundStyle(theme.sub)
           .lineLimit(1)
       } else {
-        HStack(spacing: 8) {
+        // 4 between the 44pt hit squares: the 40pt circles stand 8 apart
+        HStack(spacing: 4) {
           KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
             actions.onCycleView()
           }
@@ -209,7 +213,13 @@ struct KNotesHeaderBar: View {
   }
 }
 
-/// The view button: 34 round like the calendar beside it, the current view's icon only (owner,
+/// The header buttons' shared size: a 40pt circle in a 44pt hit square that takes 44 of the row.
+enum KNotesHeaderKey {
+  static let circle: CGFloat = 40
+  static let hit: CGFloat = 44
+}
+
+/// The view button: 40 round like the calendar beside it, the current view's icon only (owner,
 /// 2026-10-20: no word next to it). A tap cycles Card, Grid, List; the icon swaps with a quick
 /// blur-and-scale so the change reads. VoiceOver still hears the view's name as the value. `y` (the
 /// scroll) is kept for the header's call; the old label used it to collapse.
@@ -225,16 +235,17 @@ struct KNotesViewButton: View {
 
   var body: some View {
     SwiftUI.Button(action: action) {
-      // the card drawing sits smaller in its square than grid's and list's: drawn at 21 it reads the
-      // same size beside them (owner, 2026-10-20)
-      KLineIcon(layout.glyph, size: layout == .card ? 21 : 18, lineWidth: 2, color: theme.ink)
-        .frame(width: 21, height: 21)
+      // the card drawing sits smaller in its square than grid's and list's: drawn at 25 it reads the
+      // same size beside their 22 (owner, 2026-10-20; ~20% up from 21/18 on 10-20 evening)
+      KLineIcon(layout.glyph, size: layout == .card ? 25 : 22, lineWidth: 2, color: theme.ink)
+        .frame(width: 25, height: 25)
         .id(layout)
         .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
-        .frame(width: 34, height: 34)
+        .frame(width: KNotesHeaderKey.circle, height: KNotesHeaderKey.circle)
         // (owner, 10-20: no black rings) a soft round key, as iOS draws one
         .background(Circle().fill(theme.soft))
-        .contentShape(Circle())
+        .frame(width: KNotesHeaderKey.hit, height: KNotesHeaderKey.hit)
+        .contentShape(Rectangle())
         .animation(.spring(duration: 0.28, bounce: 0.25), value: layout)
     }
     .buttonStyle(KFadePressStyle())
@@ -243,7 +254,7 @@ struct KNotesViewButton: View {
   }
 }
 
-/// The calendar button: 34 round, the calendar drawing with the month's three latest days in their
+/// The calendar button: 40 round, the calendar drawing with the month's three latest days in their
 /// groups' ink (empty slots in line) in one row inside the page, measured on the drawing's 24 grid
 /// so they scale with it (six in two rows, placed in points, spilled over the outline; the owner's
 /// card layouts draw three, 2026-10-18), lav while the overlay is open (H:50, H:181, H:347). On a dark
@@ -259,16 +270,17 @@ struct KNotesCalendarButton: View {
   var body: some View {
     SwiftUI.Button(action: action) {
       ZStack(alignment: .topLeading) {
-        KLineIcon(.noteCalendar, size: 20, lineWidth: 1.8, color: theme.ink)
+        KLineIcon(.noteCalendar, size: Self.size, lineWidth: 1.9, color: theme.ink)
         // the drawing's own three slots on its 24 grid (x 5 / 10.2 / 15.4, y 13), filled with the moods
         HStack(spacing: Self.gap * Self.unit) { square(0); square(1); square(2) }
           .offset(x: 5 * Self.unit, y: 13 * Self.unit)
       }
-      .frame(width: 20, height: 20)
-      .frame(width: 34, height: 34)
+      .frame(width: Self.size, height: Self.size)
+      .frame(width: KNotesHeaderKey.circle, height: KNotesHeaderKey.circle)
       // (owner, 10-20: no black rings) soft, lav while the calendar is open
       .background(Circle().fill(open ? theme.lav : theme.soft))
-      .contentShape(Circle())
+      .frame(width: KNotesHeaderKey.hit, height: KNotesHeaderKey.hit)
+      .contentShape(Rectangle())
       .animation(KMotion.notesCalendarFill, value: open)
     }
     .buttonStyle(KFadePressStyle())
@@ -276,8 +288,10 @@ struct KNotesCalendarButton: View {
     .accessibilityAddTraits(open ? .isSelected : [])
   }
 
-  /// points per unit of the drawing's 24 grid at 20pt, and the squares' size and gap in units
-  private static let unit: CGFloat = 20 / 24
+  /// the drawing's size (20 → 24 on 10-20: the owner found the key small), points per unit of its
+  /// 24 grid, and the squares' size and gap in units
+  private static let size: CGFloat = 24
+  private static let unit: CGFloat = size / 24
   private static let square: CGFloat = 3.6
   private static let gap: CGFloat = 1.6
 

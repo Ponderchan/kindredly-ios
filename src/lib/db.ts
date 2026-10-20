@@ -12,6 +12,7 @@ import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
 import { t } from "./i18n";
 import { paperForDb } from "../data/papers";
+import type { Sky } from "../data/sparkle-deck";
 import {
   TAKEN_BACK,
   buildThreadDetail,
@@ -1007,10 +1008,11 @@ export interface ThreadMessage {
   body: string;
   mine: boolean;
   date: string;
-  /** 'text' | 'photo' (a tiny moment) | 'song' — absent pre-0015 */
+  /** 'text' | 'photo' (a tiny moment) | 'song' | 'wave' (the sky wave, web 0044) — absent pre-0015 */
   kind?: string;
   mediaPath?: string | null;
-  meta?: { url?: string; title?: string; reply?: MessageQuote } | null;
+  /** a wave (web 0044) carries only `sky` and, for a wave back, `back` (the wave it answers) */
+  meta?: { url?: string; title?: string; reply?: MessageQuote; sky?: Sky; back?: string } | null;
   /** taken back by its writer (web 0031): the words are gone, a note stays */
   recalledAt?: string | null;
   /** the quoted line is the reader's own */
@@ -1215,7 +1217,11 @@ export async function fetchThreadRevealed(threadId: string): Promise<boolean | n
 export async function sendThreadMessage(
   threadId: string,
   body: string,
-  extra?: { kind: "photo" | "song" | "text"; mediaPath?: string; meta?: { url?: string; title?: string; reply?: MessageQuote } },
+  extra?: {
+    kind: "photo" | "song" | "text" | "wave";
+    mediaPath?: string;
+    meta?: { url?: string; title?: string; reply?: MessageQuote; sky?: Sky; back?: string };
+  },
 ): Promise<{ ok: true; id?: string; createdAt?: string } | null> {
   const me = await writer();
   if (!me) return null;
@@ -1245,7 +1251,12 @@ export async function sendThreadMessage(
     if (extra) {
       row.kind = extra.kind;
       if (extra.mediaPath) row.media_path = extra.mediaPath;
-      if (extra.meta) {
+      if (extra.kind === "wave") {
+        /* a wave's meta is the sky word and, for a wave back, the id it answers —
+           nothing else, ever (web 0044 checks it): never the time, the place */
+        const sky = extra.meta?.sky ?? "day";
+        row.meta = extra.meta?.back ? { sky, back: extra.meta.back } : { sky };
+      } else if (extra.meta) {
         // a quote of your own line names you by id, so the other phone can tell whose it was
         const reply = extra.meta.reply;
         row.meta = reply && reply.sender === "me" ? { ...extra.meta, reply: { ...reply, sender: me } } : extra.meta;
@@ -1257,7 +1268,9 @@ export async function sendThreadMessage(
     let saved: { id?: string; created_at?: string } | null = null;
     let { data: ins, error } = await supabase!.from("messages").insert(row).select("id,created_at").maybeSingle();
     if (!error) saved = (ins as any) ?? null;
-    if (error && extra) {
+    // one wave back per wave (0044's unique index): a second one means it already went
+    if (error && extra?.kind === "wave" && (error as any).code === "23505") return { ok: true };
+    if (error && extra && extra.kind !== "wave") {
       // pre-0015 columns — the moment/song still arrives as its text fallback
       const retry = await supabase!
         .from("messages")

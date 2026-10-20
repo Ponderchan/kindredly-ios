@@ -184,6 +184,10 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   case tinyMoment
   /// Leave a song (two beamed notes)
   case leaveSong
+  /// the sparkle deck's shuffle key (Chat/KKindredBar.swift KSparkleDeck): two arrows that cross
+  case shuffle
+  /// This or That (the deck's card, the pick card in the chat): two opposed arrows, ⇆
+  case swap
 
   // ── who wrote it: the marks after a stranger's name (identity Phase 1, identity-plan §4, §9 and
   // its addendum) ──
@@ -423,6 +427,10 @@ enum KLineGlyphTable {
     case .askSomething: return Drawing(stroke: [.d("M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9.5L5 20z M10.3 9.3a1.8 1.8 0 0 1 3.2 1.1c0 1.2-1.5 1.4-1.5 2.6 M12 15.3h.01")])
     case .tinyMoment: return Drawing(stroke: [.d("M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20V19H4z M12 16.5a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z")])
     case .leaveSong: return Drawing(stroke: [.d("M9 17.5V5.5l10-2.2v12 M9 9.3l10-2.2 M9 17.5a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z M19 15.3a2.6 2.6 0 1 1-5.2 0 2.6 2.6 0 0 1 5.2 0z")])
+    // the sparkle deck's two (2026-10-21), drawn for this grid in the I1 hand: stroke 1.9, round
+    // caps, open arrowheads of 3 a side
+    case .shuffle: return Drawing(stroke: [.d("M3 7h3.2c2 0 3.2 1 4.3 2.7l3 4.6c1.1 1.7 2.3 2.7 4.3 2.7H21 M18 14l3 3-3 3 M3 17h3.2c1.4 0 2.4-.5 3.3-1.4 M21 7h-3.2c-1.4 0-2.4.5-3.3 1.4 M18 4l3 3-3 3")])
+    case .swap: return Drawing(stroke: [.d("M4 8.5h15 M15.5 5l3.5 3.5-3.5 3.5 M20 15.5H5 M8.5 12 5 15.5 8.5 19")])
 
     // the identity marks, drawn for this grid at stroke 2 (2026-10-18). Each sits with its stroked
     // extent centred on 12,12 (a descender, virgo's leg or scorpio's arrow, lets the body sit a

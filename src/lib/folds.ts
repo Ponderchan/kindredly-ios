@@ -31,21 +31,41 @@ import { FOLD_MAX } from "./thread-detail-core";
 /** the longest fold body, in UTF-16 code units of the trimmed text (see thread-detail-core) */
 export { FOLD_MAX, foldOver } from "./thread-detail-core";
 
+/*   · pick      This or That (web 0044): a question with two options on the
+                 row (`choices`); the sender stakes their side at send, the
+                 other side answers by picking. Written only through the
+                 leave_pick / answer_pick RPCs (fold + body in one go); a body
+                 is the chosen option's TEXT, so an older reader shows two
+                 readable halves. */
+export type FoldKind = "note" | "question" | "pick";
+
 export interface Fold {
   id: string;
   mine: boolean;
-  kind: "note" | "question";
+  kind: FoldKind;
   prompt: string | null;
+  /** pick openers only: the two options, in order; null/absent otherwise (and before 0044).
+      Optional so the demo rooms and older kept copies need not spell it out. */
+  choices?: [string, string] | null;
   parentId: string | null;
-  body: string | null; // null = still sealed for me
+  body: string | null; // null = still sealed for me; pick: the chosen option's text
   date: string;
 }
+
+const choicesOf = (v: unknown): [string, string] | null =>
+  Array.isArray(v) && v.length === 2 && typeof v[0] === "string" && typeof v[1] === "string" ? [v[0], v[1]] : null;
+
+/** the column is missing (before the owner runs 0044): PostgREST 42703 / "column … does not exist" */
+const missingChoices = (e: any): boolean =>
+  !!e && (e.code === "42703" || /choices/i.test(String(e.message ?? "")));
 
 /** the kept folds of a thread (the last whole read), or null */
 export async function readFoldsCache(threadId: string): Promise<Fold[] | null> {
   try {
     const raw = await scoped.getItem(foldsCacheKey(threadId));
-    return raw ? (JSON.parse(raw) as Fold[]) : null;
+    if (!raw) return null;
+    // copies kept before 0044 have no `choices`: they read as null
+    return (JSON.parse(raw) as Fold[]).map((f) => ({ ...f, choices: choicesOf((f as any).choices) }));
   } catch {
     return null;
   }
@@ -63,11 +83,10 @@ export async function fetchFoldsFresh(threadId: string): Promise<Fold[] | null> 
     const who = await whoAmI();
     if (!("id" in who)) return null;
     const me = who.id;
-    const { data: rows, error } = await supabase!
-      .from("folds")
-      .select("id,author,kind,prompt,parent_id,created_at")
-      .eq("thread_id", threadId)
-      .order("created_at");
+    const read = (cols: string) => supabase!.from("folds").select(cols).eq("thread_id", threadId).order("created_at");
+    let { data: rows, error } = await read("id,author,kind,prompt,choices,parent_id,created_at");
+    // before 0044 there is no `choices` column: read the old list once, or every room loses its folds
+    if (error && missingChoices(error)) ({ data: rows, error } = await read("id,author,kind,prompt,parent_id,created_at"));
     if (error || !rows) return null;
     const ids = rows.map((r: any) => r.id);
     const bodies = new Map<string, string>();
@@ -82,6 +101,7 @@ export async function fetchFoldsFresh(threadId: string): Promise<Fold[] | null> 
       mine: r.author === me,
       kind: r.kind,
       prompt: r.prompt ?? null,
+      choices: choicesOf(r.choices),
       parentId: r.parent_id ?? null,
       body: bodies.get(r.id) ?? null,
       date: r.created_at,
@@ -111,7 +131,53 @@ export async function leaveFold(
 
 /** fold yours onto theirs — the act that opens both. */
 export async function answerFold(threadId: string, parent: Fold, body: string): Promise<true | null> {
+  // a pick is answered by picking (answerPick), never with free text
+  if (parent.kind === "pick") return null;
   return insertFold(threadId, parent.kind, body, null, parent.id);
+}
+
+/** send a This or That: the question, its two options, and my side (sealed until they pick).
+    "cap" = three of mine already wait in this room (0044's pick_waiting_cap). */
+export async function leavePick(
+  threadId: string,
+  prompt: string,
+  choices: [string, string],
+  choice: 0 | 1,
+): Promise<true | "cap" | null> {
+  clearFail();
+  if (!supabaseReady || !prompt.trim()) return null;
+  try {
+    const who = await whoAmI();
+    if (!("id" in who)) return who.reason === "network" ? setFail("offline") : who.reason === "no-session" ? setFail("session") : null;
+    const { data, error } = await supabase!.rpc("leave_pick", {
+      p_thread: threadId,
+      p_prompt: prompt,
+      p_choices: choices,
+      p_choice: choice,
+    });
+    if (error && /pick_waiting_cap/.test(String(error.message ?? ""))) return "cap";
+    if (error || !data) return noteFail(error);
+    return true;
+  } catch (e) {
+    return noteFail(e);
+  }
+}
+
+/** pick my side of their This or That — the act that opens both.
+    "done" = a pick is already there (another device, a double tap): just reload. */
+export async function answerPick(threadId: string, parent: Fold, choice: 0 | 1): Promise<true | "done" | null> {
+  clearFail();
+  if (!supabaseReady || !threadId || parent.kind !== "pick") return null;
+  try {
+    const who = await whoAmI();
+    if (!("id" in who)) return who.reason === "network" ? setFail("offline") : who.reason === "no-session" ? setFail("session") : null;
+    const { data, error } = await supabase!.rpc("answer_pick", { p_parent: parent.id, p_choice: choice });
+    if (error && (error as any).code === "23505") return "done";
+    if (error || !data) return noteFail(error);
+    return true;
+  } catch (e) {
+    return noteFail(e);
+  }
 }
 
 async function insertFold(

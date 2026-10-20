@@ -61,8 +61,9 @@ import { ChatHeader } from "./ChatHeader";
    · the room (B): the kindred's portrait, their name, KINDRED SINCE …. The
      React Native header's lore button and "Wren found you two" line are not
      in the owner's B (lore stays a row in Settings).
-   The room's Kindreds bar offers ideas (the Sparkle): useRoomModel holds
-   their order and the sentence shown, sent to Swift as the idea command.
+   The room's Kindreds bar's ✦ opens the openers deck (Sparkle, 2026-10-21):
+   useRoomModel holds the walk, the sky and the cap and words the deck, sent
+   to Swift as the deck command; its taps come back as onChatDeck.
 
    The model hooks (useRoomModel, useLettersModel) hold every rule and every
    send; the pure builders (build-items) word every row and the dock. This
@@ -73,7 +74,7 @@ import { ChatHeader } from "./ChatHeader";
    · the commands for everything that changes often: composer (canSend, the
      status line, clearOnSend), setText / focus / blur, scrollTo (an own
      send, a reply begun, a quote jump that widens the window first, a new
-     line followed only while at the bottom), playback, the room's idea, all
+     line followed only while at the bottom), playback, the room's deck, all
      reseeded when the view (re)attaches;
    · the one voice player for the voice opening, its link signed (known
      bug 2), moment photos signed and keyed by their storage path, Wren's
@@ -238,9 +239,10 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
         messages: detail?.messages ?? [],
         songsCount: m.songs.length,
         lastMessage: m.conv[m.conv.length - 1] ?? null,
+        pickSending: m.pickSending,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.stream, m.menuCtx, m.name, m.keyOf, photoOf, opening.voice, detail, m.songs.length, m.conv, lang],
+    [m.stream, m.menuCtx, m.name, m.keyOf, photoOf, opening.voice, detail, m.songs.length, m.conv, lang, m.pickSending],
   );
   const win = useRenderWindow(built.length, CHAT_WINDOW);
   const items = useMemo(() => windowItems(built, win.start, win.end, "room"), [built, win.start, win.end]);
@@ -293,10 +295,10 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   const sendScroll = useCallback((args: KChatCommands["scrollTo"]) => commands.send("scrollTo", args), [commands]);
   useComposerCommand(sendComposer, m.composer);
   useFollowNewLines(built, sendScroll);
-  // the ideas bubble's sentence, whenever it moves on (and on every attach: reseed)
+  // the openers deck, whenever it changes (and on every attach: reseed)
   useEffect(() => {
-    commands.send("idea", { text: m.idea });
-  }, [commands, m.idea]);
+    commands.send("deck", m.deck);
+  }, [commands, m.deck]);
 
   const voiceState = useRef<VoicePlayback | null>(null);
   const voice = useVoicePlayback({
@@ -307,7 +309,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   });
 
   /* what a remounted view must be told again: the words, the prompt, the composer, the voice,
-     the idea */
+     the deck */
   live.current.win = win;
   live.current.built = built;
   live.current.reseed = () => {
@@ -315,7 +317,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
     commands.send("setText", { target: "prompt", value: m.mode?.kind === "question" ? m.mode.prompt : "" });
     commands.send("composer", { canSend: m.composer.canSend, status: m.composer.status, statusAlarm: m.composer.statusAlarm, clearOnSend: m.composer.clearOnSend });
     commands.send("playback", voiceArgs(voiceState.current));
-    commands.send("idea", { text: m.idea });
+    commands.send("deck", m.deck);
   };
 
   useVoiceLinkArrived(opening.url, () => commands.send("playback", voiceArgs(voiceState.current)));
@@ -371,6 +373,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
           onChatTrace={m.onTrace}
           onChatDock={onDock}
           onChatVoice={onVoice}
+          onChatDeck={m.onDeck}
         />
       </SurfaceHost>
 

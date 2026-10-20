@@ -117,7 +117,8 @@ export type KNotesStrings = {
 export type KNotesPalette = { keyText: string; keyVoice: string; tape: string; sticker: string };
 
 /** One day of the 'month' command. */
-export type KNotesDayRecord = { n: number; label: string; group: KNotesGroup | ""; targetId: string; future: boolean; today: boolean; a11y: string };
+/** `icon`: the day's newest page's mood icon (moods moodArtKey: "mood-sleepy", "mood-group-low"; "" for none). */
+export type KNotesDayRecord = { n: number; label: string; group: KNotesGroup | ""; icon: string; targetId: string; future: boolean; today: boolean; a11y: string };
 
 /** The 'month' command: one month of the calendar (notes-model buildMonth, flattened). */
 export type KNotesMonthRecord = {

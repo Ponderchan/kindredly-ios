@@ -21,8 +21,12 @@ import SwiftUI
     only while no mode is set
  6. the mode box (lav2, 1.5 ind outline, corners 16, padding 12): its title, ×, and the question's
     prompt field (ask) or the prompt being answered, both in the Letter font (what someone writes)
- 7. a room's ideas bubble (chat composers B, Prompt 4: Chat/KKindredBar.swift KIdeasBubble), 8
-    above the bar while it is open
+ 7. a room's sparkle deck (owner, 2026-10-21: Chat/KKindredBar.swift KSparkleDeck, in the old
+    ideas bubble's place), 8 above the bar while it is open: the Wave card and the This or That
+    cards in a row that runs to the screen's edges. TS words and orders the cards (driver.deck);
+    the ✦ tells TS it opened (onDeck "open", so TS reads the sky now), and the collapse key, escape,
+    the ✦ again, the keyboard or the + that it closed; a send goes to TS (onDeck "send", the
+    card's key, the side picked or -1) and the deck closes at once
  8. the composer row — or, in its place, the gone line or the expired card (soft, continuous
     corners 20, no frame; Rekindle the sheets' ind capsule):
     - a room (chat composers B, 2026-10-18; the owner's rework that evening): the Kindreds bar
@@ -38,10 +42,10 @@ import SwiftUI
     Both rest at the bottom 16 from either edge (the Kindreds bar's icons; their targets reach 8
     from it) and ride the keyboard (or the + tray) 12 above it.
 
- THE THREE PANELS (Prompt 3) shut each other, and this dock is where: the ideas bubble lets go of
- the keyboard and shuts the tray; the + lets go of the keyboard (and with it the emoji keyboard)
- and shuts the bubble; the field taking the keyboard (the emoji key gives it the keyboard if it
- hasn't it) shuts both. A tap on the list's empty space shuts the bubble too (KConversation).
+ THE THREE PANELS (Prompt 3) shut each other, and this dock is where: the deck lets go of the
+ keyboard and shuts the tray; the + lets go of the keyboard (and with it the emoji keyboard) and
+ shuts the deck; the field taking the keyboard (the emoji key gives it the keyboard if it hasn't
+ it) shuts both. A tap on the list's empty space shuts the deck too (KConversation).
 
  Inset 12 (the gone line 26; the bars 16). Bottom padding: 12 above the keyboard or the tray, the
  home indicator's inset (at least 10) when both are down.
@@ -60,11 +64,11 @@ import SwiftUI
 
  VOICEOVER'S ESCAPE (two-finger Z) closes only what is open: the reply quote, the mode box (from
  its prompt field or its x), the tray from the + (the tray's own cards close it too, KChatTray),
- the ideas bubble from the ideas key or from the bubble. Everywhere else it falls through to the
+ the sparkle deck from the ideas key or from the deck. Everywhere else it falls through to the
  stack's back.
 
  THE TRAY rises on KChatMotion.tray: .45s cubic-bezier(.3,1,.3,1), a plain ease under Reduce
- Motion (the list and the dock reflow inside the same transaction). The bubble pops in on
+ Motion (the list and the dock reflow inside the same transaction). The deck pops in on
  KChatMotion.popIn(.3), the dock growing under the same curve; a fade under Reduce Motion.
 
  NEVER REMOVE A FOCUSED FIELD (the expo focus/unmount crash). Both fields stay mounted for the
@@ -137,8 +141,8 @@ struct KChatDockView: View {
     driver.keyboardHeight > 0 || driver.trayOpen ? 12 : max(10, bottomInset)
   }
 
-  private var showsIdeas: Bool {
-    dock.hasTools && driver.ideasOpen && shownTerminal == .none && !driver.idea.isEmpty
+  private var showsDeck: Bool {
+    dock.hasTools && driver.ideasOpen && shownTerminal == .none && !driver.deck.isEmpty
   }
 
   var body: some View {
@@ -166,20 +170,17 @@ struct KChatDockView: View {
       case .none:
         EmptyView()
       }
-      if showsIdeas {
-        KIdeasBubble(
+      if showsDeck {
+        KSparkleDeck(
           theme: theme,
-          label: dock.ideaLabel,
-          idea: driver.idea,
-          another: dock.ideaAnother,
-          use: dock.ideaUse,
-          onAnother: { actions.onDock("ideaNext") },
-          onUse: useIdea,
-          onClose: closeIdeas
+          deck: driver.deck,
+          onShuffle: { actions.onDeck("shuffle", "", -1) },
+          onClose: closeIdeas,
+          onAnother: { actions.onDeck("another", $0, -1) },
+          onSend: sendFromDeck
         )
-        // 16 from either edge (the dock's 12 and 4 more), 8 above the bar
-        .padding(.horizontal, 4)
-        .padding(.bottom, 8)
+        // the header 16 from either edge, the cards to the screen's edges; the deck's own 8
+        // above the bar
         .transition(reduceMotion ? .opacity : .kChatPopIn)
       }
       composerRow
@@ -259,7 +260,10 @@ struct KChatDockView: View {
       return
     }
     if driver.trayOpen { driver.trayOpen = false }
-    if driver.ideasOpen { driver.ideasOpen = false }
+    if driver.ideasOpen {
+      driver.ideasOpen = false
+      actions.onDeck("close", "", -1)
+    }
     if driver.body.isFocused || driver.prompt.isFocused {
       driver.blurAll()
       DispatchQueue.main.async { shownTerminal = now }
@@ -551,15 +555,15 @@ struct KChatDockView: View {
     if driver.trayOpen {
       withAnimation(trayAnimation) { driver.trayOpen = false }
     } else {
-      // choosing something to leave is not something you do mid-sentence; the bubble goes too
+      // choosing something to leave is not something you do mid-sentence; the deck goes too
       driver.blurAll()
       if driver.ideasOpen { closeIdeas() }
       withAnimation(trayAnimation) { driver.trayOpen = true }
     }
   }
 
-  /// The ideas key: the bubble, which lets go of the keyboard and shuts the tray (Prompt 3), or
-  /// closes it.
+  /// The ideas key: the sparkle deck, which lets go of the keyboard and shuts the tray (Prompt 3),
+  /// or closes it. TS hears it open (it reads the sky now and rewords the Wave card).
   private func toggleIdeas() {
     if driver.ideasOpen {
       closeIdeas()
@@ -567,17 +571,20 @@ struct KChatDockView: View {
     }
     driver.blurAll()
     if driver.trayOpen { withAnimation(trayAnimation) { driver.trayOpen = false } }
+    actions.onDeck("open", "", -1)
     withAnimation(ideasAnimation) { driver.ideasOpen = true }
   }
 
   private func closeIdeas() {
+    guard driver.ideasOpen else { return }
     withAnimation(.easeOut(duration: 0.2)) { driver.ideasOpen = false }
+    actions.onDeck("close", "", -1)
   }
 
-  /// USE IT: the bubble goes at once; TS puts the sentence in the field and gives it the keyboard.
-  private func useIdea() {
-    closeIdeas()
-    actions.onDock("ideaUse")
+  /// A card's send disc: TS sends it (and scrolls); the deck goes at once.
+  private func sendFromDeck(_ key: String, _ choice: Int) {
+    actions.onDeck("send", key, choice)
+    withAnimation(.easeOut(duration: 0.2)) { driver.ideasOpen = false }
   }
 
   /// The expired door (owner, 2026-10-20: no black frame): a soft card as Wren's notice and the

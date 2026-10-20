@@ -8,10 +8,12 @@ import SwiftUI
 
  - a room line (KChatBubble): mine on the right in ind with bg words, theirs on the left on soft
    with ink words; corners of 18 and 5 on the tail; padding 10 14; at most 84% of the content
-   width; the reader's Letter font at 16 on 1.44 (a line is content, owner 2026-10-20). A reply
-   carries its quote inside: a 2pt rule, the speaker in mono 500 10, two lines of the excerpt in
-   the Letter font (three in a roomy face; italic "taken back" when it was, upright in a face
-   without an italic), a tap jumps to it.
+   width; System at 16 on 1.44 (owner 2026-10-21: a kindred chat is always SF Pro, whatever the
+   Letter font; it was the Letter font from 10-20). A reply carries its quote inside: a 2pt rule,
+   the speaker in mono 500 10, two lines of the excerpt in System 13.5 (italic "taken back" when it
+   was), a tap jumps to it. The translation under a line is System too (KChatTranslationLine
+   content: false); fold halves, letter blocks, the voice caption and Wren's lines keep the
+   Letter font.
    Theirs gets a hairline in the themes where soft barely leaves the page (Lavender, Paper,
    Midnight: 1.07-1.11:1, critic).
  - a pen-pal letter (KLetterBlock), as the chat composers' A2 draws it (owner, 2026-10-18): a
@@ -28,6 +30,12 @@ import SwiftUI
    chevron; the shelf link under the last song.
  - a fold (KFoldCard): sealed on soft with a 1.5 line outline; opened on sf with a 2 ln outline
    and a 3/3 hard shadow; each opened half is a line with its own menu.
+ - a This or That (KPickCard, sparkle deck 2026-10-21): the question and its two choices; mine
+   waits with my pick marked, theirs takes a tap on one, and once both have picked each choice
+   says who picked it and a verdict line rises under them.
+ - a wave (KWavePostcard): a sky postcard drawn in code (KSkyScene: dawn, day, dusk or night, the
+   sender's own sky by their local hour, and Wren crossing it); a wave answered by a Wave Back is
+   one row of two postcards, mine first.
  - a line taken back (KRecallNote), the day rule (KChatDayRule), the translation under a line
    (KChatTranslationLine), the voice opening (a KVoiceCard on the one player; its caption keeps
    the opening letter's menu and translation, and in letters opens the reader).
@@ -103,6 +111,14 @@ struct KChatRow: View, Equatable {
       } else {
         KChatVoiceLine(theme: theme, item: item, maxWidth: (width * 0.84).rounded(), strings: strings, driver: driver, actions: actions)
       }
+    case .pick:
+      if let pick = item.pick {
+        KPickCard(theme: theme, item: item, pick: pick, actions: actions, voFocus: voFocus)
+      }
+    case .wave:
+      if let wave = item.wave {
+        KWavePostcard(theme: theme, item: item, wave: wave, width: width, strings: strings, actions: actions, voFocus: voFocus)
+      }
     }
   }
 }
@@ -162,6 +178,9 @@ struct KChatTranslationLine: View {
   let text: String
   let strings: KChatStrings
   let maxWidth: CGFloat
+  /// the translation in the reader's Letter font (under a fold half, a letter, the voice caption);
+  /// false under a room line or a wave, which are System (owner, 2026-10-21)
+  var content: Bool = true
 
   var body: some View {
     switch translation {
@@ -173,7 +192,7 @@ struct KChatTranslationLine: View {
         .padding(.horizontal, 6)
     case .shown where !text.isEmpty:
       Text(text)
-        .kText(.content(14.5, lineHeight: 1.45))
+        .kText(content ? .content(14.5, lineHeight: 1.45) : .system(14.5, lineHeight: 1.45))
         .foregroundStyle(theme.sub)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 5)
@@ -194,8 +213,6 @@ struct KChatBubble: View {
   let strings: KChatStrings
   let actions: KConversationActions
   let voFocus: AccessibilityFocusState<String?>.Binding
-  /// the Letter face the words are in (the quote's lines and its italic follow it)
-  @Environment(\.kLetterFace) private var face
 
   static let radius: CGFloat = 18
   static let tail: CGFloat = 5
@@ -217,7 +234,7 @@ struct KChatBubble: View {
     VStack(alignment: side, spacing: 0) {
       bubble
         .frame(maxWidth: maxWidth, alignment: edge)
-      KChatTranslationLine(theme: theme, translation: item.translation, text: item.translationText, strings: strings, maxWidth: maxWidth)
+      KChatTranslationLine(theme: theme, translation: item.translation, text: item.translationText, strings: strings, maxWidth: maxWidth, content: false)
     }
     .frame(maxWidth: .infinity, alignment: edge)
     .padding(.bottom, 2)
@@ -228,8 +245,9 @@ struct KChatBubble: View {
       if let quote = item.quote {
         quoteView(quote)
       }
+      // System, whatever the Letter font (owner, 2026-10-21)
       Text(item.body)
-        .kText(.content(16, lineHeight: 1.44))
+        .kText(.system(16, lineHeight: 1.44))
         .foregroundStyle(item.mine ? theme.bg : theme.ink)
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -268,9 +286,10 @@ struct KChatBubble: View {
             .foregroundStyle(speaker)
             .lineLimit(1)
           Text(quote.excerpt)
-            .kText(.content(13.5, italic: quote.gone, lineHeight: 1.33))
+            .kText(.system(13.5, lineHeight: 1.33))
+            .italic(quote.gone)
             .foregroundStyle(excerpt)
-            .lineLimit(face.fitLines(2))
+            .lineLimit(2)
             .multilineTextAlignment(.leading)
         }
       }
@@ -728,6 +747,494 @@ struct KFoldHalfView: View {
         .padding(.horizontal, 2)
     }
     .padding(.horizontal, -8)
+  }
+}
+
+// MARK: - This or That
+
+/*
+ THE PICK CARD (sparkle deck, 2026-10-21; the chat app's recording, refs 181 and 180, in our soft
+ look): full width as a fold is, corners of 18 (continuous) on soft (soft2 in a dark theme), the
+ theirs hairline where the theme has one, padding 16, no offset shadow.
+
+   [⇆] THIS OR THAT                     YOU ASKED     the tile 26 on lav, the ⇆ 15 in ind; the
+   Spicy or mild?                                     label and the asker in mono 500 10 in mute;
+   ┌──────────────┐ ┌──────────────┐                  the question in the Letter font 19 on 1.3
+   │    Spicy     │ │     Mild     │                  (content); the choices 10 apart, at least 58
+   │   ✓ Mira     │ │    ✓ You     │                  tall, corners 14, the Letter font 16, the
+   └──────────────┘ └──────────────┘                  tag in System 600 12.5 ind under it
+   Opposites. Discuss.                                the verdict in System 600 15 ind
+
+ Where it stands (TS: pick.state): choose (theirs, both choices are buttons → onItemPress .pickA /
+ .pickB), sending (the tapped one lit, the other at half), waiting (mine lit with "You"), open
+ (whichever was picked lit, the other at .6, the tags fade in and the verdict rises 6 over .35s;
+ a plain fade under Reduce Motion), closed (both plain, no taps). The hint under the choices
+ whenever TS sends one. VoiceOver: a group; the head and the question one static text, each choice
+ a button named by choice.a11y (dimmed outside choose), the verdict static text; the card's menu
+ is the item's.
+ */
+struct KPickCard: View {
+  let theme: KTheme
+  let item: KChatItem
+  let pick: KChatPick
+  let actions: KConversationActions
+  let voFocus: AccessibilityFocusState<String?>.Binding
+
+  private static let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+  private static let choiceShape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+  /// the tags and the verdict are shown (false only for the moment before the reveal plays)
+  @State private var revealed: Bool
+  /// a tap on a choice, for the selection haptic
+  @State private var taps = 0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  init(theme: KTheme, item: KChatItem, pick: KChatPick, actions: KConversationActions, voFocus: AccessibilityFocusState<String?>.Binding) {
+    self.theme = theme
+    self.item = item
+    self.pick = pick
+    self.actions = actions
+    self.voFocus = voFocus
+    _revealed = State(initialValue: pick.state == .open)
+  }
+
+  private var fill: Color { theme.isDark ? theme.soft2 : theme.soft }
+  private var plainChoice: Color { theme.isDark ? theme.sf : theme.bg }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      VStack(alignment: .leading, spacing: 0) {
+        head
+        Text(pick.prompt)
+          .kText(.content(19, lineHeight: 1.3))
+          .foregroundStyle(theme.ink)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.top, 10)
+      }
+      .accessibilityElement(children: .combine)
+      .accessibilityFocused(voFocus, equals: item.key)
+      HStack(alignment: .top, spacing: 10) {
+        ForEach(Array(pick.choices.prefix(2).enumerated()), id: \.offset) { index, choice in
+          choiceButton(choice, index: index)
+        }
+      }
+      .fixedSize(horizontal: false, vertical: true)
+      .padding(.top, 12)
+      if !pick.hint.isEmpty {
+        Text(pick.hint)
+          .kText(.system(13.5))
+          .foregroundStyle(theme.mute)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.top, 12)
+      }
+      if pick.state == .open && !pick.verdict.isEmpty {
+        Text(pick.verdict)
+          .kText(.system(15, .semibold))
+          .foregroundStyle(theme.ind)
+          .fixedSize(horizontal: false, vertical: true)
+          .opacity(revealed ? 1 : 0)
+          .offset(y: revealed || reduceMotion ? 0 : 6)
+          .padding(.top, 12)
+          .accessibilityAddTraits(.isStaticText)
+      }
+    }
+    .padding(16)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(Self.shape.fill(fill))
+    .overlay {
+      if let stroke = KChatPalette.theirsStroke(theme) {
+        Self.shape.strokeBorder(stroke, lineWidth: 1)
+      }
+    }
+    .contentShape(Self.shape)
+    .accessibilityElement(children: .contain)
+    .kMenu(item.menu, preview: .rounded(18)) { actions.onItemAction(item.key, $0) }
+    .sensoryFeedback(.selection, trigger: taps)
+    .padding(.bottom, 6)
+    .onChange(of: pick.state) { _, now in
+      guard now == .open else {
+        if revealed { revealed = false }
+        return
+      }
+      withAnimation(.easeOut(duration: 0.35)) { revealed = true }
+    }
+  }
+
+  private var head: some View {
+    HStack(alignment: .center, spacing: 10) {
+      KLineIcon(.swap, size: 15, lineWidth: 1.9, color: theme.ind)
+        .frame(width: 26, height: 26)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(theme.lav))
+      Text(pick.label)
+        .kText(.mono(10, .medium, tracking: 0.14))
+        .foregroundStyle(theme.mute)
+        .lineLimit(1)
+      Spacer(minLength: 8)
+      Text(pick.asker)
+        .kText(.mono(10, .medium, tracking: 0.14))
+        .foregroundStyle(theme.mute)
+        .lineLimit(1)
+    }
+  }
+
+  /// whether this choice is lit (lav) as the card stands
+  private func lit(_ choice: KChatPickChoice) -> Bool {
+    switch pick.state {
+    case .choose, .closed: return false
+    case .sending, .waiting: return choice.mine
+    case .open: return choice.mine || choice.theirs
+    }
+  }
+
+  private func dim(_ choice: KChatPickChoice) -> Double {
+    switch pick.state {
+    case .sending: return choice.mine ? 1 : 0.5
+    case .open: return lit(choice) ? 1 : 0.6
+    case .choose, .waiting, .closed: return 1
+    }
+  }
+
+  private func choiceButton(_ choice: KChatPickChoice, index: Int) -> some View {
+    let on = lit(choice)
+    let tagShown = !choice.tag.isEmpty && (pick.state != .open || revealed)
+    return SwiftUI.Button {
+      guard pick.state == .choose else { return }
+      taps += 1
+      actions.onItemPress(item.key, index == 0 ? .pickA : .pickB)
+    } label: {
+      VStack(spacing: 4) {
+        Text(choice.text)
+          .kText(.content(16))
+          .foregroundStyle(theme.ink)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+        if !choice.tag.isEmpty {
+          HStack(spacing: 4) {
+            KLineIcon(.check, size: 12, lineWidth: 2.4, color: theme.ind)
+            Text(choice.tag)
+              .kText(.system(12.5, .semibold))
+              .foregroundStyle(theme.ind)
+              .lineLimit(1)
+          }
+          .opacity(tagShown ? 1 : 0)
+        }
+      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 10)
+      .frame(maxWidth: .infinity, minHeight: 58, maxHeight: .infinity)
+      .background(Self.choiceShape.fill(on ? theme.lav : plainChoice))
+      .opacity(dim(choice))
+      .contentShape(Self.choiceShape)
+      .animation(.easeOut(duration: 0.2), value: on)
+    }
+    .buttonStyle(KFloatPressStyle())
+    .disabled(pick.state != .choose)
+    .accessibilityLabel(choice.a11y.isEmpty ? choice.text : choice.a11y)
+    .accessibilityAddTraits(on ? .isSelected : [])
+  }
+}
+
+// MARK: - A wave: the sky postcard
+
+/// The sky art's fixed colours (the same in every theme: a sky is the sky).
+enum KSkyPalette {
+  /// the words on a sky: dark ink on dawn and day, white on dusk and night
+  static func text(_ sky: KSky) -> Color {
+    switch sky {
+    case .dawn, .day: return KBrand.inkOnBrand
+    case .dusk, .night: return KBrand.paperWhite
+    }
+  }
+
+  /// Wren crossing the sky
+  static func bird(_ sky: KSky) -> Color {
+    switch sky {
+    case .dawn, .day: return Color(hex: "#1E1B35").opacity(0.55)
+    case .dusk: return Color(hex: "#2A1E3D").opacity(0.7)
+    case .night: return Color.white.opacity(0.85)
+    }
+  }
+
+  static func gradient(_ sky: KSky) -> [Color] {
+    switch sky {
+    case .dawn: return [Color(hex: "#F7B9C8"), Color(hex: "#FFDDB8")]
+    case .day: return [Color(hex: "#86C3F2"), Color(hex: "#D3ECFC")]
+    case .dusk: return [Color(hex: "#6D58C6"), Color(hex: "#C774A8"), Color(hex: "#F59A55")]
+    case .night: return [Color(hex: "#0E1838"), Color(hex: "#24325F")]
+    }
+  }
+}
+
+/// Wren in flight, as a silhouette: a body and two swept wings, in a frame twice as wide as tall.
+private struct KWrenFlightShape: Shape {
+  func path(in rect: CGRect) -> Path {
+    let w = rect.width
+    let h = rect.height
+    func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * w, y: rect.minY + y * h) }
+    var path = Path()
+    // the near wing, swept up and back to its tip on the left
+    path.move(to: p(0.47, 0.62))
+    path.addCurve(to: p(0.0, 0.12), control1: p(0.34, 0.40), control2: p(0.16, 0.16))
+    path.addCurve(to: p(0.42, 0.78), control1: p(0.20, 0.36), control2: p(0.30, 0.66))
+    path.closeSubpath()
+    // the far wing, higher and longer, to its tip on the right
+    path.move(to: p(0.52, 0.60))
+    path.addCurve(to: p(1.0, 0.0), control1: p(0.66, 0.30), control2: p(0.84, 0.06))
+    path.addCurve(to: p(0.60, 0.76), control1: p(0.86, 0.28), control2: p(0.72, 0.58))
+    path.closeSubpath()
+    // the body, a little head forward on the right and a short tail behind
+    path.addEllipse(in: CGRect(x: rect.minX + 0.36 * w, y: rect.minY + 0.58 * h, width: 0.30 * w, height: 0.30 * h))
+    path.addEllipse(in: CGRect(x: rect.minX + 0.60 * w, y: rect.minY + 0.52 * h, width: 0.14 * w, height: 0.20 * h))
+    path.move(to: p(0.40, 0.76))
+    path.addLine(to: p(0.26, 0.98))
+    path.addLine(to: p(0.44, 0.86))
+    path.closeSubpath()
+    return path
+  }
+}
+
+/*
+ THE SKY (KSkyScene), drawn in code from the sender's sky word (no time, no place: TS sends only
+ dawn, day, dusk or night). Dawn: pink to peach, a pale sun low, half under a faint horizon. Day:
+ blue to pale blue, a small sun top right and three soft clouds. Dusk: violet, rose and orange, a
+ big sun half below the edge. Night: deep navy, sixteen stars placed by the item's key (so a card
+ keeps its sky), twinkling on their own slow phases, and a crescent moon; the stars hold still
+ under Reduce Motion and in the deck's small cards. Wren crosses every sky at (.30, .40), tilted
+ −8°. Decorative: VoiceOver reads the card's own label.
+ */
+struct KSkyScene: View {
+  let sky: KSky
+  /// the deck's small card: the stars hold still
+  var compact = false
+  /// what places the stars (the item's key)
+  var seed = ""
+  /// Wren's width: 30 on a single postcard, 22 in a pair or a deck card
+  var birdWidth: CGFloat = 30
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  private var twinkles: Bool { sky == .night && !compact && !reduceMotion }
+
+  var body: some View {
+    TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !twinkles)) { context in
+      let t = twinkles ? context.date.timeIntervalSinceReferenceDate : 0
+      Canvas { ctx, size in
+        draw(in: &ctx, size: size, time: t)
+      }
+    }
+    .background(
+      LinearGradient(colors: KSkyPalette.gradient(sky), startPoint: .top, endPoint: .bottom)
+    )
+    .accessibilityHidden(true)
+  }
+
+  private func circle(_ cx: CGFloat, _ cy: CGFloat, d: CGFloat) -> Path {
+    Path(ellipseIn: CGRect(x: cx - d / 2, y: cy - d / 2, width: d, height: d))
+  }
+
+  private func draw(in ctx: inout GraphicsContext, size: CGSize, time: TimeInterval) {
+    let w = size.width
+    let h = size.height
+    switch sky {
+    case .dawn:
+      let horizon = 0.86 * h
+      ctx.fill(circle(0.70 * w, horizon, d: 0.22 * h), with: .color(Color(hex: "#FFF4E2").opacity(0.9)))
+      // below the horizon the sun goes into the haze
+      ctx.fill(Path(CGRect(x: 0, y: horizon, width: w, height: h - horizon)), with: .color(Color(hex: "#FFDDB8").opacity(0.7)))
+      ctx.fill(Path(CGRect(x: 0, y: horizon - 1, width: w, height: 2)), with: .color(Color.white.opacity(0.25)))
+    case .day:
+      ctx.fill(circle(0.86 * w, 0.17 * h, d: 0.15 * h), with: .color(Color(hex: "#FFF3C4")))
+      let u = min(w, h)
+      ctx.drawLayer { layer in
+        layer.addFilter(.blur(radius: 1.5))
+        for (x, y) in [(0.22, 0.30), (0.62, 0.20), (0.80, 0.48)] as [(CGFloat, CGFloat)] {
+          let cx = x * w
+          let cy = y * h
+          var cloud = Path()
+          cloud.addPath(circle(cx - 0.09 * u, cy + 0.02 * u, d: 0.14 * u))
+          cloud.addPath(circle(cx, cy - 0.02 * u, d: 0.19 * u))
+          cloud.addPath(circle(cx + 0.09 * u, cy + 0.025 * u, d: 0.13 * u))
+          layer.fill(cloud, with: .color(Color.white.opacity(0.9)))
+        }
+      }
+    case .dusk:
+      ctx.fill(circle(0.66 * w, h, d: 0.26 * h), with: .color(Color(hex: "#FFD27A")))
+    case .night:
+      for star in KSkyStars.stars(seed: seed) {
+        let opacity: Double
+        if twinkles {
+          let wave = sin(2 * .pi * time / star.period + star.phase)
+          opacity = 0.35 + 0.65 * (0.5 + 0.5 * wave)
+        } else {
+          opacity = star.still
+        }
+        ctx.fill(circle(star.x * w, star.y * h, d: star.size), with: .color(Color.white.opacity(opacity)))
+      }
+      let d = 0.20 * h
+      let moon = circle(0.80 * w, 0.24 * h, d: d)
+      let bite = circle(0.80 * w + 0.32 * d, 0.24 * h - 0.14 * d, d: d * 0.92)
+      ctx.fill(moon.subtracting(bite), with: .color(Color(hex: "#F3EFD9")))
+    }
+    // Wren crossing
+    let bw = birdWidth
+    let bh = bw / 2
+    var bird = ctx
+    bird.translateBy(x: 0.30 * w, y: 0.40 * h)
+    bird.rotate(by: .degrees(-8))
+    bird.fill(KWrenFlightShape().path(in: CGRect(x: -bw / 2, y: -bh / 2, width: bw, height: bh)), with: .color(KSkyPalette.bird(sky)))
+  }
+}
+
+/// The night's stars, placed from a key (FNV-1a, stable across launches, unlike hashValue).
+private enum KSkyStars {
+  struct Star {
+    let x: CGFloat
+    let y: CGFloat
+    let size: CGFloat
+    let period: Double
+    let phase: Double
+    /// the opacity it holds when the stars don't twinkle
+    let still: Double
+  }
+
+  static func stars(seed: String) -> [Star] {
+    var state: UInt64 = 0xcbf2_9ce4_8422_2325
+    for byte in seed.utf8 {
+      state ^= UInt64(byte)
+      state = state &* 0x0000_0100_0000_01b3
+    }
+    func next() -> Double {
+      // xorshift64*, a unit draw
+      state ^= state >> 12
+      state ^= state << 25
+      state ^= state >> 27
+      if state == 0 { state = 0x9e37_79b9_7f4a_7c15 }
+      return Double((state &* 0x2545_f491_4f6c_dd1d) >> 11) / Double(1 << 53)
+    }
+    return (0..<16).map { _ in
+      Star(
+        x: CGFloat(0.04 + 0.92 * next()),
+        // the upper three quarters of the sky, clear of the words at the foot
+        y: CGFloat(0.05 + 0.65 * next()),
+        size: CGFloat(1.2 + 1.0 * next()),
+        period: 1.6 + 1.6 * next(),
+        phase: 2 * .pi * next(),
+        still: 0.55 + 0.45 * next()
+      )
+    }
+  }
+}
+
+/*
+ THE SKY POSTCARD (KWavePostcard): a wave in a room. One postcard, min(78% of the width, 300)
+ wide and two thirds as tall, corners of 18 (continuous), mine on the right and theirs on the
+ left: the scene, the sky's label (mono 500 10 at .14em) top left and the line (the Letter font 16
+ on 1.3, two lines) at the foot, both in the sky's own ink. The translation under it in System.
+ Theirs with a Wave Back key: a lav capsule 8 under the card, System 600 14 ind, 36 tall
+ (→ onItemPress .waveBack). A wave answered: one row of two postcards 10 apart, mine first, each
+ 4:5, the line at 14, YOUR SKY / MIRA'S SKY in mono 500 10 mute under each. Each postcard is one
+ VoiceOver element (card.a11y) carrying its own menu.
+ */
+struct KWavePostcard: View {
+  let theme: KTheme
+  let item: KChatItem
+  let wave: KChatWave
+  let width: CGFloat
+  let strings: KChatStrings
+  let actions: KConversationActions
+  let voFocus: AccessibilityFocusState<String?>.Binding
+
+  private static let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+
+  var body: some View {
+    if wave.cards.count >= 2 {
+      pair
+    } else if let card = wave.cards.first {
+      single(card)
+    }
+  }
+
+  private func single(_ card: KChatWaveCard) -> some View {
+    let w = min((width * 0.78).rounded(), 300)
+    let edge: Alignment = card.mine ? .trailing : .leading
+    return VStack(alignment: card.mine ? .trailing : .leading, spacing: 0) {
+      postcard(card, size: CGSize(width: w, height: (w * 2 / 3).rounded()), lineSize: 16, lineHeight: 1.3, birdWidth: 30)
+      KChatTranslationLine(theme: theme, translation: card.translation, text: card.translationText, strings: strings, maxWidth: w, content: false)
+      if !card.mine && !wave.backKey.isEmpty {
+        SwiftUI.Button {
+          actions.onItemPress(item.key, .waveBack)
+        } label: {
+          Text(wave.backKey)
+            .kText(.system(14, .semibold))
+            .foregroundStyle(theme.ind)
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 36)
+            .background(Capsule(style: .continuous).fill(theme.lav))
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(KFloatPressStyle())
+        .accessibilityLabel(wave.backA11y.isEmpty ? wave.backKey : wave.backA11y)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+        .padding(.top, 8)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: edge)
+    .padding(.bottom, 6)
+  }
+
+  private var pair: some View {
+    let w = ((width - 10) / 2).rounded(.down)
+    return HStack(alignment: .top, spacing: 10) {
+      ForEach(wave.cards.prefix(2)) { card in
+        VStack(alignment: .leading, spacing: 0) {
+          postcard(card, size: CGSize(width: w, height: (w * 5 / 4).rounded()), lineSize: 14, lineHeight: 1.3, birdWidth: 22)
+          if !card.whose.isEmpty {
+            Text(card.whose)
+              .kText(.mono(10, .medium, tracking: 0.14))
+              .foregroundStyle(theme.mute)
+              .lineLimit(1)
+              .padding(.top, 6)
+              .padding(.horizontal, 2)
+              .accessibilityHidden(true)
+          }
+          KChatTranslationLine(theme: theme, translation: card.translation, text: card.translationText, strings: strings, maxWidth: w, content: false)
+        }
+        .frame(width: w, alignment: .leading)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.bottom, 6)
+  }
+
+  private func postcard(_ card: KChatWaveCard, size: CGSize, lineSize: CGFloat, lineHeight: CGFloat, birdWidth: CGFloat) -> some View {
+    let ink = KSkyPalette.text(card.sky)
+    return KSkyScene(sky: card.sky, seed: card.key, birdWidth: birdWidth)
+      .frame(width: size.width, height: size.height)
+      .overlay(alignment: .topLeading) {
+        Text(card.label)
+          .kText(.mono(10, .medium, tracking: 0.14))
+          .foregroundStyle(ink.opacity(0.85))
+          .lineLimit(1)
+          .padding(12)
+      }
+      .overlay(alignment: .bottomLeading) {
+        Text(card.line)
+          .kText(.content(lineSize, lineHeight: lineHeight))
+          .foregroundStyle(ink)
+          .lineLimit(2)
+          .minimumScaleFactor(0.8)
+          .multilineTextAlignment(.leading)
+          .padding(12)
+      }
+      .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+      .clipShape(Self.shape)
+      .contentShape(Self.shape)
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(card.a11y.isEmpty ? card.line : card.a11y)
+      .accessibilityFocused(voFocus, equals: card.key)
+      .kMenu(card.menu, preview: .rounded(18)) { actions.onItemAction(card.key, $0) }
   }
 }
 

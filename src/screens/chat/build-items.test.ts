@@ -462,7 +462,7 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
 
   const base: import("./build-items").RoomDockInput = { t, locale: "en-US", wren: "Wren", name: "Mira", closing: false, daysLeft: 9, mode: null, replyTo: null, notice: null, gone: false, expired: false, quietDays: 0 };
   const dock = B.buildRoomDock(base);
-  ok("Kindreds bar: the ideas key is named, so Swift draws the Kindreds bar", dock.ideasLabel === "rm.ideas.a11y");
+  ok("Kindreds bar: the ✦ key is named (it opens the openers deck), so Swift draws the Kindreds bar", dock.ideasLabel === "sp.deck.a11y");
   ok("Kindreds bar: the bubble's label in capitals, its two keys and the tray's title as written", dock.ideaLabel === "RM.IDEA.LABEL" && dock.ideaAnother === "rm.idea.another" && dock.ideaUse === "rm.idea.use" && dock.trayTitle === "rm.tray.title");
   ok("Kindreds bar: the emoji key is named", dock.emojiLabel === "cmp.emoji");
   ok(
@@ -551,6 +551,119 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const items = B.buildRoomItems(B.roomStream(B.conversation(d), storeFolds), roomCtx(d));
   ok("the store room has no fold rows", items.every((i) => i.kind !== "fold"));
   ok("store mode leaves other rooms' folds alone", B.roomFolds(demoFolds("demo-juno"), { id: "demo-juno", storeMode: true }).length === demoFolds("demo-juno").length);
+}
+
+/* ── the openers deck, This or That and the sky wave (Sparkle, 2026-10-21) ── */
+{
+  const { PICKS, WAVE_LINES } = await import("../../data/sparkle-deck.ts");
+  const { nativeChatItems } = await import("../../../modules/kindredly-ui/src/Conversation.tsx").catch(() => ({ nativeChatItems: null as any }));
+
+  // the sky, from the local hour only
+  const skies = [0, 4, 5, 7, 8, 12, 16, 17, 19, 20, 23].map((h) => B.skyOf(h)).join();
+  ok("skyOf: dawn 5–8, day 8–17, dusk 17–20, night 20–5", skies === "night,night,dawn,dawn,day,day,day,dusk,dusk,night,night");
+  ok("msToNextSky: 7:30 → 30 minutes to day", B.msToNextSky(new Date(2026, 9, 21, 7, 30, 0)) === 30 * 60_000);
+  ok("msToNextSky: 22:00 → 7 hours to dawn (tomorrow)", B.msToNextSky(new Date(2026, 9, 21, 22, 0, 0)) === 7 * 3600_000);
+  ok("msToNextSky: on the turn itself → the next turn", B.msToNextSky(new Date(2026, 9, 21, 17, 0, 0)) === 3 * 3600_000);
+  ok("waveLine: the n-th line for the sky, round", B.waveLine("en", "night", 0) === WAVE_LINES.en.night[0] && B.waveLine("en", "night", WAVE_LINES.en.night.length) === WAVE_LINES.en.night[0]);
+  ok("waveLine: an unknown language reads en", B.waveLine("zz", "dawn", 1) === WAVE_LINES.en.dawn[1]);
+  ok("waveLine: ja has its own", B.waveLine("ja", "day", 0) === WAVE_LINES.ja.day[0]);
+
+  // the walk
+  const none = new Set<string>();
+  const w0 = B.deckStart("en", "room-1", none);
+  ok("deckStart: four distinct cards", w0.slots.length === B.DECK_SLOTS && new Set(w0.slots).size === 4 && w0.slots.every((x) => x >= 0));
+  ok("deckStart: the same room deals the same cards", B.deckStart("en", "room-1", none).slots.join() === w0.slots.join());
+  ok("deckStart: another room another order", B.deckStart("en", "room-2", none).slots.join() !== w0.slots.join());
+  const usedQ = new Set([PICKS.en[w0.slots[0]].q]);
+  const w0u = B.deckStart("en", "room-1", usedQ);
+  ok("deckStart: a question already asked in the room is skipped", !w0u.slots.includes(w0.slots[0]));
+  const w1 = B.deckAnother(w0, 2, "en", none, "room-1");
+  ok("deckAnother: only that slot changes, to a card not on the table", w1.slots[0] === w0.slots[0] && w1.slots[1] === w0.slots[1] && w1.slots[3] === w0.slots[3] && !w0.slots.includes(w1.slots[2]));
+  let w = w0;
+  let neverVisibleTwice = true;
+  for (let k = 0; k < PICKS.en.length * 2; k++) {
+    w = B.deckAnother(w, k % 4, "en", none, "room-1");
+    if (new Set(w.slots).size !== 4) neverVisibleTwice = false;
+  }
+  ok("deckAnother: past the end of the order it starts over, never two of one card on the table", neverVisibleTwice);
+  const ws = B.deckShuffle(w0, "en", "room-1", none);
+  ok("deckShuffle: a new seed and none of the cards that were on the table", ws.seed === w0.seed + 1 && ws.slots.every((x) => !w0.slots.includes(x)));
+  ok("deckPick: pick:<n> is the PICKS index", B.deckPick("en", `pick:${w0.slots[1]}`)?.pair.q === PICKS.en[w0.slots[1]].q && B.deckPick("en", "wave") === null && B.deckPick("en", "pick:99999") === null);
+
+  // the deck's words
+  const deck = B.buildDeck({ t, locale: "en-US", lang: "en", walk: w0, sky: "night", line: "Stars are out here.", waved: false, waiting: 0, status: "", canWrite: true });
+  ok("buildDeck: the Wave card first, then the four", deck.cards.map((c) => c.kind).join() === "wave,pick,pick,pick,pick" && deck.cards[0].key === "wave");
+  ok("buildDeck: the Wave card's labels in capitals, the sky now, its line", deck.cards[0].label === "SP.DECK.WAVE" && deck.cards[0].skyLabel === "SP.SKY.NIGHT" && deck.cards[0].sky === "night" && deck.cards[0].line === "Stars are out here." && !deck.cards[0].disabled);
+  const p1 = deck.cards[1];
+  ok("buildDeck: a pick card carries its question and both choices, keyed by its PICKS index", p1.key === `pick:${w0.slots[0]}` && p1.prompt === PICKS.en[w0.slots[0]].q && p1.a === PICKS.en[w0.slots[0]].a && p1.line === "sp.deck.pickHint");
+  ok("buildDeck: the header's words", deck.title === "sp.deck.title" && deck.shuffleLabel === "sp.deck.shuffle" && deck.closeLabel === "sp.deck.close" && deck.sendLabel === "sp.deck.send" && deck.anotherLabel === "sp.deck.another");
+  const rest = B.buildDeck({ t, locale: "en-US", lang: "en", walk: w0, sky: "day", line: "x", waved: true, waiting: 3, status: "cap", canWrite: true });
+  ok("buildDeck: a wave within the hour rests the Wave card (Waved)", rest.cards[0].disabled && rest.cards[0].note === "sp.deck.waved");
+  ok("buildDeck: three waiting rest every pick card ({n} waiting)", rest.cards.slice(1).every((c) => c.disabled && c.note === "sp.deck.waiting(n=3)") && rest.status === "cap");
+  ok("buildDeck: a room nothing can be left in has no cards", B.buildDeck({ t, locale: "en-US", lang: "en", walk: w0, sky: "day", line: "x", waved: false, waiting: 0, status: "", canWrite: false }).cards.length === 0);
+
+  // the stream: waves, and a wave with its wave back
+  const d = demoDetail("demo-mira")!;
+  const wv = (id: string, mine: boolean, date: string, meta: any, body = "Stars are out here."): Msg => ({ id, body, mine, date, kind: "wave", meta });
+  const tw = wv("w-1", false, "2026-10-16T09:00:00Z", { sky: "night" });
+  const mw = wv("w-2", true, "2026-10-16T10:00:00Z", { sky: "day", back: "w-1" }, "Bright out here.");
+  const late = wv("w-3", true, "2026-10-16T11:00:00Z", { sky: "day", back: "w-1" }, "Blue sky here.");
+  const dd = { ...d, messages: [...d.messages, tw, mw, late] };
+  const stream = B.roomStream(B.conversation(dd), []);
+  const waves = stream.filter((s) => s.type === "wave");
+  ok("roomStream: a wave and its first wave back are one pair at the back's date; a second back stands alone", waves.length === 2 && waves[0].type === "wave" && waves[0].back === mw && waves[0].wave === tw && waves[0].date === mw.date && waves[1].type === "wave" && waves[1].wave === late && waves[1].back === null);
+  ok("roomStream: the answered wave has no single item of its own", !stream.some((s) => s.type === "msg" && s.msg === tw));
+  const own = wv("w-4", true, "2026-10-16T12:00:00Z", { sky: "day", back: "w-2" });
+  ok("roomStream: a back to a wave of one's own side isn't a pair", B.roomStream([mw, own], []).filter((s) => s.type === "wave" && s.back).length === 0);
+
+  const items = B.buildRoomItems(stream, roomCtx(dd));
+  const pair = items.find((i) => i.kind === "wave" && i.wave?.cards.length === 2)!;
+  ok("a pair: mine first, whose in capitals, keyed by the back", !!pair && pair.key === "w-2" && pair.wave!.cards[0].mine && pair.wave!.cards[0].whose === "SP.WAVE.YOURSKY" && pair.wave!.cards[1].whose === "SP.WAVE.THEIRSKY(NAME=MIRA)" && pair.wave!.backKey === "");
+  ok("a pair: the fallback body is their line · my line", pair.body === "Stars are out here. · Bright out here.");
+  ok("a pair: each card its sky and its label", pair.wave!.cards[0].sky === "day" && pair.wave!.cards[1].sky === "night" && pair.wave!.cards[1].label === "SP.SKY.NIGHT");
+  ok("a wave's menus: theirs translate-less keep and report, mine nothing; never reply or take back", actKeys(pair.wave!.cards[1].menu) === "keep,report" && pair.wave!.cards[0].menu.length === 0);
+
+  const solo = wv("w-9", false, "2026-10-16T13:00:00Z", { sky: "dusk" }, "The sun's going down here.");
+  const d2 = { ...d, messages: [...d.messages, solo] };
+  const single = B.buildRoomItems(B.roomStream(B.conversation(d2), []), roomCtx(d2)).find((i) => i.key === "w-9")!;
+  ok("a single wave of theirs offers Wave Back", single.kind === "wave" && single.wave!.cards.length === 1 && single.wave!.backKey === "sp.wave.back" && single.wave!.backA11y === "sp.wave.backA11y" && single.body === "The sun's going down here.");
+  ok("a single wave: its VoiceOver line names them, the sky and the line", single.wave!.cards[0].a11y === "sp.wave.a11yTheirs(name=Mira,sky=sp.sky.dusk,line=The sun's going down here.)" && single.wave!.cards[0].whose === "");
+  const d3 = { ...d2, messages: [...d2.messages, wv("w-10", true, "2026-10-16T14:00:00Z", { sky: "night" })] };
+  ok("no Wave Back once a wave of mine came after it", B.buildRoomItems(B.roomStream(B.conversation(d3), []), roomCtx(d3)).find((i) => i.key === "w-9")!.wave!.backKey === "");
+  ok("no Wave Back in a room nothing can be left in", B.buildRoomItems(B.roomStream(B.conversation(d2), []), roomCtx(d2, { canWrite: false })).find((i) => i.key === "w-9")!.wave!.backKey === "");
+  ok("an unknown sky reads as day", B.skyWord("noon") === "day" && B.skyWord("dawn") === "dawn");
+
+  // This or That
+  const opener = (mine: boolean, body: string | null): Fold => ({ id: "pk-1", mine, kind: "pick", prompt: "Spicy or mild?", choices: ["Spicy", "Mild"], parentId: null, body, date: "2026-10-16T09:30:00Z" });
+  const ans = (mine: boolean, body: string): Fold => ({ id: "pk-2", mine, kind: "pick", prompt: null, choices: null, parentId: "pk-1", body, date: "2026-10-16T09:40:00Z" });
+  const pickOf = (folds: Fold[], over: Partial<import("./build-items").RoomItemsCtx> = {}) =>
+    B.buildRoomItems(B.roomStream(B.conversation(d), folds), roomCtx(d, over)).find((i) => i.key === "fold:pk-1")!;
+  const waiting = pickOf([opener(true, "Spicy")]);
+  ok("pick waiting: kind pick, my choice marked You, the waiting hint", waiting.kind === "pick" && waiting.pick!.state === "waiting" && waiting.pick!.choices[0].mine && waiting.pick!.choices[0].tag === "sp.pick.you" && !waiting.pick!.choices[1].mine && waiting.pick!.hint === "sp.pick.waiting(name=Mira)" && waiting.pick!.verdict === "");
+  ok("pick: labels in capitals, the fallback body for an older native", waiting.pick!.label === "SP.PICK.LABEL" && waiting.pick!.asker === "SP.PICK.YOUASKED" && waiting.body === "sp.pick.fallback(prompt=Spicy or mild?,a=Spicy,b=Mild)");
+  const choose = pickOf([opener(false, null)]);
+  ok("pick choose: theirs, nothing picked, the hint, report in its menu", choose.pick!.state === "choose" && choose.pick!.choices.every((c) => !c.mine && !c.theirs && !c.tag) && choose.pick!.hint === "sp.pick.hint" && choose.pick!.asker === "SP.PICK.THEYASKED(NAME=MIRA)" && actKeys(choose.menu) === "report");
+  ok("pick: a mine has no menu", waiting.menu.length === 0);
+  const sending = pickOf([opener(false, null)], { pickSending: new Map([["pk-1", 1 as const]]) });
+  ok("pick sending: the tapped one is mine, the sending hint", sending.pick!.state === "sending" && sending.pick!.choices[1].mine && !sending.pick!.choices[0].mine && sending.pick!.hint === "sp.pick.sending");
+  ok("pick closed: theirs in a room nothing can be left in", pickOf([opener(false, null)], { canWrite: false }).pick!.state === "closed");
+  const diff = pickOf([opener(false, "Spicy"), ans(true, "Mild")]);
+  ok("pick open, opposites: each choice tagged with who picked it, a diff verdict", diff.pick!.state === "open" && diff.pick!.choices[0].theirs && diff.pick!.choices[0].tag === "Mira" && diff.pick!.choices[1].mine && diff.pick!.choices[1].tag === "sp.pick.you" && !diff.pick!.same && /^sp\.pick\.diff\.[123]$/.test(diff.pick!.verdict) && diff.pick!.hint === "");
+  const same = pickOf([opener(true, "Mild"), ans(false, "Mild")]);
+  ok("pick open, same: the shared choice says Both of you, a same verdict", same.pick!.same && same.pick!.choices[1].tag === "sp.pick.both" && same.pick!.choices[1].mine && same.pick!.choices[1].theirs && /^sp\.pick\.same\.[123]$/.test(same.pick!.verdict));
+  ok("pick: VoiceOver per choice says who picked it", diff.pick!.choices[0].a11y === "sp.pick.a11yPicked(choice=Spicy,who=Mira)" && choose.pick!.choices[0].a11y === "sp.pick.a11yChoice(choice=Spicy)");
+  ok("pick: the waiting count and the used questions", B.picksWaiting([opener(true, "Spicy")]) === 1 && B.picksWaiting([opener(true, "Spicy"), ans(false, "Mild")]) === 0 && B.usedPicks([opener(false, null)]).has("Spicy or mild?"));
+  ok("a note or question fold still builds as a fold", B.buildRoomItems(B.roomStream(B.conversation(d), demoFolds("demo-mira")), roomCtx(d)).filter((i) => i.kind === "fold").length === 3);
+
+  // the flat records Swift reads
+  if (nativeChatItems) {
+    const [np] = nativeChatItems([diff]);
+    const [nw] = nativeChatItems([pair]);
+    const [nl] = nativeChatItems([items[0]]);
+    ok("native: a pick's flat fields", np.pickState === "open" && np.pickChoices.length === 2 && np.pickChoices[0].tag === "Mira" && np.pickVerdict === diff.pick!.verdict && np.waveCards.length === 0);
+    ok("native: a wave's cards with their menus", nw.waveCards.length === 2 && nw.waveCards[1].menu.length === 2 && nw.waveCards[0].sky === "day" && nw.pickState === "waiting");
+    ok("native: every new field set on a plain row", nl.pickLabel === "" && nl.pickSame === false && Array.isArray(nl.pickChoices) && nl.waveBackKey === "");
+  } else console.log("skip native records (Conversation.tsx needs expo to load)");
 }
 
 /* ── every demo thread builds ── */

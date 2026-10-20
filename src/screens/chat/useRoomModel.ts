@@ -6,7 +6,7 @@ import { getLang, t, useLang } from "../../lib/i18n";
 import { localeTag, noteDay } from "../../lib/format";
 import { reportContent, sendThreadMessage, takeBack, TAKEN_BACK, theirLatest, uploadMoment, type MessageQuote, type ThreadDetail, type ThreadMessage } from "../../lib/db";
 import { useThreadDetail, type ThreadDetailStatus } from "../../lib/thread-detail";
-import { answerFold, leaveFold, type Fold } from "../../lib/folds";
+import { answerFold, answerPick, leaveFold, leavePick, type Fold } from "../../lib/folds";
 import { translate } from "../../lib/wren";
 import { copyText } from "../../lib/clipboard";
 import { offerTranslate } from "../../lib/lang-guess";
@@ -34,9 +34,26 @@ import { useSlow } from "../../components/ui";
 import { sheetWords } from "../../components/sheet-chrome";
 import type { LightboxPhoto } from "../../components/PhotoLightbox";
 import type { TraceAction, TraceKind } from "../../components/LeaveATrace";
-import type { KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
+import type { KChatDeck, KChatDeckAction, KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
 import {
   IDEA_WALK_START,
+  PICK_WAITING_CAP,
+  WAVE_REST_MS,
+  buildDeck,
+  deckAnother,
+  deckPick,
+  deckShuffle,
+  deckStart,
+  isWave,
+  lastWaveAt,
+  msToNextSky,
+  picksWaiting,
+  skyOf,
+  skyWord,
+  usedPicks,
+  waveLine,
+  type DeckWalk,
+  type Sky,
   ROOM_CEREMONY_DAYS,
   conversation,
   foldKey,
@@ -62,6 +79,9 @@ import {
   type Translations,
 } from "./build-items";
 import "../../data/strings-step5-chat";
+// sp.*: the openers deck, This or That, the sky wave (imported here, not in build-items, which
+// plain node loads for its tests and which can't reach lib/i18n's React Native imports)
+import "../../data/strings-sparkle";
 
 /* THE ROOM, AS A MODEL (10a step 5).
    ────────────────────────────────────────────────────────────────────────
@@ -74,7 +94,10 @@ import "../../data/strings-step5-chat";
    soon and the expired door, the shelf, the lightbox and the first
    signer's ceremony, and the ideas the Kindreds bar's Sparkle offers
    (chat composers B: which sentence, in the room's order, where the reader
-   is in it). Both renderers sit on it — the SwiftUI conversation
+   is in it; the React Native room's bubble), and the openers deck the
+   SwiftUI room's ✦ opens instead (Sparkle, 2026-10-21: a Wave card under
+   the sky now, four This or That cards walked per room; sending either,
+   picking theirs, Wave Back). Both renderers sit on it — the SwiftUI conversation
    (ConversationNative) and the React Native fallback (RoomRN) — and tell
    it how to reach their own field and list through a ChatUi.
 
@@ -188,7 +211,8 @@ export function useCorrespondentRead(detail: ThreadDetail | null): Correspondent
     if (!detail) return;
     const task = InteractionManager.runAfterInteractions(() => {
       markWork("read:correspondent");
-      const theirs = detail.messages.filter((m) => !m.mine && !m.recalledAt && m.body !== TAKEN_BACK).map((m) => m.body);
+      // a wave's line is the app's words, not theirs
+      const theirs = detail.messages.filter((m) => !m.mine && !m.recalledAt && m.body !== TAKEN_BACK && m.kind !== "wave").map((m) => m.body);
       if (!detail.openingFromMe && detail.opening) theirs.unshift(detail.opening);
       setRead(readCorrespondent(theirs, detail.revealed));
     });
@@ -257,6 +281,12 @@ function serverIdsOf(detail: ThreadDetail | null, isPending: (m: ThreadMessage) 
    sentences it moved past, not a position (build-items IdeaWalk), so their
    categories moving under it never brings one round early. */
 const ideaWalks = new Map<string, IdeaWalk>();
+
+/* the openers deck's This or That walk per room, for the app's life (leaving the room keeps
+   the cards on the table); a language change starts it over in the new words */
+const deckWalks = new Map<string, { lang: string; walk: DeckWalk }>();
+/** how long the cap line stays on the composer's status line */
+const CAP_NOTE_MS = 6000;
 
 /** how many of their latest letters and lines are read for the categories they write in */
 const IDEA_READ = 24;
@@ -399,7 +429,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
      at a time, and marked seen when you leave the room (or at the ×). */
   const notices = useMemo(() => {
     if (!detail) return [];
-    const said = detail.messages.filter((m) => !m.recalledAt && m.body !== TAKEN_BACK);
+    const said = detail.messages.filter((m) => !m.recalledAt && m.body !== TAKEN_BACK && m.kind !== "wave");
     return noticeThings(
       said.filter((m) => m.mine),
       said.filter((m) => !m.mine),
@@ -444,7 +474,16 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   const quietDays = quietDaysOf(lastAt);
 
   // offline with nothing kept: say so on the status line rather than show an empty room
-  const composer: ComposerFacts = roomComposer({ t, text, prompt: mode?.kind === "question" ? mode.prompt : "", mode, sending, slow, offline: status === "offline" && !detail });
+  const composerFacts: ComposerFacts = roomComposer({ t, text, prompt: mode?.kind === "question" ? mode.prompt : "", mode, sending, slow, offline: status === "offline" && !detail });
+  /* three This or That of mine already wait in this room (0044's cap): said on the status line
+     for a moment, never as an alert */
+  const [capNote, setCapNote] = useState("");
+  useEffect(() => {
+    if (!capNote) return;
+    const tm = setTimeout(() => setCapNote(""), CAP_NOTE_MS);
+    return () => clearTimeout(tm);
+  }, [capNote]);
+  const composer: ComposerFacts = capNote && !composerFacts.status ? { ...composerFacts, status: capNote, statusAlarm: true } : composerFacts;
 
   /* readable, not actionable (owner): a gone kindred, a thread the server calls missing, an expired
      room — no reply, no ANSWER TO OPEN, no reply quote over the gone line or the expired card */
@@ -510,6 +549,79 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     ui.focus("body", 60);
   }, [putText, nextIdea, setMode, ui]);
 
+  /* THE OPENERS DECK (Sparkle, 2026-10-21). The Wave card sends the sky now (the phone's local
+     hour only, build-items skyOf) with a line for it; it rests for an hour after a wave of mine
+     (a courtesy, not a rule of the server's). The This or That cards walk the room's own order
+     of the language's PICKS, skipping questions already asked here; ↻ Shuffle deals a new order,
+     a card's Another the next one, and a card sent moves on. */
+  const lang = getLang();
+  const deckKey = id ?? "";
+  const used = useMemo(() => usedPicks(folds), [folds]);
+  const usedRef = useRef(used);
+  usedRef.current = used;
+  const [deckMoves, setDeckMoves] = useState(0);
+  /** the room's walk now (a fresh one when there is none, or the language changed) */
+  const walkNow = useCallback((): DeckWalk => {
+    const cur = deckWalks.get(deckKey);
+    if (cur && cur.lang === getLang()) return cur.walk;
+    const walk = deckStart(getLang(), deckKey, usedRef.current);
+    deckWalks.set(deckKey, { lang: getLang(), walk });
+    return walk;
+  }, [deckKey]);
+  const moveWalk = useCallback(
+    (fn: (w: DeckWalk) => DeckWalk) => {
+      deckWalks.set(deckKey, { lang: getLang(), walk: fn(walkNow()) });
+      setDeckMoves((n) => n + 1);
+    },
+    [deckKey, walkNow],
+  );
+  const [sky, setSky] = useState<Sky>(() => skyOf(new Date().getHours()));
+  // the sky turns while the room is open: the Wave card follows it
+  useEffect(() => {
+    const tm = setTimeout(() => setSky(skyOf(new Date().getHours())), msToNextSky(new Date()) + 500);
+    return () => clearTimeout(tm);
+  }, [sky]);
+  const myWaves = useMemo(() => (detail?.messages ?? []).filter((m) => m.mine && m.kind === "wave"), [detail]);
+  const lastWave = useMemo(() => lastWaveAt(myWaves), [myWaves]);
+  const [waveTick, setWaveTick] = useState(0);
+  const waved = lastWave !== null && Date.now() - lastWave < WAVE_REST_MS;
+  // the Wave card wakes when the hour is up
+  useEffect(() => {
+    if (lastWave === null) return;
+    const left = lastWave + WAVE_REST_MS - Date.now();
+    if (left <= 0) return;
+    const tm = setTimeout(() => setWaveTick((n) => n + 1), left + 500);
+    return () => clearTimeout(tm);
+  }, [lastWave]);
+  const waiting = useMemo(() => picksWaiting(folds), [folds]);
+  const deck: KChatDeck = useMemo(
+    () =>
+      buildDeck({
+        t,
+        locale: localeTag(),
+        lang,
+        walk: walkNow(),
+        sky,
+        line: waveLine(lang, sky, myWaves.filter((m) => skyWord(m.meta?.sky) === sky).length),
+        waved,
+        waiting,
+        status: capNote,
+        canWrite: canWrite && !!id,
+      }),
+    // deckMoves and waveTick are the walk's and the hour's redraws
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lang, walkNow, sky, myWaves, waved, waiting, capNote, canWrite, id, deckMoves, waveTick, used],
+  );
+
+  /* This or That picks of mine on their way (the row shows "Sending your pick…") */
+  const [pickSending, setPickSending] = useState<ReadonlyMap<string, 0 | 1>>(() => new Map());
+  const pickSendingRef = useRef(pickSending);
+  pickSendingRef.current = pickSending;
+  const foldsRef = useRef(folds);
+  foldsRef.current = folds;
+  const nameRef = useRef(name);
+  nameRef.current = name;
+
   const nowMs = useTakeBackClock(detail?.messages, skew.current);
   const menuCtx: MenuCtx = useMemo(
     () => ({ t, isDemo, otherExists: !!detail?.other, nowMs, skewMs: skew.current, trans, canTranslate: offerTranslate, canWrite }),
@@ -527,6 +639,136 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   /* ── sends ── */
 
   const failAlert = () => ui.thenModal(() => alertFail(t("rm.fail.title"), t("rm.fail.body"), { context: "thread" }));
+
+  /** A wave: the sky now and its line; `back` = their wave this one answers (Wave Back). Goes at
+      once, optimistically, like a plain line; a demo room keeps it on the phone. */
+  const sendWave = useCallback(
+    async (back: ThreadMessage | null) => {
+      if (!id || !canWriteRef.current) return;
+      const skyNow = skyOf(new Date().getHours());
+      const mine = (detailRef.current?.messages ?? []).filter((m) => m.mine && m.kind === "wave" && skyWord(m.meta?.sky) === skyNow).length;
+      const line = waveLine(getLang(), skyNow, mine);
+      if (!line) return;
+      const meta = back?.id ? { sky: skyNow, back: back.id } : { sky: skyNow };
+      const sentAt = new Date().toISOString();
+      const msg: ThreadMessage = { id: isDemo ? `demo-c${Date.now()}` : undefined, body: line, mine: true, date: sentAt, kind: "wave", meta };
+      lines.add(msg);
+      setSky(skyNow);
+      ui.scrollToEnd(true, 60);
+      if (isDemo) return;
+      const res = await sendThreadMessage(id, line, { kind: "wave", meta });
+      if (!res) {
+        lines.drop(msg);
+        void reload();
+        return failAlert();
+      }
+      if (res.id) {
+        if (res.createdAt) skew.current = Date.parse(res.createdAt) - Date.parse(sentAt);
+        const echoed = !!detailRef.current?.messages.some((m) => m.id === res.id && !lines.keys.current.has(m));
+        lines.settle(msg, res.id, res.createdAt, echoed);
+      } else {
+        // a wave back that had already gone (one per wave): the server's is the one
+        lines.drop(msg);
+        void reload();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, isDemo, ui, reload, lines.add, lines.drop, lines.settle],
+  );
+
+  /** A This or That from the deck: its question, its two choices and my side (0/1), sealed until
+      they pick. The card moves on once it went. */
+  const sendPick = useCallback(
+    async (key: string, choice: 0 | 1) => {
+      const hit = deckPick(getLang(), key);
+      if (!id || !hit || !canWriteRef.current) return;
+      const { index, pair } = hit;
+      const moveOn = () => {
+        const slot = walkNow().slots.indexOf(index);
+        if (slot >= 0) moveWalk((w) => deckAnother(w, slot, getLang(), usedRef.current, deckKey));
+      };
+      const capLine = () => t("sp.deck.capStatus", { name: nameRef.current });
+      if (picksWaiting(foldsRef.current) >= PICK_WAITING_CAP) {
+        setCapNote(capLine());
+        return;
+      }
+      const choices: [string, string] = [pair.a, pair.b];
+      const opener: Fold = { id: `p-${Date.now()}`, mine: true, kind: "pick", prompt: pair.q, choices, parentId: null, body: choices[choice], date: new Date().toISOString() };
+      mutateFolds((f) => [...f, opener]);
+      ui.scrollToEnd(true, 120);
+      if (isDemo) {
+        moveOn();
+        return;
+      }
+      const res = await leavePick(id, pair.q, choices, choice);
+      if (res !== true) {
+        mutateFolds((f) => f.filter((x) => x !== opener));
+        if (res === "cap") {
+          setCapNote(capLine());
+          void reload();
+          return;
+        }
+        void reload();
+        return failAlert();
+      }
+      moveOn();
+      void reload();
+      ui.scrollToEnd(true, 120);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, isDemo, ui, reload, mutateFolds, walkNow, moveWalk, deckKey],
+  );
+
+  /** My pick on their This or That: the act that opens both. */
+  const pickTheirs = useCallback(
+    async (f: Fold, choice: 0 | 1) => {
+      if (!id || f.mine || f.kind !== "pick" || !canWriteRef.current) return;
+      if (pickSendingRef.current.has(f.id) || foldsRef.current.some((x) => x.parentId === f.id)) return;
+      const choices = f.choices;
+      if (!choices) return;
+      if (isDemo) {
+        mutateFolds((all) => [...all, { id: `d-${Date.now()}`, mine: true, kind: "pick", prompt: null, choices: null, parentId: f.id, body: choices[choice], date: new Date().toISOString() }]);
+        return;
+      }
+      setPickSending((cur) => new Map(cur).set(f.id, choice));
+      const res = await answerPick(id, f, choice);
+      if (res) await reload();
+      setPickSending((cur) => {
+        const next = new Map(cur);
+        next.delete(f.id);
+        return next;
+      });
+      if (!res) failAlert();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, isDemo, reload, mutateFolds],
+  );
+
+  /** The openers deck: open (the sky read again), close, ↻ shuffle, a card's Another, a card sent
+      (Swift has already closed the deck). */
+  const onDeck = useCallback(
+    (action: KChatDeckAction, key: string, choice: number) => {
+      if (action === "open") {
+        setSky(skyOf(new Date().getHours()));
+        return;
+      }
+      if (action === "shuffle") {
+        moveWalk((w) => deckShuffle(w, getLang(), deckKey, usedRef.current));
+        return;
+      }
+      if (action === "another") {
+        const hit = deckPick(getLang(), key);
+        const slot = hit ? walkNow().slots.indexOf(hit.index) : -1;
+        if (slot >= 0) moveWalk((w) => deckAnother(w, slot, getLang(), usedRef.current, deckKey));
+        return;
+      }
+      if (action === "send") {
+        if (key === "wave") void sendWave(null);
+        else if (choice === 0 || choice === 1) void sendPick(key, choice);
+      }
+    },
+    [moveWalk, walkNow, deckKey, sendWave, sendPick],
+  );
 
   /**
    * Send what is in the composer. Swift hands over the exact words and prompt it held, and whether
@@ -823,6 +1065,8 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     const map = new Map<string, Target>();
     for (const it of stream) {
       if (it.type === "msg") map.set(lines.keyOf(it.msg), { kind: "msg", msg: it.msg });
+      // each postcard is its message (a pair's item key is its wave back's)
+      else if (it.type === "wave") for (const w of [it.wave, it.back]) w && map.set(lines.keyOf(w), { kind: "msg", msg: w });
       else {
         map.set(foldKey(it.fold), { kind: "fold", fold: it.fold });
         if (it.answer) for (const half of [it.fold, it.answer]) map.set(halfKey(half), { kind: "half", half, prompt: it.fold.prompt });
@@ -851,6 +1095,14 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
         else if (action === "shelf") ui.thenModal(() => setShelf(true));
         return;
       }
+      if (target.kind === "fold") {
+        const f = target.fold;
+        if (action === "report" && !f.mine) {
+          const choices = f.choices ? ` (${f.choices.join(" / ")})` : "";
+          void reportThing({ context: "fold", refId: f.id, snapshot: `${f.prompt ?? ""}${choices}` });
+        }
+        return;
+      }
       if (target.kind === "half") {
         const { half, prompt } = target;
         const body = half.body ?? "";
@@ -868,9 +1120,18 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   const onItemPress = useCallback(
     (key: string, part: KChatPart) => {
       const target = targetsRef.current.get(key);
+      if ((part === "pickA" || part === "pickB") && target?.kind === "fold") {
+        void pickTheirs(target.fold, part === "pickA" ? 0 : 1);
+        return;
+      }
+      if (part === "waveBack" && target?.kind === "msg") {
+        if (isWave(target.msg) && !target.msg.mine) void sendWave(target.msg);
+        return;
+      }
       if (part === "fold" && target?.kind === "fold") {
-        // a sealed fold opens only by answering it, and only where something can be left
-        if (!canWriteRef.current || target.fold.mine) return;
+        // a sealed fold opens only by answering it, and only where something can be left; a
+        // This or That opens only by picking
+        if (!canWriteRef.current || target.fold.mine || target.fold.kind === "pick") return;
         setReplyTo(null);
         setMode({ kind: "answer", fold: target.fold });
         ui.focus("body", 120);
@@ -891,7 +1152,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
         ui.jumpTo(original ? lines.keyOf(original) : m.meta.reply.id);
       }
     },
-    [setMode, ui, lines.keyOf],
+    [setMode, ui, lines.keyOf, pickTheirs, sendWave],
   );
 
   /** Something in the dock. */
@@ -970,6 +1231,9 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     idea,
     nextIdea,
     takeIdea,
+    deck,
+    onDeck,
+    pickSending,
     onPromptText,
     startReply,
     reportLine,

@@ -106,7 +106,7 @@ export function monthRecord(m: MonthVM): KNotesMonthRecord {
     key: m.key,
     title: m.title,
     lead: m.lead,
-    days: m.days.map((d) => ({ n: d.n, label: String(d.n), group: d.group ?? "", targetId: d.targetId ?? "", future: d.future, today: d.today, a11y: d.a11y })),
+    days: m.days.map((d) => ({ n: d.n, label: String(d.n), group: d.group ?? "", icon: d.mood ? `mood-${d.mood}` : "", targetId: d.targetId ?? "", future: d.future, today: d.today, a11y: d.a11y })),
     counts: m.counts.map(String),
     footer: m.footer,
     footerA11y: m.footerA11y,

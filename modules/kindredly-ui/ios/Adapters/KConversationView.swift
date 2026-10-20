@@ -25,7 +25,7 @@ import ExpoUI
  - items: [KChatItemRecord], the render window, oldest first; converted once per rev
  - hasOlder, hasNewer: the window has items before it / has slid away from the newest
  - dock: KChatDockRecord (small; converted on each body run); hint is the pen-pal reply bar's,
-   emojiLabel both bars', ideasLabel … trayTitle the Kindreds bar's (B; ideasLabel "" for none)
+   emojiLabel both bars', ideasLabel and trayTitle the Kindreds bar's (B; ideasLabel "" for none)
  - header: KChatHeaderRecord, the conversation's own header (the pen-pal chat's, A2; the
    kindreds chat's, room: true, B, with the face flattened: faceKind image | mosaic | veil |
    placeholder, faceUri, faceKey, faceOverscan, faceMask; with the identity switch on the pen
@@ -46,12 +46,15 @@ import ExpoUI
  - playback { key, playing, positionS, durationS, at, failed }
  - composer { canSend, status, statusAlarm, clearOnSend }
  - tray     { open }
- - idea     { text }                                the sentence the room's ideas bubble offers
+ - deck     { title, shuffleLabel, closeLabel, sendLabel, anotherLabel, status, cards: [{ key,
+              kind, label, prompt, a, b, sky, skyLabel, line, disabled, note, a11y }] }
+                                                    the openers deck the ✦ key opens (Sparkle)
  - reset    { }
 
  Events, with what nativeEvent carries (named onChat… so none clashes with React Native's own):
  - onChatReachTop {}, onChatReachBottom {}, onChatBottomChange { atBottom }
- - onChatItemPress { key, part }            part: body | photo | song | quote | fold | shelf | voice
+ - onChatItemPress { key, part }            part: body | photo | song | quote | fold | shelf | voice |
+                                            pickA | pickB (a This or That's choice) | waveBack
  - onChatItemAction { key, action }
  - onChatText { value }, onChatPromptText { value }
  - onChatSend { value, prompt, cleared }
@@ -59,9 +62,11 @@ import ExpoUI
  - onChatTool { tool }                      "wren" (nothing sends it since the Kindreds bar; kept for the type)
  - onChatTrace { key }
  - onChatDock { action }                    replyClose | modeClose | noticeClose | closingLink | rekindle | sign,
-                                            ideaNext | ideaUse (the ideas bubble),
                                             and the header's back | page | more
  - onChatVoice { key }
+ - onChatDeck { action, key, choice }       the openers deck: open | close | shuffle | another
+                                            (key: the card's) | send (key, choice 0/1, -1 for the
+                                            Wave card)
 
  Unknown enum strings fall back (theme to Classic in KScreenProps, a kind to line, a glyph to
  note, a state to its resting value). This file imports ExpoUI, whose public Button, Text and
@@ -94,11 +99,55 @@ struct KChatFoldHalfRecord: Record {
   }
 }
 
+/// One choice of a This or That, as TS sends it.
+struct KChatPickChoiceRecord: Record {
+  @Field var text: String = ""
+  @Field var mine: Bool = false
+  @Field var theirs: Bool = false
+  @Field var tag: String = ""
+  @Field var a11y: String = ""
+
+  var choice: KChatPickChoice {
+    KChatPickChoice(text: text, tag: tag, a11y: a11y, mine: mine, theirs: theirs)
+  }
+}
+
+/// One sky postcard, as TS sends it.
+struct KChatWaveCardRecord: Record {
+  @Field var key: String = ""
+  @Field var mine: Bool = false
+  /// dawn | day | dusk | night
+  @Field var sky: String = "day"
+  @Field var label: String = ""
+  @Field var line: String = ""
+  @Field var whose: String = ""
+  @Field var menu: [KMenuActionRecord] = []
+  /// "none" | "busy" | "shown"
+  @Field var translation: String = "none"
+  @Field var translationText: String = ""
+  @Field var a11y: String = ""
+
+  var card: KChatWaveCard {
+    KChatWaveCard(
+      key: key,
+      mine: mine,
+      sky: KSky(rawValue: sky) ?? .day,
+      label: label,
+      line: line,
+      whose: whose,
+      a11y: a11y,
+      menu: menu.map(\.chatMenuItem),
+      translation: KChatTranslation(rawValue: translation) ?? .none,
+      translationText: translationText
+    )
+  }
+}
+
 /// One row, everything already worded and dated by TS (src/screens/chat/build-items.ts).
 /// Flat, so every field has a value: TS sends "" and false for what a kind doesn't use.
 struct KChatItemRecord: Record {
   @Field var key: String = ""
-  /// line | letter | photo | song | fold | recalled | voice
+  /// line | letter | photo | song | fold | recalled | voice | pick | wave
   @Field var kind: String = "line"
   @Field var mine: Bool = false
   @Field var dayLabel: String = ""
@@ -131,6 +180,20 @@ struct KChatItemRecord: Record {
   @Field var foldHint: String = ""
   @Field var foldAnswerKey: String = ""
   @Field var foldHalves: [KChatFoldHalfRecord] = []
+  /// a This or That (kind pick)
+  @Field var pickLabel: String = ""
+  @Field var pickAsker: String = ""
+  @Field var pickPrompt: String = ""
+  /// waiting | choose | sending | open | closed
+  @Field var pickState: String = "waiting"
+  @Field var pickHint: String = ""
+  @Field var pickVerdict: String = ""
+  @Field var pickSame: Bool = false
+  @Field var pickChoices: [KChatPickChoiceRecord] = []
+  /// a sky wave (kind wave): one card, or two for a wave and its wave back
+  @Field var waveCards: [KChatWaveCardRecord] = []
+  @Field var waveBackKey: String = ""
+  @Field var waveBackA11y: String = ""
 
   var chatItem: KChatItem {
     let kind = KChatItemKind(rawValue: kind) ?? .line
@@ -165,8 +228,53 @@ struct KChatItemRecord: Record {
           answerKey: foldAnswerKey,
           halves: foldHalves.map(\.half)
         )
+        : nil,
+      pick: kind == .pick
+        ? KChatPick(
+          label: pickLabel,
+          asker: pickAsker,
+          prompt: pickPrompt,
+          hint: pickHint,
+          verdict: pickVerdict,
+          choices: pickChoices.map(\.choice),
+          state: KChatPickState(rawValue: pickState) ?? .waiting,
+          same: pickSame
+        )
+        : nil,
+      wave: kind == .wave
+        ? KChatWave(cards: waveCards.map(\.card), backKey: waveBackKey, backA11y: waveBackA11y)
         : nil
     )
+  }
+}
+
+/// The openers deck command's cards (args, not a Record: commands carry plain dictionaries).
+extension KDeck {
+  init(args: [String: Any]) {
+    self.init()
+    title = args.kString("title") ?? ""
+    shuffleLabel = args.kString("shuffleLabel") ?? ""
+    closeLabel = args.kString("closeLabel") ?? ""
+    sendLabel = args.kString("sendLabel") ?? ""
+    anotherLabel = args.kString("anotherLabel") ?? ""
+    status = args.kString("status") ?? ""
+    cards = (args["cards"] as? [[String: Any]] ?? []).compactMap { c in
+      guard let key = c.kString("key"), !key.isEmpty else { return nil }
+      return KDeckCard(
+        key: key,
+        kind: KDeckCardKind(rawValue: c.kString("kind") ?? "") ?? .pick,
+        label: c.kString("label") ?? "",
+        prompt: c.kString("prompt") ?? "",
+        a: c.kString("a") ?? "",
+        b: c.kString("b") ?? "",
+        skyLabel: c.kString("skyLabel") ?? "",
+        line: c.kString("line") ?? "",
+        note: c.kString("note") ?? "",
+        a11y: c.kString("a11y") ?? "",
+        sky: KSky(rawValue: c.kString("sky") ?? "") ?? .day,
+        disabled: c.kBool("disabled") ?? false
+      )
+    }
   }
 }
 
@@ -224,12 +332,8 @@ struct KChatDockRecord: Record {
   /// the pen-pal reply bar's hint (already in capitals) and the bars' emoji key's VoiceOver name
   @Field var hint: String = ""
   @Field var emojiLabel: String = ""
-  /// the Kindreds bar (B): the ideas key's VoiceOver name ("" for no Kindreds bar), the bubble's
-  /// three words in capitals, the + tray's title
+  /// the Kindreds bar (B): the ✦ key's VoiceOver name ("" for no Kindreds bar), the + tray's title
   @Field var ideasLabel: String = ""
-  @Field var ideaLabel: String = ""
-  @Field var ideaAnother: String = ""
-  @Field var ideaUse: String = ""
   @Field var trayTitle: String = ""
 
   var chatDock: KChatDock {
@@ -263,9 +367,6 @@ struct KChatDockRecord: Record {
     d.hint = hint
     d.emojiLabel = emojiLabel
     d.ideasLabel = ideasLabel
-    d.ideaLabel = ideaLabel
-    d.ideaAnother = ideaAnother
-    d.ideaUse = ideaUse
     d.trayTitle = trayTitle
     return d
   }
@@ -416,6 +517,7 @@ final class KConversationViewProps: KScreenProps {
   var onChatTrace = EventDispatcher()
   var onChatDock = EventDispatcher()
   var onChatVoice = EventDispatcher()
+  var onChatDeck = EventDispatcher()
 
   /// The fields, canSend and the status line, playback, scroll requests, the keyboard, the
   /// tray: as long-lived as the view, like `commands`.
@@ -439,6 +541,7 @@ final class KConversationViewProps: KScreenProps {
     a.onTrace = { [weak self] in self?.onChatTrace(["key": $0]) }
     a.onDock = { [weak self] in self?.onChatDock(["action": $0]) }
     a.onVoiceToggle = { [weak self] in self?.onChatVoice(["key": $0]) }
+    a.onDeck = { [weak self] in self?.onChatDeck(["action": $0, "key": $1, "choice": $2]) }
     return a
   }()
 
@@ -460,7 +563,7 @@ final class KConversationViewProps: KScreenProps {
       // a composer collapsed under the gone line or the expired card never takes the keyboard
       guard dock.terminal == "none" else { return }
       let target = field(args.kString("target"))
-      // the keyboard takes the tray's place and the ideas bubble's (the panels shut each other)
+      // the keyboard takes the tray's place and the deck's (the panels shut each other)
       if driver.trayOpen { driver.trayOpen = false }
       if driver.ideasOpen { driver.ideasOpen = false }
       target.focus()
@@ -501,9 +604,9 @@ final class KConversationViewProps: KScreenProps {
         if driver.ideasOpen { driver.ideasOpen = false }
       }
       if driver.trayOpen != open { driver.trayOpen = open }
-    case "idea":
-      let text = args.kString("text") ?? ""
-      if driver.idea != text { driver.idea = text }
+    case "deck":
+      let deck = KDeck(args: args)
+      if driver.deck != deck { driver.deck = deck }
     case KCommandName.reset:
       driver.blurAll()
       driver.body.clear()
@@ -514,7 +617,7 @@ final class KConversationViewProps: KScreenProps {
       driver.clearOnSend = false
       driver.trayOpen = false
       driver.ideasOpen = false
-      driver.idea = ""
+      driver.deck = KDeck()
       driver.playback = nil
       driver.playbackKey = ""
     default:

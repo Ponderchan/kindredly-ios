@@ -106,8 +106,7 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
 ) {
   const { t: tk } = useTheme();
   const reduce = useReducedMotion();
-  // what someone writes is content: the reader's Letter font (KKindredBar: content: true)
-  const face = useLetterFamily();
+  // the chat line is interface text: System, like KKindredBar (content: false, Sparkle 2026-10-21)
   const f = useComposerField(ref, initialText, onChangeText);
   const { target, icon, disc, capsule: capsuleRest, capsulePad, gap, rowHeight, fontSize, lineHeight } = KINDRED_BAR;
   /* the capsule's one-line height follows the field's line at the reader's text size (40 at the
@@ -190,7 +189,6 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
             paddingTop: KINDRED_BAR_PAD,
             paddingBottom: KINDRED_BAR_PAD,
             paddingHorizontal: 0,
-            ...face,
             fontSize,
             lineHeight,
             color: tk.ink,

@@ -1,4 +1,4 @@
-import type { ThreadDetail, ThreadMessage, MessageQuote } from "./db";
+import type { ThreadDetail, ThreadMessage } from "./db";
 import type { PenSig } from "./pen-signature";
 import type { Fold } from "./folds";
 
@@ -262,7 +262,8 @@ export interface MessageRow {
   created_at: string;
   kind?: string | null;
   media_path?: string | null;
-  meta?: { url?: string; title?: string; reply?: MessageQuote } | null;
+  /** the same shape as ThreadMessage.meta (a wave's sky / back included, web 0044) */
+  meta?: ThreadMessage["meta"];
   recalled_at?: string | null;
 }
 

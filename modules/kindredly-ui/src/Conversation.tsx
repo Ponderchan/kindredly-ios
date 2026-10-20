@@ -25,19 +25,19 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark
    PROPS vs COMMANDS. `items` (memoised, with a rev from useRev) and `dock` change when the
    conversation does; everything that changes as the reader types or listens goes through
    commands: composer (canSend, the status line, clearOnSend), setText, focus, blur, scrollTo,
-   playback, tray, idea (the sentence the room's ideas bubble offers: ANOTHER moves it on, so it
-   goes as a command, never as a prop). Every prop change re-sends the whole props map (the 0b
+   playback, tray, deck (the openers deck the ✦ key opens: its walk, the live sky and the cap
+   move without the conversation moving, so it goes as a command, never as a prop). Every prop change re-sends the whole props map (the 0b
    bench: 29 ms for an 80-row change, 2.7 ms for a command). */
 
 /** What a row draws. */
-export type KChatItemKind = "line" | "letter" | "photo" | "song" | "fold" | "recalled" | "voice";
+export type KChatItemKind = "line" | "letter" | "photo" | "song" | "fold" | "recalled" | "voice" | "pick" | "wave";
 /** A translation under a line. */
 export type KChatTranslation = "none" | "busy" | "shown";
 /** Which part of a row was tapped (onChatItemPress). */
-export type KChatPart = "body" | "photo" | "song" | "quote" | "fold" | "shelf" | "voice";
+export type KChatPart = "body" | "photo" | "song" | "quote" | "fold" | "shelf" | "voice" | "pickA" | "pickB" | "waveBack";
 /** What was pressed in the dock (onChatDock), or in the Swift header: back, page (the face and
-    name), more (the ⋯). The room's ideas bubble: ideaNext (↻ ANOTHER), ideaUse (USE IT →; Swift
-    has already closed the bubble, the owner puts the sentence in the field and focuses it). */
+    name), more (the ⋯). The React Native room's ideas bubble: ideaNext (↻ ANOTHER), ideaUse
+    (USE IT →); the SwiftUI room has the openers deck instead (onChatDeck) and never sends them. */
 export type KChatDockAction =
   | "replyClose"
   | "modeClose"
@@ -50,6 +50,110 @@ export type KChatDockAction =
   | "more"
   | "ideaNext"
   | "ideaUse";
+
+/** The sky a wave went under, from the sender's local hour only (build-items skyOf). */
+export type KSky = "dawn" | "day" | "dusk" | "night";
+
+/** Where a This or That stands for this reader: mine waiting, theirs to choose, my tap on its
+    way, both picked, theirs in a room nothing can be left in. */
+export type KChatPickState = "waiting" | "choose" | "sending" | "open" | "closed";
+
+/** One choice of a This or That. */
+export type KChatPickChoice = {
+  text: string;
+  /** I picked it (my own pick shows from the start) */
+  mine: boolean;
+  /** they picked it (only once open) */
+  theirs: boolean;
+  /** "You" | "Mira" | "Both of you" | "" */
+  tag: string;
+  /** "Spicy, you picked it" */
+  a11y: string;
+};
+
+/** A This or That in the chat (a fold of kind pick, web 0044). */
+export type KChatPick = {
+  /** THIS OR THAT, in capitals */
+  label: string;
+  /** YOU ASKED | MIRA ASKED, in capitals */
+  asker: string;
+  prompt: string;
+  /** always two */
+  choices: KChatPickChoice[];
+  state: KChatPickState;
+  /** the line under the choices ("" when open) */
+  hint: string;
+  /** open only */
+  verdict: string;
+  same: boolean;
+};
+
+/** One sky postcard. */
+export type KChatWaveCard = {
+  /** the message's key (its menu and translation are keyed by it) */
+  key: string;
+  mine: boolean;
+  sky: KSky;
+  /** NIGHT, in capitals */
+  label: string;
+  line: string;
+  /** pair only: YOUR SKY | MIRA'S SKY; "" on a single postcard */
+  whose: string;
+  menu: KMenuAction[];
+  translation: KChatTranslation;
+  translationText: string;
+  /** "Mira waved. Night sky. Stars are out here." */
+  a11y: string;
+};
+
+/** A wave: one postcard, or a wave and its wave back (mine first). */
+export type KChatWave = {
+  cards: KChatWaveCard[];
+  /** "Wave Back", "" for none */
+  backKey: string;
+  /** "Wave back with your sky" */
+  backA11y: string;
+};
+
+/** One card of the openers deck the ✦ key opens. */
+export type KChatDeckCard = {
+  /** "wave" | "pick:<n>" */
+  key: string;
+  kind: "wave" | "pick";
+  /** WAVE | THIS OR THAT, in capitals */
+  label: string;
+  /** pick only */
+  prompt: string;
+  a: string;
+  b: string;
+  /** wave: the live sky now; pick: "day" (unused) */
+  sky: KSky;
+  /** wave: NIGHT, in capitals */
+  skyLabel: string;
+  /** wave: the line that will go; pick: "Pick yours, then send." */
+  line: string;
+  disabled: boolean;
+  /** shown in place of the send disc while disabled: "Waved" | "3 waiting" */
+  note: string;
+  a11y: string;
+};
+
+/** The openers deck: [wave, pick × 4], worded by build-items buildDeck. */
+export type KChatDeck = {
+  /** "Openers" */
+  title: string;
+  shuffleLabel: string;
+  closeLabel: string;
+  sendLabel: string;
+  anotherLabel: string;
+  /** "" or the cap line */
+  status: string;
+  cards: KChatDeckCard[];
+};
+
+/** What happened in the deck (onChatDeck): opened, closed, ↻ shuffle, a card's Another (its key),
+    a card sent (its key and the chip chosen on it, 0/1, or -1 for the Wave card). */
+export type KChatDeckAction = "open" | "close" | "send" | "another" | "shuffle";
 
 /** One opened half of a fold: a line with its own menu. */
 export type KChatFoldHalf = {
@@ -108,6 +212,10 @@ export type KChatItem = {
     answerKey: string;
     halves: KChatFoldHalf[];
   } | null;
+  /** a This or That (kind "pick"); null otherwise */
+  pick: KChatPick | null;
+  /** a sky wave (kind "wave"); null otherwise */
+  wave: KChatWave | null;
 };
 
 /** One card of the room's + tray (chat composers B, Prompt 6). */
@@ -150,9 +258,10 @@ export type KChatDock = {
   plusLabel: string;
   plusCloseLabel: string;
   traces: KChatTrace[];
-  /** the Kindreds bar (chat composers B): the ideas key's VoiceOver name, "" for no Kindreds bar
-      (the pen-pal chat's reply bar); the bubble's AN IDEA, ANOTHER and USE IT (already in
-      capitals, Swift adds the ↻ and the →); the + tray's title ("Leave something small") */
+  /** the Kindreds bar (chat composers B): the ✦ key's VoiceOver name, "" for no Kindreds bar
+      (the pen-pal chat's reply bar); the React Native room's ideas bubble's AN IDEA, ANOTHER and
+      USE IT (already in capitals; never sent to Swift, whose ✦ opens the deck); the + tray's
+      title ("Leave something small") */
   ideasLabel: string;
   ideaLabel: string;
   ideaAnother: string;
@@ -258,9 +367,9 @@ export type KChatCommands = KStandardCommands & {
       so the next press can reach voice-playback, which loads it again (known bug 2). */
   playback: KStandardCommands["playback"] & { failed?: boolean };
   tray: { open: boolean };
-  /** the sentence the room's ideas bubble shows now (useRoomModel's ideas: their order and where
-      the reader is in it live in TS); sent when it changes and on every attach */
-  idea: { text: string };
+  /** the openers deck (useRoomModel's deck: the walk, the sky and the cap live in TS); sent when
+      it changes and on every attach */
+  deck: KChatDeck;
 };
 
 export type KConversationViewProps = CommonViewModifierProps &
@@ -293,6 +402,8 @@ export type KConversationViewProps = CommonViewModifierProps &
     onChatTrace?: (key: string) => void;
     onChatDock?: (action: KChatDockAction) => void;
     onChatVoice?: (key: string) => void;
+    /** the openers deck: action, the card's key ("" for none), the chip chosen (-1 for none) */
+    onChatDeck?: (action: KChatDeckAction, key: string, choice: number) => void;
     /** no islands today; kept so a <KSlot> can join later */
     children?: ReactNode;
   };
@@ -302,6 +413,19 @@ export type KConversationViewProps = CommonViewModifierProps &
 type NativeMenu = { key: string; title: string; icon: string; destructive: boolean };
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
 type NativeHalf = { key: string; mine: boolean; speaker: string; body: string; menu: NativeMenu[]; translation: KChatTranslation; translationText: string };
+type NativePickChoice = { text: string; mine: boolean; theirs: boolean; tag: string; a11y: string };
+type NativeWaveCard = {
+  key: string;
+  mine: boolean;
+  sky: KSky;
+  label: string;
+  line: string;
+  whose: string;
+  menu: NativeMenu[];
+  translation: KChatTranslation;
+  translationText: string;
+  a11y: string;
+};
 type NativeItem = {
   key: string;
   kind: KChatItemKind;
@@ -334,6 +458,17 @@ type NativeItem = {
   foldHint: string;
   foldAnswerKey: string;
   foldHalves: NativeHalf[];
+  pickLabel: string;
+  pickAsker: string;
+  pickPrompt: string;
+  pickState: KChatPickState;
+  pickHint: string;
+  pickVerdict: string;
+  pickSame: boolean;
+  pickChoices: NativePickChoice[];
+  waveCards: NativeWaveCard[];
+  waveBackKey: string;
+  waveBackA11y: string;
 };
 type NativeDock = {
   closingText: string;
@@ -369,9 +504,6 @@ type NativeDock = {
   hint: string;
   emojiLabel: string;
   ideasLabel: string;
-  ideaLabel: string;
-  ideaAnother: string;
-  ideaUse: string;
   trayTitle: string;
 };
 /* the header as Swift's record: the face flattened, no mark or sign as "", no window as NO_FROST
@@ -469,6 +601,28 @@ export function nativeChatItems(items: KChatItem[]): NativeItem[] {
       translation: h.translation,
       translationText: h.translationText,
     })),
+    pickLabel: it.pick?.label ?? "",
+    pickAsker: it.pick?.asker ?? "",
+    pickPrompt: it.pick?.prompt ?? "",
+    pickState: it.pick?.state ?? "waiting",
+    pickHint: it.pick?.hint ?? "",
+    pickVerdict: it.pick?.verdict ?? "",
+    pickSame: it.pick?.same ?? false,
+    pickChoices: (it.pick?.choices ?? []).map((c) => ({ text: c.text, mine: !!c.mine, theirs: !!c.theirs, tag: c.tag ?? "", a11y: c.a11y ?? "" })),
+    waveCards: (it.wave?.cards ?? []).map((c) => ({
+      key: c.key,
+      mine: !!c.mine,
+      sky: c.sky,
+      label: c.label,
+      line: c.line,
+      whose: c.whose ?? "",
+      menu: menu(c.menu),
+      translation: c.translation,
+      translationText: c.translationText ?? "",
+      a11y: c.a11y ?? "",
+    })),
+    waveBackKey: it.wave?.backKey ?? "",
+    waveBackA11y: it.wave?.backA11y ?? "",
   }));
 }
 
@@ -508,9 +662,6 @@ export function nativeChatDock(d: KChatDock): NativeDock {
     hint: d.hint ?? "",
     emojiLabel: d.emojiLabel ?? "",
     ideasLabel: d.ideasLabel ?? "",
-    ideaLabel: d.ideaLabel ?? "",
-    ideaAnother: d.ideaAnother ?? "",
-    ideaUse: d.ideaUse ?? "",
     trayTitle: d.trayTitle ?? "",
   };
 }
@@ -558,6 +709,7 @@ type NativeKConversationViewProps = Omit<
   | "onChatTrace"
   | "onChatDock"
   | "onChatVoice"
+  | "onChatDeck"
 > &
   Required<Pick<KConversationViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -578,6 +730,7 @@ type NativeKConversationViewProps = Omit<
     onChatTrace?: (e: { nativeEvent: { key: string } }) => void;
     onChatDock?: (e: { nativeEvent: { action: KChatDockAction } }) => void;
     onChatVoice?: (e: { nativeEvent: { key: string } }) => void;
+    onChatDeck?: (e: { nativeEvent: { action: KChatDeckAction; key: string; choice: number } }) => void;
   };
 
 // the view's JS name is the Swift struct's name (ios/Adapters/KConversationView.swift)
@@ -609,6 +762,7 @@ export const KConversationView = forwardRef<KScreenHandle, KConversationViewProp
     onChatTrace,
     onChatDock,
     onChatVoice,
+    onChatDeck,
     ...rest
   },
   ref,
@@ -647,6 +801,7 @@ export const KConversationView = forwardRef<KScreenHandle, KConversationViewProp
       onChatTrace={onChatTrace ? (e) => onChatTrace(e.nativeEvent.key) : undefined}
       onChatDock={onChatDock ? (e) => onChatDock(e.nativeEvent.action) : undefined}
       onChatVoice={onChatVoice ? (e) => onChatVoice(e.nativeEvent.key) : undefined}
+      onChatDeck={onChatDeck ? (e) => onChatDeck(e.nativeEvent.action, e.nativeEvent.key ?? "", e.nativeEvent.choice ?? -1) : undefined}
     />
   );
 });

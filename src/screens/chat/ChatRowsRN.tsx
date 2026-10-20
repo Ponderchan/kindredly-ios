@@ -5,8 +5,8 @@ import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
 import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { StickerBox } from "../../components/10a/StickerBox";
 import { MediaImage } from "../../lib/media";
-import { useLetterFamily, useLetterFont, useTheme } from "../../lib/theme";
-import { letterFitLines, MONO, PFM } from "../../theme/post";
+import { useLetterFamily, useTheme } from "../../lib/theme";
+import { MONO, PFM } from "../../theme/post";
 import { VoiceOpeningCard, type OpeningVoiceRN } from "./VoiceOpeningRN";
 import type { A11yNode } from "./useChatListRN";
 
@@ -20,10 +20,10 @@ import type { A11yNode } from "./useChatListRN";
    · a room line: mine on the right in ind with the page colour on it,
      theirs on the left on soft with ink (a line around theirs outside
      Classic, where soft barely leaves the page); corners 18 and 5 on the
-     tail; padding 10 14; at most 84%; the reader's Letter font at 16 (a line
-     is content, owner 2026-10-20). A reply carries its quote (a 2pt rule,
-     the speaker in mono 10, two lines in the Letter font, three in a roomy
-     face, "taken back" in its italic).
+     tail; padding 10 14; at most 84%; the system font at 16 (kindred chat
+     bubbles are always System, owner 2026-10-21). A reply carries its quote
+     (a 2pt rule, the speaker in mono 10, two lines, "taken back" in
+     italic); a translation under a line is in the system font too.
    · a pen-pal letter, as the chat composers' A2 draws it (owner,
      2026-10-18): a card with a 2 ln outline, corners 18, padding 14 16;
      theirs on sf across the whole width, mine on soft (soft2 on Midnight)
@@ -41,6 +41,10 @@ import type { A11yNode } from "./useChatListRN";
      the last one, a fold (sealed on soft with a line, opened on sf with a
      2 ln outline and a 3/3 hard shadow, each half its own menu), a line
      taken back, the voice opening on the screen's one player.
+   · a This or That and a sky wave (Sparkle, 2026-10-21), plainly: the
+     fallback has no deck and no taps on them. The pick is its label, the
+     question, each choice with its tag, the hint or the verdict; the wave a
+     bubble with its sky's label above it. Any other kind draws nothing.
 
    Long-press menus stay MessageMenu (a Host per row — acceptable for a
    fallback that renders a window of rows); their items are build-items'
@@ -92,7 +96,9 @@ function DayRule({ label, first }: { label: string; first: boolean }) {
 /** translating… under a line, then the translation in sub */
 function TranslationLine({ item, half, maxWidth, translating }: { item?: KChatItem; half?: KChatFoldHalf; maxWidth?: number; translating: string }) {
   const { t: tk } = useTheme();
-  const face = useLetterFamily();
+  // a fold's half is content (the Letter font); under a line, the system font as the bubble's
+  const letter = useLetterFamily();
+  const face = half ? letter : {};
   const state = item?.translation ?? half?.translation ?? "none";
   const text = item?.translationText ?? half?.translationText ?? "";
   if (state === "busy") {
@@ -123,6 +129,10 @@ export function RoomRowRN({ item, first, lit, env, onLayout }: { item: KChatItem
           <RecallNote item={item} env={env} />
         ) : item.kind === "voice" ? (
           <RoomVoice item={item} env={env} />
+        ) : item.kind === "pick" && item.pick ? (
+          <PickBlock item={item} env={env} />
+        ) : item.kind === "wave" && item.wave ? (
+          <WaveBlock item={item} env={env} />
         ) : null}
       </View>
     </View>
@@ -131,10 +141,7 @@ export function RoomRowRN({ item, first, lit, env, onLayout }: { item: KChatItem
 
 function Bubble({ item, env }: { item: KChatItem; env: RowEnv }) {
   const { t: tk } = useTheme();
-  // the line and its quote are content: the reader's Letter font
-  const face = useLetterFamily();
-  const goneFace = useLetterFamily(true);
-  const quoteLines = letterFitLines(useLetterFont(), 2);
+  // kindred chat bubbles are always the system font (owner, 2026-10-21)
   const max = Math.round(env.width * 0.84);
   const mine = item.mine;
   const q = item.quote;
@@ -171,13 +178,13 @@ function Bubble({ item, env }: { item: KChatItem; env: RowEnv }) {
                 <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 1, color: mine ? tk.bg : tk.ind, opacity: mine ? 0.85 : 1 }}>
                   {q.speaker}
                 </Text>
-                <Text numberOfLines={quoteLines} style={{ ...(q.gone ? goneFace : face), fontSize: 13.5, lineHeight: 18, color: mine ? tk.bg : tk.sub, opacity: mine ? 0.85 : 1 }}>
+                <Text numberOfLines={2} style={{ fontStyle: q.gone ? "italic" : "normal", fontSize: 13.5, lineHeight: 18, color: mine ? tk.bg : tk.sub, opacity: mine ? 0.85 : 1 }}>
                   {q.excerpt}
                 </Text>
               </View>
             </Pressable>
           )}
-          <Text style={{ ...face, fontSize: 16, lineHeight: 23, color: mine ? tk.bg : tk.ink }}>{item.body}</Text>
+          <Text style={{ fontSize: 16, lineHeight: 23, color: mine ? tk.bg : tk.ink }}>{item.body}</Text>
         </View>
       </MessageMenu>
       <TranslationLine item={item} maxWidth={max} translating={env.strings.translating} />
@@ -332,6 +339,52 @@ function FoldHalf({ half, env }: { half: KChatFoldHalf; env: RowEnv }) {
       <View style={{ paddingHorizontal: 2 }}>
         <TranslationLine half={half} translating={env.strings.translating} />
       </View>
+    </View>
+  );
+}
+
+/** a This or That, plainly (no taps: the fallback has no picking) */
+function PickBlock({ item, env }: { item: KChatItem; env: RowEnv }) {
+  const { t: tk } = useTheme();
+  const pick = item.pick!;
+  const acts = menuActions(item.menu, item.key, env.onItemAction);
+  return (
+    <View style={{ paddingBottom: 6 }}>
+      <MessageMenu actions={acts} radius={18} accessibilityLabel={item.a11yLabel} a11yRef={env.a11yRef(item.key)}>
+        <View style={{ backgroundColor: tk.soft, borderRadius: 18, padding: 16, gap: 8 }}>
+          <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
+            {pick.asker ? `${pick.label} · ${pick.asker}` : pick.label}
+          </Text>
+          {!!pick.prompt && <Text style={{ fontSize: 17, lineHeight: 23, color: tk.ink }}>{pick.prompt}</Text>}
+          {pick.choices.map((c, i) => (
+            <Text key={i} style={{ fontSize: 15, lineHeight: 21, color: c.mine || c.theirs ? tk.ind : tk.sub, fontWeight: c.mine || c.theirs ? "600" : "400" }}>
+              {c.tag ? `${c.text} · ${c.tag}` : c.text}
+            </Text>
+          ))}
+          {!!pick.verdict && <Text style={{ fontSize: 15, fontWeight: "600", color: tk.ind }}>{pick.verdict}</Text>}
+          {!!pick.hint && <Text style={{ fontSize: 13.5, color: tk.mute }}>{pick.hint}</Text>}
+        </View>
+      </MessageMenu>
+    </View>
+  );
+}
+
+/** a sky wave, plainly: each postcard as a bubble with its sky above it (no Wave Back here) */
+function WaveBlock({ item, env }: { item: KChatItem; env: RowEnv }) {
+  const { t: tk } = useTheme();
+  const max = Math.round(env.width * 0.84);
+  return (
+    <View style={{ gap: 6, paddingBottom: 2 }}>
+      {item.wave!.cards.map((card) => (
+        <View key={card.key} style={{ alignItems: card.mine ? "flex-end" : "flex-start" }}>
+          <MessageMenu actions={menuActions(card.menu, card.key, env.onItemAction)} radius={18} accessibilityLabel={card.a11y} a11yRef={env.a11yRef(card.key)}>
+            <View style={{ maxWidth: max, backgroundColor: tk.soft, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, gap: 4 }}>
+              <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>{card.whose ? `${card.label} · ${card.whose}` : card.label}</Text>
+              <Text style={{ fontSize: 16, lineHeight: 23, color: tk.ink }}>{card.line}</Text>
+            </View>
+          </MessageMenu>
+        </View>
+      ))}
     </View>
   );
 }
