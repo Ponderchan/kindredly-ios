@@ -60,6 +60,25 @@ const m = C.parseMyRows(
 );
 ok("my: two rows, one bad", m.rows.length === 2 && m.bad === 1);
 ok("my: approved → ok, mine", m.rows[0].state === "ok" && m.rows[0].mine && m.rows[0].letters === 4 && m.rows[0].filter === "riso");
+ok("my: today's filters read", C.parseMyRows([{ id: U, topic: "x", category: "small", filter: "golden", status: "approved", created_at: "" }], hexOf).rows[0]?.filter === "golden");
+// in review on this phone: the server's pending twin hides behind the local press
+{
+  const at = Date.parse("2026-10-20T10:00:00Z");
+  const srv = [
+    { id: "a", status: "pending", createdAt: "2026-10-20T10:00:03Z" },
+    { id: "b", status: "approved", createdAt: "2026-10-20T10:00:02Z" },
+    { id: "c", status: "pending", createdAt: "2026-10-20T09:00:00Z" },
+    { id: "d", status: "pending", createdAt: "2026-10-20T10:00:09Z" },
+  ];
+  const ids = (l: { id: string }[]) => l.map((r) => r.id).join();
+  ok("twins: one pending hides the closest pending row", ids(C.withoutTwins(srv, [{ at, state: "pending" }])) === "b,c,d");
+  ok("twins: two presses, two rows", ids(C.withoutTwins(srv, [{ at, state: "pending" }, { at: at + 8000, state: "pending" }])) === "b,c");
+  ok("twins: an approved row is never hidden; an old pending one is out of reach", ids(C.withoutTwins(srv.slice(1, 3), [{ at, state: "pending" }])) === "b,c");
+  ok("twins: a refused press hides nothing", ids(C.withoutTwins(srv, [{ at, state: "rejected" }])) === "a,b,c,d");
+  ok("twins: none local, all kept", C.withoutTwins(srv, []).length === 4);
+  const u = C.localUuid();
+  ok("localUuid: a v4 a custom id can carry", C.isCustomStampId(C.customStampId(u)) && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(u));
+}
 ok("my: pending stays pending", m.rows[1].state === "pending" && m.rows[1].status === "pending" && m.rows[1].letters === 0);
 
 // my_kept_stamps

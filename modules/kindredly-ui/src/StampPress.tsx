@@ -8,8 +8,8 @@ import type { KInsets, KScreenBaseProps, KScreenHandle } from "./types";
    ios/Portable/Kit/KLab.swift KStampPressCamera, adapter ios/Adapters/KLabView.swift
    KStampPressView), for src/screens/stamp-press/StampPressNative.tsx. Swift runs the camera,
    the photo picker, the crop page and the press; it hands back one file: the photo stamp's cut
-   bounds of the picture (the photo IS the stamp, cut to the 36's silhouette by every renderer),
-   1280 × 1408 (10:11, PHOTO_STAMP.original), upright, unfiltered, no EXIF. Every word comes in
+   bounds of the picture (the photo IS the stamp, cut to the photo stamp's 3:4 silhouette by every
+   renderer), 1200 × 1600 (3:4, PHOTO_STAMP.original), upright, unfiltered, no EXIF. Every word comes in
    from TS.
 
    A whole screen: alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost), only after
@@ -24,7 +24,7 @@ export type KStampPressStrings = {
   close: string;
   flashOn: string;
   flashOff: string;
-  /** "{n}" is 1 or 2 */
+  /** "{n}" is 0.5, 1 or 2 (0.5 only on a phone with an ultra-wide lens) */
   zoomA11y: string;
   shutter: string;
   viewfinder: string;

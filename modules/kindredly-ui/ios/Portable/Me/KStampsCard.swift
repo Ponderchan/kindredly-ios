@@ -527,7 +527,7 @@ struct KStampCellView: View {
 /// One action in the album's sheet.
 public struct KAlbumAction: Identifiable, Equatable, Sendable {
   public enum Style: String, Sendable { case ink, plain, danger }
-  /// write | rename | recolour | filter | delete | remove | report
+  /// write | rename | recolour | filter | delete | remove | report | retry (a refused one: press again)
   public let key: String
   public let title: String
   public let style: Style

@@ -65,7 +65,7 @@ export type KStampEditViewProps = CommonViewModifierProps &
     rejectField: "image" | "topic";
     /** bump to put the page back to photo / topic / category / filter */
     seed: number;
-    /** file:// of the 10:11 crop (the camera's 1280 × 1408; any other picture is centre-cropped); "" draws the dev stand-in scene */
+    /** file:// of the 3:4 crop (the camera's 1200 × 1600; any other picture is centre-cropped); "" draws the dev stand-in scene */
     photo: string;
     topic: string;
     category: string;

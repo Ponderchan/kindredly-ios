@@ -186,6 +186,32 @@ ok("First Class: +3°", L.firstClassBanner.tilt === 3 && L.firstClassCard.tilt =
 ok("own stamps, trays, grids and lists: 0°", [L.trayTile, L.myLettersRow, L.draftsRow, L.meYourStamps, L.chosenPill, L.composeKey].every((p) => p.tilt === 0));
 ok("the store master: 1000 × 1200 px", same(F.STAMP_STORE_MASTER_PX, { w: 1000, h: 1200 }));
 
+/* ── the photo stamp's cut (owner, 2026-10-20: ours, portrait 3:4) ─────── */
+
+const PS = F.PHOTO_STAMP;
+const PP = PS.paper;
+ok("photo cut: x11 y8 w78 h104, centred in the 100 × 120 box", PP.x === 11 && PP.y === 8 && PP.width === 78 && PP.height === 104 && PP.x * 2 + PP.width === 100 && PP.y * 2 + PP.height === 120);
+ok("photo cut: 3:4, the 600 × 800 upload and the 1200 × 1600 original", PP.width * 4 === PP.height * 3 && PS.aspect === 3 / 4 && PS.export.width * 4 === PS.export.height * 3 && PS.export.width === 600 && PS.original.width === 1200 && PS.original.height === 1600);
+ok("photo cut: the 36's corner r7 and bite r5", PS.corner === 7 && PS.bite === 5);
+const onEdge = (e: "t" | "r" | "b" | "l") => PS.bites.filter(([x, y]) => (e === "t" ? y === 0 : e === "b" ? y === PP.height : e === "l" ? x === 0 : x === PP.width));
+const evenly = (v: number[], len: number) => {
+  const gaps = v.slice(1).map((c, i) => c - v[i]);
+  return gaps.every((g) => g === gaps[0]) && v[0] === len - v[v.length - 1];
+};
+ok("photo cut: 16 bites, top 3 · right 5 · bottom 3 · left 5, clockwise from the top left (the punch order)",
+  PS.bites.length === 16 &&
+  same(PS.bites.slice(0, 3), onEdge("t")) && same(PS.bites.slice(3, 8), onEdge("r")) &&
+  same(PS.bites.slice(8, 11), onEdge("b")) && same(PS.bites.slice(11), onEdge("l")) &&
+  PS.bites.slice(0, 3).every((b, i, a) => i === 0 || b[0] > a[i - 1][0]) && PS.bites.slice(3, 8).every((b, i, a) => i === 0 || b[1] > a[i - 1][1]) &&
+  PS.bites.slice(8, 11).every((b, i, a) => i === 0 || b[0] < a[i - 1][0]) && PS.bites.slice(11).every((b, i, a) => i === 0 || b[1] < a[i - 1][1]));
+ok("photo cut: each edge's bites evenly spaced and centred (pitch 21 across, 18 down; the 36's 22 and 18.5)",
+  evenly(onEdge("t").map((b) => b[0]), PP.width) && evenly(onEdge("r").map((b) => b[1]), PP.height) &&
+  onEdge("t")[1][0] - onEdge("t")[0][0] === 21 && onEdge("r")[1][1] - onEdge("r")[0][1] === 18);
+ok("photo cut: the path builder writes the 36's frame from the 36's numbers (so the style is the same)",
+  F.photoStampPathD({ x: 10, y: 25, width: 80, height: 88 }, [[18, 0], [40, 0], [62, 0], [80, 16.25], [80, 34.75], [80, 53.25], [80, 71.75], [62, 88], [40, 88], [18, 88], [0, 71.75], [0, 53.25], [0, 34.75], [0, 16.25]], 7, 5) === F.STAMP_V3_FRAME_D);
+ok("photo cut: PHOTO_STAMP.d",
+  PS.d === "M18,8L24,8A5,5 0 0 0 34,8L45,8A5,5 0 0 0 55,8L66,8A5,5 0 0 0 76,8L82,8A7,7 0 0 1 89,15L89,19A5,5 0 0 0 89,29L89,37A5,5 0 0 0 89,47L89,55A5,5 0 0 0 89,65L89,73A5,5 0 0 0 89,83L89,91A5,5 0 0 0 89,101L89,105A7,7 0 0 1 82,112L76,112A5,5 0 0 0 66,112L55,112A5,5 0 0 0 45,112L34,112A5,5 0 0 0 24,112L18,112A7,7 0 0 1 11,105L11,101A5,5 0 0 0 11,91L11,83A5,5 0 0 0 11,73L11,65A5,5 0 0 0 11,55L11,47A5,5 0 0 0 11,37L11,29A5,5 0 0 0 11,19L11,15A7,7 0 0 1 18,8Z");
+
 /* ── design/stamps-v2/golden.json: the same goldens for Swift ────────── */
 
 const GOLDEN_FILE = new URL("../../design/stamps-v2/golden.json", import.meta.url);

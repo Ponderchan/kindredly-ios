@@ -21,6 +21,8 @@ import {
   freeOrdinal,
   isCategory,
   isFilter,
+  isStoredFilter,
+  nearestFilter,
   keepOriginal,
   keepPicture,
   keepsDraft,
@@ -34,11 +36,12 @@ import {
   type CheckOutcome,
   type PressCategory,
   type PressDraft,
-  type PressFilter,
   type RejectReason,
   type StampPlan,
   type StampQuota,
+  type StoredFilter,
 } from "../../lib/stamp-press";
+import { forgetReview, pressInReview, reviewOf } from "../../lib/custom-stamps";
 import type { KPressedPhoto } from "./StampPressNative";
 import "../../data/strings-stamps2";
 
@@ -46,7 +49,7 @@ import "../../data/strings-stamps2";
    /stamp-press route draws the camera until a photo is pressed, then this, in the same route, so
    Retake is a state change and never a navigation:
 
-     photo     the pressed photo: a file:// JPEG, 1280 × 1408 (10:11), upright, unfiltered, no EXIF
+     photo     the pressed photo: a file:// JPEG, 1200 × 1600 (3:4), upright, unfiltered, no EXIF
                (Caches/stamp-press/)
      from      where the flow began: "me" | "compose" | "album" | ""
      onRetake  back to the camera (the photo is dropped)
@@ -70,9 +73,22 @@ import "../../data/strings-stamps2";
      cap / problem  the silent limit, a suspension, a lost session or a broken picture
    Moderation is the server's alone (lead's correction 2): nothing here judges the words.
 
+   IN REVIEW (owner, 2026-10-20: "邮票太慢了 要不先加候审"). A NEW stamp is put in the album the
+   moment it is pressed (lib/custom-stamps pressInReview, which also runs the check and keeps the
+   picture, the original, the draft and the "new" signal itself, whether or not this page is still
+   open). The page waits HANDOFF_MS for the answer: in time, it lands as above (a refusal seen
+   here leaves the album again); later, the page lets go — the sticker reads "in review", the
+   stamp flies to the album as an approved one would, and the answer lands there (approved →
+   the usual "new" sticker and ready bar; refused → "didn't pass" in the album). Edits of an
+   approved stamp still wait for their answer here (the stamp is already in the album).
+
    DEV ONLY (no server needed): name the stamp "dev ok", "dev no", "dev name", "dev full",
    "dev cap" or "dev wait" and the answer is made up here instead of asking (approved, a rejected
-   picture, a rejected name, the free quota, the cap, unavailable). Ignored in release. */
+   picture, a rejected name, the free quota, the cap, unavailable); "dev slow" and "dev slow no"
+   answer after 5 s (approved / a rejected picture), past the hand-off. Ignored in release. */
+
+/** how long a new stamp's page waits for the check before it hands the stamp to the album */
+const HANDOFF_MS = 2000;
 
 export type StampEditorProps = {
   photo: KPressedPhoto;
@@ -95,7 +111,15 @@ const DEV_ANSWERS: Record<string, () => CheckOutcome> = {
   "dev full": () => ({ kind: "quota", plan: "free" }),
   "dev cap": () => ({ kind: "cap" }),
   "dev wait": () => ({ kind: "unavailable" }),
+  "dev slow": () => ({
+    kind: "approved",
+    plan: null,
+    stamp: { id: devUuid(), topic: "dev slow", category: DEFAULT_CATEGORY, filter: "original", gold: false, imagePath: null, version: 1, createdAt: new Date().toISOString() },
+  }),
+  "dev slow no": () => ({ kind: "rejected", reason: "nudity", field: "image", plan: null }),
 };
+const devDelay = (topic: string) => (topic.startsWith("dev slow") ? 5000 : 1600);
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 function devUuid(): string {
   const h = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, "0");
@@ -139,6 +163,10 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
   const [draft, setDraft] = useState<PressDraft | null>(null);
   const [draftFailed, setDraftFailed] = useState(false);
   const [seed, setSeed] = useState(1);
+  // the check outlived HANDOFF_MS: the stamp went to the album "in review"
+  const [handedOff, setHandedOff] = useState(false);
+  /** this page's stamp in review (its local uuid), kept across Try again / a new photo */
+  const job = useRef<string | null>(null);
   const last = useRef<Files | null>(null);
   const busy = useRef(false);
   const alive = useRef(true);
@@ -201,6 +229,7 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
       fcBadge: t("cs2.ed.fcBadge"),
       lockedHint: t("cs2.ed.a11yFilterFc"),
       freeLine: ordinal ? t("cs2.ed.quota", { n: ordinal, cap: FREE_STAMPS }) : "",
+      // no "in review" on the sticker either (owner, 2026-10-20); VoiceOver still says it is being checked
       yours: t("cs2.done.sticker"),
       stampLabel: t("cs2.ed.a11yStampNow"),
       holdHint: t("cs2.ed.a11yHold"),
@@ -213,32 +242,40 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
       cardPrimary: card.primary,
       cardSecondary: card.secondary,
       announce:
-        phase === "approved" ? t("cs2.chk.a11yPassed") : phase === "rejected" && reject ? `${t("cs2.chk.a11yFailed")} ${rejectWords(reject.reason)}` : card.body,
+        phase === "approved" ? (handedOff ? t("cs2.done.a11yInReview") : t("cs2.chk.a11yPassed")) : phase === "rejected" && reject ? `${t("cs2.chk.a11yFailed")} ${rejectWords(reject.reason)}` : card.body,
     };
-  }, [phase, problem, draftFailed, reject, editing, lang, meName, ordinal]);
+  }, [phase, problem, draftFailed, reject, editing, lang, meName, ordinal, handedOff]);
 
   /* ── the answer → the page ── */
 
+  /** viaJob: a new stamp, whose picture, original, draft and signal pressInReview already took
+      care of; the page only shows the answer */
   const land = useCallback(
-    async (out: CheckOutcome, files: Files) => {
+    async (out: CheckOutcome, files: Files, viaJob = false) => {
       if (!alive.current) return;
       if ("plan" in out && out.plan) setServerPlan(out.plan);
       if (out.kind === "approved") {
-        if (files.original && !editing) await keepOriginal(out.stamp.id, files.original);
-        if (files.image) await keepPicture(out.stamp.id.toLowerCase(), files.image);
-        if (draft) await removeDraft(draft.id);
-        notePressed(out.stamp);
+        if (!viaJob) {
+          if (files.original && !editing) await keepOriginal(out.stamp.id, files.original);
+          if (files.image) await keepPicture(out.stamp.id.toLowerCase(), files.image);
+          if (draft) await removeDraft(draft.id);
+          notePressed(out.stamp);
+        }
         setReject(null);
         setPhase("approved");
         return;
       }
       if (out.kind === "rejected") {
+        // seen here: it needn't wait in the album too (pressing again puts it back)
+        if (viaJob && job.current) forgetReview(`c:${job.current}`);
         setReject({ reason: out.reason, field: out.field });
         setPhase("rejected");
         return;
       }
-      if (keepsDraft(out) && !editing) {
-        const kept = draft ?? (await saveDraft({ image: files.image, topic: files.topic, category: files.category as PressCategory, filter: files.filter as PressFilter }));
+      if (viaJob) {
+        if (keepsDraft(out)) setDraftFailed(!(job.current && reviewOf(`c:${job.current}`)));
+      } else if (keepsDraft(out) && !editing) {
+        const kept = draft ?? (await saveDraft({ image: files.image, topic: files.topic, category: files.category as PressCategory, filter: files.filter as StoredFilter }));
         if (!alive.current) return;
         setDraft(kept);
         setDraftFailed(!kept);
@@ -273,14 +310,39 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
       setProblem(null);
       const topic = normalizeTopic(files.topic);
       const category: PressCategory = isCategory(files.category) ? files.category : DEFAULT_CATEGORY;
-      const filter: PressFilter = editing && !filterEditable && isFilter(editing.filter) ? editing.filter : isFilter(files.filter) ? files.filter : "original";
+      // a rename of a stamp whose picture can't be re-filtered sends its own filter back, old ones too
+      const filter: StoredFilter = editing && !filterEditable && isStoredFilter(editing.filter) ? editing.filter : isFilter(files.filter) ? files.filter : "original";
       try {
         const dev = __DEV__ ? DEV_ANSWERS[topic.toLowerCase()] : undefined;
+        if (!editing) {
+          // a new stamp: in the album at once, checked on its own; the page waits a moment
+          const j = pressInReview({
+            uuid: job.current ?? undefined,
+            image: files.image,
+            original: files.original || null,
+            topic,
+            category,
+            filter,
+            gold,
+            answer: dev ? () => sleep(devDelay(topic.toLowerCase())).then(dev) : undefined,
+          });
+          job.current = j.uuid;
+          const first = await Promise.race([j.done, sleep(HANDOFF_MS).then(() => null)]);
+          if (!alive.current) return;
+          if (first === null) {
+            setHandedOff(true);
+            setPhase("approved"); // the flight to the album, the sticker reading "in review"
+            return;
+          }
+          await land(first, files, true);
+          return;
+        }
+        // an edit of an approved stamp: the answer is waited for here
         let out: CheckOutcome;
         if (dev) {
-          await new Promise((r) => setTimeout(r, 1600));
+          await sleep(1600);
           out = dev();
-        } else if (editing) {
+        } else {
           const imageChanged = filterEditable && filter !== editing.filter;
           const topicChanged = topic !== normalizeTopic(editing.topic);
           const colourChanged = category !== editing.category;
@@ -293,8 +355,6 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
             out = await checkStamp({ image: imageChanged ? files.image : null, topic, category, filter, replace: editing.id });
             if (out.kind === "approved" && colourChanged) await recolourStamp(editing.id, category);
           }
-        } else {
-          out = await checkStamp({ image: files.image, topic, category, filter });
         }
         await land(out, files);
       } finally {
@@ -359,6 +419,7 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
     setProblem(null);
     setDraft(null);
     setDraftFailed(false);
+    setHandedOff(false);
   }, [photoKey]);
 
   const available = isKindredlyUIViewAvailable("KStampEditView");
@@ -388,7 +449,8 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
         topic={editing ? editing.topic : ""}
         category={editing && isCategory(editing.category) ? editing.category : DEFAULT_CATEGORY}
         // a stamp whose original isn't here starts from its own (already filtered) picture: shown as it is
-        filter={editing && filterEditable && isFilter(editing.filter) ? editing.filter : "original"}
+        // (an old look from 2026-10-19 starts on the nearest of today's)
+        filter={editing && filterEditable ? nearestFilter(editing.filter) : "original"}
         onRetake={retake}
         onSubmit={(s) => void send(s)}
         onUpgrade={upgrade}

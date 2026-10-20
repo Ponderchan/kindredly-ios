@@ -14,7 +14,9 @@
 
 export type PressCategoryId = "confessions" | "almosts" | "latenights" | "small" | "becoming" | "missing";
 const CATEGORIES: readonly PressCategoryId[] = ["confessions", "almosts", "latenights", "small", "becoming", "missing"];
-const FILTERS = ["original", "paper", "riso", "night", "sun", "sticker", "gilt"] as const;
+/** every filter id a stored stamp may carry: today's looks and 2026-10-19's (stamp-press-core
+    PRESS_FILTERS / LEGACY_FILTERS; a stamp made then must not drop out of the album) */
+const FILTERS = ["original", "vivid", "warm", "golden", "film", "airy", "gilt", "paper", "riso", "night", "sun", "sticker"] as const;
 export type FilterId = (typeof FILTERS)[number];
 
 export type StampState = "ok" | "pending" | "rejected" | "removed" | "deleted" | "hidden" | "blank";
@@ -222,3 +224,39 @@ export function customIds(ids: readonly (string | null | undefined)[]): string[]
 
 /** Does a link that expires at `expiresAt` (epoch ms) need signing again at `now`? */
 export const needsResign = (expiresAt: number | undefined, now: number): boolean => expiresAt == null || expiresAt - now < RESIGN_MS;
+
+/* ── stamps in review on this phone (owner, 2026-10-20: the check is slow, show it first) ──────
+   A stamp pressed here is in the album at once, "in review", while stamp-check runs (and while
+   it waits as a draft). stamp_check_begin reserves the server's own 'pending' row the moment the
+   check starts, so a my_custom_stamps read during the check has that row too: it is the same
+   stamp, and is hidden behind the local one (the closest in time, one each). */
+
+export type LocalPress = { at: number; state: "pending" | "rejected" };
+
+/** how far apart the phone's press and the server's pending row may be (clocks drift; a draft is
+    sent again later, and the row it reserves then is newer) */
+export const TWIN_BEFORE_MS = 5 * 60 * 1000;
+export const TWIN_AFTER_MS = 15 * 60 * 1000;
+
+/** The server's rows without the pending twin of each local press still in review. */
+export function withoutTwins<T extends { status: string; createdAt: string }>(server: readonly T[], local: readonly LocalPress[]): T[] {
+  const hidden = new Set<number>();
+  const times = server.map((r) => (r.status === "pending" ? Date.parse(r.createdAt) : NaN));
+  for (const l of [...local].filter((x) => x.state === "pending").sort((a, b) => a.at - b.at)) {
+    let best = -1;
+    let gap = Infinity;
+    times.forEach((t, i) => {
+      if (!Number.isFinite(t) || hidden.has(i) || t < l.at - TWIN_BEFORE_MS || t > l.at + TWIN_AFTER_MS) return;
+      const g = Math.abs(t - l.at);
+      if (g < gap) (gap = g), (best = i);
+    });
+    if (best >= 0) hidden.add(best);
+  }
+  return server.filter((_, i) => !hidden.has(i));
+}
+
+/** A random v4 uuid (a local press's id until the server gives the stamp its own). */
+export function localUuid(rand: () => number = Math.random): string {
+  const h = (n: number) => Array.from({ length: n }, () => Math.floor(rand() * 16).toString(16)).join("");
+  return `${h(8)}-${h(4)}-4${h(3)}-${"89ab"[Math.floor(rand() * 4)]}${h(3)}-${h(12)}`;
+}

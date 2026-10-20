@@ -516,9 +516,11 @@ public struct KStampShape: Shape {
 
 /*
  THE PHOTO IS THE STAMP. A custom stamp ("c:<uuid>" on a letter) is the photo itself, full bleed,
- cut to the very silhouette the 36 official stamps' paper has (STAMP_V3_FRAME_D: a rounded rect
- x10 y25 w80 h88 on the 100 × 120 box, corners r7, half-circle bites r5, 3 along the top and the
- bottom and 4 down each side). No paper border, no keyline, no window: the bites show whatever
+ cut in the style of the 36 official stamps' paper (STAMP_V3_FRAME_D: corners r7, half-circle
+ bites r5, the same pitch) but PORTRAIT 3:4 (owner, 2026-10-20, "就我们的那个变个比例", like
+ Stampie's portrait stamp; it was the 36's own 10:11 paper until then): a rounded rect x11 y8
+ w78 h104 on the 100 × 120 box, centred, 3 bites along the top and the bottom (pitch 21) and 5
+ down each side (pitch 18), each edge's bites spaced evenly. No paper border, no keyline, no window: the bites show whatever
  is behind. The ONE geometry the camera's viewfinder, the press animation, the edit page, the
  export, Swift KStamp at every tier, RN Stamp (the reader) and the web all use; contract
  .claude/custom-stamps/CONTRACT.md §2. Twins: src/lib/stamp-frame.ts PHOTO_STAMP (TS/RN) and the
@@ -526,39 +528,43 @@ public struct KStampShape: Shape {
  on its own with KLineGlyph.swift (the golden check above).
 
  Two placements:
-   .box    the 5:6 box KStamp lays out (width × 1.2 width), the cut exactly where an official
-           stamp's paper sits, so a photo stamp lines up with the 36 in a tray, a card corner, a
-           grid; it tilts like any delivered stamp (KStamp's rule).
-   .paper  the cut's own 10:11 bounds (the viewfinder, the edit page's big stamp, the filter
+   .box    the 5:6 box KStamp lays out (width × 1.2 width), the cut centred in it where an
+           official stamp sits (as wide as the 36's paper, less 2u, and taller), so a photo stamp
+           lines up with the 36 in a tray, a card corner, a grid; it tilts like any delivered
+           stamp (KStamp's rule).
+   .paper  the cut's own 3:4 bounds (the viewfinder, the edit page's big stamp, the filter
            tiles, the album sheet's 200): no air above it.
  Edges: a rendered box width of 60pt and under (tray 30, Today card 40, compose corner 40,
  reader 60) gets a 1pt hairline INSIDE the cut (ink #1E1B35 at .30 on light surfaces, white at
  .30 on dark) so a pale photo still reads on a white card; larger ones get no line and a soft
  drop shadow that follows the bites. A Cofounder's stamp ("gold") gets a 2pt #D8A63F line inside
  the cut at every size, instead of the hairline (and keeps the shadow when large).
- The picture the server stores is the cut's bounds: 640 × 704 (10:11), JPEG ≤ 150 KB, already
- filtered; the frame shape is never baked into the file (corners and bites are drawn by clipping).
+ The picture the server stores is the cut's bounds: 600 × 800 (3:4), JPEG ≤ 150 KB, already
+ filtered (builds before 2026-10-20 sent 640 × 704, 10:11; the server takes both, and every
+ renderer aspect-fills the picture into the cut, so an old one loses a sliver at each side); the frame shape is never baked into the file (corners and bites are drawn by clipping).
  */
 public enum KPhotoStamp {
-  /// the cut's bounds on the 100 × 120 box (STAMP_V3_FRAME_D's paper)
-  public static let paperInBox = CGRect(x: 10, y: 25, width: 80, height: 88)
-  /// width / height of the cut (10:11)
-  public static let aspect: CGFloat = 80.0 / 88.0
-  /// the JPEG the server checks and stores: the cut's bounds, filtered (stamp-check.js LIMITS)
-  public static let exportSize = CGSize(width: 640, height: 704)
+  /// the cut's bounds on the 100 × 120 box, centred (3:4; the cut's own units are these, 78 × 104)
+  public static let paperInBox = CGRect(x: 11, y: 8, width: 78, height: 104)
+  /// width / height of the cut (3:4)
+  public static let aspect: CGFloat = 3.0 / 4.0
+  /// the JPEG the server checks and stores: the cut's bounds, filtered (stamp-check.js LIMITS,
+  /// which also still takes the 640 × 704 of builds before 2026-10-20)
+  public static let exportSize = CGSize(width: 600, height: 800)
   /// the unfiltered crop kept on the phone (First Class may change the filter later)
-  public static let originalSize = CGSize(width: 1280, height: 1408)
+  public static let originalSize = CGSize(width: 1200, height: 1600)
   public static let maxBytes = 153_600
-  /// corner radius and bite radius, in the cut's own units (80 × 88)
+  /// corner radius and bite radius, in the cut's own units (78 × 104): the 36's r7 and r5
   public static let cornerU: CGFloat = 7
   public static let biteU: CGFloat = 5
-  /// the 14 bite centres in the cut's own units (80 × 88), clockwise from the top left: the order
-  /// the press punches them in (top 3, right 4, bottom 3, left 4)
+  /// the 16 bite centres in the cut's own units (78 × 104), clockwise from the top left: the order
+  /// the press punches them in (top 3, right 5, bottom 3, left 5). Top and bottom: 18 in from the
+  /// corners, pitch 21; the sides: 16 in, pitch 18 (the 36's paper: 18 / 22 and 16.25 / 18.5)
   public static let bites: [CGPoint] = [
-    CGPoint(x: 18, y: 0), CGPoint(x: 40, y: 0), CGPoint(x: 62, y: 0),
-    CGPoint(x: 80, y: 16.25), CGPoint(x: 80, y: 34.75), CGPoint(x: 80, y: 53.25), CGPoint(x: 80, y: 71.75),
-    CGPoint(x: 62, y: 88), CGPoint(x: 40, y: 88), CGPoint(x: 18, y: 88),
-    CGPoint(x: 0, y: 71.75), CGPoint(x: 0, y: 53.25), CGPoint(x: 0, y: 34.75), CGPoint(x: 0, y: 16.25),
+    CGPoint(x: 18, y: 0), CGPoint(x: 39, y: 0), CGPoint(x: 60, y: 0),
+    CGPoint(x: 78, y: 16), CGPoint(x: 78, y: 34), CGPoint(x: 78, y: 52), CGPoint(x: 78, y: 70), CGPoint(x: 78, y: 88),
+    CGPoint(x: 60, y: 104), CGPoint(x: 39, y: 104), CGPoint(x: 18, y: 104),
+    CGPoint(x: 0, y: 88), CGPoint(x: 0, y: 70), CGPoint(x: 0, y: 52), CGPoint(x: 0, y: 34), CGPoint(x: 0, y: 16),
   ]
   /// a box width at or under this (pt) draws the hairline; over it, the soft shadow
   public static let hairlineMaxBoxWidth: CGFloat = 60
@@ -578,7 +584,7 @@ public enum KPhotoStamp {
   public enum Placement: Sendable { case box, paper }
   public enum Edge: Equatable, Sendable { case hairline, gold, none }
 
-  /// The cut's height for a width (10:11).
+  /// The cut's height for a width (3:4).
   public static func height(paperWidth w: CGFloat) -> CGFloat { w / aspect }
 
   /// The cut's rect inside a KStamp box of this width (width × 1.2 width), origin at the box's.
@@ -588,18 +594,18 @@ public enum KPhotoStamp {
   }
 
   /// Which edge a stamp gets at a rendered box width (for .paper placements pass the box width
-  /// the cut would have: paperWidth / 0.8).
+  /// the cut would have: paperWidth × 100 / paperInBox.width).
   public static func edge(boxWidth: CGFloat, gold: Bool) -> Edge {
     if gold { return .gold }
     return boxWidth <= hairlineMaxBoxWidth ? .hairline : .none
   }
 
-  /// The cut fitted into `rect` (give it a 10:11 rect). `punched` is how far in each of the 14
+  /// The cut fitted into `rect` (give it a 3:4 rect). `punched` is how far in each of the 16
   /// bites is, 0…1, in `bites` order (nil = all the way: the finished stamp); the press animates it.
   public static func cut(in rect: CGRect, punched: [CGFloat]? = nil) -> Path {
     guard rect.width > 0, rect.height > 0 else { return Path() }
-    let sx = rect.width / 80
-    let sy = rect.height / 88
+    let sx = rect.width / paperInBox.width
+    let sy = rect.height / paperInBox.height
     let body = Path(roundedRect: rect, cornerSize: CGSize(width: cornerU * sx, height: cornerU * sy), style: .circular)
     var holes = Path()
     for (i, c) in bites.enumerated() {
@@ -612,7 +618,7 @@ public enum KPhotoStamp {
     return holes.isEmpty ? body : body.subtracting(holes)
   }
 
-  /// The centred part of a picture of `size` with the cut's aspect (10:11), in its pixels.
+  /// The centred part of a picture of `size` with the cut's aspect (3:4), in its pixels.
   public static func centreCrop(_ size: CGSize) -> CGRect {
     guard size.width > 0, size.height > 0 else { return .zero }
     if size.width / size.height > aspect {
@@ -636,7 +642,7 @@ public enum KPhotoStamp {
   }
 }
 
-/// The photo stamp's cut as a Shape: fitted to the rect it is given (a 10:11 rect), with the
+/// The photo stamp's cut as a Shape: fitted to the rect it is given (a 3:4 rect), with the
 /// bites `punched` in (nil = finished). Clip a photo to it; stroke it with KPhotoStamp's edges.
 public struct KPhotoStampCut: Shape {
   public var punched: [CGFloat]?
@@ -655,7 +661,7 @@ public struct KPhotoStampCut: Shape {
 /// Every photo stamp in SwiftUI is drawn through this (the viewfinder, the press, the edit page,
 /// the filter tiles, KStamp for "c:" ids at every tier, the album, the sheet). Lays out as
 /// `width` × the placement's height: .box = width × 1.2 width with the cut where an official
-/// stamp's paper sits; .paper = the cut alone, width × width / KPhotoStamp.aspect.
+/// stamp sits; .paper = the cut alone, width × width / KPhotoStamp.aspect.
 /// `punched` animates the bites (the press); `shadow` false drops the large stamp's soft shadow
 /// (a tile in a scrolling row, say). It does not tilt: the caller rotates it (KStamp's letter tilt,
 /// the edit page's landing −5°).
@@ -686,7 +692,7 @@ public struct KPhotoStampFace<Content: View>: View {
   }
   public var height: CGFloat { placement == .box ? width * 1.2 : KPhotoStamp.height(paperWidth: width) }
   /// the box width this stamp counts as for the edge rule
-  var boxWidth: CGFloat { placement == .box ? width : width / 0.8 }
+  var boxWidth: CGFloat { placement == .box ? width : width * KStampFrame.box.width / KPhotoStamp.paperInBox.width }
 
   public var body: some View {
     let p = paper

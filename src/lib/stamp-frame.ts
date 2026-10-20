@@ -572,21 +572,67 @@ export const STAMP_DOT_EDGE_PT = 1;
 export const STAMP_V3_FRAME_BOUNDS: Readonly<StampRect> = Object.freeze({ x: 3, y: 18, width: 94, height: 102 });
 
 /* ── THE PHOTO STAMP (custom stamps, the owner's call of 2026-10-19 evening) ──────────────────
-   A custom stamp ("c:<uuid>") is the photo itself, full bleed, clipped to STAMP_V3_FRAME_D (the
-   36's paper: x10 y25 w80 h88, r7, bites r5, 3 × 4). No paper border, no keyline, no window; the
-   bites show what is behind. Twin of Swift KPhotoStamp (Portable/Kit/KStampFrame.swift) and the
-   web's app/engine/custom-stamp-core.js; contract .claude/custom-stamps/CONTRACT.md §2.
-   RN draws it as an svg <ClipPath> of STAMP_V3_FRAME_D round an <Image> laid over PHOTO_STAMP.paper
-   (placement "box", in the 100 × 120 viewBox), or a viewBox of the paper rect ("paper"). */
+   A custom stamp ("c:<uuid>") is the photo itself, full bleed, clipped to PHOTO_STAMP.d: the 36's
+   paper in style (corners r7, half-circle bites r5, the same pitch) but PORTRAIT 3:4 (owner,
+   2026-10-20, "就我们的那个变个比例"; until then it was STAMP_V3_FRAME_D itself, 10:11): x11 y8
+   w78 h104 on the 100 × 120 box, centred, 3 bites along the top and the bottom (pitch 21) and 5
+   down each side (pitch 18). No paper border, no keyline, no window; the bites show what is
+   behind. Twin of Swift KPhotoStamp (Portable/Kit/KStampFrame.swift) and the web's
+   app/engine/custom-stamp-core.js; contract .claude/custom-stamps/CONTRACT.md §2.
+   RN draws it as an svg <ClipPath> of PHOTO_STAMP.d round an <Image> laid over PHOTO_STAMP.paper
+   (placement "box", in the 100 × 120 viewBox), or a viewBox of the paper rect ("paper"). The
+   picture is aspect-filled into the cut (xMidYMid slice), so a 640 × 704 one from a build before
+   2026-10-20 loses a sliver at each side and is never stretched. */
+const PHOTO_PAPER: Readonly<StampRect> = Object.freeze({ x: 11, y: 8, width: 78, height: 104 });
+/** the 16 bite centres in the cut's own units (78 × 104), clockwise from the top left (the press's
+    punch order): top 3, right 5, bottom 3, left 5 (Swift KPhotoStamp.bites, point for point) */
+const PHOTO_BITES: readonly (readonly [number, number])[] = Object.freeze([
+  [18, 0], [39, 0], [60, 0],
+  [78, 16], [78, 34], [78, 52], [78, 70], [78, 88],
+  [60, 104], [39, 104], [18, 104],
+  [0, 88], [0, 70], [0, 52], [0, 34], [0, 16],
+] as const);
+
+/** The cut as an SVG path on the 100 × 120 box: the rounded rect with each bite a half circle
+    taken out of its edge (STAMP_V3_FRAME_D's way of writing it), clockwise from the top left. */
+export function photoStampPathD(paper: Readonly<StampRect>, bites: readonly (readonly [number, number])[], corner: number, bite: number): string {
+  const { x, y, width: w, height: h } = paper;
+  const n = (v: number) => String(Math.round(v * 1000) / 1000);
+  const top = bites.filter(([, by]) => by === 0).map(([bx]) => x + bx);
+  const right = bites.filter(([bx, by]) => bx === w && by > 0 && by < h).map(([, by]) => y + by);
+  const bottom = bites.filter(([, by]) => by === h).map(([bx]) => x + bx);
+  const left = bites.filter(([bx, by]) => bx === 0 && by > 0 && by < h).map(([, by]) => y + by);
+  const arc = (ex: number, ey: number) => `A${n(bite)},${n(bite)} 0 0 0 ${n(ex)},${n(ey)}`;
+  const cr = (ex: number, ey: number) => `A${n(corner)},${n(corner)} 0 0 1 ${n(ex)},${n(ey)}`;
+  let d = `M${n(x + corner)},${n(y)}`;
+  for (const c of top) d += `L${n(c - bite)},${n(y)}` + arc(c + bite, y);
+  d += `L${n(x + w - corner)},${n(y)}` + cr(x + w, y + corner);
+  for (const c of right) d += `L${n(x + w)},${n(c - bite)}` + arc(x + w, c + bite);
+  d += `L${n(x + w)},${n(y + h - corner)}` + cr(x + w - corner, y + h);
+  for (const c of bottom) d += `L${n(c + bite)},${n(y + h)}` + arc(c - bite, y + h);
+  d += `L${n(x + corner)},${n(y + h)}` + cr(x, y + h - corner);
+  for (const c of left) d += `L${n(x)},${n(c + bite)}` + arc(x, c - bite);
+  d += `L${n(x)},${n(y + corner)}` + cr(x + corner, y) + "Z";
+  return d;
+}
+
 export const PHOTO_STAMP = Object.freeze({
-  /** the cut's bounds on the 100 × 120 box */
-  paper: Object.freeze({ x: 10, y: 25, width: 80, height: 88 }) as Readonly<StampRect>,
-  /** width / height (10:11) */
-  aspect: 80 / 88,
-  /** the JPEG the server checks and stores (stamp-check.js LIMITS): the cut's bounds, filtered */
-  export: Object.freeze({ width: 640, height: 704 }),
+  /** the cut's bounds on the 100 × 120 box (its own units are these: 78 × 104) */
+  paper: PHOTO_PAPER,
+  /** width / height (3:4) */
+  aspect: 3 / 4,
+  /** corner and bite radius in box units (the 36's r7 and r5) */
+  corner: 7,
+  bite: 5,
+  /** the bite centres in the cut's own units, the press's punch order */
+  bites: PHOTO_BITES,
+  /** the cut on the 100 × 120 box (clip the photo to it; stroke it for the edge) */
+  d: photoStampPathD(PHOTO_PAPER, PHOTO_BITES, 7, 5),
+  /** the JPEG the server checks and stores (stamp-check.js LIMITS, which also still takes the
+      640 × 704 of builds before 2026-10-20): the cut's bounds, filtered */
+  export: Object.freeze({ width: 600, height: 800 }),
   /** the unfiltered crop kept on the phone */
-  original: Object.freeze({ width: 1280, height: 1408 }),
+  original: Object.freeze({ width: 1200, height: 1600 }),
   maxBytes: 153600,
   /** a rendered box width at or under this (pt): a 1pt hairline inside the cut; over it, a soft shadow */
   hairlineMaxBoxWidth: 60,

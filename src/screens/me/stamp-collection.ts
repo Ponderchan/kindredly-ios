@@ -38,6 +38,9 @@ export type MineFact = {
   state: "ok" | "pending" | "rejected" | "removed" | "deleted" | "hidden" | "blank";
   letters: number;
   createdAt: string;
+  /** pressed on this phone and not through the check yet (lib/custom-stamps reviewOf): flying =
+      being checked now; a refused one keeps its reason */
+  review?: { flying: boolean; reason: string | null } | null;
 };
 
 export type KeptFact = {
@@ -88,8 +91,17 @@ const tag = (topic: string, fmt: CollectionFormat) => (topic ? `#${fmt.lower(top
 /** what shows under one of my stamps: its #topic, or why there is none */
 function mineUnder(m: MineFact, fmt: CollectionFormat): { text: string; note: boolean } {
   if (m.state === "removed") return { text: fmt.t("cs2.me.takenDown"), note: true };
-  if (m.state === "pending") return { text: fmt.t("cs2.col.checking"), note: true };
+  // a stamp still being checked looks like any of mine (owner, 2026-10-20: no "in review" label —
+  // it either passes and stays, or it doesn't pass and says so)
+  if (m.state === "rejected") return { text: fmt.t("cs2.col.didntPass"), note: true };
   return { text: tag(m.topic, fmt), note: false };
+}
+
+/** why a stamp didn't pass, in the press page's words */
+function refusal(reason: string | null, fmt: CollectionFormat): string {
+  if (reason === "contact") return fmt.t("cs2.chk.contact");
+  if (reason === "words") return fmt.t("cs2.ed.rejWords");
+  return fmt.t("cs2.chk.other");
 }
 
 const mineA11y = (m: MineFact, fmt: CollectionFormat): string => {
@@ -175,8 +187,8 @@ export function buildAlbum(
       const u = mineUnder(m, fmt);
       const date = m.createdAt ? fmt.dateShort(m.createdAt) : "";
       const info =
-        m.state === "pending"
-          ? t("cs2.col.pending", { date })
+        m.state === "rejected"
+          ? refusal(m.review?.reason ?? null, fmt)
           : m.state === "removed"
             ? t("cs2.me.takenDown")
             : m.letters === 0
@@ -193,8 +205,12 @@ export function buildAlbum(
               ...(o.hasOriginal(m.id.slice(2)) ? [act("filter", t("cs2.al.editFilter"))] : []),
               act("delete", t("cs2.al.delete"), "danger"),
             ]
-          : [act("delete", t("cs2.al.delete"), "danger")];
-      return { id: m.id, under: u.text, tag: m.state === "ok" || m.state === "pending" ? tag(m.topic, fmt) : "", tagHex: m.hex, info, a11y: mineA11y(m, fmt), actions };
+          : m.state === "rejected"
+            ? [act("retry", t("cs2.chk.tryPhoto"), "ink"), act("delete", t("cs2.al.delete"), "danger")]
+            : m.review?.flying
+              ? [] // being checked: nothing to do but wait
+              : [act("delete", t("cs2.al.delete"), "danger")];
+      return { id: m.id, under: u.text, tag: m.state === "ok" || m.state === "pending" || m.state === "rejected" ? tag(m.topic, fmt) : "", tagHex: m.hex, info, a11y: mineA11y(m, fmt), actions };
     });
     sections.push({ key: "made", title: `${t("cs2.me.yours")} · ${f.mine.length}`, make: open, cells });
   }

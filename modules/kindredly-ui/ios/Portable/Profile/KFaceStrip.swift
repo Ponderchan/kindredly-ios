@@ -180,19 +180,24 @@ struct KRoomyButtonStyle<Inner: ButtonStyle>: ButtonStyle {
  cut, larger ones the soft shadow; a Cofounder's stamp gets the 2pt gold #D8A63F line at every
  size. Nothing is printed on it.
 
- THE FILTERS (KPressFilter.apply), Core Image after the prototype's CSS, in its order, on the
- 10:11 crop:
-   original  nothing
-   paper     sepia .35 · contrast .92 · brightness 1.05
-   riso      grayscale · contrast 1.4 · its blacks lifted to a floor (a tone curve, so a dark photo
-             doesn't print nearly black), then the colour multiplied over at 75%
-   night     hue-rotate 190° · saturate .6 · brightness .78 · contrast 1.1
-   sun       brightness 1.22 · saturate 1.3 · sepia .2
-   sticker   saturate 1.1, the colour laid over at 60%, and the photo again in a circle with a
-             white ring (a sticker on its own backing; the circle uses the crop's width)
-   gilt      sepia .6 · saturate 1.4 · contrast 1.05 · brightness 1.05 (Cofounder only)
- (CSS brightness() multiplies, so it is CIExposureAdjust log2(b); contrast and saturate are
- CIColorControls; hue-rotate is CIHueAdjust.)
+ THE FILTERS (KPressFilter.apply), Core Image on the 10:11 crop. Bright, warm, hopeful looks
+ (owner, 2026-10-20: dark looks don't suit a stamp; a filter should make an iPhone photo vivid,
+ warm, warm with contrast — something that feels good). Nothing here darkens a photo or turns it
+ grey. Gains are a white balance in the linear working space (CIColorMatrix, R / B: warmer when R
+ rises and B falls); tone curves are drawn in sRGB (in and out of CILinearToSRGBToneCurve) so a
+ lifted black reads as the number says.
+   original  nothing                                                           (everyone)
+   vivid     shadows lifted .2 · vibrance .5 · saturate 1.06 · contrast 1.06 ·
+             clarity (an unsharp mask, radius 0.6% of the width, .3)          (everyone)
+   warm      white balance R 1.07 / B .9 · +0.15 EV · shadows .15 · vibrance .2 (everyone; Sun's idea)
+   golden    golden hour: R 1.12 / G 1.03 / B .82 · contrast 1.12 · vibrance .3 · +0.05 EV  (First Class)
+   film      warm soft film: R 1.06 / G 1.03 / B .92 · saturate .9 · +0.1 EV · a gentle fade
+             (sRGB curve 0→.07 … 1→.97: lifted blacks, never grey)            (First Class)
+   airy      bright and open: +0.3 EV · shadows .3 · contrast .94 · a touch cooler
+             (R .98 / B 1.03) · an sRGB lift 0→.04, .5→.57                   (First Class)
+   gilt      bright gold: R 1.14 / G 1.06 / B .78 · +0.18 EV · vibrance .3 · contrast 1.04 (Cofounder)
+ A stamp saved with an earlier filter (paper, riso, night, sun, sticker, 2026-10-19) has no case
+ here: its id reads as original (TS maps it to the nearest when the stamp is edited).
 
  THE JPEG (KPressRender.export): the filtered cut's bounds at exactly KPhotoStamp.exportSize
  (640 × 704), sRGB, scale 1, JPEG stepped down in quality until it is ≤ KPhotoStamp.maxBytes
@@ -209,55 +214,36 @@ struct KRoomyButtonStyle<Inner: ButtonStyle>: ButtonStyle {
 
 /// The seven filters (src/lib/stamp-press-core PRESS_FILTERS; the server's custom_stamps_filter).
 public enum KPressFilter: String, CaseIterable, Sendable {
-  case original, paper, riso, night, sun, sticker, gilt
+  case original, vivid, warm, golden, film, airy, gilt
 
-  /// whether the result depends on the chosen colour (re-rendered when it changes)
-  var usesColour: Bool { self == .riso || self == .sticker }
+  /// whether the result depends on the chosen colour (re-rendered when it changes): none of the
+  /// current looks do (the colour is the stamp's #tag, not the picture's)
+  var usesColour: Bool { false }
 
   /// The filtered picture, the same size as `image`. `colour` is the category's 0xRRGGBB.
   func apply(to image: CGImage, colour: UInt32) -> CGImage? {
     let ci = CIImage(cgImage: image)
+    let width = Double(image.width)
     let adjusted: CIImage
     switch self {
     case .original:
       return image
-    case .paper:
-      adjusted = ci.kSepia(0.35).kControls(contrast: 0.92).kBrightness(1.05)
-    case .riso:
-      adjusted = ci.kControls(saturation: 0).kControls(contrast: 1.4).kFloor()
-    case .night:
-      adjusted = ci.kHue(degrees: 190).kControls(saturation: 0.6).kBrightness(0.78).kControls(contrast: 1.1)
-    case .sun:
-      adjusted = ci.kBrightness(1.22).kControls(saturation: 1.3).kSepia(0.2)
-    case .sticker:
-      adjusted = ci.kControls(saturation: 1.1)
+    case .vivid:
+      adjusted = ci.kShadows(0.2).kVibrance(0.5).kControls(saturation: 1.06, contrast: 1.06).kClarity(radius: width * 0.006, intensity: 0.3)
+    case .warm:
+      adjusted = ci.kGains(r: 1.07, g: 1.02, b: 0.9).kExposure(0.15).kShadows(0.15).kVibrance(0.2)
+    case .golden:
+      adjusted = ci.kGains(r: 1.12, g: 1.03, b: 0.82).kControls(contrast: 1.12).kVibrance(0.3).kExposure(0.05)
+    case .film:
+      adjusted = ci.kGains(r: 1.06, g: 1.03, b: 0.92).kControls(saturation: 0.9).kExposure(0.1)
+        .kCurve([(0, 0.07), (0.25, 0.29), (0.5, 0.54), (0.75, 0.79), (1, 0.97)])
+    case .airy:
+      adjusted = ci.kExposure(0.3).kShadows(0.3).kControls(contrast: 0.94).kGains(r: 0.98, g: 1, b: 1.03)
+        .kCurve([(0, 0.04), (0.25, 0.3), (0.5, 0.57), (0.75, 0.81), (1, 1)])
     case .gilt:
-      adjusted = ci.kSepia(0.6).kControls(saturation: 1.4).kControls(contrast: 1.05).kBrightness(1.05)
+      adjusted = ci.kGains(r: 1.14, g: 1.06, b: 0.78).kExposure(0.18).kVibrance(0.3).kControls(contrast: 1.04)
     }
-    guard let base = KPressRender.context.createCGImage(adjusted, from: ci.extent, format: .RGBA8, colorSpace: KPressRender.srgb) else { return nil }
-    switch self {
-    case .riso: return KPressRender.composite(base, size: CGSize(width: image.width, height: image.height)) { ctx, rect in
-        ctx.setBlendMode(.multiply)
-        ctx.setFillColor(KPressRender.cg(colour, alpha: 0.75))
-        ctx.fill(rect)
-      }
-    case .sticker: return KPressRender.composite(base, size: CGSize(width: image.width, height: image.height)) { ctx, rect in
-        ctx.setFillColor(KPressRender.cg(colour, alpha: 0.6))
-        ctx.fill(rect)
-        let inset = rect.width * 0.14
-        let circle = CGRect(x: rect.midX - (rect.width / 2 - inset), y: rect.midY - (rect.width / 2 - inset), width: rect.width - 2 * inset, height: rect.width - 2 * inset)
-        ctx.saveGState()
-        ctx.addEllipse(in: circle)
-        ctx.clip()
-        ctx.draw(base, in: rect)
-        ctx.restoreGState()
-        ctx.setStrokeColor(UIColor.white.cgColor)
-        ctx.setLineWidth(rect.width * 0.045)
-        ctx.strokeEllipse(in: circle)
-      }
-    default:
-      return base
-    }
+    return KPressRender.context.createCGImage(adjusted, from: ci.extent, format: .RGBA8, colorSpace: KPressRender.srgb)
   }
 }
 
@@ -268,34 +254,45 @@ private extension CIImage {
     if let contrast { p[kCIInputContrastKey] = contrast }
     return applyingFilter("CIColorControls", parameters: p)
   }
-  func kSepia(_ v: Double) -> CIImage {
-    applyingFilter("CISepiaTone", parameters: [kCIInputIntensityKey: v])
+  func kExposure(_ ev: Double) -> CIImage {
+    applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: ev])
   }
-  /// CSS brightness(b): a multiply, so an exposure of log2(b)
-  func kBrightness(_ b: Double) -> CIImage {
-    applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: log2(b)])
+  func kVibrance(_ amount: Double) -> CIImage {
+    applyingFilter("CIVibrance", parameters: ["inputAmount": amount])
   }
-  /// Lifts the blacks to a floor (Riso: a dark photo multiplied by the colour came out nearly
-  /// black). Midtones and whites move little.
-  func kFloor() -> CIImage {
-    applyingFilter("CIToneCurve", parameters: [
-      "inputPoint0": CIVector(x: 0, y: 0.22),
-      "inputPoint1": CIVector(x: 0.25, y: 0.4),
-      "inputPoint2": CIVector(x: 0.5, y: 0.62),
-      "inputPoint3": CIVector(x: 0.75, y: 0.82),
-      "inputPoint4": CIVector(x: 1, y: 1),
+  /// Opens the shadows (CIHighlightShadowAdjust, 0…1); the highlights are left as they are.
+  func kShadows(_ amount: Double) -> CIImage {
+    applyingFilter("CIHighlightShadowAdjust", parameters: ["inputShadowAmount": amount, "inputHighlightAmount": 1])
+  }
+  /// A white balance: each channel's gain, in the linear working space.
+  func kGains(r: Double, g: Double, b: Double) -> CIImage {
+    applyingFilter("CIColorMatrix", parameters: [
+      "inputRVector": CIVector(x: r, y: 0, z: 0, w: 0),
+      "inputGVector": CIVector(x: 0, y: g, z: 0, w: 0),
+      "inputBVector": CIVector(x: 0, y: 0, z: b, w: 0),
     ])
   }
-  func kHue(degrees: Double) -> CIImage {
-    applyingFilter("CIHueAdjust", parameters: [kCIInputAngleKey: degrees * .pi / 180])
+  /// Local contrast: an unsharp mask, the edges clamped so the border doesn't darken.
+  func kClarity(radius: Double, intensity: Double) -> CIImage {
+    clampedToExtent()
+      .applyingFilter("CIUnsharpMask", parameters: [kCIInputRadiusKey: max(radius, 0.5), kCIInputIntensityKey: intensity])
+      .cropped(to: extent)
+  }
+  /// A five-point tone curve read in sRGB (as an editor's curve is), not in the linear working space.
+  func kCurve(_ points: [(Double, Double)]) -> CIImage {
+    var p: [String: Any] = [:]
+    for (i, pt) in points.prefix(5).enumerated() { p["inputPoint\(i)"] = CIVector(x: pt.0, y: pt.1) }
+    return applyingFilter("CILinearToSRGBToneCurve")
+      .applyingFilter("CIToneCurve", parameters: p)
+      .applyingFilter("CISRGBToneCurveToLinear")
   }
 }
 
 /// Picture work for the press: loading, the 10:11 crop, the filters' composites, the JPEG.
 public enum KPressRender {
   static let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
-  /// the filter tiles' pictures (64-wide stamps at 3×), 10:11
-  static let tileSize = CGSize(width: 192, height: 211)
+  /// the filter tiles' pictures (64-wide stamps at 3×), 3:4
+  static let tileSize = CGSize(width: 192, height: 256)
   /// one context for the whole module (CIContext is thread-safe and costly to make)
   static let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!, .outputColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
 

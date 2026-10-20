@@ -11,7 +11,6 @@ import {
   STAMP_LADDER,
   PHOTO_STAMP,
   STAMP_FALLBACK_HEX,
-  STAMP_V3_FRAME_D,
   STAMP_V3_INK,
   STAMP_V3_SLOT,
   photoStampEdge,
@@ -176,8 +175,9 @@ function DrawnStamp({ id, width, delivered = false, letterId, fallbackHex, style
 }
 
 /* ── custom photo stamps ("c:<uuid>", contract .claude/custom-stamps/CONTRACT.md §2.2, §3) ──
-   The photo full bleed, clipped to STAMP_V3_FRAME_D (the 36's paper) in the same 100 × 120 box,
-   so it lines up with the official stamps. Edges by the rendered width (photoStampEdge): ≤ 60 a
+   The photo full bleed (aspect-filled: xMidYMid slice), clipped to PHOTO_STAMP.d (the 36's paper
+   in style, portrait 3:4, centred) in the same 100 × 120 box, so it lines up with the official
+   stamps. Edges by the rendered width (photoStampEdge): ≤ 60 a
    1pt hairline inside the cut (ink, white on dark, at .3), > 60 a soft shadow that follows the
    bites; a Cofounder's stamp a 2pt #D8A63F line at every size. My own taken-down stamp is greyed
    (saturation 0, opacity .6). No picture (removed, deleted, hidden, not resolved yet): the frame
@@ -214,7 +214,7 @@ function PhotoStamp({ id, width, delivered = false, letterId, dark = false, styl
         <Svg width={width} height={height} viewBox="0 0 100 120">
           <Defs>
             <ClipPath id={`c${uid}`}>
-              <Path d={STAMP_V3_FRAME_D} />
+              <Path d={PHOTO_STAMP.d} />
             </ClipPath>
             {look === "greyed" ? (
               <Filter id={`g${uid}`}>
@@ -223,7 +223,7 @@ function PhotoStamp({ id, width, delivered = false, letterId, dark = false, styl
             ) : null}
           </Defs>
           <G clipPath={`url(#c${uid})`}>
-            {look === "greyed" ? null : <Path d={STAMP_V3_FRAME_D} fill={stampColoursV3(info.hex).tint} />}
+            {look === "greyed" ? null : <Path d={PHOTO_STAMP.d} fill={stampColoursV3(info.hex).tint} />}
             <SvgImage
               href={{ uri: info.url }}
               x={p.x}
@@ -234,7 +234,7 @@ function PhotoStamp({ id, width, delivered = false, letterId, dark = false, styl
               opacity={look === "greyed" ? 0.6 : 1}
               filter={look === "greyed" ? `url(#g${uid})` : undefined}
             />
-            {edge !== "none" ? <Path d={STAMP_V3_FRAME_D} fill="none" stroke={lineColor} strokeOpacity={lineOpacity} strokeWidth={lineU} strokeLinejoin="round" /> : null}
+            {edge !== "none" ? <Path d={PHOTO_STAMP.d} fill="none" stroke={lineColor} strokeOpacity={lineOpacity} strokeWidth={lineU} strokeLinejoin="round" /> : null}
           </G>
         </Svg>
       </View>

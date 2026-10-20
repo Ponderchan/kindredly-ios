@@ -219,29 +219,30 @@ public extension KMotion {
    reads as the sheet being pulled up rather than sliding in;
  - inside, top to bottom: a 40 × 6 handle in line, 10 down; 16 below it Wren 44 (the user's own,
    from the caller's snapshot) and 12 beside her the ask in the Letter font's italic 17/1.3;
-   18 below, the letter row; 10 below, the note row; 14 below, the footnote in mono 9 at .14em,
+   18 below, the two rows as one grouped list; 14 below, the footnote in mono 9 at .14em,
    faint, centred;
- - the letter row: 72 tall, a 2.5 ln outline, corners of 20, a hard 3/3 ln shadow, padding 0 16
-   inside the outline, its pieces 14 apart: a 44 ink disc holding the envelope 22 in bg; the
-   title in system 600 16 with the subtitle 2 below in system 13 sub; on the right, if the
-   caller gives one, the letters left in mono 500 10 at .12em, mute. Pressed, the face moves
-   (2,2) and the shadow, which stays where it was, reads 1/1;
- - the note row: 72 tall, soft, a 2.5 ln outline, corners of 20, no shadow: a 44 sf disc with a
-   2 ln outline holding the ruled card 22 in ink, then the title and subtitle. Pressed, its fill
-   turns soft2;
+ - the list (owner's mock, 2026-10-20, replacing the black-framed sticker rows): one container
+   in soft (soft2 in Midnight, where soft is sf), continuous corners of 20, no outline and no
+   shadow; two rows at least 76 tall, padding 0 16, their pieces 14 apart, an inset hairline in
+   line between them starting under the words. Each row: a 40 rounded-square tile (corners 11)
+   holding a 22 drawing — the letter's ind with the envelope in white (bg in Midnight), the note's the calm mood's
+   pale green with the ruled card in its green; the title in System 600 17 with the subtitle 2
+   below in System 14 sub; on the letter row, if the caller gives one, the letters left in mono
+   500 10 at .12em, mute; then the › chevron in faint. Pressed, the row's ground turns line;
  - it closes on a tap on the dim, VoiceOver's escape, or a drag down on the sheet past 80; each
    is onDismiss. Its text grows with Dynamic Type up to xxLarge.
 
  POP, for a returning reader:
  - the dim is lighter (.22; Midnight black .33, KDim.publishPop), and the bar stays: its + turns
    to an × on the publish curve, .35s cubic-bezier(.3,1.3,.4,1);
- - two 64 discs, sf with a 2.5 ln outline and a hard 3/3 ln shadow, each holding a 28 drawing in
+ - two 64 discs (owner's mock, 2026-10-20, replacing the black-ringed stickers): the lav2 wash, a
+   1pt hairline (sf; line in Midnight) and a soft blur shadow, each holding a 26 drawing in
    ink (the envelope, the ruled card). Closed, both sit at the +'s centre at .4 and transparent,
    under the bar, so they come out from behind it. Open, LETTER goes to 86 left of the + and NOTE
    86 right of it, 91 up (centres at the bar's top − 60), at full size, over .4s on
    cubic-bezier(.3,1.3,.4,1), NOTE 50ms after LETTER. At 393 that is centres 110 and 282 at y
    700: the design's left 78 / 250, top 668. Closing plays it backwards, NOTE first;
- - their labels sit centred 10 under each disc, mono 600 10 at .14em in ink, and fade in 150 and
+ - their labels sit centred 10 under each disc, System 500 13 in sub, sentence case, and fade in 150 and
    200ms after the discs start (opacity .2s); closing, they fade at once;
  - VoiceOver reads the two as buttons with the caller's spoken names (the sheet's titles); the
    labels are hidden from it. The labels' Dynamic Type stops at large.
@@ -285,13 +286,13 @@ public struct KPublishSheetModel: Equatable, Sendable {
 
 /// The returning reader's two buttons: every word already translated.
 public struct KPublishPopModel: Equatable, Sendable {
-  /// the labels under the discs (LETTER, NOTE)
+  /// the labels under the discs, sentence case (Letter, Note)
   public var letterLabel = ""
   public var noteLabel = ""
   /// what VoiceOver says for each disc (the sheet's titles: "Write a letter", "Diary note")
   public var letterA11y = ""
   public var noteA11y = ""
-  /// the free plan's letters left today, under LETTER ("3 LEFT"); "" hides it — the same count
+  /// the free plan's letters left today, under Letter ("3 LEFT"); "" hides it — the same count
   /// the sheet's letter row shows
   public var letterLeft = ""
 
@@ -341,11 +342,15 @@ enum KPublishMetrics {
   static let sheetCorner: CGFloat = 28
   /// a drag down past this closes the sheet
   static let dismissDrag: CGFloat = 80
-  /// the rows' height and corners
-  static let rowHeight: CGFloat = 72
+  /// a row's least height, and the grouped list's continuous corners
+  static let rowHeight: CGFloat = 76
   static let rowCorner: CGFloat = 20
-  /// the outline of the rows and the pop discs
-  static let outline: CGFloat = 2.5
+  /// a row's side padding, and the gap between its tile and its words
+  static let rowInset: CGFloat = 16
+  static let rowGap: CGFloat = 14
+  /// the rounded-square icon tile on each row
+  static let tile: CGFloat = 40
+  static let tileCorner: CGFloat = 11
   /// the pop discs
   static let popDisc: CGFloat = 64
   /// each pop disc's centre from the +'s: 86 to the side, 91 up (the bar's top − 60)
@@ -355,6 +360,26 @@ enum KPublishMetrics {
   static let popClosedScale: CGFloat = 0.4
   /// the label's top under its disc
   static let popLabelGap: CGFloat = 10
+
+  /// The grouped list's fill on the sheet's sf: soft, the theme's wash for grouped lists; in
+  /// Midnight soft is sf itself, so soft2 there, or the list wouldn't show.
+  static func listFill(for theme: KTheme) -> Color {
+    theme.isDark ? theme.soft2 : theme.soft
+  }
+
+  /// The pop discs' face: the pale wash of the accent (lav2), ringed in a 1pt hairline (sf in the
+  /// light themes, catching the light on the dim; line in Midnight, where sf is the page's).
+  static func popRim(for theme: KTheme) -> Color {
+    theme.isDark ? theme.line : theme.sf
+  }
+
+  /// The pop discs' soft lift: 0 4 14 -4 navy at .22 (black at .45 in Midnight).
+  static func popShadow(for theme: KTheme) -> [KSoftShadow] {
+    let color = theme.isDark
+      ? Color.black.opacity(0.45)
+      : Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.22)
+    return [KSoftShadow(y: 4, blur: 14, spread: -4, color: color)]
+  }
 
   /// The sheet's soft shadow: 0 -10 30 -12 rgba(30,27,53,.35); black at .5 in Midnight, where
   /// the navy would light the page rather than shade it (see KSoftShadow.floatDark).
@@ -373,6 +398,7 @@ struct KPublishSheet: View {
   let model: KPublishSheetModel
   let onAction: (String) -> Void
   var letterFocus: AccessibilityFocusState<Bool>.Binding
+  @Environment(\.displayScale) private var displayScale
 
   var body: some View {
     VStack(spacing: 0) {
@@ -395,12 +421,9 @@ struct KPublishSheet: View {
       }
       .padding(.top, 16)
 
-      // the two rows, 18 below and 10 apart
-      VStack(spacing: 10) {
-        letterRow
-        noteRow
-      }
-      .padding(.top, 18)
+      // the two rows, 18 below, as one grouped list
+      rows
+        .padding(.top, 18)
 
       // the footnote, 14 below, when there is one (the sheet no longer changes after a first
       // week, so TS sends none today)
@@ -422,13 +445,13 @@ struct KPublishSheet: View {
       onAction(KPublishAction.letter)
     } label: {
       row(title: model.letterTitle, sub: model.letterSub, trailing: model.letterLeft) {
-        // a 44 ink disc with the envelope 22 in bg (stroke 2 of the design's 24)
-        KLineIcon(.envelope, size: 22, lineWidth: 2, color: theme.bg)
-          .frame(width: 44, height: 44)
-          .background(Circle().fill(theme.ink))
+        // an ind tile with the envelope in white (bg in Midnight, whose ind is too light for white)
+        KLineIcon(.envelope, size: 22, lineWidth: 2, color: theme.isDark ? theme.bg : KBrand.paperWhite)
+          .frame(width: KPublishMetrics.tile, height: KPublishMetrics.tile)
+          .background(RoundedRectangle(cornerRadius: KPublishMetrics.tileCorner, style: .continuous).fill(theme.ind))
       }
     }
-    .buttonStyle(KPublishRowStyle(theme: theme, raised: true))
+    .buttonStyle(KPublishRowStyle(theme: theme))
     .accessibilityFocused(letterFocus)
   }
 
@@ -437,83 +460,84 @@ struct KPublishSheet: View {
       onAction(KPublishAction.note)
     } label: {
       row(title: model.noteTitle, sub: model.noteSub, trailing: "") {
-        // a 44 sf disc, a 2 ln outline, the ruled card 22 in ink (stroke 2 of its 28)
-        KLineIcon(.ruledCard, size: 22, lineWidth: 2 * 24 / 28, color: theme.ink)
-          .frame(width: 44, height: 44)
-          .background(Circle().fill(theme.sf))
-          .overlay(Circle().strokeBorder(theme.ln, lineWidth: 2))
+        // a soft green tile with the ruled card in green (the calm mood's pair, every theme)
+        KLineIcon(.ruledCard, size: 22, lineWidth: 2 * 24 / 28, color: KMood.calm.ink)
+          .frame(width: KPublishMetrics.tile, height: KPublishMetrics.tile)
+          .background(RoundedRectangle(cornerRadius: KPublishMetrics.tileCorner, style: .continuous).fill(KMood.calm.fill))
       }
     }
-    .buttonStyle(KPublishRowStyle(theme: theme, raised: false))
+    .buttonStyle(KPublishRowStyle(theme: theme))
   }
 
-  /// A row's inside: the disc, the two lines, and the count on the right if there is one.
-  private func row<Disc: View>(title: String, sub: String, trailing: String, @ViewBuilder disc: () -> Disc) -> some View {
-    HStack(spacing: 14) {
-      disc()
+  /// The two rows as one grouped list: a soft container, the rows one under the other with an
+  /// inset hairline between them (under the words, not the tile, as iOS's lists do).
+  private var rows: some View {
+    let shape = RoundedRectangle(cornerRadius: KPublishMetrics.rowCorner, style: .continuous)
+    return VStack(spacing: 0) {
+      letterRow
+      Rectangle()
+        .fill(theme.line)
+        .frame(height: 1 / max(displayScale, 1))
+        .padding(.leading, KPublishMetrics.rowInset + KPublishMetrics.tile + KPublishMetrics.rowGap)
+        .accessibilityHidden(true)
+      noteRow
+    }
+    .background(shape.fill(KPublishMetrics.listFill(for: theme)))
+    .clipShape(shape)
+  }
+
+  /// A row's inside: the tile, the two lines, the count on the right if there is one, the chevron.
+  private func row<Tile: View>(title: String, sub: String, trailing: String, @ViewBuilder tile: () -> Tile) -> some View {
+    HStack(spacing: KPublishMetrics.rowGap) {
+      tile()
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
-          .kText(.system(16, .semibold))
+          .kText(.system(17, .semibold))
           .foregroundStyle(theme.ink)
           .fixedSize(horizontal: false, vertical: true)
         Text(sub)
-          .kText(.system(13))
+          .kText(.system(14))
           .foregroundStyle(theme.sub)
           .fixedSize(horizontal: false, vertical: true)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      if !trailing.isEmpty {
-        Text(trailing)
-          .kText(.mono(10, .medium, tracking: 0.12))
-          .foregroundStyle(theme.mute)
-          .lineLimit(1)
-          .fixedSize()
+      HStack(spacing: 10) {
+        if !trailing.isEmpty {
+          Text(trailing)
+            .kText(.mono(10, .medium, tracking: 0.12))
+            .foregroundStyle(theme.mute)
+            .lineLimit(1)
+            .fixedSize()
+        }
+        // the › at a list row's end, as SoftGroup's rows draw it: system 400 18 in faint
+        Text(verbatim: "›")
+          .kText(.system(18))
+          .foregroundStyle(theme.faint)
+          .accessibilityHidden(true)
       }
     }
-    // padding 0 16 inside the 2.5 outline (border-box); 72 tall, taller only for large text
-    .padding(.horizontal, 16 + KPublishMetrics.outline)
-    .padding(.vertical, 8 + KPublishMetrics.outline)
+    // 76 tall, taller only for large text
+    .padding(.horizontal, KPublishMetrics.rowInset)
+    .padding(.vertical, 10)
     .frame(maxWidth: .infinity, minHeight: KPublishMetrics.rowHeight)
-    .contentShape(RoundedRectangle(cornerRadius: KPublishMetrics.rowCorner, style: .circular))
+    .contentShape(Rectangle())
     // one element: "Write a letter, Wren carries it to a stranger, 3 LEFT, button"
     .accessibilityElement(children: .combine)
   }
 }
 
 /*
- The rows' press. The letter row is a sticker whose face moves (2,2) onto its 3/3 shadow, which
- stays put, so the shadow reads 1/1 while the finger is down (the design's style-active). The
- note row has no shadow; its fill turns soft2 instead.
+ The rows' press, as a list row's: the row's ground darkens to line while the finger is down.
+ The container behind is clipped to its corners, so the highlight follows them.
  */
 private struct KPublishRowStyle: ButtonStyle {
   let theme: KTheme
-  let raised: Bool
 
   func makeBody(configuration: Configuration) -> some View {
-    let shape = RoundedRectangle(cornerRadius: KPublishMetrics.rowCorner, style: .circular)
-    let pressed = configuration.isPressed
-    if raised {
-      configuration.label
-        .background {
-          ZStack {
-            shape.fill(theme.sf)
-            shape.strokeBorder(theme.ln, lineWidth: KPublishMetrics.outline)
-          }
-        }
-        .animation(KMotion.press) { $0.offset(x: pressed ? 2 : 0, y: pressed ? 2 : 0) }
-        // drawn after the offset, so it stays where it is while the face moves onto it
-        .background { shape.fill(theme.ln).offset(x: 3, y: 3) }
-    } else {
-      configuration.label
-        .background {
-          ZStack {
-            shape.fill(pressed ? theme.soft2 : theme.soft)
-            shape.strokeBorder(theme.ln, lineWidth: KPublishMetrics.outline)
-          }
-        }
-        .animation(KMotion.press, value: pressed)
-    }
+    configuration.label
+      .background(configuration.isPressed ? theme.line : Color.clear)
+      .animation(KMotion.press, value: configuration.isPressed)
   }
 }
 
@@ -641,7 +665,8 @@ struct KPublishPop: View {
     }
   }
 
-  /// One disc: 64, sf, a 2.5 ln outline, a hard 3/3 ln shadow, the drawing 28 in ink. Placed at
+  /// One disc: 64, the lav2 wash with a 1pt hairline and a soft blur shadow, the drawing 26 in
+  /// ink; pressed, it shrinks to .94 (KPressScaleStyle). Placed at
   /// the +'s centre and moved out by an offset, so the flight is the same whatever the frame.
   private func disc(_ glyph: KLineGlyph, lineWidth: CGFloat, a11y: String, side: CGFloat, key: String, at plus: CGPoint, flyDelay: Double) -> some View {
     // with Reduce Motion they wait where they open, full size, and only fade
@@ -652,17 +677,17 @@ struct KPublishPop: View {
     return Button {
       onAction(key)
     } label: {
-      KLineIcon(glyph, size: 28, lineWidth: lineWidth, color: theme.ink)
+      KLineIcon(glyph, size: 26, lineWidth: lineWidth, color: theme.ink)
         .frame(width: KPublishMetrics.popDisc, height: KPublishMetrics.popDisc)
+        .background {
+          Circle()
+            .fill(theme.lav2)
+            .overlay(Circle().strokeBorder(KPublishMetrics.popRim(for: theme), lineWidth: 1))
+            .kSoftShadows(KPublishMetrics.popShadow(for: theme), in: Circle())
+        }
+        .contentShape(Circle())
     }
-    .buttonStyle(KStickerButtonStyle(
-      shape: Circle(),
-      fill: theme.sf,
-      stroke: theme.ln,
-      lineWidth: KPublishMetrics.outline,
-      shadow: theme.ln,
-      shadowOffset: 3
-    ))
+    .buttonStyle(KPressScaleStyle())
     .animation(fly) {
       $0
         .scaleEffect(out ? 1 : KPublishMetrics.popClosedScale)
@@ -684,8 +709,8 @@ struct KPublishPop: View {
       .overlay(alignment: .top) {
         VStack(spacing: 3) {
           Text(text)
-            .kText(.mono(10, .semibold, tracking: 0.14))
-            .foregroundStyle(theme.ink)
+            .kText(.system(13, .medium))
+            .foregroundStyle(theme.sub)
           // the letters left today under LETTER, in the sheet's letter-row style (mono 500 10, mute)
           if !sub.isEmpty {
             Text(sub)

@@ -31,7 +31,7 @@ const keys = Object.keys(en);
 ok(`every key is cs2.* (${keys.length})`, keys.every((k) => k.startsWith("cs2.")));
 const vars = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))].sort().join(",");   // a var may appear twice ({cap} OF {cap})
 /* words that may read the same as English in some languages (marks, numbers, loanwords) */
-const MAY_MATCH = /^cs2\.(me\.uses|me\.new|ed\.count|ed\.fcBadge|cam\.zoom|cam\.a11yZoom|al\.title|ed\.f\.(original|riso|sticker)|ed\.a11yFilterCf)$/;
+const MAY_MATCH = /^cs2\.(me\.uses|me\.new|ed\.count|ed\.fcBadge|cam\.zoom|cam\.a11yZoom|al\.title|ed\.f\.(original|warm|film)|ed\.a11yFilterCf)$/;
 blocks.forEach((b, i) => {
   const lang = LANGS[i];
   const missing = keys.filter((k) => !(k in b));

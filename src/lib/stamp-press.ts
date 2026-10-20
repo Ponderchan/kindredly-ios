@@ -12,7 +12,7 @@ import {
   type CheckOutcome,
   type PressCategory,
   type PressDraft,
-  type PressFilter,
+  type StoredFilter,
   type PressedStamp,
   type StampQuota,
 } from "./stamp-press-core";
@@ -30,7 +30,7 @@ export * from "./stamp-press-core";
    3. Drafts              the filtered JPEG the server couldn't check, kept in the app's documents
                           (stamp-drafts/) with a per-account index (scoped store). Never uploaded
                           by themselves: retryDraft() sends one again when asked.
-   4. Originals           the 10:11 crop (1280 × 1408) BEFORE its filter, kept on this phone only (stamp-originals/
+   4. Originals           the 3:4 crop (1200 × 1600) BEFORE its filter, kept on this phone only (stamp-originals/
                           <stamp id>.jpg) so a First Class member can change the filter later. The
                           server never sees an original.
    5. The pressed signal  notePressed(stamp) after an approval; Me › Stamps reads usePressedStamp()
@@ -38,8 +38,9 @@ export * from "./stamp-press-core";
                           with it →" bar (once: takePressedToast()). Memory only, plus the "new"
                           ids in the scoped store for the 24 hours.
 
-   The JPEG is made by Swift (KStampEditScreen, Portable/Profile/KFaceStrip.swift): 640 × 704, the
-   photo stamp's cut bounds (10:11, PHOTO_STAMP.export; the shape is never baked in, every renderer
+   The JPEG is made by Swift (KStampEditScreen, Portable/Profile/KFaceStrip.swift): 600 × 800, the
+   photo stamp's cut bounds (3:4, PHOTO_STAMP.export; builds before 2026-10-20 sent 640 × 704,
+   10:11, which the server still takes; the shape is never baked in, every renderer
    clips), filtered, ≤150 KB, no EXIF, written to a temporary file whose path comes back in the
    submit event; readJpegBase64 reads it here. */
 
@@ -105,7 +106,7 @@ export type CheckInput = {
   image: string | null;
   topic: string;
   category: PressCategory;
-  filter: PressFilter;
+  filter: StoredFilter;
   /** the id of one of my approved stamps to edit (First Class / Cofounder) */
   replace?: string | null;
 };
@@ -194,7 +195,7 @@ export async function listDrafts(): Promise<PressDraft[]> {
 
 /** Keeps the filtered JPEG as a draft (copied out of the temporary folder). → the draft, or null
     when the disk refused (said in the log; the page then says the stamp couldn't be kept). */
-export async function saveDraft(input: { image: string; topic: string; category: PressCategory; filter: PressFilter; id?: string }): Promise<PressDraft | null> {
+export async function saveDraft(input: { image: string; topic: string; category: PressCategory; filter: StoredFilter; id?: string }): Promise<PressDraft | null> {
   try {
     const id = input.id ?? `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
     const dest = new File(folder("stamp-drafts"), `${id}.jpg`);

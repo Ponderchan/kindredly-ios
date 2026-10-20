@@ -8,13 +8,22 @@
    NO moderation in the client (lead's correction 2): normalizeTopic only trims and counts.
 
    Tiers (owner, 2026-10-19): Free = 3 custom stamps in all (a deleted one is not given back),
-   filters Original + Paper; First Class = unlimited (the server's silent 100 / 30 days), every
+   filters Original + Vivid + Warm (2026-10-20: the looks became bright and warm); First Class = unlimited (the server's silent 100 / 30 days), every
    filter but Gilt, and may edit filter / topic / colour later; Cofounder = all of that, every
    stamp gold-edged, and the Gilt filter. */
 
 export type StampPlan = "free" | "first" | "cofounder";
 
-export type PressFilter = "original" | "paper" | "riso" | "night" | "sun" | "sticker" | "gilt";
+/** The filters offered (owner, 2026-10-20: bright, warm, hopeful looks; the dark ones went). */
+export type PressFilter = "original" | "vivid" | "warm" | "golden" | "film" | "airy" | "gilt";
+/** The filters a stamp could be made with on 2026-10-19. No longer offered, still stored on the
+    stamps made then (the server keeps accepting them: a rename sends the stamp's own id back). */
+export type LegacyFilter = "paper" | "riso" | "night" | "sun" | "sticker";
+/** Any filter id a stored stamp or draft may carry. */
+export type StoredFilter = PressFilter | LegacyFilter;
+export const LEGACY_FILTERS: readonly LegacyFilter[] = ["paper", "riso", "night", "sun", "sticker"];
+/** the nearest current look for an old one (re-editing a stamp starts there) */
+const NEAREST: Record<LegacyFilter, PressFilter> = { paper: "film", sun: "warm", riso: "original", night: "original", sticker: "original" };
 
 /** the six category ids (src/data/stamps.ts STAMP_CATEGORIES), in the colour row's order */
 export const PRESS_CATEGORIES = ["confessions", "almosts", "latenights", "small", "becoming", "missing"] as const;
@@ -25,11 +34,11 @@ export const DEFAULT_CATEGORY: PressCategory = "small";
 /** 0 = everyone, 1 = First Class (and Cofounder), 2 = Cofounder only */
 export const PRESS_FILTERS: readonly { id: PressFilter; level: 0 | 1 | 2 }[] = [
   { id: "original", level: 0 },
-  { id: "paper", level: 0 },
-  { id: "riso", level: 1 },
-  { id: "night", level: 1 },
-  { id: "sun", level: 1 },
-  { id: "sticker", level: 1 },
+  { id: "vivid", level: 0 },
+  { id: "warm", level: 0 },
+  { id: "golden", level: 1 },
+  { id: "film", level: 1 },
+  { id: "airy", level: 1 },
   { id: "gilt", level: 2 },
 ];
 
@@ -44,6 +53,17 @@ export function isCategory(v: unknown): v is PressCategory {
 
 export function isFilter(v: unknown): v is PressFilter {
   return typeof v === "string" && PRESS_FILTERS.some((f) => f.id === v);
+}
+
+/** A current filter or one a stamp made on 2026-10-19 still carries. */
+export function isStoredFilter(v: unknown): v is StoredFilter {
+  return isFilter(v) || (typeof v === "string" && (LEGACY_FILTERS as readonly string[]).includes(v));
+}
+
+/** The current look to show for a stored id: itself, the nearest for an old one, else original. */
+export function nearestFilter(v: unknown): PressFilter {
+  if (isFilter(v)) return v;
+  return isStoredFilter(v) ? NEAREST[v as LegacyFilter] : "original";
 }
 
 /** The plan from the entitlement, unless the server's quota said otherwise (it decides). */
@@ -143,7 +163,7 @@ export type PressedStamp = {
   id: string;
   topic: string;
   category: PressCategory;
-  filter: PressFilter;
+  filter: StoredFilter;
   gold: boolean;
   imagePath: string | null;
   version: number;
@@ -178,7 +198,7 @@ export function parseStamp(v: unknown): PressedStamp | null {
   if (!v || typeof v !== "object") return null;
   const s = v as Record<string, unknown>;
   if (typeof s.id !== "string" || !s.id) return null;
-  if (!isCategory(s.category) || !isFilter(s.filter)) return null;
+  if (!isCategory(s.category) || !isStoredFilter(s.filter)) return null;
   return {
     id: s.id.toLowerCase(),
     topic: typeof s.topic === "string" ? s.topic : "",
@@ -223,9 +243,9 @@ export function parseCheck(status: number, body: unknown): CheckOutcome {
   return { kind: "unavailable" };
 }
 
-/** The request body (stamp-check's contract). image: base64 JPEG 640 × 704 (10:11), or null for a rename
+/** The request body (stamp-check's contract). image: base64 JPEG 600 × 800 (3:4; the server also still takes the 640 × 704 of builds before 2026-10-20), or null for a rename
     of an approved stamp (replace set). */
-export function checkBody(input: { image: string | null; topic: string; category: PressCategory; filter: PressFilter; replace?: string | null }): string {
+export function checkBody(input: { image: string | null; topic: string; category: PressCategory; filter: StoredFilter; replace?: string | null }): string {
   const o: Record<string, string> = { topic: normalizeTopic(input.topic), category: input.category, filter: input.filter };
   if (input.image) o.image = input.image;
   if (input.replace) o.replace = input.replace;
@@ -238,11 +258,11 @@ export function checkBody(input: { image: string | null; topic: string; category
     that would have been sent, and what it was to be called. Never uploaded until it is checked. */
 export type PressDraft = {
   id: string;
-  /** file:// of the filtered 640 × 704 JPEG, inside the app's documents */
+  /** file:// of the filtered 600 × 800 JPEG (640 × 704 for a draft kept by a build before 2026-10-20), inside the app's documents */
   image: string;
   topic: string;
   category: PressCategory;
-  filter: PressFilter;
+  filter: StoredFilter;
   /** epoch ms */
   at: number;
 };
@@ -263,7 +283,7 @@ export function parseDrafts(raw: string | null): PressDraft[] {
     if (!Array.isArray(v)) return [];
     return v.filter(
       (d): d is PressDraft =>
-        !!d && typeof d.id === "string" && typeof d.image === "string" && typeof d.topic === "string" && isCategory(d.category) && isFilter(d.filter) && typeof d.at === "number",
+        !!d && typeof d.id === "string" && typeof d.image === "string" && typeof d.topic === "string" && isCategory(d.category) && isStoredFilter(d.filter) && typeof d.at === "number",
     );
   } catch {
     return [];

@@ -1,8 +1,23 @@
 /* The stamp collection (screens/me/stamp-collection): Me › Stamps and the album. Not wired to a
    runner; run by hand from the repo root:
-     node --experimental-strip-types src/screens/me/stamp-collection.test.ts
+     node src/screens/me/stamp-collection.test.ts
    The doors (D10), the quota line, Free at 3/3, the empty states (the owner's lines), YOUR STAMPS
    official only, the album's hidden button, the sections and the sheet's actions. */
+
+import { registerHooks } from "node:module";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+// stamp-collection imports lib/custom-stamps-core without an extension (as Metro wants)
+registerHooks({
+  resolve(specifier, context, next) {
+    if (/^\.\.?\//.test(specifier) && !/\.[a-z]+$/i.test(specifier)) {
+      const url = new URL(specifier + ".ts", context.parentURL);
+      if (existsSync(fileURLToPath(url))) return next(url.href, context);
+    }
+    return next(specifier, context);
+  },
+});
 
 const C = await import("./stamp-collection.ts");
 
@@ -17,7 +32,7 @@ const U1 = "c:0f8fad5b-d9cb-469f-a165-70867728950e";
 const U2 = "c:7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const U3 = "c:16fd2706-8baf-433b-82eb-8c7fada847da";
 const base = { press: true, quota: { plan: "free" as const, made: 2, cap: 3, why: null }, mine: [], kept: [], used: [], fresh: new Set<string>(), ready: null, slots: ["#A790F3", "#679DF2", "#27C8BD", "#FB765A"] };
-const mine = (id: string, state: "ok" | "pending" | "removed" = "ok", topic = "First Snow") => ({ id, topic, hex: "#FBBF3E", state, letters: 0, createdAt: "2026-10-19T10:00:00Z" });
+const mine = (id: string, state: "ok" | "pending" | "removed" | "rejected" = "ok", topic = "First Snow") => ({ id, topic, hex: "#FBBF3E", state, letters: 0, createdAt: "2026-10-19T10:00:00Z" });
 
 // empty everything
 const e = C.buildStampsCard(base, fmt);
@@ -45,7 +60,9 @@ const m = C.buildStampsCard({ ...base, mine: [mine(U1), mine(U2, "pending"), min
 ok("made: two newest", m.made.length === 2 && m.made[0].id === U1);
 ok("made: topic lower with #", m.made[0].topic === "#first snow", m.made[0].topic);
 ok("made: fresh by uuid", m.made[0].fresh && !m.made[1].fresh);
-ok("made: pending says checking", m.made[1].note === "cs2.col.checking" && m.made[1].topic === "");
+ok("made: pending looks like any of mine (no in-review label, owner 2026-10-20)", m.made[1].note !== "cs2.col.checking" && !m.made[1].note);
+const mr = C.buildStampsCard({ ...base, mine: [{ ...mine(U1, "rejected"), review: { flying: false, reason: "nudity" } }] }, fmt);
+ok("made: a refused one says so", mr.made[0].note === "cs2.col.didntPass" && mr.made[0].topic === "");
 ok("made: see all past two", m.seeAll === "cs2.me.seeAll");
 ok("made: ready bar", m.ready === "cs2.done.toast" && m.readyId === U1);
 ok("made: album shows", m.album === "cs2.me.openAlbum");
@@ -75,19 +92,36 @@ const a = C.buildAlbum(
   fmt,
   { hasOriginal: (u) => u === U1.slice(2) },
 );
-ok("album: made then strangers, no used-official section", a.sections.map((s) => s.key).join() === "made,strangers");
+// keeping strangers' stamps waits for the next version (KEEP_STAMPS_ON false): no strangers section yet
+ok("album: made only, no used-official section", a.sections.map((s) => s.key).join() === "made");
 ok("album: made has the blank first", a.sections[0].make);
 ok("album: counts only, titled YOUR STAMPS", a.sections[0].title === "cs2.me.yours · 2");
 ok("album: made info", a.sections[0].cells[0].info === "cs2.al.madeOn(date=10-19,n=4)", a.sections[0].cells[0].info);
 ok("album: own ok actions", a.sections[0].cells[0].actions.map((x) => x.key).join() === "write,rename,recolour,filter,delete");
 ok("album: no original, no filter", !a.sections[0].cells[1].actions.some((x) => x.key === "filter"));
 ok("album: pending can only be deleted", a.sections[0].cells[1].actions.map((x) => x.key).join() === "delete");
-ok("album: kept ok = remove + report", a.sections[1].cells[0].actions.map((x) => x.key).join() === "remove,report");
-ok("album: kept deleted = remove, took back", a.sections[1].cells[1].actions.map((x) => x.key).join() === "remove" && a.sections[1].cells[1].info === "cs2.me.tookBack");
-ok("album: official = write with it", a.sections[2].cells[0].actions.map((x) => x.key).join() === "write");
-ok("album: yours empty line off when used", a.strings.yoursEmpty === "");
+ok("album: pending info is the made-on line, no in-review", a.sections[0].cells[1].info === "cs2.al.madeOnNone(date=10-19)" && a.sections[0].cells[1].tag === "#first snow");
+// in review on this phone (lib/custom-stamps pressInReview)
+const ar = C.buildAlbum(
+  {
+    ...base,
+    mine: [
+      { ...mine(U1, "pending"), review: { flying: true, reason: null } },
+      { ...mine(U2, "pending"), review: { flying: false, reason: null } },
+      { ...mine(U3, "rejected"), review: { flying: false, reason: "contact" } },
+    ],
+  },
+  fmt,
+  { hasOriginal: () => true },
+);
+const rc = ar.sections[0].cells;
+ok("review: being checked has nothing to do", rc[0].actions.length === 0 && rc[0].under !== "cs2.col.checking");
+ok("review: a draft waiting can be deleted", rc[1].actions.map((x) => x.key).join() === "delete");
+ok("review: refused = try another photo + delete, the reason, the tag", rc[2].actions.map((x) => x.key).join() === "retry,delete" && rc[2].info === "cs2.chk.contact" && rc[2].under === "cs2.col.didntPass" && rc[2].tag === "#first snow");
+ok("review: never 'write with it' before it passes", rc.every((c) => !c.actions.some((x) => x.key === "write")));
+ok("album: yours empty line off (the used-official section is gone)", a.strings.yoursEmpty === "");
 const ae = C.buildAlbum(base, fmt, { hasOriginal: () => false });
-ok("album empty: only made (blank) + yours empty", ae.sections.length === 1 && ae.sections[0].make && ae.strings.yoursEmpty === "cs2.me.yoursEmpty");
+ok("album empty: only made (blank)", ae.sections.length === 1 && ae.sections[0].make);
 ok("canEdit", !C.canEdit(base.quota) && C.canEdit({ plan: "first", made: 0, cap: null, why: null }));
 
 console.log(fails ? `\n${fails} FAILED` : "\nall ok");

@@ -33,8 +33,22 @@ import { supabase, supabaseReady } from "./supabase";
 import { getLang, t, useLang } from "./i18n";
 import { STAMP_CATEGORIES } from "../data/stamps";
 import "../data/strings-stamps2";
-import { fetchStampQuota, forgetOriginal, forgetPicture, originalFor, pictureFor, usePressedStamp, type PressedStamp } from "./stamp-press";
-import type { PressCategory, PressFilter, StampQuota } from "./stamp-press-core";
+import {
+  checkStamp,
+  fetchStampQuota,
+  forgetOriginal,
+  forgetPicture,
+  keepOriginal,
+  keepPicture,
+  notePressed,
+  originalFor,
+  pictureFor,
+  removeDraft,
+  saveDraft,
+  usePressedStamp,
+  type PressedStamp,
+} from "./stamp-press";
+import { keepsDraft, type CheckOutcome, type PressCategory, type RejectReason, type StampQuota, type StoredFilter } from "./stamp-press-core";
 import {
   RESOLVE_TTL_MS,
   SIGN_SECONDS,
@@ -46,7 +60,9 @@ import {
   parseForRows,
   parseKeptRows,
   parseMyRows,
+  localUuid,
   wantsPicture,
+  withoutTwins,
   type PressCategoryId,
   type ReadRow,
 } from "./custom-stamps-core";
@@ -80,7 +96,8 @@ export type CustomStampInfo = {
 
 /** One of my stamps (my_custom_stamps), newest first. */
 export type MyCustomStamp = CustomStampInfo & {
-  filter: PressFilter;
+  /** the look it was made with (a stamp from 2026-10-19 may carry one no longer offered) */
+  filter: StoredFilter;
   status: "pending" | "approved" | "removed";
   version: number;
   /** how many of my letters carry it */
@@ -153,6 +170,7 @@ export function resetCustomStamps(): void {
   signedByPath.clear();
   keptIds.clear();
   mine = [];
+  reviewing = [];
   quota = null;
   kept = [];
   clearCustomStamps();
@@ -348,8 +366,27 @@ export function useCustomStamps(ids: readonly string[]): (id: string) => CustomS
 /* ── my stamps ── */
 
 let mineWarned = false;
-async function refreshMine(): Promise<void> {
-  if (mineLoading) return;
+let mineRun: Promise<void> | null = null;
+let mineAgain = false;
+/** my_custom_stamps again. One read at a time; asked while one runs, it runs once more after it
+    (a stamp just approved must not wait for the next focus) and resolves when that one is done. */
+function refreshMine(): Promise<void> {
+  if (mineRun) {
+    mineAgain = true;
+    return mineRun;
+  }
+  mineRun = (async () => {
+    do {
+      mineAgain = false;
+      await readMine();
+    } while (mineAgain);
+  })().finally(() => {
+    mineRun = null;
+  });
+  return mineRun;
+}
+
+async function readMine(): Promise<void> {
   mineLoading = true;
   emit();
   try {
@@ -368,7 +405,7 @@ async function refreshMine(): Promise<void> {
     mine = rows.map((r) => {
       const info = withPicture(r);
       askedAt.set(info.id, at);
-      return { ...info, filter: r.filter as PressFilter, status: r.status, version: r.version, letters: r.letters, createdAt: r.createdAt };
+      return { ...info, filter: r.filter as StoredFilter, status: r.status, version: r.version, letters: r.letters, createdAt: r.createdAt };
     });
     remember(mine);
     push(mine);
@@ -383,7 +420,9 @@ async function refreshMine(): Promise<void> {
   }
 }
 
-/** My own stamps and my quota (quota null = 0038 not run / offline: hide the feature). */
+/** My own stamps and my quota (quota null = 0038 not run / offline: hide the feature). The
+    stamps pressed on this phone and still in review come first (status "pending", so nothing
+    that offers stamps for a letter shows them: the server refuses an unapproved one). */
 export function useMyCustomStamps(): { stamps: MyCustomStamp[]; quota: StampQuota | null; loading: boolean; refresh: () => Promise<void> } {
   useSyncExternalStore(subscribe, getVersion, getVersion);
   useFocusEffect(
@@ -392,7 +431,191 @@ export function useMyCustomStamps(): { stamps: MyCustomStamp[]; quota: StampQuot
     }, []),
   );
   usePressedAdoption(() => void refreshMine());
-  return useMemo(() => ({ stamps: mine, quota, loading: mineLoading, refresh: refreshMine }), [version]); // eslint-disable-line react-hooks/exhaustive-deps
+  return useMemo(
+    () => ({ stamps: reviewing.length ? [...reviewing.map(reviewRow), ...withoutTwins(mine, reviewing)] : mine, quota, loading: mineLoading, refresh: refreshMine }),
+    [version], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+}
+
+/* ── in review: a stamp pressed here shows at once (owner, 2026-10-20: "邮票太慢了 要不先加候审") ──
+   pressInReview() puts the stamp in my album straight away, drawn from the filtered JPEG this phone
+   made, labelled "in review", and runs stamp-check on its own (not tied to the press page, which
+   may already have closed). Its answer lands here:
+     approved     the picture and the original move to the stamp's real id, Me is told
+                  (notePressed: the "new" sticker and the ready bar), the local entry goes once
+                  my_custom_stamps has the approved row
+     rejected     it stays, "didn't pass", with the reason, until it is deleted (memory only)
+     unavailable  kept as a draft under the same id (lib/stamp-press saveDraft), still in review;
+                  Me / the album send it again (useStampCollection)
+     anything else (quota, a lower plan, a broken picture …) leaves the album: the press page
+                  says why, if it is still open. A draft that answers so stays a draft.
+   The local id is a "c:<uuid>" of its own (localUuid) so KStamp draws it like any other; nothing
+   offers it for a letter (status "pending"). */
+
+type InReview = {
+  uuid: string;
+  id: string;
+  topic: string;
+  category: PressCategory;
+  filter: StoredFilter;
+  gold: boolean;
+  /** epoch ms of the press */
+  at: number;
+  state: "pending" | "rejected";
+  /** the check is running now (it can't be deleted until it answers) */
+  flying: boolean;
+  reason: RejectReason | null;
+  field: "image" | "topic";
+  url: string | null;
+};
+
+let reviewing: InReview[] = [];
+const jobs = new Map<string, Promise<CheckOutcome>>();
+
+function reviewRow(r: InReview): MyCustomStamp {
+  return {
+    id: r.id,
+    uuid: r.uuid,
+    category: r.category,
+    hex: hexOf(r.category),
+    gold: r.gold,
+    state: r.state,
+    topic: r.topic,
+    url: r.url,
+    key: r.url ? `local:${r.uuid}` : "",
+    mine: true,
+    filter: r.filter,
+    status: "pending",
+    version: 1,
+    letters: 0,
+    createdAt: new Date(r.at).toISOString(),
+  };
+}
+
+function setReview(uuid: string, patch: Partial<InReview> | null): void {
+  const cur = reviewing.find((r) => r.uuid === uuid);
+  if (!cur) return;
+  if (patch === null) {
+    reviewing = reviewing.filter((r) => r.uuid !== uuid);
+    push([{ ...reviewRow(cur), state: "deleted", url: null, key: "", topic: "" }]);
+  } else {
+    const next = { ...cur, ...patch };
+    reviewing = reviewing.map((r) => (r.uuid === uuid ? next : r));
+    push([reviewRow(next)]);
+  }
+  emit();
+}
+
+/** What the album needs to know about a stamp still in review on this phone (null: not one). */
+export function reviewOf(id: string): { flying: boolean; state: "pending" | "rejected"; reason: RejectReason | null; field: "image" | "topic" } | null {
+  const r = reviewing.find((x) => x.id === id);
+  return r ? { flying: r.flying, state: r.state, reason: r.reason, field: r.field } : null;
+}
+
+export type PressInReviewInput = {
+  /** a draft's id when one is sent again (it keeps its place); a new press gets its own */
+  uuid?: string;
+  /** file:// of the filtered 640 × 704 JPEG */
+  image: string;
+  /** file:// of the unfiltered crop (First Class may change the filter later) */
+  original?: string | null;
+  topic: string;
+  category: PressCategory;
+  filter: StoredFilter;
+  gold: boolean;
+  /** a kept draft sent again: an answer that isn't a verdict leaves it a draft */
+  fromDraft?: boolean;
+  /** DEV: the answer, made up (StampEditorSlot's "dev …" names) */
+  answer?: () => Promise<CheckOutcome>;
+};
+
+/** Puts a new stamp in the album "in review" and checks it. → its local id and the answer. */
+export function pressInReview(input: PressInReviewInput): { uuid: string; id: string; done: Promise<CheckOutcome> } {
+  const uuid = (input.uuid ?? localUuid()).toLowerCase();
+  const id = `c:${uuid}`;
+  const running = jobs.get(uuid);
+  if (running) return { uuid, id, done: running };
+  const entry: InReview = {
+    uuid,
+    id,
+    topic: input.topic,
+    category: input.category,
+    filter: input.filter,
+    gold: input.gold,
+    at: reviewing.find((r) => r.uuid === uuid)?.at ?? Date.now(),
+    state: "pending",
+    flying: true,
+    reason: null,
+    field: "image",
+    url: pictureFor(uuid) ?? input.image,
+  };
+  reviewing = [entry, ...reviewing.filter((r) => r.uuid !== uuid)];
+  push([reviewRow(entry)]);
+  emit();
+  const done = runReview(uuid, input).finally(() => jobs.delete(uuid));
+  jobs.set(uuid, done);
+  return { uuid, id, done };
+}
+
+async function runReview(uuid: string, input: PressInReviewInput): Promise<CheckOutcome> {
+  // this phone's own copies first: they outlive the press page's temporary files
+  if (pictureFor(uuid) !== input.image) await keepPicture(uuid, input.image);
+  if (input.original) await keepOriginal(uuid, input.original);
+  const picture = pictureFor(uuid);
+  if (picture) setReview(uuid, { url: picture });
+  const image = picture ?? input.image;
+
+  let out: CheckOutcome;
+  try {
+    out = input.answer ? await input.answer() : await checkStamp({ image, topic: input.topic, category: input.category, filter: input.filter });
+  } catch (e) {
+    console.warn("[custom-stamps] the check failed", e);
+    out = { kind: "unavailable" };
+  }
+
+  if (out.kind === "approved") {
+    const real = out.stamp.id.toLowerCase();
+    if (picture) await keepPicture(real, picture);
+    const original = originalFor(uuid);
+    if (original) await keepOriginal(real, original);
+    forgetPicture(uuid);
+    forgetOriginal(uuid);
+    await removeDraft(uuid);
+    notePressed(out.stamp);
+    // the local entry goes once the approved row is in (no gap in the album, no twin left
+    // showing); the answer itself goes back to the press page now
+    void refreshMine().finally(() => setReview(uuid, null));
+    return out;
+  }
+  if (out.kind === "rejected") {
+    await removeDraft(uuid);
+    forgetOriginal(uuid);
+    setReview(uuid, { state: "rejected", flying: false, reason: out.reason, field: out.field });
+    return out;
+  }
+  if (keepsDraft(out) || input.fromDraft) {
+    const kept = keepsDraft(out) ? await saveDraft({ id: uuid, image, topic: input.topic, category: input.category, filter: input.filter }) : true;
+    if (kept) {
+      setReview(uuid, { flying: false });
+      return out;
+    }
+  }
+  // not a verdict on the stamp (a full quota, a lower plan, a broken picture): out of the album
+  forgetPicture(uuid);
+  forgetOriginal(uuid);
+  setReview(uuid, null);
+  return out;
+}
+
+/** Takes a stamp in review off this phone (a refused one, or a draft; not while it is checked). */
+export function forgetReview(id: string): boolean {
+  const r = reviewing.find((x) => x.id === id);
+  if (!r || r.flying) return false;
+  void removeDraft(r.uuid);
+  forgetPicture(r.uuid);
+  forgetOriginal(r.uuid);
+  setReview(r.uuid, null);
+  return true;
 }
 
 /* ── kept stamps ── */
@@ -522,6 +745,8 @@ export async function reportCustomStamp(id: string, reason: "harassment" | "inap
 
 /** delete_custom_stamp, then storage.remove of the returned path → true when deleted */
 export async function deleteCustomStamp(id: string): Promise<boolean> {
+  // one still in review here never reached the server's album: it only leaves this phone
+  if (reviewOf(id)) return forgetReview(id);
   const uuid = id.startsWith("c:") ? id.slice(2) : null;
   if (!uuid || !supabase) return false;
   try {

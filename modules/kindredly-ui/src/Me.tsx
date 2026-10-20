@@ -408,7 +408,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
    isKindredlyUIViewAvailable("KStampAlbumView") says so. Outside a Host it is a RedBox in dev and
    a CRASH in a release build. ── */
 
-export type KAlbumActionKey = "write" | "rename" | "recolour" | "filter" | "delete" | "remove" | "report";
+export type KAlbumActionKey = "write" | "rename" | "recolour" | "filter" | "delete" | "remove" | "report" | "retry";
 
 export type KAlbumCell = {
   /** "c:<uuid>" or an official id */

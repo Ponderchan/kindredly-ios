@@ -255,14 +255,14 @@ struct KEditProfileView: ExpoSwiftUI.View {
  - gold (a Cofounder: the 2pt gold line along the cut), editing (an edit of an approved stamp)
  - phase: editing | checking | rejected | approved | unavailable | quota | cap | problem;
    rejectField: image | topic
- - seed (bump to put the page back to the values below), photo (file:// of the 10:11 crop; "" =
+ - seed (bump to put the page back to the values below), photo (file:// of the 3:4 crop; "" =
    the dev stand-in scene), topic, category, filter
 
  Events, with what nativeEvent carries:
  - onStampEditRetake {}                     Retake / Try another photo
  - onStampEditSubmit { image, original, topic, category, filter }   image = the filtered
-                                            640 × 704 JPEG (file://), original = the unfiltered
-                                            1280 × 1408 crop (file://, or "")
+                                            600 × 800 JPEG (file://), original = the unfiltered
+                                            1200 × 1600 crop (file://, or "")
  - onStampEditUpgrade {}                    Keep it with First Class →
  - onStampEditReset {}                      the reader started fixing a rejection
  - onStampEditFlown {}                      the approved stamp has flown: leave the page

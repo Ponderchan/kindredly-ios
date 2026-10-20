@@ -625,7 +625,7 @@ public struct KStampPressStrings: Equatable, Sendable {
   public var shutter = "Press the stamp"
   public var viewfinder = "Camera view, the stamp's window"
   public var choosePhoto = "Choose a photo"
-  /// "{n}" is 1 or 2
+  /// "{n}" is 0.5, 1 or 2
   public var zoomA11y = "Zoom, {n}×"
   public var permission = "Your camera makes the stamp. Nothing is saved until you choose to keep it."
   public var allow = "Allow camera"
@@ -721,18 +721,29 @@ final class KPressCamera: NSObject, ObservableObject, AVCapturePhotoCaptureDeleg
 
   @Published var access: Access = .unknown
   @Published var hasFlash = false
+  /// the zoom stops this lens offers, as the Camera app names them: 0.5 / 1 / 2 with an
+  /// ultra-wide (a virtual triple or dual-wide camera), 1 / 2 without one
+  @Published var stops: [CGFloat] = [1, 2]
 
   let session = AVCaptureSession()
   private let queue = DispatchQueue(label: "app.kindredly.stamp-press")
   private let output = AVCapturePhotoOutput()
   private var device: AVCaptureDevice?
+  /// the device zoom factor the Camera app calls 1×: a virtual camera's first switch-over (the wide
+  /// lens, typically 2.0; factor 1.0 is the ultra-wide), 1 on a single wide lens
+  private var wideFactor: CGFloat = 1
   private var configured = false
   private var pending: ((UIImage?) -> Void)?
   /// the preview's layer, to freeze the picture at the press (set by KPressPreview)
   weak var previewLayer: AVCaptureVideoPreviewLayer?
 
+  /// The back camera, as the Camera app uses it: the virtual triple camera, else the dual-wide one
+  /// (ultra-wide + wide; both switch lenses on their own as the zoom crosses each switch-over),
+  /// else the wide lens alone (1× / 2× only).
   static var lens: AVCaptureDevice? {
-    AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+    AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back)
+      ?? AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back)
+      ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
   }
 
   /// Reads the permission and starts the camera when it may.
@@ -791,16 +802,30 @@ final class KPressCamera: NSObject, ObservableObject, AVCapturePhotoCaptureDeleg
     output.maxPhotoQualityPrioritization = .balanced
     session.commitConfiguration()
     device = lens
+    let ultraWide = lens.isVirtualDevice && lens.constituentDevices.contains { $0.deviceType == .builtInUltraWideCamera }
+    let switchOver = lens.virtualDeviceSwitchOverVideoZoomFactors.first.map { CGFloat($0.doubleValue) } ?? 1
+    wideFactor = ultraWide && switchOver > 1 ? switchOver : 1
+    // open on 1× (the wide lens), as the Camera app does, not on the ultra-wide's factor 1.0
+    if wideFactor != 1, (try? lens.lockForConfiguration()) != nil {
+      lens.videoZoomFactor = min(max(wideFactor, lens.minAvailableVideoZoomFactor), lens.maxAvailableVideoZoomFactor)
+      lens.unlockForConfiguration()
+    }
     configured = true
     let flash = lens.hasFlash
-    DispatchQueue.main.async { [weak self] in self?.hasFlash = flash }
+    let stops: [CGFloat] = wideFactor != 1 ? [0.5, 1, 2] : [1, 2]
+    DispatchQueue.main.async { [weak self] in
+      self?.hasFlash = flash
+      self?.stops = stops
+    }
   }
 
-  /// 1× or 2× (2× or the lens's most, whichever is less), eased.
-  func zoom(two: Bool) {
+  /// A Camera-app stop (0.5, 1 or 2) → the device's factor (0.5 is the ultra-wide's 1.0; 1× is
+  /// the wide lens), within what the lens can do, eased.
+  func zoom(to stop: CGFloat) {
     queue.async { [weak self] in
-      guard let d = self?.device, (try? d.lockForConfiguration()) != nil else { return }
-      let f = two ? min(2, d.maxAvailableVideoZoomFactor) : 1
+      guard let self, let d = self.device, (try? d.lockForConfiguration()) != nil else { return }
+      let want = stop < 1 ? 1 : self.wideFactor * stop
+      let f = min(max(want, d.minAvailableVideoZoomFactor), d.maxAvailableVideoZoomFactor)
       d.ramp(toVideoZoomFactor: f, withRate: 8)
       d.unlockForConfiguration()
     }
@@ -984,7 +1009,8 @@ public struct KStampPressCamera: View {
   @Environment(\.scenePhase) private var scenePhase
 
   @State private var flashOn = false
-  @State private var twoX = false
+  /// the zoom stop shown (0.5, 1 or 2; camera.stops says which this lens has)
+  @State private var zoomStop: CGFloat = 1
   @State private var hintShown = true
   @State private var cornersShown = true
   @State private var flashOpacity: Double = 0
@@ -1105,7 +1131,7 @@ public struct KStampPressCamera: View {
       case .standIn:
         KPressStandIn()
           .frame(width: size.width, height: size.height)
-          .scaleEffect(twoX ? 2 : 1)
+          .scaleEffect(max(zoomStop, 1))
           .clipped()
       default:
         EmptyView()
@@ -1400,13 +1426,13 @@ public struct KStampPressCamera: View {
     Button(action: toggleZoom) {
       VStack(spacing: 5) {
         Circle()
-          .fill(twoX ? KBrand.lime.opacity(0.9) : Color.clear)
+          .fill(zoomStop != 1 ? KBrand.lime.opacity(0.9) : Color.clear)
           .frame(width: 44, height: 44)
           .overlay(Circle().strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5))
           .overlay(
-            Text(twoX ? "2×" : "1×")
+            Text("\(Self.stopText(zoomStop))×")
               .kText(.mono(11))
-              .foregroundStyle(twoX ? KBrand.inkOnBrand : Color.white)
+              .foregroundStyle(zoomStop != 1 ? KBrand.inkOnBrand : Color.white)
           )
         Text(strings.zoom)
           .kText(.mono(8, tracking: 0.14))
@@ -1418,7 +1444,7 @@ public struct KStampPressCamera: View {
     .buttonStyle(KPressScaleStyle())
     .disabled(busy || !(camera.access == .live || camera.access == .standIn))
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(strings.zoomA11y.replacingOccurrences(of: "{n}", with: twoX ? "2" : "1"))
+    .accessibilityLabel(strings.zoomA11y.replacingOccurrences(of: "{n}", with: Self.stopText(zoomStop)))
     .accessibilityAddTraits(.isButton)
   }
 
@@ -1540,9 +1566,18 @@ public struct KStampPressCamera: View {
     onClose()
   }
 
+  /// One tap, the next stop up, round again after the last (1 → 2 → 0.5 → 1 with an ultra-wide;
+  /// 1 → 2 → 1 without; the simulator's stand-in has no ultra-wide).
   private func toggleZoom() {
-    twoX.toggle()
-    if camera.access == .live { camera.zoom(two: twoX) }
+    let stops = camera.access == .live ? camera.stops : [1, 2]
+    let next = stops.first { $0 > zoomStop } ?? stops.first ?? 1
+    zoomStop = next
+    if camera.access == .live { camera.zoom(to: next) }
+  }
+
+  /// "0.5", "1", "2"
+  static func stopText(_ stop: CGFloat) -> String {
+    stop < 1 ? "0.5" : String(Int(stop.rounded()))
   }
 
   private func openSettings() {
@@ -1594,7 +1629,7 @@ public struct KStampPressCamera: View {
       let renderer = ImageRenderer(content:
         KPressStandIn()
           .frame(width: view.width, height: view.height)
-          .scaleEffect(twoX ? 2 : 1)
+          .scaleEffect(max(zoomStop, 1))
           .clipped()
       )
       renderer.scale = 2

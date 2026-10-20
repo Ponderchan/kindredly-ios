@@ -31,13 +31,17 @@ const ID = "0f8fad5b-d9cb-469f-a165-70867728950e";
 /* plans and filters */
 ok("planOf: entitlement", P.planOf({ premium: false, cofounder: false }) === "free" && P.planOf({ premium: true, cofounder: false }) === "first" && P.planOf({ premium: true, cofounder: true }) === "cofounder");
 ok("planOf: the server wins", P.planOf({ premium: true, cofounder: false }, "free") === "free" && P.planOf({ premium: false, cofounder: false }, "cofounder") === "cofounder");
-ok("filterAllowed free", P.filterAllowed("free", "original") && P.filterAllowed("free", "paper") && !P.filterAllowed("free", "riso") && !P.filterAllowed("free", "gilt"));
-ok("filterAllowed first", P.filterAllowed("first", "sticker") && P.filterAllowed("first", "night") && !P.filterAllowed("first", "gilt"));
-ok("filterAllowed cofounder", P.filterAllowed("cofounder", "gilt") && P.filterAllowed("cofounder", "sun"));
+ok("seven bright filters in order", P.PRESS_FILTERS.map((f) => f.id).join() === "original,vivid,warm,golden,film,airy,gilt");
+ok("filterAllowed free", P.filterAllowed("free", "original") && P.filterAllowed("free", "vivid") && P.filterAllowed("free", "warm") && !P.filterAllowed("free", "golden") && !P.filterAllowed("free", "gilt"));
+ok("filterAllowed first", P.filterAllowed("first", "golden") && P.filterAllowed("first", "film") && P.filterAllowed("first", "airy") && !P.filterAllowed("first", "gilt"));
+ok("filterAllowed cofounder", P.filterAllowed("cofounder", "gilt") && P.filterAllowed("cofounder", "airy"));
+ok("the old looks are no longer offered", ["paper", "riso", "night", "sun", "sticker"].every((f) => !P.isFilter(f) && !P.filterAllowed("cofounder", f as any)));
 const ff = P.filtersFor("free");
-ok("filtersFor free: no Gilt, four locked", ff.length === 6 && !ff.some((f) => f.id === "gilt") && ff.filter((f) => f.locked).length === 4);
+ok("filtersFor free: no Gilt, three locked", ff.length === 6 && !ff.some((f) => f.id === "gilt") && ff.filter((f) => f.locked).map((f) => f.id).join() === "golden,film,airy");
 ok("filtersFor first: none locked, no Gilt", P.filtersFor("first").every((f) => !f.locked) && P.filtersFor("first").length === 6);
 ok("filtersFor cofounder: seven, Gilt last", P.filtersFor("cofounder").length === 7 && P.filtersFor("cofounder")[6].id === "gilt" && P.filtersFor("cofounder").every((f) => !f.locked));
+ok("stored filters: current and 2026-10-19's", ["original", "gilt", "paper", "night", "sticker"].every(P.isStoredFilter) && !P.isStoredFilter("noir") && !P.isStoredFilter(null));
+ok("nearestFilter: old → nearest, unknown → original", P.nearestFilter("sun") === "warm" && P.nearestFilter("paper") === "film" && P.nearestFilter("night") === "original" && P.nearestFilter("riso") === "original" && P.nearestFilter("sticker") === "original" && P.nearestFilter("golden") === "golden" && P.nearestFilter("noir") === "original" && P.nearestFilter(undefined) === "original");
 ok("categories match the server", P.PRESS_CATEGORIES.join() === "confessions,almosts,latenights,small,becoming,missing" && P.DEFAULT_CATEGORY === "small");
 
 /* topic */
@@ -63,7 +67,8 @@ ok("parseQuota junk → null", P.parseQuota(null) === null && P.parseQuota([]) =
 const stamp = { id: ID.toUpperCase(), topic: "first snow", category: "small", filter: "paper", gold: false, status: "approved", image_path: `u/${ID}/1.jpg`, version: 1, created_at: "2026-10-19T10:00:00Z" };
 const a = P.parseCheck(200, { ok: true, stamp, plan: "free" });
 ok("approved", a.kind === "approved" && a.stamp.id === ID && a.stamp.imagePath === `u/${ID}/1.jpg` && a.plan === "free");
-ok("approved with a broken stamp → unavailable", P.parseCheck(200, { ok: true, stamp: { id: ID, category: "nope", filter: "paper" } }).kind === "unavailable");
+ok("approved: an old stamp's filter still reads (a rename)", (() => { const o = P.parseCheck(200, { ok: true, stamp: { ...stamp, filter: "night" } }); return o.kind === "approved" && o.stamp.filter === "night"; })());
+ok("approved with a broken stamp → unavailable", P.parseCheck(200, { ok: true, stamp: { id: ID, category: "nope", filter: "vivid" } }).kind === "unavailable");
 const r = P.parseCheck(200, { ok: false, reason: "contact", field: "topic", plan: "first" });
 ok("rejected topic", r.kind === "rejected" && r.reason === "contact" && r.field === "topic");
 const r2 = P.parseCheck(200, { ok: false, reason: "weird" });
@@ -77,19 +82,20 @@ ok("phases", P.phaseFor(a) === "approved" && P.phaseFor(r) === "rejected" && P.p
 ok("drafts kept for 503 / cap / auth only", P.keepsDraft({ kind: "unavailable" }) && P.keepsDraft({ kind: "cap" }) && P.keepsDraft({ kind: "auth" }) && !P.keepsDraft(r) && !P.keepsDraft(a));
 
 /* request body */
-const body = JSON.parse(P.checkBody({ image: "AAAA", topic: "#first  snow", category: "small", filter: "paper" }));
-ok("body: new", body.image === "AAAA" && body.topic === "first snow" && body.category === "small" && body.filter === "paper" && !("replace" in body));
+const body = JSON.parse(P.checkBody({ image: "AAAA", topic: "#first  snow", category: "small", filter: "warm" }));
+ok("body: new", body.image === "AAAA" && body.topic === "first snow" && body.category === "small" && body.filter === "warm" && !("replace" in body));
 const rename = JSON.parse(P.checkBody({ image: null, topic: "x", category: "missing", filter: "riso", replace: ID }));
 ok("body: rename has no image", !("image" in rename) && rename.replace === ID);
 
 /* drafts */
-const d = (i: number) => ({ id: "d" + i, image: `file:///d${i}.jpg`, topic: "t" + i, category: "small" as const, filter: "paper" as const, at: i });
+const d = (i: number) => ({ id: "d" + i, image: `file:///d${i}.jpg`, topic: "t" + i, category: "small" as const, filter: "vivid" as const, at: i });
 let list: ReturnType<typeof P.parseDrafts> = [];
 let dropped: typeof list = [];
 for (let i = 0; i < 14; i++) ({ list, dropped } = P.addDraft(list, d(i)));
 ok("drafts: newest first, capped", list.length === P.MAX_DRAFTS && list[0].id === "d13" && dropped.length === 1 && dropped[0].id === "d1");
 ok("drafts: re-add moves to the front", P.addDraft(list, d(5)).list[0].id === "d5" && P.addDraft(list, d(5)).list.length === P.MAX_DRAFTS);
 ok("drafts: parse round trip", P.parseDrafts(JSON.stringify(list)).length === list.length);
+ok("drafts: one kept with an old filter still reads", P.parseDrafts(JSON.stringify([{ ...d(1), filter: "night" }])).length === 1);
 ok("drafts: junk", P.parseDrafts("{") .length === 0 && P.parseDrafts(JSON.stringify([{ id: 1 }])).length === 0 && P.parseDrafts(null).length === 0);
 
 if (fails) {

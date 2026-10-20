@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import Svg, { Circle, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { scrimColor, useTheme } from "../lib/theme";
-import { P, PF } from "../theme/post";
+import type { ThemeTokens } from "../theme/themes";
 import { tabBarHeight } from "./PostTabBar";
 
 /* THE FAN — what the + opens (owner's reference video, 2026-09-19).
@@ -27,7 +27,7 @@ const LIFT = 22; // the choices' feet, above the bar
 
 export function PostFan({ onClose }: { onClose: () => void }) {
   useLang();
-  const { dark } = useTheme();
+  const { dark, t: tk } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -53,19 +53,22 @@ export function PostFan({ onClose }: { onClose: () => void }) {
         </Animated.View>
       </Animated.View>
 
-      <Choice x={width / 2 - SPREAD} delay={0} label={t("pc.stranger")} onPress={() => go("/compose")}>
-        <PlaneGlyph />
+      <Choice x={width / 2 - SPREAD} delay={0} label={t("pc.stranger")} tk={tk} onPress={() => go("/compose")}>
+        <PlaneGlyph color={tk.ink} />
       </Choice>
-      <Choice x={width / 2 + SPREAD} delay={70} label={t("pc.yourself")} onPress={() => go("/journal-pick")}>
-        <BookGlyph />
+      <Choice x={width / 2 + SPREAD} delay={70} label={t("pc.yourself")} tk={tk} onPress={() => go("/journal-pick")}>
+        <BookGlyph color={tk.ink} />
       </Choice>
     </View>
   );
 }
 
-/* one choice: a white disc with a glyph, a word beneath. It starts small,
-   low and faint at the plus and springs up past its place. */
-function Choice({ x, delay, label, onPress, children }: { x: number; delay: number; label: string; onPress: () => void; children: React.ReactNode }) {
+/* one choice: a soft disc with a glyph, a word beneath. It starts small,
+   low and faint at the plus and springs up past its place. The disc is the
+   Swift pop's (owner's mock, 2026-10-20): the lav2 wash, a 1pt hairline (sf;
+   line in Midnight), a soft blur shadow, a dark line glyph — no black ring,
+   no hard shadow. The word stays white: this fan's dim is much heavier. */
+function Choice({ x, delay, label, tk, onPress, children }: { x: number; delay: number; label: string; tk: ThemeTokens; onPress: () => void; children: React.ReactNode }) {
   const up = useSharedValue(0);
   useEffect(() => {
     up.value = withDelay(delay, withSpring(1, { damping: 11, stiffness: 150, mass: 0.9 }));
@@ -78,10 +81,10 @@ function Choice({ x, delay, label, onPress, children }: { x: number; delay: numb
   return (
     <Animated.View exiting={FadeOutDown.duration(180)} style={{ position: "absolute", bottom: LIFT, left: x - DISC / 2, width: DISC, alignItems: "center" }}>
       <Animated.View style={[rise, { alignItems: "center" }]}>
-      <Pressable onPress={onPress} hitSlop={10} style={({ pressed }) => ({ width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", transform: [{ scale: pressed ? 0.94 : 1 }], shadowColor: "#1E1B35", shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } })}>
+      <Pressable onPress={onPress} hitSlop={10} style={({ pressed }) => ({ width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: tk.lav2, borderWidth: 1, borderColor: tk.dark ? tk.line : tk.sf, alignItems: "center", justifyContent: "center", transform: [{ scale: pressed ? 0.94 : 1 }], shadowColor: tk.dark ? "#000000" : "#1E1B35", shadowOpacity: tk.dark ? 0.45 : 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 4 } })}>
         {children}
       </Pressable>
-      <Animated.Text numberOfLines={1} style={[word, { fontFamily: PF.letter, fontWeight: "600", fontSize: 12, color: "#FFFFFF", marginTop: 8, width: 120, textAlign: "center" }]}>
+      <Animated.Text numberOfLines={1} style={[word, { fontWeight: "500", fontSize: 13, color: "#FFFFFF", marginTop: 8, width: 120, textAlign: "center" }]}>
         {label}
       </Animated.Text>
       </Animated.View>
@@ -90,9 +93,9 @@ function Choice({ x, delay, label, onPress, children }: { x: number; delay: numb
 }
 
 /** to a stranger — the courier's paper plane */
-function PlaneGlyph() {
+function PlaneGlyph({ color }: { color: string }) {
   return (
-    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke={P.pen} strokeWidth={1.9} strokeLinejoin="round" strokeLinecap="round">
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinejoin="round" strokeLinecap="round">
       <Path d="M20.5 3.5L3.5 10.5l7.5 3 3 7.5 6.5-17.5z" />
       <Path d="M11 13.5l9.5-10" />
     </Svg>
@@ -100,12 +103,12 @@ function PlaneGlyph() {
 }
 
 /** to yourself — the sealed book */
-function BookGlyph() {
+function BookGlyph({ color }: { color: string }) {
   return (
-    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.9} strokeLinejoin="round" strokeLinecap="round">
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinejoin="round" strokeLinecap="round">
       <Path d="M6.5 3.5h11a2 2 0 0 1 2 2v15h-13a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z" />
       <Path d="M8.5 3.5v17" />
-      <Circle cx={14} cy={11} r={2.2} fill={P.brassSeal} stroke="none" />
+      <Circle cx={14} cy={11} r={2.2} fill={color} stroke="none" />
     </Svg>
   );
 }

@@ -7,7 +7,8 @@ import { STAMP_CATEGORIES, getStamp, sname } from "../../data/stamps";
 import "../../data/strings-stamps2";
 import { readUsedStamps, type UsedStamp } from "../../lib/aura";
 import { useWhoBook } from "../../lib/who";
-import { deleteCustomStamp, reportStampFlow, unkeepCustomStamp, useKeptStamps, useMyCustomStamps } from "../../lib/custom-stamps";
+import { deleteCustomStamp, pressInReview, reportStampFlow, reviewOf, unkeepCustomStamp, useKeptStamps, useMyCustomStamps } from "../../lib/custom-stamps";
+import { isCustomStampId } from "../../lib/custom-stamps-core";
 import { listDrafts, newStampIds, originalFor, retryDraft, takePressedToast, usePressedStamp } from "../../lib/stamp-press";
 import { stampPressAvailable } from "../stamp-press/StampPressNative";
 import { buildAlbum, buildStampsCard, canEdit, type CollectionFacts, type CollectionFormat } from "./stamp-collection";
@@ -19,9 +20,12 @@ import type { KAlbumActionKey, KMeStampsAction } from "../../../modules/kindredl
      · my stamps + quota (useMyCustomStamps), the strangers' I kept (useKeptStamps), the official
        ones I used (lib/aura readUsedStamps, on focus), the "new" ids (24 h), the ready bar (once:
        takePressedToast after an approval while this screen is in front)
-     · DRAFTS (B5): on focus, with a live quota, each kept draft is sent again, one at a time
-       (lib/stamp-press retryDraft); an approval comes back through notePressed like any other.
-       No new UI.
+     · DRAFTS (B5): on focus, with a live quota, each kept draft is sent again, one at a time,
+       "in review" in the album while it is checked (lib/custom-stamps pressInReview; a draft
+       from before 2026-10-20, without a uuid id, goes through lib/stamp-press retryDraft); an
+       approval comes back through notePressed like any other.
+     · IN REVIEW (owner, 2026-10-20): a stamp pressed here is in the album at once, labelled, until
+       the check answers; refused ones say so, with Try another photo and Delete.
      · taps: the blank stamp → /stamp-press?from=me|album; First Class → the paywall; a stamp or
        See all → /album (focused on its section); the sheet's actions (write, rename, recolour,
        filter, delete, remove, report). Editing on Free opens the First Class door
@@ -30,13 +34,15 @@ import type { KAlbumActionKey, KMeStampsAction } from "../../../modules/kindredl
 const SLOTS = ["confessions", "latenights", "becoming"].map((id) => STAMP_CATEGORIES.find((c) => c.id === id)?.color ?? "#8A86A3");
 
 let retrying = false;
-async function retryDrafts(): Promise<void> {
+async function retryDrafts(gold: boolean): Promise<void> {
   if (retrying) return;
   retrying = true;
   try {
     const drafts = await listDrafts();
     for (const d of drafts) {
-      const out = await retryDraft(d);
+      const out = isCustomStampId(`c:${d.id}`)
+        ? await pressInReview({ uuid: d.id, image: d.image, topic: d.topic, category: d.category, filter: d.filter, gold, fromDraft: true }).done
+        : await retryDraft(d);
       // the server still can't check: the rest would answer the same, so stop here for now
       if (out.kind === "unavailable" || out.kind === "auth") break;
     }
@@ -93,9 +99,10 @@ export function useStampCollection(o: { where: "me" | "album" }) {
 
   // the drafts the server couldn't check, sent again once the quota answers (0038 is there)
   const quotaLive = !!my.quota;
+  const gold = !!my.quota?.gold;
   useEffect(() => {
-    if (quotaLive && press) void retryDrafts();
-  }, [quotaLive, press]);
+    if (quotaLive && press) void retryDrafts(gold);
+  }, [quotaLive, press]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the toast line goes after a moment
   useEffect(() => {
@@ -111,7 +118,7 @@ export function useStampCollection(o: { where: "me" | "album" }) {
     () => ({
       press,
       quota: my.quota,
-      mine: my.stamps.map((m) => ({ id: m.id, topic: m.topic, hex: m.hex, state: m.state, letters: m.letters, createdAt: m.createdAt })),
+      mine: my.stamps.map((m) => ({ id: m.id, topic: m.topic, hex: m.hex, state: m.state, letters: m.letters, createdAt: m.createdAt, review: reviewOf(m.id) })),
       kept: keptStore.stamps.map((k) => ({ id: k.id, topic: k.topic, hex: k.hex, state: k.state, keptAt: k.keptAt, from: k.owner ? book.name(k.owner, { upper: true, compact: true }) : "" })),
       used: used.map((u) => {
         const st = getStamp(u.id);
@@ -198,7 +205,15 @@ export function useStampCollection(o: { where: "me" | "album" }) {
           go({ pathname: "/stamp-edit", params: { id: m.uuid, topic: m.topic, category: m.category, filter: m.filter, image: m.url ?? "" } } as Href);
           return;
         }
+        case "retry":
+          toPress();
+          return;
         case "delete":
+          // one still in review here never left this phone (no letter carries it): no question
+          if (reviewOf(id)) {
+            void deleteCustomStamp(id).then((done) => setLine(done ? t("cs2.col.deleted") : t("cs2.col.failed")));
+            return;
+          }
           Alert.alert(t("cs2.al.deleteTitle"), t("cs2.al.deleteBody"), [
             { text: t("cs2.al.cancel"), style: "cancel" },
             {
@@ -221,7 +236,7 @@ export function useStampCollection(o: { where: "me" | "album" }) {
           return;
       }
     },
-    [go, write, toPaywall],
+    [go, write, toPaywall, toPress],
   );
 
   return { card, album, line, onCard, onAlbum, toPress, toPaywall, write: () => write(), quota: my.quota };
