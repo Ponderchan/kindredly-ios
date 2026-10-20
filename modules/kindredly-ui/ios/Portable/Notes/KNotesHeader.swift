@@ -49,6 +49,13 @@ public final class KNotesScrollState: ObservableObject {
   public static let hysteresis: CGFloat = 3
 
   @Published public private(set) var headerHidden = false
+  /// the date chip is awake: the list moved in the last 1.2s (it fades when the reader stops, so it
+  /// never sits over the words being read; owner, 2026-10-20)
+  @Published public private(set) var chipAwake = false
+  /// where the header starts hiding: Card's 120; Grid and List hide at 60 (they hold more on a
+  /// screen, so a short diary never scrolled far enough; owner, 2026-10-20)
+  var hideAt: CGFloat = KNotesScrollState.hideAfter
+  private var sleep: DispatchWorkItem?
   /// the topmost note on screen (the date chip's day)
   @Published public private(set) var topNoteId: String?
 
@@ -69,12 +76,26 @@ public final class KNotesScrollState: ObservableObject {
 
   /// One frame's offset (contentOffset.y + contentInsets.top, clamped to 0...the end).
   func scrolled(to y: CGFloat) {
+    if abs(y - offset) > 0.5 { wake() }
     offset = y
     apply()
   }
 
+  private func wake() {
+    if !chipAwake { chipAwake = true }
+    sleep?.cancel()
+    let item = DispatchWorkItem { [weak self] in
+      guard let self, !self.readerScrolling else { return }
+      self.chipAwake = false
+    }
+    sleep = item
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: item)
+  }
+
   func phaseChanged(_ next: ScrollPhase) {
     phase = next
+    // the finger let go and the list came to rest: start the chip's 1.2s from now
+    if next == .idle { wake() }
     apply()
   }
 
@@ -98,7 +119,7 @@ public final class KNotesScrollState: ObservableObject {
   private func apply() {
     var hide = headerHidden
     let y = offset
-    if voiceOver || y < Self.hideAfter {
+    if voiceOver || y < hideAt {
       hide = false
       anchor = y
     } else if !readerScrolling {
@@ -204,7 +225,10 @@ struct KNotesViewButton: View {
 
   var body: some View {
     SwiftUI.Button(action: action) {
-      KLineIcon(layout.glyph, size: 18, lineWidth: 2, color: theme.ink)
+      // the card drawing sits smaller in its square than grid's and list's: drawn at 21 it reads the
+      // same size beside them (owner, 2026-10-20)
+      KLineIcon(layout.glyph, size: layout == .card ? 21 : 18, lineWidth: 2, color: theme.ink)
+        .frame(width: 21, height: 21)
         .id(layout)
         .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
         .frame(width: 34, height: 34)
@@ -278,7 +302,7 @@ struct KNotesDateChip: View {
 
   var body: some View {
     let info = state.topNoteId.flatMap(lookup)
-    let shown = state.headerHidden && info != nil
+    let shown = state.headerHidden && state.chipAwake && info != nil
     HStack(spacing: 8) {
       KMoodChip(group: info?.group ?? .calm, icon: info?.icon, metrics: .chip)
       Text(info?.label ?? "")

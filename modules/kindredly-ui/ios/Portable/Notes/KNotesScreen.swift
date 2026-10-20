@@ -238,6 +238,8 @@ final class KNotesBox {
   /// Grid (the waterfall): the cards on screen, as they report themselves, and what the list's own
   /// targets last reported (Wren's line, the evening rows); both read together
   var masonryVisible = Set<String>()
+  /// where each card on screen is, in the list's coordinates (the date chip's day)
+  var frames: [String: CGRect] = [:]
   var listVisible: [String] = []
   /// the window size the last reach-end was sent for (once per window)
   var reachedAt = -1
@@ -337,7 +339,13 @@ public struct KNotesScreen: View {
     .animation(KMotion.notesCalendar, value: content.calendarOpen)
     .background { theme.bg.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
-    .onAppear { scrollState.setVoiceOver(voiceOver) }
+    .onAppear {
+      scrollState.setVoiceOver(voiceOver)
+      scrollState.hideAt = content.layout == .card ? KNotesScrollState.hideAfter : 60
+    }
+    .onChange(of: content.layout) { _, layout in
+      scrollState.hideAt = layout == .card ? KNotesScrollState.hideAfter : 60
+    }
     .onChange(of: voiceOver) { _, on in scrollState.setVoiceOver(on) }
     .onChange(of: content.empty) { _, empty in
       if empty { scrollState.show() }
@@ -520,7 +528,9 @@ public struct KNotesScreen: View {
       last = max(last, i)
     }
     box.extrasVisible = extras
-    scrollState.visible(top: top?.id)
+    // the chip's day comes from the cards' frames (chipDay); this read only seeds it before any
+    // frame has come in
+    if box.frames.isEmpty { scrollState.visible(top: top?.id) }
     // near the end of the window: ask for more, once per window
     guard content.hasMore, last >= 0 else { return }
     let lastIndex = last
@@ -647,6 +657,31 @@ public struct KNotesScreen: View {
       actions: actions
     )
     .equatable()
+    // the date chip's day is the card right under the chip (owner, 2026-10-20: it showed the next
+    // one down while the top card was half off the screen): every card reports where it is
+    .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { frame in
+      box.frames[note.id] = frame
+      chipDay()
+    }
+    .onDisappear { box.frames[note.id] = nil }
+  }
+
+  /// the line the chip sits on, in the list's own coordinates (the chip is 8 under the status bar)
+  static let chipLine: CGFloat = 24
+
+  /// The card under the chip's line: the one that crosses it, or (in a gap) the first one below it.
+  /// Both columns count in Grid; the left one wins a tie, as the eye reads.
+  private func chipDay() {
+    var crossing: (id: String, x: CGFloat)?
+    var below: (id: String, y: CGFloat)?
+    for (id, f) in box.frames {
+      if f.minY <= Self.chipLine && f.maxY > Self.chipLine {
+        if crossing == nil || f.minX < crossing!.x { crossing = (id, f.minX) }
+      } else if f.minY > Self.chipLine, f.minY < (below?.y ?? .infinity) {
+        below = (id, f.minY)
+      }
+    }
+    scrollState.visible(top: crossing?.id ?? below?.id)
   }
 
   // ── nothing yet ─────────────────────────────────────────────────────────
