@@ -13,7 +13,7 @@ import SwiftUI
      the gear, 22 at stroke 1.9 in a 36 circle (O3: a gear, never sliders).
    row 2, 10 lower: two buttons side by side, 8 apart, 46 tall (KMeStatButton).
    the peek tray, 10 lower, when one is open (KMePeekTray).
-   the four chips, 8 lower and 12 above the page (KSegmentChips, unchanged).
+   the four chips, 14 lower and 12 above the page, sharing the row's width (KSegmentChips stretch).
 
  COLLAPSING, k = clamp(scroll / 40, 0, 1), every value linear in k as 4a's build() has it: row 1
  76→52, the avatar 72→36, the name 22→17, the gap under it 8→0, the joined line's height 22→0
@@ -88,7 +88,7 @@ struct KMeHeaderBody<Avatar: View>: View {
   static var row2Margin: CGFloat { 10 }
   /// row 2's padding-bottom at k = 0 and 1 (its room never goes under it: max(46(1−k), 18−10k))
   static var row2Floor: (open: CGFloat, shut: CGFloat) { (18, 8) }
-  static var chipsTop: (open: CGFloat, shut: CGFloat) { (8, 4) }
+  static var chipsTop: (open: CGFloat, shut: CGFloat) { (14, 4) }
   static var chipsBottom: CGFloat { 12 }
   static var peekMargin: CGFloat { 10 }
   /// the scroll past which an open peek closes by itself
@@ -270,8 +270,8 @@ struct KMeHeaderBody<Avatar: View>: View {
   // ── row 3: the chips, at their own size, then tight, then scrolling ──
   private var chips: some View {
     ViewThatFits(in: .horizontal) {
-      chipRow(tight: false)
-      chipRow(tight: true)
+      chipRow(tight: false, fill: true)
+      chipRow(tight: true, fill: true)
       ScrollView(.horizontal) {
         chipRow(tight: true)
       }
@@ -289,9 +289,13 @@ struct KMeHeaderBody<Avatar: View>: View {
     }
   }
 
-  private func chipRow(tight: Bool) -> some View {
-    KSegmentChips(theme: theme, labels: content.segments, selection: $selection, firstClassIndex: content.segments.count > 3 ? 3 : nil, tight: tight)
-      .padding(.horizontal, Self.side + 2)
+  /// the chips' left edge sits on the stat buttons' (side), and filling, their right edge too: the
+  /// trailing 3 is the sticker shadow's, so the shadow ends where the buttons do (owner, 10-20: the
+  /// two rows looked off against each other)
+  private func chipRow(tight: Bool, fill: Bool = false) -> some View {
+    KSegmentChips(theme: theme, labels: content.segments, selection: $selection, firstClassIndex: content.segments.count > 3 ? 3 : nil, tight: tight, stretch: fill)
+      .padding(.leading, Self.side)
+      .padding(.trailing, Self.side + 3)
       .padding(.bottom, 3)
       .frame(maxWidth: .infinity, alignment: .leading)
   }

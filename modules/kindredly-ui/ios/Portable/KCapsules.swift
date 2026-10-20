@@ -284,13 +284,16 @@ public struct KSegmentChips: View {
   @Binding private var selection: Int
   private let firstClassIndex: Int?
   private let tight: Bool
+  /// share the row's width out evenly (Me's header: the chips line up with the stat buttons above)
+  private let stretch: Bool
 
-  public init(theme: KTheme, labels: [String], selection: Binding<Int>, firstClassIndex: Int? = nil, tight: Bool = false) {
+  public init(theme: KTheme, labels: [String], selection: Binding<Int>, firstClassIndex: Int? = nil, tight: Bool = false, stretch: Bool = false) {
     self.theme = theme
     self.labels = labels
     self._selection = selection
     self.firstClassIndex = firstClassIndex
     self.tight = tight
+    self.stretch = stretch
   }
 
   public var body: some View {
@@ -330,6 +333,7 @@ public struct KSegmentChips: View {
         .fixedSize()
         .padding(.vertical, 8 + 2)
         .padding(.horizontal, tight ? 8 + 2 : 12 + 2)
+        .frame(maxWidth: stretch ? .infinity : nil)
     }
     .buttonStyle(KStickerButtonStyle(
       shape: RoundedRectangle(cornerRadius: 20, style: .circular),
