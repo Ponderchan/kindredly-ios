@@ -520,12 +520,13 @@ private struct KStampKeyPiece: Shape {
   }
 }
 
-/// The chosen stamp's #name, the live app's pill: 44 tall, fully round, the stamp's wash with a 2pt
-/// rule in its line colour, "#name" in Plex Mono 500 11.5 in its ink; it hugs a short name and stops
-/// a long one at 148, where the name shrinks. No hard shadow (owner, 2026-10-20). Tapping it opens
-/// the stamps again.
+/// The chosen stamp's #name, the live app's pill (owner, 2026-10-20): 32 tall (one fixed height,
+/// centred on the 44 row), fully round, the stamp's wash with a 1.5 rule in its line colour,
+/// "#name" in Plex Mono 500 11.5 in its ink. A long name never shrinks or cuts: the pill grows to
+/// the right and the key beside it gives way (it says SEND when LET IT TRAVEL no longer fits). No
+/// hard shadow. Tapping it opens the stamps again.
 private struct KComposeStampPill: View {
-  static let maxWidth: CGFloat = 148
+  static let height: CGFloat = 32
   let stamp: KComposeStamp
   let action: () -> Void
 
@@ -535,14 +536,13 @@ private struct KComposeStampPill: View {
         .composeText(.pillName)
         .foregroundStyle(stamp.ink)
         .lineLimit(1)
-        .minimumScaleFactor(0.68)
-        .padding(.horizontal, 14)
-        .frame(height: KComposeKeySize.target)
-        .frame(maxWidth: Self.maxWidth)
-        .fixedSize(horizontal: true, vertical: false)
+        .fixedSize()
+        .padding(.horizontal, 12)
+        .frame(height: Self.height)
         .background(Capsule().fill(stamp.wash))
-        .overlay(Capsule().strokeBorder(stamp.line, lineWidth: 2))
-        .contentShape(Capsule())
+        .overlay(Capsule().strokeBorder(stamp.line, lineWidth: 1.5))
+        .frame(height: KComposeKeySize.target)
+        .contentShape(Rectangle())
     }
     .buttonStyle(KComposeKeyPressStyle())
     .layoutPriority(1)
