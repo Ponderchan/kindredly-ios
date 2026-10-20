@@ -17,6 +17,7 @@
        stamp was used, only when last), no progress counts in the album. */
 
 import type { KAlbumActionKey, KAlbumCell, KAlbumSection, KAlbumStrings, KMeStamps } from "../../../modules/kindredly-ui/src/Me";
+import { KEEP_STAMPS_ON } from "../../lib/custom-stamps-core";
 
 type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -142,7 +143,8 @@ export function buildStampsCard(f: CollectionFacts, fmt: CollectionFormat): KMeS
     ready: open && f.ready ? t("cs2.done.toast") : "",
     readyCta: open && f.ready ? t("cs2.done.writeWith") : "",
     readyId: open && f.ready ? f.ready : "",
-    strangersLabel: t("cs2.me.strangers"),
+    // FROM STRANGERS waits for the next version with keeping (owner, 2026-10-20): "" hides it
+    strangersLabel: KEEP_STAMPS_ON ? t("cs2.me.strangers") : "",
     strangersCount: String(f.kept.length),
     strangers: f.kept.slice(0, 3).map((k) => ({
       id: k.id,
@@ -150,7 +152,7 @@ export function buildStampsCard(f: CollectionFacts, fmt: CollectionFormat): KMeS
       a11y: [k.topic && k.state === "ok" ? t("cs2.use.a11yStamp", { topic: k.topic }) : t("cs2.use.a11yBlank"), k.from ? t("cs2.me.fromName", { name: k.from }) : ""].filter(Boolean).join(", "),
     })),
     strangersEmpty: t("cs2.me.strangersEmpty"),
-    album: madeAny || f.kept.length > 0 ? t("cs2.me.openAlbum") : "",
+    album: madeAny || (KEEP_STAMPS_ON && f.kept.length > 0) ? t("cs2.me.openAlbum") : "",
   };
 }
 
@@ -197,7 +199,7 @@ export function buildAlbum(
     sections.push({ key: "made", title: `${t("cs2.me.yours")} · ${f.mine.length}`, make: open, cells });
   }
 
-  if (f.kept.length) {
+  if (KEEP_STAMPS_ON && f.kept.length) {
     sections.push({
       key: "strangers",
       title: `${t("cs2.me.strangers")} · ${f.kept.length}`,

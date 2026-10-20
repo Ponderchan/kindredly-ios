@@ -292,7 +292,7 @@ public struct KStampsCard: View {
   public var body: some View {
     InkCard(theme: theme, variant: .me, spacing: 18, soft: true) {
       if stamps.madeShow { madeArea }
-      strangersArea
+      if !stamps.strangersLabel.isEmpty { strangersArea }
       // the official stamps used: shown only while TS sends a label (none since 2026-10-20)
       if !stamps.label.isEmpty { yoursArea }
       if !stamps.album.isEmpty {

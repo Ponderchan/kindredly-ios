@@ -194,7 +194,10 @@ export const tagOf = (info: Pick<Info, "state" | "topic"> | null): string =>
   info && (info.state === "ok" || info.state === "pending" || info.state === "rejected") ? info.topic : "";
 
 /** May the reader keep or report it (a stranger's approved stamp)? */
-export const canKeep = (info: Pick<Info, "state" | "mine"> | null): boolean => !!info && !info.mine && info.state === "ok";
+/** Keeping strangers' stamps waits for the next version (owner, 2026-10-20: Today has no way in
+    yet), so nothing offers it; flip this when it ships. */
+export const KEEP_STAMPS_ON = false;
+export const canKeep = (info: Pick<Info, "state" | "mine"> | null): boolean => KEEP_STAMPS_ON && !!info && !info.mine && info.state === "ok";
 
 /** The row Swift's registry takes (KCustomStamps.merge). Strings only where Swift wants strings. */
 export type NativeRow = { id: string; state: StampState; hex: string; gold: boolean; topic: string; url: string; key: string; mine: boolean; kept: boolean };

@@ -86,7 +86,7 @@ ok("look: deleted = frame", C.lookOf({ state: "deleted", mine: false, url: null 
 ok("tag: ok", C.tagOf({ state: "ok", topic: "tea" }) === "tea");
 ok("tag: removed none", C.tagOf({ state: "removed", topic: "tea" }) === "");
 ok("tag: hidden none", C.tagOf({ state: "hidden", topic: "tea" }) === "");
-ok("keep: stranger ok", C.canKeep({ state: "ok", mine: false }));
+ok("keep: stranger ok (while keeping is on)", C.canKeep({ state: "ok", mine: false }) === C.KEEP_STAMPS_ON);
 ok("keep: mine never", !C.canKeep({ state: "ok", mine: true }));
 ok("keep: removed never", !C.canKeep({ state: "removed", mine: false }));
 

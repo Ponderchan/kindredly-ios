@@ -602,7 +602,9 @@ public struct KCustomStampInfo: Equatable, Sendable {
   }
 
   /// a stranger's approved stamp: the reader may keep or report it
-  public var canKeep: Bool { !mine && state == .ok }
+  /// keeping strangers' stamps waits for the next version (owner, 2026-10-20); TS's KEEP_STAMPS_ON
+  public static var keepOn = false
+  public var canKeep: Bool { Self.keepOn && !mine && state == .ok }
 }
 
 /// The words the stamp menu and VoiceOver use (TS sends them in the reader's language).
