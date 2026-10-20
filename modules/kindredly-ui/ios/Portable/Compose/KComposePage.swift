@@ -33,10 +33,21 @@ import SwiftUI
    line), and NONE LEFT TODAY stays on the small line above the toolbar while the writer types;
  - the small line above the toolbar, 24 in: the count near the ceiling and, for a free writer,
    "N LEFT TODAY", in Plex Mono 11, right-aligned (owner question 6's default);
- - the toolbar, 18 in, 10 above it and 24 below (10 over a tray): the two round keys, + and the
-   stamp (the chosen stamp itself once there is one, D11), and the wide key that fills toward the floor with
+ - the toolbar, 18 in, 10 above it and 24 below (10 over a tray): the round keys, +, the paper
+   and the stamp (the chosen stamp itself once there is one, D11), and the wide key that fills toward the floor with
    the count beside its label (KComposeToolbar);
- - a tray, where the keyboard was (the stamps, or the + tray).
+ - a tray, where the keyboard was (the stamps, the + tray, or the paper strip).
+
+ THE PAPER (letter papers, owner 2026-10-20; contract .claude/papers/CONTRACT.md §5). The writer
+ picks one in the paper strip (KPaperTray, KMoreTray.swift). Plain is the page exactly as above.
+ Any other paper is previewed while writing: its sheet (KPaperSurface, the receipt's teeth left
+ off) behind the editor, 16 from the page's sides, 8 under Wren's rule and 8 above the small line
+ over the toolbar, the question inside it under the letter when one is attached, the words
+ edge + 16 in. The words take the paper's face (the serif in the writer's Letter font 21 on 1.5;
+ Plex Mono 500 17 on 1.6; the system face 19 on 1.35, those two at −.01em), in the paper's ink,
+ the caret #3A34D6, the placeholder the ink at .45; the riso's shadow stays off the editor. A
+ paper keeps its own colours in every theme (KPaper.cardTheme). A change of paper eases over
+ .35s. A voice letter carries no paper: while speaking the page is as it always was.
  The three faces 10a's type (KType) doesn't carry, Plex Mono at 400, Inter and Fraunces italic,
  are set here by KComposeType; the system face and Plex Mono 500 and 600 by .kText.
 
@@ -91,6 +102,61 @@ public enum KComposeTray: String, Sendable {
   case none
   case stamps
   case more
+  /// the paper strip (letter papers)
+  case paper
+}
+
+/// One paper in the strip (TS compose-model paperItems), in the strip's order.
+public struct KComposePaperItem: Identifiable, Equatable, Sendable {
+  public enum Badge: String, Sendable {
+    case none = ""
+    /// a First Class paper: the gold 1ST
+    case first = "1st"
+    /// Airmail before a first kindred: the padlock
+    case lock
+  }
+
+  /// the paper's id ("plain", "riso", …)
+  public let id: String
+  /// its name, already lower-cased
+  public let name: String
+  public let badge: Badge
+  /// VoiceOver: "Kraft paper"
+  public let accessibilityLabel: String
+  /// VoiceOver's value: "First Class", "Opens with your first kindred", ""
+  public let accessibilityValue: String
+
+  public init(id: String, name: String, badge: Badge, accessibilityLabel: String, accessibilityValue: String) {
+    self.id = id
+    self.name = name
+    self.badge = badge
+    self.accessibilityLabel = accessibilityLabel
+    self.accessibilityValue = accessibilityValue
+  }
+
+  /// the paper drawn on its swatch
+  public var paper: KPaper { KPaper(key: id) }
+}
+
+/// The strip's head: PAPER · KRAFT, and its tag after it.
+public struct KComposePaperHead: Equatable, Sendable {
+  public enum Tone: String, Sendable {
+    case none
+    /// · FIRST CLASS, in KBrand.goldText
+    case gold
+    /// · FIRST KINDRED, in ind
+    case ind
+  }
+
+  public var title = ""
+  public var tag = ""
+  public var tone: Tone = .none
+
+  public init(title: String = "", tag: String = "", tone: Tone = .none) {
+    self.title = title
+    self.tag = tag
+    self.tone = tone
+  }
 }
 
 /// The stamp tray's two tabs (contract §7 C): the 36, and my own photo stamps.
@@ -195,6 +261,11 @@ public struct KComposeKey: Equatable, Sendable {
     case needStamp
     case ready
     case sending
+    /// a First Class paper picked by a non-member: the gold SEND ON FIRST CLASS PAPER →; a press
+    /// opens the paywall (KComposeActions.onPaperUpgrade), it never sends
+    case paperFirstClass
+    /// Airmail before a first kindred: OPENS WITH YOUR FIRST KINDRED, not pressable
+    case paperLocked
   }
 
   public enum Tone: String, Sendable {
@@ -300,6 +371,12 @@ public struct KComposeStrings: Equatable, Sendable {
   public var trayFullTitle = ""
   public var trayFullCta = ""
   public var trayNotNow = ""
+  /// VoiceOver: the paper key ("Letter paper")
+  public var paperKey = ""
+  /// the paper strip's DONE
+  public var paperDone = ""
+  /// the gold badge on a First Class swatch (1ST)
+  public var badgeFirst = ""
 
   public init() {}
 }
@@ -331,6 +408,11 @@ public struct KComposeContent: Equatable, Sendable {
   public var capPanel = false
   /// a send is in flight
   public var busy = false
+  /// the chosen paper (plain: the page as it always was)
+  public var paper: KPaper = .plain
+  /// the paper strip's seven, in order
+  public var papers: [KComposePaperItem] = []
+  public var paperHead = KComposePaperHead()
 
   public init() {}
 }
@@ -379,6 +461,10 @@ public final class KComposeActions {
   public var onMakeStamp: () -> Void = {}
   /// the 3/3 card's "Make more with First Class →"
   public var onFullCta: () -> Void = {}
+  /// a swatch in the paper strip (the strip stays open)
+  public var onPickPaper: (String) -> Void = { _ in }
+  /// the gold key on a First Class paper: the paywall
+  public var onPaperUpgrade: () -> Void = {}
   public var onAskToggle: () -> Void = {}
   public var onVoiceToggle: () -> Void = {}
   /// the main key, with the words as typed (the letter, the question)
@@ -395,6 +481,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   static var gutter: CGFloat { 22 }
   /// the tray's height above the home indicator (ComposeTray TRAY_H)
   public static var trayHeight: CGFloat { 296 }
+  /// the paper strip's height above the home indicator (Prompt 4)
+  public static var paperTrayHeight: CGFloat { 168 }
 
   private let theme: KTheme
   private let content: KComposeContent
@@ -499,8 +587,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         // THE EDITOR'S FLOOR: the rest of the stack gives way before the page does
         .layoutPriority(1)
 
-      if content.askOn && content.mode == .write {
-        askField
+      // on a paper the question sits inside the sheet, under the letter (page)
+      if content.askOn && content.mode == .write && !onPaper {
+        askField(theme: theme, inset: Self.gutter)
       }
 
       if showCap {
@@ -522,12 +611,14 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
       if showTray {
         tray
-          .frame(height: Self.trayHeight + bottomInset)
+          .frame(height: (content.tray == .paper ? Self.paperTrayHeight : Self.trayHeight) + bottomInset)
           .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
       }
     }
     .animation(reduceMotion ? .easeOut(duration: 0.15) : .easeOut(duration: 0.22), value: showTray)
     .animation(.easeOut(duration: 0.2), value: showCap)
+    // a change of paper (contract §5.3)
+    .animation(.easeInOut(duration: 0.35), value: content.paper.id)
     .background { theme.bg.ignoresSafeArea() }
     // the keyboard: the page as laid out around it, and the page under it (see THE KEYBOARD)
     .background {
@@ -630,26 +721,78 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
   // ── the page: the editor, or the recorder and its line ──
 
+  /// the letter is drawn on a paper (not Plain, and written: a voice letter carries none)
+  private var onPaper: Bool { content.mode == .write && !content.paper.themed }
+
+  /// the sheet's distance from the page's sides, from Wren's rule and from the small line (§5.3)
+  private static var sheetSide: CGFloat { 16 }
+  private static var sheetGap: CGFloat { 8 }
+
+  /// the words' inset inside the sheet: its edge (border-box) and the paper's 16
+  private var sheetInset: CGFloat { content.paper.edge.width + KPaper.padding }
+
+  /// The writing face on a paper (§5.3): the serif in the writer's Letter font 21 on 1.5, Plex
+  /// Mono 500 17 on 1.6, the system face 19 on 1.35 (those two carry the paper's tracking).
+  private var paperWriting: KTextStyle {
+    let paper = content.paper
+    switch paper.face {
+    case .letter:
+      return KTextStyle(face: .serif, size: 21, lineHeight: 1.5, followsLetterFont: true)
+    case .mono:
+      return KTextStyle(face: .monoMedium, size: 17, weight: .medium, tracking: paper.tracking, lineHeight: 1.6)
+    case .system:
+      return KTextStyle(face: .system, size: 19, weight: .regular, tracking: paper.tracking, lineHeight: 1.35)
+    }
+  }
+
   @ViewBuilder private var page: some View {
     switch content.mode {
     case .write:
-      KComposeEditor(
-        theme: theme,
-        controller: driver.body,
-        placeholder: content.strings.placeholder,
-        placeholderColor: placeholderColor,
-        accessibilityLabel: content.strings.editorLabel,
-        onChange: { actions.onTextChange(.body, $0) },
-        onFocus: { actions.onFieldFocus(.body, $0) }
-      )
-      // THE EDITOR'S FLOOR (a11y cm-3): on an SE with the keyboard up and a question attached,
-      // the fixed rows above and below left the editor under one line at AX1 and none from AX3,
-      // the line being written cut off. Two lines at least (editorFloor).
-      .frame(minHeight: editorFloor)
-      // UITextView pads its lines 5 in from each side: the words start at the gutter
-      .padding(.horizontal, Self.gutter - KComposeEditor.linePadding)
-      // compose.tsx: 8 under the line and the field's own 10, less UITextView's 8
-      .padding(.top, 8 + 10 - KComposeEditor.topInset)
+      let paper = content.paper
+      let sheet = onPaper
+      let paperTheme = paper.cardTheme(over: theme)
+      VStack(spacing: 0) {
+        KComposeEditor(
+          theme: theme,
+          controller: driver.body,
+          placeholder: content.strings.placeholder,
+          placeholderColor: sheet ? paper.ink.opacity(0.45) : placeholderColor,
+          accessibilityLabel: content.strings.editorLabel,
+          writing: sheet ? paperWriting : nil,
+          ink: sheet ? paper.ink : nil,
+          caret: sheet ? KTheme.classic.ind : nil,
+          onChange: { actions.onTextChange(.body, $0) },
+          onFocus: { actions.onFieldFocus(.body, $0) }
+        )
+        // THE EDITOR'S FLOOR (a11y cm-3): on an SE with the keyboard up and a question attached,
+        // the fixed rows above and below left the editor under one line at AX1 and none from AX3,
+        // the line being written cut off. Two lines at least (editorFloor).
+        .frame(minHeight: editorFloor)
+        // UITextView pads its lines 5 in from each side: the words start at the gutter (on a
+        // paper, edge + 16 inside the sheet)
+        .padding(.horizontal, (sheet ? sheetInset : Self.gutter) - KComposeEditor.linePadding)
+        // compose.tsx: 8 under the line and the field's own 10, less UITextView's 8 (on a
+        // paper, edge + 16 inside the sheet)
+        .padding(.top, (sheet ? sheetInset : 8 + 10) - KComposeEditor.topInset)
+        .padding(.bottom, sheet && !content.askOn ? sheetInset - KComposeEditor.topInset : 0)
+
+        if sheet && content.askOn {
+          // inside the sheet's edge, so its rule never crosses the airmail's stripes
+          askField(theme: paperTheme, inset: KPaper.padding)
+            .padding(.horizontal, paper.edge.width)
+            .padding(.bottom, paper.edge.width)
+        }
+      }
+      .background {
+        if sheet {
+          // the base theme: the sticky note's fold shows the page's colour
+          KPaperSurface(paper: paper, theme: theme, teeth: false)
+            .transition(.opacity)
+        }
+      }
+      .padding(.horizontal, sheet ? Self.sheetSide : 0)
+      .padding(.top, sheet ? Self.sheetGap : 0)
+      .padding(.bottom, sheet ? Self.sheetGap : 0)
     case .speak:
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
@@ -683,8 +826,11 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
 
   // ── the question ──
 
-  private var askField: some View {
-    VStack(alignment: .leading, spacing: 7) {
+  /// the question: on the page (the theme, the gutter) or inside a paper's sheet (the paper's
+  /// theme, the sheet's inset)
+  private func askField(theme: KTheme, inset: CGFloat) -> some View {
+    let placeholderColor = theme.key == self.theme.key ? self.placeholderColor : theme.ink.opacity(0.45)
+    return VStack(alignment: .leading, spacing: 7) {
       // the label goes while the page is tight (a11y cm-3): the field's placeholder says the
       // same, VoiceOver never read it (the field carries it), and its two or three lines at the
       // larger sizes came out of the editor's height
@@ -714,7 +860,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       .padding(.top, 4 - 1.7)
       .padding(.bottom, 4)
     }
-    .padding(.horizontal, Self.gutter)
+    .padding(.horizontal, inset)
     // padding 12 under its 1pt top border, which React Native adds to the box
     .padding(.top, 12 + 1)
     .padding(.bottom, 12)
@@ -744,6 +890,18 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         onTab: actions.onTrayTab,
         onMake: actions.onMakeStamp,
         onFullCta: actions.onFullCta
+      )
+    case .paper:
+      KPaperTray(
+        theme: theme,
+        papers: content.papers,
+        selectedId: content.paper.id.rawValue,
+        head: content.paperHead,
+        doneLabel: content.strings.paperDone,
+        badgeFirst: content.strings.badgeFirst,
+        bottomInset: bottomInset,
+        onPick: actions.onPickPaper,
+        onDone: { actions.onTray(.paper) }
       )
     case .more:
       KMoreTray(

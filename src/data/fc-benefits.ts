@@ -8,9 +8,9 @@
    Stamp Press (owner, 2026-10-19: "this version"), so their flag is on and
    the row's sub is the owner's line (cs2.pw.stampsSub in strings-stamps2.ts,
    "Make as many as you like, every filter."; the old m4.pw.b.stampsSub said
-   "franked", and nothing is printed on a stamp). Letter paper is not built
-   yet: it sits behind its flag, off, and the day it ships its flag flips here
-   and nowhere else.
+   "franked", and nothing is printed on a stamp). Letter paper ships with the
+   compose screen's paper strip (2026-10-20, contract .claude/papers): kraft,
+   receipt, sticky and riso are First Class, so its flag is on.
 
    Titles and subs are i18n keys. The four shipped rows reuse the nine-language
    fc.* keys (fc.b3 says "writing report", never "reading": Apple 2.3.2, see
@@ -23,8 +23,8 @@
 export const FC_FLAGS = {
   /** a photo of your own, framed as a stamp — Stamp Press (2026-10-19) */
   customStamps: true, // the Stamp Press has its doors now: Me › Stamps (B) and the compose tray's custom tab (C); owner O6 (both still hide while 0038 isn't run, D10)
-  /** letter paper to write on — not built */
-  letterPaper: false,
+  /** letter paper to write on — the compose screen's paper strip (2026-10-20) */
+  letterPaper: true, // the strip's four First Class papers; a non-member's gold key opens /paywall?src=paper
 } as const;
 
 export type FcBenefitId = "rooms" | "voice" | "wardrobe" | "report" | "stamps" | "paper";

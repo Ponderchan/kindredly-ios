@@ -7,6 +7,8 @@ import {
   type KComposeCommands,
   type KComposeLive,
   type KComposeMore,
+  type KComposePaperHead,
+  type KComposePaperItem,
   type KComposeSection,
   type KComposeCustomStamp,
   type KComposeStamp,
@@ -169,6 +171,9 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
     trayFullTitle: state.customFullTitle,
     trayFullCta: t("cs2.me.fullCta"),
     trayNotNow: t("cs2.me.notNow"),
+    paperKey: t("pp.a11y.key"),
+    paperDone: t("pp.strip.done"),
+    badgeFirst: t("pp.badge.fc"),
   });
 
   const vm = state.chosenVM;
@@ -179,6 +184,8 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
   const sections = useSameContent<KComposeSection[]>(state.sections);
   const rev = useRev(sections);
   const more = useSameContent<KComposeMore>(state.more);
+  const papers = useSameContent<KComposePaperItem[]>(state.papers);
+  const paperHead = useSameContent<KComposePaperHead>(state.paperHead);
 
   return (
     <ComposeSurface
@@ -202,6 +209,9 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
       customState={state.custom.state}
       customStamps={customStamps}
       customFull={state.custom.full}
+      paper={state.paper}
+      papers={papers}
+      paperHead={paperHead}
       act={state.act}
       moodStore={moodStore}
       recUri={state.recUri}
@@ -220,7 +230,7 @@ type SurfaceProps = {
   strings: KComposeStrings;
   stamp: KComposeStamp;
   mode: "write" | "speak";
-  tray: "none" | "stamps" | "more";
+  tray: "none" | "stamps" | "more" | "paper";
   sections: KComposeSection[];
   askOn: boolean;
   more: KComposeMore;
@@ -232,6 +242,9 @@ type SurfaceProps = {
   customState: "hidden" | "empty" | "list";
   customStamps: KComposeCustomStamp[];
   customFull: boolean;
+  paper: string;
+  papers: KComposePaperItem[];
+  paperHead: KComposePaperHead;
   act: ComposeActions;
   moodStore: ValueStore<WrenMood>;
   recUri: string | null;
@@ -267,6 +280,9 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         customState={p.customState}
         customStamps={p.customStamps}
         customFull={p.customFull}
+        paper={p.paper}
+        papers={p.papers}
+        paperHead={p.paperHead}
         onClose={act.close}
         onTextChange={act.textChange}
         onTray={act.openTray}
@@ -279,6 +295,8 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         onTrayTab={act.pickTrayTab}
         onMakeStamp={act.makeStamp}
         onFullCta={act.fullCta}
+        onPickPaper={act.pickPaper}
+        onPaperUpgrade={act.paperUpgrade}
       >
         {/* every island on every render, in this order (Slot.tsx) */}
         <KIsland name="wren" style={{ width: 46, height: 46 }}>

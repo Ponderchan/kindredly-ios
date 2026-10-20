@@ -11,6 +11,7 @@ import { penFaceOrNull, penOrNull, simplifyPen, validatePen, type PenSig } from 
 import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
 import { t } from "./i18n";
+import { paperForDb } from "../data/papers";
 import {
   TAKEN_BACK,
   buildThreadDetail,
@@ -277,10 +278,21 @@ export async function fetchMorningCandidates(
 /* ── Letters (shared discovery pool) ── */
 /** the new letter's id, or null. (It used to answer `true`; the lock-screen
     activity that follows the letter needs to know which one it is.) */
+/* THE PAPER (letter papers, 2026-10-20; contract .claude/papers/CONTRACT.md §5.7): the id the
+   writer picked in the compose screen, sent as letters.paper (null = plain, so a plain letter's
+   insert is exactly what it always was). The server has the last word (web migration 0041 turns a
+   paper the author may not use to null). Before 0041 the column doesn't exist: that insert is
+   refused (42703 / PGRST204), logged, and sent once more without it — the letter goes, as plain. */
+const missingColumn = (e: unknown): boolean => {
+  const code = (e as { code?: unknown } | null)?.code;
+  return code === "42703" || code === "PGRST204";
+};
+
 export async function publishLetter(
   stamp: string,
   body: string,
   lang: string,
+  paper: string | null = null,
 ): Promise<string | null> {
   if (!body) {
     clearFail();
@@ -289,19 +301,46 @@ export async function publishLetter(
   const id = await writer();
   if (!id) return null;
   try {
-    const { data, error } = await supabase!
-      .from("letters")
-      .insert({
-        author: id,
-        stamp: stamp || "off-chest",
-        body: String(body).slice(0, 2000),
-        lang: lang || "en",
-      })
-      .select("id")
-      .single();
+    const row = {
+      author: id,
+      stamp: stamp || "off-chest",
+      body: String(body).slice(0, 2000),
+      lang: lang || "en",
+    };
+    const onPaper = paperForDb(paper);
+    const insert = (r: Record<string, unknown>) => supabase!.from("letters").insert(r).select("id").single();
+    let { data, error } = await insert(onPaper ? { ...row, paper: onPaper } : row);
+    if (error && onPaper && missingColumn(error)) {
+      console.warn("[db] letters.paper is missing (0041 not run): sending the letter as plain", error);
+      ({ data, error } = await insert(row));
+    }
     return error ? (noteFail(error) as null) : ((data as { id: string } | null)?.id ?? null);
   } catch (e) {
     return noteFail(e);
+  }
+}
+
+/** Whether I have a first kindred (a thread of mine where names were traded: threads.revealed),
+    which opens the Airmail paper; null when it couldn't be read (logged). */
+export async function fetchHasKindred(): Promise<boolean | null> {
+  if (!supabaseReady) return null;
+  const me = await uid();
+  if (!me) return null;
+  try {
+    const { data, error } = await supabase!
+      .from("threads")
+      .select("id")
+      .or(`a.eq.${me},b.eq.${me}`)
+      .eq("revealed", true)
+      .limit(1);
+    if (error) {
+      console.warn("[db] couldn't read whether I have a kindred", error);
+      return null;
+    }
+    return (data?.length ?? 0) > 0;
+  } catch (e) {
+    console.warn("[db] couldn't read whether I have a kindred", e);
+    return null;
   }
 }
 
@@ -315,6 +354,8 @@ export interface PoolLetter {
   kind?: "text" | "voice"; // absent pre-0007 migration
   media_path?: string | null;
   duration_s?: number | null;
+  /** the letter's paper id (src/data/papers.ts; null / unknown = plain) */
+  paper?: string | null; // absent before 0041
   /* cosine closeness to the reader, attached client-side from the nightly
      `matches` cache — never a column on this row. Undefined means the matcher
      did not name this author, and the UI must then say nothing at all about
@@ -338,31 +379,40 @@ export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLet
     blocked writers' letters are taken out below — the filtered list is nearly always shorter than
     a page, and Today read that as "the whole pool" and dropped every desk letter that had only
     aged past the newest page (2026-10-18: the count fell with nothing passed). */
+const POOL_MEDIA_COLUMNS = "id, author, stamp, body, lang, created_at, kind, media_path, duration_s";
+/** letters.paper was refused once this run (0041 not run): the pool stops asking for it */
+let poolWithoutPaper = false;
+
 export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ letters: PoolLetter[]; whole: boolean } | null> {
   if (!supabaseReady) return null;
   if (authors && !authors.length) return { letters: [], whole: true };
   const me = await uid();
   try {
-    let q = supabase!
-      .from("letters")
-      .select("id, author, stamp, body, lang, created_at, kind, media_path, duration_s")
-      .eq("active", true)
-      .not("author", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (authors) q = q.in("author", authors);
-    let { data, error } = await q;
-    if (error) {
-      // migration 0007 not applied yet → retry without media columns
-      let fq = supabase!
+    const page = (columns: string) => {
+      let q = supabase!
         .from("letters")
-        .select("id, author, stamp, body, lang, created_at")
+        .select(columns)
         .eq("active", true)
         .not("author", "is", null)
         .order("created_at", { ascending: false })
         .limit(limit);
-      if (authors) fq = fq.in("author", authors);
-      const fallback = await fq;
+      if (authors) q = q.in("author", authors);
+      return q;
+    };
+    // the paper (0041), then the media columns without it (0007), then the oldest list
+    let { data, error } = poolWithoutPaper
+      ? await page(POOL_MEDIA_COLUMNS)
+      : await page(POOL_MEDIA_COLUMNS + ", paper");
+    if (error && !poolWithoutPaper) {
+      // 0041 not run yet: the letters come without their paper (plain), for the rest of this run
+      // when the column is missing
+      console.warn("[db] the pool without letters.paper (has 0041 run?)", error);
+      if (missingColumn(error)) poolWithoutPaper = true;
+      ({ data, error } = await page(POOL_MEDIA_COLUMNS));
+    }
+    if (error) {
+      // migration 0007 not applied yet → retry without media columns
+      const fallback = await page("id, author, stamp, body, lang, created_at");
       data = fallback.data as any;
       if (fallback.error || !data) return null;
     }
@@ -402,7 +452,7 @@ export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ l
        a normal-looking card in Today whose SEND lit up and whose every reply
        came back "Couldn't send. Try again." — advice that could never work.
        Filtered in the query as well, so ghosts don't eat the page budget. */
-    const rows = data as PoolLetter[];
+    const rows = data as unknown as PoolLetter[]; // the column list is built at run time (page above), so its rows are untyped
     return {
       letters: rows.filter((r) => r.author && r.author !== me && !known.has(r.author)),
       whole: rows.length < limit,

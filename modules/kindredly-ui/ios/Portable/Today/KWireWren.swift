@@ -8,8 +8,8 @@ import SwiftUI
  delight, sleepy, fly) captured from her own look by BirdSnapshots and handed over by TS, in her
  wilted set while she's starving (TS picks the set: useTodayBirds). Never the design's SVGs.
 
- One overlay over the whole desk. She stands on the page ground between NEXT and REPLY (36, her
- feet level with the discs' foot, centred: KBandLayout.spot), reacts to what the reader does, and
+ One overlay over the whole desk. She stands on the page ground between Next and Reply (40, her
+ centre on the discs' midline, B8: KBandLayout.spot), reacts to what the reader does, and
  on the last letter flies straight from her spot into the flight window (the done flow's
  timeline, KDayFlow, moves her; this only draws where it says). Only her own figure takes a
  touch, and only while she stands on the band.
@@ -47,7 +47,7 @@ import SwiftUI
 
  HER FLIGHT, flight f from the flow (0 her spot on the band, 1 the window), through an Animatable
  modifier on the flight curve (550ms, .4 0 .3 1, pinned here; the flow's rest and reset disable
- it): a straight line from her spot into the window (36 → 34). The errand rides the same
+ it): a straight line from her spot into the window (40 → 34). The errand rides the same
  modifier as an offset from her spot. In the window she takes the design's small drop shadow
  and flaps while the flow loops (y 0 → -7 → 0, rotate -4° → 6° → -4°, 1.1s ease-in-out,
  repeating), only when she can play and never under Reduce Motion.

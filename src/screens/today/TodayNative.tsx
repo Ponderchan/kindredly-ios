@@ -102,6 +102,7 @@ export function nativeCard(c: CardVM, identity: boolean): KTodayCard {
     menu: c.menu,
     a11yLabel: c.a11yLabel,
     replyPlaceholder: c.replyPlaceholder,
+    paper: c.paper,
   };
 }
 

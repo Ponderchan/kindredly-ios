@@ -344,6 +344,17 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("cards: no Bring back unless offered", !M.buildCards([{ letter: L({ id: "a" }), offer: null, signal: null, voiceReady: false }], "#FFFFFF", fmt)[0].menu.some((m) => m.key === "bringBack"));
   ok("card: VoiceOver reads the docket, the topic, then the letter", c.a11yLabel === "PM09 · NO.8007. #tiny win. I fixed the wobbly chair today.");
 
+  /* the paper (letter papers, contract §4): letters.paper read as an id, unknown / missing = plain;
+     plain adds nothing to VoiceOver, any other is named after the letter */
+  ok("paper: a letter with none is plain, and VoiceOver hears nothing of it", c.paper === "plain" && !c.a11yLabel.includes("pp."));
+  const onKraft = M.buildCard({ letter: L({ id: "a", paper: "kraft" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
+  ok("paper: the writer's paper rides on the card", onKraft.paper === "kraft");
+  ok("paper: VoiceOver names it after the letter (a space after a full stop)", onKraft.a11yLabel === "PM09 · NO.8007. #tiny win. I fixed the wobbly chair today. pp.a11y.onPaper(name=pp.name.kraft)");
+  const onGrid = M.buildCard({ letter: L({ id: "a", paper: "grid", body: "no full stop" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
+  ok("paper: after a letter with no full stop it is a sentence of its own", onGrid.a11yLabel.endsWith("no full stop. pp.a11y.onPaper(name=pp.name.grid)"));
+  ok("paper: an unknown id is plain", M.buildCard({ letter: L({ id: "a", paper: "midnight" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt).paper === "plain");
+  ok("paper: a null one is plain", M.buildCard({ letter: L({ id: "a", paper: null }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt).paper === "plain");
+
   const ghost = M.buildCard({ letter: L({ id: "g", author: null }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", fmt);
   ok("card: a deleted account is UNSIGNED, the veil, and has nothing to report", ghost.postmark === "PM09 · ld.unsigned" && ghost.mask === VEIL_MASK && ghost.ghost && ghost.menu.length === 0);
   ok("card: who for a deleted account is UNSIGNED behind the veil", ghost.who.name === "ld.unsigned" && ghost.who.face.kind === "veil" && ghost.who.mark === null && ghost.who.sign === null);

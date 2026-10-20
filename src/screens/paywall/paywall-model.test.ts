@@ -75,7 +75,7 @@ ok("trialLabel none", trialLabel(null, t) === "");
 
 // custom stamps: the row shows now that the Stamp Press has its doors (Me › Stamps and the tray)
 ok("custom stamps row on, with its sub", FC_FLAGS.customStamps && visibleBenefits().some((b) => b.id === "stamps" && b.sub === "cs2.pw.stampsSub"));
-ok("letter paper still off", !visibleBenefits().some((b) => b.id === "paper"));
+ok("letter paper row on (papers shipped 2026-10-20)", !!visibleBenefits().some((b) => b.id === "paper"));
 
 if (fails) {
   console.log(`\n${fails} failed`);

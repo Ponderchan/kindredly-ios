@@ -113,6 +113,9 @@ public struct KLetterCardModel: Identifiable, Equatable, Sendable {
   /// the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to
   /// Sunday Kite…"), or "write back…" unsigned
   public var replyPlaceholder = ""
+  /// the paper the writer picked (KPaper(key:) of TS's id): Plain, the card as it always was, for
+  /// none or anything unknown
+  public var paper: KPaper = .plain
 
   public init() {}
 }

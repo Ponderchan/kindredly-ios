@@ -38,6 +38,8 @@ import { useReportFlow, type ReportFlow } from "../../lib/report-flow";
 import { useSignedUrls } from "../../lib/images";
 import { useVoicePlayback, type VoicePlaybackApi } from "../../lib/voice-playback";
 import { LETTER_MAX, REPLY_MIN, weightedCount } from "../../lib/weighted-count";
+// pp.next / pp.reply (the band) and pp.a11y.onPaper, pp.name.* (a card's paper, read by VoiceOver)
+import "../../data/strings-papers";
 import { blurThen } from "../../lib/keyboard";
 import { usePlusSheetOpen } from "../../lib/screen-insets";
 import { openLeaveSheet } from "../../components/LeaveSheet";
@@ -1336,8 +1338,9 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const strings = useMemo<TodayStrings>(
     () => ({
       title: t("ld.today"),
-      next: t("ld.next"),
-      reply: t("ld.replyBtn"),
+      // the band's B8 labels, sentence case (letter papers, contract §4.2); ld.next / ld.replyBtn stay in strings.ts unused
+      next: t("pp.next"),
+      reply: t("pp.reply"),
       replyA11y: t("ld.reply.a11y"),
       unfold: t("ld.unfold"),
       unfoldA11y: t("ld.unfold.a11y"),

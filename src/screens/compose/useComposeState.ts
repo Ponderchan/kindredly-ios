@@ -19,7 +19,9 @@ import { suggestStamps } from "../../lib/stamp-suggest";
 import { noteStampUsed, readRecentStamps } from "../../lib/recent-stamps";
 import { deleteDraft, getDraft, saveDraft, type Draft } from "../../lib/drafts";
 import { FREE_PER_DAY, bumpLetters, lettersLeftToday, type BumpResult } from "../../lib/api";
-import { publishLetter, publishVoiceLetter } from "../../lib/db";
+import { fetchHasKindred, publishLetter, publishVoiceLetter } from "../../lib/db";
+import { DEFAULT_PAPER, canUsePaper, paperForDb, paperGate, paperIdOf, type PaperId } from "../../data/papers";
+import "../../data/strings-papers"; // pp.* (the paper key, the strip, the key on a paper that can't go)
 import { screen } from "../../lib/wren";
 import { refreshFingerprint } from "../../lib/aura";
 import { noteWrote } from "../../lib/local-push";
@@ -40,6 +42,8 @@ import {
   customTopicTag,
   customTray,
   pressedReturn,
+  paperHead as buildPaperHead,
+  paperItems as buildPaperItems,
   trayTabFor,
   bumpBeforeFlight,
   capVisible,
@@ -63,6 +67,8 @@ import {
   type LeaveOutcome,
   type StampSectionVM,
   type CustomTrayVM,
+  type PaperHeadVM,
+  type PaperItemVM,
   type TrayTab,
 } from "./compose-model";
 
@@ -135,7 +141,10 @@ export type ComposeIO = {
   screen: (body: string) => Promise<{ ok: boolean }>;
   bumpLetters: () => Promise<BumpResult>;
   lettersLeftToday: () => Promise<{ count: number; left: number } | null>;
-  publishLetter: (stamp: string, body: string, lang: string) => Promise<string | null>;
+  /** paper: the letters.paper value (papers.ts paperForDb: null for plain) */
+  publishLetter: (stamp: string, body: string, lang: string, paper?: string | null) => Promise<string | null>;
+  /** whether I have a first kindred (opens Airmail), null when it couldn't be read */
+  fetchHasKindred: () => Promise<boolean | null>;
   /** an id once lib/db hands one back (today: true), null on failure */
   publishVoiceLetter: (stamp: string, uri: string, durationS: number, caption: string, lang: string) => Promise<string | true | null>;
   saveDraft: (d: { id: string | null; stamp: string; body: string; ask: string }) => Promise<string>;
@@ -161,6 +170,7 @@ const DEFAULT_IO: Omit<ComposeIO, "goBack" | "push"> = {
   bumpLetters,
   lettersLeftToday: () => lettersLeftToday(FREE_PER_DAY),
   publishLetter,
+  fetchHasKindred,
   publishVoiceLetter,
   saveDraft,
   getDraft,
@@ -272,6 +282,13 @@ export type ComposeState = {
   /** the 3/3 card's title, with the free count ("3 OF 3 FREE STAMPS MADE") */
   customFullTitle: string;
   tray: ComposeTray;
+  /** the chosen paper (letter papers, 2026-10-20): "plain" until one is picked; not remembered
+      between letters, not in drafts (contract §6) */
+  paper: PaperId;
+  /** the strip's seven papers, in order (memoised) */
+  papers: PaperItemVM[];
+  /** the strip's head for the chosen paper */
+  paperHead: PaperHeadVM;
   /** the stamp tray's sections ([] unless it is open) */
   sections: StampSectionVM[];
   spark: string;
@@ -312,7 +329,11 @@ export type ComposeActions = {
   /** an edit in a field (the Swift page's onTextChange, the fallback's inputs) */
   textChange: (target: "body" | "ask", value: string) => void;
   /** a tray key: toggles it, after the keyboard */
-  openTray: (which: "stamps" | "more") => void;
+  openTray: (which: "stamps" | "more" | "paper") => void;
+  /** a swatch in the paper strip (the strip stays open) */
+  pickPaper: (id: string) => void;
+  /** the gold key on a First Class paper: the paywall */
+  paperUpgrade: () => void;
   closeTray: () => void;
   pickStamp: (id: string) => void;
   /** the stamp tray's tab row */
@@ -399,6 +420,11 @@ export function useComposeState(opts: {
   const [seed, setSeed] = useState<ComposeSeed>({ serial: 0, text: null, ask: null });
   const [focus, setFocus] = useState<ComposeFocus>({ serial: 0, target: "body" });
   const [savedTab, setSavedTab] = useState<TrayTab | null>(null);
+  /* THE PAPER (contract §5): every letter starts on Plain; a paper that can't go yet is still
+     previewed, and the key says why. hasKindred is read once (null = not known yet, or the read
+     failed: no Airmail until it says yes). */
+  const [paper, setPaper] = useState<PaperId>(DEFAULT_PAPER);
+  const [hasKindred, setHasKindred] = useState<boolean | null>(null);
   /** when the + opened the Stamp Press from here (contract §4.5), null when it didn't */
   const pressOpenedAt = useRef<number | null>(null);
 
@@ -412,8 +438,8 @@ export function useComposeState(opts: {
      flight that her gate then turned back): the next try spends it instead
      of counting the same letter twice */
   const heldBump = useRef<Extract<BumpResult, { ok: true }> | null>(null);
-  const snapRef = useRef({ sel, mode, draftId, recUri, recDur, quotaLeft, askOpen });
-  snapRef.current = { sel, mode, draftId, recUri, recDur, quotaLeft, askOpen };
+  const snapRef = useRef({ sel, mode, draftId, recUri, recDur, quotaLeft, askOpen, paper, hasKindred });
+  snapRef.current = { sel, mode, draftId, recUri, recDur, quotaLeft, askOpen, paper, hasKindred };
 
   const setText = (v: string) => {
     textRef.current = v;
@@ -441,6 +467,11 @@ export function useComposeState(opts: {
       .catch((e) => console.warn("[compose] couldn't read the last tray tab", e));
     // the empty page hands you something to reach for, not "start typing"
     void ioRef.current.nextSpark().then((s) => alive && setSpark(s));
+    // a first kindred opens Airmail (fetchHasKindred logs its own failures)
+    void ioRef.current
+      .fetchHasKindred()
+      .then((k) => alive && setHasKindred(k))
+      .catch((e) => console.warn("[compose] couldn't read whether there is a kindred", e));
     const timer = demo ? setTimeout(() => setTray("stamps"), 400) : null;
     return () => {
       alive = false;
@@ -517,7 +548,11 @@ export function useComposeState(opts: {
     },
     fmt,
   );
-  const key = keyFor({ mode, weight, wordsReady, hasStamp: !!sel, busy, tray }, fmt);
+  const writer = { firstClass: env.premium, hasKindred: hasKindred === true };
+  const key = keyFor({ mode, weight, wordsReady, hasStamp: !!sel, busy, tray, paperGate: paperGate(paper, writer) }, fmt);
+  const lang = getLang();
+  const papers = useMemo(() => buildPaperItems({ hasKindred: hasKindred === true, lang }, fmt), [hasKindred, lang]);
+  const paperHeadNow = buildPaperHead({ paper, hasKindred: hasKindred === true, lang }, fmt);
   const count = countFor({ mode, weight }, fmt);
   // the store-mode demo is nobody's day: no count, no panel (the store screenshots come from it)
   const free = isFreeWriter(env) && !demo;
@@ -574,6 +609,11 @@ export function useComposeState(opts: {
     if (!wordsReadyFor({ mode: s.mode, weight: w, hasRecording: !!s.recUri }) || !s.sel || busyRef.current) return;
     const stamp = s.sel;
     const e = envRef.current;
+    // the key never sends on a paper that can't go (keyFor); this is the second lock (the server's is 0041)
+    if (s.mode === "write" && !canUsePaper(s.paper, { firstClass: e.premium, hasKindred: s.hasKindred === true })) {
+      console.warn("[compose] refused a send on a paper this writer can't use", s.paper);
+      return;
+    }
     const x = ioRef.current;
     busyRef.current = true;
     setBusy(true);
@@ -658,7 +698,7 @@ export function useComposeState(opts: {
 
     let ok: string | true | null;
     if (s.mode === "speak" && s.recUri) ok = await x.publishVoiceLetter(stamp, s.recUri, s.recDur, body, letterLang());
-    else ok = await x.publishLetter(stamp, body, letterLang());
+    else ok = await x.publishLetter(stamp, body, letterLang(), paperForDb(s.paper));
     finish();
     /* A guest's publish always returns null, and "Try again" would turn
        "you aren't signed in" into "the network broke": ask for the account. */
@@ -683,12 +723,14 @@ export function useComposeState(opts: {
 
   const live = {
     textChange: (targetField: "body" | "ask", value: string) => (targetField === "ask" ? setAsk(value) : setText(value)),
-    openTray: (which: "stamps" | "more") => {
+    openTray: (which: "stamps" | "more" | "paper") => {
       blurTarget(target);
       dismissKeyboard();
       setTray((cur) => (cur === which ? null : which));
     },
     closeTray: () => setTray(null),
+    pickPaper: (id: string) => setPaper(paperIdOf(id)),
+    paperUpgrade: () => blurThen(() => ioRef.current.push("/paywall?src=paper"), target),
     pickTrayTab: (tab: TrayTab) => rememberTab(tab),
     makeStamp: () => {
       // the + is drawn only while the feature exists; Free at 3/3 gets the card, not this
@@ -797,6 +839,8 @@ export function useComposeState(opts: {
     () => ({
       textChange: (a, b) => liveRef.current.textChange(a, b),
       openTray: (w) => liveRef.current.openTray(w),
+      pickPaper: (id) => liveRef.current.pickPaper(id),
+      paperUpgrade: () => liveRef.current.paperUpgrade(),
       closeTray: () => liveRef.current.closeTray(),
       pickStamp: (id) => liveRef.current.pickStamp(id),
       pickTrayTab: (tab) => liveRef.current.pickTrayTab(tab),
@@ -838,6 +882,9 @@ export function useComposeState(opts: {
     custom,
     customFullTitle,
     tray,
+    paper,
+    papers,
+    paperHead: paperHeadNow,
     sections,
     spark,
     busy,

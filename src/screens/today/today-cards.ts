@@ -8,6 +8,7 @@ import { whoBook, type StrangerWho, type WhoBook } from "../../lib/stranger-who"
 import { DAY_LETTERS, MAX_IN_FLIGHT, rationPool } from "../../lib/ration";
 import { MORNING_HOUR, isNightHour, untilMorning } from "../../lib/day";
 import { channelColors } from "../../theme/post";
+import { paperIdOf, paperOf, type PaperId } from "../../data/papers";
 
 /** the #tag's words and its no-colour fill (= components/10a/kit TOPIC_TAG_INK / TOPIC_TAG_NEUTRAL;
     copied, not imported: kit pulls in themes.json, which plain node can't load) */
@@ -562,6 +563,8 @@ export type CardVM = {
   menu: KMenuAction[];
   /** the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to Sunday Kite…"), or "write back…" unsigned */
   replyPlaceholder: string;
+  /** the paper the writer picked (letters.paper, src/data/papers.ts): the Swift card is drawn on it; null, missing or unknown is plain, the card as it always was */
+  paper: PaperId;
   /** what VoiceOver reads for the whole card: off, "SEP.23 · NO.7273. #topic. …"; on, "Sunday Kite, she, Gemini. SEP.23. #topic. …" */
   a11yLabel: string;
   /** a dev sample (demo-): skips the counters, the read receipt and the pouch */
@@ -662,6 +665,10 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
   const why = capsule.kind === "signal" ? capsule.label : "";
   const words = isVoice ? [fmt.t("ld.voiceLetter"), durationLabel, ready ? "" : fmt.t("ld.voice.unavailable"), caption].filter(Boolean).join(". ") : shown;
   const head = book.identity ? [who.spoken, when] : [post];
+  /* the paper (contract §4.1): plain says nothing; any other is named after the letter's words
+     ("Written on Kraft paper."), the one thing the eye gets from it */
+  const paper = paperIdOf(letter.paper);
+  const onPaper = paper === "plain" ? "" : fmt.t("pp.a11y.onPaper", { name: fmt.t(paperOf(paper).nameKey) });
   return {
     id: letter.id,
     who,
@@ -695,9 +702,17 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
        (English only), else its own "write back…" (the identity copy lives under id.*, so translating it
        never changed a switch-off screen) */
     replyPlaceholder: !letter.author ? fmt.t("ld.writeBackPh") : fmt.who?.identity ? fmt.t("id.writeBackTo", { name: who.name }) : (fmt.has?.("ld.writeBackTo") ?? true) ? fmt.t("ld.writeBackTo", { name: who.name }) : fmt.t("ld.writeBackPh"),
-    a11yLabel: [...head, topic, why, words].filter(Boolean).join(". "),
+    paper,
+    a11yLabel: withPaper([...head, topic, why, words].filter(Boolean).join(". "), onPaper),
     demo: letter.id.startsWith("demo"),
   };
+}
+
+/** The card's label with its paper's line after it: ". " between them, or a space when the letter already ends a sentence. */
+function withPaper(label: string, onPaper: string): string {
+  if (!onPaper) return label;
+  if (!label) return onPaper;
+  return label + (/[.!?…。！？]["'”’)]*$/.test(label) ? " " : ". ") + onPaper;
 }
 
 /** The cards in order; Bring back goes on the first (the one on screen) only, when `bringBackOnFirst` (canBringBack && reading). */

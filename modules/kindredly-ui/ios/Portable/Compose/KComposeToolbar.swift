@@ -4,8 +4,8 @@ import SwiftUI
 
 /*
  THE COMPOSE TOOLBAR, riding the keyboard's top, 10 apart. It looks as the App Store page's did
- (owner, 2026-10-18; compose.tsx and ComposeTray.tsx): two round keys, a keyboard's shape (owner,
- 2026-09-20), then the wide key.
+ (owner, 2026-10-18; compose.tsx and ComposeTray.tsx): the round keys, a keyboard's shape (owner,
+ 2026-09-20), then the wide key. In order: + · paper · stamp · wide key (letter papers, 2026-10-20).
 
  THE TWO KEYS WEAR NO RINGS (owner 2026-10-19, contract D11; the compose page only): each is its
  glyph alone in a 44 target, and a press is a small scale (.92) with a light haptic.
@@ -13,6 +13,10 @@ import SwiftUI
    grid) turns 45° into an × in ind while its tray is open, and an ind dot edged in the page
    colour sits at the glyph's top right when something rides with the letter (a question, the
    voice);
+ - the paper (Prompt 3, I9): a 30 face with corners of 7 holding the 22 glyph on the 24 grid, a
+   rounded square (1.8) crossed by five diagonals (1.4). Closed: in ink, no fill. While the paper
+   strip is open: the face lav, the square filled sf, the square and its diagonals ind, the
+   diagonals 2.0, over .2s. While speaking it is off at .4 (a voice letter carries no paper);
  - the stamp: while none is chosen, the stamp glyph, a face in a perforated square
    (ComposeTray's StampKeyGlyph at 27); while the stamp tray is open the face comes apart and a
    pencil lies across the square (owner 2026-09-20: the eyes fly up and out, the smile drops, the
@@ -34,6 +38,9 @@ import SwiftUI
    the default size on an SE, CHOISIS UN TIMBRE D'HUMEUR at XL, the English at xxxLarge), the
    last choice takes the width it is offered: two centred lines, shrinking to .75 before it
    would cut a word, so the + and the stamp key never leave the gutter.
+   On a paper that can't go yet (compose-model keyFor): SEND ON FIRST CLASS PAPER → solid wax gold
+   with a 1pt ink edge and the label in inkOnBrand, a press opening the paywall (onPaperUpgrade)
+   instead of sending; OPENS WITH YOUR FIRST KINDRED as filling without the wash, not pressable.
 
  Each key takes the keyboard away before it acts (a tray takes the keyboard's place; the key
  sends, or opens the stamps). Only the key watches the driver: a keystroke redraws it and
@@ -61,6 +68,21 @@ struct KComposeToolbar: View {
 
       KComposeIconKey(
         theme: theme,
+        accessibilityLabel: content.tray == .paper ? content.strings.closeLabel : content.strings.paperKey,
+        selected: content.tray == .paper,
+        dot: false
+      ) {
+        driver.blurAll()
+        actions.onTray(.paper)
+      } glyph: {
+        KComposePaperGlyph(theme: theme, open: content.tray == .paper)
+      }
+      // a voice letter carries no paper
+      .disabled(content.mode == .speak)
+      .opacity(content.mode == .speak ? 0.4 : 1)
+
+      KComposeIconKey(
+        theme: theme,
         accessibilityLabel: content.stamp?.accessibilityLabel ?? content.strings.stampLabel,
         selected: content.tray == .stamps,
         dot: false
@@ -81,7 +103,12 @@ struct KComposeToolbar: View {
 
       KComposeTravelKey(theme: theme, driver: driver) {
         driver.blurAll()
-        actions.onKey(driver.body.text, driver.ask.text)
+        // the gold key on a First Class paper opens the paywall; it never sends
+        if driver.live.key.stage == .paperFirstClass {
+          actions.onPaperUpgrade()
+        } else {
+          actions.onKey(driver.body.text, driver.ask.text)
+        }
       }
     }
     .disabled(content.busy)
@@ -156,6 +183,35 @@ private struct KComposeIconKey<Glyph: View>: View {
     .sensoryFeedback(.impact(weight: .light), trigger: taps)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityAddTraits(selected ? .isSelected : [])
+  }
+}
+
+/// The paper key's face (Prompt 3, I9): 30 × 30 with corners of 7, the 22 glyph on the 24 grid.
+private struct KComposePaperGlyph: View {
+  let theme: KTheme
+  let open: Bool
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    let g: CGFloat = 22
+    let u = g / 24
+    let stroke = open ? theme.ind : theme.ink
+    ZStack {
+      RoundedRectangle(cornerRadius: 7, style: .circular)
+        .fill(open ? theme.lav : Color.clear)
+        .frame(width: 30, height: 30)
+      ZStack {
+        KStampKeyPiece(d: "M7.5 4.5h9a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3z")
+          .fill(open ? theme.sf : Color.clear)
+        KStampKeyPiece(d: "M9 5l-4 4M14 5L5 14M19 5.5L5.5 19M19 10.5l-8.5 8.5M19 15.5L15.5 19")
+          .stroke(stroke, style: StrokeStyle(lineWidth: (open ? 2.0 : 1.4) * u, lineCap: .round))
+        KStampKeyPiece(d: "M7.5 4.5h9a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3z")
+          .stroke(stroke, style: StrokeStyle(lineWidth: 1.8 * u, lineCap: .round))
+      }
+      .frame(width: g, height: g)
+    }
+    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: open)
+    .accessibilityHidden(true)
   }
 }
 
@@ -290,6 +346,10 @@ private struct KComposeTravelKey: View {
       theme.ink
     case .needStamp:
       theme.ind
+    case .paperFirstClass:
+      KBrand.waxGold
+    case .paperLocked:
+      Color.clear
     case .filling, .sending:
       if key.progress >= 0 {
         // the wash rising from the left toward the floor: inside the 1pt edge, to the whole
@@ -308,14 +368,16 @@ private struct KComposeTravelKey: View {
     switch key.stage {
     case .ready: return theme.ink
     case .needStamp: return theme.ind
-    case .filling, .sending: return theme.line
+    case .paperFirstClass: return theme.ink
+    case .filling, .sending, .paperLocked: return theme.line
     }
   }
 
   private func ink(_ key: KComposeKey) -> Color {
     switch key.stage {
     case .ready, .needStamp: return theme.bg
-    case .filling, .sending: return theme.mute
+    case .paperFirstClass: return KBrand.inkOnBrand
+    case .filling, .sending, .paperLocked: return theme.mute
     }
   }
 

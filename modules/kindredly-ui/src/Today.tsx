@@ -84,6 +84,9 @@ export type KTodayCard = {
   a11yLabel: string;
   /** the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to Sunday Kite…") */
   replyPlaceholder: string;
+  /** the letter's paper id ("plain", "grid", "kraft", "airmail", "receipt", "sticky", "riso"; src/data/papers.ts):
+      Swift draws the card on it (KPaper); always present, "plain" (or anything unknown) is the card as it always was */
+  paper: string;
 };
 
 /** TS's phase of the desk (today-cards DeskPhase). */

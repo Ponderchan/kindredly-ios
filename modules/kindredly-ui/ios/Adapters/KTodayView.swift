@@ -25,10 +25,11 @@ import ExpoUI
  - strings: the plate's title and every fixed word of the cards, the band and the dock (emoji:
    the reply bar's emoji key, for VoiceOver)
  - phase: loading | offline | reading | done (anything else is loading)
- - left, leftA11y: NEXT's number and what VoiceOver says for it
+ - left, leftA11y: kept for the record; the B8 band shows no count and says strings.nextA11y
  - cards: the letters not passed yet, the one on screen first (KTodayCardRecord: who wrote it,
-   KTodayWhoRecord, with the frosted window as a KFrostRecord, when, and the switch-off postmark
-   line that keeps the old docket while the identity switch is off), converted once per rev
+   KTodayWhoRecord, with the frosted window as a KFrostRecord, when, the switch-off postmark
+   line that keeps the old docket while the identity switch is off, and the paper id the card is
+   drawn on), converted once per rev
  - titleLocked: the plate stays small (a letter passed today, or the day done)
  - freshUnfold, arrivalLine: her first arrival (the first card unfolds; her line over her head)
  - wrenLetter: her counted note in done; window: the window to her game, its sky by the hour
@@ -136,6 +137,8 @@ struct KTodayCardRecord: Record {
   @Field var menu: [KMenuActionRecord] = []
   @Field var a11yLabel: String = ""
   @Field var replyPlaceholder: String = ""
+  /// the letter's paper id ("plain" … "riso", src/data/papers.ts); "" or unknown is plain
+  @Field var paper: String = "plain"
 
   var model: KLetterCardModel {
     var m = KLetterCardModel()
@@ -162,6 +165,7 @@ struct KTodayCardRecord: Record {
     m.menu = menu.map { KMenuItem(key: $0.key, title: $0.title, systemImage: $0.icon, destructive: $0.destructive) }
     m.a11yLabel = a11yLabel
     m.replyPlaceholder = replyPlaceholder
+    m.paper = KPaper(key: paper)
     return m
   }
 }

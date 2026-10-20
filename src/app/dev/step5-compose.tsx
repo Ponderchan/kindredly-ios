@@ -103,13 +103,15 @@ function ComposeLab() {
   const [premium, setPremium] = useState(false);
   const [serverPremium, setServerPremium] = useState(false);
   const [guest, setGuest] = useState(false);
+  // a first kindred: opens the Airmail paper (letter papers)
+  const [kindred, setKindred] = useState(false);
   const [left, setLeft] = useState<Left>(4);
   const [fail, setFail] = useState(false);
   const [cap, setCap] = useState(false);
   const [panel, setPanel] = useState(true);
   // a fresh page for every change of page, renderer, account or day
   const [run, setRun] = useState(0);
-  const pageKey = `${run}:${page}:${swift}:${premium}:${serverPremium}:${guest}:${String(left)}`;
+  const pageKey = `${run}:${page}:${swift}:${premium}:${serverPremium}:${guest}:${kindred}:${String(left)}`;
   const lang = useLang();
 
   // the language this page opened with comes back when it closes
@@ -130,6 +132,7 @@ function ComposeLab() {
           premium={premium}
           serverPremium={serverPremium}
           guest={guest}
+          kindred={kindred}
           left={left}
           fail={fail}
           cap={cap}
@@ -161,6 +164,7 @@ function ComposeLab() {
             <Chip label="FC" on={premium} onPress={() => setPremium((v) => !v)} />
             <Chip label="FC@SERVER" on={serverPremium} onPress={() => setServerPremium((v) => !v)} />
             <Chip label="GUEST" on={guest} onPress={() => setGuest((v) => !v)} />
+            <Chip label="KINDRED" on={kindred} onPress={() => setKindred((v) => !v)} />
             {LEFTS.map((l) => (
               <Chip key={l.label} label={l.label} on={left === l.key} onPress={() => setLeft(l.key)} />
             ))}
@@ -180,7 +184,7 @@ function ComposeLab() {
 
 /* One compose page on the demo: the route's own layout (the page, the
    courier above it, the leave sheet), with the world stood in for. */
-function DemoPage(p: { page: Page; swift: boolean; premium: boolean; serverPremium: boolean; guest: boolean; left: Left; fail: boolean; cap: boolean; onDone: () => void }) {
+function DemoPage(p: { page: Page; swift: boolean; premium: boolean; serverPremium: boolean; guest: boolean; kindred: boolean; left: Left; fail: boolean; cap: boolean; onDone: () => void }) {
   const { t: tk } = useTheme();
   const viewRef = useRef<KScreenHandle>(null);
   const drafts = useRef(new Map<string, Draft>([[DEMO_DRAFT.id, DEMO_DRAFT]]));
@@ -221,10 +225,12 @@ function DemoPage(p: { page: Page; swift: boolean; premium: boolean; serverPremi
         return { ok: true, premium: false, count: ++used.current, cap: 5 };
       },
       lettersLeftToday: async () => (flags.current.left == null ? null : { count: used.current, left: Math.max(0, 5 - used.current) }),
-      publishLetter: async () => {
+      publishLetter: async (_stamp, _body, _lang, paper) => {
         await wait(500);
+        console.log(`[step5-compose] publishing on paper ${String(paper ?? null)}`);
         return flags.current.fail ? null : "demo-letter";
       },
+      fetchHasKindred: async () => flags.current.kindred,
       publishVoiceLetter: async () => {
         await wait(500);
         return flags.current.fail ? null : true;

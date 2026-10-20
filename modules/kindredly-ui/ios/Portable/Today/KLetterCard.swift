@@ -60,6 +60,17 @@ import SwiftUI
    REPLY are the control band's buttons now. While the reader writes back (`compact`) the foot
    is not drawn and the docket stops at xxxLarge, so the shrunk card keeps the letter (a11y pass).
 
+ THE PAPER (letter papers, owner 2026-10-20; .claude/papers/CONTRACT.md §4.1): the writer picked
+ one in the compose screen (card.paper, KPaper). Plain is everything above, the InkCard as it always
+ was. Any other paper swaps the InkCard for the same column on its sheet (KPaperSurface: its fill,
+ stripes, edge, shadow, the receipt's teeth, the sticky note's fold), inset by its edge and 16, and
+ every piece inside is drawn in the paper's own colours whatever the theme (cardTheme(over:): light
+ even on Midnight, so the stamp draws light too). The letter takes the paper's face and size
+ (KPaper.cardSize / cardLine / letterStyle: the serif keeps its tiers, the receipt's mono and the
+ sticky note's system face scale them), riso adds its red misprint, and the foot keeps 36 clear of
+ the folded corner. The topic tag keeps the stamp's colour (stamps v3), its edge in the paper's ink.
+ The geometry, the gestures, the fold and UNFOLD, the stamp and the menu are the same on every paper.
+
  VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
  NO.7273" with the switch off, "Sunday Kite, she, Gemini. SEP.23" with it on — the topic, why the
  matcher chose it, the letter or what the voice letter is) with its moves as actions, in this order:
@@ -100,6 +111,8 @@ struct KLetterCard: View, Equatable {
   static let markSizeOnDate: CGFloat = 12
   /// between the name's line and the date's
   static let whoGap: CGFloat = 1
+  /// the foot's room on the right on a paper with a folded corner (the prototype's rowPR)
+  static let foldRowTrailing: CGFloat = 36
 
   let theme: KTheme
   let card: KLetterCardModel
@@ -114,33 +127,62 @@ struct KLetterCard: View, Equatable {
     a.card == b.card && a.theme == b.theme && a.labels == b.labels && a.compact == b.compact
   }
 
+  /// the theme every piece is drawn in: the desk's own on Plain; on any other paper the paper's
+  /// own colours, light in every theme, Midnight included (KPaper.cardTheme)
+  private var paperTheme: KTheme { card.paper.cardTheme(over: theme) }
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   var body: some View {
-    InkCard(theme: theme, variant: .me) {
-      docket
-      Group {
-        if card.isVoice {
-          KCardVoiceBlock(theme: theme, card: card, labels: labels, voice: voice) {
-            actions.onAction(card.id, "voice")
-          }
-        } else {
-          KCardText(theme: theme, card: card, compact: compact, unfold: labels.unfold) {
-            actions.onAction(card.id, "unfold")
-          }
+    let paper = card.paper
+    Group {
+      if paper.themed {
+        // Plain: the card exactly as it always was
+        InkCard(theme: theme, variant: .me) {
+          content
         }
-      }
-      // minHeight 0: the body takes what the card leaves it and no more, so a long letter is
-      // measured against that room and folds (KCardText), instead of growing the card past its frame
-      .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-      // not while the reader writes back: on an SE from AX1 the docket and the foot alone were
-      // taller than the 200pt card, leaving the letter 0 high and no UNFOLD (a11y pass,
-      // today-reply-card-ax-se). The topic and the translation stay in the card's label and actions.
-      if !compact {
-        foot
+      } else {
+        // on paper (contract §4.1): the same column, inset by the paper's edge and its 16 (border-box),
+        // on the sheet; the base theme goes to the sheet, for the sticky note's fold (the page colour)
+        VStack(alignment: .leading, spacing: 0) {
+          content
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(paper.edge.width + KPaper.padding)
+        .background { KPaperSurface(paper: paper, theme: theme) }
       }
     }
+    // a card's paper is fixed; the .35s is the prototype's, for a paper changed under a card (the dev page's PAPER)
+    .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: paper.id)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(card.a11yLabel)
     .modifier(KLetterCardAccessibilityActions(card: card, labels: labels, voice: voice, actions: actions))
+  }
+
+  /// the docket, the letter (or the voice letter) and the foot, top to bottom
+  @ViewBuilder
+  private var content: some View {
+    docket
+    Group {
+      if card.isVoice {
+        KCardVoiceBlock(theme: paperTheme, card: card, labels: labels, voice: voice) {
+          actions.onAction(card.id, "voice")
+        }
+      } else {
+        KCardText(theme: paperTheme, card: card, compact: compact, unfold: labels.unfold) {
+          actions.onAction(card.id, "unfold")
+        }
+      }
+    }
+    // minHeight 0: the body takes what the card leaves it and no more, so a long letter is
+    // measured against that room and folds (KCardText), instead of growing the card past its frame
+    .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+    // not while the reader writes back: on an SE from AX1 the docket and the foot alone were
+    // taller than the 200pt card, leaving the letter 0 high and no UNFOLD (a11y pass,
+    // today-reply-card-ax-se). The topic and the translation stay in the card's label and actions.
+    if !compact {
+      foot
+    }
   }
 
   // ── the docket row ──
@@ -148,7 +190,7 @@ struct KLetterCard: View, Equatable {
     HStack(alignment: .center, spacing: 10) {
       if card.postmark.isEmpty {
         // the identity switch on: the §9 header (TS sends no postmark line)
-        KCardFaceSlot(theme: theme, face: card.who.face)
+        KCardFaceSlot(theme: paperTheme, face: card.who.face)
         whoLines
           .frame(maxWidth: .infinity, alignment: .leading)
       } else {
@@ -156,19 +198,19 @@ struct KLetterCard: View, Equatable {
         // FACE v1 (the veil in faint for a deleted account) and the postmark, SEP.23 · NO.7273
         Group {
           if case let .mosaic(mask) = card.who.face {
-            KMosaic(mask: mask, cell: Self.mosaicCell, gap: 1, color: theme.ink)
+            KMosaic(mask: mask, cell: Self.mosaicCell, gap: 1, color: paperTheme.ink)
           } else {
-            KMosaic.veil(theme: theme, cell: Self.mosaicCell, gap: 1)
+            KMosaic.veil(theme: paperTheme, cell: Self.mosaicCell, gap: 1)
           }
         }
         Text(card.postmark)
           .kText(Self.postmarkStyle)
-          .foregroundStyle(theme.sub)
+          .foregroundStyle(paperTheme.sub)
           .lineLimit(1)
           .minimumScaleFactor(0.75)
           .frame(maxWidth: .infinity, alignment: .leading)
       }
-      KLetterCardStamp(theme: theme, card: card, width: Self.stampWidth, actions: actions)
+      KLetterCardStamp(theme: paperTheme, card: card, width: Self.stampWidth, actions: actions)
       if !card.menu.isEmpty {
         Menu {
           ForEach(card.menu) { item in
@@ -183,7 +225,7 @@ struct KLetterCard: View, Equatable {
             }
           }
         } label: {
-          KLineIcon(.more, size: Self.moreGlyph, lineWidth: 3.2, color: theme.sub)
+          KLineIcon(.more, size: Self.moreGlyph, lineWidth: 3.2, color: paperTheme.sub)
             .frame(width: Self.moreTarget, height: Self.moreTarget)
             .contentShape(Rectangle())
         }
@@ -206,7 +248,7 @@ struct KLetterCard: View, Equatable {
       VStack(alignment: .leading, spacing: Self.whoGap) {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
           nameText.lineLimit(1).fixedSize()
-          KWhoMarks(mark: who.mark, sign: who.sign, size: Self.markSize, color: theme.sub)
+          KWhoMarks(mark: who.mark, sign: who.sign, size: Self.markSize, color: paperTheme.sub)
         }
         whenText
       }
@@ -227,13 +269,13 @@ struct KLetterCard: View, Equatable {
   private var nameText: some View {
     Text(card.who.name)
       .kText(Self.nameStyle)
-      .foregroundStyle(theme.ink)
+      .foregroundStyle(paperTheme.ink)
   }
 
   private var whenText: some View {
     Text(card.when)
       .kText(Self.whenStyle)
-      .foregroundStyle(theme.sub)
+      .foregroundStyle(paperTheme.sub)
       .lineLimit(1)
   }
 
@@ -241,7 +283,7 @@ struct KLetterCard: View, Equatable {
   private var whenLine: some View {
     HStack(alignment: .firstTextBaseline, spacing: 0) {
       whenText.fixedSize()
-      KWhoMarks(mark: card.who.mark, sign: card.who.sign, size: Self.markSizeOnDate, color: theme.sub)
+      KWhoMarks(mark: card.who.mark, sign: card.who.sign, size: Self.markSizeOnDate, color: paperTheme.sub)
     }
   }
 
@@ -262,8 +304,9 @@ struct KLetterCard: View, Equatable {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
-      // the tag's 3/3 shadow hangs outside it
-      .padding(.trailing, 3)
+      // the tag's 3/3 shadow hangs outside it; on the sticky note the row keeps clear of the
+      // folded corner (the prototype's rowPR, 36)
+      .padding(.trailing, card.paper.fold ? Self.foldRowTrailing : 3)
       .padding(.bottom, 3)
       .padding(.top, 8)
       .dynamicTypeSize(...DynamicTypeSize.accessibility2)
@@ -274,7 +317,7 @@ struct KLetterCard: View, Equatable {
   private var topicTag: some View {
     if !card.topic.isEmpty {
       KTopicTag(
-        theme: theme,
+        theme: paperTheme,
         text: card.topic,
         // the App Store tag: the stamp's own colour (topicWash, from today-cards) and, stamps v3
         // §8, the words in ink #1E1B35 in every theme whatever TS sends (white passes on none of
@@ -295,11 +338,11 @@ struct KLetterCard: View, Equatable {
     case let .translate(code, label, enabled, value):
       // the pair as TS wrote it: "ES→EN" with the original showing, "EN←ES" once it is in yours
       let pair = KLangPair.pair(code)
-      KLangPair(theme: theme, from: pair.from, to: pair.to, on: pair.on, busy: !enabled, label: label, value: value) {
+      KLangPair(theme: paperTheme, from: pair.from, to: pair.to, on: pair.on, busy: !enabled, label: label, value: value) {
         actions.onAction(card.id, "translate")
       }
     case let .signal(label, glyph):
-      KAurasClose(theme: theme, label: label, glyph: glyph)
+      KAurasClose(theme: paperTheme, label: label, glyph: glyph)
     }
   }
 }
@@ -403,13 +446,27 @@ struct KCardText: View {
   /// the letter's size now: its tier's, or the compact one while writing back (a tier already at
   /// or under it, the long letter's 18, keeps its own)
   private var size: CGFloat {
-    compact && card.bodySize > Self.compactSize ? Self.compactSize : card.bodySize
+    // on paper, the paper's size for the tier first (mono and the system face scale it; KPaper.cardSize)
+    let tier = card.paper.themed ? card.bodySize : card.paper.cardSize(tier: card.bodySize)
+    return compact && tier > Self.compactSize ? Self.compactSize : tier
   }
 
   /// its line height, scaled with it so the tier keeps its own leading (30/40 → 20/26.7, the
   /// prototype's 1.3; 21/33 → 20/31.4)
   private var line: CGFloat {
-    card.bodySize > 0 ? card.bodyLine * size / card.bodySize : card.bodyLine
+    // on paper: the paper's leading or the tier's own, whichever is more (KPaper.cardLine)
+    if !card.paper.themed {
+      return card.paper.cardLine(size: size, tierSize: card.bodySize, tierLine: card.bodyLine)
+    }
+    return card.bodySize > 0 ? card.bodyLine * size / card.bodySize : card.bodyLine
+  }
+
+  /// the letter's face: the reader's Letter font on Plain (and every serif paper), Plex Mono or
+  /// the system face where the paper says so (KPaper.letterStyle)
+  private var style: KTextStyle {
+    card.paper.themed
+      ? .letterRead(size, lineHeight: size > 0 ? line / size : nil, place: .todayCard)
+      : card.paper.letterStyle(size: size, lineHeight: line)
   }
 
   @State private var frameHeight: CGFloat = 0
@@ -476,11 +533,26 @@ struct KCardText: View {
 
   private var letter: some View {
     Text(card.body)
-      .kText(.letterRead(size, lineHeight: size > 0 ? line / size : nil, place: .todayCard))
+      .kText(style)
       .foregroundStyle(theme.ink)
+      .modifier(KCardMisprint(shadow: card.paper.textShadow))
       .multilineTextAlignment(card.bodyCenter ? .center : .leading)
       .frame(maxWidth: .infinity, alignment: card.bodyCenter ? .center : .leading)
       .padding(.horizontal, 10)
+  }
+}
+
+/// Riso's misregistration on the letter: the words again in the paper's red, offset, no blur (a
+/// paper with no text shadow, Plain among them, gets nothing at all).
+private struct KCardMisprint: ViewModifier {
+  let shadow: KPaperShadow?
+
+  func body(content: Content) -> some View {
+    if let shadow {
+      content.shadow(color: shadow.color, radius: 0, x: shadow.x, y: shadow.y)
+    } else {
+      content
+    }
   }
 }
 

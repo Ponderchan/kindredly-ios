@@ -53,6 +53,7 @@ export type PaywallSource =
   | "journey_archive"
   | "me_row"
   | "settings_row"
+  | "paper" // the compose key on a First Class paper (letter papers, 2026-10-20)
   | "unknown";
 
 export function track(name: EventName, props: Record<string, string | number | boolean> = {}): void {

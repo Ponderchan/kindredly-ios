@@ -3,65 +3,60 @@
 import SwiftUI
 
 /*
- THE CONTROL BAND (Today 3d × 25b, Prompt 3; the owner's 2026-10-16 18:05 decision after the build:
- "image 2" of his option sheet, and on 2026-10-18 the only band). 68 tall under the card, full
- width, its own coordinates (origin at the band's top left; on a 393 × 852 phone the band sits at
- y 684):
+ THE CONTROL BAND, B8 (letter papers, owner 2026-10-20; CLAUDE-CODE-PROMPTS-NEXT-REPLY.md, contract
+ §4.2; before it, Today 3d × 25b "image 2", 2026-10-16/18). 68 tall under the card, full width, its
+ own coordinates (origin at the band's top left; on a 393 × 852 phone the band sits at y 684):
 
-      (  3  )            (Wren, 36, on the ground)            (  ✉  )
-       NEXT                                                    REPLY
+        ( ↑ )     (Wren, 40)     ( ↩ )
+        Next                     Reply
 
- - The two discs stand on the page ground with Wren between them (KWireWren draws her: 36, her
-   feet level with the discs' foot). Discs of 52 and a band of 68, so the band doesn't compete
-   with the letter (KTodayGeometry.controlHeight).
- - NEXT and REPLY are told apart by material, not by size: NEXT is seen through (frosted glass,
-   the count inside), REPLY is pressed (solid ink, the envelope in bg, which stays legible on
-   Midnight's pale ink). Both shrink to .94 under the finger (KPressScaleStyle, 150ms).
- - The glass (CSS: rgba(255,255,255,.45), backdrop blur 18 + saturate 170%, an inset 1px white .75
-   edge, 0 6 18 -8 rgba(30,27,53,.35)) is .ultraThinMaterial, the design's own SwiftUI stand-in for
-   "white .45 over blur", in the theme's colour scheme. In the light themes the material is the
-   whole of it: it already carries its own light tint, and a second white .45 on top made the disc
-   nearly opaque, the page's colour with only a shadow to show it. Midnight gets the dark material
-   under the design's rgba(26,24,48,.5) (which gives it the theme's indigo, not the material's
-   grey); its edge is white .18 and its shadow black .5. CSS paints an outer box-shadow only outside the
-   box, so under a see-through disc the shadow is masked to outside the circle here too:
-   otherwise its core (spread -8, so mostly inside the disc) would grey the glass.
- - Glass needs something behind it to read as glass, so the page gets a faint radial ground
-   (KTodayGround, below), which the desk puts behind everything.
+ - One row, centred, gap 44: Next's disc, Wren, Reply's disc (26 + 44 + 20 = 90 from the middle
+   to each disc's centre). Discs of 52 in the system's gray 6 (#F2F1F6; #272443 on the dark
+   themes), no edge, no shadow, no glass, and no count: the 15 a day are a ceiling, not a task.
+ - Next's glyph is the ↑ in ink, Reply's the ↩ in ind (22, a 2.2 round stroke on a 24 grid, the
+   prompt's paths); the labels 6 under the discs in system 500 11 at .02em, Next's in mute (the
+   dark themes' sub, #B9B5D0, as the prompt asks), Reply's in ind.
+ - Pressed, a disc darkens (#E6E4EC; dark #34305A) and shrinks to .96 in 80ms; let go, it springs
+   back over .25s on cubic-bezier(.3, 1.3, .5, 1).
+ - Wren (KWireWren draws her) stands between them at 40, her centre on the discs' midline.
 
- Every word is TS's: NEXT, REPLY, the count (deck.pendingLeft while a pass awaits TS, else TS's
- left) and what VoiceOver says. Its states:
+ Every word is TS's: Next, Reply and what VoiceOver says (labels.nextA11y, "Next letter", and
+ labels.replyA11y). Its states:
  - hidden (a send in flight, the reader open, the + open): everything fades out and takes no
    touches (bandFade);
  - typing (the reply field has the keyboard, or a send it let go of awaits TS): the same, the
    whole band at opacity 0 with no touches (bandFade), and nothing moves (the chat composers' A1,
-   owner 2026-10-18: the prototype's opacity 0 + pointer-events none; it used to slide down 160
-   under the keyboard). The tab bar slides away meanwhile, the card shrinks and the reply bar
-   rises (KTodayDesk), and the band fades back in once the keyboard goes and TS has answered a
-   send;
+   owner 2026-10-18). The tab bar slides away meanwhile, the card shrinks and the reply bar rises
+   (KTodayDesk), and the band fades back in once the keyboard goes and TS has answered a send;
  - done (flow.bandShown false): the buttons and their labels fade and drop 12;
- - not enabled (loading, offline): the buttons at .4 with no touches, nothing in NEXT's disc.
+ - not enabled (loading, offline): the buttons at .4 with no touches.
  Taps are also refused while a card is moving (deck.animating: no re-entry) and while typing.
+ The page's faint radial ground (KTodayGround, below) stays: the desk puts it behind everything.
  */
 
 /// The band's geometry, in band-local points: origin at the band's top left, W the Host's width.
-/// The buttons keep the design's space-evenly spacing at any width; Wren's spot and the window are
-/// placed from them. KWireWren, the desk and the done pieces read the same numbers.
+/// The row is centred at any width; Wren's spot and the window are placed from it. KWireWren, the
+/// desk and the done pieces read the same numbers.
 enum KBandLayout {
   /// the band's height (KTodayGeometry.controlHeight)
   static let height: CGFloat = KTodayGeometry.controlHeight
-  /// NEXT's and REPLY's discs
+  /// Next's and Reply's discs
   static let disc: CGFloat = 52
-  static let labelGap: CGFloat = 7
+  /// the label under each disc
+  static let labelGap: CGFloat = 6
+  /// the row's gap between a disc and Wren
+  static let gap: CGFloat = 44
   /// the flight window: 64 tall, its foot 2 above the band's (x 16…W−16)
   static let windowHeight: CGFloat = 64
   /// Wren's size in the window
   static let windowSize: CGFloat = 34
 
-  /// NEXT's centre: two discs spaced evenly across W (122.33 at 393)
-  static func nextX(_ W: CGFloat) -> CGFloat { (W - 2 * disc) / 3 + disc / 2 }
-  /// REPLY's centre (270.67 at 393)
-  static func replyX(_ W: CGFloat) -> CGFloat { W - nextX(W) }
+  /// from the middle to a disc's centre: half Wren, the gap, half a disc (20 + 44 + 26)
+  static var reach: CGFloat { wrenSize / 2 + gap + disc / 2 }
+  /// Next's centre (106.5 at 393)
+  static func nextX(_ W: CGFloat) -> CGFloat { W / 2 - reach }
+  /// Reply's centre (286.5 at 393)
+  static func replyX(_ W: CGFloat) -> CGFloat { W / 2 + reach }
 
   /// the window's frame top, band-local (its foot 2 above the band's: 2 down)
   static let windowFrameTop: CGFloat = height - 2 - windowHeight
@@ -70,20 +65,20 @@ enum KBandLayout {
 
   // ── Wren on the ground ──
 
-  /// her size standing between the buttons (the owner, 2026-10-18: 36)
-  static let wrenSize: CGFloat = 36
+  /// her size standing between the buttons (B8: 40; the owner's 36 of 2026-10-18 before it)
+  static let wrenSize: CGFloat = 40
   /// where her feet fall in her frame (her pictures' feet: WrenBird's 180 of 200; the lean's anchor too)
   static let feetY: CGFloat = 0.9
-  /// Wren's centre on the ground, centred between the buttons, her feet level with the discs' foot
-  /// (W/2, 37.6 at 36)
+  /// Wren's centre on the ground, between the buttons on the discs' midline (B8: her foot 26 above
+  /// the labels' foot; W/2, 26)
   static func spot(_ W: CGFloat) -> CGPoint {
-    CGPoint(x: W / 2, y: disc - wrenSize * (feetY - 0.5))
+    CGPoint(x: W / 2, y: disc / 2)
   }
 
   // ── her flight ──
 
   /// Wren's centre and size at flight f (0 = her spot on the band, 1 = the window), band-local: one
-  /// straight line from her spot into the window (36 → 34).
+  /// straight line from her spot into the window (40 → 34).
   static func flightPlace(_ W: CGFloat, _ flight: CGFloat) -> (center: CGPoint, size: CGFloat) {
     let t = min(max(flight, 0), 1)
     let g = spot(W), win = window
@@ -109,10 +104,10 @@ struct KControlBand: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// - Parameters:
-  ///   - left: TS's count of letters on today's desk not yet passed (NEXT shows deck.pendingLeft
-  ///     instead while a pass awaits TS)
-  ///   - labels: NEXT, REPLY and REPLY's VoiceOver words (labels.next, .reply, .replyA11y)
-  ///   - leftA11y: what VoiceOver says for NEXT ("Next letter. 3 left today.")
+  ///   - left: TS's count of letters on today's desk not yet passed (kept for the record: B8 shows
+  ///     no count)
+  ///   - labels: Next, Reply and their VoiceOver words (labels.next, .reply, .nextA11y, .replyA11y)
+  ///   - leftA11y: the old "Next letter. 3 left today." (kept for the record: B8 says labels.nextA11y)
   ///   - enabled: false while loading or offline: the buttons at .4, no touches, NEXT empty
   ///   - hidden: hideBand or the + open: the band fades out, no touches
   ///   - onNext: NEXT (the desk calls deck.requestNext())
@@ -167,26 +162,26 @@ struct KControlBand: View {
   private func buttons(_ W: CGFloat) -> some View {
     let disc = KBandLayout.disc
     let nx = KBandLayout.nextX(W), rx = KBandLayout.replyX(W)
-    // each column is centred on its disc; wide enough for a long label, never overlapping
-    let column = max(disc, min(140, rx - nx - 8))
+    // each column is centred on its disc; wide enough for a long label, never past Wren
+    let column = max(disc, min(120, 2 * (KBandLayout.reach - KBandLayout.wrenSize / 2) - 8))
     let shown = flow.bandShown
     return ZStack(alignment: .topLeading) {
       control(
-        disc: nextDisc(disc),
-        size: disc,
+        glyph: KBandGlyph.next,
+        glyphColor: theme.ink,
         label: labels.next,
-        labelColor: theme.mute,
-        a11y: leftA11y,
+        labelColor: theme.isDark ? theme.sub : theme.mute,
+        a11y: labels.nextA11y,
         action: onNext
       )
       .frame(width: column, alignment: .top)
       .offset(x: nx - column / 2)
 
       control(
-        disc: replyDisc(disc),
-        size: disc,
+        glyph: KBandGlyph.reply,
+        glyphColor: theme.ind,
         label: labels.reply,
-        labelColor: theme.ink,
+        labelColor: theme.ind,
         a11y: labels.replyA11y,
         action: onReply
       )
@@ -207,22 +202,25 @@ struct KControlBand: View {
     .accessibilityHidden(!shown)
   }
 
-  /// A disc that is the button, and its label 7 under it (a tap on the label presses too; VoiceOver
+  /// A disc that is the button, and its label 6 under it (a tap on the label presses too; VoiceOver
   /// hears the button's own words, so the label is hidden from it).
-  private func control<Disc: View>(disc: Disc, size: CGFloat, label: String, labelColor: Color, a11y: String, action: @escaping () -> Void) -> some View {
+  private func control(glyph: KBandGlyph, glyphColor: Color, label: String, labelColor: Color, a11y: String, action: @escaping () -> Void) -> some View {
     let act = { if active { action() } }
+    let size = KBandLayout.disc
     return VStack(spacing: KBandLayout.labelGap) {
       Button(action: act) {
-        disc
+        glyph
+          .stroke(glyphColor, style: StrokeStyle(lineWidth: KBandGlyph.lineWidth * KBandGlyph.size / 24, lineCap: .round, lineJoin: .round))
+          .frame(width: KBandGlyph.size, height: KBandGlyph.size)
           .frame(width: size, height: size)
           .contentShape(Circle())
       }
-      .buttonStyle(KPressScaleStyle())
+      .buttonStyle(KBandDiscStyle(dark: theme.isDark))
       .disabled(!enabled)
       .accessibilityLabel(a11y)
 
       Text(label)
-        .kText(.mono(10, .medium, tracking: 0.16))
+        .kText(Self.labelStyle)
         .foregroundStyle(labelColor)
         .lineLimit(1)
         .minimumScaleFactor(0.6)
@@ -233,84 +231,65 @@ struct KControlBand: View {
     .dynamicTypeSize(...DynamicTypeSize.large)
   }
 
-  /// NEXT: the glass disc with the count (nothing while loading or offline).
-  private func nextDisc(_ size: CGFloat) -> some View {
-    ZStack {
-      if enabled {
-        Text(verbatim: String(deck.pendingLeft ?? left))
-          .kText(.mono(16, .semibold))
-          .foregroundStyle(theme.ink)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
-          .padding(.horizontal, 6)
-      }
-    }
-    .frame(width: size, height: size)
-    .background { KGlassDisc(theme: theme) }
-  }
-
-  /// REPLY: the ink disc with the envelope in bg.
-  private func replyDisc(_ size: CGFloat) -> some View {
-    KLineIcon(.envelope, size: 24, lineWidth: 2, color: theme.bg)
-      .frame(width: size, height: size)
-      .background(Circle().fill(theme.ink))
-  }
+  /// the labels: system 500 11 at .02em
+  static let labelStyle = KTextStyle.system(11, .medium, tracking: 0.02)
 }
 
-/// NEXT's frosted glass: the material, its tint and inner edge, and a soft shadow painted only
-/// outside the circle (as CSS paints box-shadow).
-private struct KGlassDisc: View {
-  let theme: KTheme
+/// B8's two glyphs on a 24 grid, scaled to the frame: Next's ↑ (M12 19V5 M6 11l6-6 6 6) and
+/// Reply's ↩ (M9 7 4 12l5 5 M4 12h9a6 6 0 0 1 6 6v1).
+private enum KBandGlyph: Shape {
+  case next, reply
 
-  /// Midnight's indigo over the dark material; nothing over the light one (see the note at the top)
-  private var tint: Color {
-    theme.isDark ? Color(.sRGB, red: 26 / 255, green: 24 / 255, blue: 48 / 255, opacity: 0.5) : Color.clear
-  }
-
-  private var edge: Color {
-    Color.white.opacity(theme.isDark ? 0.18 : 0.75)
-  }
-
-  private var shadow: KSoftShadow {
-    KSoftShadow(
-      y: 6,
-      blur: 18,
-      spread: -8,
-      color: theme.isDark ? Color.black.opacity(0.5) : Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.35)
-    )
-  }
-
-  var body: some View {
-    let s = shadow
-    ZStack {
-      Circle().fill(.ultraThinMaterial)
-      Circle().fill(tint)
-      Circle().strokeBorder(edge, lineWidth: 1)
-    }
-    .environment(\.colorScheme, theme.isDark ? .dark : .light)
-    .background {
-      Circle()
-        .inset(by: -s.spread)
-        .fill(s.color)
-        .blur(radius: s.blur / 2)
-        .offset(x: s.x, y: s.y)
-        .mask { KOutsideCircle(margin: 40).fill(style: FillStyle(eoFill: true)) }
-    }
-    .allowsHitTesting(false)
-    .accessibilityHidden(true)
-  }
-}
-
-/// Everything around a circle: a rectangle `margin` bigger than the frame with the frame's circle
-/// cut out (fill it even-odd). Used as a mask so a shadow shows only outside its disc.
-private struct KOutsideCircle: Shape {
-  let margin: CGFloat
+  /// drawn at 22
+  static let size: CGFloat = 22
+  /// the stroke on the 24 grid
+  static let lineWidth: CGFloat = 2.2
 
   func path(in rect: CGRect) -> Path {
+    let k = min(rect.width, rect.height) / 24
+    func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * k, y: rect.minY + y * k) }
     var p = Path()
-    p.addRect(rect.insetBy(dx: -margin, dy: -margin))
-    p.addEllipse(in: rect)
+    switch self {
+    case .next:
+      p.move(to: pt(12, 19))
+      p.addLine(to: pt(12, 5))
+      p.move(to: pt(6, 11))
+      p.addLine(to: pt(12, 5))
+      p.addLine(to: pt(18, 11))
+    case .reply:
+      p.move(to: pt(9, 7))
+      p.addLine(to: pt(4, 12))
+      p.addLine(to: pt(9, 17))
+      p.move(to: pt(4, 12))
+      p.addLine(to: pt(13, 12))
+      // a 6 arc, a quarter turn from (13, 12) to (19, 18), then down 1
+      p.addArc(tangent1End: pt(19, 12), tangent2End: pt(19, 18), radius: 6 * k)
+      p.addLine(to: pt(19, 19))
+    }
     return p
+  }
+}
+
+/// A B8 disc: gray 6 at rest, a shade darker and .96 while pressed (80ms out), springing back
+/// over .25s on cubic-bezier(.3, 1.3, .5, 1).
+private struct KBandDiscStyle: ButtonStyle {
+  let dark: Bool
+
+  static let rest = Color(hex: "#F2F1F6")
+  static let restDark = Color(hex: "#272443")
+  static let pressed = Color(hex: "#E6E4EC")
+  static let pressedDark = Color(hex: "#34305A")
+  static let press = Animation.easeOut(duration: 0.08)
+  static let release = Animation.timingCurve(0.3, 1.3, 0.5, 1, duration: 0.25)
+
+  func makeBody(configuration: Configuration) -> some View {
+    let down = configuration.isPressed
+    configuration.label
+      .background {
+        Circle().fill(down ? (dark ? Self.pressedDark : Self.pressed) : (dark ? Self.restDark : Self.rest))
+      }
+      .scaleEffect(down ? 0.96 : 1)
+      .animation(down ? Self.press : Self.release, value: down)
   }
 }
 

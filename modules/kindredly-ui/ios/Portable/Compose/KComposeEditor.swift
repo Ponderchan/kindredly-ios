@@ -23,6 +23,8 @@ import SwiftUI
  colour (the old lavender on the light themes, mute on the dark ones) and the same face, drawn
  over the empty editor where UITextView puts its first line, and read by VoiceOver as the
  editor's hint while the page is empty.
+ On a paper (letter papers, KComposePage's THE PAPER) the caller passes the paper's face
+ (`writing`, set by .kText), its ink and the caret; nil for each is the App Store page's own.
 
  Never take it off screen while it holds the keyboard (the expo focus/unmount crash): the page
  swaps it for the caption field only from the + tray, which blurs first.
@@ -38,6 +40,11 @@ struct KComposeEditor: View {
   private let placeholder: String
   private let placeholderColor: Color
   private let accessibilityLabel: String
+  /// the writing face on a paper (nil: Inter 19 on 30, KComposeType.writing)
+  private let writing: KTextStyle?
+  /// the words' colour and the caret's on a paper (nil: the theme's ink and ind)
+  private let ink: Color?
+  private let caret: Color?
   private let onChange: (String) -> Void
   private let onFocus: (Bool) -> Void
 
@@ -54,6 +61,9 @@ struct KComposeEditor: View {
     placeholder: String,
     placeholderColor: Color,
     accessibilityLabel: String,
+    writing: KTextStyle? = nil,
+    ink: Color? = nil,
+    caret: Color? = nil,
     onChange: @escaping (String) -> Void,
     onFocus: @escaping (Bool) -> Void
   ) {
@@ -62,6 +72,9 @@ struct KComposeEditor: View {
     self.placeholder = placeholder
     self.placeholderColor = placeholderColor
     self.accessibilityLabel = accessibilityLabel
+    self.writing = writing
+    self.ink = ink
+    self.caret = caret
     self.onChange = onChange
     self.onFocus = onFocus
     self._text = State(initialValue: controller.text)
@@ -70,9 +83,9 @@ struct KComposeEditor: View {
 
   var body: some View {
     TextEditor(text: $text)
-      .composeText(.writing)
-      .foregroundStyle(theme.ink)
-      .tint(theme.ind)
+      .modifier(KComposeWritingFace(writing: writing))
+      .foregroundStyle(ink ?? theme.ink)
+      .tint(caret ?? theme.ind)
       .scrollContentBackground(.hidden)
       .scrollIndicators(.hidden)
       .scrollDismissesKeyboard(.interactively)
@@ -81,7 +94,7 @@ struct KComposeEditor: View {
       .overlay(alignment: .topLeading) {
         if text.isEmpty {
           Text(placeholder)
-            .composeText(.writing)
+            .modifier(KComposeWritingFace(writing: writing))
             .foregroundStyle(placeholderColor)
             .padding(.top, Self.topInset)
             .padding(.horizontal, Self.linePadding)
@@ -153,5 +166,18 @@ struct KComposeEditor: View {
     known = new
     controller.fieldDidChange(new)
     onChange(new)
+  }
+}
+
+/// The face words are written in: the App Store page's Inter 19 on 30, or a paper's (.kText).
+private struct KComposeWritingFace: ViewModifier {
+  let writing: KTextStyle?
+
+  func body(content: Content) -> some View {
+    if let writing {
+      content.kText(writing)
+    } else {
+      content.composeText(.writing)
+    }
   }
 }

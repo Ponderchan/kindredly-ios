@@ -21,19 +21,23 @@ import ExpoUI
  - strings: every word that isn't live or in a list (KComposeStringsRecord)
  - stamp: { id, name, washHex, inkHex, lineHex, a11yLabel, hex }, id "" for none chosen (hex: the
    frame's colour while a photo stamp resolves, "" for none)
- - mode: write | speak;  tray: none | stamps | more
+ - mode: write | speak;  tray: none | stamps | more | paper
  - sections: [{ title, items: [{ id, name, inkHex, a11yLabel }] }], converted once per rev
  - askOn, more { askOn, askDisabled, voiceOn, voiceLocked }, plusDot, quota, capPanel, busy
  - the stamp tray's tabs (contract §4.3 C): trayTab official | custom; customState hidden | empty |
    list (hidden = no tab row, D10); customStamps [{ id: "c:<uuid>", topic: "#…", hex, a11yLabel }]
    (my approved stamps, newest first); customFull (Free at 3/3: the + opens the 3/3 card)
+ - letter papers (contract .claude/papers §5.6): paper (the chosen id, "plain" by default; an
+   unknown id draws plain), papers [{ id, name, badge: "" | "1st" | "lock", a11yLabel, a11yValue }]
+   (the strip's seven, in order), paperHead { title, tag, tagTone: gold | ind | none }
  - children: <KIsland name="wren">, <KIsland name="recorder">
 
  Commands (KCommandBus):
  - setText { target: "body" | "ask", value }   a draft resumed, a seed, a remount's reseed
  - focus { target: "body" | "ask" }            the autofocus, the question just attached
  - blur {}                                      before a sheet, an Alert, a push
- - composer { wrenLine, key: { stage, label, narrowLabel, tone, enabled, progress, count, nudge,
+ - composer { wrenLine, key: { stage (filling | needStamp | ready | sending | paperFirstClass |
+              paperLocked), label, narrowLabel, tone, enabled, progress, count, nudge,
               countA11y, hintA11y }, count: { text, tone } }   the live state, sent when it changes
               (countA11y / hintA11y go to keySpeech: VoiceOver's value and hint on the wide key)
  - reset {}                                     blurs (nothing else to put back)
@@ -41,7 +45,9 @@ import ExpoUI
  Events, with what nativeEvent carries:
  - onComposeClose {}
  - onComposeTextChange { target, text }     every edit (never a setText)
- - onComposeTray { which }                  stamps | more (toggles)
+ - onComposeTray { which }                  stamps | more | paper (toggles)
+ - onComposePickPaper { id }                a swatch in the paper strip
+ - onComposePaperUpgrade {}                 the gold key on a First Class paper (TS: the paywall)
  - onComposePickStamp { id }
  - onComposeAskToggle {}
  - onComposeVoiceToggle {}
@@ -85,6 +91,9 @@ struct KComposeStringsRecord: Record {
   @Field var trayFullTitle: String = ""
   @Field var trayFullCta: String = ""
   @Field var trayNotNow: String = ""
+  @Field var paperKey: String = ""
+  @Field var paperDone: String = ""
+  @Field var badgeFirst: String = ""
 
   var strings: KComposeStrings {
     var s = KComposeStrings()
@@ -113,6 +122,9 @@ struct KComposeStringsRecord: Record {
     s.trayFullTitle = trayFullTitle
     s.trayFullCta = trayFullCta
     s.trayNotNow = trayNotNow
+    s.paperKey = paperKey
+    s.paperDone = paperDone
+    s.badgeFirst = badgeFirst
     return s
   }
 }
@@ -162,6 +174,22 @@ struct KComposeSectionRecord: Record {
   @Field var items: [KComposeStampItemRecord] = []
 }
 
+/// One paper in the strip (KComposePaperItem in TS).
+struct KComposePaperRecord: Record {
+  @Field var id: String = "plain"
+  @Field var name: String = ""
+  @Field var badge: String = ""
+  @Field var a11yLabel: String = ""
+  @Field var a11yValue: String = ""
+}
+
+/// The strip's head (KComposePaperHead in TS).
+struct KComposePaperHeadRecord: Record {
+  @Field var title: String = ""
+  @Field var tag: String = ""
+  @Field var tagTone: String = "none"
+}
+
 struct KComposeMoreRecord: Record {
   @Field var askOn: Bool = false
   @Field var askDisabled: Bool = false
@@ -193,6 +221,9 @@ final class KComposeViewProps: KScreenProps {
   @Field var customState: String = "hidden"
   @Field var customStamps: [KComposeCustomStampRecord] = []
   @Field var customFull: Bool = false
+  @Field var paper: String = "plain"
+  @Field var papers: [KComposePaperRecord] = []
+  @Field var paperHead: KComposePaperHeadRecord = KComposePaperHeadRecord()
 
   var onComposeClose = EventDispatcher()
   var onComposeTextChange = EventDispatcher()
@@ -206,6 +237,8 @@ final class KComposeViewProps: KScreenProps {
   var onComposeTrayTab = EventDispatcher()
   var onComposeMakeStamp = EventDispatcher()
   var onComposeFullCta = EventDispatcher()
+  var onComposePickPaper = EventDispatcher()
+  var onComposePaperUpgrade = EventDispatcher()
 
   /// The fields and the live state: as long-lived as the view, like `commands`.
   let driver = KComposeDriver()
@@ -226,6 +259,8 @@ final class KComposeViewProps: KScreenProps {
     a.onTrayTab = { [weak self] tab in self?.onComposeTrayTab(["tab": tab.rawValue]) }
     a.onMakeStamp = { [weak self] in self?.onComposeMakeStamp() }
     a.onFullCta = { [weak self] in self?.onComposeFullCta() }
+    a.onPickPaper = { [weak self] id in self?.onComposePickPaper(["id": id]) }
+    a.onPaperUpgrade = { [weak self] in self?.onComposePaperUpgrade() }
     a.onAskToggle = { [weak self] in self?.onComposeAskToggle() }
     a.onVoiceToggle = { [weak self] in self?.onComposeVoiceToggle() }
     a.onKey = { [weak self] text, ask in self?.onComposeKeyPress(["text": text, "ask": ask]) }
@@ -318,6 +353,18 @@ final class KComposeViewProps: KScreenProps {
     c.quota = quota
     c.capPanel = capPanel
     c.busy = busy
+    c.paper = KPaper(key: paper)
+    // a paper this binary doesn't know is left out of the strip (it would draw as a second plain)
+    c.papers = papers.filter { KPaper.ID(rawValue: $0.id) != nil }.map {
+      KComposePaperItem(
+        id: $0.id,
+        name: $0.name,
+        badge: KComposePaperItem.Badge(rawValue: $0.badge) ?? .none,
+        accessibilityLabel: $0.a11yLabel,
+        accessibilityValue: $0.a11yValue
+      )
+    }
+    c.paperHead = KComposePaperHead(title: paperHead.title, tag: paperHead.tag, tone: KComposePaperHead.Tone(rawValue: paperHead.tagTone) ?? .none)
     return c
   }
 }

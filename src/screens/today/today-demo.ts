@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import type { PoolLetter } from "../../lib/db";
 import type { Signal } from "../../lib/today-signal";
@@ -6,6 +6,7 @@ import type { WriteFail } from "../../lib/thread-detail-core";
 import { screenNow } from "../../lib/wren";
 import { deskDay } from "../../lib/day";
 import type { WrenStage } from "../../components/WrenBird";
+import type { PaperId } from "../../data/papers";
 import { emptyDay, type DayRecord } from "./today-cards";
 import { useMemoryDay, type TodayDeps, type TodaySource } from "./useTodayDesk";
 
@@ -90,6 +91,8 @@ export type DemoWorld = {
   wilt: boolean;
   /** her night hours whatever the clock says (she rests sleepy, yawns as the day ends, the window's sky is night) */
   night: boolean;
+  /** the paper every letter on the desk is drawn on (PAPER on the dev page; plain = each letter's own, none of the fixtures has one) */
+  paper: PaperId;
 };
 
 const recordOf = (day: DemoDay): DayRecord => ({ ...emptyDay(deskDay()), desk: day.desk, passed: day.passed, dealtAt: day.desk.length ? Date.now() : null, doneAt: day.doneAt });
@@ -104,8 +107,11 @@ export function useDemoSource(day: DemoDay, world: DemoWorld): TodaySource {
   useEffect(() => setFresh(day.fresh), [day.fresh]);
   const reload = useCallback(() => reset(recordOf(day)), [day, reset]);
   const settleArrival = useCallback(() => setFresh(false), []);
+  // PAPER: the desk's letters as if their writers had picked it; a view over the day, so changing it never deals again
+  const { paper } = world;
+  const rec = useMemo(() => (paper === "plain" ? store.rec : { ...store.rec, desk: store.rec.desk.map((l) => ({ ...l, paper })) }), [store.rec, paper]);
   return {
-    rec: store.rec,
+    rec,
     loaded: day.loaded,
     offline: day.offline,
     flights: world.flights,

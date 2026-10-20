@@ -40,7 +40,22 @@ import type { KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from
    clear of while the keyboard is down, and the tray grows by). tabBarRoom is 0: a root route. */
 
 export type KComposeMode = "write" | "speak";
-export type KComposeTray = "none" | "stamps" | "more";
+export type KComposeTray = "none" | "stamps" | "more" | "paper";
+/** One paper in the strip (letter papers, 2026-10-20; contract §5.6). */
+export type KComposePaperItem = {
+  /** papers.ts PaperId ("plain", "riso", …) */
+  id: string;
+  /** its name, already lower-cased */
+  name: string;
+  /** "1st": a First Class paper (gold badge); "lock": Airmail before a first kindred; "" none */
+  badge: "" | "1st" | "lock";
+  /** VoiceOver: "Kraft paper" */
+  a11yLabel: string;
+  /** VoiceOver's value: "First Class" / "Opens with your first kindred" / "" */
+  a11yValue: string;
+};
+/** The strip's head: PAPER · KRAFT, then its tag (· FIRST CLASS in gold, · FIRST KINDRED in ind). */
+export type KComposePaperHead = { title: string; tag: string; tagTone: "gold" | "ind" | "none" };
 /** the stamp tray's tabs (contract §4.3 C): the 36, and my own photo stamps */
 export type KComposeTrayTab = "official" | "custom";
 /** hidden: no tab row, the tray as it always was (the feature isn't there for this reader, D10) */
@@ -100,6 +115,12 @@ export type KComposeStrings = {
   trayFullTitle: string;
   trayFullCta: string;
   trayNotNow: string;
+  /** VoiceOver: the paper key ("Letter paper") */
+  paperKey: string;
+  /** the paper strip's right key (DONE) */
+  paperDone: string;
+  /** the gold badge on a First Class swatch (1ST) */
+  badgeFirst: string;
 };
 
 /** The chosen stamp, coloured for the page (theme/post channelColors against the theme's page
@@ -130,7 +151,9 @@ export type KComposeLive = {
   /** Wren's line, already in quotes */
   wrenLine: string;
   key: {
-    stage: "filling" | "needStamp" | "ready" | "sending";
+    /** paperFirstClass: the gold SEND ON FIRST CLASS PAPER → (opens the paywall: onPaperUpgrade);
+        paperLocked: Airmail before a first kindred (not pressable) */
+    stage: "filling" | "needStamp" | "ready" | "sending" | "paperFirstClass" | "paperLocked";
     label: string;
     /** the label where `label` doesn't fit (SEND); "" never squeezes */
     narrowLabel: string;
@@ -184,12 +207,21 @@ export type KComposeViewProps = CommonViewModifierProps &
     customState: KComposeCustomState;
     /** my approved photo stamps, newest first */
     customStamps: KComposeCustomStamp[];
+    /** the chosen paper's id ("plain" by default): the body is drawn on it */
+    paper: string;
+    /** the strip's seven papers, in order (memoised) */
+    papers: KComposePaperItem[];
+    paperHead: KComposePaperHead;
     /** Free has made its three: the dashed + opens the 3/3 card */
     customFull: boolean;
     onClose?: () => void;
     onTextChange?: (target: "body" | "ask", text: string) => void;
     /** a tray key: toggles that tray */
-    onTray?: (which: "stamps" | "more") => void;
+    onTray?: (which: "stamps" | "more" | "paper") => void;
+    /** a swatch in the paper strip (the strip stays open) */
+    onPickPaper?: (id: string) => void;
+    /** the gold key on a First Class paper: TS opens /paywall?src=paper */
+    onPaperUpgrade?: () => void;
     onPickStamp?: (id: string) => void;
     onAskToggle?: () => void;
     onVoiceToggle?: () => void;
@@ -228,13 +260,17 @@ type NativeKComposeViewProps = Omit<
   | "onTrayTab"
   | "onMakeStamp"
   | "onFullCta"
+  | "onPickPaper"
+  | "onPaperUpgrade"
 > &
   Required<Pick<KComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     sections: KComposeSection[];
     onComposeClose?: Ev<Record<string, never>>;
     onComposeTextChange?: Ev<{ target: "body" | "ask"; text: string }>;
-    onComposeTray?: Ev<{ which: "stamps" | "more" }>;
+    onComposeTray?: Ev<{ which: "stamps" | "more" | "paper" }>;
+    onComposePickPaper?: Ev<{ id: string }>;
+    onComposePaperUpgrade?: Ev<Record<string, never>>;
     onComposePickStamp?: Ev<{ id: string }>;
     onComposeAskToggle?: Ev<Record<string, never>>;
     onComposeVoiceToggle?: Ev<Record<string, never>>;
@@ -281,7 +317,11 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
     onTrayTab,
     onMakeStamp,
     onFullCta,
+    onPickPaper,
+    onPaperUpgrade,
     customStamps,
+    papers,
+    paperHead,
     ...rest
   },
   ref,
@@ -291,6 +331,14 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
   const customSent = useMemo(
     () => (customStamps ?? []).map((c) => ({ id: c.id ?? "", topic: c.topic ?? "", hex: c.hex ?? "", a11yLabel: c.a11yLabel ?? "" })),
     [customStamps],
+  );
+  const papersSent = useMemo(
+    () => (papers ?? []).map((p) => ({ id: p.id ?? "plain", name: p.name ?? "", badge: p.badge ?? "", a11yLabel: p.a11yLabel ?? "", a11yValue: p.a11yValue ?? "" })),
+    [papers],
+  );
+  const headSent = useMemo(
+    () => ({ title: paperHead?.title ?? "", tag: paperHead?.tag ?? "", tagTone: paperHead?.tagTone ?? "none" }),
+    [paperHead?.title, paperHead?.tag, paperHead?.tagTone],
   );
   return (
     <NativeKComposeView
@@ -305,6 +353,8 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       rev={rev ?? 0}
       sections={sent}
       customStamps={customSent}
+      papers={papersSent}
+      paperHead={headSent}
       onComposeClose={onClose ? () => onClose() : undefined}
       onComposeTextChange={onTextChange ? (e) => onTextChange(e.nativeEvent.target, e.nativeEvent.text) : undefined}
       onComposeTray={onTray ? (e) => onTray(e.nativeEvent.which) : undefined}
@@ -317,6 +367,8 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       onComposeTrayTab={onTrayTab ? (e) => onTrayTab(e.nativeEvent.tab === "custom" ? "custom" : "official") : undefined}
       onComposeMakeStamp={onMakeStamp ? () => onMakeStamp() : undefined}
       onComposeFullCta={onFullCta ? () => onFullCta() : undefined}
+      onComposePickPaper={onPickPaper ? (e) => onPickPaper(e.nativeEvent.id) : undefined}
+      onComposePaperUpgrade={onPaperUpgrade ? () => onPaperUpgrade() : undefined}
     />
   );
 });

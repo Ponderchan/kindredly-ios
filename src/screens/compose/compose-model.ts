@@ -1,4 +1,5 @@
 import { COUNTER_FROM, LETTER_MAX, OPENING_MIN, REPLY_MIN } from "../../lib/weighted-count";
+import { PAPERS, paperOf, type PaperGate } from "../../data/papers";
 
 /* THE COMPOSE PAGE, AS DATA (10a step 5). Pure: no React, no React Native,
    no i18n, no storage — every word comes in through `fmt`, so
@@ -22,6 +23,13 @@ import { COUNTER_FROM, LETTER_MAX, OPENING_MIN, REPLY_MIN } from "../../lib/weig
      the stamps;
    - ready: LET IT TRAVEL in ind (SEND where it doesn't fit);
    - sending: SENDING… in mute, not pressable.
+   And while the chosen paper can't go yet (letter papers, 2026-10-20;
+   contract §5.4), whatever the words, unless a send is in flight:
+   - paperFirstClass: a First Class paper picked by a non-member: SEND ON
+     FIRST CLASS PAPER → in gold, pressable; it opens the paywall;
+   - paperLocked: Airmail before a first kindred: OPENS WITH YOUR FIRST
+     KINDRED, not pressable.
+   Picking a paper that can go gives the key its three doors back.
 
    THE QUOTA (owner question 6's default): free writers only, signed in
    with a real account, once First Class has answered — "N LEFT TODAY" on
@@ -53,8 +61,8 @@ import { COUNTER_FROM, LETTER_MAX, OPENING_MIN, REPLY_MIN } from "../../lib/weig
 /** what the page is writing */
 export type ComposeMode = "write" | "speak";
 /** what sits where the keyboard was */
-export type ComposeTray = null | "stamps" | "more";
-export type KeyStage = "filling" | "needStamp" | "ready" | "sending";
+export type ComposeTray = null | "stamps" | "more" | "paper";
+export type KeyStage = "filling" | "needStamp" | "ready" | "sending" | "paperFirstClass" | "paperLocked";
 export type KeyTone = "mute" | "ind";
 export type CountTone = "mute" | "amber" | "post";
 
@@ -120,9 +128,25 @@ export function wordsReadyFor(p: { mode: ComposeMode; weight: number; hasRecordi
 
 /** The main key (see THE KEY HAS THREE DOORS above). */
 export function keyFor(
-  p: { mode: ComposeMode; weight: number; wordsReady: boolean; hasStamp: boolean; busy: boolean; tray: ComposeTray },
+  p: {
+    mode: ComposeMode;
+    weight: number;
+    wordsReady: boolean;
+    hasStamp: boolean;
+    busy: boolean;
+    tray: ComposeTray;
+    /** whether the chosen paper can go (papers.ts paperGate); "ok" when absent. Speaking ignores it: a voice letter carries no paper */
+    paperGate?: PaperGate;
+  },
   fmt: ComposeFormat,
 ): KeyVM {
+  const gate = p.mode === "write" ? (p.paperGate ?? "ok") : "ok";
+  if (!p.busy && gate === "firstClass") {
+    return { stage: "paperFirstClass", label: fmt.t("pp.key.fc"), narrowLabel: fmt.t("pp.key.fc.narrow"), tone: "ind", enabled: true, progress: -1, count: "", nudge: false, countA11y: "", hintA11y: fmt.t("pp.a11y.upgrade") };
+  }
+  if (!p.busy && gate === "kindred") {
+    return { stage: "paperLocked", label: fmt.t("pp.key.locked"), narrowLabel: fmt.t("pp.key.locked.narrow"), tone: "mute", enabled: false, progress: -1, count: "", nudge: false, countA11y: "", hintA11y: "" };
+  }
   const stage: KeyStage = p.busy ? "sending" : p.wordsReady && !p.hasStamp ? "needStamp" : p.wordsReady ? "ready" : "filling";
   const label = stage === "sending" ? fmt.t("cp.sending") : stage === "needStamp" ? fmt.t("cp.needStamp") : fmt.t("cp.travel");
   const narrowLabel = stage === "filling" || stage === "ready" ? fmt.t("ld.send") : "";
@@ -435,4 +459,35 @@ export function pressedReturn(pressed: { stamp: { id: string }; at: number } | n
   const raw = pressed.stamp.id.toLowerCase();
   const id = raw.startsWith("c:") ? raw : `c:${raw}`;
   return CUSTOM_STAMP_ID.test(id) ? id : null;
+}
+
+/* THE PAPER STRIP (letter papers, 2026-10-20; contract §5.2, §5.6). All seven papers in the
+   strip's order, every one pickable: a paper that can't go yet is still previewed on the page and
+   the key says why (keyFor). Its badge: "1st" (gold) on every First Class paper, "lock" on
+   Airmail while there is no first kindred, none otherwise; VoiceOver hears the same as a value.
+   The head names the chosen paper in capitals, with "· FIRST CLASS" (gold) after a First Class
+   one and "· FIRST KINDRED" (ind) after Airmail without a kindred. */
+export type PaperItemVM = { id: string; name: string; badge: "" | "1st" | "lock"; a11yLabel: string; a11yValue: string };
+export type PaperHeadVM = { title: string; tag: string; tagTone: "gold" | "ind" | "none" };
+
+export function paperItems(p: { hasKindred: boolean; lang: string }, fmt: ComposeFormat): PaperItemVM[] {
+  return PAPERS.map((paper) => {
+    const name = fmt.t(paper.nameKey);
+    const badge: PaperItemVM["badge"] = paper.tier === "first" ? "1st" : paper.tier === "kindred" && !p.hasKindred ? "lock" : "";
+    return {
+      id: paper.id,
+      name: name.toLocaleLowerCase(p.lang),
+      badge,
+      a11yLabel: fmt.t("pp.a11y.paper", { name }),
+      a11yValue: badge === "1st" ? fmt.t("pp.a11y.fc") : badge === "lock" ? fmt.t("pp.a11y.locked") : "",
+    };
+  });
+}
+
+export function paperHead(p: { paper: string; hasKindred: boolean; lang: string }, fmt: ComposeFormat): PaperHeadVM {
+  const paper = paperOf(p.paper);
+  const title = fmt.t("pp.strip.head", { name: fmt.t(paper.nameKey).toLocaleUpperCase(p.lang) });
+  if (paper.tier === "first") return { title, tag: fmt.t("pp.strip.fc"), tagTone: "gold" };
+  if (paper.tier === "kindred" && !p.hasKindred) return { title, tag: fmt.t("pp.strip.kindred"), tagTone: "ind" };
+  return { title, tag: "", tagTone: "none" };
 }

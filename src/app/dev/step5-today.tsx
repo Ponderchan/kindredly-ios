@@ -20,6 +20,7 @@ import { TodayNative } from "../../screens/today/TodayNative";
 import { TodayRN } from "../../screens/today/TodayRN";
 import { TodayOverlays } from "../../screens/today/TodayOverlays";
 import { DEMO_DESK, demoDeps, useDemoSource, type DemoDay, type DemoReply, type DemoWorld } from "../../screens/today/today-demo";
+import { PAPER_IDS, type PaperId } from "../../data/papers";
 import "../../data/strings-step5-today";
 import "../../data/strings-today3d";
 
@@ -73,6 +74,10 @@ import "../../data/strings-today3d";
      the letter leaves) · OFFLINE · SUSPENDED · GUEST (the sign-up sheet).
      These change the world around the desk, never the desk (a pass
      survives them). RESET deals the day again;
+   - PAPER · PLAIN: every letter on the desk drawn on one paper (letter
+     papers, 2026-10-20), a tap moves to the next of the seven (plain, grid,
+     kraft, airmail, receipt, sticky, riso, then plain again). Like PLAY it
+     changes the world, not the desk; SWIFT only (the RN card has no paper);
    - RESET REAL DAY (behind a confirm): the one chip that touches the real
      account — today's put-away desk on this phone, its sealed flag and her
      Live Activities go, and the Today tab deals today again (for a day
@@ -113,6 +118,7 @@ function TodayLab() {
   const [pouch, setPouch] = useState(false);
   const [hungry, setHungry] = useState(false);
   const [night, setNight] = useState(false);
+  const [paper, setPaper] = useState<PaperId>("plain");
   const [reply, setReply] = useState<DemoReply>("ok");
   const [panel, setPanel] = useState(true);
   const [round, setRound] = useState(0); // RESET: a new fixture deals the day again
@@ -139,7 +145,7 @@ function TodayLab() {
     [mode, round],
   );
   // the world around it: PLAY, POUCH, HUNGRY and NIGHT change these without touching the desk or what was passed
-  const world = useMemo<DemoWorld>(() => ({ flights: pouch ? 5 : 1, waiting: 2, stage: play ? "wren" : "egg", wilt: hungry, night }), [pouch, play, hungry, night]);
+  const world = useMemo<DemoWorld>(() => ({ flights: pouch ? 5 : 1, waiting: 2, stage: play ? "wren" : "egg", wilt: hungry, night, paper }), [pouch, play, hungry, night, paper]);
   const replyRef = useRef(reply);
   replyRef.current = reply;
   const source = useDemoSource(day, world);
@@ -221,6 +227,7 @@ function TodayLab() {
             <Chip label="POUCH" on={pouch} onPress={() => setPouch((v) => !v)} />
             <Chip label="HUNGRY" on={hungry} onPress={() => setHungry((v) => !v)} />
             <Chip label="NIGHT" on={night} onPress={() => setNight((v) => !v)} />
+            <Chip label={`PAPER · ${paper.toUpperCase()}`} on={paper !== "plain"} onPress={() => setPaper((p) => PAPER_IDS[(PAPER_IDS.indexOf(p) + 1) % PAPER_IDS.length])} />
             {REPLIES.map((r) => (
               <Chip key={r} label={r.toUpperCase()} on={reply === r} onPress={() => setReply(r)} />
             ))}

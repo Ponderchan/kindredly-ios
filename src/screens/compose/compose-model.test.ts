@@ -302,6 +302,35 @@ ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
   ok("press return: an id already c: stays one; junk is refused", M.pressedReturn({ stamp: { id: `c:${uuid}` }, at: 200 }, 100) === `c:${uuid}` && M.pressedReturn({ stamp: { id: "nope" }, at: 200 }, 100) === null);
 }
 
+// ── letter papers (contract §5.2, §5.4) ──
+{
+  const ready = { wordsReady: true, hasStamp: true, weight: OPENING_MIN } as const;
+  ok("paper: ok keeps the three doors", key({ ...ready, paperGate: "ok" }).stage === "ready" && key(ready).stage === "ready");
+  const fc = key({ ...ready, paperGate: "firstClass" });
+  ok("paper: a First Class paper for a non-member is the gold key, pressable, with its hint",
+    fc.stage === "paperFirstClass" && fc.enabled && fc.label === "pp.key.fc" && fc.narrowLabel === "pp.key.fc.narrow" && fc.hintA11y === "pp.a11y.upgrade" && fc.progress === -1 && fc.count === "" && !fc.nudge);
+  ok("paper: the gold key whatever the words", key({ weight: 3, paperGate: "firstClass" }).stage === "paperFirstClass");
+  const lk = key({ ...ready, paperGate: "kindred" });
+  ok("paper: Airmail before a kindred is the locked key, not pressable", lk.stage === "paperLocked" && !lk.enabled && lk.label === "pp.key.locked" && lk.narrowLabel === "pp.key.locked.narrow");
+  ok("paper: sending wins over both", key({ ...ready, busy: true, paperGate: "firstClass" }).stage === "sending" && key({ ...ready, busy: true, paperGate: "kindred" }).stage === "sending");
+  ok("paper: speaking ignores the paper", key({ mode: "speak", wordsReady: true, hasStamp: true, paperGate: "firstClass" }).stage === "ready");
+
+  const items = M.paperItems({ hasKindred: false, lang: "en" }, fmt);
+  ok("strip: seven papers in order", items.map((i) => i.id).join() === "plain,grid,kraft,airmail,receipt,sticky,riso");
+  ok("strip: 1st on the four First Class papers", items.filter((i) => i.badge === "1st").map((i) => i.id).join() === "kraft,receipt,sticky,riso");
+  ok("strip: Airmail locked without a kindred, open with one",
+    items.find((i) => i.id === "airmail")?.badge === "lock" && M.paperItems({ hasKindred: true, lang: "en" }, fmt).find((i) => i.id === "airmail")?.badge === "");
+  ok("strip: names lower-cased, VoiceOver label and value",
+    items[0].name === "pp.name.plain" && items[0].a11yLabel === "pp.a11y.paper:pp.name.plain" && items[0].a11yValue === "" && items[2].a11yValue === "pp.a11y.fc" && items[3].a11yValue === "pp.a11y.locked");
+  const real = { t: (k: string, v?: Record<string, string | number>) => (k === "pp.name.kraft" ? "Kraft" : k === "pp.strip.head" ? `PAPER · ${v?.name}` : k) };
+  ok("strip: swatch name lower-cased", M.paperItems({ hasKindred: false, lang: "en" }, real)[2].name === "kraft");
+  ok("head: the name upper-cased, gold tag on First Class",
+    (() => { const h = M.paperHead({ paper: "kraft", hasKindred: false, lang: "en" }, real); return h.title === "PAPER · KRAFT" && h.tag === "pp.strip.fc" && h.tagTone === "gold"; })());
+  ok("head: ind tag on Airmail without a kindred, none with one",
+    M.paperHead({ paper: "airmail", hasKindred: false, lang: "en" }, fmt).tagTone === "ind" && M.paperHead({ paper: "airmail", hasKindred: true, lang: "en" }, fmt).tagTone === "none");
+  ok("head: unknown reads as plain, no tag", (() => { const h = M.paperHead({ paper: "nope", hasKindred: false, lang: "en" }, fmt); return h.title === "pp.strip.head:PP.NAME.PLAIN" && h.tag === "" && h.tagTone === "none"; })());
+}
+
 if (fails) {
   console.log(`\n${fails} FAILED`);
   process.exit(1);
