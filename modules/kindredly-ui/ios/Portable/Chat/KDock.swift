@@ -23,8 +23,8 @@ import SwiftUI
     prompt field (ask) or the prompt being answered, both in the Letter font (what someone writes)
  7. a room's ideas bubble (chat composers B, Prompt 4: Chat/KKindredBar.swift KIdeasBubble), 8
     above the bar while it is open
- 8. the composer row — or, in its place, the gone line or the expired card (InkCard .me,
-    REKINDLE):
+ 8. the composer row — or, in its place, the gone line or the expired card (soft, continuous
+    corners 20, no frame; Rekindle the sheets' ind capsule):
     - a room (chat composers B, 2026-10-18; the owner's rework that evening): the Kindreds bar
       (Chat/KKindredBar.swift: the ideas key, the capsule with only the field, the emoji key, the
       +; ringless line icons, and the keyboard's send key sends: Return sends, as it did), in
@@ -580,8 +580,11 @@ struct KChatDockView: View {
     actions.onDock("ideaUse")
   }
 
+  /// The expired door (owner, 2026-10-20: no black frame): a soft card as Wren's notice and the
+  /// native sheets are (the theme's soft, continuous corners of 20, no outline, no hard shadow),
+  /// and Rekindle as the sheets' primary key (an ind capsule, System 600 17, the title in bg).
   private var expiredCard: some View {
-    InkCard(theme: theme, variant: .me, spacing: 8) {
+    VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 8) {
         KChatBird(theme: theme, ref: birds.expired, size: 20)
         Text(dock.expiredLabel)
@@ -593,14 +596,33 @@ struct KChatDockView: View {
         .kText(.system(15, lineHeight: 1.47))
         .foregroundStyle(theme.ink)
         .fixedSize(horizontal: false, vertical: true)
-      KSecondaryButton(theme: theme, title: dock.expiredButton) {
+      SwiftUI.Button {
         actions.onDock("rekindle")
+      } label: {
+        Text(dock.expiredButton)
+          .kText(.system(17, .semibold))
+          .foregroundStyle(theme.bg)
+          .lineLimit(1)
+          .padding(.horizontal, 20)
+          .padding(.vertical, 13)
+          .frame(maxWidth: .infinity, minHeight: 50)
+          .background(Capsule(style: .continuous).fill(theme.ind))
+          .contentShape(Capsule(style: .continuous))
       }
+      .buttonStyle(KDockKeyPress())
       .padding(.top, 4)
     }
-    // the card's hard shadow hangs 5 outside, right and below
-    .padding(.trailing, InkCardVariant.me.shadowOffset)
-    .padding(.bottom, InkCardVariant.me.shadowOffset)
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(theme.soft))
+  }
+}
+
+/// The sheets' capsule key pressed: it dims, as iOS's own filled buttons do.
+private struct KDockKeyPress: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label.opacity(configuration.isPressed ? 0.7 : 1)
   }
 }
 

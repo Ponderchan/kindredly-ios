@@ -161,7 +161,7 @@ public struct KTodayDesk: View {
   @ObservedObject private var stage: KReplyStage
   private let voice: KTodayVoice
   @ObservedObject private var deck: KDeckState
-  /// written by the deck, read per frame by Wren only: never observed here
+  /// written by the deck, read per frame by the plate and Wren only: never observed here
   private let motion: KDeckMotion
   @ObservedObject private var flow: KDayFlow
   private let actions: KTodayActions
@@ -313,7 +313,12 @@ public struct KTodayDesk: View {
       // 3. the status bar's strip and the plate, over the card (a card pulled up goes under it)
       VStack(spacing: 0) {
         theme.bg.frame(height: topInset)
-        KTodayHeader(theme: theme, title: content.title)
+        KTodayHeader(
+          theme: theme,
+          title: content.title,
+          locked: content.titleLocked || deck.pendingLeft != nil,
+          motion: motion
+        )
       }
       .frame(width: W)
 

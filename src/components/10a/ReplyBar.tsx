@@ -1,15 +1,23 @@
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { Pressable, Text, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { GlyphInput } from "../GlyphInput";
 import { useLetterFamily, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
 import { PFM } from "../../theme/post";
 import { LineIcon } from "./LineIcon";
-import { StickerBox } from "./StickerBox";
 import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
-import { REPLY_BAR, REPLY_BAR_MAX, REPLY_BAR_PAD, sendClearsField, sendDiscLook, sendKeyState, sendTakesPress, type SendState } from "./kit";
+import { REPLY_BAR, sendClearsField, sendDiscLook, sendKeyState, sendTakesPress, type SendState } from "./kit";
 
-/* THE REPLY BAR (chat composers, Prompt 1; the owner's final, 2026-10-18;
+/* R2 (owner, 2026-10-20, as KReplyBar draws it): a capsule 46 tall, fully
+   round, sf with a 1pt #DAD8E6 line (Midnight: its line) that turns ind
+   while the field has focus; the field (16 in the reader's Letter font) and
+   the emoji key inside it; the send key its own 46 circle 8 to its right —
+   lav with a faint plane at .92 while there is nothing to send (or a full
+   pouch holds it: still pressed, so the screen can say why), ind with a white
+   plane once there is. No reply arrow, no outline, no hard shadow. The hint
+   line over it is unchanged. The notes below describe the bar before R2.
+
+   THE REPLY BAR (chat composers, Prompt 1; the owner's final, 2026-10-18;
    KReplyBar's React Native twin). One object in two places, the Today reply
    (TodayRN) and the pen-pal chat before names are traded (LettersRN). What
    leaves it is a letter: words and emoji, nothing else. No Wren tool, no +,
@@ -123,12 +131,13 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
     if (sendClearsField(state) && !kept) f.clear();
   };
 
-  const { minHeight, border, radius, shadow, padLeft, padRight, gap, fontSize, lineHeight } = REPLY_BAR;
-  /* the resting row follows the field's one line at the reader's text size (54 at the default;
+  const [focused, setFocused] = useState(false);
+  const { minHeight, border, radius, padLeft, padRight, gap, sendGap, fontSize, lineHeight } = R2;
+  /* the resting row follows the field's one line at the reader's text size (46 at the default;
      useComposerField DYNAMIC TYPE), so the placeholder is never cut */
-  const inner = Math.max(minHeight - 2 * border, f.restingLine(lineHeight, REPLY_BAR_PAD));
+  const inner = Math.max(minHeight - 2 * border, f.restingLine(lineHeight, R2_PAD));
   const rowHeight = inner + 2 * border;
-  // the arrow and the two keys: centred on the resting row, kept on the bottom line as it grows
+  // the emoji key and the send circle: centred on the resting row, kept on the bottom line as it grows
   const rest = { height: inner, justifyContent: "center" as const };
 
   return (
@@ -138,60 +147,125 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
           {hint}
         </Text>
       )}
-      <StickerBox
-        fill={tk.sf}
-        stroke={tk.ln}
-        lineWidth={border}
-        radius={radius}
-        shadow={tk.ln}
-        offset={shadow}
-        faceStyle={{ flexDirection: "row", alignItems: "flex-end", minHeight: rowHeight, paddingLeft: padLeft, paddingRight: padRight, gap }}
-      >
-        <View style={rest} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <LineIcon name="replyArrow" size={REPLY_BAR.arrow} color={tk.ink} />
-        </View>
-        <GlyphInput
-          key={f.seed.n}
-          ref={f.input}
-          {...inputProps}
-          defaultValue={f.seed.text}
-          onChangeText={f.note}
-          onScroll={f.onScroll}
-          onContentSizeChange={f.onContentSizeChange}
-          placeholder={placeholder}
-          placeholderTextColor={tk.mute}
-          multiline
-          returnKeyType={returnSends ? "send" : "default"}
-          submitBehavior={returnSends ? "submit" : "newline"}
-          onSubmitEditing={returnSends ? send : undefined}
-          editable={editable}
-          autoFocus={f.seed.n > 0 ? f.seed.focus : autoFocus}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          keyboardAppearance={tk.dark ? "dark" : "light"}
-          maxFontSizeMultiplier={FIELD_FONT_CAP}
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: sendGap }}>
+        <View
           style={{
             flex: 1,
-            ...f.box(lineHeight, REPLY_BAR_MAX, REPLY_BAR_PAD),
-            paddingTop: REPLY_BAR_PAD,
-            paddingBottom: REPLY_BAR_PAD,
-            paddingHorizontal: 0,
-            ...face,
-            fontSize,
-            lineHeight,
-            color: tk.ink,
+            flexDirection: "row",
+            alignItems: "flex-end",
+            minHeight: rowHeight,
+            paddingLeft: padLeft - border,
+            paddingRight: padRight - border,
+            gap,
+            borderRadius: radius,
+            borderWidth: border,
+            borderColor: focused ? tk.ind : tk.dark ? tk.line : R2.restLine,
+            backgroundColor: tk.sf,
           }}
-        />
-        <View style={rest}>
-          <EmojiKey label={emojiLabel} onPress={() => f.input.current?.focus()} />
+        >
+          <GlyphInput
+            key={f.seed.n}
+            ref={f.input}
+            {...inputProps}
+            defaultValue={f.seed.text}
+            onChangeText={f.note}
+            onScroll={f.onScroll}
+            onContentSizeChange={f.onContentSizeChange}
+            placeholder={placeholder}
+            placeholderTextColor={tk.mute}
+            multiline
+            returnKeyType={returnSends ? "send" : "default"}
+            submitBehavior={returnSends ? "submit" : "newline"}
+            onSubmitEditing={returnSends ? send : undefined}
+            editable={editable}
+            autoFocus={f.seed.n > 0 ? f.seed.focus : autoFocus}
+            onFocus={() => {
+              setFocused(true);
+              onFocus?.();
+            }}
+            onBlur={() => {
+              setFocused(false);
+              onBlur?.();
+            }}
+            keyboardAppearance={tk.dark ? "dark" : "light"}
+            maxFontSizeMultiplier={FIELD_FONT_CAP}
+            style={{
+              flex: 1,
+              ...f.box(lineHeight, R2_MAX, R2_PAD),
+              paddingTop: R2_PAD,
+              paddingBottom: R2_PAD,
+              paddingHorizontal: 0,
+              ...face,
+              fontSize,
+              lineHeight,
+              color: tk.ink,
+            }}
+          />
+          <View style={rest}>
+            <EmojiKey label={emojiLabel} onPress={() => f.input.current?.focus()} />
+          </View>
         </View>
-        <View style={rest}>
-          <SendDisc state={state} label={sendLabel} onPress={send} />
+        <View style={{ height: rowHeight, justifyContent: "center" }}>
+          <ReplySendCircle state={state} label={sendLabel} onPress={send} />
         </View>
-      </StickerBox>
+      </View>
     </View>
   );
 });
+
+/** R2's numbers (KReplyBar): the capsule 46 at one line, fully round, a 1pt line; 16 in on the
+    left and 4 on the right (the emoji key's own room), the field and the key 4 apart; the send
+    circle 46, 8 to the right of the capsule. */
+const R2 = {
+  minHeight: 46,
+  border: 1,
+  radius: 23,
+  padLeft: 16,
+  padRight: 4,
+  gap: 4,
+  sendGap: 8,
+  circle: 46,
+  fontSize: REPLY_BAR.fontSize,
+  lineHeight: REPLY_BAR.lineHeight,
+  maxLines: REPLY_BAR.maxLines,
+  /** the capsule's line at rest on the light themes */
+  restLine: "#DAD8E6",
+} as const;
+/** the field's padding: one line sits centred in the 46 resting height */
+const R2_PAD = (R2.minHeight - 2 * R2.border - R2.lineHeight) / 2;
+/** the tallest the field grows: four lines and its padding */
+const R2_MAX = R2.maxLines * R2.lineHeight + 2 * R2_PAD;
+
+/** R2's send key (KReplySendCircle): a 46 circle beside the capsule. Nothing to send: lav, the plane
+    faint, at .92, not pressable. Words that can go: ind, the plane white, full size. Dimmed (a full
+    pouch): drawn as nothing-to-send but still pressed, so the screen can say why. Fades while pressed. */
+function ReplySendCircle({ state, label, onPress }: { state: SendState; label: string; onPress: () => void }) {
+  const { t: tk } = useTheme();
+  const on = state === "enabled";
+  const live = sendTakesPress(state);
+  return (
+    <Pressable
+      onPress={live ? onPress : undefined}
+      disabled={!live}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !live }}
+      hitSlop={4}
+      style={({ pressed }) => ({
+        width: R2.circle,
+        height: R2.circle,
+        borderRadius: R2.circle / 2,
+        backgroundColor: on ? tk.ind : tk.lav,
+        opacity: live && pressed ? 0.6 : 1,
+        alignItems: "center",
+        justifyContent: "center",
+        transform: [{ scale: on ? 1 : 0.92 }],
+      })}
+    >
+      <LineIcon name="planeLine" size={20} stroke={2.2} color={on ? "#FFFFFF" : tk.faint} />
+    </Pressable>
+  );
+}
 
 /** THE EMOJI KEY of both chat bars (Prompt 5): the I1 face 22 in ink on a square of `side` with
     corners of `radius` (the reply bar: 36 and 10), or a circle (the Kindreds bar's 40); lav while

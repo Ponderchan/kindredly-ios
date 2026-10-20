@@ -40,6 +40,10 @@ const CUES = { Fold: 0, Pickup: 0.9, World: 1.6, Cross: 2.5 };
 const TOTAL = 3.7;
 /** the arrival card, before the fade: the clock rests here until the send has landed */
 const HOLD_AT = TOTAL - 0.18;
+/** past this long at the hold, the card says she is still flying */
+const WAIT_MS = 2500;
+/** once the send has landed, how long the card says so before the fade */
+const DONE_MS = 900;
 
 /* THE ILLUSTRATION KEEPS ITS OWN COLOURS IN EVERY THEME (10a): the paper,
    the envelope, the planet with its day and its night side — a picture of
@@ -182,6 +186,13 @@ export function LetterTravel({
   const fade = useRef(new Animated.Value(1)).current;
   const readyRef = useRef(ready);
   readyRef.current = ready;
+  /* SAY WHAT IS HAPPENING (owner's phone, 2026-10-20: the arrival card stood still for 40 s on a
+     slow network and then simply went away — "没有反馈 我也不知道"). Past a short rest the card's
+     line says she is still flying; when the send lands it says so for a moment before the fade,
+     so the piece never leaves without telling the writer the letter went. */
+  const readyAt = useRef<number | null>(null);
+  if (ready && readyAt.current === null) readyAt.current = Date.now();
+  const holdAt = useRef<number | null>(null);
   const leaving = useRef(false);
   const tapped = useRef(false);
   /* onDone through a ref: the clock effect used to depend on it, and the
@@ -208,8 +219,10 @@ export function LetterTravel({
       const wall = (now - t0) / 1000;
       setBeat(wall);
       let tt = wall - paused;
-      if (tt >= HOLD_AT && !readyRef.current) {
+      const confirmed = readyRef.current && readyAt.current !== null && now - Math.max(readyAt.current, holdAt.current ?? now) >= DONE_MS;
+      if (tt >= HOLD_AT && !confirmed) {
         if (pauseAt === null) pauseAt = now;
+        if (holdAt.current === null) holdAt.current = now;
         tt = HOLD_AT;
       } else if (pauseAt !== null) {
         /* in seconds. This was added in milliseconds against a clock in
@@ -242,9 +255,14 @@ export function LetterTravel({
     if (!reduce || !ready) return;
     const id = setTimeout(() => {
       Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => onDoneRef.current());
-    }, 900);
+    }, 900 + DONE_MS);
     return () => clearTimeout(id);
   }, [reduce, ready, fade]);
+
+  /* the card's second line: the usual one, "still flying…" once the rest runs long, "sent" once it lands */
+  const heldFor = holdAt.current !== null ? Date.now() - holdAt.current : 0;
+  const atCard = reduce || T >= HOLD_AT - 0.01;
+  const cardLine = !atCard ? null : ready ? t("so.travel.done") : heldFor >= WAIT_MS || (reduce && beat > WAIT_MS / 1000) ? t("so.travel.wait") : null;
 
   /* ── the sheet's numbers ── */
   const fold = draw(0, 1, 0.24, CUES.Pickup - 0.1)(T);
@@ -512,7 +530,7 @@ export function LetterTravel({
       {/* the words, in real type on the sheet's grid */}
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(84), alignItems: "center", opacity: markIn * (1 - outro), transform: [{ translateY: (1 - markIn) * 8 * k }] }}>
         <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 30 * k, lineHeight: 36 * k, letterSpacing: -0.7 * k, color: wordInk, textAlign: "center", paddingHorizontal: 24 }}>{title ?? t("so.travel.title")}</Text>
-        <Text style={{ ...PFM.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: noteInk, marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: noteInk, marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(cardLine ?? note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
       </View>
     </Animated.View>
   );

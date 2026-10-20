@@ -303,8 +303,12 @@ export function SelfCompose({
         return;
       }
       if (!(await sealPage({ type: "photo", body, mood, media: uris, coverIndex: 0, mediaUri: uris[0] }))) return;
+      /* the album gets the same send-off as every other page (owner, 2026-10-20: "点 seal it
+         here 没有动画"). This branch closed the page at once with onDone() — it predates the
+         send-off (slice 261 put setSealed only on the text / voice / video tail), so a page
+         that came in from the roll, the usual way in, never played it. */
       setBusy(false);
-      onDone();
+      setSealed(true);
       return;
     }
 

@@ -6,6 +6,7 @@ import { getLang } from "./i18n";
 import { getWrenName } from "./wren-name";
 import { loadJournal } from "./journal";
 import { POOL_CACHE_KEY } from "./db";
+import { WRITE_MS } from "./net";
 import { readBest, readWork } from "./free-flight";
 import { noteFed } from "./hunger";
 import { LOCAL_PUSH, POOL_KEYS, type LocalPool } from "../data/local-push-copy";
@@ -133,9 +134,29 @@ async function readCache(): Promise<{ cached: Record<string, unknown> | null; er
    queued write starts from a fresh read of the account (serverPush), and
    writes nothing when that read fails. Queued, two switches flipped within
    one round trip never start from the same old object. */
+/* NOTHING IN HERE WAITS FOREVER (owner, 2026-10-20: "Yes, at 9" stayed grey and nothing
+   happened). Every request already ends (lib/supabase's timedFetch), but an auth call is more
+   than its request — it waits its turn on supabase-js's session lock, and a step that never
+   settles there held this queue, and the button waiting on it, for good. So every auth step
+   carries its own deadline, and so does each job's place in the queue: one stuck entry is
+   given up on (its caller hears why) and the next write goes ahead. */
+const AUTH_STEP_MS = WRITE_MS;
+/** the longest one queued job may hold the line: a session read, an account read and a write */
+export const PREF_JOB_MS = 3 * AUTH_STEP_MS + 5000;
+
+/** `p`, or a rejection naming `what` once `ms` has passed without an answer */
+export function within<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what}: no answer in ${Math.round(ms / 1000)}s`)), ms);
+  });
+  return Promise.race([p, late]).finally(() => clearTimeout(timer));
+}
+
 let prefWrites: Promise<unknown> = Promise.resolve();
 function queuePrefs<T>(job: () => Promise<T>): Promise<T> {
-  const run = prefWrites.then(job, job);
+  const bounded = () => within(job(), PREF_JOB_MS, "push prefs write");
+  const run = prefWrites.then(bounded, bounded);
   prefWrites = run.catch(() => undefined);
   return run;
 }
@@ -143,11 +164,18 @@ function queuePrefs<T>(job: () => Promise<T>): Promise<T> {
 /** the account as the server holds it right now (one network read): null = signed out. Throws when it can't be read. */
 async function serverUser(): Promise<{ user_metadata?: unknown } | null> {
   if (!supabase) return null;
-  const { data: s } = await supabase.auth.getSession();
+  const { data: s, error: sErr } = await within(supabase.auth.getSession(), AUTH_STEP_MS, "session read");
+  if (sErr) throw sErr;
   if (!s.session) return null; // signed out: no account to read or write
-  const { data, error } = await supabase.auth.getUser();
+  const { data, error } = await within(supabase.auth.getUser(), AUTH_STEP_MS, "account read");
   if (error) throw error;
   return data.user ?? null;
+}
+
+/** one write of the push object to the account, with a deadline; throws when it was refused or never answered */
+async function writePush(sb: NonNullable<typeof supabase>, push: Record<string, unknown>): Promise<void> {
+  const { error } = await within(sb.auth.updateUser({ data: { push } }), AUTH_STEP_MS, "account write");
+  if (error) throw error;
 }
 
 /** the account's switches; this phone's copy when the account can't be read; defaults only for someone who never had either */
@@ -156,7 +184,7 @@ export async function readPushPrefs(): Promise<PrefsRead> {
   if (supabase) {
     const sb = supabase;
     try {
-      const { data, error } = await sb.auth.getSession(); // the metadata rides on the local session
+      const { data, error } = await within(sb.auth.getSession(), AUTH_STEP_MS, "session read"); // the metadata rides on the local session
       if (error) throw error;
       const user = data.session?.user;
       if (user) {
@@ -174,8 +202,7 @@ export async function readPushPrefs(): Promise<PrefsRead> {
               const add = phoneOnly(cached, current);
               if (!Object.keys(add).length) return current;
               const next = { ...add, ...current };
-              const { error: wErr } = await sb.auth.updateUser({ data: { push: next } });
-              if (wErr) throw wErr;
+              await writePush(sb, next);
               return next;
             });
           } catch (e) {
@@ -209,8 +236,7 @@ export function setPushPref(key: PushKey, value: boolean): Promise<PushPrefs> {
         const current = pushOf(user);
         // switches only this phone held ride along, so none is dropped from either side
         next = withSwitch({ ...phoneOnly(cached, current), ...current }, key, value);
-        const { error } = await supabase.auth.updateUser({ data: { push: next } });
-        if (error) throw error;
+        await writePush(supabase, next);
       }
     }
     try {
@@ -237,7 +263,7 @@ export async function ensurePushObject(): Promise<void> {
   if (!supabase) return;
   const sb = supabase;
   try {
-    const { data, error } = await sb.auth.getSession();
+    const { data, error } = await within(sb.auth.getSession(), AUTH_STEP_MS, "session read");
     if (error) throw error;
     if (!data.session?.user || hasPushObject(data.session.user)) return;
     await queuePrefs(async () => {
@@ -246,8 +272,7 @@ export async function ensurePushObject(): Promise<void> {
       if (!user || hasPushObject(user)) return;
       const { cached } = await readCache();
       const push = phoneOnly(cached, {});
-      const { error: wErr } = await sb.auth.updateUser({ data: { push } });
-      if (wErr) throw wErr;
+      await writePush(sb, push);
     });
   } catch (e) {
     say("push object", e); // the next launch tries again
@@ -287,12 +312,18 @@ export async function notificationsAllowed(): Promise<boolean> {
   return p.status === "granted" || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 }
 
-/** turning a phone-side switch on: ask once if iOS still lets us; false = not allowed */
+/** reading iOS's answer is instant; this only stops a read that never comes back */
+const PERMISSION_READ_MS = 5000;
+/** iOS's own question waits on a person, so it gets a person's time — but not forever */
+const PERMISSION_ASK_MS = 120_000;
+
+/** turning a phone-side switch on: ask once if iOS still lets us; false = not allowed. Throws
+    (never hangs) when iOS doesn't answer. */
 export async function askForNotifications(): Promise<boolean> {
-  if (await notificationsAllowed()) return true;
-  const p = await Notifications.getPermissionsAsync();
+  const p = await within(Notifications.getPermissionsAsync(), PERMISSION_READ_MS, "notification permission read");
+  if (p.status === "granted" || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) return true;
   if (!p.canAskAgain) return false;
-  const r = await Notifications.requestPermissionsAsync();
+  const r = await within(Notifications.requestPermissionsAsync(), PERMISSION_ASK_MS, "notification permission ask");
   return r.status === "granted" || r.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 }
 

@@ -14,7 +14,7 @@ import { Toast } from "../../components/ui";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { LeaveSheet } from "../../components/LeaveSheet";
-import { InkPanel, REPLY_BAR, ReplyBar } from "../../components/10a";
+import { InkPanel, ReplyBar } from "../../components/10a";
 import type { TodayModel } from "./useTodayDesk";
 
 /* THE UNFOLDED LETTER (both renderers: SwiftUI's UNFOLD ↓ and the React
@@ -175,8 +175,6 @@ export function LetterReader({ model }: { model: TodayModel }) {
                   act.send(letter.id, v);
                   return false;
                 }}
-                // the bar's hard shadow hangs 2 to the right
-                style={{ marginRight: REPLY_BAR.shadow }}
               />
             ) : (
               <Pressable

@@ -2,11 +2,11 @@ import { useEffect, type RefObject } from "react";
 import { AccessibilityInfo, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { KChatDock, KChatDockAction } from "../../../modules/kindredly-ui/src/Conversation";
-import { InkPanel } from "../../components/10a/InkPanel";
 import { StickerBox } from "../../components/10a/StickerBox";
 import { GlyphInput } from "../../components/GlyphInput";
+import { sheetKey, sheetKeyLabel } from "../../components/sheet-chrome";
 import { WrenBird } from "../../components/WrenBird";
-import { useLetterFamily, useTheme } from "../../lib/theme";
+import { useLetterFamily, useP, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
 import { MONO, PFM } from "../../theme/post";
 import "../../data/strings-a11y-chat"; // rm.askNeedsPrompt (build-items roomComposer)
@@ -214,11 +214,14 @@ export function GoneLine({ text }: { text: string }) {
   );
 }
 
-/** the expired door: InkCard .me, her bird thinking, the label, the body, REKINDLE (owner: it stays) */
+/** the expired door (owner, 2026-10-20: no black frame): a soft card as Wren's notice and the
+    native sheets are (tk.soft, continuous corners of 20, no outline, no hard shadow), her bird
+    thinking, the label, the body, and Rekindle as the sheets' primary capsule key */
 export function ExpiredCard({ dock, onDock }: { dock: KChatDock; onDock: (action: KChatDockAction) => void }) {
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
+  const P = useP();
   return (
-    <InkPanel variant="me" style={{ marginRight: 5, marginBottom: 11, marginTop: 4 }} contentStyle={{ gap: 8 }}>
+    <View style={{ marginTop: 4, marginBottom: 6, borderRadius: 20, borderCurve: "continuous", backgroundColor: tk.soft, paddingHorizontal: 16, paddingVertical: 14, gap: 8 }}>
       <View accessible style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <WrenBird size={20} mood="think" />
         <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: MONO.small * 0.12, color: tk.mute }}>{dock.expiredLabel}</Text>
@@ -227,10 +230,10 @@ export function ExpiredCard({ dock, onDock }: { dock: KChatDock; onDock: (action
       <Pressable
         onPress={() => onDock("rekindle")}
         accessibilityRole="button"
-        style={({ pressed }) => ({ marginTop: 4, backgroundColor: tk.ink, borderRadius: 14, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
+        style={({ pressed }) => [{ marginTop: 4 }, sheetKey("primary", tk, P, dark, pressed)]}
       >
-        <Text style={{ fontSize: 14, fontWeight: "600", color: tk.bg }}>{dock.expiredButton}</Text>
+        <Text style={sheetKeyLabel("primary", tk, P, dark)} numberOfLines={1}>{dock.expiredButton}</Text>
       </Pressable>
-    </InkPanel>
+    </View>
   );
 }

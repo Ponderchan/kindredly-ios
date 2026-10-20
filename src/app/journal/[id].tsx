@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { localeTag } from "../../lib/format";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Button, Host, Image as SImage, Menu } from "@expo/ui/swift-ui";
+import { accessibilityLabel, contentShape, frame, menuIndicator, shapes } from "@expo/ui/swift-ui/modifiers";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -32,7 +34,7 @@ const ON_HIGHLIGHT = "#1E1B35";
 export default function JournalDetail() {
   useLang();
   const P = useP();
-  const tk = useTheme().t;
+  const { t: tk, dark } = useTheme();
   // the page and its drifted line are content: the reader's Letter font
   const face = useLetterFamily();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,7 +42,6 @@ export default function JournalDetail() {
   const [e, setE] = useState<JournalEntry | null>(null);
   // the first read has answered: a page still loading and a page that isn't there look different now
   const [read, setRead] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const isDemo = !!id?.startsWith("demo-");
 
   useFocusEffect(
@@ -136,6 +137,14 @@ export default function JournalDetail() {
   const moodName = moodLabel(e.mood);
   const tint = moodColors(group).ink;
   const pure = e.type === "text";
+  /* The whole page, not just a line. This is what makes choosing up front safe: a thought you
+     sealed can still leave, once it's had time to sit — which is more this product than a switch
+     flipped mid-sentence. It doesn't teleport: it carries your words to the letter desk, where you
+     give it a stamp and send it yourself. ONLY WORDS DRIFT (owner, 2026-09-20): a page with
+     pictures, a voice or a film stays in the room; a line on its own never leaves either — the
+     whole page goes, to the letter desk, or nothing does. */
+  const canDrift = !isDemo && pure && e.body.trim().length >= 3;
+  const drift = () => router.push({ pathname: "/compose", params: { seed: e.body } });
 
   // the page stays neutral — the mood lives in its face, not the background
   return (
@@ -146,16 +155,19 @@ export default function JournalDetail() {
         <BackChevron onPress={goBack} color={P.ink} />
         {/* samples get the menu too — hiding it read as "delete is missing",
             not "this is a sample". Drift stays real-pages-only inside. */}
-        <Pressable
-          onPress={() => setMenuOpen(true)}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("jd.more")}
-          accessibilityState={{ expanded: menuOpen }}
-          style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
-        >
-          <Text style={{ ...PFM.mono, fontSize: 20, color: P.ink }}>···</Text>
-        </Pressable>
+        {/* iOS's own pull-down menu (owner, 2026-10-20: "做出苹果原生的那样 就像举报那里一样"):
+            the SwiftUI Menu the Today card's ⋯ uses for Report, dropping from the ⋯ itself, with
+            Delete as its destructive item; tapping anywhere else closes it. The confirmation
+            behind Delete is unchanged. */}
+        <Host matchContents colorScheme={dark ? "dark" : "light"}>
+          <Menu
+            label={<SImage systemName="ellipsis" size={19} color={P.ink} modifiers={[frame({ width: 42, height: 42 }), contentShape(shapes.rectangle())]} />}
+            modifiers={[menuIndicator("hidden"), accessibilityLabel(t("jd.more"))]}
+          >
+            {canDrift ? <Button label={t("jd.driftThis")} systemImage="paperplane" onPress={drift} /> : null}
+            <Button label={t("jd.delete")} systemImage="trash" role="destructive" onPress={() => setTimeout(confirmDelete, 0)} />
+          </Menu>
+        </Host>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -215,57 +227,6 @@ export default function JournalDetail() {
 
       </ScrollView>
 
-      {/* ··· dropdown — anchored under the button, tap outside to close */}
-      {menuOpen && (
-        <>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
-          <View
-            /* hangs under the ··· button. `top` is measured from inside the
-               SafeAreaView, so it counts from below the notch — the old 48
-               was tuned before this header changed height and had drifted up
-               over the status bar. 56 clears the 42pt button plus its row. */
-            style={{
-              position: "absolute",
-              top: 56,
-              right: 14,
-              backgroundColor: P.paper,
-              borderWidth: 1,
-              borderColor: tk.ln,
-              minWidth: 232,
-            }}
-          >
-            {/* The whole page, not just a line. This is what makes choosing up
-                front safe: a thought you sealed can still leave, once it's had
-                time to sit — which is more this product than a switch flipped
-                mid-sentence. It doesn't teleport: it carries your words to the
-                letter desk, where you give it a stamp and send it yourself. */}
-            {/* ONLY WORDS DRIFT (owner, 2026-09-20): a page with pictures,
-                a voice or a film stays in the room; a line on its own never
-                leaves either — the whole page goes, to the letter desk, or
-                nothing does. */}
-            {!isDemo && pure && e.body.trim().length >= 3 && (
-              <MenuRow
-                label={t("jd.driftThis")}
-                icon={<DriftIcon />}
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push({ pathname: "/compose", params: { seed: e.body } });
-                }}
-              />
-            )}
-            <MenuRow
-              label={t("jd.delete")}
-              icon={<BinIcon />}
-              destructive
-              onPress={() => {
-                setMenuOpen(false);
-                confirmDelete();
-              }}
-            />
-          </View>
-        </>
-      )}
-
     </SafeAreaView>
   );
 }
@@ -279,57 +240,6 @@ function CalGlyph() {
       <View style={{ position: "absolute", top: -2.5, right: 2.5, width: 1.5, height: 3, borderRadius: 1, backgroundColor: P.ink60 }} />
       <View style={{ width: 6, height: 1.4, borderRadius: 1, backgroundColor: P.ink60 }} />
     </View>
-  );
-}
-
-function MenuRow({ label, onPress, destructive, icon }: { label: string; onPress: () => void; destructive?: boolean; icon?: React.ReactNode }) {
-  const P = useP();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        backgroundColor: pressed ? P.paperDeep : "transparent",
-        // the destructive row is separated, not merely recoloured
-        borderTopWidth: destructive ? 1 : 0,
-        borderTopColor: P.ink12,
-      })}
-    >
-      {icon}
-      <Text style={{ fontSize: 14, fontWeight: "600", letterSpacing: 0.3, color: destructive ? P.post : P.ink }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-/* A DRAWN BIN. Delete is the one action here that can't be undone, so it gets
-   the one mark every reader recognises without reading. "TEAR THIS PAGE OUT"
-   was our voice being precious about a destructive control — the worst place
-   in an app to make someone parse a metaphor. The row says DELETE; the paper
-   language keeps its home in the confirm, where there's room for it. */
-function BinIcon() {
-  const P = useP();
-  return (
-    <Svg width={15} height={15} viewBox="0 0 16 16">
-      <Path d="M2.6 4.2h10.8" stroke={P.post} strokeWidth={1.5} strokeLinecap="round" />
-      <Path d="M6.2 4.2V2.9h3.6v1.3" fill="none" stroke={P.post} strokeWidth={1.5} strokeLinejoin="round" />
-      <Path d="M4 4.2l.6 8.3a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9l.6-8.3" fill="none" stroke={P.post} strokeWidth={1.5} strokeLinejoin="round" />
-      <Path d="M6.6 6.6v4.2M9.4 6.6v4.2" stroke={P.post} strokeWidth={1.3} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-/* the drift rows share one mark: a dotted line leaving, with an arrow */
-function DriftIcon() {
-  const P = useP();
-  return (
-    <Svg width={15} height={15} viewBox="0 0 16 16">
-      <Path d="M2.6 9.6c3.4-4.4 6.8-4.4 10.2 0" fill="none" stroke={P.ink} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="1.6 2" />
-      <Path d="M9.6 2.9l3.4 1.5-1.4 3.4" fill="none" stroke={P.ink} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
   );
 }
 
