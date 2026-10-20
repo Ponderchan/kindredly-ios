@@ -357,7 +357,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
               accessibilityRole="button"
               style={({ pressed }) => ({ backgroundColor: tk.ink, borderRadius: 14, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
             >
-              <Text style={{ fontSize: 14, fontWeight: "600", letterSpacing: 0.4, color: tk.bg }}>{t("kd.talkTo", { name: name.toLocaleUpperCase(locale) })}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", letterSpacing: 0.4, color: tk.bg }}>{t("kd.talkTo", { name })}</Text>
             </Pressable>
           )}
         </ScrollView>

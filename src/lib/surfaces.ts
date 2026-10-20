@@ -18,9 +18,9 @@ import {
   type SurfaceMap,
 } from "./surfaces-resolve";
 
-/* THE REMOTE SWITCH FOR NATIVE SCREENS (10a, 1.3.0).
+/* THE REMOTE SWITCH FOR NATIVE SCREENS (10a, 1.2.4).
    ────────────────────────────────────────────────────────────────────────
-   Some screens are drawn in SwiftUI from 1.3.0 on, each next to the React
+   Some screens are drawn in SwiftUI from 1.2.4 on, each next to the React
    Native screen it replaces. A bug in the Swift one is native code: only a
    new binary fixes it, and review takes days. So every Swift screen asks
    here first, and the makers can send any one of them back to React
@@ -127,7 +127,7 @@ const KEY = "kindredly_surfaces";
 const FRESH_MS = 10 * 60_000;
 const RETRY_MS = 60_000;
 
-/* the binary's own version (app.json "version", 1.3.0) — not the App
+/* the binary's own version (app.json "version", 1.2.4) — not the App
    Store label (1.0.5). Rows target this. */
 const VERSION: string | null = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null;
 
@@ -163,7 +163,7 @@ function loadCache(): Promise<void> {
 const ARMING_KEY = "kindredly_native_arming";
 
 /* Strikes belong to one binary: the version AND the build, so a rebuilt
-   1.3.0 that fixes a crash starts with a clean slate. */
+   1.2.4 that fixes a crash starts with a clean slate. */
 const BINARY: string | null = VERSION ? `${VERSION} (${Application.nativeBuildVersion ?? "?"})` : null;
 
 let arming: ArmingRecord = emptyArming(BINARY);

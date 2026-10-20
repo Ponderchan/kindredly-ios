@@ -137,7 +137,7 @@ export default function WriteToUs() {
             accessibilityState={{ disabled: !canSend, busy: sending }}
             style={({ pressed }) => ({ ...solidBtn, marginTop: 26, opacity: canSend ? (pressed ? 0.85 : 1) : 0.4 })}
           >
-            <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.bg }}>{sending ? "…" : t("wu.send", { wren: wren.toUpperCase() })}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.bg }}>{sending ? "…" : t("wu.send", { wren })}</Text>
           </Pressable>
 
           <Text style={{ ...PFM.mono, fontSize: MONO.small, letterSpacing: 1, color: tk.mute, textAlign: "center", marginTop: 14 }}>{t("wu.travelsWith", { v: VERSION })}</Text>

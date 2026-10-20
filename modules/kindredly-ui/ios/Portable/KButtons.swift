@@ -265,7 +265,6 @@ public struct KDisabledPill: View {
   public var body: some View {
     Button(action: {}) {
       Text(title)
-        .textCase(.uppercase)
         .kText(.monoSend)
         .foregroundStyle(theme.faint)
         .lineLimit(1)
@@ -365,7 +364,6 @@ public struct KSendKey: View {
         .contentShape(Capsule())
     case .word:
       Text(label)
-        .textCase(.uppercase)
         .kText(.monoSend)
         .foregroundStyle(theme.bg)
         .lineLimit(1)

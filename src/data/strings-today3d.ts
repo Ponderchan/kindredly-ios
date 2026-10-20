@@ -92,8 +92,8 @@ strings(
     "pub.note": "Diary note",
     "pub.noteSub": "Stays with you · text, voice, photo",
     // THE + ON TODAY: the labels under the two round buttons that pop up from the +
-    "pub.popLetter": "LETTER",
-    "pub.popNote": "NOTE",
+    "pub.popLetter": "Letter",
+    "pub.popNote": "Note",
   },
   /* ── es · Español ── */
   {
@@ -128,8 +128,8 @@ strings(
     "pub.left": "QUEDAN {n}",
     "pub.note": "Nota de diario",
     "pub.noteSub": "Se queda contigo · texto, voz, foto",
-    "pub.popLetter": "CARTA",
-    "pub.popNote": "NOTA",
+    "pub.popLetter": "Carta",
+    "pub.popNote": "Nota",
   },
   /* ── pt · Português (Brasil) ── */
   {
@@ -164,8 +164,8 @@ strings(
     "pub.left": "RESTAM {n}",
     "pub.note": "Nota de diário",
     "pub.noteSub": "Fica com você · texto, voz, foto",
-    "pub.popLetter": "CARTA",
-    "pub.popNote": "NOTA",
+    "pub.popLetter": "Carta",
+    "pub.popNote": "Nota",
   },
   /* ── id · Bahasa Indonesia ── */
   {
@@ -200,8 +200,8 @@ strings(
     "pub.left": "SISA {n}",
     "pub.note": "Catatan harian",
     "pub.noteSub": "Cuma buat kamu · teks, suara, foto",
-    "pub.popLetter": "SURAT",
-    "pub.popNote": "CATATAN",
+    "pub.popLetter": "Surat",
+    "pub.popNote": "Catatan",
   },
   /* ── fr · Français ── */
   {
@@ -236,8 +236,8 @@ strings(
     "pub.left": "ENCORE {n}",
     "pub.note": "Note de journal",
     "pub.noteSub": "Reste avec toi · texte, voix, photo",
-    "pub.popLetter": "LETTRE",
-    "pub.popNote": "NOTE",
+    "pub.popLetter": "Lettre",
+    "pub.popNote": "Note",
   },
   /* ── de · Deutsch ── */
   {
@@ -272,8 +272,8 @@ strings(
     "pub.left": "NOCH {n}",
     "pub.note": "Tagebuchnotiz",
     "pub.noteSub": "Bleibt bei dir · Text, Sprache, Foto",
-    "pub.popLetter": "BRIEF",
-    "pub.popNote": "NOTIZ",
+    "pub.popLetter": "Brief",
+    "pub.popNote": "Notiz",
   },
   /* ── it · Italiano ── */
   {
@@ -308,8 +308,8 @@ strings(
     "pub.left": "ANCORA {n}",
     "pub.note": "Nota di diario",
     "pub.noteSub": "Resta con te · testo, voce, foto",
-    "pub.popLetter": "LETTERA",
-    "pub.popNote": "NOTA",
+    "pub.popLetter": "Lettera",
+    "pub.popNote": "Nota",
   },
   /* ── ja · 日本語 ── */
   {

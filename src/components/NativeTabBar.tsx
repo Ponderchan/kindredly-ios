@@ -12,7 +12,7 @@ import { useLettersLeft } from "../lib/use-publish-stage";
 import { tabBarHeight } from "./PostTabBar";
 import "../data/strings-today3d"; // pub.* (the publish entry's words)
 
-/* THE 10a TAB BAR, IN SWIFTUI (1.3.0) — the floating bar with the sliding
+/* THE 10a TAB BAR, IN SWIFTUI (1.2.4) — the floating bar with the sliding
    lens, the + that turns into an ×, and what the + opens, all drawn by
    modules/kindredly-ui (KTabBar). This file is the React Native side of
    it: it turns the navigator's state into the bar's props, the bar's taps

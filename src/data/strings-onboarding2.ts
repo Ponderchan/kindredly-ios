@@ -150,7 +150,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. Somewhere a stranger is checking the post.", // 7, the same line by day (05:00–21:00); one line, ≤ 58 with them
     "ob2.letter.head": "Write your first letter.", // 7 headline, left-aligned, one line on a 393pt phone (≤ 26)
     "ob2.letter.line": "A stranger reads it. Your egg reads it first.", // 7 under the headline, one line (≤ 48)
-    "ob2.letter.stuck": "STUCK?", // 7, the cue chip's mono label before the cue (caps, ≤ 8)
+    "ob2.letter.stuck": "Stuck?", // 7, the cue chip's mono label before the cue (caps, ≤ 8)
     "ob2.letter.stuckA11y": "Another idea", // VoiceOver hint on the cue chip (tap deals another cue)
     "ob2.letter.left": "{n} more to travel", // 7, the meter under the page: weighted characters still missing (mono, ≤ 22)
     "ob2.letter.ready": "that'll travel ✓", // 7, the meter at 20 weighted characters (mono, lower case, ≤ 22)
@@ -293,7 +293,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. En algún sitio, alguien mira el buzón.",
     "ob2.letter.head": "Escribe tu primera carta.",
     "ob2.letter.line": "La leerá un desconocido. Tu huevo, antes.",
-    "ob2.letter.stuck": "¿BLOQUEO?",
+    "ob2.letter.stuck": "¿Bloqueo?",
     "ob2.letter.stuckA11y": "Otra idea",
     "ob2.letter.left": "{n} más para viajar",
     "ob2.letter.ready": "lista para viajar ✓",
@@ -423,7 +423,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. Alguém por aí está checando o correio.",
     "ob2.letter.head": "Escreva sua primeira carta.",
     "ob2.letter.line": "Um desconhecido vai ler. Seu ovo lê antes.",
-    "ob2.letter.stuck": "TRAVOU?",
+    "ob2.letter.stuck": "Travou?",
     "ob2.letter.stuckA11y": "Outra ideia",
     "ob2.letter.left": "mais {n} pra viajar",
     "ob2.letter.ready": "pronta pra viajar ✓",
@@ -553,7 +553,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. Seseorang sedang mengecek kotak suratnya.",
     "ob2.letter.head": "Tulis surat pertamamu.",
     "ob2.letter.line": "Orang asing akan membacanya. Telurmu lebih dulu.",
-    "ob2.letter.stuck": "BUNTU?",
+    "ob2.letter.stuck": "Buntu?",
     "ob2.letter.stuckA11y": "Ide lain",
     "ob2.letter.left": "{n} lagi untuk terbang",
     "ob2.letter.ready": "siap terbang ✓",
@@ -683,7 +683,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. Quelque part, quelqu'un relève son courrier.",
     "ob2.letter.head": "Écris ta première lettre.",
     "ob2.letter.line": "Un inconnu la lira. Ton œuf, en premier.",
-    "ob2.letter.stuck": "EN PANNE ?",
+    "ob2.letter.stuck": "En panne ?",
     "ob2.letter.stuckA11y": "Une autre idée",
     "ob2.letter.left": "encore {n} pour partir",
     "ob2.letter.ready": "elle peut partir ✓",
@@ -813,7 +813,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. Irgendwo sieht jemand nach der Post.",
     "ob2.letter.head": "Schreib deinen ersten Brief.",
     "ob2.letter.line": "Jemand Fremdes liest ihn. Dein Ei zuerst.",
-    "ob2.letter.stuck": "HÄNGER?",
+    "ob2.letter.stuck": "Hänger?",
     "ob2.letter.stuckA11y": "Noch eine Idee",
     "ob2.letter.left": "noch {n} bis zum Abflug",
     "ob2.letter.ready": "reisefertig ✓",
@@ -943,7 +943,7 @@ strings(
     "ob2.letter.clockDay": "{time}, {day}. Chissà dove, qualcuno controlla la posta.",
     "ob2.letter.head": "Scrivi la tua prima lettera.",
     "ob2.letter.line": "La leggerà uno sconosciuto. Il tuo uovo, prima.",
-    "ob2.letter.stuck": "BLOCCO?",
+    "ob2.letter.stuck": "Blocco?",
     "ob2.letter.stuckA11y": "Un'altra idea",
     "ob2.letter.left": "ancora {n} per partire",
     "ob2.letter.ready": "pronta a partire ✓",

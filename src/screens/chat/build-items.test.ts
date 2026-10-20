@@ -335,7 +335,7 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const onOffer = B.buildLettersDock({ ...on, myCount: 5, otherCount: 5 });
   ok("identity on: five each way → SEND THEM YOUR NAME", onOffer.signDoor === "offer" && onOffer.signLabel === "ch.sendYours");
   const onTheirs = B.buildLettersDock({ ...on, myCount: 6, otherCount: 5, theirSigned: true });
-  ok("identity on: theirs in → {COURIER} WROTE FIRST, in capitals", onTheirs.signDoor === "theirsFirst" && onTheirs.signLabel === "id2.door.theyFirst(name=SUNDAY KITE)");
+  ok("identity on: theirs in → {Courier} Wrote First, the name as written (a button, not a label)", onTheirs.signDoor === "theirsFirst" && onTheirs.signLabel === "id2.door.theyFirst(name=Sunday Kite)");
   const onWaiting = B.buildLettersDock({ ...on, myCount: 5, otherCount: 5, iSigned: true });
   ok("identity on: mine in → YOU SIGNED · WAITING", onWaiting.signDoor === "waiting" && onWaiting.signLabel === "id2.door.waiting");
   ok("identity on: the door says what it opens, for VoiceOver; the waiting line and no door say nothing", onOffer.signHint === "id2.door.hint" && onTheirs.signHint === "id2.door.hint" && onWaiting.signHint === "" && B.buildLettersDock({ ...on, myCount: 2 }).signHint === "");
@@ -463,7 +463,7 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const base: import("./build-items").RoomDockInput = { t, locale: "en-US", wren: "Wren", name: "Mira", closing: false, daysLeft: 9, mode: null, replyTo: null, notice: null, gone: false, expired: false, quietDays: 0 };
   const dock = B.buildRoomDock(base);
   ok("Kindreds bar: the ideas key is named, so Swift draws the Kindreds bar", dock.ideasLabel === "rm.ideas.a11y");
-  ok("Kindreds bar: the bubble's words in capitals, the tray's title as written", dock.ideaLabel === "RM.IDEA.LABEL" && dock.ideaAnother === "RM.IDEA.ANOTHER" && dock.ideaUse === "RM.IDEA.USE" && dock.trayTitle === "rm.tray.title");
+  ok("Kindreds bar: the bubble's label in capitals, its two keys and the tray's title as written", dock.ideaLabel === "RM.IDEA.LABEL" && dock.ideaAnother === "rm.idea.another" && dock.ideaUse === "rm.idea.use" && dock.trayTitle === "rm.tray.title");
   ok("Kindreds bar: the emoji key is named", dock.emojiLabel === "cmp.emoji");
   ok(
     "the + tray: the four, with the I1 icons and their mood fills",

@@ -165,7 +165,7 @@ export function Introduction({
               mirrored on the left keeps it on the middle) */}
           <View style={{ width: 24 }} />
           <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: P.ink }}>
-            {t("intro.carriedBy", { name: wren.toUpperCase() })}
+            {t("intro.carriedBy", { name: wren })}
           </Text>
           <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 24, alignItems: "flex-end" }}>
             <Text style={{ ...PFM.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
@@ -249,7 +249,7 @@ export function Introduction({
             style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
           >
             <Text style={{ fontSize: 16, fontWeight: "600", letterSpacing: 0.4, color: tk.bg }}>
-              {t("in.talkTo", { name: theirName.toUpperCase() })}
+              {t("in.talkTo", { name: theirName })}
             </Text>
           </Pressable>
         </View>

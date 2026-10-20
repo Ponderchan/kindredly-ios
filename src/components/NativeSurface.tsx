@@ -21,7 +21,7 @@ import { useTheme } from "../lib/theme";
      · nativeOn(surface) is false — NATIVE_DEFAULTS, or a row in
        app_surfaces (lib/surfaces), or the crash breadcrumb below;
      · the binary doesn't have the Swift view (isKindredlyUIViewAvailable:
-       a dev client built before the view existed, any pre-1.3.0 binary);
+       a dev client built before the view existed, any pre-1.2.4 binary);
      · the Swift path threw a JS error (caught here; that surface stays
        React Native for the rest of this process);
      · the screen crashed the app while opening on the last two launches

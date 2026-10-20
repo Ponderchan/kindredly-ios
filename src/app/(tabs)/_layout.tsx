@@ -21,7 +21,7 @@ import { IdentityNote } from "../../screens/edit-profile/IdentityNote";
    composer slides in from the right on top of it — one continuous move
    forward. The + in the bar is the ×: the same press toggles it.
 
-   TWO BARS (10a, 1.3.0). With the "tabbar" surface on (lib/surfaces) and a
+   TWO BARS (10a, 1.2.4). With the "tabbar" surface on (lib/surfaces) and a
    binary that has the Swift view, the bar is NativeTabBar: SwiftUI draws the
    bar and the sheet the + opens, in one Host, so there is no PostFan — the
    sheet is part of the bar. Otherwise PostTabBar and PostFan, unchanged. The

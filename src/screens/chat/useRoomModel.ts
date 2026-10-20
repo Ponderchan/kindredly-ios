@@ -31,6 +31,7 @@ import { useWrenName } from "../../lib/wren-name";
 import { alertFail } from "../../lib/fail";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
 import { useSlow } from "../../components/ui";
+import { sheetWords } from "../../components/sheet-chrome";
 import type { LightboxPhoto } from "../../components/PhotoLightbox";
 import type { TraceAction, TraceKind } from "../../components/LeaveATrace";
 import type { KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
@@ -802,7 +803,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     (body: string, prompt: string | null, said: string) => {
       ui.thenModal(() =>
         Alert.alert(t("rm.keep.title"), t("rm.keep.body"), [
-          { text: t("set.neverMind"), style: "cancel" },
+          { text: sheetWords(t("set.neverMind")), style: "cancel" },
           {
             text: t("rm.keep.do"),
             onPress: () => {

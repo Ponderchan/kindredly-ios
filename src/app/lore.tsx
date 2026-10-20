@@ -8,6 +8,7 @@ import { useLetterFamily, useTheme } from "../lib/theme";
 import { dShort } from "../lib/format";
 import { loadLore, removeLore, type LoreEntry } from "../lib/lore";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
+import { sheetWords } from "../components/sheet-chrome";
 import "../data/strings-step5-me";
 
 /* LORE — the shelf of kept moments. Local, account-scoped, only yours.
@@ -43,7 +44,7 @@ export default function Lore() {
 
   const unpin = (e: LoreEntry) =>
     Alert.alert(t("lore.unpin.title"), "", [
-      { text: t("set.neverMind"), style: "cancel" },
+      { text: sheetWords(t("set.neverMind")), style: "cancel" },
       {
         text: t("ml.rm.remove"),
         style: "destructive",

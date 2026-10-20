@@ -32,7 +32,7 @@ import type { FirstClass4aVM } from "../me/me-model";
    - HELP, SAFETY (report / block stays reachable: Apple);
    - the two exits in red, delete with its subline;
    - the footer: the App Store's label and the build number, never the
-     email (owner question 7: "1.0.5 · 1.3.0 (29)"). */
+     email (owner question 7: "1.0.5 · 1.2.4 (29)"). */
 
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -172,7 +172,7 @@ export type VersionFacts = {
 /* ── constants ─────────────────────────────────────────────────────────── */
 
 /** The App Store's version label for this release. The store and the binary number their
-    releases apart (the store says 1.0.5 for binary 1.3.0); readers only ever see the store's,
+    releases apart (the store says 1.0.5 for binary 1.2.4); readers only ever see the store's,
     so the footer shows that with the build number support needs, and never the binary's own
     (owner, 2026-10-16: question 7 decided on product logic). UPDATE IT EACH RELEASE, with the
     build that ships under it. */
@@ -267,7 +267,7 @@ export function ageBand(dob: string | null | undefined, now: number): string | n
 }
 
 /** The footer's version: the App Store's label with the build number ("1.0.5 (29)"). The
-    binary's own version (1.3.0) means nothing to a reader and the build already names the
+    binary's own version (1.2.4) means nothing to a reader and the build already names the
     binary for support, so it isn't shown; a build that isn't known is left out, never guessed. */
 export function footerVersion(v: VersionFacts): string {
   return v.build ? `${v.store} (${v.build})` : v.store;

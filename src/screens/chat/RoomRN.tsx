@@ -459,7 +459,7 @@ function SongShelfRN({ open, onClose, songs, songSays, name }: { open: boolean; 
             {/* the sheet's title, System 500 17 centred (the ✕'s width mirrored on the left) */}
             <View style={{ width: 24 }} />
             <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: tk.ink }}>
-              {t("rm.shelf.title", { name: name.toUpperCase() })}
+              {t("rm.shelf.title", { name })}
             </Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 24, alignItems: "flex-end" }}>
               <Text style={{ ...PFM.mono, fontSize: 16, color: tk.mute }}>✕</Text>

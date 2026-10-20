@@ -61,8 +61,8 @@ const ENGLISH: Record<string, string> = {
   "pub.left": "{n} LEFT",
   "pub.note": "Diary note",
   "pub.noteSub": "Stays with you · text, voice, photo",
-  "pub.popLetter": "LETTER",
-  "pub.popNote": "NOTE",
+  "pub.popLetter": "Letter",
+  "pub.popNote": "Note",
 };
 
 /* lines allowed to read the same as the English */

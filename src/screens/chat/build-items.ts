@@ -697,8 +697,8 @@ export function buildRoomDock(i: RoomDockInput): KChatDock {
     emojiLabel: t("cmp.emoji"),
     ideasLabel: t("rm.ideas.a11y"),
     ideaLabel: t("rm.idea.label").toLocaleUpperCase(i.locale),
-    ideaAnother: t("rm.idea.another").toLocaleUpperCase(i.locale),
-    ideaUse: t("rm.idea.use").toLocaleUpperCase(i.locale),
+    ideaAnother: t("rm.idea.another"),
+    ideaUse: t("rm.idea.use"),
     trayTitle: t("rm.tray.title"),
   };
 }
@@ -758,7 +758,7 @@ function signLabelOf(i: Pick<LettersDockInput, "t" | "identity" | "name" | "loca
   if (door === "none") return "";
   if (door === "offer") return t("ch.sendYours");
   if (!i.identity) return door === "waiting" ? t("ch.wentFirst") : t("ch.theyFirst");
-  return door === "waiting" ? t("id2.door.waiting") : t("id2.door.theyFirst", { name: i.name.toLocaleUpperCase(i.locale) });
+  return door === "waiting" ? t("id2.door.waiting") : t("id2.door.theyFirst", { name: i.name });
 }
 
 /** Everything above and in place of the pen-pal chat's composer. */

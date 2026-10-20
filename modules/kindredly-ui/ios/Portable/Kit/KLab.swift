@@ -615,10 +615,10 @@ public struct KPressedPhoto: Equatable {
 /// Every word the press shows, already in the reader's language (src/data/strings-stamps2.ts,
 /// the camera block). English here only so a preview has something to draw.
 public struct KStampPressStrings: Equatable, Sendable {
-  public var title = "STAMP PRESS"
+  public var title = "Stamp Press"
   public var hint = "POINT AT THE MOMENT"
-  public var upload = "UPLOAD"
-  public var zoom = "ZOOM"
+  public var upload = "Upload"
+  public var zoom = "Zoom"
   public var close = "Close"
   public var flashOn = "Flash, on"
   public var flashOff = "Flash, off"

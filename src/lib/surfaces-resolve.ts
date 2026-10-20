@@ -54,7 +54,7 @@ export function surfaceOn(remote: SurfaceMap | null, defaults: SurfaceMap, key: 
 export const MAX_STRIKES = 2;
 
 export type ArmingRecord = {
-  /** the binary the marks and strikes belong to ("1.3.0 (29)"); another binary's are dropped */
+  /** the binary the marks and strikes belong to ("1.2.4 (29)"); another binary's are dropped */
   binary: string | null;
   /** surfaces mounted and not yet cleared: surface → when it was armed (epoch ms) */
   armed: Record<string, number>;

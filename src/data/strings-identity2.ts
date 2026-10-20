@@ -70,7 +70,7 @@ strings(
     // they have signed and you haven't: the door is gold and opens the signing sheet. {name} is their courier name,
     // already in capitals. "Wrote first" = wrote their NAME first (signed first), not who wrote the opening letter.
     // Mono caps, one line: at most about 32 characters with an 18-character name
-    "id2.door.theyFirst": "{name} WROTE FIRST",
+    "id2.door.theyFirst": "{name} Wrote First",
     // you have signed and they haven't: a quiet line where the door was, not a button. Mono caps, at most 24 characters
     "id2.door.waiting": "YOU SIGNED · WAITING",
     // VoiceOver hint on the door (offer and theyFirst): what a double tap does
@@ -78,7 +78,7 @@ strings(
 
     /* ── the signing sheet (a page sheet over the chat) ── */
     // the sheet's title, mono caps, at most 18 characters
-    "id2.sheet.title": "SIGN YOUR NAME",
+    "id2.sheet.title": "Sign Your Name",
     // the close button, said aloud
     "id2.sheet.close": "Close",
     // the first line, in Wren's serif italic, when you would be the first to sign. {name} = their courier name.
@@ -136,7 +136,7 @@ strings(
     // the reason line the sign-in sheet shows when opened from here
     "id2.sheet.guestReason": "Somewhere to keep your kindreds, on any device.",
     // the main button, mono caps, at most 16 characters
-    "id2.sheet.send": "SIGN AND SEND",
+    "id2.sheet.send": "Sign and Send",
     // the foot line under the button: when they see it, and that never signing is allowed. At most about 110 characters
     "id2.sheet.foot": "They see it only once they've signed too. If they never do, you stay pen pals, and that's allowed.",
 
@@ -170,10 +170,10 @@ strings(
   },
   /* ── es ── */
   {
-    "id2.door.theyFirst": "{name} FIRMÓ PRIMERO",
+    "id2.door.theyFirst": "{name} firmó primero",
     "id2.door.waiting": "FIRMASTE · ESPERANDO",
     "id2.door.hint": "Abre la página para firmar con tu nombre.",
-    "id2.sheet.title": "PON TU FIRMA",
+    "id2.sheet.title": "Pon tu firma",
     "id2.sheet.close": "Cerrar",
     "id2.sheet.lead": "Cuando {name} también firme, recibirá esto: la cara, el nombre y la firma de aquí abajo.",
     "id2.sheet.leadTheirs": "{name} ya firmó. En cuanto mandes la tuya, las dos se abren a la vez.",
@@ -202,7 +202,7 @@ strings(
     "id2.sheet.guest": "Puedes firmar sin cuenta. Vincula una y conservarás esta correspondencia en cualquier dispositivo.",
     "id2.sheet.guestLink": "Vincular una cuenta",
     "id2.sheet.guestReason": "Un lugar donde guardar a tus afines, en cualquier dispositivo.",
-    "id2.sheet.send": "FIRMAR Y ENVIAR",
+    "id2.sheet.send": "Firmar y enviar",
     "id2.sheet.foot": "Solo lo verá cuando también firme. Si nunca lo hace, seguirán siendo penpals, y no pasa nada.",
     "id2.in.a11y": "{name} firmó como {pen}.",
     "id2.in.a11yMine": "Y tú, que hasta ahora eras {name}, firmaste como {pen}.",
@@ -216,10 +216,10 @@ strings(
   },
   /* ── pt ── */
   {
-    "id2.door.theyFirst": "{name} JÁ ASSINOU",
+    "id2.door.theyFirst": "{name} já assinou",
     "id2.door.waiting": "VOCÊ ASSINOU · ESPERANDO",
     "id2.door.hint": "Abre a página onde você assina com seu nome.",
-    "id2.sheet.title": "ASSINE SEU NOME",
+    "id2.sheet.title": "Assine seu nome",
     "id2.sheet.close": "Fechar",
     "id2.sheet.lead": "Quando {name} também assinar, vai receber isto: o rosto, o nome e a assinatura aqui de baixo.",
     "id2.sheet.leadTheirs": "{name} já assinou. Assim que a sua for, as duas se abrem juntas.",
@@ -248,7 +248,7 @@ strings(
     "id2.sheet.guest": "Dá pra assinar sem conta. Vincule uma pra ter essa alma afim em qualquer aparelho.",
     "id2.sheet.guestLink": "Vincular uma conta",
     "id2.sheet.guestReason": "Um lugar pra guardar suas almas afins, em qualquer aparelho.",
-    "id2.sheet.send": "ASSINAR E ENVIAR",
+    "id2.sheet.send": "Assinar e enviar",
     "id2.sheet.foot": "Essa pessoa só vê tudo isso quando assinar também. Se nunca assinar, vocês continuam penpals, e tudo bem.",
     "id2.in.a11y": "{name} assinou como {pen}.",
     "id2.in.a11yMine": "E você, que até agora era {name}, assinou como {pen}.",
@@ -262,10 +262,10 @@ strings(
   },
   /* ── id ── */
   {
-    "id2.door.theyFirst": "{name} SUDAH TANDA TANGAN",
+    "id2.door.theyFirst": "{name} sudah tanda tangan",
     "id2.door.waiting": "TANDA TANGAN · MENUNGGU",
     "id2.door.hint": "Membuka halaman untuk menandatangani namamu.",
-    "id2.sheet.title": "TANDA TANGAN",
+    "id2.sheet.title": "Tanda tangan",
     "id2.sheet.close": "Tutup",
     "id2.sheet.lead": "Begitu {name} ikut tanda tangan, inilah yang ia terima: wajah, nama, dan tanda tangan di bawah ini.",
     "id2.sheet.leadTheirs": "{name} sudah tanda tangan. Begitu punyamu terkirim, kalian bisa saling melihat.",
@@ -294,7 +294,7 @@ strings(
     "id2.sheet.guest": "Kamu bisa tanda tangan sebagai tamu. Tautkan akun agar kerabat ini tetap ada di perangkat mana pun.",
     "id2.sheet.guestLink": "Tautkan akun",
     "id2.sheet.guestReason": "Tempat menyimpan kerabat-kerabatmu, di perangkat mana pun.",
-    "id2.sheet.send": "TEKEN DAN KIRIM",
+    "id2.sheet.send": "Teken dan kirim",
     "id2.sheet.foot": "Ia baru melihatnya setelah ikut tanda tangan. Kalau tidak pernah, kalian tetap penpal, dan itu tidak apa-apa.",
     "id2.in.a11y": "{name} bertanda tangan sebagai {pen}.",
     "id2.in.a11yMine": "Dan kamu, yang selama ini {name} baginya, bertanda tangan sebagai {pen}.",
@@ -308,10 +308,10 @@ strings(
   },
   /* ── fr ── */
   {
-    "id2.door.theyFirst": "{name} A DÉJÀ SIGNÉ",
+    "id2.door.theyFirst": "{name} a déjà signé",
     "id2.door.waiting": "TU AS SIGNÉ · EN ATTENTE",
     "id2.door.hint": "Ouvre la page où tu signes de ton nom.",
-    "id2.sheet.title": "SIGNE DE TON NOM",
+    "id2.sheet.title": "Signe de ton nom",
     "id2.sheet.close": "Fermer",
     "id2.sheet.lead": "Quand {name} signera à son tour, voici ce qu'on lui remettra : le visage, le nom et la signature ci-dessous.",
     "id2.sheet.leadTheirs": "{name} a signé. Dès que la tienne part, les deux s'ouvrent en même temps.",
@@ -340,7 +340,7 @@ strings(
     "id2.sheet.guest": "Tu peux signer sans compte. Associe un compte pour garder cette correspondance sur tous tes appareils.",
     "id2.sheet.guestLink": "Associer un compte",
     "id2.sheet.guestReason": "Un endroit où garder tes semblables, sur tous tes appareils.",
-    "id2.sheet.send": "SIGNER & ENVOYER",
+    "id2.sheet.send": "Signer & envoyer",
     "id2.sheet.foot": "Ils ne le verront qu'après avoir signé à leur tour. Sinon, vous restez en correspondance, et c'est très bien.",
     "id2.in.a11y": "{name} a signé sous le nom de {pen}.",
     "id2.in.a11yMine": "Et toi, jusqu'ici {name} pour eux, tu as signé sous le nom de {pen}.",
@@ -354,10 +354,10 @@ strings(
   },
   /* ── de ── */
   {
-    "id2.door.theyFirst": "{name} HAT UNTERSCHRIEBEN",
+    "id2.door.theyFirst": "{name} hat unterschrieben",
     "id2.door.waiting": "UNTERSCHRIEBEN · WARTEN",
     "id2.door.hint": "Öffnet die Seite, auf der du mit deinem Namen unterschreibst.",
-    "id2.sheet.title": "UNTERSCHREIBEN",
+    "id2.sheet.title": "Unterschreiben",
     "id2.sheet.close": "Schließen",
     "id2.sheet.lead": "Wenn {name} auch unterschreibt, geht das hier raus: das Gesicht, der Name und die Unterschrift unten.",
     "id2.sheet.leadTheirs": "{name} hat schon unterschrieben. Sobald deine rausgeht, öffnen sich beide zugleich.",
@@ -386,7 +386,7 @@ strings(
     "id2.sheet.guest": "Du kannst als Gast unterschreiben. Verknüpf ein Konto, dann bleibt dir diese Verbindung auf jedem Gerät.",
     "id2.sheet.guestLink": "Konto verknüpfen",
     "id2.sheet.guestReason": "Ein Ort für deine Seelenverwandten, auf jedem Gerät.",
-    "id2.sheet.send": "ABSCHICKEN",
+    "id2.sheet.send": "Abschicken",
     "id2.sheet.foot": "Sie sehen es erst, wenn sie auch unterschreiben. Sonst bleibt es eine Brieffreundschaft, und das darf so sein.",
     "id2.in.a11y": "{name} hat als {pen} unterschrieben.",
     "id2.in.a11yMine": "Und du, für sie bisher {name}, hast als {pen} unterschrieben.",
@@ -400,10 +400,10 @@ strings(
   },
   /* ── it ── */
   {
-    "id2.door.theyFirst": "{name} HA GIÀ FIRMATO",
+    "id2.door.theyFirst": "{name} ha già firmato",
     "id2.door.waiting": "HAI FIRMATO · IN ATTESA",
     "id2.door.hint": "Apre la pagina dove firmi con il tuo nome.",
-    "id2.sheet.title": "FIRMA COL TUO NOME",
+    "id2.sheet.title": "Firma col tuo nome",
     "id2.sheet.close": "Chiudi",
     "id2.sheet.lead": "Quando firmerà anche {name}, ecco cosa riceverà: il volto, il nome e la firma qui sotto.",
     "id2.sheet.leadTheirs": "{name} ha già firmato. Appena parte la tua, vi vedete a vicenda.",
@@ -432,7 +432,7 @@ strings(
     "id2.sheet.guest": "Puoi firmare anche senza account. Collegane uno per tenere questa anima affine su ogni dispositivo.",
     "id2.sheet.guestLink": "Collega un account",
     "id2.sheet.guestReason": "Un posto dove tenere le tue anime affini, su ogni dispositivo.",
-    "id2.sheet.send": "FIRMA E INVIA",
+    "id2.sheet.send": "Firma e invia",
     "id2.sheet.foot": "Lo vedranno solo quando avranno firmato anche loro. Se non succede mai, restate penne amiche, ed è giusto così.",
     "id2.in.a11y": "{name} ha firmato come {pen}.",
     "id2.in.a11yMine": "E tu, finora {name} per loro, hai firmato come {pen}.",

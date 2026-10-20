@@ -147,7 +147,7 @@ export default function CourierRoom() {
           {/* the secondary title: system medium 17, centred (the string itself is still in capitals) */}
           <View pointerEvents="box-none" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 56, height: 52, paddingBottom: 8 }}>
             <BackChevron onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} color={coverSky.ink} />
-            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} accessibilityRole="header" style={{ fontSize: 17, fontWeight: "500", color: coverSky.ink, textAlign: "center" }}>{t("cr.title", { wren: wren.toUpperCase() })}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} accessibilityRole="header" style={{ fontSize: 17, fontWeight: "500", color: coverSky.ink, textAlign: "center" }}>{t("cr.title", { wren })}</Text>
           </View>
         </View>
         <WrenHome

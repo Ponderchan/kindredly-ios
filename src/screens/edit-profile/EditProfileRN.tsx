@@ -6,6 +6,7 @@ import { MONO, PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { t } from "../../lib/i18n";
 import { AvatarImage } from "../../components/AvatarImage";
+import { sheetWords } from "../../components/sheet-chrome";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { BottomFade, SecondaryHeader } from "../../components/10a";
 import { BOTTOM_FADE } from "../../components/10a/kit";
@@ -39,14 +40,14 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
   const seeFaces = useRef(false);
 
   const cameraMenu = () =>
-    ActionSheetIOS.showActionSheetWithOptions({ options: [view.photoLabel, view.randomLabel, t("set.neverMind")], cancelButtonIndex: 2 }, (i) => {
+    ActionSheetIOS.showActionSheetWithOptions({ options: [view.photoLabel, view.randomLabel, sheetWords(t("set.neverMind"))], cancelButtonIndex: 2 }, (i) => {
       if (i === 0) act.photo();
       else if (i === 1) act.random();
     });
 
   const pronounMenu = () =>
     ActionSheetIOS.showActionSheetWithOptions(
-      { title: view.pronoun.label, options: [...view.pronoun.options.map((o) => (o.id === view.pronoun.selected ? `✓ ${o.label}` : o.label)), t("set.neverMind")], cancelButtonIndex: view.pronoun.options.length },
+      { title: view.pronoun.label, options: [...view.pronoun.options.map((o) => (o.id === view.pronoun.selected ? `✓ ${o.label}` : o.label)), sheetWords(t("set.neverMind"))], cancelButtonIndex: view.pronoun.options.length },
       (i) => {
         const o = view.pronoun.options[i];
         if (o) act.pronoun(o.id);
