@@ -373,9 +373,9 @@ struct KChatDockView: View {
           .background {
             KStickerBackground(
               shape: RoundedRectangle(cornerRadius: 20, style: .circular),
-              fill: gold ? KBrand.cream : theme.sf,
-              stroke: gold ? KBrand.waxGold : theme.ln,
-              lineWidth: 2,
+              fill: gold ? KBrand.cream : theme.soft,
+              stroke: gold ? KBrand.waxGold : .clear, // soft, no ink ring (owner, 10-20)
+              lineWidth: gold ? 2 : 0,
               shadow: gold ? KBrand.waxGold : nil,
               shadowOffset: gold ? 2 : 0
             )

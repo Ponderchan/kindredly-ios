@@ -500,7 +500,9 @@ struct KLetterCardFrame: ViewModifier {
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
       .background(Self.shape.fill(Self.fill(theme, mine: mine)))
-      .overlay(Self.shape.strokeBorder(theme.ln, lineWidth: 2))
+      // (owner, 2026-10-20: no black frames) theirs on white keeps a light line so it holds its shape
+      // on the white page; mine is its soft fill alone
+      .overlay(Self.shape.strokeBorder(mine ? Color.clear : theme.line, lineWidth: 1))
       .contentShape(Self.shape)
   }
 }
@@ -672,7 +674,7 @@ struct KFoldCard: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
       if open {
-        KStickerBackground(shape: Self.shape, fill: theme.sf, stroke: theme.ln, lineWidth: 2, shadow: theme.ln, shadowOffset: 3)
+        KStickerBackground(shape: Self.shape, fill: theme.sf, stroke: theme.line, lineWidth: 1) // no ink frame (owner, 10-20)
       } else {
         KStickerBackground(shape: Self.shape, fill: theme.soft, stroke: theme.line, lineWidth: 1.5)
       }

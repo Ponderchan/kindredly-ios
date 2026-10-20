@@ -171,14 +171,12 @@ public struct KReplyBar: View {
     .padding(.vertical, Self.borderWidth)
     .frame(minHeight: Self.minHeight)
     .background {
-      KStickerBackground(
-        shape: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .circular),
-        fill: theme.sf,
-        stroke: theme.ln,
-        lineWidth: Self.borderWidth,
-        shadow: theme.ln,
-        shadowOffset: Self.shadowOffset
-      )
+      // (owner, 2026-10-20: no black frame) the soft field the Kindreds bar wears: a light line, a
+      // faint shadow, no ink outline and no hard shadow
+      RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+        .fill(theme.sf)
+        .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous).strokeBorder(theme.line, lineWidth: 1))
+        .shadow(color: .black.opacity(theme.isDark ? 0.35 : 0.08), radius: 10, y: 3)
     }
     .accessibilityElement(children: .contain)
   }
