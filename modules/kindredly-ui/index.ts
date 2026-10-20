@@ -73,6 +73,18 @@ export {
   type KMyLettersViewProps,
 } from "./src/MyLetters";
 
+// the one-letter reader (owner, 2026-10-20), in Swift
+export {
+  KReaderView,
+  nativeReaderHero,
+  type KReaderCommands,
+  type KReaderFaceKind,
+  type KReaderHero,
+  type KReaderLetter,
+  type KReaderStrings,
+  type KReaderViewProps,
+} from "./src/Reader";
+
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {
   KLabView,

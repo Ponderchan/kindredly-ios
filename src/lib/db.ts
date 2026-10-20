@@ -940,6 +940,10 @@ export interface ThreadDetail {
   /** the opening letter's own created_at, read through threads.letter (0020);
       null when unreadable (withdrawn, blocked, or older than 0020) — then show no date */
   openingAt?: string | null;
+  /** the paper the opening letter was written on (web 0041 letters.paper, read through
+      threads.letter): null for plain, unreadable, or a server before 0041 (src/data/papers
+      paperOf). Replies have no paper. */
+  openingPaper?: string | null;
   /** the pool letter this correspondence grew from (0020 threads.letter) */
   letterId?: string | null;
   opening: string;
@@ -1005,10 +1009,14 @@ export async function readThreadDetailCache(threadId: string): Promise<ThreadDet
 }
 
 /* the thread row's column sets, newest server first. The first embeds the
-   opening letter through threads.letter (0020) for its created_at; RLS on
-   letters hides a withdrawn or blocked letter, and the embed is then null. */
+   opening letter through threads.letter (0020) for its created_at and, from
+   web 0041, its paper (a server without letters.paper refuses that set as a
+   schema error and the next one answers); RLS on letters hides a withdrawn
+   or blocked letter, and the embed is then null. */
 const THREAD_COLS = {
   sets: [
+    // web 0041: the opening letter's paper with its date (letter papers)
+    "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,a_signed,b_signed,a_sig,b_sig,opening,opening_media,opening_duration_s,created_at,opening_letter:letters!letter(created_at,paper)",
     // web 0035: the signed flags and the drawn signatures
     "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,a_signed,b_signed,a_sig,b_sig,opening,opening_media,opening_duration_s,created_at,opening_letter:letters!letter(created_at)",
     "a,b,stamp,revealed,revealed_at,letter,a_count,b_count,a_name,b_name,a_face,b_face,a_signed,b_signed,a_sig,b_sig,opening,opening_media,opening_duration_s,created_at",

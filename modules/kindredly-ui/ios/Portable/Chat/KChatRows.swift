@@ -771,3 +771,731 @@ struct KHugColumn: Layout {
     }
   }
 }
+
+// MARK: - THE ONE-LETTER READER (thread/[id])
+
+/*
+ THE ONE-LETTER READER in SwiftUI (owner-approved 2026-10-20), the twin of the React Native
+ src/screens/chat/ReaderScreen.tsx, on the same model (useReaderModel) through
+ src/screens/chat/ReaderNative.tsx and Adapters/KConversationView.swift's KReaderView. It lives
+ in this file so the module needs no pod install. One letter of a correspondence, full page, the
+ way a letter is read; TS words and dates everything, Swift draws and reports.
+
+ - THE HEADER: KBackBar (the back chevron, Settings' size and place; the thread's count in mono
+   capitals, "3 LETTERS IN THIS THREAD"), no rule.
+ - THE LETTER CARD, drawn on the letter's PAPER as the Today card is (KPaper; the opening's
+   letters.paper, replies are plain): any paper but Plain is its KPaperSurface sheet with every
+   piece in the paper's own colours (cardTheme); Plain is the soft card the owner chose on
+   2026-10-20 instead of the old black-framed InkPanel: the theme's sf, a 1pt hairline in its
+   line colour, the plain paper's soft shadow, corners of plainRadius. No hard ink shadow.
+   Inside, top to bottom:
+   · the head: their face (a kindred's round portrait, a pen pal's bare mosaic or, with the
+     identity switch on, their frosted window; the veil for a deleted account; a member's gold
+     stamp round it, C2), the postmark (or, switch on, the courier name with its ♀/♂ and star
+     sign over the date), the thread's state in its tone, the stamp at the reader head's 60×72
+     (tilted by the letter when it came to you; a stranger's photo stamp keeps Keep / Report on
+     its long press), and the ⋯ — a soft grey 34 circle, no ring — that opens Report / Block (the
+     React Native ReportSheet, dropped from the ⋯'s foot: onMore carries it in window points);
+   · the letter, in the reader's Letter font at the letter tiers (a telegram centred), or the
+     paper's face and size; a voice opening plays (the one player is TS's) over its caption;
+   · its #topic tag and, for their words in another language, the translate capsule;
+   · a hairline, then N LETTERS BETWEEN YOU › (HIDE while open) and REPLY ↓, which gives the
+     reply bar the keyboard.
+ - EARLIER LETTERS on demand, as the pen-pal chat's soft slips (KLetterCardFrame: square, a 1pt
+   rule; mine set in from the left on the accent's palest wash), signed under the words.
+ - THE DOCK: the shared KReplyBar (R2: the capsule and the send circle, as on Today and in the
+   pen-pal chat; Return is a new line, the letter leaves by the send key), its hint over it; or,
+   where nothing can be sent (a deleted account, a closed thread), the line that says why.
+ - The keyboard: the Host keeps the keyboard's safe area, so the page shrinks and the dock rides
+   it; a drag on the letter dismisses it.
+ - VoiceOver: the header is a header; the head row is one element (the name, the date, the
+   state); the stamp, the ⋯, the capsule, the toggle and REPLY are buttons; each earlier letter
+   is one element.
+ */
+
+/// Who is at the top of the card, as TS resolves it (lib/faces): drawn by KFace in the paper's ink.
+public enum KReaderFace: Equatable, Sendable {
+  case none
+  case image(KImageRef?, overscan: CGFloat)
+  case mosaic(Int)
+  case frost(KFrostSpec)
+  case veil
+  case frostVeil
+  case placeholder
+}
+
+/// The letter being read, every word resolved by TS (src/screens/chat/ReaderNative.tsx).
+public struct KReaderHero: Equatable, Sendable {
+  /// the letter's key ("opening", a message id): the card fades in when it changes
+  public var key = ""
+  public var paper: KPaper = .plain
+  public var face: KReaderFace = .none
+  /// a kindred's face is a circle; a pen pal's mosaic, frost or veil is not
+  public var faceRound = false
+  public var faceSize: CGFloat = 24
+  /// a member's C2 stamp round the face: "1ST" | "007" | ""
+  public var memberStamp = ""
+  /// switch on, a pen pal: the courier name (the date goes under it); "" for the postmark line
+  public var name = ""
+  public var mark: KLineGlyph?
+  public var sign: KLineGlyph?
+  /// under the name: OCT.14 · YOU
+  public var when = ""
+  /// switch off (or a kindred): OCT.14 · NO.7273
+  public var postmark = ""
+  /// the thread's state (YOUR TURN …) in its tone; "" for none
+  public var state = ""
+  public var tone: KChatTone = .mute
+  /// VoiceOver for the head row; "" reads its words as they are
+  public var headA11y = ""
+  public var stampId = ""
+  public var stampHex = ""
+  /// theirs came to you: delivered, tilted by stampLetterId; your own is flat
+  public var delivered = false
+  public var stampLetterId = ""
+  public var stampA11y = ""
+  public var isVoice = false
+  public var voiceKey = ""
+  public var voiceDuration = ""
+  /// the words shown (the translation while it is on); a voice letter's caption
+  public var body = ""
+  /// the letter tier (heroTier): its size and line in points, a telegram centred
+  public var size: CGFloat = 21
+  public var line: CGFloat = 33
+  public var center = false
+  /// "#tiny win"; "" for none
+  public var topic = ""
+  /// the stamp's colour for the tag ("#RRGGBB"); "" for the quiet grey
+  public var topicHex = ""
+  public var translates = false
+  /// "ES→EN"; "" when their language can't be told
+  public var translateCode = ""
+  public var translateLabel = ""
+  public var translateBusy = false
+  /// "3 LETTERS BETWEEN YOU ›"; "" when there are no earlier letters
+  public var betweenLabel = ""
+  public var hideLabel = ""
+  /// "REPLY ↓"; "" where nothing can be sent
+  public var replyLabel = ""
+
+  public init() {}
+}
+
+/// One earlier letter, signed.
+public struct KReaderLetter: Equatable, Sendable, Identifiable {
+  public var id: String
+  public var mine: Bool
+  public var body: String
+  /// YOU, or them (their name once traded, else their number or courier name)
+  public var signature: String
+  public var isVoice: Bool
+  public var a11y: String
+
+  public init(id: String, mine: Bool, body: String, signature: String, isVoice: Bool, a11y: String) {
+    self.id = id
+    self.mine = mine
+    self.body = body
+    self.signature = signature
+    self.isVoice = isVoice
+    self.a11y = a11y
+  }
+}
+
+public struct KReaderContent: Equatable, Sendable {
+  public var title = ""
+  public var backLabel = ""
+  /// "" hides the ⋯ (nobody to report)
+  public var moreLabel = ""
+  public var hero: KReaderHero?
+  public var earlier: [KReaderLetter] = []
+  /// nothing loaded and offline: the two lines in place of the letter
+  public var offlineTitle = ""
+  public var offlineBody = ""
+  /// where the reply bar was, when nothing can be sent; "" for the bar
+  public var closed = ""
+  /// the reply bar is drawn (a thread is loaded and open)
+  public var composer = false
+  public var placeholder = ""
+  public var sendLabel = ""
+  public var emojiLabel = ""
+  public var playLabel = ""
+  public var pauseLabel = ""
+
+  public init() {}
+}
+
+/// What changes as the reader types or listens (fed by TS's commands).
+public final class KReaderDriver: ObservableObject {
+  public let reply = KFieldController()
+  @Published public var canSend = false
+  @Published public var hint = ""
+  @Published public var hintAlarm = false
+  @Published public var playback: KPlayback?
+  @Published public var playbackKey = ""
+  @Published public var voiceUnavailable = false
+
+  public init() {}
+}
+
+/// What the reader's taps do (made once per surface).
+public final class KReaderActions {
+  public var onBack: () -> Void = {}
+  /// the ⋯: the window y its card drops from (its foot + 6)
+  public var onMore: (_ top: CGFloat) -> Void = { _ in }
+  public var onTranslate: () -> Void = {}
+  public var onText: (String) -> Void = { _ in }
+  public var onSend: (String) -> Void = { _ in }
+  public var onFocus: (Bool) -> Void = { _ in }
+  public var onVoice: (_ key: String) -> Void = { _ in }
+  /// a stranger's photo stamp: "keep" | "report"
+  public var onStamp: (_ action: String) -> Void = { _ in }
+
+  public init() {}
+}
+
+public struct KReaderScreen: View {
+  private let theme: KTheme
+  private let content: KReaderContent
+  private let topInset: CGFloat
+  private let bottomInset: CGFloat
+  @ObservedObject private var driver: KReaderDriver
+  private let actions: KReaderActions
+
+  @State private var expanded = false
+  @State private var focused = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  public init(theme: KTheme, content: KReaderContent, topInset: CGFloat, bottomInset: CGFloat, driver: KReaderDriver, actions: KReaderActions) {
+    self.theme = theme
+    self.content = content
+    self.topInset = topInset
+    self.bottomInset = bottomInset
+    self.driver = driver
+    self.actions = actions
+  }
+
+  public var body: some View {
+    VStack(spacing: 0) {
+      theme.bg.frame(height: topInset)
+      KBackBar(theme: theme, title: content.title, backLabel: content.backLabel, onBack: actions.onBack)
+      ScrollView(.vertical) {
+        // lazy: a long thread's earlier letters (hundreds) are only built as they scroll in
+        LazyVStack(alignment: .leading, spacing: 0) {
+          if content.hero == nil && !content.offlineTitle.isEmpty {
+            offline
+          }
+          if let hero = content.hero {
+            KReaderCard(theme: theme, hero: hero, moreLabel: content.moreLabel, expanded: $expanded, strings: content, driver: driver, actions: actions)
+              .id(hero.key)
+              .transition(.opacity)
+            if expanded {
+              ForEach(content.earlier) { letter in
+                KReaderSlip(theme: theme, letter: letter, voiceKey: hero.voiceKey, voiceDuration: hero.voiceDuration, strings: content, driver: driver, actions: actions)
+                  .padding(.top, 10)
+              }
+            }
+          }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.3), value: content.hero?.key)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 16)
+      }
+      .scrollIndicators(.hidden)
+      .scrollDismissesKeyboard(.interactively)
+      dock
+    }
+    .background(theme.bg.ignoresSafeArea())
+    .onChange(of: content.earlier.isEmpty) { _, none in
+      if none { expanded = false }
+    }
+  }
+
+  private var offline: some View {
+    VStack(spacing: 8) {
+      Text(content.offlineTitle)
+        .kText(.system(16, .semibold))
+        .foregroundStyle(theme.ink)
+      Text(content.offlineBody)
+        .kText(.system(14, lineHeight: 20 / 14))
+        .foregroundStyle(theme.sub)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 280)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.top, 48)
+  }
+
+  @ViewBuilder
+  private var dock: some View {
+    Group {
+      if !content.closed.isEmpty {
+        // nobody home: the letters stay readable; there is no one to send to
+        Text(content.closed)
+          .kText(.mono(11, .medium, tracking: 0.03))
+          .foregroundStyle(theme.mute)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity)
+          .padding(.horizontal, 14)
+          .padding(.top, 4)
+          .padding(.bottom, 6)
+      } else if content.composer {
+        KReplyBar(
+          theme: theme,
+          controller: driver.reply,
+          placeholder: content.placeholder,
+          hint: driver.hint,
+          hintWarn: driver.hintAlarm,
+          showsHint: true,
+          sendState: driver.canSend ? .enabled : .disabled,
+          sendLabel: content.sendLabel,
+          emojiLabel: content.emojiLabel,
+          // a pen-pal letter leaves by the send key; Return is a new line (owner, 2026-10-19)
+          returnSends: false,
+          onChange: { actions.onText($0) },
+          onSubmit: { actions.onSend($0) },
+          onFocus: { now in
+            if focused != now { focused = now }
+            actions.onFocus(now)
+          },
+          onEscape: {
+            guard focused else { return false }
+            driver.reply.blur()
+            return true
+          },
+          onSend: { actions.onSend(driver.reply.text) }
+        )
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.top, 6)
+    .padding(.bottom, focused ? 10 : max(10, bottomInset))
+    .background(theme.bg)
+  }
+}
+
+/// The letter card (see the note above KReaderFace).
+struct KReaderCard: View {
+  /// Plain's corners: square-ish, as the soft slips are (owner, 2026-10-20)
+  static let plainRadius: CGFloat = 6
+  /// Plain's padding inside its hairline (the old panel's 18 20 14 20)
+  static let plainPadding = EdgeInsets(top: 18, leading: 20, bottom: 14, trailing: 20)
+  static let stampWidth: CGFloat = KStampLadder.readerHead.w
+  static let moreSide: CGFloat = 34
+
+  let theme: KTheme
+  let hero: KReaderHero
+  let moreLabel: String
+  @Binding var expanded: Bool
+  let strings: KReaderContent
+  let driver: KReaderDriver
+  let actions: KReaderActions
+
+  @State private var moreBottom: CGFloat = 0
+  @Environment(\.dynamicTypeSize) private var typeSize
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  /// every piece in the paper's own colours (Plain: the theme's)
+  private var ink: KTheme { hero.paper.cardTheme(over: theme) }
+  private var big: Bool { typeSize.isAccessibilitySize }
+
+  var body: some View {
+    let paper = hero.paper
+    VStack(alignment: .leading, spacing: 0) {
+      head
+      letter
+      foot
+      Rectangle()
+        .fill(paper.themed ? theme.line : paper.line.opacity(0.35))
+        .frame(height: 1)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+        .accessibilityHidden(true)
+      toggles
+    }
+    .frame(maxWidth: .infinity, alignment: .topLeading)
+    .padding(paper.themed ? Self.plainPadding : EdgeInsets(top: paper.edge.width + KPaper.padding, leading: paper.edge.width + KPaper.padding, bottom: paper.edge.width + KPaper.padding, trailing: paper.edge.width + KPaper.padding))
+    .background { surface }
+    // the receipt's teeth and the plain shadow hang outside the sheet
+    .padding(.vertical, paper.torn ? KPaper.tornHang : 0)
+    .padding(.bottom, 6)
+  }
+
+  @ViewBuilder
+  private var surface: some View {
+    if hero.paper.themed {
+      let shape = RoundedRectangle(cornerRadius: Self.plainRadius, style: .continuous)
+      shape
+        .fill(theme.sf)
+        .overlay(shape.strokeBorder(theme.line, lineWidth: 1))
+        .kSoftShadows(hero.paper.shadow.map { [$0.soft] } ?? [], in: shape)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    } else {
+      KPaperSurface(paper: hero.paper, theme: theme)
+    }
+  }
+
+  // ── the head: who, when, the stamp it travelled under, and the ⋯ ──
+  private var head: some View {
+    HStack(alignment: .center, spacing: 10) {
+      if hero.face != .none {
+        face.frame(minWidth: 28)
+      }
+      who
+        .frame(maxWidth: .infinity, alignment: .leading)
+      if !hero.stampId.isEmpty {
+        stamp
+      }
+      if !moreLabel.isEmpty {
+        more
+      }
+    }
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+
+  @ViewBuilder
+  private var face: some View {
+    let stamp = KMemberStamp(hero.memberStamp)
+    switch hero.face {
+    case .none:
+      EmptyView()
+    case let .image(ref, overscan):
+      KFace(theme: ink, source: .image(ref, overscan: overscan), size: hero.faceSize, round: hero.faceRound, ground: ink.sf, stamp: stamp)
+    case let .mosaic(mask):
+      KFace(theme: ink, source: .mosaic(mask: mask, tint: ink.ink), size: hero.faceSize, round: hero.faceRound, ground: ink.sf, stamp: stamp)
+    case let .frost(spec):
+      KFace(theme: ink, source: .frost(spec), size: hero.faceSize, round: false, ground: ink.sf, stamp: stamp)
+    case .veil:
+      KFace(theme: ink, source: .veil, size: hero.faceSize, round: hero.faceRound, ground: ink.sf)
+    case .frostVeil:
+      KFace(theme: ink, source: .frostVeil, size: hero.faceSize, round: false, ground: ink.sf)
+    case .placeholder:
+      KFace(theme: ink, source: .placeholder, size: hero.faceSize, round: hero.faceRound, ground: ink.sf)
+    }
+  }
+
+  @ViewBuilder
+  private var who: some View {
+    let lines = VStack(alignment: .leading, spacing: 2) {
+      if !hero.name.isEmpty {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+          Text(hero.name)
+            .kText(.system(17, .semibold))
+            .foregroundStyle(ink.ink)
+            .lineLimit(big ? nil : 2)
+            .fixedSize(horizontal: false, vertical: true)
+          KWhoMarks(mark: hero.mark, sign: hero.sign, size: 14, color: ink.sub)
+        }
+        if !hero.when.isEmpty {
+          Text(hero.when)
+            .kText(.mono(11, .medium, tracking: 0.08))
+            .foregroundStyle(ink.sub)
+            .lineLimit(big ? nil : 1)
+        }
+      } else if !hero.postmark.isEmpty {
+        Text(hero.postmark)
+          .kText(.mono(11, .semibold, tracking: 0.08))
+          .foregroundStyle(ink.sub)
+          .lineLimit(big ? nil : 1)
+          .minimumScaleFactor(big ? 1 : 0.8)
+      }
+      if !hero.state.isEmpty {
+        Text(hero.state)
+          .kText(.mono(10, .semibold, tracking: 0.1))
+          .foregroundStyle(toneColor)
+          .lineLimit(big ? nil : 1)
+      }
+    }
+    if hero.headA11y.isEmpty {
+      lines.accessibilityElement(children: .combine)
+    } else {
+      lines
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(hero.headA11y)
+    }
+  }
+
+  private var toneColor: Color {
+    switch hero.tone {
+    case .mute: return ink.mute
+    case .ind: return ink.ind
+    case .brass: return ink.isDark ? KBrand.waxGold : KBrand.brassSeal
+    }
+  }
+
+  @ViewBuilder
+  private var stamp: some View {
+    let drawn = KStamp(
+      id: hero.stampId,
+      width: Self.stampWidth,
+      dark: ink.isDark,
+      delivered: hero.delivered,
+      letterId: hero.stampLetterId.isEmpty ? nil : hero.stampLetterId,
+      fallbackHex: hero.stampHex.isEmpty ? nil : hero.stampHex,
+      accessibilityLabel: hero.stampA11y.isEmpty ? nil : hero.stampA11y
+    )
+    KReaderStampKeep(id: hero.stampId, width: Self.stampWidth, stamp: drawn, actions: actions)
+  }
+
+  /// the ⋯: a soft grey circle, no ring (owner, 2026-10-20); the card drops from its foot
+  private var more: some View {
+    SwiftUI.Button {
+      actions.onMore(moreBottom + 6)
+    } label: {
+      KLineIcon(.more, size: 16, lineWidth: 3, color: ink.sub)
+        .frame(width: Self.moreSide, height: Self.moreSide)
+        .background(Circle().fill(ink.isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.06)))
+        // a 44 target round the 34 circle
+        .padding(5)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .padding(-5)
+    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { y in
+      if abs(moreBottom - y) > 0.5 { moreBottom = y }
+    }
+    .accessibilityLabel(moreLabel)
+  }
+
+  // ── the letter: words in the reader's Letter font (or the paper's face), or a voice letter ──
+  @ViewBuilder
+  private var letter: some View {
+    if hero.isVoice {
+      VStack(alignment: .leading, spacing: 12) {
+        KReaderVoiceCard(theme: ink, key: hero.voiceKey, duration: hero.voiceDuration, strings: strings, panel: true, driver: driver, actions: actions)
+        if !hero.body.isEmpty {
+          Text(hero.body)
+            .kText(.letterRead(17, lineHeight: 26 / 17, place: .reader))
+            .foregroundStyle(ink.sub)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+      .padding(.top, 18)
+    } else {
+      Text(hero.body)
+        .kText(letterStyle)
+        .foregroundStyle(ink.ink)
+        .modifier(KReaderMisprint(shadow: hero.paper.textShadow))
+        .multilineTextAlignment(hero.center ? .center : .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: hero.center ? .center : .leading)
+        .contentTransition(.opacity)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: hero.body)
+        .padding(.top, hero.center ? 26 : 18)
+        .padding(.bottom, hero.center ? 10 : 0)
+        .textSelection(.enabled)
+    }
+  }
+
+  /// Plain: the tier in the reader's Letter font; on paper, the paper's face and size for the tier
+  private var letterStyle: KTextStyle {
+    let paper = hero.paper
+    if paper.themed {
+      return .letterRead(hero.size, lineHeight: hero.size > 0 ? hero.line / hero.size : nil, place: .reader)
+    }
+    let size = paper.cardSize(tier: hero.size)
+    let line = paper.cardLine(size: size, tierSize: hero.size, tierLine: hero.line)
+    return paper.letterStyle(size: size, lineHeight: line, place: .reader)
+  }
+
+  // ── its topic and, for their words in another language, the capsule ──
+  @ViewBuilder
+  private var foot: some View {
+    if !hero.topic.isEmpty || hero.translates {
+      ViewThatFits(in: .horizontal) {
+        HStack(alignment: .center, spacing: 10) {
+          topicTag
+          Spacer(minLength: 0)
+          capsule
+        }
+        VStack(alignment: .leading, spacing: 10) {
+          topicTag
+          capsule
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .padding(.trailing, hero.paper.fold ? 36 : 3)
+      .padding(.bottom, 3)
+      .padding(.top, 18)
+      .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+  }
+
+  @ViewBuilder
+  private var topicTag: some View {
+    if !hero.topic.isEmpty {
+      // the App Store tag, as the Today card draws it: the stamp's own colour, the words in ink
+      KTopicTag(
+        theme: ink,
+        text: hero.topic,
+        tone: .custom(
+          fill: KStampFrame.rgb(hex: hero.topicHex).map { KStampFrame.color($0) } ?? KStampFrame.color(KStampFrame.v3TagNeutral),
+          text: KStampFrame.color(KStampFrame.v3Ink)
+        )
+      )
+    }
+  }
+
+  @ViewBuilder
+  private var capsule: some View {
+    if hero.translates {
+      KTranslateCapsule(theme: ink, code: hero.translateCode, label: hero.translateLabel, enabled: !hero.translateBusy) {
+        actions.onTranslate()
+      }
+    }
+  }
+
+  // ── N LETTERS BETWEEN YOU › and REPLY ↓ ──
+  private var toggles: some View {
+    HStack(alignment: .center, spacing: 12) {
+      if !hero.betweenLabel.isEmpty {
+        SwiftUI.Button {
+          withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { expanded.toggle() }
+        } label: {
+          Text(expanded ? hero.hideLabel : hero.betweenLabel)
+            .kText(.mono(11, .semibold, tracking: 0.14))
+            .foregroundStyle(ink.ink)
+            .multilineTextAlignment(.leading)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .padding(.vertical, -8)
+        .accessibilityAddTraits(expanded ? .isSelected : [])
+      }
+      Spacer(minLength: 0)
+      if !hero.replyLabel.isEmpty {
+        SwiftUI.Button {
+          driver.reply.focus()
+        } label: {
+          Text(hero.replyLabel)
+            .kText(.mono(11, .semibold, tracking: 0.14))
+            .foregroundStyle(ink.ind)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .padding(.vertical, -8)
+      }
+    }
+    .frame(minHeight: 28)
+    .padding(.trailing, hero.paper.fold ? 36 : 0)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+}
+
+/// The stamp in the head; a stranger's photo stamp keeps Keep / Report on its long press, as the
+/// Today card's does (KLetterCardStamp), reported to TS (onStamp).
+struct KReaderStampKeep<Stamp: View>: View {
+  let id: String
+  let width: CGFloat
+  let stamp: Stamp
+  let actions: KReaderActions
+
+  @ObservedObject private var registry = KCustomStamps.shared
+
+  var body: some View {
+    if id.hasPrefix("c:"), let info = registry.info(id), info.canKeep {
+      let words = registry.words
+      Color.clear
+        .frame(width: width, height: KStampFrame.height(width))
+        .overlay(stamp)
+        .contentShape(Rectangle())
+        .contextMenu {
+          if info.kept {
+            SwiftUI.Button(words.inAlbum) {}.disabled(true)
+          } else {
+            SwiftUI.Button(words.keep) { actions.onStamp("keep") }
+          }
+          SwiftUI.Button(words.report, role: .destructive) { actions.onStamp("report") }
+          SwiftUI.Button(words.neverMind) {}
+        }
+        .accessibilityActions {
+          if !info.kept {
+            SwiftUI.Button(words.keep) { actions.onStamp("keep") }
+          }
+          SwiftUI.Button(words.report) { actions.onStamp("report") }
+        }
+    } else {
+      stamp
+    }
+  }
+}
+
+/// An earlier letter: the pen-pal chat's soft slip (KLetterCardFrame), signed under the words.
+struct KReaderSlip: View {
+  let theme: KTheme
+  let letter: KReaderLetter
+  let voiceKey: String
+  let voiceDuration: String
+  let strings: KReaderContent
+  let driver: KReaderDriver
+  let actions: KReaderActions
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      if letter.isVoice {
+        KReaderVoiceCard(theme: theme, key: voiceKey, duration: voiceDuration, strings: strings, panel: true, driver: driver, actions: actions)
+      }
+      if !letter.body.isEmpty {
+        Text(letter.body)
+          .kText(.letterRead(15.5, lineHeight: 24 / 15.5, place: .reader))
+          .foregroundStyle(letter.isVoice ? theme.sub : theme.ink)
+          .fixedSize(horizontal: false, vertical: true)
+          .textSelection(.enabled)
+      }
+      Text(letter.signature)
+        .kText(.mono(10, .medium, tracking: 0.08))
+        .foregroundStyle(theme.mute)
+        .accessibilityHidden(true)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .modifier(KLetterCardFrame(theme: theme, mine: letter.mine))
+    .accessibilityElement(children: letter.isVoice ? .contain : .ignore)
+    .accessibilityLabel(letter.a11y)
+    .padding(.leading, letter.mine ? 28 : 0)
+    .padding(.trailing, letter.mine ? 0 : 28)
+  }
+}
+
+/// The voice opening's card on the one player TS owns (only this view redraws as it plays).
+struct KReaderVoiceCard: View {
+  let theme: KTheme
+  let key: String
+  let duration: String
+  let strings: KReaderContent
+  let panel: Bool
+  @ObservedObject var driver: KReaderDriver
+  let actions: KReaderActions
+
+  var body: some View {
+    let mine = driver.playbackKey == key
+    KVoiceCard(
+      theme: theme,
+      playback: mine ? driver.playback : nil,
+      durationLabel: duration,
+      playLabel: strings.playLabel,
+      pauseLabel: strings.pauseLabel,
+      unavailable: mine && driver.voiceUnavailable,
+      panel: panel,
+      onToggle: { actions.onVoice(key) }
+    )
+  }
+}
+
+/// Riso's misregistration on the letter (a paper with no text shadow gets nothing).
+private struct KReaderMisprint: ViewModifier {
+  let shadow: KPaperShadow?
+
+  func body(content: Content) -> some View {
+    if let shadow {
+      content.shadow(color: shadow.color, radius: 0, x: shadow.x, y: shadow.y)
+    } else {
+      content
+    }
+  }
+}

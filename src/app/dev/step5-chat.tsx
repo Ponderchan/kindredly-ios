@@ -9,6 +9,9 @@ import { PF } from "../../theme/post";
 import { LettersNative, RoomNative } from "../../screens/chat/ConversationNative";
 import { RoomRN } from "../../screens/chat/RoomRN";
 import { LettersRN } from "../../screens/chat/LettersRN";
+import { ReaderNative } from "../../screens/chat/ReaderNative";
+import { ReaderScreen } from "../../screens/chat/ReaderScreen";
+import { PAPERS } from "../../data/papers";
 import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 import { setSignDemo, signDemo, subscribeSignDemo } from "../../screens/chat/sign-sheet";
 
@@ -44,6 +47,19 @@ import { setSignDemo, signDemo, subscribeSignDemo } from "../../screens/chat/sig
                               the letter's menu
               demo-gone-penpal  a gone pen pal: the veil, ACCOUNT CLOSED
               demo-quiet      a short correspondence
+     READER   the one-letter reader (ReaderNative → KReaderView, 2026-10-20):
+              demo-quiet      their opening on Kraft (letters.paper)
+              demo-north      the opening on Airmail (?m=opening), and a
+                              reply as the hero (plain: replies have no
+                              paper), 10 letters between you
+              demo-voice      a voice opening as the hero and as an
+                              earlier letter
+              demo-mira       a kindred (round face, their name)
+              demo-gone-penpal  a gone pen pal: UNSIGNED, the veil, the
+                              closed line where the bar was
+              demo-long       a long thread (the earlier letters, lazily)
+              PAPER cycles the hero through the seven papers (OFF: the
+              letter's own).
 
    In letters, a short letter's block hugs its words, and a long press
    lifts the block itself, never the 86% around it.
@@ -57,7 +73,7 @@ import { setSignDemo, signDemo, subscribeSignDemo } from "../../screens/chat/sig
    English typed here is this page's chips. A binary built before
    KConversationView says so and shows the fallback. */
 
-type Fixture = { id: string; variant: "room" | "letters"; label: string; expired?: string; closing?: string };
+type Fixture = { id: string; variant: "room" | "letters" | "reader"; label: string; expired?: string; closing?: string; m?: string };
 
 const FIXTURES: Fixture[] = [
   { id: "demo-juno", variant: "room", label: "ROOM · EVERY KIND" },
@@ -76,6 +92,14 @@ const FIXTURES: Fixture[] = [
   { id: "demo-voice", variant: "letters", label: "LETTERS · VOICE" },
   { id: "demo-gone-penpal", variant: "letters", label: "LETTERS · GONE" },
   { id: "demo-quiet", variant: "letters", label: "LETTERS · QUIET" },
+  { id: "demo-quiet", variant: "reader", label: "READER · KRAFT" },
+  { id: "demo-north", variant: "reader", label: "READER · AIRMAIL", m: "opening" },
+  { id: "demo-north", variant: "reader", label: "READER · A REPLY" },
+  { id: "demo-voice", variant: "reader", label: "READER · VOICE HERO", m: "opening" },
+  { id: "demo-voice", variant: "reader", label: "READER · VOICE EARLIER", m: "demo-voice-2" },
+  { id: "demo-mira", variant: "reader", label: "READER · KINDRED" },
+  { id: "demo-gone-penpal", variant: "reader", label: "READER · GONE", m: "opening" },
+  { id: "demo-long", variant: "reader", label: "READER · LONG" },
 ];
 
 export default function Step5Chat() {
@@ -118,12 +142,16 @@ function ChatLab() {
   // NAMES: the identity switch previewed on for this run (never saved): the pen pal's courier name, frost, ♀/♂ and sign
   const names = useIdentityOn();
   const pen = useSignDemoChips();
+  // PAPER: the reader's hero on each paper in turn (-1: the letter's own)
+  const [paperIx, setPaperIx] = useState(-1);
+  const paper = paperIx >= 0 ? PAPERS[paperIx].id : undefined;
+  const readerAvailable = isKindredlyUIViewAvailable("KReaderView");
 
   const keys = THEME_KEYS as ThemeKey[];
   const themeIndex = forced ? keys.indexOf(forced) : -1;
   const nextTheme = () => setDevThemeOverride(themeIndex + 1 < keys.length ? keys[themeIndex + 1] : null);
   // remount per fixture and renderer, so each opens fresh (and at its newest line)
-  const screenKey = `${index}:${fx.variant}:${fx.id}:${rn ? "rn" : "swift"}`;
+  const screenKey = `${index}:${fx.variant}:${fx.id}:${rn || (fx.variant === "reader" && !readerAvailable) ? "rn" : "swift"}`;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: tk.bg }}>
@@ -138,6 +166,7 @@ function ChatLab() {
           <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
           <Chip label={`PEN ${pen.mode}`} on={pen.mode !== "REAL"} onPress={pen.next} />
           <Chip label="GUEST" on={pen.guest} onPress={pen.toggleGuest} />
+          <Chip label={`PAPER ${paper ? paper.toUpperCase() : "OFF"}`} on={!!paper} onPress={() => setPaperIx((p) => (p + 1 < PAPERS.length ? p + 1 : -1))} />
           {FIXTURES.map((f, i) => (
             <Chip key={`${i}:${f.variant}:${f.id}`} label={f.label} on={i === index} onPress={() => setIndex(i)} />
           ))}
@@ -149,7 +178,13 @@ function ChatLab() {
         ) : null}
       </View>
       <View key={screenKey} style={{ flex: 1 }}>
-        {fx.variant === "room" ? (
+        {fx.variant === "reader" ? (
+          rn || !readerAvailable ? (
+            <ReaderScreen id={fx.id} m={fx.m} topInset={0} />
+          ) : (
+            <ReaderNative id={fx.id} m={fx.m} topInset={0} paper={paper} />
+          )
+        ) : fx.variant === "room" ? (
           rn ? (
             <RoomRN id={fx.id} expired={fx.expired} closing={fx.closing} topInset={0} />
           ) : (

@@ -87,6 +87,14 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // the one-letter reader (owner, 2026-10-20): adapter appended to Adapters/KConversationView.swift,
+    // the screen to Portable/Chat/KChatRows.swift; src/app/thread/[id].tsx behind the "reader" switch
+    ExpoUIView(KReaderView.self) {
+      AsyncFunction("command") { (view: KReaderView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // custom stamps: the Stamp Press camera (adapter appended to Adapters/KLabView.swift, the page
     // at the end of Portable/Kit/KLab.swift), the /stamp-press route
     ExpoUIView(KStampPressView.self) {

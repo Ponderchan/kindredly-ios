@@ -92,8 +92,14 @@ import {
                   fare step keeps the React Native PaywallBody
      myletters    My letters (my-letters) — KMyLettersView
 
-   The one-letter reader, a kindred's page and Wren's desk stay React
-   Native and have no key. */
+   The one-letter reader (owner-approved 2026-10-20), keeping its React
+   Native page the same way:
+
+     reader       the one-letter reader (thread/[id]) — KReaderView; the
+                  React Native ReaderScreen draws the same model
+                  (screens/chat/useReaderModel)
+
+   A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -107,10 +113,11 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   notes: true,
   paywall: true,
   myletters: true,
+  reader: true,
 };
 
-/** the nine step-5 surface keys and Me 4a's two (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters";
+/** the nine step-5 surface keys, Me 4a's two and the reader (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

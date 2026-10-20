@@ -176,6 +176,8 @@ export const KSCREEN_VIEWS = [
   // Me 4a: the First Class page and My letters
   "KPaywallView",
   "KMyLettersView",
+  // the one-letter reader (2026-10-20)
+  "KReaderView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

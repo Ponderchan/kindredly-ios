@@ -534,6 +534,8 @@ export const DEMO_DETAILS: Record<string, ThreadDetail> = {
     otherCount: 5,
     since: iso(100 * H),
     openingAt: iso(120 * H),
+    // letter papers (0041): the opening came on Airmail (the reader draws it there; replies are plain)
+    openingPaper: "airmail",
     opening: "No stake in the answer. That's the whole thing about strangers.",
     openingFromMe: false,
     messages: [
@@ -556,6 +558,8 @@ export const DEMO_DETAILS: Record<string, ThreadDetail> = {
     other: "demo-quiet",
     myCount: 1,
     otherCount: 1,
+    // letter papers (0041): the opening came on Kraft
+    openingPaper: "kraft",
     opening:
       "I moved cities three weeks ago and I still haven't unpacked the box marked KITCHEN. I've been eating standing up, out of the one bowl I bothered to find.\n\nI think I'm waiting to be sure I'm staying before I let myself arrive.",
     openingFromMe: false,

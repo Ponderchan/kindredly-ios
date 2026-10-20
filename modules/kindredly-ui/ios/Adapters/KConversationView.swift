@@ -563,3 +563,273 @@ extension KConversationView: ExpoSwiftUI.FocusableView {
     driver.blurAll()
   }
 }
+
+// MARK: - THE ONE-LETTER READER
+
+/*
+ THE ONE-LETTER READER as React Native sees it: <KReaderView … /> (modules/kindredly-ui/src/
+ Reader.tsx), drawn by src/screens/chat/ReaderNative.tsx on the model the React Native reader
+ shares (src/screens/chat/useReaderModel.ts), for src/app/thread/[id].tsx behind the "reader"
+ NativeSurface switch. The surface is KReaderScreen at the end of Portable/Chat/KChatRows.swift;
+ this adapter lives here, beside the conversation's, so the module needs no pod install.
+
+ Props, beyond KScreenProps:
+ - hero: KReaderHeroRecord, the letter being read with every word resolved (show false: none
+   yet). The face flattened: faceKind none | image | mosaic | frost | veil | tile | placeholder
+   (tile: a deleted account with the identity switch on), faceUri, faceKey, faceOverscan,
+   faceMask, faceFrost (NO_FROST for none); paper is the letter's paper id (KPaper(key:)).
+ - earlier: [KReaderLetterRecord], the other letters, oldest first (converted once per rev)
+ - strings: KReaderStringsRecord: the header, the offline lines, the closed line, the bar's words
+ - insets.top: the status bar's room over the header; insets.bottom: the home indicator's
+
+ Commands: setText { value } (the reply bar; any target), focus, blur, composer { canSend, hint,
+ hintAlarm } (per keystroke), playback { key, playing, positionS, durationS, at, failed }, reset.
+
+ Events (onReader…, so none clashes with React Native's own): onReaderBack {}, onReaderMore
+ { top } (window points), onReaderTranslate {}, onReaderText { value }, onReaderSend { value },
+ onReaderFocus { focused }, onReaderVoice { key }, onReaderStamp { action: keep | report }.
+
+ It holds a field, so it is an ExpoSwiftUI.FocusableView like the conversation.
+ */
+
+struct KReaderHeroRecord: Record {
+  @Field var show: Bool = false
+  @Field var key: String = ""
+  @Field var paper: String = "plain"
+  @Field var faceKind: String = "none"
+  @Field var faceUri: String = ""
+  @Field var faceKey: String = ""
+  @Field var faceOverscan: Double = 0
+  @Field var faceMask: Int = 0
+  @Field var faceFrost: KFrostRecord = KFrostRecord()
+  @Field var faceRound: Bool = false
+  @Field var faceSize: Double = 24
+  @Field var memberStamp: String = ""
+  @Field var name: String = ""
+  @Field var mark: String = ""
+  @Field var sign: String = ""
+  @Field var when: String = ""
+  @Field var postmark: String = ""
+  @Field var state: String = ""
+  /// mute | ind | brass
+  @Field var tone: String = "mute"
+  @Field var headA11y: String = ""
+  @Field var stampId: String = ""
+  @Field var stampHex: String = ""
+  @Field var delivered: Bool = false
+  @Field var stampLetterId: String = ""
+  @Field var stampA11y: String = ""
+  @Field var isVoice: Bool = false
+  @Field var voiceKey: String = ""
+  @Field var voiceDuration: String = ""
+  @Field var body: String = ""
+  @Field var size: Double = 21
+  @Field var line: Double = 33
+  @Field var center: Bool = false
+  @Field var topic: String = ""
+  @Field var topicHex: String = ""
+  @Field var translates: Bool = false
+  @Field var translateCode: String = ""
+  @Field var translateLabel: String = ""
+  @Field var translateBusy: Bool = false
+  @Field var betweenLabel: String = ""
+  @Field var hideLabel: String = ""
+  @Field var replyLabel: String = ""
+
+  var hero: KReaderHero? {
+    guard show else { return nil }
+    var h = KReaderHero()
+    h.key = key
+    h.paper = KPaper(key: paper)
+    switch faceKind {
+    case "image": h.face = .image(faceUri.isEmpty ? nil : KImageRef(uri: faceUri, key: faceKey), overscan: CGFloat(faceOverscan))
+    case "mosaic": h.face = .mosaic(faceMask)
+    case "frost": h.face = faceFrost.spec.map { .frost($0) } ?? .veil
+    case "veil": h.face = .veil
+    case "tile": h.face = .frostVeil
+    case "placeholder": h.face = .placeholder
+    default: h.face = .none
+    }
+    h.faceRound = faceRound
+    h.faceSize = CGFloat(faceSize)
+    h.memberStamp = memberStamp
+    h.name = name
+    h.mark = KLineGlyph.mark(mark)
+    h.sign = KLineGlyph.sign(sign)
+    h.when = when
+    h.postmark = postmark
+    h.state = state
+    h.tone = KChatTone(rawValue: tone) ?? .mute
+    h.headA11y = headA11y
+    h.stampId = stampId
+    h.stampHex = stampHex
+    h.delivered = delivered
+    h.stampLetterId = stampLetterId
+    h.stampA11y = stampA11y
+    h.isVoice = isVoice
+    h.voiceKey = voiceKey
+    h.voiceDuration = voiceDuration
+    h.body = body
+    h.size = CGFloat(size)
+    h.line = CGFloat(line)
+    h.center = center
+    h.topic = topic
+    h.topicHex = topicHex
+    h.translates = translates
+    h.translateCode = translateCode
+    h.translateLabel = translateLabel
+    h.translateBusy = translateBusy
+    h.betweenLabel = betweenLabel
+    h.hideLabel = hideLabel
+    h.replyLabel = replyLabel
+    return h
+  }
+}
+
+struct KReaderLetterRecord: Record {
+  @Field var key: String = ""
+  @Field var mine: Bool = false
+  @Field var body: String = ""
+  @Field var signature: String = ""
+  @Field var isVoice: Bool = false
+  @Field var a11y: String = ""
+
+  var letter: KReaderLetter {
+    KReaderLetter(id: key, mine: mine, body: body, signature: signature, isVoice: isVoice, a11y: a11y)
+  }
+}
+
+struct KReaderStringsRecord: Record {
+  @Field var title: String = ""
+  @Field var backLabel: String = ""
+  @Field var moreLabel: String = ""
+  @Field var offlineTitle: String = ""
+  @Field var offlineBody: String = ""
+  @Field var closed: String = ""
+  @Field var composer: Bool = false
+  @Field var placeholder: String = ""
+  @Field var sendLabel: String = ""
+  @Field var emojiLabel: String = ""
+  @Field var playLabel: String = ""
+  @Field var pauseLabel: String = ""
+}
+
+final class KReaderViewProps: KScreenProps {
+  @Field var hero: KReaderHeroRecord = KReaderHeroRecord()
+  @Field var earlier: [KReaderLetterRecord] = []
+  @Field var strings: KReaderStringsRecord = KReaderStringsRecord()
+
+  var onReaderBack = EventDispatcher()
+  var onReaderMore = EventDispatcher()
+  var onReaderTranslate = EventDispatcher()
+  var onReaderText = EventDispatcher()
+  var onReaderSend = EventDispatcher()
+  var onReaderFocus = EventDispatcher()
+  var onReaderVoice = EventDispatcher()
+  var onReaderStamp = EventDispatcher()
+
+  /// The reply field, canSend and the hint, playback: as long-lived as the view.
+  let driver = KReaderDriver()
+
+  private(set) lazy var actions: KReaderActions = {
+    let a = KReaderActions()
+    a.onBack = { [weak self] in self?.onReaderBack() }
+    a.onMore = { [weak self] in self?.onReaderMore(["top": Double($0)]) }
+    a.onTranslate = { [weak self] in self?.onReaderTranslate() }
+    a.onText = { [weak self] in self?.onReaderText(["value": $0]) }
+    a.onSend = { [weak self] in self?.onReaderSend(["value": $0]) }
+    a.onFocus = { [weak self] in self?.onReaderFocus(["focused": $0]) }
+    a.onVoice = { [weak self] in self?.onReaderVoice(["key": $0]) }
+    a.onStamp = { [weak self] in self?.onReaderStamp(["action": $0]) }
+    return a
+  }()
+
+  /// The page as KReaderScreen takes it; the earlier letters converted once per rev.
+  var content: KReaderContent {
+    var c = KReaderContent()
+    c.title = strings.title
+    c.backLabel = strings.backLabel
+    c.moreLabel = strings.moreLabel
+    c.hero = hero.hero
+    c.earlier = cached("earlier") { earlier.map(\.letter) }
+    c.offlineTitle = strings.offlineTitle
+    c.offlineBody = strings.offlineBody
+    c.closed = strings.closed
+    c.composer = strings.composer
+    c.placeholder = strings.placeholder
+    c.sendLabel = strings.sendLabel
+    c.emojiLabel = strings.emojiLabel
+    c.playLabel = strings.playLabel
+    c.pauseLabel = strings.pauseLabel
+    return c
+  }
+
+  func handle(_ name: String, _ args: [String: Any]) {
+    switch name {
+    case KCommandName.setText:
+      driver.reply.setText(args.kString("value") ?? "")
+    case KCommandName.focus:
+      guard strings.composer, strings.closed.isEmpty else { return }
+      driver.reply.focus()
+    case KCommandName.blur:
+      driver.reply.blur()
+    case KCommandName.composer:
+      let canSend = args.kBool("canSend") ?? false
+      if driver.canSend != canSend { driver.canSend = canSend }
+      let hint = args.kString("hint") ?? ""
+      if driver.hint != hint { driver.hint = hint }
+      let alarm = args.kBool("hintAlarm") ?? false
+      if driver.hintAlarm != alarm { driver.hintAlarm = alarm }
+    case KCommandName.playback:
+      let key = args.kString("key") ?? ""
+      driver.playbackKey = key
+      driver.voiceUnavailable = args.kBool("failed") ?? false
+      driver.playback = key.isEmpty ? nil : KPlayback(
+        playing: args.kBool("playing") ?? false,
+        positionS: args.kDouble("positionS") ?? 0,
+        durationS: args.kDouble("durationS") ?? 0,
+        at: args.kDate("at") ?? Date()
+      )
+    case KCommandName.reset:
+      driver.reply.blur()
+      driver.reply.clear()
+      driver.canSend = false
+      driver.hint = ""
+      driver.hintAlarm = false
+      driver.playback = nil
+      driver.playbackKey = ""
+    default:
+      break
+    }
+  }
+}
+
+struct KReaderView: ExpoSwiftUI.View {
+  @ObservedObject var props: KReaderViewProps
+
+  var body: some View {
+    KReaderScreen(
+      theme: props.kTheme,
+      content: props.content,
+      topInset: props.insets.top,
+      bottomInset: props.insets.bottom,
+      driver: props.driver,
+      actions: props.actions
+    )
+    .kScreenEnvironment(props)
+    .onKCommand(props.commands) { name, args in
+      props.handle(name, args)
+    }
+  }
+}
+
+extension KReaderView: ExpoSwiftUI.FocusableView {
+  /// Before the view goes: the keyboard away if the reply field has it, then the field told.
+  func forceResignFirstResponder() {
+    let reply = props.driver.reply
+    if reply.isFocused {
+      _ = UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    reply.blur()
+  }
+}

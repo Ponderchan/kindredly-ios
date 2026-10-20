@@ -57,7 +57,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // Me 4a (2026-10-19): the First Class page and My letters
   const ME4A = ["paywall", "myletters"];
   ok("the two Me 4a keys are there and on", ME4A.every((k) => entries[k] === true));
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 1);
+  // the one-letter reader (2026-10-20)
+  ok("the reader's key is there and on", entries.reader === true);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 2);
 }
 
 /* ── the crash breadcrumb ── */

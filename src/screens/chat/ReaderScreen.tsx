@@ -1,62 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { useRef, useState } from "react";
+import { KeyboardAvoidingView, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn } from "react-native-reanimated";
-import { useRouter } from "expo-router";
-import { getLang, hasString, sourceTag, t, useLang } from "../../lib/i18n";
+import { getLang, hasString, t, useLang } from "../../lib/i18n";
 import { useLetterFamily, useTheme } from "../../lib/theme";
 import { MONO, PF } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
-import { localeTag, penPalName, postmark } from "../../lib/format";
-import { useWhoBook } from "../../lib/who";
 import { developFor } from "../../lib/mosaic";
-import { sendThreadMessage, theirLatest } from "../../lib/db";
-import { chatSeenRule, useThreadDetail } from "../../lib/thread-detail";
-import { threadState } from "../../lib/thread-state";
-import { guessLatin, offerTranslate } from "../../lib/lang-guess";
-import { translate } from "../../lib/wren";
-import { useWrenName } from "../../lib/wren-name";
-import { alertFail } from "../../lib/fail";
 import { blurThen } from "../../lib/keyboard";
-import { useReportFlow } from "../../lib/report-flow";
-import { refreshFingerprint } from "../../lib/aura";
-import { noteWrote } from "../../lib/local-push";
-import { getStamp, sname } from "../../data/stamps";
+import { sname } from "../../data/stamps";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MosaicId } from "../../components/MosaicId";
 import { StampAvatar, StampMosaic } from "../../components/StampAvatar";
-import { useMemberStamps } from "../../lib/member-marks";
 import { WhoFaceView } from "../../components/Frost";
 import { WhoName } from "../../components/WhoName";
 import { KeepableStamp } from "../../components/Stamp";
 import { Toast } from "../../components/ui";
-import { isCustomStampId, tagOf, useCustomStamps } from "../../lib/custom-stamps";
 import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { ReportSheet } from "../../components/ReportMenu";
 import { InkPanel, ReplyStrip, SecondaryHeader, TopicTag, TranslateCapsule, type ReplyStripHandle } from "../../components/10a";
 import "../../data/strings-step5-platform"; // rp.menu.a11y, vo.play, vo.pause
-import {
-  canWriteHere,
-  capsuleCode,
-  closedLine,
-  correspondentWho,
-  heroIndex,
-  heroTier,
-  isUnsigned,
-  largeType,
-  isVoiceLetter,
-  letterDate,
-  letterLinkKey,
-  offersTranslate,
-  postmarkLine,
-  readerLetters,
-  readerTitle,
-  replyCanSend,
-  replyHint,
-  replyPlaceholder,
-  signatureOf,
-  type ReaderFormat,
-} from "./reader";
+import { capsuleCode, isUnsigned, largeType, isVoiceLetter, letterLinkKey, postmarkLine, replyCanSend, replyPlaceholder, signatureOf } from "./reader";
+import { letterLang, useReaderModel } from "./useReaderModel";
 import { useKeyboardRN } from "./useKeyboardRN";
 import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
 
@@ -113,19 +78,8 @@ import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
    it off on 2026-10-18). It used to be a 34 tile at 3°. */
 const HEAD_STAMP = STAMP_LADDER.readerHead;
 
-/** Their language for the capsule: a non-Latin script by its own name, else the Latin guess;
-    null when neither is confident (the capsule shows its words alone). */
-function letterLang(body: string): string | null {
-  const script = sourceTag(body, "xx");
-  if (script !== "XX") return script;
-  const latin = guessLatin(body);
-  return latin ? latin.toUpperCase() : null;
-}
-
 export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: string; m?: string; i?: string; topInset?: number }) {
   useLang(); // repaint on language change
-  const router = useRouter();
-  const wren = useWrenName();
   const { t: tk } = useTheme();
   const letterFace = useLetterFamily();
   const insets = useSafeAreaInsets();
@@ -133,83 +87,15 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   // at accessibility sizes the head row's words wrap instead of truncating beside the fixed face,
   // stamp and ··· (a name or OCT.14 · NO.7273 cut to a few characters)
   const big = largeType(useWindowDimensions().fontScale);
-  const isDemo = __DEV__ && !!id?.startsWith("demo-");
 
-  // the room marks seen when you enter it; a pen pal's letters are marked once names are traded
-  const { detail, status, reload, mutate } = useThreadDetail(id, { folds: false, markSeen: chatSeenRule });
-  const voice = useOpeningVoiceRN(detail, isDemo);
-  const conv = useMemo(() => readerLetters(detail), [detail]);
-  const heroIdx = heroIndex(conv, { m: mParam, i: iParam });
-  const hero = heroIdx >= 0 ? conv[heroIdx] : null;
-  const heroKey = hero ? letterLinkKey(hero) || `i:${heroIdx}` : "";
-  const earlier = conv.filter((_, k) => k !== heroIdx);
+  /* the thread, the hero, who wrote it, the translation, the report flow and the reply: the model
+     both renderers share (./useReaderModel) */
+  const r = useReaderModel({ id, m: mParam, i: iParam });
+  const { detail, status, conv, hero, heroKey, earlier, who, fmt, state, stamp, customId, custom, customTag, setStampLine, stampLine, translated, shown, tier, offerXl, xlBusy, doTranslate, flow, text, setText, sending, canWrite, closed, hint, goBack, pal, memberStamp, heroDate } = r;
+  const voice = useOpeningVoiceRN(detail, r.isDemo);
   const [expanded, setExpanded] = useState(false);
-
-  /* who wrote it (lib/who): switch off, their number; on, the courier name, and their ♀/♂ and
-     star sign asked for (reader correspondentWho) */
-  const who = useWhoBook({ uids: detail && !detail.revealed ? [detail.other] : [] });
-  const fmt: ReaderFormat = useMemo(
-    () => ({ t, locale: localeTag(), postmark, penPal: (other: string) => penPalName(other, { upper: true, compact: true }), who }),
-    // a language change re-renders (useLang); the locale and t() are read fresh with it
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getLang(), who],
-  );
-  const state = detail
-    ? threadState({
-        mine: detail.myCount,
-        theirs: detail.otherCount,
-        revealed: detail.revealed,
-        lastSenderMe: !detail.messages.length || !!detail.messages[detail.messages.length - 1]?.mine,
-        iSigned: detail.iSigned,
-        theirSigned: detail.theirSigned,
-        gone: isUnsigned(detail),
-      })
-    : null;
   const tone = state ? (state.toneKey === "ind" ? tk.ind : state.toneKey === "brass" ? BRAND.brassSeal : tk.mute) : tk.mute;
-  const stamp = getStamp(detail?.stamp);
-  /* a photo stamp ("c:<uuid>", custom stamps): drawn by Stamp itself; its #topic on its colour */
-  const customId = isCustomStampId(detail?.stamp) ? (detail?.stamp as string) : null;
-  const custom = useCustomStamps(customId ? [customId] : [])(customId ?? "");
-  const customTag = custom ? tagOf(custom) : "";
-  const [stampLine, setStampLine] = useState("");
-  useEffect(() => {
-    if (!stampLine) return;
-    const tm = setTimeout(() => setStampLine(""), 2600);
-    return () => clearTimeout(tm);
-  }, [stampLine]);
 
-  /* ── translation of the hero: translated once, then toggled ── */
-  const [xl, setXl] = useState<{ key: string; text: string } | null>(null);
-  const [xlOn, setXlOn] = useState(false);
-  const [xlBusy, setXlBusy] = useState(false);
-  const translated = !!xl && xl.key === heroKey && xlOn;
-  const shown = hero ? (translated && xl ? xl.text : hero.body) : "";
-  const tier = heroTier(shown);
-  const offerXl = offersTranslate(hero, detail, offerTranslate);
-  const doTranslate = async () => {
-    if (!hero) return;
-    if (xl && xl.key === heroKey) {
-      setXlOn((v) => !v);
-      return;
-    }
-    if (xlBusy) return;
-    setXlBusy(true);
-    const out = await translate(hero.body, getLang());
-    setXlBusy(false);
-    if (out) {
-      setXl({ key: heroKey, text: out });
-      setXlOn(true);
-    } else blurThen(() => Alert.alert(t("th.noTransTitle", { wren }), t("th.noTransBody")));
-  };
-
-  /* ── report / block: the ··· in the letter's head; a block lands on Kindreds ── */
-  const flow = useReportFlow({
-    context: "thread",
-    targetUser: detail && !isUnsigned(detail) ? detail.other : undefined,
-    refId: id,
-    snapshot: theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening),
-    onBlocked: () => router.replace("/(tabs)/kindreds"),
-  });
   const dots = useRef<View>(null);
   const [reportTop, setReportTop] = useState<number | undefined>(undefined);
   const openReport = () =>
@@ -223,47 +109,9 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
 
   /* ── the reply ── */
   const strip = useRef<ReplyStripHandle>(null);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const canWrite = canWriteHere(detail, status);
-  const closed = closedLine(detail, status, t);
-  const hint = replyHint(text, !!detail?.revealed, t, who.identity);
-  const onSend = (value: string): boolean => {
-    const body = value.trim();
-    if (!id || !detail || sending || !canWrite || !replyCanSend(value, false)) return false;
-    void (async () => {
-      setSending(true);
-      if (isDemo) {
-        // a demo thread never reaches the database: the reply lands on the page only
-        mutate((d) => ({ ...d, myCount: d.myCount + 1, messages: [...d.messages, { id: `demo-r${Date.now()}`, body, mine: true, date: new Date().toISOString() }] }));
-        setSending(false);
-        strip.current?.clear();
-        return;
-      }
-      const res = await sendThreadMessage(id, body);
-      setSending(false);
-      if (!res) {
-        // the words stay in the strip to send again
-        blurThen(() => alertFail(t("th.fail.title"), t("th.fail.body"), { context: "thread" }));
-        return;
-      }
-      strip.current?.clear();
-      void refreshFingerprint();
-      void noteWrote("letter");
-      await reload();
-    })();
-    // the reader's send is plain: the words stay until the letter went
-    return false;
-  };
+  // the reader's send is plain: the words stay until the letter went
+  const onSend = (value: string): boolean => r.send(value, () => strip.current?.clear());
 
-  const goBack = () => blurThen(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds")), undefined, { delayMs: 0 });
-
-  // switch on, a pen pal (or no one) as the book gives them; null off, and for a kindred
-  const pal = who.identity ? correspondentWho(detail, fmt) : null;
-  /* a member's face is a gold perforated stamp (C2; ≤32 takes the thin edge, no denomination);
-     never a closed account */
-  const stampUid = detail && !detail.gone && !isUnsigned(detail) ? detail.other || null : null;
-  const memberStamp = useMemberStamps([stampUid])(stampUid);
   const face = !detail ? null : pal ? (
     <WhoFaceView face={pal.face} size={34} denom={memberStamp} />
   ) : isUnsigned(detail) ? (
@@ -285,11 +133,10 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
   );
 
   const mono = (size: number, spacing: number) => ({ fontFamily: PF.monoSemi, fontSize: size, letterSpacing: size * spacing });
-  const heroDate = hero && detail ? letterDate(hero, detail, fmt) : "";
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: topInset ?? insets.top }}>
-      <SecondaryHeader title={detail ? readerTitle(conv.length, t) : ""} onBack={goBack} />
+      <SecondaryHeader title={r.title} onBack={goBack} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
