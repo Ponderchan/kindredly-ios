@@ -18,8 +18,9 @@ const KEY = "kindredly_fc_rollout";
 /* dev only: force a form to look at it (the dev route /dev/fc-form?form=seat sets it; null = real) */
 let devForm: FcForm | null = null;
 const devListeners = new Set<() => void>();
-export function setFcDevForm(form: FcForm | null): void {
+export function setFcDevForm(form: FcForm | null, reset = false): void {
   if (!__DEV__) return;
+  if (reset) void AsyncStorage.removeItem(KEY).catch((e) => console.warn("[fc-rollout] reset failed", e));
   devForm = form;
   devListeners.forEach((l) => l());
 }
@@ -41,6 +42,14 @@ async function writeState(s: FcRolloutState): Promise<void> {
   } catch (e) {
     console.warn("[fc-rollout] couldn't keep what was offered", e);
   }
+}
+
+/** A gate was touched (a First Class filter in the Stamp Press, the free stamps used up): the Post's
+    letter may come before day 3. Kept with the rest; the Me page reads it next time it looks. */
+export async function markFcThreshold(): Promise<void> {
+  const s = await readState();
+  if (s.threshold) return;
+  await writeState({ ...s, threshold: true });
 }
 
 export type FcRolloutFacts = {
@@ -132,6 +141,8 @@ export function useFcRollout(f: FcRolloutFacts, go: (src: string) => void): { vi
   decisionRef.current = decision;
   const open = useCallback(
     (form: FcForm) => {
+      // dev: every open is logged, to catch one that didn't come from a tap
+      if (__DEV__) console.log("[fc-rollout] open", form);
       const d = decisionRef.current;
       go(`fc_${form}`);
       setState((s) => {

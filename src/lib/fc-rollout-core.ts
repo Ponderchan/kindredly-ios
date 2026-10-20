@@ -4,7 +4,7 @@
    Which of First Class's forms the Me page shows a reader who isn't a member:
      none    days 1–2 (and no threshold touched): First Class isn't mentioned at all
      invite  from day 3, or the first time a threshold is touched (a third photo stamp, a seventh
-             pen pal): THE POST's gold-edged letter on the Courier card, for 48 hours
+             pen pal, a First Class filter tapped in the Stamp Press): THE POST's gold-edged letter on the Courier card, for 48 hours
      seat    seven days in a row with something written (a letter or a note): the boarding pass
              over the Courier card, for 48 hours, once ever
      report  from day 30: last month's writing report, sealed, over the Courier card, each month
@@ -33,6 +33,8 @@ export type FcRolloutState = {
   seatDone?: boolean;
   /** the report month ("2026-09") last spent */
   reportDone?: string;
+  /** a gate was touched on this phone (a First Class filter in the Stamp Press, the stamp quota) */
+  threshold?: boolean;
 };
 
 export type FcFacts = {
@@ -104,7 +106,7 @@ export function decideFc(f: FcFacts): FcDecision {
   if (f.premium || f.createdAt == null) return { form: "none", tab: false, ...base };
   const day = accountDay(f.createdAt, f.now);
   const s = f.state;
-  const open = day >= 3 || f.threshold;
+  const open = day >= 3 || f.threshold || !!s.threshold;
 
   if (!s.seatDone && live(s.seatShown, f.now) && writingStreak(f.writtenDays, f.now) >= 7) {
     return { form: "seat", tab: false, ...base, day };

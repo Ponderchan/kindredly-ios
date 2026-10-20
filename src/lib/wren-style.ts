@@ -109,13 +109,21 @@ export function wrenStage(s: GrowthStats): WrenStage {
 const FLOOR_KEY = "kindredly_wren_stage_floor";
 
 export async function getStageFloor(): Promise<WrenStage> {
+  let floor: WrenStage = "egg";
   try {
     const v = await AsyncStorage.getItem(FLOOR_KEY);
     const i = v ? Number(v) : 0;
-    return STAGE_ORDER[Math.min(STAGE_ORDER.length - 1, Math.max(0, Number.isFinite(i) ? i : 0))];
-  } catch {
-    return "egg";
+    floor = STAGE_ORDER[Math.min(STAGE_ORDER.length - 1, Math.max(0, Number.isFinite(i) ? i : 0))];
+  } catch (e) {
+    console.warn("[wren] the stage floor wasn't read", e);
   }
+  if (floor !== "egg") return floor;
+  /* Onboarding hatches her (the hatch engine reads the first letter), so past it she is never an
+     egg again — not after a reinstall, on another phone, or on an account from before the floor
+     was kept (owner, 2026-10-20: an egg floating on Me after the onboarding hatched her). The
+     floor lives on this phone; this puts it right. */
+  void bumpStageFloor("hatch");
+  return "hatch";
 }
 
 export async function bumpStageFloor(stage: WrenStage): Promise<void> {

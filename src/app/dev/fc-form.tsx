@@ -5,14 +5,14 @@ import { setFcDevForm } from "../../lib/fc-rollout";
 import type { FcForm } from "../../lib/fc-rollout-core";
 
 /* DEV: force First Class's rollout form on the Me page to look at it (lib/fc-rollout).
-   kindredly:///dev/fc-form?form=invite | seat | report | tab | none, or ?form=real to go back. */
+   kindredly:///dev/fc-form?form=invite | seat | report | tab | none, or ?form=real to go back, ?form=reset to also forget what was offered. */
 const FORMS: readonly FcForm[] = ["none", "invite", "seat", "report", "tab"];
 
 export default function FcFormDev() {
   const router = useRouter();
   const { form } = useLocalSearchParams<{ form?: string }>();
   useEffect(() => {
-    setFcDevForm(FORMS.includes(form as FcForm) ? (form as FcForm) : null);
+    setFcDevForm(FORMS.includes(form as FcForm) ? (form as FcForm) : null, form === "reset");
     router.replace("/me");
   }, [form, router]);
   return <View />;

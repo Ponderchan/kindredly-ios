@@ -1,3 +1,4 @@
+import { markFcThreshold } from "../../lib/fc-rollout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -305,7 +306,11 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
 
   /* ── the page's taps ── */
 
-  const upgrade = useCallback(() => router.push("/paywall?src=stamp_filter"), [router]);
+  const upgrade = useCallback(() => {
+    // a First Class gate touched: the Post's letter may come early (lib/fc-rollout)
+    void markFcThreshold();
+    router.push("/paywall?src=stamp_filter");
+  }, [router]);
 
   const cardPrimary = useCallback(() => {
     if (phase === "quota") return upgrade();
