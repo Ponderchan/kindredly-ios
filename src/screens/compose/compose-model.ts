@@ -476,7 +476,9 @@ export function paperItems(p: { hasKindred: boolean; lang: string }, fmt: Compos
     const badge: PaperItemVM["badge"] = paper.tier === "first" ? "1st" : paper.tier === "kindred" && !p.hasKindred ? "lock" : "";
     return {
       id: paper.id,
-      name: name.toLocaleLowerCase(p.lang),
+      // swatches in lower case, the strip's quiet voice — except German, whose nouns keep their
+      // capital (Luftpost, Kassenbon; owner, 2026-10-20: "as German readers expect")
+      name: p.lang === "de" ? name : name.toLocaleLowerCase(p.lang),
       badge,
       a11yLabel: fmt.t("pp.a11y.paper", { name }),
       a11yValue: badge === "1st" ? fmt.t("pp.a11y.fc") : badge === "lock" ? fmt.t("pp.a11y.locked") : "",
