@@ -133,15 +133,15 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
               right: 16,
               width: cardW,
               backgroundColor: tk.sf,
-              borderRadius: 16,
-              borderWidth: 2,
-              borderColor: tk.ln,
+              // (owner, 2026-10-20: no black frame) the live app's look — a plain card, large
+              // continuous corners, a soft shadow
+              borderRadius: 22,
+              borderCurve: "continuous",
               paddingVertical: 4,
-              // the 10a hard shadow: an offset, no blur (iOS needs radius 0 and full opacity)
-              shadowColor: tk.ln,
-              shadowOffset: { width: 3, height: 3 },
-              shadowOpacity: 1,
-              shadowRadius: 0,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: dark ? 0.45 : 0.14,
+              shadowRadius: 22,
             }}
           >
             {stage !== "menu" ? (
@@ -218,7 +218,7 @@ export function ReportMenu({
         accessibilityLabel={t("rp.menu.a11y")}
         style={
           ring
-            ? { width: 26, height: 26, borderRadius: 13, borderWidth: 2.2, borderColor: tk.ln, alignItems: "center", justifyContent: "center" }
+            ? { width: 26, height: 26, borderRadius: 13, backgroundColor: tk.soft, alignItems: "center", justifyContent: "center" } // soft, no black ring (owner, 10-20)
             : { width: 42, height: 42, alignItems: "center", justifyContent: "center" }
         }
       >
