@@ -92,16 +92,19 @@ public struct InkCard<Content: View>: View {
   private let theme: KTheme
   private let variant: InkCardVariant
   private let spacing: CGFloat
+  /// no outline and no hard shadow: the soft wash Wren's looks sits on (Me's cards, owner 2026-10-20)
+  private let soft: Bool
   private let content: Content
 
   /// - Parameters:
   ///   - variant: .today (28, 6/6, 18 20 14) or .me (24, 5/5, 16)
   ///   - spacing: the gap between the content's pieces, CSS's gap. The Today card has none;
   ///     the Me cards use 14 (profile) or 12 (Aura, Stamps).
-  public init(theme: KTheme, variant: InkCardVariant = .today, spacing: CGFloat = 0, @ViewBuilder content: () -> Content) {
+  public init(theme: KTheme, variant: InkCardVariant = .today, spacing: CGFloat = 0, soft: Bool = false, @ViewBuilder content: () -> Content) {
     self.theme = theme
     self.variant = variant
     self.spacing = spacing
+    self.soft = soft
     self.content = content()
   }
 
@@ -112,6 +115,9 @@ public struct InkCard<Content: View>: View {
     .frame(maxWidth: .infinity, alignment: .topLeading)
     .padding(variant.contentInsets)
     .background {
+      if soft {
+        RoundedRectangle(cornerRadius: 20, style: .circular).fill(theme.soft)
+      } else {
       // back to front: the shadow, the face, the outline (drawn inside the edge, as a CSS border is)
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: variant.cornerRadius, style: .circular),
@@ -121,6 +127,7 @@ public struct InkCard<Content: View>: View {
         shadow: theme.ln,
         shadowOffset: variant.shadowOffset
       )
+      }
     }
   }
 }

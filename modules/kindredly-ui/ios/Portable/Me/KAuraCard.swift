@@ -54,7 +54,7 @@ public struct KAuraCard<Art: View>: View {
   }
 
   public var body: some View {
-    InkCard(theme: theme, variant: .me, spacing: 12) {
+    InkCard(theme: theme, variant: .me, spacing: 12, soft: true) {
       SwiftUI.Button {
         actions.onAuraOpen()
       } label: {

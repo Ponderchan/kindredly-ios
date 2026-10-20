@@ -67,16 +67,10 @@ public struct KCourierFrame<Scene: View, Footer: View>: View {
         }
       footer
     }
-    .padding(Self.line)
+    // (owner, 2026-10-20) no ink outline and no hard shadow: the scene and its footer, clipped to
+    // the corners, like Wren's looks under it
     .background(theme.sf)
     .clipShape(shape)
-    .overlay(shape.strokeBorder(theme.ln, lineWidth: Self.line))
-    .background {
-      // the hard shadow, which takes no room (as box-shadow), behind the clipped frame
-      shape
-        .fill(theme.ln)
-        .offset(x: InkCardVariant.me.shadowOffset, y: InkCardVariant.me.shadowOffset)
-    }
     .accessibilityElement(children: .contain)
   }
 }

@@ -290,7 +290,7 @@ public struct KStampsCard: View {
   }
 
   public var body: some View {
-    InkCard(theme: theme, variant: .me, spacing: 18) {
+    InkCard(theme: theme, variant: .me, spacing: 18, soft: true) {
       if stamps.madeShow { madeArea }
       strangersArea
       yoursArea
