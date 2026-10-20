@@ -3,7 +3,7 @@ import { View, type StyleProp, type TextInputProps, type ViewStyle } from "react
 import { GlyphInput } from "../GlyphInput";
 import { useTheme } from "../../lib/theme";
 import { SendKey } from "./SendKey";
-import { StickerBox } from "./StickerBox";
+
 import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
 import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKeyState, sendTakesPress, type SendStyle } from "./kit";
 
@@ -105,7 +105,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
   },
   ref,
 ) {
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   const { input, seed, note, clear, text, hasWords, box, restingLine, onScroll, onContentSizeChange } = useComposerField(ref, initialText, onChangeText);
 
   const state = sendKeyState({ hasWords, canSend, held });
@@ -115,7 +115,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
     if (sendClearsField(state) && !kept) clear();
   };
 
-  const { border, radius, shadow, padLeft, padRight, fontSize, lineHeight, gap } = REPLY_STRIP;
+  const { border, padLeft, padRight, fontSize, lineHeight, gap } = REPLY_STRIP;
   /* the resting row follows the field's one line at the reader's text size (54 at the default;
      useComposerField DYNAMIC TYPE), so the placeholder is never cut */
   const inner = Math.max(REPLY_STRIP.minHeight - 2 * border, restingLine(lineHeight, REPLY_FIELD_PAD));
@@ -124,15 +124,26 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
   return (
     <View style={[{ flexDirection: "row", alignItems: "flex-end", gap }, style]}>
       {leading != null && <View style={{ minHeight, justifyContent: "center" }}>{leading}</View>}
-      <StickerBox
-        fill={tk.sf}
-        stroke={tk.ln}
-        lineWidth={border}
-        radius={radius}
-        shadow={tk.ln}
-        offset={shadow}
-        style={{ flex: 1 }}
-        faceStyle={{ flexDirection: "row", alignItems: "flex-end", minHeight, paddingLeft: padLeft, paddingRight: padRight }}
+      {/* (owner, 2026-10-20: no black frames) the Swift reply bar's face (Kit/KReplyBar): white, a
+          light hairline, corners 16, a faint shadow — the reader, Today and the pen-pal chat match */}
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "flex-end",
+          minHeight,
+          paddingLeft: padLeft - 4,
+          paddingRight: padRight,
+          backgroundColor: tk.sf,
+          borderRadius: 16,
+          borderCurve: "continuous",
+          borderWidth: 1,
+          borderColor: tk.line,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: dark ? 0.35 : 0.08,
+          shadowRadius: 10,
+        }}
       >
         <GlyphInput
           key={seed.n}
@@ -168,7 +179,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
         <View style={{ minHeight: inner, justifyContent: "center", marginLeft: 8 }}>
           <SendKey state={state} onPress={send} label={sendLabel} sendStyle={sendStyle} accessibilityLabel={sendA11yLabel} />
         </View>
-      </StickerBox>
+      </View>
       {trailing != null && <View style={{ minHeight, justifyContent: "center" }}>{trailing}</View>}
     </View>
   );
