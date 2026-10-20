@@ -235,6 +235,10 @@ final class KNotesBox {
   var scrollSerial = 0
   /// a note asked for before it was in the window
   var pendingNote: (id: String, animated: Bool)?
+  /// Grid (the waterfall): the cards on screen, as they report themselves, and what the list's own
+  /// targets last reported (Wren's line, the evening rows); both read together
+  var masonryVisible = Set<String>()
+  var listVisible: [String] = []
   /// the window size the last reach-end was sent for (once per window)
   var reachedAt = -1
   /// bumped by every jump, so a settle pass left over from an earlier one does nothing
@@ -409,7 +413,8 @@ public struct KNotesScreen: View {
       }
       // any part on screen counts: a long page (whole on a Card) may never show 30% of itself
       .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { ids in
-        visibleChanged(ids)
+        box.listVisible = ids
+        visibleChanged(columns == 2 ? ids + Array(box.masonryVisible) : ids)
       }
       // the header's hide rule, every frame, without redrawing anything but what it changes:
       // the offset clamped to where the list can rest, so neither end's bounce counts
@@ -554,19 +559,29 @@ public struct KNotesScreen: View {
     return HStack(alignment: .top, spacing: 12) {
       VStack(spacing: 12) {
         ForEach(cols.left) { note in
-          card(note).id(note.id)
+          masonryCard(note)
         }
       }
-      .scrollTargetLayout()
       .frame(maxWidth: .infinity, alignment: .top)
       VStack(spacing: 12) {
         ForEach(cols.right) { note in
-          card(note).id(note.id)
+          masonryCard(note)
         }
       }
-      .scrollTargetLayout()
       .frame(maxWidth: .infinity, alignment: .top)
     }
+  }
+
+  /// A waterfall card reports its own visibility: nested in a column, it is not one of the list's
+  /// scroll targets, so the list's visibility read never saw it (the date chip stuck on the first
+  /// day, 2026-10-20). The set feeds the same visibleChanged.
+  private func masonryCard(_ note: KNote) -> some View {
+    card(note)
+      .id(note.id)
+      .onScrollVisibilityChange(threshold: 0.01) { shown in
+        if shown { box.masonryVisible.insert(note.id) } else { box.masonryVisible.remove(note.id) }
+        visibleChanged(box.listVisible + Array(box.masonryVisible))
+      }
   }
 
   /// The waterfall's split, in reading order: each note goes under the column that is shorter so
