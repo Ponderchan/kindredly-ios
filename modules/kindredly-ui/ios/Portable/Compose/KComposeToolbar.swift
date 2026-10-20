@@ -54,6 +54,9 @@ struct KComposeToolbar: View {
 
   var body: some View {
     HStack(spacing: 10) {
+      // (owner, 2026-10-20) the three keys a little closer: 40-wide targets with no gap between,
+      // so the glyphs sit ~21 apart instead of ~35
+      HStack(spacing: 0) {
       KComposeIconKey(
         theme: theme,
         accessibilityLabel: content.tray == .more ? content.strings.closeLabel : content.strings.plusLabel,
@@ -104,6 +107,8 @@ struct KComposeToolbar: View {
         }
       }
 
+      }
+
       KComposeTravelKey(theme: theme, driver: driver) {
         driver.blurAll()
         // the gold key on a First Class paper opens the paywall; it never sends
@@ -134,6 +139,8 @@ private struct KComposeKeyPressStyle: ButtonStyle {
 private enum KComposeKeySize {
   /// the touch target (no ring any more: the glyph alone in it)
   static let target: CGFloat = 44
+  /// a key's width in the row (its target stays 44 tall)
+  static let width: CGFloat = 40
   /// the glyph's box
   static let glyph: CGFloat = 27
   /// the chosen stamp in the stamp key: 30 wide, the tray tile's size (36 tall, inside the 44)
@@ -168,7 +175,7 @@ private struct KComposeIconKey<Glyph: View>: View {
       action()
     } label: {
       glyph
-        .frame(width: KComposeKeySize.target, height: KComposeKeySize.target)
+        .frame(width: KComposeKeySize.width, height: KComposeKeySize.target)
         .overlay(alignment: .topTrailing) {
           if dot {
             // ComposeTray KeyDot: 9 across, ind edged 1.5 in the page colour, at the glyph's
